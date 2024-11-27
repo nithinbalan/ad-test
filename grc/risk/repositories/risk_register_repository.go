@@ -338,6 +338,13 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("RiskResponseStrategy").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("AuditableItems", func(db *gorm.DB) *gorm.DB {
+            return db.Order("created_at DESC").Limit(5) // Fetch the latest 5 auditable items
+        }).
+		Preload("AuditableItems.ResponsibleUser").
+		Preload("AuditableItems.ResponsibleUnit").
+		Preload("AuditableItems.AuditorRiskRating").
+		Preload("AuditableItems.CreatedByUser").
 		First(&risk, id)
 
 	if result.Error != nil {

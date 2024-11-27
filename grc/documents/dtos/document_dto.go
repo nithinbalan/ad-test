@@ -128,7 +128,7 @@ type DocumentDetailsDTO struct {
 	CreatedByUser         organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser         *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 	CreatedAt             time.Time                        `json:"created_at"`
-	UpdatedAt             time.Time                        `json:"updated_at"`
+	UpdatedAt             *time.Time                       `json:"updated_at"`
 	Acknowledged          *bool                            `json:"acknowledged,omitempty"`
 }
 

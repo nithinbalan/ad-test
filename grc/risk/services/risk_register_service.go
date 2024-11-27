@@ -135,6 +135,18 @@ func (rrs RiskRegisterService) GetFullDetailsByID(id uint, tx ...utility.Databas
 	if err != nil {
 		return nil, err
 	}
+	// Map the latest auditable item
+	if len(risk.AuditableItems) > 0 {
+		latestAuditableItem := risk.AuditableItems[0]
+		var auditableItemDTO riskDTOs.AuditableItemMinimalRiskDetailDTO
+		err := mapstructure.Decode(latestAuditableItem, &auditableItemDTO)
+		if err != nil {
+			return nil, err
+		}
+		riskDTO.AuditableItem = &auditableItemDTO
+		riskDTO.AuditableItem.CreatedAt = latestAuditableItem.CreatedAt
+		riskDTO.AuditableItem.UpdatedAt = latestAuditableItem.UpdatedAt
+	}
 
 	if risk.ReportedAt != nil {
 		reportedAt := risk.ReportedAt.Format("2006-01-02")

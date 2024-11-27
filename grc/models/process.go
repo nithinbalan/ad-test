@@ -34,6 +34,7 @@ type Process struct {
 	Controls              []*ProcessControl            `gorm:"foreignKey:ProcessID"`
 	Documents             []*ProcessAssociatedDocument `gorm:"foreignKey:ProcessID"`
 	Risks                 []*RiskProcess               `gorm:"foreignKey:ProcessID"`
+	AuditableItems        []*AuditableItem             `gorm:"foreignKey:ProcessID"`
 }
 
 func (Process) TableName() string {

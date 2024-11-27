@@ -36,6 +36,7 @@ type PotentialRiskService struct {
 	riskCategorySvc        RiskCategoryServiceInterface
 	potentialRiskStatusSvc PotentialRiskStatusServiceInterface
 	userSettingSvc         organizationServices.UserSettingServiceInterface
+	riskRegisterSvc        RiskRegisterServiceInterface
 }
 
 func NewPotentialRiskService(
@@ -44,7 +45,8 @@ func NewPotentialRiskService(
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	riskCategorySvc RiskCategoryServiceInterface,
 	potentialRiskStatusSvc PotentialRiskStatusServiceInterface,
-	userSettingSvc organizationServices.UserSettingServiceInterface) PotentialRiskServiceInterface {
+	userSettingSvc organizationServices.UserSettingServiceInterface,
+	riskRegisterSvc RiskRegisterServiceInterface) PotentialRiskServiceInterface {
 	return &PotentialRiskService{
 		repo:                   repo,
 		activityLogSvc:         activityLogSvc,
@@ -52,6 +54,7 @@ func NewPotentialRiskService(
 		riskCategorySvc:        riskCategorySvc,
 		potentialRiskStatusSvc: potentialRiskStatusSvc,
 		userSettingSvc:         userSettingSvc,
+		riskRegisterSvc:        riskRegisterSvc,
 	}
 }
 
@@ -113,7 +116,7 @@ func (prs *PotentialRiskService) Create(currentUserID uint, potentialRiskFormDTO
 		PotentialRiskStatusID: potentialRiskStatus.ID,
 		Title:                 potentialRiskFormDTO.Title,
 		Description:           potentialRiskFormDTO.Description,
-		RiskSource:            "manual",
+		RiskSource:            "Manual",
 		CreatedBYID:           currentUserID,
 		UpdatedAt:             nil,
 	}
@@ -304,9 +307,29 @@ func (prs *PotentialRiskService) StatusUpdate(id uint, currentUserID uint, poten
 	existingPotentialRisk.UpdatedBYID = &currentUserID
 
 	err = prs.repo.Update(existingPotentialRisk)
-
 	if err != nil {
 		return err
+	}
+
+	confirmedStatus, err := prs.potentialRiskStatusSvc.GetByType("confirmed")
+	if err != nil {
+		return err
+	}
+
+	if potentialRiskStatusID == confirmedStatus.ID {
+		// Create a new risk register entry
+		riskRegisterFormDTO := &riskDTOs.RiskRegisterFormDTO{
+			RiskCategoryID:    existingPotentialRisk.RiskCategoryID,
+			ResponsibleUserID: currentUserID,
+			Title:             existingPotentialRisk.Title,
+			Description:       existingPotentialRisk.Description,
+		}
+
+		// Save the risk register entry to the database
+		_, err = prs.riskRegisterSvc.Create(currentUserID, riskRegisterFormDTO)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

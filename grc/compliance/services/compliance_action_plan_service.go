@@ -73,8 +73,10 @@ func NewComplianceActionPlanService(
 }
 
 func (caps *ComplianceActionPlanService) GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error) {
-	if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
-		return nil, err
+	if complianceID != 0 {
+		if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
+			return nil, err
+		}
 	}
 	return caps.repo.GetAll(complianceID, params)
 }

@@ -350,6 +350,7 @@ func (repo *AuditRepository) GetAllAuditableItems(auditID uint, params *auditDTO
 			documents.title_ar AS document_title_ar,
 			incident_register.title AS incident_register_title,
 			compliance_requirements.title AS compliance_requirement_title,
+			organization_units.id AS responsible_unit_id,
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
 			risk_register.title AS risk_register_title,
@@ -362,6 +363,15 @@ func (repo *AuditRepository) GetAllAuditableItems(auditID uint, params *auditDTO
 			users.initial AS user_initial,
 			users.color AS user_color,
 			users.profile_image_path AS user_profile_image_path,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+            responsible_user.first_name_ar AS responsible_user_first_name_ar,
+            responsible_user.last_name_en AS responsible_user_last_name_en,
+            responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+            responsible_user.color AS responsible_user_color,
+            responsible_user.email AS responsible_user_email,
+            responsible_user.profile_image_path AS responsible_user_profile_image_path,
 			audit_plans.reference_number,
 			audit_plans.title AS audit_plan_title,
 			auditable_items.title_en AS auditable_item_title_en,
@@ -409,6 +419,7 @@ func (repo *AuditRepository) GetAllAuditableItems(auditID uint, params *auditDTO
 			LEFT JOIN organization_units ON organization_units.id = auditable_items.responsible_unit_id
 			LEFT JOIN risk_register ON risk_register.id = auditable_items.risk_register_id
 			LEFT JOIN users ON users.id = auditable_items.user_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = auditable_items.responsible_user_id
 			LEFT JOIN audit_categories ON audit_categories.id = audit_plans.audit_category_id
 			LEFT JOIN audit_teams ON audit_teams.id = audit_plans.audit_team_id
 			LEFT JOIN users AS team_lead ON team_lead.id = audit_plans.team_lead_id
@@ -444,12 +455,16 @@ func (repo *AuditRepository) GetAllAuditableItems(auditID uint, params *auditDTO
 			audit_teams.title_ar LIKE ? OR
 			audit_statuses.title_en LIKE ? OR
 			audit_statuses.title_ar LIKE ? OR
+			responsible_user.first_name_en LIKE ? OR
+			responsible_user.first_name_ar LIKE ? OR
+			responsible_user.last_name_en LIKE ? OR
+			responsible_user.last_name_en LIKE ? OR
 			team_lead.first_name_en LIKE ? OR
 			team_lead.first_name_ar LIKE ? OR
 			team_lead.last_name_en LIKE ? OR
 			team_lead.last_name_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order

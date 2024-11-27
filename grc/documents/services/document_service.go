@@ -156,6 +156,9 @@ func (ds *DocumentService) GetFullDetailsByID(id uint, currentUserID *uint, tx .
 		return nil, err
 	}
 
+	documentDTO.CreatedAt = document.CreatedAt
+	documentDTO.UpdatedAt = document.UpdatedAt
+
 	return &documentDTO, nil
 }
 

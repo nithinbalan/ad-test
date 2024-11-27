@@ -155,6 +155,8 @@ type VulnerabilityDTO struct {
 	VulnerabilityStatusTitleAr      string      `json:"vulnerability_status_title_ar"`
 	VulnerabilityStatusColorCode    string      `json:"vulnerability_status_color_code"`
 	VulnerabilityStatusType         string      `json:"vulnerability_status_type"`
+	VulnerabilityTypeTitleEn        string      `json:"vulnerability_type_title_en"`
+	VulnerabilityTypeTitleAr        string      `json:"vulnerability_type_title_ar"`
 	ResponsibleUserID               uint        `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn      string      `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr      string      `json:"responsible_user_first_name_ar"`
@@ -168,27 +170,41 @@ type VulnerabilityDTO struct {
 }
 
 type ThreatDTO struct {
-	ID                     uint      `json:"id"`
-	TitleEn                string    `json:"title_en"`
-	TitleAr                string    `json:"title_ar"`
-	SeverityLevelID        uint      `json:"severity_level_id"`
-	SeverityLevelTitleEn   string    `json:"severity_level_title_en"`
-	SeverityLevelTitleAr   string    `json:"severity_level_title_ar"`
-	SeverityLevelColorCode string    `json:"severity_level_color_code"`
-	ThreatStatusID         uint      `json:"threat_status_id"`
-	ThreatStatusTitleEn    string    `json:"threat_status_title_en"`
-	ThreatStatusTitleAr    string    `json:"threat_status_title_ar"`
-	ThreatStatusColorCode  string    `json:"threat_status_color_code"`
-	ThreatStatusType       string    `json:"threat_status_type"`
-	Description            *string   `json:"description,omitempty"`
-	Risks                  []RiskDTO `json:"risks"`
+	ID                              uint       `json:"id"`
+	TitleEn                         string     `json:"title_en"`
+	TitleAr                         string     `json:"title_ar"`
+	ThreatTypeTitleEn               *string    `json:"threat_type_title_en"`
+	ThreatTypeTitleAr               *string    `json:"threat_type_title_ar"`
+	SeverityLevelID                 uint       `json:"severity_level_id"`
+	SeverityLevelTitleEn            string     `json:"severity_level_title_en"`
+	SeverityLevelTitleAr            string     `json:"severity_level_title_ar"`
+	SeverityLevelColorCode          string     `json:"severity_level_color_code"`
+	ThreatStatusID                  uint       `json:"threat_status_id"`
+	ThreatStatusTitleEn             string     `json:"threat_status_title_en"`
+	ThreatStatusTitleAr             string     `json:"threat_status_title_ar"`
+	ThreatStatusColorCode           string     `json:"threat_status_color_code"`
+	ThreatStatusType                string     `json:"threat_status_type"`
+	Source                          *string    `json:"source"`
+	Description                     *string    `json:"description"`
+	DetectionDate                   *time.Time `json:"detection_date"`
+	ResolutionDate                  *time.Time `json:"resolution_date"`
+	ResponsibleUserID               uint       `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn      string     `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string     `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string     `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string     `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          string     `json:"responsible_user_initial"`
+	ResponsibleUserColor            string     `json:"responsible_user_color"`
+	ResponsibleUserEmail            string     `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath *string    `json:"responsible_user_profile_image_path"`
+	Risks                           []RiskDTO  `json:"risks"`
 }
 
 type RiskDTO struct {
 	ID                              uint    `json:"id"`
-	RiskReferenceNumber             string  `json:"risk_reference_number"`
-	RiskTitle                       string  `json:"risk_title"`
-	RiskDescription                 *string `json:"risk_description"`
+	ReferenceNumber                 string  `json:"reference_number"`
+	Title                           string  `json:"title"`
+	Description                     *string `json:"description"`
 	RiskCategoryTitleEn             string  `json:"risk_category_title_en"`
 	RiskCategoryTitleAr             string  `json:"risk_category_title_ar"`
 	RiskSourceTitleEn               string  `json:"risk_source_title_en"`

@@ -9,6 +9,7 @@ type Module struct {
 	Order      int    `json:"order" gorm:"not null" binding:"required"`
 	Icon       string `json:"icon" gorm:"size:45" binding:"required"`
 	Route      string `json:"route" gorm:"size:255" binding:"required"`
+	IsEnable   bool   `json:"is_enable"`
 
 	// Self-referencing relationship
 	Parent     *Module   `json:"parent,omitempty" gorm:"foreignKey:ModuleID"`

@@ -7,6 +7,7 @@ type UserStatus struct {
 	ColorCode string `json:"color_code" binding:"required,max=25" gorm:"type:varchar(25);not null"`
 	Type      string `json:"type" binding:"required,max=25,oneof=active, onleave, resigned, retired, locked, deceased" gorm:"type:varchar(25);not null"`
 	Status    string `json:"status" binding:"required,max=10,oneof=active inactive" gorm:"type:varchar(10);not null"`
+	IsActive  bool   `json:"is_active" gorm:"not null;type:tinyint;default:0" binding:"required"`
 }
 
 // TableName overrides the table name used by ComplianceStatus to `compliance_statuses`
