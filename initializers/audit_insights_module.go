@@ -19,6 +19,7 @@ type AuditInsightsModule struct {
 	AuditInsightsDraftFindingActionPlanController      *controllers.AuditInsightsDraftFindingActionPlanController
 	AuditInsightsAuditFindingController                *controllers.AuditInsightsAuditFindingController
 	AuditInsightsFindingRootCauseAnalysisController    *controllers.AuditInsightsFindingRootCauseAnalysisController
+	AuditInsightsFindingActionPlanController           *controllers.AuditInsightsFindingActionPlanController
 }
 
 func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, auditModule *AuditModule) *AuditInsightsModule {
@@ -118,6 +119,15 @@ func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizatio
 	auditInsightsFindingRootCauseAnalysisSvc := services.NewAuditInsightsFindingRootCauseAnalysisService(auditModule.AuditFindingRootCauseAnalysisSvc)
 	auditInsightsFindingRootCauseAnalysisController := controllers.NewAuditInsightsFindingRootCauseAnalysisController(auditInsightsFindingRootCauseAnalysisSvc)
 
+	auditInsightsFindingActionPlanRepo := repositories.NewAuditInsightsFindingActionPlanRepository(db)
+	auditInsightsFindingActionPlanSvc := services.NewAuditInsightsFindingActionPlanService(
+		auditInsightsFindingActionPlanRepo,
+		sharedModule.ActivityLogService,
+		organizationModule.UserSvc,
+		auditModule.AuditFindingActionPlanSvc,
+	)
+	auditInsightsFindingActionPlanController := controllers.NewAuditInsightsFindingActionPlanController(auditInsightsFindingActionPlanSvc)
+
 	return &AuditInsightsModule{
 		AuditInsightsAuditPlanController:                   auditInsightsAuditPlanController,
 		AuditInsightsAuditController:                       auditInsightsAuditController,
@@ -129,5 +139,6 @@ func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizatio
 		AuditInsightsDraftFindingActionPlanController:      auditInsightsDraftFindingActionPlanController,
 		AuditInsightsAuditFindingController:                auditInsightsAuditFindingController,
 		AuditInsightsFindingRootCauseAnalysisController:    auditInsightsFindingRootCauseAnalysisController,
+		AuditInsightsFindingActionPlanController:           auditInsightsFindingActionPlanController,
 	}
 }
