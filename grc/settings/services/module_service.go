@@ -18,6 +18,10 @@ type ModuleServiceInterface interface {
 	GetFullDetailsByID(id uint) (*dtos.ModuleDetailDTO, error)
 	EnableModule(id uint) (*models.Module, error)
 	DisableModule(id uint) (*models.Module, error)
+	ReorderModule(modules []dtos.ModuleReorderDTO) error
+	ReorderSubModule(modules []dtos.ModuleReorderDTO) error
+	UpdateModule(id uint, moduleFormDTO dtos.ModuleFormDTO) error
+	UpdateSubModule(id uint, subModuleFormDTO dtos.SubModuleFormDTO) error
 }
 
 type ModuleService struct {
@@ -43,6 +47,17 @@ func (ms *ModuleService) GetByID(id uint) (*models.Module, error) {
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return module, nil
+}
+
+func (ms *ModuleService) GetByIdentifier(identifier string) (*models.Module, error) {
+	module, err := ms.repo.GetByIdentifier(identifier)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, identifier)
 		}
 		return nil, err
 	}
@@ -155,9 +170,13 @@ func (ms *ModuleService) DisableModule(id uint) (*models.Module, error) {
 			}
 		}
 	} else {
+		mainModuleDetail, err := ms.GetFullDetailsByID(*module.ModuleID)
+		if err != nil {
+			return nil, err
+		}
 		// disabling main module
 		allDisabled := true
-		for _, subModule := range moduleDetail.SubModules {
+		for _, subModule := range mainModuleDetail.SubModules {
 			if subModule.ID != module.ID && subModule.IsEnable {
 				allDisabled = false
 				break
@@ -179,4 +198,71 @@ func (ms *ModuleService) DisableModule(id uint) (*models.Module, error) {
 		}
 	}
 	return module, nil
+}
+
+func (ms *ModuleService) ReorderModule(modules []dtos.ModuleReorderDTO) error {
+	for _, module := range modules {
+		existingModule, err := ms.GetByIdentifier(module.Identifier)
+
+		if err != nil {
+			return nil
+		}
+		existingModule.Order = module.Order
+		_, err = ms.repo.Update(existingModule.ID, existingModule)
+		if err != nil {
+			return nil
+		}
+
+	}
+
+	return nil
+}
+
+func (ms *ModuleService) ReorderSubModule(modules []dtos.ModuleReorderDTO) error {
+	for _, module := range modules {
+		existingModule, err := ms.GetByIdentifier(module.Identifier)
+
+		if err != nil {
+			return nil
+		}
+		existingModule.Order = module.Order
+		_, err = ms.repo.Update(existingModule.ID, existingModule)
+		if err != nil {
+			return nil
+		}
+
+	}
+
+	return nil
+}
+
+func (ms *ModuleService) UpdateModule(id uint, moduleFormDTO dtos.ModuleFormDTO) error {
+	existingModule, err := ms.GetByID(id)
+
+	if err != nil {
+		return nil
+	}
+	existingModule.TitleEn = moduleFormDTO.TitleEn
+	existingModule.TitleAr = moduleFormDTO.TitleAr
+	existingModule.Icon = moduleFormDTO.Icon
+	_, err = ms.repo.Update(existingModule.ID, existingModule)
+	if err != nil {
+		return nil
+	}
+	return nil
+}
+
+func (ms *ModuleService) UpdateSubModule(id uint, subModuleFormDTO dtos.SubModuleFormDTO) error {
+	existingModule, err := ms.GetByID(id)
+
+	if err != nil {
+		return nil
+	}
+	existingModule.TitleEn = subModuleFormDTO.TitleEn
+	existingModule.TitleAr = subModuleFormDTO.TitleAr
+	_, err = ms.repo.Update(existingModule.ID, existingModule)
+	if err != nil {
+		return nil
+	}
+	return nil
 }

@@ -12,6 +12,7 @@ import (
 type ModuleRepositoryInterface interface {
 	GetModuleIDByIdentifier(identifier string) (uint, error)
 	GetByID(id uint) (*models.Module, error)
+	GetByIdentifier(identifier string) (*models.Module, error)
 	GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]dtos.ModuleListDTO, error)
 	GetFullDetailsByID(id uint) (*models.Module, error)
 	Update(moduleId uint, module *models.Module) (uint, error)
@@ -139,6 +140,15 @@ func (repo *ModuleRepository) GetByID(id uint) (*models.Module, error) {
 
 	if result.Error != nil {
 		return nil, result.Error
+	}
+
+	return module, nil
+}
+
+func (repo *ModuleRepository) GetByIdentifier(identifier string) (*models.Module, error) {
+	var module *models.Module
+	if err := repo.db.Where("identifier = ?", identifier).First(&module).Error; err != nil {
+		return nil, err
 	}
 
 	return module, nil
