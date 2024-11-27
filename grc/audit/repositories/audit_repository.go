@@ -350,6 +350,7 @@ func (repo *AuditRepository) GetAllAuditableItems(auditID uint, params *auditDTO
 			documents.title_ar AS document_title_ar,
 			incident_register.title AS incident_register_title,
 			compliance_requirements.title AS compliance_requirement_title,
+			organization_units.id AS responsible_unit_id,
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
 			risk_register.title AS risk_register_title,
