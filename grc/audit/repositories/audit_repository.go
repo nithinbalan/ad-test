@@ -59,10 +59,6 @@ func (repo *AuditRepository) GetAll(params *auditDTOs.AuditListQueryParamsDTO) (
 			audit_statuses.title_ar AS audit_status_title_ar,
 			audit_statuses.type AS audit_status_type,
 			audit_statuses.color_code AS audit_status_color_code,
-			audit_plan_statuses.title_en AS audit_plan_status_title_en,
-			audit_plan_statuses.title_ar AS audit_plan_status_title_ar,
-			audit_plan_statuses.type AS audit_plan_status_type,
-			audit_plan_statuses.color_code AS audit_plan_status_color_code,
 			audit_categories.title_en AS audit_category_title_en,
 			audit_categories.title_ar AS audit_category_title_ar,
 			team_lead.id AS team_lead_id,
@@ -96,7 +92,6 @@ func (repo *AuditRepository) GetAll(params *auditDTOs.AuditListQueryParamsDTO) (
 		Joins(`
 			LEFT JOIN audit_plans ON audit_plans.id = audits.audit_plan_id
 			LEFT JOIN audit_statuses ON audit_statuses.id = audits.audit_status_id
-			LEFT JOIN audit_plan_statuses AS audit_plan_statuses ON audit_plan_statuses.id = audit_plans.audit_status_id
 			LEFT JOIN audit_categories ON audit_categories.id = audit_plans.audit_category_id
 			LEFT JOIN users AS team_lead ON team_lead.id = audit_plans.team_lead_id
 			LEFT JOIN users AS created_user ON created_user.id = audits.created_by_id
