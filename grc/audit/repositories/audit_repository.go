@@ -121,8 +121,10 @@ func (repo *AuditRepository) GetAll(params *auditDTOs.AuditListQueryParamsDTO) (
 			query = query.Where("audit_statuses.type = ?", "published")
 		case "completed":
 			query = query.Where("audit_statuses.type = ?", "completed")
+		case "in_review":
+			query = query.Where("audit_statuses.type = ?", " in-review")
 		case "in_progress":
-			query = query.Where("audit_statuses.type = ?", "in_progress")
+			query = query.Where("audit_statuses.type = ?", "in-progress")
 		}
 	}
 
