@@ -343,8 +343,8 @@ func (repo *AssetAssociatedItemRepository) GetRisksByThreatID(threatID uint) ([]
 	query := repo.db.Table("risk_threats").
 		Select(`
 			DISTINCT risk_threats.risk_register_id AS id,
-			risk_register.reference_number AS risk_reference_number,
-			risk_register.title AS risk_title,
+			risk_register.reference_number AS reference_number,
+			risk_register.title AS title,
 			risk_register.description AS risk_description,
 			risk_categories.title_en AS risk_category_title_en,
 			risk_categories.title_ar AS risk_category_title_ar,
