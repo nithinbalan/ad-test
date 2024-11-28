@@ -68,6 +68,12 @@ func NewAuditService(
 }
 
 func (as *AuditService) GetAll(params *auditDTOs.AuditListQueryParamsDTO) (*auditDTOs.AuditListResponseDTO, error) {
+	auditStatusIds, ok := params.Filters["audit_status_ids"]
+	//audits and audits plans using same fields as audit_status_id, so attaching table name in to the field
+	if ok && len(auditStatusIds) > 0 {
+		params.Filters["audits.audit_status_id"] = auditStatusIds
+		delete(params.Filters, "audit_status_ids")
+	}
 	return as.repo.GetAll(params)
 }
 

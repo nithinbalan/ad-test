@@ -59,7 +59,7 @@ func (apc *AuditController) GetAllAudits(c *gin.Context) {
 	validSortFields := map[string]string{
 		"audit_plan_title":        "audit_plans.title",
 		"start_date":              "audits.start_date",
-		"end_date":                "audits.end",
+		"end_date":                "audits.end_date",
 		"audit_category_title_en": "audit_categories.title_en",
 		"audit_category_title_ar": "audit_categories.title_ar",
 		"audit_status_title_en":   "audit_statuses.title_en",

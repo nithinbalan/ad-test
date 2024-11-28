@@ -90,8 +90,8 @@ func (repo *AuditRepository) GetAll(params *auditDTOs.AuditListQueryParamsDTO) (
         	updated_user.profile_image_path AS updated_user_profile_image_path
 		`).
 		Joins(`
-			LEFT JOIN audit_plans ON audit_plans.id = audits.audit_plan_id
 			LEFT JOIN audit_statuses ON audit_statuses.id = audits.audit_status_id
+			LEFT JOIN audit_plans ON audit_plans.id = audits.audit_plan_id
 			LEFT JOIN audit_categories ON audit_categories.id = audit_plans.audit_category_id
 			LEFT JOIN users AS team_lead ON team_lead.id = audit_plans.team_lead_id
 			LEFT JOIN users AS created_user ON created_user.id = audits.created_by_id

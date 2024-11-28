@@ -13,6 +13,7 @@ type AuditListDTO struct {
 	EndDate                     string  `json:"end_date" gorm:"column:end_date"`
 	AuditCategoryTitleEn        string  `json:"audit_category_title_en"`
 	AuditCategoryTitleAr        string  `json:"audit_category_title_ar"`
+	AuditStatusID               uint    `json:"audit_status_id"`
 	AuditStatusTitleEn          string  `json:"audit_status_title_en"`
 	AuditStatusTitleAr          string  `json:"audit_status_title_ar"`
 	AuditStatusType             string  `json:"audit_status_type"`
