@@ -58,19 +58,20 @@ type AuditModule struct {
 	AuditReportWorkflowController                *controllers.AuditReportWorkflowController
 	AuditReportReviewController                  *controllers.AuditReportReviewController
 
-	AuditPlanSvc                        services.AuditPlanServiceInterface
-	AuditSvc                            services.AuditServiceInterface
-	AuditFindingSvc                     services.AuditFindingServiceInterface
-	AuditDocumentRequestSvc             services.AuditDocumentRequestServiceInterface
-	AuditDocumentRequestConversationSvc services.AuditDocumentRequestConversationServiceInterface
-	AuditDraftReportStatusSvc           services.AuditDraftReportStatusServiceInterface
-	AuditDraftReportSvc                 services.AuditDraftReportServiceInterface
-	AuditDraftFindingSvc                services.AuditDraftFindingServiceInterface
-	AuditDraftFindingStatusSvc          services.AuditDraftFindingStatusServiceInterface
-	AuditDraftFindingConversationSvc    services.AuditDraftFindingConversationServiceInterface
-	AuditDraftFindingActionPlanSvc      services.AuditDraftFindingActionPlanServiceInterface
-	AuditFindingRootCauseAnalysisSvc    services.AuditFindingRootCauseAnalysisServiceInterface
-	AuditFindingActionPlanSvc           services.AuditFindingActionPlanServiceInterface
+	AuditPlanSvc                          services.AuditPlanServiceInterface
+	AuditSvc                              services.AuditServiceInterface
+	AuditFindingSvc                       services.AuditFindingServiceInterface
+	AuditDocumentRequestSvc               services.AuditDocumentRequestServiceInterface
+	AuditDocumentRequestConversationSvc   services.AuditDocumentRequestConversationServiceInterface
+	AuditDraftReportStatusSvc             services.AuditDraftReportStatusServiceInterface
+	AuditDraftReportSvc                   services.AuditDraftReportServiceInterface
+	AuditDraftFindingSvc                  services.AuditDraftFindingServiceInterface
+	AuditDraftFindingStatusSvc            services.AuditDraftFindingStatusServiceInterface
+	AuditDraftFindingConversationSvc      services.AuditDraftFindingConversationServiceInterface
+	AuditDraftFindingActionPlanSvc        services.AuditDraftFindingActionPlanServiceInterface
+	AuditFindingRootCauseAnalysisSvc      services.AuditFindingRootCauseAnalysisServiceInterface
+	AuditFindingActionPlanSvc             services.AuditFindingActionPlanServiceInterface
+	AuditFindingActionPlanStatusUpdateSvc services.AuditFindingActionPlanStatusUpdateServiceInterface
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule, taskModule *TaskModule, commonModule *CommonModule) *AuditModule {
@@ -522,18 +523,19 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditReportWorkflowController:                auditReportWorkflowController,
 		AuditReportReviewController:                  auditReportReviewController,
 
-		AuditPlanSvc:                        auditPlanSvc,
-		AuditSvc:                            auditSvc,
-		AuditFindingSvc:                     auditFindingSvc,
-		AuditDocumentRequestSvc:             auditDocumentRequestSvc,
-		AuditDocumentRequestConversationSvc: auditDocumentRequestConversationSvc,
-		AuditDraftReportSvc:                 auditDraftReportSvc,
-		AuditDraftReportStatusSvc:           auditDraftReportStatusSvc,
-		AuditDraftFindingSvc:                auditDraftFindingSvc,
-		AuditDraftFindingStatusSvc:          auditDraftFindingStatusSvc,
-		AuditDraftFindingConversationSvc:    auditDraftFindingConversationSvc,
-		AuditDraftFindingActionPlanSvc:      auditDraftFindingActionPlanSvc,
-		AuditFindingRootCauseAnalysisSvc:    auditFindingRootCauseAnalysisSvc,
-		AuditFindingActionPlanSvc:           auditFindingActionPlanSvc,
+		AuditPlanSvc:                          auditPlanSvc,
+		AuditSvc:                              auditSvc,
+		AuditFindingSvc:                       auditFindingSvc,
+		AuditDocumentRequestSvc:               auditDocumentRequestSvc,
+		AuditDocumentRequestConversationSvc:   auditDocumentRequestConversationSvc,
+		AuditDraftReportSvc:                   auditDraftReportSvc,
+		AuditDraftReportStatusSvc:             auditDraftReportStatusSvc,
+		AuditDraftFindingSvc:                  auditDraftFindingSvc,
+		AuditDraftFindingStatusSvc:            auditDraftFindingStatusSvc,
+		AuditDraftFindingConversationSvc:      auditDraftFindingConversationSvc,
+		AuditDraftFindingActionPlanSvc:        auditDraftFindingActionPlanSvc,
+		AuditFindingRootCauseAnalysisSvc:      auditFindingRootCauseAnalysisSvc,
+		AuditFindingActionPlanSvc:             auditFindingActionPlanSvc,
+		AuditFindingActionPlanStatusUpdateSvc: auditFindingActionPlanStatusUpdateSvc,
 	}
 }

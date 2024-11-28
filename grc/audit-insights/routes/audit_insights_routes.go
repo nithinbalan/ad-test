@@ -26,7 +26,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditInsightsAuditFindingController := app.AuditInsightsModule.AuditInsightsAuditFindingController
 	auditInsightsFindingRootCauseAnalysisController := app.AuditInsightsModule.AuditInsightsFindingRootCauseAnalysisController
 	auditInsightsFindingActionPlanController := app.AuditInsightsModule.AuditInsightsFindingActionPlanController
-	
+	auditInsightsFindingActionPlanStatusUpdateController := app.AuditInsightsModule.AuditInsightsFindingActionPlanStatusUpdateController
 
 	// Audit Insights Audit plans
 	auditInsightsRoutes.GET("/audit-insights/audit-plans", middlewares.RolePermissionMiddleware(db, "audit_insight_plans", "view"), auditInsightsAuditPlanController.GetAllAuditInsightsAuditPlans)
@@ -79,5 +79,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//Audit Insights action plans
 	auditInsightsRoutes.GET("/audit-insights/action-plans", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsFindingActionPlanController.GetAllAuditInsightsFindingActionPlans)
 	auditInsightsRoutes.GET("/audit-insights/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsFindingActionPlanController.GetAuditInsightsFindingActionPlanDetails)
-	
+
+	auditInsightsRoutes.GET("/audit-insights/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsFindingActionPlanStatusUpdateController.GetAllAuditInsightsFindingActionPlanStatusUpdates)
+	auditInsightsRoutes.POST("/audit-insights/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightsFindingActionPlanStatusUpdateController.CreateAuditInsightsFindingActionPlanStatusUpdate)
+	auditInsightsRoutes.PUT("/audit-insights/action-plans/:actionPlanId/status-updates/:id", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightsFindingActionPlanStatusUpdateController.UpdateAuditInsightsFindingActionPlanStatusUpdate)
+	auditInsightsRoutes.GET("/audit-insights/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsFindingActionPlanStatusUpdateController.GetLatestAuditInsightsFindingActionPlanStatusUpdate)
+
 }
