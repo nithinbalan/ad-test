@@ -25,6 +25,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditInsightsDraftFindingActionPlanController := app.AuditInsightsModule.AuditInsightsDraftFindingActionPlanController
 	auditInsightsAuditFindingController := app.AuditInsightsModule.AuditInsightsAuditFindingController
 	auditInsightsFindingRootCauseAnalysisController := app.AuditInsightsModule.AuditInsightsFindingRootCauseAnalysisController
+	auditInsightsFindingActionPlanController := app.AuditInsightsModule.AuditInsightsFindingActionPlanController
 	
 
 	// Audit Insights Audit plans
@@ -75,4 +76,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditInsightsRoutes.PUT("/audit-insights/audit-findings/:findingId/root-cause-analysis/:analysisId", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightsFindingRootCauseAnalysisController.UpdateAuditInsightsFindingRootCauseAnalysis)
 	auditInsightsRoutes.DELETE("/audit-insights/audit-findings/:findingId/root-cause-analysis/:analysisId", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightsFindingRootCauseAnalysisController.DeleteAuditInsightsFindingRootCauseAnalyses)
 
+	//Audit Insights action plans
+	auditInsightsRoutes.GET("/audit-insights/action-plans", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsFindingActionPlanController.GetAllAuditInsightsFindingActionPlans)
+	auditInsightsRoutes.GET("/audit-insights/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsFindingActionPlanController.GetAuditInsightsFindingActionPlanDetails)
+	
 }
