@@ -30,6 +30,8 @@ type KRIRegisterServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	ExportKriRegister(data []*riskDTOs.KRIRegisterListDTO, currentUserID uint) (*os.File, error)
+
+	DetermineRiskLevel(value int, lowThreshold, mediumThreshold *int) (*models.RiskLevel, error)
 }
 
 // Service and implementations
@@ -137,20 +139,25 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 		return 0, utility.NewValidationError(fmt.Errorf("responsible unit not set forthe responsible user"), "not_exist", "responsible unit")
 	}
 	organizationUnitID = unitID
+
+	riskLevel, err := krs.DetermineRiskLevel(*kriRegisterFormDTO.CurrentValue, kriRegisterFormDTO.LowThreshold, kriRegisterFormDTO.MediumThreshold)
+	if err != nil {
+		return 0, err
+	}
+
 	kriRegister := &models.KRIRegister{
 		ReferenceNumber:   &referenceNumber,
 		KRICategoryID:     kriRegisterFormDTO.KRICategoryID,
 		ResponsibleUnitID: organizationUnitID,
 		ResponsibleUserID: kriRegisterFormDTO.ResponsibleUserID,
 		ReviewFrequencyID: kriRegisterFormDTO.ReviewFrequencyID,
-		RiskLevelID:       kriRegisterFormDTO.RiskLevelID,
+		RiskLevelID:       &riskLevel.ID,
 		UnitID:            &kriRegisterFormDTO.UnitID,
 		Title:             kriRegisterFormDTO.Title,
 		Description:       &kriRegisterFormDTO.Description,
 		CalculationType:   kriRegisterFormDTO.CalculationType,
 		LowThreshold:      kriRegisterFormDTO.LowThreshold,
 		MediumThreshold:   kriRegisterFormDTO.MediumThreshold,
-		HighThreshold:     kriRegisterFormDTO.HighThreshold,
 		CurrentValue:      kriRegisterFormDTO.CurrentValue,
 		NextReviewDate:    *dates.NextReviewDate,
 		LastReviewNote:    kriRegisterFormDTO.LastReviewNote,
@@ -174,7 +181,6 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 		Value:           kriRegisterFormDTO.CurrentValue,
 		LowThreshold:    kriRegisterFormDTO.LowThreshold,
 		MediumThreshold: kriRegisterFormDTO.MediumThreshold,
-		HighThreshold:   kriRegisterFormDTO.HighThreshold,
 		Remarks:         &initialValue,
 		CreatedByID:     currentUserID,
 	}
@@ -316,15 +322,12 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 	existingKRIRegister.KRICategoryID = kriRegisterFormDTO.KRICategoryID
 	existingKRIRegister.ResponsibleUserID = kriRegisterFormDTO.ResponsibleUserID
 	existingKRIRegister.ReviewFrequencyID = kriRegisterFormDTO.ReviewFrequencyID
-	existingKRIRegister.RiskLevelID = kriRegisterFormDTO.RiskLevelID
 	existingKRIRegister.UnitID = &kriRegisterFormDTO.UnitID
 	existingKRIRegister.Title = kriRegisterFormDTO.Title
 	existingKRIRegister.Description = &kriRegisterFormDTO.Description
 	existingKRIRegister.CalculationType = kriRegisterFormDTO.CalculationType
 	existingKRIRegister.LowThreshold = kriRegisterFormDTO.LowThreshold
 	existingKRIRegister.MediumThreshold = kriRegisterFormDTO.MediumThreshold
-	existingKRIRegister.HighThreshold = kriRegisterFormDTO.HighThreshold
-	existingKRIRegister.CurrentValue = kriRegisterFormDTO.CurrentValue
 
 	if kriRegisterFormDTO.LastReviewedDate != "" {
 		existingKRIRegister.LastReviewedDate = dates.LastReviewedDate
@@ -699,11 +702,6 @@ func (krs *KRIRegisterService) validateKRIRegisterFormDTO(kriRegisterFormDTO *ri
 	if _, err := krs.userSvc.GetByID(kriRegisterFormDTO.ResponsibleUserID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("responsible user does not exist"), "not_exist", "responsible user")
 	}
-	if kriRegisterFormDTO.RiskLevelID != nil {
-		if _, err := krs.riskLevelSvc.GetByID(*kriRegisterFormDTO.RiskLevelID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("risk level does not exist"), "not_exist", "risk level")
-		}
-	}
 	if _, err := krs.unitSvc.GetByID(kriRegisterFormDTO.UnitID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("unit does not exist"), "not_exist", "unit")
 	}
@@ -841,4 +839,38 @@ func (krs *KRIRegisterService) ExportKriRegister(data []*riskDTOs.KRIRegisterLis
 
 	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (krs *KRIRegisterService) DetermineRiskLevel(value int, lowThreshold, mediumThreshold *int) (*models.RiskLevel, error) {
+	var riskLevelType string
+
+	// Determine risk level based on the thresholds
+	if lowThreshold != nil && value < *lowThreshold {
+		riskLevelType = "low"
+	} else if mediumThreshold != nil && value < *mediumThreshold {
+		riskLevelType = "medium"
+	} else if mediumThreshold != nil && value >= *mediumThreshold {
+		riskLevelType = "high"
+	} else {
+		// Log an error if thresholds are not properly defined
+		utility.LogError("Undefined thresholds", map[string]interface{}{
+			"value":           value,
+			"LowThreshold":    lowThreshold,
+			"MediumThreshold": mediumThreshold,
+		})
+		return nil, fmt.Errorf("undefined thresholds for value: %d", value)
+	}
+
+	// Fetch RiskLevel model from the database
+	riskLevel, err := krs.riskLevelSvc.GetByType(riskLevelType)
+	if err != nil {
+		// Log the error and return it
+		utility.LogError("Failed to fetch RiskLevel", map[string]interface{}{
+			"error":         err.Error(),
+			"riskLevelType": riskLevelType,
+		})
+		return nil, err
+	}
+
+	return riskLevel, nil
 }
