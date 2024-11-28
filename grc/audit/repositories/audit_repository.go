@@ -101,7 +101,14 @@ func (repo *AuditRepository) GetAll(params *auditDTOs.AuditListQueryParamsDTO) (
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			//audits and audits plans using same fields as audit_status_id, so attaching table name in to the field
+			if columnName == "audit_status_id" {
+				// Prepend the table name for "audit_status_id"
+				query = query.Where("audits.audit_status_id IN (?)", values)
+			} else {
+				// Use the column name as-is for other filters
+				query = query.Where(columnName+" IN (?)", values)
+			}
 		}
 	}
 
