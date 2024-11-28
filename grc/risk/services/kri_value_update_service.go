@@ -232,7 +232,7 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 					return
 				}
 				emailTo := []string{responsibleUser.Email}
-				subject := fmt.Sprintf("KRI Register %s: The value for the KRI has gone above the acceptable limit.", existingKRIRegister.Title)
+				subject := fmt.Sprintf("%s: The value for the KRI has gone above the acceptable limit.", existingKRIRegister.Title)
 				appURL := utility.GetAppURL()
 				emailData := map[string]interface{}{
 					"FirstNameEn":         responsibleUser.FirstNameEn,
