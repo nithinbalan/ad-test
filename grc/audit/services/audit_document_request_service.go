@@ -396,7 +396,7 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 				"ResponsibleUnit": documentRequest.ResponsibleUnit.TitleEn,
 				"RequestedBy":     fmt.Sprintf("%s %s", requestedBy.FirstNameEn, requestedBy.LastNameEn),
 				"RequestedAt":     time.Now().Format("2006-01-02"),
-				"RedirectURL":     fmt.Sprintf("%s/audit/audits", appURL),
+				"RedirectURL":     fmt.Sprintf("%saudit/audits/%d/document-request", appURL, auditID),
 			},
 		}
 
