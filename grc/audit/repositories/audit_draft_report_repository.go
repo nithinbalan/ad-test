@@ -87,6 +87,7 @@ func (repo *AuditDraftReportRepository) GetFullDetailsByID(auditID uint, tx ...u
 		Preload("Audit.AuditDraftFindings.AuditableItem.RiskRegister").
 		Preload("Audit.AuditDraftFindings.AuditableItem.User").
 		Preload("Audit.AuditDraftFindings.AuditableItem.ResponsibleUnit").
+		Preload("Audit.AuditDraftFindings.AuditableItem.ResponsibleUser").
 		Preload("Audit.AuditDraftFindings.AuditFindingCategory").
 		Preload("Audit.AuditDraftFindings.SeverityLevel").
 		Preload("Audit.AuditDraftFindings.AuditDraftFindingConversations").
