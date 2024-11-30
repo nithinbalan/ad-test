@@ -12,6 +12,7 @@ type AssetAssociatedItemServiceInterface interface {
 	GetAllControls(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error)
 	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisks(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error)
+	GetAllVulnerabilities(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]assetDTOs.VulnerabilityDTO, error)
 }
 
 // Service Implementation
@@ -169,4 +170,129 @@ func (aais *AssetAssociatedItemService) GetAllRisks(assetID uint, params *assetD
 		return nil, err
 	}
 	return aais.repo.GetAllRisks(assetID, params)
+}
+
+func (service *AssetAssociatedItemService) GetAllVulnerabilities(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]assetDTOs.VulnerabilityDTO, error) {
+	// Ensure the asset exists
+	if _, err := service.assetRegisterSvc.GetByID(assetID); err != nil {
+		return nil, err
+	}
+
+	// Fetch vulnerabilities from the repository
+	vulnerabilities, err := service.repo.GetAllVulnerabilities(assetID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Map vulnerabilities to DTOs
+	vulnerabilityDTOs := make([]assetDTOs.VulnerabilityDTO, 0, len(vulnerabilities))
+	for _, vuln := range vulnerabilities {
+		// Map threats to DTOs
+		threatDTOs := make([]assetDTOs.ThreatDTO, 0, len(vuln.Threats))
+		for _, threat := range vuln.Threats {
+			// Fetch risks for the current threat
+			risks, err := service.repo.GetRisksByThreatID(threat.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			// Map risks to DTOs
+			riskDTOs := make([]assetDTOs.RiskDTO, 0, len(risks))
+			for _, risk := range risks {
+				riskDTOs = append(riskDTOs, assetDTOs.RiskDTO{
+					ID:                              risk.ID,
+					ReferenceNumber:                 risk.ReferenceNumber,
+					Title:                           risk.Title,
+					Description:                     risk.Description,
+					RiskCategoryTitleEn:             risk.RiskCategoryTitleEn,
+					RiskCategoryTitleAr:             risk.RiskCategoryTitleAr,
+					RiskSourceTitleEn:               risk.RiskSourceTitleEn,
+					RiskSourceTitleAr:               risk.RiskSourceTitleAr,
+					ResponsibleUnitTitleEn:          risk.ResponsibleUnitTitleEn,
+					ResponsibleUnitTitleAr:          risk.ResponsibleUnitTitleAr,
+					ResponsibleUserID:               risk.ResponsibleUserID,
+					ResponsibleUserFirstNameEn:      risk.ResponsibleUserFirstNameEn,
+					ResponsibleUserFirstNameAr:      risk.ResponsibleUserFirstNameAr,
+					ResponsibleUserLastNameEn:       risk.ResponsibleUserLastNameEn,
+					ResponsibleUserLastNameAr:       risk.ResponsibleUserLastNameAr,
+					ResponsibleUserInitial:          risk.ResponsibleUserInitial,
+					ResponsibleUserColor:            risk.ResponsibleUserColor,
+					ResponsibleUserEmail:            risk.ResponsibleUserEmail,
+					ResponsibleUserProfileImagePath: risk.ResponsibleUserProfileImagePath,
+				})
+			}
+
+			// Append threat with its risks
+			threatDTOs = append(threatDTOs, assetDTOs.ThreatDTO{
+				ID:                              threat.ID,
+				TitleEn:                         threat.TitleEn,
+				TitleAr:                         threat.TitleAr,
+				ThreatTypeTitleEn:               &threat.ThreatType.TitleEn,
+				ThreatTypeTitleAr:               &threat.ThreatType.TitleAr,
+				SeverityLevelID:                 threat.SeverityLevelID,
+				SeverityLevelTitleEn:            threat.SeverityLevel.TitleEn,
+				SeverityLevelTitleAr:            threat.SeverityLevel.TitleAr,
+				SeverityLevelColorCode:          threat.SeverityLevel.ColorCode,
+				ThreatStatusID:                  threat.ThreatStatusID,
+				ThreatStatusTitleEn:             threat.ThreatStatus.TitleEn,
+				ThreatStatusTitleAr:             threat.ThreatStatus.TitleAr,
+				ThreatStatusColorCode:           threat.ThreatStatus.ColorCode,
+				ThreatStatusType:                threat.ThreatStatus.Type,
+				Description:                     threat.Description,
+				Source:                          threat.Source,
+				DetectionDate:                   threat.DetectionDate,
+				ResolutionDate:                  threat.ResolutionDate,
+				ResponsibleUserID:               threat.ResponsibleUserID,
+				ResponsibleUserFirstNameEn:      threat.ResponsibleUser.FirstNameEn,
+				ResponsibleUserFirstNameAr:      threat.ResponsibleUser.FirstNameAr,
+				ResponsibleUserLastNameEn:       threat.ResponsibleUser.LastNameEn,
+				ResponsibleUserLastNameAr:       threat.ResponsibleUser.LastNameAr,
+				ResponsibleUserInitial:          threat.ResponsibleUser.Initial,
+				ResponsibleUserColor:            threat.ResponsibleUser.Color,
+				ResponsibleUserEmail:            threat.ResponsibleUser.Email,
+				ResponsibleUserProfileImagePath: threat.ResponsibleUser.ProfileImagePath,
+				Risks:                           riskDTOs,
+			})
+		}
+
+		var severityLevelTitleEn, severityLevelTitleAr, severityLevelColorCode *string
+		if vuln.SeverityLevel != nil {
+			severityLevelTitleEn = &vuln.SeverityLevel.TitleEn
+			severityLevelTitleAr = &vuln.SeverityLevel.TitleAr
+			severityLevelColorCode = &vuln.SeverityLevel.ColorCode
+		}
+
+		// Map vulnerability to DTO
+		vulnerabilityDTOs = append(vulnerabilityDTOs, assetDTOs.VulnerabilityDTO{
+			ID:                              vuln.ID,
+			ReferenceNumber:                 vuln.ReferenceNumber,
+			TitleEn:                         vuln.TitleEn,
+			TitleAr:                         vuln.TitleAr,
+			Description:                     vuln.Description,
+			Source:                          vuln.Source,
+			SeverityLevelID:                 vuln.SeverityLevelID,
+			SeverityLevelTitleEn:            severityLevelTitleEn,
+			SeverityLevelTitleAr:            severityLevelTitleAr,
+			SeverityLevelColorCode:          severityLevelColorCode,
+			VulnerabilityStatusID:           vuln.VulnerabilityStatusID,
+			VulnerabilityStatusTitleEn:      vuln.VulnerabilityStatus.TitleEn,
+			VulnerabilityStatusTitleAr:      vuln.VulnerabilityStatus.TitleAr,
+			VulnerabilityStatusColorCode:    vuln.VulnerabilityStatus.ColorCode,
+			VulnerabilityStatusType:         vuln.VulnerabilityStatus.Type,
+			VulnerabilityTypeTitleEn:        vuln.VulnerabilityType.TitleEn,
+			VulnerabilityTypeTitleAr:        vuln.VulnerabilityType.TitleAr,
+			ResponsibleUserID:               vuln.ResponsibleUser.ID,
+			ResponsibleUserFirstNameEn:      vuln.ResponsibleUser.FirstNameEn,
+			ResponsibleUserFirstNameAr:      vuln.ResponsibleUser.FirstNameAr,
+			ResponsibleUserLastNameEn:       vuln.ResponsibleUser.LastNameEn,
+			ResponsibleUserLastNameAr:       vuln.ResponsibleUser.LastNameAr,
+			ResponsibleUserInitial:          vuln.ResponsibleUser.Initial,
+			ResponsibleUserColor:            vuln.ResponsibleUser.Color,
+			ResponsibleUserEmail:            vuln.ResponsibleUser.Email,
+			ResponsibleUserProfileImagePath: vuln.ResponsibleUser.ProfileImagePath,
+			Threats:                         threatDTOs,
+		})
+	}
+
+	return vulnerabilityDTOs, nil
 }

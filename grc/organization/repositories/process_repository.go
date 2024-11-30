@@ -62,6 +62,7 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		processes.title_en,
 		processes.title_ar,
 		processes.description,
+		processes.marked_as_auditable_item,
 		process_groups.title_en AS process_group_title_en,
 		process_groups.title_ar AS process_group_title_ar,
 		organization_units.title_en AS owner_unit_title_en,
@@ -225,6 +226,13 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("CreatedByUser.OrganizationUnit1").
 		Preload("UpdatedByUser").
 		Preload("UpdatedByUser.OrganizationUnit1").
+		Preload("AuditableItems", func(db *gorm.DB) *gorm.DB {
+            return db.Order("created_at DESC").Limit(5) // Fetch the latest 5 auditable items
+        }).
+		Preload("AuditableItems.ResponsibleUser").
+		Preload("AuditableItems.ResponsibleUnit").
+		Preload("AuditableItems.AuditorRiskRating").
+		Preload("AuditableItems.CreatedByUser").
 		First(&process, id)
 
 	if result.Error != nil {

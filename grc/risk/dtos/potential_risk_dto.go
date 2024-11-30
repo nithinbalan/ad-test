@@ -17,6 +17,7 @@ type PotentialRiskListDTO struct {
 	SeverityLevelColorCode       string  `json:"severity_level_color_code"`
 	PotentialRiskStatusTitleEn   string  `json:"potential_risk_status_title_en"`
 	PotentialRiskStatusTitleAr   string  `json:"potential_risk_status_title_ar"`
+	PotentialRiskStatusType      string  `json:"potential_risk_status_type"`
 	PotentialRiskStatusColorCode string  `json:"potential_risk_status_color_code"`
 	Title                        string  `json:"title"`
 	Description                  *string `json:"description"`

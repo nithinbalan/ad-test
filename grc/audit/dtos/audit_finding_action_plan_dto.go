@@ -42,7 +42,7 @@ type AuditFindingActionPlanListDTO struct {
 	ActionPlanStatusTitleEn         string  `json:"action_plan_status_title_en"`
 	ActionPlanStatusTitleAr         string  `json:"action_plan_status_title_ar"`
 	ActionPlanStatusColorCode       string  `json:"action_plan_status_color_code"`
-	CreatedUserID                   uint    `json:"created_user_id"`
+	CreatedUserID                   uint    `json:"created_by_id"`
 	CreatedUserFirstNameEn          string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string  `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn           string  `json:"created_user_last_name_en"`
@@ -51,7 +51,7 @@ type AuditFindingActionPlanListDTO struct {
 	CreatedUserColor                string  `json:"created_user_color"`
 	CreatedUserEmail                string  `json:"created_user_email"`
 	CreatedUserProfileImagePath     string  `json:"created_user_profile_image_path"`
-	UpdatedUserID                   *uint   `json:"updated_user_id"`
+	UpdatedUserID                   *uint   `json:"updated_by_id"`
 	UpdatedUserFirstNameEn          string  `json:"updated_user_first_name_en"`
 	UpdatedUserFirstNameAr          string  `json:"updated_user_first_name_ar"`
 	UpdatedUserLastNameEn           string  `json:"updated_user_last_name_en"`
@@ -60,6 +60,8 @@ type AuditFindingActionPlanListDTO struct {
 	UpdatedUserColor                string  `json:"updated_user_color"`
 	UpdatedUserEmail                string  `json:"updated_user_email"`
 	UpdatedUserProfileImagePath     string  `json:"updated_user_profile_image_path"`
+	CreatedAt                       string  `json:"created_at"`
+	UpdatedAt                       *string `json:"updated_at"`
 }
 
 type AuditFindingActionPlanListQueryParamsDTO struct {

@@ -59,7 +59,6 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
 			audit_statuses.title_ar AS audit_status_title_ar,
 			audit_statuses.type AS audit_status_type,
 			audit_statuses.color_code AS audit_status_color_code,
-			team_lead.id AS team_lead_id,
 			team_lead.first_name_en AS team_lead_first_name_en,
 			team_lead.first_name_ar AS team_lead_first_name_ar,
 			team_lead.last_name_en AS team_lead_last_name_en,
@@ -138,8 +137,10 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
 			query = query.Where("audit_statuses.type = ?", "published")
 		case "completed":
 			query = query.Where("audit_statuses.type = ?", "completed")
+		case "in_review":
+			query = query.Where("audit_statuses.type = ?", " in-review")
 		case "in_progress":
-			query = query.Where("audit_statuses.type = ?", "in_progress")
+			query = query.Where("audit_statuses.type = ?", "in-progress")
 		}
 	}
 

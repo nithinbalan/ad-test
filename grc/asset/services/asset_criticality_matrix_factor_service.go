@@ -52,11 +52,11 @@ func (acmfs *AssetCriticalityMatrixFactorService) GetByID(matrixID uint, id uint
 func (acmfs *AssetCriticalityMatrixFactorService) Create(matrixID uint, currentUserID uint, factor *models.AssetCriticalityMatrixFactor) (*models.AssetCriticalityMatrixFactor, error) {
 	factor.AssetCriticalityMatrixID = matrixID
 
-	if exists, err := acmfs.repo.ExistsByTitle(factor.TitleEn, factor.TitleAr); err != nil {
-		return nil, err
-	} else if exists {
-		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
-	}
+	// if exists, err := acmfs.repo.ExistsByTitle(factor.TitleEn, factor.TitleAr); err != nil {
+	// 	return nil, err
+	// } else if exists {
+	// 	return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+	// }
 
 	createdFactor, err := acmfs.repo.Create(factor)
 	if err != nil {
@@ -86,13 +86,13 @@ func (acmfs *AssetCriticalityMatrixFactorService) Update(matrixID uint, id uint,
 		return nil, err
 	}
 
-	if updatedFactor.TitleEn != existingFactor.TitleEn || updatedFactor.TitleAr != existingFactor.TitleAr {
-		if exists, err := acmfs.repo.ExistsByTitleExcludingID(id, updatedFactor.TitleEn, updatedFactor.TitleAr); err != nil {
-			return nil, err
-		} else if exists {
-			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
-		}
-	}
+	// if updatedFactor.TitleEn != existingFactor.TitleEn || updatedFactor.TitleAr != existingFactor.TitleAr {
+	// 	if exists, err := acmfs.repo.ExistsByTitleExcludingID(id, updatedFactor.TitleEn, updatedFactor.TitleAr); err != nil {
+	// 		return nil, err
+	// 	} else if exists {
+	// 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+	// 	}
+	// }
 
 	result, err := acmfs.repo.Update(id, updatedFactor)
 	if err != nil {

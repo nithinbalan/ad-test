@@ -122,47 +122,76 @@ type RiskDocumentDTO struct {
 }
 
 type RiskRegisterDetailDTO struct {
-	ID                      int                              `json:"id"`
-	ReferenceNumber         string                           `json:"reference_number"`
-	RiskCategory            RiskCategoryDTO                  `json:"risk_category"`
-	RiskSource              *RiskSourceDTO                   `json:"risk_source"`
-	ResponsibleUnit         settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
-	ResponsibleUser         organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
-	ResponsibleUserID       uint                             `json:"responsible_user_id" binding:"required" gorm:"not null"`
-	RiskStatus              RiskStatusDTO                    `json:"risk_status"`
-	Title                   string                           `json:"title"`
-	Description             *string                          `json:"description"`
-	ReportedAtString        *string                          `json:"reported_at"`
-	CurrentLikelihood       *RiskMatrixLikelihoodDTO         `json:"current_likelihood"`
-	CurrentImpact           *RiskMatrixImpactDTO             `json:"current_impact"`
-	CurrentRiskRating       *RiskMatrixRiskRatingDTO         `json:"current_risk_rating"`
-	CurrentRiskRatingValue  *RiskMatrixRiskRatingValueDTO    `json:"current_risk_rating_value"`
-	InherentLikelihood      *RiskMatrixLikelihoodDTO         `json:"inherent_likelihood"`
-	InherentImpact          *RiskMatrixImpactDTO             `json:"inherent_impact"`
-	InherentRiskRating      *RiskMatrixRiskRatingDTO         `json:"inherent_risk_rating"`
-	InherentRiskRatingValue *RiskMatrixRiskRatingValueDTO    `json:"inherent_risk_rating_value"`
-	ResidualLikelihood      *RiskMatrixLikelihoodDTO         `json:"residual_likelihood"`
-	ResidualImpact          *RiskMatrixImpactDTO             `json:"residual_impact"`
-	ResidualRiskRating      *RiskMatrixRiskRatingDTO         `json:"residual_risk_rating"`
-	ResidualRiskRatingValue *RiskMatrixRiskRatingValueDTO    `json:"residual_risk_rating_value"`
-	RiskResponseStrategy    *RiskResponseStrategyDTO         `json:"risk_response_strategy"`
-	ReviewFrequency         *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
-	NextReviewDateString    *string                          `json:"next_review_date"`
-	LastReviewNote          *string                          `json:"last_review_note"`
-	Documents               []*RiskDocumentDTO               `json:"documents"`
-	CreatedAt               time.Time                        `json:"created_at"`
-	UpdatedAt               *time.Time                       `json:"updated_at"`
-	CreatedByUser           organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedByUser           organizationDTOs.UserMinimalDTO  `json:"updated_by"`
-	Controls                []*RiskControlDTO                `json:"controls"`
-	ComplianceRequirements  []*RiskComplianceRequirementDTO  `json:"compliance_requirements"`
-	Processes               []*RiskProcessDTO                `json:"processes"`
-	StrategicObjectives     []*RiskStrategicObjectiveDTO     `json:"strategic_objectives"`
-	SLARegisters            []*RiskSLARegisterDTO            `json:"sla_registers"`
-	Kris                    []*RiskKRIDTO                    `json:"kris"`
-	AssociatedDocuments     []*RiskAssociatedDocumentDTO     `json:"associated_documents"`
-	Assets                  []*RiskAssetDTO                  `json:"assets"`
-	MarkedAsAuditableItem   bool                             `json:"marked_as_auditable_item"`
+	ID                      int                                `json:"id"`
+	ReferenceNumber         string                             `json:"reference_number"`
+	RiskCategory            RiskCategoryDTO                    `json:"risk_category"`
+	RiskSource              *RiskSourceDTO                     `json:"risk_source"`
+	ResponsibleUnit         settingsDTOs.OrganizationUnitDTO   `json:"responsible_unit"`
+	ResponsibleUser         organizationDTOs.UserMinimalDTO    `json:"responsible_user"`
+	ResponsibleUserID       uint                               `json:"responsible_user_id" binding:"required" gorm:"not null"`
+	RiskStatus              RiskStatusDTO                      `json:"risk_status"`
+	Title                   string                             `json:"title"`
+	Description             *string                            `json:"description"`
+	ReportedAtString        *string                            `json:"reported_at"`
+	CurrentLikelihood       *RiskMatrixLikelihoodDTO           `json:"current_likelihood"`
+	CurrentImpact           *RiskMatrixImpactDTO               `json:"current_impact"`
+	CurrentRiskRating       *RiskMatrixRiskRatingDTO           `json:"current_risk_rating"`
+	CurrentRiskRatingValue  *RiskMatrixRiskRatingValueDTO      `json:"current_risk_rating_value"`
+	InherentLikelihood      *RiskMatrixLikelihoodDTO           `json:"inherent_likelihood"`
+	InherentImpact          *RiskMatrixImpactDTO               `json:"inherent_impact"`
+	InherentRiskRating      *RiskMatrixRiskRatingDTO           `json:"inherent_risk_rating"`
+	InherentRiskRatingValue *RiskMatrixRiskRatingValueDTO      `json:"inherent_risk_rating_value"`
+	ResidualLikelihood      *RiskMatrixLikelihoodDTO           `json:"residual_likelihood"`
+	ResidualImpact          *RiskMatrixImpactDTO               `json:"residual_impact"`
+	ResidualRiskRating      *RiskMatrixRiskRatingDTO           `json:"residual_risk_rating"`
+	ResidualRiskRatingValue *RiskMatrixRiskRatingValueDTO      `json:"residual_risk_rating_value"`
+	RiskResponseStrategy    *RiskResponseStrategyDTO           `json:"risk_response_strategy"`
+	ReviewFrequency         *masterDTOs.ReviewFrequencyDTO     `json:"review_frequency"`
+	NextReviewDateString    *string                            `json:"next_review_date"`
+	LastReviewNote          *string                            `json:"last_review_note"`
+	Documents               []*RiskDocumentDTO                 `json:"documents"`
+	CreatedAt               time.Time                          `json:"created_at"`
+	UpdatedAt               *time.Time                         `json:"updated_at"`
+	CreatedByUser           organizationDTOs.UserMinimalDTO    `json:"created_by"`
+	UpdatedByUser           organizationDTOs.UserMinimalDTO    `json:"updated_by"`
+	Controls                []*RiskControlDTO                  `json:"controls"`
+	ComplianceRequirements  []*RiskComplianceRequirementDTO    `json:"compliance_requirements"`
+	Processes               []*RiskProcessDTO                  `json:"processes"`
+	StrategicObjectives     []*RiskStrategicObjectiveDTO       `json:"strategic_objectives"`
+	SLARegisters            []*RiskSLARegisterDTO              `json:"sla_registers"`
+	Kris                    []*RiskKRIDTO                      `json:"kris"`
+	AssociatedDocuments     []*RiskAssociatedDocumentDTO       `json:"associated_documents"`
+	Assets                  []*RiskAssetDTO                    `json:"assets"`
+	Threats                 []*RiskThreatDTO                   `json:"threats"`
+	MarkedAsAuditableItem   bool                               `json:"marked_as_auditable_item"`
+	AuditableItem           *AuditableItemMinimalRiskDetailDTO `json:"auditable_item"`
+}
+type AuditableItemMinimalRiskDetailDTO struct {
+	ID                  uint                             `json:"id"`
+	Type                string                           `json:"type"`
+	TitleEn             *string                          `json:"title_en"`
+	TitleAr             *string                          `json:"title_ar"`
+	Comment             *string                          `json:"comment"`
+	ResponsibleUnitID   uint                             `json:"responsible_unit_id"`
+	ResponsibleUserID   uint                             `json:"responsible_user_id"`
+	CreatedByID         uint                             `json:"created_by_id"`
+	UpdatedByID         *uint                            `json:"updated_by_id"`
+	AuditorRiskRatingID uint                             `json:"auditor_risk_rating_id"`
+	AuditorRiskRating   *AuditorRiskRatingMinimalRiskDTO `json:"auditor_risk_rating"`
+	ResponsibleUnit     settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
+	CreatedAt           time.Time                        `json:"created_at"`
+	UpdatedAt           *time.Time                       `json:"updated_at"`
+	ResponsibleUser     *UserMinimalDTO                  `json:"responsible_user"`
+	CreatedByUser       *UserMinimalDTO                  `json:"created_by"`
+	UpdatedByUser       *UserMinimalDTO                  `json:"updated_by"`
+}
+type AuditorRiskRatingMinimalRiskDTO struct {
+	ID        uint   `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Type      string `json:"type"`
+	Status    string `json:"status"`
 }
 
 type RiskAssociatedDocumentDTO struct {
@@ -219,6 +248,14 @@ type RiskAssetDTO struct {
 	AssetRegisterID uint                             `json:"asset_register_id"`
 	AssetRegister   assetDTOs.AssetRegisterDetailDTO `json:"asset"`
 }
+
+type RiskThreatDTO struct {
+	ID             *uint                     `json:"id"`
+	RiskRegisterID uint                      `json:"risk_register_id"`
+	ThreatID       uint                      `json:"threat_id"`
+	Threat         assetDTOs.ThreatDetailDTO `json:"threat"`
+}
+
 type RiskRegisterFormDTO struct {
 	RiskCategoryID           uint                          `json:"risk_category_id" binding:"required"`
 	RiskSourceID             *uint                         `json:"risk_source_id"`
@@ -237,6 +274,7 @@ type RiskRegisterFormDTO struct {
 	SLARegisterIDs           []*uint                       `json:"sla_register_ids"`
 	DocumentIds              []*uint                       `json:"document_ids"`
 	AssetIds                 []*uint                       `json:"asset_ids"`
+	ThreatIds                []*uint                       `json:"threat_ids"`
 }
 
 type RiskRegisterParsedDates struct {

@@ -81,12 +81,15 @@ func (aidfs *AuditInsightsDraftFindingService) Accept(auditDraftFindingID uint, 
 		return utility.NewForbiddenError("Action not allowed: Only audit draft reports with an 'In Department Review' status can be accepted.")
 	}
 
-	auditDraftFindingStatus, err := aidfs.auditDraftFindingStatusSvc.GetByType("open")
-	if err != nil {
-		return err
-	}
-	if existingAuditDraftFinding.AuditDraftFindingStatusID != auditDraftFindingStatus.ID {
-		return utility.NewForbiddenError("Action not allowed: Only audit draft findings with an 'open' status can be processed. Please ensure the audit draft finding is open before proceeding.")
+	// auditDraftFindingStatus, err := aidfs.auditDraftFindingStatusSvc.GetByType("open")
+	// if err != nil {
+	// 	return err
+	// }
+	// if existingAuditDraftFinding.AuditDraftFindingStatusID != auditDraftFindingStatus.ID {
+	// 	return utility.NewForbiddenError("Action not allowed: Only audit draft findings with an 'open' status can be processed. Please ensure the audit draft finding is open before proceeding.")
+	// }
+	if existingAuditDraftFinding.AuditDraftFindingStatus.IsFinalized {
+		return utility.NewForbiddenError("Action not allowed: Only audit draft findings with an 'open' status can be processed. Please ensure the audit draft finding is not finalized before proceeding.")
 	}
 	auditDraftFindingStatusAccepted, err := aidfs.auditDraftFindingStatusSvc.GetByType("accepted")
 	if err != nil {
@@ -176,12 +179,15 @@ func (aidfs *AuditInsightsDraftFindingService) Challenge(auditDraftFindingID uin
 		return utility.NewForbiddenError("Action not allowed: Only audit draft reports with an 'In Department Review' status can be challenged.")
 	}
 
-	auditDraftFindingStatus, err := aidfs.auditDraftFindingStatusSvc.GetByType("open")
-	if err != nil {
-		return err
-	}
-	if existingAuditDraftFinding.AuditDraftFindingStatusID != auditDraftFindingStatus.ID {
-		return utility.NewForbiddenError("Action not allowed: Only audit draft findings with an 'open' status can be processed. Please ensure the audit draft finding is open before proceeding.")
+	// auditDraftFindingStatus, err := aidfs.auditDraftFindingStatusSvc.GetByType("open")
+	// if err != nil {
+	// 	return err
+	// }
+	// if existingAuditDraftFinding.AuditDraftFindingStatusID != auditDraftFindingStatus.ID {
+	// 	return utility.NewForbiddenError("Action not allowed: Only audit draft findings with an 'open' status can be processed. Please ensure the audit draft finding is open before proceeding.")
+	// }
+	if existingAuditDraftFinding.AuditDraftFindingStatus.IsFinalized {
+		return utility.NewForbiddenError("Action not allowed: Only audit draft findings with an 'open' status can be processed. Please ensure the audit draft finding is not finalized before proceeding.")
 	}
 	auditDraftFindingStatusChallenged, err := aidfs.auditDraftFindingStatusSvc.GetByType("challenged")
 	if err != nil {

@@ -24,14 +24,18 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/compliance-by-responsible-unit", complianceReportController.GetComplianceByResponsibleUnit)
 	reportsRoutes.GET("/reports/compliance-by-responsible-user", complianceReportController.GetComplianceByResponsibleUser)
 
+	reportsRoutes.GET("/reports/compliance-requirements", complianceReportController.GetAllComplianceRequirements)
 	reportsRoutes.GET("/reports/compliance-requirement-by-compliance-status", complianceReportController.GetComplianceRequirementByComplianceStatus)
 	reportsRoutes.GET("/reports/compliance-requirement-by-severity-level", complianceReportController.GetComplianceRequirementBySeverityLevel)
 	reportsRoutes.GET("/reports/compliance-requirement-by-category", complianceReportController.GetComplianceRequirementByCategory)
 	reportsRoutes.GET("/reports/compliance-requirement-by-responsible-user", complianceReportController.GetComplianceRequirementByResponsibleUser)
 
+	reportsRoutes.GET("/reports/compliance-action-plans", complianceReportController.GetAllComplianceActionPlans)
 	reportsRoutes.GET("/reports/compliance-action-plan-by-status", complianceReportController.GetComplianceActionPlanByStatus)
 	reportsRoutes.GET("/reports/compliance-action-plan-by-responsible-user", complianceReportController.GetComplianceActionPlanByResponsibleUser)
 
+	reportsRoutes.GET("/reports/slas", complianceReportController.GetAllSLARegisters)
+	reportsRoutes.GET("/reports/slas/export", complianceReportController.GetSLARegisterExport)
 	reportsRoutes.GET("/reports/sla-by-category", complianceReportController.GetSLAByCategory)
 	reportsRoutes.GET("/reports/sla-by-severity-level", complianceReportController.GetSLABySeverityLevel)
 	reportsRoutes.GET("/reports/sla-by-compliance-status", complianceReportController.GetSLAByComplianceStatus)

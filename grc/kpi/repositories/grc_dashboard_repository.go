@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"database/sql"
 	kpiDTOs "jethur/grc/kpi/dtos"
 	"jethur/grc/models"
 	"math"
@@ -309,11 +310,13 @@ func (repo *GRCDashboardRepository) GetGRCIncidentSummary(params *kpiDTOs.GRCDas
 		incidentQuery = incidentQuery.Where("incident_register.incident_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
+	// Count total incidents
 	err := incidentQuery.Count(&totalIncidents).Error
 	if err != nil {
 		return nil, err
 	}
 
+	// Count closed incidents
 	closedIncidentQuery := incidentQuery.
 		Joins("JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id").
 		Where("incident_statuses.type = ?", "closed")
@@ -323,16 +326,16 @@ func (repo *GRCDashboardRepository) GetGRCIncidentSummary(params *kpiDTOs.GRCDas
 		return nil, err
 	}
 
+	// Calculate closure rate
 	closureRate := 0.0
 	if totalIncidents > 0 {
 		closureRate = math.Round(float64(closedIncidents) / float64(totalIncidents) * 100.0)
 	}
 
-	// Calculate the number of months between DateFrom and DateTo
-	// If no DateFrom and DateTo, calculate months from the earliest to the latest incident
+	// Calculate the number of months between DateFrom and DateTo, or the range of incidents
 	var monthsBetween float64
 	if params.DateFrom != "" && params.DateTo != "" {
-		// If DateFrom and DateTo are provided, calculate the difference in months
+		// Calculate months between DateFrom and DateTo
 		dateFrom, err := time.Parse("2006-01-02", params.DateFrom)
 		if err != nil {
 			return nil, err
@@ -344,29 +347,39 @@ func (repo *GRCDashboardRepository) GetGRCIncidentSummary(params *kpiDTOs.GRCDas
 		monthsBetween = float64(dateTo.Year()*12 + int(dateTo.Month()) - (dateFrom.Year()*12 + int(dateFrom.Month())))
 		monthsBetween += 1 // Include the current month
 	} else {
-		// If DateFrom and DateTo are not provided, calculate months based on all incidents
-		var firstIncident, lastIncident time.Time
+		// Calculate months based on the earliest and latest incident dates
+		var firstIncident, lastIncident sql.NullTime
+
 		err := repo.db.Model(&models.IncidentRegister{}).
 			Select("MIN(incident_at)").Scan(&firstIncident).Error
 		if err != nil {
 			return nil, err
 		}
+
 		err = repo.db.Model(&models.IncidentRegister{}).
 			Select("MAX(incident_at)").Scan(&lastIncident).Error
 		if err != nil {
 			return nil, err
 		}
 
-		// Calculate months between the first and last incident
-		monthsBetween = float64(lastIncident.Year()*12 + int(lastIncident.Month()) - (firstIncident.Year()*12 + int(firstIncident.Month())))
-		monthsBetween += 1 // Include the current month
+		// Handle case when no incidents are present
+		if !firstIncident.Valid || !lastIncident.Valid {
+			monthsBetween = 0
+		} else {
+			// Calculate months between the first and last incident
+			monthsBetween = float64(lastIncident.Time.Year()*12 + int(lastIncident.Time.Month()) -
+				(firstIncident.Time.Year()*12 + int(firstIncident.Time.Month())))
+			monthsBetween += 1 // Include the current month
+		}
 	}
 
+	// Calculate incident frequency rate
 	incidentFrequencyRate := 0.0
 	if monthsBetween > 0 {
 		incidentFrequencyRate = float64(totalIncidents) / monthsBetween
 	}
 
+	// Return the GRC incident summary DTO
 	return &kpiDTOs.GRCIncidentSummaryDTO{
 		IncidentClosureRate:   closureRate,
 		IncidentFrequencyRate: incidentFrequencyRate,
@@ -523,11 +536,11 @@ func (repo *GRCDashboardRepository) GetTopComplianceRegisters(params *kpiDTOs.GR
 		return nil, err
 	}
 
-	var topRegisters []*kpiDTOs.GRCTopComplianceRegistersDTO
+	topRegisters := []*kpiDTOs.GRCTopComplianceRegistersDTO{}
 	for _, register := range complianceRegisters {
 		complianceRegisterDTO := &kpiDTOs.GRCTopComplianceRegistersDTO{
 			ID:                        register.ID,
-			StandardCode:              *register.StandardCode,
+			StandardCode:              register.StandardCode,
 			TitleEn:                   register.TitleEn,
 			TitleAr:                   register.TitleAr,
 			TotalScore:                register.TotalScore,

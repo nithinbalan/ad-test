@@ -3,11 +3,15 @@ package services
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"time"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	organizationServices "jethur/grc/organization/services"
-	"time"
 
 	"jethur/grc/models"
 	"jethur/utility"
@@ -35,6 +39,7 @@ type AuditPlanService struct {
 	auditTeamSvc     AuditTeamServiceInterface
 	userSvc          organizationServices.UserServiceInterface
 	auditableItemSvc AuditableItemServiceInterface
+	notificationSvc  commonServices.NotificationServiceInterface
 }
 
 func NewAuditPlanService(
@@ -45,6 +50,7 @@ func NewAuditPlanService(
 	auditTeamSvc AuditTeamServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	auditableItemSvc AuditableItemServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) AuditPlanServiceInterface {
 	return &AuditPlanService{
 		repo:             repo,
@@ -54,6 +60,7 @@ func NewAuditPlanService(
 		auditTeamSvc:     auditTeamSvc,
 		userSvc:          userSvc,
 		auditableItemSvc: auditableItemSvc,
+		notificationSvc:  notificationSvc,
 	}
 }
 
@@ -189,7 +196,6 @@ func (aps *AuditPlanService) Create(currentUserID uint, auditPlanFormDTO *auditD
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -357,7 +363,6 @@ func (aps *AuditPlanService) Update(id uint, currentUserID uint, auditPlanFormDT
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
@@ -435,7 +440,6 @@ func (aps *AuditPlanService) Delete(ids []uint, currentUserID uint) ([]uint, err
 					currentUserID,
 					nil,
 				)
-
 				if err != nil {
 					fields := map[string]interface{}{
 						"action":    models.DeleteAction,
@@ -462,13 +466,12 @@ func (aps *AuditPlanService) StatusUpdate(id uint, currentUserID uint, auditStat
 		return err
 	}
 	now := time.Now()
-	
+
 	existingAuditPlan.UpdatedAt = &now
-	existingAuditPlan.AuditStatusID =  auditStatusID
+	existingAuditPlan.AuditStatusID = auditStatusID
 	existingAuditPlan.UpdatedBYID = &currentUserID
 
 	err = aps.repo.Update(existingAuditPlan, tx)
-
 	if err != nil {
 		return err
 	}
@@ -478,7 +481,7 @@ func (aps *AuditPlanService) StatusUpdate(id uint, currentUserID uint, auditStat
 
 func (aps *AuditPlanService) Publish(id uint, currentUserID uint) error {
 	tx := aps.repo.BeginTransaction()
-	existingAuditPlan, err := aps.repo.GetByID(id)
+	existingAuditPlan, err := aps.repo.GetFullDetailsByID(id)
 	if err != nil {
 		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
@@ -492,7 +495,7 @@ func (aps *AuditPlanService) Publish(id uint, currentUserID uint) error {
 		return utility.NewForbiddenError("The audit draft report has already been published.")
 	}
 	now := time.Now()
-	
+
 	existingAuditPlan.PublishedAt = &now
 	existingAuditPlan.AuditStatusID = uint(auditStatus.ID)
 	existingAuditPlan.PublishedBYID = &currentUserID
@@ -514,7 +517,6 @@ func (aps *AuditPlanService) Publish(id uint, currentUserID uint) error {
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
@@ -525,6 +527,107 @@ func (aps *AuditPlanService) Publish(id uint, currentUserID uint) error {
 			}
 
 			utility.LogError("Failed to log activity", fields)
+		}
+
+		uniqueUserIDs := make(map[uint]bool)
+
+		teamLeadDetails := "None"
+		if existingAuditPlan.TeamLead != nil {
+			uniqueUserIDs[existingAuditPlan.TeamLead.ID] = true
+			teamLeadDetails = fmt.Sprintf("%s %s", existingAuditPlan.TeamLead.FirstNameEn, existingAuditPlan.TeamLead.LastNameEn)
+		} else {
+			utility.LogError("TeamLead is nil", nil)
+		}
+
+		auditMembers := []string{}
+		for _, member := range existingAuditPlan.Members {
+			if member.User != nil {
+				uniqueUserIDs[member.User.ID] = true
+				auditMembers = append(auditMembers, fmt.Sprintf("%s %s", member.User.FirstNameEn, member.User.LastNameEn))
+			} else {
+				utility.LogError("Member User is nil", map[string]interface{}{
+					"memberID": member.ID,
+				})
+			}
+		}
+
+		assignedBy, err := aps.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		auditMembersDetails := "None"
+		if len(auditMembers) > 0 {
+			auditMembersDetails = strings.Join(auditMembers, "\n- ")
+		}
+
+		// Send notifications
+		for userID := range uniqueUserIDs {
+			user, err := aps.userSvc.GetByID(userID)
+			if err != nil {
+				utility.LogError("Failed to fetch user details for notification", map[string]interface{}{
+					"userID": userID,
+					"error":  err.Error(),
+				})
+				continue
+			}
+
+			urlParam := fmt.Sprintf(`{"audit_plan_id":%d}`, id)
+			entity := "audit-plan-publish"
+			action := "responsible-user-assign"
+			appURL := utility.GetAppURL()
+
+			// DB Notification
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               userID,
+				ModuleIdentifier:     "audit",
+				NotificationType:     string(commonDTOs.InformationType),
+				ReferenceNumber:      existingAuditPlan.ReferenceNumber,
+				HeadingEn:            "Audit Plan Published",
+				HeadingAr:            "تم نشر خطة التدقيق",
+				TitleEn:              existingAuditPlan.Title,
+				TitleAr:              existingAuditPlan.Title,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			// Email Notification
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              []string{user.Email},
+				Subject:              fmt.Sprintf("Audit Plan Published: %s", existingAuditPlan.Title),
+				TemplateRelativePath: "audit/templates/email/audit_plan_publish_create_responsible_user_mail.html",
+				EmailData: map[string]interface{}{
+					"FirstNameEn":           user.FirstNameEn,
+					"LastNameEn":            user.LastNameEn,
+					"ReferenceNumber":       existingAuditPlan.ReferenceNumber,
+					"Title":                 existingAuditPlan.Title,
+					"Description":           existingAuditPlan.Description,
+					"Category":              existingAuditPlan.AuditCategory.TitleEn,
+					"StartDate":             existingAuditPlan.StartDate.Format("2006-01-02"),
+					"TargetDate":            existingAuditPlan.TargetDate.Format("2006-01-02"),
+					"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+					"AssignedByLastNameEn":  assignedBy.LastNameEn,
+					"AssignedOn":            time.Now().Format("2006-01-02"),
+					"TeamLead":              teamLeadDetails,
+					"AuditMembers":          auditMembersDetails,
+					"RedirectURL":           fmt.Sprintf("%s/audit/audit-plans/%d/overview", appURL, id),
+				},
+			}
+
+			// Send Notifications
+			err = aps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
+			if err != nil {
+				utility.LogError("Failed to send audit plan notifications", map[string]interface{}{
+					"userID": userID,
+					"error":  err.Error(),
+				})
+			}
 		}
 	}()
 

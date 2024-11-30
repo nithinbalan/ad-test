@@ -12,7 +12,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes := router.Group("/")
 
 	settingRoutes.Use(middlewares.AuthMiddleware())
-
+	unauthenticatedRoutes := router.Group("/")
 	db := app.DB
 
 	organizationLevelController := app.SettingsModule.OrganizationLevelController
@@ -26,6 +26,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	moduleController := app.SettingsModule.ModuleController
 	emailTemplateSettingsController := app.SettingsModule.EmailTemplateSettingsController
 	integrationController := app.SettingsModule.IntegrationController
+	auditTemplateSettingController := app.SettingsModule.AuditTemplateSettingController
 
 	//Organization Level
 	settingRoutes.GET("/organization-levels", organizationLevelController.GetAllOrganizationLevels)
@@ -76,6 +77,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.DELETE("/workflows/:workflowId/levels/:levelId", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), workflowController.DeleteWorkflowLevel)
 
 	settingRoutes.GET("/modules", moduleController.GetAllModules)
+	settingRoutes.POST("/modules/:moduleId/enable", moduleController.EnableModule)
+	settingRoutes.POST("/modules/:moduleId/disable", moduleController.DisableModule)
+	settingRoutes.PUT("/modules/reorder", moduleController.ReorderModule)
+	settingRoutes.PUT("/modules/:moduleId/reorder", moduleController.ReorderSubModule)
+	settingRoutes.PUT("/modules/:moduleId", moduleController.UpdateModule)
+	settingRoutes.PUT("/modules/:moduleId/submodule/:subModuleId", moduleController.UpdateSubModule)
 
 	settingRoutes.GET("/integrations", integrationController.GetAllIntegrations)
 	settingRoutes.GET("/integrations/:integrationId/credential", integrationController.GetIntegrationDetails)
@@ -84,4 +91,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.DELETE("/integrations/:integrationId/credential", integrationController.DisableIntegration)
 
 	settingRoutes.GET("/organization-preferences", systemPreferenceController.GetOrganizationPreference)
+
+	settingRoutes.GET("/audit-template-settings", auditTemplateSettingController.GetAllAuditTemplateSettings)
+	settingRoutes.PUT("/audit-template-settings/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), auditTemplateSettingController.UpdateAuditTemplateSetting)
+	unauthenticatedRoutes.GET("/audit-template-settings/:id/image-preview", auditTemplateSettingController.GetAuditTemplateSettingPreview)
+
 }

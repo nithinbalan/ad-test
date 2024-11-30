@@ -59,15 +59,15 @@ type GRCDocumentOverviewDTO struct {
 }
 
 type GRCTopComplianceRegistersDTO struct {
-	ID                        uint   `json:"id"`
-	StandardCode              string `json:"standard_code"`
-	TitleEn                   string `json:"title_en"`
-	TitleAr                   string `json:"title_ar"`
-	TotalScore                int    `json:"total_score"`
-	ComplianceStatusTitleEn   string `json:"compliance_status_title_en"`
-	ComplianceStatusTitleAr   string `json:"compliance_status_title_ar"`
-	ComplianceStatusType      string `json:"compliance_status_type"`
-	ComplianceStatusColorCode string `json:"compliance_status_color_code"`
+	ID                        uint    `json:"id"`
+	StandardCode              *string `json:"standard_code"`
+	TitleEn                   string  `json:"title_en"`
+	TitleAr                   string  `json:"title_ar"`
+	TotalScore                int     `json:"total_score"`
+	ComplianceStatusTitleEn   string  `json:"compliance_status_title_en"`
+	ComplianceStatusTitleAr   string  `json:"compliance_status_title_ar"`
+	ComplianceStatusType      string  `json:"compliance_status_type"`
+	ComplianceStatusColorCode string  `json:"compliance_status_color_code"`
 }
 
 type GRCTopRiskRegistersDTO struct {

@@ -136,9 +136,10 @@ func (ics *IncidentCategoryService) Update(id uint, currentUserID uint, updatedC
 func (ics *IncidentCategoryService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedIncidentCategory []map[string]interface{}
 	for _, id := range ids {
 
-		_, err := ics.repo.GetByID(id)
+		incidentCategory, err := ics.repo.GetByID(id)
 
 		if err != nil {
 			fmt.Print(err)
@@ -151,6 +152,13 @@ func (ics *IncidentCategoryService) Delete(ids []uint, currentUserID uint) ([]ui
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedIncidentCategory = append(deletedIncidentCategory, map[string]interface{}{
+			"id":       id,
+			"title_en": incidentCategory.TitleEn,
+			"title_ar": incidentCategory.TitleAr,
+		})
+
 	}
 
 	if len(successfulIds) > 0 {
@@ -160,7 +168,7 @@ func (ics *IncidentCategoryService) Delete(ids []uint, currentUserID uint) ([]ui
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.IncidentCategory{}.TableName(),
 				successfulIds,
-				nil,
+				deletedIncidentCategory,
 				currentUserID,
 				nil,
 			)

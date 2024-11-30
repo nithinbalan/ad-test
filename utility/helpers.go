@@ -292,15 +292,43 @@ func GetStringValue(value interface{}) string {
 // retrieves a field's value from a struct if it exists and is not nil,
 func GetFieldValue(DTO interface{}) interface{} {
 	v := reflect.ValueOf(DTO)
-	fmt.Println(v)
 	if !v.IsNil() {
 		field := v.Elem()
 		if field.FieldByName("FirstNameEN").IsValid() {
 			return fmt.Sprintf("%s %s", field.FieldByName("FirstNameEN").String(), field.FieldByName("LastNameEN").String())
 		} else {
-			return field.FieldByName("TitleEn").String()
+			if field.FieldByName("Title").IsValid() {
+				return field.FieldByName("Title").String()
+			} else {
+				return field.FieldByName("TitleEn").String()
+			}
 		}
 	} else {
 		return ""
 	}
+}
+
+func IsValidPassword(password string) bool {
+	// Password should contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character
+	var (
+		hasUpperCase = false
+		hasLowerCase = false
+		hasNumber    = false
+		hasSpecial   = false
+	)
+
+	for _, char := range password {
+		switch {
+		case 'A' <= char && char <= 'Z':
+			hasUpperCase = true
+		case 'a' <= char && char <= 'z':
+			hasLowerCase = true
+		case '0' <= char && char <= '9':
+			hasNumber = true
+		case strings.ContainsAny(string(char), "!@#$%^&*()-_+=~`[]{}\\|;:'\",.<>?"):
+			hasSpecial = true
+		}
+	}
+
+	return hasUpperCase && hasLowerCase && hasNumber && hasSpecial
 }

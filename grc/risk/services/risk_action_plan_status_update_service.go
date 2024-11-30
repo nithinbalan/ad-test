@@ -184,6 +184,11 @@ func (rasus *RiskActionPlanStatusUpdateService) Update(RiskID uint, RiskActionPl
 		return err
 	}
 
+	oldActionPlanStatusUpdate, err := rasus.GetByID(RiskID, RiskActionPlanID, id)
+	if err != nil {
+		return err
+	}
+
 	if err := rasus.validateRiskActionPlanStatusUpdateFormDTO(RiskActionPlanStatusUpdateFormDTO); err != nil {
 		return err
 	}
@@ -278,6 +283,51 @@ func (rasus *RiskActionPlanStatusUpdateService) Update(RiskID uint, RiskActionPl
 	}
 
 	tx.Commit()
+	go func() {
+		existingActionPlanStatusUpdate, err := rasus.GetByID(RiskID, RiskActionPlanID, id)
+		if err != nil {
+			return
+		}
+
+		// Prepare log data
+		changedData := make(map[string]interface{})
+
+		//log changes
+		oldData := map[string]interface{}{
+			"comment":    oldActionPlanStatusUpdate.Comment,
+			"percentage": oldActionPlanStatusUpdate.Percentage,
+		}
+
+		newData := map[string]interface{}{
+			"comment":    existingActionPlanStatusUpdate.Comment,
+			"percentage": existingActionPlanStatusUpdate.Percentage,
+		}
+
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := rasus.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.RiskActionPlanStatusUpdate{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action":   models.UpdateAction,
+					"error":    err.Error(),
+					"recordID": id,
+				})
+			}
+		}
+	}()
 
 	return nil
 }

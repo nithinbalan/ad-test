@@ -142,7 +142,13 @@ func (usc *UserSettingController) EnableMFA(c *gin.Context) {
 		return
 	}
 
-	err = usc.service.EnableMFA(uint(userID))
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(usc.db, c, err.Error())
+		return
+	}
+
+	err = usc.service.EnableMFA(uint(userID), currentUserID)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -168,7 +174,13 @@ func (usc *UserSettingController) DisableMFA(c *gin.Context) {
 		return
 	}
 
-	err = usc.service.DisableMFA(uint(userID))
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(usc.db, c, err.Error())
+		return
+	}
+
+	err = usc.service.DisableMFA(uint(userID), currentUserID)
 
 	if err != nil {
 		switch e := err.(type) {

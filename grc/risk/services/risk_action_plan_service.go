@@ -600,8 +600,8 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 		})
 
 		deletedRiskActionPlan = append(deletedRiskActionPlan, map[string]interface{}{
-			"ID":    id,
-			"Title": riskActionPlan.Title,
+			"id":    id,
+			"title": riskActionPlan.Title,
 		})
 
 		existingTask, err := raps.taskSvc.GetByFieldID("risk_action_plan_id", id)

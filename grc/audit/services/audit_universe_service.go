@@ -86,7 +86,7 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 				Comment:             auditUniverseFormDTO.Comment,
 				AuditorRiskRatingID: auditUniverseFormDTO.AuditorRiskRatingID,
 				AuditStatusID:       uint(auditStatus.ID),
-				CreatedByID:         currentUserID,
+				CreatedBYID:         currentUserID,
 			}
 
 			var orgUnitID, responsibleUserID uint
