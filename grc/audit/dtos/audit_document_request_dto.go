@@ -85,6 +85,7 @@ type AuditDocumentRequestDetailDTO struct {
 	CreatedByUser              organizationDTOs.UserMinimalDTO               `json:"created_by_user"`
 	UpdatedByUser              *organizationDTOs.UserMinimalDTO              `json:"updated_by_user,omitempty"`
 	ConversationCount          int                                           `json:"conversation_count"`
+	AuditTeams                 []organizationDTOs.UserMinimalDTO             `json:"audit_teams"`
 }
 
 type AuditDocumentRequestListQueryParamsDTO struct {

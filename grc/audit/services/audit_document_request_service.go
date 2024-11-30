@@ -11,6 +11,7 @@ import (
 	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 
@@ -79,6 +80,7 @@ func (adrs *AuditDocumentRequestService) GetByID(id uint) (*models.AuditDocument
 func (adrs *AuditDocumentRequestService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDocumentRequestDetailDTO, error) {
 	var documentRequestDTO auditDTOs.AuditDocumentRequestDetailDTO
 
+	// Fetch full details from the repository
 	documentRequest, err := adrs.repo.GetFullDetailsByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -87,17 +89,67 @@ func (adrs *AuditDocumentRequestService) GetFullDetailsByID(id uint, tx ...utili
 		return nil, err
 	}
 
+	// Map the basic data
 	err = mapstructure.Decode(documentRequest, &documentRequestDTO)
 	if err != nil {
 		return nil, err
 	}
-	// Call the repository function to get the conversation count
-	conversationCount, err := adrs.repo.CountConversationsByRequestID(id, tx...)
-	if err != nil {
-		return nil, err
-	}
-	documentRequestDTO.ConversationCount = int(conversationCount)
 
+	// Merge TeamLead and Members into AuditTeams
+	var auditTeams []organizationDTOs.UserMinimalDTO
+
+	if documentRequest.Audit != nil && documentRequest.Audit.AuditPlan != nil {
+		// Create a map to track unique users by ID
+		uniqueUsers := make(map[int]bool)
+	
+		// Add TeamLead
+		if documentRequest.Audit.AuditPlan.TeamLead != nil {
+			teamLeadID := int(documentRequest.Audit.AuditPlan.TeamLead.ID)
+			if !uniqueUsers[teamLeadID] {
+				teamLead := organizationDTOs.UserMinimalDTO{
+					ID:               teamLeadID,
+					FirstNameEN:      documentRequest.Audit.AuditPlan.TeamLead.FirstNameEn,
+					LastNameEN:       documentRequest.Audit.AuditPlan.TeamLead.LastNameEn,
+					FirstNameAR:      documentRequest.Audit.AuditPlan.TeamLead.FirstNameAr,
+					LastNameAR:       documentRequest.Audit.AuditPlan.TeamLead.LastNameAr,
+					ProfileImagePath: documentRequest.Audit.AuditPlan.TeamLead.ProfileImagePath,
+					Email:            documentRequest.Audit.AuditPlan.TeamLead.Email,
+					Initial:          documentRequest.Audit.AuditPlan.TeamLead.Initial,
+					Color:            documentRequest.Audit.AuditPlan.TeamLead.Color,
+					MobileNumber:     documentRequest.Audit.AuditPlan.TeamLead.MobileNumber,
+				}
+				auditTeams = append(auditTeams, teamLead)
+				uniqueUsers[teamLeadID] = true
+			}
+		}
+	
+		// Add Members
+		for _, member := range documentRequest.Audit.AuditPlan.Members {
+			if member.User != nil {
+				memberID := int(member.User.ID)
+				if !uniqueUsers[memberID] {
+					memberDTO := organizationDTOs.UserMinimalDTO{
+						ID:               memberID,
+						FirstNameEN:      member.User.FirstNameEn,
+						LastNameEN:       member.User.LastNameEn,
+						FirstNameAR:      member.User.FirstNameAr,
+						LastNameAR:       member.User.LastNameAr,
+						ProfileImagePath: member.User.ProfileImagePath,
+						Email:            member.User.Email,
+						Initial:          member.User.Initial,
+						Color:            member.User.Color,
+						MobileNumber:     member.User.MobileNumber,
+					}
+					auditTeams = append(auditTeams, memberDTO)
+					uniqueUsers[memberID] = true
+				}
+			}
+		}
+	}	
+
+	documentRequestDTO.AuditTeams = auditTeams
+
+	// Map other fields
 	if documentRequest.RequestedAt != nil {
 		documentRequestDTO.RequestedAtString = documentRequest.RequestedAt.Format("2006-01-02")
 	}
@@ -106,8 +158,16 @@ func (adrs *AuditDocumentRequestService) GetFullDetailsByID(id uint, tx ...utili
 		documentRequestDTO.UpdatedAt = documentRequest.UpdatedAt
 	}
 
+	// Get conversation count
+	conversationCount, err := adrs.repo.CountConversationsByRequestID(id, tx...)
+	if err != nil {
+		return nil, err
+	}
+	documentRequestDTO.ConversationCount = int(conversationCount)
+
 	return &documentRequestDTO, nil
 }
+
 
 func (adrs *AuditDocumentRequestService) Create(auditID uint, currentUserID uint, formDTO *auditDTOs.AuditDocumentRequestFormDTO) ([]uint, error) {
 	tx := adrs.repo.BeginTransaction()

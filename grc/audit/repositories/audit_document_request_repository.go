@@ -197,6 +197,9 @@ func (repo *AuditDocumentRequestRepository) GetFullDetailsByID(id uint, tx ...ut
 	result := db.
 		Preload("Audit").
 		Preload("Audit.AuditPlan").
+		Preload("Audit.AuditPlan.TeamLead").
+		Preload("Audit.AuditPlan.Members").
+		Preload("Audit.AuditPlan.Members.User").
 		Preload("AuditDocumentRequestStatus").
 		Preload("AuditableItems").
 		Preload("AuditableItems.AuditableItem.AuditStatus").
