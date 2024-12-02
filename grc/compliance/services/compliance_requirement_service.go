@@ -275,11 +275,20 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	tx.Commit()
 
 	go func() {
-		err := crs.activityLogSvc.LogActivity(
+
+		existingComplianceRequirement, err := crs.GetFullDetailsByID(complianceID, id)
+		if err != nil {
+			utility.LogError("Failed to fetch compliance register", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = crs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.ComplianceRequirement{}.TableName(),
 			id,
-			complianceRequirementFormDTO,
+			existingComplianceRequirement,
 			currentUserID,
 			nil,
 		)
@@ -385,6 +394,12 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 
 	existingComplianceRequirement, err := crs.GetByID(complianceID, id, tx)
 	if err != nil {
+		return err
+	}
+
+	oldComplianceRequirement, err := crs.GetFullDetailsByID(complianceID, id)
+	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -612,6 +627,125 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	tx.Commit()
 
 	go func() {
+		existingRequirement, err := crs.GetFullDetailsByID(complianceID, id)
+		if err != nil {
+			return
+		}
+		// Determine control
+		controlsAdded := []uint{}
+		controlsRemoved := []uint{}
+		for id := range newControlIDs {
+			if !existingControlIDs[id] {
+				controlsAdded = append(controlsAdded, id)
+			}
+		}
+		for id := range existingControlIDs {
+			if !newControlIDs[id] {
+				controlsRemoved = append(controlsRemoved, id)
+			}
+		}
+
+		// Determine strategic objectives
+		strategicObjectivesAdded := []uint{}
+		strategicObjectivesRemoved := []uint{}
+		for id := range newStrategicObjectiveIDs {
+			if !existingStrategicObjectiveIDs[id] {
+				strategicObjectivesAdded = append(strategicObjectivesAdded, id)
+			}
+		}
+		for id := range existingStrategicObjectiveIDs {
+			if !newStrategicObjectiveIDs[id] {
+				strategicObjectivesRemoved = append(strategicObjectivesRemoved, id)
+			}
+		}
+
+		// Determine strategic objectives
+		documentsAdded := []uint{}
+		documentssRemoved := []uint{}
+		for id := range newDocumentIDs {
+			if !existingDocumentIDs[id] {
+				documentsAdded = append(documentsAdded, id)
+			}
+		}
+		for id := range existingDocumentIDs {
+			if !newDocumentIDs[id] {
+				documentssRemoved = append(documentssRemoved, id)
+			}
+		}
+
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
+
+		if len(controlsAdded) > 0 || len(controlsRemoved) > 0 {
+			associatedItems["control_ids"] = map[string]interface{}{
+				"added":   controlsAdded,
+				"removed": controlsRemoved,
+			}
+		}
+
+		if len(strategicObjectivesAdded) > 0 || len(strategicObjectivesRemoved) > 0 {
+			associatedItems["strategic_objective_ids"] = map[string]interface{}{
+				"added":   strategicObjectivesAdded,
+				"removed": strategicObjectivesRemoved,
+			}
+		}
+
+		if len(documentsAdded) > 0 || len(documentssRemoved) > 0 {
+			associatedItems["document_ids"] = map[string]interface{}{
+				"added":   documentsAdded,
+				"removed": documentssRemoved,
+			}
+		}
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+		//log changes
+		oldData := map[string]interface{}{
+			"compliance_requirement_category": oldComplianceRequirement.ComplianceRequirementCategory.TitleEn,
+			"compliance_status":               oldComplianceRequirement.ComplianceStatus.TitleEn,
+			"responsible_user":                fmt.Sprintf("%s %s", oldComplianceRequirement.ResponsibleUser.FirstNameEN, oldComplianceRequirement.ResponsibleUser.LastNameEN),
+			"severity_level":                  oldComplianceRequirement.SeverityLevel.TitleEn,
+			"title":                           oldComplianceRequirement.Title,
+			"dead_line":                       oldComplianceRequirement.DeadlineString,
+			"compliance_clause":               oldComplianceRequirement.ComplianceClause.Title,
+		}
+
+		newData := map[string]interface{}{
+			"compliance_requirement_category": existingRequirement.ComplianceRequirementCategory.TitleEn,
+			"compliance_status":               existingRequirement.ComplianceStatus.TitleEn,
+			"responsible_user":                fmt.Sprintf("%s %s", existingRequirement.ResponsibleUser.FirstNameEN, existingRequirement.ResponsibleUser.LastNameEN),
+			"severity_level":                  existingRequirement.SeverityLevel.TitleEn,
+			"title":                           existingRequirement.Title,
+			"dead_line":                       existingRequirement.DeadlineString,
+			"compliance_clause":               existingRequirement.ComplianceClause.Title,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			// Log the update activity
+			err := crs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.ComplianceRequirement{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.ComplianceRequirement{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				})
+			}
+		}
 		// Send notifications if the responsible user has changed
 		if oldResponsibleUserID != existingComplianceRequirement.ResponsibleUserID {
 			// URL param for notifications
@@ -772,6 +906,8 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedComplianceRequirement []map[string]interface{}
+
 	var notifications []struct {
 		OwnerID          *uint
 		Title            string
@@ -861,6 +997,13 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 			// Track the clause IDs
 			clauseIDsToDelete[uint(requirement.ComplianceClause.ID)] = true
 		}
+
+		deletedComplianceRequirement = append(deletedComplianceRequirement, map[string]interface{}{
+			"id":                     id,
+			"compliance_register_id": complianceID,
+			"title":                  requirement.Title,
+		})
+
 	}
 
 	if len(failedIds) > 0 {
@@ -897,7 +1040,7 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.ComplianceRequirement{}.TableName(),
 				successfulIds,
-				nil,
+				deletedComplianceRequirement,
 				currentUserID,
 				nil,
 			)

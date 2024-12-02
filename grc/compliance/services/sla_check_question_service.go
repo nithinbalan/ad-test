@@ -133,6 +133,13 @@ func (scqs *SLACheckQuestionService) UpdateQuestionGroup(slaID uint, checkID uin
 	if _, err := scqs.slaRegisterSvc.GetByID(slaID); err != nil {
 		return err
 	}
+
+	oldGroup, err := scqs.GetQuestionGroupByID(slaID, checkID, groupID)
+
+	if err != nil {
+		return err
+	}
+
 	// Fetch the SLACheckQuestionGroup by ID
 	group, err := scqs.repo.GetQuestionGroupByID(groupID)
 	if err != nil {
@@ -155,25 +162,48 @@ func (scqs *SLACheckQuestionService) UpdateQuestionGroup(slaID uint, checkID uin
 
 	// Log the activity
 	go func() {
-		err := scqs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.SLACheckQuestionGroup{}.TableName(),
-			groupID,
-			group,
-			currentUserID,
-			nil,
-		)
+		existingGroup, err := scqs.GetQuestionGroupByID(slaID, checkID, groupID)
 
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.SLACheckQuestionGroup{}.TableName(),
-				"recordID":  groupID,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"title_en": oldGroup.TitleEn,
+			"title_ar": oldGroup.TitleAr,
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		newData := map[string]interface{}{
+			"title_en": existingGroup.TitleEn,
+			"title_ar": existingGroup.TitleAr,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		if len(changedData) > 0 {
+			err := scqs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.SLACheckQuestionGroup{}.TableName(),
+				groupID,
+				group,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.SLACheckQuestionGroup{}.TableName(),
+					"recordID":  groupID,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -188,7 +218,7 @@ func (scqs *SLACheckQuestionService) DeleteQuestionGroup(slaID uint, checkID uin
 	var successfulQuestionIDs []uint
 	var failedGroupID uint
 	var successfulGroupID uint
-
+	var deletedCheckQuestion []map[string]interface{}
 	// Fetch the SLACheckQuestionGroup by ID
 	questionGroup, err := scqs.repo.GetQuestionGroupByID(questionGroupID)
 	if err != nil {
@@ -200,6 +230,13 @@ func (scqs *SLACheckQuestionService) DeleteQuestionGroup(slaID uint, checkID uin
 	if err != nil {
 		return 0, err
 	}
+
+	deletedCheckQuestion = append(deletedCheckQuestion, map[string]interface{}{
+		"id":       questionGroupID,
+		"sla_id":   slaID,
+		"title_en": questionGroup.TitleEn,
+		"title_ar": questionGroup.TitleAr,
+	})
 
 	// Delete each question
 	for _, question := range questions {
@@ -245,7 +282,7 @@ func (scqs *SLACheckQuestionService) DeleteQuestionGroup(slaID uint, checkID uin
 				models.DeleteAction,
 				models.SLACheckQuestionGroup{}.TableName(),
 				successfulGroupID,
-				questionGroup,
+				deletedCheckQuestion,
 				currentUserID,
 				nil,
 			)

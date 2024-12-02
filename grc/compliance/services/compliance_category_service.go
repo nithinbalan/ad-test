@@ -126,9 +126,10 @@ func (ccs *ComplianceCategoryService) Update(id uint, currentUserID uint, update
 func (ccs *ComplianceCategoryService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedComplianceCategory []map[string]interface{}
 	for _, id := range ids {
 
-		_, err := ccs.repo.GetByID(id)
+		complianceCategory, err := ccs.repo.GetByID(id)
 
 		if err != nil {
 			fmt.Print(err)
@@ -141,6 +142,12 @@ func (ccs *ComplianceCategoryService) Delete(ids []uint, currentUserID uint) ([]
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedComplianceCategory = append(deletedComplianceCategory, map[string]interface{}{
+			"id":       id,
+			"title_en": complianceCategory.TitleEn,
+			"title_ar": complianceCategory.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -150,7 +157,7 @@ func (ccs *ComplianceCategoryService) Delete(ids []uint, currentUserID uint) ([]
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.ComplianceCategory{}.TableName(),
 				successfulIds,
-				nil,
+				deletedComplianceCategory,
 				currentUserID,
 				nil,
 			)

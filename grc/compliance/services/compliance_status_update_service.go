@@ -210,6 +210,12 @@ func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, cu
 		return err
 	}
 
+	oldComplianceStatusUpdate, err := csus.GetFullDetailsByID(complianceID, id)
+
+	if err != nil {
+		return err
+	}
+
 	// Update Compliance StatusUpdate -- update only comments
 	existingComplianceStatusUpdate.Comment = complianceStatusUpdateFormDTO.Comment
 	existingComplianceStatusUpdate.UpdatedByID = &currentUserID
@@ -299,6 +305,53 @@ func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, cu
 		}
 	}
 	tx.Commit()
+
+	go func() {
+		existingStatusUpdate, err := csus.GetFullDetailsByID(complianceID, id)
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		fmt.Println(oldComplianceStatusUpdate.ComplianceStatus.TitleEn)
+		oldData := map[string]interface{}{
+			"comment": oldComplianceStatusUpdate.Comment,
+		}
+
+		fmt.Println(existingStatusUpdate.ComplianceStatus.TitleEn)
+		newData := map[string]interface{}{
+			"comment": existingStatusUpdate.Comment,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := csus.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.ComplianceStatusUpdate{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.ComplianceStatusUpdate{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 
 	return nil
 }

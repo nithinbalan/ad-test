@@ -203,11 +203,19 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 	tx.Commit()
 
 	go func() {
-		err := caps.activityLogSvc.LogActivity(
+		existingComplianceActionPlan, err := caps.GetFullDetailsByID(complianceID, id)
+		if err != nil {
+			utility.LogError("Failed to fetch compliance action plan", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = caps.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.ComplianceActionPlan{}.TableName(),
 			id,
-			ComplianceActionPlanFormDTO,
+			existingComplianceActionPlan,
 			currentUserID,
 			nil,
 		)
@@ -309,6 +317,12 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 		return err
 	}
 
+	oldComplianceActionPlan, err := caps.GetFullDetailsByID(complianceID, id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	oldResponsibleUserID := existingComplianceActionPlan.ResponsibleUserID
 
 	if err := caps.validateComplianceActionPlanFormDTO(complianceID, ComplianceActionPlanFormDTO); err != nil {
@@ -357,6 +371,63 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 	tx.Commit()
 
 	go func() {
+		existingActionPlan, err := caps.GetFullDetailsByID(complianceID, id)
+		if err != nil {
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"title":              oldComplianceActionPlan.Title,
+			"description":        oldComplianceActionPlan.Description,
+			"severity_level":     oldComplianceActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", oldComplianceActionPlan.ResponsibleUser.FirstNameEN, oldComplianceActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        fmt.Sprintf("%s %s", oldComplianceActionPlan.ReviewUser.FirstNameEN, oldComplianceActionPlan.ReviewUser.LastNameEN),
+			"target_date":        oldComplianceActionPlan.TargetDateString,
+			"percentage":         oldComplianceActionPlan.Percentage,
+			"comment":            oldComplianceActionPlan.Comments,
+			"action_plan_status": oldComplianceActionPlan.ActionPlanStatus.TitleEn,
+		}
+
+		newData := map[string]interface{}{
+			"title":              existingActionPlan.Title,
+			"description":        existingActionPlan.Description,
+			"severity_level":     existingActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", existingActionPlan.ResponsibleUser.FirstNameEN, existingActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        fmt.Sprintf("%s %s", existingActionPlan.ReviewUser.FirstNameEN, existingActionPlan.ReviewUser.LastNameEN),
+			"target_date":        existingActionPlan.TargetDateString,
+			"percentage":         existingActionPlan.Percentage,
+			"comment":            existingActionPlan.Comments,
+			"action_plan_status": existingActionPlan.ActionPlanStatus.TitleEn,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := caps.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.ComplianceActionPlan{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.ComplianceActionPlan{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingComplianceActionPlan.ResponsibleUserID {
 			urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, id)
@@ -497,6 +568,7 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedComplianceActionPlan []map[string]interface{}
 	var notifications []struct {
 		OwnerID         *uint
 		TitleEn         string
@@ -557,6 +629,13 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedComplianceActionPlan = append(deletedComplianceActionPlan, map[string]interface{}{
+			"id":                     id,
+			"compliance_register_id": complianceID,
+			"title":                  complianceActionPlan.Title,
+		})
+
 	}
 
 	if len(failedIds) > 0 {
@@ -567,9 +646,9 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 		go func() {
 			err := caps.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
-				models.ComplianceRegister{}.TableName(),
+				models.ComplianceActionPlan{}.TableName(),
 				successfulIds,
-				nil,
+				deletedComplianceActionPlan,
 				currentUserID,
 				nil,
 			)

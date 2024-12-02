@@ -180,6 +180,12 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 		return err
 	}
 
+	oldComplianceActionPlanStatusUpdate, err := casus.GetByID(ComplianceID, ComplianceActionPlanID, id)
+
+	if err != nil {
+		return err
+	}
+
 	existingComplianceActionPlanStatusUpdate, err := casus.GetByID(ComplianceID, ComplianceActionPlanID, id)
 
 	if err != nil {
@@ -291,6 +297,52 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 	}
 
 	tx.Commit()
+
+	go func() {
+		existingActionPlanstatusUpdate, err := casus.GetByID(ComplianceID, ComplianceActionPlanID, id)
+		if err != nil {
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"comment":    oldComplianceActionPlanStatusUpdate.Comment,
+			"percentage": oldComplianceActionPlanStatusUpdate.Percentage,
+		}
+
+		newData := map[string]interface{}{
+			"comment":    existingActionPlanstatusUpdate.Comment,
+			"percentage": existingActionPlanstatusUpdate.Percentage,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := casus.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.ComplianceActionPlanStatusUpdate{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.ComplianceActionPlanStatusUpdate{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 
 	return nil
 }
