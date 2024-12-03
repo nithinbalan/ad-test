@@ -325,6 +325,8 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditSvc,
 		auditDocumentRequestSvc,
 		auditDocumentRequestStatusSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
 	)
 	auditDocumentRequestConversationController := controllers.NewAuditDocumentRequestConversationController(auditDocumentRequestConversationSvc)
 

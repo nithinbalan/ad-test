@@ -3,21 +3,25 @@ package services
 import (
 	"errors"
 	"fmt"
-	"jethur/config"
-	"jethur/grc/audit/dtos"
-	"jethur/grc/audit/repositories"
-	logServices "jethur/grc/logs/services"
-	"jethur/grc/models"
-	"jethur/utility"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
+
+	"jethur/config"
+	"jethur/grc/audit/dtos"
+	"jethur/grc/audit/repositories"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
+	logServices "jethur/grc/logs/services"
+	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
+	"jethur/utility"
 )
 
 type AuditDocumentRequestConversationServiceInterface interface {
 	GetAll(auditID uint, auditDocumentRequestID uint, queryParams *dtos.AuditDocumentRequestConversationListQueryParamsDTO) ([]*dtos.AuditDocumentRequestConversationListDTO, error)
-	Create(auditID uint, auditDocumentRequestID uint, currentUserID uint, formDTO *dtos.AuditDocumentRequestConversationFormDTO) (uint, error)
+	Create(auditID uint, auditDocumentRequestID uint, currentUserID uint, formDTO *dtos.AuditDocumentRequestConversationFormDTO, source string) (uint, error)
 	GetDocumentPath(auditId uint, auditDocumentRequestID uint, conversationID uint, token string) (string, error)
 }
 
@@ -27,6 +31,8 @@ type AuditDocumentRequestConversationService struct {
 	auditSvc                      AuditServiceInterface
 	auditDocumentRequestSvc       AuditDocumentRequestServiceInterface
 	auditDocumentRequestStatusSvc AuditDocumentRequestStatusServiceInterface
+	userSvc                       organizationServices.UserServiceInterface
+	notificationSvc               commonServices.NotificationServiceInterface
 }
 
 func NewAuditDocumentRequestConversationService(
@@ -35,6 +41,8 @@ func NewAuditDocumentRequestConversationService(
 	auditSvc AuditServiceInterface,
 	auditDocumentRequestSvc AuditDocumentRequestServiceInterface,
 	auditDocumentRequestStatusSvc AuditDocumentRequestStatusServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) AuditDocumentRequestConversationServiceInterface {
 	return &AuditDocumentRequestConversationService{
 		repo:                          repo,
@@ -42,6 +50,8 @@ func NewAuditDocumentRequestConversationService(
 		auditSvc:                      auditSvc,
 		auditDocumentRequestSvc:       auditDocumentRequestSvc,
 		auditDocumentRequestStatusSvc: auditDocumentRequestStatusSvc,
+		userSvc:                       userSvc,
+		notificationSvc:               notificationSvc,
 	}
 }
 
@@ -56,13 +66,18 @@ func (adrcs *AuditDocumentRequestConversationService) GetAll(auditID uint, audit
 	return adrcs.repo.GetAll(auditDocumentRequestID, queryParams)
 }
 
-func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, auditDocumentRequestID uint, currentUserID uint, formDTO *dtos.AuditDocumentRequestConversationFormDTO) (uint, error) {
+func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, auditDocumentRequestID uint, currentUserID uint, formDTO *dtos.AuditDocumentRequestConversationFormDTO, source string) (uint, error) {
 	tx := adrcs.repo.BeginTransaction()
 
 	if _, err := adrcs.auditSvc.GetByID(auditID); err != nil {
 		return 0, err
 	}
 	documentRequest, err := adrcs.auditDocumentRequestSvc.GetByID(auditDocumentRequestID)
+	if err != nil {
+		return 0, err
+	}
+
+	audit, err := adrcs.auditDocumentRequestSvc.GetFullDetailsByID(auditDocumentRequestID)
 	if err != nil {
 		return 0, err
 	}
@@ -141,7 +156,7 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 			}
 		}
 	} else {
-		//Reopen the status when a new comment is added, if the status is closed
+		// Reopen the status when a new comment is added, if the status is closed
 		if documentRequest.AuditDocumentRequestStatusID == uint(auditDocumentRequestClosedStatus.ID) {
 			auditDocumentRequestOpenStatus, err := adrcs.auditDocumentRequestStatusSvc.GetByType("open")
 			if err != nil {
@@ -162,7 +177,7 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 		}
 	}
 
-	//todo -send notifications to users
+	// todo -send notifications to users
 	tx.Commit()
 
 	go func() {
@@ -174,7 +189,6 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
 				"action":    models.CreateAction,
@@ -183,6 +197,164 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			})
+		}
+
+		if source == "audit-insight" {
+			if *documentRequest.RequestedBYID == 0 {
+				utility.LogError("Responsible user is missing", map[string]interface{}{
+					"documentRequestID": id,
+				})
+				return
+			}
+
+			requestedUserID := documentRequest.RequestedBYID
+			requestedBy, err := adrcs.userSvc.GetByID(*requestedUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+					"userID": requestedUserID,
+					"error":  err.Error(),
+				})
+				return
+			}
+
+			var notificationHeadingEn, notificationHeadingAr, emailSubject, emailTemplate, action string
+
+			// Content for new comment (not closed)
+			action = "new-comment"
+			notificationHeadingEn = "New Comment Added to Audit Insight Document Request"
+			notificationHeadingAr = "تم إضافة تعليق جديد إلى طلب وثائق رؤية التدقيق"
+			emailSubject = fmt.Sprintf("New Audit-Insight Document Request Comment: %s", documentRequest.Title)
+			emailTemplate = "audit/templates/email/audit_insight_document_request_conversation.html"
+
+			urlParam := fmt.Sprintf(`{"audit_id":%d,"request_id":%d}`, auditID, id)
+			entity := "audit-insight-document-request-conversation"
+			appURL := utility.GetAppURL()
+
+			dbNotification := &commonDTOs.DBNotificationDTO{
+				UserID:               requestedBy.ID,
+				ModuleIdentifier:     "audit",
+				NotificationType:     string(commonDTOs.InformationType),
+				ReferenceNumber:      audit.Audit.AuditPlan.ReferenceNumber,
+				HeadingEn:            notificationHeadingEn,
+				HeadingAr:            notificationHeadingAr,
+				TitleEn:              documentRequest.Title,
+				TitleAr:              documentRequest.Title,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			emailNotification := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              []string{requestedBy.Email},
+				Subject:              emailSubject,
+				TemplateRelativePath: emailTemplate,
+				EmailData: map[string]interface{}{
+					"FirstNameEn":     requestedBy.FirstNameEn,
+					"LastNameEn":      requestedBy.LastNameEn,
+					"AuditTitle":      audit.Audit.AuditPlan.Title,
+					"Title":           documentRequest.Title,
+					"Comment":         formDTO.Comment,
+					"Description":     documentRequest.Description,
+					"ResponsibleUnit": audit.ResponsibleUnit.TitleEn,
+					"ResponsibleUser": fmt.Sprintf("%s %s", audit.ResponsibleUser.FirstNameEN, audit.ResponsibleUser.LastNameEN),
+					"CommenttedAt":    time.Now().Format("2006-01-02"),
+					"RedirectURL":     fmt.Sprintf("%saudit-insight/document-requests", appURL),
+				},
+			}
+
+			// Send Notifications
+			if err := adrcs.notificationSvc.SendNotification(dbNotification, emailNotification, "audit"); err != nil {
+				utility.LogError("Failed to send document request notifications", map[string]interface{}{
+					"documentRequestID": id,
+					"userID":            documentRequest.RequestedByUser.ID,
+					"error":             err.Error(),
+				})
+			}
+		} else {
+			if documentRequest.ResponsibleUserID == 0 {
+				utility.LogError("Responsible user is missing", map[string]interface{}{
+					"documentRequestID": id,
+				})
+				return
+			}
+
+			responsibleUserID := documentRequest.ResponsibleUserID
+			responsibleUser, err := adrcs.userSvc.GetByID(responsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+					"userID": responsibleUserID,
+					"error":  err.Error(),
+				})
+				return
+			}
+
+			var notificationHeadingEn, notificationHeadingAr, emailSubject, emailTemplate, action string
+
+			if formDTO.IsClose != nil && *formDTO.IsClose {
+				// Content for closed status
+				action = "status-closed"
+				notificationHeadingEn = "Audit Document Request Closed"
+				notificationHeadingAr = "تم إغلاق طلب وثائق التدقيق"
+				emailSubject = fmt.Sprintf("Audit Document Request Closed: %s", documentRequest.Title)
+				emailTemplate = "audit/templates/email/audit_document_request_conversation_closed.html"
+
+			} else {
+				// Content for new comment (not closed)
+				action = "new-comment"
+				notificationHeadingEn = "New Comment Added to Audit Document Request"
+				notificationHeadingAr = "تم إضافة تعليق جديد إلى طلب وثائق التدقيق"
+				emailSubject = fmt.Sprintf("New Audit Document Request Comment: %s", documentRequest.Title)
+				emailTemplate = "audit/templates/email/audit_document_request_conversation.html"
+			}
+
+			urlParam := fmt.Sprintf(`{"audit_id":%d,"request_id":%d}`, auditID, id)
+			entity := "audit-document-request-conversation"
+			appURL := utility.GetAppURL()
+
+			dbNotification := &commonDTOs.DBNotificationDTO{
+				UserID:               responsibleUser.ID,
+				ModuleIdentifier:     "audit",
+				NotificationType:     string(commonDTOs.InformationType),
+				ReferenceNumber:      audit.Audit.AuditPlan.ReferenceNumber,
+				HeadingEn:            notificationHeadingEn,
+				HeadingAr:            notificationHeadingAr,
+				TitleEn:              documentRequest.Title,
+				TitleAr:              documentRequest.Title,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			emailNotification := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              []string{responsibleUser.Email},
+				Subject:              emailSubject,
+				TemplateRelativePath: emailTemplate,
+				EmailData: map[string]interface{}{
+					"FirstNameEn":     responsibleUser.FirstNameEn,
+					"LastNameEn":      responsibleUser.LastNameEn,
+					"AuditTitle":      audit.Audit.AuditPlan.Title,
+					"Title":           documentRequest.Title,
+					"Comment":         formDTO.Comment,
+					"Description":     documentRequest.Description,
+					"ResponsibleUnit": audit.ResponsibleUnit.TitleEn,
+					"RequestedUser":   fmt.Sprintf("%s %s", audit.RequestedByUser.FirstNameEN, audit.RequestedByUser.LastNameEN),
+					"CommenttedAt":    time.Now().Format("2006-01-02"),
+					"RedirectURL":     fmt.Sprintf("%saudit/audits/%d/document-request", appURL, auditID),
+				},
+			}
+
+			// Send Notifications
+			if err := adrcs.notificationSvc.SendNotification(dbNotification, emailNotification, "audit"); err != nil {
+				utility.LogError("Failed to send document request notifications", map[string]interface{}{
+					"documentRequestID": id,
+					"userID":            documentRequest.ResponsibleUser.ID,
+					"error":             err.Error(),
+				})
+			}
 		}
 	}()
 
