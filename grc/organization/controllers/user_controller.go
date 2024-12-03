@@ -477,11 +477,14 @@ func (uc *UserController) GetUserPermissions(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
+	quickFilter := []string{"active"}
 
 	queryParams := settingDTOs.ModuleListQueryParamsDTO{
-		Sort:    sort,
-		SortBy:  sortBy,
-		Keyword: keyword,
+		Sort:              sort,
+		SortBy:            sortBy,
+		Keyword:           keyword,
+		QuickFilter:       quickFilter,
+		IsActiveSubModule: true,
 	}
 
 	permissions, err := uc.service.GetUserPermissions(currentUserID, &queryParams)

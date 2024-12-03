@@ -33,6 +33,9 @@ func (repo *ModuleRepository) GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]
 	var modules []models.Module
 
 	query := repo.db.Preload("SubModules", func(db *gorm.DB) *gorm.DB {
+		if params.IsActiveSubModule {
+			return db.Where("[modules].is_enable = ?", true).Order("[modules].[order] ASC")
+		}
 		return db.Order("[modules].[order] ASC")
 	}).
 		Where("module_id IS NULL").

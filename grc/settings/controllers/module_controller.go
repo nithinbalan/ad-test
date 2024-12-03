@@ -28,12 +28,24 @@ func (mc *ModuleController) GetAllModules(c *gin.Context) {
 	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
+	isActiveSubModuleStr := c.Query("is_active_sub_module")
+
+	var isActiveSubModule bool
+	if isActiveSubModuleStr != "" {
+		var err error
+		isActiveSubModule, err = strconv.ParseBool(isActiveSubModuleStr)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	}
 
 	queryParams := dtos.ModuleListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		QuickFilter: quickFilter,
+		Sort:              sort,
+		SortBy:            sortBy,
+		Keyword:           keyword,
+		QuickFilter:       quickFilter,
+		IsActiveSubModule: isActiveSubModule,
 	}
 	modules, err := mc.service.GetAll(&queryParams)
 
