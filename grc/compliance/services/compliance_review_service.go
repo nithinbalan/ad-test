@@ -199,6 +199,12 @@ func (crs *ComplianceReviewService) Update(complianceID uint, id uint, currentUs
 		return err
 	}
 
+	oldComplianceReview, err := crs.GetByID(complianceID, id)
+
+	if err != nil {
+		return err
+	}
+
 	existingComplianceReview.Comment = complianceReviewFormDTO.Comment
 	existingComplianceReview.UpdatedByID = &currentUserID
 
@@ -289,6 +295,51 @@ func (crs *ComplianceReviewService) Update(complianceID uint, id uint, currentUs
 	}
 
 	tx.Commit()
+
+	go func() {
+		existingReview, err := crs.GetByID(complianceID, id)
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"comment": oldComplianceReview.Comment,
+		}
+
+		newData := map[string]interface{}{
+			"comment": existingReview.Comment,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := crs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.ComplianceReview{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.ComplianceRequirementStatusUpdate{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 
 	return nil
 }

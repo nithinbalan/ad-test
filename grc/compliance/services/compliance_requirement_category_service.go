@@ -126,9 +126,10 @@ func (crcs *ComplianceRequirementCategoryService) Update(id uint, currentUserID 
 func (crcs *ComplianceRequirementCategoryService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedComplianceRequirementCategory []map[string]interface{}
 	for _, id := range ids {
 
-		_, err := crcs.repo.GetByID(id)
+		complianceRequirementCategory, err := crcs.repo.GetByID(id)
 
 		if err != nil {
 			fmt.Print(err)
@@ -141,6 +142,11 @@ func (crcs *ComplianceRequirementCategoryService) Delete(ids []uint, currentUser
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedComplianceRequirementCategory = append(deletedComplianceRequirementCategory, map[string]interface{}{
+			"id":       id,
+			"title_en": complianceRequirementCategory.TitleEn,
+			"title_ar": complianceRequirementCategory.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -150,7 +156,7 @@ func (crcs *ComplianceRequirementCategoryService) Delete(ids []uint, currentUser
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.ComplianceRequirementCategory{}.TableName(),
 				successfulIds,
-				nil,
+				deletedComplianceRequirementCategory,
 				currentUserID,
 				nil,
 			)
