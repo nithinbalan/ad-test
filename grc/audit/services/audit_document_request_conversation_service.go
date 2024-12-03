@@ -200,23 +200,6 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 		}
 
 		if source == "audit-insight" {
-			if *documentRequest.RequestedBYID == 0 {
-				utility.LogError("Responsible user is missing", map[string]interface{}{
-					"documentRequestID": id,
-				})
-				return
-			}
-
-			requestedUserID := documentRequest.RequestedBYID
-			requestedBy, err := adrcs.userSvc.GetByID(*requestedUserID)
-			if err != nil {
-				utility.LogError("Failed to fetch responsible user", map[string]interface{}{
-					"userID": requestedUserID,
-					"error":  err.Error(),
-				})
-				return
-			}
-
 			var notificationHeadingEn, notificationHeadingAr, emailSubject, emailTemplate, action string
 
 			// Content for new comment (not closed)
@@ -231,7 +214,7 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 			appURL := utility.GetAppURL()
 
 			dbNotification := &commonDTOs.DBNotificationDTO{
-				UserID:               requestedBy.ID,
+				UserID:               uint(audit.RequestedByUser.ID),
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.InformationType),
 				ReferenceNumber:      audit.Audit.AuditPlan.ReferenceNumber,
@@ -247,12 +230,12 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 			}
 
 			emailNotification := &commonDTOs.EmailNotificationDTO{
-				EmailTo:              []string{requestedBy.Email},
+				EmailTo:              []string{audit.RequestedByUser.Email},
 				Subject:              emailSubject,
 				TemplateRelativePath: emailTemplate,
 				EmailData: map[string]interface{}{
-					"FirstNameEn":     requestedBy.FirstNameEn,
-					"LastNameEn":      requestedBy.LastNameEn,
+					"FirstNameEn":     audit.RequestedByUser.FirstNameEN,
+					"LastNameEn":      audit.RequestedByUser.LastNameEN,
 					"AuditTitle":      audit.Audit.AuditPlan.Title,
 					"Title":           documentRequest.Title,
 					"Comment":         formDTO.Comment,
@@ -273,23 +256,6 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 				})
 			}
 		} else {
-			if documentRequest.ResponsibleUserID == 0 {
-				utility.LogError("Responsible user is missing", map[string]interface{}{
-					"documentRequestID": id,
-				})
-				return
-			}
-
-			responsibleUserID := documentRequest.ResponsibleUserID
-			responsibleUser, err := adrcs.userSvc.GetByID(responsibleUserID)
-			if err != nil {
-				utility.LogError("Failed to fetch responsible user", map[string]interface{}{
-					"userID": responsibleUserID,
-					"error":  err.Error(),
-				})
-				return
-			}
-
 			var notificationHeadingEn, notificationHeadingAr, emailSubject, emailTemplate, action string
 
 			if formDTO.IsClose != nil && *formDTO.IsClose {
@@ -314,7 +280,7 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 			appURL := utility.GetAppURL()
 
 			dbNotification := &commonDTOs.DBNotificationDTO{
-				UserID:               responsibleUser.ID,
+				UserID:               documentRequest.ResponsibleUserID,
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.InformationType),
 				ReferenceNumber:      audit.Audit.AuditPlan.ReferenceNumber,
@@ -330,12 +296,12 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 			}
 
 			emailNotification := &commonDTOs.EmailNotificationDTO{
-				EmailTo:              []string{responsibleUser.Email},
+				EmailTo:              []string{audit.ResponsibleUser.Email},
 				Subject:              emailSubject,
 				TemplateRelativePath: emailTemplate,
 				EmailData: map[string]interface{}{
-					"FirstNameEn":     responsibleUser.FirstNameEn,
-					"LastNameEn":      responsibleUser.LastNameEn,
+					"FirstNameEn":     audit.ResponsibleUser.FirstNameEN,
+					"LastNameEn":      audit.ResponsibleUser.LastNameEN,
 					"AuditTitle":      audit.Audit.AuditPlan.Title,
 					"Title":           documentRequest.Title,
 					"Comment":         formDTO.Comment,
