@@ -385,11 +385,20 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 	}()
 
 	go func() {
-		err := ds.activityLogSvc.LogActivity(
+
+		existingDocument, err := ds.GetFullDetailsByID(id, &currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch document", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = ds.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.Document{}.TableName(),
 			id,
-			documentFormDTO,
+			existingDocument,
 			currentUserID,
 			nil,
 		)
@@ -425,6 +434,16 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 	responsibleUnitID, err := ds.userSvc.GetUserPrimaryUnitID(uint(documentFormDTO.ResponsibleUserID))
 	if err != nil {
 		return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "responsible user unit")
+	}
+
+	oldDocument, err := ds.repo.GetFullDetailsByID(id, nil, tx)
+	if err != nil {
+		return err
+	}
+	oldDocVersion, err := ds.repo.GetDocumentVersionByID(oldDocument.LatestDocumentVersion.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
 	}
 
 	// Check if the document type has changed
@@ -808,6 +827,74 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 	tx.Commit()
 
 	go func() {
+
+		existingDoc, err := ds.repo.GetFullDetailsByID(id, nil)
+		if err != nil {
+			return
+		}
+
+		existingDocumentVersion, err := ds.repo.GetDocumentVersionByID(existingDoc.LatestDocumentVersion.ID)
+		if err != nil {
+			return
+		}
+
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"document_type":        oldDocument.DocumentType.TitleEn,
+			"title_en":             oldDocument.TitleEn,
+			"title_ar":             oldDocument.TitleAr,
+			"description_en":       oldDocument.DescriptionEn,
+			"description_ar":       oldDocument.DescriptionAr,
+			"document_category":    oldDocument.DocumentCategory.TitleEn,
+			"responsible_user":     fmt.Sprintf("%s %s", oldDocument.ResponsibleUser.FirstNameEn, oldDocument.ResponsibleUser.LastNameEn),
+			"responsible_unit":     oldDocument.ResponsibleUnit.TitleEn,
+			"document_access_type": oldDocument.DocumentAccessType.TitleEn,
+			"version":              oldDocVersion,
+		}
+
+		newData := map[string]interface{}{
+			"document_type":        existingDoc.DocumentType.TitleEn,
+			"title_en":             existingDoc.TitleEn,
+			"title_ar":             existingDoc.TitleAr,
+			"description_en":       existingDoc.DescriptionEn,
+			"description_ar":       existingDoc.DescriptionAr,
+			"document_category":    existingDoc.DocumentCategory.TitleEn,
+			"responsible_user":     fmt.Sprintf("%s %s", existingDoc.ResponsibleUser.FirstNameEn, existingDoc.ResponsibleUser.LastNameEn),
+			"responsible_unit":     existingDoc.ResponsibleUnit.TitleEn,
+			"document_access_type": existingDoc.DocumentAccessType.TitleEn,
+			"version":              existingDocumentVersion,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := ds.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.Document{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.Document{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
 		if documentFormDTO.Document.IsNewFile != nil && *documentFormDTO.Document.IsNewFile {
 			if err := utility.ConvertDocxToPDF(destinationDir, documentFormDTO.Document.FileName, destinationDir); err != nil {
 				log.Printf("Failed to convert document to PDF: %v", err)
@@ -823,6 +910,7 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedDocument []map[string]interface{}
 	documentsToDelete := make(map[uint][]*models.DocumentVersion)
 	documentEditHistoryToDelete := make(map[uint][]*models.DocumentEditHistory)
 
@@ -937,6 +1025,12 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedDocument = append(deletedDocument, map[string]interface{}{
+			"id":       id,
+			"title_en": document.TitleEn,
+			"title_ar": document.TitleAr,
+		})
 	}
 
 	if len(failedIds) > 0 {
@@ -985,7 +1079,7 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 				models.DeleteAction,
 				models.Document{}.TableName(),
 				successfulIds,
-				nil,
+				deletedDocument,
 				currentUserID,
 				nil,
 			)
