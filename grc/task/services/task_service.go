@@ -27,6 +27,7 @@ type TaskServiceInterface interface {
 	UpdateTaskWithRelatedIDs(taskID uint, relatedTaskIDsJSON string, tx ...utility.DatabaseTransaction) error
 	UpdateDocumentTaskStatus(documentID uint, userID uint, documentWorkflowID uint) (*models.Task, error)
 	UpdateAuditReportTaskStatus(auditFinalReportID uint, userID uint, auditReportWorkflowID uint) (*models.Task, error)
+	UpdateAuditDraftReportTaskStatus(auditDraftReportID uint, userID uint, auditReportWorkflowID uint) (*models.Task, error)
 }
 
 type TaskService struct {
@@ -230,6 +231,19 @@ func (ts *TaskService) UpdateAuditReportTaskStatus(auditFinalReportID uint, user
 		return nil, err
 	}
 	task, err := ts.repo.UpdateAuditReportTaskStatus(auditFinalReportID, userID, auditReportWorkflowID, taskStatus.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return task, nil
+}
+
+func (ts *TaskService) UpdateAuditDraftReportTaskStatus(auditDraftReportID uint, userID uint, auditReportWorkflowID uint) (*models.Task, error) {
+	taskStatus, err := ts.taskStatusSvc.GetByType("closed")
+	if err != nil {
+		return nil, err
+	}
+	task, err := ts.repo.UpdateAuditDraftReportTaskStatus(auditDraftReportID, userID, auditReportWorkflowID, taskStatus.ID)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
@@ -10,6 +11,7 @@ import (
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 	"time"
 )
@@ -31,6 +33,7 @@ type AuditDraftReportReviewService struct {
 	userSvc                   organizationServices.UserServiceInterface
 	auditDraftReportStatusSvc AuditDraftReportStatusServiceInterface
 	notificationSvc           commonServices.NotificationServiceInterface
+	taskSvc                   taskServices.TaskServiceInterface
 }
 
 func NewAuditDraftReportReviewService(
@@ -42,6 +45,7 @@ func NewAuditDraftReportReviewService(
 	userSvc organizationServices.UserServiceInterface,
 	auditDraftReportStatusSvc AuditDraftReportStatusServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	taskSvc taskServices.TaskServiceInterface,
 ) AuditDraftReportReviewServiceInterface {
 	return &AuditDraftReportReviewService{
 		repo:                      repo,
@@ -52,6 +56,7 @@ func NewAuditDraftReportReviewService(
 		userSvc:                   userSvc,
 		auditDraftReportStatusSvc: auditDraftReportStatusSvc,
 		notificationSvc:           notificationSvc,
+		taskSvc:                   taskSvc,
 	}
 }
 func (adrcs *AuditDraftReportReviewService) GetAll(auditID uint, auditDraftReportID uint, params *auditDTOs.AuditReportReviewListQueryParamsDTO) ([]*auditDTOs.AuditReportReviewListDTO, error) {
@@ -151,12 +156,59 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 		tx.Rollback()
 		return err
 	}
-	//todo - notification to workflow user
+	existingAuditDraftReportFullDetails, err := adrrs.auditDraftReportSvc.GetByAuditID(auditID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	urlParam := fmt.Sprintf(`{"id":%d}`, auditDraftReportID)
+	var taskIDs []uint
+	auditFinalReportID := &existingAuditDraftReport.ID
+	for _, participant := range participants {
+		taskDTO := commonDTOs.TaskFormDTO{
+			ModuleIdentifier:      "audit",
+			AuditFinalReportID:    auditFinalReportID,
+			AuditReportWorkflowID: &auditReportWorkflowID,
+			Title:                 existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
+			Description:           existingAuditDraftReportFullDetails.Audit.AuditPlan.Description,
+			URLParam:              &urlParam,
+			QueryParam:            nil,
+			ResponsibleUserID:     participant.User.ID,
+		}
+
+		taskID, err := adrrs.taskSvc.Create(taskDTO, currentUserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		taskIDs = append(taskIDs, taskID)
+
+	}
+
+	for _, taskID := range taskIDs {
+		relatedTaskIDs := []uint{}
+		for _, otherTaskID := range taskIDs {
+			if otherTaskID != taskID {
+				relatedTaskIDs = append(relatedTaskIDs, otherTaskID)
+			}
+		}
+
+		relatedTaskIDsJSON, err := json.Marshal(relatedTaskIDs)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		err = adrrs.taskSvc.UpdateTaskWithRelatedIDs(taskID, string(relatedTaskIDsJSON), tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
 
 	tx.Commit()
 
 	go func() {
-		urlParam := fmt.Sprintf(`{"id":%d}`, auditDraftReportID)
 		entity := "audit"
 		action := "review-user-assign"
 
@@ -167,8 +219,8 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 				NotificationType:     string(commonDTOs.ReviewType),
 				HeadingEn:            "Audit Draft Report Review",
 				HeadingAr:            "مراجعة مسودة تقرير التدقيق",
-				TitleEn:              existingAuditDraftReport.Audit.AuditPlan.Title,
-				TitleAr:              existingAuditDraftReport.Audit.AuditPlan.Title,
+				TitleEn:              existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
+				TitleAr:              existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
 				Entity:               &entity,
 				Action:               &action,
 				URLParam:             urlParam,
@@ -193,16 +245,17 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 			}
 
 			emailTo := []string{responsibleUser.Email}
-			subject := fmt.Sprintf("Audit Finale Report /%s: Review Assigned", existingAuditDraftReport.Audit.AuditPlan.Title)
+			subject := fmt.Sprintf("Audit Finale Report /%s: Review Assigned", existingAuditDraftReportFullDetails.Audit.AuditPlan.Title)
 			appURL := utility.GetAppURL()
 			emailData := map[string]interface{}{
 				"FirstNameEn":           responsibleUser.FirstNameEn,
 				"LastNameEn":            responsibleUser.LastNameEn,
-				"AuditTitle":            existingAuditDraftReport.Audit.AuditPlan.Title,
+				"AuditTitle":            existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
+				"Reference Number":      existingAuditDraftReportFullDetails.Audit.AuditPlan.ReferenceNumber,
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/audits/%d", appURL, auditID),
+				"RedirectURL":           fmt.Sprintf("%s/audit/audits/%d/draft-report", appURL, auditID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -331,7 +384,10 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 		tx.Rollback()
 		return err
 	}
-	//todo - notification to workflow user
+	_, err = adrrs.taskSvc.UpdateAuditDraftReportTaskStatus(auditDraftReportID, currentUserID, existingAuditReportWorkflow.ID)
+	if err != nil {
+		return err
+	}
 
 	tx.Commit()
 
@@ -340,9 +396,61 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 		entity := "audit"
 		action := "approve"
 
+		// Create a map to track unique recipients
+		recipientsMap := make(map[uint]bool)
+
+		// Add participants excluding the current user
 		for _, participant := range existingAuditReportWorkflow.AuditReportWorkflowParticipants {
+			if participant.UserID != currentUserID {
+				recipientsMap[participant.UserID] = true
+			}
+		}
+
+		// Add InternalReviewSubmittedBYID
+		recipientsMap[*existingAuditDraftReport.InternalReviewSubmittedBYID] = true
+
+		// Iterate through recipients
+		for userID := range recipientsMap {
+			responsibleUser, err := adrrs.userSvc.GetByID(userID)
+			if err != nil {
+				utility.LogError("Failed to fetch review user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				continue
+			}
+
+			assignedBy, err := adrrs.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				continue
+			}
+
+			emailTo := []string{responsibleUser.Email}
+			subject := fmt.Sprintf("Audit Final Report /%s: Approval Notification", existingAuditDraftReport.Audit.AuditPlan.Title)
+			appURL := utility.GetAppURL()
+
+			emailData := map[string]interface{}{
+				"FirstNameEn":           responsibleUser.FirstNameEn,
+				"LastNameEn":            responsibleUser.LastNameEn,
+				"AuditTitle":            existingAuditDraftReport.Audit.AuditPlan.Title,
+				"Reference Number":      existingAuditDraftReport.Audit.AuditPlan.ReferenceNumber,
+				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+				"AssignedByLastNameEn":  assignedBy.LastNameEn,
+				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           fmt.Sprintf("%s/audit/audits/%d/draft-report", appURL, auditID),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "audit/templates/email/audit_draft_report_workflow_approve_user_mail.html",
+				EmailData:            emailData,
+			}
+
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               participant.UserID,
+				UserID:               userID,
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.ReviewType),
 				HeadingEn:            "Approve Audit Draft Report",
@@ -356,44 +464,6 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 				CreatedByID:          &currentUserID,
 			}
 
-			responsibleUser, err := adrrs.userSvc.GetByID(participant.UserID)
-			if err != nil {
-				utility.LogError("Failed to fetch review user", map[string]interface{}{
-					"error": err.Error(),
-				})
-				return
-			}
-
-			assignedBy, err := adrrs.userSvc.GetByID(currentUserID)
-			if err != nil {
-				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
-					"error": err.Error(),
-				})
-				return
-			}
-
-			emailTo := []string{responsibleUser.Email}
-			subject := fmt.Sprintf("Audit Finale Report /%s: Approval Notification", existingAuditDraftReport.Audit.AuditPlan.Title)
-			appURL := utility.GetAppURL()
-			urlParam = fmt.Sprintf("%s/audits/%d/draft-reports/%d", appURL, existingAuditDraftReport.AuditID, existingAuditDraftReport.ID)
-
-			emailData := map[string]interface{}{
-				"FirstNameEn":           responsibleUser.FirstNameEn,
-				"LastNameEn":            responsibleUser.LastNameEn,
-				"AuditTitle":            existingAuditDraftReport.Audit.AuditPlan.Title,
-				"ApprovedByFirstNameEn": assignedBy.FirstNameEn,
-				"ApprovedByLastNameEn":  assignedBy.LastNameEn,
-				"ApprovedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           urlParam,
-			}
-
-			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-				EmailTo:              emailTo,
-				Subject:              subject,
-				TemplateRelativePath: "audit/templates/email/audit_draft_report_workflow_approve_user_mail.html",
-				EmailData:            emailData,
-			}
-
 			// Send Notification and Email
 			err = adrrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
 			if err != nil {
@@ -402,6 +472,8 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 				})
 			}
 		}
+
+		// Log activity
 		err := adrrs.activityLogSvc.LogActivity(
 			models.ApproveAction,
 			models.AuditReportReview{}.TableName(),
@@ -419,7 +491,6 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			}
-
 			utility.LogError("Failed to log activity", fields)
 		}
 	}()
@@ -520,13 +591,26 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 	tx.Commit()
 
 	go func() {
+
 		urlParam := fmt.Sprintf(`{"id":%d}`, auditDraftReportID)
 		entity := "audit"
 		action := "revert"
+		// Create a map to track unique recipients
+		recipientsMap := make(map[uint]bool)
 
+		// Add participants excluding the current user
 		for _, participant := range existingAuditReportWorkflow.AuditReportWorkflowParticipants {
+			if participant.UserID != currentUserID {
+				recipientsMap[participant.UserID] = true
+			}
+		}
+
+		// Add InternalReviewSubmittedBYID
+		recipientsMap[*existingAuditDraftReport.InternalReviewSubmittedBYID] = true
+
+		for userID := range recipientsMap {
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               participant.UserID,
+				UserID:               userID,
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.ReviewType),
 				HeadingEn:            "Revert Audit Draft Report",
@@ -540,7 +624,7 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 				CreatedByID:          &currentUserID,
 			}
 
-			responsibleUser, err := adrrs.userSvc.GetByID(participant.UserID)
+			responsibleUser, err := adrrs.userSvc.GetByID(userID)
 			if err != nil {
 				utility.LogError("Failed to fetch review user", map[string]interface{}{
 					"error": err.Error(),
@@ -564,6 +648,7 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 				"FirstNameEn":           responsibleUser.FirstNameEn,
 				"LastNameEn":            responsibleUser.LastNameEn,
 				"AuditTitle":            existingAuditDraftReport.Audit.AuditPlan.Title,
+				"Reference Number":      existingAuditDraftReport.Audit.AuditPlan.ReferenceNumber,
 				"RevertedByFirstNameEn": assignedBy.FirstNameEn,
 				"RevertedByLastNameEn":  assignedBy.LastNameEn,
 				"RevertedOn":            time.Now().Format("2006-01-02"),
@@ -573,7 +658,7 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 				EmailTo:              emailTo,
 				Subject:              subject,
-				TemplateRelativePath: "audit/templates/email/audit_draft_report_workflow_approve_user_mail.html",
+				TemplateRelativePath: "audit/templates/email/audit_draft_report_workflow_revert_user_mail.html",
 				EmailData:            emailData,
 			}
 
@@ -774,10 +859,11 @@ func (adrrs *AuditDraftReportReviewService) ReSubmit(auditID uint, auditDraftRep
 				"FirstNameEn":           responsibleUser.FirstNameEn,
 				"LastNameEn":            responsibleUser.LastNameEn,
 				"AuditTitle":            existingAuditDraftReport.Audit.AuditPlan.Title,
+				"Reference Number":      existingAuditDraftReport.Audit.AuditPlan.ReferenceNumber,
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/audits/%d", appURL, auditID),
+				"RedirectURL":           fmt.Sprintf("%s/audit/audits/%d/draft-report", appURL, auditID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{

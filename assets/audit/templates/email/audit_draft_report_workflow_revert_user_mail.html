@@ -1,7 +1,7 @@
 {{ define "content" }}
 <p>Dear {{ .FirstNameEn }} {{ .LastNameEn }},</p>
 <p>
-  We are pleased to inform you that the audit draft report titled <strong>{{ .AuditTitle }}</strong> has been reverted. Below are the details of the report and the person who reverted it:
+  Please be informed that the audit draft report titled <strong>{{ .AuditTitle }}</strong> (Reference Number: <strong>{{ .ReferenceNumber }}</strong>) has been reverted. Below are the details of the report and the individual who reverted it:
 </p>
 
 <table style="width: 100%; background-color: #fff; border-collapse: collapse; margin: 20px 0;">
@@ -11,26 +11,27 @@
             <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">{{ .AuditTitle }}</td>
         </tr>
         <tr style="border: 1px solid #EAEDF2;">
-            <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Description</th>
-            <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">{{ .Description }}</td>
+            <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Reference Number</th>
+            <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">{{ .ReferenceNumber }}</td>
         </tr>
         <tr style="border: 1px solid #EAEDF2;">
-            <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Approved By</th>
-            <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">{{ .ApprovedByFirstNameEn }} {{ .ApprovedByLastNameEn }}</td>
+            <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Reverted By</th>
+            <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">{{ .RevertedByFirstNameEn }} {{ .RevertedByLastNameEn }}</td>
         </tr>
         <tr style="border: 1px solid #EAEDF2;">
-            <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Approved At</th>
-            <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">{{ .ApprovedAt }}</td>
+            <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Reverted On</th>
+            <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">{{ .RevertedOn }}</td>
         </tr>
     </tbody>
 </table>
 
-<p>You can log into the system to view the reverted audit draft report and any further actions, if required.</p>
+<p>You can log into the system to view the reverted audit draft report and take any further actions, if necessary.</p>
 
 <div style="text-align: center;">
     <a href="{{ .RedirectURL }}" style="background-color: #165D31; color: #ffffff; padding: 10px 20px; text-align: center; text-decoration: none; border-radius: 4px; display: inline-block; margin-top: 30px;">View Audit Draft Report</a>
 </div>
 
-<p>Thank you for your prompt attention to this audit draft report. Your efforts contribute significantly to our ongoing success.</p>
-
+<p>
+    Thank you for your cooperation throughout this process. Your contributions play a crucial role in ensuring the success of our audit objectives.
+  </p>
 {{ end }}

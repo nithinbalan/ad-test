@@ -51,6 +51,7 @@ func (repo *AuditDraftReportRepository) GetByAuditID(auditID uint) (*models.Audi
 	Preload("Audit.AuditPlan").
 	Preload("Audit.AuditPlan.AuditableItems").
 	Preload("Audit.AuditPlan.AuditableItems.AuditableItem").
+	Preload("Audit.AuditPlan.AuditableItems.AuditableItem.ResponsibleUser").
 	Preload("Audit.AuditPlan.AuditableItems.AuditableItem.Process").
 	Preload("Audit.AuditPlan.AuditableItems.AuditableItem.Control").
 	Preload("Audit.AuditPlan.AuditableItems.AuditableItem.Document").
