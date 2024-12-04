@@ -15,7 +15,11 @@ import (
 type OrganizationLevelServiceInterface interface {
 	GetAll() ([]*models.OrganizationLevel, error)
 	GetByID(id uint) (*models.OrganizationLevel, error)
-	Create(currentUserID uint, organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error)
+	CreateOrganizationLevels(currentUserID uint, organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error)
+	Create(currentUserID uint, orgLevel *models.OrganizationLevel) (*models.OrganizationLevel, error)
+	Update(id uint, currentUserID uint, updatedOrgLevel *models.OrganizationLevel) (*models.OrganizationLevel, error)
+	Delete(id uint, currentUserID uint) error
+
 	GetPrimaryLevel() (*models.OrganizationLevel, error)
 }
 
@@ -25,7 +29,8 @@ type OrganizationLevelService struct {
 	activityLogSvc services.ActivityLogServiceInterface
 }
 
-func NewOrganizationLevelService(repo repositories.OrganizationLevelRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) OrganizationLevelServiceInterface {
+func NewOrganizationLevelService(repo repositories.OrganizationLevelRepositoryInterface,
+	activityLogSvc services.ActivityLogServiceInterface) OrganizationLevelServiceInterface {
 	return &OrganizationLevelService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
@@ -48,7 +53,7 @@ func (ous OrganizationLevelService) GetByID(id uint) (*models.OrganizationLevel,
 	return orgLevel, nil
 }
 
-func (ols *OrganizationLevelService) Create(currentUserID uint, organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error) {
+func (ols *OrganizationLevelService) CreateOrganizationLevels(currentUserID uint, organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error) {
 	titleEnMap := make(map[string]bool)
 	titleArMap := make(map[string]bool)
 	isPrimaryFound := false
@@ -93,7 +98,7 @@ func (ols *OrganizationLevelService) Create(currentUserID uint, organizationLeve
 		return nil, utility.NewValidationError(fmt.Errorf("at least one object must have primary true"), "required", "primary")
 	}
 
-	updatedOrganizationLevel, err := ols.repo.Create(organizationLevels)
+	updatedOrganizationLevel, err := ols.repo.CreateOrganizationLevels(organizationLevels)
 	if err != nil {
 		return nil, err
 	}
@@ -180,4 +185,157 @@ func (ols *OrganizationLevelService) Create(currentUserID uint, organizationLeve
 
 func (ols *OrganizationLevelService) GetPrimaryLevel() (*models.OrganizationLevel, error) {
 	return ols.repo.GetPrimaryLevel()
+}
+
+func (ols *OrganizationLevelService) Create(currentUserID uint, orgLevel *models.OrganizationLevel) (*models.OrganizationLevel, error) {
+
+	if err := ols.validateOrganizationLevelForm(orgLevel, nil); err != nil {
+		return nil, err
+	}
+
+	createdOrgLevel, err := ols.repo.Create(orgLevel)
+	if err != nil {
+		return nil, err
+	}
+
+	go func() {
+		err := ols.activityLogSvc.LogActivity(
+			models.CreateAction,
+			models.OrganizationLevel{}.TableName(),
+			orgLevel.ID,
+			createdOrgLevel,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			log.Printf("Failed to log activity: %v", err)
+		}
+	}()
+
+	return createdOrgLevel, nil
+}
+
+func (ols *OrganizationLevelService) Update(id uint, currentUserID uint, updatedOrgLevel *models.OrganizationLevel) (*models.OrganizationLevel, error) {
+	existingOrgLevel, err := ols.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := ols.validateOrganizationLevelForm(updatedOrgLevel, &id); err != nil {
+		return nil, err
+	}
+
+	result, err := ols.repo.Update(id, updatedOrgLevel)
+	if err != nil {
+		return nil, err
+	}
+
+	fieldsToCompare := []string{"TitleEn", "TitleAr", "Level", "IsPrimary"}
+	changes, err := utility.CompareFields(existingOrgLevel, updatedOrgLevel, fieldsToCompare)
+	if err != nil {
+		log.Println("error :", err.Error())
+	}
+
+	changedDataJSON, err := utility.ChangesToJSON(changes)
+	if err != nil {
+		log.Println("error :", err.Error())
+	}
+
+	go func() {
+		err := ols.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.OrganizationLevel{}.TableName(),
+			result.ID,
+			changedDataJSON,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			fmt.Printf("Failed to log activity: %v\n", err)
+		}
+	}()
+
+	return result, nil
+}
+
+func (ols *OrganizationLevelService) Delete(id uint, currentUserID uint) error {
+	tx := ols.repo.BeginTransaction()
+
+	orgLevel, err := ols.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	if orgLevel.IsPrimary {
+		return fmt.Errorf("cannot delete a primary organization level")
+	}
+
+	var unitIDs []uint
+	for _, unit := range orgLevel.OrganizationUnits {
+		unitIDs = append(unitIDs, unit.ID)
+	}
+
+	// Delete all related organization units if any
+	if len(unitIDs) > 0 {
+		if err := ols.repo.DeleteOrganizationUnits(unitIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	err = ols.repo.Delete(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	// Log the activity
+	go func() {
+		err := ols.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.OrganizationLevel{}.TableName(),
+			id,
+			nil,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			fmt.Printf("Failed to log activity: %v\n", err)
+		}
+	}()
+
+	return nil
+}
+
+func (ols *OrganizationLevelService) validateOrganizationLevelForm(orgLevel *models.OrganizationLevel, id *uint) error {
+	if id == nil {
+		if exists, err := ols.repo.ExistsByTitle(orgLevel.TitleEn, orgLevel.TitleAr); err != nil {
+			return err
+		} else if exists {
+			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+		}
+
+		if exists, err := ols.repo.ExistsByLevel(orgLevel.Level); err != nil {
+			return err
+		} else if exists {
+			return utility.NewValidationError(fmt.Errorf("the level must be unique"), "unique", "level")
+		}
+
+	} else {
+		if exists, err := ols.repo.ExistsByTitleExcludingID(*id, orgLevel.TitleEn, orgLevel.TitleAr); err != nil {
+			return err
+		} else if exists {
+			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+		}
+
+		if exists, err := ols.repo.ExistsByLevelExcludingID(*id, orgLevel.Level); err != nil {
+			return err
+		} else if exists {
+			return utility.NewValidationError(fmt.Errorf("the level must be unique"), "unique", "level")
+		}
+	}
+	return nil
 }

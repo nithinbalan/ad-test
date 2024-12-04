@@ -276,11 +276,19 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 	tx.Commit()
 
 	go func() {
-		err := crs.activityLogSvc.LogActivity(
+		existingCompliance, err := crs.GetFullDetailsByID(complianceRegister.ID)
+		if err != nil {
+			utility.LogError("Failed to fetch compliance register", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = crs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.ComplianceRegister{}.TableName(),
 			id,
-			complianceRegisterFormDTO,
+			existingCompliance,
 			currentUserID,
 			nil,
 		)
@@ -399,6 +407,12 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	}
 
 	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.Document); err != nil {
+		return err
+	}
+
+	oldComplianceRegister, err := crs.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -538,23 +552,104 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	tx.Commit()
 
 	go func() {
-		// Log the update activity
-		err := crs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.ComplianceRegister{}.TableName(),
-			id,
-			complianceRegisterFormDTO,
-			currentUserID,
-			nil,
-		)
+		existingCompliance, err := crs.GetFullDetailsByID(id)
 		if err != nil {
-			utility.LogError("Failed to log activity", map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.ComplianceRegister{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			})
+			return
+		}
+		// Determine control and document changes
+		controlsAdded := []uint{}
+		controlsRemoved := []uint{}
+		for id := range newControlIDs {
+			if !existingControlIDs[id] {
+				controlsAdded = append(controlsAdded, id)
+			}
+		}
+		for id := range existingControlIDs {
+			if !newControlIDs[id] {
+				controlsRemoved = append(controlsRemoved, id)
+			}
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
+
+		if len(controlsAdded) > 0 || len(controlsRemoved) > 0 {
+			associatedItems["control_ids"] = map[string]interface{}{
+				"added":   controlsAdded,
+				"removed": controlsRemoved,
+			}
+		}
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+		//log changes
+		oldData := map[string]interface{}{
+			"compliance_category":      oldComplianceRegister.ComplianceCategory.TitleEn,
+			"compliance_status":        oldComplianceRegister.ComplianceStatus.TitleEn,
+			"responsible_unit":         oldComplianceRegister.ResponsibleUnit.TitleEn,
+			"responsible_user":         fmt.Sprintf("%s %s", oldComplianceRegister.ResponsibleUser.FirstNameEN, oldComplianceRegister.ResponsibleUser.LastNameEN),
+			"review_frequency":         oldComplianceRegister.ReviewFrequency.TitleEn,
+			"review_responsible_user":  utility.GetFieldValue(oldComplianceRegister.ReviewResponsibleUser).(string),
+			"severity_level":           oldComplianceRegister.SeverityLevel.TitleEn,
+			"standard_code":            oldComplianceRegister.StandardCode,
+			"title_en":                 oldComplianceRegister.TitleEn,
+			"title_ar":                 oldComplianceRegister.TitleAr,
+			"description_en":           oldComplianceRegister.DescriptionEn,
+			"description_ar":           oldComplianceRegister.DescriptionAr,
+			"version":                  oldComplianceRegister.Version,
+			"dead_line":                oldComplianceRegister.DeadlineString,
+			"issue_date":               oldComplianceRegister.IssueDateString,
+			"expiry_date":              oldComplianceRegister.ExpiryDateString,
+			"last_review_date":         oldComplianceRegister.LastReviewedDateString,
+			"next_review_date":         oldComplianceRegister.NextReviewDateString,
+			"last_review_note":         oldComplianceRegister.LastReviewNote,
+			"last_review_user":         utility.GetFieldValue(oldComplianceRegister.LastReviewedUser).(string),
+			"compliance_review_status": utility.GetFieldValue(oldComplianceRegister.ComplianceReviewStatus).(string),
+		}
+
+		newData := map[string]interface{}{
+			"compliance_category":      existingCompliance.ComplianceCategory.TitleEn,
+			"compliance_status":        existingCompliance.ComplianceStatus.TitleEn,
+			"responsible_unit":         existingCompliance.ResponsibleUnit.TitleEn,
+			"responsible_user":         fmt.Sprintf("%s %s", existingCompliance.ResponsibleUser.FirstNameEN, existingCompliance.ResponsibleUser.LastNameEN),
+			"review_frequency":         existingCompliance.ReviewFrequency.TitleEn,
+			"review_responsible_user":  utility.GetFieldValue(existingCompliance.ReviewResponsibleUser).(string),
+			"description_ar":           existingCompliance.DescriptionAr,
+			"version":                  existingCompliance.Version,
+			"dead_line":                existingCompliance.DeadlineString,
+			"issue_date":               existingCompliance.IssueDateString,
+			"expiry_date":              existingCompliance.ExpiryDateString,
+			"last_review_date":         existingCompliance.LastReviewedDateString,
+			"next_review_date":         existingCompliance.NextReviewDateString,
+			"last_review_note":         existingCompliance.LastReviewNote,
+			"last_review_user":         utility.GetFieldValue(existingCompliance.LastReviewedUser).(string),
+			"compliance_review_status": utility.GetFieldValue(existingCompliance.ComplianceReviewStatus).(string),
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			// Log the update activity
+			err := crs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.ComplianceRegister{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.ComplianceRegister{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				})
+			}
 		}
 
 		// Send notifications to old and new responsible users if the responsible user has changed
@@ -697,6 +792,8 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedComplianceRegister []map[string]interface{}
+
 	var notifications []struct {
 		OwnerID         *uint
 		TitleEn         string
@@ -772,6 +869,12 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedComplianceRegister = append(deletedComplianceRegister, map[string]interface{}{
+			"id":       id,
+			"title_en": complianceRegister.TitleEn,
+			"title_ar": complianceRegister.TitleAr,
+		})
 	}
 
 	if len(failedIds) > 0 {
@@ -805,7 +908,7 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.ComplianceRegister{}.TableName(),
 				successfulIds,
-				nil,
+				deletedComplianceRegister,
 				currentUserID,
 				nil,
 			)

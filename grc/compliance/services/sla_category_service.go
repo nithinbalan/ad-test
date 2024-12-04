@@ -126,9 +126,10 @@ func (scs *SLACategoryService) Update(id uint, currentUserID uint, updatedCatego
 func (scs *SLACategoryService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedSlaCategory []map[string]interface{}
 	for _, id := range ids {
 
-		_, err := scs.repo.GetByID(id)
+		SLACategory, err := scs.repo.GetByID(id)
 
 		if err != nil {
 			continue
@@ -140,6 +141,12 @@ func (scs *SLACategoryService) Delete(ids []uint, currentUserID uint) ([]uint, e
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedSlaCategory = append(deletedSlaCategory, map[string]interface{}{
+			"id":       id,
+			"title_en": SLACategory.TitleEn,
+			"title_ar": SLACategory.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -149,7 +156,7 @@ func (scs *SLACategoryService) Delete(ids []uint, currentUserID uint) ([]uint, e
 				models.DeleteAction,
 				models.SLACategory{}.TableName(),
 				successfulIds,
-				nil,
+				deletedSlaCategory,
 				currentUserID,
 				nil,
 			)
