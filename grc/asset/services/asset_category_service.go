@@ -8,6 +8,7 @@ import (
 	activityLogServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"log"
 
 	"gorm.io/gorm"
 )
@@ -70,11 +71,16 @@ func (acs *AssetCategoryService) Create(currentUserID uint, assetCategoryFormDTO
 	}
 
 	go func() {
-		err := acs.activityLogSvc.LogActivity(
+		createdAssetCategory, err := acs.GetByID(id)
+		if err != nil {
+			return
+		}
+
+		err = acs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AssetCategory{}.TableName(),
 			id,
-			assetCategoryFormDTO,
+			createdAssetCategory,
 			currentUserID,
 			nil,
 		)
@@ -97,6 +103,11 @@ func (acs *AssetCategoryService) Create(currentUserID uint, assetCategoryFormDTO
 }
 
 func (acs *AssetCategoryService) Update(id uint, currentUserID uint, assetCategoryFormDTO *assetDTOs.AssetCategoryFormDTO) error {
+	oldAssetCategory, err := acs.GetByID(id)
+	if err != nil {
+		return err
+	}
+
 	existingAssetCategory, err := acs.GetByID(id)
 	if err != nil {
 		return err
@@ -116,14 +127,42 @@ func (acs *AssetCategoryService) Update(id uint, currentUserID uint, assetCatego
 		return err
 	}
 
+	fieldsToCompare := []string{"AssetTypeID", "TitleEn", "TitleAr", "Status"}
+	changes, err := utility.CompareFields(oldAssetCategory, existingAssetCategory, fieldsToCompare)
+
+	if err != nil {
+		log.Println("error :", err.Error())
+	}
+
+	changedDataJSON, err := utility.ChangesToJSON(changes)
+	if err != nil {
+		log.Println("error :", err.Error())
+	}
+
+	go func() {
+		err := acs.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.AssetCategory{}.TableName(),
+			id,
+			changedDataJSON,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			// @todo - save to log file
+			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
+
 	return nil
 }
 
 func (acs *AssetCategoryService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedAssetCategory []map[string]interface{}
 	for _, id := range ids {
-		_, err := acs.repo.GetByID(id)
+		assetCategory, err := acs.repo.GetByID(id)
 		if err != nil {
 			fmt.Print(err)
 			continue
@@ -135,6 +174,11 @@ func (acs *AssetCategoryService) Delete(ids []uint, currentUserID uint) ([]uint,
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedAssetCategory = append(deletedAssetCategory, map[string]interface{}{
+			"id":       id,
+			"title_en": assetCategory.TitleEn,
+			"title_ar": assetCategory.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -143,7 +187,7 @@ func (acs *AssetCategoryService) Delete(ids []uint, currentUserID uint) ([]uint,
 				models.DeleteAction,
 				models.AssetCategory{}.TableName(),
 				successfulIds,
-				nil,
+				deletedAssetCategory,
 				currentUserID,
 				nil,
 			)

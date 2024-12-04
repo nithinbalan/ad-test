@@ -129,8 +129,9 @@ func (tts *ThreatTypeService) Update(id uint, currentUserID uint, updatedType *m
 func (tts *ThreatTypeService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedThreatType []map[string]interface{}
 	for _, id := range ids {
-		_, err := tts.repo.GetByID(id)
+		threatType, err := tts.repo.GetByID(id)
 		if err != nil {
 			fmt.Print(err)
 			continue
@@ -142,6 +143,11 @@ func (tts *ThreatTypeService) Delete(ids []uint, currentUserID uint) ([]uint, er
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedThreatType = append(deletedThreatType, map[string]interface{}{
+			"id":       id,
+			"title_en": threatType.TitleEn,
+			"title_ar": threatType.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -150,7 +156,7 @@ func (tts *ThreatTypeService) Delete(ids []uint, currentUserID uint) ([]uint, er
 				models.DeleteAction,
 				models.ThreatType{}.TableName(),
 				successfulIds,
-				nil,
+				deletedThreatType,
 				currentUserID,
 				nil,
 			)

@@ -174,11 +174,18 @@ func (ars *AssetRegisterService) Create(assetRegisterFormDTO *dtos.AssetRegister
 	tx.Commit()
 
 	go func() {
-		err := ars.activityLogSvc.LogActivity(
+		existingAsset, err := ars.GetFullDetailsByID(assetID)
+		if err != nil {
+			utility.LogError("Failed to fetch asset register", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = ars.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AssetRegister{}.TableName(),
 			assetID,
-			assetRegisterFormDTO,
+			existingAsset,
 			currentUserID,
 			nil,
 		)
@@ -202,6 +209,12 @@ func (ars *AssetRegisterService) Update(id uint, assetRegisterFormDTO *dtos.Asse
 	var tx = ars.repo.BeginTransaction()
 	existingAsset, err := ars.repo.GetByID(id)
 	if err != nil {
+		return err
+	}
+
+	oldAssetRegister, err := ars.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -292,20 +305,116 @@ func (ars *AssetRegisterService) Update(id uint, assetRegisterFormDTO *dtos.Asse
 	}
 
 	tx.Commit()
+	go func() {
+		existingAsset, err := ars.GetFullDetailsByID(id)
+		if err != nil {
+			return
+		}
+		// Determine control and document changes
+		controlsAdded := []uint{}
+		controlsRemoved := []uint{}
+		for id := range newControlIDs {
+			if !existingControlIDs[id] {
+				controlsAdded = append(controlsAdded, id)
+			}
+		}
+		for id := range existingControlIDs {
+			if !newControlIDs[id] {
+				controlsRemoved = append(controlsRemoved, id)
+			}
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
+
+		if len(controlsAdded) > 0 || len(controlsRemoved) > 0 {
+			associatedItems["control_ids"] = map[string]interface{}{
+				"added":   controlsAdded,
+				"removed": controlsRemoved,
+			}
+		}
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+		//log changes
+		oldData := map[string]interface{}{
+			"asset_category":   oldAssetRegister.AssetCategory.TitleEn,
+			"asset_type":       oldAssetRegister.AssetType.TitleEn,
+			"responsible_user": fmt.Sprintf("%s %s", oldAssetRegister.ResponsibleUser.FirstNameEN, oldAssetRegister.ResponsibleUser.LastNameEN),
+			"title_en":         oldAssetRegister.TitleEn,
+			"title_ar":         oldAssetRegister.TitleAr,
+			"description":      oldAssetRegister.Description,
+			"asset_status":     oldAssetRegister.AssetStatus.TitleEn,
+			"location":         oldAssetRegister.Location,
+			"acquisition_date": oldAssetRegister.AcquisitionDateString,
+		}
+
+		newData := map[string]interface{}{
+			"asset_category":   existingAsset.AssetCategory.TitleEn,
+			"asset_type":       existingAsset.AssetType.TitleEn,
+			"responsible_user": fmt.Sprintf("%s %s", existingAsset.ResponsibleUser.FirstNameEN, existingAsset.ResponsibleUser.LastNameEN),
+			"title_en":         existingAsset.TitleEn,
+			"title_ar":         existingAsset.TitleAr,
+			"description":      existingAsset.Description,
+			"asset_status":     existingAsset.AssetStatus.TitleEn,
+			"location":         existingAsset.Location,
+			"acquisition_date": existingAsset.AcquisitionDateString,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := ars.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AssetRegister{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AssetRegister{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 	return nil
 }
 
 func (as *AssetRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedAssetRegister []map[string]interface{}
 
 	for _, id := range ids {
-		err := as.repo.Delete(id)
+		asset, err := as.GetFullDetailsByID(id)
+		if err != nil {
+			return nil, err
+		}
+
+		err = as.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedAssetRegister = append(deletedAssetRegister, map[string]interface{}{
+			"id":       id,
+			"title_en": asset.TitleEn,
+			"title_ar": asset.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -314,7 +423,7 @@ func (as *AssetRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				models.DeleteAction,
 				models.AssetRegister{}.TableName(),
 				successfulIds,
-				nil,
+				deletedAssetRegister,
 				currentUserID,
 				nil,
 			)

@@ -134,8 +134,9 @@ func (acmrss *AssetCriticalityMatrixRatingScaleService) Update(matrixID uint, id
 func (acmrss *AssetCriticalityMatrixRatingScaleService) Delete(matrixID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedMatrixRatingScale []map[string]interface{}
 	for _, id := range ids {
-		_, err := acmrss.repo.GetByID(id)
+		matrixRatingScale, err := acmrss.repo.GetByID(id)
 		if err != nil {
 			fmt.Print(err)
 			continue
@@ -147,6 +148,11 @@ func (acmrss *AssetCriticalityMatrixRatingScaleService) Delete(matrixID uint, id
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedMatrixRatingScale = append(deletedMatrixRatingScale, map[string]interface{}{
+			"id":       id,
+			"title_en": matrixRatingScale.TitleEn,
+			"title_ar": matrixRatingScale.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -155,7 +161,7 @@ func (acmrss *AssetCriticalityMatrixRatingScaleService) Delete(matrixID uint, id
 				models.DeleteAction,
 				models.AssetCriticalityMatrixRatingScale{}.TableName(),
 				successfulIds,
-				nil,
+				deletedMatrixRatingScale,
 				currentUserID,
 				nil,
 			)
