@@ -10,10 +10,6 @@ UPDATE risk_matrix_risk_ratings
 SET color_code = '#FFC107'
 WHERE type = 'low';
 
-UPDATE risk_matrix_risk_ratings
-SET color_code = '#E0554D'
-WHERE type = 'very_high';
-
 COMMIT;
 -- +goose StatementEnd
 
@@ -29,10 +25,6 @@ WHERE type = 'very_low';
 UPDATE risk_matrix_risk_ratings
 SET color_code = '#FFFF00' -- Original color for low
 WHERE type = 'low';
-
-UPDATE risk_matrix_risk_ratings
-SET color_code = '#B22222' -- Original color for very_high
-WHERE type = 'very_high';
 
 COMMIT;
 -- +goose StatementEnd
