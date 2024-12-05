@@ -161,7 +161,7 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 		tx.Rollback()
 		return err
 	}
-	urlParam := fmt.Sprintf(`{"id":%d}`, auditDraftReportID)
+	urlParam := fmt.Sprintf(`{"id":%d}`, auditID)
 	var taskIDs []uint
 	auditFinalReportID := &existingAuditDraftReport.ID
 	for _, participant := range participants {
@@ -392,7 +392,7 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 	tx.Commit()
 
 	go func() {
-		urlParam := fmt.Sprintf(`{"id":%d}`, auditDraftReportID)
+		urlParam := fmt.Sprintf(`{"id":%d}`, auditID)
 		entity := "audit"
 		action := "approve"
 
@@ -592,7 +592,7 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 
 	go func() {
 
-		urlParam := fmt.Sprintf(`{"id":%d}`, auditDraftReportID)
+		urlParam := fmt.Sprintf(`{"id":%d}`, auditID)
 		entity := "audit"
 		action := "revert"
 		// Create a map to track unique recipients
@@ -643,7 +643,6 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 			emailTo := []string{responsibleUser.Email}
 			subject := fmt.Sprintf("Audit Draft Report /%s: Revert Notification", existingAuditDraftReport.Audit.AuditPlan.Title)
 			appURL := utility.GetAppURL()
-			urlParam = fmt.Sprintf("%s/audits/%d/draft-reports/%d", appURL, existingAuditDraftReport.AuditID, existingAuditDraftReport.ID)
 			emailData := map[string]interface{}{
 				"FirstNameEn":           responsibleUser.FirstNameEn,
 				"LastNameEn":            responsibleUser.LastNameEn,
@@ -652,7 +651,7 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 				"RevertedByFirstNameEn": assignedBy.FirstNameEn,
 				"RevertedByLastNameEn":  assignedBy.LastNameEn,
 				"RevertedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           urlParam,
+				"RedirectURL":           fmt.Sprintf("%s/audit/audits/%d/draft-report", appURL, auditID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -816,7 +815,7 @@ func (adrrs *AuditDraftReportReviewService) ReSubmit(auditID uint, auditDraftRep
 	tx.Commit()
 
 	go func() {
-		urlParam := fmt.Sprintf(`{"id":%d}`, auditDraftReportID)
+		urlParam := fmt.Sprintf(`{"id":%d}`, auditID)
 		entity := "audit"
 		action := "review-user-assign"
 
