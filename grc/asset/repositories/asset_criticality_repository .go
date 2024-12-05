@@ -12,11 +12,12 @@ type AssetCriticalityRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(assetID uint, params *dtos.AssetCriticalityContributionListQueryParamsDTO) ([]*dtos.AssetCriticalityContributionListDTO, error)
 	GetByID(id uint) (*models.AssetCriticalityContribution, error)
-	Create(contribution *models.AssetCriticalityContribution, tx ...utility.DatabaseTransaction) error
+	Create(contribution *models.AssetCriticalityContribution, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(contribution *models.AssetCriticalityContribution, tx ...utility.DatabaseTransaction) error
 	Delete(assetID uint, tx ...utility.DatabaseTransaction) error
 
 	CalculateTotalScore(assetID uint, tx ...utility.DatabaseTransaction) (float64, error)
+	GetAllContribution(assetID uint) ([]models.AssetCriticalityContribution, error)
 }
 
 type AssetCriticalityRepository struct {
@@ -121,13 +122,17 @@ func (repo *AssetCriticalityRepository) GetByID(id uint) (*models.AssetCriticali
 	return &contribution, nil
 }
 
-func (repo *AssetCriticalityRepository) Create(contribution *models.AssetCriticalityContribution, tx ...utility.DatabaseTransaction) error {
+func (repo *AssetCriticalityRepository) Create(contribution *models.AssetCriticalityContribution, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	return db.Create(contribution).Error
+	// return db.Create(contribution).Error
+	if err := db.Create(contribution).Error; err != nil {
+		return 0, err
+	}
+	return contribution.ID, nil
 }
 
 func (repo *AssetCriticalityRepository) Update(contribution *models.AssetCriticalityContribution, tx ...utility.DatabaseTransaction) error {
@@ -163,4 +168,17 @@ func (repo *AssetCriticalityRepository) CalculateTotalScore(assetID uint, tx ...
 		return 0, err
 	}
 	return totalScore, nil
+}
+
+func (repo *AssetCriticalityRepository) GetAllContribution(assetID uint) ([]models.AssetCriticalityContribution, error) {
+	var criticalityContribution []models.AssetCriticalityContribution
+
+	// Fetch vulnerabilities with their related threats
+	err := repo.db.
+		Preload("AssetCriticalityMatrixFactor").
+		Preload("AssetCriticalityMatrixFactorRating").
+		Where("asset_register_id = ?", assetID).
+		Find(&criticalityContribution).Error
+
+	return criticalityContribution, err
 }

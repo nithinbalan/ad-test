@@ -366,6 +366,7 @@ func (rs *RoleService) GetAllWithPermissions(params *dtos.ModuleListQueryParamsD
 					TitleEn:     submodule.TitleEn,
 					TitleAr:     submodule.TitleAr,
 					Order:       submodule.Order,
+					IsEnable:    submodule.IsEnable,
 					Permissions: subPermissions,
 				}
 				submoduleDTOs = append(submoduleDTOs, submoduleDTO)
@@ -378,6 +379,7 @@ func (rs *RoleService) GetAllWithPermissions(params *dtos.ModuleListQueryParamsD
 			TitleEn:    module.TitleEn,
 			TitleAr:    module.TitleAr,
 			Order:      module.Order,
+			IsEnable:   module.IsEnable,
 			SubModules: submoduleDTOs,
 		}
 		moduleList = append(moduleList, moduleDTO)

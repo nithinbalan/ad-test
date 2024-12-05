@@ -113,11 +113,19 @@ func (acms *AssetCriticalityMatrixService) Create(matrixFormDTO *dtos.AssetCriti
 	tx.Commit()
 
 	go func() {
-		err := acms.activityLogSvc.LogActivity(
+		existingCriticalityMatrix, err := acms.GetFullDetailsByID(matrixID)
+		if err != nil {
+			utility.LogError("Failed to fetch criticality matrix", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = acms.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AssetCriticalityMatrix{}.TableName(),
 			matrixID,
-			matrixFormDTO,
+			existingCriticalityMatrix,
 			currentUserID,
 			nil,
 		)
@@ -139,6 +147,12 @@ func (acms *AssetCriticalityMatrixService) Create(matrixFormDTO *dtos.AssetCriti
 
 func (acms *AssetCriticalityMatrixService) Update(id uint, matrixFormDTO *dtos.AssetCriticalityMatrixFormDTO, currentUserID uint) error {
 	tx := acms.repo.BeginTransaction()
+
+	oldCriticalityMatrix, err := acms.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
 	if err := acms.validateAssetCriticalityMatrixCategories(matrixFormDTO.AssetCategoryIDs, id, tx); err != nil {
 		tx.Rollback()
@@ -209,16 +223,98 @@ func (acms *AssetCriticalityMatrixService) Update(id uint, matrixFormDTO *dtos.A
 	}
 
 	tx.Commit()
+	go func() {
+		existingCriticalityMatrix, err := acms.GetFullDetailsByID(id)
+		if err != nil {
+			return
+		}
+		// Determine control and document changes
+		categoriesAdded := []uint{}
+		categoriesRemoved := []uint{}
+		for id := range newCategoryIDs {
+			if !existingCategoryIDs[id] {
+				categoriesAdded = append(categoriesAdded, id)
+			}
+		}
+		for id := range existingCategoryIDs {
+			if !newCategoryIDs[id] {
+				categoriesRemoved = append(categoriesRemoved, id)
+			}
+		}
+
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
+
+		if len(categoriesAdded) > 0 || len(categoriesRemoved) > 0 {
+			associatedItems["control_ids"] = map[string]interface{}{
+				"added":   categoriesAdded,
+				"removed": categoriesRemoved,
+			}
+		}
+
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+		//log changes
+		oldData := map[string]interface{}{
+			"title_en": oldCriticalityMatrix.TitleEn,
+			"title_ar": oldCriticalityMatrix.TitleAr,
+			"status":   oldCriticalityMatrix.Status,
+		}
+
+		newData := map[string]interface{}{
+			"title_en": existingCriticalityMatrix.TitleEn,
+			"title_ar": existingCriticalityMatrix.TitleAr,
+			"status":   existingCriticalityMatrix.Status,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := acms.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AssetCriticalityMatrix{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AssetCriticalityMatrix{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 	return nil
 }
 
 func (acms *AssetCriticalityMatrixService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedCriticalityMatrix []map[string]interface{}
 
 	tx := acms.repo.BeginTransaction()
 
 	for _, id := range ids {
+
+		criticalityMatrix, err := acms.repo.GetByID(id)
+		if err != nil {
+			fmt.Print(err)
+			continue
+		}
+
 		// Delete associated categories within the transaction
 		if err := acms.repo.DeleteCategoriesByMatrixID(id, tx); err != nil {
 			failedIds = append(failedIds, id)
@@ -226,12 +322,18 @@ func (acms *AssetCriticalityMatrixService) Delete(ids []uint, currentUserID uint
 		}
 
 		// Delete the matrix itself within the transaction
-		err := acms.repo.Delete(id, tx)
+		err = acms.repo.Delete(id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedCriticalityMatrix = append(deletedCriticalityMatrix, map[string]interface{}{
+			"id":       id,
+			"title_en": criticalityMatrix.TitleEn,
+			"title_ar": criticalityMatrix.TitleAr,
+		})
 	}
 
 	if len(failedIds) > 0 {
@@ -247,7 +349,7 @@ func (acms *AssetCriticalityMatrixService) Delete(ids []uint, currentUserID uint
 				models.DeleteAction,
 				models.AssetCriticalityMatrix{}.TableName(),
 				successfulIds,
-				nil,
+				deletedCriticalityMatrix,
 				currentUserID,
 				nil,
 			)

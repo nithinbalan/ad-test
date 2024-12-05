@@ -150,6 +150,7 @@ type DocumentVersionDTO struct {
 	CreatedAt           time.Time                        `json:"created_at"`
 	UpdatedAt           *time.Time                       `json:"updated_at"`
 	DocumentEditHistory []DocumentEditHistoryDTO         `json:"document_edit_history"`
+	DocumentWorkflows   []DocumentWorkflowDTO            `json:"document_workflow"`
 }
 
 type DocumentSharedUserDTO struct {

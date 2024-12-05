@@ -138,11 +138,19 @@ func (dts *DocumentTemplateService) Create(currentUserID uint, documentTemplateF
 	tx.Commit()
 
 	go func() {
-		err := dts.activityLogSvc.LogActivity(
+		existingDocumentTemplate, err := dts.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch document template", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = dts.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.DocumentTemplate{}.TableName(),
 			id,
-			documentTemplateFormDTO,
+			existingDocumentTemplate,
 			currentUserID,
 			nil,
 		)
@@ -159,6 +167,11 @@ func (dts *DocumentTemplateService) Update(id uint, currentUserID uint, document
 	tx := dts.repo.BeginTransaction()
 
 	existingTemplate, err := dts.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	oldTemplate, err := dts.GetFullDetailsByID(id)
 	if err != nil {
 		return err
 	}
@@ -226,6 +239,60 @@ func (dts *DocumentTemplateService) Update(id uint, currentUserID uint, document
 	}
 
 	tx.Commit()
+	go func() {
+
+		existingDocumentTemplate, err := dts.repo.GetFullDetailsByID(id, nil)
+		if err != nil {
+			return
+		}
+
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"title_en":      oldTemplate.TitleEn,
+			"title_ar":      oldTemplate.TitleAr,
+			"document_type": oldTemplate.DocumentType.TitleEn,
+			"status":        oldTemplate.Status,
+		}
+
+		newData := map[string]interface{}{
+			"title_en":      existingDocumentTemplate.TitleEn,
+			"title_ar":      existingDocumentTemplate.TitleAr,
+			"document_type": existingDocumentTemplate.DocumentType.TitleEn,
+			"status":        existingDocumentTemplate.Status,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := dts.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.DocumentTemplate{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.DocumentTemplate{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+
+	}()
 	return nil
 }
 
@@ -233,6 +300,7 @@ func (dts *DocumentTemplateService) Delete(ids []uint, currentUserID uint) ([]ui
 	tx := dts.repo.BeginTransaction()
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedDocumentTemplate []map[string]interface{}
 	documentsToDelete := make(map[uint][]*documentDTOs.DocumentTemplateDocumentDTO)
 	for _, id := range ids {
 		documentTemplate, err := dts.GetFullDetailsByID(id, tx)
@@ -255,6 +323,12 @@ func (dts *DocumentTemplateService) Delete(ids []uint, currentUserID uint) ([]ui
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedDocumentTemplate = append(deletedDocumentTemplate, map[string]interface{}{
+			"id":       id,
+			"title_en": documentTemplate.TitleEn,
+			"title_ar": documentTemplate.TitleAr,
+		})
 	}
 
 	if len(failedIds) > 0 {
@@ -286,7 +360,7 @@ func (dts *DocumentTemplateService) Delete(ids []uint, currentUserID uint) ([]ui
 				models.DeleteAction,
 				models.DocumentTemplate{}.TableName(),
 				successfulIds,
-				nil,
+				deletedDocumentTemplate,
 				currentUserID,
 				nil,
 			)
