@@ -62,6 +62,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditPlanCommencementLetterController := app.AuditModule.AuditPlanCommencementLetterController
 	auditFinalReportStatusController := app.AuditModule.AuditFinalReportStatusController
 	auditFinalReportController := app.AuditModule.AuditFinalReportController
+	auditFinalReportSectionController := app.AuditModule.AuditFinalReportSectionController
+	auditReportWorkflowController := app.AuditModule.AuditReportWorkflowController
+	auditReportReviewController := app.AuditModule.AuditReportReviewController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -182,7 +185,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audits/:auditId/workpapers", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditWorkpaperController.CreateAuditWorkpaper)
 	auditRoutes.PUT("/audits/:auditId/workpapers/:id", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditWorkpaperController.UpdateAuditWorkpaper)
 	auditRoutes.POST("/audits/:auditId/workpapers/delete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditWorkpaperController.DeleteAuditWorkpapers)
-
+	unauthenticatedRoutes.GET("/audits/:auditId/workpapers/document-preview", auditWorkpaperController.GetWorkpaperDocumentPreview)
 	unauthenticatedRoutes.GET("/audits/:auditId/workpapers/document-download", auditWorkpaperController.DownloadWorkpaperDocument)
 
 	//Audit Meeting
@@ -206,6 +209,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-finding-categories/delete", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditFindingCategoryController.DeleteAuditFindingCategories)
 
 	// Audit Finding
+	unauthenticatedRoutes.GET("/audit-findings/:findingId/document-preview", auditFindingController.GetAuditFindingDocumentPreview)
+	unauthenticatedRoutes.GET("/audit-findings/:findingId/document-download", auditFindingController.DownloadAuditFindingDocument)
 	auditRoutes.GET("/audit-findings", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingController.GetAllAuditFindings)
 	auditRoutes.GET("/audit-findings/:findingId", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingController.GetAuditFindingDetails)
 	auditRoutes.POST("/audit-findings", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingController.CreateAuditFinding)
@@ -228,6 +233,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.GET("/audits/:auditId/document-requests/:id/conversations", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditDocumentRequestConversationController.GetAllAuditDocumentRequestConversations)
 	auditRoutes.POST("/audits/:auditId/document-requests/:id/conversations", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDocumentRequestConversationController.CreateAuditDocumentRequestConversation)
 	unauthenticatedRoutes.GET("/audits/:auditId/document-requests/:id/conversations/:conversationId/document-download", auditDocumentRequestConversationController.DownloadDocumentRequestConversationDocument)
+	unauthenticatedRoutes.GET("/audits/:auditId/document-requests/:id/conversations/:conversationId/document-preview", auditDocumentRequestConversationController.GetDocumentRequestConversationDocumentPreview)
 
 	auditRoutes.GET("/audit-findings/:findingId/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingRootCauseAnalysisController.GetAllAuditFindingRootCauseAnalyses)
 	auditRoutes.POST("/audit-findings/:findingId/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingRootCauseAnalysisController.CreateAuditFindingRootCauseAnalysis)
@@ -242,6 +248,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-findings/:findingId/action-plans/delete", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingActionPlanController.DeleteAuditFindingActionPlans)
 	auditRoutes.GET("/audit-findings/:findingId/action-plan-summary", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingActionPlanController.GetAuditFindingActionPlanCountByStatus)
 
+	unauthenticatedRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates/:id/document-preview", auditFindingActionPlanStatusUpdateController.GetAuditFindingActionPlanStatusUpdateDocumentPreview)
+	unauthenticatedRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates/:id/document-download", auditFindingActionPlanStatusUpdateController.DownloadAuditFindingActionPlanStatusUpdateDocument)
 	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingActionPlanStatusUpdateController.GetAllAuditFindingActionPlanStatusUpdates)
 	auditRoutes.POST("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingActionPlanStatusUpdateController.CreateAuditFindingActionPlanStatusUpdate)
 	auditRoutes.PUT("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates/:id", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingActionPlanStatusUpdateController.UpdateAuditFindingActionPlanStatusUpdate)
@@ -280,6 +288,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.PUT("/audit-draft-findings/:findingId", middlewares.RolePermissionMiddleware(db, "audits", "modfiy"), auditDraftFindingController.UpdateAuditDraftFinding)
 	auditRoutes.POST("/audit-draft-findings/delete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftFindingController.DeleteAuditDraftFindings)
 	auditRoutes.GET("audits/:auditId/audit-draft-finding-summary", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditDraftFindingController.GetAuditDraftFindingCountByCategory)
+	unauthenticatedRoutes.GET("/audit-draft-findings/:findingId/document-preview", auditDraftFindingController.GetAuditDraftFindingDocumentPreview)
+	unauthenticatedRoutes.GET("/audit-draft-findings/:findingId/document-download", auditDraftFindingController.DownloadAuditDraftFindingDocument)
 
 	//Draft Audit Report Status
 	auditRoutes.GET("/audit-draft-report-statuses", auditDraftReportStatusController.GetAllAuditDraftReportStatuses)
@@ -303,6 +313,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.PUT("/audit-draft-findings/:findingId/conversations/:id", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftFindingConversationController.UpdateAuditDraftFindingConversation)
 	auditRoutes.POST("/audit-draft-findings/:findingId/conversations/delete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftFindingConversationController.DeleteAuditDraftFindingConversations)
 	unauthenticatedRoutes.GET("/audit-draft-findings/:findingId/conversations/:id/document-download", auditDraftFindingConversationController.DownloadAuditDraftFindingConversationDocument)
+	unauthenticatedRoutes.GET("/audit-draft-findings/:findingId/conversations/:id/document-preview", auditDraftFindingConversationController.GetAuditDraftFindingConversationDocumentPreview)
 
 	// Audit Draft Finding Action plans
 	auditRoutes.GET("/audit-draft-findings/:findingId/action-plans", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditDraftFindingActionPlanController.GetAllAuditDraftFindingActionPlans)
@@ -312,6 +323,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-draft-findings/:findingId/action-plans/delete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftFindingActionPlanController.DeleteAuditDraftFindingActionPlans)
 
 	// Audit Schedule status update
+	unauthenticatedRoutes.GET("/audits/:auditId/schedules/:scheduleId/status-updates/:id/document-preview", auditScheduleStatusUpdateController.GetAuditScheduleStatusUpdateDocumentPreview)
+	unauthenticatedRoutes.GET("/audits/:auditId/schedules/:scheduleId/status-updates/:id/document-download", auditScheduleStatusUpdateController.DownloadAuditScheduleStatusUpdateDocument)
 	auditRoutes.GET("/audits/:auditId/schedules/:scheduleId/status-updates", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditScheduleStatusUpdateController.GetAllAuditScheduleStatusUpdates)
 	auditRoutes.POST("/audits/:auditId/schedules/:scheduleId/status-updates", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditScheduleStatusUpdateController.CreateAuditScheduleStatusUpdate)
 	auditRoutes.PUT("/audits/:auditId/schedules/:scheduleId/status-updates/:id", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditScheduleStatusUpdateController.UpdateAuditScheduleStatusUpdate)
@@ -331,6 +344,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments/delete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftReportCommentController.DeleteAuditDraftReportComments)
 	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments/:commentId/status-update", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftReportCommentController.StatusUpdateAuditDraftReportComment)
 	unauthenticatedRoutes.GET("/audits/:auditId/draft-reports/:id/comments/:commentId/document-download", auditDraftReportCommentController.DownloadAuditDraftReportCommentDocument)
+	unauthenticatedRoutes.GET("/audits/:auditId/draft-reports/:id/comments/:commentId/document-preview", auditDraftReportCommentController.GetAuditDraftReportCommentDocumentPreview)
 	auditRoutes.GET("/audits/:auditId/draft-reports/:id/review-history", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditDraftReportReviewController.GetAllAuditDraftReportReviews)
 
 	auditRoutes.GET("/audit-plan-commencement-letter-statuses", auditPlanCommencementLetterStatusController.GetAllStatuses)
@@ -348,6 +362,20 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.GET("/audit-final-report-statuses/:id", auditFinalReportStatusController.GetAuditFinalReportStatusDetails)
 
 	//Audit Final Reports
+	auditRoutes.GET("/audits/:auditId/final-reports", auditFinalReportController.GetAuditFinalReportDetails)
 	auditRoutes.POST("/audits/:auditId/final-reports", auditFinalReportController.CreateAuditFinalReport)
+	auditRoutes.POST("/audits/:auditId/final-reports/delete", auditFinalReportController.DeleteAuditFinalReport)
+
+	//Audit Final Report Section
+	auditRoutes.GET("/audits/:auditId/final-report-sections/:id", auditFinalReportSectionController.GetAuditFinalReportSectionDetails)
+	auditRoutes.PUT("/audits/:auditId/final-report-sections/:id", auditFinalReportSectionController.UpdateAuditFinalReportSection)
+	auditRoutes.DELETE("/audits/:auditId/final-report-sections/:id", auditFinalReportSectionController.DeleteAuditFinalReportSection)
+
+	//workflow
+	auditRoutes.GET("/audits/:auditId/final-reports/workflow-list", auditReportWorkflowController.GetWorkflowList)
+	
+	auditRoutes.POST("/audits/:auditId/final-reports/submit", auditReportReviewController.SubmitAuditFinalReport)
+	auditRoutes.GET("/audits/:auditId/final-reports/comments", auditReportReviewController.GetComments)
+	auditRoutes.POST("/audits/:auditId/final-reports/comments", auditReportReviewController.AddComment)
 
 }

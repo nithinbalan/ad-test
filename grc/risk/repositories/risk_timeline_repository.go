@@ -38,6 +38,7 @@ func (repo *RiskTimelineRepository) GetAll(riskID uint, params *riskDTOs.RiskTim
 		Select(`
 			risk_timelines.id AS id,
 			risk_timelines.risk_register_id AS risk_register_id,
+			risk_timeline_types.type AS risk_timeline_type,
 			risk_timeline_types.title_en AS risk_timeline_type_title_en,
 			risk_timeline_types.title_ar AS risk_timeline_type_title_ar,
 			risk_timeline_types.color_code AS risk_timeline_type_color_code,

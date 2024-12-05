@@ -21,3 +21,9 @@ type UserSecurity struct {
 	OTPExpiryAt  *time.Time `json:"otp_expiry_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
 }
+
+type ChangePasswordDTO struct {
+	OldPassword     string `json:"old_password" binding:"required"`
+	NewPassword     string `json:"new_password" binding:"required,min=8"`
+	ConfirmPassword string `json:"confirm_password" binding:"required,eqfield=NewPassword"`
+}

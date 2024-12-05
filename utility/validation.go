@@ -117,6 +117,15 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 				},
 			})
 			errors = append(errors, errorMessage)
+		case "password_mismatch":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "password_mismatch",
+				TemplateData: map[string]interface{}{
+					"Field": translatedFieldName,
+				},
+			})
+			errors = append(errors, errorMessage)
 		case "invalid_otp":
 			var errorMessage string
 			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
@@ -211,6 +220,16 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 			var errorMessage string
 			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
 				MessageID: "already_associated",
+				TemplateData: map[string]interface{}{
+					"Field": translatedFieldName,
+				},
+			})
+			errors = append(errors, errorMessage)
+
+		case "matrix_exists":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "matrix_exists",
 				TemplateData: map[string]interface{}{
 					"Field": translatedFieldName,
 				},

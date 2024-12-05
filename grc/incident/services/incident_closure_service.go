@@ -174,11 +174,19 @@ func (ics *IncidentClosureService) Create(incidentID uint, currentUserID uint, i
 	tx.Commit()
 
 	go func() {
-		err := ics.activityLogSvc.LogActivity(
+		existingIncidentClosure, err := ics.GetFullDetailsByID(incidentID)
+		if err != nil {
+			utility.LogError("Failed to fetch incident closure", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = ics.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.IncidentClosure{}.TableName(),
 			id,
-			incidentClosureFormDTO,
+			existingIncidentClosure,
 			currentUserID,
 			nil,
 		)
@@ -206,6 +214,11 @@ func (ics *IncidentClosureService) Update(incidentID uint, currentUserID uint, i
 	}
 
 	existingIncidentClosure, err := ics.GetByID(incidentID)
+	if err != nil {
+		return err
+	}
+
+	oldIncidentClosure, err := ics.GetFullDetailsByID(incidentID)
 	if err != nil {
 		return err
 	}
@@ -287,25 +300,75 @@ func (ics *IncidentClosureService) Update(incidentID uint, currentUserID uint, i
 	tx.Commit()
 
 	go func() {
-		err := ics.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.IncidentClosure{}.TableName(),
-			existingIncidentClosure.ID,
-			incidentClosureFormDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingClosure, err := ics.GetFullDetailsByID(incidentID)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.IncidentClosure{}.TableName(),
-				"recordID":  existingIncidentClosure.ID,
-				"userID":    currentUserID,
-				"error":     err.Error(),
+			tx.Rollback()
+			return
+		}
+		//log changes
+		closureLessonsAdded := []string{}
+		closureLessonsRemoved := []string{}
+		for id := range newClosureLessons {
+			if !existingClosureLessons[id] {
+				closureLessonsAdded = append(closureLessonsAdded, id)
 			}
+		}
+		for id := range existingClosureLessons {
+			if !newClosureLessons[id] {
+				closureLessonsRemoved = append(closureLessonsRemoved, id)
+			}
+		}
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
 
-			utility.LogError("Failed to log activity", fields)
+		if len(closureLessonsAdded) > 0 || len(closureLessonsRemoved) > 0 {
+			associatedItems["closure_lessons"] = map[string]interface{}{
+				"added":   closureLessonsAdded,
+				"removed": closureLessonsRemoved,
+			}
+		}
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+
+		oldData := map[string]interface{}{
+			"completion_date":    oldIncidentClosure.CompletionDateString,
+			"resolution_summary": oldIncidentClosure.ResolutionSummary,
+			"notes":              oldIncidentClosure.Notes,
+		}
+
+		newData := map[string]interface{}{
+			"completion_date":    existingClosure.CompletionDateString,
+			"resolution_summary": existingClosure.ResolutionSummary,
+			"notes":              existingClosure.Notes,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := ics.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.IncidentClosure{}.TableName(),
+				existingIncidentClosure.ID,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.IncidentClosure{}.TableName(),
+					"recordID":  existingIncidentClosure.ID,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -315,6 +378,7 @@ func (ics *IncidentClosureService) Update(incidentID uint, currentUserID uint, i
 func (ics *IncidentClosureService) Delete(incidentID uint, currentUserID uint) (uint, error) {
 	tx := ics.repo.BeginTransaction()
 	var failedId uint
+	var deletedIncidentClosure []map[string]interface{}
 
 	existingIncidentRegister, err := ics.incidentRegisterSvc.GetByID(incidentID)
 	if err != nil {
@@ -373,6 +437,12 @@ func (ics *IncidentClosureService) Delete(incidentID uint, currentUserID uint) (
 		failedId = uint(incidentClosure.ID)
 		return failedId, err
 	}
+
+	deletedIncidentClosure = append(deletedIncidentClosure, map[string]interface{}{
+		"id":                   incidentClosure.ID,
+		"incident_register_id": incidentID,
+	})
+
 	tx.Commit()
 	// Log successful delete activity
 	go func() {
@@ -380,7 +450,7 @@ func (ics *IncidentClosureService) Delete(incidentID uint, currentUserID uint) (
 			models.DeleteAction,
 			models.IncidentClosure{}.TableName(),
 			uint(incidentClosure.ID),
-			nil,
+			deletedIncidentClosure,
 			currentUserID,
 			nil,
 		)

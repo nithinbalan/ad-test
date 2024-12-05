@@ -249,11 +249,19 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 	tx.Commit()
 
 	go func() {
-		err := srs.activityLogSvc.LogActivity(
+		existingSLA, err := srs.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch compliance register", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = srs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.SLARegister{}.TableName(),
 			id,
-			slaRegisterFormDTO,
+			existingSLA,
 			currentUserID,
 			nil,
 		)
@@ -278,10 +286,11 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 			UserID:               slaRegisterFormDTO.ResponsibleUserID,
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Sla Register Assignment",
-			HeadingAr:            "تعيين سجل الامتثال",
+			HeadingEn:            "Sla RegisterResponsibility Assigned",
+			HeadingAr:            "Sla تسجيل المسؤولية المعينة",
 			TitleEn:              slaRegisterFormDTO.TitleEn,
 			TitleAr:              slaRegisterFormDTO.TitleAr,
+			ReferenceNumber:      slaRegister.ReferenceNumber,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
@@ -355,6 +364,12 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 	tx := srs.repo.BeginTransaction()
 	existingSLARegister, err := srs.repo.GetByID(id)
 	if err != nil {
+		return err
+	}
+
+	oldSlaRegister, err := srs.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -506,24 +521,85 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 	tx.Commit()
 
 	go func() {
-		err := srs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.SLARegister{}.TableName(),
-			id,
-			slaRegisterFormDTO,
-			currentUserID,
-			nil,
-		)
+		existingSla, err := srs.GetFullDetailsByID(id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.SLARegister{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
+			return
+		}
+		// Determine control and document changes
+		processesAdded := []uint{}
+		processesRemoved := []uint{}
+		for id := range newProcessIDs {
+			if !existingProcessIDs[id] {
+				processesAdded = append(processesAdded, id)
 			}
+		}
+		for id := range existingProcessIDs {
+			if !newProcessIDs[id] {
+				processesRemoved = append(processesRemoved, id)
+			}
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
 
-			utility.LogError("Failed to log activity", fields)
+		if len(processesAdded) > 0 || len(processesRemoved) > 0 {
+			associatedItems["process_ids"] = map[string]interface{}{
+				"added":   processesAdded,
+				"removed": processesRemoved,
+			}
+		}
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+		//log changes
+		oldData := map[string]interface{}{
+			"sla_category":      oldSlaRegister.SLACategory.TitleEn,
+			"responsible_user":  fmt.Sprintf("%s %s", oldSlaRegister.ResponsibleUser.FirstNameEN, oldSlaRegister.ResponsibleUser.LastNameEN),
+			"severity_level":    oldSlaRegister.SeverityLevel.TitleEn,
+			"life_cycle_status": oldSlaRegister.LifecycleStatus.TitleEn,
+			"title_en":          oldSlaRegister.TitleEn,
+			"title_ar":          oldSlaRegister.TitleAr,
+			"description":       oldSlaRegister.Description,
+			"client":            oldSlaRegister.Client,
+		}
+
+		newData := map[string]interface{}{
+			"sla_category":      existingSla.SLACategory.TitleEn,
+			"responsible_user":  fmt.Sprintf("%s %s", existingSla.ResponsibleUser.FirstNameEN, existingSla.ResponsibleUser.LastNameEN),
+			"severity_level":    existingSla.SeverityLevel.TitleEn,
+			"life_cycle_status": existingSla.LifecycleStatus.TitleEn,
+			"title_en":          existingSla.TitleEn,
+			"title_ar":          existingSla.TitleAr,
+			"description":       existingSla.Description,
+			"client":            existingSla.Client,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			// Log the update activity
+			err := srs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.SLARegister{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.SLARegister{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 
 		// Send notifications to old and new responsible users if the responsible user has changed
@@ -536,10 +612,11 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 				UserID:               oldResponsibleUserID,
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.InformationType),
-				HeadingEn:            "Sla Register Responsibility Removal",
-				HeadingAr:            "إزالة مسؤولية تسجيل (Sla)",
+				HeadingEn:            "Sla Register Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية تسجيل Sla",
 				TitleEn:              existingSLARegister.TitleEn,
 				TitleAr:              existingSLARegister.TitleAr,
+				ReferenceNumber:      existingSLARegister.ReferenceNumber,
 				Entity:               &entity,
 				Action:               &oldResponsibleUserAction,
 				URLParam:             urlParam,
@@ -554,9 +631,10 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Sla Register Responsibility Assigned",
-				HeadingAr:            "تم تعيين مسؤولية تسجيل (Sla)",
+				HeadingAr:            "Sla تسجيل المسؤولية المعينة",
 				TitleEn:              existingSLARegister.TitleEn,
 				TitleAr:              existingSLARegister.TitleAr,
+				ReferenceNumber:      existingSLARegister.ReferenceNumber,
 				Entity:               &entity,
 				Action:               &newResponsibleUserAction,
 				URLParam:             urlParam,
@@ -670,6 +748,7 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 	tx := srs.repo.BeginTransaction()
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedSlaRegister []map[string]interface{}
 	var notifications []struct {
 		OwnerID         *uint
 		TitleEn         string
@@ -738,6 +817,11 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedSlaRegister = append(deletedSlaRegister, map[string]interface{}{
+			"id":       id,
+			"title_en": slaRegister.TitleEn,
+			"title_ar": slaRegister.TitleAr,
+		})
 	}
 
 	if len(failedIds) > 0 {
@@ -767,7 +851,7 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 				models.DeleteAction,
 				models.SLARegister{}.TableName(),
 				successfulIds,
-				nil,
+				deletedSlaRegister,
 				currentUserID,
 				nil,
 			)
@@ -791,6 +875,7 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 					HeadingAr:            "تم حذف تسجيل Sla",
 					TitleEn:              notification.TitleEn,
 					TitleAr:              notification.TitleAr,
+					ReferenceNumber:      notification.ReferenceNumber,
 					Entity:               &entity,
 					Action:               &action,
 					URLParam:             urlParam,

@@ -12,7 +12,7 @@ import (
 // Interfaces
 type WorkflowRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAllWorkflowsByType(workflowType string) ([]*settingsDTOs.WorkflowListDTO, error)
+	GetAllWorkflowsByType(workflowType string, moduleIdentifier string) ([]*settingsDTOs.WorkflowListDTO, error)
 	GetWorkflowByDocumentType(documentTypeId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
 	GetWorkflowLevelByID(id uint, tx ...utility.DatabaseTransaction) (*models.WorkflowLevel, error)
 	GetWorkflowLevels(workflowID uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
@@ -41,12 +41,15 @@ func (repo *WorkflowRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *WorkflowRepository) GetAllWorkflowsByType(workflowType string) ([]*settingsDTOs.WorkflowListDTO, error) {
+func (repo *WorkflowRepository) GetAllWorkflowsByType(workflowType string, moduleIdentifier string) ([]*settingsDTOs.WorkflowListDTO, error) {
 	var workflows []*settingsDTOs.WorkflowListDTO
 
 	query := repo.db.Table("workflows").
 		Select(`
 			workflows.id,
+			workflows.type,
+			workflows.title_en,
+			workflows.title_ar,
 			workflows.type,
 			workflows.document_type_id,
 			workflows.status,
@@ -78,7 +81,11 @@ func (repo *WorkflowRepository) GetAllWorkflowsByType(workflowType string) ([]*s
 		Joins("LEFT JOIN document_types ON document_types.id = workflows.document_type_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = workflows.created_by_id").
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = workflows.updated_by_id").
-		Where("workflows.type = ?", workflowType)
+		Where("workflows.module_identifier = ?", moduleIdentifier)
+
+	if workflowType != "" {
+		query = query.Where("workflows.type = ?", workflowType)
+	}
 
 	err := query.Find(&workflows).Error
 	if err != nil {

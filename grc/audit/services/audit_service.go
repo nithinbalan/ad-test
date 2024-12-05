@@ -3,13 +3,18 @@ package services
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"time"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -34,6 +39,8 @@ type AuditService struct {
 	auditPlanScheduleSvc AuditPlanScheduleServiceInterface
 	statusSvc            masterServices.StatusServiceInterface
 	auditStatusSvc       AuditStatusServiceInterface
+	userSvc              organizationServices.UserServiceInterface
+	notificationSvc      commonServices.NotificationServiceInterface
 }
 
 func NewAuditService(
@@ -44,6 +51,8 @@ func NewAuditService(
 	auditPlanScheduleSvc AuditPlanScheduleServiceInterface,
 	statusSvc masterServices.StatusServiceInterface,
 	auditStatusSvc AuditStatusServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) AuditServiceInterface {
 	return &AuditService{
 		repo:                 repo,
@@ -53,6 +62,8 @@ func NewAuditService(
 		auditPlanScheduleSvc: auditPlanScheduleSvc,
 		statusSvc:            statusSvc,
 		auditStatusSvc:       auditStatusSvc,
+		userSvc:              userSvc,
+		notificationSvc:      notificationSvc,
 	}
 }
 
@@ -119,14 +130,14 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 	}
 	auditStatus, err := as.auditStatusSvc.GetByType("in-progress")
 	if err != nil {
-		return 0,err
+		return 0, err
 	}
 	audit := &models.Audit{
-		AuditPlanID: auditFormDTO.AuditPlanID,
-		StartDate:   dates.StartDate,
-		EndDate:     dates.EndDate,
-		AuditStatusID:   uint(auditStatus.ID),
-		CreatedBYID: currentUserID,
+		AuditPlanID:   auditFormDTO.AuditPlanID,
+		StartDate:     dates.StartDate,
+		EndDate:       dates.EndDate,
+		AuditStatusID: uint(auditStatus.ID),
+		CreatedBYID:   currentUserID,
 	}
 
 	id, err := as.repo.Create(audit, tx)
@@ -196,8 +207,8 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 		tx.Rollback()
 		return 0, err
 	}
-	//Update Audit plan status in to in-progress
-	auditStatusID :=auditStatus.ID
+	// Update Audit plan status in to in-progress
+	auditStatusID := auditStatus.ID
 	if err := as.auditPlanSvc.StatusUpdate(auditFormDTO.AuditPlanID, currentUserID, uint(auditStatusID), tx); err != nil {
 		tx.Rollback()
 		return 0, err
@@ -213,7 +224,6 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -224,6 +234,124 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 			}
 
 			utility.LogError("Failed to log activity", fields)
+		}
+
+		auditPlan, err := as.auditPlanSvc.GetFullDetailsByID(auditFormDTO.AuditPlanID)
+		if err != nil {
+			utility.LogError("Failed to fetch audit plan details", map[string]interface{}{
+				"auditPlanID": auditFormDTO.AuditPlanID,
+				"error":       err.Error(),
+			})
+			return
+		}
+
+		if auditPlan == nil {
+			utility.LogError("AuditPlan is nil", map[string]interface{}{
+				"auditPlanID": auditFormDTO.AuditPlanID,
+			})
+			return
+		}
+
+		uniqueUserIDs := make(map[uint]bool)
+
+		// Check TeamLead
+		if auditPlan.TeamLead != nil && auditPlan.TeamLead.ID != 0 {
+			uniqueUserIDs[uint(auditPlan.TeamLead.ID)] = true
+		} else {
+			utility.LogError("TeamLead is missing or invalid", nil)
+		}
+
+		auditMembers := []string{}
+		if auditPlan.Members != nil {
+			for _, member := range auditPlan.Members {
+				if member.User.ID != 0 {
+					uniqueUserIDs[uint(member.User.ID)] = true
+					auditMembers = append(auditMembers, fmt.Sprintf("%s %s", member.User.FirstNameEN, member.User.LastNameEN))
+				} else {
+					utility.LogError("Audit Member User is invalid", map[string]interface{}{
+						"memberID": member.ID,
+					})
+				}
+			}
+		} else {
+			utility.LogError("Audit Members are nil", nil)
+		}
+
+		auditMembersDetails := "None"
+		if len(auditMembers) > 0 {
+			auditMembersDetails = strings.Join(auditMembers, "\n- ")
+		}
+
+		assignedBy, err := as.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		for userID := range uniqueUserIDs {
+			user, err := as.userSvc.GetByID(userID)
+			if err != nil {
+				utility.LogError("Failed to fetch user details for notification", map[string]interface{}{
+					"userID": userID,
+					"error":  err.Error(),
+				})
+				continue
+			}
+
+			urlParam := fmt.Sprintf(`{"audit_plan_id":%d}`, auditPlan.ID)
+			entity := "audit-created"
+			action := "responsible-user-assign"
+			appURL := utility.GetAppURL()
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               userID,
+				ModuleIdentifier:     "audit",
+				NotificationType:     string(commonDTOs.InformationType),
+				ReferenceNumber:      auditPlan.ReferenceNumber,
+				HeadingEn:            "Audit Created",
+				HeadingAr:            "تم إنشاء التدقيق",
+				TitleEn:              auditPlan.Title,
+				TitleAr:              auditPlan.Title,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              []string{user.Email},
+				Subject:              fmt.Sprintf("New Audit Created: %s", auditPlan.Title),
+				TemplateRelativePath: "audit/templates/email/audit_create_responsible_user_mail.html",
+				EmailData: map[string]interface{}{
+					"FirstNameEn":           user.FirstNameEn,
+					"LastNameEn":            user.LastNameEn,
+					"AuditTitle":            auditPlan.Title,
+					"Description":           auditPlan.Description,
+					"TeamLead":              fmt.Sprintf("%s %s", auditPlan.TeamLead.FirstNameEN, auditPlan.TeamLead.LastNameEN),
+					"AuditMembers":          auditMembersDetails,
+					"ReferenceNumber":       auditPlan.ReferenceNumber,
+					"AuditStartDate":        auditFormDTO.StartDate,
+					"AuditEndDate":          auditFormDTO.EndDate,
+					"AuditPlanStartDate":    auditPlan.StartDateString,
+					"AuditPlanEndDate":      auditPlan.TargetDateString,
+					"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+					"AssignedByLastNameEn":  assignedBy.LastNameEn,
+					"AssignedOn":            time.Now().Format("2006-01-02"),
+					"RedirectURL":           fmt.Sprintf("%s/audit/audits", appURL),
+				},
+			}
+
+			// Send Notifications
+			err = as.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
+			if err != nil {
+				utility.LogError("Failed to send audit plan notifications", map[string]interface{}{
+					"userID": userID,
+					"error":  err.Error(),
+				})
+			}
 		}
 	}()
 
@@ -271,7 +399,6 @@ func (as *AuditService) Update(id uint, currentUserID uint, auditFormDTO *auditD
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
@@ -332,7 +459,6 @@ func (as *AuditService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 					currentUserID,
 					nil,
 				)
-
 				if err != nil {
 					fields := map[string]interface{}{
 						"action":    models.DeleteAction,

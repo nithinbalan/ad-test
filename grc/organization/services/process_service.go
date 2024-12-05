@@ -103,7 +103,19 @@ func (ps *ProcessService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTran
 
 	processDetailDTO.CreatedAt = process.CreatedAt
 	processDetailDTO.UpdatedAt = process.UpdatedAt
-
+	// Map the latest auditable item
+	if len(process.AuditableItems) > 0 {
+		latestAuditableItem := process.AuditableItems[0]
+		var auditableItemDTO organizationDTOs.AuditableItemMinimalDetailDTO
+		err := mapstructure.Decode(latestAuditableItem, &auditableItemDTO)
+		if err != nil {
+			return nil, err
+		}
+		processDetailDTO.AuditableItem = &auditableItemDTO
+		processDetailDTO.AuditableItem.CreatedAt = latestAuditableItem.CreatedAt
+		processDetailDTO.AuditableItem.UpdatedAt = latestAuditableItem.UpdatedAt
+	}
+	
 	return &processDetailDTO, nil
 }
 
@@ -183,6 +195,35 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 	tx.Commit()
 
 	go func() {
+		existingProcess, err := ps.GetFullDetailsByID(process.ID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		//log
+		err = ps.activityLogSvc.LogActivity(
+			models.CreateAction,
+			models.Process{}.TableName(),
+			id,
+			existingProcess,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.CreateAction,
+				"tableName": models.Process{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
+		}
+
+		//notification
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
 		entity := "process"
 		action := "responsible-user-assign"
@@ -192,8 +233,8 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 			ModuleIdentifier:     "organization",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			ReferenceNumber:      process.ReferenceNumber,
-			HeadingEn:            "Process Assignment",
-			HeadingAr:            "مهمة العملية",
+			HeadingEn:            "Process Responsiblity Assigned",
+			HeadingAr:            "مسؤولية العملية المعينة",
 			TitleEn:              processFormDTO.TitleEn,
 			TitleAr:              processFormDTO.TitleAr,
 			Entity:               &entity,
@@ -204,14 +245,6 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 		}
 
 		responsibleUser, err := ps.userSvc.GetByID(processFormDTO.OwnerID)
-		if err != nil {
-			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
-				"error": err.Error(),
-			})
-			return
-		}
-
-		existingProcess, err := ps.GetFullDetailsByID(process.ID)
 		if err != nil {
 			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 				"error": err.Error(),
@@ -288,34 +321,17 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 		}
 	}()
 
-	go func() {
-		err := ps.activityLogSvc.LogActivity(
-			models.CreateAction,
-			models.Process{}.TableName(),
-			id,
-			processFormDTO,
-			currentUserID,
-			nil,
-		)
-
-		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.CreateAction,
-				"tableName": models.Control{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
-
-			utility.LogError("Failed to log activity", fields)
-		}
-	}()
-
 	return id, nil
 }
 
 func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *organizationDTOs.ProcessFormDTO) error {
 	tx := ps.repo.BeginTransaction()
+
+	oldProcess, err := ps.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
 	process, err := ps.GetByID(id)
 	if err != nil {
@@ -449,6 +465,99 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 	tx.Commit()
 
 	go func() {
+		// Determine control and document changes
+		controlsAdded := []uint{}
+		controlsRemoved := []uint{}
+		for id := range newControlIDs {
+			if !existingControlIDs[id] {
+				controlsAdded = append(controlsAdded, id)
+			}
+		}
+		for id := range existingControlIDs {
+			if !newControlIDs[id] {
+				controlsRemoved = append(controlsRemoved, id)
+			}
+		}
+
+		documentsAdded := []uint{}
+		documentsRemoved := []uint{}
+		for id := range newDocumentIDs {
+			if !existingDocumentIDs[id] {
+				documentsAdded = append(documentsAdded, id)
+			}
+		}
+		for id := range existingDocumentIDs {
+			if !newDocumentIDs[id] {
+				documentsRemoved = append(documentsRemoved, id)
+			}
+		}
+
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
+
+		if len(controlsAdded) > 0 || len(controlsRemoved) > 0 {
+			associatedItems["control_ids"] = map[string]interface{}{
+				"added":   controlsAdded,
+				"removed": controlsRemoved,
+			}
+		}
+		if len(documentsAdded) > 0 || len(documentsRemoved) > 0 {
+			associatedItems["document_ids"] = map[string]interface{}{
+				"added":   documentsAdded,
+				"removed": documentsRemoved,
+			}
+		}
+
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+		//log changes
+		oldData := map[string]interface{}{
+			"process_group":    oldProcess.ProcessGroup.TitleEn,
+			"owner_unit":       oldProcess.OwnerUnit.TitleEn,
+			"owner":            fmt.Sprintf("%s %s", oldProcess.Owner.FirstNameEN, oldProcess.Owner.LastNameEN),
+			"lifecycle_status": oldProcess.LifecycleStatus.TitleEn,
+			"title_en":         oldProcess.TitleEn,
+			"title_ar":         oldProcess.TitleAr,
+			"description":      oldProcess.Description,
+		}
+
+		newData := map[string]interface{}{
+			"process_group":    existingProcess.ProcessGroup.TitleEn,
+			"owner_unit":       existingProcess.OwnerUnit.TitleEn,
+			"owner":            fmt.Sprintf("%s %s", existingProcess.Owner.FirstNameEN, existingProcess.Owner.LastNameEN),
+			"lifecycle_status": existingProcess.LifecycleStatus.TitleEn,
+			"title_en":         existingProcess.TitleEn,
+			"title_ar":         existingProcess.TitleAr,
+			"description":      existingProcess.Description,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := ps.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.Process{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action":   models.UpdateAction,
+					"error":    err.Error(),
+					"recordID": id,
+				})
+			}
+		}
+
+		//notification
 		if oldOwnerID != processFormDTO.OwnerID {
 			urlParam := fmt.Sprintf(`{"id":%d}`, id)
 			queryParam := ""
@@ -460,8 +569,8 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.InformationType),
 				ReferenceNumber:      process.ReferenceNumber,
-				HeadingEn:            "Process Ownership Removal",
-				HeadingAr:            "إزالة مسؤولية العملية",
+				HeadingEn:            "Process Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية العملية",
 				TitleEn:              processFormDTO.TitleEn,
 				TitleAr:              processFormDTO.TitleAr,
 				Entity:               &entity,
@@ -509,8 +618,8 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				ReferenceNumber:      process.ReferenceNumber,
-				HeadingEn:            "Process Ownership Change",
-				HeadingAr:            "تغيير مسؤولية العملية",
+				HeadingEn:            "Process Responsibility Assigned",
+				HeadingAr:            "مسؤولية العملية المعينة",
 				TitleEn:              processFormDTO.TitleEn,
 				TitleAr:              processFormDTO.TitleAr,
 				Entity:               &entity,
@@ -589,6 +698,7 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 		ReferenceNumber string
 		ProcessGroup    string
 	}
+	var deletedProcesses []map[string]interface{}
 
 	for _, id := range ids {
 		process, err := ps.GetFullDetailsByID(id, tx)
@@ -610,6 +720,12 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 			TitleAr:         process.TitleAr,
 			ReferenceNumber: process.ReferenceNumber,
 			ProcessGroup:    process.ProcessGroup.TitleEn,
+		})
+
+		deletedProcesses = append(deletedProcesses, map[string]interface{}{
+			"id":       id,
+			"title_en": process.TitleEn,
+			"title_ar": process.TitleAr,
 		})
 
 		if len(process.Controls) > 0 {
@@ -656,7 +772,7 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 				models.DeleteAction,
 				models.Process{}.TableName(),
 				successfulIds,
-				nil,
+				deletedProcesses,
 				currentUserID,
 				nil,
 			)
@@ -676,8 +792,8 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 					ModuleIdentifier:     "organization",
 					NotificationType:     string(commonDTOs.DeletionType),
 					ReferenceNumber:      notification.ReferenceNumber,
-					HeadingEn:            "Process Deletion",
-					HeadingAr:            "حذف العملية",
+					HeadingEn:            "Process Deleted",
+					HeadingAr:            "تم حذف العملية",
 					TitleEn:              notification.TitleEn,
 					TitleAr:              notification.TitleAr,
 					Entity:               &entity,

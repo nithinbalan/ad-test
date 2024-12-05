@@ -1,11 +1,11 @@
 package dtos
 
 import (
+	"time"
+
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
-
-	"time"
 )
 
 type ComplianceRequirementListDTO struct {
@@ -65,6 +65,8 @@ type ComplianceRequirementListQueryParamsDTO struct {
 	QuickFilter  []string
 	DeadlineFrom string
 	DeadlineTo   string
+	DateFrom     string
+	DateTo       string
 }
 
 type ComplianceRequirementListResponseDTO struct {
@@ -106,6 +108,7 @@ type ComplianceRequirementDetailDTO struct {
 	ID                            int                                           `json:"id"`
 	ComplianceClause              ComplianceClauseDTO                           `json:"compliance_clause"`
 	Title                         string                                        `json:"title"`
+	ResponsibleUserID             uint                                          `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	ComplianceRequirementCategory ComplianceRequirementCategoryDTO              `json:"compliance_requirement_category"`
 	SeverityLevel                 *masterDTOs.SeverityLevelDTO                  `json:"severity_level"`
 	ResponsibleUser               organizationDTOs.UserMinimalDTO               `json:"responsible_user"`

@@ -28,7 +28,7 @@ type AuditFindingActionPlanServiceInterface interface {
 	Create(findingID uint, currentUserID uint, AuditFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) (uint, error)
 	Update(findingID uint, id uint, currentUserID uint, auditFinding *auditFindingDTOs.AuditFindingActionPlanFormDTO) error
 	Delete(findingID uint, ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(findingID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
+	StatusUpdate(findingID uint, id uint, currentUserID uint, auditFindingActionPlanStatusUpdateFormDTO *auditFindingDTOs.AuditFindingActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
 
 	GetAuditFindingActionPlanCountByStatus(findingId uint) ([]auditFindingDTOs.AuditFindingActionPlanStatusCountResponseDTO, error)
 }
@@ -163,6 +163,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 	auditFindingActionPlanUpdate := &models.AuditFindingActionPlanStatusUpdate{
 		AuditFindingActionPlanID: id,
 		ActionPlanStatusID:       actionPlanStatusID,
+		Percentage:               AuditFindingActionPlanFormDTO.Percentage,
 		Comment:                  "Initial action plan status",
 		CreatedByID:              currentUserID,
 	}
@@ -173,7 +174,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		return 0, err
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"audit_id":%d,"audit_finding_id":%d, "action_plan_id":%d}`, audit.AuditID, findingID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
 		ModuleIdentifier:         "audit",
 		AuditFindingActionPlanID: &id,
@@ -216,7 +217,8 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		}
 
 		// prepare notification
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		urlParam := fmt.Sprintf(`{"audit_id":%d,"audit_finding_id":%d, "action_plan_id":%d}`, audit.AuditID, findingID, id)
+		queryParam := ""
 		entity := "audit-finding-action-plan"
 		action := "responsible-user-assign"
 
@@ -224,13 +226,14 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 			UserID:               AuditFindingActionPlanFormDTO.ResponsibleUserID,
 			ModuleIdentifier:     "audit",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Audit Finding Action Plan Assignment",
-			HeadingAr:            "حذف خطة عمل نتائج التدقيق",
+			HeadingEn:            "Audit Finding Action Plan Responsiblity Assigned",
+			HeadingAr:            "تم تعيين مسؤولية خطة العمل الخاصة بالتدقيق",
 			TitleEn:              AuditFindingActionPlanFormDTO.Title,
 			TitleAr:              AuditFindingActionPlanFormDTO.Title,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
+			QueryParam:           queryParam,
 			IsSystemNotification: false,
 			CreatedByID:          &currentUserID,
 		}
@@ -330,7 +333,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	}
 
 	// //update task
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"audit_id":%d,"audit_finding_id":%d, "action_plan_id":%d}`, audit.AuditID, findingID, id)
 
 	taskUpdateDTO := commonDTOs.TaskFormDTO{
 		Title:             AuditFindingActionPlanFormDTO.Title,
@@ -352,7 +355,8 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	go func() {
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingAuditFindingActionPlan.ResponsibleUserID {
-			urlParam := fmt.Sprintf(`{"id:%d"}`, id)
+			urlParam := fmt.Sprintf(`{"audit_id":%d,"audit_finding_id":%d, "action_plan_id":%d}`, audit.AuditID, findingID, id)
+			queryParam := ""
 			entity := "audit-finding-action-plan"
 
 			oldResponsibleUserAction := "responsible-user-remove"
@@ -360,13 +364,14 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 				UserID:               oldResponsibleUserID,
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.InformationType),
-				HeadingEn:            "Audit Finding Action Plan Removal",
-				HeadingAr:            "حذف خطة عمل نتائج التدقيق",
+				HeadingEn:            "Audit Finding Action Plan Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية خطة عمل العثور على التدقيق",
 				TitleEn:              existingAuditFindingActionPlan.Title,
 				TitleAr:              existingAuditFindingActionPlan.Title,
 				Entity:               &entity,
 				Action:               &oldResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
@@ -376,13 +381,14 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 				UserID:               AuditFindingActionPlanFormDTO.ResponsibleUserID,
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Audit Finding Action Plan Assignment",
-				HeadingAr:            "حذف خطة عمل نتائج التدقيق",
+				HeadingEn:            "Audit Finding Action Plan Responsibility Assigned",
+				HeadingAr:            "تم تعيين مسؤولية خطة العمل الخاصة بالتدقيق",
 				TitleEn:              existingAuditFindingActionPlan.Title,
 				TitleAr:              existingAuditFindingActionPlan.Title,
 				Entity:               &entity,
 				Action:               &newResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
@@ -579,8 +585,8 @@ func (afaps *AuditFindingActionPlanService) Delete(findingID uint, ids []uint, c
 					UserID:               *notification.OwnerID,
 					ModuleIdentifier:     "audit",
 					NotificationType:     string(commonDTOs.DeletionType),
-					HeadingEn:            "Audit Finding Action Plan Deletion",
-					HeadingAr:            "حذف خطة عمل نتائج التدقيق",
+					HeadingEn:            "Audit Finding Action Plan Deleted",
+					HeadingAr:            "تم حذف خطة عمل نتائج التدقيق",
 					TitleEn:              notification.TitleEn,
 					TitleAr:              notification.TitleAr,
 					Entity:               &entity,
@@ -633,7 +639,7 @@ func (afaps *AuditFindingActionPlanService) Delete(findingID uint, ids []uint, c
 	return failedIds, nil
 }
 
-func (afaps *AuditFindingActionPlanService) StatusUpdate(findingID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error {
+func (afaps *AuditFindingActionPlanService) StatusUpdate(findingID uint, id uint, currentUserID uint, auditFindingActionPlanStatusUpdateFormDTO *auditFindingDTOs.AuditFindingActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error {
 
 	existingAuditFindingActionPlan, err := afaps.GetByID(findingID, id)
 
@@ -641,7 +647,8 @@ func (afaps *AuditFindingActionPlanService) StatusUpdate(findingID uint, id uint
 		return err
 	}
 
-	existingAuditFindingActionPlan.ActionPlanStatusID = ActionPlanStatusID
+	existingAuditFindingActionPlan.ActionPlanStatusID = auditFindingActionPlanStatusUpdateFormDTO.ActionPlanStatusID
+	existingAuditFindingActionPlan.Percentage = auditFindingActionPlanStatusUpdateFormDTO.Percentage
 	existingAuditFindingActionPlan.UpdatedBYID = &currentUserID
 
 	err = afaps.repo.Update(existingAuditFindingActionPlan, tx)
@@ -657,7 +664,7 @@ func (afaps *AuditFindingActionPlanService) StatusUpdate(findingID uint, id uint
 	if err != nil {
 		return err
 	}
-	err = afaps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, ActionPlanStatusID, isReviewUserNull, tx)
+	err = afaps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, auditFindingActionPlanStatusUpdateFormDTO.ActionPlanStatusID, isReviewUserNull, tx)
 	if err != nil {
 		return err
 	}

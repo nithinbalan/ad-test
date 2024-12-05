@@ -139,7 +139,7 @@ func (upc *UserProfileController) EnableMFA(c *gin.Context) {
 		return
 	}
 
-	err = upc.service.EnableMFA(currentUserID)
+	err = upc.service.EnableMFA(currentUserID, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -164,7 +164,7 @@ func (upc *UserProfileController) DisableMFA(c *gin.Context) {
 		return
 	}
 
-	err = upc.service.DisableMFA(currentUserID)
+	err = upc.service.DisableMFA(currentUserID, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -411,4 +411,39 @@ func (upc *UserProfileController) GetUserLoginHistory(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusOK, userLoginHistory)
+}
+
+func (upc *UserProfileController) ChangePassword(c *gin.Context) {
+	var changePasswordDTO organizationDTOs.ChangePasswordDTO
+
+	// Bind the incoming JSON to the DTO
+	if err := c.ShouldBindJSON(&changePasswordDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	// Get the current user's ID
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(upc.db, c, err.Error())
+		return
+	}
+
+	// Validate and process the password change
+	err = upc.service.ChangePassword(currentUserID, changePasswordDTO.OldPassword, changePasswordDTO.NewPassword)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(upc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
 }

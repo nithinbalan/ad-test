@@ -85,12 +85,19 @@ func (repo *AuditScheduleStatusUpdateRepository) GetAll(auditScheduleID uint, so
 	query = query.Order(sortBy + " " + sort)
 
 	err := query.Find(&updates).Error
+
+	// Fetching documents for each audit schedule status updates
+	for _, update := range updates {
+		var documents []*models.AuditScheduleStatusUpdateDocument
+		repo.db.Model(&models.AuditScheduleStatusUpdateDocument{}).Where("audit_schedule_status_update_id = ?", update.ID).Find(&documents)
+		update.Documents = documents
+	}
 	return updates, err
 }
 
 func (repo *AuditScheduleStatusUpdateRepository) GetByID(id uint) (*models.AuditScheduleStatusUpdate, error) {
 	var update models.AuditScheduleStatusUpdate
-	result := repo.db.First(&update, id)
+	result := repo.db.Preload("Documents").First(&update, id)
 	return &update, result.Error
 }
 

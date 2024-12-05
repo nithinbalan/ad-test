@@ -73,8 +73,10 @@ func NewComplianceActionPlanService(
 }
 
 func (caps *ComplianceActionPlanService) GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error) {
-	if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
-		return nil, err
+	if complianceID != 0 {
+		if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
+			return nil, err
+		}
 	}
 	return caps.repo.GetAll(complianceID, params)
 }
@@ -171,6 +173,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 	complianceActionPlanUpdate := &models.ComplianceActionPlanStatusUpdate{
 		ComplianceActionPlanID: id,
 		ActionPlanStatusID:     actionPlanStatusID,
+		Percentage:             ComplianceActionPlanFormDTO.Percentage,
 		Comment:                "Initial action plan status",
 		CreatedByID:            currentUserID,
 	}
@@ -180,7 +183,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		tx.Rollback()
 		return 0, err
 	}
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
 		ModuleIdentifier:       "compliance",
 		ComplianceActionPlanID: &id,
@@ -200,11 +203,19 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 	tx.Commit()
 
 	go func() {
-		err := caps.activityLogSvc.LogActivity(
+		existingComplianceActionPlan, err := caps.GetFullDetailsByID(complianceID, id)
+		if err != nil {
+			utility.LogError("Failed to fetch compliance action plan", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = caps.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.ComplianceActionPlan{}.TableName(),
 			id,
-			ComplianceActionPlanFormDTO,
+			existingComplianceActionPlan,
 			currentUserID,
 			nil,
 		)
@@ -221,7 +232,8 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		}
 
 		// prepare notification
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, id)
+		queryParam := ""
 		entity := "compliance-action-plan"
 		action := "responsible-user-assign"
 
@@ -229,13 +241,14 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 			UserID:               ComplianceActionPlanFormDTO.ResponsibleUserID,
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Compliance Action Plan Assignment",
-			HeadingAr:            "تعيين خطة عمل المخاطر",
+			HeadingEn:            "Compliance Action Plan Responsibility Assigned",
+			HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
 			TitleEn:              ComplianceActionPlanFormDTO.Title,
 			TitleAr:              ComplianceActionPlanFormDTO.Title,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
+			QueryParam:           queryParam,
 			IsSystemNotification: false,
 			CreatedByID:          &currentUserID,
 		}
@@ -304,6 +317,12 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 		return err
 	}
 
+	oldComplianceActionPlan, err := caps.GetFullDetailsByID(complianceID, id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	oldResponsibleUserID := existingComplianceActionPlan.ResponsibleUserID
 
 	if err := caps.validateComplianceActionPlanFormDTO(complianceID, ComplianceActionPlanFormDTO); err != nil {
@@ -333,7 +352,7 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 		return err
 	}
 	// //update task
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, id)
 
 	taskUpdateDTO := commonDTOs.TaskFormDTO{
 		Title:             ComplianceActionPlanFormDTO.Title,
@@ -352,9 +371,67 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 	tx.Commit()
 
 	go func() {
+		existingActionPlan, err := caps.GetFullDetailsByID(complianceID, id)
+		if err != nil {
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"title":              oldComplianceActionPlan.Title,
+			"description":        oldComplianceActionPlan.Description,
+			"severity_level":     oldComplianceActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", oldComplianceActionPlan.ResponsibleUser.FirstNameEN, oldComplianceActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        fmt.Sprintf("%s %s", oldComplianceActionPlan.ReviewUser.FirstNameEN, oldComplianceActionPlan.ReviewUser.LastNameEN),
+			"target_date":        oldComplianceActionPlan.TargetDateString,
+			"percentage":         oldComplianceActionPlan.Percentage,
+			"comment":            oldComplianceActionPlan.Comments,
+			"action_plan_status": oldComplianceActionPlan.ActionPlanStatus.TitleEn,
+		}
+
+		newData := map[string]interface{}{
+			"title":              existingActionPlan.Title,
+			"description":        existingActionPlan.Description,
+			"severity_level":     existingActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", existingActionPlan.ResponsibleUser.FirstNameEN, existingActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        fmt.Sprintf("%s %s", existingActionPlan.ReviewUser.FirstNameEN, existingActionPlan.ReviewUser.LastNameEN),
+			"target_date":        existingActionPlan.TargetDateString,
+			"percentage":         existingActionPlan.Percentage,
+			"comment":            existingActionPlan.Comments,
+			"action_plan_status": existingActionPlan.ActionPlanStatus.TitleEn,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := caps.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.ComplianceActionPlan{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.ComplianceActionPlan{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingComplianceActionPlan.ResponsibleUserID {
-			urlParam := fmt.Sprintf(`{"id:%d"}`, id)
+			urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, id)
+			queryParam := ""
 			entity := "compliance-action-plan"
 
 			oldResponsibleUserAction := "responsible-user-remove"
@@ -362,13 +439,14 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 				UserID:               oldResponsibleUserID,
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.InformationType),
-				HeadingEn:            "Compliance Action Plan Removal",
-				HeadingAr:            "إزالة خطة العمل الامتثالية",
+				HeadingEn:            "Compliance Action Plan Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية خطة عمل الامتثال",
 				TitleEn:              existingComplianceActionPlan.Title,
 				TitleAr:              existingComplianceActionPlan.Title,
 				Entity:               &entity,
 				Action:               &oldResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
@@ -378,13 +456,14 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 				UserID:               ComplianceActionPlanFormDTO.ResponsibleUserID,
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Compliance Action Plan Assignment",
-				HeadingAr:            "تعيين خطة العمل الامتثالية",
+				HeadingEn:            "Compliance Action Plan Responsibility Assigned",
+				HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
 				TitleEn:              existingComplianceActionPlan.Title,
 				TitleAr:              existingComplianceActionPlan.Title,
 				Entity:               &entity,
 				Action:               &newResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
@@ -489,6 +568,7 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedComplianceActionPlan []map[string]interface{}
 	var notifications []struct {
 		OwnerID         *uint
 		TitleEn         string
@@ -549,6 +629,13 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedComplianceActionPlan = append(deletedComplianceActionPlan, map[string]interface{}{
+			"id":                     id,
+			"compliance_register_id": complianceID,
+			"title":                  complianceActionPlan.Title,
+		})
+
 	}
 
 	if len(failedIds) > 0 {
@@ -559,9 +646,9 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 		go func() {
 			err := caps.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
-				models.ComplianceRegister{}.TableName(),
+				models.ComplianceActionPlan{}.TableName(),
 				successfulIds,
-				nil,
+				deletedComplianceActionPlan,
 				currentUserID,
 				nil,
 			)
@@ -579,8 +666,8 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 					UserID:               *notification.OwnerID,
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.DeletionType),
-					HeadingEn:            "Compliance Action Plan Deletion",
-					HeadingAr:            "حذف خطة عمل الامتثال",
+					HeadingEn:            "Compliance Action Plan Deleted",
+					HeadingAr:            "تم حذف خطة عمل الامتثال",
 					TitleEn:              notification.TitleEn,
 					TitleAr:              notification.TitleAr,
 					Entity:               &entity,

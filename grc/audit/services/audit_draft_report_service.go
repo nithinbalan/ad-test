@@ -14,6 +14,7 @@ import (
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	riskDTOs "jethur/grc/risk/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
 	"time"
 
@@ -274,6 +275,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 					IncidentRegisterID:      finding.AuditableItem.IncidentRegisterID,
 					ComplianceRequirementID: finding.AuditableItem.ComplianceRequirementID,
 					RiskRegisterID:          finding.AuditableItem.RiskRegisterID,
+					ResponsibleUnitID:       finding.AuditableItem.ResponsibleUnitID,
+					ResponsibleUserID:       finding.AuditableItem.ResponsibleUserID,
 				}
 				if finding.AuditableItem.Process != nil {
 					findingDTO.AuditableItem.Process = &organizationDTOs.ProcessDetailDTO{
@@ -311,6 +314,19 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 				if finding.AuditableItem.User != nil {
 					userDTO := mapUserToUserMinimalDTO(finding.AuditableItem.User)
 					findingDTO.AuditableItem.User = &userDTO
+				}
+				if finding.AuditableItem.ResponsibleUser != nil {
+					userDTO := mapUserToUserMinimalDTO(finding.AuditableItem.ResponsibleUser)
+					findingDTO.AuditableItem.ResponsibleUser = &userDTO
+				}
+				if finding.AuditableItem.ResponsibleUnit != nil {
+					findingDTO.AuditableItem.ResponsibleUnit = settingsDTOs.OrganizationUnitDTO{
+						ID:        int(finding.AuditableItem.ResponsibleUnit.ID),
+						TitleEn:   finding.AuditableItem.ResponsibleUnit.TitleEn,
+						TitleAr:   finding.AuditableItem.ResponsibleUnit.TitleAr,
+						ColorCode: finding.AuditableItem.ResponsibleUnit.ColorCode,
+						Status:    finding.AuditableItem.ResponsibleUnit.Status,
+					}
 				}
 
 				// Map AuditFindingCategory to DTO
@@ -432,6 +448,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 					IncidentRegisterID:      finding.AuditableItem.IncidentRegisterID,
 					ComplianceRequirementID: finding.AuditableItem.ComplianceRequirementID,
 					RiskRegisterID:          finding.AuditableItem.RiskRegisterID,
+					ResponsibleUnitID:       finding.AuditableItem.ResponsibleUnitID,
+					ResponsibleUserID:       finding.AuditableItem.ResponsibleUserID,
 				}
 				if finding.AuditableItem.Process != nil {
 					findingDTO.AuditableItem.Process = &organizationDTOs.ProcessDetailDTO{
@@ -469,6 +487,19 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 				if finding.AuditableItem.User != nil {
 					userDTO := mapUserToUserMinimalDTO(finding.AuditableItem.User)
 					findingDTO.AuditableItem.User = &userDTO
+				}
+				if finding.AuditableItem.ResponsibleUser != nil {
+					userDTO := mapUserToUserMinimalDTO(finding.AuditableItem.ResponsibleUser)
+					findingDTO.AuditableItem.ResponsibleUser = &userDTO
+				}
+				if finding.AuditableItem.ResponsibleUnit != nil {
+					findingDTO.AuditableItem.ResponsibleUnit = settingsDTOs.OrganizationUnitDTO{
+						ID:        int(finding.AuditableItem.ResponsibleUnit.ID),
+						TitleEn:   finding.AuditableItem.ResponsibleUnit.TitleEn,
+						TitleAr:   finding.AuditableItem.ResponsibleUnit.TitleAr,
+						ColorCode: finding.AuditableItem.ResponsibleUnit.ColorCode,
+						Status:    finding.AuditableItem.ResponsibleUnit.Status,
+					}
 				}
 
 			}

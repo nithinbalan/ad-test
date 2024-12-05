@@ -17,10 +17,12 @@ type Task struct {
 	AuditFindingActionPlanID *uint      `json:"audit_finding_action_plan_id"`
 	DocumentID               *uint      `json:"document_id"`
 	DocumentWorkflowID       *uint      `json:"document_workflow_id"`
+	AuditFinalReportID       *uint      `json:"audit_final_report_id"`
+	AuditReportWorkflowID    *uint      `json:"audit_report_workflow_id"`
 	RelatedTaskIDs           *string    `json:"related_task_ids" gorm:"type:json"`
 	Title                    string     `json:"title" binding:"required,max=255"`
 	Description              *string    `json:"description" gorm:"type:nvarchar(max)"`
-	TargetDate               *time.Time `json:"target_date"`
+	TargetDate               *time.Time `json:"target_date" gorm:"type:date;default:null"`
 	URLParam                 *string    `json:"url_param" gorm:"type:nvarchar(max)"`
 	QueryParam               *string    `json:"query_param" gorm:"type:nvarchar(max)"`
 	SeverityLevelID          *uint      `json:"severity_level_id"`
@@ -38,6 +40,7 @@ type Task struct {
 	IncidentActionPlan     *IncidentActionPlan     `gorm:"foreignKey:IncidentActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ControlActionPlan      *ControlActionPlan      `gorm:"foreignKey:ControlActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	RiskActionPlan         *RiskActionPlan         `gorm:"foreignKey:RiskActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`         // New relationship added
+	MeetingActionPlan      *MeetingActionPlan      `gorm:"foreignKey:MeetingActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`      // New relationship added
 	AuditFindingActionPlan *AuditFindingActionPlan `gorm:"foreignKey:AuditFindingActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"` // New relationship added
 	SeverityLevel          *SeverityLevel          `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ResponsibleUser        *User                   `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`

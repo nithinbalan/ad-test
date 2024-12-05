@@ -156,7 +156,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		ReviewUserID:       MeetingActionPlanFormDTO.ReviewUserID,
 		MeetingMinuteID:    MeetingActionPlanFormDTO.MeetingMinuteID,
 		TargetDate:         dates.TargetDate,
-		Percentage:         *MeetingActionPlanFormDTO.Percentage,
+		Percentage:         MeetingActionPlanFormDTO.Percentage,
 		ActionPlanStatusID: MeetingActionPlanFormDTO.ActionPlanStatusID,
 		CreatedByID:        currentUserID,
 	}
@@ -179,6 +179,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 	meetingActionPlanUpdate := &models.MeetingActionPlanStatusUpdate{
 		MeetingActionPlanID: id,
 		ActionPlanStatusID:  actionPlanStatusID,
+		Percentage:          MeetingActionPlanFormDTO.Percentage,
 		Comment:             "Initial action plan status",
 		CreatedByID:         currentUserID,
 	}
@@ -189,7 +190,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		return 0, err
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"meeting_id":%d, "action_plan_id":%d}`, meetingID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
 		ModuleIdentifier:    "meeting",
 		MeetingActionPlanID: &id,
@@ -210,11 +211,18 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 	tx.Commit()
 
 	go func() {
-		err := maps.activityLogSvc.LogActivity(
+		existingMeetingActionPlan, err := maps.GetFullDetailsByID(meetingID, id)
+		if err != nil {
+			utility.LogError("Failed to fetch meeting action plan", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = maps.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.MeetingActionPlan{}.TableName(),
 			id,
-			MeetingActionPlanFormDTO,
+			existingMeetingActionPlan,
 			currentUserID,
 			nil,
 		)
@@ -231,7 +239,8 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		}
 
 		// prepare notification
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		urlParam := fmt.Sprintf(`{"meeting_id":%d, "action_plan_id":%d}`, meetingID, id)
+		queryParam := ""
 		entity := "meeting-action-plan"
 		action := "responsible-user-assign"
 
@@ -239,13 +248,14 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 			UserID:               MeetingActionPlanFormDTO.ResponsibleUserID,
 			ModuleIdentifier:     "meeting",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Meeting Action Plan Assignment",
-			HeadingAr:            "تعيين خطة عمل الاجتماع",
+			HeadingEn:            "Meeting Action Plan Responsibility Assigned",
+			HeadingAr:            "تم تعيين مسؤولية خطة عمل الاجتماع",
 			TitleEn:              MeetingActionPlanFormDTO.Title,
 			TitleAr:              MeetingActionPlanFormDTO.Title,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
+			QueryParam:           queryParam,
 			IsSystemNotification: false,
 			CreatedByID:          &currentUserID,
 		}
@@ -314,6 +324,12 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 		return err
 	}
 
+	oldMeetingActionPlan, err := maps.GetFullDetailsByID(meetingID, id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	oldResponsibleUserID := existingMeetingActionPlan.ResponsibleUserID
 
 	if err := maps.validateMeetingActionPlanFormDTO(MeetingActionPlanFormDTO); err != nil {
@@ -332,7 +348,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	existingMeetingActionPlan.ResponsibleUserID = MeetingActionPlanFormDTO.ResponsibleUserID
 	existingMeetingActionPlan.ReviewUserID = MeetingActionPlanFormDTO.ReviewUserID
 	existingMeetingActionPlan.TargetDate = dates.TargetDate
-	existingMeetingActionPlan.Percentage = *MeetingActionPlanFormDTO.Percentage
+	existingMeetingActionPlan.Percentage = MeetingActionPlanFormDTO.Percentage
 	existingMeetingActionPlan.ActionPlanStatusID = MeetingActionPlanFormDTO.ActionPlanStatusID
 	existingMeetingActionPlan.MeetingMinuteID = MeetingActionPlanFormDTO.MeetingMinuteID
 	existingMeetingActionPlan.UpdatedByID = &currentUserID
@@ -342,7 +358,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 		return err
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"meeting_id":%d, "action_plan_id":%d}`, meetingID, id)
 	taskUpdateDTO := commonDTOs.TaskFormDTO{
 		Title:             MeetingActionPlanFormDTO.Title,
 		Description:       MeetingActionPlanFormDTO.Description,
@@ -361,9 +377,69 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	tx.Commit()
 
 	go func() {
+		existingActionPlan, err := maps.GetFullDetailsByID(meetingID, id)
+		if err != nil {
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"title":              oldMeetingActionPlan.Title,
+			"description":        oldMeetingActionPlan.Description,
+			"severity_level":     oldMeetingActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", oldMeetingActionPlan.ResponsibleUser.FirstNameEN, oldMeetingActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        fmt.Sprintf("%s %s", oldMeetingActionPlan.ReviewUser.FirstNameEN, oldMeetingActionPlan.ReviewUser.LastNameEN),
+			"target_date":        oldMeetingActionPlan.TargetDateString,
+			"percentage":         oldMeetingActionPlan.Percentage,
+			"action_plan_status": oldMeetingActionPlan.ActionPlanStatus.TitleEn,
+			"meeting_minute":     oldMeetingActionPlan.MeetingMinute,
+		}
+
+		newData := map[string]interface{}{
+			"title":              existingActionPlan.Title,
+			"description":        existingActionPlan.Description,
+			"severity_level":     existingActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", existingActionPlan.ResponsibleUser.FirstNameEN, existingActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        fmt.Sprintf("%s %s", existingActionPlan.ReviewUser.FirstNameEN, existingActionPlan.ReviewUser.LastNameEN),
+			"target_date":        existingActionPlan.TargetDateString,
+			"percentage":         existingActionPlan.Percentage,
+			"action_plan_status": existingActionPlan.ActionPlanStatus.TitleEn,
+			"meeting_minute":     existingActionPlan.MeetingMinute,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+
+			err := maps.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.MeetingActionPlan{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.MeetingActionPlan{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+
 		// send notification if responsible user changed
 		if oldResponsibleUserID != existingMeetingActionPlan.ResponsibleUserID {
-			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+			urlParam := fmt.Sprintf(`{"meeting_id":%d, "action_plan_id":%d}`, meetingID, id)
+			queryParam := ""
 			entity := "meeting-action-plan"
 
 			oldResponsibleUserAction := "responsible-user-remove"
@@ -371,13 +447,14 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 				UserID:               oldResponsibleUserID,
 				ModuleIdentifier:     "meeting",
 				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Meeting Action Plan Assignment",
-				HeadingAr:            "تعيين خطة عمل الاجتماع",
+				HeadingEn:            "Meeting Action Plan Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية خطة عمل الاجتماع",
 				TitleEn:              existingMeetingActionPlan.Title,
 				TitleAr:              existingMeetingActionPlan.Title,
 				Entity:               &entity,
 				Action:               &oldResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
@@ -387,13 +464,14 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 				UserID:               MeetingActionPlanFormDTO.ResponsibleUserID,
 				ModuleIdentifier:     "meeting",
 				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Meeting Action Plan Assignment",
-				HeadingAr:            "تعيين خطة عمل الاجتماع",
+				HeadingEn:            "Meeting Action Plan Responsibility Assigned",
+				HeadingAr:            "تم تعيين مسؤولية خطة عمل الاجتماع",
 				TitleEn:              existingMeetingActionPlan.Title,
 				TitleAr:              existingMeetingActionPlan.Title,
 				Entity:               &entity,
 				Action:               &newResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
@@ -502,6 +580,7 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedMeetingActionPlan []map[string]interface{}
 	var notifications []struct {
 		OwnerID         *uint
 		TitleEn         string
@@ -562,6 +641,11 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedMeetingActionPlan = append(deletedMeetingActionPlan, map[string]interface{}{
+			"id":         id,
+			"title":      meetingActionPlan.Title,
+			"meeting_id": meetingID,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -572,7 +656,7 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 				models.DeleteAction,
 				models.MeetingActionPlan{}.TableName(),
 				successfulIds,
-				nil,
+				deletedMeetingActionPlan,
 				currentUserID,
 				nil,
 			)
@@ -590,8 +674,8 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 					UserID:               *notification.OwnerID,
 					ModuleIdentifier:     "meeting",
 					NotificationType:     string(commonDTOs.DeletionType),
-					HeadingEn:            "Meeting Action Plan Deletion",
-					HeadingAr:            "حذف خطة عمل الاجتماع",
+					HeadingEn:            "Meeting Action Plan Deleted",
+					HeadingAr:            "تم حذف خطة عمل الاجتماع",
 					TitleEn:              notification.TitleEn,
 					TitleAr:              notification.TitleAr,
 					Entity:               &entity,

@@ -19,8 +19,6 @@ type AuditUniverseServiceInterface interface {
 	MarkedAsAuditableItem(ids []*uint, entityType interface{}, tx utility.DatabaseTransaction) error
 	Delete(currentUserID uint, auditUniverseFormDTO *dtos.AuditUniverseFormDTO) error
 	UnmarkedAsAuditableItem(ids []*uint, entityType interface{}, tx utility.DatabaseTransaction) error
-
-	getOrganizationUnitAndResponsibleUserID(entityType string, id uint) (uint, uint, error)
 }
 
 // Service and implementations
@@ -81,52 +79,119 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 	var auditableItems []*models.AuditableItem
 
 	// Helper function to add items
+	// Helper function to add items
 	addItems := func(ids []*uint, fieldName string) error {
 		for _, id := range ids {
 			auditableItem := &models.AuditableItem{
 				Comment:             auditUniverseFormDTO.Comment,
 				AuditorRiskRatingID: auditUniverseFormDTO.AuditorRiskRatingID,
 				AuditStatusID:       uint(auditStatus.ID),
-				CreatedByID:         currentUserID,
+				CreatedBYID:         currentUserID,
 			}
-			var orgUnitID uint
+
+			var orgUnitID, responsibleUserID uint
+
 			switch fieldName {
 			case "process":
 				auditableItem.ProcessID = id
 				auditableItem.Type = "process"
+				process, err := aus.processSvc.GetByID(*id)
+				if err != nil {
+					return fmt.Errorf("failed to get process: %w", err)
+				}
+				if process != nil {
+					orgUnitID = process.OwnerUnitID
+					responsibleUserID = process.OwnerID
+				}
+
 			case "control":
 				auditableItem.ControlID = id
 				auditableItem.Type = "control"
+				control, err := aus.controlSvc.GetByID(*id)
+				if err != nil {
+					return fmt.Errorf("failed to get control: %w", err)
+				}
+				if control != nil {
+					orgUnitID = control.OwnerUnitID
+					responsibleUserID = control.OwnerID
+				}
+
 			case "document":
 				auditableItem.DocumentID = id
 				auditableItem.Type = "document"
+				document, err := aus.documentSvc.GetByID(*id)
+				if err != nil {
+					return fmt.Errorf("failed to get document: %w", err)
+				}
+				if document != nil {
+					orgUnitID = document.ResponsibleUnitID
+					responsibleUserID = document.ResponsibleUserID
+				}
+
 			case "incident":
 				auditableItem.IncidentRegisterID = id
 				auditableItem.Type = "incident"
+				incident, err := aus.incidentRegisterSvc.GetByID(*id)
+				if err != nil {
+					return fmt.Errorf("failed to get incident: %w", err)
+				}
+				if incident != nil {
+					orgUnitID = incident.ResponsibleUnitID
+					responsibleUserID = incident.ResponsibleUserID
+				}
+
 			case "compliance":
 				auditableItem.ComplianceRequirementID = id
 				auditableItem.Type = "compliance_requirement"
+				compliance, err := aus.complianceRequirementSvc.GetByComplianceRequirementID(*id)
+				if err != nil {
+					return fmt.Errorf("failed to get compliance requirement: %w", err)
+				}
+				if compliance != nil {
+					userUnit, err := aus.userSvc.GetUserPrimaryUnitID(compliance.ResponsibleUserID)
+					if err != nil {
+						return fmt.Errorf("failed to get user primary unit ID: %w", err)
+					}
+					orgUnitID = userUnit
+					responsibleUserID = compliance.ResponsibleUserID
+				}
+
 			case "risk":
 				auditableItem.RiskRegisterID = id
 				auditableItem.Type = "risk"
+				risk, err := aus.riskRegisterSvc.GetByID(*id)
+				if err != nil {
+					return fmt.Errorf("failed to get risk: %w", err)
+				}
+				if risk != nil {
+					orgUnitID = risk.ResponsibleUnitID
+					responsibleUserID = risk.ResponsibleUserID
+				}
+
 			case "user":
 				auditableItem.UserID = id
 				auditableItem.Type = "user"
+				userUnit, err := aus.userSvc.GetUserPrimaryUnitID(*id)
+				if err != nil {
+					return fmt.Errorf("failed to get user primary unit ID: %w", err)
+				}
+				orgUnitID = userUnit
+				responsibleUserID = *id
 			}
-			responsibleUserID, orgUnitID, err := aus.getOrganizationUnitAndResponsibleUserID(fieldName, *id)
-			if err != nil {
-				return err
-			}
+
+			// Set the retrieved ResponsibleUnitID and ResponsibleUserID
 			if orgUnitID != 0 {
 				auditableItem.ResponsibleUnitID = orgUnitID
 			}
 			if responsibleUserID != 0 {
 				auditableItem.ResponsibleUserID = responsibleUserID
 			}
+
 			auditableItems = append(auditableItems, auditableItem)
 		}
 		return nil
 	}
+
 
 	if err := addItems(auditUniverseFormDTO.ProcessIDs, "process"); err != nil {
 		return err
@@ -214,95 +279,6 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 	}()
 
 	return nil
-}
-
-func (aus *AuditUniverseService) getOrganizationUnitAndResponsibleUserID(entityType string, id uint) (uint, uint, error) {
-	var orgUnitID, responsibleUserID uint
-
-	switch entityType {
-	case "process":
-		process, err := aus.processSvc.GetByID(id)
-		if err != nil {
-			return 0, 0, fmt.Errorf("failed to get process: %w", err)
-		}
-		if process == nil {
-			return 0, 0, nil
-		}
-		orgUnitID = process.OwnerUnitID
-		responsibleUserID = process.OwnerID
-
-	case "control":
-		control, err := aus.controlSvc.GetByID(id)
-		if err != nil {
-			return 0, 0, fmt.Errorf("failed to get control: %w", err)
-		}
-		if control == nil {
-			return 0, 0, nil
-		}
-		orgUnitID = control.OwnerUnitID
-		responsibleUserID = control.OwnerID
-
-	case "document":
-		document, err := aus.documentSvc.GetByID(id)
-		if err != nil {
-			return 0, 0, fmt.Errorf("failed to get document: %w", err)
-		}
-		if document == nil {
-			return 0, 0, nil
-		}
-		orgUnitID = document.ResponsibleUnitID
-		responsibleUserID = document.ResponsibleUserID
-
-	case "incident":
-		incident, err := aus.incidentRegisterSvc.GetByID(id)
-		if err != nil {
-			return 0, 0, fmt.Errorf("failed to get incident: %w", err)
-		}
-		if incident == nil {
-			return 0, 0, nil
-		}
-		orgUnitID = incident.ResponsibleUnitID
-		responsibleUserID = incident.ResponsibleUserID
-
-	case "compliance":
-		compliance, err := aus.complianceRequirementSvc.GetByComplianceRequirementID(id)
-		if err != nil {
-			return 0, 0, fmt.Errorf("failed to get compliance requirement: %w", err)
-		}
-		if compliance == nil {
-			return 0, 0, nil
-		}
-		userUnit, err := aus.userSvc.GetUserPrimaryUnitID(compliance.ResponsibleUserID)
-		if err != nil {
-			return 0, 0, fmt.Errorf("failed to get user primary unit ID: %w", err)
-		}
-		orgUnitID = userUnit
-		responsibleUserID = compliance.ResponsibleUserID
-
-	case "risk":
-		risk, err := aus.riskRegisterSvc.GetByID(id)
-		if err != nil {
-			return 0, 0, fmt.Errorf("failed to get risk: %w", err)
-		}
-		if risk == nil {
-			return 0, 0, nil
-		}
-		orgUnitID = risk.ResponsibleUnitID
-		responsibleUserID = risk.ResponsibleUserID
-
-	case "user":
-		userUnit, err := aus.userSvc.GetUserPrimaryUnitID(id)
-		if err != nil {
-			return 0, 0, fmt.Errorf("failed to get user primary unit ID: %w", err)
-		}
-		orgUnitID = userUnit
-		responsibleUserID = id
-
-	default:
-		return 0, 0, fmt.Errorf("unknown entity type: %s", entityType)
-	}
-
-	return orgUnitID, responsibleUserID, nil
 }
 
 func (aus *AuditUniverseService) MarkedAsAuditableItem(ids []*uint, entityType interface{}, tx utility.DatabaseTransaction) error {

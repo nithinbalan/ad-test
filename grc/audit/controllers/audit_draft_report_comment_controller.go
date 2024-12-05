@@ -300,6 +300,45 @@ func (adrcc *AuditDraftReportCommentController) StatusUpdateAuditDraftReportComm
 	c.Status(http.StatusOK)
 }
 
+func (adrcc *AuditDraftReportCommentController) GetAuditDraftReportCommentDocumentPreview(c *gin.Context) {
+
+	auditIdStr := c.Param("auditId")
+	auditId, err := strconv.ParseUint(auditIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	auditDraftReportID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	idStr := c.Param("commentId")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := adrcc.service.GetDocumentPath(uint(auditId), uint(auditDraftReportID), uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(adrcc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(documentPath)
+}
+
 func (adrcc *AuditDraftReportCommentController) DownloadAuditDraftReportCommentDocument(c *gin.Context) {
 	auditIdStr := c.Param("auditId")
 	auditId, err := strconv.ParseUint(auditIdStr, 10, 32)

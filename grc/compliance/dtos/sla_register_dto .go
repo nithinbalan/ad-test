@@ -88,6 +88,8 @@ type SLARegisterListQueryParamsDTO struct {
 	IssueDateTo    string
 	ExpiryDateFrom string
 	ExpiryDateTo   string
+	DateFrom       string
+	DateTo         string
 	Export         bool
 }
 

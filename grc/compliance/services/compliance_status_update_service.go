@@ -3,11 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -22,6 +24,7 @@ type ComplianceStatusUpdateServiceInterface interface {
 	Create(complianceID uint, currentUserID uint, complianceStatusUpdateFormDTO *complianceDTOs.ComplianceStatusUpdateFormDTO) (uint, error)
 	Update(complianceID uint, id uint, currentUserID uint, ComplianceStatusUpdateFormDTO *complianceDTOs.ComplianceStatusUpdateFormDTO) error
 	GetLatestComplianceStatusUpdate(complianceID uint) (*complianceDTOs.ComplianceStatusUpdateListDTO, error)
+	GetDocumentPath(complianceID uint, id uint, token string) (string, error)
 }
 
 // Service and implementations
@@ -135,7 +138,7 @@ func (csus *ComplianceStatusUpdateService) Create(complianceID uint, currentUser
 			return 0, err
 		}
 
-		url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(complianceID), 10), "status-updates", encryptedFilename)
+		url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
 		document := &models.ComplianceStatusUpdateDocument{
 			ComplianceStatusUpdateID: id,
@@ -158,7 +161,7 @@ func (csus *ComplianceStatusUpdateService) Create(complianceID uint, currentUser
 		}
 		//move file to storage
 		for _, doc := range documents {
-			storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "status-update-documents")
+			storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return 0, err
@@ -207,6 +210,12 @@ func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, cu
 		return err
 	}
 
+	oldComplianceStatusUpdate, err := csus.GetFullDetailsByID(complianceID, id)
+
+	if err != nil {
+		return err
+	}
+
 	// Update Compliance StatusUpdate -- update only comments
 	existingComplianceStatusUpdate.Comment = complianceStatusUpdateFormDTO.Comment
 	existingComplianceStatusUpdate.UpdatedByID = &currentUserID
@@ -234,7 +243,7 @@ func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, cu
 			}
 
 			//genereate URL
-			url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(complianceID), 10), "status-updates", encryptedFileName)
+			url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			// Create a new Control test Document instance
 			document := &models.ComplianceStatusUpdateDocument{
 				ComplianceStatusUpdateID: id,
@@ -281,7 +290,7 @@ func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, cu
 	}
 
 	for _, doc := range documents {
-		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "status-update-documents")
+		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err
@@ -289,13 +298,60 @@ func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, cu
 	}
 
 	for _, document := range documentsToDelete {
-		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "status-update-documents")
+		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
 	tx.Commit()
+
+	go func() {
+		existingStatusUpdate, err := csus.GetFullDetailsByID(complianceID, id)
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		fmt.Println(oldComplianceStatusUpdate.ComplianceStatus.TitleEn)
+		oldData := map[string]interface{}{
+			"comment": oldComplianceStatusUpdate.Comment,
+		}
+
+		fmt.Println(existingStatusUpdate.ComplianceStatus.TitleEn)
+		newData := map[string]interface{}{
+			"comment": existingStatusUpdate.Comment,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := csus.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.ComplianceStatusUpdate{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.ComplianceStatusUpdate{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 
 	return nil
 }
@@ -315,4 +371,39 @@ func (csus ComplianceStatusUpdateService) GetLatestComplianceStatusUpdate(compli
 	}
 
 	return csus.repo.GetLatestComplianceStatusUpdate(complianceID)
+}
+
+func (csus *ComplianceStatusUpdateService) GetDocumentPath(complianceID, id uint, token string) (string, error) {
+
+	existingComplianceStatusUpdate, err := csus.GetByID(complianceID, id)
+	if err != nil {
+		return "", err
+	}
+	if len(*existingComplianceStatusUpdate.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the compliance")
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

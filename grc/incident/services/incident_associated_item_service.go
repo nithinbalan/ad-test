@@ -12,6 +12,7 @@ type IncidentAssociatedItemServiceInterface interface {
 	GetAllProcesses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemProcessListResponseDTO, error)
 	GetAllSLAs(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemSLAListResponseDTO, error)
 	GetAllDocuments(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemDocumentListResponseDTO, error)
+	GetAllAssets(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemAssetListResponseDTO, error)
 }
 
 // Service and implementations
@@ -71,4 +72,11 @@ func (iais *IncidentAssociatedItemService) GetAllDocuments(incidentID uint, para
 		return nil, err
 	}
 	return iais.repo.GetAllDocuments(incidentID, params)
+}
+
+func (iais *IncidentAssociatedItemService) GetAllAssets(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemAssetListResponseDTO, error) {
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return nil, err
+	}
+	return iais.repo.GetAllAssets(incidentID, params)
 }

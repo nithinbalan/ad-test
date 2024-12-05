@@ -3,12 +3,14 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -20,6 +22,7 @@ type SLAActionPlanStatusUpdateServiceInterface interface {
 	Create(SLAID uint, SLAActionPlanID uint, currentUserID uint, SLAActionPlanStatusUpdateFormDTO *complianceDTOs.SLAActionPlanStatusUpdateFormDTO) (uint, error)
 	Update(SLAID uint, SLAActionPlanID uint, id uint, currentUserID uint, SLAActionPlanStatusUpdateFormDTO *complianceDTOs.SLAActionPlanStatusUpdateFormDTO) error
 	GetLatestSLAActionPlanStatusUpdate(slaID uint, actionPlanID uint) (*complianceDTOs.SLAActionPlanStatusUpdateListDTO, error)
+	GetDocumentPath(slaID uint, actionPlanID uint, id uint, token string) (string, error)
 }
 
 type SLAActionPlanStatusUpdateService struct {
@@ -94,7 +97,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 		return 0, err
 	}
 
-	err = sasus.slaActionPlanSvc.StatusUpdate(SLAID, SLAActionPlanID, currentUserID, SLAActionPlanStatusUpdateFormDTO.ActionPlanStatusID, tx)
+	err = sasus.slaActionPlanSvc.StatusUpdate(SLAID, SLAActionPlanID, currentUserID, SLAActionPlanStatusUpdateFormDTO, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -111,7 +114,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 			return 0, err
 		}
 
-		url := utility.GenerateDocumentURL("sla-register", strconv.FormatUint(uint64(SLAID), 10), "action-plans", strconv.FormatUint(uint64(SLAActionPlanID), 10), "status-updates", encryptedFilename)
+		url := utility.GenerateDocumentURL("compliance", "sla-register", strconv.FormatUint(uint64(SLAID), 10), "action-plans", strconv.FormatUint(uint64(SLAActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
 		document := &models.SLAActionPlanStatusUpdateDocument{
 			SLAActionPlanStatusUpdateID: id,
@@ -177,6 +180,12 @@ func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanI
 		return err
 	}
 
+	oldSLAActionPlanStatusUpdate, err := sasus.GetByID(SLAID, SLAActionPlanID, id)
+
+	if err != nil {
+		return err
+	}
+
 	existingSLAActionPlanStatusUpdate, err := sasus.GetByID(SLAID, SLAActionPlanID, id)
 
 	if err != nil {
@@ -217,7 +226,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanI
 			}
 
 			//genereate URL
-			url := utility.GenerateDocumentURL("sla-register", strconv.FormatUint(uint64(SLAID), 10), "action-plans", strconv.FormatUint(uint64(SLAActionPlanID), 10), "status-updates", encryptedFileName)
+			url := utility.GenerateDocumentURL("compliance", "sla-register", strconv.FormatUint(uint64(SLAID), 10), "action-plans", strconv.FormatUint(uint64(SLAActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			// Create a new Control test Document instance
 			document := &models.SLAActionPlanStatusUpdateDocument{
 				SLAActionPlanStatusUpdateID: id,
@@ -282,6 +291,52 @@ func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanI
 
 	tx.Commit()
 
+	go func() {
+		existingActionPlanstatusUpdate, err := sasus.GetByID(SLAID, SLAActionPlanID, id)
+		if err != nil {
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"comment":    oldSLAActionPlanStatusUpdate.Comment,
+			"percentage": oldSLAActionPlanStatusUpdate.Percentage,
+		}
+
+		newData := map[string]interface{}{
+			"comment":    existingActionPlanstatusUpdate.Comment,
+			"percentage": existingActionPlanstatusUpdate.Percentage,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := sasus.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.SLAActionPlanStatusUpdate{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.SLAActionPlanStatusUpdate{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
+
 	return nil
 }
 
@@ -300,4 +355,39 @@ func (sasus SLAActionPlanStatusUpdateService) GetLatestSLAActionPlanStatusUpdate
 	}
 
 	return sasus.repo.GetLatestSLAActionPlanStatusUpdate(actionPlanID)
+}
+
+func (sasus *SLAActionPlanStatusUpdateService) GetDocumentPath(slaID, ActionPlanID, id uint, token string) (string, error) {
+
+	existingSLAActionplanStatusUpdate, err := sasus.GetByID(slaID, ActionPlanID, id)
+	if err != nil {
+		return "", err
+	}
+	if len(existingSLAActionplanStatusUpdate.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the sla action plan")
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(slaID), 10), "action-plans", strconv.FormatUint(uint64(ActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

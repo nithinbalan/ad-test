@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"jethur/config"
+	assetServices "jethur/grc/asset/services"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	complianceServices "jethur/grc/compliance/services"
@@ -34,6 +36,7 @@ type IncidentRegisterServiceInterface interface {
 	Update(id uint, currentUserID uint, incident *incidentDTOs.IncidentRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(id uint, currentUserID uint, incidentStatusID uint, tx utility.DatabaseTransaction) error
+	GetDocumentPath(id uint, token string) (string, error)
 	ExportIncidentRegister(data []*incidentDTOs.IncidentRegisterListDTO, currentUserID uint) (*os.File, error)
 }
 
@@ -54,6 +57,7 @@ type IncidentRegisterService struct {
 	userSvc                  organizationServices.UserServiceInterface
 	userSettingSvc           organizationServices.UserSettingServiceInterface
 	notificationSvc          commonServices.NotificationServiceInterface
+	assetRegisterSvc         assetServices.AssetRegisterServiceInterface
 }
 
 func NewIncidentRegisterService(
@@ -72,6 +76,7 @@ func NewIncidentRegisterService(
 	userSvc organizationServices.UserServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	assetRegisterSvc assetServices.AssetRegisterServiceInterface,
 ) IncidentRegisterServiceInterface {
 	return &IncidentRegisterService{
 		repo:                     repo,
@@ -89,6 +94,7 @@ func NewIncidentRegisterService(
 		userSvc:                  userSvc,
 		userSettingSvc:           userSettingSvc,
 		notificationSvc:          notificationSvc,
+		assetRegisterSvc:         assetRegisterSvc,
 	}
 }
 
@@ -294,7 +300,23 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 			return 0, err
 		}
 	}
+	// Save Assets
+	var assets []*models.IncidentAsset
+	for _, ast := range incidentRegisterFormDTO.AssetIds {
+		asset := &models.IncidentAsset{
+			IncidentRegisterID: id,
+			AssetRegisterID:    *ast,
+			CreatedBYID:        currentUserID,
+		}
+		assets = append(assets, asset)
+	}
 
+	if len(assets) > 0 {
+		if err := irs.repo.CreateIncidentAssets(assets, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
 	//Add timeline
 	//todo
 	timelineTypes, err := irs.incidentTimelineSvc.GetAllTypes()
@@ -404,11 +426,20 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	tx.Commit()
 
 	go func() {
-		err := irs.activityLogSvc.LogActivity(
+
+		existingIncident, err := irs.GetFullDetailsByID(incidentRegister.ID)
+		if err != nil {
+			utility.LogError("Failed to fetch incident register", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = irs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.IncidentRegister{}.TableName(),
 			id,
-			incidentRegisterFormDTO,
+			existingIncident,
 			currentUserID,
 			nil,
 		)
@@ -433,9 +464,11 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 			UserID:               incidentRegisterFormDTO.ResponsibleUserID,
 			ModuleIdentifier:     "incident",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Incident Register Assignment",
-			HeadingAr:            "مهمة تسجيل الحوادث",
+			HeadingEn:            "Incident Register Responsibility Assigned",
+			HeadingAr:            "تسجيل الحوادث المسؤولية المعينة",
 			TitleEn:              incidentRegisterFormDTO.Title,
+			TitleAr:              incidentRegisterFormDTO.Title,
+			ReferenceNumber:      incidentRegister.ReferenceNumber,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
@@ -496,6 +529,12 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, id)
+	}
+
+	oldIncidentRegister, err := irs.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
 	}
 
 	if err := irs.validateIncidentRegisterFormDTO(incidentRegisterFormDTO); err != nil {
@@ -846,6 +885,56 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		}
 	}
 
+	// Collect existing asset IDs
+	existingAssetIDs := make(map[uint]bool)
+	for _, asset := range existingIncident.Assets {
+		existingAssetIDs[asset.AssetRegisterID] = true
+	}
+
+	// Collect new asset IDs
+	newAssetIDs := make(map[uint]bool)
+	for _, assetID := range incidentRegisterFormDTO.AssetIds {
+		newAssetIDs[*assetID] = true
+	}
+
+	// Add new assets
+	var assetsToAdd []*models.IncidentAsset
+	for _, newAssetID := range incidentRegisterFormDTO.AssetIds {
+		if _, exists := existingAssetIDs[*newAssetID]; !exists {
+			// Create a new incident asset record
+			asset := &models.IncidentAsset{
+				IncidentRegisterID: id,
+				AssetRegisterID:    *newAssetID,
+				CreatedBYID:        currentUserID,
+			}
+			assetsToAdd = append(assetsToAdd, asset)
+		}
+	}
+
+	// Save the new assets
+	if len(assetsToAdd) > 0 {
+		if err := irs.repo.CreateIncidentAssets(assetsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove assets not in the new list
+	var deleteAssetIDs []*uint
+	for _, existingAsset := range existingIncident.Assets {
+		if _, exists := newAssetIDs[existingAsset.AssetRegisterID]; !exists {
+			// Append asset ID to delete list
+			deleteAssetIDs = append(deleteAssetIDs, existingAsset.ID)
+		}
+	}
+
+	// Delete assets not in the new list
+	if len(deleteAssetIDs) > 0 {
+		if err := irs.repo.DeleteIncidentAssets(deleteAssetIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
 	//Update timeline
 	//todo
 	timelineType, err := irs.incidentTimelineSvc.GetByType("reporting")
@@ -946,25 +1035,203 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 	tx.Commit()
 
 	go func() {
-		err := irs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.IncidentRegister{}.TableName(),
-			id,
-			incidentRegisterFormDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingIncident, err := irs.GetFullDetailsByID(id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.IncidentRegister{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
+			return
+		}
+		// Determine control and document changes
+		controlsAdded := []uint{}
+		controlsRemoved := []uint{}
+		for id := range newControlIDs {
+			if !existingControlIDs[id] {
+				controlsAdded = append(controlsAdded, id)
 			}
+		}
+		for id := range existingControlIDs {
+			if !newControlIDs[id] {
+				controlsRemoved = append(controlsRemoved, id)
+			}
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		processesAdded := []uint{}
+		processesRemoved := []uint{}
+		for id := range newProcessIDs {
+			if !existingProcessIDs[id] {
+				processesAdded = append(processesAdded, id)
+			}
+		}
+		for id := range existingProcessIDs {
+			if !newAssetIDs[id] {
+				processesRemoved = append(processesRemoved, id)
+			}
+		}
+
+		risksAdded := []uint{}
+		risksRemoved := []uint{}
+		for id := range newRiskIDs {
+			if !existingRiskIDs[id] {
+				risksAdded = append(risksAdded, id)
+			}
+		}
+		for id := range existingRiskIDs {
+			if !newRiskIDs[id] {
+				risksRemoved = append(risksRemoved, id)
+			}
+		}
+
+		assetsAdded := []uint{}
+		assetsRemoved := []uint{}
+		for id := range newAssetIDs {
+			if !existingAssetIDs[id] {
+				assetsAdded = append(assetsAdded, id)
+			}
+		}
+		for id := range existingAssetIDs {
+			if !newAssetIDs[id] {
+				assetsRemoved = append(assetsRemoved, id)
+			}
+		}
+
+		complianceRequirementsAdded := []uint{}
+		complianceRequirementsRemoved := []uint{}
+		for id := range newRequirementIDs {
+			if !existingRequirementIDs[id] {
+				complianceRequirementsAdded = append(complianceRequirementsAdded, id)
+			}
+		}
+		for id := range existingRequirementIDs {
+			if !newRequirementIDs[id] {
+				complianceRequirementsRemoved = append(complianceRequirementsRemoved, id)
+			}
+		}
+		slaRegistersAdded := []uint{}
+		slaRegistersRemoved := []uint{}
+		for id := range newSLARegisterIDs {
+			if !existingSLARegisterIDs[id] {
+				slaRegistersAdded = append(slaRegistersAdded, id)
+			}
+		}
+		for id := range existingSLARegisterIDs {
+			if !newSLARegisterIDs[id] {
+				slaRegistersRemoved = append(slaRegistersRemoved, id)
+			}
+		}
+		documentsAdded := []uint{}
+		documentsRemoved := []uint{}
+		for id := range newDocumentIDs {
+			if !existingDocumentIDs[id] {
+				documentsAdded = append(documentsAdded, id)
+			}
+		}
+		for id := range existingDocumentIDs {
+			if !newDocumentIDs[id] {
+				documentsRemoved = append(documentsRemoved, id)
+			}
+		}
+
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
+
+		if len(controlsAdded) > 0 || len(controlsRemoved) > 0 {
+			associatedItems["control_ids"] = map[string]interface{}{
+				"added":   controlsAdded,
+				"removed": controlsRemoved,
+			}
+		}
+		if len(assetsAdded) > 0 || len(assetsRemoved) > 0 {
+			associatedItems["asset_ids"] = map[string]interface{}{
+				"added":   assetsAdded,
+				"removed": assetsRemoved,
+			}
+		}
+		if len(risksAdded) > 0 || len(risksRemoved) > 0 {
+			associatedItems["risk_ids"] = map[string]interface{}{
+				"added":   risksAdded,
+				"removed": risksRemoved,
+			}
+		}
+		if len(complianceRequirementsAdded) > 0 || len(complianceRequirementsRemoved) > 0 {
+			associatedItems["requirement_ids"] = map[string]interface{}{
+				"added":   complianceRequirementsAdded,
+				"removed": complianceRequirementsRemoved,
+			}
+		}
+		if len(slaRegistersAdded) > 0 || len(slaRegistersRemoved) > 0 {
+			associatedItems["sla_ids"] = map[string]interface{}{
+				"added":   slaRegistersAdded,
+				"removed": slaRegistersRemoved,
+			}
+		}
+		if len(processesAdded) > 0 || len(processesRemoved) > 0 {
+			associatedItems["process_ids"] = map[string]interface{}{
+				"added":   processesAdded,
+				"removed": processesRemoved,
+			}
+		}
+		if len(documentsAdded) > 0 || len(documentsRemoved) > 0 {
+			associatedItems["document_ids"] = map[string]interface{}{
+				"added":   documentsAdded,
+				"removed": documentsRemoved,
+			}
+		}
+
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+		//log changes
+		oldData := map[string]interface{}{
+			"incident_category": oldIncidentRegister.IncidentCategory.TitleEn,
+			"incident_type":     oldIncidentRegister.IncidentType.TitleEn,
+			"severity_level":    oldIncidentRegister.SeverityLevel.TitleEn,
+			"responsible_user":  fmt.Sprintf("%s %s", oldIncidentRegister.ResponsibleUser.FirstNameEN, oldIncidentRegister.ResponsibleUser.LastNameEN),
+			"title":             oldIncidentRegister.Title,
+			"description":       oldIncidentRegister.Description,
+			"incident_at":       oldIncidentRegister.IncidentAt,
+			"location":          oldIncidentRegister.Location,
+			"reported_by":       fmt.Sprintf("%s %s", oldIncidentRegister.ReportedByUser.FirstNameEN, oldIncidentRegister.ReportedByUser.LastNameEN),
+			"quick_action":      oldIncidentRegister.QuickAction,
+		}
+
+		newData := map[string]interface{}{
+			"incident_category": existingIncident.IncidentCategory.TitleEn,
+			"incident_type":     existingIncident.IncidentType.TitleEn,
+			"severity_level":    existingIncident.SeverityLevel.TitleEn,
+			"responsible_user":  fmt.Sprintf("%s %s", existingIncident.ResponsibleUser.FirstNameEN, existingIncident.ResponsibleUser.LastNameEN),
+			"title":             existingIncident.Title,
+			"description":       existingIncident.Description,
+			"incident_at":       existingIncident.IncidentAt,
+			"location":          existingIncident.Location,
+			"reported_by":       fmt.Sprintf("%s %s", existingIncident.ReportedByUser.FirstNameEN, existingIncident.ReportedByUser.LastNameEN),
+			"quick_action":      existingIncident.QuickAction,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := irs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.IncidentRegister{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.IncidentRegister{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 
 		// Send notifications to old and new responsible users if the responsible user has changed
@@ -982,6 +1249,8 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 				HeadingEn:            "Incident Register Responsibility Removed",
 				HeadingAr:            "تمت إزالة مسؤولية تسجيل الحوادث",
 				TitleEn:              existingIncidentRegister.Title,
+				TitleAr:              existingIncidentRegister.Title,
+				ReferenceNumber:      existingIncidentRegister.ReferenceNumber,
 				Entity:               &entity,
 				Action:               &oldResponsibleUserAction,
 				URLParam:             urlParam,
@@ -998,6 +1267,8 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 				HeadingEn:            "Incident Register Responsibility Assigned",
 				HeadingAr:            "تسجيل الحوادث المسؤولية المعينة",
 				TitleEn:              existingIncidentRegister.Title,
+				TitleAr:              existingIncidentRegister.Title,
+				ReferenceNumber:      existingIncidentRegister.ReferenceNumber,
 				Entity:               &entity,
 				Action:               &newResponsibleUserAction,
 				URLParam:             urlParam,
@@ -1100,6 +1371,7 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 	tx := irs.repo.BeginTransaction()
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedIncidentRegister []map[string]interface{}
 
 	var notifications []struct {
 		OwnerID         *uint
@@ -1117,6 +1389,11 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 			tx.Rollback()
 			return nil, err
 		}
+
+		deletedIncidentRegister = append(deletedIncidentRegister, map[string]interface{}{
+			"id":    id,
+			"title": incident.Title,
+		})
 
 		// Prepare notification data before deletion
 		notifications = append(notifications, struct {
@@ -1201,6 +1478,16 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 				return nil, err
 			}
 		}
+		if len(incident.Assets) > 0 {
+			var deleteAssetIds []*uint
+			for _, ast := range incident.Assets {
+				deleteAssetIds = append(deleteAssetIds, ast.ID)
+			}
+			if err := irs.repo.DeleteIncidentAssets(deleteAssetIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
 
 		//Delete timeline
 		//todo
@@ -1261,7 +1548,7 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.IncidentRegister{}.TableName(),
 				successfulIds,
-				nil,
+				deletedIncidentRegister,
 				currentUserID,
 				nil,
 			)
@@ -1284,6 +1571,8 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 					HeadingEn:            "Incident Register Deleted",
 					HeadingAr:            "تم حذف سجل الحوادث",
 					TitleEn:              notification.TitleEn,
+					TitleAr:              notification.TitleAr,
+					ReferenceNumber:      notification.ReferenceNumber,
 					Entity:               &entity,
 					Action:               &action,
 					URLParam:             urlParam,
@@ -1469,6 +1758,27 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 
 		slaRegisterIDs[*slaRegisterId] = true
 	}
+	//Assets exist
+	assets := incidentRegisterFormDTO.AssetIds
+	// Create a map to store asset IDs
+	assetIDs := make(map[uint]bool)
+
+	// Check if each asset exists
+	for _, asset := range assets {
+		// Check if the asset ID already exists in the map
+		if assetIDs[*asset] {
+			// If the asset ID already exists, return a validation error
+			return utility.NewValidationError(fmt.Errorf("duplicate asset ID: %d", asset), "duplicate", "asset")
+		}
+
+		// Check if the asset exists in the database
+		if _, err := irs.assetRegisterSvc.GetByID(*asset); err != nil {
+			return utility.NewValidationError(fmt.Errorf("asset does not exist for ID: %d", asset), "not_exist", "asset")
+		}
+
+		// Add the asset ID to the map
+		assetIDs[*asset] = true
+	}
 
 	return nil
 }
@@ -1503,6 +1813,41 @@ func (irs *IncidentRegisterService) validateIncidentDocumentFormDTO(documents []
 	return nil
 }
 
+func (irs *IncidentRegisterService) GetDocumentPath(id uint, token string) (string, error) {
+	existingIncidentRegister, err := irs.GetFullDetailsByID(id)
+	if err != nil {
+		return "", err
+	}
+
+	if len(existingIncidentRegister.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the incident register")
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
+}
+
 func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.IncidentRegisterListDTO, currentUserID uint) (*os.File, error) {
 	// Fetch user setting for language preference
 	userSetting, err := is.userSettingSvc.GetUserSettingsByUserID(currentUserID)
@@ -1527,8 +1872,6 @@ func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.I
 			"Action Taken",
 			"Investigation Date & Time",
 			"Investigation Details",
-			"Communicated By",
-			"Communicated To",
 		}
 	} else {
 		headers = []string{
@@ -1546,8 +1889,6 @@ func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.I
 			"Action Taken",
 			"Investigation Date & Time",
 			"Investigation Details",
-			"Communicated By",
-			"Communicated To",
 		}
 	}
 	// Convert the incident register data to [][]interface{} based on language setting
@@ -1562,16 +1903,14 @@ func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.I
 				incident.IncidentAt,
 				incident.IncidentCategoryTitleAr,
 				incident.SeverityLevelTitleAr,
-				incident.Location,
+				utility.GetStringValue(incident.Location),
 				incident.ReportedUserFirstNameAr + " " + incident.ReportedUserLastNameAr,
 				incident.ResponsibleUserFirstNameAr + " " + incident.ResponsibleUserLastNameAr,
 				incident.ReportedAt,
 				incident.IncidentStatusTitleAr,
-				incident.QuickAction,
-				// incident.InvestigationInitiatedAt,
-				// incident.InvestigationDescription,
-				// *incident.CommunicatedByFirstNameAr + " " + *incident.CommunicatedByLastNameAr,
-				// incident.CommunicatedViaAr,
+				utility.GetStringValue(incident.QuickAction),
+				utility.GetStringValue(incident.InvestigationInitiatedAt),
+				utility.GetStringValue(incident.InvestigationDescription),
 			}
 		} else {
 			// Populate row data in English
@@ -1582,16 +1921,14 @@ func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.I
 				incident.IncidentAt,
 				incident.IncidentCategoryTitleEn,
 				incident.SeverityLevelTitleEn,
-				incident.Location,
-				incident.ReportedUserFirstNameEn + " " + incident.ReportedUserFirstNameEn,
+				utility.GetStringValue(incident.Location),
+				incident.ReportedUserFirstNameEn + " " + incident.ReportedUserLastNameEn,
 				incident.ResponsibleUserFirstNameEn + " " + incident.ResponsibleUserLastNameEn,
 				incident.ReportedAt,
 				incident.IncidentStatusTitleEn,
-				incident.QuickAction,
-				// incident.InvestigationInitiatedAt,
-				// incident.InvestigationDescription,
-				// incident.CommunicatedByFirstNameEn + " " + *incident.CommunicatedByLastNameEn,
-				// incident.CommunicatedViaEn,
+				utility.GetStringValue(incident.QuickAction),
+				utility.GetStringValue(incident.InvestigationInitiatedAt),
+				utility.GetStringValue(incident.InvestigationDescription),
 			}
 		}
 	}

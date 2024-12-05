@@ -466,6 +466,32 @@ func (drs *DocumentReviewService) handleRevertedCase(id, currentUserID uint, doc
 		return err
 	}
 
+	documentWorkflow, err := drs.documentWorkflowSvc.GetDocumentWorkflowByID(currentDocumentWorkflow.ID)
+	if err != nil {
+		return err
+	}
+
+	documentWorkflow.DocumentWorkflowStatusID = documentWorkflowStatus.ID
+	err = drs.documentWorkflowSvc.UpdateDocumentWorkflow(documentWorkflow)
+	if err != nil {
+		return err
+	}
+
+	documentStatus, err := drs.documentStatusSvc.GetByType("reverted")
+	if err != nil {
+		return err
+	}
+	existingDocument, err := drs.documentSvc.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	existingDocument.DocumentStatusID = documentStatus.ID
+	err = drs.documentSvc.UpdateDocument(existingDocument)
+	if err != nil {
+		return err
+	}
+
 	task, err := drs.taskSvc.UpdateDocumentTaskStatus(id, currentUserID, currentDocumentWorkflow.ID)
 	if err != nil {
 		return err
@@ -532,6 +558,7 @@ func (drs *DocumentReviewService) sendApprovalNotification(id uint, currentUserI
 			NotificationType:     string(commonDTOs.ApprovalType),
 			HeadingEn:            "Document Approval",
 			HeadingAr:            "مراجعة الوثيقة",
+			ReferenceNumber:      document.ReferenceNumber,
 			TitleEn:              document.TitleEn,
 			TitleAr:              document.TitleAr,
 			Entity:               &entity,
@@ -608,6 +635,7 @@ func (drs *DocumentReviewService) notifyNextLevelUsers(id uint, nextDocWorkflowL
 				NotificationType:     string(commonDTOs.ReviewType),
 				HeadingEn:            "Document Review",
 				HeadingAr:            "مراجعة الوثيقة",
+				ReferenceNumber:      document.ReferenceNumber,
 				TitleEn:              document.TitleEn,
 				TitleAr:              document.TitleAr,
 				Entity:               &entity,
@@ -713,6 +741,7 @@ func (drs *DocumentReviewService) sendRejectedNotification(id uint, currentUserI
 			NotificationType:     string(commonDTOs.RejectType),
 			HeadingEn:            "Document Rejected",
 			HeadingAr:            "تم رفض الوثيقة",
+			ReferenceNumber:      document.ReferenceNumber,
 			TitleEn:              document.TitleEn,
 			TitleAr:              document.TitleAr,
 			Entity:               &entity,
@@ -780,6 +809,7 @@ func (drs *DocumentReviewService) sendRevertedNotification(id uint, currentUserI
 			NotificationType:     string(commonDTOs.RevertType),
 			HeadingEn:            "Document Reverted",
 			HeadingAr:            "تم إعادة الوثيقة",
+			ReferenceNumber:      document.ReferenceNumber,
 			TitleEn:              document.TitleEn,
 			TitleAr:              document.TitleAr,
 			Entity:               &entity,
@@ -847,6 +877,7 @@ func (drs *DocumentReviewService) sendCommentNotification(id uint, currentUserID
 			NotificationType:     string(commonDTOs.CommentType),
 			HeadingEn:            "New Document Comment",
 			HeadingAr:            "تعليق جديد على الوثيقة",
+			ReferenceNumber:      document.ReferenceNumber,
 			TitleEn:              document.TitleEn,
 			TitleAr:              document.TitleAr,
 			Entity:               &entity,

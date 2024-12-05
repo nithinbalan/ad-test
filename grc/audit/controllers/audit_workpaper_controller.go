@@ -201,6 +201,34 @@ func (awc *AuditWorkpaperController) DeleteAuditWorkpapers(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
+func (awc *AuditWorkpaperController) GetWorkpaperDocumentPreview(c *gin.Context) {
+
+	auditIdStr := c.Param("auditId")
+	auditId, err := strconv.ParseUint(auditIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	workpaperDocumentPath, err := awc.service.GetDocumentPath(uint(auditId), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(awc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(workpaperDocumentPath)
+}
+
 func (awc *AuditWorkpaperController) DownloadWorkpaperDocument(c *gin.Context) {
 	auditIdStr := c.Param("auditId")
 	auditId, err := strconv.ParseUint(auditIdStr, 10, 32)

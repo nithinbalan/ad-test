@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/services"
 	commonDTOs "jethur/grc/common/dtos"
@@ -25,14 +26,14 @@ func NewAuditMeetingController(service services.AuditMeetingServiceInterface) *A
 
 func (amc *AuditMeetingController) GetAllAuditMeetings(c *gin.Context) {
 	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
-		"audits_ids",
+		"audit_ids",
 		"created_by_ids",
 		"updated_by_ids",
 	}
@@ -41,6 +42,7 @@ func (amc *AuditMeetingController) GetAllAuditMeetings(c *gin.Context) {
 
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
+	date := c.Query("date")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -53,10 +55,20 @@ func (amc *AuditMeetingController) GetAllAuditMeetings(c *gin.Context) {
 		utility.SendInternalErrResp(amc.db, c, "Invalid page_size parameter")
 		return
 	}
+	validSortFields := map[string]string{
+		"title": "audit_meetings.title",
+		"date":  "audit_meetings.date",
+	}
 
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 	queryParams := auditDTOs.AuditMeetingListQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      sortBy,
+		SortBy:      sortField,
 		Keyword:     keyword,
 		Status:      status,
 		Page:        page,
@@ -65,6 +77,7 @@ func (amc *AuditMeetingController) GetAllAuditMeetings(c *gin.Context) {
 		QuickFilter: quickFilter,
 		StartDate:   startDate,
 		EndDate:     endDate,
+		Date:        date,
 	}
 
 	idStr := c.Param("auditId")

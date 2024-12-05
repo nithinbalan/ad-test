@@ -9,39 +9,41 @@ import (
 )
 
 type MasterModule struct {
-	ReviewFrequencyController   *controllers.ReviewFrequencyController
-	SeverityLevelController     *controllers.SeverityLevelController
-	LifecycleStatusController   *controllers.LifecycleStatusController
-	QuestionGroupController     *controllers.QuestionGroupController
-	ChecklistController         *controllers.ChecklistController
-	ChecklistQuestionController *controllers.ChecklistQuestionController
-	AtionPlanStatusController   *controllers.ActionPlanStatusController
-	CurrencyController          *controllers.CurrencyController
-	TimezoneController          *controllers.TimezoneController
-	UnitController              *controllers.UnitController
-	ToolTypeController          *controllers.ToolTypeController
-	ExpenseCategoryController   *controllers.ExpenseCategoryController
-	SourceController            *controllers.SourceController
-	StatusController            *controllers.StatusController
-	ConformanceController       *controllers.ConformanceController
-	WorkflowStatusController    *controllers.WorkflowStatusController
+	ReviewFrequencyController     *controllers.ReviewFrequencyController
+	SeverityLevelController       *controllers.SeverityLevelController
+	LifecycleStatusController     *controllers.LifecycleStatusController
+	QuestionGroupController       *controllers.QuestionGroupController
+	ChecklistController           *controllers.ChecklistController
+	ChecklistQuestionController   *controllers.ChecklistQuestionController
+	AtionPlanStatusController     *controllers.ActionPlanStatusController
+	CurrencyController            *controllers.CurrencyController
+	TimezoneController            *controllers.TimezoneController
+	UnitController                *controllers.UnitController
+	ToolTypeController            *controllers.ToolTypeController
+	ExpenseCategoryController     *controllers.ExpenseCategoryController
+	SourceController              *controllers.SourceController
+	StatusController              *controllers.StatusController
+	ConformanceController         *controllers.ConformanceController
+	WorkflowStatusController      *controllers.WorkflowStatusController
+	IntegrationCategoryController *controllers.IntegrationCategoryController
 
-	ReviewFrequencySvc   services.ReviewFrequencyServiceInterface
-	SeverityLevelSvc     services.SeverityLevelServiceInterface
-	LifecycleStatusSvc   services.LifecycleStatusServiceInterface
-	QuestionGroupService services.QuestionGroupServiceInterface
-	ChecklistSvc         services.ChecklistServiceInterface
-	ChecklistQuestionSvc services.ChecklistQuestionServiceInterface
-	ActionPlanStatusSvc  services.ActionPlanStatusServiceInterface
-	CurrencySvc          services.CurrencyServiceInterface
-	TimezoneSvc          services.TimezoneServiceInterface
-	UnitSvc              services.UnitServiceInterface
-	ToolTypeSvc          services.ToolTypeServiceInterface
-	ExpenseCategorySvc   services.ExpenseCategoryServiceInterface
-	SourceSvc            services.SourceServiceInterface
-	StatusSvc            services.StatusServiceInterface
-	ConformanceSvc       services.ConformanceServiceInterface
-	WorkflowStatusSvc    services.WorkflowStatusServiceInterface
+	ReviewFrequencySvc     services.ReviewFrequencyServiceInterface
+	SeverityLevelSvc       services.SeverityLevelServiceInterface
+	LifecycleStatusSvc     services.LifecycleStatusServiceInterface
+	QuestionGroupService   services.QuestionGroupServiceInterface
+	ChecklistSvc           services.ChecklistServiceInterface
+	ChecklistQuestionSvc   services.ChecklistQuestionServiceInterface
+	ActionPlanStatusSvc    services.ActionPlanStatusServiceInterface
+	CurrencySvc            services.CurrencyServiceInterface
+	TimezoneSvc            services.TimezoneServiceInterface
+	UnitSvc                services.UnitServiceInterface
+	ToolTypeSvc            services.ToolTypeServiceInterface
+	ExpenseCategorySvc     services.ExpenseCategoryServiceInterface
+	SourceSvc              services.SourceServiceInterface
+	StatusSvc              services.StatusServiceInterface
+	ConformanceSvc         services.ConformanceServiceInterface
+	WorkflowStatusSvc      services.WorkflowStatusServiceInterface
+	IntegrationCategorySvc services.IntegrationCategoryServiceInterface
 }
 
 func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
@@ -122,39 +124,46 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	workflowStatusSvc := services.NewWorkflowStatusService(workflowStatusRepo)
 	workflowStatusController := controllers.NewWorkflowStatusController(workflowStatusSvc)
 
-	return &MasterModule{
-		ReviewFrequencyController:   reviewFrequencyController,
-		SeverityLevelController:     severityLevelController,
-		LifecycleStatusController:   lifecycleStatusController,
-		QuestionGroupController:     questionGroupController,
-		ChecklistController:         checklistController,
-		ChecklistQuestionController: checklistQuestionController,
-		AtionPlanStatusController:   actionPlanStatusController,
-		CurrencyController:          currencyController,
-		TimezoneController:          timezoneController,
-		UnitController:              unitController,
-		ToolTypeController:          toolTypeController,
-		ExpenseCategoryController:   expenseCategoryController,
-		SourceController:            sourceController,
-		StatusController:            statusController,
-		ConformanceController:       conformanceController,
-		WorkflowStatusController:    workflowStatusController,
+	// Integration category
+	integrationCategoryRepo := repositories.NewIntegrationCategoryRepository(db)
+	integrationCategorySvc := services.NewIntegrationCategoryService(integrationCategoryRepo)
+	integrationCategoryController := controllers.NewIntegrationCategoryController(integrationCategorySvc)
 
-		ReviewFrequencySvc:   reviewFrequencySvc,
-		SeverityLevelSvc:     severityLevelSvc,
-		LifecycleStatusSvc:   lifecycleStatusSvc,
-		QuestionGroupService: questionGroupSvc,
-		ChecklistSvc:         checklistSvc,
-		ChecklistQuestionSvc: checklistQuestionSvc,
-		ActionPlanStatusSvc:  actionPlanStatusSvc,
-		CurrencySvc:          currencySvc,
-		TimezoneSvc:          timezoneSvc,
-		UnitSvc:              unitSvc,
-		ToolTypeSvc:          toolTypeSvc,
-		ExpenseCategorySvc:   expenseCategorySvc,
-		SourceSvc:            sourceSvc,
-		StatusSvc:            statusSvc,
-		ConformanceSvc:       conformanceSvc,
-		WorkflowStatusSvc:    workflowStatusSvc,
+	return &MasterModule{
+		ReviewFrequencyController:     reviewFrequencyController,
+		SeverityLevelController:       severityLevelController,
+		LifecycleStatusController:     lifecycleStatusController,
+		QuestionGroupController:       questionGroupController,
+		ChecklistController:           checklistController,
+		ChecklistQuestionController:   checklistQuestionController,
+		AtionPlanStatusController:     actionPlanStatusController,
+		CurrencyController:            currencyController,
+		TimezoneController:            timezoneController,
+		UnitController:                unitController,
+		ToolTypeController:            toolTypeController,
+		ExpenseCategoryController:     expenseCategoryController,
+		SourceController:              sourceController,
+		StatusController:              statusController,
+		ConformanceController:         conformanceController,
+		WorkflowStatusController:      workflowStatusController,
+		IntegrationCategoryController: integrationCategoryController,
+
+		ReviewFrequencySvc:     reviewFrequencySvc,
+		SeverityLevelSvc:       severityLevelSvc,
+		LifecycleStatusSvc:     lifecycleStatusSvc,
+		QuestionGroupService:   questionGroupSvc,
+		ChecklistSvc:           checklistSvc,
+		ChecklistQuestionSvc:   checklistQuestionSvc,
+		ActionPlanStatusSvc:    actionPlanStatusSvc,
+		CurrencySvc:            currencySvc,
+		TimezoneSvc:            timezoneSvc,
+		UnitSvc:                unitSvc,
+		ToolTypeSvc:            toolTypeSvc,
+		ExpenseCategorySvc:     expenseCategorySvc,
+		SourceSvc:              sourceSvc,
+		StatusSvc:              statusSvc,
+		ConformanceSvc:         conformanceSvc,
+		WorkflowStatusSvc:      workflowStatusSvc,
+		IntegrationCategorySvc: integrationCategorySvc,
 	}
 }

@@ -19,6 +19,7 @@ type Audit struct {
 	AuditPlan          *AuditPlan           `gorm:"foreignKey:AuditPlanID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	AuditChecklists    []*AuditChecklist    `gorm:"foreignKey:AuditID"`
 	AuditDraftFindings []*AuditDraftFinding `gorm:"foreignKey:AuditID"`
+	AuditFindings      []*AuditFinding      `gorm:"foreignKey:AuditID"`
 	AuditStatus        *AuditStatus         `gorm:"foreignKey:AuditStatusID;;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	CreatedByUser      *User                `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser      *User                `gorm:"foreignKey:UpdatedBYID"`

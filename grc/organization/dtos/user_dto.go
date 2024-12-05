@@ -48,6 +48,9 @@ type UserListQueryParamsDTO struct {
 	Filters     map[string][]string
 	QuickFilter []string
 	Export      bool
+	RoleIDs     []int
+	DateFrom    string
+	DateTo      string
 }
 
 type UserListResponseDTO struct {

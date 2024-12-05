@@ -57,7 +57,7 @@ func (adrcs *AuditDraftReportCommentService) GetAll(auditID uint, auditDraftRepo
 		return nil, err
 	}
 
-	return adrcs.repo.GetAll(auditDraftReportID,params)
+	return adrcs.repo.GetAll(auditDraftReportID, params)
 }
 
 func (adrcs AuditDraftReportCommentService) GetByID(id uint) (*models.AuditDraftReportComment, error) {
@@ -124,7 +124,7 @@ func (adrcs *AuditDraftReportCommentService) Create(auditID uint, auditDraftRepo
 			return 0, err
 		}
 
-		url := utility.GenerateDocumentURL("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "draft-report", strconv.FormatUint(uint64(auditDraftReportID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents", encryptedFilename)
+		url := utility.GenerateDocumentURL("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "draft-report", strconv.FormatUint(uint64(auditDraftReportID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 		document := &models.AuditDraftReportCommentDocument{
 			AuditDraftReportCommentID: id,
@@ -146,7 +146,7 @@ func (adrcs *AuditDraftReportCommentService) Create(auditID uint, auditDraftRepo
 			return 0, err
 		}
 		for _, doc := range documents {
-			storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "draft-report", strconv.FormatUint(uint64(auditDraftReportID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+			storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "draft-report", strconv.FormatUint(uint64(auditDraftReportID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return 0, err
@@ -223,7 +223,7 @@ func (adrcs *AuditDraftReportCommentService) Update(auditID uint, auditDraftRepo
 			}
 
 			//genereate URL
-			url := utility.GenerateDocumentURL("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "draft-report", strconv.FormatUint(uint64(auditDraftReportID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+			url := utility.GenerateDocumentURL("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "draft-report", strconv.FormatUint(uint64(auditDraftReportID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 			// Create a new Control test Document instance
 			document := &models.AuditDraftReportCommentDocument{
@@ -271,7 +271,7 @@ func (adrcs *AuditDraftReportCommentService) Update(auditID uint, auditDraftRepo
 	}
 
 	for _, doc := range documents {
-		storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "draft-report", strconv.FormatUint(uint64(auditDraftReportID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "draft-report", strconv.FormatUint(uint64(auditDraftReportID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			tx.Rollback()
@@ -280,7 +280,7 @@ func (adrcs *AuditDraftReportCommentService) Update(auditID uint, auditDraftRepo
 	}
 
 	for _, document := range documentsToDelete {
-		storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "draft-report", strconv.FormatUint(uint64(auditDraftReportID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "draft-report", strconv.FormatUint(uint64(auditDraftReportID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err
@@ -364,7 +364,7 @@ func (adrcs *AuditDraftReportCommentService) Delete(auditID uint, auditDraftRepo
 		for auditDraftReportCommentID, documents := range documentsToDelete {
 			for _, doc := range documents {
 				fmt.Println("filename=", doc.Name)
-				storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "draft-report", strconv.FormatUint(uint64(auditDraftReportID), 10), "comments", strconv.FormatUint(uint64(auditDraftReportCommentID), 10), "documents")
+				storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "draft-report", strconv.FormatUint(uint64(auditDraftReportID), 10), "comments", strconv.FormatUint(uint64(auditDraftReportCommentID), 10), "documents")
 				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 					tx.Rollback()
 					fmt.Printf("Failed to delete file at URL %s: %v\n", doc.URL, err)
@@ -468,7 +468,7 @@ func (adrcs *AuditDraftReportCommentService) GetDocumentPath(auditID uint, audit
 		return "", fmt.Errorf("resource not found")
 	}
 
-	storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "draft-report", strconv.FormatUint(uint64(auditDraftReportID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+	storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "draft-report", strconv.FormatUint(uint64(auditDraftReportID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
 	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)

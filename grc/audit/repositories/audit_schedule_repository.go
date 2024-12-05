@@ -133,7 +133,7 @@ func (repo *AuditScheduleRepository) GetAll(auditID uint, params *auditDTOs.Audi
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			audit_schedules.title LIKE ? OR
+			(audit_schedules.title LIKE ? OR
 			audit_schedules.description LIKE ? OR
 			audit_activity_types.title_en LIKE ? OR
 			audit_activity_types.title_ar LIKE ? OR
@@ -150,11 +150,11 @@ func (repo *AuditScheduleRepository) GetAll(auditID uint, params *auditDTOs.Audi
 			updated_user.first_name_en LIKE ? OR
 			updated_user.first_name_ar LIKE ? OR
 			updated_user.last_name_en LIKE ? OR
-			updated_user.last_name_ar LIKE ?`,
+			updated_user.last_name_ar LIKE  ?)`,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order

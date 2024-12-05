@@ -9,17 +9,21 @@ import (
 )
 
 type DocumentAccessRepositoryInterface interface {
-	GetSharedUsers(documentId uint, page uint, pageSize uint) ([]*models.User, commonDTOs.PaginationInfoDTO, error)
-	GetReviewUsers(documentId uint) ([]*models.User, error)
-	GetSharedUnits(documentId uint) ([]*models.OrganizationUnit, error)
+	GetSharedUsers(documentId uint, page uint, pageSize uint, tx ...utility.DatabaseTransaction) ([]*models.User, commonDTOs.PaginationInfoDTO, error)
+	GetReviewUsers(documentId uint, tx ...utility.DatabaseTransaction) ([]*models.User, error)
+	GetSharedUnits(documentId uint, tx ...utility.DatabaseTransaction) ([]*models.OrganizationUnit, error)
 
 	GetExistingSharedUserIDs(documentID uint, userIDs []uint) ([]uint, error)
 	GetExistingSharedUnitIDs(documentID uint, unitIDs []uint) ([]uint, error)
 
 	CreateSharedUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error
 	CreateSharedUnits(sharedUnits []*models.DocumentSharedUnit, tx ...utility.DatabaseTransaction) error
-	DeleteSharedUsers(documentID uint, userIDs []*uint, tx ...utility.DatabaseTransaction) error
-	DeleteSharedUnits(documentID uint, unitIDs []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteSharedUsers(documentID uint, userIDs []uint, tx ...utility.DatabaseTransaction) error
+	DeleteSharedUnits(documentID uint, unitIDs []uint, tx ...utility.DatabaseTransaction) error
+	DeleteAllUsers(documentID uint, userIDs []uint, tx ...utility.DatabaseTransaction) error
+
+	DeleteReviewUsers(documentID uint, userIDs []uint, tx ...utility.DatabaseTransaction) error
+	DeleteResponsibleUser(documentID uint, userID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type DocumentAccessRepository struct {
@@ -30,12 +34,17 @@ func NewDocumentAccessRepository(db *gorm.DB) *DocumentAccessRepository {
 	return &DocumentAccessRepository{db: db}
 }
 
-func (repo *DocumentAccessRepository) GetSharedUsers(documentId uint, page uint, pageSize uint) ([]*models.User, commonDTOs.PaginationInfoDTO, error) {
+func (repo *DocumentAccessRepository) GetSharedUsers(documentId uint, page uint, pageSize uint, tx ...utility.DatabaseTransaction) ([]*models.User, commonDTOs.PaginationInfoDTO, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var users []*models.User
 	var totalCount int64
 
 	// First, count the total eligible records
-	countQuery := repo.db.Model(&models.DocumentSharedUser{}).
+	countQuery := db.Model(&models.DocumentSharedUser{}).
 		Where("document_id = ? AND type = 'shared-user'", documentId)
 	countQuery.Count(&totalCount)
 
@@ -62,9 +71,14 @@ func (repo *DocumentAccessRepository) GetSharedUsers(documentId uint, page uint,
 	return users, pagination, nil
 }
 
-func (repo *DocumentAccessRepository) GetReviewUsers(documentId uint) ([]*models.User, error) {
+func (repo *DocumentAccessRepository) GetReviewUsers(documentId uint, tx ...utility.DatabaseTransaction) ([]*models.User, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var users []*models.User
-	err := repo.db.
+	err := db.
 		Model(&models.DocumentSharedUser{}).
 		Where("document_id = ? AND type = 'review-user'", documentId).
 		Joins("JOIN users ON users.id = document_shared_users.user_id").
@@ -76,9 +90,14 @@ func (repo *DocumentAccessRepository) GetReviewUsers(documentId uint) ([]*models
 	return users, nil
 }
 
-func (repo *DocumentAccessRepository) GetSharedUnits(documentId uint) ([]*models.OrganizationUnit, error) {
+func (repo *DocumentAccessRepository) GetSharedUnits(documentId uint, tx ...utility.DatabaseTransaction) ([]*models.OrganizationUnit, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var units []*models.OrganizationUnit
-	err := repo.db.
+	err := db.
 		Model(&models.DocumentSharedUnit{}).
 		Where("document_id = ?", documentId).
 		Joins("JOIN organization_units ON organization_units.id = document_shared_units.organization_unit_id").
@@ -128,7 +147,17 @@ func (repo *DocumentAccessRepository) CreateSharedUnits(sharedUnits []*models.Do
 	return db.Create(sharedUnits).Error
 }
 
-func (repo *DocumentAccessRepository) DeleteSharedUsers(documentID uint, userIDs []*uint, tx ...utility.DatabaseTransaction) error {
+func (repo *DocumentAccessRepository) DeleteSharedUsers(documentID uint, userIDs []uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("document_id = ? AND user_id IN (?) AND type = ?", documentID, userIDs, "shared-user").
+		Delete(&models.DocumentSharedUser{}).Error
+}
+
+func (repo *DocumentAccessRepository) DeleteAllUsers(documentID uint, userIDs []uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -138,7 +167,7 @@ func (repo *DocumentAccessRepository) DeleteSharedUsers(documentID uint, userIDs
 		Delete(&models.DocumentSharedUser{}).Error
 }
 
-func (repo *DocumentAccessRepository) DeleteSharedUnits(documentID uint, unitIDs []*uint, tx ...utility.DatabaseTransaction) error {
+func (repo *DocumentAccessRepository) DeleteSharedUnits(documentID uint, unitIDs []uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -146,4 +175,24 @@ func (repo *DocumentAccessRepository) DeleteSharedUnits(documentID uint, unitIDs
 
 	return db.Where("document_id = ? AND organization_unit_id IN (?)", documentID, unitIDs).
 		Delete(&models.DocumentSharedUnit{}).Error
+}
+
+func (repo *DocumentAccessRepository) DeleteReviewUsers(documentID uint, userIDs []uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("document_id = ? AND user_id IN (?) AND type = ?", documentID, userIDs, "review-user").
+		Delete(&models.DocumentSharedUser{}).Error
+}
+
+func (repo *DocumentAccessRepository) DeleteResponsibleUser(documentID uint, userID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("document_id = ? AND user_id = ? AND type = ?", documentID, userID, "responsible-user").
+		Delete(&models.DocumentSharedUser{}).Error
 }

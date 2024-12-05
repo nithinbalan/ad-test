@@ -60,7 +60,6 @@ func (repo *AuditDocumentRequestRepository) GetAll(auditID uint, params *auditDT
             responsible_user.color AS responsible_user_color,
             responsible_user.email AS responsible_user_email,
             responsible_user.profile_image_path AS responsible_user_profile_image_path,
-			requested_user.id AS requested_user_id,
 			requested_user.first_name_en AS requested_user_first_name_en,
         	requested_user.first_name_ar AS requested_user_first_name_ar,
         	requested_user.last_name_en AS requested_user_last_name_en,
@@ -77,7 +76,6 @@ func (repo *AuditDocumentRequestRepository) GetAll(auditID uint, params *auditDT
         	created_user.color AS created_user_color,
         	created_user.email AS created_user_email,
         	created_user.profile_image_path AS created_user_profile_image_path,   
-			updated_user.id AS updated_user_id,
     		updated_user.first_name_en AS updated_user_first_name_en,
         	updated_user.first_name_ar AS updated_user_first_name_ar,
         	updated_user.last_name_en AS updated_user_last_name_en,
@@ -133,8 +131,17 @@ func (repo *AuditDocumentRequestRepository) GetAll(auditID uint, params *auditDT
 			audit_document_requests.description LIKE ? OR
 			organization_units.title_en LIKE ? OR
 			organization_units.title_ar LIKE ? OR
+			responsible_user.first_name_en LIKE ? OR
+            responsible_user.first_name_ar LIKE ? OR
+			responsible_user.last_name_en LIKE ? OR
+            responsible_user.last_name_ar LIKE ? OR
+			responsible_user.first_name_en LIKE ? OR
+            responsible_user.first_name_ar LIKE ? OR
+			responsible_user.last_name_en LIKE ? OR
+            responsible_user.last_name_ar LIKE ? OR
 			audit_document_request_statuses.title_en LIKE ? OR
 			audit_document_request_statuses.title_ar LIKE ?`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
@@ -190,6 +197,9 @@ func (repo *AuditDocumentRequestRepository) GetFullDetailsByID(id uint, tx ...ut
 	result := db.
 		Preload("Audit").
 		Preload("Audit.AuditPlan").
+		Preload("Audit.AuditPlan.TeamLead").
+		Preload("Audit.AuditPlan.Members").
+		Preload("Audit.AuditPlan.Members.User").
 		Preload("AuditDocumentRequestStatus").
 		Preload("AuditableItems").
 		Preload("AuditableItems.AuditableItem.AuditStatus").
@@ -202,6 +212,8 @@ func (repo *AuditDocumentRequestRepository) GetFullDetailsByID(id uint, tx ...ut
 		Preload("AuditableItems.AuditableItem.RiskRegister").
 		Preload("AuditableItems.AuditableItem.User").
 		Preload("AuditableItems.AuditableItem.ResponsibleUnit").
+		Preload("AuditableItems.AuditableItem.ResponsibleUser").
+		Preload("AuditableItems.AuditableItem.CreatedByUser").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUnit").
 		Preload("RequestedByUser").

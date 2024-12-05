@@ -92,12 +92,18 @@ func (repo *AuditFindingActionPlanStatusUpdateRepository) GetAll(auditFindingAct
 	query = query.Order(sortBy + " " + sort)
 	result := query.Find(&auditFindingActionPlanUpdates)
 
+	// Fetching documents for each audit finding action plan status updates
+	for _, update := range auditFindingActionPlanUpdates {
+		var documents []*models.AuditFindingActionPlanStatusUpdateDocument
+		repo.db.Model(&models.AuditFindingActionPlanStatusUpdateDocument{}).Where("audit_finding_action_plan_status_update_id = ?", update.ID).Find(&documents)
+		update.Documents = documents
+	}
 	return auditFindingActionPlanUpdates, result.Error
 }
 
 func (repo *AuditFindingActionPlanStatusUpdateRepository) GetByID(id uint) (*models.AuditFindingActionPlanStatusUpdate, error) {
 	var auditFindingActionPlanStatusUpdate *models.AuditFindingActionPlanStatusUpdate
-	result := repo.db.First(&auditFindingActionPlanStatusUpdate, id)
+	result := repo.db.Preload("Documents").First(&auditFindingActionPlanStatusUpdate, id)
 
 	if result.Error != nil {
 		return nil, result.Error

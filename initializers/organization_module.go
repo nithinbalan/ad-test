@@ -33,12 +33,14 @@ type OrganizationModule struct {
 	ControlReviewController                 *controllers.ControlReviewController
 	UserProfileController                   *controllers.UserProfileController
 
-	UserSvc               services.UserServiceInterface
-	UserSettingSvc        services.UserSettingServiceInterface
-	ControlSvc            services.ControlServiceInterface
-	ProcessSvc            services.ProcessServiceInterface
-	StrategicObjectiveSvc services.StrategicObjectiveServiceInterface
-	ControlTestSvc        services.ControlTestServiceInterface
+	UserSvc                        services.UserServiceInterface
+	UserSettingSvc                 services.UserSettingServiceInterface
+	ControlSvc                     services.ControlServiceInterface
+	ProcessSvc                     services.ProcessServiceInterface
+	StrategicObjectiveSvc          services.StrategicObjectiveServiceInterface
+	ControlTestSvc                 services.ControlTestServiceInterface
+	ControlImplementationStatusSvc services.ControlImplementationStatusServiceInterface
+	ControlEfficiencyStatusSvc     services.ControlEfficiencyStatusServiceInterface
 }
 
 func NewOrganizationModule(
@@ -81,7 +83,7 @@ func NewOrganizationModule(
 	userSettingController := controllers.NewUserSettingController(userSettingSvc)
 
 	strategicProfileRepo := repositories.NewStrategicProfileRepository(db)
-	strategicProfileSvc := services.NewStrategicProfileService(strategicProfileRepo, commonModule.FileRepo)
+	strategicProfileSvc := services.NewStrategicProfileService(strategicProfileRepo, commonModule.FileRepo, sharedModule.ActivityLogService)
 	strategicProfileController := controllers.NewStrategicProfileController(strategicProfileSvc)
 
 	strategicObjectiveRepo := repositories.NewStrategicObjectiveRepository(db)
@@ -195,11 +197,13 @@ func NewOrganizationModule(
 		ControlReviewController:                 controlReviewController,
 		UserProfileController:                   userProfileController,
 
-		UserSvc:               userSvc,
-		UserSettingSvc:        userSettingSvc,
-		ControlSvc:            controlSvc,
-		ProcessSvc:            processSvc,
-		StrategicObjectiveSvc: strategicObjectiveSvc,
-		ControlTestSvc:        controlTestSvc,
+		UserSvc:                        userSvc,
+		UserSettingSvc:                 userSettingSvc,
+		ControlSvc:                     controlSvc,
+		ProcessSvc:                     processSvc,
+		StrategicObjectiveSvc:          strategicObjectiveSvc,
+		ControlTestSvc:                 controlTestSvc,
+		ControlImplementationStatusSvc: controlImplementationStatusSvc,
+		ControlEfficiencyStatusSvc:     controlEfficiencyStatusSvc,
 	}
 }

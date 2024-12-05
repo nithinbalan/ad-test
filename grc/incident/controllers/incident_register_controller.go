@@ -7,6 +7,7 @@ import (
 	"jethur/grc/incident/services"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -260,6 +261,72 @@ func (irc *IncidentRegisterController) DeleteIncidentRegisters(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (irc *IncidentRegisterController) GetIncidentRegisterDocumentPreview(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	incidentDocumentPath, err := irc.service.GetDocumentPath(uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(irc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(incidentDocumentPath)
+}
+
+func (irc *IncidentRegisterController) DownloadIncidentRegisterDocument(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	incidentDocumentPath, err := irc.service.GetDocumentPath(uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(irc.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(incidentDocumentPath)
+
+	// Set the content type and disposition headers for the file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	// Serve the file
+	c.File(incidentDocumentPath)
 }
 
 func (irc *IncidentRegisterController) GetIncidentRegisterExport(c *gin.Context) {

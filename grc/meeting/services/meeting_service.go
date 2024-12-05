@@ -273,7 +273,7 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 			SeverityLevelID:   actionPlan.SeverityLevelID,
 			ResponsibleUserID: actionPlan.ResponsibleUserID,
 			// TargetDate:         actionPlan.TargetDate,
-			Percentage:         *actionPlan.Percentage,
+			Percentage:         actionPlan.Percentage,
 			ActionPlanStatusID: actionPlan.ActionPlanStatusID,
 			CreatedByID:        currentUserID,
 		}
@@ -331,11 +331,19 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 	tx.Commit()
 
 	go func() {
-		err := ms.activityLogSvc.LogActivity(
+		existingMeeting, err := ms.GetFullDetailsByID(meeting.ID)
+		if err != nil {
+			utility.LogError("Failed to fetch meeting", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = ms.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.Meeting{}.TableName(),
 			id,
-			meetingFormDTO,
+			existingMeeting,
 			currentUserID,
 			nil,
 		)
@@ -353,7 +361,7 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
 		entity := "meeting"
-		action := "responsible-user-assign"
+		action := "participant-assign"
 
 		// Send notification to all participants
 		for _, participantID := range meetingFormDTO.UserIDs {
@@ -460,6 +468,12 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 
 func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *meetingDTOs.MeetingFormDTO) error {
 	tx := ms.repo.BeginTransaction()
+
+	oldMeeting, err := ms.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
 	if err := ms.validateMeetingFormDTO(meetingFormDTO); err != nil {
 		return err
@@ -786,24 +800,194 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 	tx.Commit()
 
 	go func() {
-		err := ms.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.Meeting{}.TableName(),
-			id,
-			meetingFormDTO,
-			currentUserID,
-			nil,
-		)
+		existingReviewMeeting, err := ms.GetFullDetailsByID(id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.Meeting{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
+			return
+		}
+		// Determine control and document changes
+		controlsAdded := []uint{}
+		controlsRemoved := []uint{}
+		for id := range newControlIDs {
+			if !existingControlIDs[id] {
+				controlsAdded = append(controlsAdded, id)
 			}
+		}
+		for id := range existingControlIDs {
+			if !newControlIDs[id] {
+				controlsRemoved = append(controlsRemoved, id)
+			}
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		processesAdded := []uint{}
+		processesRemoved := []uint{}
+		for id := range newProcessIDs {
+			if !existingProcessIDs[id] {
+				processesAdded = append(processesAdded, id)
+			}
+		}
+		for id := range existingProcessIDs {
+			if !newProcessIDs[id] {
+				processesRemoved = append(processesRemoved, id)
+			}
+		}
+
+		incidentsAdded := []uint{}
+		incidentsRemoved := []uint{}
+		for id := range newIncidentIDs {
+			if !existingIncidentIDs[id] {
+				incidentsAdded = append(incidentsAdded, id)
+			}
+		}
+		for id := range existingIncidentIDs {
+			if !newIncidentIDs[id] {
+				incidentsRemoved = append(incidentsRemoved, id)
+			}
+		}
+
+		risksAdded := []uint{}
+		risksRemoved := []uint{}
+		for id := range newRiskIDs {
+			if !existingRiskIDs[id] {
+				risksAdded = append(risksAdded, id)
+			}
+		}
+		for id := range existingRiskIDs {
+			if !newRiskIDs[id] {
+				risksRemoved = append(risksRemoved, id)
+			}
+		}
+
+		requirementsAdded := []uint{}
+		requirementsRemoved := []uint{}
+		for id := range newRequirementIDs {
+			if !existingRequirementIDs[id] {
+				requirementsAdded = append(requirementsAdded, id)
+			}
+		}
+		for id := range existingRequirementIDs {
+			if !newRequirementIDs[id] {
+				requirementsRemoved = append(requirementsRemoved, id)
+			}
+		}
+
+		participantsAdded := []uint{}
+		participantsRemoved := []uint{}
+		for id := range newParticipantIDs {
+			if !existingParticipantIDs[id] {
+				participantsAdded = append(participantsAdded, id)
+			}
+		}
+		for id := range existingParticipantIDs {
+			if !newParticipantIDs[id] {
+				participantsRemoved = append(participantsRemoved, id)
+			}
+		}
+
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
+
+		if len(controlsAdded) > 0 || len(controlsRemoved) > 0 {
+			associatedItems["control_ids"] = map[string]interface{}{
+				"added":   controlsAdded,
+				"removed": controlsRemoved,
+			}
+		}
+
+		if len(processesAdded) > 0 || len(processesRemoved) > 0 {
+			associatedItems["process_ids"] = map[string]interface{}{
+				"added":   processesAdded,
+				"removed": processesRemoved,
+			}
+		}
+
+		if len(incidentsAdded) > 0 || len(incidentsRemoved) > 0 {
+			associatedItems["incident_ids"] = map[string]interface{}{
+				"added":   incidentsAdded,
+				"removed": incidentsRemoved,
+			}
+		}
+
+		if len(risksAdded) > 0 || len(risksRemoved) > 0 {
+			associatedItems["risk_ids"] = map[string]interface{}{
+				"added":   risksAdded,
+				"removed": risksRemoved,
+			}
+		}
+
+		if len(requirementsAdded) > 0 || len(requirementsRemoved) > 0 {
+			associatedItems["requirement_ids"] = map[string]interface{}{
+				"added":   requirementsAdded,
+				"removed": requirementsRemoved,
+			}
+		}
+
+		if len(participantsAdded) > 0 || len(participantsRemoved) > 0 {
+			associatedItems["participant_ids"] = map[string]interface{}{
+				"added":   participantsAdded,
+				"removed": participantsRemoved,
+			}
+		}
+
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+		//log changes
+		oldData := map[string]interface{}{
+			"title":             oldMeeting.Title,
+			"description":       oldMeeting.Description,
+			"location":          oldMeeting.Location,
+			"date":              oldMeeting.DateString,
+			"start_time":        oldMeeting.StartTime,
+			"end_time":          oldMeeting.EndTime,
+			"organizer":         fmt.Sprintf("%s %s", oldMeeting.Organizer.FirstNameEN, oldMeeting.Organizer.LastNameEN),
+			"is_public":         oldMeeting.IsPublic,
+			"meeting_type":      oldMeeting.MeetingType.TitleEn,
+			"meeting_frequency": utility.GetFieldValue(oldMeeting.MeetingFrequency).(string),
+			"meeting_status":    oldMeeting.MeetingStatus.TitleEn,
+		}
+
+		newData := map[string]interface{}{
+			"title":             existingReviewMeeting.Title,
+			"description":       existingReviewMeeting.Description,
+			"location":          existingReviewMeeting.Location,
+			"date":              existingReviewMeeting.DateString,
+			"start_time":        existingReviewMeeting.StartTime,
+			"end_time":          existingReviewMeeting.EndTime,
+			"organizer":         fmt.Sprintf("%s %s", existingReviewMeeting.Organizer.FirstNameEN, existingReviewMeeting.Organizer.LastNameEN),
+			"is_public":         existingReviewMeeting.IsPublic,
+			"meeting_type":      existingReviewMeeting.MeetingType.TitleEn,
+			"meeting_frequency": utility.GetFieldValue(existingReviewMeeting.MeetingFrequency).(string),
+			"meeting_status":    existingReviewMeeting.MeetingStatus.TitleEn,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+
+			err := ms.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.Meeting{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.Meeting{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 
 		createdBy, err := ms.userSvc.GetByID(currentUserID)
@@ -843,9 +1027,9 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 		}
 
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
-		entity := "control"
-		removeAction := "responsible-user-remove"
-		assignAction := "responsible-user-assign"
+		entity := "meeting"
+		removeAction := "participant-remove"
+		assignAction := "participant-assign"
 		appURL := utility.GetAppURL()
 
 		for _, removedUserID := range removedParticipants {
@@ -970,6 +1154,7 @@ func (ms *MeetingService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedMeeting []map[string]interface{}
 
 	for _, id := range ids {
 		// Fetch meeting details including participants
@@ -982,7 +1167,7 @@ func (ms *MeetingService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 		// Notify participants about the meeting deletion
 		if len(meeting.Participants) > 0 {
 			entity := "meeting"
-			action := "meeting-deleted"
+			action := "delete"
 			urlParam := fmt.Sprintf(`{"id":%d}`, id)
 
 			// Loop through participants to send notifications and emails
@@ -1119,6 +1304,10 @@ func (ms *MeetingService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedMeeting = append(deletedMeeting, map[string]interface{}{
+			"id":    id,
+			"title": meeting.Title,
+		})
 	}
 
 	if len(failedIds) > 0 {
@@ -1134,7 +1323,7 @@ func (ms *MeetingService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 				models.DeleteAction,
 				models.Meeting{}.TableName(),
 				successfulIds,
-				nil,
+				deletedMeeting,
 				currentUserID,
 				nil,
 			)

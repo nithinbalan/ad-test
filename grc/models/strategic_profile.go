@@ -35,3 +35,7 @@ type StrategicProfile struct {
 
 	StrategicProfileValues []StrategicProfileValue `json:"strategic_profile_values" gorm:"foreignKey:StrategicProfileID"`
 }
+
+func (StrategicProfile) TableName() string {
+	return "strategic_profiles"
+}

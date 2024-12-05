@@ -109,6 +109,7 @@ type DocumentFormDTO struct {
 
 type DocumentDetailsDTO struct {
 	ID                    int                              `json:"id"`
+	ReferenceNumber       string                           `json:"reference_number"`
 	TitleEn               string                           `json:"title_en"`
 	TitleAr               string                           `json:"title_ar"`
 	DescriptionEn         *string                          `json:"description_en"`
@@ -127,7 +128,7 @@ type DocumentDetailsDTO struct {
 	CreatedByUser         organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser         *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 	CreatedAt             time.Time                        `json:"created_at"`
-	UpdatedAt             time.Time                        `json:"updated_at"`
+	UpdatedAt             *time.Time                       `json:"updated_at"`
 	Acknowledged          *bool                            `json:"acknowledged,omitempty"`
 }
 

@@ -27,6 +27,8 @@ type RiskImpactAnalysisGuidelineDTO struct {
 }
 
 type RiskAppetiteAlignmentDTO struct {
+	ID                           uint                            `json:"id"`
+	RiskEvaluationID             uint                            `json:"risk_evaluation_id"`
 	RiskAppetiteStatementID      uint                            `json:"risk_appetite_statement_id"`
 	RiskAppetiteToleranceLevelID uint                            `json:"risk_appetite_tolerance_level_id"`
 	RiskAppetiteStatement        RiskAppetiteStatementDetailsDTO `json:"risk_appetite_statement"`

@@ -3,12 +3,14 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -20,6 +22,7 @@ type ComplianceActionPlanStatusUpdateServiceInterface interface {
 	Create(ComplianceID uint, ComplianceActionPlanID uint, currentUserID uint, complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO) (uint, error)
 	Update(ComplianceID uint, ComplianceActionPlanID uint, id uint, currentUserID uint, complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO) error
 	GetLatestComplianceActionPlanStatusUpdate(complianceID uint, actionPlanID uint) (*complianceDTOs.ComplianceActionPlanStatusUpdateListDTO, error)
+	GetDocumentPath(complianceID uint, actionPlanID uint, id uint, token string) (string, error)
 }
 
 type ComplianceActionPlanStatusUpdateService struct {
@@ -177,6 +180,12 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 		return err
 	}
 
+	oldComplianceActionPlanStatusUpdate, err := casus.GetByID(ComplianceID, ComplianceActionPlanID, id)
+
+	if err != nil {
+		return err
+	}
+
 	existingComplianceActionPlanStatusUpdate, err := casus.GetByID(ComplianceID, ComplianceActionPlanID, id)
 
 	if err != nil {
@@ -289,6 +298,52 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 
 	tx.Commit()
 
+	go func() {
+		existingActionPlanstatusUpdate, err := casus.GetByID(ComplianceID, ComplianceActionPlanID, id)
+		if err != nil {
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"comment":    oldComplianceActionPlanStatusUpdate.Comment,
+			"percentage": oldComplianceActionPlanStatusUpdate.Percentage,
+		}
+
+		newData := map[string]interface{}{
+			"comment":    existingActionPlanstatusUpdate.Comment,
+			"percentage": existingActionPlanstatusUpdate.Percentage,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := casus.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.ComplianceActionPlanStatusUpdate{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.ComplianceActionPlanStatusUpdate{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
+
 	return nil
 }
 
@@ -307,4 +362,39 @@ func (capsus ComplianceActionPlanStatusUpdateService) GetLatestComplianceActionP
 	}
 
 	return capsus.repo.GetLatestComplianceActionPlanStatusUpdate(actionPlanID)
+}
+
+func (capsus *ComplianceActionPlanStatusUpdateService) GetDocumentPath(ComplianceID, ActionPlanID, id uint, token string) (string, error) {
+
+	existingComplianceActionplanStatusUpdate, err := capsus.GetByID(ComplianceID, ActionPlanID, id)
+	if err != nil {
+		return "", err
+	}
+	if len(existingComplianceActionplanStatusUpdate.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the compliance action plan")
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

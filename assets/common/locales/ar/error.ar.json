@@ -68,6 +68,10 @@
     "translation": "كلمة المرور لا تلبي المتطلبات"
   },
   {
+    "id": "password_mismatch",
+    "translation":"كلمة المرور القديمة غير صحيحة"
+  },
+  {
     "id": "invalid_otp",
     "translation": "كلمة المرور لمرة واحدة غير صالحة"
   },
@@ -114,6 +118,10 @@
 {
   "id": "already_associated",
   "translation": "تم ربط '{{.Field}}' بهذا الخطر بالفعل"
+},
+{
+  "id": "matrix_exists",
+  "translation": "مصفوفة الأهمية موجودة بالفعل لـ '{{.Field}}'"
 }
 
 ]

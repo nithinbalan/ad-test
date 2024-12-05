@@ -124,11 +124,15 @@ func (ircas *IncidentRootCauseAnalysisService) Create(incidentID uint, currentUs
 	tx.Commit()
 
 	go func() {
-		err := ircas.activityLogSvc.LogActivity(
+		existingIncidentRootCauseAnalysis, err := ircas.GetByID(incidentID, id)
+		if err != nil {
+			return
+		}
+		err = ircas.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.IncidentRootCauseAnalysis{}.TableName(),
 			id,
-			rootCauseAnalysisFormDTO,
+			existingIncidentRootCauseAnalysis,
 			currentUserID,
 			nil,
 		)
@@ -155,6 +159,10 @@ func (ircas *IncidentRootCauseAnalysisService) Update(incidentID uint, id uint, 
 	if _, err := ircas.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return err
 	}
+	oldIncidentRootCauseAnalysis, err := ircas.GetByID(incidentID, id)
+	if err != nil {
+		return err
+	}
 
 	existingIncidentRootCauseAnalysis, err := ircas.GetByID(incidentID, id)
 
@@ -176,6 +184,52 @@ func (ircas *IncidentRootCauseAnalysisService) Update(incidentID uint, id uint, 
 
 	tx.Commit()
 
+	go func() {
+		existingIncidentRootCauseAnalysis, err := ircas.GetByID(incidentID, id)
+		if err != nil {
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"question": oldIncidentRootCauseAnalysis.Question,
+			"answer":   oldIncidentRootCauseAnalysis.Answer,
+		}
+
+		newData := map[string]interface{}{
+			"question": existingIncidentRootCauseAnalysis.Question,
+			"answer":   existingIncidentRootCauseAnalysis.Answer,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := ircas.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.IncidentRootCauseAnalysis{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.IncidentRootCauseAnalysis{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
+
 	return nil
 }
 
@@ -187,6 +241,7 @@ func (ircas *IncidentRootCauseAnalysisService) Delete(incidentID uint, id uint, 
 	}
 
 	var failedId uint
+	var deletedIncidentRootCauseAnalysis []map[string]interface{}
 
 	entryToDelete, err := ircas.GetByID(incidentID, id)
 	if err != nil {
@@ -233,6 +288,10 @@ func (ircas *IncidentRootCauseAnalysisService) Delete(incidentID uint, id uint, 
 		fmt.Printf("Failed to update 'Why' values after deletion: %v\n", err)
 		return 0, err
 	}
+	deletedIncidentRootCauseAnalysis = append(deletedIncidentRootCauseAnalysis, map[string]interface{}{
+		"id":                   id,
+		"incident_register_id": incidentID,
+	})
 	tx.Commit()
 
 	// Log successful delete activity
@@ -241,7 +300,7 @@ func (ircas *IncidentRootCauseAnalysisService) Delete(incidentID uint, id uint, 
 			models.DeleteAction,
 			models.IncidentRootCauseAnalysis{}.TableName(),
 			id,
-			nil,
+			deletedIncidentRootCauseAnalysis,
 			currentUserID,
 			nil,
 		)

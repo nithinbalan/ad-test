@@ -6,15 +6,15 @@ import (
 
 type KRIRegister struct {
 	ID                uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	ReferenceNumber   string     `json:"reference_number"`
+	ReferenceNumber   *string    `json:"reference_number"`
 	KRICategoryID     uint       `json:"kri_category_id" binding:"required" gorm:"not null"`
 	ResponsibleUnitID uint       `json:"responsible_unit_id" binding:"required" gorm:"not null"`
 	ResponsibleUserID uint       `json:"responsible_user_id" gorm:"not null"`
 	ReviewFrequencyID uint       `json:"review_frequency_id" binding:"required" gorm:"not null"`
 	RiskLevelID       *uint      `json:"risk_level_id"`
-	UnitID            uint       `json:"unit_id" binding:"required" gorm:"not null"`
+	UnitID            *uint      `json:"unit_id" binding:"required" gorm:"not null"`
 	Title             string     `json:"title" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
-	Description       string     `json:"description" gorm:"type:nvarchar(max)"`
+	Description       *string    `json:"description" gorm:"type:nvarchar(max)"`
 	CalculationType   string     `json:"calculation_type" binding:"required,oneof=automatic, manual" gorm:"type:varchar(10);not null"`
 	LowThreshold      *int       `json:"low_threshold" gorm:"type:int;null"`
 	MediumThreshold   *int       `json:"medium_threshold" gorm:"type:int;null"`

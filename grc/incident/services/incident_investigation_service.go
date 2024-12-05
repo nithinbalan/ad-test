@@ -3,10 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	incidentDTOs "jethur/grc/incident/dtos"
 	incidentRepositories "jethur/grc/incident/repositories"
 	logServices "jethur/grc/logs/services"
 	organizationServices "jethur/grc/organization/services"
+	"os"
 	"time"
 
 	"jethur/grc/models"
@@ -25,6 +27,7 @@ type IncidentInvestigationServiceInterface interface {
 	Create(incidentID uint, currentUserID uint, incidentInvestigationFormDTO *incidentDTOs.IncidentInvestigationFormDTO) (uint, error)
 	Update(incidentID uint, currentUserID uint, incident *incidentDTOs.IncidentInvestigationFormDTO) error
 	Delete(incidentID uint, currentUserID uint) (uint, error)
+	GetDocumentPath(incidentID uint, token string) (string, error)
 }
 
 // Service and implementations
@@ -126,7 +129,7 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 		InitiatedAt:          dates.InitiatedAt,
 		TeamLeadID:           incidentInvestigationFormDTO.TeamLeadID,
 		ActionRecommendation: incidentInvestigationFormDTO.ActionRecommendation,
-		CreatedByID:          currentUserID,
+		CreatedBYID:          currentUserID,
 	}
 
 	id, err := iis.repo.Create(incidentInvestigation, tx)
@@ -182,7 +185,7 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 			return 0, err
 		}
 		// Construct the URL for the document
-		url := utility.GenerateDocumentURL("incident-investigations", strconv.FormatUint(uint64(incidentInvestigation.ID), 10), encryptedFilename)
+		url := utility.GenerateDocumentURL("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "investigations", strconv.FormatUint(uint64(incidentInvestigation.ID), 10), "documents")
 
 		// Create a new Incident Investigation Document instance
 		document := &models.IncidentInvestigationDocument{
@@ -205,7 +208,7 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 			return 0, err
 		}
 		for _, doc := range documents {
-			storagePath := filepath.Join("incident", "investigations", strconv.FormatUint(uint64(incidentInvestigation.ID), 10), "documents")
+			storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "investigations", strconv.FormatUint(uint64(incidentInvestigation.ID), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return 0, err
@@ -239,11 +242,18 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 	tx.Commit()
 
 	go func() {
-		err := iis.activityLogSvc.LogActivity(
+		existingIncidentInvestigation, err := iis.GetFullDetailsByID(incidentID)
+		if err != nil {
+			utility.LogError("Failed to fetch incident investigation", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = iis.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.IncidentInvestigation{}.TableName(),
 			id,
-			incidentInvestigationFormDTO,
+			existingIncidentInvestigation,
 			currentUserID,
 			nil,
 		)
@@ -276,6 +286,10 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 	if err != nil {
 		return err
 	}
+	oldIncidentInvestigation, err := iis.GetFullDetailsByID(incidentID)
+	if err != nil {
+		return err
+	}
 	// Update existing Incident Investigation
 	existingIncidentInvestigation, err := iis.repo.GetByID(incidentID)
 	if err != nil {
@@ -290,7 +304,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 	existingIncidentInvestigation.InitiatedAt = dates.InitiatedAt
 	existingIncidentInvestigation.TeamLeadID = incidentInvestigationFormDTO.TeamLeadID
 	existingIncidentInvestigation.ActionRecommendation = incidentInvestigationFormDTO.ActionRecommendation
-	existingIncidentInvestigation.UpdatedByID = &currentUserID
+	existingIncidentInvestigation.UpdatedBYID = &currentUserID
 
 	err = iis.repo.Update(existingIncidentInvestigation, tx)
 	if err != nil {
@@ -412,7 +426,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 				tx.Rollback()
 				return err
 			}
-			url := utility.GenerateDocumentURL("incident-investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), encryptedFilename)
+			url := utility.GenerateDocumentURL("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
 
 			document := &models.IncidentInvestigationDocument{
 				IncidentInvestigationID: existingIncidentInvestigation.ID,
@@ -458,7 +472,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 	//Store File
 	if len(documents) > 0 {
 		for _, doc := range documents {
-			storagePath := filepath.Join("incident", "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
+			storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return err
@@ -469,7 +483,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 	//Remove File
 	if len(documentsToDelete) > 0 {
 		for _, document := range documentsToDelete {
-			storagePath := filepath.Join("incident", "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
+			storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
 			if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 				tx.Rollback()
 				return err
@@ -480,25 +494,96 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 	tx.Commit()
 
 	go func() {
-		err := iis.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.IncidentInvestigation{}.TableName(),
-			incidentID,
-			incidentInvestigationFormDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingIncidentInvestigation, err := iis.GetFullDetailsByID(incidentID)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.IncidentInvestigation{}.TableName(),
-				"recordID":  incidentID,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		usersAdded := []uint{}
+		usersRemoved := []uint{}
+		for id := range newUserIDs {
+			if !existingUserIDs[id] {
+				usersAdded = append(usersAdded, id)
+			}
+		}
+		for id := range existingUserIDs {
+			if !newUserIDs[id] {
+				usersRemoved = append(usersRemoved, id)
+			}
+		}
+
+		findingsAdded := []string{}
+		findingsRemoved := []string{}
+		for id := range newFindingTitles {
+			if !existingFindingTitles[id] {
+				findingsAdded = append(findingsAdded, id)
+			}
+		}
+		for id := range existingFindingTitles {
+			if !newFindingTitles[id] {
+				findingsRemoved = append(findingsRemoved, id)
+			}
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
+
+		if len(usersAdded) > 0 || len(usersRemoved) > 0 {
+			associatedItems["user_ids"] = map[string]interface{}{
+				"added":   usersAdded,
+				"removed": usersRemoved,
+			}
+		}
+
+		if len(findingsAdded) > 0 || len(findingsRemoved) > 0 {
+			associatedItems["finding_titles"] = map[string]interface{}{
+				"added":   findingsAdded,
+				"removed": findingsRemoved,
+			}
+		}
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+		oldData := map[string]interface{}{
+			"description":           oldIncidentInvestigation.Description,
+			"initiated_at":          oldIncidentInvestigation.InitiatedAtString,
+			"team_lead":             fmt.Sprintf("%s %s", oldIncidentInvestigation.TeamLead.FirstNameEN, oldIncidentInvestigation.TeamLead.LastNameEN),
+			"action_recommendation": oldIncidentInvestigation.ActionRecommendation,
+		}
+
+		newData := map[string]interface{}{
+			"description":           existingIncidentInvestigation.Description,
+			"initiated_at":          existingIncidentInvestigation.InitiatedAtString,
+			"team_lead":             fmt.Sprintf("%s %s", existingIncidentInvestigation.TeamLead.FirstNameEN, existingIncidentInvestigation.TeamLead.LastNameEN),
+			"action_recommendation": existingIncidentInvestigation.ActionRecommendation,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := iis.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.IncidentInvestigation{}.TableName(),
+				existingIncidentInvestigation.ID,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.IncidentInvestigation{}.TableName(),
+					"recordID":  incidentID,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -508,6 +593,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 func (iis *IncidentInvestigationService) Delete(incidentID uint, currentUserID uint) (uint, error) {
 	tx := iis.repo.BeginTransaction()
 	var failedId uint
+	var deletedIncidentInvestigation []map[string]interface{}
 	documentsToDelete := make(map[uint][]*incidentDTOs.IncidentInvestigationDocumentDTO)
 
 	if _, err := iis.incidentRegisterSvc.GetByID(incidentID); err != nil {
@@ -583,7 +669,7 @@ func (iis *IncidentInvestigationService) Delete(incidentID uint, currentUserID u
 	if len(documentsToDelete) > 0 {
 		for incidentInvestigationID, documents := range documentsToDelete {
 			for _, doc := range documents {
-				storagePath := filepath.Join("incident", "investigations", strconv.FormatUint(uint64(incidentInvestigationID), 10), "documents")
+				storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "investigations", strconv.FormatUint(uint64(incidentInvestigationID), 10), "documents")
 				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 					tx.Rollback()
 					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
@@ -591,6 +677,10 @@ func (iis *IncidentInvestigationService) Delete(incidentID uint, currentUserID u
 			}
 		}
 	}
+	deletedIncidentInvestigation = append(deletedIncidentInvestigation, map[string]interface{}{
+		"id":                   incidentInvestigation.ID,
+		"incident_register_id": incidentID,
+	})
 	tx.Commit()
 	// Log successful delete activity
 	go func() {
@@ -598,7 +688,7 @@ func (iis *IncidentInvestigationService) Delete(incidentID uint, currentUserID u
 			models.DeleteAction,
 			models.IncidentInvestigation{}.TableName(),
 			uint(incidentInvestigation.ID),
-			nil,
+			deletedIncidentInvestigation,
 			currentUserID,
 			nil,
 		)
@@ -657,4 +747,43 @@ func (iis *IncidentInvestigationService) parseIncidentInvestigationDates(dto *in
 	}
 
 	return parsed, nil
+}
+
+func (iis *IncidentInvestigationService) GetDocumentPath(IncidentID uint, token string) (string, error) {
+	existingIncidentInvestigation, err := iis.GetFullDetailsByID(IncidentID)
+	if err != nil {
+		return "", err
+	}
+
+	if existingIncidentInvestigation == nil {
+		return "", errors.New("existing incident investigation not found")
+	}
+
+	if len(existingIncidentInvestigation.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the incident investigation")
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(IncidentID), 10), "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

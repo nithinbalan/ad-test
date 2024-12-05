@@ -43,6 +43,7 @@ func (repo *AuditPlanCommencementLetterRepository) GetAll(auditPlanID uint, keyw
 		audit_plan_commencement_letters.id,
 		audit_plan_commencement_letters.audit_plan_id,
 		audit_plan_commencement_letters.sent_at,
+		organization_units.id AS responsible_unit_id,
 		organization_units.title_en AS responsible_unit_title_en,
 		organization_units.title_ar AS responsible_unit_title_ar,
 		to_user.email AS to_user_email,

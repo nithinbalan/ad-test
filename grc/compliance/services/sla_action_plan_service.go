@@ -28,7 +28,7 @@ type SLAActionPlanServiceInterface interface {
 	Create(slaID uint, currentUserID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) (uint, error)
 	Update(slaID uint, id uint, currentUserID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) error
 	Delete(slaID uint, ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(slaID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
+	StatusUpdate(slaID uint, id uint, currentUserID uint, slaActionPlanStatusUpdateFormDTO *complianceDTOs.SLAActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
 	GetSLAActionPlanCountByStatus(slaID uint) ([]complianceDTOs.SLAActionPlanStatusCountResponseDTO, error)
 }
 
@@ -161,6 +161,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		SLAActionPlanID:    id,
 		ActionPlanStatusID: actionPlanStatusID,
 		Comment:            "Initial action plan status",
+		Percentage:         slaActionPlanFormDTO.Percentage,
 		CreatedByID:        currentUserID,
 	}
 
@@ -170,7 +171,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		return 0, err
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"sla_register_id":%d, "action_plan_id":%d}`, slaID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
 		ModuleIdentifier:  "compliance",
 		SLAActionPlanID:   &id,
@@ -191,11 +192,19 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 	tx.Commit()
 
 	go func() {
-		err := saps.activityLogSvc.LogActivity(
+		existingSlaActionPlan, err := saps.GetFullDetailsByID(slaID, id)
+		if err != nil {
+			utility.LogError("Failed to fetch compliance action plan", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = saps.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.SLAActionPlan{}.TableName(),
 			id,
-			slaActionPlanFormDTO,
+			existingSlaActionPlan,
 			currentUserID,
 			nil,
 		)
@@ -212,7 +221,8 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		}
 
 		// prepare notification
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		urlParam := fmt.Sprintf(`{"sla_register_id":%d, "action_plan_id":%d}`, slaID, id)
+		queryParam := ""
 		entity := "sla-action-plan"
 		action := "responsible-user-assign"
 
@@ -220,13 +230,14 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 			UserID:               slaActionPlanFormDTO.ResponsibleUserID,
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Sla Action Plan Assignment",
-			HeadingAr:            "تعيين خطة العمل لاتفاقية مستوى الخدمة (SLA)",
+			HeadingEn:            "Sla Action Plan Responsiblity Assigned",
+			HeadingAr:            "تم تعيين مسؤولية خطة عمل Sla",
 			TitleEn:              slaActionPlanFormDTO.Title,
 			TitleAr:              slaActionPlanFormDTO.Title,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
+			QueryParam:           queryParam,
 			IsSystemNotification: false,
 			CreatedByID:          &currentUserID,
 		}
@@ -295,6 +306,12 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 		return err
 	}
 
+	oldSLAActionPlan, err := saps.GetFullDetailsByID(slaID, id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	oldResponsibleUserID := existingSLAActionPlan.ResponsibleUserID
 
 	if err := saps.validateSLAActionPlanFormDTO(slaID, slaActionPlanFormDTO); err != nil {
@@ -325,7 +342,7 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 	}
 
 	// //update task
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"sla_register_id":%d, "action_plan_id":%d}`, slaID, id)
 
 	taskUpdateDTO := commonDTOs.TaskFormDTO{
 		Title:             slaActionPlanFormDTO.Title,
@@ -344,9 +361,73 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 	tx.Commit()
 
 	go func() {
+		existingActionPlan, err := saps.GetFullDetailsByID(slaID, id)
+		if err != nil {
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"title":              oldSLAActionPlan.Title,
+			"sla_check_question": utility.GetFieldValue(oldSLAActionPlan.SLACheckQuestion).(string),
+			"description":        oldSLAActionPlan.Description,
+			"severity_level":     oldSLAActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", oldSLAActionPlan.ResponsibleUser.FirstNameEN, oldSLAActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        fmt.Sprintf("%s %s", oldSLAActionPlan.ReviewUser.FirstNameEN, oldSLAActionPlan.ReviewUser.LastNameEN),
+			"target_date":        oldSLAActionPlan.TargetDateString,
+			"percentage":         oldSLAActionPlan.Percentage,
+			"comment":            oldSLAActionPlan.Comments,
+			"action_plan_status": oldSLAActionPlan.ActionPlanStatus.TitleEn,
+		}
+
+		fmt.Println(oldData)
+
+		newData := map[string]interface{}{
+			"title":              existingActionPlan.Title,
+			"sla_check_question": utility.GetFieldValue(existingActionPlan.SLACheckQuestion).(string),
+			"description":        existingActionPlan.Description,
+			"severity_level":     existingActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", existingActionPlan.ResponsibleUser.FirstNameEN, existingActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        fmt.Sprintf("%s %s", existingActionPlan.ReviewUser.FirstNameEN, existingActionPlan.ReviewUser.LastNameEN),
+			"target_date":        existingActionPlan.TargetDateString,
+			"percentage":         existingActionPlan.Percentage,
+			"comment":            existingActionPlan.Comments,
+			"action_plan_status": existingActionPlan.ActionPlanStatus.TitleEn,
+		}
+
+		fmt.Println(newData)
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := saps.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.SLAActionPlan{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.SLAActionPlan{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingSLAActionPlan.ResponsibleUserID {
-			urlParam := fmt.Sprintf(`{"id:%d"}`, id)
+			urlParam := fmt.Sprintf(`{"sla_register_id":%d, "action_plan_id":%d}`, slaID, id)
+			queryParam := ""
 			entity := "sla-action-plan"
 
 			oldResponsibleUserAction := "responsible-user-remove"
@@ -354,13 +435,14 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 				UserID:               oldResponsibleUserID,
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.InformationType),
-				HeadingEn:            "Sla Action Plan Removal",
-				HeadingAr:            "إزالة خطة العمل لاتفاقية مستوى الخدمة (SLA)",
+				HeadingEn:            "Sla Action Plan Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية خطة عمل Sla",
 				TitleEn:              existingSLAActionPlan.Title,
 				TitleAr:              existingSLAActionPlan.Title,
 				Entity:               &entity,
 				Action:               &oldResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
@@ -370,8 +452,8 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 				UserID:               existingSLAActionPlan.ResponsibleUserID,
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Sla Action Plan Assignment",
-				HeadingAr:            "تعيين خطة العمل لاتفاقية مستوى الخدمة (SLA)",
+				HeadingEn:            "Sla Action Plan Responsibility Assigned",
+				HeadingAr:            "تم تعيين مسؤولية خطة عمل Sla",
 				TitleEn:              existingSLAActionPlan.Title,
 				TitleAr:              existingSLAActionPlan.Title,
 				Entity:               &entity,
@@ -484,6 +566,7 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedSlaActionPlan []map[string]interface{}
 	var notifications []struct {
 		OwnerID         *uint
 		TitleEn         string
@@ -544,7 +627,11 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
-
+		deletedSlaActionPlan = append(deletedSlaActionPlan, map[string]interface{}{
+			"id":              id,
+			"sla_register_id": slaID,
+			"title":           slaActionPlan.Title,
+		})
 	}
 
 	if len(failedIds) > 0 {
@@ -560,7 +647,7 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 				models.DeleteAction,
 				models.SLARegister{}.TableName(),
 				successfulIds,
-				nil,
+				deletedSlaActionPlan,
 				currentUserID,
 				nil,
 			)
@@ -578,8 +665,8 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 					UserID:               *notification.OwnerID,
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.DeletionType),
-					HeadingEn:            "Sla Action Plan Deletion",
-					HeadingAr:            "حذف خطة العمل لاتفاقية مستوى الخدمة (SLA)",
+					HeadingEn:            "Sla Action Plan Deleted",
+					HeadingAr:            "تم حذف خطة عمل Sla",
 					TitleEn:              notification.TitleEn,
 					TitleAr:              notification.TitleAr,
 					Entity:               &entity,
@@ -632,13 +719,14 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 	return failedIds, nil
 }
 
-func (saps *SLAActionPlanService) StatusUpdate(slaID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error {
+func (saps *SLAActionPlanService) StatusUpdate(slaID uint, id uint, currentUserID uint, slaActionPlanStatusUpdateFormDTO *complianceDTOs.SLAActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error {
 	existingSLAActionPlan, err := saps.GetByID(slaID, id)
 	if err != nil {
 		return err
 	}
 
-	existingSLAActionPlan.ActionPlanStatusID = ActionPlanStatusID
+	existingSLAActionPlan.ActionPlanStatusID = slaActionPlanStatusUpdateFormDTO.ActionPlanStatusID
+	existingSLAActionPlan.Percentage = slaActionPlanStatusUpdateFormDTO.Percentage
 	existingSLAActionPlan.UpdatedByID = &currentUserID
 
 	err = saps.repo.Update(existingSLAActionPlan, tx)
@@ -653,7 +741,7 @@ func (saps *SLAActionPlanService) StatusUpdate(slaID uint, id uint, currentUserI
 	if err != nil {
 		return err
 	}
-	err = saps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, ActionPlanStatusID, isReviewUserNull, tx)
+	err = saps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, slaActionPlanStatusUpdateFormDTO.ActionPlanStatusID, isReviewUserNull, tx)
 	if err != nil {
 		return err
 	}

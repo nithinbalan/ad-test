@@ -46,6 +46,9 @@ func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.
 	deadlineFrom := c.Query("deadline_from")
 	deadlineTo := c.Query("deadline_to")
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, "Invalid page parameter")
@@ -69,6 +72,8 @@ func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.
 		QuickFilter:  quickFilter,
 		DeadlineFrom: deadlineFrom,
 		DeadlineTo:   deadlineTo,
+		DateFrom:     dateFrom,
+		DateTo:       dateTo,
 	}
 	complianceRequirements, err := crc.service.GetAll(&queryParams)
 

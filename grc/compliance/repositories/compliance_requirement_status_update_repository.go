@@ -104,7 +104,7 @@ func (repo *ComplianceRequirementStatusUpdateRepository) GetAll(complianceRequir
 
 func (repo *ComplianceRequirementStatusUpdateRepository) GetByID(id uint) (*models.ComplianceRequirementStatusUpdate, error) {
 	var complianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate
-	result := repo.db.First(&complianceRequirementStatusUpdate, id)
+	result := repo.db.Preload("Documents").First(&complianceRequirementStatusUpdate, id)
 
 	if result.Error != nil {
 		return nil, result.Error

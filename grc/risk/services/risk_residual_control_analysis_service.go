@@ -111,6 +111,8 @@ func (rcas *RiskResidualControlAnalysisService) Create(riskID uint, currentUserI
 	if err != nil {
 		return err
 	}
+	var controlAnalysis []*models.RiskControlAnalysis
+	var ids []uint
 
 	for _, riskControl := range riskControls {
 		control, err := rcas.controlSvc.GetByID(riskControl.ControlID)
@@ -131,6 +133,8 @@ func (rcas *RiskResidualControlAnalysisService) Create(riskID uint, currentUserI
 		if err != nil {
 			return err
 		}
+		controlAnalysis = append(controlAnalysis, riskControlAnalysis)
+		ids = append(ids, riskControlAnalysis.ID)
 	}
 	//Update timeline
 	//todo
@@ -156,6 +160,31 @@ func (rcas *RiskResidualControlAnalysisService) Create(riskID uint, currentUserI
 	}
 	tx.Commit()
 
+	go func() {
+
+		err = rcas.activityLogSvc.LogBulkActivities(
+			models.CreateAction,
+			models.RiskControlAnalysis{}.TableName(),
+			ids,
+			controlAnalysis,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.CreateAction,
+				"tableName": models.RiskControlAnalysis{}.TableName(),
+				"recordID":  ids,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+
+	}()
+
 	return nil
 }
 
@@ -167,6 +196,11 @@ func (rcas *RiskResidualControlAnalysisService) Update(riskID uint, id uint, cur
 	}
 
 	existingRiskControlAnalysis, err := rcas.GetByID(riskID, id)
+	if err != nil {
+		return err
+	}
+
+	oldControlAnalysis, err := rcas.GetFullDetailsByID(riskID, id)
 	if err != nil {
 		return err
 	}
@@ -191,6 +225,55 @@ func (rcas *RiskResidualControlAnalysisService) Update(riskID uint, id uint, cur
 
 	tx.Commit()
 
+	existingControlAnalysis, err := rcas.GetFullDetailsByID(riskID, id)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"control_efficiency_status":     oldControlAnalysis.ControlEfficiencyStatus.TitleEn,
+			"control_implementation_status": oldControlAnalysis.ControlImplementationStatus.TitleEn,
+			"control_test":                  oldControlAnalysis.ControlTestID,
+			"score":                         oldControlAnalysis.Score,
+		}
+
+		newData := map[string]interface{}{
+			"control_efficiency_status":     existingControlAnalysis.ControlEfficiencyStatus.TitleEn,
+			"control_implementation_status": existingControlAnalysis.ControlImplementationStatus.TitleEn,
+			"control_test":                  existingControlAnalysis.ControlTestID,
+			"score":                         existingControlAnalysis.Score,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			// Log the update activity
+			err := rcas.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.RiskControlAnalysis{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.RiskControlAnalysis{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				})
+			}
+		}
+	}()
+
 	return nil
 }
 
@@ -200,33 +283,15 @@ func (rcas *RiskResidualControlAnalysisService) Delete(riskID uint, ids []uint, 
 	var failedIds []uint
 	var successfulIds []uint
 
+	var deletedControlAnalysis []map[string]interface{}
+
 	for _, id := range ids {
 		riskControlAnalysis, err := rcas.GetByID(riskID, id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue
 		}
-		//Delete-> update timeline performedAt as null
-		//todo
-		timelineType, err := rcas.riskTimelineSvc.GetByType("residual_control_analysis")
-		if err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-		timelineStatus, err := rcas.riskTimelineSvc.GetByStatusType("pending")
-		if err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-		timelineFormDTO := &riskDTOs.RiskTimelineFormDTO{
-			PerformedByID:    nil,
-			TimelineStatusID: timelineStatus.ID,
-			PerformedAt:      nil,
-		}
-		if err := rcas.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, tx); err != nil {
-			tx.Rollback()
-			return nil, err
-		}
+
 		err = rcas.repo.Delete(riskControlAnalysis.ID, tx)
 		if err != nil {
 			tx.Rollback()
@@ -235,6 +300,33 @@ func (rcas *RiskResidualControlAnalysisService) Delete(riskID uint, ids []uint, 
 		}
 
 		successfulIds = append(successfulIds, id)
+
+		deletedControlAnalysis = append(deletedControlAnalysis, map[string]interface{}{
+			"id":               id,
+			"risk_register_id": riskID,
+		})
+	}
+
+	//Delete-> update timeline performedAt as null
+	//todo
+	timelineType, err := rcas.riskTimelineSvc.GetByType("residual_control_analysis")
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	timelineStatus, err := rcas.riskTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	timelineFormDTO := &riskDTOs.RiskTimelineFormDTO{
+		PerformedByID:    nil,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      nil,
+	}
+	if err := rcas.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
+		return nil, err
 	}
 
 	if len(successfulIds) > 0 {
@@ -244,7 +336,7 @@ func (rcas *RiskResidualControlAnalysisService) Delete(riskID uint, ids []uint, 
 				models.DeleteAction,
 				models.RiskControlAnalysis{}.TableName(),
 				successfulIds,
-				nil,
+				deletedControlAnalysis,
 				currentUserID,
 				nil,
 			)

@@ -23,8 +23,8 @@ type AuditableItem struct {
 	Type                    string     `json:"type" gorm:"type:nvarchar(50);not null;default:'custom';check:type in ('process', 'control', 'incident', 'risk', 'document', 'compliance_register', 'compliance_requirement', 'user', 'custom')"`
 	CreatedAt               time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt               *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedByID             uint       `json:"created_by_id" gorm:"not null"`
-	UpdatedByID             *uint      `json:"updated_by_id" gorm:"default:null"`
+	CreatedBYID             uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBYID             *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
 	Process               *Process               `gorm:"foreignKey:ProcessID"`
@@ -38,8 +38,8 @@ type AuditableItem struct {
 	AuditStatus           *AuditStatus           `gorm:"foreignKey:AuditStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUnit       *OrganizationUnit      `gorm:"foreignKey:ResponsibleUnitID"`
 	ResponsibleUser       *User                  `gorm:"foreignKey:ResponsibleUserID"`
-	CreatedByUser         *User                  `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser         *User                  `gorm:"foreignKey:UpdatedByID"`
+	CreatedByUser         *User                  `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser         *User                  `gorm:"foreignKey:UpdatedBYID"`
 }
 
 // TableName overrides the table name used by AuditableItem to `auditable_items`

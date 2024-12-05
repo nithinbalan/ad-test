@@ -13,6 +13,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	incidentRoutes.Use(middlewares.AuthMiddleware())
 
+	unauthenticatedRoutes := router.Group("/")
+
 	db := app.DB
 
 	incidentCategoryController := app.IncidentModule.IncidentCategoryController
@@ -64,6 +66,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.GET("/incident-statuses/:id", incidentStatusController.GetIncidentStatusDetails)
 
 	//Incident Register
+	unauthenticatedRoutes.GET("/incident-register/:id/document-preview", incidentRegisterController.GetIncidentRegisterDocumentPreview)
+	unauthenticatedRoutes.GET("/incident-register/:id/document-download", incidentRegisterController.DownloadIncidentRegisterDocument)
 	incidentRoutes.GET("/incident-register/export", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentRegisterController.GetIncidentRegisterExport)
 	incidentRoutes.GET("/incident-register", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentRegisterController.GetAllIncidentRegisters)
 	incidentRoutes.GET("/incident-register/:id", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentRegisterController.GetIncidentRegisterDetails)
@@ -76,6 +80,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.GET("/incident-investigation-statuses/:id", incidentInvestigationStatusController.GetIncidentInvestigationStatusDetails)
 
 	//Incident Investigation
+	unauthenticatedRoutes.GET("/incidents/:incidentID/investigation/document-preview", incidentInvestigationController.GetIncidentInvestigationDocumentPreview)
+	unauthenticatedRoutes.GET("/incidents/:incidentID/investigation/document-download", incidentInvestigationController.DownloadIncidentInvestigationDocument)
 	incidentRoutes.GET("/incidents/:incidentID/investigation", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentInvestigationController.GetIncidentInvestigationDetails)
 	incidentRoutes.POST("/incidents/:incidentID/investigation", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentInvestigationController.CreateIncidentInvestigation)
 	incidentRoutes.PUT("/incidents/:incidentID/investigation", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentInvestigationController.UpdateIncidentInvestigation)
@@ -91,6 +97,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.POST("/incidents/:incidentID/action-plans/delete", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "modify"), incidentActionPlanController.DeleteIncidentActionPlans)
 
 	//Incident Action Plan Status Updates
+	unauthenticatedRoutes.GET("/incidents/:incidentID/action-plans/:actionPlanId/status-updates/:id/document-preview", incidentActionPlanStatusUpdateController.GetIncidentActionPlanStatusUpdateDocumentPreview)
+	unauthenticatedRoutes.GET("/incidents/:incidentID/action-plans/:actionPlanId/status-updates/:id/document-download", incidentActionPlanStatusUpdateController.DownloadIncidentActionPlanStatusUpdateDocument)
 	incidentRoutes.GET("/incidents/:incidentID/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "view"), incidentActionPlanStatusUpdateController.GetAllIncidentActionPlanStatusUpdates)
 	incidentRoutes.POST("/incidents/:incidentID/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "modify"), incidentActionPlanStatusUpdateController.CreateIncidentActionPlanStatusUpdate)
 	incidentRoutes.PUT("/incidents/:incidentID/action-plans/:actionPlanId/status-updates/:id", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "modify"), incidentActionPlanStatusUpdateController.UpdateIncidentActionPlanStatusUpdate)
@@ -132,6 +140,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.GET("/incidents/:incidentID/processes", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentAssociatedItemController.GetAllIncidentProcesses)
 	incidentRoutes.GET("/incidents/:incidentID/slas", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentAssociatedItemController.GetAllIncidentSLAs)
 	incidentRoutes.GET("/incidents/:incidentID/documents", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentAssociatedItemController.GetAllIncidentDocuments)
+	incidentRoutes.GET("/incidents/:incidentID/assets", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentAssociatedItemController.GetAllIncidentAssets)
 
 	//Incident timelines
 	incidentRoutes.GET("/incidents/:incidentID/timelines", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentTimelineController.GetAllIncidentTimelines)

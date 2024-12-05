@@ -68,3 +68,18 @@ func (spc *SystemPreferenceController) UpdateSystemPreference(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+func (spc *SystemPreferenceController) GetOrganizationPreference(c *gin.Context) {
+	quickFilter := c.QueryArray("quick_filter")
+	queryParams := settingDTOs.IntegrationListQueryParamsDTO{
+		QuickFilter: quickFilter,
+	}
+
+	organizationPreference, err := spc.service.GetOrganizationPreference(&queryParams)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, organizationPreference)
+}

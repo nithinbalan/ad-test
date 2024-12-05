@@ -3,12 +3,14 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -20,6 +22,7 @@ type AuditFindingActionPlanStatusUpdateServiceInterface interface {
 	Create(auditFindingID uint, auditFindingActionPlanID uint, currentUserID uint, auditFindingActionPlanStatusUpdateFormDTO *auditDTOs.AuditFindingActionPlanStatusUpdateFormDTO) (uint, error)
 	Update(auditFindingID uint, auditFindingActionPlanID uint, id uint, currentUserID uint, auditFindingActionPlanStatusUpdateFormDTO *auditDTOs.AuditFindingActionPlanStatusUpdateFormDTO) error
 	GetLatestAuditFindingActionPlanStatusUpdate(auditFindingID uint, actionPlanID uint) (*auditDTOs.AuditFindingActionPlanStatusUpdateListDTO, error)
+	GetDocumentPath(auditFindingID uint, auditFindingActionPlanID uint, id uint, token string) (string, error)
 }
 
 type AuditFindingActionPlanStatusUpdateService struct {
@@ -92,7 +95,7 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Create(auditFindingID uint
 		return 0, err
 	}
 
-	err = afs.auditFindingActionPlanSvc.StatusUpdate(auditFindingID, auditFindingActionPlanID, currentUserID, auditFindingActionPlanStatusUpdateFormDTO.ActionPlanStatusID, tx)
+	err = afs.auditFindingActionPlanSvc.StatusUpdate(auditFindingID, auditFindingActionPlanID, currentUserID, auditFindingActionPlanStatusUpdateFormDTO, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -109,7 +112,7 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Create(auditFindingID uint
 			return 0, err
 		}
 
-		url := utility.GenerateDocumentURL("audit-findings", strconv.FormatUint(uint64(auditFindingID), 10), "action-plans", strconv.FormatUint(uint64(auditFindingActionPlanID), 10), "status-updates", encryptedFilename)
+		url := utility.GenerateDocumentURL("audit", "audit-findings", strconv.FormatUint(uint64(auditFindingID), 10), "action-plans", strconv.FormatUint(uint64(auditFindingActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
 		document := &models.AuditFindingActionPlanStatusUpdateDocument{
 			AuditFindingActionPlanStatusUpdateID: id,
@@ -213,7 +216,7 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Update(auditFindingID uint
 			}
 
 			//genereate URL
-			url := utility.GenerateDocumentURL("audit-findings", strconv.FormatUint(uint64(auditFindingID), 10), "action-plans", strconv.FormatUint(uint64(auditFindingActionPlanID), 10), "status-updates", encryptedFileName)
+			url := utility.GenerateDocumentURL("audit", "audit-findings", strconv.FormatUint(uint64(auditFindingID), 10), "action-plans", strconv.FormatUint(uint64(auditFindingActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			// Create a new Control test Document instance
 			document := &models.AuditFindingActionPlanStatusUpdateDocument{
 				AuditFindingActionPlanStatusUpdateID: id,
@@ -296,4 +299,39 @@ func (afs *AuditFindingActionPlanStatusUpdateService) validateAuditFindingAction
 	}
 
 	return nil
+}
+
+func (afs *AuditFindingActionPlanStatusUpdateService) GetDocumentPath(auditFindingId uint, actionPlanId uint, id uint, token string) (string, error) {
+	existingAuditFindingActionPlanStatusUpdate, err := afs.GetByID(auditFindingId, actionPlanId, id)
+	if err != nil {
+		return "", err
+	}
+
+	if len(existingAuditFindingActionPlanStatusUpdate.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the audit finding action plan update")
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("audit", "audit-findings", strconv.FormatUint(uint64(auditFindingId), 10), "action-plans", strconv.FormatUint(uint64(actionPlanId), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

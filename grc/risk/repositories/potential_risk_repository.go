@@ -45,6 +45,7 @@ func (repo *PotentialRiskRepository) GetAll(params *riskDTOs.PotentialRiskListQu
 			severity_levels.color_code AS severity_level_color_code,
 			potential_risk_statuses.title_en AS potential_risk_status_title_en,
 			potential_risk_statuses.title_ar AS potential_risk_status_title_ar,
+			potential_risk_statuses.type AS potential_risk_status_type,
 			potential_risk_statuses.color_code AS potential_risk_status_color_code,
         	created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,

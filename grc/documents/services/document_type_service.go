@@ -65,10 +65,11 @@ func (dts *DocumentTypeService) Create(currentUserID uint, documentType *models.
 	}
 
 	workflow := &models.Workflow{
-		DocumentTypeID: &createdDocumentType.ID,
-		Type:           "document",
-		CreatedByID:    currentUserID,
-		Status:         "active",
+		DocumentTypeID:   &createdDocumentType.ID,
+		ModuleIdentifier: "document",
+		Type:             "document",
+		CreatedByID:      currentUserID,
+		Status:           "active",
 	}
 
 	err = dts.repo.CreateWorkflow(workflow, tx) // Create the workflow passing the transaction

@@ -213,7 +213,8 @@ func (aps *AuditPlanCommencementLetterService) Delete(auditPlanID uint, letterID
 
 func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID uint, currentUserID uint, commencementLetterSendFormDTO *auditDTOs.AuditPlanCommencementLetterSendFormDTO) error {
 	// Validate if the audit plan exists
-	if _, err := aps.auditPlanSvc.GetByID(auditPlanID); err != nil {
+	auditPlan, err := aps.auditPlanSvc.GetByID(auditPlanID)
+	if err != nil {
 		return err
 	}
 
@@ -304,16 +305,16 @@ func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID u
 		}
 
 		// Prepare DB Notification (unchanged)
-		entity := "audit-plan-commencement-letter"
-		action := "send"
+		entity := "audit-plan"
+		action := "send-commencement-letter"
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserID:               commencementLetterSendFormDTO.ToUserID,
 			ModuleIdentifier:     "audit",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Audit Commencement Letter Sent",
 			HeadingAr:            "تم إرسال خطاب بدء التدقيق",
-			TitleEn:              existingCommencementLetter.SubjectEn,
-			TitleAr:              existingCommencementLetter.SubjectAr,
+			TitleEn:              auditPlan.Title,
+			TitleAr:              auditPlan.Title,
 			Entity:               &entity,
 			Action:               &action,
 			IsSystemNotification: false,

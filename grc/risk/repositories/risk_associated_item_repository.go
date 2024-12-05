@@ -15,6 +15,8 @@ type RiskAssociatedItemRepositoryInterface interface {
 	GetAllSLAs(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemSLAListResponseDTO, error)
 	GetAllIncidents(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemIncidentListResponseDTO, error)
 	GetAllDocuments(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemDocumentListResponseDTO, error)
+	GetAllAssets(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemAssetListResponseDTO, error)
+	GetAllThreats(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemThreatListResponseDTO, error)
 }
 
 type RiskAssociatedItemRepository struct {
@@ -631,5 +633,240 @@ func (repo *RiskAssociatedItemRepository) GetAllDocuments(riskID uint, params *r
 			TotalCount:  totalCount,
 		},
 	}
+	return response, nil
+}
+
+func (repo *RiskAssociatedItemRepository) GetAllAssets(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemAssetListResponseDTO, error) {
+	var riskAssets []*riskDTOs.RiskAssetListDTO
+	var totalCount int64
+
+	query := repo.db.Table("risk_assets").
+		Select(`
+		risk_assets.id,
+		asset_register.reference_number,
+		asset_register.title_en,
+		asset_register.title_ar,
+		asset_register.location,
+		asset_register.description,
+		CONVERT(VARCHAR, asset_register.acquisition_date, 23) AS acquisition_date,
+		asset_types.title_en AS asset_type_title_en,
+		asset_types.title_ar AS asset_type_title_ar,
+		asset_categories.title_en AS asset_category_title_en,
+		asset_categories.title_ar AS asset_category_title_ar,
+		asset_statuses.title_en AS asset_status_title_en,
+		asset_statuses.title_ar AS asset_status_title_ar,
+		asset_statuses.color_code AS asset_status_color_code,
+		organization_units.title_en AS responsible_unit_title_en,
+		organization_units.title_ar AS responsible_unit_title_ar,
+		responsible_user.id AS responsible_user_id,
+		responsible_user.first_name_en AS responsible_user_first_name_en,
+		responsible_user.first_name_ar AS responsible_user_first_name_ar,
+		responsible_user.last_name_en AS responsible_user_last_name_en,
+		responsible_user.last_name_ar AS responsible_user_last_name_ar,
+		responsible_user.initial AS responsible_user_initial,
+		responsible_user.color AS responsible_user_color,
+		responsible_user.email AS responsible_user_email,
+		responsible_user.profile_image_path AS responsible_user_profile_image_path,
+		created_user.id AS created_user_id,
+		created_user.first_name_en AS created_user_first_name_en,
+		created_user.first_name_ar AS created_user_first_name_ar,
+		created_user.last_name_en AS created_user_last_name_en,
+		created_user.last_name_ar AS created_user_last_name_ar,
+		created_user.initial AS created_user_initial,
+		created_user.color AS created_user_color,
+		created_user.email AS created_user_email,
+		created_user.profile_image_path AS created_user_profile_image_path,
+		updated_user.id AS updated_user_id,
+		updated_user.first_name_en AS updated_user_first_name_en,
+		updated_user.first_name_ar AS updated_user_first_name_ar,
+		updated_user.last_name_en AS updated_user_last_name_en,
+		updated_user.last_name_ar AS updated_user_last_name_ar,
+		updated_user.initial AS updated_user_initial,
+		updated_user.color AS updated_user_color,
+		updated_user.email AS updated_user_email,
+		updated_user.profile_image_path AS updated_user_profile_image_path
+	`).
+		Joins("LEFT JOIN asset_register ON asset_register.id = risk_assets.asset_register_id").
+		Joins("LEFT JOIN asset_types ON asset_types.id = asset_register.asset_type_id").
+		Joins("LEFT JOIN asset_categories ON asset_categories.id = asset_register.asset_category_id").
+		Joins("LEFT JOIN asset_statuses ON asset_statuses.id = asset_register.asset_status_id").
+		Joins("LEFT JOIN organization_units ON organization_units.id = asset_register.responsible_unit_id").
+		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = asset_register.responsible_user_id").
+		Joins("LEFT JOIN users AS created_user ON created_user.id = asset_register.created_by_id").
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = asset_register.updated_by_id").
+		Where("risk_assets.risk_register_id = ?", riskID)
+
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		query = query.Where(`
+			(asset_register.title_en LIKE ? OR
+			asset_register.title_ar LIKE ? OR
+			asset_register.reference_number LIKE ? OR
+			asset_register.description LIKE ? OR
+			asset_types.title_en LIKE ? OR
+			asset_types.title_ar LIKE ? OR
+			asset_categories.title_en LIKE ? OR
+			asset_categories.title_ar LIKE ? OR
+			asset_statuses.title_en LIKE ? OR
+			asset_statuses.title_ar LIKE ?)`,
+
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "asset_register.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&riskAssets).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &riskDTOs.RiskAssociatedItemAssetListResponseDTO{
+		Items: riskAssets,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+}
+
+func (repo *RiskAssociatedItemRepository) GetAllThreats(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemThreatListResponseDTO, error) {
+	var riskThreats []*riskDTOs.ThreatListDTO
+	var totalCount int64
+
+	// Query the database
+	query := repo.db.Table("risk_threats").
+		Select(`
+			risk_threats.id,
+			threats.title_en,
+			threats.title_ar,
+			threat_types.title_en AS threat_type_title_en,
+			threat_types.title_ar AS threat_type_title_ar,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
+			threat_statuses.title_en AS threat_status_title_en,
+			threat_statuses.title_ar AS threat_status_title_ar,
+			threat_statuses.color_code AS threat_status_color_code,
+			threat_statuses.type AS threat_status_type,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			threats.description,
+			threats.source,
+			CONVERT(VARCHAR, threats.detection_date, 23) AS detection_date,
+			CONVERT(VARCHAR, threats.resolution_date, 23) AS resolution_date,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path
+		`).
+		Joins("LEFT JOIN threats ON threats.id = risk_threats.threat_id").
+		Joins("LEFT JOIN threat_types ON threat_types.id = threats.threat_type_id").
+		Joins("LEFT JOIN severity_levels ON severity_levels.id = threats.severity_level_id").
+		Joins("LEFT JOIN threat_statuses ON threat_statuses.id = threats.threat_status_id").
+		Joins("LEFT JOIN organization_units ON organization_units.id = threats.responsible_unit_id").
+		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = threats.responsible_user_id").
+		Joins("LEFT JOIN users AS created_user ON created_user.id = threats.created_by_id").
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = threats.updated_by_id").
+		Where("risk_threats.risk_register_id = ?", riskID)
+
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Apply search filters
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(threats.title_en LIKE ? OR
+			threats.title_ar LIKE ? OR
+			threat_types.title_en LIKE ? OR
+			threat_types.title_ar LIKE ? OR
+			severity_levels.title_en LIKE ? OR
+			severity_levels.title_ar LIKE ? OR
+			threat_statuses.title_en LIKE ? OR
+			threat_statuses.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+		)
+	}
+
+	// Apply sorting
+	if params.SortBy == "" {
+		params.SortBy = "threats.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	// Apply pagination
+	offset := (params.Page - 1) * params.PageSize
+	query = query.Offset(offset).Limit(params.PageSize)
+
+	// Fetch the data
+	if err := query.Find(&riskThreats).Error; err != nil {
+		return nil, err
+	}
+
+	// Calculate total pages
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	// Build the response
+	response := &riskDTOs.RiskAssociatedItemThreatListResponseDTO{
+		Items: riskThreats,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
 	return response, nil
 }

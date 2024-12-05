@@ -3,12 +3,14 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	incidentDTOs "jethur/grc/incident/dtos"
 	"jethur/grc/incident/repositories"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -20,6 +22,7 @@ type IncidentActionPlanStatusUpdateServiceInterface interface {
 	Create(IncidentID uint, IncidentActionPlanID uint, currentUserID uint, incidentActionPlanStatusUpdateFormDTO *incidentDTOs.IncidentActionPlanStatusUpdateFormDTO) (uint, error)
 	Update(IncidentID uint, IncidentActionPlanID uint, id uint, currentUserID uint, incidentActionPlanStatusUpdateFormDTO *incidentDTOs.IncidentActionPlanStatusUpdateFormDTO) error
 	GetLatestIncidentActionPlanStatusUpdate(incidentID uint, actionPlanID uint) (*incidentDTOs.IncidentActionPlanStatusUpdateListDTO, error)
+	GetDocumentPath(incidentID uint, actionPlanID uint, id uint, token string) (string, error)
 }
 
 type IncidentActionPlanStatusUpdateService struct {
@@ -94,7 +97,7 @@ func (iasus *IncidentActionPlanStatusUpdateService) Create(IncidentID uint, Inci
 		return 0, err
 	}
 
-	err = iasus.incidentActionPlanSvc.StatusUpdate(IncidentID, IncidentActionPlanID, currentUserID, incidentActionPlanStatusUpdateFormDTO.ActionPlanStatusID, tx)
+	err = iasus.incidentActionPlanSvc.StatusUpdate(IncidentID, IncidentActionPlanID, currentUserID, incidentActionPlanStatusUpdateFormDTO, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -111,7 +114,7 @@ func (iasus *IncidentActionPlanStatusUpdateService) Create(IncidentID uint, Inci
 			return 0, err
 		}
 
-		url := utility.GenerateDocumentURL("incidents", strconv.FormatUint(uint64(IncidentID), 10), "action-plans", strconv.FormatUint(uint64(IncidentActionPlanID), 10), "status-updates", encryptedFilename)
+		url := utility.GenerateDocumentURL("incident", "incident-register", strconv.FormatUint(uint64(IncidentID), 10), "action-plans", strconv.FormatUint(uint64(IncidentActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
 		document := &models.IncidentActionPlanStatusUpdateDocument{
 			IncidentActionPlanStatusUpdateID: id,
@@ -177,6 +180,12 @@ func (iasus *IncidentActionPlanStatusUpdateService) Update(IncidentID uint, Inci
 		return err
 	}
 
+	oldIncidentActionPlanStatusUpdate, err := iasus.GetByID(IncidentID, IncidentActionPlanID, id)
+
+	if err != nil {
+		return err
+	}
+
 	existingIncidentActionPlanStatusUpdate, err := iasus.GetByID(IncidentID, IncidentActionPlanID, id)
 
 	if err != nil {
@@ -215,7 +224,7 @@ func (iasus *IncidentActionPlanStatusUpdateService) Update(IncidentID uint, Inci
 			}
 
 			//genereate URL
-			url := utility.GenerateDocumentURL("incidents", strconv.FormatUint(uint64(IncidentID), 10), "action-plans", strconv.FormatUint(uint64(IncidentActionPlanID), 10), "status-updates", encryptedFileName)
+			url := utility.GenerateDocumentURL("incident", "incident-register", strconv.FormatUint(uint64(IncidentID), 10), "action-plans", strconv.FormatUint(uint64(IncidentActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			// Create a new Control test Document instance
 			document := &models.IncidentActionPlanStatusUpdateDocument{
 				IncidentActionPlanStatusUpdateID: id,
@@ -279,6 +288,52 @@ func (iasus *IncidentActionPlanStatusUpdateService) Update(IncidentID uint, Inci
 	}
 
 	tx.Commit()
+	go func() {
+		existingActionPlanstatusUpdate, err := iasus.GetByID(IncidentID, IncidentActionPlanID, id)
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"comment":    oldIncidentActionPlanStatusUpdate.Comment,
+			"percentage": oldIncidentActionPlanStatusUpdate.Percentage,
+		}
+
+		newData := map[string]interface{}{
+			"comment":    existingActionPlanstatusUpdate.Comment,
+			"percentage": existingActionPlanstatusUpdate.Percentage,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := iasus.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.IncidentActionPlanStatusUpdate{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.IncidentActionPlan{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 
 	return nil
 }
@@ -298,4 +353,39 @@ func (iasus *IncidentActionPlanStatusUpdateService) validateIncidentActionPlanSt
 	}
 
 	return nil
+}
+
+func (iasus *IncidentActionPlanStatusUpdateService) GetDocumentPath(IncidentID uint, IncidentActionPlanID uint, id uint, token string) (string, error) {
+	existingIncidentActionplanStatusUpdate, err := iasus.GetByID(IncidentID, IncidentActionPlanID, id)
+	if err != nil {
+		return "", err
+	}
+
+	if len(existingIncidentActionplanStatusUpdate.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the incident action plan")
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(IncidentID), 10), "action-plans", strconv.FormatUint(uint64(IncidentActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

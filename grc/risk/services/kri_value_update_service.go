@@ -87,9 +87,9 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 	}
 	kriValueUpdate := &models.KRIValueUpdate{
 		KRIRegisterID:   kriRegisterID,
-		UnitID:          existingKRIRegister.UnitID,
+		UnitID:          *existingKRIRegister.UnitID,
 		ReviewedDate:    *dates.ReviewedDate,
-		Value:           kriValueUpdateFormDTO.Value,
+		Value:           &kriValueUpdateFormDTO.Value,
 		LowThreshold:    existingKRIRegister.LowThreshold,
 		MediumThreshold: existingKRIRegister.MediumThreshold,
 		HighThreshold:   existingKRIRegister.HighThreshold,
@@ -160,11 +160,19 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 	tx.Commit()
 
 	go func() {
-		err := kvus.activityLogSvc.LogActivity(
+		existingKriValueUpdate, err := kvus.GetFullDetailsByID(kriValueUpdate.ID)
+		if err != nil {
+			utility.LogError("Failed to fetch kri value update", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = kvus.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.KRIValueUpdate{}.TableName(),
 			id,
-			kriValueUpdate,
+			existingKriValueUpdate,
 			currentUserID,
 			nil,
 		)
@@ -194,9 +202,9 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 					return
 				}
 				// Prepare notification and email
-				urlParam := fmt.Sprintf(`{"id":%d}`, id)
+				urlParam := fmt.Sprintf(`{"id":%d}`, kriRegisterID)
 				entity := "kri-value-update"
-				action := "responsible-user-assign"
+				action := "value-update-high"
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 					UserID:               existingRisk.ResponsibleUserID,
 					ModuleIdentifier:     "risk",
@@ -282,6 +290,11 @@ func (kvus KRIValueUpdateService) GetFullDetailsByID(id uint) (*riskDTOs.KRIValu
 func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) error {
 	tx := kvus.repo.BeginTransaction()
 
+	oldKriValueUpdate, err := kvus.GetFullDetailsByID(updateId)
+	if err != nil {
+		return err
+	}
+
 	existingKRIRegister, err := kvus.kriRegisterSvc.GetByID(kriRegisterID)
 	if err != nil {
 		tx.Rollback()
@@ -304,8 +317,8 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 	// Update KRI Value Update
 	existingKRIUpdate.KRIRegisterID = kriRegisterID
 	existingKRIUpdate.ReviewedDate = *dates.ReviewedDate
-	existingKRIUpdate.UnitID = existingKRIRegister.UnitID
-	existingKRIUpdate.Value = kriValueUpdateFormDTO.Value
+	existingKRIUpdate.UnitID = *existingKRIRegister.UnitID
+	existingKRIUpdate.Value = &kriValueUpdateFormDTO.Value
 	existingKRIUpdate.Remarks = kriValueUpdateFormDTO.Remarks
 
 	err = kvus.repo.Update(existingKRIUpdate, tx)
@@ -401,25 +414,50 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 
 	tx.Commit()
 	go func() {
-		err := kvus.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.KRIValueUpdate{}.TableName(),
-			updateId,
-			existingKRIUpdate,
-			currentUserID,
-			nil,
-		)
-
+		existingKriValueUpdate, err := kvus.GetFullDetailsByID(updateId)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.KRIValueUpdate{}.TableName(),
-				"recordID":  updateId,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"review_date": oldKriValueUpdate.ReviewedDateString,
+			"value":       oldKriValueUpdate.Value,
+			"remarks":     oldKriValueUpdate.Remarks,
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		newData := map[string]interface{}{
+			"review_date": existingKriValueUpdate.ReviewedDateString,
+			"value":       existingKriValueUpdate.Value,
+			"remarks":     existingKriValueUpdate.Remarks,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err = kvus.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.KRIValueUpdate{}.TableName(),
+				updateId,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.KRIValueUpdate{}.TableName(),
+					"recordID":  updateId,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 		kriValue := kriValueUpdateFormDTO.Value
 		if existingKRIRegister.HighThreshold != nil && kriValue > *existingKRIRegister.HighThreshold {
@@ -435,9 +473,9 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 					return
 				}
 				// Prepare notification and email
-				urlParam := fmt.Sprintf(`{"id":%d}`, updateId)
+				urlParam := fmt.Sprintf(`{"id":%d}`, kriRegisterID)
 				entity := "kri-value-update"
-				action := "responsible-user-assign"
+				action := "value-update-high"
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 					UserID:               existingRisk.ResponsibleUserID,
 					ModuleIdentifier:     "risk",
@@ -513,6 +551,7 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 		Description     string
 		ReferenceNumber string
 	}
+	var deletedKriValueUpdate []map[string]interface{}
 
 	documentsToDelete := make(map[uint][]*models.KRIValueUpdateDocument)
 
@@ -543,6 +582,11 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedKriValueUpdate = append(deletedKriValueUpdate, map[string]interface{}{
+			"id":              id,
+			"kri_register_id": kriRegisterID,
+		})
 	}
 
 	if len(failedIds) > 0 {
@@ -576,7 +620,7 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 		}
 
 		if nextValueUpdate != nil && nextValueUpdate.ID != 0 {
-			existingKRIRegister.CurrentValue = &nextValueUpdate.Value
+			existingKRIRegister.CurrentValue = nextValueUpdate.Value
 			existingKRIRegister.LastReviewNote = nextValueUpdate.Remarks
 			existingKRIRegister.LastReviewedDate = &nextValueUpdate.ReviewedDate
 			existingKRIRegister.NextReviewDate = utility.CalculateNextReviewDate(reviewFrequency.Type)
@@ -602,8 +646,8 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 				}{
 					OwnerID:         &existingRisk.ResponsibleUserID,
 					TitleEn:         existingKRIRegister.Title,
-					Description:     existingKRIRegister.Description,
-					ReferenceNumber: existingKRIRegister.ReferenceNumber,
+					Description:     *existingKRIRegister.Description,
+					ReferenceNumber: *existingKRIRegister.ReferenceNumber,
 				})
 
 				// Send DB and email notifications for each successfully deleted risk register
@@ -702,8 +746,8 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 				}{
 					OwnerID:         &existingRisk.ResponsibleUserID,
 					TitleEn:         existingKRIRegister.Title,
-					Description:     existingKRIRegister.Description,
-					ReferenceNumber: existingKRIRegister.ReferenceNumber,
+					Description:     *existingKRIRegister.Description,
+					ReferenceNumber: *existingKRIRegister.ReferenceNumber,
 				})
 
 				// Send DB and email notifications for each successfully deleted risk register
@@ -789,7 +833,7 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.KRIValueUpdate{}.TableName(),
 				successfulIds,
-				nil,
+				deletedKriValueUpdate,
 				currentUserID,
 				nil,
 			)

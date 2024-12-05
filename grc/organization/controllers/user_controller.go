@@ -55,6 +55,7 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		"organization_unit_4_ids",
 		"organization_unit_5_ids",
 		"user_status_ids",
+		"organization_unit_ids", // to get users based on primary organization level
 	}
 
 	validSortFields := map[string]string{
@@ -86,6 +87,9 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		return
 	}
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
 	dbField, valid := validSortFields[sortBy]
 	if !valid {
 		err := errors.New("invalid 'sort_by' parameter")
@@ -104,6 +108,8 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 
 	users, err := uc.service.GetAll(&queryParams)
@@ -471,11 +477,14 @@ func (uc *UserController) GetUserPermissions(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
+	quickFilter := []string{"active"}
 
 	queryParams := settingDTOs.ModuleListQueryParamsDTO{
-		Sort:    sort,
-		SortBy:  sortBy,
-		Keyword: keyword,
+		Sort:              sort,
+		SortBy:            sortBy,
+		Keyword:           keyword,
+		QuickFilter:       quickFilter,
+		IsActiveSubModule: true,
 	}
 
 	permissions, err := uc.service.GetUserPermissions(currentUserID, &queryParams)

@@ -159,11 +159,19 @@ func (icls *IncidentCommunicationLogService) Create(incidentID uint, currentUser
 	tx.Commit()
 
 	go func() {
-		err := icls.activityLogSvc.LogActivity(
+		existingIncidentCommunicationLog, err := icls.GetFullDetailsByID(incidentID, id)
+		if err != nil {
+			utility.LogError("Failed to fetch incident communication log", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = icls.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.IncidentCommunicationLog{}.TableName(),
 			id,
-			incidentCommunicationLogFormDTO,
+			existingIncidentCommunicationLog,
 			currentUserID,
 			nil,
 		)
@@ -195,6 +203,11 @@ func (icls *IncidentCommunicationLogService) Update(incidentID uint, id uint, cu
 		return err
 	}
 
+	oldIncidentCommunicationLog, err := icls.GetFullDetailsByID(incidentID, id)
+	if err != nil {
+		return err
+	}
+
 	dates, err := icls.parseIncidentCommunicationLogDates(incidentCommunicationLogFormDTO)
 	if err != nil {
 		return err
@@ -218,25 +231,54 @@ func (icls *IncidentCommunicationLogService) Update(incidentID uint, id uint, cu
 	tx.Commit()
 
 	go func() {
-		err := icls.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.IncidentCommunicationLog{}.TableName(),
-			id,
-			incidentCommunicationLogFormDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingCommunicationLog, err := icls.GetFullDetailsByID(incidentID, id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.IncidentCommunicationLog{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"communicated_at":      oldIncidentCommunicationLog.CommunicatedAtString,
+			"communicated_by":      oldIncidentCommunicationLog.CommunicatedBy,
+			"communicated_to":      oldIncidentCommunicationLog.CommunicatedTo,
+			"communication_method": oldIncidentCommunicationLog.CommunicationMethod,
+			"summary":              oldIncidentCommunicationLog.Summary,
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		newData := map[string]interface{}{
+			"communicated_at":      existingCommunicationLog.CommunicatedAtString,
+			"communicated_by":      existingCommunicationLog.CommunicatedBy,
+			"communicated_to":      existingCommunicationLog.CommunicatedTo,
+			"communication_method": existingCommunicationLog.CommunicationMethod,
+			"summary":              existingCommunicationLog.Summary,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := icls.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.IncidentCommunicationLog{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.IncidentCommunicationLog{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -252,6 +294,7 @@ func (icls *IncidentCommunicationLogService) Delete(incidentID uint, ids []uint,
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedIncidentCommunicationLog []map[string]interface{}
 	for _, id := range ids {
 
 		_, err := icls.repo.GetByID(id)
@@ -293,6 +336,10 @@ func (icls *IncidentCommunicationLogService) Delete(incidentID uint, ids []uint,
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedIncidentCommunicationLog = append(deletedIncidentCommunicationLog, map[string]interface{}{
+			"id":                   id,
+			"incident_register_id": incidentID,
+		})
 	}
 	tx.Commit()
 
@@ -303,7 +350,7 @@ func (icls *IncidentCommunicationLogService) Delete(incidentID uint, ids []uint,
 				models.DeleteAction,
 				models.IncidentCommunicationLog{}.TableName(),
 				successfulIds,
-				nil,
+				deletedIncidentCommunicationLog,
 				currentUserID,
 				nil,
 			)

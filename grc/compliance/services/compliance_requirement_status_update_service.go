@@ -3,11 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -19,6 +21,7 @@ type ComplianceRequirementStatusUpdateServiceInterface interface {
 	Create(ComplianceID uint, ComplianceRequirementID uint, currentUserID uint, complianceRequirementStatusUpdateFormDTO *complianceDTOs.ComplianceRequirementStatusUpdateFormDTO) (uint, error)
 	Update(ComplianceID uint, ComplianceRequirementID uint, id uint, currentUserID uint, ComplianceRequirementStatusUpdateFormDTO *complianceDTOs.ComplianceRequirementStatusUpdateFormDTO) error
 	GetLatestComplianceRequirementStatusUpdate(complianceID uint, requirementID uint) (*complianceDTOs.ComplianceRequirementStatusUpdateListDTO, error)
+	GetDocumentPath(complianceID uint, requirementID uint, id uint, token string) (string, error)
 }
 
 // Service and implementations
@@ -186,6 +189,12 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 		return err
 	}
 
+	oldComplianceRequirementStatusUpdate, err := crsus.GetByID(ComplianceID, ComplianceRequirementID, id)
+
+	if err != nil {
+		return err
+	}
+
 	//@todo validate document form
 
 	// Update Compliance StatusUpdate -- update comment only
@@ -278,6 +287,50 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 	}
 
 	tx.Commit()
+	go func() {
+		existingActionPlanstatusUpdate, err := crsus.GetByID(ComplianceID, ComplianceRequirementID, id)
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"comment": oldComplianceRequirementStatusUpdate.Comment,
+		}
+
+		newData := map[string]interface{}{
+			"comment": existingActionPlanstatusUpdate.Comment,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := crsus.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.ComplianceRequirementStatusUpdate{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.ComplianceRequirementStatusUpdate{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 
 	return nil
 }
@@ -297,4 +350,39 @@ func (crsus ComplianceRequirementStatusUpdateService) GetLatestComplianceRequire
 	}
 
 	return crsus.repo.GetLatestComplianceRequirementStatusUpdate(requirementID)
+}
+
+func (crsus *ComplianceRequirementStatusUpdateService) GetDocumentPath(ComplianceID, requirementID, id uint, token string) (string, error) {
+
+	existingComplianceRequirementStatusUpdate, err := crsus.GetByID(ComplianceID, requirementID, id)
+	if err != nil {
+		return "", err
+	}
+	if len(existingComplianceRequirementStatusUpdate.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the compliance requirement")
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(requirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

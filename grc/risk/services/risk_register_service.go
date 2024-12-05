@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"jethur/config"
+	assetServices "jethur/grc/asset/services"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	complianceServices "jethur/grc/compliance/services"
@@ -37,6 +39,8 @@ type RiskRegisterServiceInterface interface {
 	UpdateRiskRating(riskID uint, currentUserID uint, riskEvaluationDetails *models.RiskEvaluation, tx utility.DatabaseTransaction, evaluationType string) error
 	ClearRiskRating(riskID uint, updateDTO *riskDTOs.RiskRegisterRiskRatingUpdateDTO, tx utility.DatabaseTransaction) error
 
+	GetDocumentPath(id uint, token string) (string, error)
+
 	ExportRiskRegister(data []*riskDTOs.RiskRegisterListDTO, currentUserID uint) (*os.File, error)
 }
 
@@ -58,6 +62,7 @@ type RiskRegisterService struct {
 	riskTimelineSvc          RiskTimelineServiceInterface
 	userSettingSvc           organizationServices.UserSettingServiceInterface
 	notificationSvc          commonServices.NotificationServiceInterface
+	assetRegisterSvc         assetServices.AssetRegisterServiceInterface
 }
 
 func NewRiskRegisterService(
@@ -77,6 +82,7 @@ func NewRiskRegisterService(
 	riskTimelineSvc RiskTimelineServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	assetRegisterSvc assetServices.AssetRegisterServiceInterface,
 ) RiskRegisterServiceInterface {
 	return &RiskRegisterService{
 		repo:                     repo,
@@ -95,6 +101,7 @@ func NewRiskRegisterService(
 		riskTimelineSvc:          riskTimelineSvc,
 		userSettingSvc:           userSettingSvc,
 		notificationSvc:          notificationSvc,
+		assetRegisterSvc:         assetRegisterSvc,
 	}
 }
 
@@ -104,7 +111,6 @@ func (rrs *RiskRegisterService) GetAll(params *riskDTOs.RiskRegisterListQueryPar
 
 func (rrs RiskRegisterService) GetByID(id uint) (*models.RiskRegister, error) {
 	risk, err := rrs.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -118,7 +124,6 @@ func (rrs RiskRegisterService) GetFullDetailsByID(id uint, tx ...utility.Databas
 	var riskDTO riskDTOs.RiskRegisterDetailDTO
 
 	risk, err := rrs.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -130,6 +135,18 @@ func (rrs RiskRegisterService) GetFullDetailsByID(id uint, tx ...utility.Databas
 	if err != nil {
 		return nil, err
 	}
+	// Map the latest auditable item
+	if len(risk.AuditableItems) > 0 {
+		latestAuditableItem := risk.AuditableItems[0]
+		var auditableItemDTO riskDTOs.AuditableItemMinimalRiskDetailDTO
+		err := mapstructure.Decode(latestAuditableItem, &auditableItemDTO)
+		if err != nil {
+			return nil, err
+		}
+		riskDTO.AuditableItem = &auditableItemDTO
+		riskDTO.AuditableItem.CreatedAt = latestAuditableItem.CreatedAt
+		riskDTO.AuditableItem.UpdatedAt = latestAuditableItem.UpdatedAt
+	}
 
 	if risk.ReportedAt != nil {
 		reportedAt := risk.ReportedAt.Format("2006-01-02")
@@ -140,6 +157,9 @@ func (rrs RiskRegisterService) GetFullDetailsByID(id uint, tx ...utility.Databas
 		nextReviewDate := risk.NextReviewDate.Format("2006-01-02")
 		riskDTO.NextReviewDateString = &nextReviewDate
 	}
+
+	riskDTO.CreatedAt = risk.CreatedAt
+	riskDTO.UpdatedAt = risk.UpdatedAt
 
 	return &riskDTO, nil
 }
@@ -310,8 +330,42 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		}
 	}
 
-	//Add timeline
-	//todo
+	var assets []*models.RiskAsset
+	for _, ast := range riskRegisterFormDTO.AssetIds {
+		asset := &models.RiskAsset{
+			RiskRegisterID:  id,
+			AssetRegisterID: *ast,
+			CreatedByID:     currentUserID,
+		}
+		assets = append(assets, asset)
+	}
+
+	if len(assets) > 0 {
+		if err := rrs.repo.CreateRiskAssets(assets, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	var threats []*models.RiskThreat
+	for _, threatID := range riskRegisterFormDTO.ThreatIds {
+		threat := &models.RiskThreat{
+			RiskRegisterID: id,
+			ThreatID:       *threatID,
+			CreatedByID:    currentUserID,
+		}
+		threats = append(threats, threat)
+	}
+
+	if len(threats) > 0 {
+		if err := rrs.repo.CreateRiskThreats(threats, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	// Add timeline
+	// todo
 	timelineTypes, err := rrs.riskTimelineSvc.GetAllTypes()
 	if err != nil {
 		tx.Rollback()
@@ -377,7 +431,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		}
 
 		// Construct the URL for the document
-		url := utility.GenerateDocumentURL("risk-register", strconv.FormatUint(uint64(riskRegister.ID), 10), encryptedFilename)
+		url := utility.GenerateDocumentURL("risk", "risk-register", strconv.FormatUint(uint64(riskRegister.ID), 10), "documents")
 
 		// Create a new RiskDocument instance
 		document := &models.RiskDocument{
@@ -412,15 +466,23 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 	tx.Commit()
 
 	go func() {
-		err := rrs.activityLogSvc.LogActivity(
+		existingRiskRegister, err := rrs.GetFullDetailsByID(riskRegister.ID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// log
+		err = rrs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.RiskRegister{}.TableName(),
 			id,
-			riskRegisterFormDTO,
+			existingRiskRegister,
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -441,9 +503,10 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			UserID:               riskRegisterFormDTO.ResponsibleUserID,
 			ModuleIdentifier:     "risk",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Risk Register Assignment",
-			HeadingAr:            "تعيين سجل المخاطر",
+			HeadingEn:            "Risk Register Responsibility Assigned",
+			HeadingAr:            "مسؤولية تسجيل المخاطر المعينة",
 			TitleEn:              riskRegisterFormDTO.Title,
+			ReferenceNumber:      referenceNumber,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
@@ -470,9 +533,9 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		emailData := map[string]interface{}{
 			"FirstNameEn":          responsibleUser.FirstNameEn,
 			"LastNameEn":           responsibleUser.LastNameEn,
-			"RiskReferenceNumber":  riskRegister.ReferenceNumber,
-			"RiskTitle":            riskRegister.Title,
-			"RiskDescription":      riskRegister.Description,
+			"RiskReferenceNumber":  existingRiskRegister.ReferenceNumber,
+			"RiskTitle":            existingRiskRegister.Title,
+			"RiskDescription":      existingRiskRegister.Description,
 			"CreatedByFirstNameEn": createdBy.FirstNameEn,
 			"CreatedByLastNameEn":  createdBy.LastNameEn,
 			"AssignedOn":           time.Now().Format("2006-01-02"),
@@ -497,6 +560,12 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 
 func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegisterFormDTO *riskDTOs.RiskRegisterFormDTO) error {
 	tx := rrs.repo.BeginTransaction()
+
+	oldRiskRegister, err := rrs.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
 	if err := rrs.validateRiskRegisterFormDTO(riskRegisterFormDTO); err != nil {
 		return err
@@ -847,6 +916,106 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		}
 	}
 
+	existingAssetIDs := make(map[uint]bool)
+	for _, asset := range existingRisk.Assets {
+		existingAssetIDs[asset.AssetRegisterID] = true
+	}
+
+	// Collect new asset IDs
+	newAssetIDs := make(map[uint]bool)
+	for _, assetID := range riskRegisterFormDTO.AssetIds {
+		newAssetIDs[*assetID] = true
+	}
+
+	// Add new assets
+	var assetsToAdd []*models.RiskAsset
+	for _, newAssetID := range riskRegisterFormDTO.AssetIds {
+		if _, exists := existingAssetIDs[*newAssetID]; !exists {
+			// Create a new risk asset record
+			asset := &models.RiskAsset{
+				RiskRegisterID:  id,
+				AssetRegisterID: *newAssetID,
+				CreatedByID:     currentUserID,
+			}
+			assetsToAdd = append(assetsToAdd, asset)
+		}
+	}
+
+	// Save the new assets
+	if len(assetsToAdd) > 0 {
+		if err := rrs.repo.CreateRiskAssets(assetsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove assets not in the new list
+	var deleteAssetIDs []*uint
+	for _, existingAsset := range existingRisk.Assets {
+		if _, exists := newAssetIDs[existingAsset.AssetRegisterID]; !exists {
+			// Append asset ID to delete list
+			deleteAssetIDs = append(deleteAssetIDs, existingAsset.ID)
+		}
+	}
+
+	// Delete assets not in the new list
+	if len(deleteAssetIDs) > 0 {
+		if err := rrs.repo.DeleteRiskAssets(deleteAssetIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	existingThreatIDs := make(map[uint]bool)
+	for _, threat := range existingRisk.Threats {
+		existingThreatIDs[threat.ThreatID] = true
+	}
+
+	// Collect new threat IDs
+	newThreatIDs := make(map[uint]bool)
+	for _, threatID := range riskRegisterFormDTO.ThreatIds {
+		newThreatIDs[*threatID] = true
+	}
+
+	// Add new threats
+	var threatsToAdd []*models.RiskThreat
+	for _, newThreatID := range riskRegisterFormDTO.ThreatIds {
+		if _, exists := existingThreatIDs[*newThreatID]; !exists {
+			// Create a new risk threat record
+			threat := &models.RiskThreat{
+				RiskRegisterID: id,
+				ThreatID:       *newThreatID,
+				CreatedByID:    currentUserID,
+			}
+			threatsToAdd = append(threatsToAdd, threat)
+		}
+	}
+
+	// Save the new threats
+	if len(threatsToAdd) > 0 {
+		if err := rrs.repo.CreateRiskThreats(threatsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove threats not in the new list
+	var deleteThreatIDs []*uint
+	for _, existingThreat := range existingRisk.Threats {
+		if _, exists := newThreatIDs[existingThreat.ThreatID]; !exists {
+			// Append threat ID to delete list
+			deleteThreatIDs = append(deleteThreatIDs, existingThreat.ID)
+		}
+	}
+
+	// Delete threats not in the new list
+	if len(deleteThreatIDs) > 0 {
+		if err := rrs.repo.DeleteRiskThreats(deleteThreatIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	// Save Documents
 	// documents update
 	var documents []*models.RiskDocument
@@ -864,7 +1033,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 				return err
 			}
 
-			url := utility.GenerateDocumentURL("risk-register", strconv.FormatUint(uint64(id), 10), encryptedFilename)
+			url := utility.GenerateDocumentURL("risk", "risk-register", strconv.FormatUint(uint64(id), 10), "documents")
 			// Create a new RiskDocument instance
 			document := &models.RiskDocument{
 				RiskRegisterID: id,
@@ -929,24 +1098,180 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		}
 	}
 
+	tx.Commit()
+
 	go func() {
-		// Log the update activity
-		err := rrs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.RiskRegister{}.TableName(),
-			id,
-			riskRegisterFormDTO,
-			currentUserID,
-			nil,
-		)
-		if err != nil {
-			utility.LogError("Failed to log activity", map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.RiskRegister{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			})
+		// Determine control, process, compliant register, sla register, asset and document changes
+		controlsAdded := []uint{}
+		controlsRemoved := []uint{}
+		for id := range newControlIDs {
+			if !existingControlIDs[id] {
+				controlsAdded = append(controlsAdded, id)
+			}
+		}
+		for id := range existingControlIDs {
+			if !newControlIDs[id] {
+				controlsRemoved = append(controlsRemoved, id)
+			}
+		}
+
+		processesAdded := []uint{}
+		processesRemoved := []uint{}
+		for id := range newProcessIDs {
+			if !existingProcessIDs[id] {
+				processesAdded = append(processesAdded, id)
+			}
+		}
+		for id := range existingProcessIDs {
+			if !newProcessIDs[id] {
+				processesRemoved = append(processesRemoved, id)
+			}
+		}
+
+		compliantRequirementAdded := []uint{}
+		compliantRequirementRemoved := []uint{}
+		for id := range newComplianceRequirementIDs {
+			if !existingComplianceRequirementIDs[id] {
+				compliantRequirementAdded = append(compliantRequirementAdded, id)
+			}
+		}
+		for id := range existingComplianceRequirementIDs {
+			if !newComplianceRequirementIDs[id] {
+				compliantRequirementRemoved = append(compliantRequirementRemoved, id)
+			}
+		}
+
+		SLARegisterAdded := []uint{}
+		SLARegisterRemoved := []uint{}
+		for id := range newSLARegisterIDs {
+			if !existingSLARegisterIDs[id] {
+				SLARegisterAdded = append(SLARegisterAdded, id)
+			}
+		}
+		for id := range existingSLARegisterIDs {
+			if !newSLARegisterIDs[id] {
+				SLARegisterRemoved = append(SLARegisterRemoved, id)
+			}
+		}
+
+		AssetAdded := []uint{}
+		AssetRemoved := []uint{}
+		for id := range newAssetIDs {
+			if !existingAssetIDs[id] {
+				AssetAdded = append(AssetAdded, id)
+			}
+		}
+		for id := range existingAssetIDs {
+			if !newAssetIDs[id] {
+				AssetRemoved = append(AssetRemoved, id)
+			}
+		}
+
+		documentsAdded := []uint{}
+		documentsRemoved := []uint{}
+		for id := range newDocumentIDs {
+			if !existingDocumentIDs[id] {
+				documentsAdded = append(documentsAdded, id)
+			}
+		}
+		for id := range existingDocumentIDs {
+			if !newDocumentIDs[id] {
+				documentsRemoved = append(documentsRemoved, id)
+			}
+		}
+
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
+
+		if len(controlsAdded) > 0 || len(controlsRemoved) > 0 {
+			associatedItems["control_ids"] = map[string]interface{}{
+				"added":   controlsAdded,
+				"removed": controlsRemoved,
+			}
+		}
+
+		if len(processesAdded) > 0 || len(processesRemoved) > 0 {
+			associatedItems["process_ids"] = map[string]interface{}{
+				"added":   processesAdded,
+				"removed": processesRemoved,
+			}
+		}
+
+		if len(compliantRequirementAdded) > 0 || len(compliantRequirementRemoved) > 0 {
+			associatedItems["compliance_requirement_ids"] = map[string]interface{}{
+				"added":   compliantRequirementAdded,
+				"removed": compliantRequirementRemoved,
+			}
+		}
+
+		if len(SLARegisterAdded) > 0 || len(SLARegisterRemoved) > 0 {
+			associatedItems["sla_register_ids"] = map[string]interface{}{
+				"added":   SLARegisterAdded,
+				"removed": SLARegisterRemoved,
+			}
+		}
+
+		if len(AssetAdded) > 0 || len(AssetRemoved) > 0 {
+			associatedItems["asset_ids"] = map[string]interface{}{
+				"added":   AssetAdded,
+				"removed": AssetRemoved,
+			}
+		}
+
+		if len(documentsAdded) > 0 || len(documentsRemoved) > 0 {
+			associatedItems["document_ids"] = map[string]interface{}{
+				"added":   documentsAdded,
+				"removed": documentsRemoved,
+			}
+		}
+
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+		//log changes
+		oldData := map[string]interface{}{
+			"title":            oldRiskRegister.Title,
+			"description":      oldRiskRegister.Description,
+			"risk_categrory":   oldRiskRegister.RiskCategory.TitleEn,
+			"risk_source":      utility.GetFieldValue(oldRiskRegister.RiskSource).(string),
+			"reported_at":      oldRiskRegister.ReportedAtString,
+			"next_review_date": oldRiskRegister.NextReviewDateString,
+			"responsible_user": fmt.Sprintf("%s %s", oldRiskRegister.ResponsibleUser.FirstNameEN, oldRiskRegister.ResponsibleUser.LastNameEN),
+		}
+
+		newData := map[string]interface{}{
+			"title":            existingRisk.Title,
+			"description":      existingRisk.Description,
+			"risk_categrory":   existingRisk.RiskCategory.TitleEn,
+			"risk_source":      utility.GetFieldValue(existingRisk.RiskSource).(string),
+			"reported_at":      existingRisk.ReportedAtString,
+			"next_review_date": existingRisk.NextReviewDateString,
+			"responsible_user": fmt.Sprintf("%s %s", existingRisk.ResponsibleUser.FirstNameEN, existingRisk.ResponsibleUser.LastNameEN),
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := rrs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.RiskRegister{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action":   models.UpdateAction,
+					"error":    err.Error(),
+					"recordID": id,
+				})
+			}
 		}
 
 		// Send notifications to old and new responsible users if the responsible user has changed
@@ -964,6 +1289,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 				HeadingEn:            "Risk Register Responsibility Removed",
 				HeadingAr:            "تمت إزالة مسؤولية تسجيل المخاطر",
 				TitleEn:              existingRiskRegister.Title,
+				ReferenceNumber:      existingRiskRegister.ReferenceNumber,
 				Entity:               &entity,
 				Action:               &oldResponsibleUserAction,
 				URLParam:             urlParam,
@@ -980,6 +1306,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 				HeadingEn:            "Risk Register Responsibility Assigned",
 				HeadingAr:            "مسؤولية تسجيل المخاطر المعينة",
 				TitleEn:              existingRiskRegister.Title,
+				ReferenceNumber:      existingRiskRegister.ReferenceNumber,
 				Entity:               &entity,
 				Action:               &newResponsibleUserAction,
 				URLParam:             urlParam,
@@ -1075,31 +1402,6 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		}
 	}()
 
-	tx.Commit()
-
-	go func() {
-		err := rrs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.RiskRegister{}.TableName(),
-			id,
-			riskRegisterFormDTO,
-			currentUserID,
-			nil,
-		)
-
-		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.RiskRegister{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
-
-			utility.LogError("Failed to log activity", fields)
-		}
-	}()
-
 	return nil
 }
 
@@ -1115,6 +1417,9 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 		Description     string
 		ReferenceNumber string
 	}
+
+	var deletedRiskRegister []map[string]interface{}
+
 	documentsToDelete := make(map[uint][]*riskDTOs.RiskDocumentDTO)
 
 	for _, id := range ids {
@@ -1135,6 +1440,11 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 			TitleEn:         risk.Title,
 			Description:     *risk.Description,
 			ReferenceNumber: risk.ReferenceNumber,
+		})
+
+		deletedRiskRegister = append(deletedRiskRegister, map[string]interface{}{
+			"id":    id,
+			"title": risk.Title,
 		})
 		// Check if controls exist
 		if len(risk.Controls) > 0 {
@@ -1204,8 +1514,30 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 			}
 		}
 
-		//Delete timeline
-		//todo
+		if len(risk.Assets) > 0 {
+			var deleteAssetIds []*uint
+			for _, ast := range risk.Assets {
+				deleteAssetIds = append(deleteAssetIds, ast.ID)
+			}
+			if err := rrs.repo.DeleteRiskAssets(deleteAssetIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		if len(risk.Threats) > 0 {
+			var deleteThreatIds []*uint
+			for _, threat := range risk.Threats {
+				deleteThreatIds = append(deleteThreatIds, threat.ID)
+			}
+			if err := rrs.repo.DeleteRiskThreats(deleteThreatIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		// Delete timeline
+		// todo
 		if err := rrs.riskTimelineSvc.Delete(id, tx); err != nil {
 			tx.Rollback()
 			return nil, err
@@ -1263,7 +1595,7 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.RiskRegister{}.TableName(),
 				successfulIds,
-				nil,
+				deletedRiskRegister,
 				currentUserID,
 				nil,
 			)
@@ -1286,6 +1618,7 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 					HeadingEn:            "Risk Register Deleted",
 					HeadingAr:            "تم حذف سجل المخاطر",
 					TitleEn:              notification.TitleEn,
+					ReferenceNumber:      notification.ReferenceNumber,
 					Entity:               &entity,
 					Action:               &action,
 					URLParam:             urlParam,
@@ -1352,8 +1685,8 @@ func (rrs *RiskRegisterService) UpdateResponseStrategy(riskID uint, currentUserI
 		tx.Rollback()
 		return err
 	}
-	//update timeline
-	//todo
+	// update timeline
+	// todo
 	timelineType, err := rrs.riskTimelineSvc.GetByType("risk_response")
 	if err != nil {
 		tx.Rollback()
@@ -1395,8 +1728,8 @@ func (rrs *RiskRegisterService) DeleteResponseStrategy(riskID uint, currentUserI
 		tx.Rollback()
 		return err
 	}
-	//update timeline
-	//todo
+	// update timeline
+	// todo
 	timelineType, err := rrs.riskTimelineSvc.GetByType("risk_response")
 	if err != nil {
 		tx.Rollback()
@@ -1423,7 +1756,6 @@ func (rrs *RiskRegisterService) DeleteResponseStrategy(riskID uint, currentUserI
 }
 
 func (rrs *RiskRegisterService) GetControlPerformance(riskID uint) (map[string]float64, error) {
-
 	_, err := rrs.GetByID(riskID)
 	if err != nil {
 		return nil, err
@@ -1471,7 +1803,6 @@ func (rrs *RiskRegisterService) getControlScoreByType(riskID uint, controlType s
 }
 
 func (rrs *RiskRegisterService) UpdateRiskRating(riskID uint, currentUserID uint, riskEvaluationDetails *models.RiskEvaluation, tx utility.DatabaseTransaction, evaluationType string) error {
-
 	existingRisk, err := rrs.GetByID(riskID)
 	if err != nil {
 		tx.Rollback()
@@ -1763,6 +2094,22 @@ func (rrs *RiskRegisterService) validateRiskRegisterFormDTO(riskRegisterFormDTO 
 		strategicObjectiveIDs[*strategicObjectiveId] = true
 	}
 
+	assets := riskRegisterFormDTO.AssetIds
+	assetIDs := make(map[uint]bool)
+
+	for _, asset := range assets {
+		if assetIDs[*asset] {
+			return utility.NewValidationError(fmt.Errorf("duplicate asset ID: %d", asset), "duplicate", "asset")
+		}
+
+		if _, err := rrs.assetRegisterSvc.GetByID(*asset); err != nil {
+			return utility.NewValidationError(fmt.Errorf("asset does not exist for ID: %d", asset), "not_exist", "asset")
+		}
+
+		// Add the asset ID to the map
+		assetIDs[*asset] = true
+	}
+
 	return nil
 }
 
@@ -1786,6 +2133,46 @@ func (rrs *RiskRegisterService) parseRiskRegisterDates(dto *riskDTOs.RiskRegiste
 	}
 
 	return parsed, nil
+}
+
+func (rrs *RiskRegisterService) GetDocumentPath(id uint, token string) (string, error) {
+	// Get full details of the risk register by ID
+	existingRiskRegister, err := rrs.GetFullDetailsByID(id)
+	if err != nil {
+		return "", err
+	}
+
+	// Check if there are any associated documents
+	if len(existingRiskRegister.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the risk register")
+	}
+
+	// Decrypt the token to get the file name
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	// Define the storage path
+	storagePath := filepath.Join("risk", "risk-register", strconv.FormatUint(uint64(id), 10), "documents")
+
+	// Get the base storage path from environment variables
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists at the specified path
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }
 
 func (cs *RiskRegisterService) ExportRiskRegister(data []*riskDTOs.RiskRegisterListDTO, currentUserID uint) (*os.File, error) {

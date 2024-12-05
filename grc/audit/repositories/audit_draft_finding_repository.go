@@ -189,6 +189,9 @@ func (repo *AuditDraftFindingRepository) GetAllFindingsByAuditID(auditId uint) (
 	result := repo.db.
 		Preload("AuditDraftFindingStatus").
 		Preload("AuditDraftFindingActionPlans").
+		Preload("AuditDraftFindingConversations", func(db *gorm.DB) *gorm.DB {
+			return db.Where("type = ?", "DR").Order("created_at DESC").Limit(1)
+		}).
 		Where("audit_id = ?", auditId).
 		Find(&auditFindings)
 
