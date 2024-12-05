@@ -147,8 +147,9 @@ func (dts *DocumentTypeService) Update(id uint, currentUserID uint, updatedDocum
 func (dts *DocumentTypeService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedDocumentType []map[string]interface{}
 	for _, id := range ids {
-		_, err := dts.repo.GetByID(id)
+		documentType, err := dts.repo.GetByID(id)
 		if err != nil {
 			fmt.Print(err)
 			continue
@@ -160,6 +161,12 @@ func (dts *DocumentTypeService) Delete(ids []uint, currentUserID uint) ([]uint, 
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedDocumentType = append(deletedDocumentType, map[string]interface{}{
+			"id":       id,
+			"title_en": documentType.TitleEn,
+			"title_ar": documentType.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -168,7 +175,7 @@ func (dts *DocumentTypeService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				models.DeleteAction,
 				models.DocumentType{}.TableName(),
 				successfulIds,
-				nil,
+				deletedDocumentType,
 				currentUserID,
 				nil,
 			)

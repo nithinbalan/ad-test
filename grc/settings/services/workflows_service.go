@@ -165,11 +165,16 @@ func (ws *WorkflowService) CreateWorkFlowLevel(workflowId uint, currentUserID ui
 
 	tx.Commit()
 	go func() {
-		err := ws.activityLogSvc.LogActivity(
+		workflowLevelDetail, err := ws.repo.GetWorkflowLevelByID(id)
+		if err != nil {
+			return
+		}
+
+		err = ws.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.WorkflowLevel{}.TableName(),
 			id,
-			workflowLevelFormDTO,
+			workflowLevelDetail,
 			currentUserID,
 			nil,
 		)
@@ -191,6 +196,8 @@ func (ws *WorkflowService) CreateWorkFlowLevel(workflowId uint, currentUserID ui
 
 func (ws *WorkflowService) DeleteWorkflowLevel(currentUserID, workflowLevelID uint) error {
 	tx := ws.repo.BeginTransaction()
+
+	var deletedWorkflowLevel []map[string]interface{}
 
 	// Retrieve the workflow level to get its WorkflowID and level
 	workflowLevel, err := ws.repo.GetWorkflowLevelByID(workflowLevelID, tx)
@@ -224,6 +231,12 @@ func (ws *WorkflowService) DeleteWorkflowLevel(currentUserID, workflowLevelID ui
 		}
 	}
 
+	deletedWorkflowLevel = append(deletedWorkflowLevel, map[string]interface{}{
+		"id":          workflowLevelID,
+		"workflow_id": workflowLevel.WorkflowID,
+		"level":       workflowLevel.Level,
+	})
+
 	// Commit transaction before logging
 	if err := tx.Commit(); err != nil {
 		return err
@@ -235,7 +248,7 @@ func (ws *WorkflowService) DeleteWorkflowLevel(currentUserID, workflowLevelID ui
 			models.DeleteAction, // Make sure this action constant is defined appropriately
 			models.WorkflowLevel{}.TableName(),
 			workflowLevelID,
-			nil, // You can define a struct or map that describes the change
+			deletedWorkflowLevel, // You can define a struct or map that describes the change
 			currentUserID,
 			nil,
 		)

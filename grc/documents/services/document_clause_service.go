@@ -196,11 +196,19 @@ func (dcs *DocumentClauseService) Create(documentId uint, currentUserId uint, do
 	tx.Commit()
 
 	go func() {
-		err := dcs.activityLogSvc.LogActivity(
+		existingDocumentClause, err := dcs.GetFullDetailsByID(documentId, id)
+		if err != nil {
+			utility.LogError("Failed to fetch document clause", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = dcs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.DocumentVersionClause{}.TableName(),
 			id,
-			documentClauseFormDTO,
+			existingDocumentClause,
 			currentUserId,
 			nil,
 		)
@@ -229,6 +237,11 @@ func (dcs *DocumentClauseService) Update(documentId uint, clauseId uint, current
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return utility.NewResourceNotFoundError(fmt.Errorf("document clause not found"), clauseId)
 		}
+		return err
+	}
+
+	oldDocumentClause, err := dcs.GetFullDetailsByID(documentId, clauseId)
+	if err != nil {
 		return err
 	}
 
@@ -352,7 +365,81 @@ func (dcs *DocumentClauseService) Update(documentId uint, clauseId uint, current
 	}
 
 	tx.Commit()
+	go func() {
+		existingDocumentClause, err := dcs.GetFullDetailsByID(documentId, clauseId)
+		if err != nil {
+			return
+		}
+		// Determine control
+		controlsAdded := []uint{}
+		controlsRemoved := []uint{}
+		for id := range newControlIDs {
+			if !existingControlIDs[id] {
+				controlsAdded = append(controlsAdded, id)
+			}
+		}
+		for id := range existingControlIDs {
+			if !newControlIDs[id] {
+				controlsRemoved = append(controlsRemoved, id)
+			}
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
 
+		if len(controlsAdded) > 0 || len(controlsRemoved) > 0 {
+			associatedItems["control_ids"] = map[string]interface{}{
+				"added":   controlsAdded,
+				"removed": controlsRemoved,
+			}
+		}
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+		//log changes
+		oldData := map[string]interface{}{
+			"clause_number": oldDocumentClause.ClauseNumber,
+			"title_en":      oldDocumentClause.ClauseTitleEn,
+			"title_ar":      oldDocumentClause.ClauseTitleAr,
+			"description":   oldDocumentClause.Description,
+		}
+
+		newData := map[string]interface{}{
+			"clause_number": existingDocumentClause.ClauseNumber,
+			"title_en":      existingDocumentClause.ClauseTitleEn,
+			"title_ar":      existingDocumentClause.ClauseTitleAr,
+			"description":   existingDocumentClause.Description,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := dcs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.DocumentVersionClause{}.TableName(),
+				clauseId,
+				changedData,
+				currentUserId,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.DocumentVersionClause{}.TableName(),
+					"recordID":  clauseId,
+					"userID":    currentUserId,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 	return nil
 }
 
@@ -361,6 +448,7 @@ func (dcs *DocumentClauseService) Delete(clauseIDs []uint, currentUserID uint) (
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedClause []map[string]interface{}
 
 	for _, id := range clauseIDs {
 		clause, err := dcs.repo.GetFullDetailsByID(id, tx)
@@ -386,6 +474,12 @@ func (dcs *DocumentClauseService) Delete(clauseIDs []uint, currentUserID uint) (
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedClause = append(deletedClause, map[string]interface{}{
+			"document_id":         clause.DocumentVersion.DocumentID,
+			"document_version_id": clause.DocumentVersionID,
+			"clause_id":           clause.ID,
+		})
 	}
 
 	if len(failedIds) > 0 {
@@ -401,7 +495,7 @@ func (dcs *DocumentClauseService) Delete(clauseIDs []uint, currentUserID uint) (
 				models.DeleteAction,
 				models.DocumentVersionClause{}.TableName(),
 				successfulIds,
-				nil,
+				deletedClause,
 				currentUserID,
 				nil,
 			)
