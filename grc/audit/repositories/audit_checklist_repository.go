@@ -220,6 +220,7 @@ func (repo *AuditChecklistRepository) GetFullDetailsByID(id uint) (*models.Audit
 		Preload("AuditDraftFindings.CreatedByUser").
 		Preload("AuditDraftFindings.UpdatedByUser").
 		Preload("AuditDraftFindings.Documents").
+		Preload("Documents").
 		Preload("AnsweredByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").

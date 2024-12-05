@@ -224,11 +224,162 @@ func (acs *AuditChecklistService) Update(auditId uint, id uint, currentUserID ui
 		return err
 	}
 
+	tx.Commit()
+
+	go func() {
+		err := acs.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.AuditChecklist{}.TableName(),
+			id,
+			auditChecklistFormDTO,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.AuditChecklist{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
+}
+
+func (acs *AuditChecklistService) Delete(auditId uint, ids []uint, currentUserID uint) ([]uint, error) {
+	tx := acs.repo.BeginTransaction()
+
+	if _, err := acs.auditSvc.GetByID(auditId); err != nil {
+		return nil, err
+	}
+
+	var failedIDs []uint
+	var successfulIDs []uint
+	documentsToDelete := make(map[uint][]*auditDTOs.AuditChecklistDocumentDTO)
+
+	for _, id := range ids {
+
+		if _, err := acs.GetByID(auditId, id); err != nil {
+			failedIDs = append(failedIDs, id)
+		}
+		existingAuditChecklistFullDetails, err := acs.GetFullDetailsByID(auditId, id)
+		if err != nil {
+			failedIDs = append(failedIDs, id)
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+
+		if len(existingAuditChecklistFullDetails.Documents) > 0 {
+			var deleteDocumentIds []*uint
+			for _, doc := range existingAuditChecklistFullDetails.Documents {
+				if doc != nil {
+					documentsToDelete[id] = append(documentsToDelete[id], doc)
+					deleteDocumentIds = append(deleteDocumentIds, doc.ID)
+				}
+			}
+			if err := acs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		if err := acs.repo.Delete(id, tx); err != nil {
+			failedIDs = append(failedIDs, id)
+			continue
+		}
+
+		successfulIDs = append(successfulIDs, id)
+	}
+	if len(successfulIDs) > 0 {
+		for checkID, documents := range documentsToDelete {
+			for _, doc := range documents {
+				fmt.Println("filename=", doc.Name)
+				storagePath := filepath.Join("audit", "audit-checklist", strconv.FormatUint(uint64(checkID), 10), "documents")
+				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+					tx.Rollback()
+					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
+				}
+			}
+		}
+	}
+	tx.Commit()
+	if len(successfulIDs) > 0 {
+
+		go func() {
+			for _, id := range successfulIDs {
+				err := acs.activityLogSvc.LogActivity(
+					models.DeleteAction,
+					models.AuditChecklist{}.TableName(),
+					id,
+					nil,
+					currentUserID,
+					nil,
+				)
+
+				if err != nil {
+					fields := map[string]interface{}{
+						"action":    models.DeleteAction,
+						"tableName": models.AuditChecklist{}.TableName(),
+						"recordID":  id,
+						"userID":    currentUserID,
+						"error":     err.Error(),
+					}
+
+					utility.LogError("Failed to log activity", fields)
+				}
+			}
+		}()
+	} else {
+		tx.Rollback()
+	}
+
+	return failedIDs, nil
+}
+
+func (acs *AuditChecklistService) Answer(auditId uint, id uint, currentUserID uint, auditChecklistAnswerFormDTO *auditDTOs.AuditChecklistAnswerFormDTO) error {
+	tx := acs.repo.BeginTransaction()
+
+	if _, err := acs.auditSvc.GetByID(auditId); err != nil {
+		return err
+	}
+
+	existingAuditChecklist, err := acs.GetByID(auditId, id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
+
+	if err := acs.validateAuditChecklistAnswerFormDTO(auditChecklistAnswerFormDTO); err != nil {
+		tx.Rollback()
+		return err
+	}
+	now := time.Now()
+	status, err := acs.statusSvc.GetByType("completed")
+	if err != nil {
+		return err
+	}
+	existingAuditChecklist.ConformanceID = &auditChecklistAnswerFormDTO.ConformanceID
+	existingAuditChecklist.Comment = auditChecklistAnswerFormDTO.Comment
+	existingAuditChecklist.AnsweredBYID = &currentUserID
+	existingAuditChecklist.StatusID = status.ID
+	existingAuditChecklist.AnsweredAt = &now
+
+	err = acs.repo.Update(existingAuditChecklist, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	
 	var documents []*models.AuditChecklistDocument
 	var deleteDocumentIds []*uint
 	var documentsToDelete []*models.AuditChecklistDocument
 
-	for _, doc := range auditChecklistFormDTO.Documents {
+	for _, doc := range auditChecklistAnswerFormDTO.Documents {
 
 		if doc.IsNewFile != nil && *doc.IsNewFile {
 			// Encrypt the filename
@@ -311,126 +462,6 @@ func (acs *AuditChecklistService) Update(auditId uint, id uint, currentUserID ui
 			models.UpdateAction,
 			models.AuditChecklist{}.TableName(),
 			id,
-			auditChecklistFormDTO,
-			currentUserID,
-			nil,
-		)
-
-		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.AuditChecklist{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
-
-			utility.LogError("Failed to log activity", fields)
-		}
-	}()
-
-	return nil
-}
-
-func (acs *AuditChecklistService) Delete(auditId uint, ids []uint, currentUserID uint) ([]uint, error) {
-	tx := acs.repo.BeginTransaction()
-
-	if _, err := acs.auditSvc.GetByID(auditId); err != nil {
-		return nil, err
-	}
-
-	var failedIDs []uint
-	var successfulIDs []uint
-
-	for _, id := range ids {
-
-		if _, err := acs.GetByID(auditId, id); err != nil {
-			failedIDs = append(failedIDs, id)
-		}
-
-		if err := acs.repo.Delete(id, tx); err != nil {
-			failedIDs = append(failedIDs, id)
-			continue
-		}
-
-		successfulIDs = append(successfulIDs, id)
-	}
-
-	if len(successfulIDs) > 0 {
-		tx.Commit()
-
-		go func() {
-			for _, id := range successfulIDs {
-				err := acs.activityLogSvc.LogActivity(
-					models.DeleteAction,
-					models.AuditChecklist{}.TableName(),
-					id,
-					nil,
-					currentUserID,
-					nil,
-				)
-
-				if err != nil {
-					fields := map[string]interface{}{
-						"action":    models.DeleteAction,
-						"tableName": models.AuditChecklist{}.TableName(),
-						"recordID":  id,
-						"userID":    currentUserID,
-						"error":     err.Error(),
-					}
-
-					utility.LogError("Failed to log activity", fields)
-				}
-			}
-		}()
-	} else {
-		tx.Rollback()
-	}
-
-	return failedIDs, nil
-}
-
-func (acs *AuditChecklistService) Answer(auditId uint, id uint, currentUserID uint, auditChecklistAnswerFormDTO *auditDTOs.AuditChecklistAnswerFormDTO) error {
-	tx := acs.repo.BeginTransaction()
-
-	if _, err := acs.auditSvc.GetByID(auditId); err != nil {
-		return err
-	}
-
-	existingAuditChecklist, err := acs.GetByID(auditId, id)
-	if err != nil {
-		tx.Rollback()
-		return utility.NewResourceNotFoundError(err, id)
-	}
-
-	if err := acs.validateAuditChecklistAnswerFormDTO(auditChecklistAnswerFormDTO); err != nil {
-		tx.Rollback()
-		return err
-	}
-	now := time.Now()
-	status, err := acs.statusSvc.GetByType("completed")
-	if err != nil {
-		return err
-	}
-	existingAuditChecklist.ConformanceID = &auditChecklistAnswerFormDTO.ConformanceID
-	existingAuditChecklist.Comment = auditChecklistAnswerFormDTO.Comment
-	existingAuditChecklist.AnsweredBYID = &currentUserID
-	existingAuditChecklist.StatusID = status.ID
-	existingAuditChecklist.AnsweredAt = &now
-
-	err = acs.repo.Update(existingAuditChecklist, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	tx.Commit()
-
-	go func() {
-		err := acs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.AuditChecklist{}.TableName(),
-			id,
 			auditChecklistAnswerFormDTO,
 			currentUserID,
 			nil,
@@ -465,6 +496,7 @@ func (acs *AuditChecklistService) DeleteAnswer(auditId uint, ids []uint, current
 	if err != nil {
 		return nil, err
 	}
+	documentsToDelete := make(map[uint][]*auditDTOs.AuditChecklistDocumentDTO)
 	for _, id := range ids {
 		existingAuditChecklist, err := acs.GetByID(auditId, id)
 		if err != nil {
@@ -474,9 +506,28 @@ func (acs *AuditChecklistService) DeleteAnswer(auditId uint, ids []uint, current
 
 		existingAuditChecklist.ConformanceID = nil
 		existingAuditChecklist.Comment = nil
-		existingAuditChecklist.AnsweredBYID = nil
+		existingAuditChecklist.AnsweredBYID  = nil
 		existingAuditChecklist.StatusID = status.ID
 		existingAuditChecklist.AnsweredAt = nil
+		existingAuditChecklistFullDetails, err := acs.GetFullDetailsByID(auditId, id)
+		if err != nil {
+			failedIDs = append(failedIDs, id)
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+
+		if len(existingAuditChecklistFullDetails.Documents) > 0 {
+			var deleteDocumentIds []*uint
+			for _, doc := range existingAuditChecklistFullDetails.Documents {
+				if doc != nil {
+					documentsToDelete[id] = append(documentsToDelete[id], doc)
+					deleteDocumentIds = append(deleteDocumentIds, doc.ID)
+				}
+			}
+			if err := acs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
 
 		err = acs.repo.Update(existingAuditChecklist, tx)
 		if err != nil {
@@ -485,9 +536,21 @@ func (acs *AuditChecklistService) DeleteAnswer(auditId uint, ids []uint, current
 
 		successfulIDs = append(successfulIDs, id)
 	}
+	if len(successfulIDs) > 0 {
+		for checkID, documents := range documentsToDelete {
+			for _, doc := range documents {
+				fmt.Println("filename=", doc.Name)
+				storagePath := filepath.Join("audit", "audit-checklist", strconv.FormatUint(uint64(checkID), 10), "documents")
+				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+					tx.Rollback()
+					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
+				}
+			}
+		}
+	}
+	tx.Commit()
 
 	if len(successfulIDs) > 0 {
-		tx.Commit()
 
 		go func() {
 			for _, id := range successfulIDs {
