@@ -113,11 +113,18 @@ func (ams *AssetMaintenanceService) Create(maintenanceForm *dtos.AssetMaintenanc
 	tx.Commit()
 
 	go func() {
-		err := ams.activityLogSvc.LogActivity(
+		existingMaintenance, err := ams.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch asset maintenance", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = ams.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AssetMaintenance{}.TableName(),
 			id,
-			maintenanceForm,
+			existingMaintenance,
 			currentUserID,
 			nil,
 		)
@@ -138,6 +145,12 @@ func (ams *AssetMaintenanceService) Create(maintenanceForm *dtos.AssetMaintenanc
 
 func (ams *AssetMaintenanceService) Update(id uint, maintenanceForm *dtos.AssetMaintenanceFormDTO, currentUserID uint) error {
 	tx := ams.repo.BeginTransaction()
+
+	oldAssetMaintenance, err := ams.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
 	existingMaintenance, err := ams.repo.GetByID(id)
 	if err != nil {
@@ -168,20 +181,86 @@ func (ams *AssetMaintenanceService) Update(id uint, maintenanceForm *dtos.AssetM
 	}
 
 	tx.Commit()
+	go func() {
+		existingAssetMaintenance, err := ams.GetFullDetailsByID(id)
+		if err != nil {
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+
+		//log changes
+		oldData := map[string]interface{}{
+			"type":           oldAssetMaintenance.Type,
+			"performed_date": oldAssetMaintenance.PerformedDateString,
+			"title":          oldAssetMaintenance.Title,
+			"description":    oldAssetMaintenance.Description,
+			"performed_by":   fmt.Sprintf("%s %s", oldAssetMaintenance.PerformedBy.FirstNameEN, oldAssetMaintenance.PerformedBy.LastNameEN),
+			"outcome":        oldAssetMaintenance.Outcome,
+		}
+
+		newData := map[string]interface{}{
+			"type":           existingAssetMaintenance.Type,
+			"performed_date": existingAssetMaintenance.PerformedDateString,
+			"title":          existingAssetMaintenance.Title,
+			"description":    existingAssetMaintenance.Description,
+			"performed_by":   fmt.Sprintf("%s %s", existingAssetMaintenance.PerformedBy.FirstNameEN, existingAssetMaintenance.PerformedBy.LastNameEN),
+			"outcome":        existingAssetMaintenance.Outcome,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := ams.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AssetMaintenance{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AssetMaintenance{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 	return nil
 }
 
 func (ams *AssetMaintenanceService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
-
+	var deletedAssetMaintenance []map[string]interface{}
 	for _, id := range ids {
-		err := ams.repo.Delete(id)
+		AssetMaintenance, err := ams.repo.GetByID(id)
+		if err != nil {
+			fmt.Print(err)
+			continue
+		}
+
+		err = ams.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedAssetMaintenance = append(deletedAssetMaintenance, map[string]interface{}{
+			"id":    id,
+			"title": AssetMaintenance.Title,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -190,7 +269,7 @@ func (ams *AssetMaintenanceService) Delete(ids []uint, currentUserID uint) ([]ui
 				models.DeleteAction,
 				models.AssetMaintenance{}.TableName(),
 				successfulIds,
-				nil,
+				deletedAssetMaintenance,
 				currentUserID,
 				nil,
 			)

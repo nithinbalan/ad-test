@@ -14,6 +14,7 @@ import (
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
 	"log"
+	"os"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -28,6 +29,8 @@ type KRIValueUpdateServiceInterface interface {
 	Create(kriRegisterID, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) (uint, error)
 	Update(kriRegisterID, updateId, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) error
 	Delete(kriRegisterID uint, ids []uint, currentUserID uint) ([]uint, error)
+
+	GetDocumentPath(id uint, kriValueUpdateId uint, token string) (string, error)
 }
 
 // Service and implementations
@@ -845,6 +848,46 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 	}
 
 	return failedIds, nil
+}
+
+func (kvus *KRIValueUpdateService) GetDocumentPath(id uint, kriValueUpdateId uint, token string) (string, error) {
+	// Get full details of the risk register by ID
+	existingKRIUpdate, err := kvus.GetFullDetailsByID(kriValueUpdateId)
+	if err != nil {
+		return "", err
+	}
+
+	// Check if there are any associated documents
+	if len(existingKRIUpdate.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the kri value update")
+	}
+
+	// Decrypt the token to get the file name
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	// Define the storage path
+	storagePath := filepath.Join("risk", "kri-register", strconv.FormatUint(uint64(id), 10), "updates", strconv.FormatUint(uint64(kriValueUpdateId), 10), "documents")
+
+	// Get the base storage path from environment variables
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists at the specified path
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }
 
 func (kvus *KRIValueUpdateService) parseKRIValueUpdateDates(dto *riskDTOs.KRIValueUpdateFormDTO) (*riskDTOs.KRIValueUpdateParsedDates, error) {

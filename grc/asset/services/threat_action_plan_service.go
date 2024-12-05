@@ -171,11 +171,18 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 	tx.Commit()
 
 	go func() {
-		err := taps.activityLogSvc.LogActivity(
+		existingActionPlan, err := taps.GetFullDetailsByID(threatID, id)
+		if err != nil {
+			utility.LogError("Failed to fetch threat action plan", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = taps.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.ThreatActionPlan{}.TableName(),
 			id,
-			formDTO,
+			existingActionPlan,
 			currentUserID,
 			nil,
 		)
@@ -266,6 +273,11 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserID uint, formDTO *assetDTOs.ThreatActionPlanFormDTO) error {
 	tx := taps.repo.BeginTransaction()
 
+	oldActionPlan, err := taps.GetFullDetailsByID(threatID, id)
+	if err != nil {
+		return err
+	}
+
 	threat, err := taps.threatSvc.GetByID(threatID)
 	if err != nil {
 		return err
@@ -307,6 +319,66 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 	tx.Commit()
 
 	go func() {
+		existingThreatActionPlan, err := taps.GetFullDetailsByID(threatID, id)
+		if err != nil {
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+
+		//log changes
+		oldData := map[string]interface{}{
+			"title":              oldActionPlan.Title,
+			"description":        oldActionPlan.Description,
+			"severity_level":     oldActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", oldActionPlan.ResponsibleUser.FirstNameEN, oldActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        fmt.Sprintf("%s %s", oldActionPlan.ReviewUser.FirstNameEN, oldActionPlan.ReviewUser.LastNameEN),
+			"target_date":        oldActionPlan.TargetDateString,
+			"percentage":         oldActionPlan.Percentage,
+			"comment":            oldActionPlan.Comments,
+			"action_plan_status": oldActionPlan.ActionPlanStatus.TitleEn,
+		}
+
+		newData := map[string]interface{}{
+			"title":              existingThreatActionPlan.Title,
+			"description":        existingThreatActionPlan.Description,
+			"severity_level":     existingThreatActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", existingThreatActionPlan.ResponsibleUser.FirstNameEN, existingThreatActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        fmt.Sprintf("%s %s", existingThreatActionPlan.ReviewUser.FirstNameEN, existingThreatActionPlan.ReviewUser.LastNameEN),
+			"target_date":        existingThreatActionPlan.TargetDateString,
+			"percentage":         existingThreatActionPlan.Percentage,
+			"comment":            existingThreatActionPlan.Comments,
+			"action_plan_status": existingThreatActionPlan.ActionPlanStatus.TitleEn,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := taps.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.ThreatActionPlan{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.ThreatActionPlan{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+
 		// send notification if responsible user changed
 		if oldResponsibleUserID != formDTO.ResponsibleUserID {
 			urlParam := fmt.Sprintf(`{"threat_id":%d, "action_plan_id":%d}`, threatID, id)
@@ -449,6 +521,7 @@ func (taps *ThreatActionPlanService) Delete(threatID uint, ids []uint, currentUs
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedActionPlan []map[string]interface{}
 	var notifications []struct {
 		UserID      uint
 		TitleEn     string
@@ -496,6 +569,11 @@ func (taps *ThreatActionPlanService) Delete(threatID uint, ids []uint, currentUs
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedActionPlan = append(deletedActionPlan, map[string]interface{}{
+			"id":    id,
+			"title": actionPlan.Title,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -504,7 +582,7 @@ func (taps *ThreatActionPlanService) Delete(threatID uint, ids []uint, currentUs
 				models.DeleteAction,
 				models.ThreatActionPlan{}.TableName(),
 				successfulIds,
-				nil,
+				deletedActionPlan,
 				currentUserID,
 				nil,
 			)

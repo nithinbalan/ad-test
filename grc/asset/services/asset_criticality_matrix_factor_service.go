@@ -129,8 +129,9 @@ func (acmfs *AssetCriticalityMatrixFactorService) Update(matrixID uint, id uint,
 func (acmfs *AssetCriticalityMatrixFactorService) Delete(matrixID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedMatrixFactor []map[string]interface{}
 	for _, id := range ids {
-		_, err := acmfs.repo.GetByID(id)
+		matrixFactor, err := acmfs.repo.GetByID(id)
 		if err != nil {
 			fmt.Print(err)
 			continue
@@ -142,6 +143,12 @@ func (acmfs *AssetCriticalityMatrixFactorService) Delete(matrixID uint, ids []ui
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedMatrixFactor = append(deletedMatrixFactor, map[string]interface{}{
+			"id":       id,
+			"title_en": matrixFactor.TitleEn,
+			"title_ar": matrixFactor.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -150,7 +157,7 @@ func (acmfs *AssetCriticalityMatrixFactorService) Delete(matrixID uint, ids []ui
 				models.DeleteAction,
 				models.AssetCriticalityMatrixFactor{}.TableName(),
 				successfulIds,
-				nil,
+				deletedMatrixFactor,
 				currentUserID,
 				nil,
 			)
