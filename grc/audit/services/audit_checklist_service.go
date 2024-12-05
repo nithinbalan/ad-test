@@ -7,6 +7,8 @@ import (
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
+	"path/filepath"
+	"strconv"
 	"time"
 
 	"jethur/grc/models"
@@ -220,6 +222,86 @@ func (acs *AuditChecklistService) Update(auditId uint, id uint, currentUserID ui
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	var documents []*models.AuditChecklistDocument
+	var deleteDocumentIds []*uint
+	var documentsToDelete []*models.AuditChecklistDocument
+
+	for _, doc := range auditChecklistFormDTO.Documents {
+
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			// Encrypt the filename
+			dataToEncrypt := []byte(doc.FileName)
+			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			//genereate URL
+			url := utility.GenerateDocumentURL("audit", "audit-checklist", strconv.FormatUint(uint64(id), 10), "documents")
+			// Create a new Control test Document instance
+			document := &models.AuditChecklistDocument{
+				AuditChecklistID: id,
+				URL:                                  url,
+				Name:                                 doc.FileName,
+				Size:                                 doc.Size,
+				Token:                                encryptedFileName,
+				OriginalName:                         doc.OriginalName,
+				Type:                                 doc.Type,
+				CreatedBYID:                          currentUserID,
+			}
+
+			// Append the document to the slice
+			documents = append(documents, document)
+
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			if doc.ID != nil {
+				existingDocument, err := acs.repo.GetDocumentByID(*doc.ID)
+				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return utility.NewResourceNotFoundError(err, id)
+					}
+					return err
+				}
+
+				documentsToDelete = append(documentsToDelete, existingDocument)
+				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
+			}
+		}
+	}
+
+	if len(documents) > 0 {
+		if err := acs.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if len(deleteDocumentIds) > 0 {
+		if err := acs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, doc := range documents {
+		storagePath := filepath.Join("audit", "audit-checklist", strconv.FormatUint(uint64(id), 10), "documents")
+
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, document := range documentsToDelete {
+		storagePath := filepath.Join("audit", "audit-checklist", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	tx.Commit()

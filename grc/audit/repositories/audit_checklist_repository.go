@@ -17,6 +17,11 @@ type AuditChecklistRepositoryInterface interface {
 	Create(auditChecklist *models.AuditChecklist, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(auditChecklist *models.AuditChecklist, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+
+	// Document methods
+	CreateDocuments(docs []*models.AuditChecklistDocument, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint) (*models.AuditChecklistDocument, error)
+	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditChecklistRepository struct {
@@ -289,6 +294,41 @@ func (repo *AuditChecklistRepository) Delete(id uint, tx ...utility.DatabaseTran
 	}
 
 	if err := db.Delete(&models.AuditChecklist{}, id).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+
+func (repo *AuditChecklistRepository) CreateDocuments(docs []*models.AuditChecklistDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	// Save all documents in a single transaction
+	if err := db.Create(&docs).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AuditChecklistRepository) GetDocumentByID(id uint) (*models.AuditChecklistDocument, error) {
+	var document models.AuditChecklistDocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
+}
+
+func (repo *AuditChecklistRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete documents by IDs
+	if err := db.Where("id IN (?)", docIds).Delete(&models.AuditChecklistDocument{}).Error; err != nil {
 		return err
 	}
 

@@ -1,6 +1,7 @@
 package dtos
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"time"
@@ -91,8 +92,9 @@ type AuditChecklistAnswerFormDTO struct {
 }
 
 type AuditChecklistFormDTO struct {
-	AuditableItemID *uint  `json:"auditable_item_id"`
-	Question        string `json:"question" binding:"required"`
+	AuditableItemID *uint                         `json:"auditable_item_id"`
+	Question        string                        `json:"question" binding:"required"`
+	Documents       []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
 }
 
 type AuditChecklistDetailDTO struct {
