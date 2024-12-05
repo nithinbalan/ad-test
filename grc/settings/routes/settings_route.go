@@ -80,6 +80,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.DELETE("/workflows/:workflowId/levels/:levelId", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), workflowController.DeleteWorkflowLevel)
 
 	settingRoutes.GET("/modules", moduleController.GetAllModules)
+	settingRoutes.GET("/modules/:moduleId", moduleController.GetModuleDetail)
 	settingRoutes.POST("/modules/:moduleId/enable", moduleController.EnableModule)
 	settingRoutes.POST("/modules/:moduleId/disable", moduleController.DisableModule)
 	settingRoutes.PUT("/modules/reorder", moduleController.ReorderModule)
