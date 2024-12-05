@@ -130,8 +130,9 @@ func (dcs *DocumentCategoryService) Update(id uint, currentUserID uint, updatedC
 func (dcs *DocumentCategoryService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedDocumentCategory []map[string]interface{}
 	for _, id := range ids {
-		_, err := dcs.repo.GetByID(id)
+		documentCategory, err := dcs.repo.GetByID(id)
 		if err != nil {
 			fmt.Print(err)
 			continue
@@ -143,6 +144,12 @@ func (dcs *DocumentCategoryService) Delete(ids []uint, currentUserID uint) ([]ui
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedDocumentCategory = append(deletedDocumentCategory, map[string]interface{}{
+			"id":       id,
+			"title_en": documentCategory.TitleEn,
+			"title_ar": documentCategory.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -151,7 +158,7 @@ func (dcs *DocumentCategoryService) Delete(ids []uint, currentUserID uint) ([]ui
 				models.DeleteAction,
 				models.DocumentCategory{}.TableName(),
 				successfulIds,
-				nil,
+				deletedDocumentCategory,
 				currentUserID,
 				nil,
 			)
