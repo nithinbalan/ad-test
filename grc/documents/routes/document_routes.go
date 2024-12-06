@@ -33,10 +33,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentClauseController := app.DocumentModule.DocumentClauseController
 	documentAssociatedItemController := app.DocumentModule.DocumentAssociatedItemController
 
-	documentChangeRequestTypeController := app.DocumentModule.DocumentChangeRequestTypeController
-	documentChangeRequestStatusController := app.DocumentModule.DocumentChangeRequestStatusController
+	documentChangeRequestInitiateTypeController := app.DocumentModule.DocumentChangeRequestInitiateTypeController
+	documentChangeRequestInitiateStatusController := app.DocumentModule.DocumentChangeRequestInitiateStatusController
 
-	documentChangeRequestController := app.DocumentModule.DocumentChangeRequestController
+	documentChangeRequestInitiateController := app.DocumentModule.DocumentChangeRequestInitiateController
 
 	documentRoutes.GET("/document-categories", documentCategoryController.GetAllDocumentCategories)
 	documentRoutes.GET("/document-categories/:id", documentCategoryController.GetDocumentCategoryDetails)
@@ -121,16 +121,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.GET("documents/:id/incidents", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAssociatedItemController.GetAllDocumentIncidents)
 	documentRoutes.GET("documents/:id/risks", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAssociatedItemController.GetAllDocumentRisks)
 
-	documentRoutes.GET("/document-change-request-types", documentChangeRequestTypeController.GetAllDocumentChangeRequestTypes)
-	documentRoutes.GET("/document-change-request-types/:id", documentChangeRequestTypeController.GetDocumentChangeRequestTypeDetails)
+	documentRoutes.GET("/document-change-request-initiate-types", documentChangeRequestInitiateTypeController.GetAllDocumentChangeRequestInitiateTypes)
+	documentRoutes.GET("/document-change-request-initiate-types/:id", documentChangeRequestInitiateTypeController.GetDocumentChangeRequestInitiateTypeDetails)
 
-	documentRoutes.GET("/document-change-request-statuses", documentChangeRequestStatusController.GetAllDocumentChangeRequestStatuses)
-	documentRoutes.GET("/document-change-request-statuses/:id", documentChangeRequestStatusController.GetDocumentChangeRequestStatusDetails)
+	documentRoutes.GET("/document-change-request-initiate-statuses", documentChangeRequestInitiateStatusController.GetAllDocumentChangeRequestInitiateStatuses)
+	documentRoutes.GET("/document-change-request-initiate-statuses/:id", documentChangeRequestInitiateStatusController.GetDocumentChangeRequestInitiateStatusDetails)
 
-	documentRoutes.GET("/document-change-requests", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetAllDocumentChangeRequests)
-	documentRoutes.GET("/document-change-requests/:id", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetDocumentChangeRequestDetails)
-	documentRoutes.POST("/document-change-requests", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.CreateDocumentChangeRequest)
-	documentRoutes.PUT("/document-change-requests/:id", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.UpdateDocumentChangeRequest)
-	documentRoutes.POST("/document-change-requests/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentController.DeleteDocuments)
+	documentRoutes.GET("documents/:id/initiate-change-requests", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestInitiateController.GetAllDocumentChangeRequestInitiates)
+	documentRoutes.GET("documents/:id/initiate-change-requests/:icrId", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestInitiateController.GetDocumentChangeRequestInitiateDetails)
+	documentRoutes.POST("documents/:id/initiate-change-requests", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestInitiateController.CreateDocumentChangeRequestInitiate)
+	documentRoutes.PUT("documents/:id/initiate-change-requests/:icrId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestInitiateController.UpdateDocumentChangeRequestInitiate)
+	documentRoutes.POST("documents/:id/initiate-change-requests/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestInitiateController.DeleteDocumentChangeRequestInitiate)
 
 }
