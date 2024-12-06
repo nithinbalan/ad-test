@@ -19,6 +19,7 @@ type DocumentAcknowledgeUserRepositoryInterface interface {
 	Exists(documentID uint, userID uint, tx ...utility.DatabaseTransaction) (bool, error)
 	Delete(documentID uint, currentUserID uint, tx ...utility.DatabaseTransaction) error
 	GetDocumentAcknowledgmentSummary(documentID uint, primaryOrgUnitField string) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error)
+	GetPublicDocumentAcknowledgmentSummary(documentID uint) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error)
 }
 
 // Implementation
@@ -263,29 +264,42 @@ func (repo *DocumentAcknowledgeUserRepository) GetDocumentAcknowledgmentSummary(
 
 	totalUsersQuery := fmt.Sprintf(`
 		SELECT COUNT(DISTINCT user_id) FROM (
-			SELECT user_id FROM document_shared_users WHERE document_id = ?
+			SELECT user_id 
+			FROM document_shared_users 
+			JOIN users ON users.id = document_shared_users.user_id
+			JOIN user_statuses ON user_statuses.id = users.user_status_id
+			WHERE document_shared_users.document_id = ? AND user_statuses.is_active = 1
 			UNION
-			SELECT users.id as user_id FROM document_shared_units
+			SELECT users.id AS user_id 
+			FROM document_shared_units
 			JOIN organization_units ON organization_units.id = document_shared_units.organization_unit_id
 			JOIN users ON users.%s = organization_units.id
-			WHERE document_shared_units.document_id = ?
+			JOIN user_statuses ON user_statuses.id = users.user_status_id
+			WHERE document_shared_units.document_id = ? AND user_statuses.is_active = 1
 		) AS combined_users
 	`, primaryOrgUnitField)
 
 	acknowledgedUsersQuery := fmt.Sprintf(`
 		SELECT COUNT(DISTINCT user_id) FROM (
-			SELECT document_acknowledge_users.user_id FROM document_acknowledge_users
-			WHERE document_acknowledge_users.document_id = ?
+			SELECT document_acknowledge_users.user_id 
+			FROM document_acknowledge_users
+			JOIN users ON users.id = document_acknowledge_users.user_id
+			JOIN user_statuses ON user_statuses.id = users.user_status_id
+			WHERE document_acknowledge_users.document_id = ? 
+			AND user_statuses.is_active = 1
 			AND EXISTS (
-				SELECT 1 FROM document_shared_users
-				WHERE document_shared_users.user_id = document_acknowledge_users.user_id
+				SELECT 1 
+				FROM document_shared_users 
+				WHERE document_shared_users.user_id = document_acknowledge_users.user_id 
 				AND document_shared_users.document_id = document_acknowledge_users.document_id
 				UNION
-				SELECT 1 FROM document_shared_units
+				SELECT 1 
+				FROM document_shared_units
 				JOIN organization_units ON organization_units.id = document_shared_units.organization_unit_id
-				JOIN users ON users.%s = organization_units.id
+				JOIN users AS unit_users ON unit_users.%s = organization_units.id
+				JOIN user_statuses AS unit_status ON unit_status.id = unit_users.user_status_id
 				WHERE document_shared_units.document_id = document_acknowledge_users.document_id
-				AND users.id = document_acknowledge_users.user_id
+				AND unit_users.id = document_acknowledge_users.user_id AND unit_status.is_active = 1
 			)
 		) AS acknowledged_users
 	`, primaryOrgUnitField)
@@ -302,6 +316,54 @@ func (repo *DocumentAcknowledgeUserRepository) GetDocumentAcknowledgmentSummary(
 
 	notAcknowledgedUsers := totalUsers - acknowledgedUsers
 
+	summary := &documentDTOs.DocumentAcknowledgmentSummaryDTO{
+		TotalUsers:             totalUsers,
+		AcknowledgedUsers:      acknowledgedUsers,
+		NotAcknowledgedUsers:   notAcknowledgedUsers,
+		AcknowledgedPercent:    float64(acknowledgedUsers) / float64(totalUsers) * 100,
+		NotAcknowledgedPercent: float64(notAcknowledgedUsers) / float64(totalUsers) * 100,
+	}
+
+	return summary, nil
+}
+
+func (repo *DocumentAcknowledgeUserRepository) GetPublicDocumentAcknowledgmentSummary(documentID uint) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error) {
+	var totalUsers int64
+	var acknowledgedUsers int64
+
+	// Query to count all active users
+	totalUsersQuery := `
+		SELECT COUNT(*)
+		FROM users
+		JOIN user_statuses ON user_statuses.id = users.user_status_id
+		WHERE user_statuses.is_active = 1
+	`
+
+	// Query to count acknowledged users for the public document
+	acknowledgedUsersQuery := `
+		SELECT COUNT(*)
+		FROM document_acknowledge_users
+		JOIN users ON users.id = document_acknowledge_users.user_id
+		JOIN user_statuses ON user_statuses.id = users.user_status_id
+		WHERE document_acknowledge_users.document_id = ? AND user_statuses.is_active = 1
+	`
+
+	// Fetch total users
+	err := repo.db.Raw(totalUsersQuery).Scan(&totalUsers).Error
+	if err != nil {
+		return nil, fmt.Errorf("error fetching total users for public document: %v", err)
+	}
+
+	// Fetch acknowledged users
+	err = repo.db.Raw(acknowledgedUsersQuery, documentID).Scan(&acknowledgedUsers).Error
+	if err != nil {
+		return nil, fmt.Errorf("error fetching acknowledged users for public document: %v", err)
+	}
+
+	// Calculate not acknowledged users
+	notAcknowledgedUsers := totalUsers - acknowledgedUsers
+
+	// Prepare and return the summary
 	summary := &documentDTOs.DocumentAcknowledgmentSummaryDTO{
 		TotalUsers:             totalUsers,
 		AcknowledgedUsers:      acknowledgedUsers,

@@ -195,13 +195,21 @@ func (daus *DocumentAcknowledgeUserService) Delete(docuemntID uint, currentUserI
 }
 
 func (daus *DocumentAcknowledgeUserService) GetDocumentAcknowledgmentSummary(documentID uint) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error) {
+	document, err := daus.documentSvc.GetFullDetailsByID(documentID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if document.DocumentAccessType.Type == "public" {
+		return daus.repo.GetPublicDocumentAcknowledgmentSummary(documentID)
+	}
+
 	primaryLevel, err := daus.organizationLevelSvc.GetPrimaryLevel()
 	if err != nil {
 		return nil, err
 	}
 
 	var primaryOrgUnitField string
-
 	switch primaryLevel.Level {
 	case 1:
 		primaryOrgUnitField = "organization_unit_1_id"
@@ -216,5 +224,6 @@ func (daus *DocumentAcknowledgeUserService) GetDocumentAcknowledgmentSummary(doc
 	default:
 		return nil, fmt.Errorf("unsupported primary level")
 	}
+
 	return daus.repo.GetDocumentAcknowledgmentSummary(documentID, primaryOrgUnitField)
 }
