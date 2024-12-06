@@ -129,8 +129,9 @@ func (ats *AssetTypeService) Update(id uint, currentUserID uint, updatedType *mo
 func (ats *AssetTypeService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedAssetType []map[string]interface{}
 	for _, id := range ids {
-		_, err := ats.repo.GetByID(id)
+		assetType, err := ats.repo.GetByID(id)
 		if err != nil {
 			fmt.Print(err)
 			continue
@@ -142,6 +143,12 @@ func (ats *AssetTypeService) Delete(ids []uint, currentUserID uint) ([]uint, err
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedAssetType = append(deletedAssetType, map[string]interface{}{
+			"id":       id,
+			"title_en": assetType.TitleEn,
+			"title_ar": assetType.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -150,7 +157,7 @@ func (ats *AssetTypeService) Delete(ids []uint, currentUserID uint) ([]uint, err
 				models.DeleteAction,
 				models.AssetType{}.TableName(),
 				successfulIds,
-				nil,
+				deletedAssetType,
 				currentUserID,
 				nil,
 			)

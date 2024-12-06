@@ -56,6 +56,33 @@ func (mc *ModuleController) GetAllModules(c *gin.Context) {
 	c.JSON(http.StatusOK, modules)
 }
 
+func (ic *ModuleController) GetModuleDetail(c *gin.Context) {
+
+	moduleIDStr := c.Param("moduleId")
+
+	moduleID, err := strconv.ParseUint(moduleIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	module, err := ic.service.GetFullDetailsByID(uint(moduleID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(ic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, module)
+
+}
+
 func (mc *ModuleController) EnableModule(c *gin.Context) {
 	moduleId, err := strconv.Atoi(c.Param("moduleId"))
 	if err != nil {

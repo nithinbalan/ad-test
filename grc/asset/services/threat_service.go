@@ -193,11 +193,19 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 
 	// Log the activity asynchronously
 	go func() {
-		err := ts.activityLogSvc.LogActivity(
+		existingThreat, err := ts.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch threat", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = ts.activityLogSvc.LogActivity(
 			models.CreateAction,
 			threat.TableName(),
 			id,
-			threatFormDTO,
+			existingThreat,
 			currentUserID,
 			nil,
 		)
@@ -218,6 +226,12 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 
 func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, currentUserID uint) error {
 	var tx = ts.repo.BeginTransaction()
+
+	oldThreat, err := ts.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
 	// Retrieve the existing threat record
 	existingThreat, err := ts.repo.GetByID(id)
@@ -348,16 +362,65 @@ func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, curr
 		}
 	}
 	go func() {
-		err := ts.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.Threat{}.TableName(),
-			id,
-			threatFormDTO,
-			currentUserID,
-			nil,
-		)
+		existingThreat, err := ts.GetFullDetailsByID(id)
 		if err != nil {
-			fmt.Printf("Failed to log activity: %v\n", err)
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"threat_type":      oldThreat.ThreatType.TitleEn,
+			"severity_level":   oldThreat.SeverityLevel.TitleEn,
+			"responsible_user": fmt.Sprintf("%s %s", oldThreat.ResponsibleUser.FirstNameEN, oldThreat.ResponsibleUser.LastNameEN),
+			"title_en":         oldThreat.TitleEn,
+			"title_ar":         oldThreat.TitleAr,
+			"description":      oldThreat.Description,
+			"threat_status":    oldThreat.ThreatStatus.TitleEn,
+			"vulnerability":    utility.GetFieldValue(oldThreat.Vulnerability),
+			"source":           oldThreat.Source,
+			"detection_date":   oldThreat.DetectionDateString,
+			"resolution_date":  oldThreat.ResolutionDateString,
+		}
+
+		newData := map[string]interface{}{
+			"threat_type":      existingThreat.ThreatType.TitleEn,
+			"severity_level":   existingThreat.SeverityLevel.TitleEn,
+			"responsible_user": fmt.Sprintf("%s %s", existingThreat.ResponsibleUser.FirstNameEN, existingThreat.ResponsibleUser.LastNameEN),
+			"title_en":         existingThreat.TitleEn,
+			"title_ar":         existingThreat.TitleAr,
+			"description":      existingThreat.Description,
+			"threat_status":    existingThreat.ThreatStatus.TitleEn,
+			"vulnerability":    utility.GetFieldValue(existingThreat.Vulnerability),
+			"source":           existingThreat.Source,
+			"detection_date":   existingThreat.DetectionDateString,
+			"resolution_date":  existingThreat.ResolutionDateString,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := ts.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.Threat{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.Threat{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+				fmt.Printf("Failed to log activity: %v\n", fields)
+			}
 		}
 	}()
 
@@ -370,6 +433,7 @@ func (ts *ThreatService) Delete(ids []uint, currentUserID uint) ([]uint, error) 
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedThreat []map[string]interface{}
 	documentsToDelete := make(map[uint][]*dtos.ThreatDocumentDTO)
 	for _, id := range ids {
 		var deleteDocumentIds []*uint
@@ -398,6 +462,12 @@ func (ts *ThreatService) Delete(ids []uint, currentUserID uint) ([]uint, error) 
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedThreat = append(deletedThreat, map[string]interface{}{
+			"id":       id,
+			"title_en": existingThreatDetails.TitleEn,
+			"title_ar": existingThreatDetails.TitleAr,
+		})
 	}
 
 	if len(failedIds) > 0 {
@@ -426,7 +496,7 @@ func (ts *ThreatService) Delete(ids []uint, currentUserID uint) ([]uint, error) 
 				models.DeleteAction,
 				models.Threat{}.TableName(),
 				successfulIds,
-				nil,
+				deletedThreat,
 				currentUserID,
 				nil,
 			)
