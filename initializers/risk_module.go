@@ -43,6 +43,7 @@ type RiskModule struct {
 	RiskTimelineController                *controllers.RiskTimelineController
 
 	RiskRegisterSvc services.RiskRegisterServiceInterface
+	RiskHeatMapSvc  services.RiskHeatmapServiceInterface
 }
 
 func NewRiskModule(db *gorm.DB,
@@ -310,5 +311,6 @@ func NewRiskModule(db *gorm.DB,
 		RiskTimelineController:                riskTimelineController,
 
 		RiskRegisterSvc: riskRegisterSvc,
+		RiskHeatMapSvc:  riskHeatmapSvc,
 	}
 }
