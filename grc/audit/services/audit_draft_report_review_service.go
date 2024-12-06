@@ -209,7 +209,7 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 	tx.Commit()
 
 	go func() {
-		entity := "audit"
+		entity := "audit-draft-report"
 		action := "review-user-assign"
 
 		for _, participant := range auditReportWorkflowFormDTO.UserIDs {
@@ -393,7 +393,7 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 
 	go func() {
 		urlParam := fmt.Sprintf(`{"id":%d}`, auditID)
-		entity := "audit"
+		entity := "audit-draft-report"
 		action := "approve"
 
 		// Create a map to track unique recipients
@@ -593,7 +593,7 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 	go func() {
 
 		urlParam := fmt.Sprintf(`{"id":%d}`, auditID)
-		entity := "audit"
+		entity := "audit-draft-report"
 		action := "revert"
 		// Create a map to track unique recipients
 		recipientsMap := make(map[uint]bool)
@@ -816,7 +816,7 @@ func (adrrs *AuditDraftReportReviewService) ReSubmit(auditID uint, auditDraftRep
 
 	go func() {
 		urlParam := fmt.Sprintf(`{"id":%d}`, auditID)
-		entity := "audit"
+		entity := "audit-draft-report"
 		action := "review-user-assign"
 
 		for _, participant := range auditReportWorkflowFormDTO.UserIDs {

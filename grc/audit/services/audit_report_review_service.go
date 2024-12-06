@@ -203,8 +203,8 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 	// Prepare notification
 	// todo
 	go func() {
-		urlParam = fmt.Sprintf(`{"id":%d}`, auditFinalReportID)
-		entity := "audit"
+		urlParam = fmt.Sprintf(`{"id":%d}`, auditID)
+		entity := "audit-final-report"
 		action := "review-user-assign"
 
 		for _, participant := range auditReportWorkflowLevel.AuditReportWorkflowParticipants {
@@ -751,8 +751,8 @@ func (arrs *AuditReportReviewService) CreateTasksForNextLevelUsers(auditFinalRep
 func (arrs *AuditReportReviewService) sendApprovalNotification(id uint, currentUserID uint, auditFinalReportDetailDTO *auditDTOs.AuditFinalReportDetailDTO) {
 	go func() {
 		// Prepare URL and parameters for the notification
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
-		entity := "audit"
+		urlParam := fmt.Sprintf(`{"id":%d}`, auditFinalReportDetailDTO.AuditID)
+		entity := "audit-final-report"
 		action := "approval"
 
 		// Create the database notification DTO
@@ -818,8 +818,8 @@ func (arrs *AuditReportReviewService) sendApprovalNotification(id uint, currentU
 
 func (arrs *AuditReportReviewService) notifyNextLevelUsers(id uint, nextDocWorkflowLevel *models.AuditReportWorkflow, auditFinalReportDetailDTO *auditDTOs.AuditFinalReportDetailDTO) {
 	go func() {
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
-		entity := "audit"
+		urlParam := fmt.Sprintf(`{"id":%d}`, auditFinalReportDetailDTO.AuditID)
+		entity := "audit-final-report"
 		action := "review-user-assign"
 
 		for _, participant := range nextDocWorkflowLevel.AuditReportWorkflowParticipants {
@@ -887,8 +887,8 @@ func (arrs *AuditReportReviewService) notifyNextLevelUsers(id uint, nextDocWorkf
 func (arrs *AuditReportReviewService) sendRevertedNotification(id uint, currentUserID uint, auditFinalReportDetailDTO *auditDTOs.AuditFinalReportDetailDTO) {
 	go func() {
 		// Prepare URL and parameters for the notification
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
-		entity := "audit"
+		urlParam := fmt.Sprintf(`{"id":%d}`, auditFinalReportDetailDTO.AuditID)
+		entity := "audit-final-report"
 		action := "reverted"
 
 		// Create the database notification DTO

@@ -764,7 +764,7 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 
 	go func() {
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
-		entity := "audit"
+		entity := "audit-draft-report"
 		action := "review-user-assign"
 		
 		existingAuditDraftReportFullDetails, err := adrs.repo.GetByAuditID(auditID)
