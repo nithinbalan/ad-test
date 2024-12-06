@@ -5,7 +5,7 @@ SET @bcmModuleID = (SELECT id FROM modules WHERE identifier = 'business_continui
 
 INSERT INTO modules (identifier, title_en, title_ar, module_id, [order], icon, route)
 VALUES 
-    ('test_and_excercise', 'Test and Excercise', 'الاختبار والتمارين', @bcmModuleID, 6, NULL, '/business-continuity/test-and-excercise');
+    ('test_and_excercise', 'Test and Excercise', 'الاختبار والتمارين', @bcmModuleID, 6, NULL, '/business-continuity/test-and-exercise');
 
 -- Declarations for role and permission type IDs
 DECLARE @superAdminRoleID INT;
