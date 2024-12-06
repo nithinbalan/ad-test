@@ -1,5 +1,7 @@
 package utility
 
+import "strings"
+
 type InternalServerError struct {
 	err error
 }
@@ -66,4 +68,11 @@ func NewResourceConflictError(err error) *ResourceConflictError {
 	return &ResourceConflictError{
 		err: err,
 	}
+}
+
+func IsForeignKeyConstraintError(err error) bool {
+	if err != nil && strings.Contains(err.Error(), "REFERENCE constraint") {
+		return true
+	}
+	return false
 }

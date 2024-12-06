@@ -280,15 +280,20 @@ func (ols *OrganizationLevelService) Delete(id uint, currentUserID uint) error {
 	if len(unitIDs) > 0 {
 		if err := ols.repo.DeleteOrganizationUnits(unitIDs, tx); err != nil {
 			tx.Rollback()
-			return utility.NewResourceConflictError(err)
+			if utility.IsForeignKeyConstraintError(err) {
+				return utility.NewResourceConflictError(fmt.Errorf("foreign key constraint violation while deleting organization units"))
+			}
+			return err
 		}
 	}
 
 	err = ols.repo.Delete(id, tx)
 	if err != nil {
-
 		tx.Rollback()
-		return utility.NewResourceConflictError(err)
+		if utility.IsForeignKeyConstraintError(err) {
+			return utility.NewResourceConflictError(fmt.Errorf("foreign key constraint violation while deleting organization level"))
+		}
+		return err
 	}
 
 	tx.Commit()
