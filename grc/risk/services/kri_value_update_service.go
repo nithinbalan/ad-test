@@ -95,7 +95,6 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 		Value:           &kriValueUpdateFormDTO.Value,
 		LowThreshold:    existingKRIRegister.LowThreshold,
 		MediumThreshold: existingKRIRegister.MediumThreshold,
-		HighThreshold:   existingKRIRegister.HighThreshold,
 		Remarks:         kriValueUpdateFormDTO.Remarks,
 		CreatedByID:     currentUserID,
 	}
@@ -106,7 +105,13 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 		return 0, err
 	}
 
+	riskLevel, err := kvus.kriRegisterSvc.DetermineRiskLevel(kriValueUpdateFormDTO.Value, existingKRIRegister.LowThreshold, existingKRIRegister.MediumThreshold)
+	if err != nil {
+		return 0, err
+	}
+
 	existingKRIRegister.CurrentValue = &kriValueUpdateFormDTO.Value
+	existingKRIRegister.RiskLevelID = &riskLevel.ID
 	existingKRIRegister.LastReviewNote = kriValueUpdateFormDTO.Remarks
 	existingKRIRegister.LastReviewedDate = dates.ReviewedDate
 	existingKRIRegister.NextReviewDate = nextReviewDate
@@ -192,7 +197,8 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 			utility.LogError("Failed to log activity", fields)
 		}
 		kriValue := kriValueUpdateFormDTO.Value
-		if existingKRIRegister.HighThreshold != nil && kriValue > *existingKRIRegister.HighThreshold {
+
+		if existingKRIRegister.MediumThreshold != nil && kriValue > *existingKRIRegister.MediumThreshold {
 			// Get Risks associated with the given kri
 			existingRisks, err := kvus.repo.GetRisksByKriID(kriRegisterID)
 			if err != nil {
@@ -229,7 +235,7 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 					return
 				}
 				emailTo := []string{responsibleUser.Email}
-				subject := fmt.Sprintf("KRI Register %s: The value for the KRI has gone above the acceptable limit.", existingKRIRegister.Title)
+				subject := fmt.Sprintf("%s: The value for the KRI has gone above the acceptable limit.", existingKRIRegister.Title)
 				appURL := utility.GetAppURL()
 				emailData := map[string]interface{}{
 					"FirstNameEn":         responsibleUser.FirstNameEn,
@@ -463,7 +469,7 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 			}
 		}
 		kriValue := kriValueUpdateFormDTO.Value
-		if existingKRIRegister.HighThreshold != nil && kriValue > *existingKRIRegister.HighThreshold {
+		if existingKRIRegister.MediumThreshold != nil && kriValue > *existingKRIRegister.MediumThreshold {
 			// Get Risks associated with the given kri
 			existingRisks, err := kvus.repo.GetRisksByKriID(kriRegisterID)
 			if err != nil {
@@ -566,7 +572,7 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 			continue
 		}
 
-		if valueUpdate.Documents != nil && len(valueUpdate.Documents) > 0 {
+		if len(valueUpdate.Documents) > 0 {
 			for _, updateDocument := range valueUpdate.Documents {
 				documentsToDelete[id] = append(documentsToDelete[id], &updateDocument)
 				deleteDocumentIds = append(deleteDocumentIds, &updateDocument.ID)

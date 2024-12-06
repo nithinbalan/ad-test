@@ -91,14 +91,12 @@ type KRIRegisterFormDTO struct {
 	KRICategoryID     uint    `json:"kri_category_id" binding:"required"`
 	ResponsibleUserID uint    `json:"responsible_user_id" binding:"required"`
 	ReviewFrequencyID uint    `json:"review_frequency_id" binding:"required" gorm:"default:not null"`
-	RiskLevelID       *uint   `json:"risk_level_id" gorm:"default:null"`
 	UnitID            uint    `json:"unit_id" binding:"required"`
 	Title             string  `json:"title" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
 	Description       string  `json:"description" gorm:"type:nvarchar(max)"`
 	CalculationType   string  `json:"calculation_type" binding:"required,oneof=automatic manual" gorm:"type:varchar(10);not null"`
 	LowThreshold      *int    `json:"low_threshold" gorm:"type:int;null"`
 	MediumThreshold   *int    `json:"medium_threshold" gorm:"type:int;null"`
-	HighThreshold     *int    `json:"high_threshold" gorm:"type:int;null"`
 	CurrentValue      *int    `json:"current_value" gorm:"type:int;null"`
 	LastReviewedDate  string  `json:"last_reviewed_date" binding:"omitempty" gorm:"type:date"`
 	NextReviewDate    string  `json:"next_review_date" binding:"required" gorm:"type:date;not null"`
