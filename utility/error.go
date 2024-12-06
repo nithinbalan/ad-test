@@ -16,7 +16,11 @@ type ResourceNotFoundError struct {
 }
 
 type ForbiddenError struct {
-    message string
+	message string
+}
+
+type ResourceConflictError struct {
+	err error
 }
 
 func (e *InternalServerError) Error() string {
@@ -32,7 +36,11 @@ func (e *ResourceNotFoundError) Error() string {
 }
 
 func (e *ForbiddenError) Error() string {
-    return e.message
+	return e.message
+}
+
+func (e *ResourceConflictError) Error() string {
+	return e.err.Error()
 }
 
 func NewInternalServerError(err error) error {
@@ -51,5 +59,11 @@ func NewResourceNotFoundError(err error, id interface{}) *ResourceNotFoundError 
 }
 
 func NewForbiddenError(message string) error {
-    return &ForbiddenError{message: message}
+	return &ForbiddenError{message: message}
+}
+
+func NewResourceConflictError(err error) *ResourceConflictError {
+	return &ResourceConflictError{
+		err: err,
+	}
 }

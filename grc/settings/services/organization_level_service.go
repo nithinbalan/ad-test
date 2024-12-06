@@ -280,14 +280,15 @@ func (ols *OrganizationLevelService) Delete(id uint, currentUserID uint) error {
 	if len(unitIDs) > 0 {
 		if err := ols.repo.DeleteOrganizationUnits(unitIDs, tx); err != nil {
 			tx.Rollback()
-			return err
+			return utility.NewResourceConflictError(err)
 		}
 	}
 
 	err = ols.repo.Delete(id, tx)
 	if err != nil {
+
 		tx.Rollback()
-		return err
+		return utility.NewResourceConflictError(err)
 	}
 
 	tx.Commit()
