@@ -10,11 +10,12 @@ CREATE TABLE document_change_request_initiate_documents
     token VARCHAR(255) NOT NULL,
     original_name NVARCHAR(255) NULL,
     type VARCHAR(255) NOT NULL,
+    created_by_id INT NOT NULL,
     updated_by_id INT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
 
-    CONSTRAINT FK_document_change_request_initiate_docs_request FOREIGN KEY (document_change_request_initiate_id) REFERENCES document_change_request_initiates(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_document_change_request_initiate_docs_document_change_reqiest_initiates FOREIGN KEY (document_change_request_initiate_id) REFERENCES document_change_request_initiates(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_document_change_request_initiate_docs_users_1 FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_document_change_request_initiate_docs_users_2 FOREIGN KEY (updated_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
