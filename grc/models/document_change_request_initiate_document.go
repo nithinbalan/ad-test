@@ -13,15 +13,11 @@ type DocumentChangeRequestInitiateDocument struct {
 	Token                           string     `json:"token" gorm:"type:varchar(100);not null"`
 	OriginalName                    *string    `json:"original_name" binding:"omitempty" gorm:"type:nvarchar(255)"`
 	Type                            string     `json:"type" gorm:"type:varchar(100);not null"`
-	CreatedBYID                     uint       `json:"created_by_id" gorm:"not null"`
-	UpdatedBYID                     *uint      `json:"updated_by_id"`
 	CreatedAt                       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                       *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relations
 	DocumentChangeRequestInitiate *DocumentChangeRequestInitiate `gorm:"foreignKey:DocumentChangeRequestInitiateID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser                 *User                          `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	UpdatedByUser                 *User                          `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 func (DocumentChangeRequestInitiateDocument) TableName() string {

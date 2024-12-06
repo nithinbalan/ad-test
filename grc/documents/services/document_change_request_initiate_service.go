@@ -85,11 +85,16 @@ func (dcris *DocumentChangeRequestInitiateService) Create(currentUserID uint, do
 		return 0, err
 	}
 
+	changeRequestInitiateStatus, err := dcris.documentChangeRequestInitiateStatusSvc.GetByType("initiated")
+	if err != nil {
+		return 0, err
+	}
+
 	initiate := &models.DocumentChangeRequestInitiate{
 		DocumentsID:                           documentID,
 		DocumentChangeRequestInitiateTypeID:   formDTO.DocumentChangeRequestInitiateTypeID,
 		ReasonForChange:                       formDTO.ReasonForChange,
-		DocumentChangeRequestInitiateStatusID: 1, // Default to "initiated"
+		DocumentChangeRequestInitiateStatusID: changeRequestInitiateStatus.ID,
 		CreatedBYID:                           currentUserID,
 	}
 
@@ -107,7 +112,7 @@ func (dcris *DocumentChangeRequestInitiateService) Create(currentUserID uint, do
 			tx.Rollback()
 			return 0, err
 		}
-		url := utility.GenerateDocumentURL("documents", "change_request", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+		url := utility.GenerateDocumentURL("document", "change_request_initiates", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
 		document := &models.DocumentChangeRequestInitiateDocument{
 			DocumentChangeRequestInitiateID: id,
 			URL:                             url,
@@ -130,7 +135,7 @@ func (dcris *DocumentChangeRequestInitiateService) Create(currentUserID uint, do
 	tx.Commit()
 
 	for _, doc := range documents {
-		storagePath := filepath.Join("documents", "change_request", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("document", "change_request_initiates", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			return 0, err
 		}
@@ -172,7 +177,7 @@ func (dcris *DocumentChangeRequestInitiateService) Update(id uint, currentUserID
 				tx.Rollback()
 				return err
 			}
-			url := utility.GenerateDocumentURL("documents", "change_request", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+			url := utility.GenerateDocumentURL("document", "change_request_initiates", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
 			document := &models.DocumentChangeRequestInitiateDocument{
 				DocumentChangeRequestInitiateID: id,
 				URL:                             url,
@@ -215,14 +220,14 @@ func (dcris *DocumentChangeRequestInitiateService) Update(id uint, currentUserID
 	tx.Commit()
 
 	for _, doc := range documents {
-		storagePath := filepath.Join("documents", "change_request", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("document", "change_request_initiates", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			fmt.Printf("Failed to store file %s: %v\n", doc.Name, err)
 		}
 	}
 
 	for _, doc := range documentsToDelete {
-		storagePath := filepath.Join("documents", "change_request", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("document", "change_request_initiates", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 			fmt.Printf("Failed to delete file %s: %v\n", doc.Name, err)
 		}
@@ -276,7 +281,7 @@ func (dcris *DocumentChangeRequestInitiateService) Delete(ids []uint, currentUse
 	if len(successfulIds) > 0 {
 		for initiateId, documents := range documentsToDelete {
 			for _, doc := range documents {
-				storagePath := filepath.Join("documents", "change_request", strconv.FormatUint(uint64(initiateId), 10), "documents")
+				storagePath := filepath.Join("document", "change_request_initiates", strconv.FormatUint(uint64(initiateId), 10), "documents")
 				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 					tx.Rollback()
 					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
@@ -305,8 +310,8 @@ func (dcris *DocumentChangeRequestInitiateService) Delete(ids []uint, currentUse
 }
 
 func (dcris *DocumentChangeRequestInitiateService) validateFormDTO(dto *documentDTOs.DocumentChangeRequestInitiateFormDTO) error {
-	if dto.DocumentChangeRequestInitiateTypeID == 0 {
-		return utility.NewValidationError(fmt.Errorf("document change request type ID cannot be zero"), "invalid_field", "document_change_request_initiate_type_id")
+	if _, err := dcris.documentChangeRequestInitiateTypeSvc.GetByID(dto.DocumentChangeRequestInitiateTypeID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("document change request initiate type does not exist"), "not_exist", "change request initiate type")
 	}
 	return nil
 }

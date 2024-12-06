@@ -95,19 +95,20 @@ func (dcrc *DocumentChangeRequestInitiateController) CreateDocumentChangeRequest
 		return
 	}
 
+	documentIdStr := c.Param("id")
+	documentId, err := strconv.ParseUint(documentIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(dcrc.db, c, err.Error())
 		return
 	}
 
-	documentID, err := strconv.Atoi(c.Param("document_id"))
-	if err != nil {
-		utility.SendInvalidErrResp(c, errors.New("invalid document_id parameter"))
-		return
-	}
-
-	id, err := dcrc.service.Create(currentUserID, uint(documentID), &formDTO)
+	id, err := dcrc.service.Create(currentUserID, uint(documentId), &formDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -124,7 +125,7 @@ func (dcrc *DocumentChangeRequestInitiateController) CreateDocumentChangeRequest
 
 // Update an existing document change request
 func (dcrc *DocumentChangeRequestInitiateController) UpdateDocumentChangeRequestInitiate(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := strconv.Atoi(c.Param("icrId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
