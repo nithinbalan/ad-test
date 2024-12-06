@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 ALTER TABLE modules 
-ADD is_enable TINYINT NOT NULL DEFAULT 0;
+ADD is_enable TINYINT NOT NULL DEFAULT 1;
 -- +goose StatementEnd
 
 -- +goose Down
