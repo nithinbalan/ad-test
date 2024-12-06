@@ -3,7 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
-	businessFunctionDTOs "jethur/grc/business-continuity/dtos"
+	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	businessFunctionRepositories "jethur/grc/business-continuity/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
@@ -15,11 +15,11 @@ import (
 )
 
 type BusinessFunctionServiceInterface interface {
-	GetAll(params *businessFunctionDTOs.BusinessFunctionListQueryParamsDTO) (*businessFunctionDTOs.BusinessFunctionListResponseDTO, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*businessFunctionDTOs.BusinessFunctionDetailDTO, error)
+	GetAll(params *businessContinuityDTOs.BusinessFunctionListQueryParamsDTO) (*businessContinuityDTOs.BusinessFunctionListResponseDTO, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.BusinessFunctionDetailDTO, error)
 	GetByID(id uint) (*models.BusinessFunction, error)
-	Create(currentUserID uint, businessFunctionDTOs *businessFunctionDTOs.BusinessFunctionFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, businesFunction *businessFunctionDTOs.BusinessFunctionFormDTO) error
+	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.BusinessFunctionFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, businessFunction *businessContinuityDTOs.BusinessFunctionFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
@@ -42,12 +42,12 @@ func NewBusinessFunctionService(
 	}
 }
 
-func (bfs *BusinessFunctionService) GetAll(params *businessFunctionDTOs.BusinessFunctionListQueryParamsDTO) (*businessFunctionDTOs.BusinessFunctionListResponseDTO, error) {
+func (bfs *BusinessFunctionService) GetAll(params *businessContinuityDTOs.BusinessFunctionListQueryParamsDTO) (*businessContinuityDTOs.BusinessFunctionListResponseDTO, error) {
 	return bfs.repo.GetAll(params)
 }
 
 func (bfs BusinessFunctionService) GetByID(id uint) (*models.BusinessFunction, error) {
-	businesFunction, err := bfs.repo.GetByID(id)
+	businessFunction, err := bfs.repo.GetByID(id)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -55,12 +55,12 @@ func (bfs BusinessFunctionService) GetByID(id uint) (*models.BusinessFunction, e
 		}
 		return nil, err
 	}
-	return businesFunction, nil
+	return businessFunction, nil
 }
 
-func (bfs BusinessFunctionService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*businessFunctionDTOs.BusinessFunctionDetailDTO, error) {
+func (bfs BusinessFunctionService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.BusinessFunctionDetailDTO, error) {
 	// Initialize your DTO
-	var businessFunctionDTO businessFunctionDTOs.BusinessFunctionDetailDTO
+	var businessFunctionDTO businessContinuityDTOs.BusinessFunctionDetailDTO
 
 	businessFunction, err := bfs.repo.GetFullDetailsByID(id, tx...)
 
@@ -83,7 +83,7 @@ func (bfs BusinessFunctionService) GetFullDetailsByID(id uint, tx ...utility.Dat
 	return &businessFunctionDTO, nil
 }
 
-func (bfs *BusinessFunctionService) Create(currentUserID uint, businessFunctionFormDTO *businessFunctionDTOs.BusinessFunctionFormDTO) (uint, error) {
+func (bfs *BusinessFunctionService) Create(currentUserID uint, businessFunctionFormDTO *businessContinuityDTOs.BusinessFunctionFormDTO) (uint, error) {
 	tx := bfs.repo.BeginTransaction()
 
 	referenceNumber, err := bfs.repo.GenerateReferenceNumber()
@@ -157,7 +157,7 @@ func (bfs *BusinessFunctionService) Create(currentUserID uint, businessFunctionF
 	}()
 	return id, nil
 }
-func (bfs *BusinessFunctionService) Update(id uint, currentUserID uint, businessFunctionFormDTO *businessFunctionDTOs.BusinessFunctionFormDTO) error {
+func (bfs *BusinessFunctionService) Update(id uint, currentUserID uint, businessFunctionFormDTO *businessContinuityDTOs.BusinessFunctionFormDTO) error {
 	tx := bfs.repo.BeginTransaction()
 
 	existingBusinessFunction, err := bfs.repo.GetByID(id)
@@ -332,7 +332,7 @@ func (bfs *BusinessFunctionService) Delete(ids []uint, currentUserID uint) ([]ui
 	var deletedBusinessFunction []map[string]interface{}
 
 	for _, id := range ids {
-		businesFunction, err := bfs.GetFullDetailsByID(id, tx)
+		businessFunction, err := bfs.GetFullDetailsByID(id, tx)
 		if err != nil {
 			tx.Rollback()
 			return nil, err
@@ -340,12 +340,12 @@ func (bfs *BusinessFunctionService) Delete(ids []uint, currentUserID uint) ([]ui
 
 		deletedBusinessFunction = append(deletedBusinessFunction, map[string]interface{}{
 			"id":    id,
-			"title": businesFunction.Title,
+			"title": businessFunction.Title,
 		})
 
-		if len(businesFunction.Processes) > 0 {
+		if len(businessFunction.Processes) > 0 {
 			var deleteControlIDs []*uint
-			for _, process := range businesFunction.Processes {
+			for _, process := range businessFunction.Processes {
 				deleteControlIDs = append(deleteControlIDs, process.ID)
 			}
 			if err := bfs.repo.DeleteBusinessFunctionProcesses(deleteControlIDs, tx); err != nil {

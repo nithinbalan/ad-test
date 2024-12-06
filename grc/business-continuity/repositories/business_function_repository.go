@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"fmt"
-	businessFunctionDTOs "jethur/grc/business-continuity/dtos"
+	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -14,11 +14,11 @@ import (
 
 type BusinessFunctionRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *businessFunctionDTOs.BusinessFunctionListQueryParamsDTO) (*businessFunctionDTOs.BusinessFunctionListResponseDTO, error)
+	GetAll(params *businessContinuityDTOs.BusinessFunctionListQueryParamsDTO) (*businessContinuityDTOs.BusinessFunctionListResponseDTO, error)
 	GetByID(id uint) (*models.BusinessFunction, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.BusinessFunction, error)
 	Create(businessFunction *models.BusinessFunction, tx ...utility.DatabaseTransaction) (uint, error)
-	Update(businesFunction *models.BusinessFunction, tx ...utility.DatabaseTransaction) error
+	Update(businessFunction *models.BusinessFunction, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber() (string, error)
 
@@ -41,8 +41,8 @@ func (repo *BusinessFunctionRepository) BeginTransaction() utility.DatabaseTrans
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *BusinessFunctionRepository) GetAll(params *businessFunctionDTOs.BusinessFunctionListQueryParamsDTO) (*businessFunctionDTOs.BusinessFunctionListResponseDTO, error) {
-	var businessFunctions []*businessFunctionDTOs.BusinessFunctionListDTO
+func (repo *BusinessFunctionRepository) GetAll(params *businessContinuityDTOs.BusinessFunctionListQueryParamsDTO) (*businessContinuityDTOs.BusinessFunctionListResponseDTO, error) {
+	var businessFunctions []*businessContinuityDTOs.BusinessFunctionListDTO
 	var totalCount int64
 
 	query := repo.db.Table("business_functions").
@@ -146,7 +146,7 @@ func (repo *BusinessFunctionRepository) GetAll(params *businessFunctionDTOs.Busi
 		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 	}
 
-	response := &businessFunctionDTOs.BusinessFunctionListResponseDTO{
+	response := &businessContinuityDTOs.BusinessFunctionListResponseDTO{
 		Items: businessFunctions,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
@@ -205,12 +205,12 @@ func (repo *BusinessFunctionRepository) Create(businessFunction *models.Business
 	return businessFunction.ID, nil
 }
 
-func (repo *BusinessFunctionRepository) Update(businesFunction *models.BusinessFunction, tx ...utility.DatabaseTransaction) error {
+func (repo *BusinessFunctionRepository) Update(businessFunction *models.BusinessFunction, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	if err := db.Save(businesFunction).Error; err != nil {
+	if err := db.Save(businessFunction).Error; err != nil {
 		return err
 	}
 

@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"errors"
-	businessFunctionDTOs "jethur/grc/business-continuity/dtos"
+	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	"jethur/grc/business-continuity/services"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/utility"
@@ -27,7 +27,6 @@ func NewBusinessFunctionController(service services.BusinessFunctionServiceInter
 func (bfc *BusinessFunctionController) GetAllBusinessFunctions(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title")
-	status := c.Query("status")
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
@@ -54,7 +53,6 @@ func (bfc *BusinessFunctionController) GetAllBusinessFunctions(c *gin.Context) {
 		"responsible_user_last_name_en":  "responsible_user.last_name_en",
 		"responsible_user_last_name_ar":  "responsible_user.last_name_ar",
 		"responsible_user_email":         "responsible_user.email",
-		"responsible_user_initial":       "responsible_user.initial",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -76,25 +74,24 @@ func (bfc *BusinessFunctionController) GetAllBusinessFunctions(c *gin.Context) {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
-	queryParams := businessFunctionDTOs.BusinessFunctionListQueryParamsDTO{
+	queryParams := businessContinuityDTOs.BusinessFunctionListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortField,
 		Keyword:     keyword,
-		Status:      status,
 		Page:        page,
 		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		Export:      export,
 	}
-	businesFunctions, err := bfc.service.GetAll(&queryParams)
+	businessFunctions, err := bfc.service.GetAll(&queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(bfc.db, c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, businesFunctions)
+	c.JSON(http.StatusOK, businessFunctions)
 }
 
 func (bfc *BusinessFunctionController) GetBusinessFunctionDetails(c *gin.Context) {
@@ -121,7 +118,7 @@ func (bfc *BusinessFunctionController) GetBusinessFunctionDetails(c *gin.Context
 }
 
 func (bfc *BusinessFunctionController) CreateBusinessFunction(c *gin.Context) {
-	var businessFunctionFormDTO businessFunctionDTOs.BusinessFunctionFormDTO
+	var businessFunctionFormDTO businessContinuityDTOs.BusinessFunctionFormDTO
 
 	if err := c.ShouldBindJSON(&businessFunctionFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -154,9 +151,9 @@ func (bfc *BusinessFunctionController) CreateBusinessFunction(c *gin.Context) {
 }
 
 func (bfc *BusinessFunctionController) UpdateBusinessFunction(c *gin.Context) {
-	var businessFunctionFormDTO businessFunctionDTOs.BusinessFunctionFormDTO
+	var businessFunctionFormDTO businessContinuityDTOs.BusinessFunctionFormDTO
 
-	businesFunctionID, err := strconv.Atoi(c.Param("id"))
+	businessFunctionID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -173,7 +170,7 @@ func (bfc *BusinessFunctionController) UpdateBusinessFunction(c *gin.Context) {
 		return
 	}
 
-	err = bfc.service.Update(uint(businesFunctionID), currentUserID, &businessFunctionFormDTO)
+	err = bfc.service.Update(uint(businessFunctionID), currentUserID, &businessFunctionFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
