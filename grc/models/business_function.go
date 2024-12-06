@@ -1,0 +1,30 @@
+package models
+
+import (
+	"time"
+)
+
+type BusinessFunction struct {
+	ID                uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	ReferenceNumber   string     `json:"reference_number" binding:"omitempty,max=45" gorm:"size:45"`
+	ResponsibleUserID uint       `json:"responsible_user_id" binding:"required" gorm:"not null"`
+	SeverityLevelID   *uint      `json:"severity_level_id" binding:"required"`
+	Title             string     `json:"title" binding:"required,max=255" gorm:"type:nvarchar(255);not null"`
+	Description       *string    `json:"description" gorm:"type:nvarchar(max)"`
+	CreatedByID       uint       `json:"created_by_id" binding:"required"`
+	UpdatedByID       *uint      `json:"updated_by_id"`
+	CreatedAt         time.Time  `json:"created_at" gorm:"type:datetime;not null"`
+	UpdatedAt         *time.Time `json:"updated_at" gorm:"type:datetime"`
+
+	// Relationships
+	SeverityLevel   *SeverityLevel             `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser *User                      `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Processes       []*BusinessFunctionProcess `gorm:"foreignKey:BusinessFunctionID"`
+	CreatedByUser   *User                      `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser   *User                      `gorm:"foreignKey:UpdatedByID"`
+}
+
+// TableName overrides the table name used by BusinessFunction to `business_functions`
+func (BusinessFunction) TableName() string {
+	return "business_functions"
+}

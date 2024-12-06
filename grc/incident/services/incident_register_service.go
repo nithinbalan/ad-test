@@ -1061,7 +1061,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 			}
 		}
 		for id := range existingProcessIDs {
-			if !newAssetIDs[id] {
+			if !newProcessIDs[id] {
 				processesRemoved = append(processesRemoved, id)
 			}
 		}
