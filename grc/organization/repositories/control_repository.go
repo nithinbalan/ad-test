@@ -121,9 +121,7 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 		Joins("LEFT JOIN users AS created_user ON created_user.id = controls.created_by_id").
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = controls.updated_by_id").
 		Joins("LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = controls.risk_matrix_risk_rating_id").
-		Joins("LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = controls.risk_matrix_risk_rating_value_id").
-		Joins("LEFT JOIN compliance_controls ON compliance_controls.control_id = controls.id").
-		Joins("LEFT JOIN compliance_register ON compliance_register.id = compliance_controls.compliance_register_id")
+		Joins("LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = controls.risk_matrix_risk_rating_value_id")
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -197,12 +195,12 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 			query = query.Where("control_efficiency_statuses.type = ?", "efficient")
 		case "archived":
 			query = query.Where("lifecycle_statuses.type = ?", "archived")
-		case "NCA":
-			query = query.Where("compliance_register.standard_code = ?", "NCA")
-		case "SAMA":
-			query = query.Where("compliance_register.standard_code = ?", "SAMA")
-		case "ISMS":
-			query = query.Where("compliance_register.standard_code = ?", "ISMS")
+		case "SAMA", "NCA", "ISMS":
+			// Add the compliance_controls join only when filtering by these codes
+			query = query.Joins(`
+            INNER JOIN compliance_controls ON compliance_controls.control_id = controls.id
+            INNER JOIN compliance_register ON compliance_register.id = compliance_controls.compliance_register_id
+        `).Where("compliance_register.standard_code = ?", filter)
 		case "high_risk":
 			query = query.Where("risk_matrix_risk_ratings.type IN (?)", []string{"high", "very_high"})
 		}
