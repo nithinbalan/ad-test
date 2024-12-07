@@ -580,10 +580,19 @@ func (repo *RiskAssociatedItemRepository) GetAllDocuments(riskID uint, params *r
 			LEFT JOIN users AS responsible_user ON documents.responsible_user_id = responsible_user.id
 			LEFT JOIN organization_units ON documents.responsible_unit_id = organization_units.id
 			LEFT JOIN document_statuses ON documents.document_status_id = document_statuses.id
+			LEFT JOIN document_types ON documents.document_type_id = document_types.id
 		`).
 		Where("risk_associated_documents.risk_register_id = ?", riskID)
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
+	}
+
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "policy-procedure":
+			query = query.Where("document_types.type IN (?)", []string{"policy", "procedure"})
+
+		}
 	}
 	// Apply search keyword if exists
 	if params.Keyword != "" {
