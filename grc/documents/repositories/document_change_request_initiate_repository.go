@@ -123,19 +123,14 @@ func (repo *DocumentChangeRequestInitiateRepository) GetAll(params *dtos.Documen
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
+	// Sort by the specified column and order
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
-
-	// Apply sorting, default sort by document title
-	if params.SortBy == "" {
-		params.SortBy = "document_title"
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc"
-	}
-	query = query.Order(params.SortBy + " " + params.Sort)
 
 	// Pagination
 	offset := (params.Page - 1) * params.PageSize

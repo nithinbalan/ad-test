@@ -27,7 +27,7 @@ func NewDocumentChangeRequestInitiateController(service services.DocumentChangeR
 // Get all document change requests with filtering, sorting, and pagination
 func (dcrc *DocumentChangeRequestInitiateController) GetAllDocumentChangeRequestInitiates(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "created_at")
+	sortBy := c.DefaultQuery("sort_by", "initiate_type_en")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
