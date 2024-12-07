@@ -12,6 +12,7 @@ type AuditDraftFindingConversationListDTO struct {
 	Comment                     string                                      `json:"comment"`
 	IsAccepted                  bool                                        `json:"is_accepted"`
 	IsDismissed                 bool                                        `json:"is_dismissed"`
+	IsReopened                  bool                                        `json:"is_reopened"`
 	CreatedAt                   string                                      `json:"created_at"`
 	CreatedUserID               uint                                        `json:"created_user_id"`
 	CreatedUserFirstNameEn      string                                      `json:"created_user_first_name_en"`
@@ -30,6 +31,7 @@ type AuditDraftFindingConversationFormDTO struct {
 	Type        string                        `json:"type" binding:"required,max=10"`
 	IsAccepted  *bool                         `json:"is_accepted" binding:"omitempty"`
 	IsDismissed *bool                         `json:"is_dismissed" binding:"omitempty"`
+	IsReopened  *bool                         `json:"is_reopened" binding:"omitempty"`
 	Documents   []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
 }
 
@@ -52,6 +54,7 @@ type AuditDraftFindingConversationDetailDTO struct {
 	AuditDraftFinding AuditDraftFindingDetailDTO                  `json:"audit_draft_finding"`
 	IsAccepted        bool                                        `json:"is_accepted"`
 	IsDismissed       bool                                        `json:"is_dismissed"`
+	IsReopened        bool                                        `json:"is_reopened"`
 	CreatedAt         time.Time                                   `json:"created_at"`
 	UpdatedAt         *time.Time                                  `json:"updated_at"`
 	CreatedByUser     organizationDTOs.UserMinimalDTO             `json:"created_by_user"`

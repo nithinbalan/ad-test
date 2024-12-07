@@ -146,6 +146,9 @@ func (olc *OrganizationLevelController) DeleteOrganizationLevel(c *gin.Context) 
 
 	if err := olc.service.Delete(uint(orgLevelID), currentUserID); err != nil {
 		switch e := err.(type) {
+		case *utility.ResourceConflictError:
+			utility.SendConflictErrResp(c, e.Error())
+			return
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return

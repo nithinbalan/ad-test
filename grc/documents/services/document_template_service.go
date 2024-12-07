@@ -17,7 +17,7 @@ import (
 )
 
 type DocumentTemplateServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*documentDTOs.DocumentTemplateListDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string, documentTypeID string) ([]*documentDTOs.DocumentTemplateListDTO, error)
 	GetByID(id uint) (*models.DocumentTemplate, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*documentDTOs.DocumentTemplateDetailsDTO, error)
 	Create(currentUserID uint, documentTemplateFormDTO *documentDTOs.DocumentTemplateFormDTO) (uint, error)
@@ -44,8 +44,8 @@ func NewDocumentTemplateService(
 	}
 }
 
-func (dts *DocumentTemplateService) GetAll(sort string, sortBy string, keyword string, status string) ([]*documentDTOs.DocumentTemplateListDTO, error) {
-	return dts.repo.GetAll(sort, sortBy, keyword, status)
+func (dts *DocumentTemplateService) GetAll(sort string, sortBy string, keyword string, status string, documentTypeID string) ([]*documentDTOs.DocumentTemplateListDTO, error) {
+	return dts.repo.GetAll(sort, sortBy, keyword, status, documentTypeID)
 }
 
 func (dts *DocumentTemplateService) GetByID(id uint) (*models.DocumentTemplate, error) {
