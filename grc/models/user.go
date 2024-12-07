@@ -39,6 +39,7 @@ type User struct {
 	Designation       *Designation        `gorm:"foreignKey:DesignationID"`
 	UserRoles         *[]UserRole         `gorm:"foreignKey:UserID"`
 	LoginHistory      *[]UserLoginHistory `gorm:"foreignKey:UserID"`
+	UserSetting       *UserSetting        `gorm:"foreignKey:UserID"`
 	CreatedByUser     *User               `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser     *User               `gorm:"foreignKey:UpdatedByID"`
 }
