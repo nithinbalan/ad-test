@@ -225,6 +225,7 @@ func (repo *UserRepository) GetFullDetailsByID(id uint) (*models.User, error) {
 		Preload("UserStatus").
 		Preload("Designation").
 		Preload("UserRoles").
+		Preload("UserSetting").
 		Preload("UserRoles.Role").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
