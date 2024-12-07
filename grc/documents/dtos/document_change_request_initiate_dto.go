@@ -44,17 +44,10 @@ type DocumentChangeRequestInitiateListDTO struct {
 }
 
 type DocumentChangeRequestInitiateDetailsDTO struct {
-	ID                                       uint    `json:"id"`
-	DocumentsID                              uint    `json:"documents_id"`
-	DocumentTitle                            string  `json:"document_title"`
-	DocumentChangeRequestInitiateTypeID      uint    `json:"document_change_request_initiate_type_id"`
-	DocumentChangeRequestInitiateTypeEn      string  `json:"document_change_request_initiate_type_en"`
-	DocumentChangeRequestInitiateTypeAr      string  `json:"document_change_request_initiate_type_ar"`
-	ReasonForChange                          *string `json:"reason_for_change"`
-	DocumentChangeRequestInitiateStatusID    uint    `json:"document_change_request_initiate_status_id"`
-	DocumentChangeRequestInitiateStatusEn    string  `json:"document_change_request_initiate_status_en"`
-	DocumentChangeRequestInitiateStatusAr    string  `json:"document_change_request_initiate_status_ar"`
-	DocumentChangeRequestInitiateStatusColor string  `json:"document_change_request_initiate_status_color"`
+	ID                                  uint                                   `json:"id"`
+	ReasonForChange                     *string                                `json:"reason_for_change"`
+	DocumentChangeRequestInitiateType   DocumentChangeRequestInitiateTypeDTO   `jaon:"document_change_request_initiate_type"`
+	DocumentChangeRequestInitiateStatus DocumentChangeRequestInitiateStatusDTO `jaon:"document_change_request_initiate_status"`
 
 	CreatedByUser organizationDTOs.UserMinimalDTO  `json:"created_by_user"`
 	UpdatedByUser *organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
