@@ -46,8 +46,8 @@ type DocumentChangeRequestInitiateListDTO struct {
 type DocumentChangeRequestInitiateDetailsDTO struct {
 	ID                                  uint                                   `json:"id"`
 	ReasonForChange                     *string                                `json:"reason_for_change"`
-	DocumentChangeRequestInitiateType   DocumentChangeRequestInitiateTypeDTO   `jaon:"document_change_request_initiate_type"`
-	DocumentChangeRequestInitiateStatus DocumentChangeRequestInitiateStatusDTO `jaon:"document_change_request_initiate_status"`
+	DocumentChangeRequestInitiateType   DocumentChangeRequestInitiateTypeDTO   `json:"document_change_request_initiate_type"`
+	DocumentChangeRequestInitiateStatus DocumentChangeRequestInitiateStatusDTO `json:"document_change_request_initiate_status"`
 
 	CreatedByUser organizationDTOs.UserMinimalDTO  `json:"created_by_user"`
 	UpdatedByUser *organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
