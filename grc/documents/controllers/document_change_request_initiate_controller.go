@@ -32,6 +32,22 @@ func (dcrc *DocumentChangeRequestInitiateController) GetAllDocumentChangeRequest
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"document_change_reuqest_initiate_type_ids",
+		"document_change_reuqest_initiate_status_ids",
+	}
+
+	validSortFields := map[string]string{
+		"initiate_type_ar":  "initiate_types.title_ar",
+		"initiate_type_en":  "initiate_types.title_en",
+		"reason_for_change": "document_change_request_initiates.reason_for_change",
+		"status_en":         "initiate_statuses.title_ar",
+		"status_ar":         "initiate_statuses.title_en",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInvalidErrResp(c, errors.New("invalid page parameter"))
@@ -44,13 +60,21 @@ func (dcrc *DocumentChangeRequestInitiateController) GetAllDocumentChangeRequest
 		return
 	}
 
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	params := documentDTOs.DocumentChangeRequestInitiateQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      sortBy,
+		SortBy:      dbField,
 		Keyword:     keyword,
 		Status:      status,
 		Page:        page,
 		PageSize:    pageSize,
+		Filters:     filters,
 		QuickFilter: quickFilter,
 	}
 
@@ -65,7 +89,7 @@ func (dcrc *DocumentChangeRequestInitiateController) GetAllDocumentChangeRequest
 
 // Get details of a single document change request by ID
 func (dcrc *DocumentChangeRequestInitiateController) GetDocumentChangeRequestInitiateDetails(c *gin.Context) {
-	idStr := c.Param("id")
+	idStr := c.Param("icrId")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)

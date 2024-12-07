@@ -7,17 +7,17 @@ import (
 )
 
 type DocumentChangeRequestInitiateListDTO struct {
-	ID                                       uint    `json:"id"`
-	DocumentsID                              uint    `json:"documents_id"`
-	DocumentTitle                            string  `json:"document_title"`
-	DocumentChangeRequestInitiateTypeID      uint    `json:"document_change_request_initiate_type_id"`
-	DocumentChangeRequestInitiateTypeEn      string  `json:"document_change_request_initiate_type_en"`
-	DocumentChangeRequestInitiateTypeAr      string  `json:"document_change_request_initiate_type_ar"`
-	ReasonForChange                          *string `json:"reason_for_change"`
-	DocumentChangeRequestInitiateStatusID    uint    `json:"document_change_request_initiate_status_id"`
-	DocumentChangeRequestInitiateStatusEn    string  `json:"document_change_request_initiate_status_en"`
-	DocumentChangeRequestInitiateStatusAr    string  `json:"document_change_request_initiate_status_ar"`
-	DocumentChangeRequestInitiateStatusColor string  `json:"document_change_request_initiate_status_color"`
+	ID                                           uint    `json:"id"`
+	DocumentsID                                  uint    `json:"documents_id"`
+	DocumentTitle                                string  `json:"document_title"`
+	DocumentChangeRequestInitiateTypeID          uint    `json:"document_change_request_initiate_type_id"`
+	DocumentChangeRequestInitiateTypeTitleEn     string  `json:"document_change_request_initiate_type_title_en"`
+	DocumentChangeRequestInitiateTypeTitleAr     string  `json:"document_change_request_initiate_type_title_ar"`
+	ReasonForChange                              *string `json:"reason_for_change"`
+	DocumentChangeRequestInitiateStatusID        uint    `json:"document_change_request_initiate_status_id"`
+	DocumentChangeRequestInitiateStatusTitleEn   string  `json:"document_change_request_initiate_status_title_en"`
+	DocumentChangeRequestInitiateStatusTitleAr   string  `json:"document_change_request_initiate_status_title_ar"`
+	DocumentChangeRequestInitiateStatusColorCode string  `json:"document_change_request_initiate_status_color_code"`
 
 	CreatedByUserID               uint   `json:"created_by_user_id"`
 	CreatedByUserFirstNameEn      string `json:"created_by_user_first_name_en"`
@@ -25,6 +25,8 @@ type DocumentChangeRequestInitiateListDTO struct {
 	CreatedByUserLastNameEn       string `json:"created_by_user_last_name_en"`
 	CreatedByUserLastNameAr       string `json:"created_by_user_last_name_ar"`
 	CreatedByUserEmail            string `json:"created_by_user_email"`
+	CreatedUserInitial            string `json:"created_user_initial"`
+	CreatedUserColor              string `json:"created_user_color"`
 	CreatedByUserProfileImagePath string `json:"created_by_user_profile_image_path"`
 
 	UpdatedByUserID               *uint   `json:"updated_by_user_id"`
@@ -33,6 +35,8 @@ type DocumentChangeRequestInitiateListDTO struct {
 	UpdatedByUserLastNameEn       *string `json:"updated_by_user_last_name_en"`
 	UpdatedByUserLastNameAr       *string `json:"updated_by_user_last_name_ar"`
 	UpdatedByUserEmail            *string `json:"updated_by_user_email"`
+	UpdatedUserInitial            *string `json:"updated_user_initial"`
+	UpdatedUserColor              *string `json:"updated_user_color"`
 	UpdatedByUserProfileImagePath *string `json:"updated_by_user_profile_image_path"`
 
 	CreatedAt time.Time  `json:"created_at"`

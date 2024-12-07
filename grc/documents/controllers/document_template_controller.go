@@ -27,8 +27,9 @@ func (dtc *DocumentTemplateController) GetAllDocumentTemplates(c *gin.Context) {
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	documentTypeID := c.Query("document_type_id")
 
-	documentTemplates, err := dtc.service.GetAll(sort, sortBy, keyword, status)
+	documentTemplates, err := dtc.service.GetAll(sort, sortBy, keyword, status, documentTypeID)
 	if err != nil {
 		utility.SendInternalErrResp(dtc.db, c, err.Error())
 		return
