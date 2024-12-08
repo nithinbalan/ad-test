@@ -44,7 +44,7 @@ func (repo *DocumentChangeRequestInitiateRepository) GetAll(params *dtos.Documen
 	query := repo.db.Table("document_change_request_initiates").
 		Select(`
 			document_change_request_initiates.id,
-			document_change_request_initiates.documents_id,
+			document_change_request_initiates.document_id,
 			documents.title_en AS document_title,
 			documents.title_ar AS document_title_ar,
 			document_change_request_initiates.document_change_request_initiate_type_id,
@@ -76,14 +76,14 @@ func (repo *DocumentChangeRequestInitiateRepository) GetAll(params *dtos.Documen
 			document_change_request_initiates.created_at,
 			document_change_request_initiates.updated_at
 		`).
-		Joins("JOIN documents ON documents.id = document_change_request_initiates.documents_id").
+		Joins("JOIN documents ON documents.id = document_change_request_initiates.document_id").
 		Joins("JOIN document_change_request_initiate_types AS initiate_types ON initiate_types.id = document_change_request_initiates.document_change_request_initiate_type_id").
 		Joins("JOIN document_change_request_initiate_statuses AS initiate_statuses ON initiate_statuses.id = document_change_request_initiates.document_change_request_initiate_status_id").
 		Joins("LEFT JOIN users AS created_by_user ON created_by_user.id = document_change_request_initiates.created_by_id").
 		Joins("LEFT JOIN users AS updated_by_user ON updated_by_user.id = document_change_request_initiates.updated_by_id")
 
 		// Add documentId filter
-	query = query.Where("document_change_request_initiates.documents_id = ?", documentId)
+	query = query.Where("document_change_request_initiates.document_id = ?", documentId)
 
 	// Apply dynamic filters
 	for columnName, values := range params.Filters {

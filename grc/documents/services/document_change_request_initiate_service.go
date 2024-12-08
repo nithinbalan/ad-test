@@ -91,7 +91,7 @@ func (dcris *DocumentChangeRequestInitiateService) Create(currentUserID uint, do
 	}
 
 	initiate := &models.DocumentChangeRequestInitiate{
-		DocumentsID:                           documentID,
+		DocumentID:                            documentID,
 		DocumentChangeRequestInitiateTypeID:   formDTO.DocumentChangeRequestInitiateTypeID,
 		ReasonForChange:                       formDTO.ReasonForChange,
 		DocumentChangeRequestInitiateStatusID: changeRequestInitiateStatus.ID,

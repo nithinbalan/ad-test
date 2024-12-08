@@ -8,7 +8,7 @@ import (
 
 type DocumentChangeRequestInitiateListDTO struct {
 	ID                                           uint    `json:"id"`
-	DocumentsID                                  uint    `json:"documents_id"`
+	DocumentID                                   uint    `json:"document_id"`
 	DocumentTitle                                string  `json:"document_title"`
 	DocumentChangeRequestInitiateTypeID          uint    `json:"document_change_request_initiate_type_id"`
 	DocumentChangeRequestInitiateTypeTitleEn     string  `json:"document_change_request_initiate_type_title_en"`

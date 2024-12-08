@@ -6,7 +6,7 @@ import (
 
 type DocumentChangeRequestInitiate struct {
 	ID                                    uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	DocumentsID                           uint       `json:"documents_id" gorm:"not null"`
+	DocumentID                            uint       `json:"document_id" gorm:"not null"`
 	DocumentChangeRequestInitiateTypeID   uint       `json:"document_change_request_initiate_type_id" gorm:"not null"`
 	ReasonForChange                       *string    `json:"reason_for_change" gorm:"type:nvarchar(MAX)"`
 	DocumentChangeRequestInitiateStatusID uint       `json:"document_change_request_initiate_statuses_id" gorm:"not null"`
@@ -16,7 +16,7 @@ type DocumentChangeRequestInitiate struct {
 	UpdatedAt                             *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relations
-	Document                            *Document                            `gorm:"foreignKey:DocumentsID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Document                            *Document                            `gorm:"foreignKey:DocumentID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	DocumentChangeRequestInitiateType   *DocumentChangeRequestInitiateType   `gorm:"foreignKey:DocumentChangeRequestInitiateTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	DocumentChangeRequestInitiateStatus *DocumentChangeRequestInitiateStatus `gorm:"foreignKey:DocumentChangeRequestInitiateStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser                       *User                                `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
