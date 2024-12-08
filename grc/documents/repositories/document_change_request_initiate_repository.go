@@ -11,7 +11,7 @@ import (
 
 type DocumentChangeRequestInitiateRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *dtos.DocumentChangeRequestInitiateQueryParamsDTO) (*dtos.DocumentChangeRequestInitiateListResponseDTO, error)
+	GetAll(params *dtos.DocumentChangeRequestInitiateQueryParamsDTO, documentId uint) (*dtos.DocumentChangeRequestInitiateListResponseDTO, error)
 	GetByID(id uint) (*models.DocumentChangeRequestInitiate, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentChangeRequestInitiate, error)
 	Create(changeRequest *models.DocumentChangeRequestInitiate, tx ...utility.DatabaseTransaction) (uint, error)
@@ -37,7 +37,7 @@ func (repo *DocumentChangeRequestInitiateRepository) BeginTransaction() utility.
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *DocumentChangeRequestInitiateRepository) GetAll(params *dtos.DocumentChangeRequestInitiateQueryParamsDTO) (*dtos.DocumentChangeRequestInitiateListResponseDTO, error) {
+func (repo *DocumentChangeRequestInitiateRepository) GetAll(params *dtos.DocumentChangeRequestInitiateQueryParamsDTO, documentId uint) (*dtos.DocumentChangeRequestInitiateListResponseDTO, error) {
 	var documentChangeRequests []*dtos.DocumentChangeRequestInitiateListDTO
 	var totalCount int64
 
@@ -81,6 +81,9 @@ func (repo *DocumentChangeRequestInitiateRepository) GetAll(params *dtos.Documen
 		Joins("JOIN document_change_request_initiate_statuses AS initiate_statuses ON initiate_statuses.id = document_change_request_initiates.document_change_request_initiate_status_id").
 		Joins("LEFT JOIN users AS created_by_user ON created_by_user.id = document_change_request_initiates.created_by_id").
 		Joins("LEFT JOIN users AS updated_by_user ON updated_by_user.id = document_change_request_initiates.updated_by_id")
+
+		// Add documentId filter
+	query = query.Where("document_change_request_initiates.documents_id = ?", documentId)
 
 	// Apply dynamic filters
 	for columnName, values := range params.Filters {
