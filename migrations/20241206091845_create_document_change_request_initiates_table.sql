@@ -3,7 +3,7 @@
 CREATE TABLE document_change_request_initiates
 (
     id INT PRIMARY KEY IDENTITY(1, 1),
-    documents_id INT NOT NULL,
+    document_id INT NOT NULL,
     document_change_request_initiate_type_id INT NOT NULL,
     reason_for_change NVARCHAR(MAX) NULL,
     document_change_request_initiate_status_id INT NOT NULL,
