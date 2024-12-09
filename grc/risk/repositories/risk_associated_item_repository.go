@@ -561,10 +561,19 @@ func (repo *RiskAssociatedItemRepository) GetAllDocuments(riskID uint, params *r
 			documents.description_ar AS description_ar,
 			document_categories.title_en AS document_category_title_en,
 			document_categories.title_ar AS document_category_title_ar,
+			document_types.title_en AS document_type_title_en,
+			document_types.title_ar AS document_type_title_ar,
+			document_access_types.title_en AS document_access_type_title_en,
+			document_access_types.title_ar AS document_access_type_title_ar,
+			responsible_user.id AS responsible_user_id,
 			responsible_user.first_name_en AS responsible_user_first_name_en,
-			responsible_user.first_name_ar AS responsible_user_first_name_ar,
-			responsible_user.last_name_en AS responsible_user_last_name_en,
-			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+            responsible_user.first_name_ar AS responsible_user_first_name_ar,
+            responsible_user.last_name_en AS responsible_user_last_name_en,
+            responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+            responsible_user.color AS responsible_user_color,
+            responsible_user.email AS responsible_user_email,
+            responsible_user.profile_image_path AS responsible_user_profile_image_path,
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
 			document_statuses.title_en AS document_status_title_en,
@@ -576,6 +585,7 @@ func (repo *RiskAssociatedItemRepository) GetAllDocuments(riskID uint, params *r
 		`).
 		Joins(`
 			LEFT JOIN documents ON documents.id = risk_associated_documents.document_id
+			LEFT JOIN document_access_types ON document_access_types.id = documents.document_access_type_id
 			LEFT JOIN document_categories ON documents.document_category_id = document_categories.id
 			LEFT JOIN users AS responsible_user ON documents.responsible_user_id = responsible_user.id
 			LEFT JOIN organization_units ON documents.responsible_unit_id = organization_units.id
@@ -588,8 +598,10 @@ func (repo *RiskAssociatedItemRepository) GetAllDocuments(riskID uint, params *r
 		switch filter {
 		case "policy-procedure":
 			query = query.Where("document_types.type IN (?)", []string{"policy", "procedure"})
-
+		case "others":
+			query = query.Where("document_types.type = ?", "others")
 		}
+
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
