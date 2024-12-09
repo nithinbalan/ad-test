@@ -583,9 +583,6 @@ func (repo *RiskAssociatedItemRepository) GetAllDocuments(riskID uint, params *r
 			LEFT JOIN document_types ON documents.document_type_id = document_types.id
 		`).
 		Where("risk_associated_documents.risk_register_id = ?", riskID)
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
 
 	for _, filter := range params.QuickFilter {
 		switch filter {
@@ -594,6 +591,11 @@ func (repo *RiskAssociatedItemRepository) GetAllDocuments(riskID uint, params *r
 
 		}
 	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -611,7 +613,7 @@ func (repo *RiskAssociatedItemRepository) GetAllDocuments(riskID uint, params *r
 			organization_units.title_ar LIKE ? OR
 			document_statuses.title_en LIKE ? OR
 			document_statuses.title_ar LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	if params.SortBy == "" {
