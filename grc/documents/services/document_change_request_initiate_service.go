@@ -16,7 +16,7 @@ import (
 )
 
 type DocumentChangeRequestInitiateServiceInterface interface {
-	GetAll(params *documentDTOs.DocumentChangeRequestInitiateQueryParamsDTO) (*documentDTOs.DocumentChangeRequestInitiateListResponseDTO, error)
+	GetAll(params *documentDTOs.DocumentChangeRequestInitiateQueryParamsDTO, documentId uint) (*documentDTOs.DocumentChangeRequestInitiateListResponseDTO, error)
 	GetByID(id uint) (*models.DocumentChangeRequestInitiate, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*documentDTOs.DocumentChangeRequestInitiateDetailsDTO, error)
 	Create(currentUserID uint, documentID uint, formDTO *documentDTOs.DocumentChangeRequestInitiateFormDTO) (uint, error)
@@ -45,8 +45,8 @@ func NewDocumentChangeRequestInitiateService(
 	}
 }
 
-func (dcris *DocumentChangeRequestInitiateService) GetAll(params *documentDTOs.DocumentChangeRequestInitiateQueryParamsDTO) (*documentDTOs.DocumentChangeRequestInitiateListResponseDTO, error) {
-	return dcris.repo.GetAll(params)
+func (dcris *DocumentChangeRequestInitiateService) GetAll(params *documentDTOs.DocumentChangeRequestInitiateQueryParamsDTO, documentId uint) (*documentDTOs.DocumentChangeRequestInitiateListResponseDTO, error) {
+	return dcris.repo.GetAll(params, documentId)
 }
 
 func (dcris *DocumentChangeRequestInitiateService) GetByID(id uint) (*models.DocumentChangeRequestInitiate, error) {
@@ -91,7 +91,7 @@ func (dcris *DocumentChangeRequestInitiateService) Create(currentUserID uint, do
 	}
 
 	initiate := &models.DocumentChangeRequestInitiate{
-		DocumentsID:                           documentID,
+		DocumentID:                            documentID,
 		DocumentChangeRequestInitiateTypeID:   formDTO.DocumentChangeRequestInitiateTypeID,
 		ReasonForChange:                       formDTO.ReasonForChange,
 		DocumentChangeRequestInitiateStatusID: changeRequestInitiateStatus.ID,

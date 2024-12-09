@@ -78,7 +78,14 @@ func (dcrc *DocumentChangeRequestInitiateController) GetAllDocumentChangeRequest
 		QuickFilter: quickFilter,
 	}
 
-	documentChangeRequests, err := dcrc.service.GetAll(&params)
+	documentIdStr := c.Param("id")
+	documentId, err := strconv.ParseUint(documentIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentChangeRequests, err := dcrc.service.GetAll(&params, uint(documentId))
 	if err != nil {
 		utility.SendInternalErrResp(dcrc.db, c, err.Error())
 		return
