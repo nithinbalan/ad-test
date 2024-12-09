@@ -122,5 +122,9 @@
   {
     "id": "matrix_exists",
     "translation": "The Criticality matrix already exists for '{{.Field}}'"
+  },
+  {
+    "id": "conflict",
+    "translation": "Conflict"
   }
 ]

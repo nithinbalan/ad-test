@@ -53,9 +53,9 @@ func SendInvalidErrResp(c *gin.Context, errs ...error) {
 }
 
 func SendConflictErrResp(c *gin.Context, message string) {
-	// localizedErrorMsg := LocalizeMessage(c, "invalid_request", "Invalid Request!")
+	localizedErrorMsg := LocalizeMessage(c, "conflict", "Conflict!")
 	c.JSON(http.StatusConflict, gin.H{
-		"error":   "conflict",
+		"error":   localizedErrorMsg,
 		"message": message,
 	})
 }
