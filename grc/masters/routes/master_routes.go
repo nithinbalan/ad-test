@@ -32,6 +32,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	conformanceController := app.MasterModule.ConformanceController
 	workflowStatusController := app.MasterModule.WorkflowStatusController
 	integrationCategoryController := app.MasterModule.IntegrationCategoryController
+	impactCategoryController := app.MasterModule.ImpactCategoryController
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
@@ -110,4 +111,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	masterRoutes.GET("/workflow-statuses/:id", workflowStatusController.GetWorkflowStatusDetails)
 
 	masterRoutes.GET("/integration-categories", integrationCategoryController.GetAllIntegrationCategories)
+
+	//Impact Category
+	masterRoutes.GET("/impact-categories", impactCategoryController.GetAllImpactCategories)
+	masterRoutes.GET("/impact-categories/:id", impactCategoryController.GetImpactCategoryDetails)
+	masterRoutes.POST("/impact-categories", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), impactCategoryController.CreateImpactCategory)
+	masterRoutes.PUT("/impact-categories/:id", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), impactCategoryController.UpdateImpactCategory)
+	masterRoutes.POST("/impact-categories/delete", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), impactCategoryController.DeleteImpactCategories)
+	masterRoutes.PUT("/impact-categories/activate", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), impactCategoryController.ActivateImpactCategories)
+	masterRoutes.PUT("/impact-categories/deactivate", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), impactCategoryController.DeactivateImpactCategories)
 }
