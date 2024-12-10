@@ -11,6 +11,7 @@ import (
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/utility"
+	"mime/multipart"
 	"os"
 	"time"
 
@@ -32,6 +33,8 @@ type ProcessServiceInterface interface {
 	GetControlSummary(id uint) (map[string]interface{}, error)
 
 	ExportProcesses(data []*organizationDTOs.ProcessListDTO, currentUserID uint) (*os.File, error)
+	GenerateProcessTemplate() (*os.File, error)
+	ImportProcesses(file multipart.File, currentUserID uint) ([]int, error)
 
 	UpdateProcessRiskRating(process *models.Process, tx utility.DatabaseTransaction) error
 }
@@ -115,7 +118,7 @@ func (ps *ProcessService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTran
 		processDetailDTO.AuditableItem.CreatedAt = latestAuditableItem.CreatedAt
 		processDetailDTO.AuditableItem.UpdatedAt = latestAuditableItem.UpdatedAt
 	}
-	
+
 	return &processDetailDTO, nil
 }
 
@@ -1109,4 +1112,55 @@ func (ps *ProcessService) UpdateProcessRiskRating(process *models.Process, tx ut
 	}
 
 	return nil
+}
+
+func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
+	headers := []string{
+		"ProcessGroupID", "OwnerID", "TitleEn", "TitleAr", "Description", "ControlIds", "DocumentIds",
+	}
+
+	// Pass empty data for the template
+	data := [][]interface{}{}
+
+	file, err := utility.GenerateExcelFile(headers, data)
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
+}
+
+func (ps *ProcessService) ImportProcesses(file multipart.File, currentUserID uint) ([]int, error) {
+	mandatoryFields := []string{"ProcessGroupID", "OwnerID", "TitleEn", "TitleAr"}
+	// Parse the Excel file
+	data, err := utility.ParseExcelFile(file, mandatoryFields)
+	if err != nil {
+		return nil, fmt.Errorf("invalid file format: %v", err)
+	}
+
+	// Track failed rows
+	var failedRows []int
+
+	// Process each row
+	for i, row := range data {
+		// Map the row data to the ProcessFormDTO
+		processForm := organizationDTOs.ProcessFormDTO{
+			ProcessGroupID: utility.ParseUint(row["ProcessGroupID"]),
+			OwnerID:        utility.ParseUint(row["OwnerID"]),
+			TitleEn:        row["TitleEn"],
+			TitleAr:        row["TitleAr"],
+			Description:    utility.GetStringPointer(row["Description"]),
+			ControlIds:     utility.ParseUintSlice(row["ControlIds"]),
+			DocumentIds:    utility.ParseUintSlice(row["DocumentIds"]),
+		}
+
+		// Validate and create the process
+		_, err := ps.Create(currentUserID, &processForm)
+		if err != nil {
+			// Log the row number that failed (+2 to account for the header row)
+			failedRows = append(failedRows, i+2)
+		}
+	}
+
+	return failedRows, nil
 }
