@@ -1,13 +1,14 @@
 package controllers
 
 import (
+	"net/http"
+	"path/filepath"
+	"strconv"
+
 	"jethur/grc/audit/dtos"
 	"jethur/grc/audit/services"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/utility"
-	"net/http"
-	"path/filepath"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -89,7 +90,7 @@ func (adrcc *AuditDocumentRequestConversationController) CreateAuditDocumentRequ
 		return
 	}
 
-	id, err := adrcc.service.Create(uint(auditID), uint(auditDocumentRequestID), currentUserID, &auditDocumentRequestConversationFormDTO)
+	id, err := adrcc.service.Create(uint(auditID), uint(auditDocumentRequestID), currentUserID, &auditDocumentRequestConversationFormDTO, "")
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
