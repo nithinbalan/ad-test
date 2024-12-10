@@ -320,7 +320,11 @@ func (crc *ComplianceReportController) GetAllComplianceRequirements(c *gin.Conte
 		DateFrom:     dateFrom,
 		DateTo:       dateTo,
 	}
-	complianceRequirements, err := crc.complianceRequirementSvc.GetAll(&queryParams)
+
+	//complianceID is given as 0 to reuse GetAll function
+	complianceID := 0
+
+	complianceRequirements, err := crc.complianceRequirementSvc.GetAll(uint(complianceID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {

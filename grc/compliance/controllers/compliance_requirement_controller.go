@@ -24,11 +24,34 @@ func NewComplianceRequirementController(service services.ComplianceRequirementSe
 }
 
 func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.Context) {
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	complianceIDStr := c.Param("complianceId")
+
+	var complianceID uint64
+	var err error
+
+	// Check if complianceID is provided in the URL
+	if complianceIDStr != "" {
+		complianceID, err = strconv.ParseUint(complianceIDStr, 10, 64)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		complianceID = 0
+	}
+
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+
+	// Convert the export parameter to a boolean
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Invalid export parameter")
+		return
+	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -74,9 +97,10 @@ func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.
 		DeadlineTo:   deadlineTo,
 		DateFrom:     dateFrom,
 		DateTo:       dateTo,
+		Export:       export,
 	}
-	complianceRequirements, err := crc.service.GetAll(&queryParams)
 
+	complianceRequirements, err := crc.service.GetAll(uint(complianceID), &queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -87,6 +111,30 @@ func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.
 			return
 		}
 	}
+
+	// If export is true, generate and return the Excel file
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := crc.service.ExportComplianceRequirements(complianceRequirements.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="ComplianceRequirements.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+
 	c.JSON(http.StatusOK, complianceRequirements)
 }
 
@@ -319,4 +367,10 @@ func (crc *ComplianceRequirementController) DeleteComplianceRequirements(c *gin.
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (crc *ComplianceRequirementController) GetComplianceRequirementsExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	crc.GetAllComplianceRequirements(c)
 }
