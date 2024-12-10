@@ -1,7 +1,6 @@
 package services
 
 import (
-	"encoding/json"
 	"fmt"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
@@ -183,27 +182,6 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 		}
 		taskIDs = append(taskIDs, taskID)
 
-	}
-
-	for _, taskID := range taskIDs {
-		relatedTaskIDs := []uint{}
-		for _, otherTaskID := range taskIDs {
-			if otherTaskID != taskID {
-				relatedTaskIDs = append(relatedTaskIDs, otherTaskID)
-			}
-		}
-
-		relatedTaskIDsJSON, err := json.Marshal(relatedTaskIDs)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		err = adrrs.taskSvc.UpdateTaskWithRelatedIDs(taskID, string(relatedTaskIDsJSON), tx)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
 	}
 
 	tx.Commit()
