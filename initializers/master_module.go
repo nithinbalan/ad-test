@@ -26,6 +26,7 @@ type MasterModule struct {
 	ConformanceController         *controllers.ConformanceController
 	WorkflowStatusController      *controllers.WorkflowStatusController
 	IntegrationCategoryController *controllers.IntegrationCategoryController
+	ImpactCategoryController      *controllers.ImpactCategoryController
 
 	ReviewFrequencySvc     services.ReviewFrequencyServiceInterface
 	SeverityLevelSvc       services.SeverityLevelServiceInterface
@@ -44,6 +45,7 @@ type MasterModule struct {
 	ConformanceSvc         services.ConformanceServiceInterface
 	WorkflowStatusSvc      services.WorkflowStatusServiceInterface
 	IntegrationCategorySvc services.IntegrationCategoryServiceInterface
+	ImpactCategorySvc      services.ImpactCategoryServiceInterface
 }
 
 func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
@@ -129,6 +131,11 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	integrationCategorySvc := services.NewIntegrationCategoryService(integrationCategoryRepo)
 	integrationCategoryController := controllers.NewIntegrationCategoryController(integrationCategorySvc)
 
+	// Impact category
+	impactCategoryRepo := repositories.NewImpactCategoryRepository(db)
+	impactCategorySvc := services.NewImpactCategoryService(impactCategoryRepo, sharedModule.ActivityLogService)
+	impactCategoryController := controllers.NewImpactCategoryController(impactCategorySvc)
+
 	return &MasterModule{
 		ReviewFrequencyController:     reviewFrequencyController,
 		SeverityLevelController:       severityLevelController,
@@ -147,6 +154,7 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		ConformanceController:         conformanceController,
 		WorkflowStatusController:      workflowStatusController,
 		IntegrationCategoryController: integrationCategoryController,
+		ImpactCategoryController:      impactCategoryController,
 
 		ReviewFrequencySvc:     reviewFrequencySvc,
 		SeverityLevelSvc:       severityLevelSvc,
@@ -165,5 +173,6 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		ConformanceSvc:         conformanceSvc,
 		WorkflowStatusSvc:      workflowStatusSvc,
 		IntegrationCategorySvc: integrationCategorySvc,
+		ImpactCategorySvc:      impactCategorySvc,
 	}
 }
