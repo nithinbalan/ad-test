@@ -51,7 +51,7 @@ func (aidrcs *AuditInsightsDocumentRequestConversationService) Create(auditDocum
 	}
 	auditID := documentRequest.Audit.ID
 
-	auditDocumentRequest, err := aidrcs.auditDocumentRequestConversationSvc.Create(auditID, auditDocumentRequestID, currentUserID, formDTO)
+	auditDocumentRequest, err := aidrcs.auditDocumentRequestConversationSvc.Create(auditID, auditDocumentRequestID, currentUserID, formDTO, "audit-insight")
 	if err != nil {
 		return 0, err
 	}
