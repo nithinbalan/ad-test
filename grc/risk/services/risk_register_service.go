@@ -135,6 +135,18 @@ func (rrs RiskRegisterService) GetFullDetailsByID(id uint, tx ...utility.Databas
 	if err != nil {
 		return nil, err
 	}
+	// Map the latest auditable item
+	if len(risk.AuditableItems) > 0 {
+		latestAuditableItem := risk.AuditableItems[0]
+		var auditableItemDTO riskDTOs.AuditableItemMinimalRiskDetailDTO
+		err := mapstructure.Decode(latestAuditableItem, &auditableItemDTO)
+		if err != nil {
+			return nil, err
+		}
+		riskDTO.AuditableItem = &auditableItemDTO
+		riskDTO.AuditableItem.CreatedAt = latestAuditableItem.CreatedAt
+		riskDTO.AuditableItem.UpdatedAt = latestAuditableItem.UpdatedAt
+	}
 
 	if risk.ReportedAt != nil {
 		reportedAt := risk.ReportedAt.Format("2006-01-02")
@@ -330,6 +342,23 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 
 	if len(assets) > 0 {
 		if err := rrs.repo.CreateRiskAssets(assets, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	var threats []*models.RiskThreat
+	for _, threatID := range riskRegisterFormDTO.ThreatIds {
+		threat := &models.RiskThreat{
+			RiskRegisterID: id,
+			ThreatID:       *threatID,
+			CreatedByID:    currentUserID,
+		}
+		threats = append(threats, threat)
+	}
+
+	if len(threats) > 0 {
+		if err := rrs.repo.CreateRiskThreats(threats, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -937,6 +966,56 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		}
 	}
 
+	existingThreatIDs := make(map[uint]bool)
+	for _, threat := range existingRisk.Threats {
+		existingThreatIDs[threat.ThreatID] = true
+	}
+
+	// Collect new threat IDs
+	newThreatIDs := make(map[uint]bool)
+	for _, threatID := range riskRegisterFormDTO.ThreatIds {
+		newThreatIDs[*threatID] = true
+	}
+
+	// Add new threats
+	var threatsToAdd []*models.RiskThreat
+	for _, newThreatID := range riskRegisterFormDTO.ThreatIds {
+		if _, exists := existingThreatIDs[*newThreatID]; !exists {
+			// Create a new risk threat record
+			threat := &models.RiskThreat{
+				RiskRegisterID: id,
+				ThreatID:       *newThreatID,
+				CreatedByID:    currentUserID,
+			}
+			threatsToAdd = append(threatsToAdd, threat)
+		}
+	}
+
+	// Save the new threats
+	if len(threatsToAdd) > 0 {
+		if err := rrs.repo.CreateRiskThreats(threatsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove threats not in the new list
+	var deleteThreatIDs []*uint
+	for _, existingThreat := range existingRisk.Threats {
+		if _, exists := newThreatIDs[existingThreat.ThreatID]; !exists {
+			// Append threat ID to delete list
+			deleteThreatIDs = append(deleteThreatIDs, existingThreat.ID)
+		}
+	}
+
+	// Delete threats not in the new list
+	if len(deleteThreatIDs) > 0 {
+		if err := rrs.repo.DeleteRiskThreats(deleteThreatIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	// Save Documents
 	// documents update
 	var documents []*models.RiskDocument
@@ -1364,8 +1443,8 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 		})
 
 		deletedRiskRegister = append(deletedRiskRegister, map[string]interface{}{
-			"ID":    id,
-			"Title": risk.Title,
+			"id":    id,
+			"title": risk.Title,
 		})
 		// Check if controls exist
 		if len(risk.Controls) > 0 {
@@ -1441,6 +1520,17 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				deleteAssetIds = append(deleteAssetIds, ast.ID)
 			}
 			if err := rrs.repo.DeleteRiskAssets(deleteAssetIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		if len(risk.Threats) > 0 {
+			var deleteThreatIds []*uint
+			for _, threat := range risk.Threats {
+				deleteThreatIds = append(deleteThreatIds, threat.ID)
+			}
+			if err := rrs.repo.DeleteRiskThreats(deleteThreatIds, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}

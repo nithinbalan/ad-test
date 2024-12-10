@@ -175,6 +175,12 @@ func (tasus *ThreatActionPlanStatusUpdateService) Update(ThreatID uint, ThreatAc
 		return err
 	}
 
+	oldThreatActionPlanStatusUpdate, err := tasus.GetByID(ThreatID, ThreatActionPlanID, id)
+
+	if err != nil {
+		return err
+	}
+
 	existingThreatActionPlanStatusUpdate, err := tasus.GetByID(ThreatID, ThreatActionPlanID, id)
 	if err != nil {
 		return err
@@ -269,7 +275,52 @@ func (tasus *ThreatActionPlanStatusUpdateService) Update(ThreatID uint, ThreatAc
 	}
 
 	tx.Commit()
+	go func() {
+		existingActionPlanstatusUpdate, err := tasus.GetByID(ThreatID, ThreatActionPlanID, id)
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"comment":    oldThreatActionPlanStatusUpdate.Comment,
+			"percentage": oldThreatActionPlanStatusUpdate.Percentage,
+		}
 
+		newData := map[string]interface{}{
+			"comment":    existingActionPlanstatusUpdate.Comment,
+			"percentage": existingActionPlanstatusUpdate.Percentage,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := tasus.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.ThreatActionPlanStatusUpdate{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.ThreatActionPlanStatusUpdate{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 	return nil
 }
 

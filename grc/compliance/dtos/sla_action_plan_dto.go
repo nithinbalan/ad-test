@@ -100,6 +100,7 @@ type SLAActionPlanDetailDTO struct {
 	ID                      int                              `json:"id"`
 	SlaRegister             *SLAActionPlanDetailDTO          `json:"sla_register"`
 	ReferenceNumber         string                           `json:"reference_number"`
+	SLACheckQuestion        *SLACheckQuestionDetailDTO       `json:"sla_check_question"`
 	Title                   string                           `json:"title"`
 	Description             string                           `json:"description"`
 	SeverityLevel           *masterDTOs.SeverityLevelDTO     `json:"severity_level"`

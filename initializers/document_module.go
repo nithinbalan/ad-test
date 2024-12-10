@@ -9,20 +9,23 @@ import (
 )
 
 type DocumentModule struct {
-	DocumentCategoryController        *controllers.DocumentCategoryController
-	DocumentTypeController            *controllers.DocumentTypeController
-	DocumentTemplateController        *controllers.DocumentTemplateController
-	DocumentStatusController          *controllers.DocumentStatusController
-	DocumentAccessTypeController      *controllers.DocumentAccessTypeController
-	DocumentWorkflowStatusController  *controllers.DocumentWorkflowStatusController
-	DocumentController                *controllers.DocumentController
-	DocumentAcknowledgeUserController *controllers.DocumentAcknowledgeUserController
-	DocumentAuditLogController        *controllers.DocumentAuditLogController
-	DocumentClauseController          *controllers.DocumentClauseController
-	DocumentAssociatedItemController  *controllers.DocumentAssociatedItemController
-	DocumentAccessController          *controllers.DocumentAccessController
-	DocumentReviewController          *controllers.DocumentReviewController
-	DocumentWorkflowController        *controllers.DocumentWorkflowController
+	DocumentCategoryController                    *controllers.DocumentCategoryController
+	DocumentTypeController                        *controllers.DocumentTypeController
+	DocumentTemplateController                    *controllers.DocumentTemplateController
+	DocumentStatusController                      *controllers.DocumentStatusController
+	DocumentAccessTypeController                  *controllers.DocumentAccessTypeController
+	DocumentWorkflowStatusController              *controllers.DocumentWorkflowStatusController
+	DocumentController                            *controllers.DocumentController
+	DocumentAcknowledgeUserController             *controllers.DocumentAcknowledgeUserController
+	DocumentAuditLogController                    *controllers.DocumentAuditLogController
+	DocumentClauseController                      *controllers.DocumentClauseController
+	DocumentAssociatedItemController              *controllers.DocumentAssociatedItemController
+	DocumentAccessController                      *controllers.DocumentAccessController
+	DocumentReviewController                      *controllers.DocumentReviewController
+	DocumentWorkflowController                    *controllers.DocumentWorkflowController
+	DocumentChangeRequestInitiateTypeController   *controllers.DocumentChangeRequestInitiateTypeController
+	DocumentChangeRequestInitiateStatusController *controllers.DocumentChangeRequestInitiateStatusController
+	DocumentChangeRequestInitiateController       *controllers.DocumentChangeRequestInitiateController
 
 	DocumentSvc services.DocumentServiceInterface
 }
@@ -130,21 +133,36 @@ func NewDocumentModule(db *gorm.DB,
 	documentAssociatedItemSvc := services.NewDocumentAssociatedItemService(documentAssociatedItemRepo, documentSvc)
 	documentAssociatedItemController := controllers.NewDocumentAssociatedItemController(documentAssociatedItemSvc)
 
+	documentChangeRequestInitiateTypeRepo := repositories.NewDocumentChangeRequestInitiateTypeRepository(db)
+	documentChangeRequestInitiateTypeSvc := services.NewDocumentChangeRequestInitiateTypeService(documentChangeRequestInitiateTypeRepo)
+	documentChangeRequestInitiateTypeController := controllers.NewDocumentChangeRequestInitiateTypeController(documentChangeRequestInitiateTypeSvc)
+
+	documentChangeRequestInitiateStatusRepo := repositories.NewDocumentChangeRequestInitiateStatusRepository(db)
+	documentChangeRequestInitiateStatusSvc := services.NewDocumentChangeRequestInitiateStatusService(documentChangeRequestInitiateStatusRepo)
+	documentChangeRequestInitiateStatusController := controllers.NewDocumentChangeRequestInitiateStatusController(documentChangeRequestInitiateStatusSvc)
+
+	documentChangeRequestInitiateRepo := repositories.NewDocumentChangeRequestInitiateRepository(db)
+	documentChangeRequestInitiateSvc := services.NewDocumentChangeRequestInitiateService(documentChangeRequestInitiateRepo, sharedModule.ActivityLogService, documentChangeRequestInitiateTypeSvc, documentChangeRequestInitiateStatusSvc)
+	documentChangeRequestInitiateController := controllers.NewDocumentChangeRequestInitiateController(documentChangeRequestInitiateSvc)
+
 	return &DocumentModule{
-		DocumentCategoryController:        documentCategoryController,
-		DocumentTypeController:            documentTypeController,
-		DocumentTemplateController:        documentTemplateController,
-		DocumentStatusController:          documentStatusController,
-		DocumentAccessTypeController:      documentAccessTypeController,
-		DocumentWorkflowStatusController:  documentWorkflowStatusController,
-		DocumentController:                documentController,
-		DocumentAcknowledgeUserController: documentAcknowledgeUserController,
-		DocumentAuditLogController:        documentAuditLogController,
-		DocumentClauseController:          documentClauseController,
-		DocumentAssociatedItemController:  documentAssociatedItemController,
-		DocumentAccessController:          documentAccessController,
-		DocumentReviewController:          documentReviewController,
-		DocumentWorkflowController:        documentWorkflowController,
+		DocumentCategoryController:                    documentCategoryController,
+		DocumentTypeController:                        documentTypeController,
+		DocumentTemplateController:                    documentTemplateController,
+		DocumentStatusController:                      documentStatusController,
+		DocumentAccessTypeController:                  documentAccessTypeController,
+		DocumentWorkflowStatusController:              documentWorkflowStatusController,
+		DocumentController:                            documentController,
+		DocumentAcknowledgeUserController:             documentAcknowledgeUserController,
+		DocumentAuditLogController:                    documentAuditLogController,
+		DocumentClauseController:                      documentClauseController,
+		DocumentAssociatedItemController:              documentAssociatedItemController,
+		DocumentAccessController:                      documentAccessController,
+		DocumentReviewController:                      documentReviewController,
+		DocumentWorkflowController:                    documentWorkflowController,
+		DocumentChangeRequestInitiateTypeController:   documentChangeRequestInitiateTypeController,
+		DocumentChangeRequestInitiateStatusController: documentChangeRequestInitiateStatusController,
+		DocumentChangeRequestInitiateController:       documentChangeRequestInitiateController,
 
 		DocumentSvc: documentSvc,
 	}

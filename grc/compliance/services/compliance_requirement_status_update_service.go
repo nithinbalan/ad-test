@@ -189,6 +189,12 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 		return err
 	}
 
+	oldComplianceRequirementStatusUpdate, err := crsus.GetByID(ComplianceID, ComplianceRequirementID, id)
+
+	if err != nil {
+		return err
+	}
+
 	//@todo validate document form
 
 	// Update Compliance StatusUpdate -- update comment only
@@ -281,6 +287,50 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 	}
 
 	tx.Commit()
+	go func() {
+		existingActionPlanstatusUpdate, err := crsus.GetByID(ComplianceID, ComplianceRequirementID, id)
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"comment": oldComplianceRequirementStatusUpdate.Comment,
+		}
+
+		newData := map[string]interface{}{
+			"comment": existingActionPlanstatusUpdate.Comment,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := crsus.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.ComplianceRequirementStatusUpdate{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.ComplianceRequirementStatusUpdate{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 
 	return nil
 }

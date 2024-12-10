@@ -180,6 +180,12 @@ func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanI
 		return err
 	}
 
+	oldSLAActionPlanStatusUpdate, err := sasus.GetByID(SLAID, SLAActionPlanID, id)
+
+	if err != nil {
+		return err
+	}
+
 	existingSLAActionPlanStatusUpdate, err := sasus.GetByID(SLAID, SLAActionPlanID, id)
 
 	if err != nil {
@@ -284,6 +290,52 @@ func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanI
 	}
 
 	tx.Commit()
+
+	go func() {
+		existingActionPlanstatusUpdate, err := sasus.GetByID(SLAID, SLAActionPlanID, id)
+		if err != nil {
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"comment":    oldSLAActionPlanStatusUpdate.Comment,
+			"percentage": oldSLAActionPlanStatusUpdate.Percentage,
+		}
+
+		newData := map[string]interface{}{
+			"comment":    existingActionPlanstatusUpdate.Comment,
+			"percentage": existingActionPlanstatusUpdate.Percentage,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := sasus.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.SLAActionPlanStatusUpdate{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.SLAActionPlanStatusUpdate{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 
 	return nil
 }

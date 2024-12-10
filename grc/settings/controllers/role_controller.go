@@ -203,11 +203,14 @@ func (rc *RoleController) GetRolePermissions(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
+	quickFilter := []string{"active"}
 
 	queryParams := dtos.ModuleListQueryParamsDTO{
-		Sort:    sort,
-		SortBy:  sortBy,
-		Keyword: keyword,
+		Sort:              sort,
+		SortBy:            sortBy,
+		Keyword:           keyword,
+		QuickFilter:       quickFilter,
+		IsActiveSubModule: true,
 	}
 
 	idStr := c.Param("id")

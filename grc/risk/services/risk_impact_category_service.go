@@ -126,9 +126,10 @@ func (rics *RiskImpactCategoryService) Update(id uint, currentUserID uint, updat
 func (rics *RiskImpactCategoryService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedImpactCategory []map[string]interface{}
 	for _, id := range ids {
 
-		_, err := rics.repo.GetByID(id)
+		impactCategory, err := rics.repo.GetByID(id)
 
 		if err != nil {
 			fmt.Print(err)
@@ -141,6 +142,12 @@ func (rics *RiskImpactCategoryService) Delete(ids []uint, currentUserID uint) ([
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedImpactCategory = append(deletedImpactCategory, map[string]interface{}{
+			"id":       id,
+			"title_en": impactCategory.TitleEn,
+			"title_ar": impactCategory.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -150,7 +157,7 @@ func (rics *RiskImpactCategoryService) Delete(ids []uint, currentUserID uint) ([
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.RiskImpactCategory{}.TableName(),
 				successfulIds,
-				nil,
+				deletedImpactCategory,
 				currentUserID,
 				nil,
 			)

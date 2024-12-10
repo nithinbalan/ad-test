@@ -22,7 +22,7 @@ type UserSettingServiceInterface interface {
 
 	GetUserSetting(userID uint) (*userDTOs.UserSettingDTO, error)
 	GetUserSettingsByUserID(userID uint) (*models.UserSetting, error)
-	CreateUserSetting(userID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO, tx ...utility.DatabaseTransaction) error
+	CreateUserSetting(userID uint, currentUserID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO, tx ...utility.DatabaseTransaction) error
 	UpdateUserSetting(userID uint, currentUserID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO) error
 	EnableMainNotification(userID uint) error
 	DisableMainNotification(userID uint) error
@@ -30,8 +30,8 @@ type UserSettingServiceInterface interface {
 	GetUserSecurityByUserID(userID uint) (*models.UserSecurity, error)
 	CreateUserSecurity(userID uint, userSecurityFormDTO *userDTOs.UserSecurityFormDTO, tx ...utility.DatabaseTransaction) error
 	UpdateUserSecurity(userSecurity *models.UserSecurity) error
-	EnableMFA(userID uint) error
-	DisableMFA(userID uint) error
+	EnableMFA(userID uint, currentUserID uint) error
+	DisableMFA(userID uint, currentUserID uint) error
 	ResetPassword(userID uint) error
 	ChangePassword(userID uint, oldPassword, newPassword string) error
 
@@ -84,7 +84,7 @@ func (uss *UserSettingService) GetUserSettingsByUserID(userID uint) (*models.Use
 	return userSetting, nil
 }
 
-func (uss *UserSettingService) CreateUserSetting(userID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO, tx ...utility.DatabaseTransaction) error {
+func (uss *UserSettingService) CreateUserSetting(userID uint, currentUserID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO, tx ...utility.DatabaseTransaction) error {
 	userSettings := &models.UserSetting{
 		UserID:         userID,
 		TimezoneID:     userSettingFormDTO.TimezoneID,
@@ -96,6 +96,39 @@ func (uss *UserSettingService) CreateUserSetting(userID uint, userSettingFormDTO
 	if err != nil {
 		return err
 	}
+	go func() {
+		existingUser, err := uss.GetUserSetting(userID)
+		if err != nil {
+			utility.LogError("Failed to fetch user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		user, err := uss.userSvc.GetByID(userID)
+		if err != nil {
+			return
+		}
+		err = uss.activityLogSvc.LogActivity(
+			models.CreateAction,
+			models.UserSetting{}.TableName(),
+			userID, // use userID instead of id
+			existingUser,
+			user.CreatedByID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.CreateAction,
+				"tableName": models.UserSetting{}.TableName(),
+				"recordID":  userID, // use userID instead of id
+				"userID":    user.CreatedByID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
 
 	return nil
 }
@@ -105,6 +138,11 @@ func (uss *UserSettingService) UpdateUserSetting(userID uint, currentUserID uint
 
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, nil)
+	}
+
+	oldSetting, err := uss.repo.GetUserSettingsByUserID(userID)
+	if err != nil {
+		return nil
 	}
 	// @review
 	//do we need to validate timezone
@@ -116,6 +154,56 @@ func (uss *UserSettingService) UpdateUserSetting(userID uint, currentUserID uint
 	if err = uss.repo.UpdateUserSetting(existingUserSetting); err != nil {
 		return err
 	}
+
+	go func() {
+		existingSetting, err := uss.repo.GetUserSettingsByUserID(userID)
+		if err != nil {
+			return
+		}
+
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"language": oldSetting.Language,
+			"timezone": oldSetting.Timezone.Name,
+			"timeout":  oldSetting.Timeout,
+		}
+
+		newData := map[string]interface{}{
+			"language": existingSetting.Language,
+			"timezone": existingSetting.Timezone.Name,
+			"timeout":  existingSetting.Timeout,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := uss.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.UserSetting{}.TableName(),
+				existingSetting.ID,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.UserSetting{}.TableName(),
+					"recordID":  existingSetting.ID,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 
 	return nil
 }
@@ -186,7 +274,12 @@ func (uss *UserSettingService) UpdateUserSecurity(userSecurity *models.UserSecur
 	return uss.repo.UpdateUserSecurity(userSecurity)
 }
 
-func (uss *UserSettingService) EnableMFA(userID uint) error {
+func (uss *UserSettingService) EnableMFA(userID uint, currentUserID uint) error {
+	oldUserSecurity, err := uss.repo.GetUserSecurityByUserID(userID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, nil)
+	}
+
 	existingUserSecurity, err := uss.repo.GetUserSecurityByUserID(userID)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, nil)
@@ -199,11 +292,55 @@ func (uss *UserSettingService) EnableMFA(userID uint) error {
 	}
 	//@todo - send email to user
 	//@todo - need capture activity log
+	go func() {
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"is_mfa": oldUserSecurity.IsMFA,
+		}
 
+		newData := map[string]interface{}{
+			"is_mfa": existingUserSecurity.IsMFA,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := uss.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.UserSecurity{}.TableName(),
+				oldUserSecurity.ID,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.UserSecurity{}.TableName(),
+					"recordID":  oldUserSecurity.ID,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 	return nil
 }
 
-func (uss *UserSettingService) DisableMFA(userID uint) error {
+func (uss *UserSettingService) DisableMFA(userID uint, currentUserID uint) error {
+	oldUserSecurity, err := uss.repo.GetUserSecurityByUserID(userID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, nil)
+	}
+
 	existingUserSecurity, err := uss.repo.GetUserSecurityByUserID(userID)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, nil)
@@ -216,7 +353,46 @@ func (uss *UserSettingService) DisableMFA(userID uint) error {
 	}
 	//@todo - send email to user
 	//@todo - need capture activity log
+	go func() {
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"is_mfa": oldUserSecurity.IsMFA,
+		}
 
+		newData := map[string]interface{}{
+			"is_mfa": existingUserSecurity.IsMFA,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := uss.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.UserSecurity{}.TableName(),
+				oldUserSecurity.ID,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.UserSecurity{}.TableName(),
+					"recordID":  oldUserSecurity.ID,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 	return nil
 }
 
@@ -407,8 +583,8 @@ func (uss *UserSettingService) UpdateNotificationSetting(userID uint, notificati
 	return uss.repo.UpdateNotificationSetting(notificationSetting)
 }
 
-func (us *UserSettingService) ChangePassword(userID uint, oldPassword, newPassword string) error {
-	currentUserSecurity, err := us.GetUserSecurityByUserID(userID)
+func (uss *UserSettingService) ChangePassword(userID uint, oldPassword, newPassword string) error {
+	currentUserSecurity, err := uss.GetUserSecurityByUserID(userID)
 	if err != nil {
 		return err
 	}
@@ -429,7 +605,50 @@ func (us *UserSettingService) ChangePassword(userID uint, oldPassword, newPasswo
 
 	currentUserSecurity.PasswordHash = string(newPasswordHash)
 
-	err = us.UpdateUserSecurity(currentUserSecurity)
+	err = uss.UpdateUserSecurity(currentUserSecurity)
+	if err != nil {
+		return err
+	}
+
+	user, err := uss.userSvc.GetByID(userID)
+	if err != nil {
+		return err
+	}
+
+	emailTemplateSettings, err := uss.emailTemplateSettingsSvc.GetEmailTemplateSettings()
+	if err != nil {
+		return err
+	}
+
+	socialLinks, err := uss.notificationSvc.GetSocialMediaLinks()
+	if err != nil {
+		return err
+	}
+
+	emailTemplateAndSocialDTO := &commonDTOs.EmailTemplateAndSocialDTO{
+		HeaderImageURL: emailTemplateSettings.HeaderImageURL,
+		SupportText:    emailTemplateSettings.SupportText,
+		ClosingText:    emailTemplateSettings.ClosingText,
+		FooterLogoURL:  emailTemplateSettings.FooterLogoURL,
+		FooterAddress:  emailTemplateSettings.FooterAddress,
+		FooterEmail:    emailTemplateSettings.FooterEmail,
+		Linkedin:       &socialLinks.Linkedin,
+		X:              &socialLinks.X,
+		Facebook:       &socialLinks.Facebook,
+	}
+
+	emailData := userDTOs.SendNewPasswordEmailDTO{
+		FirstNameEn: user.FirstNameEn,
+		LastNameEn:  user.LastNameEn,
+		Email:       user.Email,
+	}
+
+	to := []string{user.Email}
+	subject := "Important: Your Account Password Has Been Updated"
+	templateRelativePath := "organization/templates/email/change_password.html"
+
+	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, emailTemplateAndSocialDTO, nil)
+
 	if err != nil {
 		return err
 	}

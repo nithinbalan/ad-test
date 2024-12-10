@@ -210,10 +210,10 @@ func (dac *DocumentAccessController) DeleteSharedUsers(c *gin.Context) {
 	}
 
 	var requestData struct {
-		UserIDs []*uint `json:"user_ids"`
+		UserIDs []uint `json:"user_ids"`
 	}
 
-	var userIDs []*uint
+	var userIDs []uint
 	if err := c.ShouldBindJSON(&requestData); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -238,10 +238,10 @@ func (dac *DocumentAccessController) DeleteSharedUnits(c *gin.Context) {
 	}
 
 	var requestData struct {
-		UnitIDs []*uint `json:"unit_ids"`
+		UnitIDs []uint `json:"unit_ids"`
 	}
 
-	var unitIDs []*uint
+	var unitIDs []uint
 	if err := c.ShouldBindJSON(&requestData); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return

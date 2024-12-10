@@ -7,6 +7,8 @@ import (
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
+	"path/filepath"
+	"strconv"
 	"time"
 
 	"jethur/grc/models"
@@ -259,11 +261,31 @@ func (acs *AuditChecklistService) Delete(auditId uint, ids []uint, currentUserID
 
 	var failedIDs []uint
 	var successfulIDs []uint
+	documentsToDelete := make(map[uint][]*auditDTOs.AuditChecklistDocumentDTO)
 
 	for _, id := range ids {
 
 		if _, err := acs.GetByID(auditId, id); err != nil {
 			failedIDs = append(failedIDs, id)
+		}
+		existingAuditChecklistFullDetails, err := acs.GetFullDetailsByID(auditId, id)
+		if err != nil {
+			failedIDs = append(failedIDs, id)
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+
+		if len(existingAuditChecklistFullDetails.Documents) > 0 {
+			var deleteDocumentIds []*uint
+			for _, doc := range existingAuditChecklistFullDetails.Documents {
+				if doc != nil {
+					documentsToDelete[id] = append(documentsToDelete[id], doc)
+					deleteDocumentIds = append(deleteDocumentIds, doc.ID)
+				}
+			}
+			if err := acs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
 		}
 
 		if err := acs.repo.Delete(id, tx); err != nil {
@@ -273,9 +295,20 @@ func (acs *AuditChecklistService) Delete(auditId uint, ids []uint, currentUserID
 
 		successfulIDs = append(successfulIDs, id)
 	}
-
 	if len(successfulIDs) > 0 {
-		tx.Commit()
+		for checkID, documents := range documentsToDelete {
+			for _, doc := range documents {
+				fmt.Println("filename=", doc.Name)
+				storagePath := filepath.Join("audit", "audit-checklist", strconv.FormatUint(uint64(checkID), 10), "documents")
+				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+					tx.Rollback()
+					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
+				}
+			}
+		}
+	}
+	tx.Commit()
+	if len(successfulIDs) > 0 {
 
 		go func() {
 			for _, id := range successfulIDs {
@@ -341,6 +374,86 @@ func (acs *AuditChecklistService) Answer(auditId uint, id uint, currentUserID ui
 		tx.Rollback()
 		return err
 	}
+	
+	var documents []*models.AuditChecklistDocument
+	var deleteDocumentIds []*uint
+	var documentsToDelete []*models.AuditChecklistDocument
+
+	for _, doc := range auditChecklistAnswerFormDTO.Documents {
+
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			// Encrypt the filename
+			dataToEncrypt := []byte(doc.FileName)
+			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			//genereate URL
+			url := utility.GenerateDocumentURL("audit", "audit-checklist", strconv.FormatUint(uint64(id), 10), "documents")
+			// Create a new Control test Document instance
+			document := &models.AuditChecklistDocument{
+				AuditChecklistID: id,
+				URL:                                  url,
+				Name:                                 doc.FileName,
+				Size:                                 doc.Size,
+				Token:                                encryptedFileName,
+				OriginalName:                         doc.OriginalName,
+				Type:                                 doc.Type,
+				CreatedBYID:                          currentUserID,
+			}
+
+			// Append the document to the slice
+			documents = append(documents, document)
+
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			if doc.ID != nil {
+				existingDocument, err := acs.repo.GetDocumentByID(*doc.ID)
+				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return utility.NewResourceNotFoundError(err, id)
+					}
+					return err
+				}
+
+				documentsToDelete = append(documentsToDelete, existingDocument)
+				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
+			}
+		}
+	}
+
+	if len(documents) > 0 {
+		if err := acs.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if len(deleteDocumentIds) > 0 {
+		if err := acs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, doc := range documents {
+		storagePath := filepath.Join("audit", "audit-checklist", strconv.FormatUint(uint64(id), 10), "documents")
+
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, document := range documentsToDelete {
+		storagePath := filepath.Join("audit", "audit-checklist", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
 
 	tx.Commit()
 
@@ -383,6 +496,7 @@ func (acs *AuditChecklistService) DeleteAnswer(auditId uint, ids []uint, current
 	if err != nil {
 		return nil, err
 	}
+	documentsToDelete := make(map[uint][]*auditDTOs.AuditChecklistDocumentDTO)
 	for _, id := range ids {
 		existingAuditChecklist, err := acs.GetByID(auditId, id)
 		if err != nil {
@@ -392,9 +506,28 @@ func (acs *AuditChecklistService) DeleteAnswer(auditId uint, ids []uint, current
 
 		existingAuditChecklist.ConformanceID = nil
 		existingAuditChecklist.Comment = nil
-		existingAuditChecklist.AnsweredBYID = nil
+		existingAuditChecklist.AnsweredBYID  = nil
 		existingAuditChecklist.StatusID = status.ID
 		existingAuditChecklist.AnsweredAt = nil
+		existingAuditChecklistFullDetails, err := acs.GetFullDetailsByID(auditId, id)
+		if err != nil {
+			failedIDs = append(failedIDs, id)
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+
+		if len(existingAuditChecklistFullDetails.Documents) > 0 {
+			var deleteDocumentIds []*uint
+			for _, doc := range existingAuditChecklistFullDetails.Documents {
+				if doc != nil {
+					documentsToDelete[id] = append(documentsToDelete[id], doc)
+					deleteDocumentIds = append(deleteDocumentIds, doc.ID)
+				}
+			}
+			if err := acs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
 
 		err = acs.repo.Update(existingAuditChecklist, tx)
 		if err != nil {
@@ -403,9 +536,21 @@ func (acs *AuditChecklistService) DeleteAnswer(auditId uint, ids []uint, current
 
 		successfulIDs = append(successfulIDs, id)
 	}
+	if len(successfulIDs) > 0 {
+		for checkID, documents := range documentsToDelete {
+			for _, doc := range documents {
+				fmt.Println("filename=", doc.Name)
+				storagePath := filepath.Join("audit", "audit-checklist", strconv.FormatUint(uint64(checkID), 10), "documents")
+				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+					tx.Rollback()
+					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
+				}
+			}
+		}
+	}
+	tx.Commit()
 
 	if len(successfulIDs) > 0 {
-		tx.Commit()
 
 		go func() {
 			for _, id := range successfulIDs {

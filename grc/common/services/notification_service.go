@@ -49,10 +49,10 @@ func (ns *NotificationService) SendNotification(notificationDTO *commonDTOs.DBNo
 			return err
 		}
 
-		socialLinks, err := ns.GetSocialMediaLinks()
-		if err != nil {
-			return err
-		}
+		// socialLinks, err := ns.GetSocialMediaLinks()
+		// if err != nil {
+		// 	return err
+		// }
 
 		emailTemplateAndSocialDTO := &commonDTOs.EmailTemplateAndSocialDTO{
 			HeaderImageURL: emailTemplateSettings.HeaderImageURL,
@@ -61,9 +61,9 @@ func (ns *NotificationService) SendNotification(notificationDTO *commonDTOs.DBNo
 			FooterLogoURL:  emailTemplateSettings.FooterLogoURL,
 			FooterAddress:  emailTemplateSettings.FooterAddress,
 			FooterEmail:    emailTemplateSettings.FooterEmail,
-			Linkedin:       &socialLinks.Linkedin,
-			X:              &socialLinks.X,
-			Facebook:       &socialLinks.Facebook,
+			// Linkedin:       &socialLinks.Linkedin,
+			// X:              &socialLinks.X,
+			// Facebook:       &socialLinks.Facebook,
 		}
 
 		err = utility.SendTemplatedEmail(

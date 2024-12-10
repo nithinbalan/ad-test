@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/services"
 	commonDTOs "jethur/grc/common/dtos"
@@ -25,7 +26,7 @@ func NewAuditPlanController(service services.AuditPlanServiceInterface) *AuditPl
 
 func (apc *AuditPlanController) GetAllAuditPlans(c *gin.Context) {
 	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
@@ -54,10 +55,28 @@ func (apc *AuditPlanController) GetAllAuditPlans(c *gin.Context) {
 		utility.SendInternalErrResp(apc.db, c, "Invalid page_size parameter")
 		return
 	}
+	validSortFields := map[string]string{
+		"reference_number":        "audit_plans.reference_number",
+		"title":                   "audit_plans.title",
+		"start_date":              "audit_plans.start_date",
+		"target_date":             "audit_plans.target_date",
+		"audit_category_title_en": "audit_categories.title_en",
+		"audit_category_title_ar": "audit_categories.title_ar",
+		"audit_status_en":         "audit_statuses.title_en",
+		"audit_status_ar":         "audit_statuses.title_ar",
+		"team_lead_first_name_en": "team_lead.first_name_en",
+		"team_lead_first_name_ar": "team_lead.first_name_ar",
+	}
 
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 	queryParams := auditDTOs.AuditPlanListQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      sortBy,
+		SortBy:      sortField,
 		Keyword:     keyword,
 		Status:      status,
 		Page:        page,
@@ -193,7 +212,6 @@ func (apc *AuditPlanController) DeleteAuditPlans(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
-
 
 func (apc *AuditPlanController) PublishAuditPlan(c *gin.Context) {
 	auditPlanID, err := strconv.Atoi(c.Param("planId"))

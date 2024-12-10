@@ -5,25 +5,26 @@ import (
 )
 
 type App struct {
-	DB                  *gorm.DB
-	SettingsModule      *SettingsModule
-	CommonModule        *CommonModule
-	MasterModule        *MasterModule
-	MeetingModule       *MeetingModule
-	LibraryModule       *LibraryModule
-	OrganizationModule  *OrganizationModule
-	AuthModule          *AuthModule
-	ComplianceModule    *ComplianceModule
-	RiskModule          *RiskModule
-	IncidentModule      *IncidentModule
-	TaskModule          *TaskModule
-	DocumentModule      *DocumentModule
-	AuditModule         *AuditModule
-	KPIModule           *KPIModule
-	AuditInsightsModule *AuditInsightsModule
-	ReportsModule       *ReportsModule
-	AssetModule         *AssetModule
-	SharedModule        *SharedModule
+	DB                       *gorm.DB
+	SettingsModule           *SettingsModule
+	CommonModule             *CommonModule
+	MasterModule             *MasterModule
+	MeetingModule            *MeetingModule
+	LibraryModule            *LibraryModule
+	OrganizationModule       *OrganizationModule
+	AuthModule               *AuthModule
+	ComplianceModule         *ComplianceModule
+	RiskModule               *RiskModule
+	IncidentModule           *IncidentModule
+	TaskModule               *TaskModule
+	DocumentModule           *DocumentModule
+	AuditModule              *AuditModule
+	KPIModule                *KPIModule
+	AuditInsightsModule      *AuditInsightsModule
+	ReportsModule            *ReportsModule
+	AssetModule              *AssetModule
+	SharedModule             *SharedModule
+	BusinessContinuityModule *BusinessContinuityModule
 }
 
 func NewApp(db *gorm.DB) *App {
@@ -42,29 +43,31 @@ func NewApp(db *gorm.DB) *App {
 	documentModule := NewDocumentModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
 	meetingModule := NewMeetingModule(db, sharedModule, organizationModule, masterModule, commonModule, complianceModule, riskModule, incidentModule, taskModule)
 	auditModule := NewAuditModule(db, sharedModule, organizationModule, complianceModule, riskModule, incidentModule, documentModule, settingsModule, masterModule, taskModule, commonModule)
-	kpiModule := NewKPIModule(db)
+	kpiModule := NewKPIModule(db, riskModule)
 	auditInsightsModule := NewAuditInsightsModule(db, sharedModule, organizationModule, auditModule)
 	reportsModule := NewReportsModule(db, complianceModule, organizationModule)
+	businessFunctionModule := NewBusinessContinuityModule(db, sharedModule, settingsModule, masterModule, organizationModule)
 
 	return &App{
-		DB:                  db,
-		SettingsModule:      settingsModule,
-		CommonModule:        commonModule,
-		MasterModule:        masterModule,
-		LibraryModule:       libraryModule,
-		OrganizationModule:  organizationModule,
-		AuthModule:          authModule,
-		TaskModule:          taskModule,
-		ComplianceModule:    complianceModule,
-		RiskModule:          riskModule,
-		IncidentModule:      incidentModule,
-		DocumentModule:      documentModule,
-		MeetingModule:       meetingModule,
-		AuditModule:         auditModule,
-		KPIModule:           kpiModule,
-		AuditInsightsModule: auditInsightsModule,
-		ReportsModule:       reportsModule,
-		AssetModule:         assetModule,
-		SharedModule:        sharedModule,
+		DB:                       db,
+		SettingsModule:           settingsModule,
+		CommonModule:             commonModule,
+		MasterModule:             masterModule,
+		LibraryModule:            libraryModule,
+		OrganizationModule:       organizationModule,
+		AuthModule:               authModule,
+		TaskModule:               taskModule,
+		ComplianceModule:         complianceModule,
+		RiskModule:               riskModule,
+		IncidentModule:           incidentModule,
+		DocumentModule:           documentModule,
+		MeetingModule:            meetingModule,
+		AuditModule:              auditModule,
+		KPIModule:                kpiModule,
+		AuditInsightsModule:      auditInsightsModule,
+		ReportsModule:            reportsModule,
+		AssetModule:              assetModule,
+		SharedModule:             sharedModule,
+		BusinessContinuityModule: businessFunctionModule,
 	}
 }

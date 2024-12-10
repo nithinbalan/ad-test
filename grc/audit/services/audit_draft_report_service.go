@@ -5,6 +5,8 @@ import (
 	"fmt"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	documentDTOs "jethur/grc/documents/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
@@ -14,6 +16,7 @@ import (
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	riskDTOs "jethur/grc/risk/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
 	"time"
 
@@ -39,6 +42,7 @@ type AuditDraftReportService struct {
 	auditDraftReportStatusSvc AuditDraftReportStatusServiceInterface
 	auditDraftFindingSvc      AuditDraftFindingServiceInterface
 	userSvc                   organizationServices.UserServiceInterface
+	notificationSvc           commonServices.NotificationServiceInterface
 }
 
 func NewAuditDraftReportService(
@@ -48,6 +52,7 @@ func NewAuditDraftReportService(
 	auditDraftReportStatusSvc AuditDraftReportStatusServiceInterface,
 	auditDraftFindingSvc AuditDraftFindingServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	notificationSvc           commonServices.NotificationServiceInterface,
 ) AuditDraftReportServiceInterface {
 	return &AuditDraftReportService{
 		repo:                      repo,
@@ -56,6 +61,7 @@ func NewAuditDraftReportService(
 		auditDraftReportStatusSvc: auditDraftReportStatusSvc,
 		auditDraftFindingSvc:      auditDraftFindingSvc,
 		userSvc:                   userSvc,
+		notificationSvc:                   notificationSvc,
 	}
 }
 
@@ -274,6 +280,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 					IncidentRegisterID:      finding.AuditableItem.IncidentRegisterID,
 					ComplianceRequirementID: finding.AuditableItem.ComplianceRequirementID,
 					RiskRegisterID:          finding.AuditableItem.RiskRegisterID,
+					ResponsibleUnitID:       finding.AuditableItem.ResponsibleUnitID,
+					ResponsibleUserID:       finding.AuditableItem.ResponsibleUserID,
 				}
 				if finding.AuditableItem.Process != nil {
 					findingDTO.AuditableItem.Process = &organizationDTOs.ProcessDetailDTO{
@@ -311,6 +319,19 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 				if finding.AuditableItem.User != nil {
 					userDTO := mapUserToUserMinimalDTO(finding.AuditableItem.User)
 					findingDTO.AuditableItem.User = &userDTO
+				}
+				if finding.AuditableItem.ResponsibleUser != nil {
+					userDTO := mapUserToUserMinimalDTO(finding.AuditableItem.ResponsibleUser)
+					findingDTO.AuditableItem.ResponsibleUser = &userDTO
+				}
+				if finding.AuditableItem.ResponsibleUnit != nil {
+					findingDTO.AuditableItem.ResponsibleUnit = settingsDTOs.OrganizationUnitDTO{
+						ID:        int(finding.AuditableItem.ResponsibleUnit.ID),
+						TitleEn:   finding.AuditableItem.ResponsibleUnit.TitleEn,
+						TitleAr:   finding.AuditableItem.ResponsibleUnit.TitleAr,
+						ColorCode: finding.AuditableItem.ResponsibleUnit.ColorCode,
+						Status:    finding.AuditableItem.ResponsibleUnit.Status,
+					}
 				}
 
 				// Map AuditFindingCategory to DTO
@@ -432,6 +453,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 					IncidentRegisterID:      finding.AuditableItem.IncidentRegisterID,
 					ComplianceRequirementID: finding.AuditableItem.ComplianceRequirementID,
 					RiskRegisterID:          finding.AuditableItem.RiskRegisterID,
+					ResponsibleUnitID:       finding.AuditableItem.ResponsibleUnitID,
+					ResponsibleUserID:       finding.AuditableItem.ResponsibleUserID,
 				}
 				if finding.AuditableItem.Process != nil {
 					findingDTO.AuditableItem.Process = &organizationDTOs.ProcessDetailDTO{
@@ -469,6 +492,19 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 				if finding.AuditableItem.User != nil {
 					userDTO := mapUserToUserMinimalDTO(finding.AuditableItem.User)
 					findingDTO.AuditableItem.User = &userDTO
+				}
+				if finding.AuditableItem.ResponsibleUser != nil {
+					userDTO := mapUserToUserMinimalDTO(finding.AuditableItem.ResponsibleUser)
+					findingDTO.AuditableItem.ResponsibleUser = &userDTO
+				}
+				if finding.AuditableItem.ResponsibleUnit != nil {
+					findingDTO.AuditableItem.ResponsibleUnit = settingsDTOs.OrganizationUnitDTO{
+						ID:        int(finding.AuditableItem.ResponsibleUnit.ID),
+						TitleEn:   finding.AuditableItem.ResponsibleUnit.TitleEn,
+						TitleAr:   finding.AuditableItem.ResponsibleUnit.TitleAr,
+						ColorCode: finding.AuditableItem.ResponsibleUnit.ColorCode,
+						Status:    finding.AuditableItem.ResponsibleUnit.Status,
+					}
 				}
 
 			}
@@ -727,7 +763,81 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 	tx.Commit()
 
 	go func() {
-		err := adrs.activityLogSvc.LogActivity(
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "audit-draft-report"
+		action := "review-user-assign"
+		
+		existingAuditDraftReportFullDetails, err := adrs.repo.GetByAuditID(auditID)
+		if err != nil {
+			utility.LogError("Failed to fetch review user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		if existingAuditDraftReportFullDetails.Audit.AuditPlan.AuditableItems != nil{
+			for _, item := range existingAuditDraftReportFullDetails.Audit.AuditPlan.AuditableItems {
+				if item.AuditableItem.ResponsibleUser == nil{
+					utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+				responsibleUser := item.AuditableItem.ResponsibleUser
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               responsibleUser.ID,
+					ModuleIdentifier:     "audit",
+					NotificationType:     string(commonDTOs.ReviewType),
+					HeadingEn:            "Audit Draft Report Department Review",
+					HeadingAr:            "مراجعة قسم تقرير مسودة التدقيق",
+					TitleEn:              existingAuditDraftReport.Audit.AuditPlan.Title,
+					TitleAr:              existingAuditDraftReport.Audit.AuditPlan.Title,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+	
+				assignedBy, err := adrs.userSvc.GetByID(currentUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+	
+				emailTo := []string{responsibleUser.Email}
+				subject := fmt.Sprintf("Audit Draft Report /%s: Department Review Assigned", existingAuditDraftReport.Audit.AuditPlan.Title)
+				appURL := utility.GetAppURL()
+				emailData := map[string]interface{}{
+					"FirstNameEn":           responsibleUser.FirstNameEn,
+					"LastNameEn":            responsibleUser.LastNameEn,
+					"AuditTitle":            existingAuditDraftReport.Audit.AuditPlan.Title,
+					"Reference Number":      existingAuditDraftReport.Audit.AuditPlan.ReferenceNumber,
+					"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+					"AssignedByLastNameEn":  assignedBy.LastNameEn,
+					"AssignedOn":            time.Now().Format("2006-01-02"),
+					"RedirectURL":           fmt.Sprintf("%s/audit-insight/draft-report/%d/details", appURL, id),
+				}
+	
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              emailTo,
+					Subject:              subject,
+					TemplateRelativePath: "audit/templates/email/audit_draft_report_department_review_user_mail.html",
+					EmailData:            emailData,
+				}
+	
+				// Send Notification and Email
+				err = adrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
+				if err != nil {
+					utility.LogError("Failed to send notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+			}
+		}
+		
+		err = adrs.activityLogSvc.LogActivity(
 			models.UpdateAction,
 			models.AuditDraftReport{}.TableName(),
 			id,

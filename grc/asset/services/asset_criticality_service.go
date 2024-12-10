@@ -61,7 +61,8 @@ func (acs *AssetCriticalityService) GetByID(id uint) (*models.AssetCriticalityCo
 
 func (acs *AssetCriticalityService) Create(assetID uint, assetCriticalityFormDTO []assetDTOs.AssetCriticalityFormDTO, currentUserID uint) error {
 	tx := acs.repo.BeginTransaction()
-
+	var createdIds []uint
+	var addedAssetCriticality []map[string]interface{}
 	asset, err := acs.assetRegisterSvc.GetByID(assetID)
 	if err != nil {
 		return err
@@ -99,10 +100,18 @@ func (acs *AssetCriticalityService) Create(assetID uint, assetCriticalityFormDTO
 			Score:                                calculatedScore,
 			CreatedByID:                          currentUserID,
 		}
-		if err := acs.repo.Create(contribution, tx); err != nil {
+		id, err := acs.repo.Create(contribution, tx)
+
+		if err != nil {
 			tx.Rollback()
 			return err
 		}
+		addedAssetCriticality = append(addedAssetCriticality, map[string]interface{}{
+			"id":           id,
+			"contribution": contribution,
+		})
+
+		createdIds = append(createdIds, id)
 	}
 
 	//update total score in asset register
@@ -120,11 +129,11 @@ func (acs *AssetCriticalityService) Create(assetID uint, assetCriticalityFormDTO
 	tx.Commit()
 
 	go func() {
-		err := acs.activityLogSvc.LogActivity(
+		err := acs.activityLogSvc.LogBulkActivities(
 			models.CreateAction,
 			models.AssetCriticalityContribution{}.TableName(),
-			assetID,
-			assetCriticalityFormDTO,
+			createdIds,
+			addedAssetCriticality,
 			currentUserID,
 			nil,
 		)
@@ -148,6 +157,11 @@ func (acs *AssetCriticalityService) Update(assetID uint, id uint, dto assetDTOs.
 	tx := acs.repo.BeginTransaction()
 
 	asset, err := acs.assetRegisterSvc.GetByID(assetID)
+	if err != nil {
+		return err
+	}
+
+	oldContribution, err := acs.GetByID(id)
 	if err != nil {
 		return err
 	}
@@ -192,16 +206,67 @@ func (acs *AssetCriticalityService) Update(assetID uint, id uint, dto assetDTOs.
 	}
 
 	tx.Commit()
+	go func() {
+		existingContribution, err := acs.GetByID(id)
+		if err != nil {
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"asset_criticality_matrix_factor":        oldContribution.AssetCriticalityMatrixFactor.TitleEn,
+			"asset_criticality_matrix_factor_rating": oldContribution.AssetCriticalityMatrixFactorRating.TitleEn,
+			"score":                                  oldContribution.Score,
+		}
 
+		newData := map[string]interface{}{
+			"asset_criticality_matrix_factor":        existingContribution.AssetCriticalityMatrixFactor.TitleEn,
+			"asset_criticality_matrix_factor_rating": existingContribution.AssetCriticalityMatrixFactorRating.TitleEn,
+			"score":                                  existingContribution.Score,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := acs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AssetCriticalityContribution{}.TableName(),
+				id,
+				changedData,
+				userID,
+				nil,
+			)
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AssetCriticalityContribution{}.TableName(),
+					"recordID":  id,
+					"userID":    userID,
+					"error":     err.Error(),
+				}
+				fmt.Printf("Failed to log activity: %v\n", fields)
+			}
+		}
+	}()
 	return nil
 }
 
 func (acs *AssetCriticalityService) Delete(assetID uint, userID uint) error {
 	tx := acs.repo.BeginTransaction()
-
+	var createdIds []uint
+	var deletedContribution []map[string]interface{}
 	_, err := acs.assetRegisterSvc.GetByID(assetID)
 	if err != nil {
 		return err
+	}
+
+	contributions, err := acs.repo.GetAllContribution(assetID)
+	if err != nil {
+		return nil
 	}
 
 	if err := acs.repo.Delete(assetID, tx); err != nil {
@@ -213,8 +278,32 @@ func (acs *AssetCriticalityService) Delete(assetID uint, userID uint) error {
 	if err != nil {
 		return err
 	}
+	for _, contribution := range contributions {
+		createdIds = append(createdIds, contribution.ID)
 
+		deletedContribution = append(deletedContribution, map[string]interface{}{
+			"id":                                     contribution.ID,
+			"asset_id":                               assetID,
+			"asset_criticality_matrix_factor":        contribution.AssetCriticalityMatrixFactor.TitleEn,
+			"asset_criticality_matrix_factor_rating": contribution.AssetCriticalityMatrixFactorRating.TitleEn,
+		})
+	}
+	fmt.Println(deletedContribution)
 	tx.Commit()
+	go func() {
+		err := acs.activityLogSvc.LogBulkActivities(
+			models.DeleteAction,
+			models.AssetCriticalityContribution{}.TableName(),
+			createdIds,
+			deletedContribution,
+			userID,
+			nil,
+		)
+		if err != nil {
+			// Handle error if logging fails
+			fmt.Printf("Failed to log delete activity: %v\n", err)
+		}
+	}()
 	return nil
 }
 

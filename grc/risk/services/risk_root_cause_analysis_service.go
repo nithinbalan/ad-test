@@ -89,14 +89,14 @@ func (rrcas *RiskRootCauseAnalysisService) Create(riskID uint, currentUserID uin
 		CreatedByID:    currentUserID,
 	}
 
-	id, err := rrcas.repo.Create(riskRootCauseAnalysis,tx)
+	id, err := rrcas.repo.Create(riskRootCauseAnalysis, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
 	//Update timeline
 	//todo
-	rcaCount, err := rrcas.repo.GetCountByRiskID(riskID,tx)
+	rcaCount, err := rrcas.repo.GetCountByRiskID(riskID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -126,11 +126,18 @@ func (rrcas *RiskRootCauseAnalysisService) Create(riskID uint, currentUserID uin
 	tx.Commit()
 
 	go func() {
-		err := rrcas.activityLogSvc.LogActivity(
+		existingRiskRootCauseAnalysis, err := rrcas.GetByID(riskID, id)
+		if err != nil {
+			utility.LogError("Failed to fetch risk residual evaluation", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = rrcas.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.RiskRootCauseAnalysis{}.TableName(),
 			id,
-			rootCauseAnalysisFormDTO,
+			existingRiskRootCauseAnalysis,
 			currentUserID,
 			nil,
 		)
@@ -156,6 +163,10 @@ func (rrcas *RiskRootCauseAnalysisService) Update(riskID uint, id uint, currentU
 	if _, err := rrcas.riskRegisterSvc.GetByID(riskID); err != nil {
 		return err
 	}
+	oldRootCauseAnalysis, err := rrcas.GetByID(riskID, id)
+	if err != nil {
+		return err
+	}
 
 	existingRiskRootCauseAnalysis, err := rrcas.GetByID(riskID, id)
 
@@ -174,11 +185,59 @@ func (rrcas *RiskRootCauseAnalysisService) Update(riskID uint, id uint, currentU
 		return err
 	}
 
+	go func() {
+		existingRootCauseAnalysis, err := rrcas.GetByID(riskID, id)
+		if err != nil {
+			return
+		}
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"question": oldRootCauseAnalysis.Question,
+			"answer":   oldRootCauseAnalysis.Answer,
+		}
+
+		newData := map[string]interface{}{
+			"question": existingRootCauseAnalysis.Question,
+			"answer":   existingRootCauseAnalysis.Answer,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err = rrcas.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.RiskRootCauseAnalysis{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.RiskRootCauseAnalysis{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
+
 	return nil
 }
 
 func (rrcas *RiskRootCauseAnalysisService) Delete(riskID uint, id uint, currentUserID uint) (uint, error) {
 	tx := rrcas.repo.BeginTransaction()
+
+	var deletedRooCauseAnalysis []map[string]interface{}
 
 	if _, err := rrcas.riskRegisterSvc.GetByID(riskID); err != nil {
 		return 0, err
@@ -192,7 +251,7 @@ func (rrcas *RiskRootCauseAnalysisService) Delete(riskID uint, id uint, currentU
 	}
 	//Delete-> update timeline performedAt as null
 	//todo
-	rcaCount, err := rrcas.repo.GetCountByRiskID(riskID,tx)
+	rcaCount, err := rrcas.repo.GetCountByRiskID(riskID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -238,11 +297,16 @@ func (rrcas *RiskRootCauseAnalysisService) Delete(riskID uint, id uint, currentU
 
 	// Log successful delete activity
 	go func() {
+		deletedRooCauseAnalysis = append(deletedRooCauseAnalysis, map[string]interface{}{
+			"id":               id,
+			"risk_register_id": riskID,
+		})
+
 		err := rrcas.activityLogSvc.LogActivity(
 			models.DeleteAction,
 			models.RiskRootCauseAnalysis{}.TableName(),
 			id,
-			nil,
+			deletedRooCauseAnalysis,
 			currentUserID,
 			nil,
 		)

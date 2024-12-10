@@ -118,7 +118,7 @@ func (ais *AuditableItemService) Create(currentUserID uint, auditableItemFormDTO
 		ResponsibleUserID:   auditableItemFormDTO.ResponsibleUserID,
 		ResponsibleUnitID:   responsibleUnitID,
 		AuditStatusID:       uint(auditStatus.ID),
-		CreatedByID:         currentUserID,
+		CreatedBYID:         currentUserID,
 	}
 
 	id, err := ais.repo.Create(auditableItem, tx)
@@ -180,7 +180,7 @@ func (ais *AuditableItemService) Update(id uint, currentUserID uint, auditableIt
 	existingAuditableItem.Comment = auditableItemFormDTO.Comment
 	existingAuditableItem.AuditorRiskRatingID = auditableItemFormDTO.AuditorRiskRatingID
 	existingAuditableItem.ResponsibleUserID = auditableItemFormDTO.ResponsibleUserID
-	existingAuditableItem.UpdatedByID = &currentUserID
+	existingAuditableItem.UpdatedBYID = &currentUserID
 
 	err = ais.repo.Update(existingAuditableItem, tx)
 
@@ -240,7 +240,7 @@ func (ais *AuditableItemService) StatusUpdate(id uint, currentUserID uint, audit
 	}
 
 	existingAuditableItem.AuditStatusID = auditableItemStatusUpdateFormDTO.AuditStatusID
-	existingAuditableItem.UpdatedByID = &currentUserID
+	existingAuditableItem.UpdatedBYID = &currentUserID
 
 	err = ais.repo.Update(existingAuditableItem, tx)
 

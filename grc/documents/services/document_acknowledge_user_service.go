@@ -126,7 +126,7 @@ func (daus *DocumentAcknowledgeUserService) Create(docuemntID uint, currentUserI
 			models.CreateAction,
 			models.DocumentAcknowledgeUser{}.TableName(),
 			documentAcknowledgeUser.ID,
-			nil,
+			documentAcknowledgeUser,
 			currentUserID,
 			nil,
 		)
@@ -150,7 +150,7 @@ func (daus *DocumentAcknowledgeUserService) Create(docuemntID uint, currentUserI
 func (daus *DocumentAcknowledgeUserService) Delete(docuemntID uint, currentUserID uint) (uint, error) {
 	tx := daus.repo.BeginTransaction()
 	var failedId uint
-
+	var deletedUser []map[string]interface{}
 	_, err := daus.documentSvc.GetByID(docuemntID)
 	if err != nil {
 		return 0, err
@@ -170,6 +170,10 @@ func (daus *DocumentAcknowledgeUserService) Delete(docuemntID uint, currentUserI
 		failedId = uint(docuemntID)
 		return failedId, err
 	}
+	deletedUser = append(deletedUser, map[string]interface{}{
+		"document_id": docuemntID,
+		"user_id":     currentUserID,
+	})
 	tx.Commit()
 	// Log successful delete activity
 	go func() {
@@ -177,7 +181,7 @@ func (daus *DocumentAcknowledgeUserService) Delete(docuemntID uint, currentUserI
 			models.DeleteAction,
 			models.DocumentAcknowledgeUser{}.TableName(),
 			uint(docuemntID),
-			nil,
+			deletedUser,
 			currentUserID,
 			nil,
 		)
@@ -191,13 +195,21 @@ func (daus *DocumentAcknowledgeUserService) Delete(docuemntID uint, currentUserI
 }
 
 func (daus *DocumentAcknowledgeUserService) GetDocumentAcknowledgmentSummary(documentID uint) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error) {
+	document, err := daus.documentSvc.GetFullDetailsByID(documentID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if document.DocumentAccessType.Type == "public" {
+		return daus.repo.GetPublicDocumentAcknowledgmentSummary(documentID)
+	}
+
 	primaryLevel, err := daus.organizationLevelSvc.GetPrimaryLevel()
 	if err != nil {
 		return nil, err
 	}
 
 	var primaryOrgUnitField string
-
 	switch primaryLevel.Level {
 	case 1:
 		primaryOrgUnitField = "organization_unit_1_id"
@@ -212,5 +224,6 @@ func (daus *DocumentAcknowledgeUserService) GetDocumentAcknowledgmentSummary(doc
 	default:
 		return nil, fmt.Errorf("unsupported primary level")
 	}
+
 	return daus.repo.GetDocumentAcknowledgmentSummary(documentID, primaryOrgUnitField)
 }

@@ -119,9 +119,10 @@ func (kcs *KRICategoryService) Update(id uint, currentUserID uint, updatedCatego
 func (kcs *KRICategoryService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedKriCategory []map[string]interface{}
 	for _, id := range ids {
 
-		_, err := kcs.repo.GetByID(id)
+		kriCategory, err := kcs.repo.GetByID(id)
 
 		if err != nil {
 			continue
@@ -133,6 +134,11 @@ func (kcs *KRICategoryService) Delete(ids []uint, currentUserID uint) ([]uint, e
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedKriCategory = append(deletedKriCategory, map[string]interface{}{
+			"id":    id,
+			"title": kriCategory.TitleEn,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -142,7 +148,7 @@ func (kcs *KRICategoryService) Delete(ids []uint, currentUserID uint) ([]uint, e
 				models.DeleteAction,
 				models.KRICategory{}.TableName(),
 				successfulIds,
-				nil,
+				deletedKriCategory,
 				currentUserID,
 				nil,
 			)

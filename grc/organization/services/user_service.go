@@ -97,6 +97,37 @@ func (us *UserService) SetUserSettingService(svc UserSettingServiceInterface) {
 }
 
 func (us *UserService) GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error) {
+	// Check if `organization_unit_ids` exists in the filters
+	orgUnitIDs, ok := params.Filters["organization_unit_id"]
+	if ok && len(orgUnitIDs) > 0 {
+		// Get the primary organization level
+		primaryLevel, err := us.organizationLevelSvc.GetPrimaryLevel()
+		if err != nil {
+			return nil, err
+		}
+
+		// Determine the field name based on the primary level
+		var primaryOrgUnitField string
+		switch primaryLevel.Level {
+		case 1:
+			primaryOrgUnitField = "organization_unit_1_id"
+		case 2:
+			primaryOrgUnitField = "organization_unit_2_id"
+		case 3:
+			primaryOrgUnitField = "organization_unit_3_id"
+		case 4:
+			primaryOrgUnitField = "organization_unit_4_id"
+		case 5:
+			primaryOrgUnitField = "organization_unit_5_id"
+		default:
+			return nil, fmt.Errorf("unsupported primary level")
+		}
+
+		// Add the resolved column name and value to the filters
+		params.Filters[primaryOrgUnitField] = orgUnitIDs
+		delete(params.Filters, "organization_unit_id") // Clean up the generic filter key
+	}
+
 	return us.repo.GetAll(params)
 }
 
@@ -230,7 +261,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		IsNotification: false,
 	}
 
-	if err = us.userSettingSvc.CreateUserSetting(userID, userSettingDTO, tx); err != nil {
+	if err = us.userSettingSvc.CreateUserSetting(userID, currentUserID, userSettingDTO, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -253,11 +284,19 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 	tx.Commit()
 
 	go func() {
-		err := us.activityLogSvc.LogActivity(
+		existingUser, err := us.GetFullDetailsByID(userID)
+		if err != nil {
+			utility.LogError("Failed to fetch user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = us.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.User{}.TableName(),
 			userID, // use userID instead of id
-			userFormDTO,
+			existingUser,
 			currentUserID,
 			nil,
 		)
@@ -330,6 +369,12 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 		return err
 	}
 
+	oldUser, err := us.GetFullDetailsByID(id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	if err := us.validateUserFormDTO(&id, userFormDTO); err != nil {
 		return err
 	}
@@ -340,11 +385,6 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 		initial = generateInitial(userFormDTO.FirstNameEn, userFormDTO.LastNameEn)
 	}
 
-	existingUser.OrganizationUnit1ID = userFormDTO.OrganizationUnit1ID
-	existingUser.OrganizationUnit2ID = userFormDTO.OrganizationUnit2ID
-	existingUser.OrganizationUnit3ID = userFormDTO.OrganizationUnit3ID
-	existingUser.OrganizationUnit4ID = userFormDTO.OrganizationUnit4ID
-	existingUser.OrganizationUnit5ID = userFormDTO.OrganizationUnit5ID
 	existingUser.DesignationID = userFormDTO.DesignationID
 	existingUser.FirstNameEn = userFormDTO.FirstNameEn
 	existingUser.LastNameEn = userFormDTO.LastNameEn
@@ -376,6 +416,69 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 
 	tx.Commit()
 
+	go func() {
+		existingUser, err := us.GetFullDetailsByID(id)
+		if err != nil {
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"designation":        oldUser.Designation.TitleEn,
+			"first_name_en":      oldUser.FirstNameEn,
+			"last_name_en":       oldUser.LastNameEn,
+			"first_name_ar":      oldUser.FirstNameAr,
+			"last_name_ar":       oldUser.LastNameAr,
+			"email":              oldUser.Email,
+			"mobile_number":      oldUser.MobileNumber,
+			"profile_image_path": oldUser.ProfileImagePath,
+			"initial":            oldUser.Initial,
+			"user_status":        oldUser.UserStatus.TitleEn,
+		}
+
+		newData := map[string]interface{}{
+			"designation":        existingUser.Designation.TitleEn,
+			"first_name_en":      existingUser.FirstNameEn,
+			"last_name_en":       existingUser.LastNameEn,
+			"first_name_ar":      existingUser.FirstNameAr,
+			"last_name_ar":       existingUser.LastNameAr,
+			"email":              existingUser.Email,
+			"mobile_number":      existingUser.MobileNumber,
+			"profile_image_path": existingUser.ProfileImagePath,
+			"initial":            existingUser.Initial,
+			"user_status":        existingUser.UserStatus.TitleEn,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := us.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.User{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.User{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
+
 	return nil
 }
 
@@ -404,9 +507,10 @@ func (us *UserService) UpdatePartial(id uint, userUpdateDTO *userDTOs.UserUpdate
 func (crs *UserService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedUser []map[string]interface{}
 	for _, id := range ids {
 
-		_, err := crs.repo.GetByID(id)
+		user, err := crs.repo.GetByID(id)
 
 		if err != nil {
 			continue
@@ -418,6 +522,12 @@ func (crs *UserService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedUser = append(deletedUser, map[string]interface{}{
+			"id":            user.ID,
+			"first_name_en": user.FirstNameEn,
+			"last_name_en":  user.LastNameEn,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -427,7 +537,7 @@ func (crs *UserService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 				models.DeleteAction,
 				models.User{}.TableName(),
 				successfulIds,
-				nil,
+				deletedUser,
 				currentUserID,
 				nil,
 			)
@@ -746,6 +856,7 @@ func (us *UserService) GetUserPermissions(userID uint, params *settingDTOs.Modul
 			Order:      module.Order,
 			Icon:       module.Icon,
 			Route:      module.Route,
+			IsEnable:   module.IsEnable,
 		}
 
 		for _, submodule := range module.SubModules {
@@ -758,6 +869,7 @@ func (us *UserService) GetUserPermissions(userID uint, params *settingDTOs.Modul
 					Order:       submodule.Order,
 					Icon:        submodule.Icon,
 					Route:       submodule.Route,
+					IsEnable:    submodule.IsEnable,
 					Permissions: userPermissions[submodule.ID],
 				}
 				moduleDTO.SubModules = append(moduleDTO.SubModules, submoduleDTO)

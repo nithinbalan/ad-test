@@ -139,7 +139,7 @@ func (upc *UserProfileController) EnableMFA(c *gin.Context) {
 		return
 	}
 
-	err = upc.service.EnableMFA(currentUserID)
+	err = upc.service.EnableMFA(currentUserID, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -164,7 +164,7 @@ func (upc *UserProfileController) DisableMFA(c *gin.Context) {
 		return
 	}
 
-	err = upc.service.DisableMFA(currentUserID)
+	err = upc.service.DisableMFA(currentUserID, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

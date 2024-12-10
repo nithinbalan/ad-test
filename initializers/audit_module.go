@@ -57,22 +57,24 @@ type AuditModule struct {
 	AuditFinalReportSectionController            *controllers.AuditFinalReportSectionController
 	AuditReportWorkflowController                *controllers.AuditReportWorkflowController
 	AuditReportReviewController                  *controllers.AuditReportReviewController
-	AuditTemplateSettingController               *controllers.AuditTemplateSettingController
 
-	AuditPlanSvc                        services.AuditPlanServiceInterface
-	AuditSvc                            services.AuditServiceInterface
-	AuditDocumentRequestSvc             services.AuditDocumentRequestServiceInterface
-	AuditDocumentRequestConversationSvc services.AuditDocumentRequestConversationServiceInterface
-	AuditDraftReportStatusSvc           services.AuditDraftReportStatusServiceInterface
-	AuditDraftReportSvc                 services.AuditDraftReportServiceInterface
-	AuditDraftFindingSvc                services.AuditDraftFindingServiceInterface
-	AuditDraftFindingStatusSvc          services.AuditDraftFindingStatusServiceInterface
-	AuditDraftFindingConversationSvc    services.AuditDraftFindingConversationServiceInterface
-	AuditDraftFindingActionPlanSvc      services.AuditDraftFindingActionPlanServiceInterface
+	AuditPlanSvc                          services.AuditPlanServiceInterface
+	AuditSvc                              services.AuditServiceInterface
+	AuditFindingSvc                       services.AuditFindingServiceInterface
+	AuditDocumentRequestSvc               services.AuditDocumentRequestServiceInterface
+	AuditDocumentRequestConversationSvc   services.AuditDocumentRequestConversationServiceInterface
+	AuditDraftReportStatusSvc             services.AuditDraftReportStatusServiceInterface
+	AuditDraftReportSvc                   services.AuditDraftReportServiceInterface
+	AuditDraftFindingSvc                  services.AuditDraftFindingServiceInterface
+	AuditDraftFindingStatusSvc            services.AuditDraftFindingStatusServiceInterface
+	AuditDraftFindingConversationSvc      services.AuditDraftFindingConversationServiceInterface
+	AuditDraftFindingActionPlanSvc        services.AuditDraftFindingActionPlanServiceInterface
+	AuditFindingRootCauseAnalysisSvc      services.AuditFindingRootCauseAnalysisServiceInterface
+	AuditFindingActionPlanSvc             services.AuditFindingActionPlanServiceInterface
+	AuditFindingActionPlanStatusUpdateSvc services.AuditFindingActionPlanStatusUpdateServiceInterface
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule, taskModule *TaskModule, commonModule *CommonModule) *AuditModule {
-
 	auditStatusRepo := repositories.NewAuditStatusRepository(db)
 	auditStatusSvc := services.NewAuditStatusService(auditStatusRepo)
 	auditStatusController := controllers.NewAuditStatusController(auditStatusSvc)
@@ -127,6 +129,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditTeamSvc,
 		organizationModule.UserSvc,
 		auditableItemSvc,
+		commonModule.NotificationService,
 	)
 	auditPlanController := controllers.NewAuditPlanController(auditPlanSvc)
 
@@ -210,6 +213,8 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditPlanScheduleSvc,
 		masterModule.StatusSvc,
 		auditStatusSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
 	)
 	auditController := controllers.NewAuditController(auditSvc)
 
@@ -308,6 +313,8 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditSvc,
 		auditDocumentRequestStatusSvc,
 		auditableItemSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
 	)
 	auditDocumentRequestController := controllers.NewAuditDocumentRequestController(auditDocumentRequestSvc)
 
@@ -318,6 +325,8 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditSvc,
 		auditDocumentRequestSvc,
 		auditDocumentRequestStatusSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
 	)
 	auditDocumentRequestConversationController := controllers.NewAuditDocumentRequestConversationController(auditDocumentRequestConversationSvc)
 
@@ -363,6 +372,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditDraftReportStatusSvc,
 		auditDraftFindingSvc,
 		organizationModule.UserSvc,
+		commonModule.NotificationService,
 	)
 	auditDraftReportController := controllers.NewAuditDraftReportController(auditDraftReportSvc)
 
@@ -387,6 +397,8 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		masterModule.WorkflowStatusSvc,
 		organizationModule.UserSvc,
 		auditDraftReportStatusSvc,
+		commonModule.NotificationService,
+		taskModule.TaskService,
 	)
 	auditDraftReportReviewController := controllers.NewAuditDraftReportReviewController(auditDraftReportReviewSvc)
 
@@ -468,12 +480,6 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		taskModule.TaskService)
 	auditReportReviewController := controllers.NewAuditReportReviewController(auditReportReviewSvc)
 
-	auditTemplateSettingRepo := repositories.NewAuditTemplateSettingRepository(db)
-	auditTemplateSettingSvc := services.NewAuditTemplateSettingService(
-		auditTemplateSettingRepo,
-		sharedModule.ActivityLogService)
-	auditTemplateSettingController := controllers.NewAuditTemplateSettingController(auditTemplateSettingSvc)
-
 	return &AuditModule{
 		AuditorRiskRatingController:                  auditorRiskRatingController,
 		AuditUniverseController:                      auditUniverseController,
@@ -523,17 +529,20 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditFinalReportSectionController:            auditFinalReportSectionController,
 		AuditReportWorkflowController:                auditReportWorkflowController,
 		AuditReportReviewController:                  auditReportReviewController,
-		AuditTemplateSettingController:               auditTemplateSettingController,
 
-		AuditPlanSvc:                        auditPlanSvc,
-		AuditSvc:                            auditSvc,
-		AuditDocumentRequestSvc:             auditDocumentRequestSvc,
-		AuditDocumentRequestConversationSvc: auditDocumentRequestConversationSvc,
-		AuditDraftReportSvc:                 auditDraftReportSvc,
-		AuditDraftReportStatusSvc:           auditDraftReportStatusSvc,
-		AuditDraftFindingSvc:                auditDraftFindingSvc,
-		AuditDraftFindingStatusSvc:          auditDraftFindingStatusSvc,
-		AuditDraftFindingConversationSvc:    auditDraftFindingConversationSvc,
-		AuditDraftFindingActionPlanSvc:      auditDraftFindingActionPlanSvc,
+		AuditPlanSvc:                          auditPlanSvc,
+		AuditSvc:                              auditSvc,
+		AuditFindingSvc:                       auditFindingSvc,
+		AuditDocumentRequestSvc:               auditDocumentRequestSvc,
+		AuditDocumentRequestConversationSvc:   auditDocumentRequestConversationSvc,
+		AuditDraftReportSvc:                   auditDraftReportSvc,
+		AuditDraftReportStatusSvc:             auditDraftReportStatusSvc,
+		AuditDraftFindingSvc:                  auditDraftFindingSvc,
+		AuditDraftFindingStatusSvc:            auditDraftFindingStatusSvc,
+		AuditDraftFindingConversationSvc:      auditDraftFindingConversationSvc,
+		AuditDraftFindingActionPlanSvc:        auditDraftFindingActionPlanSvc,
+		AuditFindingRootCauseAnalysisSvc:      auditFindingRootCauseAnalysisSvc,
+		AuditFindingActionPlanSvc:             auditFindingActionPlanSvc,
+		AuditFindingActionPlanStatusUpdateSvc: auditFindingActionPlanStatusUpdateSvc,
 	}
 }

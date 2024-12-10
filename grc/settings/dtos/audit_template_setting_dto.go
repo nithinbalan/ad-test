@@ -45,11 +45,13 @@ type AuditTemplateSettingDetailDTO struct {
 }
 
 type AuditTemplateSettingFormDTO struct {
-	Documents []*AuditTemplateSettingDocumentFormDTO `json:"documents"`
+	Logo                *AuditTemplateSettingDocumentFormDTO `json:"logo,omitempty"`
+	CommencementLetter  *AuditTemplateSettingDocumentFormDTO `json:"commencement_letter,omitempty"`
+	DraftReport         *AuditTemplateSettingDocumentFormDTO `json:"draft_report,omitempty"`
+	FinalReport         *AuditTemplateSettingDocumentFormDTO `json:"final_report,omitempty"`
 }
 
 type AuditTemplateSettingDocumentFormDTO struct {
-	TemplateType  string `json:"template_type"`
 	URL           string `json:"url"`
 	FileName      string `json:"file_name"`
 	OriginalName  string `json:"original_name"`

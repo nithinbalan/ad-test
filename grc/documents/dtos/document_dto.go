@@ -128,7 +128,7 @@ type DocumentDetailsDTO struct {
 	CreatedByUser         organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser         *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 	CreatedAt             time.Time                        `json:"created_at"`
-	UpdatedAt             time.Time                        `json:"updated_at"`
+	UpdatedAt             *time.Time                       `json:"updated_at"`
 	Acknowledged          *bool                            `json:"acknowledged,omitempty"`
 }
 
@@ -150,6 +150,7 @@ type DocumentVersionDTO struct {
 	CreatedAt           time.Time                        `json:"created_at"`
 	UpdatedAt           *time.Time                       `json:"updated_at"`
 	DocumentEditHistory []DocumentEditHistoryDTO         `json:"document_edit_history"`
+	DocumentWorkflows   []DocumentWorkflowDTO            `json:"document_workflow"`
 }
 
 type DocumentSharedUserDTO struct {

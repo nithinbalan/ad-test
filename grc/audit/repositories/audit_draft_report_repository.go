@@ -51,6 +51,7 @@ func (repo *AuditDraftReportRepository) GetByAuditID(auditID uint) (*models.Audi
 	Preload("Audit.AuditPlan").
 	Preload("Audit.AuditPlan.AuditableItems").
 	Preload("Audit.AuditPlan.AuditableItems.AuditableItem").
+	Preload("Audit.AuditPlan.AuditableItems.AuditableItem.ResponsibleUser").
 	Preload("Audit.AuditPlan.AuditableItems.AuditableItem.Process").
 	Preload("Audit.AuditPlan.AuditableItems.AuditableItem.Control").
 	Preload("Audit.AuditPlan.AuditableItems.AuditableItem.Document").
@@ -87,6 +88,7 @@ func (repo *AuditDraftReportRepository) GetFullDetailsByID(auditID uint, tx ...u
 		Preload("Audit.AuditDraftFindings.AuditableItem.RiskRegister").
 		Preload("Audit.AuditDraftFindings.AuditableItem.User").
 		Preload("Audit.AuditDraftFindings.AuditableItem.ResponsibleUnit").
+		Preload("Audit.AuditDraftFindings.AuditableItem.ResponsibleUser").
 		Preload("Audit.AuditDraftFindings.AuditFindingCategory").
 		Preload("Audit.AuditDraftFindings.SeverityLevel").
 		Preload("Audit.AuditDraftFindings.AuditDraftFindingConversations").

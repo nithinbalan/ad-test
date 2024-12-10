@@ -124,6 +124,10 @@ func (repo *ComplianceRequirementRepository) GetAll(params *complianceDTOs.Compl
 		query = query.Where("deadline <= ?", params.DeadlineTo)
 	}
 
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("compliance_requirements.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {

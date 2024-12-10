@@ -73,6 +73,8 @@ type ComplianceActionPlanListQueryParamsDTO struct {
 	QuickFilter    []string
 	TargetDateFrom string
 	TargetDateTo   string
+	DateFrom       string
+	DateTo         string
 }
 
 type ComplianceActionPlanListResponseDTO struct {

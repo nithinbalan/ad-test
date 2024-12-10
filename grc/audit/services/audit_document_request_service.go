@@ -3,12 +3,17 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -30,6 +35,8 @@ type AuditDocumentRequestService struct {
 	auditSvc                      AuditServiceInterface
 	auditDocumentRequestStatusSvc AuditDocumentRequestStatusServiceInterface
 	auditableItemSvc              AuditableItemServiceInterface
+	userSvc                       organizationServices.UserServiceInterface
+	notificationSvc               commonServices.NotificationServiceInterface
 }
 
 func NewAuditDocumentRequestService(
@@ -38,6 +45,8 @@ func NewAuditDocumentRequestService(
 	auditSvc AuditServiceInterface,
 	auditDocumentRequestStatusSvc AuditDocumentRequestStatusServiceInterface,
 	auditableItemSvc AuditableItemServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) AuditDocumentRequestServiceInterface {
 	return &AuditDocumentRequestService{
 		repo:                          repo,
@@ -45,6 +54,8 @@ func NewAuditDocumentRequestService(
 		auditSvc:                      auditSvc,
 		auditDocumentRequestStatusSvc: auditDocumentRequestStatusSvc,
 		auditableItemSvc:              auditableItemSvc,
+		userSvc:                       userSvc,
+		notificationSvc:               notificationSvc,
 	}
 }
 
@@ -69,6 +80,7 @@ func (adrs *AuditDocumentRequestService) GetByID(id uint) (*models.AuditDocument
 func (adrs *AuditDocumentRequestService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDocumentRequestDetailDTO, error) {
 	var documentRequestDTO auditDTOs.AuditDocumentRequestDetailDTO
 
+	// Fetch full details from the repository
 	documentRequest, err := adrs.repo.GetFullDetailsByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -77,17 +89,67 @@ func (adrs *AuditDocumentRequestService) GetFullDetailsByID(id uint, tx ...utili
 		return nil, err
 	}
 
+	// Map the basic data
 	err = mapstructure.Decode(documentRequest, &documentRequestDTO)
 	if err != nil {
 		return nil, err
 	}
-	// Call the repository function to get the conversation count
-	conversationCount, err := adrs.repo.CountConversationsByRequestID(id, tx...)
-	if err != nil {
-		return nil, err
-	}
-	documentRequestDTO.ConversationCount = int(conversationCount)
+
+	// Merge TeamLead and Members into AuditTeams
+	var auditTeams []organizationDTOs.UserMinimalDTO
+
+	if documentRequest.Audit != nil && documentRequest.Audit.AuditPlan != nil {
+		// Create a map to track unique users by ID
+		uniqueUsers := make(map[int]bool)
 	
+		// Add TeamLead
+		if documentRequest.Audit.AuditPlan.TeamLead != nil {
+			teamLeadID := int(documentRequest.Audit.AuditPlan.TeamLead.ID)
+			if !uniqueUsers[teamLeadID] {
+				teamLead := organizationDTOs.UserMinimalDTO{
+					ID:               teamLeadID,
+					FirstNameEN:      documentRequest.Audit.AuditPlan.TeamLead.FirstNameEn,
+					LastNameEN:       documentRequest.Audit.AuditPlan.TeamLead.LastNameEn,
+					FirstNameAR:      documentRequest.Audit.AuditPlan.TeamLead.FirstNameAr,
+					LastNameAR:       documentRequest.Audit.AuditPlan.TeamLead.LastNameAr,
+					ProfileImagePath: documentRequest.Audit.AuditPlan.TeamLead.ProfileImagePath,
+					Email:            documentRequest.Audit.AuditPlan.TeamLead.Email,
+					Initial:          documentRequest.Audit.AuditPlan.TeamLead.Initial,
+					Color:            documentRequest.Audit.AuditPlan.TeamLead.Color,
+					MobileNumber:     documentRequest.Audit.AuditPlan.TeamLead.MobileNumber,
+				}
+				auditTeams = append(auditTeams, teamLead)
+				uniqueUsers[teamLeadID] = true
+			}
+		}
+	
+		// Add Members
+		for _, member := range documentRequest.Audit.AuditPlan.Members {
+			if member.User != nil {
+				memberID := int(member.User.ID)
+				if !uniqueUsers[memberID] {
+					memberDTO := organizationDTOs.UserMinimalDTO{
+						ID:               memberID,
+						FirstNameEN:      member.User.FirstNameEn,
+						LastNameEN:       member.User.LastNameEn,
+						FirstNameAR:      member.User.FirstNameAr,
+						LastNameAR:       member.User.LastNameAr,
+						ProfileImagePath: member.User.ProfileImagePath,
+						Email:            member.User.Email,
+						Initial:          member.User.Initial,
+						Color:            member.User.Color,
+						MobileNumber:     member.User.MobileNumber,
+					}
+					auditTeams = append(auditTeams, memberDTO)
+					uniqueUsers[memberID] = true
+				}
+			}
+		}
+	}	
+
+	documentRequestDTO.AuditTeams = auditTeams
+
+	// Map other fields
 	if documentRequest.RequestedAt != nil {
 		documentRequestDTO.RequestedAtString = documentRequest.RequestedAt.Format("2006-01-02")
 	}
@@ -96,8 +158,16 @@ func (adrs *AuditDocumentRequestService) GetFullDetailsByID(id uint, tx ...utili
 		documentRequestDTO.UpdatedAt = documentRequest.UpdatedAt
 	}
 
+	// Get conversation count
+	conversationCount, err := adrs.repo.CountConversationsByRequestID(id, tx...)
+	if err != nil {
+		return nil, err
+	}
+	documentRequestDTO.ConversationCount = int(conversationCount)
+
 	return &documentRequestDTO, nil
 }
+
 
 func (adrs *AuditDocumentRequestService) Create(auditID uint, currentUserID uint, formDTO *auditDTOs.AuditDocumentRequestFormDTO) ([]uint, error) {
 	tx := adrs.repo.BeginTransaction()
@@ -201,7 +271,6 @@ func (adrs *AuditDocumentRequestService) Create(auditID uint, currentUserID uint
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.CreateAction,
@@ -252,7 +321,6 @@ func (adrs *AuditDocumentRequestService) Update(auditID uint, id uint, currentUs
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
@@ -275,7 +343,7 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 		return err
 	}
 
-	documentRequest, err := adrs.repo.GetByID(id)
+	documentRequest, err := adrs.repo.GetFullDetailsByID(id)
 	if err != nil {
 		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
@@ -294,7 +362,7 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 	if err != nil {
 		return err
 	}
-	now := time.Now() 
+	now := time.Now()
 	documentRequest.AuditDocumentRequestStatusID = uint(auditDocumentRequestStatus.ID)
 	documentRequest.RequestedAt = &now
 	documentRequest.RequestedBYID = &currentUserID
@@ -305,7 +373,7 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 		return err
 	}
 
-	//todo -> send email notifications to responsible users
+	// todo -> send email notifications to responsible users
 
 	tx.Commit()
 
@@ -318,7 +386,6 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
@@ -328,6 +395,78 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 				"error":     err.Error(),
 			}
 			utility.LogError("Failed to log activity", fields)
+		}
+
+		if documentRequest.ResponsibleUserID == 0 {
+			utility.LogError("Responsible user is missing", map[string]interface{}{
+				"documentRequestID": id,
+			})
+			return
+		}
+
+		responsibleUserID := documentRequest.ResponsibleUserID
+		responsibleUser, err := adrs.userSvc.GetByID(responsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"userID": responsibleUserID,
+				"error":  err.Error(),
+			})
+			return
+		}
+
+		requestedBy, err := adrs.userSvc.GetByID(*documentRequest.RequestedBYID)
+		if err != nil {
+			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		urlParam := fmt.Sprintf(`{"audit_id":%d,"request_id":%d}`, auditID, id)
+		entity := "audit-document-submitted"
+		action := "review-document"
+		appURL := utility.GetAppURL()
+
+		dbNotification := &commonDTOs.DBNotificationDTO{
+			UserID:               responsibleUserID,
+			ModuleIdentifier:     "audit",
+			NotificationType:     string(commonDTOs.InformationType),
+			ReferenceNumber:      documentRequest.Audit.AuditPlan.ReferenceNumber,
+			HeadingEn:            "New Document Submitted",
+			HeadingAr:            "تم تقديم مستند جديد",
+			TitleEn:              documentRequest.Title,
+			TitleAr:              documentRequest.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		emailNotification := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              []string{responsibleUser.Email},
+			Subject:              fmt.Sprintf("Document Submitted: %s", documentRequest.Title),
+			TemplateRelativePath: "audit/templates/email/audit_document_submitted.html",
+			EmailData: map[string]interface{}{
+				"FirstNameEn":     responsibleUser.FirstNameEn,
+				"LastNameEn":      responsibleUser.LastNameEn,
+				"AuditTitle":      documentRequest.Audit.AuditPlan.Title,
+				"Title":           documentRequest.Title,
+				"Description":     documentRequest.Description,
+				"ResponsibleUnit": documentRequest.ResponsibleUnit.TitleEn,
+				"RequestedBy":     fmt.Sprintf("%s %s", requestedBy.FirstNameEn, requestedBy.LastNameEn),
+				"RequestedAt":     time.Now().Format("2006-01-02"),
+				"RedirectURL":     fmt.Sprintf("%saudit/audits/%d/document-request", appURL, auditID),
+			},
+		}
+
+		// Send Notifications
+		if err := adrs.notificationSvc.SendNotification(dbNotification, emailNotification, "audit"); err != nil {
+			utility.LogError("Failed to send document request notifications", map[string]interface{}{
+				"documentRequestID": id,
+				"userID":            responsibleUserID,
+				"error":             err.Error(),
+			})
 		}
 	}()
 
@@ -348,7 +487,7 @@ func (adrs *AuditDocumentRequestService) Delete(ids []uint, currentUserID uint) 
 			tx.Rollback()
 			return nil, err
 		}
-		//Only Delete If the Audit Document Request Status is Draft
+		// Only Delete If the Audit Document Request Status is Draft
 		if documentRequest.AuditDocumentRequestStatus.Type != "draft" {
 			failedIDs = append(failedIDs, id)
 			continue
@@ -387,7 +526,6 @@ func (adrs *AuditDocumentRequestService) Delete(ids []uint, currentUserID uint) 
 					currentUserID,
 					nil,
 				)
-
 				if err != nil {
 					fields := map[string]interface{}{
 						"action":    models.DeleteAction,

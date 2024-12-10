@@ -3,6 +3,7 @@ package controllers
 import (
 	kpiDTOs "jethur/grc/kpi/dtos"
 	"jethur/grc/kpi/services"
+	riskServices "jethur/grc/risk/services"
 	"jethur/utility"
 	"net/http"
 
@@ -11,13 +12,16 @@ import (
 )
 
 type GRCDashboardController struct {
-	service services.GRCDashboardServiceInterface
-	db      *gorm.DB
+	service        services.GRCDashboardServiceInterface
+	riskHeatMapSvc riskServices.RiskHeatmapServiceInterface
+	db             *gorm.DB
 }
 
-func NewGRCDashboardController(service services.GRCDashboardServiceInterface) *GRCDashboardController {
+func NewGRCDashboardController(service services.GRCDashboardServiceInterface,
+	riskHeatMapSvc riskServices.RiskHeatmapServiceInterface) *GRCDashboardController {
 	return &GRCDashboardController{
-		service: service,
+		service:        service,
+		riskHeatMapSvc: riskHeatMapSvc,
 	}
 }
 
@@ -320,4 +324,23 @@ func (gdc *GRCDashboardController) GetGRCDocumentTypeChart(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusOK, summary)
+}
+
+func (gdc *GRCDashboardController) GetGRCRiskHeatMap(c *gin.Context) {
+	riskHeatmap, err := gdc.riskHeatMapSvc.GetRiskHeatmapByRiskMatrix()
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(gdc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, riskHeatmap)
 }

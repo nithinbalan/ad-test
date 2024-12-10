@@ -192,11 +192,19 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 	tx.Commit()
 
 	go func() {
-		err := saps.activityLogSvc.LogActivity(
+		existingSlaActionPlan, err := saps.GetFullDetailsByID(slaID, id)
+		if err != nil {
+			utility.LogError("Failed to fetch compliance action plan", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = saps.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.SLAActionPlan{}.TableName(),
 			id,
-			slaActionPlanFormDTO,
+			existingSlaActionPlan,
 			currentUserID,
 			nil,
 		)
@@ -298,6 +306,12 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 		return err
 	}
 
+	oldSLAActionPlan, err := saps.GetFullDetailsByID(slaID, id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	oldResponsibleUserID := existingSLAActionPlan.ResponsibleUserID
 
 	if err := saps.validateSLAActionPlanFormDTO(slaID, slaActionPlanFormDTO); err != nil {
@@ -347,6 +361,69 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 	tx.Commit()
 
 	go func() {
+		existingActionPlan, err := saps.GetFullDetailsByID(slaID, id)
+		if err != nil {
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"title":              oldSLAActionPlan.Title,
+			"sla_check_question": utility.GetFieldValue(oldSLAActionPlan.SLACheckQuestion).(string),
+			"description":        oldSLAActionPlan.Description,
+			"severity_level":     oldSLAActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", oldSLAActionPlan.ResponsibleUser.FirstNameEN, oldSLAActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        fmt.Sprintf("%s %s", oldSLAActionPlan.ReviewUser.FirstNameEN, oldSLAActionPlan.ReviewUser.LastNameEN),
+			"target_date":        oldSLAActionPlan.TargetDateString,
+			"percentage":         oldSLAActionPlan.Percentage,
+			"comment":            oldSLAActionPlan.Comments,
+			"action_plan_status": oldSLAActionPlan.ActionPlanStatus.TitleEn,
+		}
+
+		fmt.Println(oldData)
+
+		newData := map[string]interface{}{
+			"title":              existingActionPlan.Title,
+			"sla_check_question": utility.GetFieldValue(existingActionPlan.SLACheckQuestion).(string),
+			"description":        existingActionPlan.Description,
+			"severity_level":     existingActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", existingActionPlan.ResponsibleUser.FirstNameEN, existingActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        fmt.Sprintf("%s %s", existingActionPlan.ReviewUser.FirstNameEN, existingActionPlan.ReviewUser.LastNameEN),
+			"target_date":        existingActionPlan.TargetDateString,
+			"percentage":         existingActionPlan.Percentage,
+			"comment":            existingActionPlan.Comments,
+			"action_plan_status": existingActionPlan.ActionPlanStatus.TitleEn,
+		}
+
+		fmt.Println(newData)
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := saps.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.SLAActionPlan{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.SLAActionPlan{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingSLAActionPlan.ResponsibleUserID {
 			urlParam := fmt.Sprintf(`{"sla_register_id":%d, "action_plan_id":%d}`, slaID, id)
@@ -489,6 +566,7 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedSlaActionPlan []map[string]interface{}
 	var notifications []struct {
 		OwnerID         *uint
 		TitleEn         string
@@ -549,7 +627,11 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
-
+		deletedSlaActionPlan = append(deletedSlaActionPlan, map[string]interface{}{
+			"id":              id,
+			"sla_register_id": slaID,
+			"title":           slaActionPlan.Title,
+		})
 	}
 
 	if len(failedIds) > 0 {
@@ -565,7 +647,7 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 				models.DeleteAction,
 				models.SLARegister{}.TableName(),
 				successfulIds,
-				nil,
+				deletedSlaActionPlan,
 				currentUserID,
 				nil,
 			)

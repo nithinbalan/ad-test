@@ -65,6 +65,8 @@ type ComplianceRequirementListQueryParamsDTO struct {
 	QuickFilter  []string
 	DeadlineFrom string
 	DeadlineTo   string
+	DateFrom     string
+	DateTo       string
 }
 
 type ComplianceRequirementListResponseDTO struct {

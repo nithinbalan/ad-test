@@ -8,6 +8,7 @@ import (
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
 	"jethur/utility"
+	"log"
 
 	"gorm.io/gorm"
 )
@@ -79,11 +80,18 @@ func (rmls *RiskMatrixLikelihoodService) Create(currentUserID uint, riskMatrixLi
 	}
 
 	go func() {
-		err := rmls.activityLogSvc.LogActivity(
+		existingRiskLikelihood, err := rmls.GetByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch risk matrix impact", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = rmls.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.RiskMatrixLikelihood{}.TableName(),
 			id,
-			riskMatrixLikelihoodFormDTO,
+			existingRiskLikelihood,
 			currentUserID,
 			nil,
 		)
@@ -112,6 +120,11 @@ func (rmls *RiskMatrixLikelihoodService) Update(id uint, currentUserID uint, ris
 		return err
 	}
 
+	oldLikelihood, err := rmls.repo.GetByID(id)
+	if err != nil {
+		return err
+	}
+
 	if err := rmls.validateRiskMatrixLikelihoodFormDTO(riskMatrixLikelihoodFormDTO, existingLikelihood.RiskMatrixID, &id); err != nil {
 		return err
 	}
@@ -130,6 +143,33 @@ func (rmls *RiskMatrixLikelihoodService) Update(id uint, currentUserID uint, ris
 		return err
 	}
 
+	fieldsToCompare := []string{"TitleEn", "TitleAr", "DescriptionEn", "DescriptionAr", "Score", "Probability", "Status"}
+	changes, err := utility.CompareFields(oldLikelihood, existingLikelihood, fieldsToCompare)
+
+	if err != nil {
+		log.Println("error :", err.Error())
+	}
+
+	changedDataJSON, err := utility.ChangesToJSON(changes)
+	if err != nil {
+		log.Println("error :", err.Error())
+	}
+
+	go func() {
+		err := rmls.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.RiskMatrixLikelihood{}.TableName(),
+			id,
+			changedDataJSON,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			// @todo - save to log file
+			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
+
 	return nil
 
 }
@@ -137,9 +177,10 @@ func (rmls *RiskMatrixLikelihoodService) Update(id uint, currentUserID uint, ris
 func (rmls *RiskMatrixLikelihoodService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedRiskMatrixLikelihood []map[string]interface{}
 	for _, id := range ids {
 
-		_, err := rmls.repo.GetByID(id)
+		matrixLikelihood, err := rmls.repo.GetByID(id)
 
 		if err != nil {
 			fmt.Print(err)
@@ -152,6 +193,12 @@ func (rmls *RiskMatrixLikelihoodService) Delete(ids []uint, currentUserID uint) 
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedRiskMatrixLikelihood = append(deletedRiskMatrixLikelihood, map[string]interface{}{
+			"id":       id,
+			"title_en": matrixLikelihood.TitleEn,
+			"title_ar": matrixLikelihood.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -161,7 +208,7 @@ func (rmls *RiskMatrixLikelihoodService) Delete(ids []uint, currentUserID uint) 
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.RiskMatrixLikelihood{}.TableName(),
 				successfulIds,
-				nil,
+				deletedRiskMatrixLikelihood,
 				currentUserID,
 				nil,
 			)

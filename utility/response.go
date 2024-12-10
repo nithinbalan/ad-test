@@ -52,6 +52,14 @@ func SendInvalidErrResp(c *gin.Context, errs ...error) {
 
 }
 
+func SendConflictErrResp(c *gin.Context, message string) {
+	localizedErrorMsg := LocalizeMessage(c, "conflict", "Conflict!")
+	c.JSON(http.StatusConflict, gin.H{
+		"error":   localizedErrorMsg,
+		"message": message,
+	})
+}
+
 func SendNotFoundErrResp(c *gin.Context) {
 	resp := ErrorResponse{Error: LocalizeMessage(c, "resource_not_found", "Resource Not Found!")}
 	c.JSON(http.StatusNotFound, resp)

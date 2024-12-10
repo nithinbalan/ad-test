@@ -20,6 +20,9 @@
 # Environment files
 .env
 
+# script files
+script.bat
+
 # Temporary files
 tmp/
 

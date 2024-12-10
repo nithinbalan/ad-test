@@ -274,7 +274,7 @@ func (rs *RoleService) UpdateRolePermissions(roleID uint, currentUserID uint, ro
 		tx.Rollback()
 		return err
 	}
-
+	var changedData []dtos.RolePermissionFormDTO
 	for _, rolePermissionDTO := range rolePermissions {
 
 		rolePermission := &models.RolePermission{
@@ -290,31 +290,30 @@ func (rs *RoleService) UpdateRolePermissions(roleID uint, currentUserID uint, ro
 			tx.Rollback()
 			return err
 		}
+		changedData = append(changedData, *rolePermissionDTO)
 	}
 
 	tx.Commit()
 
 	go func() {
-		for _, permDTO := range rolePermissions {
-			err := rs.activityLogSvc.LogActivity(
-				models.UpdateAction,
-				models.RolePermission{}.TableName(),
-				roleID,
-				permDTO,
-				currentUserID,
-				nil,
-			)
+		err := rs.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.RolePermission{}.TableName(),
+			roleID,
+			changedData,
+			currentUserID,
+			nil,
+		)
 
-			if err != nil {
-				fields := map[string]interface{}{
-					"action":    models.UpdateAction,
-					"tableName": models.RolePermission{}.TableName(),
-					"recordID":  roleID,
-					"userID":    currentUserID,
-					"error":     err.Error(),
-				}
-				utility.LogError("Failed to log activity", fields)
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.RolePermission{}.TableName(),
+				"recordID":  roleID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
 			}
+			utility.LogError("Failed to log activity", fields)
 		}
 	}()
 
@@ -367,6 +366,7 @@ func (rs *RoleService) GetAllWithPermissions(params *dtos.ModuleListQueryParamsD
 					TitleEn:     submodule.TitleEn,
 					TitleAr:     submodule.TitleAr,
 					Order:       submodule.Order,
+					IsEnable:    submodule.IsEnable,
 					Permissions: subPermissions,
 				}
 				submoduleDTOs = append(submoduleDTOs, submoduleDTO)
@@ -379,6 +379,7 @@ func (rs *RoleService) GetAllWithPermissions(params *dtos.ModuleListQueryParamsD
 			TitleEn:    module.TitleEn,
 			TitleAr:    module.TitleAr,
 			Order:      module.Order,
+			IsEnable:   module.IsEnable,
 			SubModules: submoduleDTOs,
 		}
 		moduleList = append(moduleList, moduleDTO)

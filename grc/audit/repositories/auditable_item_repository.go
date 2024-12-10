@@ -127,13 +127,18 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
-		case "pending":
-			query = query.Where("audit_statuses.type = ?", "pending")
+		case "draft":
+			query = query.Where("audit_statuses.type = ?", "draft")
 		case "completed":
 			query = query.Where("audit_statuses.type = ?", "completed")
+		case "in_review":
+			query = query.Where("audit_statuses.type = ?", " in-review")
 		case "in_progress":
-			query = query.Where("audit_statuses.type = ?", "in_progress")
+			query = query.Where("audit_statuses.type = ?", "in-progress")
+		case "published":
+			query = query.Where("audit_statuses.type = ?", "published")
 		}
+		
 	}
 
 	// Calculate total count for pagination
@@ -149,6 +154,8 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
             auditable_items.title_ar LIKE ? OR
             auditor_risk_ratings.title_en LIKE ? OR
             auditor_risk_ratings.title_ar LIKE ? OR
+			responsible_user.first_name_en LIKE ? OR
+            responsible_user.first_name_ar LIKE ? OR
             users.first_name_en LIKE ? OR
             users.first_name_ar LIKE ? OR
             users.last_name_en LIKE ? OR
@@ -164,7 +171,7 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order

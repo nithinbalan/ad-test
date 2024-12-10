@@ -20,6 +20,7 @@ type SettingsModule struct {
 	ModuleController                *controllers.ModuleController
 	EmailTemplateSettingsController *controllers.EmailTemplateSettingsController
 	IntegrationController           *controllers.IntegrationController
+	AuditTemplateSettingController  *controllers.AuditTemplateSettingController
 
 	SystemPreferenceSvc      services.SystemPreferenceServiceInterface
 	OrganizationUnitSvc      services.OrganizationUnitServiceInterface
@@ -30,6 +31,7 @@ type SettingsModule struct {
 	RolePermissionTypeSvc    services.RolePermissionTypeServiceInterface
 	EmailTemplateSettingsSvc services.EmailTemplateSettingsServiceInterface
 	IntegrationSvc           services.IntegrationServiceInterface
+	AuditTemplateSettingSvc  services.AuditTemplateSettingServiceInterface
 }
 
 func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule) *SettingsModule {
@@ -77,6 +79,12 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	workflowSvc := services.NewWorkflowService(workflowRepo, sharedModule.ActivityLogService, workflowLevelTypeSvc)
 	workflowController := controllers.NewWorkflowController(workflowSvc)
 
+	auditTemplateSettingRepo := repositories.NewAuditTemplateSettingRepository(db)
+	auditTemplateSettingSvc := services.NewAuditTemplateSettingService(
+		auditTemplateSettingRepo,
+		sharedModule.ActivityLogService)
+	auditTemplateSettingController := controllers.NewAuditTemplateSettingController(auditTemplateSettingSvc)
+
 	return &SettingsModule{
 		OrganizationLevelController:     organizationLevelController,
 		SystemPreferenceController:      systemPreferenceController,
@@ -89,6 +97,7 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		ModuleController:                moduleController,
 		EmailTemplateSettingsController: emailTemplateSettingsController,
 		IntegrationController:           integrationController,
+		AuditTemplateSettingController:  auditTemplateSettingController,
 
 		SystemPreferenceSvc:      systemPreferenceSvc,
 		OrganizationLevelSvc:     organizationLevelSvc,
@@ -99,5 +108,6 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		RolePermissionTypeSvc:    rolePermissionTypeSvc,
 		EmailTemplateSettingsSvc: emailTemplateSettingsService,
 		IntegrationSvc:           integrationSvc,
+		AuditTemplateSettingSvc:  auditTemplateSettingSvc,
 	}
 }

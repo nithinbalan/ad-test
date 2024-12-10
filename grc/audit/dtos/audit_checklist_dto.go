@@ -1,6 +1,7 @@
 package dtos
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"time"
@@ -86,8 +87,9 @@ type AuditChecklistListDTO struct {
 }
 
 type AuditChecklistAnswerFormDTO struct {
-	ConformanceID uint    `json:"conformance_id" binding:"required"`
-	Comment       *string `json:"comment"`
+	ConformanceID uint                          `json:"conformance_id" binding:"required"`
+	Comment       *string                       `json:"comment"`
+	Documents     []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
 }
 
 type AuditChecklistFormDTO struct {
@@ -117,6 +119,7 @@ type AuditChecklistDetailDTO struct {
 	CreatedByUser        organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser        *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 	Status               *masterDTOs.StatusDTO            `json:"status"`
+	Documents            []*AuditChecklistDocumentDTO     `json:"documents"`
 }
 
 type AuditChecklistListQueryParamsDTO struct {
@@ -126,4 +129,14 @@ type AuditChecklistListQueryParamsDTO struct {
 	Status      string
 	Filters     map[string][]string
 	QuickFilter []string
+}
+
+type AuditChecklistDocumentDTO struct {
+	ID           *uint   `json:"id"`
+	URL          *string `json:"url"`
+	Name         string  `json:"name"`
+	Token        string  `json:"token"`
+	OriginalName string  `json:"original_name"`
+	Type         string  `json:"type"`
+	Size         int     `json:"size"`
 }

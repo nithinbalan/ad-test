@@ -242,11 +242,18 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 	tx.Commit()
 
 	go func() {
-		err := iis.activityLogSvc.LogActivity(
+		existingIncidentInvestigation, err := iis.GetFullDetailsByID(incidentID)
+		if err != nil {
+			utility.LogError("Failed to fetch incident investigation", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = iis.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.IncidentInvestigation{}.TableName(),
 			id,
-			incidentInvestigationFormDTO,
+			existingIncidentInvestigation,
 			currentUserID,
 			nil,
 		)
@@ -276,6 +283,10 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 		return err
 	}
 	dates, err := iis.parseIncidentInvestigationDates(incidentInvestigationFormDTO)
+	if err != nil {
+		return err
+	}
+	oldIncidentInvestigation, err := iis.GetFullDetailsByID(incidentID)
 	if err != nil {
 		return err
 	}
@@ -483,25 +494,96 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 	tx.Commit()
 
 	go func() {
-		err := iis.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.IncidentInvestigation{}.TableName(),
-			incidentID,
-			incidentInvestigationFormDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingIncidentInvestigation, err := iis.GetFullDetailsByID(incidentID)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.IncidentInvestigation{}.TableName(),
-				"recordID":  incidentID,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		usersAdded := []uint{}
+		usersRemoved := []uint{}
+		for id := range newUserIDs {
+			if !existingUserIDs[id] {
+				usersAdded = append(usersAdded, id)
+			}
+		}
+		for id := range existingUserIDs {
+			if !newUserIDs[id] {
+				usersRemoved = append(usersRemoved, id)
+			}
+		}
+
+		findingsAdded := []string{}
+		findingsRemoved := []string{}
+		for id := range newFindingTitles {
+			if !existingFindingTitles[id] {
+				findingsAdded = append(findingsAdded, id)
+			}
+		}
+		for id := range existingFindingTitles {
+			if !newFindingTitles[id] {
+				findingsRemoved = append(findingsRemoved, id)
+			}
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
+
+		if len(usersAdded) > 0 || len(usersRemoved) > 0 {
+			associatedItems["user_ids"] = map[string]interface{}{
+				"added":   usersAdded,
+				"removed": usersRemoved,
+			}
+		}
+
+		if len(findingsAdded) > 0 || len(findingsRemoved) > 0 {
+			associatedItems["finding_titles"] = map[string]interface{}{
+				"added":   findingsAdded,
+				"removed": findingsRemoved,
+			}
+		}
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+		oldData := map[string]interface{}{
+			"description":           oldIncidentInvestigation.Description,
+			"initiated_at":          oldIncidentInvestigation.InitiatedAtString,
+			"team_lead":             fmt.Sprintf("%s %s", oldIncidentInvestigation.TeamLead.FirstNameEN, oldIncidentInvestigation.TeamLead.LastNameEN),
+			"action_recommendation": oldIncidentInvestigation.ActionRecommendation,
+		}
+
+		newData := map[string]interface{}{
+			"description":           existingIncidentInvestigation.Description,
+			"initiated_at":          existingIncidentInvestigation.InitiatedAtString,
+			"team_lead":             fmt.Sprintf("%s %s", existingIncidentInvestigation.TeamLead.FirstNameEN, existingIncidentInvestigation.TeamLead.LastNameEN),
+			"action_recommendation": existingIncidentInvestigation.ActionRecommendation,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := iis.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.IncidentInvestigation{}.TableName(),
+				existingIncidentInvestigation.ID,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.IncidentInvestigation{}.TableName(),
+					"recordID":  incidentID,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -511,6 +593,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 func (iis *IncidentInvestigationService) Delete(incidentID uint, currentUserID uint) (uint, error) {
 	tx := iis.repo.BeginTransaction()
 	var failedId uint
+	var deletedIncidentInvestigation []map[string]interface{}
 	documentsToDelete := make(map[uint][]*incidentDTOs.IncidentInvestigationDocumentDTO)
 
 	if _, err := iis.incidentRegisterSvc.GetByID(incidentID); err != nil {
@@ -594,6 +677,10 @@ func (iis *IncidentInvestigationService) Delete(incidentID uint, currentUserID u
 			}
 		}
 	}
+	deletedIncidentInvestigation = append(deletedIncidentInvestigation, map[string]interface{}{
+		"id":                   incidentInvestigation.ID,
+		"incident_register_id": incidentID,
+	})
 	tx.Commit()
 	// Log successful delete activity
 	go func() {
@@ -601,7 +688,7 @@ func (iis *IncidentInvestigationService) Delete(incidentID uint, currentUserID u
 			models.DeleteAction,
 			models.IncidentInvestigation{}.TableName(),
 			uint(incidentInvestigation.ID),
-			nil,
+			deletedIncidentInvestigation,
 			currentUserID,
 			nil,
 		)

@@ -209,6 +209,12 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 		return err
 	}
 
+	oldCheckAnswer, err := scas.GetByID(slaID, questionID, answerID)
+
+	if err != nil {
+		return err
+	}
+
 	existingAnswer, err := scas.GetByID(slaID, questionID, answerID)
 	if err != nil {
 		return err
@@ -306,25 +312,48 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 	tx.Commit()
 	// Log the activity
 	go func() {
-		err := scas.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.SLACheckAnswer{}.TableName(),
-			existingAnswer.ID,
-			existingAnswer,
-			currentUserID,
-			nil,
-		)
-
+		existingCheckAnswer, err := scas.GetByID(slaID, questionID, answerID)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.SLACheckAnswer{}.TableName(),
-				"recordID":  existingAnswer.ID,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"compliance_status": oldCheckAnswer.ComplianceStatus.TitleEn,
+			"comment":           oldCheckAnswer.Comment,
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		newData := map[string]interface{}{
+			"compliance_status": existingCheckAnswer.ComplianceStatus.TitleEn,
+			"comment":           existingCheckAnswer.Comment,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		if len(changedData) > 0 {
+			// Log activity if there are any changes
+			err := scas.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.SLACheckAnswer{}.TableName(),
+				existingAnswer.ID,
+				existingAnswer,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.SLACheckAnswer{}.TableName(),
+					"recordID":  existingAnswer.ID,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -341,6 +370,7 @@ func (scas *SLACheckAnswerService) DeleteAnswer(slaID uint, questionID uint, ans
 
 	var failedId uint
 	var successfulId uint
+	var deletedCheckAnswer []map[string]interface{}
 	var deleteDocumentIds []*uint
 
 	answer, err := scas.GetFullDetailsByID(slaID, questionID, answerID)
@@ -377,6 +407,12 @@ func (scas *SLACheckAnswerService) DeleteAnswer(slaID uint, questionID uint, ans
 
 	}
 
+	deletedCheckAnswer = append(deletedCheckAnswer, map[string]interface{}{
+		"id":      answerID,
+		"sla_id":  slaID,
+		"comment": answer.Comment,
+	})
+
 	// if successfulId > 0 {
 	// 	for _, doc := range answer.Documents {
 	// 		storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(slaID), 10), "questions", strconv.FormatUint(uint64(questionID), 10), "answers", strconv.FormatUint(uint64(answerID), 10), "documents")
@@ -394,7 +430,7 @@ func (scas *SLACheckAnswerService) DeleteAnswer(slaID uint, questionID uint, ans
 			models.DeleteAction,
 			models.SLACheckAnswer{}.TableName(),
 			successfulId,
-			nil,
+			deletedCheckAnswer,
 			currentUserID,
 			nil,
 		)

@@ -6,6 +6,8 @@ type OrganizationLevel struct {
 	TitleEn   string `json:"title_en" binding:"required,max=100" gorm:"type:varchar(45);not null"`
 	TitleAr   string `json:"title_ar" binding:"required,max=100" gorm:"type:nvarchar(45);not null"`
 	IsPrimary bool   `json:"is_primary" gorm:"not null;default:false"`
+
+	OrganizationUnits []*OrganizationUnit `gorm:"foreignKey:OrganizationLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 // TableName overrides the table name used by OrganizationLevel to `organization_levels`
