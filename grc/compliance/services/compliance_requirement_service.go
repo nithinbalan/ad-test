@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	commonDTOs "jethur/grc/common/dtos"
@@ -21,7 +22,7 @@ import (
 )
 
 type ComplianceRequirementServiceInterface interface {
-	GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
+	GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
 	GetByID(complianceID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error)
 	GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error)
 	GetByComplianceRequirementID(id uint) (*models.ComplianceRequirement, error)
@@ -30,6 +31,7 @@ type ComplianceRequirementServiceInterface interface {
 	Update(complianceID uint, id uint, currentUserID uint, compliance *complianceDTOs.ComplianceRequirementFormDTO) error
 	Delete(complianceID uint, ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(complianceID uint, id uint, currentUserID uint, complianceStatusID uint, tx utility.DatabaseTransaction) error
+	ExportComplianceRequirements(data []*complianceDTOs.ComplianceRequirementListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -44,6 +46,7 @@ type ComplianceRequirementService struct {
 	strategicObjectiveSvc            organizationServices.StrategicObjectiveServiceInterface
 	userSvc                          organizationServices.UserServiceInterface
 	notificationSvc                  commonServices.NotificationServiceInterface
+	userSettingSvc                   organizationServices.UserSettingServiceInterface
 }
 
 func NewComplianceRequirementService(
@@ -57,6 +60,7 @@ func NewComplianceRequirementService(
 	strategicObjectiveSvc organizationServices.StrategicObjectiveServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) ComplianceRequirementServiceInterface {
 	return &ComplianceRequirementService{
 		repo:                             repo,
@@ -69,11 +73,17 @@ func NewComplianceRequirementService(
 		strategicObjectiveSvc:            strategicObjectiveSvc,
 		userSvc:                          userSvc,
 		notificationSvc:                  notificationSvc,
+		userSettingSvc:                   userSettingSvc,
 	}
 }
 
-func (crs *ComplianceRequirementService) GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error) {
-	return crs.repo.GetAll(params)
+func (crs *ComplianceRequirementService) GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error) {
+	if complianceID != 0 {
+		if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
+			return nil, err
+		}
+	}
+	return crs.repo.GetAll(complianceID, params)
 }
 
 func (crs *ComplianceRequirementService) GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error) {
@@ -1226,4 +1236,71 @@ func (crs *ComplianceRequirementService) parseComplianceRequirementDates(dto *co
 	}
 
 	return parsed, nil
+}
+
+func (srs *ComplianceRequirementService) ExportComplianceRequirements(data []*complianceDTOs.ComplianceRequirementListDTO, currentUserID uint) (*os.File, error) {
+	// Retrieve user settings for language preference
+	userSetting, err := srs.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	var headers []string
+	// Define headers based on the user's language setting
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Clause No",
+			"Clause",
+			"Title (AR)",
+			"Category (AR)",
+			"Severity Level (AR)",
+			"Responsible User (AR)",
+			"Deadline",
+			"Compliance Status (AR)",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Clause No",
+			"Clause",
+			"Title (EN)",
+			"Category (EN)",
+			"Severity Level (EN)",
+			"Responsible User (EN)",
+			"Deadline",
+			"Compliance Status (EN)",
+		}
+	}
+
+	// Convert data to [][]interface{} based on language preference
+	rows := make([][]interface{}, len(data))
+	for i, item := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				item.ComplianceClauseNo,
+				item.ComplianceClauseTitle,
+				item.Title,
+				item.ComplianceRequirementCategoryTitleAr,
+				item.SeverityLevelTitleAr,
+				item.ResponsibleUserFirstNameAr + " " + item.ResponsibleUserLastNameAr,
+				item.Deadline,
+				item.ComplianceStatusTitleAr,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				item.ComplianceClauseNo,
+				item.ComplianceClauseTitle,
+				item.Title,
+				item.ComplianceRequirementCategoryTitleEn,
+				item.SeverityLevelTitleEn,
+				item.ResponsibleUserFirstNameEn + " " + item.ResponsibleUserLastNameEn,
+				item.Deadline,
+				item.ComplianceStatusTitleEn,
+			}
+		}
+	}
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }
