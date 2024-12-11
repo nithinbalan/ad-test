@@ -157,11 +157,18 @@ func (adrcs *AuditDraftReportCommentService) Create(auditID uint, auditDraftRepo
 	tx.Commit()
 
 	go func() {
-		err := adrcs.activityLogSvc.LogActivity(
+		existingAuditDraftReportComment, err := adrcs.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit draft finding", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = adrcs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditDraftReportComment{}.TableName(),
 			id,
-			auditDraftReportComment,
+			existingAuditDraftReportComment,
 			currentUserID,
 			nil,
 		)
@@ -185,6 +192,12 @@ func (adrcs *AuditDraftReportCommentService) Update(auditID uint, auditDraftRepo
 	if _, err := adrcs.auditSvc.GetByID(auditID); err != nil {
 		return err
 	}
+	oldAuditDraftReportComment, err := adrcs.repo.GetFullDetailsByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
+
 	if _, err := adrcs.auditDraftReportSvc.GetByID(auditDraftReportID); err != nil {
 		return err
 	}
@@ -289,25 +302,49 @@ func (adrcs *AuditDraftReportCommentService) Update(auditID uint, auditDraftRepo
 	tx.Commit()
 
 	go func() {
-		err := adrcs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.AuditDraftReportComment{}.TableName(),
-			id,
-			auditDraftReportCommentFormDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingAuditDraftReportComment, err := adrcs.repo.GetFullDetailsByID(id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.AuditDraftReportComment{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"comment": oldAuditDraftReportComment.Comment,
+			"type":    oldAuditDraftReportComment.Type,
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		newData := map[string]interface{}{
+			"comment": existingAuditDraftReportComment.Comment,
+			"type":    existingAuditDraftReportComment.Type,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := adrcs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditDraftReportComment{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditDraftReportComment{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -325,6 +362,7 @@ func (adrcs *AuditDraftReportCommentService) Delete(auditID uint, auditDraftRepo
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedAuditDraftReportComment []map[string]interface{}
 	documentsToDelete := make(map[uint][]*dtos.AuditDraftReportCommentDocumentDTO)
 	for _, id := range ids {
 
@@ -354,6 +392,13 @@ func (adrcs *AuditDraftReportCommentService) Delete(auditID uint, auditDraftRepo
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedAuditDraftReportComment = append(deletedAuditDraftReportComment, map[string]interface{}{
+			"id":              id,
+			"draft_report_id": auditDraftReportComment.AuditDraftReportID,
+			"comment":         auditDraftReportComment.Comment,
+		})
+
 	}
 	if len(failedIds) > 0 {
 		tx.Rollback()
@@ -381,7 +426,7 @@ func (adrcs *AuditDraftReportCommentService) Delete(auditID uint, auditDraftRepo
 				models.DeleteAction,
 				models.AuditFinding{}.TableName(),
 				successfulIds,
-				nil,
+				deletedAuditDraftReportComment,
 				currentUserID,
 				nil,
 			)

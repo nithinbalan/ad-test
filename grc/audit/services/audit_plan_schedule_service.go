@@ -156,11 +156,19 @@ func (apss *AuditPlanScheduleService) Create(auditPlanID uint, currentUserID uin
 	tx.Commit()
 
 	go func() {
-		err := apss.activityLogSvc.LogActivity(
+		existingAuditPlanSchedule, err := apss.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit plan schedule", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = apss.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditPlanSchedule{}.TableName(),
 			id,
-			auditPlanScheduleFormDTO,
+			existingAuditPlanSchedule,
 			currentUserID,
 			nil,
 		)
@@ -197,6 +205,12 @@ func (apss *AuditPlanScheduleService) Update(id uint, auditPlanID uint, currentU
 	}
 
 	existingAuditPlanSchedule, err := apss.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
+
+	oldAuditPlanSchedule, err := apss.repo.GetFullDetailsByID(id)
 	if err != nil {
 		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
@@ -274,25 +288,83 @@ func (apss *AuditPlanScheduleService) Update(id uint, auditPlanID uint, currentU
 	tx.Commit()
 
 	go func() {
-		err := apss.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.AuditPlanSchedule{}.TableName(),
-			id,
-			auditPlanScheduleFormDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingPlanSchedule, err := apss.repo.GetFullDetailsByID(id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.AuditPlanSchedule{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
+			return
+		}
+		// Determine control and document changes
+		auditableItemsAdded := []uint{}
+		auditableItemsRemoved := []uint{}
+		for id := range newAuditableItemIDs {
+			if !existingAuditableItemIDs[id] {
+				auditableItemsAdded = append(auditableItemsAdded, id)
 			}
+		}
+		for id := range existingAuditableItemIDs {
+			if !newAuditableItemIDs[id] {
+				auditableItemsRemoved = append(auditableItemsRemoved, id)
+			}
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
+
+		if len(auditableItemsAdded) > 0 || len(auditableItemsRemoved) > 0 {
+			associatedItems["auditable_item_ids"] = map[string]interface{}{
+				"added":   auditableItemsAdded,
+				"removed": auditableItemsRemoved,
+			}
+		}
+
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+		//log changes
+		oldData := map[string]interface{}{
+			"audit_activity_type": oldAuditPlanSchedule.AuditActivityType.TitleEn,
+			"title":               oldAuditPlanSchedule.Title,
+			"description":         oldAuditPlanSchedule.Description,
+			"start_date":          oldAuditPlanSchedule.StartDate,
+			"target_date":         oldAuditPlanSchedule.TargetDate,
+			"responsible_user":    fmt.Sprintf("%s %s", oldAuditPlanSchedule.ResponsibleUser.FirstNameEn, oldAuditPlanSchedule.ResponsibleUser.LastNameEn),
+		}
+
+		newData := map[string]interface{}{
+			"audit_activity_type": existingPlanSchedule.AuditActivityType.TitleEn,
+			"title":               existingPlanSchedule.Title,
+			"description":         existingPlanSchedule.Description,
+			"start_date":          existingPlanSchedule.StartDate,
+			"target_date":         existingPlanSchedule.TargetDate,
+			"responsible_user":    fmt.Sprintf("%s %s", existingPlanSchedule.ResponsibleUser.FirstNameEn, existingPlanSchedule.ResponsibleUser.LastNameEn),
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := apss.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditPlanSchedule{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditPlanSchedule{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -303,7 +375,7 @@ func (apss *AuditPlanScheduleService) Delete(ids []uint, currentUserID uint) ([]
 	tx := apss.repo.BeginTransaction()
 	var failedIDs []uint
 	var successfulIDs []uint
-
+	var deletedAuditPlanSchedule []map[string]interface{}
 	for _, id := range ids {
 		auditPlanScheduleDetail, err := apss.repo.GetFullDetailsByID(id, tx)
 		if err != nil {
@@ -332,6 +404,12 @@ func (apss *AuditPlanScheduleService) Delete(ids []uint, currentUserID uint) ([]
 		}
 
 		successfulIDs = append(successfulIDs, id)
+
+		deletedAuditPlanSchedule = append(deletedAuditPlanSchedule, map[string]interface{}{
+			"id":         id,
+			"audit_plan": auditPlanScheduleDetail.AuditPlan.Title,
+			"title":      auditPlanScheduleDetail.Title,
+		})
 	}
 
 	if len(successfulIDs) > 0 {
@@ -343,7 +421,7 @@ func (apss *AuditPlanScheduleService) Delete(ids []uint, currentUserID uint) ([]
 					models.DeleteAction,
 					models.AuditPlanSchedule{}.TableName(),
 					id,
-					nil,
+					deletedAuditPlanSchedule,
 					currentUserID,
 					nil,
 				)

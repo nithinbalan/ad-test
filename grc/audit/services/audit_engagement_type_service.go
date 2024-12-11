@@ -126,9 +126,10 @@ func (aets *AuditEngagementTypeService) Update(id uint, currentUserID uint, upda
 func (aets *AuditEngagementTypeService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedAuditEngagementType []map[string]interface{}
 	for _, id := range ids {
 
-		_, err := aets.repo.GetByID(id)
+		engagementType, err := aets.repo.GetByID(id)
 
 		if err != nil {
 			fmt.Print(err)
@@ -141,6 +142,11 @@ func (aets *AuditEngagementTypeService) Delete(ids []uint, currentUserID uint) (
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedAuditEngagementType = append(deletedAuditEngagementType, map[string]interface{}{
+			"id":       id,
+			"title_en": engagementType.TitleEn,
+			"title_ar": engagementType.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -150,7 +156,7 @@ func (aets *AuditEngagementTypeService) Delete(ids []uint, currentUserID uint) (
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.AuditEngagementType{}.TableName(),
 				successfulIds,
-				nil,
+				deletedAuditEngagementType,
 				currentUserID,
 				nil,
 			)
