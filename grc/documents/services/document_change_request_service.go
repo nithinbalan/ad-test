@@ -99,7 +99,7 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 		DocumentChangeRequestTypeID:     formDTO.DocumentChangeRequestTypeID,
 		ReasonForChange:                 formDTO.ReasonForChange,
 		DocumentChangeRequestStatusID:   changeRequestStatus.ID,
-		CreatedByID:                     currentUserID,
+		CreatedBYID:                     currentUserID,
 	}
 
 	id, err := dcrs.repo.Create(changeRequest, tx)
@@ -163,7 +163,7 @@ func (dcrs *DocumentChangeRequestService) Update(id uint, currentUserID uint, fo
 	existingChangeRequest.DocumentChangeRequestInitiateID = formDTO.DocumentChangeRequestInitiateID
 	existingChangeRequest.DocumentChangeRequestTypeID = formDTO.DocumentChangeRequestTypeID
 	existingChangeRequest.ReasonForChange = formDTO.ReasonForChange
-	existingChangeRequest.UpdatedByID = &currentUserID
+	existingChangeRequest.UpdatedBYID = &currentUserID
 
 	err = dcrs.repo.Update(existingChangeRequest, tx)
 	if err != nil {
