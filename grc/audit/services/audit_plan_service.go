@@ -481,7 +481,7 @@ func (aps *AuditPlanService) StatusUpdate(id uint, currentUserID uint, auditStat
 
 func (aps *AuditPlanService) Publish(id uint, currentUserID uint) error {
 	tx := aps.repo.BeginTransaction()
-	existingAuditPlan, err := aps.repo.GetFullDetailsByID(id)
+	existingAuditPlanById, err := aps.repo.GetByID(id)
 	if err != nil {
 		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
@@ -491,20 +491,25 @@ func (aps *AuditPlanService) Publish(id uint, currentUserID uint) error {
 		tx.Rollback()
 		return err
 	}
-	if existingAuditPlan.AuditStatusID == uint(auditStatus.ID) {
+	if existingAuditPlanById.AuditStatusID == uint(auditStatus.ID) {
 		tx.Rollback()
 		return utility.NewForbiddenError("The audit draft report has already been published.")
 	}
 	now := time.Now()
 
-	existingAuditPlan.PublishedAt = &now
-	existingAuditPlan.AuditStatusID = uint(auditStatus.ID)
-	existingAuditPlan.PublishedBYID = &currentUserID
+	existingAuditPlanById.PublishedAt = &now
+	existingAuditPlanById.AuditStatusID = uint(auditStatus.ID)
+	existingAuditPlanById.PublishedBYID = &currentUserID
 
-	err = aps.repo.Update(existingAuditPlan, tx)
+	err = aps.repo.Update(existingAuditPlanById, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+	existingAuditPlan, err := aps.repo.GetFullDetailsByID(id,tx)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
 	}
 
 	tx.Commit()
