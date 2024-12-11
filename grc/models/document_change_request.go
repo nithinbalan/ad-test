@@ -23,8 +23,8 @@ type DocumentChangeRequest struct {
 	LastCheckoutByID                *uint      `json:"last_checkout_by_id" gorm:"default:null"`
 	LastCheckinAt                   *time.Time `json:"last_checkin_at" gorm:"type:date;default:null"`
 	LastCheckinByID                 *uint      `json:"last_checkin_by_id" gorm:"default:null"`
-	CreatedByID                     uint       `json:"created_by_id" gorm:"not null"`
-	UpdatedByID                     *uint      `json:"updated_by_id" gorm:"default:null"`
+	CreatedBYID                     uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBYID                     *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt                       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                       *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
@@ -37,8 +37,10 @@ type DocumentChangeRequest struct {
 	PublishedByUser               *User                          `gorm:"foreignKey:PublishedByID"`
 	LastCheckoutByUser            *User                          `gorm:"foreignKey:LastCheckoutByID"`
 	LastCheckinByUser             *User                          `gorm:"foreignKey:LastCheckinByID"`
-	CreatedByUser                 *User                          `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	UpdatedByUser                 *User                          `gorm:"foreignKey:UpdatedByID"`
+	CreatedByUser                 *User                          `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	UpdatedByUser                 *User                          `gorm:"foreignKey:UpdatedBYID"`
+
+	ChangeRequestDocument *DocumentChangeRequestDocument `json:"change_request_document" gorm:"foreignKey:DocumentChangeRequestID"`
 }
 
 func (DocumentChangeRequest) TableName() string {

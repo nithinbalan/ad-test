@@ -147,7 +147,11 @@ func (repo *DocumentChangeRequestRepository) GetFullDetailsByID(id uint, tx ...u
 		db = tx[0].DB()
 	}
 	var changeRequest models.DocumentChangeRequest
-	result := db.Preload("Documents").
+	result := db.Preload("DocumentChangeRequestType").
+		Preload("DocumentChangeRequestStatus").
+		Preload("ChangeRequestDocument").
+		Preload("DocumentChangeRequestInitiate").
+		Preload("Document").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&changeRequest, id)
