@@ -488,6 +488,7 @@ func (aps *AuditPlanService) Publish(id uint, currentUserID uint) error {
 	}
 	auditStatus, err := aps.auditStatusSvc.GetByType("published")
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	if existingAuditPlan.AuditStatusID == uint(auditStatus.ID) {
