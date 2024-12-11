@@ -27,6 +27,7 @@ type DocumentModule struct {
 	DocumentChangeRequestInitiateStatusController *controllers.DocumentChangeRequestInitiateStatusController
 	DocumentChangeRequestInitiateController       *controllers.DocumentChangeRequestInitiateController
 	DocumentChangeRequestTypeController           *controllers.DocumentChangeRequestTypeController
+	DocumentChangeRequestStatusController         *controllers.DocumentChangeRequestStatusController
 
 	DocumentSvc services.DocumentServiceInterface
 }
@@ -150,6 +151,10 @@ func NewDocumentModule(db *gorm.DB,
 	documentChangeRequestTypeSvc := services.NewDocumentChangeRequestTypeService(documentChangeRequestTypeRepo)
 	documentChangeRequestTypeController := controllers.NewDocumentChangeRequestTypeController(documentChangeRequestTypeSvc)
 
+	documentChangeRequestStatusRepo := repositories.NewDocumentChangeRequestStatusRepository(db)
+	documentChangeRequestStatusSvc := services.NewDocumentChangeRequestStatusService(documentChangeRequestStatusRepo)
+	documentChangeRequestStatusController := controllers.NewDocumentChangeRequestStatusController(documentChangeRequestStatusSvc)
+
 	return &DocumentModule{
 		DocumentCategoryController:                    documentCategoryController,
 		DocumentTypeController:                        documentTypeController,
@@ -169,6 +174,7 @@ func NewDocumentModule(db *gorm.DB,
 		DocumentChangeRequestInitiateStatusController: documentChangeRequestInitiateStatusController,
 		DocumentChangeRequestInitiateController:       documentChangeRequestInitiateController,
 		DocumentChangeRequestTypeController:           documentChangeRequestTypeController,
+		DocumentChangeRequestStatusController:         documentChangeRequestStatusController,
 
 		DocumentSvc: documentSvc,
 	}

@@ -39,6 +39,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentChangeRequestInitiateController := app.DocumentModule.DocumentChangeRequestInitiateController
 
 	documentChangeRequestTypeController := app.DocumentModule.DocumentChangeRequestTypeController
+	documentChangeRequestStatusController := app.DocumentModule.DocumentChangeRequestStatusController
 
 	documentRoutes.GET("/document-categories", documentCategoryController.GetAllDocumentCategories)
 	documentRoutes.GET("/document-categories/:id", documentCategoryController.GetDocumentCategoryDetails)
@@ -137,5 +138,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	documentRoutes.GET("/document-change-request-types", documentChangeRequestTypeController.GetAllDocumentChangeRequestTypes)
 	documentRoutes.GET("/document-change-request-types/:id", documentChangeRequestTypeController.GetDocumentChangeRequestTypeDetails)
+
+	documentRoutes.GET("/document-change_request-statuses", documentChangeRequestStatusController.GetAllDocumentChangeRequestStatuses)
+	documentRoutes.GET("/document-change_request-statuses/:id", documentChangeRequestStatusController.GetDocumentChangeRequestStatusDetails)
 
 }
