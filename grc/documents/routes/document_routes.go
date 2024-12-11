@@ -144,9 +144,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.GET("/document-change_request-statuses/:id", documentChangeRequestStatusController.GetDocumentChangeRequestStatusDetails)
 
 	documentRoutes.GET("/document-change-requests", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetAllDocumentChangeRequests)
-	documentRoutes.GET("/ocument-change-requests/:id", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetDocumentChangeRequestDetails)
-	documentRoutes.POST("/ocument-change-requests", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.CreateDocumentChangeRequest)
-	documentRoutes.PUT("/ocument-change-requests/:id", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.UpdateDocumentChangeRequest)
-	documentRoutes.POST("/ocument-change-requests/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.DeleteDocumentChangeRequest)
+	documentRoutes.GET("/document-change-requests/:id", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetDocumentChangeRequestDetails)
+	documentRoutes.POST("/document-change-requests", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.CreateDocumentChangeRequest)
+	documentRoutes.PUT("/document-change-requests/:id", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.UpdateDocumentChangeRequest)
+	documentRoutes.POST("/document-change-requests/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.DeleteDocumentChangeRequest)
 
 }

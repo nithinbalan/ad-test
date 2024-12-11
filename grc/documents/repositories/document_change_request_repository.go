@@ -43,21 +43,21 @@ func (repo *DocumentChangeRequestRepository) GetAll(params *dtos.DocumentChangeR
 	var documentChangeRequests []*dtos.DocumentChangeRequestListDTO
 	var totalCount int64
 
-	query := repo.db.Table("documents_change_requests").
+	query := repo.db.Table("document_change_requests").
 		Select(`
-			documents_change_requests.id,
-			documents_change_requests.reference_number,
-			documents_change_requests.document_id,
+			document_change_requests.id,
+			document_change_requests.reference_number,
+			document_change_requests.document_id,
 			documents.title_en AS document_title_en,
 			documents.title_ar AS document_title_ar,
-			documents_change_requests.document_change_request_type_id,
+			document_change_requests.document_change_request_type_id,
 			change_request_types.title_en AS document_change_request_type_en,
 			change_request_types.title_ar AS document_change_request_type_ar,
-			documents_change_requests.document_change_request_status_id,
+			document_change_requests.document_change_request_status_id,
 			change_request_statuses.title_en AS document_change_request_status_en,
 			change_request_statuses.title_ar AS document_change_request_status_ar,
-			documents_change_requests.reason_for_change,
-			documents_change_requests.version,
+			document_change_requests.reason_for_change,
+			document_change_requests.version,
 			created_by_user.id AS created_by_user_id,
 			created_by_user.first_name_en AS created_by_user_first_name_en,
 			created_by_user.first_name_ar AS created_by_user_first_name_ar,
@@ -72,14 +72,14 @@ func (repo *DocumentChangeRequestRepository) GetAll(params *dtos.DocumentChangeR
 			updated_by_user.last_name_ar AS updated_by_user_last_name_ar,
 			updated_by_user.email AS updated_by_user_email,
 			updated_by_user.profile_image_path AS updated_by_user_profile_image_path,
-			documents_change_requests.created_at,
-			documents_change_requests.updated_at
+			document_change_requests.created_at,
+			document_change_requests.updated_at
 		`).
-		Joins("JOIN documents ON documents.id = documents_change_requests.document_id").
-		Joins("JOIN document_change_request_types AS change_request_types ON change_request_types.id = documents_change_requests.document_change_request_type_id").
-		Joins("JOIN document_change_request_statuses AS change_request_statuses ON change_request_statuses.id = documents_change_requests.document_change_request_status_id").
-		Joins("LEFT JOIN users AS created_by_user ON created_by_user.id = documents_change_requests.created_by_id").
-		Joins("LEFT JOIN users AS updated_by_user ON updated_by_user.id = documents_change_requests.updated_by_id")
+		Joins("JOIN documents ON documents.id = document_change_requests.document_id").
+		Joins("JOIN document_change_request_types AS change_request_types ON change_request_types.id = document_change_requests.document_change_request_type_id").
+		Joins("JOIN document_change_request_statuses AS change_request_statuses ON change_request_statuses.id = document_change_requests.document_change_request_status_id").
+		Joins("LEFT JOIN users AS created_by_user ON created_by_user.id = document_change_requests.created_by_id").
+		Joins("LEFT JOIN users AS updated_by_user ON updated_by_user.id = document_change_requests.updated_by_id")
 
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
@@ -90,7 +90,7 @@ func (repo *DocumentChangeRequestRepository) GetAll(params *dtos.DocumentChangeR
 	if params.Keyword != "" {
 		query = query.Where(`
         (
-            documents_change_requests.reason_for_change LIKE ? OR
+            document_change_requests.reason_for_change LIKE ? OR
             change_request_types.title_en LIKE ? OR
             change_request_types.title_ar LIKE ? OR
             change_request_statuses.title_en LIKE ? OR

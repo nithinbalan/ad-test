@@ -42,5 +42,5 @@ type DocumentChangeRequest struct {
 }
 
 func (DocumentChangeRequest) TableName() string {
-	return "documents_change_requests"
+	return "document_change_requests"
 }
