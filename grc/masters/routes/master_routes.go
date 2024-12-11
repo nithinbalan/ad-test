@@ -33,6 +33,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	workflowStatusController := app.MasterModule.WorkflowStatusController
 	integrationCategoryController := app.MasterModule.IntegrationCategoryController
 	impactCategoryController := app.MasterModule.ImpactCategoryController
+	timeUnitController := app.MasterModule.TimeUnitController
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
@@ -120,4 +121,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	masterRoutes.POST("/impact-categories/delete", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), impactCategoryController.DeleteImpactCategories)
 	masterRoutes.PUT("/impact-categories/activate", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), impactCategoryController.ActivateImpactCategories)
 	masterRoutes.PUT("/impact-categories/deactivate", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), impactCategoryController.DeactivateImpactCategories)
+
+	masterRoutes.GET("/time-units", timeUnitController.GetAllTimeUnits)
+	masterRoutes.GET("/time-units/:id", timeUnitController.GetTimeUnitDetails)
 }
