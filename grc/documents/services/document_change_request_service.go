@@ -84,6 +84,11 @@ func (dcrs *DocumentChangeRequestService) GetFullDetailsByID(id uint, tx ...util
 func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *documentDTOs.DocumentChangeRequestFormDTO) (uint, error) {
 	tx := dcrs.repo.BeginTransaction()
 
+	referenceNumber, err := dcrs.repo.GenerateReferenceNumber()
+	if err != nil {
+		return 0, err
+	}
+
 	if err := dcrs.validateFormDTO(formDTO); err != nil {
 		return 0, err
 	}
@@ -94,6 +99,7 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 	}
 
 	changeRequest := &models.DocumentChangeRequest{
+		ReferenceNumber:                 referenceNumber,
 		DocumentID:                      formDTO.DocumentID,
 		DocumentChangeRequestInitiateID: formDTO.DocumentChangeRequestInitiateID,
 		DocumentChangeRequestTypeID:     formDTO.DocumentChangeRequestTypeID,
