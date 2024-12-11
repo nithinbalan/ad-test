@@ -11,7 +11,7 @@ import (
 // Interfaces
 type DocumentTemplateRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*documentDTOs.DocumentTemplateListDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string, documentTypeID string) ([]*documentDTOs.DocumentTemplateListDTO, error)
 	GetByID(id uint) (*models.DocumentTemplate, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentTemplate, error)
 	Create(template *models.DocumentTemplate, tx ...utility.DatabaseTransaction) (uint, error)
@@ -44,7 +44,7 @@ func (repo *DocumentTemplateRepository) BeginTransaction() utility.DatabaseTrans
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *DocumentTemplateRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*documentDTOs.DocumentTemplateListDTO, error) {
+func (repo *DocumentTemplateRepository) GetAll(sort string, sortBy string, keyword string, status string, documentTypeID string) ([]*documentDTOs.DocumentTemplateListDTO, error) {
 	var documentTemplates []*documentDTOs.DocumentTemplateListDTO
 
 	query := repo.db.Table("document_templates").
@@ -102,18 +102,20 @@ func (repo *DocumentTemplateRepository) GetAll(sort string, sortBy string, keywo
 	}
 
 	if status == "active" || status == "inactive" {
-		query = query.Where("status = ?", status)
+		query = query.Where("document_templates.status = ?", status)
 	}
 
 	if keyword != "" {
-		query = query.Where(`
-				  (document_templates.title_en LIKE ? OR
-					document_templates.title_ar LIKE ? OR
-					document_types.title_en LIKE ? OR
-					document_types.title_ar LIKE ? OR
-					document_template_documents.original_name LIKE ?)`,
-			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%",
-			"%"+keyword+"%")
+		query = query.Where(`(document_templates.title_en LIKE ? OR
+							  document_templates.title_ar LIKE ? OR
+							  document_types.title_en LIKE ? OR
+							  document_types.title_ar LIKE ? OR
+							  document_template_documents.original_name LIKE ?)`,
+			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
+	}
+
+	if documentTypeID != "" {
+		query = query.Where("document_templates.document_type_id = ?", documentTypeID)
 	}
 
 	query = query.Order(sortBy + " " + sort)
@@ -124,7 +126,6 @@ func (repo *DocumentTemplateRepository) GetAll(sort string, sortBy string, keywo
 	}
 
 	return documentTemplates, nil
-
 }
 
 func (repo *DocumentTemplateRepository) GetByID(id uint) (*models.DocumentTemplate, error) {

@@ -16,7 +16,7 @@ import (
 )
 
 type DocumentChangeRequestInitiateServiceInterface interface {
-	GetAll(params *documentDTOs.DocumentChangeRequestInitiateQueryParamsDTO) (*documentDTOs.DocumentChangeRequestInitiateListResponseDTO, error)
+	GetAll(params *documentDTOs.DocumentChangeRequestInitiateQueryParamsDTO, documentId uint) (*documentDTOs.DocumentChangeRequestInitiateListResponseDTO, error)
 	GetByID(id uint) (*models.DocumentChangeRequestInitiate, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*documentDTOs.DocumentChangeRequestInitiateDetailsDTO, error)
 	Create(currentUserID uint, documentID uint, formDTO *documentDTOs.DocumentChangeRequestInitiateFormDTO) (uint, error)
@@ -45,8 +45,8 @@ func NewDocumentChangeRequestInitiateService(
 	}
 }
 
-func (dcris *DocumentChangeRequestInitiateService) GetAll(params *documentDTOs.DocumentChangeRequestInitiateQueryParamsDTO) (*documentDTOs.DocumentChangeRequestInitiateListResponseDTO, error) {
-	return dcris.repo.GetAll(params)
+func (dcris *DocumentChangeRequestInitiateService) GetAll(params *documentDTOs.DocumentChangeRequestInitiateQueryParamsDTO, documentId uint) (*documentDTOs.DocumentChangeRequestInitiateListResponseDTO, error) {
+	return dcris.repo.GetAll(params, documentId)
 }
 
 func (dcris *DocumentChangeRequestInitiateService) GetByID(id uint) (*models.DocumentChangeRequestInitiate, error) {
@@ -91,7 +91,7 @@ func (dcris *DocumentChangeRequestInitiateService) Create(currentUserID uint, do
 	}
 
 	initiate := &models.DocumentChangeRequestInitiate{
-		DocumentsID:                           documentID,
+		DocumentID:                            documentID,
 		DocumentChangeRequestInitiateTypeID:   formDTO.DocumentChangeRequestInitiateTypeID,
 		ReasonForChange:                       formDTO.ReasonForChange,
 		DocumentChangeRequestInitiateStatusID: changeRequestInitiateStatus.ID,
@@ -112,7 +112,7 @@ func (dcris *DocumentChangeRequestInitiateService) Create(currentUserID uint, do
 			tx.Rollback()
 			return 0, err
 		}
-		url := utility.GenerateDocumentURL("document", "change_request_initiates", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+		url := utility.GenerateDocumentURL("document", "change-request-initiates", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
 		document := &models.DocumentChangeRequestInitiateDocument{
 			DocumentChangeRequestInitiateID: id,
 			URL:                             url,
@@ -135,7 +135,7 @@ func (dcris *DocumentChangeRequestInitiateService) Create(currentUserID uint, do
 	tx.Commit()
 
 	for _, doc := range documents {
-		storagePath := filepath.Join("document", "change_request_initiates", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("document", "change-request-initiates", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			return 0, err
 		}
@@ -177,7 +177,7 @@ func (dcris *DocumentChangeRequestInitiateService) Update(id uint, currentUserID
 				tx.Rollback()
 				return err
 			}
-			url := utility.GenerateDocumentURL("document", "change_request_initiates", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+			url := utility.GenerateDocumentURL("document", "change-request-initiates", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
 			document := &models.DocumentChangeRequestInitiateDocument{
 				DocumentChangeRequestInitiateID: id,
 				URL:                             url,
@@ -220,14 +220,14 @@ func (dcris *DocumentChangeRequestInitiateService) Update(id uint, currentUserID
 	tx.Commit()
 
 	for _, doc := range documents {
-		storagePath := filepath.Join("document", "change_request_initiates", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("document", "change-request-initiates", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			fmt.Printf("Failed to store file %s: %v\n", doc.Name, err)
 		}
 	}
 
 	for _, doc := range documentsToDelete {
-		storagePath := filepath.Join("document", "change_request_initiates", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("document", "change-request-initiates", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 			fmt.Printf("Failed to delete file %s: %v\n", doc.Name, err)
 		}
@@ -281,7 +281,7 @@ func (dcris *DocumentChangeRequestInitiateService) Delete(ids []uint, currentUse
 	if len(successfulIds) > 0 {
 		for initiateId, documents := range documentsToDelete {
 			for _, doc := range documents {
-				storagePath := filepath.Join("document", "change_request_initiates", strconv.FormatUint(uint64(initiateId), 10), "documents")
+				storagePath := filepath.Join("document", "change-request-initiates", strconv.FormatUint(uint64(initiateId), 10), "documents")
 				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 					tx.Rollback()
 					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)

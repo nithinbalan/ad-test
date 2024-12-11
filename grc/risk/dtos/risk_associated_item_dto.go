@@ -136,26 +136,35 @@ type RiskIncidentListDTO struct {
 }
 
 type RiskDocumentListDTO struct {
-	ID                         uint       `json:"id"`
-	ReferenceNumber            string     `json:"reference_number"`
-	TitleEn                    string     `json:"title_en"`
-	TitleAr                    string     `json:"title_ar"`
-	DescriptionEn              *string    `json:"description_en"`
-	DescriptionAr              *string    `json:"description_ar"`
-	DocumentCategoryTitleEn    string     `json:"document_category_title_en"`
-	DocumentCategoryTitleAr    string     `json:"document_category_title_ar"`
-	ResponsibleUserFirstNameEn string     `json:"responsible_user_first_name_en"`
-	ResponsibleUserFirstNameAr string     `json:"responsible_user_first_name_ar"`
-	ResponsibleUserLastNameEn  string     `json:"responsible_user_last_name_en"`
-	ResponsibleUserLastNameAr  string     `json:"responsible_user_last_name_ar"`
-	ResponsibleUnitTitleEn     string     `json:"responsible_unit_title_en"`
-	ResponsibleUnitTitleAr     string     `json:"responsible_unit_title_ar"`
-	DocumentStatusTitleEn      string     `json:"document_status_title_en"`
-	DocumentStatusTitleAr      string     `json:"document_status_title_ar"`
-	DocumentStatusColorCode    string     `json:"document_status_color_code"`
-	LastCheckoutAt             *time.Time `json:"last_checkout_at"`
-	LastCheckinAt              *time.Time `json:"last_checkin_at"`
-	IsLocked                   bool       `json:"is_locked"`
+	ID                              uint       `json:"id"`
+	ReferenceNumber                 string     `json:"reference_number"`
+	TitleEn                         string     `json:"title_en"`
+	TitleAr                         string     `json:"title_ar"`
+	DescriptionEn                   *string    `json:"description_en"`
+	DescriptionAr                   *string    `json:"description_ar"`
+	DocumentTypeTitleEn             string     `json:"document_type_title_en"`
+	DocumentTypeTitleAr             string     `json:"document_type_title_ar"`
+	DocumentAccessTypeTitleEn       string     `json:"document_access_type_title_en"`
+	DocumentAccessTypeTitleAr       string     `json:"document_access_type_title_ar"`
+	DocumentCategoryTitleEn         string     `json:"document_category_title_en"`
+	DocumentCategoryTitleAr         string     `json:"document_category_title_ar"`
+	ResponsibleUserID               uint       `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn      string     `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string     `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string     `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string     `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          string     `json:"responsible_user_initial"`
+	ResponsibleUserColor            string     `json:"responsible_user_color"`
+	ResponsibleUserEmail            string     `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath string     `json:"responsible_user_profile_image_path"`
+	ResponsibleUnitTitleEn          string     `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr          string     `json:"responsible_unit_title_ar"`
+	DocumentStatusTitleEn           string     `json:"document_status_title_en"`
+	DocumentStatusTitleAr           string     `json:"document_status_title_ar"`
+	DocumentStatusColorCode         string     `json:"document_status_color_code"`
+	LastCheckoutAt                  *time.Time `json:"last_checkout_at"`
+	LastCheckinAt                   *time.Time `json:"last_checkin_at"`
+	IsLocked                        bool       `json:"is_locked"`
 }
 
 type RiskAssetListDTO struct {

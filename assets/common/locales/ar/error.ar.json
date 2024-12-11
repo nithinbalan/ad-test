@@ -122,6 +122,10 @@
 {
   "id": "matrix_exists",
   "translation": "مصفوفة الأهمية موجودة بالفعل لـ '{{.Field}}'"
+},
+{
+  "id": "conflict",
+  "translation": "تعارض "
 }
 
 ]

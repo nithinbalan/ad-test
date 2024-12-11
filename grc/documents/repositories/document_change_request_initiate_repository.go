@@ -11,7 +11,7 @@ import (
 
 type DocumentChangeRequestInitiateRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *dtos.DocumentChangeRequestInitiateQueryParamsDTO) (*dtos.DocumentChangeRequestInitiateListResponseDTO, error)
+	GetAll(params *dtos.DocumentChangeRequestInitiateQueryParamsDTO, documentId uint) (*dtos.DocumentChangeRequestInitiateListResponseDTO, error)
 	GetByID(id uint) (*models.DocumentChangeRequestInitiate, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentChangeRequestInitiate, error)
 	Create(changeRequest *models.DocumentChangeRequestInitiate, tx ...utility.DatabaseTransaction) (uint, error)
@@ -37,30 +37,32 @@ func (repo *DocumentChangeRequestInitiateRepository) BeginTransaction() utility.
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *DocumentChangeRequestInitiateRepository) GetAll(params *dtos.DocumentChangeRequestInitiateQueryParamsDTO) (*dtos.DocumentChangeRequestInitiateListResponseDTO, error) {
+func (repo *DocumentChangeRequestInitiateRepository) GetAll(params *dtos.DocumentChangeRequestInitiateQueryParamsDTO, documentId uint) (*dtos.DocumentChangeRequestInitiateListResponseDTO, error) {
 	var documentChangeRequests []*dtos.DocumentChangeRequestInitiateListDTO
 	var totalCount int64
 
 	query := repo.db.Table("document_change_request_initiates").
 		Select(`
 			document_change_request_initiates.id,
-			document_change_request_initiates.documents_id,
+			document_change_request_initiates.document_id,
 			documents.title_en AS document_title,
 			documents.title_ar AS document_title_ar,
 			document_change_request_initiates.document_change_request_initiate_type_id,
-			initiate_types.title_en AS document_change_request_initiate_type_en,
-			initiate_types.title_ar AS document_change_request_initiate_type_ar,
+			initiate_types.title_en AS document_change_request_initiate_type_title_en,
+			initiate_types.title_ar AS document_change_request_initiate_type_title_ar,
 			document_change_request_initiates.reason_for_change,
 			document_change_request_initiates.document_change_request_initiate_status_id,
-			initiate_statuses.title_en AS document_change_request_initiate_status_en,
-			initiate_statuses.title_ar AS document_change_request_initiate_status_ar,
-			initiate_statuses.color_code AS document_change_request_initiate_status_color,
+			initiate_statuses.title_en AS document_change_request_initiate_status_title_en,
+			initiate_statuses.title_ar AS document_change_request_initiate_status_title_ar,
+			initiate_statuses.color_code AS document_change_request_initiate_status_color_code,
 			created_by_user.id AS created_by_user_id,
 			created_by_user.first_name_en AS created_by_user_first_name_en,
 			created_by_user.first_name_ar AS created_by_user_first_name_ar,
 			created_by_user.last_name_en AS created_by_user_last_name_en,
 			created_by_user.last_name_ar AS created_by_user_last_name_ar,
 			created_by_user.email AS created_by_user_email,
+			created_by_user.initial AS created_user_initial,
+	        created_by_user.color AS created_user_color,
 			created_by_user.profile_image_path AS created_by_user_profile_image_path,
 			updated_by_user.id AS updated_by_user_id,
 			updated_by_user.first_name_en AS updated_by_user_first_name_en,
@@ -68,15 +70,20 @@ func (repo *DocumentChangeRequestInitiateRepository) GetAll(params *dtos.Documen
 			updated_by_user.last_name_en AS updated_by_user_last_name_en,
 			updated_by_user.last_name_ar AS updated_by_user_last_name_ar,
 			updated_by_user.email AS updated_by_user_email,
+			updated_by_user.initial AS updated_user_initial,
+	        updated_by_user.color AS updated_user_color,
 			updated_by_user.profile_image_path AS updated_by_user_profile_image_path,
 			document_change_request_initiates.created_at,
 			document_change_request_initiates.updated_at
 		`).
-		Joins("JOIN documents ON documents.id = document_change_request_initiates.documents_id").
+		Joins("JOIN documents ON documents.id = document_change_request_initiates.document_id").
 		Joins("JOIN document_change_request_initiate_types AS initiate_types ON initiate_types.id = document_change_request_initiates.document_change_request_initiate_type_id").
 		Joins("JOIN document_change_request_initiate_statuses AS initiate_statuses ON initiate_statuses.id = document_change_request_initiates.document_change_request_initiate_status_id").
 		Joins("LEFT JOIN users AS created_by_user ON created_by_user.id = document_change_request_initiates.created_by_id").
 		Joins("LEFT JOIN users AS updated_by_user ON updated_by_user.id = document_change_request_initiates.updated_by_id")
+
+		// Add documentId filter
+	query = query.Where("document_change_request_initiates.document_id = ?", documentId)
 
 	// Apply dynamic filters
 	for columnName, values := range params.Filters {
@@ -119,19 +126,14 @@ func (repo *DocumentChangeRequestInitiateRepository) GetAll(params *dtos.Documen
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
+	// Sort by the specified column and order
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
-
-	// Apply sorting, default sort by document title
-	if params.SortBy == "" {
-		params.SortBy = "document_title"
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc"
-	}
-	query = query.Order(params.SortBy + " " + params.Sort)
 
 	// Pagination
 	offset := (params.Page - 1) * params.PageSize
@@ -171,6 +173,8 @@ func (repo *DocumentChangeRequestInitiateRepository) GetFullDetailsByID(id uint,
 	}
 	var changeRequest models.DocumentChangeRequestInitiate
 	result := db.Preload("Documents").
+		Preload("DocumentChangeRequestInitiateType").
+		Preload("DocumentChangeRequestInitiateStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&changeRequest, id)

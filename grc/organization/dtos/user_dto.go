@@ -180,17 +180,18 @@ type UserLoginHistoryListResponseDTO struct {
 }
 
 type CurrentUserDetailsDTO struct {
-	ID               uint       `json:"id"`
-	FirstNameEn      string     `json:"first_name_en"`
-	LastNameEn       string     `json:"last_name_en"`
-	FirstNameAr      string     `json:"first_name_ar"`
-	LastNameAr       string     `json:"last_name_ar"`
-	Email            string     `json:"email"`
-	MobileNumber     *string    `json:"mobile_number"`
-	ProfileImagePath *string    `json:"profile_image_path"`
-	Initial          string     `json:"initial"`
-	Color            string     `json:"color"`
-	LastLoginAt      *time.Time `json:"last_login_at"`
+	ID               uint           `json:"id"`
+	FirstNameEn      string         `json:"first_name_en"`
+	LastNameEn       string         `json:"last_name_en"`
+	FirstNameAr      string         `json:"first_name_ar"`
+	LastNameAr       string         `json:"last_name_ar"`
+	Email            string         `json:"email"`
+	MobileNumber     *string        `json:"mobile_number"`
+	ProfileImagePath *string        `json:"profile_image_path"`
+	Initial          string         `json:"initial"`
+	Color            string         `json:"color"`
+	LastLoginAt      *time.Time     `json:"last_login_at"`
+	UserSetting      UserSettingDTO `json:"user_setting"`
 
 	// Relationship DTOs
 	OrganizationUnit1 *settingDTOs.OrganizationUnitDTO `json:"organization_unit_1"`
