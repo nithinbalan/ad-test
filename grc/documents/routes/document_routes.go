@@ -40,6 +40,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	documentChangeRequestTypeController := app.DocumentModule.DocumentChangeRequestTypeController
 	documentChangeRequestStatusController := app.DocumentModule.DocumentChangeRequestStatusController
+	documentChangeRequestController := app.DocumentModule.DocumentChangeRequestController
 
 	documentRoutes.GET("/document-categories", documentCategoryController.GetAllDocumentCategories)
 	documentRoutes.GET("/document-categories/:id", documentCategoryController.GetDocumentCategoryDetails)
@@ -141,5 +142,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	documentRoutes.GET("/document-change_request-statuses", documentChangeRequestStatusController.GetAllDocumentChangeRequestStatuses)
 	documentRoutes.GET("/document-change_request-statuses/:id", documentChangeRequestStatusController.GetDocumentChangeRequestStatusDetails)
+
+	documentRoutes.GET("/document-change-requests", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetAllDocumentChangeRequests)
+	documentRoutes.GET("/ocument-change-requests/:id", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetDocumentChangeRequestDetails)
+	documentRoutes.POST("/ocument-change-requests", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.CreateDocumentChangeRequest)
+	documentRoutes.PUT("/ocument-change-requests/:id", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.UpdateDocumentChangeRequest)
+	documentRoutes.POST("/ocument-change-requests/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.DeleteDocumentChangeRequest)
 
 }
