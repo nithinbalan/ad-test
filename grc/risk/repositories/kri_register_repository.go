@@ -130,6 +130,8 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			query = query.Where("risk_levels.type = ?", "medium")
 		case "low_risk_level":
 			query = query.Where("risk_levels.type = ?", "low")
+		case "overdue_for_review":
+			query = query.Where("kri_register.next_review_date < ?", time.Now())
 		}
 	}
 
