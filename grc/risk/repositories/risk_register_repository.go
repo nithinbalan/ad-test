@@ -196,15 +196,53 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
-		case "open_high_risk":
-			query = query.Where("risk_statuses.type = ?", "open")
+
+		case "critical_risk":
+			// Fetch the highest available risk rating dynamically
+			var highestRating string
+			err := repo.db.Table("risk_matrix_risk_ratings").
+				Select("type").
+				Where("status = ?", "active").
+				Order("CASE type WHEN 'very_high' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 WHEN 'very_low' THEN 5 END").
+				Limit(1).Pluck("type", &highestRating).Error
+			if err != nil || highestRating == "" {
+				return nil, fmt.Errorf("failed to fetch highest risk rating: %v", err)
+			}
+			query = query.Where("current_risk_rating.type = ?", highestRating)
+
+		case "open_actions":
+			query = query.Joins(`
+				LEFT JOIN (
+					SELECT DISTINCT risk_register_id
+					FROM risk_action_plans
+					JOIN action_plan_statuses ON action_plan_statuses.id = risk_action_plans.action_plan_status_id
+					WHERE action_plan_statuses.is_closed = 0
+				) AS open_actions ON open_actions.risk_register_id = risk_register.id
+			`).
+				Where("open_actions.risk_register_id IS NOT NULL")
+
+		case "newly_identified":
+			twoWeeksAgo := time.Now().AddDate(0, 0, -14).Format("2006-01-02 00:00:00")
+			query = query.Where("risk_register.created_at >= ?", twoWeeksAgo)
+
+		case "strategic_risks":
+			query = query.Joins(`
+				LEFT JOIN (
+					SELECT DISTINCT risk_register_id
+					FROM risk_strategic_objectives
+				) AS strategic_objectives ON strategic_objectives.risk_register_id = risk_register.id
+			`).Where("strategic_objectives.risk_register_id IS NOT NULL")
+
+		case "high_financial_impact":
+			query = query.Where("risk_categories.title_en = ? ", "Financial Risk")
+
+		case "closed_resolved":
+			query = query.Where("risk_statuses.type IN (?)", []string{"closed", "resolved"})
+
 		}
+
 	}
 
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -339,8 +377,8 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("AuditableItems", func(db *gorm.DB) *gorm.DB {
-            return db.Order("created_at DESC").Limit(5) // Fetch the latest 5 auditable items
-        }).
+			return db.Order("created_at DESC").Limit(5) // Fetch the latest 5 auditable items
+		}).
 		Preload("AuditableItems.ResponsibleUser").
 		Preload("AuditableItems.ResponsibleUnit").
 		Preload("AuditableItems.AuditorRiskRating").

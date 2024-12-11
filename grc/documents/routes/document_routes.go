@@ -136,6 +136,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/documents/:id/initiate-change-requests", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestInitiateController.CreateDocumentChangeRequestInitiate)
 	documentRoutes.PUT("/documents/:id/initiate-change-requests/:icrId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestInitiateController.UpdateDocumentChangeRequestInitiate)
 	documentRoutes.POST("/documents/:id/initiate-change-requests/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestInitiateController.DeleteDocumentChangeRequestInitiate)
+	documentRoutes.POST("/documents/:id/initiate-change-requests/:icrId/approve", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestInitiateController.ApproveDocumentChangeRequestInitiate)
+	documentRoutes.POST("/documents/:id/initiate-change-requests/:icrId/reject", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestInitiateController.RejectDocumentChangeRequestInitiate)
 
 	documentRoutes.GET("/document-change-request-types", documentChangeRequestTypeController.GetAllDocumentChangeRequestTypes)
 	documentRoutes.GET("/document-change-request-types/:id", documentChangeRequestTypeController.GetDocumentChangeRequestTypeDetails)

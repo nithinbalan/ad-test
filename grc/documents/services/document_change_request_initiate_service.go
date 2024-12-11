@@ -22,6 +22,9 @@ type DocumentChangeRequestInitiateServiceInterface interface {
 	Create(currentUserID uint, documentID uint, formDTO *documentDTOs.DocumentChangeRequestInitiateFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, formDTO *documentDTOs.DocumentChangeRequestInitiateFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	Approve(id uint, currentUserID uint) error
+	Reject(id uint, currentUserID uint) error
 }
 
 type DocumentChangeRequestInitiateService struct {
@@ -313,5 +316,45 @@ func (dcris *DocumentChangeRequestInitiateService) validateFormDTO(dto *document
 	if _, err := dcris.documentChangeRequestInitiateTypeSvc.GetByID(dto.DocumentChangeRequestInitiateTypeID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("document change request initiate type does not exist"), "not_exist", "change request initiate type")
 	}
+	return nil
+}
+
+func (dcris *DocumentChangeRequestInitiateService) Approve(id uint, currentUserID uint) error {
+	changeRequestInitiateStatus, err := dcris.documentChangeRequestInitiateStatusSvc.GetByType("approved")
+	if err != nil {
+		return err
+	}
+
+	existing, err := dcris.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	existing.DocumentChangeRequestInitiateStatusID = changeRequestInitiateStatus.ID
+
+	if err := dcris.repo.Update(existing); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (dcris *DocumentChangeRequestInitiateService) Reject(id uint, currentUserID uint) error {
+	changeRequestInitiateStatus, err := dcris.documentChangeRequestInitiateStatusSvc.GetByType("rejected")
+	if err != nil {
+		return err
+	}
+
+	existing, err := dcris.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	existing.DocumentChangeRequestInitiateStatusID = changeRequestInitiateStatus.ID
+
+	if err := dcris.repo.Update(existing); err != nil {
+		return err
+	}
+
 	return nil
 }
