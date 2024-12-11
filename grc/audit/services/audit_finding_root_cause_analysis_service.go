@@ -95,11 +95,18 @@ func (afrcas *AuditFindingRootCauseAnalysisService) Create(findingID uint, curre
 	tx.Commit()
 
 	go func() {
-		err := afrcas.activityLogSvc.LogActivity(
+		existingAuditFindingRootCauseAnalysis, err := afrcas.GetByID(findingID, id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit finding root cause", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = afrcas.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditFindingRootCauseAnalysis{}.TableName(),
 			id,
-			rootCauseAnalysisFormDTO,
+			existingAuditFindingRootCauseAnalysis,
 			currentUserID,
 			nil,
 		)
@@ -122,6 +129,12 @@ func (afrcas *AuditFindingRootCauseAnalysisService) Create(findingID uint, curre
 
 func (afrcas *AuditFindingRootCauseAnalysisService) Update(findingID uint, id uint, currentUserID uint, rootCauseAnalysisFormDTO *auditDTOs.AuditFindingRootCauseAnalysisFormDTO) error {
 	tx := afrcas.repo.BeginTransaction()
+
+	oldAuditFindingRootCauseAnalysis, err := afrcas.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
 
 	if _, err := afrcas.auditFindingSvc.GetByID(findingID); err != nil {
 		return err
@@ -146,7 +159,52 @@ func (afrcas *AuditFindingRootCauseAnalysisService) Update(findingID uint, id ui
 	}
 
 	tx.Commit()
+	go func() {
+		existingFindingRootCauseAnalysis, err := afrcas.repo.GetByID(id)
+		if err != nil {
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"question": oldAuditFindingRootCauseAnalysis.Question,
+			"answer":   oldAuditFindingRootCauseAnalysis.Answer,
+		}
 
+		newData := map[string]interface{}{
+			"question": existingFindingRootCauseAnalysis.Question,
+			"answer":   existingFindingRootCauseAnalysis.Answer,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+
+			err := afrcas.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditFindingRootCauseAnalysis{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditFindingRootCauseAnalysis{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 	return nil
 }
 
@@ -158,7 +216,7 @@ func (afrcas *AuditFindingRootCauseAnalysisService) Delete(findingID uint, id ui
 	}
 
 	var failedId uint
-
+	var deletedFindingRootCauseAnalysis []map[string]interface{}
 	entryToDelete, err := afrcas.GetByID(findingID, id)
 	if err != nil {
 		return 0, err
@@ -177,6 +235,13 @@ func (afrcas *AuditFindingRootCauseAnalysisService) Delete(findingID uint, id ui
 		fmt.Printf("Failed to update 'Why' values after deletion: %v\n", err)
 		return 0, err
 	}
+
+	deletedFindingRootCauseAnalysis = append(deletedFindingRootCauseAnalysis, map[string]interface{}{
+		"id":            id,
+		"audit_finding": entryToDelete.AuditFinding.Title,
+		"question":      entryToDelete.Question,
+	})
+
 	tx.Commit()
 
 	// Log successful delete activity
@@ -185,7 +250,7 @@ func (afrcas *AuditFindingRootCauseAnalysisService) Delete(findingID uint, id ui
 			models.DeleteAction,
 			models.AuditFindingRootCauseAnalysis{}.TableName(),
 			id,
-			nil,
+			deletedFindingRootCauseAnalysis,
 			currentUserID,
 			nil,
 		)

@@ -188,11 +188,19 @@ func (aps *AuditPlanService) Create(currentUserID uint, auditPlanFormDTO *auditD
 	tx.Commit()
 
 	go func() {
-		err := aps.activityLogSvc.LogActivity(
+		existingAuditPlan, err := aps.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit plan", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = aps.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditPlan{}.TableName(),
 			id,
-			auditPlanFormDTO,
+			existingAuditPlan,
 			currentUserID,
 			nil,
 		)
@@ -217,6 +225,12 @@ func (aps *AuditPlanService) Update(id uint, currentUserID uint, auditPlanFormDT
 	dates, err := aps.parseAuditPlanDates(auditPlanFormDTO)
 	if err != nil {
 		return err
+	}
+
+	oldAuditPlan, err := aps.repo.GetFullDetailsByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
 	}
 
 	existingAuditPlan, err := aps.repo.GetByID(id)
@@ -355,24 +369,108 @@ func (aps *AuditPlanService) Update(id uint, currentUserID uint, auditPlanFormDT
 	tx.Commit()
 
 	go func() {
-		err := aps.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.AuditPlan{}.TableName(),
-			id,
-			auditPlanFormDTO,
-			currentUserID,
-			nil,
-		)
+		existingPlan, err := aps.repo.GetFullDetailsByID(id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.AuditPlan{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
+			return
+		}
+		// Determine auditable items and users changes
+		auditableItemsAdded := []uint{}
+		auditableItemsRemoved := []uint{}
+		for id := range newAuditableItemIDs {
+			if !existingAuditableItemIDs[id] {
+				auditableItemsAdded = append(auditableItemsAdded, id)
 			}
+		}
+		for id := range existingAuditableItemIDs {
+			if !newAuditableItemIDs[id] {
+				auditableItemsRemoved = append(auditableItemsRemoved, id)
+			}
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		usersAdded := []uint{}
+		usersRemoved := []uint{}
+		for id := range newUserIDs {
+			if !existingUserIDs[id] {
+				usersAdded = append(usersAdded, id)
+			}
+		}
+		for id := range existingUserIDs {
+			if !newUserIDs[id] {
+				usersRemoved = append(usersRemoved, id)
+			}
+		}
+
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
+
+		if len(auditableItemsAdded) > 0 || len(auditableItemsRemoved) > 0 {
+			associatedItems["auditable_item_ids"] = map[string]interface{}{
+				"added":   auditableItemsAdded,
+				"removed": auditableItemsRemoved,
+			}
+		}
+
+		if len(usersAdded) > 0 || len(usersRemoved) > 0 {
+			associatedItems["user_ids"] = map[string]interface{}{
+				"added":   usersAdded,
+				"removed": usersRemoved,
+			}
+		}
+
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+		//log changes
+		oldData := map[string]interface{}{
+			"audit_category": oldAuditPlan.AuditCategory.TitleEn,
+			"audit_team":     oldAuditPlan.AuditTeam.TitleEn,
+			"team_lead":      fmt.Sprintf("%s %s", oldAuditPlan.TeamLead.FirstNameEn, oldAuditPlan.TeamLead.LastNameEn),
+			"title":          oldAuditPlan.Title,
+			"description":    oldAuditPlan.Description,
+			"start_date":     oldAuditPlan.StartDate,
+			"target_date":    oldAuditPlan.TargetDate,
+			"purpose":        oldAuditPlan.Purpose,
+			"objective":      oldAuditPlan.Objective,
+		}
+
+		newData := map[string]interface{}{
+			"audit_category": existingPlan.AuditCategory.TitleEn,
+			"audit_team":     existingPlan.AuditTeam.TitleEn,
+			"team_lead":      fmt.Sprintf("%s %s", existingPlan.TeamLead.FirstNameEn, existingPlan.TeamLead.LastNameEn),
+			"title":          existingPlan.Title,
+			"description":    existingPlan.Description,
+			"start_date":     existingPlan.StartDate,
+			"target_date":    existingPlan.TargetDate,
+			"purpose":        existingPlan.Purpose,
+			"objective":      existingPlan.Objective,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := aps.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditPlan{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditPlan{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -383,7 +481,7 @@ func (aps *AuditPlanService) Delete(ids []uint, currentUserID uint) ([]uint, err
 	tx := aps.repo.BeginTransaction()
 	var failedIDs []uint
 	var successfulIDs []uint
-
+	var deletedAuditPlan []map[string]interface{}
 	for _, id := range ids {
 		// Get existing audit plan details
 		existingAuditPlan, err := aps.GetFullDetailsByID(id, tx)
@@ -425,6 +523,11 @@ func (aps *AuditPlanService) Delete(ids []uint, currentUserID uint) ([]uint, err
 		}
 
 		successfulIDs = append(successfulIDs, id)
+
+		deletedAuditPlan = append(deletedAuditPlan, map[string]interface{}{
+			"id":    id,
+			"title": existingAuditPlan.Title,
+		})
 	}
 
 	if len(successfulIDs) > 0 {
@@ -436,7 +539,7 @@ func (aps *AuditPlanService) Delete(ids []uint, currentUserID uint) ([]uint, err
 					models.DeleteAction,
 					models.AuditPlan{}.TableName(),
 					id,
-					nil,
+					deletedAuditPlan,
 					currentUserID,
 					nil,
 				)
@@ -506,7 +609,7 @@ func (aps *AuditPlanService) Publish(id uint, currentUserID uint) error {
 		tx.Rollback()
 		return err
 	}
-	existingAuditPlan, err := aps.repo.GetFullDetailsByID(id,tx)
+	existingAuditPlan, err := aps.repo.GetFullDetailsByID(id, tx)
 	if err != nil {
 		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
