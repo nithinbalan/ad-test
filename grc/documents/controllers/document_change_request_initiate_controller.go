@@ -217,3 +217,61 @@ func (dcrc *DocumentChangeRequestInitiateController) DeleteDocumentChangeRequest
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (dcrc *DocumentChangeRequestInitiateController) ApproveDocumentChangeRequestInitiate(c *gin.Context) {
+	idStr := c.Param("icrId")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(dcrc.db, c, err.Error())
+		return
+	}
+
+	err = dcrc.service.Approve(uint(id), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(dcrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (dcrc *DocumentChangeRequestInitiateController) RejectDocumentChangeRequestInitiate(c *gin.Context) {
+	idStr := c.Param("icrId")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(dcrc.db, c, err.Error())
+		return
+	}
+
+	err = dcrc.service.Reject(uint(id), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(dcrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}

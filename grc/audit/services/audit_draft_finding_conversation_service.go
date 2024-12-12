@@ -140,17 +140,15 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 			return 0, utility.NewForbiddenError("The current user is not authorized to perform this action.")
 		}
 	}
-
 	conversation := &models.AuditDraftFindingConversation{
 		AuditDraftFindingID: auditDraftFindingID,
 		Comment:             formDTO.Comment,
 		Type:                formDTO.Type,
 		IsAccepted:          *formDTO.IsAccepted,
 		IsDismissed:         *formDTO.IsDismissed,
-		IsReopened:         *formDTO.IsReopened,
+		IsReopened:          *formDTO.IsDismissed,
 		CreatedBYID:         currentUserID,
 	}
-
 	id, err := adfcs.repo.Create(conversation, tx)
 	if err != nil {
 		tx.Rollback()
@@ -206,7 +204,7 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 		}
 		if existingAuditDraftFinding.AuditDraftFindingStatus != nil && existingAuditDraftFinding.AuditDraftFindingStatus.ID != auditDraftFindingStatusDismissed.ID {
 			return 0, utility.NewForbiddenError("Action not allowed. The audit finding status must be 'Dismissed' before any further actions can be taken.")
-		}		
+		}
 		// Update Audit Draft Finding Status
 		if err := adfcs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusOpen.ID); err != nil {
 			tx.Rollback()
@@ -236,7 +234,6 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 
 		documents = append(documents, document)
 	}
-
 	if len(documents) > 0 {
 		if err := adfcs.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
@@ -253,11 +250,19 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 	tx.Commit()
 
 	go func() {
-		err := adfcs.activityLogSvc.LogActivity(
+		existingAuditDraftFindingConversation, err := adfcs.GetFullDetailsByID(auditDraftFindingID, id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit draft finding", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = adfcs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditDraftFindingConversation{}.TableName(),
 			id,
-			conversation,
+			existingAuditDraftFindingConversation,
 			currentUserID,
 			nil,
 		)
@@ -282,6 +287,12 @@ func (adfcs *AuditDraftFindingConversationService) Update(auditDraftFindingID ui
 	existingAuditDraftFinding, err := adfcs.auditDraftFindingSvc.GetByID(auditDraftFindingID)
 	if err != nil {
 		return err
+	}
+
+	oldAuditDraftFindingConversation, err := adfcs.repo.GetFullDetailsByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
 	}
 
 	existingAuditDraftFindingConversation, err := adfcs.GetByID(auditDraftFindingID, id)
@@ -382,7 +393,52 @@ func (adfcs *AuditDraftFindingConversationService) Update(auditDraftFindingID ui
 		}
 	}
 	tx.Commit()
+	go func() {
+		existingAuditDraftFindingConversation, err := adfcs.repo.GetFullDetailsByID(id)
+		if err != nil {
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"comment": oldAuditDraftFindingConversation.Comment,
+			"type":    oldAuditDraftFindingConversation.Type,
+		}
 
+		newData := map[string]interface{}{
+			"comment": existingAuditDraftFindingConversation.Comment,
+			"type":    existingAuditDraftFindingConversation.Type,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := adfcs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditDraftFindingConversation{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditDraftFindingConversation{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 	return nil
 }
 
@@ -396,6 +452,7 @@ func (adfcs *AuditDraftFindingConversationService) Delete(auditDraftFindingID ui
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedAuditDraftFindingConversation []map[string]interface{}
 	documentsToDelete := make(map[uint][]*dtos.AuditDraftFindingConversationDocumentDTO)
 
 	for _, id := range ids {
@@ -423,6 +480,12 @@ func (adfcs *AuditDraftFindingConversationService) Delete(auditDraftFindingID ui
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedAuditDraftFindingConversation = append(deletedAuditDraftFindingConversation, map[string]interface{}{
+			"id":                  id,
+			"comment":             auditDraftFindingConversation.Comment,
+			"audit_draft_finding": auditDraftFindingConversation.AuditDraftFinding.Title,
+		})
 	}
 	if len(failedIds) > 0 {
 		tx.Rollback()
@@ -450,7 +513,7 @@ func (adfcs *AuditDraftFindingConversationService) Delete(auditDraftFindingID ui
 				models.DeleteAction,
 				models.AuditFinding{}.TableName(),
 				successfulIds,
-				nil,
+				deletedAuditDraftFindingConversation,
 				currentUserID,
 				nil,
 			)

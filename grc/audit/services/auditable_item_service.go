@@ -130,11 +130,18 @@ func (ais *AuditableItemService) Create(currentUserID uint, auditableItemFormDTO
 	tx.Commit()
 
 	go func() {
-		err := ais.activityLogSvc.LogActivity(
+		existingAuditableItem, err := ais.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch auditable Item", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = ais.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditableItem{}.TableName(),
 			id,
-			auditableItemFormDTO,
+			existingAuditableItem,
 			currentUserID,
 			nil,
 		)
@@ -157,6 +164,12 @@ func (ais *AuditableItemService) Create(currentUserID uint, auditableItemFormDTO
 
 func (ais *AuditableItemService) Update(id uint, currentUserID uint, auditableItemFormDTO *auditDTOs.AuditableItemFormDTO) error {
 	tx := ais.repo.BeginTransaction()
+
+	oldAuditableItem, err := ais.repo.GetFullDetailsByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
 
 	existingAuditableItem, err := ais.GetByID(id)
 
@@ -189,7 +202,58 @@ func (ais *AuditableItemService) Update(id uint, currentUserID uint, auditableIt
 		return err
 	}
 	tx.Commit()
+	go func() {
+		existingAuditableItem, err := ais.repo.GetFullDetailsByID(id)
+		if err != nil {
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"title_en":            oldAuditableItem.TitleEn,
+			"title_ar":            oldAuditableItem.TitleAr,
+			"comment":             oldAuditableItem.Comment,
+			"auditor_risk_rating": oldAuditableItem.AuditorRiskRating.TitleEn,
+			"responsible_user":    fmt.Sprintf("%s %s", oldAuditableItem.ResponsibleUser.FirstNameEn, oldAuditableItem.ResponsibleUser.LastNameEn),
+		}
 
+		newData := map[string]interface{}{
+			"title_en":            existingAuditableItem.TitleEn,
+			"title_ar":            existingAuditableItem.TitleAr,
+			"comment":             existingAuditableItem.Comment,
+			"auditor_risk_rating": existingAuditableItem.AuditorRiskRating.TitleEn,
+			"responsible_user":    fmt.Sprintf("%s %s", existingAuditableItem.ResponsibleUser.FirstNameEn, existingAuditableItem.ResponsibleUser.LastNameEn),
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+
+			err := ais.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditableItem{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditableItem{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 	return nil
 }
 
@@ -198,14 +262,26 @@ func (ais *AuditableItemService) Delete(ids []uint, currentUserID uint) ([]uint,
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedAuditableItem []map[string]interface{}
 	for _, id := range ids {
-		err := ais.repo.Delete(id, tx)
+		auditableItem, err := ais.GetFullDetailsByID(id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
+			continue
+		}
+
+		err = ais.repo.Delete(id, tx)
+		if err != nil {
 			continue
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedAuditableItem = append(deletedAuditableItem, map[string]interface{}{
+			"id":       id,
+			"title_en": auditableItem.TitleEn,
+			"title_ar": auditableItem.TitleAr,
+		})
 
 	}
 
@@ -216,7 +292,7 @@ func (ais *AuditableItemService) Delete(ids []uint, currentUserID uint) ([]uint,
 				models.DeleteAction,
 				models.AuditableItem{}.TableName(),
 				successfulIds,
-				nil,
+				deletedAuditableItem,
 				currentUserID,
 				nil,
 			)

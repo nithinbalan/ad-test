@@ -127,11 +127,19 @@ func (apses *AuditPlanStakeholderEngagementService) Create(auditPlanID uint, cur
 	tx.Commit()
 
 	go func() {
-		err := apses.activityLogSvc.LogActivity(
+		existingAuditPlanStateholderEngagement, err := apses.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit plan stakeholder engagement", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = apses.activityLogSvc.LogActivity(
 			models.CreateAction,
 			engagement.TableName(),
 			id,
-			formDTO,
+			existingAuditPlanStateholderEngagement,
 			currentUserID,
 			nil,
 		)
@@ -161,6 +169,11 @@ func (apses *AuditPlanStakeholderEngagementService) Update(id uint, auditPlanID 
 		return err
 	}
 
+	oldPlanStakeholder, err := apses.GetFullDetailsByID(id)
+	if err != nil {
+		return err
+	}
+
 	existingEngagement, err := apses.repo.GetByID(id)
 	if err != nil {
 		tx.Rollback()
@@ -182,23 +195,52 @@ func (apses *AuditPlanStakeholderEngagementService) Update(id uint, auditPlanID 
 	tx.Commit()
 
 	go func() {
-		err := apses.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			existingEngagement.TableName(),
-			id,
-			formDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingStakeholder, err := apses.GetFullDetailsByID(id)
 		if err != nil {
-			utility.LogError("Failed to log activity", map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": existingEngagement.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			})
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"audit_engagement": oldPlanStakeholder.AuditEngagementType.TitleEn,
+			"title":            oldPlanStakeholder.Title,
+			"objectives":       oldPlanStakeholder.Objectives,
+			"responsible_user": fmt.Sprintf("%s %s", oldPlanStakeholder.ResponsibleUser.FirstNameEN, oldPlanStakeholder.ResponsibleUser.LastNameEN),
+		}
+
+		newData := map[string]interface{}{
+			"audit_engagement": existingStakeholder.AuditEngagementType.TitleEn,
+			"title":            existingStakeholder.Title,
+			"objectives":       existingStakeholder.Objectives,
+			"responsible_user": fmt.Sprintf("%s %s", existingStakeholder.ResponsibleUser.FirstNameEN, existingStakeholder.ResponsibleUser.LastNameEN),
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+
+			err := apses.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				existingEngagement.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": existingEngagement.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				})
+			}
 		}
 	}()
 
@@ -209,7 +251,7 @@ func (apses *AuditPlanStakeholderEngagementService) Delete(ids []uint, currentUs
 	tx := apses.repo.BeginTransaction()
 	var failedIDs []uint
 	var successfulIDs []uint
-
+	var deletedAuditPlanStakeholderEngagement []map[string]interface{}
 	for _, id := range ids {
 		_, err := apses.repo.GetByID(id)
 		if err != nil {
@@ -221,12 +263,23 @@ func (apses *AuditPlanStakeholderEngagementService) Delete(ids []uint, currentUs
 			return nil, err
 		}
 
+		auditPlanStakeholderEngagement, err := apses.GetFullDetailsByID(id)
+		if err != nil {
+			return nil, err
+		}
+
 		if err := apses.repo.Delete(id, tx); err != nil {
 			failedIDs = append(failedIDs, id)
 			continue
 		}
 
 		successfulIDs = append(successfulIDs, id)
+
+		deletedAuditPlanStakeholderEngagement = append(deletedAuditPlanStakeholderEngagement, map[string]interface{}{
+			"id":         id,
+			"audit_plan": auditPlanStakeholderEngagement.AuditPlan.Title,
+			"title":      auditPlanStakeholderEngagement.Title,
+		})
 	}
 
 	if len(successfulIDs) > 0 {
@@ -238,7 +291,7 @@ func (apses *AuditPlanStakeholderEngagementService) Delete(ids []uint, currentUs
 					models.DeleteAction,
 					models.AuditPlanStakeholderEngagement{}.TableName(),
 					id,
-					nil,
+					deletedAuditPlanStakeholderEngagement,
 					currentUserID,
 					nil,
 				)

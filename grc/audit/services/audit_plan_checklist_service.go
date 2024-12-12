@@ -116,11 +116,19 @@ func (aps *AuditPlanChecklistService) Create(auditPlanId uint, currentUserID uin
 	tx.Commit()
 
 	go func() {
-		err := aps.activityLogSvc.LogActivity(
+		existingAuditPlanChecklist, err := aps.GetFullDetailsByID(auditPlanId, id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit plan tool", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = aps.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditPlanChecklist{}.TableName(),
 			id,
-			auditPlanChecklistFormDTO,
+			existingAuditPlanChecklist,
 			currentUserID,
 			nil,
 		)
@@ -154,6 +162,11 @@ func (aps *AuditPlanChecklistService) Update(auditPlanId uint, id uint, currentU
 		return utility.NewResourceNotFoundError(err, id)
 	}
 
+	oldAuditPlanChecklist, err := aps.GetFullDetailsByID(auditPlanId, id)
+	if err != nil {
+		return err
+	}
+
 	if err := aps.validateAuditPlanChecklistFormDTO(auditPlanChecklistFormDTO); err != nil {
 		tx.Rollback()
 		return err
@@ -172,25 +185,50 @@ func (aps *AuditPlanChecklistService) Update(auditPlanId uint, id uint, currentU
 	tx.Commit()
 
 	go func() {
-		err := aps.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.AuditPlanChecklist{}.TableName(),
-			id,
-			auditPlanChecklistFormDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingPlanChecklist, err := aps.GetFullDetailsByID(auditPlanId, id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.AuditPlanChecklist{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"auditable_item": oldAuditPlanChecklist.AuditableItem.TitleEn,
+			"question":       oldAuditPlanChecklist.Question,
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		newData := map[string]interface{}{
+			"auditable_item": existingPlanChecklist.AuditableItem.TitleEn,
+			"question":       existingPlanChecklist.Question,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+
+			err := aps.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditPlanChecklist{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditPlanChecklist{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -206,10 +244,11 @@ func (aps *AuditPlanChecklistService) Delete(auditPlanId uint, ids []uint, curre
 
 	var failedIDs []uint
 	var successfulIDs []uint
-
+	var deletedAuditPlanChecklist []map[string]interface{}
 	for _, id := range ids {
 
-		if _, err := aps.GetByID(auditPlanId, id); err != nil {
+		auditPlanChecklist, err := aps.GetByID(auditPlanId, id)
+		if err != nil {
 			failedIDs = append(failedIDs, id)
 		}
 
@@ -219,6 +258,11 @@ func (aps *AuditPlanChecklistService) Delete(auditPlanId uint, ids []uint, curre
 		}
 
 		successfulIDs = append(successfulIDs, id)
+
+		deletedAuditPlanChecklist = append(deletedAuditPlanChecklist, map[string]interface{}{
+			"id":       id,
+			"question": auditPlanChecklist.Question,
+		})
 	}
 
 	if len(successfulIDs) > 0 {
@@ -230,7 +274,7 @@ func (aps *AuditPlanChecklistService) Delete(auditPlanId uint, ids []uint, curre
 					models.DeleteAction,
 					models.AuditPlanChecklist{}.TableName(),
 					id,
-					nil,
+					deletedAuditPlanChecklist,
 					currentUserID,
 					nil,
 				)

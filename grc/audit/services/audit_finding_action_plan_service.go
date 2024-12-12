@@ -195,11 +195,18 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 	tx.Commit()
 
 	go func() {
-		err := afaps.activityLogSvc.LogActivity(
+		existingAuditFindingActionPlan, err := afaps.GetFullDetailsByID(findingID, id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit finding action plan", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = afaps.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditFindingActionPlan{}.TableName(),
 			id,
-			AuditFindingActionPlanFormDTO,
+			existingAuditFindingActionPlan,
 			currentUserID,
 			nil,
 		)
@@ -297,6 +304,12 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 		return err
 	}
 
+	oldAuditFindingActionPlan, err := afaps.repo.GetFullDetailsByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
+
 	existingAuditFindingActionPlan, err := afaps.GetByID(findingID, id)
 
 	if err != nil {
@@ -353,6 +366,64 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	tx.Commit()
 
 	go func() {
+		existingFindingActionPlan, err := afaps.repo.GetFullDetailsByID(id)
+		if err != nil {
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"title":              oldAuditFindingActionPlan.Title,
+			"description":        oldAuditFindingActionPlan.Description,
+			"severity_level":     oldAuditFindingActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", oldAuditFindingActionPlan.ResponsibleUser.FirstNameEn, oldAuditFindingActionPlan.ResponsibleUser.LastNameEn),
+			"review_user":        utility.GetFieldValue(oldAuditFindingActionPlan.ReviewUser),
+			"target_date":        oldAuditFindingActionPlan.TargetDate,
+			"percentage":         oldAuditFindingActionPlan.Percentage,
+			"comments":           oldAuditFindingActionPlan.Comments,
+			"action_plan_status": oldAuditFindingActionPlan.ActionPlanStatus.TitleEn,
+		}
+
+		newData := map[string]interface{}{
+			"title":              existingFindingActionPlan.Title,
+			"description":        existingFindingActionPlan.Description,
+			"severity_level":     existingFindingActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", existingFindingActionPlan.ResponsibleUser.FirstNameEn, existingFindingActionPlan.ResponsibleUser.LastNameEn),
+			"review_user":        utility.GetFieldValue(existingFindingActionPlan.ReviewUser),
+			"target_date":        existingFindingActionPlan.TargetDate,
+			"percentage":         existingFindingActionPlan.Percentage,
+			"comments":           existingFindingActionPlan.Comments,
+			"action_plan_status": existingFindingActionPlan.ActionPlanStatus.TitleEn,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := afaps.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditFindingActionPlan{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditFindingActionPlan{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingAuditFindingActionPlan.ResponsibleUserID {
 			urlParam := fmt.Sprintf(`{"audit_id":%d,"audit_finding_id":%d, "action_plan_id":%d}`, audit.AuditID, findingID, id)
@@ -496,6 +567,7 @@ func (afaps *AuditFindingActionPlanService) Delete(findingID uint, ids []uint, c
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedAuditFindingActionPlan []map[string]interface{}
 	var notifications []struct {
 		OwnerID           *uint
 		TitleEn           string
@@ -557,6 +629,12 @@ func (afaps *AuditFindingActionPlanService) Delete(findingID uint, ids []uint, c
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedAuditFindingActionPlan = append(deletedAuditFindingActionPlan, map[string]interface{}{
+			"id":            id,
+			"title":         auditFindingActionPlan.Title,
+			"audit_finding": auditFindingActionPlan.AuditFinding.Title,
+		})
 	}
 	tx.Commit()
 
@@ -567,7 +645,7 @@ func (afaps *AuditFindingActionPlanService) Delete(findingID uint, ids []uint, c
 				models.DeleteAction,
 				models.AuditFinding{}.TableName(),
 				successfulIds,
-				nil,
+				deletedAuditFindingActionPlan,
 				currentUserID,
 				nil,
 			)

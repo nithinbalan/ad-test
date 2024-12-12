@@ -55,8 +55,7 @@ func (afcs *AuditFindingCategoryService) Update(id uint, currentUserID uint, upd
 	if err != nil {
 		return nil, err
 	}
-
-	fieldsToCompare := []string{"TitleEn", "TitleAr", "DescriptionEn", "DescriptionAr", "Status"}
+	fieldsToCompare := []string{"TitleEn", "TitleAr", "DescriptionEn", "DescriptionAr"}
 	changes, err := utility.CompareFields(existingCategory, updatedCategory, fieldsToCompare)
 	if err != nil {
 		log.Println("error :", err.Error())
@@ -88,8 +87,9 @@ func (afcs *AuditFindingCategoryService) Update(id uint, currentUserID uint, upd
 func (afcs *AuditFindingCategoryService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedAuditFindingCategory []map[string]interface{}
 	for _, id := range ids {
-		_, err := afcs.repo.GetByID(id)
+		auditFindingCategory, err := afcs.repo.GetByID(id)
 		if err != nil {
 			fmt.Print(err)
 			continue
@@ -101,6 +101,11 @@ func (afcs *AuditFindingCategoryService) Delete(ids []uint, currentUserID uint) 
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedAuditFindingCategory = append(deletedAuditFindingCategory, map[string]interface{}{
+			"id":       id,
+			"title_en": auditFindingCategory.TitleEn,
+			"title_ar": auditFindingCategory.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -109,7 +114,7 @@ func (afcs *AuditFindingCategoryService) Delete(ids []uint, currentUserID uint) 
 				models.DeleteAction, // Ensure this action constant is defined appropriately
 				models.AuditFindingCategory{}.TableName(),
 				successfulIds,
-				nil,
+				deletedAuditFindingCategory,
 				currentUserID,
 				nil,
 			)
