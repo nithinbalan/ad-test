@@ -42,44 +42,46 @@ func (ns *NotificationService) SendNotification(notificationDTO *commonDTOs.DBNo
 		return err
 	}
 
-	if isEnabled {
-		emailTemplateSettings, err := ns.emailTemplateSettingsSvc.GetEmailTemplateSettings()
-		if err != nil {
-			fmt.Printf("failed to get email template settings: %w", err)
-			return err
-		}
+	if !isEnabled {
+		return nil
+	}
 
-		// socialLinks, err := ns.GetSocialMediaLinks()
-		// if err != nil {
-		// 	return err
-		// }
+	emailTemplateSettings, err := ns.emailTemplateSettingsSvc.GetEmailTemplateSettings()
+	if err != nil {
+		fmt.Printf("failed to get email template settings: %w", err)
+		return err
+	}
 
-		emailTemplateAndSocialDTO := &commonDTOs.EmailTemplateAndSocialDTO{
-			HeaderImageURL: emailTemplateSettings.HeaderImageURL,
-			SupportText:    emailTemplateSettings.SupportText,
-			ClosingText:    emailTemplateSettings.ClosingText,
-			FooterLogoURL:  emailTemplateSettings.FooterLogoURL,
-			FooterAddress:  emailTemplateSettings.FooterAddress,
-			FooterEmail:    emailTemplateSettings.FooterEmail,
-			// Linkedin:       &socialLinks.Linkedin,
-			// X:              &socialLinks.X,
-			// Facebook:       &socialLinks.Facebook,
-		}
+	// socialLinks, err := ns.GetSocialMediaLinks()
+	// if err != nil {
+	// 	return err
+	// }
 
-		err = utility.SendTemplatedEmail(
-			emailNotificationDTO.EmailTo,
-			emailNotificationDTO.Subject,
-			emailNotificationDTO.TemplateRelativePath,
-			emailNotificationDTO.EmailData,
-			emailTemplateAndSocialDTO,
-			nil,
-			emailNotificationDTO.CC,
-		)
-		if err != nil {
-			utility.LogError("Failed to send email", map[string]interface{}{
-				"error": err.Error(),
-			})
-		}
+	emailTemplateAndSocialDTO := &commonDTOs.EmailTemplateAndSocialDTO{
+		HeaderImageURL: emailTemplateSettings.HeaderImageURL,
+		SupportText:    emailTemplateSettings.SupportText,
+		ClosingText:    emailTemplateSettings.ClosingText,
+		FooterLogoURL:  emailTemplateSettings.FooterLogoURL,
+		FooterAddress:  emailTemplateSettings.FooterAddress,
+		FooterEmail:    emailTemplateSettings.FooterEmail,
+		// Linkedin:       &socialLinks.Linkedin,
+		// X:              &socialLinks.X,
+		// Facebook:       &socialLinks.Facebook,
+	}
+
+	err = utility.SendTemplatedEmail(
+		emailNotificationDTO.EmailTo,
+		emailNotificationDTO.Subject,
+		emailNotificationDTO.TemplateRelativePath,
+		emailNotificationDTO.EmailData,
+		emailTemplateAndSocialDTO,
+		nil,
+		emailNotificationDTO.CC,
+	)
+	if err != nil {
+		utility.LogError("Failed to send email", map[string]interface{}{
+			"error": err.Error(),
+		})
 	}
 
 	moduleID, err := ns.moduleSvc.GetModuleIDByIdentifier(notificationDTO.ModuleIdentifier)
