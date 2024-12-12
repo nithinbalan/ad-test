@@ -179,7 +179,7 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 		ReferenceNumber:               auditDraftReport.Audit.AuditPlan.ReferenceNumber,
 		ReportDateString:              auditDraftReport.ReportDate.Format("2006-01-02"),
 		PreparedBy:                    mapUserToUserMinimalDTO(auditDraftReport.Audit.CreatedByUser),
-		PreparedAt:                    auditDraftReport.CreatedAt.Format("2006-01-02"),
+		PreparedAt:                    auditDraftReport.CreatedAt.Format("2006-01-02 15:04:05"),
 		InternalReviewSubmittedByUser: submittedByUser,
 		InternalReviewSubmittedAt:     submittedAt,
 		AuditeeReviewSubmittedByUser:  auditeeReviewAubmittedByUser,
