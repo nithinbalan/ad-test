@@ -1,10 +1,13 @@
 package repositories
 
 import (
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/documents/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
+	"strconv"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -17,6 +20,8 @@ type DocumentChangeRequestRepositoryInterface interface {
 	Create(changeRequest *models.DocumentChangeRequest, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(changeRequest *models.DocumentChangeRequest, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+
+	GenerateReferenceNumber() (string, error)
 
 	GetDocumentByID(id uint) (*models.DocumentChangeRequestDocument, error)
 	GetDocumentByChangeRequestID(id uint) (*models.DocumentChangeRequestDocument, error)
@@ -147,7 +152,11 @@ func (repo *DocumentChangeRequestRepository) GetFullDetailsByID(id uint, tx ...u
 		db = tx[0].DB()
 	}
 	var changeRequest models.DocumentChangeRequest
-	result := db.Preload("Documents").
+	result := db.Preload("DocumentChangeRequestType").
+		Preload("DocumentChangeRequestStatus").
+		Preload("ChangeRequestDocument").
+		Preload("DocumentChangeRequestInitiate").
+		Preload("Document").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&changeRequest, id)
@@ -237,4 +246,33 @@ func (repo *DocumentChangeRequestRepository) DeleteDocument(docIds []*uint, tx .
 		return err
 	}
 	return nil
+}
+
+func (repo *DocumentChangeRequestRepository) GenerateReferenceNumber() (string, error) {
+	var lastReferenceNumber string
+	err := repo.db.Model(&models.DocumentChangeRequest{}).
+		Select("reference_number").
+		Where("reference_number IS NOT NULL"). // Ensure to filter out NULL values
+		Order("reference_number DESC").
+		Limit(1).
+		Pluck("reference_number", &lastReferenceNumber).
+		Error
+
+	if err != nil {
+		return "", err
+	}
+
+	lastDigits := "0000"
+	if lastReferenceNumber != "" && len(lastReferenceNumber) >= 4 {
+		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-4:]
+	}
+
+	currentYear := time.Now().Year()
+	lastReferenceID, err := strconv.ParseUint(lastDigits, 10, 64)
+	if err != nil {
+		return "", err
+	}
+	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "CR", currentYear, lastReferenceID+1)
+
+	return newReferenceNumber, nil
 }

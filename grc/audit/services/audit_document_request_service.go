@@ -101,7 +101,7 @@ func (adrs *AuditDocumentRequestService) GetFullDetailsByID(id uint, tx ...utili
 	if documentRequest.Audit != nil && documentRequest.Audit.AuditPlan != nil {
 		// Create a map to track unique users by ID
 		uniqueUsers := make(map[int]bool)
-	
+
 		// Add TeamLead
 		if documentRequest.Audit.AuditPlan.TeamLead != nil {
 			teamLeadID := int(documentRequest.Audit.AuditPlan.TeamLead.ID)
@@ -122,7 +122,7 @@ func (adrs *AuditDocumentRequestService) GetFullDetailsByID(id uint, tx ...utili
 				uniqueUsers[teamLeadID] = true
 			}
 		}
-	
+
 		// Add Members
 		for _, member := range documentRequest.Audit.AuditPlan.Members {
 			if member.User != nil {
@@ -145,7 +145,7 @@ func (adrs *AuditDocumentRequestService) GetFullDetailsByID(id uint, tx ...utili
 				}
 			}
 		}
-	}	
+	}
 
 	documentRequestDTO.AuditTeams = auditTeams
 
@@ -168,9 +168,10 @@ func (adrs *AuditDocumentRequestService) GetFullDetailsByID(id uint, tx ...utili
 	return &documentRequestDTO, nil
 }
 
-
 func (adrs *AuditDocumentRequestService) Create(auditID uint, currentUserID uint, formDTO *auditDTOs.AuditDocumentRequestFormDTO) ([]uint, error) {
 	tx := adrs.repo.BeginTransaction()
+
+	var addedAuditDocumentRequest []map[string]interface{}
 
 	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
 		tx.Rollback()
@@ -250,7 +251,6 @@ func (adrs *AuditDocumentRequestService) Create(auditID uint, currentUserID uint
 				CreatedBYID:            itemDTO.CreatedBYID,
 			})
 		}
-
 		// Save the AuditableItems
 		if len(auditableItems) > 0 {
 			if err := adrs.repo.CreateAuditableItems(auditableItems, tx); err != nil {
@@ -259,15 +259,26 @@ func (adrs *AuditDocumentRequestService) Create(auditID uint, currentUserID uint
 			}
 		}
 
+		existingDocumentRequest, err := adrs.repo.GetFullDetailsByID(id, tx)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		addedAuditDocumentRequest = append(addedAuditDocumentRequest, map[string]interface{}{
+			"id":               id,
+			"document_request": existingDocumentRequest,
+		})
+
 		requestIDs = append(requestIDs, id)
 
 		// Log activity asynchronously
 		go func(requestID uint, formDTO *auditDTOs.AuditDocumentRequestFormDTO) {
-			err := adrs.activityLogSvc.LogActivity(
+			err := adrs.activityLogSvc.LogBulkActivities(
 				models.CreateAction,
 				models.AuditDocumentRequest{}.TableName(),
-				requestID,
-				formDTO,
+				requestIDs,
+				addedAuditDocumentRequest,
 				currentUserID,
 				nil,
 			)
@@ -294,6 +305,12 @@ func (adrs *AuditDocumentRequestService) Update(auditID uint, id uint, currentUs
 		tx.Rollback()
 		return err
 	}
+
+	oldDocumentRequest, err := adrs.GetFullDetailsByID(id)
+	if err != nil {
+		return err
+	}
+
 	documentRequest, err := adrs.repo.GetByID(id)
 	if err != nil {
 		tx.Rollback()
@@ -313,23 +330,47 @@ func (adrs *AuditDocumentRequestService) Update(auditID uint, id uint, currentUs
 	tx.Commit()
 
 	go func() {
-		err := adrs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.AuditDocumentRequest{}.TableName(),
-			id,
-			formDTO,
-			currentUserID,
-			nil,
-		)
+		existingCommencementLetter, err := adrs.GetFullDetailsByID(id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.AuditDocumentRequest{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"title":       oldDocumentRequest.Title,
+			"description": oldDocumentRequest.Description,
+		}
+
+		newData := map[string]interface{}{
+			"title":       existingCommencementLetter.Title,
+			"description": existingCommencementLetter.Description,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := adrs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditDocumentRequest{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditDocumentRequest{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+				utility.LogError("Failed to log activity", fields)
 			}
-			utility.LogError("Failed to log activity", fields)
 		}
 	}()
 

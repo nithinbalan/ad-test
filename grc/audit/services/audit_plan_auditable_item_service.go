@@ -100,6 +100,10 @@ func (apais AuditPlanAuditableItemService) GetFullDetailsByID(id uint, tx ...uti
 
 func (apais *AuditPlanAuditableItemService) Create(auditPlanID uint, currentUserID uint, auditPlanFormDTO *auditDTOs.AuditPlanAuditableItemFormDTO) (uint, error) {
 	tx := apais.repo.BeginTransaction()
+
+	var createdIds []uint
+	var addedAuditPlanAuditableItem []map[string]interface{}
+
 	if _, err := apais.auditPlanSvc.GetByID(auditPlanID); err != nil {
 		return 0, err
 	}
@@ -186,16 +190,31 @@ func (apais *AuditPlanAuditableItemService) Create(auditPlanID uint, currentUser
 			}
 
 		}
+
+		existingAuditableItem, err := apais.GetFullDetailsByID(auditPlanAuditableItemID)
+		if err != nil {
+			utility.LogError("Failed to fetch audit", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return 0, err
+		}
+
+		addedAuditPlanAuditableItem = append(addedAuditPlanAuditableItem, map[string]interface{}{
+			"id":                        auditPlanAuditableItemID,
+			"audit_plan_auditable_item": existingAuditableItem,
+		})
+
+		createdIds = append(createdIds, auditPlanAuditableItemID)
 	}
 
 	tx.Commit()
 
 	go func() {
-		err := apais.activityLogSvc.LogActivity(
+		err := apais.activityLogSvc.LogBulkActivities(
 			models.CreateAction,
 			models.AuditPlanAuditableItem{}.TableName(),
-			0, //todo
-			auditPlanFormDTO,
+			createdIds, //todo
+			addedAuditPlanAuditableItem,
 			currentUserID,
 			nil,
 		)
@@ -204,7 +223,7 @@ func (apais *AuditPlanAuditableItemService) Create(auditPlanID uint, currentUser
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
 				"tableName": models.AuditPlanAuditableItem{}.TableName(),
-				"recordID":  0, //todo
+				"recordID":  auditPlanID, //todo
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			}
@@ -223,10 +242,10 @@ func (apais *AuditPlanAuditableItemService) Delete(auditPlanID uint, ids []uint,
 	}
 	var failedIDs []uint
 	var successfulIDs []uint
-
+	var deletedAuditPlanAuditableItem []map[string]interface{}
 	for _, id := range ids {
 		// Get existing audit plan details
-		_, err := apais.GetFullDetailsByID(id)
+		auditableItem, err := apais.GetFullDetailsByID(id)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				failedIDs = append(failedIDs, id)
@@ -243,6 +262,10 @@ func (apais *AuditPlanAuditableItemService) Delete(auditPlanID uint, ids []uint,
 		}
 
 		successfulIDs = append(successfulIDs, id)
+		deletedAuditPlanAuditableItem = append(deletedAuditPlanAuditableItem, map[string]interface{}{
+			"id":         id,
+			"audit_plan": auditableItem.AuditPlan.Title,
+		})
 	}
 
 	if len(successfulIDs) > 0 {
@@ -254,7 +277,7 @@ func (apais *AuditPlanAuditableItemService) Delete(auditPlanID uint, ids []uint,
 					models.DeleteAction,
 					models.AuditPlanAuditableItem{}.TableName(),
 					id,
-					nil,
+					deletedAuditPlanAuditableItem,
 					currentUserID,
 					nil,
 				)

@@ -112,11 +112,19 @@ func (apbs *AuditPlanBudgetService) Create(auditPlanID uint, currentUserID uint,
 	tx.Commit()
 
 	go func() {
-		err := apbs.activityLogSvc.LogActivity(
+		existingAuditPlanBudget, err := apbs.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit plan tool", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = apbs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditPlanBudget{}.TableName(),
 			id,
-			auditPlanBudgetFormDTO,
+			existingAuditPlanBudget,
 			currentUserID,
 			nil,
 		)
@@ -153,6 +161,11 @@ func (apbs *AuditPlanBudgetService) Update(id uint, auditPlanID uint, currentUse
 		return utility.NewResourceNotFoundError(err, id)
 	}
 
+	oldAuditPlanBudget, err := apbs.GetFullDetailsByID(id)
+	if err != nil {
+		return err
+	}
+
 	existingAuditPlanBudget.ExpenseCategoryID = auditPlanBudgetFormDTO.ExpenseCategoryID
 	existingAuditPlanBudget.Title = auditPlanBudgetFormDTO.Title
 	existingAuditPlanBudget.EstimatedCost = auditPlanBudgetFormDTO.EstimatedCost
@@ -168,25 +181,53 @@ func (apbs *AuditPlanBudgetService) Update(id uint, auditPlanID uint, currentUse
 	tx.Commit()
 
 	go func() {
-		err := apbs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.AuditPlanBudget{}.TableName(),
-			id,
-			auditPlanBudgetFormDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingPlanBudget, err := apbs.GetFullDetailsByID(id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.AuditPlanBudget{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"expense_category": oldAuditPlanBudget.ExpenseCategory.TitleEn,
+			"title":            oldAuditPlanBudget.Title,
+			"estimated_cost":   oldAuditPlanBudget.EstimatedCost,
+			"comments":         oldAuditPlanBudget.Comments,
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		newData := map[string]interface{}{
+			"expense_category": existingPlanBudget.ExpenseCategory.TitleEn,
+			"title":            existingPlanBudget.Title,
+			"estimated_cost":   existingPlanBudget.EstimatedCost,
+			"comments":         existingPlanBudget.Comments,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := apbs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditPlanBudget{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditPlanBudget{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -197,9 +238,9 @@ func (apbs *AuditPlanBudgetService) Delete(ids []uint, currentUserID uint) ([]ui
 	tx := apbs.repo.BeginTransaction()
 	var failedIDs []uint
 	var successfulIDs []uint
-
+	var deletedAuditPlanBudget []map[string]interface{}
 	for _, id := range ids {
-		_, err := apbs.repo.GetByID(id)
+		auditPlanBudget, err := apbs.repo.GetByID(id)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				failedIDs = append(failedIDs, id)
@@ -215,6 +256,11 @@ func (apbs *AuditPlanBudgetService) Delete(ids []uint, currentUserID uint) ([]ui
 		}
 
 		successfulIDs = append(successfulIDs, id)
+
+		deletedAuditPlanBudget = append(deletedAuditPlanBudget, map[string]interface{}{
+			"id":    id,
+			"title": auditPlanBudget.Title,
+		})
 	}
 
 	if len(successfulIDs) > 0 {
@@ -226,7 +272,7 @@ func (apbs *AuditPlanBudgetService) Delete(ids []uint, currentUserID uint) ([]ui
 					models.DeleteAction,
 					models.AuditPlanBudget{}.TableName(),
 					id,
-					nil,
+					deletedAuditPlanBudget,
 					currentUserID,
 					nil,
 				)

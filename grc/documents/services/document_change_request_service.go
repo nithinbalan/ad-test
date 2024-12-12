@@ -84,6 +84,11 @@ func (dcrs *DocumentChangeRequestService) GetFullDetailsByID(id uint, tx ...util
 func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *documentDTOs.DocumentChangeRequestFormDTO) (uint, error) {
 	tx := dcrs.repo.BeginTransaction()
 
+	referenceNumber, err := dcrs.repo.GenerateReferenceNumber()
+	if err != nil {
+		return 0, err
+	}
+
 	if err := dcrs.validateFormDTO(formDTO); err != nil {
 		return 0, err
 	}
@@ -94,12 +99,13 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 	}
 
 	changeRequest := &models.DocumentChangeRequest{
+		ReferenceNumber:                 referenceNumber,
 		DocumentID:                      formDTO.DocumentID,
 		DocumentChangeRequestInitiateID: formDTO.DocumentChangeRequestInitiateID,
 		DocumentChangeRequestTypeID:     formDTO.DocumentChangeRequestTypeID,
 		ReasonForChange:                 formDTO.ReasonForChange,
 		DocumentChangeRequestStatusID:   changeRequestStatus.ID,
-		CreatedByID:                     currentUserID,
+		CreatedBYID:                     currentUserID,
 	}
 
 	id, err := dcrs.repo.Create(changeRequest, tx)
@@ -163,7 +169,7 @@ func (dcrs *DocumentChangeRequestService) Update(id uint, currentUserID uint, fo
 	existingChangeRequest.DocumentChangeRequestInitiateID = formDTO.DocumentChangeRequestInitiateID
 	existingChangeRequest.DocumentChangeRequestTypeID = formDTO.DocumentChangeRequestTypeID
 	existingChangeRequest.ReasonForChange = formDTO.ReasonForChange
-	existingChangeRequest.UpdatedByID = &currentUserID
+	existingChangeRequest.UpdatedBYID = &currentUserID
 
 	err = dcrs.repo.Update(existingChangeRequest, tx)
 	if err != nil {
