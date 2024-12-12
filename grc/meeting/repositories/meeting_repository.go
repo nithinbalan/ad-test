@@ -37,6 +37,7 @@ type MeetingRepositoryInterface interface {
 	DeleteMeetingIncidents(incidentIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetAllCounts(meetingID uint) (*meetingDTOs.MeetingsCountResponseDTO, error)
+	GetMeetingEffectiveness(meetingID uint) (float64, error)
 }
 
 type MeetingRepository struct {
@@ -510,4 +511,35 @@ func (repo *MeetingRepository) GetAllCounts(meetingID uint) (*meetingDTOs.Meetin
 		Mom:        int(momCount),
 		ActionPlan: int(actionPlanCount),
 	}, nil
+}
+
+func (repo *MeetingRepository) GetMeetingEffectiveness(meetingID uint) (float64, error) {
+	var closedCount, openCount int64
+
+	// Count closed MoMs
+	err := repo.db.Model(&models.MeetingMinute{}).
+		Joins("JOIN meeting_minute_statuses ON meeting_minute_statuses.id = meeting_minutes.meeting_minute_status_id").
+		Where("meeting_minutes.meeting_id = ? AND meeting_minute_statuses.type = ?", meetingID, "closed").
+		Count(&closedCount).Error
+	if err != nil {
+		return 0, err
+	}
+
+	// Count open MoMs
+	err = repo.db.Model(&models.MeetingMinute{}).
+		Joins("JOIN meeting_minute_statuses ON meeting_minute_statuses.id = meeting_minutes.meeting_minute_status_id").
+		Where("meeting_minutes.meeting_id = ? AND meeting_minute_statuses.type = ?", meetingID, "open").
+		Count(&openCount).Error
+	if err != nil {
+		return 0, err
+	}
+
+	// Calculate effectiveness
+	total := closedCount + openCount
+	if total == 0 {
+		return 0, nil // Avoid division by zero; no MoMs means effectiveness is 0
+	}
+
+	effectiveness := float64(closedCount) / float64(total)
+	return effectiveness, nil
 }
