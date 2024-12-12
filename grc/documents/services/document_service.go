@@ -493,6 +493,21 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		return err
 	}
 
+	existingDocVersion, err := ds.repo.GetDocumentVersionByID(documentFullDetails.LatestDocumentVersion.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingDocVersion.Version = documentFormDTO.DocumentVersion
+
+	err = ds.repo.UpdateDocumentVersion(existingDocVersion, tx)
+
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	var sharedUsers []*models.DocumentSharedUser
 	var sharedUnits []*models.DocumentSharedUnit
 
@@ -691,31 +706,39 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 	}
 
 	destinationDir := filepath.Join("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
-	if documentFormDTO.Document.IsNewFile != nil && *documentFormDTO.Document.IsNewFile {
-		existingDocumentFileName := documentFullDetails.LatestDocumentVersion.Name
-		baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
 
-		url := utility.GenerateDocumentURL("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
-
-		dataToEncrypt := []byte(documentFormDTO.Document.FileName)
-		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+	if documentFormDTO.DocumentTemplateID != nil {
+		var documentTemplate *documentDTOs.DocumentTemplateDetailsDTO
+		documentTemplate, err = ds.documentTemplateSvc.GetFullDetailsByID(*documentFormDTO.DocumentTemplateID)
 		if err != nil {
 			tx.Rollback()
 			return err
 		}
+
+		existingDocumentFileName := documentFullDetails.LatestDocumentVersion.Name
+		baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
+
+		//generate token
+		dataToEncrypt := []byte(documentTemplate.Document.Name)
+		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
+			return err
+		}
+
+		url := utility.GenerateDocumentURL("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
 
 		existingDocVersion, err := ds.repo.GetDocumentVersionByID(documentFullDetails.LatestDocumentVersion.ID, tx)
 		if err != nil {
 			tx.Rollback()
 			return err
 		}
-		existingDocVersion.Version = documentFormDTO.DocumentVersion
+
 		existingDocVersion.URL = url
-		existingDocVersion.Name = documentFormDTO.Document.FileName
-		existingDocVersion.Size = documentFormDTO.Document.Size
+		existingDocVersion.Name = documentTemplate.Document.Name
+		existingDocVersion.Size = documentTemplate.Document.Size
 		existingDocVersion.Token = encryptedFilename
-		existingDocVersion.OriginalName = &documentFormDTO.Document.OriginalName
-		existingDocVersion.Type = documentFormDTO.Document.Type
+		existingDocVersion.OriginalName = &documentTemplate.Document.OriginalName
+		existingDocVersion.Type = documentTemplate.Document.Type
 		existingDocVersion.UpdatedBYID = &currentUserID
 
 		err = ds.repo.UpdateDocumentVersion(existingDocVersion, tx)
@@ -735,20 +758,24 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			return err
 		}
 
-		if err := utility.StoreFile(documentFormDTO.Document.FileName, destinationDir); err != nil {
+		sourceDir := filepath.Join("document", "document-template", strconv.FormatUint(uint64(documentTemplate.ID), 10), "documents")
+		fileName := documentTemplate.Document.Name
+
+		err = utility.CopyFileFromPaths(sourceDir, destinationDir, fileName)
+		if err != nil {
 			tx.Rollback()
-			return err
+			return fmt.Errorf("failed to copy file: %w", err)
 		}
 
 		//add document history
 		documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 			DocumentID:        id,
 			DocumentVersionID: existingDocVersion.ID,
-			ActionType:        "update",
-			FileName:          &documentFormDTO.Document.FileName,
-			OriginalName:      &documentFormDTO.Document.OriginalName,
-			Type:              &documentFormDTO.Document.Type,
-			Size:              &documentFormDTO.Document.Size,
+			ActionType:        "create",
+			FileName:          &documentTemplate.Document.Name,
+			OriginalName:      &documentTemplate.Document.OriginalName,
+			Type:              &documentTemplate.Document.Type,
+			Size:              &documentTemplate.Document.Size,
 		}
 
 		err = ds.CreateDocumentEditHistory(documentEditHistory, &destinationDir, currentUserID, tx)
@@ -757,6 +784,74 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			return err
 		}
 
+	} else {
+		if documentFormDTO.Document.IsNewFile != nil && *documentFormDTO.Document.IsNewFile {
+			existingDocumentFileName := documentFullDetails.LatestDocumentVersion.Name
+			baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
+
+			url := utility.GenerateDocumentURL("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
+
+			dataToEncrypt := []byte(documentFormDTO.Document.FileName)
+			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			existingDocVersion, err := ds.repo.GetDocumentVersionByID(documentFullDetails.LatestDocumentVersion.ID, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			existingDocVersion.URL = url
+			existingDocVersion.Name = documentFormDTO.Document.FileName
+			existingDocVersion.Size = documentFormDTO.Document.Size
+			existingDocVersion.Token = encryptedFilename
+			existingDocVersion.OriginalName = &documentFormDTO.Document.OriginalName
+			existingDocVersion.Type = documentFormDTO.Document.Type
+			existingDocVersion.UpdatedBYID = &currentUserID
+
+			err = ds.repo.UpdateDocumentVersion(existingDocVersion, tx)
+
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if err := utility.RemoveFile(existingDocumentFileName, destinationDir); err != nil {
+				tx.Rollback()
+				return err
+			}
+			pdfFileName := baseFileName + ".pdf"
+			if err := utility.RemoveFile(pdfFileName, destinationDir); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if err := utility.StoreFile(documentFormDTO.Document.FileName, destinationDir); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			//add document history
+			documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
+				DocumentID:        id,
+				DocumentVersionID: existingDocVersion.ID,
+				ActionType:        "update",
+				FileName:          &documentFormDTO.Document.FileName,
+				OriginalName:      &documentFormDTO.Document.OriginalName,
+				Type:              &documentFormDTO.Document.Type,
+				Size:              &documentFormDTO.Document.Size,
+			}
+
+			err = ds.CreateDocumentEditHistory(documentEditHistory, &destinationDir, currentUserID, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+		}
 	}
 
 	if existingDocument.DocumentTypeID != documentFormDTO.DocumentTypeID {
