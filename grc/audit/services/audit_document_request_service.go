@@ -343,7 +343,7 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 		return err
 	}
 
-	documentRequest, err := adrs.repo.GetFullDetailsByID(id)
+	documentRequest, err := adrs.repo.GetByID(id)
 	if err != nil {
 		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
@@ -397,15 +397,15 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 			utility.LogError("Failed to log activity", fields)
 		}
 
-		if documentRequest.ResponsibleUserID == 0 {
+		if documentRequestFullDetails.ResponsibleUser.ID == 0 {
 			utility.LogError("Responsible user is missing", map[string]interface{}{
 				"documentRequestID": id,
 			})
 			return
 		}
 
-		responsibleUserID := documentRequest.ResponsibleUserID
-		responsibleUser, err := adrs.userSvc.GetByID(responsibleUserID)
+		responsibleUserID := documentRequestFullDetails.RequestedByUser.ID
+		responsibleUser, err := adrs.userSvc.GetByID(uint(responsibleUserID))
 		if err != nil {
 			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 				"userID": responsibleUserID,
@@ -414,7 +414,7 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 			return
 		}
 
-		requestedBy, err := adrs.userSvc.GetByID(*documentRequest.RequestedBYID)
+		requestedBy, err := adrs.userSvc.GetByID(uint(documentRequestFullDetails.RequestedByUser.ID))
 		if err != nil {
 			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
 				"error": err.Error(),
@@ -428,14 +428,14 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 		appURL := utility.GetAppURL()
 
 		dbNotification := &commonDTOs.DBNotificationDTO{
-			UserID:               responsibleUserID,
+			UserID:               uint(responsibleUserID),
 			ModuleIdentifier:     "audit",
 			NotificationType:     string(commonDTOs.InformationType),
-			ReferenceNumber:      documentRequest.Audit.AuditPlan.ReferenceNumber,
+			ReferenceNumber:      documentRequestFullDetails.Audit.AuditPlan.ReferenceNumber,
 			HeadingEn:            "New Document Submitted",
 			HeadingAr:            "تم تقديم مستند جديد",
-			TitleEn:              documentRequest.Title,
-			TitleAr:              documentRequest.Title,
+			TitleEn:              documentRequestFullDetails.Title,
+			TitleAr:              documentRequestFullDetails.Title,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
@@ -445,15 +445,15 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 
 		emailNotification := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              []string{responsibleUser.Email},
-			Subject:              fmt.Sprintf("Document Submitted: %s", documentRequest.Title),
+			Subject:              fmt.Sprintf("Document Submitted: %s", documentRequestFullDetails.Title),
 			TemplateRelativePath: "audit/templates/email/audit_document_submitted.html",
 			EmailData: map[string]interface{}{
 				"FirstNameEn":     responsibleUser.FirstNameEn,
 				"LastNameEn":      responsibleUser.LastNameEn,
-				"AuditTitle":      documentRequest.Audit.AuditPlan.Title,
-				"Title":           documentRequest.Title,
-				"Description":     documentRequest.Description,
-				"ResponsibleUnit": documentRequest.ResponsibleUnit.TitleEn,
+				"AuditTitle":      documentRequestFullDetails.Audit.AuditPlan.Title,
+				"Title":           documentRequestFullDetails.Title,
+				"Description":     documentRequestFullDetails.Description,
+				"ResponsibleUnit": documentRequestFullDetails.ResponsibleUnit.TitleEn,
 				"RequestedBy":     fmt.Sprintf("%s %s", requestedBy.FirstNameEn, requestedBy.LastNameEn),
 				"RequestedAt":     time.Now().Format("2006-01-02"),
 				"RedirectURL":     fmt.Sprintf("%saudit/audits/%d/document-request", appURL, auditID),
