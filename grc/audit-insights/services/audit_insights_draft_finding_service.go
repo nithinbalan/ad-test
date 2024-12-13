@@ -133,7 +133,7 @@ func (aidfs *AuditInsightsDraftFindingService) Accept(auditDraftFindingID uint, 
 	go func() {
 		urlParam := fmt.Sprintf(`{"id":%d}`, auditDraftReport.ID)
 		entity := "audit-draft-report"
-		action := "approve"
+		action := "approval"
 
 		// Create a map to track unique recipients
 		recipientsMap := make(map[uint]bool)

@@ -107,6 +107,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 	var submittedAt *string
 	var auditeeReviewAubmittedByUser *organizationDTOs.UserMinimalDTO
 	var auditeeReviewAubmittedAt *string
+	var completedByUser *organizationDTOs.UserMinimalDTO
+	var completedAt *string
 
 	// Check if SubmittedByUser and SubmittedAt are present before accessing them
 	if auditDraftReport.InternalReviewSubmittedByUser != nil {
@@ -118,7 +120,7 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 		updatedByUser = &updatedByUserDTO
 	}
 	if auditDraftReport.InternalReviewSubmittedAt != nil {
-		formattedSubmittedAt := auditDraftReport.InternalReviewSubmittedAt.Format("2006-01-02")
+		formattedSubmittedAt := auditDraftReport.InternalReviewSubmittedAt.UTC().Format("2006-01-02T15:04:05.000Z")
 		submittedAt = &formattedSubmittedAt
 	}
 	if auditDraftReport.AuditeeReviewSubmittedByUser != nil {
@@ -126,8 +128,16 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 		auditeeReviewAubmittedByUser = &auditeeSubmittedByUserDTO
 	}
 	if auditDraftReport.AuditeeReviewSubmittedAt != nil {
-		auditeeFormattedSubmittedAt := auditDraftReport.AuditeeReviewSubmittedAt.Format("2006-01-02")
+		auditeeFormattedSubmittedAt := auditDraftReport.AuditeeReviewSubmittedAt.UTC().Format("2006-01-02T15:04:05.000Z")
 		auditeeReviewAubmittedAt = &auditeeFormattedSubmittedAt
+	}
+	if auditDraftReport.CompletedByUser != nil {
+		completedByUserDTO := mapUserToUserMinimalDTO(auditDraftReport.CompletedByUser)
+		completedByUser = &completedByUserDTO
+	}
+	if auditDraftReport.CompletedAt != nil {
+		formattedCompletedAt := auditDraftReport.CompletedAt.UTC().Format("2006-01-02T15:04:05.000Z")
+		completedAt = &formattedCompletedAt
 	}
 	// Map the AuditDraftReportStatus
 	auditDraftReportStatusDTO := auditDTOs.AuditDraftReportStatusDTO{
@@ -184,6 +194,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 		InternalReviewSubmittedAt:     submittedAt,
 		AuditeeReviewSubmittedByUser:  auditeeReviewAubmittedByUser,
 		AuditeeReviewSubmittedAt:      auditeeReviewAubmittedAt,
+		CompletedByUser:               completedByUser,
+		CompletedAt:                   completedAt,
 		ExecutiveSummary:              *auditDraftReport.ExecutiveSummary,
 		TeamLead:                      mapUserToUserMinimalDTO(auditDraftReport.Audit.AuditPlan.TeamLead),
 		Conclusion:                    *auditDraftReport.Conclusion,
@@ -1005,8 +1017,8 @@ func (adrs *AuditDraftReportService) Complete(auditID uint, id uint, currentUser
 	}
 	now := time.Now()
 	existingAuditDraftReport.AuditDraftReportStatusID = auditDraftReportStatusCompleted.ID
-	existingAuditDraftReport.UpdatedBYID = &currentUserID
-	existingAuditDraftReport.UpdatedAt = &now
+	existingAuditDraftReport.CompletedBYID = &currentUserID
+	existingAuditDraftReport.CompletedAt = &now
 
 	err = adrs.repo.Update(existingAuditDraftReport, tx)
 	if err != nil {
