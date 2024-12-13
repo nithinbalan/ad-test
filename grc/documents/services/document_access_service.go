@@ -171,9 +171,9 @@ func (das *DocumentAccessService) CreateSharedUnits(documentID uint, unitIDs []u
 	for _, unitID := range unitIDs {
 		if !existingIDsMap[unitID] {
 			newSharedUnits = append(newSharedUnits, &models.DocumentSharedUnit{
-				DocumentID:         documentID,
-				OrganizationUnitID: unitID,
-				CreatedBYID:        createdBy,
+				DocumentID:  documentID,
+				OrgUnitID:   unitID,
+				CreatedBYID: createdBy,
 			})
 		}
 	}

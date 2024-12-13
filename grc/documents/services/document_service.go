@@ -237,9 +237,9 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		sharedUnits := make([]*models.DocumentSharedUnit, 0, len(documentFormDTO.SharedUnitIDs))
 		for _, unitID := range documentFormDTO.SharedUnitIDs {
 			sharedUnit := &models.DocumentSharedUnit{
-				DocumentID:         id,
-				OrganizationUnitID: *unitID,
-				CreatedBYID:        currentUserID,
+				DocumentID:  id,
+				OrgUnitID:   *unitID,
+				CreatedBYID: currentUserID,
 			}
 			sharedUnits = append(sharedUnits, sharedUnit)
 		}
@@ -257,6 +257,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 	url := utility.GenerateDocumentURL("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
 	destinationDir := filepath.Join("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
 	var docVersionId uint
+	var fileName string
 	if documentFormDTO.DocumentTemplateID != nil {
 		var documentTemplate *documentDTOs.DocumentTemplateDetailsDTO
 		documentTemplate, err = ds.documentTemplateSvc.GetFullDetailsByID(*documentFormDTO.DocumentTemplateID)
@@ -290,6 +291,8 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			tx.Rollback()
 			return 0, err
 		}
+
+		fileName = documentTemplate.Document.Name
 
 		sourceDir := filepath.Join("document", "document-template", strconv.FormatUint(uint64(documentTemplate.ID), 10), "documents")
 		fileName := documentTemplate.Document.Name
@@ -342,6 +345,8 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			return 0, err
 		}
 
+		fileName = documentFormDTO.Document.FileName
+
 		if err := utility.StoreFile(documentFormDTO.Document.FileName, destinationDir); err != nil {
 			tx.Rollback()
 			return 0, err
@@ -378,11 +383,13 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 
 	tx.Commit()
 
-	go func() {
-		if err := utility.ConvertDocxToPDF(destinationDir, documentFormDTO.Document.FileName, destinationDir); err != nil {
+	fileNameCopy := fileName
+
+	go func(fileName string) {
+		if err := utility.ConvertDocxToPDF(destinationDir, fileName, destinationDir); err != nil {
 			log.Printf("Failed to convert document to PDF: %v", err)
 		}
-	}()
+	}(fileNameCopy)
 
 	go func() {
 
@@ -458,7 +465,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		}
 	}
 
-	if documentFormDTO.Document.IsNewFile != nil && *documentFormDTO.Document.IsNewFile {
+	if (documentFormDTO.Document != nil && documentFormDTO.Document.IsNewFile != nil && *documentFormDTO.Document.IsNewFile) || documentFormDTO.DocumentTemplateID != nil {
 		documentStatus, err := ds.documentStatusSvc.GetByType("draft")
 		if err != nil {
 			return err
@@ -603,9 +610,9 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			for _, unitID := range documentFormDTO.SharedUnitIDs {
 				if !existingUnitIDs[*unitID] {
 					sharedUnits = append(sharedUnits, &models.DocumentSharedUnit{
-						DocumentID:         id,
-						OrganizationUnitID: *unitID,
-						CreatedBYID:        currentUserID,
+						DocumentID:  id,
+						OrgUnitID:   *unitID,
+						CreatedBYID: currentUserID,
 					})
 				} else {
 					delete(existingUnitIDs, *unitID)
@@ -642,9 +649,9 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			}
 			for _, unitID := range documentFormDTO.SharedUnitIDs {
 				sharedUnits = append(sharedUnits, &models.DocumentSharedUnit{
-					DocumentID:         id,
-					OrganizationUnitID: *unitID,
-					CreatedBYID:        currentUserID,
+					DocumentID:  id,
+					OrgUnitID:   *unitID,
+					CreatedBYID: currentUserID,
 				})
 			}
 
@@ -706,7 +713,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 	}
 
 	destinationDir := filepath.Join("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
-
+	var fileName string
 	if documentFormDTO.DocumentTemplateID != nil {
 		var documentTemplate *documentDTOs.DocumentTemplateDetailsDTO
 		documentTemplate, err = ds.documentTemplateSvc.GetFullDetailsByID(*documentFormDTO.DocumentTemplateID)
@@ -759,7 +766,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		}
 
 		sourceDir := filepath.Join("document", "document-template", strconv.FormatUint(uint64(documentTemplate.ID), 10), "documents")
-		fileName := documentTemplate.Document.Name
+		fileName = documentTemplate.Document.Name
 
 		err = utility.CopyFileFromPaths(sourceDir, destinationDir, fileName)
 		if err != nil {
@@ -818,6 +825,8 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 				tx.Rollback()
 				return err
 			}
+
+			fileName = documentFormDTO.Document.FileName
 
 			if err := utility.RemoveFile(existingDocumentFileName, destinationDir); err != nil {
 				tx.Rollback()
@@ -921,7 +930,8 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 
 	tx.Commit()
 
-	go func() {
+	fileNameCopy := fileName
+	go func(fileName string) {
 
 		existingDoc, err := ds.repo.GetFullDetailsByID(id, nil)
 		if err != nil {
@@ -990,12 +1000,12 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 				utility.LogError("Failed to log activity", fields)
 			}
 		}
-		if documentFormDTO.Document.IsNewFile != nil && *documentFormDTO.Document.IsNewFile {
-			if err := utility.ConvertDocxToPDF(destinationDir, documentFormDTO.Document.FileName, destinationDir); err != nil {
+		if (documentFormDTO.Document != nil && documentFormDTO.Document.IsNewFile != nil && *documentFormDTO.Document.IsNewFile) || documentFormDTO.DocumentTemplateID != nil {
+			if err := utility.ConvertDocxToPDF(destinationDir, fileName, destinationDir); err != nil {
 				log.Printf("Failed to convert document to PDF: %v", err)
 			}
 		}
-	}()
+	}(fileNameCopy)
 
 	return nil
 }
@@ -1036,7 +1046,7 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 		if len(document.DocumentSharedUnits) > 0 {
 			var deleteSharedUnitIds []uint
 			for _, unit := range document.DocumentSharedUnits {
-				deleteSharedUnitIds = append(deleteSharedUnitIds, unit.OrganizationUnitID)
+				deleteSharedUnitIds = append(deleteSharedUnitIds, unit.OrgUnitID)
 			}
 			if err := ds.documentAccessSvc.DeleteSharedUnits(id, deleteSharedUnitIds, tx); err != nil {
 				tx.Rollback()
