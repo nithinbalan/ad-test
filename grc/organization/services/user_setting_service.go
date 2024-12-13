@@ -20,7 +20,7 @@ import (
 type UserSettingServiceInterface interface {
 	SetUserService(svc UserServiceInterface)
 
-	GetUserSetting(userID uint) (*userDTOs.UserSettingDTO, error)
+	GetUserSetting(userID uint) (*userDTOs.UserPreferenceSettingDTO, error)
 	GetUserSettingsByUserID(userID uint) (*models.UserSetting, error)
 	CreateUserSetting(userID uint, currentUserID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO, tx ...utility.DatabaseTransaction) error
 	UpdateUserSetting(userID uint, currentUserID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO) error
@@ -64,7 +64,7 @@ func (uss *UserSettingService) SetUserService(svc UserServiceInterface) {
 	uss.userSvc = svc
 }
 
-func (uss *UserSettingService) GetUserSetting(userID uint) (*userDTOs.UserSettingDTO, error) {
+func (uss *UserSettingService) GetUserSetting(userID uint) (*userDTOs.UserPreferenceSettingDTO, error) {
 	userSettingDTO, err := uss.repo.GetUserSettingsWithMfaByUserID(userID)
 
 	if err != nil {
