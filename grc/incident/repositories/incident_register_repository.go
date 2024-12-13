@@ -43,6 +43,8 @@ type IncidentRegisterRepositoryInterface interface {
 
 	CreateIncidentAssets(assets []*models.IncidentAsset, tx ...utility.DatabaseTransaction) error
 	DeleteIncidentAssets(assetIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetSystemPreference() (*models.SystemPreference, error)
 }
 
 type IncidentRegisterRepository struct {
@@ -547,4 +549,13 @@ func (repo *IncidentRegisterRepository) DeleteIncidentAssets(assetIds []*uint, t
 	}
 
 	return nil
+}
+
+func (r *IncidentRegisterRepository) GetSystemPreference() (*models.SystemPreference, error) {
+	var systemPreference models.SystemPreference
+	err := r.db.Preload("Timezone").First(&systemPreference).Error
+	if err != nil {
+		return nil, err
+	}
+	return &systemPreference, nil
 }

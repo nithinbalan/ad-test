@@ -414,12 +414,12 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 				return 0, err
 			}
 			// Convert DOCX to PDF if the document is a DOCX file
-			if filepath.Ext(doc.Name) == ".docx" {
-				if err := utility.ConvertDocxToPDF(storagePath, doc.Name, storagePath); err != nil {
-					tx.Rollback()
-					return 0, err
-				}
-			}
+			// if filepath.Ext(doc.Name) == ".docx" {
+			// 	if err := utility.ConvertDocxToPDF(storagePath, doc.Name, storagePath); err != nil {
+			// 		tx.Rollback()
+			// 		return 0, err
+			// 	}
+			// }
 		}
 	}
 
@@ -1786,23 +1786,52 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 func (irs *IncidentRegisterService) parseIncidentRegisterDates(dto *incidentDTOs.IncidentRegisterFormDTO) (*incidentDTOs.IncidentRegisterParsedDates, error) {
 	parsed := &incidentDTOs.IncidentRegisterParsedDates{}
 
-	var err error
+	systemPreference, err := irs.getSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	timezoneName := systemPreference.Timezone.Name
+
+	fmt.Println(timezoneName)
+
 	if dto.ReportedAt != "" {
-		parsed.ReportedAt, err = utility.ParseDateTime(dto.ReportedAt)
+		parsed.ReportedAt, err = utility.ConvertToUTC(dto.ReportedAt, timezoneName)
 		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid reported date"), "invalid_date", "reported at")
+			return nil, utility.NewValidationError(fmt.Errorf("invalid reported date: %w", err), "invalid_date", "reported_at")
 		}
 	}
 
 	if dto.IncidentAt != "" {
-		parsed.IncidentAt, err = utility.ParseDateTime(dto.IncidentAt)
+		parsed.IncidentAt, err = utility.ConvertToUTC(dto.IncidentAt, timezoneName)
 		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid incident date"), "invalid_date", "incident at")
+			return nil, utility.NewValidationError(fmt.Errorf("invalid incident date: %w", err), "invalid_date", "incident_at")
 		}
 	}
 
 	return parsed, nil
 }
+
+// func (irs *IncidentRegisterService) parseIncidentRegisterDates(dto *incidentDTOs.IncidentRegisterFormDTO) (*incidentDTOs.IncidentRegisterParsedDates, error) {
+// 	parsed := &incidentDTOs.IncidentRegisterParsedDates{}
+
+// 	var err error
+// 	if dto.ReportedAt != "" {
+// 		parsed.ReportedAt, err = utility.ParseDateTime(dto.ReportedAt)
+// 		if err != nil {
+// 			return nil, utility.NewValidationError(fmt.Errorf("invalid reported date"), "invalid_date", "reported at")
+// 		}
+// 	}
+
+// 	if dto.IncidentAt != "" {
+// 		parsed.IncidentAt, err = utility.ParseDateTime(dto.IncidentAt)
+// 		if err != nil {
+// 			return nil, utility.NewValidationError(fmt.Errorf("invalid incident date"), "invalid_date", "incident at")
+// 		}
+// 	}
+
+// 	return parsed, nil
+// }
 
 func (irs *IncidentRegisterService) validateIncidentDocumentFormDTO(documents []*incidentDTOs.IncidentDocumentFormDTO) error {
 	// Check if documents array is empty
@@ -1935,4 +1964,14 @@ func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.I
 
 	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (irs *IncidentRegisterService) getSystemPreference() (*models.SystemPreference, error) {
+	// Assuming you have a repository or service for fetching system preferences
+	systemPreference, err := irs.repo.GetSystemPreference()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch system preference: %w", err)
+	}
+
+	return systemPreference, nil
 }
