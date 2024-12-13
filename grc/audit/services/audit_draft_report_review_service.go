@@ -371,7 +371,7 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 		}
 		urlParam := fmt.Sprintf(`{"id":%d}`, auditID)
 		entity := "audit-draft-report"
-		action := "approve"
+		action := "approval"
 
 		// Create a map to track unique recipients
 		recipientsMap := make(map[uint]bool)
@@ -575,7 +575,7 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 		}
 		urlParam := fmt.Sprintf(`{"id":%d}`, auditID)
 		entity := "audit-draft-report"
-		action := "revert"
+		action := "reverted"
 		// Create a map to track unique recipients
 		recipientsMap := make(map[uint]bool)
 
