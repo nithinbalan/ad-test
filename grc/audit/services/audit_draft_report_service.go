@@ -767,13 +767,11 @@ func (adrs *AuditDraftReportService) Delete(auditID uint, currentUserID uint) er
 }
 
 func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID uint) error {
-	tx := adrs.repo.BeginTransaction()
 	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
 		return err
 	}
 	existingAuditDraftReport, err := adrs.repo.GetByID(id)
 	if err != nil {
-		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
 	}
 
@@ -782,7 +780,6 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 		return err
 	}
 	if existingAuditDraftReport.AuditDraftReportStatusID != auditDraftReportStatusApproved.ID {
-		tx.Rollback()
 		return utility.NewForbiddenError("The audit draft report has not been approved.")
 	}
 
@@ -797,13 +794,14 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 	existingAuditDraftReport.UpdatedBYID = &currentUserID
 	existingAuditDraftReport.UpdatedAt = &now
 
+	//tx begin
+	tx := adrs.repo.BeginTransaction()
+
 	err = adrs.repo.Update(existingAuditDraftReport, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-
-	//todo - notification to auditable item responsible user where findings captured.
 
 	tx.Commit()
 
@@ -858,7 +856,7 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 					"FirstNameEn":           responsibleUser.FirstNameEn,
 					"LastNameEn":            responsibleUser.LastNameEn,
 					"AuditTitle":            existingAuditDraftReport.Audit.AuditPlan.Title,
-					"Reference Number":      existingAuditDraftReport.Audit.AuditPlan.ReferenceNumber,
+					"ReferenceNumber":       existingAuditDraftReport.Audit.AuditPlan.ReferenceNumber,
 					"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 					"AssignedByLastNameEn":  assignedBy.LastNameEn,
 					"AssignedOn":            time.Now().Format("2006-01-02"),
