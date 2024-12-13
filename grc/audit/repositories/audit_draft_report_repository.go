@@ -49,6 +49,9 @@ func (repo *AuditDraftReportRepository) GetByAuditID(auditID uint) (*models.Audi
 	result := repo.db.Where("audit_id = ?", auditID).
 	Preload("Audit").
 	Preload("Audit.AuditPlan").
+	Preload("Audit.AuditPlan.TeamLead").
+	Preload("Audit.AuditPlan.Members").
+	Preload("Audit.AuditPlan.Members.User").
 	Preload("Audit.AuditPlan.AuditableItems").
 	Preload("Audit.AuditPlan.AuditableItems.AuditableItem").
 	Preload("Audit.AuditPlan.AuditableItems.AuditableItem.ResponsibleUser").
@@ -114,6 +117,7 @@ func (repo *AuditDraftReportRepository) GetFullDetailsByID(auditID uint, tx ...u
 		Preload("AuditReportWorkflows.AuditReportWorkflowParticipants.User").
 		Preload("InternalReviewSubmittedByUser").
 		Preload("AuditeeReviewSubmittedByUser").
+		Preload("CompletedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&auditDraftReport)

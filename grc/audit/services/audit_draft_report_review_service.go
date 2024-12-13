@@ -174,10 +174,7 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 			tx.Rollback()
 			return err
 		}
-
 	}
-
-	tx.Commit()
 
 	go func() {
 		entity := "audit-draft-report"
