@@ -107,6 +107,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 	var submittedAt *string
 	var auditeeReviewAubmittedByUser *organizationDTOs.UserMinimalDTO
 	var auditeeReviewAubmittedAt *string
+	var completedByUser *organizationDTOs.UserMinimalDTO
+	var completedAt *string
 
 	// Check if SubmittedByUser and SubmittedAt are present before accessing them
 	if auditDraftReport.InternalReviewSubmittedByUser != nil {
@@ -118,7 +120,7 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 		updatedByUser = &updatedByUserDTO
 	}
 	if auditDraftReport.InternalReviewSubmittedAt != nil {
-		formattedSubmittedAt := auditDraftReport.InternalReviewSubmittedAt.Format("2006-01-02")
+		formattedSubmittedAt := auditDraftReport.InternalReviewSubmittedAt.UTC().Format("2006-01-02T15:04:05.000Z")
 		submittedAt = &formattedSubmittedAt
 	}
 	if auditDraftReport.AuditeeReviewSubmittedByUser != nil {
@@ -126,8 +128,16 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 		auditeeReviewAubmittedByUser = &auditeeSubmittedByUserDTO
 	}
 	if auditDraftReport.AuditeeReviewSubmittedAt != nil {
-		auditeeFormattedSubmittedAt := auditDraftReport.AuditeeReviewSubmittedAt.Format("2006-01-02")
+		auditeeFormattedSubmittedAt := auditDraftReport.AuditeeReviewSubmittedAt.UTC().Format("2006-01-02T15:04:05.000Z")
 		auditeeReviewAubmittedAt = &auditeeFormattedSubmittedAt
+	}
+	if auditDraftReport.CompletedByUser != nil {
+		completedByUserDTO := mapUserToUserMinimalDTO(auditDraftReport.CompletedByUser)
+		completedByUser = &completedByUserDTO
+	}
+	if auditDraftReport.CompletedAt != nil {
+		formattedCompletedAt := auditDraftReport.CompletedAt.UTC().Format("2006-01-02T15:04:05.000Z")
+		completedAt = &formattedCompletedAt
 	}
 	// Map the AuditDraftReportStatus
 	auditDraftReportStatusDTO := auditDTOs.AuditDraftReportStatusDTO{
@@ -179,11 +189,13 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 		ReferenceNumber:               auditDraftReport.Audit.AuditPlan.ReferenceNumber,
 		ReportDateString:              auditDraftReport.ReportDate.Format("2006-01-02"),
 		PreparedBy:                    mapUserToUserMinimalDTO(auditDraftReport.Audit.CreatedByUser),
-		PreparedAt:                    auditDraftReport.CreatedAt.Format("2006-01-02 15:04:05"),
+		PreparedAt:                    auditDraftReport.CreatedAt.UTC().Format("2006-01-02T15:04:05.000Z"),
 		InternalReviewSubmittedByUser: submittedByUser,
 		InternalReviewSubmittedAt:     submittedAt,
 		AuditeeReviewSubmittedByUser:  auditeeReviewAubmittedByUser,
 		AuditeeReviewSubmittedAt:      auditeeReviewAubmittedAt,
+		CompletedByUser:               completedByUser,
+		CompletedAt:                   completedAt,
 		ExecutiveSummary:              *auditDraftReport.ExecutiveSummary,
 		TeamLead:                      mapUserToUserMinimalDTO(auditDraftReport.Audit.AuditPlan.TeamLead),
 		Conclusion:                    *auditDraftReport.Conclusion,
@@ -767,13 +779,11 @@ func (adrs *AuditDraftReportService) Delete(auditID uint, currentUserID uint) er
 }
 
 func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID uint) error {
-	tx := adrs.repo.BeginTransaction()
 	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
 		return err
 	}
 	existingAuditDraftReport, err := adrs.repo.GetByID(id)
 	if err != nil {
-		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
 	}
 
@@ -782,7 +792,6 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 		return err
 	}
 	if existingAuditDraftReport.AuditDraftReportStatusID != auditDraftReportStatusApproved.ID {
-		tx.Rollback()
 		return utility.NewForbiddenError("The audit draft report has not been approved.")
 	}
 
@@ -797,13 +806,14 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 	existingAuditDraftReport.UpdatedBYID = &currentUserID
 	existingAuditDraftReport.UpdatedAt = &now
 
+	//tx begin
+	tx := adrs.repo.BeginTransaction()
+
 	err = adrs.repo.Update(existingAuditDraftReport, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-
-	//todo - notification to auditable item responsible user where findings captured.
 
 	tx.Commit()
 
@@ -858,7 +868,7 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 					"FirstNameEn":           responsibleUser.FirstNameEn,
 					"LastNameEn":            responsibleUser.LastNameEn,
 					"AuditTitle":            existingAuditDraftReport.Audit.AuditPlan.Title,
-					"Reference Number":      existingAuditDraftReport.Audit.AuditPlan.ReferenceNumber,
+					"ReferenceNumber":       existingAuditDraftReport.Audit.AuditPlan.ReferenceNumber,
 					"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 					"AssignedByLastNameEn":  assignedBy.LastNameEn,
 					"AssignedOn":            time.Now().Format("2006-01-02"),
@@ -1007,8 +1017,8 @@ func (adrs *AuditDraftReportService) Complete(auditID uint, id uint, currentUser
 	}
 	now := time.Now()
 	existingAuditDraftReport.AuditDraftReportStatusID = auditDraftReportStatusCompleted.ID
-	existingAuditDraftReport.UpdatedBYID = &currentUserID
-	existingAuditDraftReport.UpdatedAt = &now
+	existingAuditDraftReport.CompletedBYID = &currentUserID
+	existingAuditDraftReport.CompletedAt = &now
 
 	err = adrs.repo.Update(existingAuditDraftReport, tx)
 	if err != nil {

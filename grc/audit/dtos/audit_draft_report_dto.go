@@ -132,6 +132,8 @@ type AuditDraftReportDetailDTO struct {
 	InternalReviewSubmittedAt     *string                              `json:"internal_review_submitted_at"`
 	AuditeeReviewSubmittedByUser  *organizationDTOs.UserMinimalDTO     `json:"auditee_review_submitted_by"`
 	AuditeeReviewSubmittedAt      *string                              `json:"auditee_review_submitted_at"`
+	CompletedByUser               *organizationDTOs.UserMinimalDTO     `json:"completed_by"`
+	CompletedAt                   *string                              `json:"completed_at"`
 	AuditDraftReportStatus        *AuditDraftReportStatusDTO           `json:"audit_draft_report_status"`
 	CreatedByUser                 organizationDTOs.UserMinimalDTO      `json:"created_by"`
 	UpdatedByUser                 *organizationDTOs.UserMinimalDTO     `json:"updated_by"`
