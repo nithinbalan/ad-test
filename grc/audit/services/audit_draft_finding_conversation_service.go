@@ -146,7 +146,7 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 		Type:                formDTO.Type,
 		IsAccepted:          *formDTO.IsAccepted,
 		IsDismissed:         *formDTO.IsDismissed,
-		IsReopened:          *formDTO.IsDismissed,
+		IsReopened:          *formDTO.IsReopened,
 		CreatedBYID:         currentUserID,
 	}
 	id, err := adfcs.repo.Create(conversation, tx)
