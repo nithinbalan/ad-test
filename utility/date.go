@@ -1,6 +1,9 @@
 package utility
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 func ParseDate(dateStr string) (*time.Time, error) {
 	if dateStr == "" {
@@ -59,4 +62,22 @@ func FormatDate(date *time.Time) string {
 		return date.Format("2006-01-02") // Formats the date as YYYY-MM-DD
 	}
 	return ""
+}
+
+func ConvertToUTC(localTime string, timezoneName string) (*time.Time, error) {
+	// Load the location using the timezone name
+	location, err := time.LoadLocation(timezoneName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load timezone: %w", err)
+	}
+
+	// Parse the local time
+	parsedTime, err := time.ParseInLocation("2006-01-02T15:04:05", localTime, location)
+	if err != nil {
+		return nil, fmt.Errorf("invalid time format: %w", err)
+	}
+
+	// Convert to UTC
+	utcTime := parsedTime.UTC()
+	return &utcTime, nil
 }
