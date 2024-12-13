@@ -16,6 +16,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	db := app.DB
 
 	businessFunctionController := app.BusinessContinuityModule.BusinessFunctionController
+	businessImpactAssessmentController := app.BusinessContinuityModule.BusinessImpactAssessmentController
 
 	//Business Function
 	businessContinuityRoutes.GET("/business-functions", middlewares.RolePermissionMiddleware(db, "business_functions", "view"), businessFunctionController.GetAllBusinessFunctions)
@@ -24,4 +25,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.PUT("/business-functions/:id", middlewares.RolePermissionMiddleware(db, "business_functions", "modify"), businessFunctionController.UpdateBusinessFunction)
 	businessContinuityRoutes.POST("/business-functions/delete", middlewares.RolePermissionMiddleware(db, "business_functions", "modify"), businessFunctionController.DeleteBusinessFunctions)
 
+	// Business Impact Assessment
+	businessContinuityRoutes.GET("/business-impact-assessments", middlewares.RolePermissionMiddleware(db, "bia", "view"), businessImpactAssessmentController.GetAllBusinessImpactAssessments)
+	businessContinuityRoutes.PUT("/business-impact-assessments", middlewares.RolePermissionMiddleware(db, "bia", "modify"), businessImpactAssessmentController.UpdateBusinessImpactAssessment)
 }
