@@ -264,6 +264,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.PUT("/audits/:auditId/checklists/:id/answer", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditChecklistController.AuditChecklistAnswer)
 	auditRoutes.POST("audits/:auditId/checklists/delete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditChecklistController.DeleteAuditChecklists)
 	auditRoutes.POST("/audits/:auditId/checklists/delete-answer", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditChecklistController.DeleteAuditChecklistAnswer)
+	unauthenticatedRoutes.GET("/audits/:auditId/checklists/:id/document-download", auditChecklistController.DownloadAuditChecklistDocument)
 
 	//Audit Schedule
 	auditRoutes.GET("/audits/:auditId/schedules", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditScheduleController.GetAllAuditSchedules)

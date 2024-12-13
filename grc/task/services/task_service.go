@@ -102,6 +102,7 @@ func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint
 		DocumentID:               taskDTO.DocumentID,
 		DocumentWorkflowID:       taskDTO.DocumentWorkflowID,
 		AuditFinalReportID:       taskDTO.AuditFinalReportID,
+		AuditDraftReportID:       taskDTO.AuditDraftReportID,
 		AuditReportWorkflowID:    taskDTO.AuditReportWorkflowID,
 		Title:                    taskDTO.Title,
 		Description:              taskDTO.Description,

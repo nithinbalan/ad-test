@@ -72,7 +72,6 @@ func (afs AuditFindingActionPlanStatusUpdateService) GetByID(auditFindingID uint
 
 func (afs *AuditFindingActionPlanStatusUpdateService) Create(auditFindingID uint, auditFindingActionPlanID uint, currentUserID uint, auditFindingActionPlanStatusUpdateFormDTO *auditDTOs.AuditFindingActionPlanStatusUpdateFormDTO) (uint, error) {
 	tx := afs.repo.BeginTransaction()
-
 	if _, err := afs.auditFindingActionPlanSvc.GetByID(auditFindingID, auditFindingActionPlanID); err != nil {
 		return 0, err
 	}
@@ -146,11 +145,19 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Create(auditFindingID uint
 	tx.Commit()
 
 	go func() {
-		err := afs.activityLogSvc.LogActivity(
+		existingAuditFindingActionPlanStatusUpdate, err := afs.GetByID(auditFindingID, auditFindingActionPlanID, id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit finding action plan status", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = afs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditFindingActionPlanStatusUpdate{}.TableName(),
 			id,
-			auditFindingActionPlanUpdate,
+			existingAuditFindingActionPlanStatusUpdate,
 			currentUserID,
 			nil,
 		)
@@ -182,6 +189,12 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Update(auditFindingID uint
 
 	if err != nil {
 		return err
+	}
+
+	oldAuditFindingActionPlanStatusUpdate, err := afs.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
 	}
 
 	if err := afs.validateAuditFindingActionPlanStatusUpdateFormDTO(auditFindingActionPlanStatusUpdateFormDTO); err != nil {
@@ -280,7 +293,52 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Update(auditFindingID uint
 	}
 
 	tx.Commit()
+	go func() {
+		existingFindingActionPlanStatusUpdate, err := afs.repo.GetByID(id)
+		if err != nil {
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"percentage": oldAuditFindingActionPlanStatusUpdate.Percentage,
+			"comment":    oldAuditFindingActionPlanStatusUpdate.Comment,
+		}
 
+		newData := map[string]interface{}{
+			"percentage": existingFindingActionPlanStatusUpdate.Percentage,
+			"comment":    existingFindingActionPlanStatusUpdate.Comment,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := afs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditFindingActionPlanStatusUpdate{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditFindingActionPlanStatusUpdate{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 	return nil
 }
 

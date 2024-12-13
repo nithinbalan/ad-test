@@ -634,22 +634,22 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 			}
 			for _, draftDoc := range draftFinding.Documents {
 				finalDocument := &models.AuditFindingDocument{
-					AuditFindingID:  findingID, // ID of the final AuditFinding
-					URL:             draftDoc.URL,
-					Name:            draftDoc.Name,
-					Size:            draftDoc.Size,
-					Token:           draftDoc.Token,
-					OriginalName:    draftDoc.OriginalName,
-					Type:            draftDoc.Type,
-					CreatedByID:     currentUserID,
-					CreatedAt:       time.Now(),
-					UpdatedAt:       time.Now(),
+					AuditFindingID: findingID, // ID of the final AuditFinding
+					URL:            draftDoc.URL,
+					Name:           draftDoc.Name,
+					Size:           draftDoc.Size,
+					Token:          draftDoc.Token,
+					OriginalName:   draftDoc.OriginalName,
+					Type:           draftDoc.Type,
+					CreatedByID:    currentUserID,
+					CreatedAt:      time.Now(),
+					UpdatedAt:      time.Now(),
 				}
 				// Append the final document to the slice
 				auditFindingDocuments = append(auditFindingDocuments, finalDocument)
 				// Define draft and final storage directories
 				draftDir := filepath.Join("audit", "audits", strconv.FormatUint(uint64(draftFinding.AuditID), 10), "draft-findings", strconv.FormatUint(uint64(draftFinding.ID), 10), "documents")
-				finalDir := filepath.Join("audit", "audits","audit-findings", strconv.FormatUint(uint64(findingID), 10), "documents")
+				finalDir := filepath.Join("audit", "audits", "audit-findings", strconv.FormatUint(uint64(findingID), 10), "documents")
 
 				// Use CopyFileFromPaths to copy each document
 				err = utility.CopyFileFromPaths(draftDir, finalDir, draftDoc.Name)
@@ -708,11 +708,16 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	tx.Commit()
 
 	go func() {
-		err := afrs.activityLogSvc.LogActivity(
+		existingAuditFinalReport, err := afrs.repo.GetFullDetailsByID(auditID)
+		if err != nil {
+			return
+		}
+
+		err = afrs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditFinalReport{}.TableName(),
 			id,
-			nil,
+			existingAuditFinalReport,
 			currentUserID,
 			nil,
 		)
@@ -744,6 +749,7 @@ func (afrs *AuditFinalReportService) Update(auditFinalReport *models.AuditFinalR
 
 func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) error {
 	tx := afrs.repo.BeginTransaction()
+	var deletedAuditFinalReport []map[string]interface{}
 	auditFinalReport, err := afrs.repo.GetFullDetailsByID(auditID, tx)
 	if err != nil {
 		tx.Rollback()
@@ -869,6 +875,11 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 		tx.Rollback()
 		return err
 	}
+	deletedAuditFinalReport = append(deletedAuditFinalReport, map[string]interface{}{
+		"id":         auditFinalReport.ID,
+		"audit_plan": auditFinalReport.Audit.AuditPlan.Title,
+		"audit_id":   auditFinalReport.AuditID,
+	})
 	tx.Commit()
 
 	go func() {
@@ -876,7 +887,7 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 			models.DeleteAction,
 			models.AuditFinalReport{}.TableName(),
 			auditFinalReport.ID,
-			nil,
+			deletedAuditFinalReport,
 			currentUserID,
 			nil,
 		)

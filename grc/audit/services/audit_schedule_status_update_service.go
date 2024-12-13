@@ -138,11 +138,19 @@ func (asus *AuditScheduleStatusUpdateService) Create(auditScheduleID uint, curre
 
 	// Logging the creation asynchronously
 	go func() {
-		err := asus.activityLogSvc.LogActivity(
+		existingAuditScheduleStatusUpdate, err := asus.repo.GetByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit schedule status update", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = asus.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditScheduleStatusUpdate{}.TableName(),
 			id,
-			auditScheduleStatusUpdate,
+			existingAuditScheduleStatusUpdate,
 			currentUserID,
 			nil,
 		)
@@ -169,6 +177,12 @@ func (asus *AuditScheduleStatusUpdateService) Update(auditScheduleID uint, id ui
 	if err != nil {
 		return err
 	}
+	oldScheduleUpdate, err := asus.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	existingUpdate, err := asus.repo.GetByID(id)
 	if err != nil {
 		tx.Rollback()
@@ -260,6 +274,53 @@ func (asus *AuditScheduleStatusUpdateService) Update(auditScheduleID uint, id ui
 			return err
 		}
 	}
+
+	go func() {
+		existingAuditScheduleStatusUpdate, err := asus.repo.GetByID(id)
+		if err != nil {
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"comment":    oldScheduleUpdate.Comment,
+			"percentage": oldScheduleUpdate.Percentage,
+		}
+
+		newData := map[string]interface{}{
+			"comment":    existingAuditScheduleStatusUpdate.Comment,
+			"percentage": existingAuditScheduleStatusUpdate.Percentage,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+
+			err := asus.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditScheduleStatusUpdate{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditScheduleStatusUpdate{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 
 	tx.Commit()
 

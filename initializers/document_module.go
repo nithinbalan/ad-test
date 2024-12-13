@@ -26,6 +26,9 @@ type DocumentModule struct {
 	DocumentChangeRequestInitiateTypeController   *controllers.DocumentChangeRequestInitiateTypeController
 	DocumentChangeRequestInitiateStatusController *controllers.DocumentChangeRequestInitiateStatusController
 	DocumentChangeRequestInitiateController       *controllers.DocumentChangeRequestInitiateController
+	DocumentChangeRequestTypeController           *controllers.DocumentChangeRequestTypeController
+	DocumentChangeRequestStatusController         *controllers.DocumentChangeRequestStatusController
+	DocumentChangeRequestController               *controllers.DocumentChangeRequestController
 
 	DocumentSvc services.DocumentServiceInterface
 }
@@ -145,6 +148,18 @@ func NewDocumentModule(db *gorm.DB,
 	documentChangeRequestInitiateSvc := services.NewDocumentChangeRequestInitiateService(documentChangeRequestInitiateRepo, sharedModule.ActivityLogService, documentChangeRequestInitiateTypeSvc, documentChangeRequestInitiateStatusSvc)
 	documentChangeRequestInitiateController := controllers.NewDocumentChangeRequestInitiateController(documentChangeRequestInitiateSvc)
 
+	documentChangeRequestTypeRepo := repositories.NewDocumentChangeRequestTypeRepository(db)
+	documentChangeRequestTypeSvc := services.NewDocumentChangeRequestTypeService(documentChangeRequestTypeRepo)
+	documentChangeRequestTypeController := controllers.NewDocumentChangeRequestTypeController(documentChangeRequestTypeSvc)
+
+	documentChangeRequestStatusRepo := repositories.NewDocumentChangeRequestStatusRepository(db)
+	documentChangeRequestStatusSvc := services.NewDocumentChangeRequestStatusService(documentChangeRequestStatusRepo)
+	documentChangeRequestStatusController := controllers.NewDocumentChangeRequestStatusController(documentChangeRequestStatusSvc)
+
+	documentChangeRequestRepo := repositories.NewDocumentChangeRequestRepository(db)
+	documentChangeRequestSvc := services.NewDocumentChangeRequestService(documentChangeRequestRepo, sharedModule.ActivityLogService, documentChangeRequestTypeSvc, documentChangeRequestStatusSvc)
+	documentChangeRequestController := controllers.NewDocumentChangeRequestController(documentChangeRequestSvc)
+
 	return &DocumentModule{
 		DocumentCategoryController:                    documentCategoryController,
 		DocumentTypeController:                        documentTypeController,
@@ -163,6 +178,9 @@ func NewDocumentModule(db *gorm.DB,
 		DocumentChangeRequestInitiateTypeController:   documentChangeRequestInitiateTypeController,
 		DocumentChangeRequestInitiateStatusController: documentChangeRequestInitiateStatusController,
 		DocumentChangeRequestInitiateController:       documentChangeRequestInitiateController,
+		DocumentChangeRequestTypeController:           documentChangeRequestTypeController,
+		DocumentChangeRequestStatusController:         documentChangeRequestStatusController,
+		DocumentChangeRequestController:               documentChangeRequestController,
 
 		DocumentSvc: documentSvc,
 	}

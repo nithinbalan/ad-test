@@ -52,7 +52,7 @@ func NewAuditDraftReportService(
 	auditDraftReportStatusSvc AuditDraftReportStatusServiceInterface,
 	auditDraftFindingSvc AuditDraftFindingServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
-	notificationSvc           commonServices.NotificationServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) AuditDraftReportServiceInterface {
 	return &AuditDraftReportService{
 		repo:                      repo,
@@ -61,7 +61,7 @@ func NewAuditDraftReportService(
 		auditDraftReportStatusSvc: auditDraftReportStatusSvc,
 		auditDraftFindingSvc:      auditDraftFindingSvc,
 		userSvc:                   userSvc,
-		notificationSvc:                   notificationSvc,
+		notificationSvc:           notificationSvc,
 	}
 }
 
@@ -179,7 +179,7 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 		ReferenceNumber:               auditDraftReport.Audit.AuditPlan.ReferenceNumber,
 		ReportDateString:              auditDraftReport.ReportDate.Format("2006-01-02"),
 		PreparedBy:                    mapUserToUserMinimalDTO(auditDraftReport.Audit.CreatedByUser),
-		PreparedAt:                    auditDraftReport.CreatedAt.Format("2006-01-02"),
+		PreparedAt:                    auditDraftReport.CreatedAt.UTC().Format("2006-01-02T15:04:05.000Z"),
 		InternalReviewSubmittedByUser: submittedByUser,
 		InternalReviewSubmittedAt:     submittedAt,
 		AuditeeReviewSubmittedByUser:  auditeeReviewAubmittedByUser,
@@ -607,11 +607,16 @@ func (adrs *AuditDraftReportService) Create(auditID uint, currentUserID uint, au
 	tx.Commit()
 
 	go func() {
-		err := adrs.activityLogSvc.LogActivity(
+		existingAuditDraftReport, err := adrs.repo.GetFullDetailsByID(auditID)
+		if err != nil {
+			return
+		}
+
+		err = adrs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditDraftReport{}.TableName(),
 			id,
-			auditDraftReportFormDTO,
+			existingAuditDraftReport,
 			currentUserID,
 			nil,
 		)
@@ -637,6 +642,12 @@ func (adrs *AuditDraftReportService) Update(auditID uint, id uint, currentUserID
 	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
 		return err
 	}
+	oldAuditDraftReport, err := adrs.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	existingAuditDraftReport, err := adrs.repo.GetByID(id)
 	if err != nil {
 		tx.Rollback()
@@ -656,25 +667,49 @@ func (adrs *AuditDraftReportService) Update(auditID uint, id uint, currentUserID
 	tx.Commit()
 
 	go func() {
-		err := adrs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.AuditDraftReport{}.TableName(),
-			id,
-			auditDraftReportFormDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingAuditDraftReport, err := adrs.repo.GetByID(id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.AuditDraftReport{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"executive_summary": oldAuditDraftReport.ExecutiveSummary,
+			"conclusion":        oldAuditDraftReport.Conclusion,
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		newData := map[string]interface{}{
+			"executive_summary": existingAuditDraftReport.ExecutiveSummary,
+			"conclusion":        existingAuditDraftReport.Conclusion,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := adrs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditDraftReport{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditDraftReport{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -683,6 +718,9 @@ func (adrs *AuditDraftReportService) Update(auditID uint, id uint, currentUserID
 
 func (adrs *AuditDraftReportService) Delete(auditID uint, currentUserID uint) error {
 	tx := adrs.repo.BeginTransaction()
+
+	var deletedAuditDraftReport []map[string]interface{}
+
 	auditDraftReport, err := adrs.repo.GetFullDetailsByID(auditID, tx)
 	if err != nil {
 		tx.Rollback()
@@ -693,6 +731,13 @@ func (adrs *AuditDraftReportService) Delete(auditID uint, currentUserID uint) er
 		tx.Rollback()
 		return err
 	}
+
+	deletedAuditDraftReport = append(deletedAuditDraftReport, map[string]interface{}{
+		"id":         auditDraftReport.ID,
+		"audit_plan": auditDraftReport.Audit.AuditPlan.Title,
+		"audit_id":   auditDraftReport.AuditID,
+	})
+
 	tx.Commit()
 
 	go func() {
@@ -700,7 +745,7 @@ func (adrs *AuditDraftReportService) Delete(auditID uint, currentUserID uint) er
 			models.DeleteAction,
 			models.AuditDraftReport{}.TableName(),
 			auditDraftReport.ID,
-			nil,
+			deletedAuditDraftReport,
 			currentUserID,
 			nil,
 		)
@@ -722,13 +767,11 @@ func (adrs *AuditDraftReportService) Delete(auditID uint, currentUserID uint) er
 }
 
 func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID uint) error {
-	tx := adrs.repo.BeginTransaction()
 	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
 		return err
 	}
 	existingAuditDraftReport, err := adrs.repo.GetByID(id)
 	if err != nil {
-		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
 	}
 
@@ -737,7 +780,6 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 		return err
 	}
 	if existingAuditDraftReport.AuditDraftReportStatusID != auditDraftReportStatusApproved.ID {
-		tx.Rollback()
 		return utility.NewForbiddenError("The audit draft report has not been approved.")
 	}
 
@@ -752,13 +794,14 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 	existingAuditDraftReport.UpdatedBYID = &currentUserID
 	existingAuditDraftReport.UpdatedAt = &now
 
+	//tx begin
+	tx := adrs.repo.BeginTransaction()
+
 	err = adrs.repo.Update(existingAuditDraftReport, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-
-	//todo - notification to auditable item responsible user where findings captured.
 
 	tx.Commit()
 
@@ -766,7 +809,7 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
 		entity := "audit-draft-report"
 		action := "review-user-assign"
-		
+
 		existingAuditDraftReportFullDetails, err := adrs.repo.GetByAuditID(auditID)
 		if err != nil {
 			utility.LogError("Failed to fetch review user", map[string]interface{}{
@@ -774,9 +817,9 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 			})
 			return
 		}
-		if existingAuditDraftReportFullDetails.Audit.AuditPlan.AuditableItems != nil{
+		if existingAuditDraftReportFullDetails.Audit.AuditPlan.AuditableItems != nil {
 			for _, item := range existingAuditDraftReportFullDetails.Audit.AuditPlan.AuditableItems {
-				if item.AuditableItem.ResponsibleUser == nil{
+				if item.AuditableItem.ResponsibleUser == nil {
 					utility.LogError("Failed to fetch assigning user", map[string]interface{}{
 						"error": err.Error(),
 					})
@@ -797,7 +840,7 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 					IsSystemNotification: false,
 					CreatedByID:          &currentUserID,
 				}
-	
+
 				assignedBy, err := adrs.userSvc.GetByID(currentUserID)
 				if err != nil {
 					utility.LogError("Failed to fetch assigning user", map[string]interface{}{
@@ -805,7 +848,7 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 					})
 					return
 				}
-	
+
 				emailTo := []string{responsibleUser.Email}
 				subject := fmt.Sprintf("Audit Draft Report /%s: Department Review Assigned", existingAuditDraftReport.Audit.AuditPlan.Title)
 				appURL := utility.GetAppURL()
@@ -813,20 +856,20 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 					"FirstNameEn":           responsibleUser.FirstNameEn,
 					"LastNameEn":            responsibleUser.LastNameEn,
 					"AuditTitle":            existingAuditDraftReport.Audit.AuditPlan.Title,
-					"Reference Number":      existingAuditDraftReport.Audit.AuditPlan.ReferenceNumber,
+					"ReferenceNumber":       existingAuditDraftReport.Audit.AuditPlan.ReferenceNumber,
 					"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 					"AssignedByLastNameEn":  assignedBy.LastNameEn,
 					"AssignedOn":            time.Now().Format("2006-01-02"),
 					"RedirectURL":           fmt.Sprintf("%s/audit-insight/draft-report/%d/details", appURL, id),
 				}
-	
+
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 					EmailTo:              emailTo,
 					Subject:              subject,
 					TemplateRelativePath: "audit/templates/email/audit_draft_report_department_review_user_mail.html",
 					EmailData:            emailData,
 				}
-	
+
 				// Send Notification and Email
 				err = adrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
 				if err != nil {
@@ -836,7 +879,7 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 				}
 			}
 		}
-		
+
 		err = adrs.activityLogSvc.LogActivity(
 			models.UpdateAction,
 			models.AuditDraftReport{}.TableName(),

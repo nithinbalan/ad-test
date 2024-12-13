@@ -25,8 +25,8 @@ type DocumentChangeRequestInitiateListDTO struct {
 	CreatedByUserLastNameEn       string `json:"created_by_user_last_name_en"`
 	CreatedByUserLastNameAr       string `json:"created_by_user_last_name_ar"`
 	CreatedByUserEmail            string `json:"created_by_user_email"`
-	CreatedUserInitial            string `json:"created_user_initial"`
-	CreatedUserColor              string `json:"created_user_color"`
+	CreatedByUserInitial          string `json:"created_by_user_initial"`
+	CreatedByUserColor            string `json:"created_by_user_color"`
 	CreatedByUserProfileImagePath string `json:"created_by_user_profile_image_path"`
 
 	UpdatedByUserID               *uint   `json:"updated_by_user_id"`
@@ -35,8 +35,8 @@ type DocumentChangeRequestInitiateListDTO struct {
 	UpdatedByUserLastNameEn       *string `json:"updated_by_user_last_name_en"`
 	UpdatedByUserLastNameAr       *string `json:"updated_by_user_last_name_ar"`
 	UpdatedByUserEmail            *string `json:"updated_by_user_email"`
-	UpdatedUserInitial            *string `json:"updated_user_initial"`
-	UpdatedUserColor              *string `json:"updated_user_color"`
+	UpdatedByUserInitial          *string `json:"updated_by_user_initial"`
+	UpdatedByUserColor            *string `json:"updated_by_user_color"`
 	UpdatedByUserProfileImagePath *string `json:"updated_by_user_profile_image_path"`
 
 	CreatedAt time.Time  `json:"created_at"`

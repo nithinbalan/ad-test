@@ -240,11 +240,19 @@ func (ams *AuditMeetingService) Create(currentUserID uint, auditMeetingFormDTO *
 	tx.Commit()
 
 	go func() {
-		err := ams.activityLogSvc.LogActivity(
+		existingAuditMeeting, err := ams.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit meeting", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = ams.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditMeeting{}.TableName(),
 			id,
-			auditMeetingFormDTO,
+			existingAuditMeeting,
 			currentUserID,
 			nil,
 		)
@@ -267,6 +275,12 @@ func (ams *AuditMeetingService) Create(currentUserID uint, auditMeetingFormDTO *
 
 func (ams *AuditMeetingService) Update(id uint, currentUserID uint, auditMeetingFormDTO *auditDTOs.AuditMeetingFormDTO, auditId uint) error {
 	tx := ams.repo.BeginTransaction()
+
+	oldAuditMeeting, err := ams.repo.GetFullDetailsByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
 
 	existingAuditMeeting, err := ams.GetByID(id)
 	if err != nil {
@@ -347,25 +361,82 @@ func (ams *AuditMeetingService) Update(id uint, currentUserID uint, auditMeeting
 	tx.Commit()
 
 	go func() {
-		err := ams.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.AuditMeeting{}.TableName(),
-			id,
-			auditMeetingFormDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingAuditMeeting, err := ams.repo.GetFullDetailsByID(id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.AuditMeeting{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		participantsAdded := []uint{}
+		participantsRemoved := []uint{}
+		for id := range newParticipantIDs {
+			if !existingParticipantIDs[id] {
+				participantsAdded = append(participantsAdded, id)
+			}
+		}
+		for id := range existingParticipantIDs {
+			if !newParticipantIDs[id] {
+				participantsRemoved = append(participantsRemoved, id)
+			}
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
+
+		if len(participantsAdded) > 0 || len(participantsRemoved) > 0 {
+			associatedItems["participant_ids"] = map[string]interface{}{
+				"added":   participantsAdded,
+				"removed": participantsRemoved,
+			}
+		}
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+		//log changes
+		oldData := map[string]interface{}{
+			"title":              oldAuditMeeting.Title,
+			"date":               oldAuditMeeting.Date,
+			"from_time":          oldAuditMeeting.FromTime,
+			"to_time":            oldAuditMeeting.ToTime,
+			"other_participants": oldAuditMeeting.OtherParticipants,
+			"mom":                oldAuditMeeting.Mom,
+		}
+
+		newData := map[string]interface{}{
+			"title":              existingAuditMeeting.Title,
+			"date":               existingAuditMeeting.Date,
+			"from_time":          existingAuditMeeting.FromTime,
+			"to_time":            existingAuditMeeting.ToTime,
+			"other_participants": existingAuditMeeting.OtherParticipants,
+			"mom":                existingAuditMeeting.Mom,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+
+			err := ams.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditMeeting{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditMeeting{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -377,7 +448,7 @@ func (ams *AuditMeetingService) Delete(ids []uint, currentUserID uint) ([]uint, 
 
 	var failedIDs []uint
 	var successfulIDs []uint
-
+	var deletedAuditMeeting []map[string]interface{}
 	for _, id := range ids {
 		auditMeeting, err := ams.GetFullDetailsByID(id, tx)
 		if err != nil {
@@ -408,6 +479,12 @@ func (ams *AuditMeetingService) Delete(ids []uint, currentUserID uint) ([]uint, 
 		} else {
 			successfulIDs = append(successfulIDs, id)
 		}
+
+		deletedAuditMeeting = append(deletedAuditMeeting, map[string]interface{}{
+			"id":       id,
+			"audit_id": auditMeeting.AuditID,
+			"title":    auditMeeting.Title,
+		})
 	}
 
 	if len(failedIDs) > 0 {
@@ -423,7 +500,7 @@ func (ams *AuditMeetingService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				models.DeleteAction,
 				models.AuditMeeting{}.TableName(),
 				successfulIDs,
-				nil,
+				deletedAuditMeeting,
 				currentUserID,
 				nil,
 			)

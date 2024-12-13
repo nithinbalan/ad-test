@@ -27,6 +27,7 @@ type MasterModule struct {
 	WorkflowStatusController      *controllers.WorkflowStatusController
 	IntegrationCategoryController *controllers.IntegrationCategoryController
 	ImpactCategoryController      *controllers.ImpactCategoryController
+	TimeUnitController            *controllers.TimeUnitController
 
 	ReviewFrequencySvc     services.ReviewFrequencyServiceInterface
 	SeverityLevelSvc       services.SeverityLevelServiceInterface
@@ -46,6 +47,7 @@ type MasterModule struct {
 	WorkflowStatusSvc      services.WorkflowStatusServiceInterface
 	IntegrationCategorySvc services.IntegrationCategoryServiceInterface
 	ImpactCategorySvc      services.ImpactCategoryServiceInterface
+	TimeUnitSvc            services.TimeUnitServiceInterface
 }
 
 func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
@@ -136,6 +138,11 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	impactCategorySvc := services.NewImpactCategoryService(impactCategoryRepo, sharedModule.ActivityLogService)
 	impactCategoryController := controllers.NewImpactCategoryController(impactCategorySvc)
 
+	// Impact category
+	timeUnitRepo := repositories.NewTimeUnitRepository(db)
+	timeUnitSvc := services.NewTimeUnitService(timeUnitRepo)
+	timeUnitController := controllers.NewTimeUnitController(timeUnitSvc)
+
 	return &MasterModule{
 		ReviewFrequencyController:     reviewFrequencyController,
 		SeverityLevelController:       severityLevelController,
@@ -155,6 +162,7 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		WorkflowStatusController:      workflowStatusController,
 		IntegrationCategoryController: integrationCategoryController,
 		ImpactCategoryController:      impactCategoryController,
+		TimeUnitController:            timeUnitController,
 
 		ReviewFrequencySvc:     reviewFrequencySvc,
 		SeverityLevelSvc:       severityLevelSvc,
@@ -174,5 +182,6 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		WorkflowStatusSvc:      workflowStatusSvc,
 		IntegrationCategorySvc: integrationCategorySvc,
 		ImpactCategorySvc:      impactCategorySvc,
+		TimeUnitSvc:            timeUnitSvc,
 	}
 }

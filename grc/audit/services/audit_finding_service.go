@@ -193,11 +193,18 @@ func (afs *AuditFindingService) Create(currentUserID uint, auditFindingFormDTO *
 	tx.Commit()
 
 	go func() {
-		err := afs.activityLogSvc.LogActivity(
+		existingAuditFinding, err := afs.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit finding", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = afs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditFinding{}.TableName(),
 			id,
-			auditFindingFormDTO,
+			existingAuditFinding,
 			currentUserID,
 			nil,
 		)
@@ -222,6 +229,12 @@ func (afs *AuditFindingService) Update(id uint, currentUserID uint, auditFinding
 	tx := afs.repo.BeginTransaction()
 
 	existingAuditFinding, err := afs.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
+
+	oldAuditFinding, err := afs.repo.GetFullDetailsByID(id)
 	if err != nil {
 		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
@@ -323,25 +336,54 @@ func (afs *AuditFindingService) Update(id uint, currentUserID uint, auditFinding
 	tx.Commit()
 
 	go func() {
-		err := afs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.AuditFinding{}.TableName(),
-			id,
-			auditFindingFormDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingAuditFinding, err := afs.repo.GetFullDetailsByID(id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.AuditFinding{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"auditable_item":         oldAuditFinding.AuditableItem.TitleEn,
+			"audit_finding_category": oldAuditFinding.AuditFindingCategory.TitleEn,
+			"severity_level":         oldAuditFinding.SeverityLevel.TitleEn,
+			"recommendations":        oldAuditFinding.Recommendations,
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		newData := map[string]interface{}{
+			"auditable_item":         existingAuditFinding.AuditableItem.TitleEn,
+			"audit_finding_category": existingAuditFinding.AuditFindingCategory.TitleEn,
+			"severity_level":         existingAuditFinding.SeverityLevel.TitleEn,
+			"recommendations":        existingAuditFinding.Recommendations,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+
+			err := afs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditFinding{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditFinding{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -353,6 +395,7 @@ func (afs *AuditFindingService) Delete(ids []uint, currentUserID uint) ([]uint, 
 	tx := afs.repo.BeginTransaction()
 	var failedIDs []uint
 	var successfulIDs []uint
+	var deletedAuditFinding []map[string]interface{}
 	documentsToDelete := make(map[uint][]*auditDTOs.AuditFindingDocumentDTO)
 
 	for _, id := range ids {
@@ -388,6 +431,10 @@ func (afs *AuditFindingService) Delete(ids []uint, currentUserID uint) ([]uint, 
 		}
 
 		successfulIDs = append(successfulIDs, id)
+		deletedAuditFinding = append(deletedAuditFinding, map[string]interface{}{
+			"id":       id,
+			"audit_id": auditFinding.AuditID,
+		})
 	}
 
 	if len(successfulIDs) > 0 {
@@ -412,7 +459,7 @@ func (afs *AuditFindingService) Delete(ids []uint, currentUserID uint) ([]uint, 
 					models.DeleteAction,
 					models.AuditFinding{}.TableName(),
 					id,
-					nil,
+					deletedAuditFinding,
 					currentUserID,
 					nil,
 				)
