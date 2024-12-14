@@ -98,9 +98,9 @@ func (adfaps AuditDraftFindingActionPlanService) GetFullDetailsByID(findingID ui
 }
 
 func (adfaps *AuditDraftFindingActionPlanService) Create(findingID uint, currentUserID uint, AuditDraftFindingActionPlanFormDTO *auditFindingDTOs.AuditDraftFindingActionPlanFormDTO, tx ...utility.DatabaseTransaction) (uint, error) {
-	if _, err := adfaps.auditDraftFindingSvc.GetByID(findingID); err != nil {
-		return 0, err
-	}
+	// if _, err := adfaps.auditDraftFindingSvc.GetByID(findingID); err != nil {
+	// 	return 0, err
+	// }
 
 	dates, err := adfaps.parseAuditDraftFindingActionPlanDates(AuditDraftFindingActionPlanFormDTO)
 	if err != nil {
@@ -110,7 +110,7 @@ func (adfaps *AuditDraftFindingActionPlanService) Create(findingID uint, current
 	auditDraftFindingActionPlan := &models.AuditDraftFindingActionPlan{
 		AuditDraftFindingID: findingID,
 		Title:               AuditDraftFindingActionPlanFormDTO.Title,
-		Description:         *AuditDraftFindingActionPlanFormDTO.Description,
+		Description:         AuditDraftFindingActionPlanFormDTO.Description,
 		ResponsibleUserID:   &AuditDraftFindingActionPlanFormDTO.ResponsibleUserID,
 		TargetDate:          dates.TargetDate,
 		CreatedBYID:         currentUserID,
@@ -182,7 +182,7 @@ func (adfaps *AuditDraftFindingActionPlanService) Update(findingID uint, id uint
 
 	// Update Audit Finding ActionPlan
 	existingAuditDraftFindingActionPlan.Title = AuditDraftFindingActionPlanFormDTO.Title
-	existingAuditDraftFindingActionPlan.Description = *AuditDraftFindingActionPlanFormDTO.Description
+	existingAuditDraftFindingActionPlan.Description = AuditDraftFindingActionPlanFormDTO.Description
 	existingAuditDraftFindingActionPlan.ResponsibleUserID = &AuditDraftFindingActionPlanFormDTO.ResponsibleUserID
 	existingAuditDraftFindingActionPlan.TargetDate = dates.TargetDate
 	existingAuditDraftFindingActionPlan.UpdatedBYID = &currentUserID

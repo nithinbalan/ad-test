@@ -666,7 +666,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 				actionPlan := &models.AuditFindingActionPlan{
 					Title:             draftActionPlan.Title,
 					AuditFindingID:    findingID,
-					Description:       &draftActionPlan.Description,
+					Description:       draftActionPlan.Description,
 					ResponsibleUserID: *draftActionPlan.ResponsibleUserID,
 					TargetDate:        draftActionPlan.TargetDate,
 					CreatedBYID:       currentUserID,
