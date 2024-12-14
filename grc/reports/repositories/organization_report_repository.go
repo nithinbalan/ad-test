@@ -99,23 +99,27 @@ func (repo *OrganizationReportRepository) GetUsersByDesignation(params *dtos.Rep
 func (repo *OrganizationReportRepository) GetProcessesByResponsibleUnit(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByUnitDTO, error) {
 	results := []*dtos.ProcessByUnitDTO{}
 
-	query := repo.db.Table("organization_units").
+	query := repo.db.Table("processes").
 		Select(`
-			organization_units.id AS owner_unit_id,
+			processes.owner_unit_id AS owner_unit_id,
 			organization_units.title_en AS owner_unit_title_en,
 			organization_units.title_ar AS owner_unit_title_ar,
 			organization_units.color_code AS owner_unit_color_code,
 			organization_units.status AS owner_unit_status,
-			COALESCE(COUNT(processes.id), 0) AS count`).
-		Joins("LEFT JOIN processes ON processes.owner_unit_id = organization_units.id").
-		Group("organization_units.id, organization_units.title_en, organization_units.title_ar, organization_units.color_code, organization_units.status")
+			COUNT(processes.id) AS count`).
+		Joins("JOIN organization_units ON organization_units.id = processes.owner_unit_id").
+		Group("processes.owner_unit_id, organization_units.title_en, organization_units.title_ar, organization_units.color_code, organization_units.status")
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("processes.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err := query.Scan(&results).Error
-	return results, err
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
 
 func (repo *OrganizationReportRepository) GetProcessesByRiskRating(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByRiskRatingDTO, error) {
@@ -143,7 +147,7 @@ func (repo *OrganizationReportRepository) GetProcessesByRiskRating(params *dtos.
 func (repo *OrganizationReportRepository) GetProcessesByResponsibleUser(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByResponsibleUserDTO, error) {
 	results := []*dtos.ProcessByResponsibleUserDTO{}
 
-	query := repo.db.Table("users").
+	query := repo.db.Table("processes").
 		Select(`
 			users.id AS responsible_user_id,
 			users.first_name_en AS responsible_user_first_name_en,
@@ -154,8 +158,8 @@ func (repo *OrganizationReportRepository) GetProcessesByResponsibleUser(params *
 			users.color AS responsible_user_color,
 			users.email AS responsible_user_email,
 			users.profile_image_path AS responsible_user_profile_image_path,
-			COALESCE(COUNT(processes.id), 0) AS count`).
-		Joins("LEFT JOIN processes ON processes.owner_id = users.id").
+			COUNT(processes.id) AS count`).
+		Joins("JOIN users ON users.id = processes.owner_id").
 		Group("users.id, users.first_name_en, users.first_name_ar, users.last_name_en, users.last_name_ar, users.initial, users.color, users.email, users.profile_image_path")
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -163,7 +167,11 @@ func (repo *OrganizationReportRepository) GetProcessesByResponsibleUser(params *
 	}
 
 	err := query.Scan(&results).Error
-	return results, err
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
 
 func (repo *OrganizationReportRepository) GetProcessesByProcessGroup(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByProcessGroupDTO, error) {
