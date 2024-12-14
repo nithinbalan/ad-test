@@ -130,7 +130,7 @@ func (aidfs *AuditInsightsDraftFindingService) Accept(auditDraftFindingID uint, 
 		TargetDate:        auditInsightsDraftFindingApproveFormDTO.TargetDate,
 	}
 
-	if _, err := aidfs.auditDraftFindingActionPlanSvc.Create(auditDraftFindingID, currentUserID, &auditDraftFindingActionPlanFormDTO); err != nil {
+	if _, err := aidfs.auditDraftFindingActionPlanSvc.Create(auditDraftFindingID, currentUserID, &auditDraftFindingActionPlanFormDTO, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
