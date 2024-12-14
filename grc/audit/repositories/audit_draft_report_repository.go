@@ -103,6 +103,7 @@ func (repo *AuditDraftReportRepository) GetFullDetailsByID(auditID uint, tx ...u
 		Preload("Audit.AuditDraftFindings.AuditDraftFindingActionPlans.UpdatedByUser").
 		Preload("Audit.AuditDraftFindings.AcceptedByUser").
 		Preload("Audit.AuditDraftFindings.ChallengedByUser").
+		Preload("Audit.AuditDraftFindings.AuditDraftReportCommentsByFindings").
 		Preload("Audit.AuditPlan").
 		Preload("Audit.AuditPlan.AuditCategory").
 		Preload("Audit.AuditPlan.AuditStatus").

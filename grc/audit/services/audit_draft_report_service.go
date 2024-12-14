@@ -188,9 +188,13 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 		conclusionOpenCount = count["unresolved"]
 	}
 
-	// Print results
-	fmt.Printf("Executive Summary: Resolved=%d, Open=%d\n", executiveSummaryResolvedCount, executiveSummaryOpenCount)
-	fmt.Printf("Conclusion: Resolved=%d, Open=%d\n", conclusionResolvedCount, conclusionOpenCount)
+	// Assign counts for "finding"
+	findingResolvedCount := 0
+	findingOpenCount := 0
+	if count, exists := commentCountByType["finding"]; exists {
+		findingResolvedCount = count["resolved"]
+		findingOpenCount = count["unresolved"]
+	}
 
 	// Map the data to the DTO
 	auditReportDTO := &auditDTOs.AuditDraftReportDetailDTO{
@@ -220,6 +224,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 		ExecutiveSummaryOpenCount:     executiveSummaryOpenCount,
 		ConclusionResolvedCount:       conclusionResolvedCount,
 		ConclusionOpenCount:           conclusionOpenCount,
+		FindingResolvedCount:          findingResolvedCount,
+		FindingOpenCount:              findingOpenCount,
 	}
 
 	// Map auditors
@@ -248,6 +254,35 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 			return nil, err
 		}
 		for _, finding := range auditDraftReport.Audit.AuditDraftFindings {
+			commentCountByType := make(map[string]map[string]int)
+
+			// Iterate over comments
+			for _, comment := range finding.AuditDraftReportCommentsByFindings {
+				// Normalize the comment type
+				commentType := strings.TrimSpace(strings.ToLower("finding"))
+
+				// Initialize the inner map if not exists
+				if _, exists := commentCountByType[commentType]; !exists {
+					commentCountByType[commentType] = map[string]int{
+						"resolved":   0,
+						"unresolved": 0,
+					}
+				}
+
+				// Increment the count based on resolution status
+				if comment.IsResolved {
+					commentCountByType[commentType]["resolved"]++
+				} else {
+					commentCountByType[commentType]["unresolved"]++
+				}
+			}
+			// Assign counts for "finding"
+			draftFindingResolvedCount := 0
+			draftFindingOpenCount := 0
+			if count, exists := commentCountByType["finding"]; exists {
+				draftFindingResolvedCount = count["resolved"]
+				draftFindingOpenCount = count["unresolved"]
+			}
 			if finding.AuditableItem != nil && finding.AuditableItem.ResponsibleUnit != nil && finding.AuditableItem.ResponsibleUnit.ID == orgUnitID {
 				var acceptedByUser *organizationDTOs.UserMinimalDTO = nil
 				var challengedByUser *organizationDTOs.UserMinimalDTO = nil
@@ -278,6 +313,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 					AcceptedAt:                     finding.AcceptedAt,
 					ChallengedByUser:               challengedByUser,
 					ChallengedAt:                   finding.ChallengedAt,
+					FindingResolvedCount:           draftFindingResolvedCount,
+					FindingOpenCount:               draftFindingOpenCount,
 				}
 				if finding.AuditDraftFindingStatus != nil {
 					// Map AuditDraftFindingStatus to DTO
@@ -431,6 +468,35 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 				challengedByUserDTO := mapUserToUserMinimalDTO(finding.ChallengedByUser)
 				challengedByUser = &challengedByUserDTO
 			}
+			commentCountByType := make(map[string]map[string]int)
+
+			// Iterate over comments
+			for _, comment := range finding.AuditDraftReportCommentsByFindings {
+				// Normalize the comment type
+				commentType := strings.TrimSpace(strings.ToLower("finding"))
+
+				// Initialize the inner map if not exists
+				if _, exists := commentCountByType[commentType]; !exists {
+					commentCountByType[commentType] = map[string]int{
+						"resolved":   0,
+						"unresolved": 0,
+					}
+				}
+
+				// Increment the count based on resolution status
+				if comment.IsResolved {
+					commentCountByType[commentType]["resolved"]++
+				} else {
+					commentCountByType[commentType]["unresolved"]++
+				}
+			}
+			// Assign counts for "finding"
+			draftFindingResolvedCount := 0
+			draftFindingOpenCount := 0
+			if count, exists := commentCountByType["finding"]; exists {
+				draftFindingResolvedCount = count["resolved"]
+				draftFindingOpenCount = count["unresolved"]
+			}
 			findingDTO := auditDTOs.AuditDraftFindingReportDetailDTO{
 				ID:                             finding.ID,
 				Title:                          finding.Title,
@@ -450,6 +516,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 				AcceptedAt:                     finding.AcceptedAt,
 				ChallengedByUser:               challengedByUser,
 				ChallengedAt:                   finding.ChallengedAt,
+				FindingResolvedCount:           draftFindingResolvedCount,
+				FindingOpenCount:               draftFindingOpenCount,
 			}
 			if finding.AuditDraftFindingStatus != nil {
 				// Map AuditDraftFindingStatus to DTO
