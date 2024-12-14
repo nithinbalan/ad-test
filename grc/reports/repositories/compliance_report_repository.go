@@ -39,14 +39,14 @@ func NewComplianceReportRepository(db *gorm.DB) *ComplianceReportRepository {
 func (repo *ComplianceReportRepository) GetComplianceByComplianceCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceByCategoryDTO, error) {
 	results := []*reportDTOs.ComplianceByCategoryDTO{}
 
-	query := repo.db.Table("compliance_register").
+	query := repo.db.Table("compliance_categories").
 		Select(`
 			compliance_categories.id AS compliance_category_id,
 			compliance_categories.title_en AS compliance_category_title_en,
 			compliance_categories.title_ar AS compliance_category_title_ar,
-			COUNT(compliance_register.id) AS count
+			COALESCE(COUNT(compliance_register.id), 0) AS count
 		`).
-		Joins("JOIN compliance_categories ON compliance_categories.id = compliance_register.compliance_category_id").
+		Joins("LEFT JOIN compliance_register ON compliance_register.compliance_category_id = compliance_categories.id").
 		Group("compliance_categories.id, compliance_categories.title_en, compliance_categories.title_ar")
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -60,16 +60,16 @@ func (repo *ComplianceReportRepository) GetComplianceByComplianceCategory(params
 func (repo *ComplianceReportRepository) GetComplianceBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceBySeverityLevelDTO, error) {
 	results := []*reportDTOs.ComplianceBySeverityLevelDTO{}
 
-	query := repo.db.Table("compliance_register").
+	query := repo.db.Table("severity_levels").
 		Select(`
 			severity_levels.id AS severity_level_id,
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,
 			severity_levels.color_code AS severity_level_color_code,
 			severity_levels.type AS severity_level_type,
-			COUNT(compliance_register.id) AS count
+			COALESCE(COUNT(compliance_register.id), 0) AS count
 		`).
-		Joins("JOIN severity_levels ON severity_levels.id = compliance_register.severity_level_id").
+		Joins("LEFT JOIN compliance_register ON compliance_register.severity_level_id = severity_levels.id").
 		Group("severity_levels.id, severity_levels.title_en, severity_levels.title_ar, severity_levels.color_code, severity_levels.type")
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -83,16 +83,16 @@ func (repo *ComplianceReportRepository) GetComplianceBySeverityLevel(params *rep
 func (repo *ComplianceReportRepository) GetComplianceByComplianceStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceByStatusDTO, error) {
 	results := []*reportDTOs.ComplianceByStatusDTO{}
 
-	query := repo.db.Table("compliance_register").
+	query := repo.db.Table("compliance_statuses").
 		Select(`
 			compliance_statuses.id AS compliance_status_id,
 			compliance_statuses.title_en AS compliance_status_title_en,
 			compliance_statuses.title_ar AS compliance_status_title_ar,
 			compliance_statuses.color_code AS compliance_status_color_code,
 			compliance_statuses.type AS compliance_status_type,
-			COUNT(compliance_register.id) AS count
+			COALESCE(COUNT(compliance_register.id), 0) AS count
 		`).
-		Joins("JOIN compliance_statuses ON compliance_statuses.id = compliance_register.compliance_status_id").
+		Joins("LEFT JOIN compliance_register ON compliance_register.compliance_status_id = compliance_statuses.id").
 		Group("compliance_statuses.id, compliance_statuses.title_en, compliance_statuses.title_ar, compliance_statuses.color_code, compliance_statuses.type")
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -155,14 +155,14 @@ func (repo *ComplianceReportRepository) GetComplianceByResponsibleUser(params *r
 func (repo *ComplianceReportRepository) GetComplianceRequirementByComplianceStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByComplianceStatusDTO, error) {
 	results := []*reportDTOs.ComplianceRequirementByComplianceStatusDTO{}
 
-	query := repo.db.Table("compliance_requirements").
+	query := repo.db.Table("compliance_statuses").
 		Select(`
             compliance_statuses.id AS compliance_status_id,
             compliance_statuses.title_en AS compliance_status_title_en,
             compliance_statuses.title_ar AS compliance_status_title_ar,
-            COUNT(compliance_requirements.id) AS count
+            COALESCE(COUNT(compliance_requirements.id), 0) AS count
         `).
-		Joins("JOIN compliance_statuses ON compliance_statuses.id = compliance_requirements.compliance_status_id").
+		Joins("LEFT JOIN compliance_requirements ON compliance_requirements.compliance_status_id = compliance_statuses.id").
 		Group("compliance_statuses.id, compliance_statuses.title_en, compliance_statuses.title_ar")
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -176,16 +176,16 @@ func (repo *ComplianceReportRepository) GetComplianceRequirementByComplianceStat
 func (repo *ComplianceReportRepository) GetComplianceRequirementBySeverity(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementBySeverityLevelDTO, error) {
 	results := []*reportDTOs.ComplianceRequirementBySeverityLevelDTO{}
 
-	query := repo.db.Table("compliance_requirements").
+	query := repo.db.Table("severity_levels").
 		Select(`
             severity_levels.id AS severity_level_id,
             severity_levels.title_en AS severity_level_title_en,
             severity_levels.title_ar AS severity_level_title_ar,
             severity_levels.color_code AS severity_level_color_code,
             severity_levels.type AS severity_level_type,
-            COUNT(compliance_requirements.id) AS count
+            COALESCE(COUNT(compliance_requirements.id), 0) AS count
         `).
-		Joins("JOIN severity_levels ON severity_levels.id = compliance_requirements.severity_level_id").
+		Joins("LEFT JOIN compliance_requirements ON compliance_requirements.severity_level_id = severity_levels.id").
 		Group("severity_levels.id, severity_levels.title_en, severity_levels.title_ar, severity_levels.color_code, severity_levels.type")
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -199,14 +199,14 @@ func (repo *ComplianceReportRepository) GetComplianceRequirementBySeverity(param
 func (repo *ComplianceReportRepository) GetComplianceRequirementByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByCategoryDTO, error) {
 	results := []*reportDTOs.ComplianceRequirementByCategoryDTO{}
 
-	query := repo.db.Table("compliance_requirements").
+	query := repo.db.Table("compliance_requirement_categories").
 		Select(`
             compliance_requirement_categories.id AS compliance_requirement_category_id,
             compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
             compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
-            COUNT(compliance_requirements.id) AS count
+            COALESCE(COUNT(compliance_requirements.id), 0) AS count
         `).
-		Joins("JOIN compliance_requirement_categories ON compliance_requirement_categories.id = compliance_requirements.compliance_requirement_category_id").
+		Joins("LEFT JOIN compliance_requirements ON compliance_requirements.compliance_requirement_category_id = compliance_requirement_categories.id").
 		Group("compliance_requirement_categories.id, compliance_requirement_categories.title_en, compliance_requirement_categories.title_ar")
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -245,16 +245,16 @@ func (repo *ComplianceReportRepository) GetComplianceRequirementByResponsibleUse
 func (repo *ComplianceReportRepository) GetComplianceActionPlanByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceActionPlanByStatusDTO, error) {
 	results := []*reportDTOs.ComplianceActionPlanByStatusDTO{}
 
-	query := repo.db.Table("compliance_action_plans").
+	query := repo.db.Table("action_plan_statuses").
 		Select(`
 			action_plan_statuses.id AS action_plan_status_id,
 			action_plan_statuses.title_en AS action_plan_status_title_en,
 			action_plan_statuses.title_ar AS action_plan_status_title_ar,
 			action_plan_statuses.color_code AS action_plan_status_color_code,
 			action_plan_statuses.type AS action_plan_status_type,
-			COUNT(compliance_action_plans.id) AS count
+			COALESCE(COUNT(compliance_action_plans.id), 0) AS count
 		`).
-		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = compliance_action_plans.action_plan_status_id").
+		Joins("LEFT JOIN compliance_action_plans ON compliance_action_plans.action_plan_status_id = action_plan_statuses.id").
 		Group("action_plan_statuses.id, action_plan_statuses.title_en, action_plan_statuses.title_ar, action_plan_statuses.color_code, action_plan_statuses.type")
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -294,14 +294,14 @@ func (repo *ComplianceReportRepository) GetComplianceActionPlanByResponsibleUser
 func (repo *ComplianceReportRepository) GetSLAByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.SLAByCategoryDTO, error) {
 	results := []*reportDTOs.SLAByCategoryDTO{}
 
-	query := repo.db.Table("sla_register").
+	query := repo.db.Table("sla_categories").
 		Select(`
 			sla_categories.id AS sla_category_id,
 			sla_categories.title_en AS sla_category_title_en,
 			sla_categories.title_ar AS sla_category_title_ar,
-			COUNT(sla_register.id) AS count
+			COALESCE(COUNT(sla_register.id), 0) AS count
 		`).
-		Joins("JOIN sla_categories ON sla_categories.id = sla_register.sla_category_id").
+		Joins("LEFT JOIN sla_register ON sla_register.sla_category_id = sla_categories.id").
 		Group("sla_categories.id, sla_categories.title_en, sla_categories.title_ar")
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -315,16 +315,16 @@ func (repo *ComplianceReportRepository) GetSLAByCategory(params *reportDTOs.Repo
 func (repo *ComplianceReportRepository) GetSLABySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.SLABySeverityLevelDTO, error) {
 	results := []*reportDTOs.SLABySeverityLevelDTO{}
 
-	query := repo.db.Table("sla_register").
+	query := repo.db.Table("severity_levels").
 		Select(`
 			severity_levels.id AS severity_level_id,
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,
 			severity_levels.color_code AS severity_level_color_code,
 			severity_levels.type AS severity_level_type,
-			COUNT(sla_register.id) AS count
+			COALESCE(COUNT(sla_register.id), 0) AS count
 		`).
-		Joins("JOIN severity_levels ON severity_levels.id = sla_register.severity_level_id").
+		Joins("LEFT JOIN sla_register ON sla_register.severity_level_id = severity_levels.id").
 		Group("severity_levels.id, severity_levels.title_en, severity_levels.title_ar, severity_levels.color_code, severity_levels.type")
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -338,14 +338,14 @@ func (repo *ComplianceReportRepository) GetSLABySeverityLevel(params *reportDTOs
 func (repo *ComplianceReportRepository) GetSLAByComplianceStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.SLAByComplianceStatusDTO, error) {
 	results := []*reportDTOs.SLAByComplianceStatusDTO{}
 
-	query := repo.db.Table("sla_register").
+	query := repo.db.Table("compliance_statuses").
 		Select(`
 			compliance_statuses.id AS compliance_status_id,
 			compliance_statuses.title_en AS compliance_status_title_en,
 			compliance_statuses.title_ar AS compliance_status_title_ar,
-			COUNT(sla_register.id) AS count
+			COALESCE(COUNT(sla_register.id), 0) AS count
 		`).
-		Joins("JOIN compliance_statuses ON compliance_statuses.id = sla_register.compliance_status_id").
+		Joins("LEFT JOIN sla_register ON sla_register.compliance_status_id = compliance_statuses.id").
 		Group("compliance_statuses.id, compliance_statuses.title_en, compliance_statuses.title_ar")
 
 	if params.DateFrom != "" && params.DateTo != "" {

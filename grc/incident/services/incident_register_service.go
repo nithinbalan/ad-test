@@ -20,6 +20,7 @@ import (
 	masterServices "jethur/grc/masters/services"
 	organizationServices "jethur/grc/organization/services"
 	riskServices "jethur/grc/risk/services"
+	settingServices "jethur/grc/settings/services"
 
 	"jethur/grc/models"
 	"jethur/utility"
@@ -58,6 +59,7 @@ type IncidentRegisterService struct {
 	userSettingSvc           organizationServices.UserSettingServiceInterface
 	notificationSvc          commonServices.NotificationServiceInterface
 	assetRegisterSvc         assetServices.AssetRegisterServiceInterface
+	systemPreferenceSvc      settingServices.SystemPreferenceServiceInterface
 }
 
 func NewIncidentRegisterService(
@@ -77,6 +79,7 @@ func NewIncidentRegisterService(
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	assetRegisterSvc assetServices.AssetRegisterServiceInterface,
+	systemPreferenceSvc settingServices.SystemPreferenceServiceInterface,
 ) IncidentRegisterServiceInterface {
 	return &IncidentRegisterService{
 		repo:                     repo,
@@ -95,6 +98,7 @@ func NewIncidentRegisterService(
 		userSettingSvc:           userSettingSvc,
 		notificationSvc:          notificationSvc,
 		assetRegisterSvc:         assetRegisterSvc,
+		systemPreferenceSvc:      systemPreferenceSvc,
 	}
 }
 
@@ -145,7 +149,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		return 0, err
 	}
 
-	dates, err := irs.parseIncidentRegisterDates(incidentRegisterFormDTO)
+	dates, err := irs.parseIncidentRegisterDates(incidentRegisterFormDTO, currentUserID)
 	if err != nil {
 		return 0, err
 	}
@@ -541,7 +545,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		return err
 	}
 
-	dates, err := irs.parseIncidentRegisterDates(incidentRegisterFormDTO)
+	dates, err := irs.parseIncidentRegisterDates(incidentRegisterFormDTO, currentUserID)
 	if err != nil {
 		return err
 	}
@@ -1783,15 +1787,15 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 	return nil
 }
 
-func (irs *IncidentRegisterService) parseIncidentRegisterDates(dto *incidentDTOs.IncidentRegisterFormDTO) (*incidentDTOs.IncidentRegisterParsedDates, error) {
+func (irs *IncidentRegisterService) parseIncidentRegisterDates(dto *incidentDTOs.IncidentRegisterFormDTO, currentUserID uint) (*incidentDTOs.IncidentRegisterParsedDates, error) {
 	parsed := &incidentDTOs.IncidentRegisterParsedDates{}
 
-	systemPreference, err := irs.getSystemPreference()
+	userPreference, err := irs.userSvc.GetCurrentUserDetails(currentUserID)
 	if err != nil {
 		return nil, err
 	}
 
-	timezoneName := systemPreference.Timezone.Name
+	timezoneName := userPreference.UserSetting.Timezone.Name
 
 	fmt.Println(timezoneName)
 
@@ -1964,14 +1968,4 @@ func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.I
 
 	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
-}
-
-func (irs *IncidentRegisterService) getSystemPreference() (*models.SystemPreference, error) {
-	// Assuming you have a repository or service for fetching system preferences
-	systemPreference, err := irs.repo.GetSystemPreference()
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch system preference: %w", err)
-	}
-
-	return systemPreference, nil
 }
