@@ -149,7 +149,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		return 0, err
 	}
 
-	dates, err := irs.parseIncidentRegisterDates(incidentRegisterFormDTO)
+	dates, err := irs.parseIncidentRegisterDates(incidentRegisterFormDTO, currentUserID)
 	if err != nil {
 		return 0, err
 	}
@@ -545,7 +545,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		return err
 	}
 
-	dates, err := irs.parseIncidentRegisterDates(incidentRegisterFormDTO)
+	dates, err := irs.parseIncidentRegisterDates(incidentRegisterFormDTO, currentUserID)
 	if err != nil {
 		return err
 	}
@@ -1787,15 +1787,15 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 	return nil
 }
 
-func (irs *IncidentRegisterService) parseIncidentRegisterDates(dto *incidentDTOs.IncidentRegisterFormDTO) (*incidentDTOs.IncidentRegisterParsedDates, error) {
+func (irs *IncidentRegisterService) parseIncidentRegisterDates(dto *incidentDTOs.IncidentRegisterFormDTO, currentUserID uint) (*incidentDTOs.IncidentRegisterParsedDates, error) {
 	parsed := &incidentDTOs.IncidentRegisterParsedDates{}
 
-	systemPreference, err := irs.systemPreferenceSvc.GetSystemPreference()
+	userPreference, err := irs.userSvc.GetCurrentUserDetails(currentUserID)
 	if err != nil {
 		return nil, err
 	}
 
-	timezoneName := systemPreference.Timezone.Name
+	timezoneName := userPreference.UserSetting.Timezone.Name
 
 	fmt.Println(timezoneName)
 
