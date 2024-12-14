@@ -840,7 +840,7 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 				responsibleUser := item.AuditableItem.ResponsibleUser
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 					UserID:               responsibleUser.ID,
-					ModuleIdentifier:     "audit",
+					ModuleIdentifier:     "audit_insight_draft_reports",
 					NotificationType:     string(commonDTOs.ReviewType),
 					HeadingEn:            "Audit Draft Report Department Review",
 					HeadingAr:            "مراجعة قسم تقرير مسودة التدقيق",
