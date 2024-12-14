@@ -31,7 +31,7 @@ func (apc *AuditPlanChecklistController) GetAllAuditPlanChecklists(c *gin.Contex
 		return
 	}
 	sort := c.Query("sort_order")
-	sortBy := c.DefaultQuery("sort_by", "created_at")
+	sortBy := c.DefaultQuery("sort_by", "question")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
