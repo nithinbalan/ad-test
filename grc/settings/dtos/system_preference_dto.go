@@ -12,15 +12,18 @@ type SystemPreferenceFormDTO struct {
 }
 
 type SystemPreferenceDTO struct {
-	CurrencyID          uint        `json:"currency_id" binding:"required"`
-	TimezoneID          uint        `json:"timezone_id" binding:"required"`
-	DateFormat          string      `json:"date_format" binding:"required"`
-	TimeFormat          string      `json:"time_format" binding:"required"`
-	DocUploadSize       int         `json:"doc_upload_size" binding:"required"`
-	LogoUploadSize      int         `json:"logo_upload_size" binding:"required"`
-	IdleTimeout         int         `json:"idle_timeout" binding:"required"`
+	ID                  int         `json:"id"`
+	CurrencyID          uint        `json:"currency_id"`
+	TimezoneID          uint        `json:"timezone_id"`
+	DateFormat          string      `json:"date_format"`
+	TimeFormat          string      `json:"time_format"`
+	DocUploadSize       int         `json:"doc_upload_size"`
+	LogoUploadSize      int         `json:"logo_upload_size"`
+	IdleTimeout         int         `json:"idle_timeout"`
 	IsMaintenanceModeOn *bool       `json:"is_maintenance_mode_on"`
-	Timezone            TimezoneDTO `json:"timezone" `
+	CreatedByID         uint        `json:"created_by_id"`
+	UpdatedByID         *uint       `json:"updated_by_id"`
+	Timezone            TimezoneDTO `json:"timezone"`
 }
 
 type TimezoneDTO struct {

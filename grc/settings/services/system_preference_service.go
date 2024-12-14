@@ -14,7 +14,7 @@ import (
 )
 
 type SystemPreferenceServiceInterface interface {
-	GetSystemPreference() (*models.SystemPreference, error)
+	GetSystemPreference() (*dtos.SystemPreferenceDTO, error)
 	Update(id uint, currentUserID uint, systemPreferenceFormDTO *dtos.SystemPreferenceFormDTO) error
 
 	GetOrganizationPreference(params *dtos.IntegrationListQueryParamsDTO) (*dtos.OrganizationPreferenceResponseDTO, error)
@@ -37,8 +37,21 @@ func NewSystemPreferenceService(repo repositories.SystemPreferenceRepositoryInte
 	}
 }
 
-func (sps SystemPreferenceService) GetSystemPreference() (*models.SystemPreference, error) {
-	return sps.repo.GetSystemPreference()
+func (sps SystemPreferenceService) GetSystemPreference() (*dtos.SystemPreferenceDTO, error) {
+	var systemPreferenceDetailDTO dtos.SystemPreferenceDTO
+
+	systemPreference, err := sps.repo.GetSystemPreference()
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = mapstructure.Decode(systemPreference, &systemPreferenceDetailDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return &systemPreferenceDetailDTO, nil
 }
 
 func (sps *SystemPreferenceService) Update(id uint, currentUserID uint, systemPreferenceFormDTO *dtos.SystemPreferenceFormDTO) error {
