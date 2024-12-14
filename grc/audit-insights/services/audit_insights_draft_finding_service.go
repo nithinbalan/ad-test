@@ -98,15 +98,7 @@ func (aidfs *AuditInsightsDraftFindingService) Accept(auditDraftFindingID uint, 
 	if existingAuditDraftFinding.AuditDraftFindingStatus.IsFinalized {
 		return utility.NewForbiddenError("Action not allowed: Only audit draft findings with an 'open' status can be processed. Please ensure the audit draft finding is not finalized before proceeding.")
 	}
-	auditDraftFindingStatusAccepted, err := aidfs.auditDraftFindingStatusSvc.GetByType("accepted")
-	if err != nil {
-		return err
-	}
-
-	// Update Audit Draft Finding Status
-	if err := aidfs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusAccepted.ID); err != nil {
-		return err
-	}
+	
 	isAccepted := true
 	isDismissed := false
 	isReopened := false
@@ -118,6 +110,15 @@ func (aidfs *AuditInsightsDraftFindingService) Accept(auditDraftFindingID uint, 
 		IsReopened:  &isReopened,
 	}
 	if _, err := aidfs.auditDraftFindingConversationSvc.Create(auditDraftFindingID, currentUserID, &auditDraftFindingConversationFormDTO); err != nil {
+		return err
+	}
+	auditDraftFindingStatusAccepted, err := aidfs.auditDraftFindingStatusSvc.GetByType("accepted")
+	if err != nil {
+		return err
+	}
+
+	// Update Audit Draft Finding Status
+	if err := aidfs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusAccepted.ID); err != nil {
 		return err
 	}
 	auditDraftFindingActionPlanFormDTO := auditDTOs.AuditDraftFindingActionPlanFormDTO{
@@ -288,15 +289,7 @@ func (aidfs *AuditInsightsDraftFindingService) Challenge(auditDraftFindingID uin
 	if existingAuditDraftFinding.AuditDraftFindingStatus.IsFinalized {
 		return utility.NewForbiddenError("Action not allowed: Only audit draft findings with an 'open' status can be processed. Please ensure the audit draft finding is not finalized before proceeding.")
 	}
-	auditDraftFindingStatusChallenged, err := aidfs.auditDraftFindingStatusSvc.GetByType("challenged")
-	if err != nil {
-		return err
-	}
 
-	// Update Audit Draft Finding Status
-	if err := aidfs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusChallenged.ID); err != nil {
-		return err
-	}
 	isAccepted := false
 	isDismissed := false
 	isReopened := false
@@ -307,7 +300,17 @@ func (aidfs *AuditInsightsDraftFindingService) Challenge(auditDraftFindingID uin
 		IsDismissed: &isDismissed,
 		IsReopened:  &isReopened,
 	}
+	
 	if _, err := aidfs.auditDraftFindingConversationSvc.Create(auditDraftFindingID, currentUserID, &auditDraftFindingConversationFormDTO); err != nil {
+		return err
+	}
+	auditDraftFindingStatusChallenged, err := aidfs.auditDraftFindingStatusSvc.GetByType("challenged")
+	if err != nil {
+		return err
+	}
+
+	// Update Audit Draft Finding Status
+	if err := aidfs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusChallenged.ID); err != nil {
 		return err
 	}
 	//todo - notification to user
