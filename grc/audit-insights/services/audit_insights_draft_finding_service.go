@@ -107,13 +107,15 @@ func (aidfs *AuditInsightsDraftFindingService) Accept(auditDraftFindingID uint, 
 	if err := aidfs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusAccepted.ID); err != nil {
 		return err
 	}
-	isAccepted := false
+	isAccepted := true
 	isDismissed := false
+	isReopened := false
 	auditDraftFindingConversationFormDTO := auditDTOs.AuditDraftFindingConversationFormDTO{
 		Comment:     auditInsightsDraftFindingApproveFormDTO.Comment,
 		Type:        auditInsightsDraftFindingApproveFormDTO.Type,
 		IsAccepted:  &isAccepted,
 		IsDismissed: &isDismissed,
+		IsReopened:  &isReopened,
 	}
 	if _, err := aidfs.auditDraftFindingConversationSvc.Create(auditDraftFindingID, currentUserID, &auditDraftFindingConversationFormDTO); err != nil {
 		return err
@@ -297,11 +299,13 @@ func (aidfs *AuditInsightsDraftFindingService) Challenge(auditDraftFindingID uin
 	}
 	isAccepted := false
 	isDismissed := false
+	isReopened := false
 	auditDraftFindingConversationFormDTO := auditDTOs.AuditDraftFindingConversationFormDTO{
 		Comment:     auditInsightsDraftFindingChallengeFormDTO.Comment,
 		Type:        auditInsightsDraftFindingChallengeFormDTO.Type,
 		IsAccepted:  &isAccepted,
 		IsDismissed: &isDismissed,
+		IsReopened:  &isReopened,
 	}
 	if _, err := aidfs.auditDraftFindingConversationSvc.Create(auditDraftFindingID, currentUserID, &auditDraftFindingConversationFormDTO); err != nil {
 		return err
