@@ -18,6 +18,7 @@ import (
 	riskDTOs "jethur/grc/risk/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -147,40 +148,50 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 		Type:      auditDraftReport.AuditDraftReportStatus.Type,
 		ColorCode: auditDraftReport.AuditDraftReportStatus.ColorCode,
 	}
-	// Declare variables to hold the counts for resolved/unresolved comments
-	var executiveSummaryResolvedCount, executiveSummaryOpenCount int
-	var conclusionResolvedCount, conclusionOpenCount int
 	// Map to store the count of resolved and unresolved comments by type
 	commentCountByType := make(map[string]map[string]int)
 
+	// Iterate over comments
 	for _, comment := range auditDraftReport.AuditDraftReportComments {
-		// Initialize the inner map for a new type
-		if _, exists := commentCountByType[comment.Type]; !exists {
-			commentCountByType[comment.Type] = map[string]int{
+		// Normalize the comment type
+		commentType := strings.TrimSpace(strings.ToLower(comment.Type))
+
+		// Initialize the inner map if not exists
+		if _, exists := commentCountByType[commentType]; !exists {
+			commentCountByType[commentType] = map[string]int{
 				"resolved":   0,
 				"unresolved": 0,
 			}
 		}
 
-		// Increment the count based on whether the comment is resolved or not
+		// Increment the count based on resolution status
 		if comment.IsResolved {
-			commentCountByType[comment.Type]["resolved"]++
+			commentCountByType[commentType]["resolved"]++
 		} else {
-			commentCountByType[comment.Type]["unresolved"]++
+			commentCountByType[commentType]["unresolved"]++
 		}
 	}
 
-	// Assigning the counts for "executive-summary"
+	// Assign counts for "executive-summary"
+	executiveSummaryResolvedCount := 0
+	executiveSummaryOpenCount := 0
 	if count, exists := commentCountByType["executive-summary"]; exists {
 		executiveSummaryResolvedCount = count["resolved"]
 		executiveSummaryOpenCount = count["unresolved"]
 	}
 
-	// Assigning the counts for "conclusion"
+	// Assign counts for "conclusion"
+	conclusionResolvedCount := 0
+	conclusionOpenCount := 0
 	if count, exists := commentCountByType["conclusion"]; exists {
 		conclusionResolvedCount = count["resolved"]
 		conclusionOpenCount = count["unresolved"]
 	}
+
+	// Print results
+	fmt.Printf("Executive Summary: Resolved=%d, Open=%d\n", executiveSummaryResolvedCount, executiveSummaryOpenCount)
+	fmt.Printf("Conclusion: Resolved=%d, Open=%d\n", conclusionResolvedCount, conclusionOpenCount)
+
 	// Map the data to the DTO
 	auditReportDTO := &auditDTOs.AuditDraftReportDetailDTO{
 		ID:                            auditDraftReport.ID,

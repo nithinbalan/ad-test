@@ -118,6 +118,7 @@ func (repo *AuditDraftReportRepository) GetFullDetailsByID(auditID uint, tx ...u
 		Preload("InternalReviewSubmittedByUser").
 		Preload("AuditeeReviewSubmittedByUser").
 		Preload("CompletedByUser").
+		Preload("AuditDraftReportComments").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&auditDraftReport)
