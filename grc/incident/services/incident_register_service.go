@@ -20,6 +20,7 @@ import (
 	masterServices "jethur/grc/masters/services"
 	organizationServices "jethur/grc/organization/services"
 	riskServices "jethur/grc/risk/services"
+	settingServices "jethur/grc/settings/services"
 
 	"jethur/grc/models"
 	"jethur/utility"
@@ -58,6 +59,7 @@ type IncidentRegisterService struct {
 	userSettingSvc           organizationServices.UserSettingServiceInterface
 	notificationSvc          commonServices.NotificationServiceInterface
 	assetRegisterSvc         assetServices.AssetRegisterServiceInterface
+	systemPreferenceSvc      settingServices.SystemPreferenceServiceInterface
 }
 
 func NewIncidentRegisterService(
@@ -77,6 +79,7 @@ func NewIncidentRegisterService(
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	assetRegisterSvc assetServices.AssetRegisterServiceInterface,
+	systemPreferenceSvc settingServices.SystemPreferenceServiceInterface,
 ) IncidentRegisterServiceInterface {
 	return &IncidentRegisterService{
 		repo:                     repo,
@@ -95,6 +98,7 @@ func NewIncidentRegisterService(
 		userSettingSvc:           userSettingSvc,
 		notificationSvc:          notificationSvc,
 		assetRegisterSvc:         assetRegisterSvc,
+		systemPreferenceSvc:      systemPreferenceSvc,
 	}
 }
 
@@ -1786,7 +1790,7 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 func (irs *IncidentRegisterService) parseIncidentRegisterDates(dto *incidentDTOs.IncidentRegisterFormDTO) (*incidentDTOs.IncidentRegisterParsedDates, error) {
 	parsed := &incidentDTOs.IncidentRegisterParsedDates{}
 
-	systemPreference, err := irs.getSystemPreference()
+	systemPreference, err := irs.systemPreferenceSvc.GetSystemPreference()
 	if err != nil {
 		return nil, err
 	}
@@ -1964,14 +1968,4 @@ func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.I
 
 	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
-}
-
-func (irs *IncidentRegisterService) getSystemPreference() (*models.SystemPreference, error) {
-	// Assuming you have a repository or service for fetching system preferences
-	systemPreference, err := irs.repo.GetSystemPreference()
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch system preference: %w", err)
-	}
-
-	return systemPreference, nil
 }
