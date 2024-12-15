@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	documentDTOs "jethur/grc/documents/dtos"
 	documentRepositories "jethur/grc/documents/repositories"
@@ -10,9 +11,11 @@ import (
 	"jethur/grc/models"
 	"jethur/utility"
 	"log"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -25,6 +28,11 @@ type DocumentChangeRequestServiceInterface interface {
 	Create(currentUserID uint, formDTO *documentDTOs.DocumentChangeRequestFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, formDTO *documentDTOs.DocumentChangeRequestFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	CheckoutDocument(id uint, currentUserID uint, token string) (string, error)
+	CheckinDocument(id uint, currentUserID uint, documentCheckinFormDTO *documentDTOs.DocumentCheckinFormDTO) error
+
+	GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error)
 }
 
 type DocumentChangeRequestService struct {
@@ -329,4 +337,191 @@ func (dcrs *DocumentChangeRequestService) ValidateDocument(document *commonDTOs.
 	}
 
 	return nil
+}
+
+func (dcrs *DocumentChangeRequestService) CheckoutDocument(id uint, currentUserID uint, token string) (string, error) {
+	tx := dcrs.repo.BeginTransaction()
+	documentChangeRequest, err := dcrs.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return "", err
+	}
+
+	if documentChangeRequest.DocumentChangeRequestStatus.Type != "draft" && documentChangeRequest.DocumentChangeRequestStatus.Type != "in-review" {
+		tx.Rollback()
+		return "", utility.NewForbiddenError("Checkout only allowed for documents in 'draft' or 'in-review' status.")
+	}
+
+	if documentChangeRequest.IsLocked {
+		tx.Rollback()
+		return "", utility.NewForbiddenError("Document already checkouted.")
+	}
+
+	if documentChangeRequest.CreatedByUser.ID != int(currentUserID) && documentChangeRequest.Document.ResponsibleUser.ID != int(currentUserID) {
+		tx.Rollback()
+		return "", utility.NewForbiddenError("Access denied: user is neither creator nor responsible user.")
+	}
+
+	currentDateStr := time.Now().Format("2006-01-02")
+	lastCheckoutAt, err := utility.ParseDate(currentDateStr)
+	if err != nil {
+		tx.Rollback()
+		return "", fmt.Errorf("error parsing current date: %w", err)
+	}
+
+	existingChangeRequest, err := dcrs.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return "", err
+	}
+
+	existingChangeRequest.IsLocked = true
+	existingChangeRequest.LastCheckoutBYID = &currentUserID
+	existingChangeRequest.LastCheckoutAt = lastCheckoutAt
+	err = dcrs.repo.Update(existingChangeRequest, tx)
+	if err != nil {
+		tx.Rollback()
+		return "", err
+	}
+
+	var documentPath string
+	fileType := "docx"
+	documentPath, err = dcrs.GetDocumentPath(id, token, fileType, tx)
+	if err != nil {
+		tx.Rollback()
+		return "", fmt.Errorf("error retrieving document path: %w", err)
+	}
+
+	tx.Commit()
+	return documentPath, nil
+}
+
+func (dcrs *DocumentChangeRequestService) CheckinDocument(id uint, currentUserID uint, documentCheckinFormDTO *documentDTOs.DocumentCheckinFormDTO) error {
+	tx := dcrs.repo.BeginTransaction()
+	documentChangeRequest, err := dcrs.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	err = dcrs.ValidateDocument(&documentCheckinFormDTO.Document)
+	if err != nil {
+		return err
+	}
+
+	if documentChangeRequest.DocumentChangeRequestStatus.Type != "draft" && documentChangeRequest.DocumentChangeRequestStatus.Type != "in-review" {
+		tx.Rollback()
+		return fmt.Errorf("checkin only allowed for documents in 'draft' or 'in-review' status")
+	}
+
+	if !documentChangeRequest.IsLocked {
+		tx.Rollback()
+		return fmt.Errorf("document already checked in")
+	}
+
+	if documentChangeRequest.CreatedByUser.ID != int(currentUserID) && documentChangeRequest.Document.ResponsibleUser.ID != int(currentUserID) {
+		tx.Rollback()
+		return fmt.Errorf("access denied: user is neither creator nor responsible user")
+	}
+
+	dataToEncrypt := []byte(documentCheckinFormDTO.Document.FileName)
+	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	documentchangeRequestDocument, err := dcrs.repo.GetDocumentByID(*documentChangeRequest.ChangeRequestDocument.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	documentchangeRequestDocument.Name = documentCheckinFormDTO.Document.FileName
+	documentchangeRequestDocument.Size = documentCheckinFormDTO.Document.Size
+	documentchangeRequestDocument.Token = encryptedFilename
+	documentchangeRequestDocument.OriginalName = &documentCheckinFormDTO.Document.OriginalName
+	documentchangeRequestDocument.Type = documentCheckinFormDTO.Document.Type
+
+	err = dcrs.repo.UpdateDocument(documentchangeRequestDocument, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	currentDateStr := time.Now().Format("2006-01-02")
+	lastCheckoutIn, err := utility.ParseDate(currentDateStr)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error parsing current date: %w", err)
+	}
+
+	existingDocumentChangeRequest, err := dcrs.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	existingDocumentChangeRequest.IsLocked = false
+	existingDocumentChangeRequest.LastCheckinBYID = &currentUserID
+	existingDocumentChangeRequest.LastCheckinAt = lastCheckoutIn
+	err = dcrs.repo.Update(existingDocumentChangeRequest, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	destinationDir := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
+
+	deleteFilePath := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
+	if err := utility.RemoveFolder(deleteFilePath); err != nil {
+		tx.Rollback()
+	}
+
+	if err := utility.StoreFile(documentCheckinFormDTO.Document.FileName, destinationDir); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	go func() {
+		if err := utility.ConvertDocxToPDF(destinationDir, documentCheckinFormDTO.Document.FileName, destinationDir); err != nil {
+			log.Printf("Failed to convert document to PDF: %v", err)
+		}
+	}()
+
+	return nil
+}
+
+func (dcrs *DocumentChangeRequestService) GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error) {
+	existingDocument, err := dcrs.GetFullDetailsByID(id, tx...)
+	if err != nil {
+		return "", err
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	baseFilename := strings.TrimSuffix(decryptedFilename, filepath.Ext(decryptedFilename))
+
+	storagePath := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(existingDocument.ID), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, baseFilename+"."+fileType)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

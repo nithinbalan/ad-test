@@ -23,8 +23,8 @@ type DocumentChangeRequestRepositoryInterface interface {
 
 	GenerateReferenceNumber() (string, error)
 
-	GetDocumentByID(id uint) (*models.DocumentChangeRequestDocument, error)
-	GetDocumentByChangeRequestID(id uint) (*models.DocumentChangeRequestDocument, error)
+	GetDocumentByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentChangeRequestDocument, error)
+	GetDocumentByChangeRequestID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentChangeRequestDocument, error)
 	CreateDocument(doc *models.DocumentChangeRequestDocument, tx ...utility.DatabaseTransaction) error
 	UpdateDocument(doc *models.DocumentChangeRequestDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocument(docId uint, tx ...utility.DatabaseTransaction) error
@@ -157,6 +157,7 @@ func (repo *DocumentChangeRequestRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("ChangeRequestDocument").
 		Preload("DocumentChangeRequestInitiate").
 		Preload("Document").
+		Preload("Document.ResponsibleUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&changeRequest, id)
@@ -199,17 +200,25 @@ func (repo *DocumentChangeRequestRepository) Delete(id uint, tx ...utility.Datab
 	return nil
 }
 
-func (repo *DocumentChangeRequestRepository) GetDocumentByID(id uint) (*models.DocumentChangeRequestDocument, error) {
+func (repo *DocumentChangeRequestRepository) GetDocumentByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentChangeRequestDocument, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var document models.DocumentChangeRequestDocument
-	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+	if err := db.Where("id = ?", id).First(&document).Error; err != nil {
 		return nil, err
 	}
 	return &document, nil
 }
 
-func (repo *DocumentChangeRequestRepository) GetDocumentByChangeRequestID(id uint) (*models.DocumentChangeRequestDocument, error) {
+func (repo *DocumentChangeRequestRepository) GetDocumentByChangeRequestID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentChangeRequestDocument, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var document models.DocumentChangeRequestDocument
-	if err := repo.db.Where("document_change_request_id = ?", id).First(&document).Error; err != nil {
+	if err := db.Where("document_change_request_id = ?", id).First(&document).Error; err != nil {
 		return nil, err
 	}
 	return &document, nil

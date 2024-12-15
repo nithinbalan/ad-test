@@ -7,6 +7,7 @@ import (
 	"jethur/grc/documents/services"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -178,4 +179,165 @@ func (dcrc *DocumentChangeRequestController) DeleteDocumentChangeRequest(c *gin.
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (dcrc *DocumentChangeRequestController) GetDocumentChangeRequestPreview(c *gin.Context) {
+	fileType := "pdf"
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := dcrc.service.GetDocumentPath(uint(id), token, fileType)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(dcrc.db, c, err.Error())
+		}
+		return
+	}
+
+	c.File(documentPath)
+}
+
+func (dcrc *DocumentChangeRequestController) DownloadChangeRequestDocument(c *gin.Context) {
+	fileType := "docx"
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := dcrc.service.GetDocumentPath(uint(id), token, fileType)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(dcrc.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(documentPath)
+	// currentUserID, err := utility.GetCurrentUserID(c)
+	// if err != nil {
+	// 	utility.SendInternalErrResp(dc.db, c, err.Error())
+	// 	return
+	// }
+	// // Add audit log for the document
+	// if err := dc.service.DirectDocumentAuditLog(uint(id), uint(currentUserID), "downloaded"); err != nil {
+	// 	utility.SendInternalErrResp(dc.db, c, err.Error())
+	// 	return
+	// }
+
+	// Set the content type and disposition headers for the file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	// Serve the file
+	c.File(documentPath)
+}
+
+func (dcrc *DocumentChangeRequestController) CheckoutDocument(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(dcrc.db, c, err.Error())
+		return
+	}
+
+	documentPath, err := dcrc.service.CheckoutDocument(uint(id), currentUserID, token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, err.Error())
+		default:
+			utility.SendInternalErrResp(dcrc.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(documentPath)
+
+	// Set the content type and disposition headers for the file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	// Serve the file
+	c.File(documentPath)
+}
+
+func (dcrc *DocumentChangeRequestController) CheckinDocument(c *gin.Context) {
+	var documentCheckinFormDTO documentDTOs.DocumentCheckinFormDTO
+	if err := c.ShouldBindJSON(&documentCheckinFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(dcrc.db, c, err.Error())
+		return
+	}
+
+	err = dcrc.service.CheckinDocument(uint(id), currentUserID, &documentCheckinFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(dcrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
 }
