@@ -141,6 +141,8 @@ type AuditDraftReportDetailDTO struct {
 	ExecutiveSummaryOpenCount     int                                  `json:"executive_summary_open_count"`
 	ConclusionResolvedCount       int                                  `json:"conclusion_resolved_count"`
 	ConclusionOpenCount           int                                  `json:"conclusion_open_count"`
+	FindingResolvedCount          int                                  `json:"finding_resolved_count"`
+	FindingOpenCount              int                                  `json:"finding_open_count"`
 }
 type AuditDraftReportParsedDates struct {
 	ReportDate *time.Time
@@ -171,4 +173,6 @@ type AuditDraftFindingReportDetailDTO struct {
 	AcceptedAt                     *time.Time                                `json:"accepted_at"`
 	ChallengedByUser               *organizationDTOs.UserMinimalDTO          `json:"challenged_by"`
 	ChallengedAt                   *time.Time                                `json:"challenged_at"`
+	FindingResolvedCount           int                                       `json:"finding_resolved_count"`
+	FindingOpenCount               int                                       `json:"finding_open_count"`
 }

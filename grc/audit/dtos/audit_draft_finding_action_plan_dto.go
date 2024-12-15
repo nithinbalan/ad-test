@@ -78,7 +78,7 @@ type AuditDraftFindingActionPlanDetailDTO struct {
 	ID                  int                             `json:"id"`
 	AuditDraftFindingID uint                            `json:"audit_draft_finding_id"`
 	Title               string                          `json:"title"`
-	Description         string                          `json:"description"`
+	Description         *string                         `json:"description"`
 	AuditDraftFinding   AuditDraftFindingDetailDTO      `json:"audit_draft_finding"`
 	ResponsibleUser     organizationDTOs.UserMinimalDTO `json:"responsible_user"`
 	TargetDateString    *string                         `json:"target_date"`

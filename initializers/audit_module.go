@@ -283,16 +283,6 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	)
 	auditDraftFindingController := controllers.NewAuditDraftFindingController(auditDraftFindingSvc)
 
-	auditDraftFindingConversationRepo := repositories.NewAuditDraftFindingConversationRepository(db)
-	auditDraftFindingConversationSvc := services.NewAuditDraftFindingConversationService(
-		auditDraftFindingConversationRepo,
-		sharedModule.ActivityLogService,
-		auditDraftFindingSvc,
-		auditDraftFindingStatusSvc,
-		auditSvc,
-	)
-	auditDraftFindingConversationController := controllers.NewAuditDraftFindingConversationController(auditDraftFindingConversationSvc)
-
 	auditDraftFindingActionPlanRepo := repositories.NewAuditDraftFindingActionPlanRepository(db)
 	auditDraftFindingActionPlanSvc := services.NewAuditDraftFindingActionPlanService(
 		auditDraftFindingActionPlanRepo,
@@ -375,6 +365,20 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		commonModule.NotificationService,
 	)
 	auditDraftReportController := controllers.NewAuditDraftReportController(auditDraftReportSvc)
+
+	auditDraftFindingConversationRepo := repositories.NewAuditDraftFindingConversationRepository(db)
+	auditDraftFindingConversationSvc := services.NewAuditDraftFindingConversationService(
+		auditDraftFindingConversationRepo,
+		sharedModule.ActivityLogService,
+		auditDraftFindingSvc,
+		auditDraftFindingStatusSvc,
+		auditSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+		auditDraftReportSvc,
+	)
+	auditDraftFindingConversationController := controllers.NewAuditDraftFindingConversationController(auditDraftFindingConversationSvc)
+
 
 	rcmRepo := repositories.NewRCMRepository(db)
 	rcmSvc := services.NewRCMService(

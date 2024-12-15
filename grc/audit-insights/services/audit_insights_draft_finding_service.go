@@ -98,24 +98,29 @@ func (aidfs *AuditInsightsDraftFindingService) Accept(auditDraftFindingID uint, 
 	if existingAuditDraftFinding.AuditDraftFindingStatus.IsFinalized {
 		return utility.NewForbiddenError("Action not allowed: Only audit draft findings with an 'open' status can be processed. Please ensure the audit draft finding is not finalized before proceeding.")
 	}
+	tx := aidfs.repo.BeginTransaction()
+
+	conversation := &models.AuditDraftFindingConversation{
+		AuditDraftFindingID: auditDraftFindingID,
+		Comment:             auditInsightsDraftFindingApproveFormDTO.Comment,
+		Type:                "DR",
+		IsAccepted:          true,
+		CreatedBYID:         currentUserID,
+	}
+	_, err = aidfs.repo.CreateConversation(conversation, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 	auditDraftFindingStatusAccepted, err := aidfs.auditDraftFindingStatusSvc.GetByType("accepted")
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	// Update Audit Draft Finding Status
-	if err := aidfs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusAccepted.ID); err != nil {
-		return err
-	}
-	isAccepted := false
-	isDismissed := false
-	auditDraftFindingConversationFormDTO := auditDTOs.AuditDraftFindingConversationFormDTO{
-		Comment:     auditInsightsDraftFindingApproveFormDTO.Comment,
-		Type:        auditInsightsDraftFindingApproveFormDTO.Type,
-		IsAccepted:  &isAccepted,
-		IsDismissed: &isDismissed,
-	}
-	if _, err := aidfs.auditDraftFindingConversationSvc.Create(auditDraftFindingID, currentUserID, &auditDraftFindingConversationFormDTO); err != nil {
+	if err := aidfs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusAccepted.ID, tx); err != nil {
+		tx.Rollback()
 		return err
 	}
 	auditDraftFindingActionPlanFormDTO := auditDTOs.AuditDraftFindingActionPlanFormDTO{
@@ -125,10 +130,12 @@ func (aidfs *AuditInsightsDraftFindingService) Accept(auditDraftFindingID uint, 
 		TargetDate:        auditInsightsDraftFindingApproveFormDTO.TargetDate,
 	}
 
-	if _, err := aidfs.auditDraftFindingActionPlanSvc.Create(auditDraftFindingID, currentUserID, &auditDraftFindingActionPlanFormDTO); err != nil {
+	if _, err := aidfs.auditDraftFindingActionPlanSvc.Create(auditDraftFindingID, currentUserID, &auditDraftFindingActionPlanFormDTO, tx); err != nil {
+		tx.Rollback()
 		return err
 	}
-	//todo - notification to user
+
+	tx.Commit()
 
 	go func() {
 		urlParam := fmt.Sprintf(`{"id":%d}`, auditDraftReport.ID)
@@ -286,27 +293,32 @@ func (aidfs *AuditInsightsDraftFindingService) Challenge(auditDraftFindingID uin
 	if existingAuditDraftFinding.AuditDraftFindingStatus.IsFinalized {
 		return utility.NewForbiddenError("Action not allowed: Only audit draft findings with an 'open' status can be processed. Please ensure the audit draft finding is not finalized before proceeding.")
 	}
+	tx := aidfs.repo.BeginTransaction()
+
+	conversation := &models.AuditDraftFindingConversation{
+		AuditDraftFindingID: auditDraftFindingID,
+		Comment:             auditInsightsDraftFindingChallengeFormDTO.Comment,
+		Type:                "DR",
+		CreatedBYID:         currentUserID,
+	}
+	_, err = aidfs.repo.CreateConversation(conversation, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	auditDraftFindingStatusChallenged, err := aidfs.auditDraftFindingStatusSvc.GetByType("challenged")
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	// Update Audit Draft Finding Status
 	if err := aidfs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusChallenged.ID); err != nil {
+		tx.Rollback()
 		return err
 	}
-	isAccepted := false
-	isDismissed := false
-	auditDraftFindingConversationFormDTO := auditDTOs.AuditDraftFindingConversationFormDTO{
-		Comment:     auditInsightsDraftFindingChallengeFormDTO.Comment,
-		Type:        auditInsightsDraftFindingChallengeFormDTO.Type,
-		IsAccepted:  &isAccepted,
-		IsDismissed: &isDismissed,
-	}
-	if _, err := aidfs.auditDraftFindingConversationSvc.Create(auditDraftFindingID, currentUserID, &auditDraftFindingConversationFormDTO); err != nil {
-		return err
-	}
-	//todo - notification to user
+	tx.Commit()
 
 	go func() {
 		urlParam := fmt.Sprintf(`{"id":%d}`, auditDraftReport.ID)

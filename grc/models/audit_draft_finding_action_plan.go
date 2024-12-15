@@ -8,7 +8,7 @@ type AuditDraftFindingActionPlan struct {
 	ID                  uint       `gorm:"primaryKey;autoIncrement"`
 	AuditDraftFindingID uint       `json:"audit_draft_finding_id" binding:"required" gorm:"not null"`
 	Title               string     `gorm:"type:nvarchar(500);not null"`
-	Description         string     `gorm:"type:nvarchar(MAX);null"`
+	Description         *string    `gorm:"type:nvarchar(MAX);null"`
 	ResponsibleUserID   *uint      `json:"responsible_user_id"`
 	TargetDate          *time.Time `json:"target_date" binding:"omitempty" gorm:"type:date,default:null"`
 	CreatedAt           time.Time  `json:"created_at" gorm:"type:datetime;not null"`

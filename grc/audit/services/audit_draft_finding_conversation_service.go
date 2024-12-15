@@ -6,12 +6,16 @@ import (
 	"jethur/config"
 	"jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -33,6 +37,9 @@ type AuditDraftFindingConversationService struct {
 	auditDraftFindingSvc       AuditDraftFindingServiceInterface
 	auditDraftFindingStatusSvc AuditDraftFindingStatusServiceInterface
 	auditSvc                   AuditServiceInterface
+	userSvc                    organizationServices.UserServiceInterface
+	notificationSvc            commonServices.NotificationServiceInterface
+	auditDraftReportSvc        AuditDraftReportServiceInterface
 }
 
 func NewAuditDraftFindingConversationService(
@@ -41,6 +48,9 @@ func NewAuditDraftFindingConversationService(
 	auditDraftFindingSvc AuditDraftFindingServiceInterface,
 	auditDraftFindingStatusSvc AuditDraftFindingStatusServiceInterface,
 	auditSvc AuditServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
+	auditDraftReportSvc AuditDraftReportServiceInterface,
 ) AuditDraftFindingConversationServiceInterface {
 	return &AuditDraftFindingConversationService{
 		repo:                       repo,
@@ -48,6 +58,9 @@ func NewAuditDraftFindingConversationService(
 		auditDraftFindingSvc:       auditDraftFindingSvc,
 		auditDraftFindingStatusSvc: auditDraftFindingStatusSvc,
 		auditSvc:                   auditSvc,
+		userSvc:                    userSvc,
+		notificationSvc:            notificationSvc,
+		auditDraftReportSvc:        auditDraftReportSvc,
 	}
 }
 
@@ -250,6 +263,183 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 	tx.Commit()
 
 	go func() {
+		auditID := existingAuditDraftFinding.AuditID
+		auditDraftReport, err := adfcs.auditDraftReportSvc.GetByAuditID(auditID)
+		if err != nil {
+			utility.LogError("Failed to fetch draft report", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		if formDTO.IsReopened != nil && *formDTO.IsReopened {
+			urlParam := fmt.Sprintf(`{"id":%d}`, auditDraftReport.ID)
+			entity := "audit-draft-report"
+			action := "reopened"
+
+			// Create a map to track unique recipients
+			recipientsMap := make(map[uint]bool)
+
+			// Add participants excluding the current user
+			for _, participant := range auditDraftReport.Audit.AuditPlan.Members {
+				if participant.UserID != currentUserID {
+					recipientsMap[participant.UserID] = true
+				}
+			}
+
+			// Add InternalReviewSubmittedBYID
+			recipientsMap[*auditDraftReport.Audit.AuditPlan.TeamLeadID] = true
+
+			// Extract unique recipients into a slice
+			var uniqueRecipients []uint
+			for userID := range recipientsMap {
+				uniqueRecipients = append(uniqueRecipients, userID)
+			}
+
+			// Now `uniqueRecipients` contains all unique UserIDs
+
+			// Iterate through recipients
+			for _, userID := range uniqueRecipients {
+				responsibleUser, err := adfcs.userSvc.GetByID(userID)
+				if err != nil {
+					utility.LogError("Failed to fetch review user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				assignedBy, err := adfcs.userSvc.GetByID(currentUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				emailTo := []string{responsibleUser.Email}
+				subject := fmt.Sprintf("Audit Draft Report /%s: Findings Reopened Notification", auditDraftReport.Audit.AuditPlan.Title)
+				appURL := utility.GetAppURL()
+
+				emailData := map[string]interface{}{
+					"FirstNameEn":           responsibleUser.FirstNameEn,
+					"LastNameEn":            responsibleUser.LastNameEn,
+					"AuditTitle":            auditDraftReport.Audit.AuditPlan.Title,
+					"FindingTitle":          existingAuditDraftFinding.Title,
+					"FindingDescription":    existingAuditDraftFinding.Description,
+					"FindingCategoryTitle":  existingAuditDraftFinding.AuditFindingCategory.TitleEn,
+					"ReopenedByFirstNameEn": assignedBy.FirstNameEn,
+					"ReopenedByLastNameEn":  assignedBy.LastNameEn,
+					"ReopenedOn":            time.Now().Format("2006-01-02"),
+					"RedirectURL":           fmt.Sprintf("%s/audit/audits/%d/draft-report", appURL, auditID),
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              emailTo,
+					Subject:              subject,
+					TemplateRelativePath: "audit/templates/email/audit_draft_report_finding_reopened_user_mail.html",
+					EmailData:            emailData,
+				}
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               userID,
+					ModuleIdentifier:     "audit",
+					NotificationType:     string(commonDTOs.ReviewType),
+					HeadingEn:            "Audit Draft Report Finding Reopened",
+					HeadingAr:            "إعادة فتح نتيجة تقرير مسودة التدقيق",
+					TitleEn:              existingAuditDraftFinding.Title,
+					TitleAr:              existingAuditDraftFinding.Title,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				// Send Notification and Email
+				err = adfcs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
+				if err != nil {
+					utility.LogError("Failed to send notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+			}
+		}
+		if formDTO.IsDismissed != nil && *formDTO.IsDismissed {
+			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+			entity := "audit-draft-report"
+			action := "dismissed"
+
+			existingAuditDraftReportFullDetails, err := adfcs.auditDraftReportSvc.GetByAuditID(auditID)
+			if err != nil {
+				utility.LogError("Failed to fetch review user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+			if existingAuditDraftReportFullDetails.Audit.AuditPlan.AuditableItems != nil {
+				for _, item := range existingAuditDraftReportFullDetails.Audit.AuditPlan.AuditableItems {
+					if item.AuditableItem.ResponsibleUser == nil {
+						utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+							"error": err.Error(),
+						})
+						return
+					}
+					responsibleUser := item.AuditableItem.ResponsibleUser
+					dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+						UserID:               responsibleUser.ID,
+						ModuleIdentifier:     "audit_insight_draft_reports",
+						NotificationType:     string(commonDTOs.ReviewType),
+						HeadingEn:            "Audit Draft Report Finding Dismissed",
+						HeadingAr:            "رفض نتيجة تقرير مسودة التدقيق",
+						TitleEn:              existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
+						TitleAr:              existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
+						Entity:               &entity,
+						Action:               &action,
+						URLParam:             urlParam,
+						IsSystemNotification: false,
+						CreatedByID:          &currentUserID,
+					}
+
+					assignedBy, err := adfcs.userSvc.GetByID(currentUserID)
+					if err != nil {
+						utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					emailTo := []string{responsibleUser.Email}
+					subject := fmt.Sprintf("Audit Draft Report /%s: Finding /%s: Dismissed", existingAuditDraftReportFullDetails.Audit.AuditPlan.Title, existingAuditDraftFinding.Title)
+					appURL := utility.GetAppURL()
+					emailData := map[string]interface{}{
+						"FirstNameEn":            responsibleUser.FirstNameEn,
+						"LastNameEn":             responsibleUser.LastNameEn,
+						"AuditTitle":             auditDraftReport.Audit.AuditPlan.Title,
+						"FindingTitle":           existingAuditDraftFinding.Title,
+						"FindingDescription":     existingAuditDraftFinding.Description,
+						"FindingCategoryTitle":   existingAuditDraftFinding.AuditFindingCategory.TitleEn,
+						"DismissedByFirstNameEn": assignedBy.FirstNameEn,
+						"DismissedByLastNameEn":  assignedBy.LastNameEn,
+						"DismissedOn":            time.Now().Format("2006-01-02"),
+						"RedirectURL":            fmt.Sprintf("%s/audit-insight/draft-report/%d/details", appURL, id),
+					}
+
+					emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+						EmailTo:              emailTo,
+						Subject:              subject,
+						TemplateRelativePath: "audit/templates/email/audit_draft_report_finding_dismissed_mail.html",
+						EmailData:            emailData,
+					}
+
+					// Send Notification and Email
+					err = adfcs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
+					if err != nil {
+						utility.LogError("Failed to send notifications", map[string]interface{}{
+							"error": err.Error(),
+						})
+					}
+				}
+			}
+		}
 		existingAuditDraftFindingConversation, err := adfcs.GetFullDetailsByID(auditDraftFindingID, id)
 		if err != nil {
 			utility.LogError("Failed to fetch audit draft finding", map[string]interface{}{
@@ -257,7 +447,6 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 			})
 			return
 		}
-
 		err = adfcs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditDraftFindingConversation{}.TableName(),
