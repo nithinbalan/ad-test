@@ -48,6 +48,7 @@ type DocumentChangeRequestDetailsDTO struct {
 	ReferenceNumber string  `json:"reference_number"`
 	ReasonForChange *string `json:"reason_for_change"`
 	Version         float64 `json:"version"`
+	IsLocked        bool    `json:"is_locked"`
 
 	Document                      DocumentDetailsDTO                      `json:"document"`
 	DocumentChangeRequestType     DocumentChangeRequestTypeDTO            `json:"document_change_request_type"`
