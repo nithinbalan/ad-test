@@ -27,7 +27,7 @@ type DocumentChangeRequestRepositoryInterface interface {
 	GetDocumentByChangeRequestID(id uint) (*models.DocumentChangeRequestDocument, error)
 	CreateDocument(doc *models.DocumentChangeRequestDocument, tx ...utility.DatabaseTransaction) error
 	UpdateDocument(doc *models.DocumentChangeRequestDocument, tx ...utility.DatabaseTransaction) error
-	DeleteDocument(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteDocument(docId uint, tx ...utility.DatabaseTransaction) error
 }
 
 type DocumentChangeRequestRepository struct {
@@ -237,12 +237,12 @@ func (repo *DocumentChangeRequestRepository) UpdateDocument(doc *models.Document
 	return nil
 }
 
-func (repo *DocumentChangeRequestRepository) DeleteDocument(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+func (repo *DocumentChangeRequestRepository) DeleteDocument(docId uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	if err := db.Where("id IN (?)", docIds).Delete(&models.DocumentChangeRequestDocument{}).Error; err != nil {
+	if err := db.Where("id = ? ", docId).Delete(&models.DocumentChangeRequestDocument{}).Error; err != nil {
 		return err
 	}
 	return nil

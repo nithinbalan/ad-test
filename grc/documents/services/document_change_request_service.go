@@ -120,7 +120,7 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 		tx.Rollback()
 		return 0, err
 	}
-	url := utility.GenerateDocumentURL("document", "change_requests", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+	url := utility.GenerateDocumentURL("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
 	document := &models.DocumentChangeRequestDocument{
 		DocumentChangeRequestID: id,
 		URL:                     url,
@@ -136,7 +136,7 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 		return 0, err
 	}
 
-	storagePath := filepath.Join("document", "change_requests", strconv.FormatUint(uint64(id), 10), "documents")
+	storagePath := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
 	if err := utility.StoreFile(formDTO.Document.FileName, storagePath); err != nil {
 		return 0, err
 	}
@@ -199,7 +199,7 @@ func (dcrs *DocumentChangeRequestService) Update(id uint, currentUserID uint, fo
 		}
 
 		// Generate file URL
-		url := utility.GenerateDocumentURL("document", "change_requests", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+		url := utility.GenerateDocumentURL("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
 
 		// Update document fields
 		existingDocument.URL = url
@@ -217,7 +217,7 @@ func (dcrs *DocumentChangeRequestService) Update(id uint, currentUserID uint, fo
 		}
 
 		// Remove old file and store the new file
-		storagePath := filepath.Join("document", "change_requests", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.RemoveFile(existingDocument.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err
@@ -239,7 +239,7 @@ func (dcrs *DocumentChangeRequestService) Update(id uint, currentUserID uint, fo
 	// Convert to PDF if a new file was provided
 	if isNewFileProvided {
 		go func() {
-			storagePath := filepath.Join("document", "change_requests", strconv.FormatUint(uint64(id), 10), "documents")
+			storagePath := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.ConvertDocxToPDF(storagePath, formDTO.Document.FileName, storagePath); err != nil {
 				log.Printf("Failed to convert document to PDF: %v", err)
 			}
@@ -255,7 +255,26 @@ func (dcrs *DocumentChangeRequestService) Delete(ids []uint, currentUserID uint)
 	var failedIds []uint
 	var successfulIds []uint
 
+	documentsToDelete := make(map[uint][]*documentDTOs.DocumentChangeRequestDocumentDTO)
+
 	for _, id := range ids {
+
+		changeRequest, err := dcrs.GetFullDetailsByID(id, tx)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		if changeRequest.ChangeRequestDocument != nil {
+			documentsToDelete[id] = append(documentsToDelete[id], changeRequest.ChangeRequestDocument)
+
+			// Remove the related document from the database
+			if err := dcrs.repo.DeleteDocument(*changeRequest.ChangeRequestDocument.ID, tx); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
+
 		if err := dcrs.repo.Delete(id, tx); err != nil {
 			failedIds = append(failedIds, id)
 		} else {
@@ -266,6 +285,23 @@ func (dcrs *DocumentChangeRequestService) Delete(ids []uint, currentUserID uint)
 	if len(failedIds) > 0 {
 		tx.Rollback()
 		return failedIds, nil
+	}
+
+	// Deleting files should not affect the main operation result
+	if len(successfulIds) > 0 {
+		for changeRequestID, documents := range documentsToDelete {
+			for _, doc := range documents {
+				storagePath := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(changeRequestID), 10), "documents")
+				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+					tx.Rollback()
+					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
+				}
+			}
+			destinationPath := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(changeRequestID), 10))
+			if err := utility.RemoveFolder(destinationPath); err != nil {
+				tx.Rollback()
+			}
+		}
 	}
 
 	tx.Commit()
