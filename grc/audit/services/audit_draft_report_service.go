@@ -895,15 +895,19 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 	}
 
 	tx.Commit()
-	// for notif and trails
-	existingAuditDraftReportFullDetails, err := adrs.repo.GetByAuditID(auditID)
-	if err != nil {
-		return err
-	}
+
 	go func() {
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
 		entity := "audit-draft-report"
 		action := "review-user-assign"
+
+		existingAuditDraftReportFullDetails, err := adrs.repo.GetByAuditID(auditID)
+		if err != nil {
+			utility.LogError("Failed to fetch review user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
 		if existingAuditDraftReportFullDetails.Audit.AuditPlan.AuditableItems != nil {
 			for _, item := range existingAuditDraftReportFullDetails.Audit.AuditPlan.AuditableItems {
 				if item.AuditableItem.ResponsibleUser == nil {
@@ -919,8 +923,8 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 					NotificationType:     string(commonDTOs.ReviewType),
 					HeadingEn:            "Audit Draft Report Department Review",
 					HeadingAr:            "مراجعة قسم تقرير مسودة التدقيق",
-					TitleEn:              existingAuditDraftReport.Audit.AuditPlan.Title,
-					TitleAr:              existingAuditDraftReport.Audit.AuditPlan.Title,
+					TitleEn:              existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
+					TitleAr:              existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
 					Entity:               &entity,
 					Action:               &action,
 					URLParam:             urlParam,
@@ -942,8 +946,8 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 				emailData := map[string]interface{}{
 					"FirstNameEn":           responsibleUser.FirstNameEn,
 					"LastNameEn":            responsibleUser.LastNameEn,
-					"AuditTitle":            existingAuditDraftReport.Audit.AuditPlan.Title,
-					"ReferenceNumber":       existingAuditDraftReport.Audit.AuditPlan.ReferenceNumber,
+					"AuditTitle":            existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
+					"ReferenceNumber":       existingAuditDraftReportFullDetails.Audit.AuditPlan.ReferenceNumber,
 					"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 					"AssignedByLastNameEn":  assignedBy.LastNameEn,
 					"AssignedOn":            time.Now().Format("2006-01-02"),
