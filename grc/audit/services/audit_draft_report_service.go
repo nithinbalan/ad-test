@@ -895,19 +895,15 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 	}
 
 	tx.Commit()
-
+	// for notif and trails
+	existingAuditDraftReportFullDetails, err := adrs.repo.GetByAuditID(auditID)
+	if err != nil {
+		return err
+	}
 	go func() {
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
 		entity := "audit-draft-report"
 		action := "review-user-assign"
-
-		existingAuditDraftReportFullDetails, err := adrs.repo.GetByAuditID(auditID)
-		if err != nil {
-			utility.LogError("Failed to fetch review user", map[string]interface{}{
-				"error": err.Error(),
-			})
-			return
-		}
 		if existingAuditDraftReportFullDetails.Audit.AuditPlan.AuditableItems != nil {
 			for _, item := range existingAuditDraftReportFullDetails.Audit.AuditPlan.AuditableItems {
 				if item.AuditableItem.ResponsibleUser == nil {
