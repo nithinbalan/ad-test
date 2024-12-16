@@ -175,7 +175,7 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 			return err
 		}
 	}
-
+	tx.Commit()
 	go func() {
 		entity := "audit-draft-report"
 		action := "review-user-assign"
