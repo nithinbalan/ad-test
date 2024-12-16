@@ -65,8 +65,6 @@ type BusinessImpactAssessmentFormDTO struct {
 }
 
 type BusinessImpactAssessmentDTO struct {
-	ProcessID        *uint   `json:"process_id"`
-	AssetRegisterID  *uint   `json:"asset_register_id"`
 	ImpactCategoryID uint    `json:"impact_category_id"`
 	RiskLevelID      uint    `json:"risk_level_id"`
 	Cost             *uint   `json:"cost"`
