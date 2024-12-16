@@ -762,7 +762,7 @@ func (adrrs *AuditDraftReportReviewService) ReSubmit(auditID uint, auditDraftRep
 
 	// Remove old participants
 	if len(participantIDsToRemove) > 0 {
-		if err := adrrs.repo.DeleteAuditReportWorkflowParticipants(participantIDsToRemove, tx); err != nil {
+		if err := adrrs.repo.DeleteAuditReportWorkflowParticipants(auditReportWorkflowID, participantIDsToRemove, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
