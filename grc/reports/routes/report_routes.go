@@ -15,6 +15,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	complianceReportController := app.ReportsModule.ComplianceReportController
 	organizationReportController := app.ReportsModule.OrganizationReportController
+	riskReportController := app.ReportsModule.RiskReportController
 
 	reportsRoutes.GET("/reports/compliance-registers", complianceReportController.GetAllComplianceRegisters)
 	reportsRoutes.GET("/reports/compliance-registers/export", complianceReportController.ComplianceRegisterReportExport)
@@ -62,4 +63,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/controls-by-implementation-status", organizationReportController.GetControlsByImplementationStatus)
 	reportsRoutes.GET("/reports/controls-by-efficiency-status", organizationReportController.GetControlsByEfficiencyStatus)
 	reportsRoutes.GET("/reports/controls-by-applicability", organizationReportController.GetControlsByApplicability)
+
+	// routes.go
+	reportsRoutes.GET("/reports/kri-by-category", riskReportController.GetKRIByCategory)
+	reportsRoutes.GET("/reports/kri-by-responsible-unit", riskReportController.GetKRIByResponsibleUnit)
+	reportsRoutes.GET("/reports/kri-by-responsible-user", riskReportController.GetKRIByResponsibleUser)
+	reportsRoutes.GET("/reports/kri-by-risk-level", riskReportController.GetKRIByRiskLevel)
+	reportsRoutes.GET("/reports/kri-by-review-frequency", riskReportController.GetKRIByReviewFrequency)
+
 }
