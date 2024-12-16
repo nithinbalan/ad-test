@@ -21,6 +21,8 @@ type RiskReportRepositoryInterface interface {
 	GetRiskByResidualRiskRating(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByRiskRatingDTO, error)
 	GetRiskByRiskStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByStatusDTO, error)
 	GetRiskByRiskResponseStrategy(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByResponseStrategyDTO, error)
+	GetRiskByRiskAppetiteToleranceLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByRiskAppetiteToleranceLevelDTO, error)
+	GetRiskByKRIEnabledStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByKRIEnabledStatusDTO, error)
 }
 
 type RiskReportRepository struct {
@@ -306,6 +308,54 @@ func (r *RiskReportRepository) GetRiskByRiskResponseStrategy(params *reportDTOs.
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (r *RiskReportRepository) GetRiskByRiskAppetiteToleranceLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByRiskAppetiteToleranceLevelDTO, error) {
+	results := []*reportDTOs.RiskByRiskAppetiteToleranceLevelDTO{}
+
+	query := r.db.Table("risk_appetite_alignments").
+		Select(`risk_appetite_tolerance_levels.id AS tolerance_level_id,
+				risk_appetite_tolerance_levels.title_en AS tolerance_level_title_en,
+				risk_appetite_tolerance_levels.title_ar AS tolerance_level_title_ar,
+				risk_appetite_tolerance_levels.color_code AS color_code,
+				COUNT(risk_appetite_alignments.id) AS count`).
+		Joins("JOIN risk_appetite_tolerance_levels ON risk_appetite_tolerance_levels.id = risk_appetite_alignments.risk_appetite_tolerance_level_id").
+		Group(`risk_appetite_tolerance_levels.id, 
+			   risk_appetite_tolerance_levels.title_en, 
+			   risk_appetite_tolerance_levels.title_ar, 
+			   risk_appetite_tolerance_levels.color_code`)
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_appetite_alignments.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+func (r *RiskReportRepository) GetRiskByKRIEnabledStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByKRIEnabledStatusDTO, error) {
+	results := []*reportDTOs.RiskByKRIEnabledStatusDTO{}
+
+	// Use a subquery to compute KRI status first
+	subQuery := r.db.Table("risk_register").
+		Select(`risk_register.id AS risk_id,
+				CASE 
+					WHEN EXISTS (SELECT 1 FROM risk_kris WHERE risk_kris.risk_register_id = risk_register.id) 
+					THEN 'Enabled' 
+					ELSE 'Not Enabled' 
+				END AS kri_status`)
+
+	// Wrap the subquery and count the KRI status
+	query := r.db.Table("(?) AS sub", subQuery).
+		Select(`kri_status, COUNT(*) AS count`).
+		Group("kri_status")
+
+	// Add date filtering in the subquery if needed
+	if params.DateFrom != "" && params.DateTo != "" {
+		subQuery = subQuery.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err := query.Scan(&results).Error

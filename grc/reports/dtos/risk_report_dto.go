@@ -100,3 +100,16 @@ type RiskByResponseStrategyDTO struct {
 	ResponseStrategyTitleAr string `json:"response_strategy_title_ar"`
 	Count                   uint   `json:"count"`
 }
+
+type RiskByRiskAppetiteToleranceLevelDTO struct {
+	ToleranceLevelID      uint   `json:"tolerance_level_id"`
+	ToleranceLevelTitleEn string `json:"tolerance_level_title_en"`
+	ToleranceLevelTitleAr string `json:"tolerance_level_title_ar"`
+	ColorCode             string `json:"color_code"`
+	Count                 uint   `json:"count"`
+}
+
+type RiskByKRIEnabledStatusDTO struct {
+	KRIStatus string `json:"kri_status"`
+	Count     uint   `json:"count"`
+}

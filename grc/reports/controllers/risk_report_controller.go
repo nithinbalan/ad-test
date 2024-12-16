@@ -250,3 +250,39 @@ func (rrc *RiskReportController) GetRiskByRiskResponseStrategy(c *gin.Context) {
 
 	c.JSON(http.StatusOK, results)
 }
+
+func (rrc *RiskReportController) GetRiskByRiskAppetiteToleranceLevel(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := rrc.service.GetRiskByRiskAppetiteToleranceLevel(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (rrc *RiskReportController) GetRiskByKRIEnabledStatus(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := rrc.service.GetRiskByKRIEnabledStatus(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
