@@ -437,12 +437,12 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 					emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 						EmailTo:              emailTo,
 						Subject:              subject,
-						TemplateRelativePath: "audit/templates/email/audit_draft_report_finding_dismissed_mail.html",
+						TemplateRelativePath: "audit/templates/email/audit_draft_report_finding_dismissed_user_mail.html",
 						EmailData:            emailData,
 					}
 
 					// Send Notification and Email
-					err = adfcs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
+					err = adfcs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit_insight_draft_reports")
 					if err != nil {
 						utility.LogError("Failed to send notifications", map[string]interface{}{
 							"error": err.Error(),
@@ -521,7 +521,7 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 					UserID:               userID,
-					ModuleIdentifier:     "audit_insights",
+					ModuleIdentifier:     "audit",
 					NotificationType:     string(commonDTOs.ReviewType),
 					HeadingEn:            "Approve Audit Draft Report Finding",
 					HeadingAr:            "قبول نتائج مسودة تقرير التدقيق",

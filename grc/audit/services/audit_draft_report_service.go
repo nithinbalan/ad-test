@@ -962,7 +962,7 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 				}
 
 				// Send Notification and Email
-				err = adrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
+				err = adrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit_insight_draft_reports")
 				if err != nil {
 					utility.LogError("Failed to send notifications", map[string]interface{}{
 						"error": err.Error(),
