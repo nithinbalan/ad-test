@@ -559,7 +559,10 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 		return err
 	}
 
-	//todo - notification to workflow user
+	_, err = adrrs.taskSvc.UpdateAuditDraftReportTaskStatus(auditDraftReportID, currentUserID, existingAuditReportWorkflow.ID)
+	if err != nil {
+		return err
+	}
 
 	tx.Commit()
 
@@ -687,7 +690,10 @@ func (adrrs *AuditDraftReportReviewService) ReSubmit(auditID uint, auditDraftRep
 	if existingAuditDraftReport.AuditDraftReportStatusID != auditDraftReportStatusDraft.ID {
 		return utility.NewForbiddenError("The audit draft report is not in the 'reverted' status.")
 	}
-
+	existingAuditDraftReportFullDetails, err := adrrs.auditDraftReportSvc.GetByAuditID(auditID)
+	if err != nil {
+		return err
+	}
 	tx := adrrs.repo.BeginTransaction()
 
 	// Check if there is an existing AuditReportWorkflow for the draft report
@@ -788,18 +794,29 @@ func (adrrs *AuditDraftReportReviewService) ReSubmit(auditID uint, auditDraftRep
 		tx.Rollback()
 		return err
 	}
-	//todo - notification to workflow user
+	urlParam := fmt.Sprintf(`{"id":%d}`, auditID)
+	for _, participant := range auditReportWorkflowFormDTO.UserIDs {
+		taskDTO := commonDTOs.TaskFormDTO{
+			ModuleIdentifier:      "audit",
+			AuditDraftReportID:    &auditDraftReportID,
+			AuditReportWorkflowID: &auditReportWorkflowID,
+			Title:                 existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
+			Description:           existingAuditDraftReportFullDetails.Audit.AuditPlan.Description,
+			URLParam:              &urlParam,
+			QueryParam:            nil,
+			ResponsibleUserID:     *participant,
+		}
+
+		_, err := adrrs.taskSvc.Create(taskDTO, currentUserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
 
 	tx.Commit()
 
 	go func() {
-		existingAuditDraftReportFullDetails, err := adrrs.auditDraftReportSvc.GetByAuditID(auditID)
-		if err != nil {
-			utility.LogError("Failed to fetch draft report", map[string]interface{}{
-				"error": err.Error(),
-			})
-		}
-		urlParam := fmt.Sprintf(`{"id":%d}`, auditID)
 		entity := "audit-draft-report"
 		action := "review-user-assign"
 
