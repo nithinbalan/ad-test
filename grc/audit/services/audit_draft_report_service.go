@@ -941,7 +941,7 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 				}
 
 				emailTo := []string{responsibleUser.Email}
-				subject := fmt.Sprintf("Audit Draft Report /%s: Department Review Assigned", existingAuditDraftReport.Audit.AuditPlan.Title)
+				subject := fmt.Sprintf("Audit Draft Report /%s: Department Review Assigned", existingAuditDraftReportFullDetails.Audit.AuditPlan.Title)
 				appURL := utility.GetAppURL()
 				emailData := map[string]interface{}{
 					"FirstNameEn":           responsibleUser.FirstNameEn,
