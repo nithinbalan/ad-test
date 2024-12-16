@@ -12,6 +12,15 @@ type RiskReportRepositoryInterface interface {
 	GetKRIByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.KRIByResponsibleUserDTO, error)
 	GetKRIByRiskLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.KRIByRiskLevelDTO, error)
 	GetKRIByReviewFrequency(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.KRIByReviewFrequencyDTO, error)
+
+	GetRiskByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByCategoryDTO, error)
+	GetRiskByResponsibleUnit(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByResponsibleUnitDTO, error)
+	GetRiskByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByResponsibleUserDTO, error)
+	GetRiskByRiskSource(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByRiskSourceDTO, error)
+	GetRiskByInherentRiskRating(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByRiskRatingDTO, error)
+	GetRiskByResidualRiskRating(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByRiskRatingDTO, error)
+	GetRiskByRiskStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByStatusDTO, error)
+	GetRiskByRiskResponseStrategy(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByResponseStrategyDTO, error)
 }
 
 type RiskReportRepository struct {
@@ -77,10 +86,11 @@ func (r *RiskReportRepository) GetKRIByResponsibleUser(params *reportDTOs.Report
 			users.initial AS responsible_user_initial,
 			users.color AS responsible_user_color,
 			users.email AS responsible_user_email,
+			users.profile_image_path AS responsible_user_profile_image_path,
 			COUNT(kri_register.id) AS count
 		`).
 		Joins("JOIN users ON users.id = kri_register.responsible_user_id").
-		Group("users.id, users.first_name_en, users.first_name_ar, users.last_name_en, users.last_name_ar, users.initial, users.color, users.email")
+		Group("users.id, users.first_name_en, users.first_name_ar, users.last_name_en, users.last_name_ar, users.initial, users.color, users.email, users.profile_image_path")
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("kri_register.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
@@ -123,6 +133,179 @@ func (r *RiskReportRepository) GetKRIByReviewFrequency(params *reportDTOs.Report
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("kri_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (r *RiskReportRepository) GetRiskByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByCategoryDTO, error) {
+	results := []*reportDTOs.RiskByCategoryDTO{}
+
+	query := r.db.Table("risk_register").
+		Select(`risk_categories.id AS risk_category_id,
+				risk_categories.title_en AS risk_category_title_en,
+				risk_categories.title_ar AS risk_category_title_ar,
+				COUNT(risk_register.id) AS count`).
+		Joins("JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id").
+		Group("risk_categories.id, risk_categories.title_en, risk_categories.title_ar")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (r *RiskReportRepository) GetRiskByResponsibleUnit(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByResponsibleUnitDTO, error) {
+	results := []*reportDTOs.RiskByResponsibleUnitDTO{}
+
+	query := r.db.Table("risk_register").
+		Select(`organization_units.id AS responsible_unit_id,
+				organization_units.title_en AS responsible_unit_title_en,
+				organization_units.title_ar AS responsible_unit_title_ar,
+				organization_units.color_code AS responsible_unit_color_code,
+				COUNT(risk_register.id) AS count`).
+		Joins("JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id").
+		Group(`organization_units.id, 
+				organization_units.title_en, 
+				organization_units.title_ar, 
+				organization_units.color_code`)
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (r *RiskReportRepository) GetRiskByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByResponsibleUserDTO, error) {
+	results := []*reportDTOs.RiskByResponsibleUserDTO{}
+
+	query := r.db.Table("risk_register").
+		Select(`users.id AS responsible_user_id,
+			users.first_name_en AS responsible_user_first_name_en,
+			users.first_name_ar AS responsible_user_first_name_ar,
+			users.last_name_en AS responsible_user_last_name_en,
+			users.last_name_ar AS responsible_user_last_name_ar,
+			users.initial AS responsible_user_initial,
+			users.color AS responsible_user_color,
+			users.email AS responsible_user_email,
+			users.profile_image_path AS responsible_user_profile_image_path,
+			COUNT(risk_register.id) AS count`).
+		Joins("JOIN users ON users.id = risk_register.responsible_user_id").
+		Group(`users.id, 
+			users.first_name_en, 
+			users.first_name_ar, 
+			users.last_name_en, 
+			users.last_name_ar, 
+			users.initial, 
+			users.color, 
+			users.email, 
+			users.profile_image_path`)
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (r *RiskReportRepository) GetRiskByRiskSource(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByRiskSourceDTO, error) {
+	results := []*reportDTOs.RiskByRiskSourceDTO{}
+
+	query := r.db.Table("risk_register").
+		Select(`risk_sources.id AS risk_source_id,
+				risk_sources.title_en AS risk_source_title_en,
+				risk_sources.title_ar AS risk_source_title_ar,
+				COUNT(risk_register.id) AS count`).
+		Joins("JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id").
+		Group("risk_sources.id, risk_sources.title_en, risk_sources.title_ar")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (r *RiskReportRepository) GetRiskByInherentRiskRating(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByRiskRatingDTO, error) {
+	results := []*reportDTOs.RiskByRiskRatingDTO{}
+
+	query := r.db.Table("risk_register").
+		Select(`risk_matrix_risk_ratings.id AS risk_rating_id,
+				risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
+				risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
+				risk_matrix_risk_ratings.color_code AS color_code,
+				COUNT(risk_register.id) AS count`).
+		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.inherent_risk_rating_id").
+		Group("risk_matrix_risk_ratings.id, risk_matrix_risk_ratings.title_en, risk_matrix_risk_ratings.title_ar, risk_matrix_risk_ratings.color_code")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (r *RiskReportRepository) GetRiskByResidualRiskRating(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByRiskRatingDTO, error) {
+	results := []*reportDTOs.RiskByRiskRatingDTO{}
+
+	query := r.db.Table("risk_register").
+		Select(`risk_matrix_risk_ratings.id AS risk_rating_id,
+				risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
+				risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
+				risk_matrix_risk_ratings.color_code AS color_code,
+				COUNT(risk_register.id) AS count`).
+		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.residual_risk_rating_id").
+		Group("risk_matrix_risk_ratings.id, risk_matrix_risk_ratings.title_en, risk_matrix_risk_ratings.title_ar, risk_matrix_risk_ratings.color_code")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (r *RiskReportRepository) GetRiskByRiskStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByStatusDTO, error) {
+	results := []*reportDTOs.RiskByStatusDTO{}
+
+	query := r.db.Table("risk_register").
+		Select(`risk_statuses.id AS risk_status_id,
+				risk_statuses.title_en AS risk_status_title_en,
+				risk_statuses.title_ar AS risk_status_title_ar,
+				risk_statuses.color_code AS color_code,
+				COUNT(risk_register.id) AS count`).
+		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
+		Group("risk_statuses.id, risk_statuses.title_en, risk_statuses.title_ar, risk_statuses.color_code")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (r *RiskReportRepository) GetRiskByRiskResponseStrategy(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByResponseStrategyDTO, error) {
+	results := []*reportDTOs.RiskByResponseStrategyDTO{}
+
+	query := r.db.Table("risk_register").
+		Select(`risk_response_strategies.id AS response_strategy_id,
+				risk_response_strategies.title_en AS response_strategy_title_en,
+				risk_response_strategies.title_ar AS response_strategy_title_ar,
+				COUNT(risk_register.id) AS count`).
+		Joins("JOIN risk_response_strategies ON risk_response_strategies.id = risk_register.risk_response_strategy_id").
+		Group("risk_response_strategies.id, risk_response_strategies.title_en, risk_response_strategies.title_ar")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err := query.Scan(&results).Error

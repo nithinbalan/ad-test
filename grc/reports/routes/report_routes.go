@@ -17,6 +17,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationReportController := app.ReportsModule.OrganizationReportController
 	riskReportController := app.ReportsModule.RiskReportController
 
+	//Compliance
 	reportsRoutes.GET("/reports/compliance-registers", complianceReportController.GetAllComplianceRegisters)
 	reportsRoutes.GET("/reports/compliance-registers/export", complianceReportController.ComplianceRegisterReportExport)
 	reportsRoutes.GET("/reports/compliance-by-compliance-category", complianceReportController.GetComplianceByComplianceCategory)
@@ -41,6 +42,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/sla-by-severity-level", complianceReportController.GetSLABySeverityLevel)
 	reportsRoutes.GET("/reports/sla-by-compliance-status", complianceReportController.GetSLAByComplianceStatus)
 
+	//Organization
 	reportsRoutes.GET("/reports/users", organizationReportController.GetAllUsers)
 	reportsRoutes.GET("/reports/users/export", organizationReportController.GetUsersExport)
 	reportsRoutes.GET("/reports/users-by-status", organizationReportController.GetUsersByStatus)
@@ -64,11 +66,20 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/controls-by-efficiency-status", organizationReportController.GetControlsByEfficiencyStatus)
 	reportsRoutes.GET("/reports/controls-by-applicability", organizationReportController.GetControlsByApplicability)
 
-	// routes.go
+	//Risk
 	reportsRoutes.GET("/reports/kri-by-category", riskReportController.GetKRIByCategory)
 	reportsRoutes.GET("/reports/kri-by-responsible-unit", riskReportController.GetKRIByResponsibleUnit)
 	reportsRoutes.GET("/reports/kri-by-responsible-user", riskReportController.GetKRIByResponsibleUser)
 	reportsRoutes.GET("/reports/kri-by-risk-level", riskReportController.GetKRIByRiskLevel)
 	reportsRoutes.GET("/reports/kri-by-review-frequency", riskReportController.GetKRIByReviewFrequency)
+
+	reportsRoutes.GET("/reports/risk-by-category", riskReportController.GetRiskByCategory)
+	reportsRoutes.GET("/reports/risk-by-responsible-unit", riskReportController.GetRiskByResponsibleUnit)
+	reportsRoutes.GET("/reports/risk-by-responsible-user", riskReportController.GetRiskByResponsibleUser)
+	reportsRoutes.GET("/reports/risk-by-risk-source", riskReportController.GetRiskByRiskSource)
+	reportsRoutes.GET("/reports/risk-by-inherent-risk-rating", riskReportController.GetRiskByInherentRiskRating)
+	reportsRoutes.GET("/reports/risk-by-residual-risk-rating", riskReportController.GetRiskByResidualRiskRating)
+	reportsRoutes.GET("/reports/risk-by-risk-status", riskReportController.GetRiskByRiskStatus)
+	reportsRoutes.GET("/reports/risk-by-risk-response-strategy", riskReportController.GetRiskByRiskResponseStrategy)
 
 }

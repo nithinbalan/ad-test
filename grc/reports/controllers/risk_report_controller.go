@@ -106,3 +106,147 @@ func (rrc *RiskReportController) GetKRIByReviewFrequency(c *gin.Context) {
 
 	c.JSON(http.StatusOK, results)
 }
+
+func (rrc *RiskReportController) GetRiskByCategory(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := rrc.service.GetRiskByCategory(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (rrc *RiskReportController) GetRiskByResponsibleUnit(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := rrc.service.GetRiskByResponsibleUnit(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (rrc *RiskReportController) GetRiskByResponsibleUser(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := rrc.service.GetRiskByResponsibleUser(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (rrc *RiskReportController) GetRiskByRiskSource(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := rrc.service.GetRiskByRiskSource(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (rrc *RiskReportController) GetRiskByInherentRiskRating(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := rrc.service.GetRiskByInherentRiskRating(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (rrc *RiskReportController) GetRiskByResidualRiskRating(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := rrc.service.GetRiskByResidualRiskRating(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (rrc *RiskReportController) GetRiskByRiskStatus(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := rrc.service.GetRiskByRiskStatus(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (rrc *RiskReportController) GetRiskByRiskResponseStrategy(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := rrc.service.GetRiskByRiskResponseStrategy(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}

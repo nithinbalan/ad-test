@@ -16,15 +16,16 @@ type KRIByResponsibleUnitDTO struct {
 }
 
 type KRIByResponsibleUserDTO struct {
-	ResponsibleUserID          uint   `json:"responsible_user_id"`
-	ResponsibleUserFirstNameEn string `json:"responsible_user_first_name_en"`
-	ResponsibleUserFirstNameAr string `json:"responsible_user_first_name_ar"`
-	ResponsibleUserLastNameEn  string `json:"responsible_user_last_name_en"`
-	ResponsibleUserLastNameAr  string `json:"responsible_user_last_name_ar"`
-	ResponsibleUserInitial     string `json:"responsible_user_initial"`
-	ResponsibleUserColor       string `json:"responsible_user_color"`
-	ResponsibleUserEmail       string `json:"responsible_user_email"`
-	Count                      uint   `json:"count"`
+	ResponsibleUserID               uint   `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn      string `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          string `json:"responsible_user_initial"`
+	ResponsibleUserColor            string `json:"responsible_user_color"`
+	ResponsibleUserEmail            string `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath string `json:"responsible_user_profile_image_path"`
+	Count                           uint   `json:"count"`
 }
 
 type KRIByRiskLevelDTO struct {
@@ -40,4 +41,62 @@ type KRIByReviewFrequencyDTO struct {
 	ReviewFrequencyTitleEn string `json:"review_frequency_title_en"`
 	ReviewFrequencyTitleAr string `json:"review_frequency_title_ar"`
 	Count                  uint   `json:"count"`
+}
+
+type RiskByCategoryDTO struct {
+	RiskCategoryID      uint   `json:"risk_category_id"`
+	RiskCategoryTitleEn string `json:"risk_category_title_en"`
+	RiskCategoryTitleAr string `json:"risk_category_title_ar"`
+	Count               uint   `json:"count"`
+}
+
+type RiskByResponsibleUnitDTO struct {
+	ResponsibleUnitID        uint   `json:"responsible_unit_id"`
+	ResponsibleUnitTitleEn   string `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr   string `json:"responsible_unit_title_ar"`
+	ResponsibleUnitColorCode string `json:"responsible_unit_color_code"`
+	Count                    uint   `json:"count"`
+}
+
+type RiskByResponsibleUserDTO struct {
+	ResponsibleUserID               uint   `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn      string `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          string `json:"responsible_user_initial"`
+	ResponsibleUserColor            string `json:"responsible_user_color"`
+	ResponsibleUserEmail            string `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath string `json:"responsible_user_profile_image_path"`
+	Count                           uint   `json:"count"`
+}
+
+type RiskByRiskSourceDTO struct {
+	RiskSourceID      uint   `json:"risk_source_id"`
+	RiskSourceTitleEn string `json:"risk_source_title_en"`
+	RiskSourceTitleAr string `json:"risk_source_title_ar"`
+	Count             uint   `json:"count"`
+}
+
+type RiskByRiskRatingDTO struct {
+	RiskRatingID      uint   `json:"risk_rating_id"`
+	RiskRatingTitleEn string `json:"risk_rating_title_en"`
+	RiskRatingTitleAr string `json:"risk_rating_title_ar"`
+	ColorCode         string `json:"color_code"`
+	Count             uint   `json:"count"`
+}
+
+type RiskByStatusDTO struct {
+	RiskStatusID      uint   `json:"risk_status_id"`
+	RiskStatusTitleEn string `json:"risk_status_title_en"`
+	RiskStatusTitleAr string `json:"risk_status_title_ar"`
+	ColorCode         string `json:"color_code"`
+	Count             uint   `json:"count"`
+}
+
+type RiskByResponseStrategyDTO struct {
+	ResponseStrategyID      uint   `json:"response_strategy_id"`
+	ResponseStrategyTitleEn string `json:"response_strategy_title_en"`
+	ResponseStrategyTitleAr string `json:"response_strategy_title_ar"`
+	Count                   uint   `json:"count"`
 }
