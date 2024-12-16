@@ -115,8 +115,6 @@ func (adfcs AuditDraftFindingConversationService) GetFullDetailsByID(auditDraftF
 	return &auditDraftFindingConversationDTO, nil
 }
 func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID uint, currentUserID uint, formDTO *dtos.AuditDraftFindingConversationFormDTO) (uint, error) {
-	tx := adfcs.repo.BeginTransaction()
-
 	existingAuditDraftFinding, err := adfcs.auditDraftFindingSvc.GetByID(auditDraftFindingID)
 	if err != nil {
 		return 0, err
@@ -127,7 +125,6 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 		auditID := existingAuditDraftFinding.AuditID
 		audit, err := adfcs.auditSvc.GetFullDetailsByID(auditID)
 		if err != nil {
-			tx.Rollback()
 			return 0, err
 		}
 
@@ -149,10 +146,12 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 
 		// If the current user is not authorized, rollback and return forbidden error
 		if !isAuthorizedUser {
-			tx.Rollback()
 			return 0, utility.NewForbiddenError("The current user is not authorized to perform this action.")
 		}
 	}
+	//begin tx
+	tx := adfcs.repo.BeginTransaction()
+
 	conversation := &models.AuditDraftFindingConversation{
 		AuditDraftFindingID: auditDraftFindingID,
 		Comment:             formDTO.Comment,
@@ -180,7 +179,7 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 			return 0, utility.NewForbiddenError("The finding has already been accepted.")
 		}
 		// Update Audit Draft Finding Status
-		if err := adfcs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatus.ID); err != nil {
+		if err := adfcs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatus.ID, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -197,7 +196,7 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 			return 0, utility.NewForbiddenError("Action not allowed. The audit finding must be in not finalized' status before any further actions can be taken.")
 		}
 		// Update Audit Draft Finding Status
-		if err := adfcs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusDismissed.ID); err != nil {
+		if err := adfcs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusDismissed.ID, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -219,7 +218,7 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 			return 0, utility.NewForbiddenError("Action not allowed. The audit finding status must be 'Dismissed' before any further actions can be taken.")
 		}
 		// Update Audit Draft Finding Status
-		if err := adfcs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusOpen.ID); err != nil {
+		if err := adfcs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusOpen.ID, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -263,7 +262,14 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 	tx.Commit()
 
 	go func() {
-		auditID := existingAuditDraftFinding.AuditID
+		existingAuditDraftFindingFullDetails, err := adfcs.auditDraftFindingSvc.GetFullDetailsByID(auditDraftFindingID)
+		if err != nil {
+			utility.LogError("Failed to fetch finding", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		auditID := existingAuditDraftFindingFullDetails.AuditID
 		auditDraftReport, err := adfcs.auditDraftReportSvc.GetByAuditID(auditID)
 		if err != nil {
 			utility.LogError("Failed to fetch draft report", map[string]interface{}{
@@ -271,6 +277,7 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 			})
 			return
 		}
+
 		if formDTO.IsReopened != nil && *formDTO.IsReopened {
 			urlParam := fmt.Sprintf(`{"id":%d}`, auditDraftReport.ID)
 			entity := "audit-draft-report"
@@ -323,9 +330,9 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 					"FirstNameEn":           responsibleUser.FirstNameEn,
 					"LastNameEn":            responsibleUser.LastNameEn,
 					"AuditTitle":            auditDraftReport.Audit.AuditPlan.Title,
-					"FindingTitle":          existingAuditDraftFinding.Title,
-					"FindingDescription":    existingAuditDraftFinding.Description,
-					"FindingCategoryTitle":  existingAuditDraftFinding.AuditFindingCategory.TitleEn,
+					"FindingTitle":          existingAuditDraftFindingFullDetails.Title,
+					"FindingDescription":    existingAuditDraftFindingFullDetails.Description,
+					"FindingCategoryTitle":  existingAuditDraftFindingFullDetails.AuditFindingCategory.TitleEn,
 					"ReopenedByFirstNameEn": assignedBy.FirstNameEn,
 					"ReopenedByLastNameEn":  assignedBy.LastNameEn,
 					"ReopenedOn":            time.Now().Format("2006-01-02"),
@@ -345,8 +352,8 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 					NotificationType:     string(commonDTOs.ReviewType),
 					HeadingEn:            "Audit Draft Report Finding Reopened",
 					HeadingAr:            "إعادة فتح نتيجة تقرير مسودة التدقيق",
-					TitleEn:              existingAuditDraftFinding.Title,
-					TitleAr:              existingAuditDraftFinding.Title,
+					TitleEn:              existingAuditDraftFindingFullDetails.Title,
+					TitleAr:              existingAuditDraftFindingFullDetails.Title,
 					Entity:               &entity,
 					Action:               &action,
 					URLParam:             urlParam,
@@ -408,15 +415,15 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 					}
 
 					emailTo := []string{responsibleUser.Email}
-					subject := fmt.Sprintf("Audit Draft Report /%s: Finding /%s: Dismissed", existingAuditDraftReportFullDetails.Audit.AuditPlan.Title, existingAuditDraftFinding.Title)
+					subject := fmt.Sprintf("Audit Draft Report /%s: Finding /%s: Dismissed", existingAuditDraftReportFullDetails.Audit.AuditPlan.Title, existingAuditDraftFindingFullDetails.Title)
 					appURL := utility.GetAppURL()
 					emailData := map[string]interface{}{
 						"FirstNameEn":            responsibleUser.FirstNameEn,
 						"LastNameEn":             responsibleUser.LastNameEn,
 						"AuditTitle":             auditDraftReport.Audit.AuditPlan.Title,
-						"FindingTitle":           existingAuditDraftFinding.Title,
-						"FindingDescription":     existingAuditDraftFinding.Description,
-						"FindingCategoryTitle":   existingAuditDraftFinding.AuditFindingCategory.TitleEn,
+						"FindingTitle":           existingAuditDraftFindingFullDetails.Title,
+						"FindingDescription":     existingAuditDraftFindingFullDetails.Description,
+						"FindingCategoryTitle":   existingAuditDraftFindingFullDetails.AuditFindingCategory.TitleEn,
 						"DismissedByFirstNameEn": assignedBy.FirstNameEn,
 						"DismissedByLastNameEn":  assignedBy.LastNameEn,
 						"DismissedOn":            time.Now().Format("2006-01-02"),
