@@ -1004,10 +1004,16 @@ func (adrs *AuditDraftReportService) StatusUpdate(id uint, currentUserID uint, a
 	}
 
 	now := time.Now()
+	auditDraftReportStatus, err := adrs.auditDraftReportStatusSvc.GetByType("in-review")
+	if err != nil {
+		return err
+	}
+	if auditDraftReportStatus.ID == auditDraftReportStatusID {
+		existingAuditDraftReport.InternalReviewSubmittedAt = &now
+		existingAuditDraftReport.InternalReviewSubmittedBYID = &currentUserID
+	}
 
-	existingAuditDraftReport.InternalReviewSubmittedAt = &now
 	existingAuditDraftReport.AuditDraftReportStatusID = auditDraftReportStatusID
-	existingAuditDraftReport.InternalReviewSubmittedBYID = &currentUserID
 	existingAuditDraftReport.NextReviewLevel = nextReviewLevel
 	existingAuditDraftReport.UpdatedBYID = &currentUserID
 
