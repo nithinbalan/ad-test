@@ -286,3 +286,57 @@ func (rrc *RiskReportController) GetRiskByKRIEnabledStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, results)
 }
+
+func (rrc *RiskReportController) GetRiskActionPlansByStatus(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := rrc.service.GetRiskActionPlansByStatus(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (rrc *RiskReportController) GetRiskActionPlansByResponsibleUser(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := rrc.service.GetRiskActionPlansByResponsibleUser(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (rrc *RiskReportController) GetRiskActionPlansBySeverityLevel(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := rrc.service.GetRiskActionPlansBySeverityLevel(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}

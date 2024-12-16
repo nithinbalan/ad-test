@@ -113,3 +113,33 @@ type RiskByKRIEnabledStatusDTO struct {
 	KRIStatus string `json:"kri_status"`
 	Count     uint   `json:"count"`
 }
+type RiskActionPlansByStatusDTO struct {
+	ActionPlanStatusID        uint   `json:"action_plan_status_id"`
+	ActionPlanStatusTitleEn   string `json:"action_plan_status_title_en"`
+	ActionPlanStatusTitleAr   string `json:"action_plan_status_title_ar"`
+	ActionPlanStatusType      string `json:"action_plan_status_type"`
+	ActionPlanStatusColorCode string `json:"action_plan_status_color_code"`
+	Count                     uint   `json:"count"`
+}
+
+type RiskActionPlansByResponsibleUserDTO struct {
+	ResponsibleUserID               uint   `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn      string `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          string `json:"responsible_user_initial"`
+	ResponsibleUserColor            string `json:"responsible_user_color"`
+	ResponsibleUserEmail            string `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath string `json:"responsible_user_profile_image_path"`
+	Count                           uint   `json:"count"`
+}
+
+type RiskActionPlansBySeverityLevelDTO struct {
+	SeverityLevelID        uint   `json:"severity_level_id"`
+	SeverityLevelTitleEn   string `json:"severity_level_title_en"`
+	SeverityLevelTitleAr   string `json:"severity_level_title_ar"`
+	SeverityLevelColorCode string `json:"severity_level_color_code"`
+	SeverityLevelType      string `json:"severity_level_type"`
+	Count                  uint   `json:"count"`
+}

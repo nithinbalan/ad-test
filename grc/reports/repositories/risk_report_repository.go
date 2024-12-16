@@ -23,6 +23,10 @@ type RiskReportRepositoryInterface interface {
 	GetRiskByRiskResponseStrategy(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByResponseStrategyDTO, error)
 	GetRiskByRiskAppetiteToleranceLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByRiskAppetiteToleranceLevelDTO, error)
 	GetRiskByKRIEnabledStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByKRIEnabledStatusDTO, error)
+
+	GetRiskActionPlansByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskActionPlansByStatusDTO, error)
+	GetRiskActionPlansByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskActionPlansByResponsibleUserDTO, error)
+	GetRiskActionPlansBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskActionPlansBySeverityLevelDTO, error)
 }
 
 type RiskReportRepository struct {
@@ -356,6 +360,73 @@ func (r *RiskReportRepository) GetRiskByKRIEnabledStatus(params *reportDTOs.Repo
 	// Add date filtering in the subquery if needed
 	if params.DateFrom != "" && params.DateTo != "" {
 		subQuery = subQuery.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (r *RiskReportRepository) GetRiskActionPlansByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskActionPlansByStatusDTO, error) {
+	results := []*reportDTOs.RiskActionPlansByStatusDTO{}
+
+	query := r.db.Table("risk_action_plans").
+		Select(`action_plan_statuses.id AS action_plan_status_id,
+				action_plan_statuses.title_en AS action_plan_status_title_en,
+				action_plan_statuses.title_ar AS action_plan_status_title_ar,
+				action_plan_statuses.type AS action_plan_status_type,
+				action_plan_statuses.color_code AS action_plan_status_color_code,
+				COUNT(risk_action_plans.id) AS count`).
+		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = risk_action_plans.action_plan_status_id").
+		Group("action_plan_statuses.id, action_plan_statuses.title_en, action_plan_statuses.title_ar, action_plan_statuses.type, action_plan_statuses.color_code")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (r *RiskReportRepository) GetRiskActionPlansByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskActionPlansByResponsibleUserDTO, error) {
+	results := []*reportDTOs.RiskActionPlansByResponsibleUserDTO{}
+
+	query := r.db.Table("risk_action_plans").
+		Select(`users.id AS responsible_user_id,
+				users.first_name_en AS responsible_user_first_name_en,
+				users.first_name_ar AS responsible_user_first_name_ar,
+				users.last_name_en AS responsible_user_last_name_en,
+				users.last_name_ar AS responsible_user_last_name_ar,
+				users.initial AS responsible_user_initial,
+				users.color AS responsible_user_color,
+				users.email AS responsible_user_email,
+				users.profile_image_path AS responsible_user_profile_image_path,
+				COUNT(risk_action_plans.id) AS count`).
+		Joins("JOIN users ON users.id = risk_action_plans.responsible_user_id").
+		Group("users.id, users.first_name_en, users.first_name_ar, users.last_name_en, users.last_name_ar, users.initial, users.color, users.email, users.profile_image_path")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (r *RiskReportRepository) GetRiskActionPlansBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskActionPlansBySeverityLevelDTO, error) {
+	results := []*reportDTOs.RiskActionPlansBySeverityLevelDTO{}
+
+	query := r.db.Table("risk_action_plans").
+		Select(`severity_levels.id AS severity_level_id,
+				severity_levels.title_en AS severity_level_title_en,
+				severity_levels.title_ar AS severity_level_title_ar,
+				severity_levels.color_code AS severity_level_color_code,
+				severity_levels.type AS severity_level_type,
+				COUNT(risk_action_plans.id) AS count`).
+		Joins("JOIN severity_levels ON severity_levels.id = risk_action_plans.severity_level_id").
+		Group("severity_levels.id, severity_levels.title_en, severity_levels.title_ar, severity_levels.color_code, severity_levels.type")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err := query.Scan(&results).Error

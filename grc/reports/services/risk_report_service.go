@@ -22,6 +22,10 @@ type RiskReportServiceInterface interface {
 	GetRiskByRiskResponseStrategy(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByResponseStrategyDTO, error)
 	GetRiskByRiskAppetiteToleranceLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByRiskAppetiteToleranceLevelDTO, error)
 	GetRiskByKRIEnabledStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByKRIEnabledStatusDTO, error)
+
+	GetRiskActionPlansByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskActionPlansByStatusDTO, error)
+	GetRiskActionPlansByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskActionPlansByResponsibleUserDTO, error)
+	GetRiskActionPlansBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskActionPlansBySeverityLevelDTO, error)
 }
 
 type RiskReportService struct {
@@ -90,4 +94,16 @@ func (r *RiskReportService) GetRiskByRiskAppetiteToleranceLevel(params *reportDT
 
 func (r *RiskReportService) GetRiskByKRIEnabledStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByKRIEnabledStatusDTO, error) {
 	return r.repo.GetRiskByKRIEnabledStatus(params)
+}
+
+func (r *RiskReportService) GetRiskActionPlansByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskActionPlansByStatusDTO, error) {
+	return r.repo.GetRiskActionPlansByStatus(params)
+}
+
+func (r *RiskReportService) GetRiskActionPlansByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskActionPlansByResponsibleUserDTO, error) {
+	return r.repo.GetRiskActionPlansByResponsibleUser(params)
+}
+
+func (r *RiskReportService) GetRiskActionPlansBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskActionPlansBySeverityLevelDTO, error) {
+	return r.repo.GetRiskActionPlansBySeverityLevel(params)
 }
