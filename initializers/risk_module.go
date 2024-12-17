@@ -44,6 +44,7 @@ type RiskModule struct {
 
 	RiskRegisterSvc services.RiskRegisterServiceInterface
 	RiskHeatMapSvc  services.RiskHeatmapServiceInterface
+	kriRegisterSvc  services.KRIRegisterServiceInterface
 }
 
 func NewRiskModule(db *gorm.DB,
@@ -312,5 +313,6 @@ func NewRiskModule(db *gorm.DB,
 
 		RiskRegisterSvc: riskRegisterSvc,
 		RiskHeatMapSvc:  riskHeatmapSvc,
+		kriRegisterSvc:  kriRegisterSvc,
 	}
 }

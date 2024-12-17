@@ -67,6 +67,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/controls-by-applicability", organizationReportController.GetControlsByApplicability)
 
 	//Risk
+	reportsRoutes.GET("/reports/kris", riskReportController.GetAllKRIRegisters)
+	reportsRoutes.GET("/reports/kris/export", riskReportController.GetKriRegisterExport)
 	reportsRoutes.GET("/reports/kri-by-category", riskReportController.GetKRIByCategory)
 	reportsRoutes.GET("/reports/kri-by-responsible-unit", riskReportController.GetKRIByResponsibleUnit)
 	reportsRoutes.GET("/reports/kri-by-responsible-user", riskReportController.GetKRIByResponsibleUser)
