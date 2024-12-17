@@ -48,9 +48,12 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 		"responsible_user_ids",
 		"risk_status_ids",
 		"review_frequency_ids",
+		"inherent_risk_rating_ids",
+		"residual_risk_rating_ids",
 		"current_likelihood_ids",
 		"current_impact_ids",
 		"current_risk_rating_ids",
+		"risk_response_strategy_ids",
 	}
 
 	validSortFields := map[string]string{
@@ -93,6 +96,8 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 	reportedAtTo := c.Query("reported_at")
 	nextReviewDateFrom := c.Query("next_review_date_from")
 	nextReviewDateTo := c.Query("next_review_date_to")
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -137,6 +142,8 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 		NextReviewDateFrom: nextReviewDateFrom,
 		NextReviewDateTo:   nextReviewDateTo,
 		Export:             export,
+		DateFrom:           dateFrom,
+		DateTo:             dateTo,
 	}
 	risks, err := rrc.service.GetAll(&queryParams)
 	if err != nil {

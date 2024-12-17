@@ -75,6 +75,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/kri-by-risk-level", riskReportController.GetKRIByRiskLevel)
 	reportsRoutes.GET("/reports/kri-by-review-frequency", riskReportController.GetKRIByReviewFrequency)
 
+	reportsRoutes.GET("/reports/risks", riskReportController.GetAllRiskRegisters)
+	reportsRoutes.GET("/reports/risks/export", riskReportController.GetRiskRegisterExport)
 	reportsRoutes.GET("/reports/risk-by-category", riskReportController.GetRiskByCategory)
 	reportsRoutes.GET("/reports/risk-by-responsible-unit", riskReportController.GetRiskByResponsibleUnit)
 	reportsRoutes.GET("/reports/risk-by-responsible-user", riskReportController.GetRiskByResponsibleUser)

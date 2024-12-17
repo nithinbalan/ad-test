@@ -33,7 +33,9 @@ func NewReportsModule(db *gorm.DB,
 
 	riskReportRepo := repositories.NewRiskReportRepository(db)
 	riskReportSvc := services.NewRiskReportService(riskReportRepo)
-	riskReportController := controllers.NewRiskReportController(riskReportSvc, riskModule.kriRegisterSvc)
+	riskReportController := controllers.NewRiskReportController(riskReportSvc,
+		riskModule.kriRegisterSvc,
+		riskModule.RiskRegisterSvc)
 
 	return &ReportsModule{
 		ComplianceReportController:   complianceReportController,
