@@ -17,8 +17,8 @@ type DocumentChangeRequestListDTO struct {
 	DocumentChangeRequestTypeEn          string  `json:"document_change_request_type_en"`
 	DocumentChangeRequestTypeAr          string  `json:"document_change_request_type_ar"`
 	DocumentChangeRequestStatusID        uint    `json:"document_change_request_status_id"`
-	DocumentChangeRequestStatusEn        string  `json:"document_change_request_status_en"`
-	DocumentChangeRequestStatusAr        string  `json:"document_change_request_status_ar"`
+	DocumentChangeRequestStatusTitleEn   string  `json:"document_change_request_status_title_en"`
+	DocumentChangeRequestStatusTitleAr   string  `json:"document_change_request_status_title_ar"`
 	DocumentChangeRequestStatusColorCode string  `json:"document_change_request_status_color_code"`
 	ReasonForChange                      *string `json:"reason_for_change"`
 	Version                              float64 `json:"version"`
