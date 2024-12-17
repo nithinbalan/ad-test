@@ -41,6 +41,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentChangeRequestTypeController := app.DocumentModule.DocumentChangeRequestTypeController
 	documentChangeRequestStatusController := app.DocumentModule.DocumentChangeRequestStatusController
 	documentChangeRequestController := app.DocumentModule.DocumentChangeRequestController
+	documentChangeRequestWorkflowStatusController := app.DocumentModule.DocumentChangeRequestWorkflowStatusController
 
 	documentRoutes.GET("/document-categories", documentCategoryController.GetAllDocumentCategories)
 	documentRoutes.GET("/document-categories/:id", documentCategoryController.GetDocumentCategoryDetails)
@@ -155,4 +156,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	unauthenticatedRoutes.GET("/ocument-change-requests/:id/document-preview", documentChangeRequestController.GetDocumentChangeRequestPreview)
 	unauthenticatedRoutes.GET("/ocument-change-requests/:id/document-download", documentChangeRequestController.DownloadChangeRequestDocument)
+
+	documentRoutes.GET("/document-change-request-workflow-statuses", documentChangeRequestWorkflowStatusController.GetAllDocumentChangeRequestWorkflowStatuses)
+	documentRoutes.GET("/ocument-change-request-workflow-statuses/:id", documentChangeRequestWorkflowStatusController.GetDocumentChangeRequestWorkflowStatusDetails)
 }

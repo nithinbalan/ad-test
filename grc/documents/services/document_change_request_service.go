@@ -22,6 +22,8 @@ import (
 )
 
 type DocumentChangeRequestServiceInterface interface {
+	SetDocumentChangeRequestWorkflowService(svc DocumentChangeRequestWorkflowServiceInterface)
+
 	GetAll(params *documentDTOs.DocumentChangeRequestQueryParamsDTO) (*documentDTOs.DocumentChangeRequestListResponseDTO, error)
 	GetByID(id uint) (*models.DocumentChangeRequest, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*documentDTOs.DocumentChangeRequestDetailsDTO, error)
@@ -36,10 +38,11 @@ type DocumentChangeRequestServiceInterface interface {
 }
 
 type DocumentChangeRequestService struct {
-	repo                           documentRepositories.DocumentChangeRequestRepositoryInterface
-	activityLogSvc                 services.ActivityLogServiceInterface
-	documentChangeRequestTypeSvc   DocumentChangeRequestTypeServiceInterface
-	documentChangeRequestStatusSvc DocumentChangeRequestStatusServiceInterface
+	repo                             documentRepositories.DocumentChangeRequestRepositoryInterface
+	activityLogSvc                   services.ActivityLogServiceInterface
+	documentChangeRequestTypeSvc     DocumentChangeRequestTypeServiceInterface
+	documentChangeRequestStatusSvc   DocumentChangeRequestStatusServiceInterface
+	documentChangeRequestWorkflowSvc DocumentChangeRequestWorkflowServiceInterface
 }
 
 func NewDocumentChangeRequestService(
@@ -54,6 +57,10 @@ func NewDocumentChangeRequestService(
 		documentChangeRequestTypeSvc:   documentChangeRequestTypeSvc,
 		documentChangeRequestStatusSvc: documentChangeRequestStatusSvc,
 	}
+}
+
+func (dcrs *DocumentChangeRequestService) SetDocumentChangeRequestWorkflowService(svc DocumentChangeRequestWorkflowServiceInterface) {
+	dcrs.documentChangeRequestWorkflowSvc = svc
 }
 
 func (dcrs *DocumentChangeRequestService) GetAll(params *documentDTOs.DocumentChangeRequestQueryParamsDTO) (*documentDTOs.DocumentChangeRequestListResponseDTO, error) {
@@ -146,6 +153,12 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 
 	storagePath := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
 	if err := utility.StoreFile(formDTO.Document.FileName, storagePath); err != nil {
+		return 0, err
+	}
+
+	err = dcrs.documentChangeRequestWorkflowSvc.CreateDocumentCRWorkflow(id, formDTO.DocumentID, currentUserID, tx)
+	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 

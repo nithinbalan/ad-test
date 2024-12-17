@@ -128,8 +128,8 @@ func (ds *DocumentService) GetAll(params *documentDTOs.DocumentListQueryParamsDT
 	return ds.repo.GetAll(params, currentUserID)
 }
 
-func (crs DocumentService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error) {
-	document, err := crs.repo.GetByID(id)
+func (ds DocumentService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error) {
+	document, err := ds.repo.GetByID(id)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
