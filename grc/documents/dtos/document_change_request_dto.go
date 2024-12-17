@@ -8,19 +8,20 @@ import (
 
 // List DTO
 type DocumentChangeRequestListDTO struct {
-	ID                            uint    `json:"id"`
-	ReferenceNumber               string  `json:"reference_number"`
-	DocumentID                    uint    `json:"document_id"`
-	DocumentTitleEn               string  `json:"document_title_en"`
-	DocumentTitleAr               string  `json:"document_title_ar"`
-	DocumentChangeRequestTypeID   uint    `json:"document_change_request_type_id"`
-	DocumentChangeRequestTypeEn   string  `json:"document_change_request_type_en"`
-	DocumentChangeRequestTypeAr   string  `json:"document_change_request_type_ar"`
-	DocumentChangeRequestStatusID uint    `json:"document_change_request_status_id"`
-	DocumentChangeRequestStatusEn string  `json:"document_change_request_status_en"`
-	DocumentChangeRequestStatusAr string  `json:"document_change_request_status_ar"`
-	ReasonForChange               *string `json:"reason_for_change"`
-	Version                       float64 `json:"version"`
+	ID                                   uint    `json:"id"`
+	ReferenceNumber                      string  `json:"reference_number"`
+	DocumentID                           uint    `json:"document_id"`
+	DocumentTitleEn                      string  `json:"document_title_en"`
+	DocumentTitleAr                      string  `json:"document_title_ar"`
+	DocumentChangeRequestTypeID          uint    `json:"document_change_request_type_id"`
+	DocumentChangeRequestTypeEn          string  `json:"document_change_request_type_en"`
+	DocumentChangeRequestTypeAr          string  `json:"document_change_request_type_ar"`
+	DocumentChangeRequestStatusID        uint    `json:"document_change_request_status_id"`
+	DocumentChangeRequestStatusEn        string  `json:"document_change_request_status_en"`
+	DocumentChangeRequestStatusAr        string  `json:"document_change_request_status_ar"`
+	DocumentChangeRequestStatusColorCode string  `json:"document_change_request_status_color_code"`
+	ReasonForChange                      *string `json:"reason_for_change"`
+	Version                              float64 `json:"version"`
 
 	CreatedByUserID           uint   `json:"created_by_user_id"`
 	CreatedByUserFirstNameEn  string `json:"created_by_user_first_name_en"`

@@ -61,6 +61,7 @@ func (repo *DocumentChangeRequestRepository) GetAll(params *dtos.DocumentChangeR
 			document_change_requests.document_change_request_status_id,
 			change_request_statuses.title_en AS document_change_request_status_en,
 			change_request_statuses.title_ar AS document_change_request_status_ar,
+			change_request_statuses.color_code AS document_change_request_status_color_code,
 			document_change_requests.reason_for_change,
 			document_change_requests.version,
 			created_by_user.id AS created_by_user_id,
