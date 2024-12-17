@@ -13,6 +13,7 @@ import (
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -37,6 +38,7 @@ type AuditDocumentRequestService struct {
 	auditableItemSvc              AuditableItemServiceInterface
 	userSvc                       organizationServices.UserServiceInterface
 	notificationSvc               commonServices.NotificationServiceInterface
+	taskSvc                       taskServices.TaskServiceInterface
 }
 
 func NewAuditDocumentRequestService(
@@ -47,6 +49,7 @@ func NewAuditDocumentRequestService(
 	auditableItemSvc AuditableItemServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	taskSvc taskServices.TaskServiceInterface,
 ) AuditDocumentRequestServiceInterface {
 	return &AuditDocumentRequestService{
 		repo:                          repo,
@@ -56,6 +59,7 @@ func NewAuditDocumentRequestService(
 		auditableItemSvc:              auditableItemSvc,
 		userSvc:                       userSvc,
 		notificationSvc:               notificationSvc,
+		taskSvc:                       taskSvc,
 	}
 }
 
@@ -336,7 +340,7 @@ func (adrs *AuditDocumentRequestService) Update(auditID uint, id uint, currentUs
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title":       oldDocumentRequest.Title,
 			"description": oldDocumentRequest.Description,
@@ -378,17 +382,17 @@ func (adrs *AuditDocumentRequestService) Update(auditID uint, id uint, currentUs
 }
 
 func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUserID uint) error {
-	tx := adrs.repo.BeginTransaction()
 	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	documentRequest, err := adrs.repo.GetByID(id)
 	if err != nil {
-		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
 	}
+
+	tx := adrs.repo.BeginTransaction()
+
 	documentRequestFullDetails, err := adrs.GetFullDetailsByID(id, tx)
 	if err != nil {
 		tx.Rollback()
@@ -412,6 +416,25 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	// Create a task for the document submission
+	urlParam := fmt.Sprintf(`{"audit_id":%d,"document_request_id":%d}`, auditID, id)
+
+	taskDTO := commonDTOs.TaskFormDTO{
+		ModuleIdentifier:       "audit",
+		AuditDocumentRequestID: &id,
+		Title:                  documentRequestFullDetails.Title,
+		Description:            documentRequestFullDetails.Description,
+		// TargetDate:             documentRequestFullDetails.Audit.EndDateString,
+		URLParam:          &urlParam,
+		QueryParam:        nil,
+		ResponsibleUserID: documentRequest.ResponsibleUserID,
+	}
+
+	if _, err := adrs.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to create task: %w", err)
 	}
 
 	// todo -> send email notifications to responsible users
@@ -438,14 +461,14 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 			utility.LogError("Failed to log activity", fields)
 		}
 
-		if documentRequestFullDetails.ResponsibleUser.ID == 0 {
+		if documentRequest.ResponsibleUserID == 0 {
 			utility.LogError("Responsible user is missing", map[string]interface{}{
 				"documentRequestID": id,
 			})
 			return
 		}
 
-		responsibleUserID := documentRequestFullDetails.RequestedByUser.ID
+		responsibleUserID := documentRequest.ResponsibleUserID
 		responsibleUser, err := adrs.userSvc.GetByID(uint(responsibleUserID))
 		if err != nil {
 			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
@@ -455,7 +478,7 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 			return
 		}
 
-		requestedBy, err := adrs.userSvc.GetByID(uint(documentRequestFullDetails.RequestedByUser.ID))
+		requestedBy, err := adrs.userSvc.GetByID(uint(*documentRequest.RequestedBYID))
 		if err != nil {
 			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
 				"error": err.Error(),
