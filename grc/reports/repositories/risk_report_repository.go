@@ -340,10 +340,11 @@ func (r *RiskReportRepository) GetRiskByRiskAppetiteToleranceLevel(params *repor
 	err := query.Scan(&results).Error
 	return results, err
 }
+
 func (r *RiskReportRepository) GetRiskByKRIEnabledStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByKRIEnabledStatusDTO, error) {
 	results := []*reportDTOs.RiskByKRIEnabledStatusDTO{}
 
-	// Use a subquery to compute KRI status first
+	// Build the subquery with date filtering applied
 	subQuery := r.db.Table("risk_register").
 		Select(`risk_register.id AS risk_id,
 				CASE 
@@ -352,16 +353,17 @@ func (r *RiskReportRepository) GetRiskByKRIEnabledStatus(params *reportDTOs.Repo
 					ELSE 'Not Enabled' 
 				END AS kri_status`)
 
-	// Wrap the subquery and count the KRI status
-	query := r.db.Table("(?) AS sub", subQuery).
-		Select(`kri_status, COUNT(*) AS count`).
-		Group("kri_status")
-
-	// Add date filtering in the subquery if needed
+	// Apply date filtering in the subquery
 	if params.DateFrom != "" && params.DateTo != "" {
 		subQuery = subQuery.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
+	// Use the subquery to calculate counts grouped by KRI status
+	query := r.db.Table("(?) AS sub", subQuery).
+		Select(`kri_status, COUNT(*) AS count`).
+		Group("kri_status")
+
+	// Execute the query
 	err := query.Scan(&results).Error
 	return results, err
 }
