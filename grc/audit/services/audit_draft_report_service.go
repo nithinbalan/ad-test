@@ -1065,15 +1065,14 @@ func safeStringPointer(s *string) string {
 }
 
 func (adrs *AuditDraftReportService) Complete(auditID uint, id uint, currentUserID uint) error {
-	tx := adrs.repo.BeginTransaction()
 	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
 		return err
 	}
 	existingAuditDraftReport, err := adrs.repo.GetByID(id)
 	if err != nil {
-		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
 	}
+	tx := adrs.repo.BeginTransaction()
 
 	auditDraftReportStatus, err := adrs.auditDraftReportStatusSvc.GetByType("in-department-review")
 	if err != nil {
@@ -1084,8 +1083,9 @@ func (adrs *AuditDraftReportService) Complete(auditID uint, id uint, currentUser
 		tx.Rollback()
 		return utility.NewForbiddenError("The audit draft report has not been in department review.")
 	}
-	auditDraftFindings, err := adrs.auditDraftFindingSvc.GetAllFindingsByAuditID(existingAuditDraftReport.AuditID)
+	auditDraftFindings, err := adrs.auditDraftFindingSvc.GetAllFindingsByAuditID(existingAuditDraftReport.AuditID,tx)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	// Check if all findings are finalized

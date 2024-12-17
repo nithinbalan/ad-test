@@ -24,7 +24,7 @@ type AuditDraftFindingServiceInterface interface {
 	GetAll(params *auditDTOs.AuditDraftFindingListQueryParamsDTO) (*auditDTOs.AuditDraftFindingListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDraftFindingDetailDTO, error)
 	GetByID(id uint) (*models.AuditDraftFinding, error)
-	GetAllFindingsByAuditID(auditId uint) ([]*models.AuditDraftFinding, error)
+	GetAllFindingsByAuditID(auditId uint, tx ...utility.DatabaseTransaction) ([]*models.AuditDraftFinding, error)
 	Create(currentUserID uint, auditDraftFindingFormDTO *auditDTOs.AuditDraftFindingFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, auditDraftFindingFormDTO *auditDTOs.AuditDraftFindingFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -108,9 +108,10 @@ func (adfs *AuditDraftFindingService) GetFullDetailsByID(id uint, tx ...utility.
 	return &auditDraftFindingDTO, nil
 }
 
-func (adfs *AuditDraftFindingService) GetAllFindingsByAuditID(auditId uint) ([]*models.AuditDraftFinding, error) {
+func (adfs *AuditDraftFindingService) GetAllFindingsByAuditID(auditId uint, tx ...utility.DatabaseTransaction) ([]*models.AuditDraftFinding, error) {
 	// Retrieve audit findings from the repository by audit ID
-	auditDraftFindings, err := adfs.repo.GetAllFindingsByAuditID(auditId)
+	
+	auditDraftFindings, err := adfs.repo.GetAllFindingsByAuditID(auditId, tx...)
 	if err != nil {
 		// If no records found, return a "not found" error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
