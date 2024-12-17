@@ -452,7 +452,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	var reportSubSections []*models.AuditFinalReportSection
 
 	for _, section := range reportSections {
-		mainSection, err := afrs.repo.GetSectionByType(section.Type, tx)
+		mainSection, err := afrs.repo.GetSectionByType(section.Type, id, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
