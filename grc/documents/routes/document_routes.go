@@ -153,6 +153,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.GET("/document-change-request/:id/check-out", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.CheckoutDocument)
 	documentRoutes.POST("/document-change-request/:id/check-in", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.CheckinDocument)
 
-	unauthenticatedRoutes.GET("/ocument-change-requests/:id/document-preview", documentChangeRequestController.GetDocumentChangeRequestPreview)
-	unauthenticatedRoutes.GET("/ocument-change-requests/:id/document-download", documentChangeRequestController.DownloadChangeRequestDocument)
+	unauthenticatedRoutes.GET("/document-change-requests/:id/document-preview", documentChangeRequestController.GetDocumentChangeRequestPreview)
+	unauthenticatedRoutes.GET("/document-change-requests/:id/document-download", documentChangeRequestController.DownloadChangeRequestDocument)
 }
