@@ -33,6 +33,8 @@ type AuditFinalReportServiceInterface interface {
 	GetByAuditID(auditID uint) (*models.AuditFinalReport, error)
 	Delete(auditID uint, currentUserID uint) error
 	GetAuditFinalReportLastEditSummary(auditID uint) (*auditDTOs.AuditFinalReportLastEditSummaryDTO, error)
+
+	CreateAuditReportEditHistory(auditReportEditSummaryDTO *auditDTOs.AuditReportEditHistoryDTO, currentUserId uint, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditFinalReportService struct {
@@ -590,7 +592,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	}
 
 	// findings only copying from draft findings to AuditFinding, not saving in to AuditFinalReportSection
-	auditDraftFindings, err := afrs.auditDraftFindingSvc.GetAllFindingsByAuditID(auditID,tx)
+	auditDraftFindings, err := afrs.auditDraftFindingSvc.GetAllFindingsByAuditID(auditID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -709,7 +711,18 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 		tx.Rollback()
 		return 0, err
 	}
+	//add audit report edit history
+	auditReportEditHistory := &auditDTOs.AuditReportEditHistoryDTO{
+		AuditID:            auditID,
+		AuditFinalReportID: id,
+		ActionType:         "create",
+	}
 
+	err = afrs.CreateAuditReportEditHistory(auditReportEditHistory, currentUserID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	tx.Commit()
 
 	go func() {
@@ -756,6 +769,9 @@ func (afrs *AuditFinalReportService) Update(auditFinalReport *models.AuditFinalR
 	if err != nil {
 		return err
 	}
+
+	//update using submit so edit history no need
+
 	// Commit if this function started the transaction
 	if len(tx) == 0 {
 		transaction.Commit()
@@ -882,7 +898,10 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 		tx.Rollback()
 		return err
 	}
-
+	if err := afrs.repo.DeleteAuditReportEditHistories(auditFinalReport.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
 	if err := afrs.auditReportWorkflowSvc.DeleteAuditReportWorkflows(deleteAuditReportWorkflowIds, tx); err != nil {
 		tx.Rollback()
 		return err
@@ -927,7 +946,7 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 func (afrs *AuditFinalReportService) GetAuditFinalReportLastEditSummary(auditID uint) (*auditDTOs.AuditFinalReportLastEditSummaryDTO, error) {
 	auditFinalReport, err := afrs.repo.GetFullDetailsByID(auditID)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 
 	activity, err := afrs.repo.GetAuditFinalReportLatestEditHistory(auditFinalReport.ID)
@@ -977,6 +996,21 @@ func (afrs *AuditFinalReportService) GetAuditFinalReportLastEditSummary(auditID 
 	}
 
 	return responseDTO, nil
+}
+
+func (afrs *AuditFinalReportService) CreateAuditReportEditHistory(auditReportEditSummaryDTO *auditDTOs.AuditReportEditHistoryDTO, currentUserId uint, tx ...utility.DatabaseTransaction) error {
+	auditReportEditHistory := &models.AuditReportEditHistory{
+		AuditID:            auditReportEditSummaryDTO.AuditID,
+		AuditFinalReportID: &auditReportEditSummaryDTO.AuditFinalReportID,
+		ActionType:         auditReportEditSummaryDTO.ActionType,
+		CreatedBYID:        currentUserId,
+	}
+
+	err := afrs.repo.CreateAuditReportEditHistory(auditReportEditHistory, tx...)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Helper function to return a pointer to a float64 value

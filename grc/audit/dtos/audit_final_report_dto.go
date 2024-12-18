@@ -79,6 +79,14 @@ type AuditFindingActionPlanDTO struct {
 	UpdatedAt          *string                          `json:"updated_at"`
 }
 
+type AuditReportEditHistoryDTO struct {
+	ID                 *uint   `json:"id"`
+	AuditID            uint    `json:"audit_id"`
+	AuditFinalReportID uint    `json:"audit_final_report_id"`
+	ActionType         string  `json:"action_type"`
+	Comment            *string `json:"comment"`
+}
+
 type AuditFinalReportLastEditSummaryDTO struct {
 	LatestActivity ActivityDTO                        `json:"latest_activity"`
 	CurrentLevel   *int                               `json:"current_level"`

@@ -22,6 +22,6 @@ type AuditReportEditHistory struct {
 	CreatedByUser *User `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
-func (DocumentEditHistory) TableName() string {
-	return "document_edit_histories"
+func (AuditReportEditHistory) TableName() string {
+	return "audit_report_edit_histories"
 }

@@ -195,6 +195,18 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 			return err
 		}
 	}
+	//add audit report edit history
+	auditReportEditHistoryDTO := &auditDTOs.AuditReportEditHistoryDTO{
+		AuditID:            auditID,
+		AuditFinalReportID: existingAuditFinalReport.ID,
+		ActionType:         "submit",
+	}
+
+	err = arrs.auditFinalReportSvc.CreateAuditReportEditHistory(auditReportEditHistoryDTO, currentUserID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
 	tx.Commit()
 
@@ -555,6 +567,18 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 			}
 		}
 	}
+	//add audit report edit history
+	auditReportEditHistoryDTO := &auditDTOs.AuditReportEditHistoryDTO{
+		AuditID:            auditFinalReport.AuditID,
+		AuditFinalReportID: auditFinalReport.ID,
+		ActionType:         "approve",
+		Comment: &auditReportReviewCommentFormDTO.Comment,
+	}
+
+	err = arrs.auditFinalReportSvc.CreateAuditReportEditHistory(auditReportEditHistoryDTO, currentUserID)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -672,6 +696,18 @@ func (arrs *AuditReportReviewService) handleRevertedCase(id, currentUserID uint,
 				return err
 			}
 		}
+	}
+	//add audit report edit history
+	auditReportEditHistoryDTO := &auditDTOs.AuditReportEditHistoryDTO{
+		AuditID:            auditFinalReportDetailDTO.AuditID,
+		AuditFinalReportID: auditFinalReportDetailDTO.ID,
+		ActionType:         "revert",
+		Comment:         &auditReportReviewCommentFormDTO.Comment,
+	}
+
+	err = arrs.auditFinalReportSvc.CreateAuditReportEditHistory(auditReportEditHistoryDTO, currentUserID)
+	if err != nil {
+		return err
 	}
 	//todo
 
