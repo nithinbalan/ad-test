@@ -379,4 +379,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.GET("/audits/:auditId/final-reports/comments", auditReportReviewController.GetComments)
 	auditRoutes.POST("/audits/:auditId/final-reports/comments", auditReportReviewController.AddComment)
 
+	auditRoutes.GET("/audits/:auditId/final-reports/last-edit-summary", auditReportWorkflowController.GetLastEditSummary)
+
+
 }

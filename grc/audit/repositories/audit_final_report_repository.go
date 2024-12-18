@@ -28,6 +28,7 @@ type AuditFinalReportRepositoryInterface interface {
 
 	CreateAuditFindingDocuments(docs []*models.AuditFindingDocument, tx ...utility.DatabaseTransaction) error
 	DeleteAuditFindingDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	GetAuditFinalReportLatestEditHistory(auditFinalReportID uint) (*models.AuditReportEditHistory, error) 
 }
 
 type AuditFinalReportRepository struct {
@@ -295,4 +296,17 @@ func (repo *AuditFinalReportRepository) DeleteAuditFindingDocuments(docIds []*ui
 	}
 
 	return nil
+}
+
+func (repo *AuditFinalReportRepository) GetAuditFinalReportLatestEditHistory(auditFinalReportID uint) (*models.AuditReportEditHistory, error) {
+	var history models.AuditReportEditHistory
+	err := repo.db.
+		Preload("CreatedByUser").
+		Where("audit_final_report_id = ?", auditFinalReportID).
+		Order("created_at DESC").
+		First(&history).Error
+	if err != nil {
+		return nil, err
+	}
+	return &history, nil
 }

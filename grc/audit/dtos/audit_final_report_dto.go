@@ -3,6 +3,7 @@ package dtos
 import (
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
+	"time"
 )
 
 type AuditFinalReportFormDTO struct {
@@ -76,4 +77,18 @@ type AuditFindingActionPlanDTO struct {
 	UpdatedByUser      *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 	CreatedAt          string                           `json:"created_at"`
 	UpdatedAt          *string                          `json:"updated_at"`
+}
+
+type AuditFinalReportLastEditSummaryDTO struct {
+	LatestActivity ActivityDTO                        `json:"latest_activity"`
+	CurrentLevel   *int                               `json:"current_level"`
+	Participants   []*organizationDTOs.UserMinimalDTO `json:"participants"`
+	TotalComments  *int                               `json:"total_comments"`
+}
+
+type ActivityDTO struct {
+	Activity  string                           `json:"activity"` // "checkout" or "checkin"
+	By        *organizationDTOs.UserMinimalDTO `json:"by"`
+	Comment   *string                          `json:"comment"`
+	Timestamp time.Time                        `json:"timestamp"`
 }

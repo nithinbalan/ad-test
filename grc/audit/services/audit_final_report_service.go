@@ -32,6 +32,7 @@ type AuditFinalReportServiceInterface interface {
 	Update(auditFinalReport *models.AuditFinalReport, tx ...utility.DatabaseTransaction) error
 	GetByAuditID(auditID uint) (*models.AuditFinalReport, error)
 	Delete(auditID uint, currentUserID uint) error
+	GetAuditFinalReportLastEditSummary(auditID uint) (*auditDTOs.AuditFinalReportLastEditSummaryDTO, error)
 }
 
 type AuditFinalReportService struct {
@@ -307,7 +308,7 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 		}
 	}
 
-	// Map other fields and create the DTO
+	// Map other fielafrs and create the DTO
 	auditReportDTO := &auditDTOs.AuditFinalReportDetailDTO{
 		ID:                     auditFinalReport.ID,
 		AuditID:                auditFinalReport.AuditID,
@@ -921,6 +922,61 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 	}()
 
 	return nil
+}
+
+func (afrs *AuditFinalReportService) GetAuditFinalReportLastEditSummary(auditID uint) (*auditDTOs.AuditFinalReportLastEditSummaryDTO, error) {
+	auditFinalReport, err := afrs.repo.GetFullDetailsByID(auditID)
+	if err != nil {
+		return nil,err
+	}
+
+	activity, err := afrs.repo.GetAuditFinalReportLatestEditHistory(auditFinalReport.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	userDTO := mapUserToUserMinimalDTO(activity.CreatedByUser)
+
+	latestActivityDTO := auditDTOs.ActivityDTO{
+		Activity:  activity.ActionType,
+		By:        &userDTO,
+		Comment:   activity.Comment,
+		Timestamp: activity.CreatedAt,
+	}
+	// Initialize variables for the current document workflow
+	var currentAuditReportWorkflowLevel *models.AuditReportWorkflow
+	var participants []*organizationDTOs.UserMinimalDTO
+	totalComments := 0
+
+	// Check if there is a next review level and fetch the corresponding workflow
+	currentAuditReportWorkflowLevel, err = afrs.auditReportWorkflowSvc.GetAuditReportWorkflowByLevel(auditFinalReport.ID, auditFinalReport.NextReviewLevel)
+	if err != nil {
+		return nil, err
+	}
+
+	// Process workflow participants and count comments
+	if currentAuditReportWorkflowLevel != nil {
+		for _, participant := range currentAuditReportWorkflowLevel.AuditReportWorkflowParticipants {
+			userDTO := mapUserToUserMinimalDTO(participant.User)
+			participants = append(participants, &userDTO)
+		}
+
+		for _, review := range currentAuditReportWorkflowLevel.AuditReportReviews {
+			if review.Comment != nil {
+				totalComments++
+			}
+		}
+	}
+
+	// Prepare the response DTO
+	responseDTO := &auditDTOs.AuditFinalReportLastEditSummaryDTO{
+		LatestActivity: latestActivityDTO,
+		CurrentLevel:   &auditFinalReport.NextReviewLevel,
+		Participants:   participants,
+		TotalComments:  &totalComments,
+	}
+
+	return responseDTO, nil
 }
 
 // Helper function to return a pointer to a float64 value
