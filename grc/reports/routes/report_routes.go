@@ -88,6 +88,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/risk-by-risk-appetite-level", riskReportController.GetRiskByRiskAppetiteToleranceLevel)
 	reportsRoutes.GET("/reports/risk-by-kri-enabled-status", riskReportController.GetRiskByKRIEnabledStatus)
 
+	reportsRoutes.GET("/reports/risk-action-plans", riskReportController.GetAllRiskActionPlans)
+	reportsRoutes.GET("/reports/risk-action-plans/export", riskReportController.GetRiskActionPlanExport)
 	reportsRoutes.GET("/reports/risk-action-plan-by-status", riskReportController.GetRiskActionPlansByStatus)
 	reportsRoutes.GET("/reports/risk-action-plan-by-responsible-user", riskReportController.GetRiskActionPlansByResponsibleUser)
 	reportsRoutes.GET("/reports/risk-action-plan-by-severity-level", riskReportController.GetRiskActionPlansBySeverityLevel)

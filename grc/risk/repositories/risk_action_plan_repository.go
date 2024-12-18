@@ -106,16 +106,19 @@ func (repo *RiskActionPlanRepository) GetAll(riskID uint, params *riskDTOs.RiskA
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			query = query.Where(fmt.Sprintf("risk_action_plans.%s IN (?)", columnName), values)
 		}
 	}
 
-	// Apply target_date filters
 	if params.TargetDateFrom != "" {
-		query = query.Where("target_date >= ?", params.TargetDateFrom)
+		query = query.Where("risk_action_plans.target_date >= ?", params.TargetDateFrom)
 	}
 	if params.TargetDateTo != "" {
-		query = query.Where("target_date <= ?", params.TargetDateTo)
+		query = query.Where("risk_action_plans.target_date <= ?", params.TargetDateTo)
+	}
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	for _, filter := range params.QuickFilter {
