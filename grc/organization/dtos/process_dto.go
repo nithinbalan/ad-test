@@ -31,7 +31,7 @@ type ProcessListDTO struct {
 	TitleEn                     string     `json:"title_en"`
 	TitleAr                     string     `json:"title_ar"`
 	Description                 *string    `json:"description"`
-	MarkedAsAuditableItem       bool       `json:"marked_as_auditable_item"` 
+	MarkedAsAuditableItem       bool       `json:"marked_as_auditable_item"`
 	CreatedUserID               uint       `json:"created_user_id"`
 	CreatedUserFirstNameEn      string     `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string     `json:"created_user_first_name_ar"`
@@ -80,13 +80,14 @@ type ProcessListResponseDTO struct {
 
 // ProcessFormDTO defines the structure for creating or updating a process
 type ProcessFormDTO struct {
-	ProcessGroupID uint    `json:"process_group_id" binding:"required"`
-	OwnerID        uint    `json:"owner_id" binding:"required"`
-	TitleEn        string  `json:"title_en" binding:"required"`
-	TitleAr        string  `json:"title_ar" binding:"required"`
-	Description    *string `json:"description" binding:"omitempty"`
-	ControlIds     []*uint `json:"control_ids"`
-	DocumentIds    []*uint `json:"document_ids"`
+	ProcessGroupID   uint    `json:"process_group_id" binding:"required"`
+	OwnerID          uint    `json:"owner_id" binding:"required"`
+	TitleEn          string  `json:"title_en" binding:"required"`
+	TitleAr          string  `json:"title_ar" binding:"required"`
+	Description      *string `json:"description" binding:"omitempty"`
+	ControlIds       []*uint `json:"control_ids"`
+	AssetRegisterIds []*uint `json:"asset_register_ids"`
+	DocumentIds      []*uint `json:"document_ids"`
 }
 
 type ProcessDetailDTO struct {
@@ -105,6 +106,7 @@ type ProcessDetailDTO struct {
 	CreatedAt             time.Time                         `json:"created_at"`
 	UpdatedAt             *time.Time                        `json:"updated_at"`
 	Controls              []*ProcessControlDTO              `json:"controls"`
+	Assets                []*ProcessAssetDTO                `json:"assets"`
 	Documents             []*ProcessAssociatedDocumentDTO   `json:"documents"`
 	Risks                 []*ProcessRiskDTO                 `json:"risks"`
 	MarkedAsAuditableItem bool                              `json:"marked_as_auditable_item"`
@@ -193,4 +195,18 @@ type DocumentDetailsDTO struct {
 	DescriptionAr *string `json:"description_ar"`
 	IsLocked      bool    `json:"is_locked"`
 	Acknowledged  *bool   `json:"acknowledged,omitempty"`
+}
+
+type ProcessAssetDTO struct {
+	ID              *uint           `json:"id"`
+	ProcessID       uint            `json:"process_id"`
+	AssetRegisterID uint            `json:"asset_register_id"`
+	Asset           AssetMinimalDTO `json:"asset"`
+}
+
+type AssetMinimalDTO struct {
+	ID          uint    `json:"id"`
+	TitleEn     string  `json:"title_en"`
+	TitleAr     string  `json:"title_ar"`
+	Description *string `json:"description"`
 }

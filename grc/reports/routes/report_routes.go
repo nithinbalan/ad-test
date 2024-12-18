@@ -15,7 +15,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	complianceReportController := app.ReportsModule.ComplianceReportController
 	organizationReportController := app.ReportsModule.OrganizationReportController
+	riskReportController := app.ReportsModule.RiskReportController
 
+	//Compliance
 	reportsRoutes.GET("/reports/compliance-registers", complianceReportController.GetAllComplianceRegisters)
 	reportsRoutes.GET("/reports/compliance-registers/export", complianceReportController.ComplianceRegisterReportExport)
 	reportsRoutes.GET("/reports/compliance-by-compliance-category", complianceReportController.GetComplianceByComplianceCategory)
@@ -40,6 +42,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/sla-by-severity-level", complianceReportController.GetSLABySeverityLevel)
 	reportsRoutes.GET("/reports/sla-by-compliance-status", complianceReportController.GetSLAByComplianceStatus)
 
+	//Organization
 	reportsRoutes.GET("/reports/users", organizationReportController.GetAllUsers)
 	reportsRoutes.GET("/reports/users/export", organizationReportController.GetUsersExport)
 	reportsRoutes.GET("/reports/users-by-status", organizationReportController.GetUsersByStatus)
@@ -62,4 +65,32 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/controls-by-implementation-status", organizationReportController.GetControlsByImplementationStatus)
 	reportsRoutes.GET("/reports/controls-by-efficiency-status", organizationReportController.GetControlsByEfficiencyStatus)
 	reportsRoutes.GET("/reports/controls-by-applicability", organizationReportController.GetControlsByApplicability)
+
+	//Risk
+	reportsRoutes.GET("/reports/kris", riskReportController.GetAllKRIRegisters)
+	reportsRoutes.GET("/reports/kris/export", riskReportController.GetKriRegisterExport)
+	reportsRoutes.GET("/reports/kri-by-category", riskReportController.GetKRIByCategory)
+	reportsRoutes.GET("/reports/kri-by-responsible-unit", riskReportController.GetKRIByResponsibleUnit)
+	reportsRoutes.GET("/reports/kri-by-responsible-user", riskReportController.GetKRIByResponsibleUser)
+	reportsRoutes.GET("/reports/kri-by-risk-level", riskReportController.GetKRIByRiskLevel)
+	reportsRoutes.GET("/reports/kri-by-review-frequency", riskReportController.GetKRIByReviewFrequency)
+
+	reportsRoutes.GET("/reports/risks", riskReportController.GetAllRiskRegisters)
+	reportsRoutes.GET("/reports/risks/export", riskReportController.GetRiskRegisterExport)
+	reportsRoutes.GET("/reports/risk-by-category", riskReportController.GetRiskByCategory)
+	reportsRoutes.GET("/reports/risk-by-responsible-unit", riskReportController.GetRiskByResponsibleUnit)
+	reportsRoutes.GET("/reports/risk-by-responsible-user", riskReportController.GetRiskByResponsibleUser)
+	reportsRoutes.GET("/reports/risk-by-risk-source", riskReportController.GetRiskByRiskSource)
+	reportsRoutes.GET("/reports/risk-by-inherent-risk-rating", riskReportController.GetRiskByInherentRiskRating)
+	reportsRoutes.GET("/reports/risk-by-residual-risk-rating", riskReportController.GetRiskByResidualRiskRating)
+	reportsRoutes.GET("/reports/risk-by-risk-status", riskReportController.GetRiskByRiskStatus)
+	reportsRoutes.GET("/reports/risk-by-risk-response-strategy", riskReportController.GetRiskByRiskResponseStrategy)
+	reportsRoutes.GET("/reports/risk-by-risk-appetite-level", riskReportController.GetRiskByRiskAppetiteToleranceLevel)
+	reportsRoutes.GET("/reports/risk-by-kri-enabled-status", riskReportController.GetRiskByKRIEnabledStatus)
+
+	reportsRoutes.GET("/reports/risk-action-plans", riskReportController.GetAllRiskActionPlans)
+	reportsRoutes.GET("/reports/risk-action-plans/export", riskReportController.GetRiskActionPlanExport)
+	reportsRoutes.GET("/reports/risk-action-plan-by-status", riskReportController.GetRiskActionPlansByStatus)
+	reportsRoutes.GET("/reports/risk-action-plan-by-responsible-user", riskReportController.GetRiskActionPlansByResponsibleUser)
+	reportsRoutes.GET("/reports/risk-action-plan-by-severity-level", riskReportController.GetRiskActionPlansBySeverityLevel)
 }

@@ -20,7 +20,7 @@ type AuditFinalReportRepositoryInterface interface {
 	CreateAuditFindingActionPlans(actionPlans []*models.AuditFindingActionPlan, tx ...utility.DatabaseTransaction) error
 	CreateAuditFinalReportSections(sections []*models.AuditFinalReportSection, tx ...utility.DatabaseTransaction) error
 	GetSectionByType(sectionType string, auditFinalReportID uint, tx ...utility.DatabaseTransaction) (*models.AuditFinalReportSection, error)
-	Update(auditFinalReport *models.AuditFinalReport) error
+	Update(auditFinalReport *models.AuditFinalReport, tx ...utility.DatabaseTransaction) error
 	DeleteAuditFinalReportSections(sectionIDs []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteAuditFindingActionPlans(deleteActionPlanIDs []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteAuditFindings(deleteFindingIDs []*uint, tx ...utility.DatabaseTransaction) error
@@ -220,8 +220,12 @@ func (repo *AuditFinalReportRepository) DeleteAuditFinalReportSections(sectionID
 	return nil
 }
 
-func (repo *AuditFinalReportRepository) Update(auditFinalReport *models.AuditFinalReport) error {
-	if err := repo.db.Save(auditFinalReport).Error; err != nil {
+func (repo *AuditFinalReportRepository) Update(auditFinalReport *models.AuditFinalReport, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(auditFinalReport).Error; err != nil {
 		return err
 	}
 

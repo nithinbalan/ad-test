@@ -193,6 +193,10 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 		query = query.Where("next_review_date <= ?", params.NextReviewDateTo)
 	}
 
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
@@ -238,6 +242,21 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 
 		case "closed_resolved":
 			query = query.Where("risk_statuses.type IN (?)", []string{"closed", "resolved"})
+		case "kri_enabled":
+			query = query.Joins(`
+				LEFT JOIN (
+					SELECT DISTINCT risk_register_id
+					FROM risk_kris
+				) AS kri_enabled ON kri_enabled.risk_register_id = risk_register.id
+			`).Where("kri_enabled.risk_register_id IS NOT NULL")
+
+		case "kri_not_enabled":
+			query = query.Joins(`
+				LEFT JOIN (
+					SELECT DISTINCT risk_register_id
+					FROM risk_kris
+				) AS kri_risks ON kri_risks.risk_register_id = risk_register.id
+			`).Where("kri_risks.risk_register_id IS NULL")
 
 		}
 
