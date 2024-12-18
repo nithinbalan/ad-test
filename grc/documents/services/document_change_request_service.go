@@ -181,6 +181,13 @@ func (dcrs *DocumentChangeRequestService) Update(id uint, currentUserID uint, fo
 		return err
 	}
 
+	existingCRFullDetails, err := dcrs.repo.GetFullDetailsByID(id)
+	if err != nil {
+		return err
+	}
+
+	existingChangeRequestDocumentID := existingChangeRequest.DocumentID
+
 	if err := dcrs.validateFormDTO(formDTO); err != nil {
 		return err
 	}
@@ -253,6 +260,53 @@ func (dcrs *DocumentChangeRequestService) Update(id uint, currentUserID uint, fo
 			tx.Rollback()
 			return err
 		}
+	}
+
+	if existingChangeRequestDocumentID != formDTO.DocumentID {
+
+		var deleteDocumentWorkflowIds []*uint
+		var deleteDocumentWorkflowParticipantIds []*uint
+		var deleteDocumentWorkflowReviewIds []*uint
+
+		if len(existingCRFullDetails.DocumentChangeRequestWorkflows) > 0 {
+			for _, docWorkflow := range existingCRFullDetails.DocumentChangeRequestWorkflows {
+				deleteDocumentWorkflowIds = append(deleteDocumentWorkflowIds, &docWorkflow.ID)
+
+				if len(docWorkflow.DocumentChangeRequestWorkflowParticipants) > 0 {
+					for _, participant := range docWorkflow.DocumentChangeRequestWorkflowParticipants {
+						deleteDocumentWorkflowParticipantIds = append(deleteDocumentWorkflowParticipantIds, &participant.ID)
+					}
+				}
+
+				if len(docWorkflow.DocumentChangeRequestWorkflowReviews) > 0 {
+					for _, reviews := range docWorkflow.DocumentChangeRequestWorkflowReviews {
+						deleteDocumentWorkflowReviewIds = append(deleteDocumentWorkflowReviewIds, &reviews.ID)
+					}
+				}
+			}
+		}
+
+		if err := dcrs.documentChangeRequestWorkflowSvc.DeleteDocumentCRWorkflowParticipants(deleteDocumentWorkflowParticipantIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		if err := dcrs.documentChangeRequestWorkflowSvc.DeleteDocumentCRWorkflowReviews(deleteDocumentWorkflowReviewIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		if err := dcrs.documentChangeRequestWorkflowSvc.DeleteDocumentCRWorkflows(deleteDocumentWorkflowIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		err = dcrs.documentChangeRequestWorkflowSvc.CreateDocumentCRWorkflow(id, formDTO.DocumentID, currentUserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
 	}
 
 	tx.Commit()

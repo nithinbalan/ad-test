@@ -65,6 +65,8 @@ type DocumentChangeRequestDetailsDTO struct {
 
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+
+	DocumentChangeRequestWorkflows []DocumentCRWorkflowDTO `json:"document_change_request_workflow"`
 }
 
 // Document DTO
@@ -101,4 +103,20 @@ type DocumentChangeRequestFormDTO struct {
 	DocumentChangeRequestInitiateID *uint                      `json:"document_change_request_initiate_id"`
 	ReasonForChange                 *string                    `json:"reason_for_change"`
 	Document                        commonDTOs.DocumentFormDTO `json:"document" binding:"required"`
+}
+
+type DocumentCRWorkflowDTO struct {
+	Level                                     int                            `json:"level"`
+	DocumentChangeRequestWorkflowStatus       DocumentStatusDTO              `json:"document_change_request_workflow_status"`
+	DocumentChangeRequestWorkflowReviews      []*DocumentCRWorkflowReviewDTO `json:"document_change_request_workflow_reviews"`
+	DocumentChangeRequestWorkflowParticipants []*WorkflowLevelParticipantDTO `json:"document_change_request_workflow_participants"`
+}
+
+type DocumentCRWorkflowReviewDTO struct {
+	Comment                             string                          `json:"comment"`
+	DocumentChangeRequestWorkflowStatus DocumentStatusDTO               `json:"document_change_request_workflow_status"`
+	CreatedByUser                       organizationDTOs.UserMinimalDTO `json:"created_by"`
+	UpdateByUser                        organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	CreatedAt                           time.Time                       `json:"created_at"`
+	UpdatedAt                           *time.Time                      `json:"updated_at"`
 }

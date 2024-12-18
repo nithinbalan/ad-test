@@ -434,6 +434,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		return err
 	}
 	existingDocumentAccessTypeID := existingDocument.DocumentAccessTypeID
+	existingDocumentTypeID := existingDocument.DocumentTypeID
 	documentAccessType, err := ds.documentAccessTypeSvc.GetByID(documentFormDTO.DocumentAccessTypeID)
 	if err != nil {
 		return err
@@ -863,7 +864,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		}
 	}
 
-	if existingDocument.DocumentTypeID != documentFormDTO.DocumentTypeID {
+	if existingDocumentTypeID != documentFormDTO.DocumentTypeID {
 
 		var deleteDocumentWorkflowIds []*uint
 		var deleteDocumentWorkflowParticipantIds []*uint

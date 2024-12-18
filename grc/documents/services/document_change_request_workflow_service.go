@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"jethur/grc/documents/repositories"
 	logSvc "jethur/grc/logs/services"
 	"jethur/grc/models"
@@ -13,6 +14,10 @@ import (
 type DocumentChangeRequestWorkflowServiceInterface interface {
 	CreateDocumentCRWorkflow(documentChangeRequestId uint, documentId uint, currentUserID uint, tx ...utility.DatabaseTransaction) error
 	CreateDocumentCRWorkflowParticipant(userID uint, documentCRWorkflowID uint, participant *settingDTOs.WorkflowLevelParticipantDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error
+
+	DeleteDocumentCRWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteDocumentCRWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteDocumentCRWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type DocumentChangeRequestWorkflowService struct {
@@ -159,5 +164,44 @@ func (dcrws *DocumentChangeRequestWorkflowService) CreateDocumentCRWorkflowParti
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (dcrws *DocumentChangeRequestWorkflowService) DeleteDocumentCRWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error {
+	if len(participantIds) == 0 {
+		return nil
+	}
+
+	err := dcrws.repo.DeleteDocumentCRWorkflowParticipants(participantIds, tx...)
+	if err != nil {
+		return fmt.Errorf("failed to delete document workflow participants: %w", err)
+	}
+
+	return nil
+}
+
+func (dcrws *DocumentChangeRequestWorkflowService) DeleteDocumentCRWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error {
+	if len(reviewIds) == 0 {
+		return nil
+	}
+
+	err := dcrws.repo.DeleteDocumentCRWorkflowReviews(reviewIds, tx...)
+	if err != nil {
+		return fmt.Errorf("failed to delete document workflow reviews: %w", err)
+	}
+
+	return nil
+}
+
+func (dcrws *DocumentChangeRequestWorkflowService) DeleteDocumentCRWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error {
+	if len(workflowIds) == 0 {
+		return nil
+	}
+
+	err := dcrws.repo.DeleteDocumentCRWorkflows(workflowIds, tx...)
+	if err != nil {
+		return fmt.Errorf("failed to delete document workflows: %w", err)
+	}
+
 	return nil
 }
