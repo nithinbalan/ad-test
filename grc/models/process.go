@@ -32,6 +32,7 @@ type Process struct {
 	CreatedByUser         *User                        `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser         *User                        `gorm:"foreignKey:UpdatedBYID"`
 	Controls              []*ProcessControl            `gorm:"foreignKey:ProcessID"`
+	Assets                []*ProcessAsset              `gorm:"foreignKey:ProcessID"`
 	Documents             []*ProcessAssociatedDocument `gorm:"foreignKey:ProcessID"`
 	Risks                 []*RiskProcess               `gorm:"foreignKey:ProcessID"`
 	AuditableItems        []*AuditableItem             `gorm:"foreignKey:ProcessID"`
