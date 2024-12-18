@@ -74,6 +74,7 @@ type DocumentChangeRequestDocumentDTO struct {
 	URL          *string `json:"url"`
 	Name         string  `json:"file_name"`
 	OriginalName string  `json:"original_name"`
+	Token        string  `json:"token"`
 	Type         string  `json:"type"`
 	Size         int     `json:"size"`
 }
