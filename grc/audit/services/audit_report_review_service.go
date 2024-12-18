@@ -127,13 +127,15 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 		tx.Rollback()
 		return err
 	}
-
+	fmt.Println("hiiiiiiiiiiiiiiiiiiiiiii111111111111111111")
 	// Fetch the workflow level details, including participants (review users)
 	auditReportWorkflowLevel, err := arrs.auditReportWorkflowSvc.GetAuditReportWorkflowByLevel(existingAuditFinalReport.ID, level, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
+	fmt.Println("hiiiiiiiiiiiiiiiiiiiii22222222222222222222222")
+
 	workflowStatus, err := arrs.workflowStatusSvc.GetByType("submit")
 	if err != nil {
 		return err
@@ -148,6 +150,8 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 	if err != nil {
 		return err
 	}
+	fmt.Println("hiiiiiiiiiiiiiiiiiiiii3333333333333333333333333333")
+
 	urlParam := fmt.Sprintf(`{"id":%d}`, existingAuditFinalReport.ID)
 	var taskIDs []uint
 	auditFinalReportID := &existingAuditFinalReport.ID
@@ -172,6 +176,7 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 		taskIDs = append(taskIDs, taskID)
 
 	}
+	fmt.Println("taskkkkkkkkkkkkkkkkkk44444444444444444")
 
 	for _, taskID := range taskIDs {
 		relatedTaskIDs := []uint{}
@@ -193,6 +198,8 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 			return err
 		}
 	}
+	fmt.Println("Committtttttttttttttt5555555555555555555555555")
+
 	tx.Commit()
 
 	//to do
@@ -245,6 +252,7 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 				"FirstNameEn":           responsibleUser.FirstNameEn,
 				"LastNameEn":            responsibleUser.LastNameEn,
 				"AuditTitle":            existingAuditFinalReport.Audit.AuditPlan.Title,
+				"ReferenceNumber":       existingAuditFinalReport.Audit.AuditPlan.ReferenceNumber,
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
