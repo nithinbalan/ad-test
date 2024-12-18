@@ -28,6 +28,9 @@ type ProcessRepositoryInterface interface {
 	CreateProcessDocuments(documents []*models.ProcessAssociatedDocument, tx ...utility.DatabaseTransaction) error
 	DeleteProcessDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error
 
+	CreateProcessAssetRegister(assetRegister []*models.ProcessAsset, tx ...utility.DatabaseTransaction) error
+	DeleteProcessAssetRegister(assetRegisterIds []*uint, tx ...utility.DatabaseTransaction) error
+
 	GetDocumentByID(id uint) (*models.Document, error)
 
 	//lifecycle status
@@ -218,6 +221,9 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("Owner.OrganizationUnit1").
 		Preload("LifecycleStatus").
 		Preload("Controls").
+		Preload("Controls.Control").
+		Preload("Assets").
+		Preload("Assets.Asset").
 		Preload("Documents").
 		Preload("Risks").
 		Preload("RiskMatrixRating").
@@ -227,8 +233,8 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("UpdatedByUser").
 		Preload("UpdatedByUser.OrganizationUnit1").
 		Preload("AuditableItems", func(db *gorm.DB) *gorm.DB {
-            return db.Order("created_at DESC").Limit(5) // Fetch the latest 5 auditable items
-        }).
+			return db.Order("created_at DESC").Limit(5) // Fetch the latest 5 auditable items
+		}).
 		Preload("AuditableItems.ResponsibleUser").
 		Preload("AuditableItems.ResponsibleUnit").
 		Preload("AuditableItems.AuditorRiskRating").
@@ -347,6 +353,31 @@ func (repo *ProcessRepository) DeleteProcessControls(controlIds []*uint, tx ...u
 
 	// Delete controls by IDs
 	if err := db.Where("id IN (?)", controlIds).Delete(&models.ProcessControl{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ProcessRepository) CreateProcessAssetRegister(assetRegister []*models.ProcessAsset, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&assetRegister).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ProcessRepository) DeleteProcessAssetRegister(AssetRegisterIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete asset register by IDs
+	if err := db.Where("id IN (?)", AssetRegisterIds).Delete(&models.ProcessAsset{}).Error; err != nil {
 		return err
 	}
 

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/services"
 	commonDTOs "jethur/grc/common/dtos"
@@ -29,9 +30,8 @@ func (apc *AuditPlanChecklistController) GetAllAuditPlanChecklists(c *gin.Contex
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-
 	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sortBy := c.DefaultQuery("sort_by", "question")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
@@ -41,12 +41,19 @@ func (apc *AuditPlanChecklistController) GetAllAuditPlanChecklists(c *gin.Contex
 		"auditable_item_ids",
 		"auditable_item_type",
 	}
-
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
-
+	validSortFields := map[string]string{
+		"question":        "audit_plan_checklists.question",
+	}
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 	queryParams := auditDTOs.AuditPlanChecklistListQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      sortBy,
+		SortBy:      sortField,
 		Keyword:     keyword,
 		Status:      status,
 		Filters:     filters,

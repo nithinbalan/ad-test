@@ -121,14 +121,6 @@ func (repo *AuditPlanChecklistRepository) GetAll(auditPlanId uint, params *audit
 			keyword, keyword, keyword)
 	}
 
-	// Sort by the specified column and order
-	if params.SortBy == "" {
-		params.SortBy = "created_at" // Default sort by created_at if no sortBy is specified
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
-	}
-
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	// Execute the query

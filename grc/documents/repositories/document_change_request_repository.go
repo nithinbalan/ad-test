@@ -23,11 +23,11 @@ type DocumentChangeRequestRepositoryInterface interface {
 
 	GenerateReferenceNumber() (string, error)
 
-	GetDocumentByID(id uint) (*models.DocumentChangeRequestDocument, error)
-	GetDocumentByChangeRequestID(id uint) (*models.DocumentChangeRequestDocument, error)
+	GetDocumentByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentChangeRequestDocument, error)
+	GetDocumentByChangeRequestID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentChangeRequestDocument, error)
 	CreateDocument(doc *models.DocumentChangeRequestDocument, tx ...utility.DatabaseTransaction) error
 	UpdateDocument(doc *models.DocumentChangeRequestDocument, tx ...utility.DatabaseTransaction) error
-	DeleteDocument(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteDocument(docId uint, tx ...utility.DatabaseTransaction) error
 }
 
 type DocumentChangeRequestRepository struct {
@@ -59,8 +59,9 @@ func (repo *DocumentChangeRequestRepository) GetAll(params *dtos.DocumentChangeR
 			change_request_types.title_en AS document_change_request_type_en,
 			change_request_types.title_ar AS document_change_request_type_ar,
 			document_change_requests.document_change_request_status_id,
-			change_request_statuses.title_en AS document_change_request_status_en,
-			change_request_statuses.title_ar AS document_change_request_status_ar,
+			change_request_statuses.title_en AS document_change_request_status_title_en,
+			change_request_statuses.title_ar AS document_change_request_status_title_ar,
+			change_request_statuses.color_code AS document_change_request_status_color_code,
 			document_change_requests.reason_for_change,
 			document_change_requests.version,
 			created_by_user.id AS created_by_user_id,
@@ -157,6 +158,7 @@ func (repo *DocumentChangeRequestRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("ChangeRequestDocument").
 		Preload("DocumentChangeRequestInitiate").
 		Preload("Document").
+		Preload("Document.ResponsibleUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&changeRequest, id)
@@ -199,17 +201,25 @@ func (repo *DocumentChangeRequestRepository) Delete(id uint, tx ...utility.Datab
 	return nil
 }
 
-func (repo *DocumentChangeRequestRepository) GetDocumentByID(id uint) (*models.DocumentChangeRequestDocument, error) {
+func (repo *DocumentChangeRequestRepository) GetDocumentByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentChangeRequestDocument, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var document models.DocumentChangeRequestDocument
-	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+	if err := db.Where("id = ?", id).First(&document).Error; err != nil {
 		return nil, err
 	}
 	return &document, nil
 }
 
-func (repo *DocumentChangeRequestRepository) GetDocumentByChangeRequestID(id uint) (*models.DocumentChangeRequestDocument, error) {
+func (repo *DocumentChangeRequestRepository) GetDocumentByChangeRequestID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentChangeRequestDocument, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var document models.DocumentChangeRequestDocument
-	if err := repo.db.Where("document_change_request_id = ?", id).First(&document).Error; err != nil {
+	if err := db.Where("document_change_request_id = ?", id).First(&document).Error; err != nil {
 		return nil, err
 	}
 	return &document, nil
@@ -237,12 +247,12 @@ func (repo *DocumentChangeRequestRepository) UpdateDocument(doc *models.Document
 	return nil
 }
 
-func (repo *DocumentChangeRequestRepository) DeleteDocument(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+func (repo *DocumentChangeRequestRepository) DeleteDocument(docId uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	if err := db.Where("id IN (?)", docIds).Delete(&models.DocumentChangeRequestDocument{}).Error; err != nil {
+	if err := db.Where("id = ? ", docId).Delete(&models.DocumentChangeRequestDocument{}).Error; err != nil {
 		return err
 	}
 	return nil

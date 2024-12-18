@@ -19,7 +19,7 @@ type AuditFinalReportRepositoryInterface interface {
 	Create(auditFinalReport *models.AuditFinalReport, tx ...utility.DatabaseTransaction) (uint, error)
 	CreateAuditFindingActionPlans(actionPlans []*models.AuditFindingActionPlan, tx ...utility.DatabaseTransaction) error
 	CreateAuditFinalReportSections(sections []*models.AuditFinalReportSection, tx ...utility.DatabaseTransaction) error
-	GetSectionByType(sectionType string, tx ...utility.DatabaseTransaction) (*models.AuditFinalReportSection, error)
+	GetSectionByType(sectionType string, auditFinalReportID uint, tx ...utility.DatabaseTransaction) (*models.AuditFinalReportSection, error)
 	Update(auditFinalReport *models.AuditFinalReport) error
 	DeleteAuditFinalReportSections(sectionIDs []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteAuditFindingActionPlans(deleteActionPlanIDs []*uint, tx ...utility.DatabaseTransaction) error
@@ -78,6 +78,8 @@ func (repo *AuditFinalReportRepository) GetFullDetailsByID(auditID uint, tx ...u
 		Preload("Audit.AuditFindings.AuditFindingActionPlans").
 		Preload("Audit.AuditFindings.AuditFindingActionPlans.ResponsibleUser").
 		Preload("Audit.AuditFindings.AuditFindingActionPlans.ActionPlanStatus").
+		Preload("Audit.AuditFindings.AuditFindingActionPlans.ActionPlanStatusUpdates").
+		Preload("Audit.AuditFindings.AuditFindingActionPlans.ActionPlanStatusUpdates.Documents").
 		Preload("Audit.AuditFindings.AuditableItem").
 		Preload("Audit.AuditFindings.AuditableItem.ResponsibleUnit").
 		Preload("Audit.AuditFindings.AuditableItem.Process").
@@ -191,14 +193,14 @@ func (repo *AuditFinalReportRepository) CreateAuditFinalReportSections(sections 
 	return nil
 }
 
-func (repo *AuditFinalReportRepository) GetSectionByType(sectionType string, tx ...utility.DatabaseTransaction) (*models.AuditFinalReportSection, error) {
+func (repo *AuditFinalReportRepository) GetSectionByType(sectionType string, auditFinalReportID uint, tx ...utility.DatabaseTransaction) (*models.AuditFinalReportSection, error) {
 	var section models.AuditFinalReportSection
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	if err := db.Where("type = ? AND audit_final_report_section_id IS NULL", sectionType).First(&section).Error; err != nil {
+	if err := db.Where("type = ? AND audit_final_report_id = ? AND audit_final_report_section_id IS NULL", sectionType, auditFinalReportID).First(&section).Error; err != nil {
 		return nil, err
 	}
 

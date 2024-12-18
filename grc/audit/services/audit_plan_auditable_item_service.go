@@ -191,11 +191,12 @@ func (apais *AuditPlanAuditableItemService) Create(auditPlanID uint, currentUser
 
 		}
 
-		existingAuditableItem, err := apais.GetFullDetailsByID(auditPlanAuditableItemID)
+		existingAuditableItem, err := apais.GetFullDetailsByID(auditPlanAuditableItemID,tx)
 		if err != nil {
 			utility.LogError("Failed to fetch audit", map[string]interface{}{
 				"error": err.Error(),
 			})
+			tx.Rollback()
 			return 0, err
 		}
 

@@ -121,6 +121,9 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 		query = query.Where("kri_register.next_review_date <= ?", params.NextReviewDateTo)
 	}
 
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("kri_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {

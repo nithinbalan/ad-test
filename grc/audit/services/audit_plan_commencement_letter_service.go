@@ -404,6 +404,7 @@ func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID u
 
 		// Prepare DB Notification (unchanged)
 		entity := "audit-plan"
+		urlParam := fmt.Sprintf(`{"id":%d}`, auditPlanID)
 		action := "send-commencement-letter"
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserID:               commencementLetterSendFormDTO.ToUserID,
@@ -415,6 +416,7 @@ func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID u
 			TitleAr:              auditPlan.Title,
 			Entity:               &entity,
 			Action:               &action,
+			URLParam:             urlParam,
 			IsSystemNotification: false,
 			CreatedByID:          &currentUserID,
 		}

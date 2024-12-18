@@ -20,9 +20,9 @@ type DocumentChangeRequest struct {
 	NextReviewLevel                 *int       `json:"next_review_level" gorm:"default:null"`
 	IsLocked                        bool       `json:"is_locked" gorm:"type:tinyint(1);not null;default:0"`
 	LastCheckoutAt                  *time.Time `json:"last_checkout_at" gorm:"type:date;default:null"`
-	LastCheckoutByID                *uint      `json:"last_checkout_by_id" gorm:"default:null"`
+	LastCheckoutBYID                *uint      `json:"last_checkout_by_id" gorm:"default:null"`
 	LastCheckinAt                   *time.Time `json:"last_checkin_at" gorm:"type:date;default:null"`
-	LastCheckinByID                 *uint      `json:"last_checkin_by_id" gorm:"default:null"`
+	LastCheckinBYID                 *uint      `json:"last_checkin_by_id" gorm:"default:null"`
 	CreatedBYID                     uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBYID                     *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt                       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
@@ -35,8 +35,8 @@ type DocumentChangeRequest struct {
 	DocumentChangeRequestStatus   *DocumentChangeRequestStatus   `gorm:"foreignKey:DocumentChangeRequestStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SubmittedByUser               *User                          `gorm:"foreignKey:SubmittedByID"`
 	PublishedByUser               *User                          `gorm:"foreignKey:PublishedByID"`
-	LastCheckoutByUser            *User                          `gorm:"foreignKey:LastCheckoutByID"`
-	LastCheckinByUser             *User                          `gorm:"foreignKey:LastCheckinByID"`
+	LastCheckoutByUser            *User                          `gorm:"foreignKey:LastCheckoutBYID"`
+	LastCheckinByUser             *User                          `gorm:"foreignKey:LastCheckinBYID"`
 	CreatedByUser                 *User                          `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser                 *User                          `gorm:"foreignKey:UpdatedBYID"`
 

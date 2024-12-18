@@ -104,6 +104,8 @@ type RiskRegisterListQueryParamsDTO struct {
 	NextReviewDateFrom string
 	NextReviewDateTo   string
 	Export             bool
+	DateFrom           string
+	DateTo             string
 }
 
 type RiskRegisterListResponseDTO struct {

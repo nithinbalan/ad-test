@@ -115,7 +115,7 @@ func (ps *ProcessService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTran
 		processDetailDTO.AuditableItem.CreatedAt = latestAuditableItem.CreatedAt
 		processDetailDTO.AuditableItem.UpdatedAt = latestAuditableItem.UpdatedAt
 	}
-	
+
 	return &processDetailDTO, nil
 }
 
@@ -170,6 +170,23 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 
 	if len(controls) > 0 {
 		if err := ps.repo.CreateProcessControls(controls, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	var assetRegister []*models.ProcessAsset
+	for _, assetRegisterID := range processFormDTO.AssetRegisterIds {
+		asset := &models.ProcessAsset{
+			ProcessID:       id,
+			AssetRegisterID: *assetRegisterID,
+			CreatedByID:     currentUserID,
+		}
+		assetRegister = append(assetRegister, asset)
+	}
+
+	if len(assetRegister) > 0 {
+		if err := ps.repo.CreateProcessAssetRegister(assetRegister, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -419,6 +436,49 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		}
 	}
 
+	existingAssetRegisterIDs := make(map[uint]bool)
+	for _, ctrl := range existingProcess.Assets {
+		existingAssetRegisterIDs[ctrl.AssetRegisterID] = true
+	}
+
+	newAssetRegisterIDs := make(map[uint]bool)
+	for _, ctrl := range processFormDTO.AssetRegisterIds {
+		newAssetRegisterIDs[*ctrl] = true
+	}
+
+	var assetRegisterToAdd []*models.ProcessAsset
+	for _, newAssetRegisterID := range processFormDTO.AssetRegisterIds {
+		if _, exists := existingAssetRegisterIDs[*newAssetRegisterID]; !exists {
+			assetRegister := &models.ProcessAsset{
+				ProcessID:       id,
+				AssetRegisterID: *newAssetRegisterID,
+				CreatedByID:     currentUserID,
+			}
+			assetRegisterToAdd = append(assetRegisterToAdd, assetRegister)
+		}
+	}
+
+	if len(assetRegisterToAdd) > 0 {
+		if err := ps.repo.CreateProcessAssetRegister(assetRegisterToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteAssetRegisterIDs []*uint
+	for _, existingAssetRegister := range existingProcess.Assets {
+		if _, exists := newAssetRegisterIDs[existingAssetRegister.AssetRegisterID]; !exists {
+			deleteAssetRegisterIDs = append(deleteAssetRegisterIDs, existingAssetRegister.ID)
+		}
+	}
+
+	if len(deleteAssetRegisterIDs) > 0 {
+		if err := ps.repo.DeleteProcessAssetRegister(deleteAssetRegisterIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	existingDocumentIDs := make(map[uint]bool)
 	for _, doc := range existingProcess.Documents {
 		existingDocumentIDs[doc.DocumentID] = true
@@ -479,6 +539,20 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 			}
 		}
 
+		// Determine asset register and document changes
+		assetRegisterAdded := []uint{}
+		assetRegisterRemoved := []uint{}
+		for id := range newAssetRegisterIDs {
+			if !existingAssetRegisterIDs[id] {
+				assetRegisterAdded = append(assetRegisterAdded, id)
+			}
+		}
+		for id := range existingAssetRegisterIDs {
+			if !newAssetRegisterIDs[id] {
+				assetRegisterRemoved = append(assetRegisterRemoved, id)
+			}
+		}
+
 		documentsAdded := []uint{}
 		documentsRemoved := []uint{}
 		for id := range newDocumentIDs {
@@ -500,6 +574,12 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 			associatedItems["control_ids"] = map[string]interface{}{
 				"added":   controlsAdded,
 				"removed": controlsRemoved,
+			}
+		}
+		if len(assetRegisterAdded) > 0 || len(assetRegisterRemoved) > 0 {
+			associatedItems["asset_register_ids"] = map[string]interface{}{
+				"added":   assetRegisterAdded,
+				"removed": assetRegisterRemoved,
 			}
 		}
 		if len(documentsAdded) > 0 || len(documentsRemoved) > 0 {
@@ -734,6 +814,17 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 				deleteControlIds = append(deleteControlIds, ctrl.ID)
 			}
 			if err := ps.repo.DeleteProcessControls(deleteControlIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		if len(process.Assets) > 0 {
+			var deleteAssetRegisterIds []*uint
+			for _, ctrl := range process.Assets {
+				deleteAssetRegisterIds = append(deleteAssetRegisterIds, ctrl.ID)
+			}
+			if err := ps.repo.DeleteProcessAssetRegister(deleteAssetRegisterIds, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
