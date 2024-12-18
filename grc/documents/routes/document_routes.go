@@ -142,8 +142,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.GET("/document-change-request-types", documentChangeRequestTypeController.GetAllDocumentChangeRequestTypes)
 	documentRoutes.GET("/document-change-request-types/:id", documentChangeRequestTypeController.GetDocumentChangeRequestTypeDetails)
 
-	documentRoutes.GET("/document-change_request-statuses", documentChangeRequestStatusController.GetAllDocumentChangeRequestStatuses)
-	documentRoutes.GET("/document-change_request-statuses/:id", documentChangeRequestStatusController.GetDocumentChangeRequestStatusDetails)
+	documentRoutes.GET("/document-change-request-statuses", documentChangeRequestStatusController.GetAllDocumentChangeRequestStatuses)
+	documentRoutes.GET("/document-change-request-statuses/:id", documentChangeRequestStatusController.GetDocumentChangeRequestStatusDetails)
 
 	documentRoutes.GET("/document-change-requests", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetAllDocumentChangeRequests)
 	documentRoutes.GET("/document-change-requests/:id", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetDocumentChangeRequestDetails)
