@@ -91,7 +91,8 @@ func (arrs *AuditReportReviewService) GetComments(auditID uint) (*auditDTOs.Audi
 	if err != nil {
 		return nil, err
 	}
-
+	// Explicitly map `id` to `audit_final_report_id`
+	auditFinalReportWorkflowDTO.AuditFinalReportID = auditFinalReportWorkflowDTO.ID
 	return &auditFinalReportWorkflowDTO, nil
 }
 
@@ -127,14 +128,12 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 		tx.Rollback()
 		return err
 	}
-	fmt.Println("hiiiiiiiiiiiiiiiiiiiiiii111111111111111111")
 	// Fetch the workflow level details, including participants (review users)
 	auditReportWorkflowLevel, err := arrs.auditReportWorkflowSvc.GetAuditReportWorkflowByLevel(existingAuditFinalReport.ID, level, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	fmt.Println("hiiiiiiiiiiiiiiiiiiiii22222222222222222222222")
 
 	workflowStatus, err := arrs.workflowStatusSvc.GetByType("submit")
 	if err != nil {
@@ -150,7 +149,6 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 	if err != nil {
 		return err
 	}
-	fmt.Println("hiiiiiiiiiiiiiiiiiiiii3333333333333333333333333333")
 
 	urlParam := fmt.Sprintf(`{"id":%d}`, existingAuditFinalReport.ID)
 	var taskIDs []uint
@@ -176,7 +174,6 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 		taskIDs = append(taskIDs, taskID)
 
 	}
-	fmt.Println("taskkkkkkkkkkkkkkkkkk44444444444444444")
 
 	for _, taskID := range taskIDs {
 		relatedTaskIDs := []uint{}
@@ -198,7 +195,6 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 			return err
 		}
 	}
-	fmt.Println("Committtttttttttttttt5555555555555555555555555")
 
 	tx.Commit()
 
