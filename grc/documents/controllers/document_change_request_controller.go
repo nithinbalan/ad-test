@@ -28,10 +28,30 @@ func NewDocumentChangeRequestController(service services.DocumentChangeRequestSe
 // Get all document change requests with filtering, sorting, and pagination
 func (dcrc *DocumentChangeRequestController) GetAllDocumentChangeRequests(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "created_at")
+	sortBy := c.DefaultQuery("sort_by", "reference_number")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"document_change_reuqest_type_ids",
+		"document_change_reuqest_status_ids",
+		"document_ids",
+	}
+
+	validSortFields := map[string]string{
+		"document_change_reuqest_type_ar": "change_request_types.title_ar",
+		"document_change_reuqest_type_en": "change_request_types.title_en",
+		"reason_for_change":               "document_change_requests.reason_for_change",
+		"reference_number":                "document_change_requests.reason_for_change",
+		"status_en":                       "change_request_statuses.title_ar",
+		"status_ar":                       "change_request_statuses.title_en",
+		"document_ar":                     "documents.title_en",
+		"document_en":                     "documents.title_en",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -45,13 +65,21 @@ func (dcrc *DocumentChangeRequestController) GetAllDocumentChangeRequests(c *gin
 		return
 	}
 
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	params := documentDTOs.DocumentChangeRequestQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      sortBy,
+		SortBy:      dbField,
 		Keyword:     keyword,
 		Status:      status,
 		Page:        page,
 		PageSize:    pageSize,
+		Filters:     filters,
 		QuickFilter: quickFilter,
 	}
 
