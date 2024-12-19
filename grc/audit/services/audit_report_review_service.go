@@ -116,8 +116,13 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 	}
 	//begin tx
 	tx := arrs.repo.BeginTransaction()
-
-	var level int = 1
+	var level int
+	if existingAuditFinalReport.AuditFinalReportStatus.Type == "revert" {
+		level = existingAuditFinalReport.NextReviewLevel
+	} else {
+		// For non-reverted report, start from level 1
+		level = 1
+	}
 
 	existingAuditFinalReport.SubmittedBYID = &currentUserID
 	existingAuditFinalReport.SubmittedAt = submittedAt
@@ -134,7 +139,6 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 		tx.Rollback()
 		return err
 	}
-
 	workflowStatus, err := arrs.workflowStatusSvc.GetByType("submit")
 	if err != nil {
 		return err
