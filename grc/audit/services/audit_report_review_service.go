@@ -91,21 +91,19 @@ func (arrs *AuditReportReviewService) GetComments(auditID uint) (*auditDTOs.Audi
 	if err != nil {
 		return nil, err
 	}
-
+	// Explicitly map `id` to `audit_final_report_id`
+	auditFinalReportWorkflowDTO.AuditFinalReportID = auditFinalReportWorkflowDTO.ID
 	return &auditFinalReportWorkflowDTO, nil
 }
 
 func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) error {
-	tx := arrs.repo.BeginTransaction()
 	existingAuditFinalReport, err := arrs.auditFinalReportSvc.GetByAuditID(auditID)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	auditFinalReportStatus, err := arrs.auditFinalReportStatusSvc.GetByType("in-review")
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
@@ -114,9 +112,10 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 	currentDateStr := time.Now().Format("2006-01-02")
 	submittedAt, err := utility.ParseDate(currentDateStr)
 	if err != nil {
-		tx.Rollback()
 		return fmt.Errorf("error parsing current date: %w", err)
 	}
+	//begin tx
+	tx := arrs.repo.BeginTransaction()
 
 	var level int = 1
 
@@ -124,18 +123,18 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 	existingAuditFinalReport.SubmittedAt = submittedAt
 	existingAuditFinalReport.NextReviewLevel = level
 
-	err = arrs.auditFinalReportSvc.Update(existingAuditFinalReport)
+	err = arrs.auditFinalReportSvc.Update(existingAuditFinalReport,tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-
 	// Fetch the workflow level details, including participants (review users)
 	auditReportWorkflowLevel, err := arrs.auditReportWorkflowSvc.GetAuditReportWorkflowByLevel(existingAuditFinalReport.ID, level, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
+
 	workflowStatus, err := arrs.workflowStatusSvc.GetByType("submit")
 	if err != nil {
 		return err
@@ -146,10 +145,11 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 		CreatedBYID:           currentUserID,
 	}
 
-	err = arrs.repo.CreateAuditReportReview(auditReportReview)
+	err = arrs.repo.CreateAuditReportReview(auditReportReview, tx)
 	if err != nil {
 		return err
 	}
+
 	urlParam := fmt.Sprintf(`{"id":%d}`, existingAuditFinalReport.ID)
 	var taskIDs []uint
 	auditFinalReportID := &existingAuditFinalReport.ID
@@ -195,6 +195,7 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 			return err
 		}
 	}
+
 	tx.Commit()
 
 	//to do
@@ -241,12 +242,13 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 			}
 
 			emailTo := []string{responsibleUser.Email}
-			subject := fmt.Sprintf("Audit Finale Report /%s: Review Assigned", existingAuditFinalReport.Audit.AuditPlan.Title)
+			subject := fmt.Sprintf("Audit Final Report /%s: Review Assigned", existingAuditFinalReport.Audit.AuditPlan.Title)
 			appURL := utility.GetAppURL()
 			emailData := map[string]interface{}{
 				"FirstNameEn":           responsibleUser.FirstNameEn,
 				"LastNameEn":            responsibleUser.LastNameEn,
 				"AuditTitle":            existingAuditFinalReport.Audit.AuditPlan.Title,
+				"ReferenceNumber":       existingAuditFinalReport.Audit.AuditPlan.ReferenceNumber,
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),

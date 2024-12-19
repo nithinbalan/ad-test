@@ -923,8 +923,8 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 					NotificationType:     string(commonDTOs.ReviewType),
 					HeadingEn:            "Audit Draft Report Department Review",
 					HeadingAr:            "مراجعة قسم تقرير مسودة التدقيق",
-					TitleEn:              existingAuditDraftReport.Audit.AuditPlan.Title,
-					TitleAr:              existingAuditDraftReport.Audit.AuditPlan.Title,
+					TitleEn:              existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
+					TitleAr:              existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
 					Entity:               &entity,
 					Action:               &action,
 					URLParam:             urlParam,
@@ -941,13 +941,13 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 				}
 
 				emailTo := []string{responsibleUser.Email}
-				subject := fmt.Sprintf("Audit Draft Report /%s: Department Review Assigned", existingAuditDraftReport.Audit.AuditPlan.Title)
+				subject := fmt.Sprintf("Audit Draft Report /%s: Department Review Assigned", existingAuditDraftReportFullDetails.Audit.AuditPlan.Title)
 				appURL := utility.GetAppURL()
 				emailData := map[string]interface{}{
 					"FirstNameEn":           responsibleUser.FirstNameEn,
 					"LastNameEn":            responsibleUser.LastNameEn,
-					"AuditTitle":            existingAuditDraftReport.Audit.AuditPlan.Title,
-					"ReferenceNumber":       existingAuditDraftReport.Audit.AuditPlan.ReferenceNumber,
+					"AuditTitle":            existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
+					"ReferenceNumber":       existingAuditDraftReportFullDetails.Audit.AuditPlan.ReferenceNumber,
 					"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 					"AssignedByLastNameEn":  assignedBy.LastNameEn,
 					"AssignedOn":            time.Now().Format("2006-01-02"),
@@ -962,7 +962,7 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 				}
 
 				// Send Notification and Email
-				err = adrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
+				err = adrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit_insight_draft_reports")
 				if err != nil {
 					utility.LogError("Failed to send notifications", map[string]interface{}{
 						"error": err.Error(),
@@ -1004,10 +1004,16 @@ func (adrs *AuditDraftReportService) StatusUpdate(id uint, currentUserID uint, a
 	}
 
 	now := time.Now()
+	auditDraftReportStatus, err := adrs.auditDraftReportStatusSvc.GetByType("in-review")
+	if err != nil {
+		return err
+	}
+	if auditDraftReportStatus.ID == auditDraftReportStatusID {
+		existingAuditDraftReport.InternalReviewSubmittedAt = &now
+		existingAuditDraftReport.InternalReviewSubmittedBYID = &currentUserID
+	}
 
-	existingAuditDraftReport.InternalReviewSubmittedAt = &now
 	existingAuditDraftReport.AuditDraftReportStatusID = auditDraftReportStatusID
-	existingAuditDraftReport.InternalReviewSubmittedBYID = &currentUserID
 	existingAuditDraftReport.NextReviewLevel = nextReviewLevel
 	existingAuditDraftReport.UpdatedBYID = &currentUserID
 
@@ -1059,15 +1065,14 @@ func safeStringPointer(s *string) string {
 }
 
 func (adrs *AuditDraftReportService) Complete(auditID uint, id uint, currentUserID uint) error {
-	tx := adrs.repo.BeginTransaction()
 	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
 		return err
 	}
 	existingAuditDraftReport, err := adrs.repo.GetByID(id)
 	if err != nil {
-		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
 	}
+	tx := adrs.repo.BeginTransaction()
 
 	auditDraftReportStatus, err := adrs.auditDraftReportStatusSvc.GetByType("in-department-review")
 	if err != nil {
@@ -1078,8 +1083,9 @@ func (adrs *AuditDraftReportService) Complete(auditID uint, id uint, currentUser
 		tx.Rollback()
 		return utility.NewForbiddenError("The audit draft report has not been in department review.")
 	}
-	auditDraftFindings, err := adrs.auditDraftFindingSvc.GetAllFindingsByAuditID(existingAuditDraftReport.AuditID)
+	auditDraftFindings, err := adrs.auditDraftFindingSvc.GetAllFindingsByAuditID(existingAuditDraftReport.AuditID,tx)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	// Check if all findings are finalized

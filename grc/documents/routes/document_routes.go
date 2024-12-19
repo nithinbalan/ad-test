@@ -143,8 +143,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.GET("/document-change-request-types", documentChangeRequestTypeController.GetAllDocumentChangeRequestTypes)
 	documentRoutes.GET("/document-change-request-types/:id", documentChangeRequestTypeController.GetDocumentChangeRequestTypeDetails)
 
-	documentRoutes.GET("/document-change_request-statuses", documentChangeRequestStatusController.GetAllDocumentChangeRequestStatuses)
-	documentRoutes.GET("/document-change_request-statuses/:id", documentChangeRequestStatusController.GetDocumentChangeRequestStatusDetails)
+	documentRoutes.GET("/document-change-request-statuses", documentChangeRequestStatusController.GetAllDocumentChangeRequestStatuses)
+	documentRoutes.GET("/document-change-request-statuses/:id", documentChangeRequestStatusController.GetDocumentChangeRequestStatusDetails)
 
 	documentRoutes.GET("/document-change-requests", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetAllDocumentChangeRequests)
 	documentRoutes.GET("/document-change-requests/:id", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetDocumentChangeRequestDetails)
@@ -153,9 +153,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/document-change-requests/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.DeleteDocumentChangeRequest)
 	documentRoutes.GET("/document-change-request/:id/check-out", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.CheckoutDocument)
 	documentRoutes.POST("/document-change-request/:id/check-in", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.CheckinDocument)
+	documentRoutes.POST("/document-change-request/:id/check-out-revert", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.RevertDocumentCheckout)
+	documentRoutes.POST("/document-change-request/:id/submit", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.SubmitDocumentChangeRequest)
 
-	unauthenticatedRoutes.GET("/ocument-change-requests/:id/document-preview", documentChangeRequestController.GetDocumentChangeRequestPreview)
-	unauthenticatedRoutes.GET("/ocument-change-requests/:id/document-download", documentChangeRequestController.DownloadChangeRequestDocument)
+	unauthenticatedRoutes.GET("/document-change-requests/:id/document-preview", documentChangeRequestController.GetDocumentChangeRequestPreview)
+	unauthenticatedRoutes.GET("/document-change-requests/:id/document-download", documentChangeRequestController.DownloadChangeRequestDocument)
 
 	documentRoutes.GET("/document-change-request-workflow-statuses", documentChangeRequestWorkflowStatusController.GetAllDocumentChangeRequestWorkflowStatuses)
 	documentRoutes.GET("/ocument-change-request-workflow-statuses/:id", documentChangeRequestWorkflowStatusController.GetDocumentChangeRequestWorkflowStatusDetails)

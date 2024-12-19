@@ -15,6 +15,8 @@ type DocumentChangeRequestWorkflowServiceInterface interface {
 	CreateDocumentCRWorkflow(documentChangeRequestId uint, documentId uint, currentUserID uint, tx ...utility.DatabaseTransaction) error
 	CreateDocumentCRWorkflowParticipant(userID uint, documentCRWorkflowID uint, participant *settingDTOs.WorkflowLevelParticipantDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error
 
+	GetDocumentCRWorkflowByLevel(changeRequestID uint, currentApprovalLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentChangeRequestWorkflow, error)
+
 	DeleteDocumentCRWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteDocumentCRWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteDocumentCRWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
@@ -204,4 +206,12 @@ func (dcrws *DocumentChangeRequestWorkflowService) DeleteDocumentCRWorkflows(wor
 	}
 
 	return nil
+}
+
+func (dcrws *DocumentChangeRequestWorkflowService) GetDocumentCRWorkflowByLevel(changeRequestID uint, currentApprovalLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentChangeRequestWorkflow, error) {
+	documentCRWorkflow, err := dcrws.repo.GetDocumentCRWorkflowByLevel(changeRequestID, currentApprovalLevel, tx...)
+	if err != nil {
+		return nil, err
+	}
+	return documentCRWorkflow, nil
 }

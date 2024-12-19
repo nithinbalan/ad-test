@@ -29,7 +29,7 @@ type AuditFinalReportServiceInterface interface {
 	GetByID(id uint) (*models.AuditFinalReport, error)
 	GetFullDetailsByID(auditID uint, currentUserID uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFinalReportDetailDTO, error)
 	Create(auditID uint, currentUserID uint) (uint, error)
-	Update(auditFinalReport *models.AuditFinalReport) error
+	Update(auditFinalReport *models.AuditFinalReport, tx ...utility.DatabaseTransaction) error
 	GetByAuditID(auditID uint) (*models.AuditFinalReport, error)
 	Delete(auditID uint, currentUserID uint) error
 }
@@ -338,11 +338,6 @@ func (afrs *AuditFinalReportService) GetByAuditID(auditID uint) (*models.AuditFi
 }
 
 func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (uint, error) {
-	tx := afrs.repo.BeginTransaction()
-	if _, err := afrs.auditSvc.GetByID(auditID); err != nil {
-		tx.Rollback()
-		return 0, err
-	}
 	// Check if a final report already exists for this audit
 	// existingReport, err := afrs.repo.GetByAuditID(auditID)
 	// if err != nil {
@@ -357,20 +352,20 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	// }
 	auditDraftReport, err := afrs.auditDraftReportSvc.GetByAuditID(auditID)
 	if err != nil {
-		tx.Rollback()
 		return 0, err
 	}
 	// Check if AuditDraftReportStatus is 'completed'
 	completedStatus, err := afrs.auditDraftReportStatusSvc.GetByType("completed")
 	if err != nil {
-		tx.Rollback()
 		return 0, err
 	}
 	if auditDraftReport.AuditDraftReportStatusID != completedStatus.ID {
-		tx.Rollback()
 		return 0, utility.NewForbiddenError("Action not allowed: Only audit draft reports with an 'Completed' status can be accepted.")
 	}
-	audit, err := afrs.auditSvc.GetFullDetailsByID(auditID)
+
+	tx := afrs.repo.BeginTransaction()
+
+	audit, err := afrs.auditSvc.GetFullDetailsByID(auditID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -457,7 +452,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	var reportSubSections []*models.AuditFinalReportSection
 
 	for _, section := range reportSections {
-		mainSection, err := afrs.repo.GetSectionByType(section.Type, tx)
+		mainSection, err := afrs.repo.GetSectionByType(section.Type, id, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -592,15 +587,18 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 			})
 		}
 	}
+
 	// findings only copying from draft findings to AuditFinding, not saving in to AuditFinalReportSection
-	auditDraftFindings, err := afrs.auditDraftFindingSvc.GetAllFindingsByAuditID(auditID)
+	auditDraftFindings, err := afrs.auditDraftFindingSvc.GetAllFindingsByAuditID(auditID,tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
+
 	// Initialize slices for findings and action plans
 	var actionPlans []*models.AuditFindingActionPlan
 	var auditFindingDocuments []*models.AuditFindingDocument
+
 	for _, draftFinding := range auditDraftFindings {
 		if draftFinding.AuditDraftFindingStatus != nil && draftFinding.AuditDraftFindingStatus.IsFinalized {
 			var latestComment *string
@@ -627,11 +625,13 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 				DepartmentResponseBYID: latestCreatedByID,
 				DepartmentResponseAt:   latestCreatedAt,
 			}
-			findingID, err := afrs.auditFindingSvc.Create(currentUserID, findingDTO)
+
+			findingID, err := afrs.auditFindingSvc.Create(currentUserID, findingDTO, tx)
 			if err != nil {
 				tx.Rollback()
 				return 0, err
 			}
+
 			for _, draftDoc := range draftFinding.Documents {
 				finalDocument := &models.AuditFindingDocument{
 					AuditFindingID: findingID, // ID of the final AuditFinding
@@ -650,7 +650,6 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 				// Define draft and final storage directories
 				draftDir := filepath.Join("audit", "audits", strconv.FormatUint(uint64(draftFinding.AuditID), 10), "draft-findings", strconv.FormatUint(uint64(draftFinding.ID), 10), "documents")
 				finalDir := filepath.Join("audit", "audits", "audit-findings", strconv.FormatUint(uint64(findingID), 10), "documents")
-
 				// Use CopyFileFromPaths to copy each document
 				err = utility.CopyFileFromPaths(draftDir, finalDir, draftDoc.Name)
 				if err != nil {
@@ -659,6 +658,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 					tx.Rollback()
 					return 0, err
 				}
+
 			}
 
 			// Copy action plans from draft findings to final findings
@@ -676,8 +676,10 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 				// Attach action plan to its respective AuditFinding
 				actionPlans = append(actionPlans, actionPlan)
 			}
+
 		}
 	}
+
 	if len(auditFindingDocuments) > 0 {
 		if err := afrs.repo.CreateAuditFindingDocuments(auditFindingDocuments, tx); err != nil {
 			tx.Rollback()
@@ -699,12 +701,14 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 			return 0, err
 		}
 	}
+
 	//Add workflow
 	err = afrs.auditReportWorkflowSvc.CreateAuditReportWorkflow(id, "final-report", currentUserID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
+
 	tx.Commit()
 
 	go func() {
@@ -738,12 +742,23 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	return id, nil
 }
 
-func (afrs *AuditFinalReportService) Update(auditFinalReport *models.AuditFinalReport) error {
-	err := afrs.repo.Update(auditFinalReport)
+func (afrs *AuditFinalReportService) Update(auditFinalReport *models.AuditFinalReport, tx ...utility.DatabaseTransaction) error {
+	var transaction utility.DatabaseTransaction
+
+	if len(tx) > 0 && tx[0] != nil {
+		transaction = tx[0]
+	} else {
+		transaction = afrs.repo.BeginTransaction()
+		defer transaction.Rollback() // Ensure rollback if transaction was started here and not committed
+	}
+	err := afrs.repo.Update(auditFinalReport, transaction)
 	if err != nil {
 		return err
 	}
-
+	// Commit if this function started the transaction
+	if len(tx) == 0 {
+		transaction.Commit()
+	}
 	return nil
 }
 

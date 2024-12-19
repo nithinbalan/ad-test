@@ -28,6 +28,7 @@ type TaskServiceInterface interface {
 	UpdateDocumentTaskStatus(documentID uint, userID uint, documentWorkflowID uint) (*models.Task, error)
 	UpdateAuditReportTaskStatus(auditFinalReportID uint, userID uint, auditReportWorkflowID uint) (*models.Task, error)
 	UpdateAuditDraftReportTaskStatus(auditDraftReportID uint, userID uint, auditReportWorkflowID uint) (*models.Task, error)
+	AuditDocumentRequestTaskUpdate(auditDocumentRequestID uint, userID uint, taskStatusType string, tx ...utility.DatabaseTransaction) (*models.Task, error)
 }
 
 type TaskService struct {
@@ -101,6 +102,7 @@ func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint
 		AuditFindingActionPlanID: taskDTO.AuditFindingActionPlanID,
 		DocumentID:               taskDTO.DocumentID,
 		DocumentWorkflowID:       taskDTO.DocumentWorkflowID,
+		AuditDocumentRequestID:   taskDTO.AuditDocumentRequestID,
 		AuditFinalReportID:       taskDTO.AuditFinalReportID,
 		AuditDraftReportID:       taskDTO.AuditDraftReportID,
 		AuditReportWorkflowID:    taskDTO.AuditReportWorkflowID,
@@ -246,6 +248,34 @@ func (ts *TaskService) UpdateAuditDraftReportTaskStatus(auditDraftReportID uint,
 	}
 	task, err := ts.repo.UpdateAuditDraftReportTaskStatus(auditDraftReportID, userID, auditReportWorkflowID, taskStatus.ID)
 	if err != nil {
+		return nil, err
+	}
+
+	return task, nil
+}
+
+func (ts *TaskService) AuditDocumentRequestTaskUpdate(auditDocumentRequestID uint, userID uint, taskStatusType string, tx ...utility.DatabaseTransaction) (*models.Task, error) {
+	// Fetch the task status by type (e.g., "closed")
+	taskStatus, err := ts.taskStatusSvc.GetByType(taskStatusType)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch the task associated with the audit document request ID
+	task, err := ts.repo.GetByFieldID("audit_document_request_id", auditDocumentRequestID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, auditDocumentRequestID)
+		}
+		return nil, err
+	}
+
+	// Update the task's status
+	task.TaskStatusID = taskStatus.ID
+	task.UpdatedByID = userID
+
+	// Save the updated task
+	if err := ts.repo.Update(task, tx...); err != nil {
 		return nil, err
 	}
 

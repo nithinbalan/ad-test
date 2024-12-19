@@ -162,7 +162,13 @@ func NewDocumentModule(db *gorm.DB,
 	documentChangeRequestWorkflowStatusController := controllers.NewDocumentChangeRequestWorkflowStatusController(documentChangeRequestWorkflowStatusSvc)
 
 	documentChangeRequestRepo := repositories.NewDocumentChangeRequestRepository(db)
-	documentChangeRequestSvc := services.NewDocumentChangeRequestService(documentChangeRequestRepo, sharedModule.ActivityLogService, documentChangeRequestTypeSvc, documentChangeRequestStatusSvc)
+	documentChangeRequestSvc := services.NewDocumentChangeRequestService(
+		documentChangeRequestRepo,
+		sharedModule.ActivityLogService,
+		documentChangeRequestTypeSvc,
+		documentChangeRequestStatusSvc,
+		documentChangeRequestWorkflowStatusSvc,
+	)
 	documentChangeRequestController := controllers.NewDocumentChangeRequestController(documentChangeRequestSvc)
 
 	documentChangeRequestWorkflowRepo := repositories.NewDocumentChangeRequestWorkflowRepository(db)

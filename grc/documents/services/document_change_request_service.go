@@ -33,6 +33,8 @@ type DocumentChangeRequestServiceInterface interface {
 
 	CheckoutDocument(id uint, currentUserID uint, token string) (string, error)
 	CheckinDocument(id uint, currentUserID uint, documentCheckinFormDTO *documentDTOs.DocumentCheckinFormDTO) error
+	RevertDocumentCheckout(id uint, currentUserID uint) error
+	SubmitDocumentChangeRequest(id uint, currentUserID uint) error
 
 	GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error)
 }
@@ -43,6 +45,7 @@ type DocumentChangeRequestService struct {
 	documentChangeRequestTypeSvc     DocumentChangeRequestTypeServiceInterface
 	documentChangeRequestStatusSvc   DocumentChangeRequestStatusServiceInterface
 	documentChangeRequestWorkflowSvc DocumentChangeRequestWorkflowServiceInterface
+	documentCRWorkflowStatusSvc      DocumentChangeRequestWorkflowStatusServiceInterface
 }
 
 func NewDocumentChangeRequestService(
@@ -50,12 +53,14 @@ func NewDocumentChangeRequestService(
 	activityLogSvc services.ActivityLogServiceInterface,
 	documentChangeRequestTypeSvc DocumentChangeRequestTypeServiceInterface,
 	documentChangeRequestStatusSvc DocumentChangeRequestStatusServiceInterface,
+	documentCRWorkflowStatusSvc DocumentChangeRequestWorkflowStatusServiceInterface,
 ) DocumentChangeRequestServiceInterface {
 	return &DocumentChangeRequestService{
 		repo:                           repo,
 		activityLogSvc:                 activityLogSvc,
 		documentChangeRequestTypeSvc:   documentChangeRequestTypeSvc,
 		documentChangeRequestStatusSvc: documentChangeRequestStatusSvc,
+		documentCRWorkflowStatusSvc:    documentCRWorkflowStatusSvc,
 	}
 }
 
@@ -556,6 +561,263 @@ func (dcrs *DocumentChangeRequestService) CheckinDocument(id uint, currentUserID
 			log.Printf("Failed to convert document to PDF: %v", err)
 		}
 	}()
+
+	return nil
+}
+
+func (dcrs *DocumentChangeRequestService) RevertDocumentCheckout(id uint, currentUserID uint) error {
+	tx := dcrs.repo.BeginTransaction()
+	documentCRFullDetails, err := dcrs.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if !documentCRFullDetails.IsLocked {
+		tx.Rollback()
+		return fmt.Errorf("document already checked in")
+	}
+
+	existingDocumentCR, err := dcrs.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	existingDocumentCR.IsLocked = false
+
+	err = dcrs.repo.Update(existingDocumentCR, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	//add document history
+	// documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
+	// 	DocumentID:        id,
+	// 	DocumentVersionID: document.LatestDocumentVersion.ID,
+	// 	ActionType:        "revert-checkout",
+	// }
+
+	// err = ds.CreateDocumentEditHistory(documentEditHistory, nil, currentUserID, tx)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return err
+	// }
+
+	tx.Commit()
+
+	return nil
+}
+
+func (dcrs *DocumentChangeRequestService) SubmitDocumentChangeRequest(id uint, currentUserID uint) error {
+	tx := dcrs.repo.BeginTransaction()
+	documentCRFullDetails, err := dcrs.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	documentCRStatus, err := dcrs.documentChangeRequestStatusSvc.GetByType("in-review")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingCRDocument, err := dcrs.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingCRDocument.DocumentChangeRequestStatusID = documentCRStatus.ID
+
+	err = dcrs.repo.Update(existingCRDocument, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// documentVersion, err := ds.repo.GetDocumentVersionByID(document.LatestDocumentVersion.ID, tx)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return err
+	// }
+
+	var level int
+	if documentCRFullDetails.DocumentChangeRequestStatus.Type == "reverted" {
+		// If status is "reverted", use the NextReviewLevel for resubmission
+		if documentCRFullDetails.NextReviewLevel != nil {
+			level = *documentCRFullDetails.NextReviewLevel
+		} else {
+			tx.Rollback()
+			return fmt.Errorf("next review level is not set for reverted document")
+		}
+	} else {
+		// For non-reverted documents, start from level 1
+		level = 1
+	}
+
+	currentDateStr := time.Now().Format("2006-01-02")
+	submittedAt, err := utility.ParseDate(currentDateStr)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error parsing current date: %w", err)
+	}
+
+	if documentCRFullDetails.DocumentChangeRequestStatus.Type != "reverted" {
+		existingCRDocument.SubmittedBYID = &currentUserID
+		existingCRDocument.SubmittedAt = submittedAt
+		existingCRDocument.NextReviewLevel = &level
+
+		err = dcrs.repo.Update(existingCRDocument, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Fetch the workflow level details, including participants (review users)
+	docCRWorkflowLevel, err := dcrs.documentChangeRequestWorkflowSvc.GetDocumentCRWorkflowByLevel(documentCRFullDetails.ID, level, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if documentCRFullDetails.DocumentChangeRequestStatus.Type == "reverted" {
+		documentCRWorkflowStatus, err := dcrs.documentCRWorkflowStatusSvc.GetByType("resubmit")
+		if err != nil {
+			return err
+		}
+		documentCRWorkflowReview := &models.DocumentChangeRequestWorkflowReview{
+			DocumentChangeRequestWorkflowID:       docCRWorkflowLevel.ID,
+			DocumentChangeRequestWorkflowStatusID: documentCRWorkflowStatus.ID,
+			Comment:                               "Resubmitted",
+			CreatedBYID:                           currentUserID,
+		}
+
+		err = dcrs.repo.CreateDocumentCRWorkflowReview(documentCRWorkflowReview, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+
+	// urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	// var taskIDs []uint
+
+	// for _, participant := range docWorkflowLevel.DocumentWorkflowParticipants {
+	// 	taskDTO := commonDTOs.TaskFormDTO{
+	// 		ModuleIdentifier:   "document",
+	// 		DocumentID:         &id,
+	// 		DocumentWorkflowID: &docWorkflowLevel.ID,
+	// 		Title:              existingDocument.TitleEn,
+	// 		Description:        existingDocument.DescriptionEn,
+	// 		URLParam:           &urlParam,
+	// 		QueryParam:         nil,
+	// 		ResponsibleUserID:  participant.User.ID,
+	// 	}
+
+	// 	taskID, err := ds.taskSvc.Create(taskDTO, currentUserID)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	taskIDs = append(taskIDs, taskID)
+
+	// }
+
+	// for _, taskID := range taskIDs {
+	// 	relatedTaskIDs := []uint{}
+	// 	for _, otherTaskID := range taskIDs {
+	// 		if otherTaskID != taskID {
+	// 			relatedTaskIDs = append(relatedTaskIDs, otherTaskID)
+	// 		}
+	// 	}
+
+	// 	relatedTaskIDsJSON, err := json.Marshal(relatedTaskIDs)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+
+	// 	err = ds.taskSvc.UpdateTaskWithRelatedIDs(taskID, string(relatedTaskIDsJSON))
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
+
+	//to do
+	//activity log
+
+	// Prepare notification
+	// go func() {
+	// 	urlParam = fmt.Sprintf(`{"id":%d}`, id)
+	// 	entity := "document"
+	// 	action := "review-user-assign"
+
+	// 	for _, participant := range docWorkflowLevel.DocumentWorkflowParticipants {
+	// 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+	// 			UserID:               participant.User.ID,
+	// 			ModuleIdentifier:     "document",
+	// 			NotificationType:     string(commonDTOs.ReviewType),
+	// 			ReferenceNumber:      existingDocument.ReferenceNumber,
+	// 			HeadingEn:            "Document Review",
+	// 			HeadingAr:            "مراجعة الوثيقة",
+	// 			TitleEn:              existingDocument.TitleEn,
+	// 			TitleAr:              existingDocument.TitleAr,
+	// 			Entity:               &entity,
+	// 			Action:               &action,
+	// 			URLParam:             urlParam,
+	// 			IsSystemNotification: false,
+	// 			CreatedByID:          &currentUserID,
+	// 		}
+
+	// 		responsibleUser, err := ds.userSvc.GetByID(participant.User.ID)
+	// 		if err != nil {
+	// 			utility.LogError("Failed to fetch review user", map[string]interface{}{
+	// 				"error": err.Error(),
+	// 			})
+	// 			return
+	// 		}
+
+	// 		assignedBy, err := ds.userSvc.GetByID(currentUserID)
+	// 		if err != nil {
+	// 			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+	// 				"error": err.Error(),
+	// 			})
+	// 			return
+	// 		}
+
+	// 		emailTo := []string{responsibleUser.Email}
+	// 		subject := fmt.Sprintf("Document/%s: Review Assigned", existingDocument.TitleEn)
+	// 		appURL := utility.GetAppURL()
+	// 		emailData := map[string]interface{}{
+	// 			"FirstNameEn":           responsibleUser.FirstNameEn,
+	// 			"LastNameEn":            responsibleUser.LastNameEn,
+	// 			"DocumentTitle":         existingDocument.TitleEn,
+	// 			"DocumentType":          document.DocumentType.TitleEn,
+	// 			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+	// 			"AssignedByLastNameEn":  assignedBy.LastNameEn,
+	// 			"AssignedOn":            time.Now().Format("2006-01-02"),
+	// 			"RedirectURL":           fmt.Sprintf("%s/document/register/%d", appURL, id),
+	// 		}
+
+	// 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+	// 			EmailTo:              emailTo,
+	// 			Subject:              subject,
+	// 			TemplateRelativePath: "document/templates/email/document_workflow_review_user_mail.html",
+	// 			EmailData:            emailData,
+	// 		}
+
+	// 		// Send Notification and Email
+	// 		err = ds.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document")
+	// 		if err != nil {
+	// 			utility.LogError("Failed to send notifications", map[string]interface{}{
+	// 				"error": err.Error(),
+	// 			})
+	// 		}
+	// 	}
+	// }()
 
 	return nil
 }

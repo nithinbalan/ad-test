@@ -56,6 +56,7 @@ type TaskFormDTO struct {
 	AuditFindingActionPlanID *uint      `json:"audit_finding_action_plan_id,omitempty"`
 	DocumentID               *uint      `json:"document_id,omitempty"`
 	DocumentWorkflowID       *uint      `json:"document_workflow_id,omitempty"`
+	AuditDocumentRequestID   *uint      `json:"audit_document_request_id,omitempty"`
 	AuditFinalReportID       *uint      `json:"audit_final_report_id,omitempty"`
 	AuditDraftReportID       *uint      `json:"audit_draft_report_id,omitempty"`
 	AuditReportWorkflowID    *uint      `json:"audit_report_workflow_id,omitempty"`

@@ -11,6 +11,8 @@ type DocumentChangeRequestWorkflowRepositoryInterface interface {
 	CreateDocumentCRWorkflow(documentCRWorkflow *models.DocumentChangeRequestWorkflow, tx ...utility.DatabaseTransaction) (uint, error)
 	CreateDocumentCRWorkflowParticipant(docWorkflowCRParticipant *models.DocumentChangeRequestWorkflowParticipant, tx ...utility.DatabaseTransaction) error
 
+	GetDocumentCRWorkflowByLevel(changeRequestID uint, currentApprovalLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentChangeRequestWorkflow, error)
+
 	DeleteDocumentCRWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteDocumentCRWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteDocumentCRWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
@@ -48,6 +50,27 @@ func (repo *DocumentChangeRequestWorkflowRepository) CreateDocumentCRWorkflowPar
 	}
 
 	return nil
+}
+
+func (repo *DocumentChangeRequestWorkflowRepository) GetDocumentCRWorkflowByLevel(changeRequestID uint, currentApprovalLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentChangeRequestWorkflow, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var documentCRWorkflow *models.DocumentChangeRequestWorkflow
+	result := db.
+		Preload("WorkflowLevelType").
+		Preload("DocumentChangeRequestWorkflowParticipants").
+		Preload("DocumentChangeRequestWorkflowReviews").
+		Preload("DocumentChangeRequestWorkflowParticipants.User").
+		Where("document_change_request_id = ? AND level = ?", changeRequestID, currentApprovalLevel).
+		Find(&documentCRWorkflow)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return documentCRWorkflow, nil
 }
 
 func (repo *DocumentChangeRequestWorkflowRepository) DeleteDocumentCRWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error {

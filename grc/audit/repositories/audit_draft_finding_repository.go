@@ -16,7 +16,7 @@ type AuditDraftFindingRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *auditDTOs.AuditDraftFindingListQueryParamsDTO) (*auditDTOs.AuditDraftFindingListResponseDTO, error)
 	GetByID(id uint) (*models.AuditDraftFinding, error)
-	GetAllFindingsByAuditID(auditId uint) ([]*models.AuditDraftFinding, error)
+	GetAllFindingsByAuditID(auditId uint, tx ...utility.DatabaseTransaction) ([]*models.AuditDraftFinding, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditDraftFinding, error)
 	Create(auditFinding *models.AuditDraftFinding, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(auditFinding *models.AuditDraftFinding, tx ...utility.DatabaseTransaction) error
@@ -182,11 +182,15 @@ func (repo *AuditDraftFindingRepository) GetByID(id uint) (*models.AuditDraftFin
 	return auditFinding, nil
 }
 
-func (repo *AuditDraftFindingRepository) GetAllFindingsByAuditID(auditId uint) ([]*models.AuditDraftFinding, error) {
+func (repo *AuditDraftFindingRepository) GetAllFindingsByAuditID(auditId uint, tx ...utility.DatabaseTransaction) ([]*models.AuditDraftFinding, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var auditFindings []*models.AuditDraftFinding
 
 	// Query to retrieve all findings by audit_id
-	result := repo.db.
+	result := db.
 		Preload("AuditDraftFindingStatus").
 		Preload("AuditDraftFindingActionPlans").
 		Preload("AuditDraftFindingConversations", func(db *gorm.DB) *gorm.DB {
@@ -194,7 +198,6 @@ func (repo *AuditDraftFindingRepository) GetAllFindingsByAuditID(auditId uint) (
 		}).
 		Where("audit_id = ?", auditId).
 		Find(&auditFindings)
-
 	if result.Error != nil {
 		return nil, result.Error
 	}

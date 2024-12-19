@@ -13,9 +13,9 @@ type DocumentChangeRequest struct {
 	DocumentChangeRequestStatusID   uint       `json:"document_change_request_status_id" gorm:"not null"`
 	ReasonForChange                 *string    `json:"reason_for_change" gorm:"type:nvarchar(max);default:null"`
 	Version                         float64    `json:"version" gorm:"type:decimal(4,2);not null"`
-	SubmittedByID                   *uint      `json:"submitted_by_id" gorm:"default:null"`
+	SubmittedBYID                   *uint      `json:"submitted_by_id" gorm:"default:null"`
 	SubmittedAt                     *time.Time `json:"submitted_at" gorm:"type:datetime;default:null"`
-	PublishedByID                   *uint      `json:"published_by_id" gorm:"default:null"`
+	PublishedBYID                   *uint      `json:"published_by_id" gorm:"default:null"`
 	PublishedAt                     *time.Time `json:"published_at" gorm:"type:datetime;default:null"`
 	NextReviewLevel                 *int       `json:"next_review_level" gorm:"default:null"`
 	IsLocked                        bool       `json:"is_locked" gorm:"type:tinyint(1);not null;default:0"`
@@ -33,8 +33,8 @@ type DocumentChangeRequest struct {
 	DocumentChangeRequestInitiate *DocumentChangeRequestInitiate `gorm:"foreignKey:DocumentChangeRequestInitiateID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	DocumentChangeRequestType     *DocumentChangeRequestType     `gorm:"foreignKey:DocumentChangeRequestTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	DocumentChangeRequestStatus   *DocumentChangeRequestStatus   `gorm:"foreignKey:DocumentChangeRequestStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SubmittedByUser               *User                          `gorm:"foreignKey:SubmittedByID"`
-	PublishedByUser               *User                          `gorm:"foreignKey:PublishedByID"`
+	SubmittedByUser               *User                          `gorm:"foreignKey:SubmittedBYID"`
+	PublishedByUser               *User                          `gorm:"foreignKey:PublishedBYID"`
 	LastCheckoutByUser            *User                          `gorm:"foreignKey:LastCheckoutBYID"`
 	LastCheckinByUser             *User                          `gorm:"foreignKey:LastCheckinBYID"`
 	CreatedByUser                 *User                          `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
