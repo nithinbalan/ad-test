@@ -12,6 +12,7 @@ type ProcessAssociatedItemServiceInterface interface {
 	GetAllIncidents(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error)
 	GetAllDocuments(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemDocumentListResponseDTO, error)
 	GetAllAssociatedCounts(processID uint) (*organizationDTOs.ProcessAssociatedItemsCountResponseDTO, error)
+	GetAllAssets(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemAssetListResponseDTO, error)
 }
 
 type ProcessAssociatedItemService struct {
@@ -174,6 +175,13 @@ func (pais *ProcessAssociatedItemService) GetAllDocuments(processID uint, params
 		return nil, err
 	}
 	return pais.repo.GetAllDocuments(processID, params)
+}
+
+func (pais *ProcessAssociatedItemService) GetAllAssets(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemAssetListResponseDTO, error) {
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return nil, err
+	}
+	return pais.repo.GetAllAssets(processID, params)
 }
 
 func (pais *ProcessAssociatedItemService) GetAllAssociatedCounts(processID uint) (*organizationDTOs.ProcessAssociatedItemsCountResponseDTO, error) {
