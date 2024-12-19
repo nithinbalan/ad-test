@@ -2,6 +2,7 @@ package utility
 
 import (
 	"fmt"
+	"io"
 	"mime/multipart"
 	"os"
 	"strconv"
@@ -120,6 +121,38 @@ func ParseExcelFile(file multipart.File, mandatoryFields []string) ([]map[string
 	}
 
 	return data, nil
+}
+
+func ReadExcelFile(file io.Reader) ([][]string, error) {
+	f, err := excelize.OpenReader(file)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	rows, err := f.GetRows(f.GetSheetName(0))
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
+}
+
+func ValidateHeaders(expected, actual []string) bool {
+	if len(expected) != len(actual) {
+		return false
+	}
+	for i, header := range expected {
+		if header != actual[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func IsValidID(value string) bool {
+	_, err := strconv.Atoi(value)
+	return err == nil
 }
 
 func ParseUint(value string) uint {

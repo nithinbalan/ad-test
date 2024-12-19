@@ -218,6 +218,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//process
 	organizationRoutes.GET("/processes/template", middlewares.RolePermissionMiddleware(db, "process", "modify"), processController.GetProcessesTemplate)
+	organizationRoutes.POST("/processes/template/validate", middlewares.RolePermissionMiddleware(db, "process", "modify"), processController.ValidateProcessTemplate)
 	organizationRoutes.POST("/processes/import", middlewares.RolePermissionMiddleware(db, "process", "modify"), processController.ImportProcesses)
 	organizationRoutes.GET("/processes/export", middlewares.RolePermissionMiddleware(db, "process", "view"), processController.GetProcessesExport)
 	organizationRoutes.GET("/processes", middlewares.RolePermissionMiddleware(db, "process", "view"), processController.GetAllProcesses)

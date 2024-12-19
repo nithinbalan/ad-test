@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"io"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
@@ -34,6 +35,7 @@ type ProcessServiceInterface interface {
 
 	ExportProcesses(data []*organizationDTOs.ProcessListDTO, currentUserID uint) (*os.File, error)
 	GenerateProcessTemplate() (*os.File, error)
+	ValidateProcessTemplate(file io.Reader) ([]map[string]interface{}, []map[string]interface{}, error)
 	ImportProcesses(file multipart.File, currentUserID uint) ([]int, error)
 
 	UpdateProcessRiskRating(process *models.Process, tx utility.DatabaseTransaction) error
@@ -1128,6 +1130,62 @@ func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
 	}
 
 	return file, nil
+}
+
+func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]interface{}, []map[string]interface{}, error) {
+	// Read Excel file
+	rows, err := utility.ReadExcelFile(file)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	headers := []string{
+		"ProcessGroupID", "OwnerID", "TitleEn", "TitleAr", "Description", "ControlIds", "DocumentIds",
+	}
+
+	var data []map[string]interface{}
+	var validationErrors []map[string]interface{}
+
+	for i, row := range rows {
+		if i == 0 {
+			// Validate headers
+			if !utility.ValidateHeaders(headers, row) {
+				return nil, nil, fmt.Errorf("invalid headers in the Excel file")
+			}
+			continue
+		}
+
+		rowData := make(map[string]interface{})
+		rowErrors := make(map[string]interface{})
+
+		for j, header := range headers {
+			value := row[j]
+			rowData[header] = value
+
+			// Validation logic
+			switch header {
+			case "ProcessGroupID", "OwnerID":
+				if value == "" {
+					rowErrors[header] = "Field is required"
+				} else if !utility.IsValidID(value) {
+					rowErrors[header] = "Invalid ID format"
+				}
+			case "TitleEn", "TitleAr":
+				if value == "" {
+					rowErrors[header] = "Field is required"
+				}
+			}
+		}
+
+		rowData["errors"] = rowErrors
+		data = append(data, rowData)
+
+		if len(rowErrors) > 0 {
+			validationErrors = append(validationErrors, rowErrors)
+		}
+	}
+
+	return data, validationErrors, nil
 }
 
 func (ps *ProcessService) ImportProcesses(file multipart.File, currentUserID uint) ([]int, error) {

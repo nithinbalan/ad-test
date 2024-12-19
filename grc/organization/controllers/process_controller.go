@@ -311,6 +311,29 @@ func (pc *ProcessController) GetProcessesTemplate(c *gin.Context) {
 	c.File(file.Name())
 }
 
+func (pc *ProcessController) ValidateProcessTemplate(c *gin.Context) {
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, "Failed to read uploaded file")
+		return
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, "Failed to open file")
+		return
+	}
+	defer file.Close()
+
+	data, _, err := pc.service.ValidateProcessTemplate(file)
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, "Failed to validate template")
+		return
+	}
+
+	c.JSON(200, data)
+}
+
 func (pc *ProcessController) ImportProcesses(c *gin.Context) {
 	// Retrieve the uploaded file
 	file, err := c.FormFile("file")
