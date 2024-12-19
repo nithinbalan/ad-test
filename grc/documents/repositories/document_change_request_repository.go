@@ -28,6 +28,8 @@ type DocumentChangeRequestRepositoryInterface interface {
 	CreateDocument(doc *models.DocumentChangeRequestDocument, tx ...utility.DatabaseTransaction) error
 	UpdateDocument(doc *models.DocumentChangeRequestDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocument(docId uint, tx ...utility.DatabaseTransaction) error
+
+	CreateDocumentCRWorkflowReview(documentCRWorkflowReview *models.DocumentChangeRequestWorkflowReview, tx ...utility.DatabaseTransaction) error
 }
 
 type DocumentChangeRequestRepository struct {
@@ -169,6 +171,10 @@ func (repo *DocumentChangeRequestRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("Document.ResponsibleUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("DocumentChangeRequestWorkflows").
+		Preload("DocumentChangeRequestWorkflows.DocumentChangeRequestWorkflowStatus").
+		Preload("DocumentChangeRequestWorkflows.DocumentChangeRequestWorkflowParticipants").
+		Preload("DocumentChangeRequestWorkflows.DocumentChangeRequestWorkflowReviews").
 		First(&changeRequest, id)
 	if result.Error != nil {
 		return nil, result.Error
@@ -293,4 +299,15 @@ func (repo *DocumentChangeRequestRepository) GenerateReferenceNumber() (string, 
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "CR", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
+}
+
+func (repo *DocumentChangeRequestRepository) CreateDocumentCRWorkflowReview(documentCRWorkflowReview *models.DocumentChangeRequestWorkflowReview, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(documentCRWorkflowReview).Error; err != nil {
+		return err
+	}
+	return nil
 }
