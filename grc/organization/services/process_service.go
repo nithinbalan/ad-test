@@ -1118,7 +1118,7 @@ func (ps *ProcessService) UpdateProcessRiskRating(process *models.Process, tx ut
 
 func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
 	headers := []string{
-		"ProcessGroupID", "OwnerID", "TitleEn", "TitleAr", "Description", "ControlIds", "DocumentIds",
+		"ProcessGroupTitle", "OwnerID", "TitleEn", "TitleAr", "Description", "ControlIds", "DocumentIds",
 	}
 
 	// Pass empty data for the template
@@ -1140,11 +1140,22 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 	}
 
 	headers := []string{
-		"ProcessGroupID", "OwnerID", "TitleEn", "TitleAr", "Description", "ControlIds", "DocumentIds",
+		"ProcessGroupTitle", "OwnerID", "TitleEn", "TitleAr", "Description", "ControlIds", "DocumentIds",
 	}
 
 	var data []map[string]interface{}
 	var validationErrors []map[string]interface{}
+
+	// Fetch process group titles from the database
+	processGroups, err := ps.processGroupSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, nil, fmt.Errorf("error fetching process groups: %v", err)
+	}
+
+	processGroupTitles := make(map[string]bool)
+	for _, group := range processGroups {
+		processGroupTitles[group.TitleEn] = true
+	}
 
 	for i, row := range rows {
 		if i == 0 {
@@ -1164,7 +1175,13 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 
 			// Validation logic
 			switch header {
-			case "ProcessGroupID", "OwnerID":
+			case "ProcessGroupTitle":
+				if value == "" {
+					rowErrors[header] = "Field is required"
+				} else if !processGroupTitles[value] {
+					rowErrors[header] = "Invalid process group title"
+				}
+			case "OwnerID":
 				if value == "" {
 					rowErrors[header] = "Field is required"
 				} else if !utility.IsValidID(value) {
@@ -1187,6 +1204,62 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 
 	return data, validationErrors, nil
 }
+
+// func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]interface{}, []map[string]interface{}, error) {
+// 	// Read Excel file
+// 	rows, err := utility.ReadExcelFile(file)
+// 	if err != nil {
+// 		return nil, nil, err
+// 	}
+
+// 	headers := []string{
+// 		"ProcessGroupID", "OwnerID", "TitleEn", "TitleAr", "Description", "ControlIds", "DocumentIds",
+// 	}
+
+// 	var data []map[string]interface{}
+// 	var validationErrors []map[string]interface{}
+
+// 	for i, row := range rows {
+// 		if i == 0 {
+// 			// Validate headers
+// 			if !utility.ValidateHeaders(headers, row) {
+// 				return nil, nil, fmt.Errorf("invalid headers in the Excel file")
+// 			}
+// 			continue
+// 		}
+
+// 		rowData := make(map[string]interface{})
+// 		rowErrors := make(map[string]interface{})
+
+// 		for j, header := range headers {
+// 			value := row[j]
+// 			rowData[header] = value
+
+// 			// Validation logic
+// 			switch header {
+// 			case "ProcessGroupID", "OwnerID":
+// 				if value == "" {
+// 					rowErrors[header] = "Field is required"
+// 				} else if !utility.IsValidID(value) {
+// 					rowErrors[header] = "Invalid ID format"
+// 				}
+// 			case "TitleEn", "TitleAr":
+// 				if value == "" {
+// 					rowErrors[header] = "Field is required"
+// 				}
+// 			}
+// 		}
+
+// 		rowData["errors"] = rowErrors
+// 		data = append(data, rowData)
+
+// 		if len(rowErrors) > 0 {
+// 			validationErrors = append(validationErrors, rowErrors)
+// 		}
+// 	}
+
+// 	return data, validationErrors, nil
+// }
 
 func (ps *ProcessService) ImportProcesses(file multipart.File, currentUserID uint) ([]int, error) {
 	mandatoryFields := []string{"ProcessGroupID", "OwnerID", "TitleEn", "TitleAr"}
