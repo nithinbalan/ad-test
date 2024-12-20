@@ -724,7 +724,7 @@ func (arrs *AuditReportReviewService) handleRevertedCase(id, currentUserID uint,
 		return err
 	}
 	//todo
-	auditFinalReportStatus, err := arrs.auditFinalReportStatusSvc.GetByType("in-review")
+	auditFinalReportStatus, err := arrs.auditFinalReportStatusSvc.GetByType("revert")
 	if err != nil {
 		return err
 	}
@@ -739,7 +739,7 @@ func (arrs *AuditReportReviewService) handleRevertedCase(id, currentUserID uint,
 	if err != nil {
 		return err
 	}
-	
+
 	arrs.sendRevertedNotification(id, currentUserID, auditFinalReportDetailDTO)
 
 	return nil
