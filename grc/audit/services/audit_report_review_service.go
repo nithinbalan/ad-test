@@ -102,11 +102,6 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 		return err
 	}
 
-	auditFinalReportStatus, err := arrs.auditFinalReportStatusSvc.GetByType("in-review")
-	if err != nil {
-		return err
-	}
-
 
 	currentDateStr := time.Now().Format("2006-01-02")
 	submittedAt, err := utility.ParseDate(currentDateStr)
@@ -115,6 +110,11 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 	}
 	//begin tx
 	tx := arrs.repo.BeginTransaction()
+	
+	auditFinalReportStatus, err := arrs.auditFinalReportStatusSvc.GetByType("in-review")
+	if err != nil {
+		return err
+	}
 	var level int
 	if existingAuditFinalReport.AuditFinalReportStatus.Type == "revert" {
 		level = existingAuditFinalReport.NextReviewLevel
