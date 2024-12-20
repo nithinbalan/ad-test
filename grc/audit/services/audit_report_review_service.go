@@ -107,7 +107,6 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 		return err
 	}
 
-	existingAuditFinalReport.AuditFinalReportStatusID = auditFinalReportStatus.ID
 
 	currentDateStr := time.Now().Format("2006-01-02")
 	submittedAt, err := utility.ParseDate(currentDateStr)
@@ -123,7 +122,7 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 		// For non-reverted report, start from level 1
 		level = 1
 	}
-
+	existingAuditFinalReport.AuditFinalReportStatusID = auditFinalReportStatus.ID
 	existingAuditFinalReport.SubmittedBYID = &currentUserID
 	existingAuditFinalReport.SubmittedAt = submittedAt
 	existingAuditFinalReport.NextReviewLevel = level
