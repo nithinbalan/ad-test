@@ -225,6 +225,7 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("Assets").
 		Preload("Assets.Asset").
 		Preload("Documents").
+		Preload("Documents.Document").
 		Preload("Risks").
 		Preload("RiskMatrixRating").
 		Preload("RiskMatrixRatingValue").

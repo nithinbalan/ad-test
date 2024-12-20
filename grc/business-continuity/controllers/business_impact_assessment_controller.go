@@ -4,6 +4,7 @@ import (
 	"errors"
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	"jethur/grc/business-continuity/services"
+	commonDTOs "jethur/grc/common/dtos"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -85,6 +86,39 @@ func (biac *BusinessImpactAssessmentController) GetAllBusinessImpactAssessments(
 	c.JSON(http.StatusOK, businessImpactAssessments)
 }
 
+func (biac *BusinessImpactAssessmentController) CreateBusinessImpactAssessment(c *gin.Context) {
+	var businessImpactAssessmentFormDTO businessContinuityDTOs.BusinessImpactAssessmentFormDTO
+
+	if err := c.ShouldBindJSON(&businessImpactAssessmentFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, err.Error())
+		return
+	}
+
+	id, err := biac.service.Create(currentUserID, &businessImpactAssessmentFormDTO)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(biac.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
+}
+
 func (biac *BusinessImpactAssessmentController) UpdateBusinessImpactAssessment(c *gin.Context) {
 	var BusinessImpactAssessmentFormDTO businessContinuityDTOs.BusinessImpactAssessmentFormDTO
 
@@ -99,7 +133,39 @@ func (biac *BusinessImpactAssessmentController) UpdateBusinessImpactAssessment(c
 		return
 	}
 
-	err = biac.service.Update(BusinessImpactAssessmentFormDTO, currentUserID)
+	err = biac.service.UpdateBusinessImpactAssessment(BusinessImpactAssessmentFormDTO, currentUserID)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(biac.db, c, e.Error())
+			return
+		}
+	}
+	c.Status(http.StatusOK)
+}
+
+func (biac *BusinessImpactAssessmentController) UpdateBusinessImpactAssessmentRecoveryObjective(c *gin.Context) {
+	var businessImpactAssessmentRecoveryObjectiveFormDTO businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveFormDTO
+
+	if err := c.ShouldBindJSON(&businessImpactAssessmentRecoveryObjectiveFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, err.Error())
+		return
+	}
+
+	err = biac.service.UpdateRecoveryObjective(businessImpactAssessmentRecoveryObjectiveFormDTO, currentUserID)
 
 	if err != nil {
 		switch e := err.(type) {

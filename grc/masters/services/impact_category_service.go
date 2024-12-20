@@ -36,7 +36,6 @@ func NewImpactCategoryService(repo repositories.ImpactCategoryRepositoryInterfac
 }
 
 func (ics *ImpactCategoryService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ImpactCategory, error) {
-	fmt.Println("qq")
 	return ics.repo.GetAll(sort, sortBy, keyword, status)
 }
 

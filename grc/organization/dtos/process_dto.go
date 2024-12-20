@@ -103,6 +103,12 @@ type ProcessDetailDTO struct {
 	CreatedByUser         UserMinimalDTO                    `json:"created_by"`
 	UpdatedByUser         *UserMinimalDTO                   `json:"updated_by"`
 	LifecycleStatus       masterDTOs.LifecycleStatusDTO     `json:"status"`
+	Rto                   *uint                             `json:"rto"`
+	RtoUnitId             *uint                             `json:"rto_uint_id"`
+	Mtpd                  *uint                             `json:"mtpd"`
+	MtpdUnitId            *uint                             `json:"mtpd_uint_id"`
+	Rpo                   *uint                             `json:"rpo"`
+	RpoUnitId             *uint                             `json:"rpo_uint_id"`
 	CreatedAt             time.Time                         `json:"created_at"`
 	UpdatedAt             *time.Time                        `json:"updated_at"`
 	Controls              []*ProcessControlDTO              `json:"controls"`
@@ -195,6 +201,12 @@ type DocumentDetailsDTO struct {
 	DescriptionAr *string `json:"description_ar"`
 	IsLocked      bool    `json:"is_locked"`
 	Acknowledged  *bool   `json:"acknowledged,omitempty"`
+	Rto           *uint   `json:"rto"`
+	RtoUnitId     *uint   `json:"rto_uint_id"`
+	Mtpd          *uint   `json:"mtpd"`
+	MtpdUnitId    *uint   `json:"mtpd_uint_id"`
+	Rpo           *uint   `json:"rpo"`
+	RpoUnitId     *uint   `json:"rpo_uint_id"`
 }
 
 type ProcessAssetDTO struct {
@@ -209,4 +221,10 @@ type AssetMinimalDTO struct {
 	TitleEn     string  `json:"title_en"`
 	TitleAr     string  `json:"title_ar"`
 	Description *string `json:"description"`
+	Rto         *uint   `json:"rto"`
+	RtoUnitId   *uint   `json:"rto_uint_id"`
+	Mtpd        *uint   `json:"mtpd"`
+	MtpdUnitId  *uint   `json:"mtpd_uint_id"`
+	Rpo         *uint   `json:"rpo"`
+	RpoUnitId   *uint   `json:"rpo_uint_id"`
 }

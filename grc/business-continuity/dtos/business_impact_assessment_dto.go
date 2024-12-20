@@ -70,3 +70,28 @@ type BusinessImpactAssessmentDTO struct {
 	Cost             *uint   `json:"cost"`
 	Comments         *string `json:"comments"`
 }
+
+type BusinessImpactAssessmentRecoveryObjectiveFormDTO struct {
+	Type               string                                         `json:"type"`
+	ProcessID          *uint                                          `json:"process_id"`
+	Rto                *uint                                          `json:"rto"`
+	RtoUnitId          *uint                                          `json:"rto_unit_id"`
+	Mtpd               *uint                                          `json:"mtpd"`
+	MtpdUnitId         *uint                                          `json:"mtpd_unit_id"`
+	Rpo                *uint                                          `json:"rpo"`
+	RpoUnitId          *uint                                          `json:"rpo_unit_id"`
+	RecoveryObjectives []BusinessImpactAssessmentRecoveryObjectiveDTO `json:"recovery_objectives"`
+}
+
+type BusinessImpactAssessmentRecoveryObjectiveDTO struct {
+	AssetRegisterID   *uint   `json:"asset_register_id"`
+	DocumentID        *uint   `json:"document_id"`
+	RoleInProcess     *string `json:"role_in_process" gorm:"type:nvarchar(max)"`
+	Rto               *uint   `json:"rto"`
+	RtoUnitId         *uint   `json:"rto_unit_id"`
+	Mtpd              *uint   `json:"mtpd"`
+	MtpdUnitId        *uint   `json:"mtpd_unit_id"`
+	Rpo               *uint   `json:"rpo"`
+	RpoUnitId         *uint   `json:"rpo_unit_id"`
+	ImpactDescription *string `json:"impact_description"`
+}

@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"fmt"
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
@@ -13,11 +12,17 @@ import (
 type BusinessImpactAssessmentRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentListResponseDTO, error)
-	Create(businessImpactAssessment *models.BusinessImpactAssessment, tx ...utility.DatabaseTransaction) error
+
+	CreateBusinessImpactAssessment(businessImpactAssessment *models.BusinessImpactAssessment, tx ...utility.DatabaseTransaction) error
+	UpdateBusinessImpactAssessment(businessImpactAssessment *models.BusinessImpactAssessment, tx ...utility.DatabaseTransaction) error
+	CreateRecoveryObjective(businessImpactAssessmentRecoveryObjective *models.BusinessImpactAssessmentRecoveryObjective, tx ...utility.DatabaseTransaction) error
+	UpdateRecoveryObjective(businessImpactAssessmentRecoveryObjective *models.BusinessImpactAssessmentRecoveryObjective, tx ...utility.DatabaseTransaction) error
 	DeleteBusinessImpactAssessmentsByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
-	DeleteBusinessImpactAssessmentsByAssetRegisterID(AssetRegisterID uint, tx ...utility.DatabaseTransaction) error
+	DeleteBusinessImpactAssessmentRecoveryObjectivesByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
 	GetBusinessImpactAssessmentsByProcessID(processID uint) ([]*models.BusinessImpactAssessment, error)
-	GetBusinessImpactAssessmentsByAssetRegisterID(AssetRegisterID uint) ([]*models.BusinessImpactAssessment, error)
+	UpdateAsset(assetRegister *models.AssetRegister, tx ...utility.DatabaseTransaction) error
+	UpdateProcess(process *models.Process, tx ...utility.DatabaseTransaction) error
+	UpdateDocument(process *models.Document, tx ...utility.DatabaseTransaction) error
 }
 
 type BusinessImpactAssessmentRepository struct {
@@ -79,7 +84,6 @@ func (repo *BusinessImpactAssessmentRepository) GetAll(params *businessContinuit
 			LEFT JOIN users AS updated_user ON updated_user.id = business_impact_assessments.updated_by_id
         `)
 	// Apply dynamic filters to the query
-	fmt.Println(params.Filters)
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
 			query = query.Where(columnName+" IN (?)", values)
@@ -146,12 +150,48 @@ func (repo *BusinessImpactAssessmentRepository) GetAll(params *businessContinuit
 	return response, nil
 }
 
-func (repo *BusinessImpactAssessmentRepository) Create(businessImpactAssessment *models.BusinessImpactAssessment, tx ...utility.DatabaseTransaction) error {
+func (repo *BusinessImpactAssessmentRepository) CreateBusinessImpactAssessment(businessImpactAssessment *models.BusinessImpactAssessment, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 	if err := db.Create(businessImpactAssessment).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *BusinessImpactAssessmentRepository) UpdateBusinessImpactAssessment(businessImpactAssessment *models.BusinessImpactAssessment, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(businessImpactAssessment).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *BusinessImpactAssessmentRepository) CreateRecoveryObjective(businessImpactAssessmentRecoveryObjective *models.BusinessImpactAssessmentRecoveryObjective, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(businessImpactAssessmentRecoveryObjective).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *BusinessImpactAssessmentRepository) UpdateRecoveryObjective(businessImpactAssessmentRecoveryObjective *models.BusinessImpactAssessmentRecoveryObjective, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(businessImpactAssessmentRecoveryObjective).Error; err != nil {
 		return err
 	}
 
@@ -170,13 +210,13 @@ func (repo *BusinessImpactAssessmentRepository) DeleteBusinessImpactAssessmentsB
 	return nil
 }
 
-func (repo *BusinessImpactAssessmentRepository) DeleteBusinessImpactAssessmentsByAssetRegisterID(AssetRegisterID uint, tx ...utility.DatabaseTransaction) error {
+func (repo *BusinessImpactAssessmentRepository) DeleteBusinessImpactAssessmentRecoveryObjectivesByProcessID(processID uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	if err := db.Where("asset_register_id = ?", AssetRegisterID).Delete(&models.BusinessImpactAssessment{}).Error; err != nil {
+	if err := db.Where("process_id = ?", processID).Delete(&models.BusinessImpactAssessmentRecoveryObjective{}).Error; err != nil {
 		return err
 	}
 	return nil
@@ -196,16 +236,23 @@ func (repo *BusinessImpactAssessmentRepository) GetBusinessImpactAssessmentsByPr
 	return businessImpactAssessments, nil
 }
 
-func (repo *BusinessImpactAssessmentRepository) GetBusinessImpactAssessmentsByAssetRegisterID(AssetRegisterID uint) ([]*models.BusinessImpactAssessment, error) {
-	var businessImpactAssessments []*models.BusinessImpactAssessment
-	err := repo.db.Table("business_impact_assessments").
-		Select("business_impact_assessments.*").
-		Where("asset_register_id = ?", AssetRegisterID).
-		Order("id").
-		Find(&businessImpactAssessments).Error
-
-	if err != nil {
-		return nil, err
+func (repo *BusinessImpactAssessmentRepository) UpdateAsset(assetRegister *models.AssetRegister, tx ...utility.DatabaseTransaction) error {
+	if err := repo.db.Save(assetRegister).Error; err != nil {
+		return err
 	}
-	return businessImpactAssessments, nil
+	return nil
+}
+
+func (repo *BusinessImpactAssessmentRepository) UpdateProcess(process *models.Process, tx ...utility.DatabaseTransaction) error {
+	if err := repo.db.Save(process).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *BusinessImpactAssessmentRepository) UpdateDocument(document *models.Document, tx ...utility.DatabaseTransaction) error {
+	if err := repo.db.Save(document).Error; err != nil {
+		return err
+	}
+	return nil
 }
