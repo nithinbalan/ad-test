@@ -197,20 +197,21 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 	}
 
 	riskRegister := &models.RiskRegister{
-		ReferenceNumber:   referenceNumber,
-		RiskCategoryID:    riskRegisterFormDTO.RiskCategoryID,
-		RiskSourceID:      riskRegisterFormDTO.RiskSourceID,
-		RiskMatrixID:      riskMatrix.ID,
-		ResponsibleUnitID: responsibleUnitID,
-		ResponsibleUserID: riskRegisterFormDTO.ResponsibleUserID,
-		RiskStatusID:      riskStatus.ID,
-		Title:             riskRegisterFormDTO.Title,
-		Description:       riskRegisterFormDTO.Description,
-		ReportedAt:        dates.ReportedAt,
-		ReviewFrequencyID: riskRegisterFormDTO.ReviewFrequencyID,
-		NextReviewDate:    dates.NextReviewDate,
-		LastReviewNote:    riskRegisterFormDTO.LastReviewNote,
-		CreatedBYID:       currentUserID,
+		ReferenceNumber:        referenceNumber,
+		RiskCategoryID:         riskRegisterFormDTO.RiskCategoryID,
+		RiskSourceID:           riskRegisterFormDTO.RiskSourceID,
+		RiskMatrixID:           riskMatrix.ID,
+		ResponsibleUnitID:      responsibleUnitID,
+		ResponsibleUserID:      riskRegisterFormDTO.ResponsibleUserID,
+		RiskStatusID:           riskStatus.ID,
+		Title:                  riskRegisterFormDTO.Title,
+		Description:            riskRegisterFormDTO.Description,
+		ReportedAt:             dates.ReportedAt,
+		ReviewFrequencyID:      riskRegisterFormDTO.ReviewFrequencyID,
+		RiskResponseStrategyID: riskRegisterFormDTO.RiskResponseStrategyID,
+		NextReviewDate:         dates.NextReviewDate,
+		LastReviewNote:         riskRegisterFormDTO.LastReviewNote,
+		CreatedBYID:            currentUserID,
 	}
 
 	id, err := rrs.repo.Create(riskRegister, tx)
@@ -1229,7 +1230,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title":            oldRiskRegister.Title,
 			"description":      oldRiskRegister.Description,

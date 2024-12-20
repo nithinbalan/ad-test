@@ -1,10 +1,11 @@
 package controllers
 
 import (
-	"jethur/grc/risk/services"
-	"jethur/utility"
 	"net/http"
 	"strconv"
+
+	"jethur/grc/risk/services"
+	"jethur/utility"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -188,6 +189,25 @@ func (rhc *RiskHeatmapController) GetRiskHeatmapByRiskSource(c *gin.Context) {
 
 func (rhc *RiskHeatmapController) GetRiskHeatmapByRiskMatrix(c *gin.Context) {
 	riskHeatmap, err := rhc.service.GetRiskHeatmapByRiskMatrix()
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rhc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, riskHeatmap)
+}
+
+func (rhc *RiskHeatmapController) GetRiskHeatmapByResponseStrategy(c *gin.Context) {
+	riskHeatmap, err := rhc.service.GetRiskHeatmapByResponseStrategy()
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
