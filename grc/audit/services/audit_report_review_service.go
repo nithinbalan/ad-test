@@ -101,15 +101,20 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 	if err != nil {
 		return err
 	}
-
-
-	currentDateStr := time.Now().Format("2006-01-02")
-	submittedAt, err := utility.ParseDate(currentDateStr)
+	auditFinalReport, err := arrs.auditFinalReportSvc.GetByID(existingAuditFinalReport.ID)
 	if err != nil {
-		return fmt.Errorf("error parsing current date: %w", err)
+		return err
 	}
-	//begin tx
+	fmt.Println("hiiii111111111111111111")
 	tx := arrs.repo.BeginTransaction()
+	currentDateStr := time.Now()
+
+	// currentDateStr := time.Now().Format("2006-01-02")
+	// submittedAt, err := utility.ParseDate(currentDateStr)
+	// if err != nil {
+	// 	return fmt.Errorf("error parsing current date: %w", err)
+	// }
+	//begin tx
 	
 	auditFinalReportStatus, err := arrs.auditFinalReportStatusSvc.GetByType("in-review")
 	if err != nil {
@@ -122,18 +127,22 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 		// For non-reverted report, start from level 1
 		level = 1
 	}
-	existingAuditFinalReport.AuditFinalReportStatusID = auditFinalReportStatus.ID
-	existingAuditFinalReport.SubmittedBYID = &currentUserID
-	existingAuditFinalReport.SubmittedAt = submittedAt
-	existingAuditFinalReport.NextReviewLevel = level
+	fmt.Println("hiiii1111111111111111112222222222222")
 
-	err = arrs.auditFinalReportSvc.Update(existingAuditFinalReport,tx)
+	auditFinalReport.AuditFinalReportStatusID = auditFinalReportStatus.ID
+	auditFinalReport.SubmittedBYID = &currentUserID
+	auditFinalReport.SubmittedAt = &currentDateStr
+	auditFinalReport.NextReviewLevel = level
+
+	err = arrs.auditFinalReportSvc.Update(auditFinalReport,tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
+	fmt.Println("hiiii1111111111111111113333333333333333333333")
+
 	// Fetch the workflow level details, including participants (review users)
-	auditReportWorkflowLevel, err := arrs.auditReportWorkflowSvc.GetAuditReportWorkflowByLevel(existingAuditFinalReport.ID, level, tx)
+	auditReportWorkflowLevel, err := arrs.auditReportWorkflowSvc.GetAuditReportWorkflowByLevel(auditFinalReport.ID, level, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -152,6 +161,7 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 	if err != nil {
 		return err
 	}
+	fmt.Println("4444444444444444444444444444444444444")
 
 	urlParam := fmt.Sprintf(`{"id":%d}`, existingAuditFinalReport.ID)
 	var taskIDs []uint
@@ -210,6 +220,7 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 		tx.Rollback()
 		return err
 	}
+	fmt.Println("hiiii1111111111111111115555555555555555555555555555555")
 
 	tx.Commit()
 
