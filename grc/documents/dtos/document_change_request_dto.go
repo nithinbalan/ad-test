@@ -108,6 +108,14 @@ type DocumentChangeRequestFormDTO struct {
 	Document                        commonDTOs.DocumentFormDTO `json:"document" binding:"required"`
 }
 
+type DocumentChangeRequestWorkflowDTO struct {
+	ID                uint                            `json:"id"`
+	ChangeRequestID   uint                            `json:"change_request_id"`
+	SubmittedAt       time.Time                       `json:"submitted_at"`
+	SubmittedByUser   organizationDTOs.UserMinimalDTO `json:"submitted_by"`
+	DocumentWorkflows []*DocumentCRWorkflowDTO        `json:"document_workflows"`
+}
+
 type DocumentCRWorkflowDTO struct {
 	Level                                     int                            `json:"level"`
 	DocumentChangeRequestWorkflowStatus       DocumentStatusDTO              `json:"document_change_request_workflow_status"`
