@@ -20,7 +20,7 @@ type AuditFinalReportRepositoryInterface interface {
 	CreateAuditFindingActionPlans(actionPlans []*models.AuditFindingActionPlan, tx ...utility.DatabaseTransaction) error
 	CreateAuditFinalReportSections(sections []*models.AuditFinalReportSection, tx ...utility.DatabaseTransaction) error
 	GetSectionByType(sectionType string, auditFinalReportID uint, tx ...utility.DatabaseTransaction) (*models.AuditFinalReportSection, error)
-	Update(auditFinalReport *models.AuditFinalReport) error
+	Update(auditFinalReport *models.AuditFinalReport, tx ...utility.DatabaseTransaction) error
 	DeleteAuditFinalReportSections(sectionIDs []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteAuditFindingActionPlans(deleteActionPlanIDs []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteAuditFindings(deleteFindingIDs []*uint, tx ...utility.DatabaseTransaction) error
@@ -28,6 +28,10 @@ type AuditFinalReportRepositoryInterface interface {
 
 	CreateAuditFindingDocuments(docs []*models.AuditFindingDocument, tx ...utility.DatabaseTransaction) error
 	DeleteAuditFindingDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetAuditFinalReportLatestEditHistory(auditFinalReportID uint) (*models.AuditReportEditHistory, error) 
+	CreateAuditReportEditHistory(auditReportEditHistory *models.AuditReportEditHistory, tx ...utility.DatabaseTransaction) error
+	DeleteAuditReportEditHistories(auditFinalReportID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditFinalReportRepository struct {
@@ -220,8 +224,12 @@ func (repo *AuditFinalReportRepository) DeleteAuditFinalReportSections(sectionID
 	return nil
 }
 
-func (repo *AuditFinalReportRepository) Update(auditFinalReport *models.AuditFinalReport) error {
-	if err := repo.db.Save(auditFinalReport).Error; err != nil {
+func (repo *AuditFinalReportRepository) Update(auditFinalReport *models.AuditFinalReport, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(auditFinalReport).Error; err != nil {
 		return err
 	}
 
@@ -287,6 +295,43 @@ func (repo *AuditFinalReportRepository) DeleteAuditFindingDocuments(docIds []*ui
 
 	// Delete documents by IDs
 	if err := db.Where("id IN (?)", docIds).Delete(&models.AuditFindingDocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AuditFinalReportRepository) GetAuditFinalReportLatestEditHistory(auditFinalReportID uint) (*models.AuditReportEditHistory, error) {
+	var history models.AuditReportEditHistory
+	err := repo.db.
+		Preload("CreatedByUser").
+		Where("audit_final_report_id = ?", auditFinalReportID).
+		Order("created_at DESC").
+		First(&history).Error
+	if err != nil {
+		return nil, err
+	}
+	return &history, nil
+}
+
+func (repo *AuditFinalReportRepository) CreateAuditReportEditHistory(auditReportEditHistory *models.AuditReportEditHistory, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(auditReportEditHistory).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AuditFinalReportRepository) DeleteAuditReportEditHistories(auditFinalReportID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Where("audit_final_report_id = ?", auditFinalReportID).Delete(&models.AuditReportEditHistory{}).Error; err != nil {
 		return err
 	}
 

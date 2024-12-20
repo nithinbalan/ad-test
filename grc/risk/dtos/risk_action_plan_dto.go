@@ -74,6 +74,8 @@ type RiskActionPlanListQueryParamsDTO struct {
 	TargetDateFrom string
 	TargetDateTo   string
 	Export         bool
+	DateFrom       string
+	DateTo         string
 }
 
 type RiskActionPlanListResponseDTO struct {

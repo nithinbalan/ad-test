@@ -29,9 +29,12 @@ type AuditFinalReportServiceInterface interface {
 	GetByID(id uint) (*models.AuditFinalReport, error)
 	GetFullDetailsByID(auditID uint, currentUserID uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFinalReportDetailDTO, error)
 	Create(auditID uint, currentUserID uint) (uint, error)
-	Update(auditFinalReport *models.AuditFinalReport) error
+	Update(auditFinalReport *models.AuditFinalReport, tx ...utility.DatabaseTransaction) error
 	GetByAuditID(auditID uint) (*models.AuditFinalReport, error)
 	Delete(auditID uint, currentUserID uint) error
+	GetAuditFinalReportLastEditSummary(auditID uint) (*auditDTOs.AuditFinalReportLastEditSummaryDTO, error)
+
+	CreateAuditReportEditHistory(auditReportEditSummaryDTO *auditDTOs.AuditReportEditHistoryDTO, currentUserId uint, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditFinalReportService struct {
@@ -307,7 +310,7 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 		}
 	}
 
-	// Map other fields and create the DTO
+	// Map other fielafrs and create the DTO
 	auditReportDTO := &auditDTOs.AuditFinalReportDetailDTO{
 		ID:                     auditFinalReport.ID,
 		AuditID:                auditFinalReport.AuditID,
@@ -589,7 +592,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	}
 
 	// findings only copying from draft findings to AuditFinding, not saving in to AuditFinalReportSection
-	auditDraftFindings, err := afrs.auditDraftFindingSvc.GetAllFindingsByAuditID(auditID,tx)
+	auditDraftFindings, err := afrs.auditDraftFindingSvc.GetAllFindingsByAuditID(auditID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -708,7 +711,18 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 		tx.Rollback()
 		return 0, err
 	}
+	//add audit report edit history
+	auditReportEditHistory := &auditDTOs.AuditReportEditHistoryDTO{
+		AuditID:            auditID,
+		AuditFinalReportID: id,
+		ActionType:         "create",
+	}
 
+	err = afrs.CreateAuditReportEditHistory(auditReportEditHistory, currentUserID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	tx.Commit()
 
 	go func() {
@@ -742,12 +756,26 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	return id, nil
 }
 
-func (afrs *AuditFinalReportService) Update(auditFinalReport *models.AuditFinalReport) error {
-	err := afrs.repo.Update(auditFinalReport)
+func (afrs *AuditFinalReportService) Update(auditFinalReport *models.AuditFinalReport, tx ...utility.DatabaseTransaction) error {
+	var transaction utility.DatabaseTransaction
+
+	if len(tx) > 0 && tx[0] != nil {
+		transaction = tx[0]
+	} else {
+		transaction = afrs.repo.BeginTransaction()
+		defer transaction.Rollback() // Ensure rollback if transaction was started here and not committed
+	}
+	err := afrs.repo.Update(auditFinalReport, transaction)
 	if err != nil {
 		return err
 	}
 
+	//update using submit so edit history no need
+
+	// Commit if this function started the transaction
+	if len(tx) == 0 {
+		transaction.Commit()
+	}
 	return nil
 }
 
@@ -870,7 +898,10 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 		tx.Rollback()
 		return err
 	}
-
+	if err := afrs.repo.DeleteAuditReportEditHistories(auditFinalReport.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
 	if err := afrs.auditReportWorkflowSvc.DeleteAuditReportWorkflows(deleteAuditReportWorkflowIds, tx); err != nil {
 		tx.Rollback()
 		return err
@@ -909,6 +940,76 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 		}
 	}()
 
+	return nil
+}
+
+func (afrs *AuditFinalReportService) GetAuditFinalReportLastEditSummary(auditID uint) (*auditDTOs.AuditFinalReportLastEditSummaryDTO, error) {
+	auditFinalReport, err := afrs.repo.GetFullDetailsByID(auditID)
+	if err != nil {
+		return nil, err
+	}
+
+	activity, err := afrs.repo.GetAuditFinalReportLatestEditHistory(auditFinalReport.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	userDTO := mapUserToUserMinimalDTO(activity.CreatedByUser)
+
+	latestActivityDTO := auditDTOs.ActivityDTO{
+		Activity:  activity.ActionType,
+		By:        &userDTO,
+		Comment:   activity.Comment,
+		Timestamp: activity.CreatedAt,
+	}
+	// Initialize variables for the current document workflow
+	var currentAuditReportWorkflowLevel *models.AuditReportWorkflow
+	var participants []*organizationDTOs.UserMinimalDTO
+	totalComments := 0
+
+	// Check if there is a next review level and fetch the corresponding workflow
+	currentAuditReportWorkflowLevel, err = afrs.auditReportWorkflowSvc.GetAuditReportWorkflowByLevel(auditFinalReport.ID, auditFinalReport.NextReviewLevel)
+	if err != nil {
+		return nil, err
+	}
+
+	// Process workflow participants and count comments
+	if currentAuditReportWorkflowLevel != nil {
+		for _, participant := range currentAuditReportWorkflowLevel.AuditReportWorkflowParticipants {
+			userDTO := mapUserToUserMinimalDTO(participant.User)
+			participants = append(participants, &userDTO)
+		}
+
+		for _, review := range currentAuditReportWorkflowLevel.AuditReportReviews {
+			if review.Comment != nil {
+				totalComments++
+			}
+		}
+	}
+
+	// Prepare the response DTO
+	responseDTO := &auditDTOs.AuditFinalReportLastEditSummaryDTO{
+		LatestActivity: latestActivityDTO,
+		CurrentLevel:   &auditFinalReport.NextReviewLevel,
+		Participants:   participants,
+		TotalComments:  &totalComments,
+	}
+
+	return responseDTO, nil
+}
+
+func (afrs *AuditFinalReportService) CreateAuditReportEditHistory(auditReportEditSummaryDTO *auditDTOs.AuditReportEditHistoryDTO, currentUserId uint, tx ...utility.DatabaseTransaction) error {
+	auditReportEditHistory := &models.AuditReportEditHistory{
+		AuditID:            auditReportEditSummaryDTO.AuditID,
+		AuditFinalReportID: &auditReportEditSummaryDTO.AuditFinalReportID,
+		ActionType:         auditReportEditSummaryDTO.ActionType,
+		CreatedBYID:        currentUserId,
+	}
+
+	err := afrs.repo.CreateAuditReportEditHistory(auditReportEditHistory, tx...)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

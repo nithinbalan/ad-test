@@ -128,8 +128,8 @@ func (ds *DocumentService) GetAll(params *documentDTOs.DocumentListQueryParamsDT
 	return ds.repo.GetAll(params, currentUserID)
 }
 
-func (crs DocumentService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error) {
-	document, err := crs.repo.GetByID(id)
+func (ds DocumentService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error) {
+	document, err := ds.repo.GetByID(id)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -434,6 +434,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		return err
 	}
 	existingDocumentAccessTypeID := existingDocument.DocumentAccessTypeID
+	existingDocumentTypeID := existingDocument.DocumentTypeID
 	documentAccessType, err := ds.documentAccessTypeSvc.GetByID(documentFormDTO.DocumentAccessTypeID)
 	if err != nil {
 		return err
@@ -863,7 +864,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		}
 	}
 
-	if existingDocument.DocumentTypeID != documentFormDTO.DocumentTypeID {
+	if existingDocumentTypeID != documentFormDTO.DocumentTypeID {
 
 		var deleteDocumentWorkflowIds []*uint
 		var deleteDocumentWorkflowParticipantIds []*uint

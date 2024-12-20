@@ -50,6 +50,7 @@ type DocumentChangeRequestDetailsDTO struct {
 	ReasonForChange *string `json:"reason_for_change"`
 	Version         float64 `json:"version"`
 	IsLocked        bool    `json:"is_locked"`
+	NextReviewLevel *int    `json:"next_review_level"`
 
 	Document                      DocumentDetailsDTO                      `json:"document"`
 	DocumentChangeRequestType     DocumentChangeRequestTypeDTO            `json:"document_change_request_type"`
@@ -66,6 +67,8 @@ type DocumentChangeRequestDetailsDTO struct {
 
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+
+	DocumentChangeRequestWorkflows []DocumentCRWorkflowDTO `json:"document_change_request_workflow"`
 }
 
 // Document DTO
@@ -74,6 +77,7 @@ type DocumentChangeRequestDocumentDTO struct {
 	URL          *string `json:"url"`
 	Name         string  `json:"file_name"`
 	OriginalName string  `json:"original_name"`
+	Token        string  `json:"token"`
 	Type         string  `json:"type"`
 	Size         int     `json:"size"`
 }
@@ -102,4 +106,20 @@ type DocumentChangeRequestFormDTO struct {
 	DocumentChangeRequestInitiateID *uint                      `json:"document_change_request_initiate_id"`
 	ReasonForChange                 *string                    `json:"reason_for_change"`
 	Document                        commonDTOs.DocumentFormDTO `json:"document" binding:"required"`
+}
+
+type DocumentCRWorkflowDTO struct {
+	Level                                     int                            `json:"level"`
+	DocumentChangeRequestWorkflowStatus       DocumentStatusDTO              `json:"document_change_request_workflow_status"`
+	DocumentChangeRequestWorkflowReviews      []*DocumentCRWorkflowReviewDTO `json:"document_change_request_workflow_reviews"`
+	DocumentChangeRequestWorkflowParticipants []*WorkflowLevelParticipantDTO `json:"document_change_request_workflow_participants"`
+}
+
+type DocumentCRWorkflowReviewDTO struct {
+	Comment                             string                          `json:"comment"`
+	DocumentChangeRequestWorkflowStatus DocumentStatusDTO               `json:"document_change_request_workflow_status"`
+	CreatedByUser                       organizationDTOs.UserMinimalDTO `json:"created_by"`
+	UpdateByUser                        organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	CreatedAt                           time.Time                       `json:"created_at"`
+	UpdatedAt                           *time.Time                      `json:"updated_at"`
 }

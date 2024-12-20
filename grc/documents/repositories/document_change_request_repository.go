@@ -28,6 +28,8 @@ type DocumentChangeRequestRepositoryInterface interface {
 	CreateDocument(doc *models.DocumentChangeRequestDocument, tx ...utility.DatabaseTransaction) error
 	UpdateDocument(doc *models.DocumentChangeRequestDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocument(docId uint, tx ...utility.DatabaseTransaction) error
+
+	CreateDocumentCRWorkflowReview(documentCRWorkflowReview *models.DocumentChangeRequestWorkflowReview, tx ...utility.DatabaseTransaction) error
 }
 
 type DocumentChangeRequestRepository struct {
@@ -93,6 +95,18 @@ func (repo *DocumentChangeRequestRepository) GetAll(params *dtos.DocumentChangeR
 		}
 	}
 
+	// Apply quick filters for initiate status
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "draft":
+			query = query.Where("initiate_statuses.type = ?", "initiated")
+		case "in-review":
+			query = query.Where("initiate_statuses.type = ?", "approved")
+		case "published":
+			query = query.Where("initiate_statuses.type = ?", "rejected")
+		}
+	}
+
 	if params.Keyword != "" {
 		query = query.Where(`
         (
@@ -106,17 +120,13 @@ func (repo *DocumentChangeRequestRepository) GetAll(params *dtos.DocumentChangeR
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
+	// Sort by the specified column and order
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
-
-	if params.SortBy == "" {
-		params.SortBy = "reference_number"
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc"
-	}
-	query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize
 	err := query.Offset(offset).Limit(params.PageSize).Find(&documentChangeRequests).Error
@@ -161,6 +171,10 @@ func (repo *DocumentChangeRequestRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("Document.ResponsibleUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("DocumentChangeRequestWorkflows").
+		Preload("DocumentChangeRequestWorkflows.DocumentChangeRequestWorkflowStatus").
+		Preload("DocumentChangeRequestWorkflows.DocumentChangeRequestWorkflowParticipants").
+		Preload("DocumentChangeRequestWorkflows.DocumentChangeRequestWorkflowReviews").
 		First(&changeRequest, id)
 	if result.Error != nil {
 		return nil, result.Error
@@ -285,4 +299,15 @@ func (repo *DocumentChangeRequestRepository) GenerateReferenceNumber() (string, 
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "CR", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
+}
+
+func (repo *DocumentChangeRequestRepository) CreateDocumentCRWorkflowReview(documentCRWorkflowReview *models.DocumentChangeRequestWorkflowReview, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(documentCRWorkflowReview).Error; err != nil {
+		return err
+	}
+	return nil
 }

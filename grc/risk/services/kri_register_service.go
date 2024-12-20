@@ -140,9 +140,13 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 	}
 	organizationUnitID = unitID
 
-	riskLevel, err := krs.DetermineRiskLevel(*kriRegisterFormDTO.CurrentValue, kriRegisterFormDTO.LowThreshold, kriRegisterFormDTO.MediumThreshold)
-	if err != nil {
-		return 0, err
+	var riskLevelID *uint
+	if kriRegisterFormDTO.CurrentValue != nil {
+		riskLevel, err := krs.DetermineRiskLevel(*kriRegisterFormDTO.CurrentValue, kriRegisterFormDTO.LowThreshold, kriRegisterFormDTO.MediumThreshold)
+		if err != nil {
+			return 0, err
+		}
+		riskLevelID = &riskLevel.ID
 	}
 
 	kriRegister := &models.KRIRegister{
@@ -151,7 +155,7 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 		ResponsibleUnitID: organizationUnitID,
 		ResponsibleUserID: kriRegisterFormDTO.ResponsibleUserID,
 		ReviewFrequencyID: kriRegisterFormDTO.ReviewFrequencyID,
-		RiskLevelID:       &riskLevel.ID,
+		RiskLevelID:       riskLevelID,
 		UnitID:            &kriRegisterFormDTO.UnitID,
 		Title:             kriRegisterFormDTO.Title,
 		Description:       &kriRegisterFormDTO.Description,
