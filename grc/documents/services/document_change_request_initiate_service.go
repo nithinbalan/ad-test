@@ -3,11 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	documentDTOs "jethur/grc/documents/dtos"
 	documentRepositories "jethur/grc/documents/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -25,6 +27,8 @@ type DocumentChangeRequestInitiateServiceInterface interface {
 
 	Approve(id uint, currentUserID uint) error
 	Reject(id uint, currentUserID uint) error
+
+	GetDocumentPath(id uint, token string, tx ...utility.DatabaseTransaction) (string, error)
 }
 
 type DocumentChangeRequestInitiateService struct {
@@ -357,4 +361,37 @@ func (dcris *DocumentChangeRequestInitiateService) Reject(id uint, currentUserID
 	}
 
 	return nil
+}
+
+func (dcris *DocumentChangeRequestInitiateService) GetDocumentPath(id uint, token string, tx ...utility.DatabaseTransaction) (string, error) {
+	existingDocumentCRInitiate, err := dcris.GetFullDetailsByID(id, tx...)
+	if err != nil {
+		return "", err
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	//baseFilename := strings.TrimSuffix(decryptedFilename, filepath.Ext(decryptedFilename))
+
+	storagePath := filepath.Join("document", "change-request-initiates", strconv.FormatUint(uint64(existingDocumentCRInitiate.ID), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }
