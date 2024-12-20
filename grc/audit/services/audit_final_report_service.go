@@ -1003,6 +1003,7 @@ func (afrs *AuditFinalReportService) CreateAuditReportEditHistory(auditReportEdi
 		AuditID:            auditReportEditSummaryDTO.AuditID,
 		AuditFinalReportID: &auditReportEditSummaryDTO.AuditFinalReportID,
 		ActionType:         auditReportEditSummaryDTO.ActionType,
+		Comment:            auditReportEditSummaryDTO.Comment,
 		CreatedBYID:        currentUserId,
 	}
 
