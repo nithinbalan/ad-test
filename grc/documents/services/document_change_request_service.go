@@ -38,6 +38,7 @@ type DocumentChangeRequestServiceInterface interface {
 	CheckinDocument(id uint, currentUserID uint, documentCheckinFormDTO *documentDTOs.DocumentCheckinFormDTO) error
 	RevertDocumentCheckout(id uint, currentUserID uint) error
 	SubmitDocumentChangeRequest(id uint, currentUserID uint) error
+	PublishDocumentChangeRequest(id uint, currentUserID uint) error
 
 	GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error)
 	GetDocumentCRLastEditSummary(id uint) (*documentDTOs.DocumentLastEditSummaryDTO, error)
@@ -1070,4 +1071,122 @@ func (dcrs *DocumentChangeRequestService) GetDocumentCRLastEditSummary(id uint) 
 	}
 
 	return responseDTO, nil
+}
+
+func (dcrs *DocumentChangeRequestService) PublishDocumentChangeRequest(id uint, currentUserID uint) error {
+	tx := dcrs.repo.BeginTransaction()
+
+	documentCRFullDetails, err := dcrs.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	documentFullDetails, err := dcrs.documentSvc.GetFullDetailsByID(uint(documentCRFullDetails.Document.ID), nil, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	documentCRStatus, err := dcrs.documentChangeRequestStatusSvc.GetByType("published")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingDocumentCR, err := dcrs.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	currentDateStr := time.Now().Format("2006-01-02")
+	publishedAt, err := utility.ParseDate(currentDateStr)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error parsing current date: %w", err)
+	}
+
+	existingDocumentCR.DocumentChangeRequestStatusID = documentCRStatus.ID
+	existingDocumentCR.PublishedBYID = &currentUserID
+	existingDocumentCR.PublishedAt = publishedAt
+
+	err = dcrs.repo.Update(existingDocumentCR, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingLatestDocumentVersion, err := dcrs.documentSvc.GetDocumentVersionByID(documentFullDetails.LatestDocumentVersion.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	existingLatestDocumentVersion.IsLatestVersion = false
+
+	err = dcrs.documentSvc.UpdateDocumentVersion(existingLatestDocumentVersion, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	//generate token
+	dataToEncrypt := []byte(documentCRFullDetails.ChangeRequestDocument.Name)
+	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+	if err != nil {
+		return err
+	}
+
+	url := utility.GenerateDocumentURL("document", "published", strconv.FormatUint(uint64(documentCRFullDetails.Document.ID), 10), "documents")
+
+	documentVersion := &models.DocumentVersion{
+		DocumentID:      uint(documentCRFullDetails.Document.ID),
+		Version:         documentCRFullDetails.Version,
+		IsLatestVersion: true,
+		URL:             url,
+		Name:            documentCRFullDetails.ChangeRequestDocument.Name,
+		Size:            documentCRFullDetails.ChangeRequestDocument.Size,
+		Token:           encryptedFilename,
+		OriginalName:    &documentCRFullDetails.ChangeRequestDocument.OriginalName,
+		Type:            documentCRFullDetails.ChangeRequestDocument.Type,
+		CreatedBYID:     currentUserID,
+		PublishedBYID:   &currentUserID,
+		PublishedAt:     publishedAt,
+	}
+
+	_, err = dcrs.documentSvc.CreateDocumentVersion(documentVersion, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	fileName := documentCRFullDetails.ChangeRequestDocument.Name
+	baseFileName := strings.TrimSuffix(fileName, filepath.Ext(fileName)) // Remove the extension to get the base name
+
+	sourceDir := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
+	destinationDir := filepath.Join("document", "published", strconv.FormatUint(uint64(documentCRFullDetails.Document.ID), 10), "documents")
+
+	//copy docx file
+	err = utility.CopyFileFromPaths(sourceDir, destinationDir, fileName)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error copying .docx file: %w", err)
+	}
+
+	//copy pdf file
+	pdfFileName := baseFileName + ".pdf"
+	err = utility.CopyFileFromPaths(sourceDir, destinationDir, pdfFileName)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error copying .pdf file: %w", err)
+	}
+
+	tx.Commit()
+
+	//ds.notifyUsersOnPublish(document, id, currentUserID)
+
+	//to do
+	//activity log
+
+	return nil
 }

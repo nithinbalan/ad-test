@@ -450,3 +450,31 @@ func (dcrc *DocumentChangeRequestController) GetLastEditSummary(c *gin.Context) 
 
 	c.JSON(http.StatusOK, lastEditSummary)
 }
+func (dcrc *DocumentChangeRequestController) PublishDocumentChangeRequest(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(dcrc.db, c, err.Error())
+		return
+	}
+
+	err = dcrc.service.PublishDocumentChangeRequest(uint(id), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(dcrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}

@@ -57,6 +57,7 @@ type DocumentServiceInterface interface {
 	ExportDocuments(data []*documentDTOs.DocumentListDTO, currentUserID uint) (*os.File, error)
 
 	GetDocumentVersionByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentVersion, error)
+	CreateDocumentVersion(documentVersion *models.DocumentVersion, tx ...utility.DatabaseTransaction) (uint, error)
 	UpdateDocumentVersion(documentVersion *models.DocumentVersion, tx ...utility.DatabaseTransaction) error
 }
 
@@ -2063,6 +2064,15 @@ func (ds *DocumentService) GetDocumentVersionByID(id uint, tx ...utility.Databas
 	}
 
 	return documentVersion, nil
+}
+
+func (ds *DocumentService) CreateDocumentVersion(documentVersion *models.DocumentVersion, tx ...utility.DatabaseTransaction) (uint, error) {
+	docVersionId, err := ds.repo.CreateDocumentVersion(documentVersion, tx...)
+	if err != nil {
+		return 0, err
+	}
+
+	return docVersionId, nil
 }
 
 func (ds *DocumentService) UpdateDocumentVersion(documentVersion *models.DocumentVersion, tx ...utility.DatabaseTransaction) error {
