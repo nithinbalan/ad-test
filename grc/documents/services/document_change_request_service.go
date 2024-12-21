@@ -50,6 +50,7 @@ type DocumentChangeRequestService struct {
 	documentChangeRequestStatusSvc   DocumentChangeRequestStatusServiceInterface
 	documentChangeRequestWorkflowSvc DocumentChangeRequestWorkflowServiceInterface
 	documentCRWorkflowStatusSvc      DocumentChangeRequestWorkflowStatusServiceInterface
+	documentSvc                      DocumentServiceInterface
 }
 
 func NewDocumentChangeRequestService(
@@ -58,6 +59,7 @@ func NewDocumentChangeRequestService(
 	documentChangeRequestTypeSvc DocumentChangeRequestTypeServiceInterface,
 	documentChangeRequestStatusSvc DocumentChangeRequestStatusServiceInterface,
 	documentCRWorkflowStatusSvc DocumentChangeRequestWorkflowStatusServiceInterface,
+	documentSvc DocumentServiceInterface,
 ) DocumentChangeRequestServiceInterface {
 	return &DocumentChangeRequestService{
 		repo:                           repo,
@@ -65,6 +67,7 @@ func NewDocumentChangeRequestService(
 		documentChangeRequestTypeSvc:   documentChangeRequestTypeSvc,
 		documentChangeRequestStatusSvc: documentChangeRequestStatusSvc,
 		documentCRWorkflowStatusSvc:    documentCRWorkflowStatusSvc,
+		documentSvc:                    documentSvc,
 	}
 }
 
@@ -122,6 +125,28 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 		return 0, err
 	}
 
+	documentChangeRequestType, err := dcrs.documentChangeRequestTypeSvc.GetByID(formDTO.DocumentChangeRequestTypeID)
+	if err != nil {
+		return 0, err
+	}
+
+	documentFullDetails, err := dcrs.documentSvc.GetFullDetailsByID(formDTO.DocumentID, nil, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	var newVersion float64
+	currentVersion := documentFullDetails.LatestDocumentVersion.Version
+	if documentChangeRequestType.Type == "minor" {
+		newVersion = currentVersion + 0.1
+	} else if documentChangeRequestType.Type == "major" {
+		newVersion = currentVersion + 1.0
+	} else {
+		tx.Rollback()
+		return 0, fmt.Errorf("invalid document change request type")
+	}
+
 	changeRequest := &models.DocumentChangeRequest{
 		ReferenceNumber:                 referenceNumber,
 		DocumentID:                      formDTO.DocumentID,
@@ -129,6 +154,7 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 		DocumentChangeRequestTypeID:     formDTO.DocumentChangeRequestTypeID,
 		ReasonForChange:                 formDTO.ReasonForChange,
 		DocumentChangeRequestStatusID:   changeRequestStatus.ID,
+		Version:                         newVersion,
 		CreatedBYID:                     currentUserID,
 	}
 
