@@ -159,6 +159,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/document-change-requests/:id/check-in", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.CheckinDocument)
 	documentRoutes.POST("/document-change-requests/:id/check-out-revert", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.RevertDocumentCheckout)
 	documentRoutes.POST("/document-change-requests/:id/submit", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.SubmitDocumentChangeRequest)
+	documentRoutes.POST("/document-change-requests/:id/publish", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.PublishDocumentChangeRequest)
 
 	unauthenticatedRoutes.GET("/document-change-requests/:id/document-preview", documentChangeRequestController.GetDocumentChangeRequestPreview)
 	unauthenticatedRoutes.GET("/document-change-requests/:id/document-download", documentChangeRequestController.DownloadChangeRequestDocument)
@@ -169,5 +170,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.GET("/document-change-requests/:id/comments", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestReviewController.GetComments)
 	documentRoutes.POST("/document-change-requests/:id/comments", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestReviewController.AddComment)
 	documentRoutes.GET("/document-change-requests/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestWorkflowController.GetWorkflowList)
+
+	documentRoutes.GET("/document-change-requests/:id/last-edit-summary", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetLastEditSummary)
 
 }
