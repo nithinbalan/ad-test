@@ -170,4 +170,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/document-change-requests/:id/comments", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestReviewController.AddComment)
 	documentRoutes.GET("/document-change-requests/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestWorkflowController.GetWorkflowList)
 
+	documentRoutes.GET("/document-change-requests/:id/last-edit-summary", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetLastEditSummary)
+
 }

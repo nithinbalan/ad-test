@@ -40,8 +40,9 @@ type DocumentChangeRequest struct {
 	CreatedByUser                 *User                          `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser                 *User                          `gorm:"foreignKey:UpdatedBYID"`
 
-	ChangeRequestDocument          *DocumentChangeRequestDocument   `json:"change_request_document" gorm:"foreignKey:DocumentChangeRequestID"`
-	DocumentChangeRequestWorkflows []*DocumentChangeRequestWorkflow `gorm:"foreignKey:DocumentChangeRequestID"`
+	ChangeRequestDocument          *DocumentChangeRequestDocument      `json:"change_request_document" gorm:"foreignKey:DocumentChangeRequestID"`
+	DocumentChangeRequestWorkflows []*DocumentChangeRequestWorkflow    `gorm:"foreignKey:DocumentChangeRequestID"`
+	DocumentCREditHistory          []*DocumentChangeRequestEditHistory `gorm:"foreignKey:DocumentChangeRequestID"`
 }
 
 func (DocumentChangeRequest) TableName() string {
