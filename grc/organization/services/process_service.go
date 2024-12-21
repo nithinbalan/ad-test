@@ -1118,7 +1118,7 @@ func (ps *ProcessService) UpdateProcessRiskRating(process *models.Process, tx ut
 
 func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
 	headers := []string{
-		"ProcessGroupTitle", "OwnerID", "TitleEn", "TitleAr", "Description", "ControlIds", "DocumentIds",
+		"ProcessGroupTitle", "OwnerID", "TitleEn", "TitleAr", "Description", "ControlIds",
 	}
 
 	// Pass empty data for the template
@@ -1140,7 +1140,7 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 	}
 
 	headers := []string{
-		"ProcessGroupTitle", "Owner", "TitleEn", "TitleAr", "Description", "ControlIds", "DocumentIds",
+		"ProcessGroupTitle", "Owner", "TitleEn", "TitleAr", "Description", "Controls",
 	}
 
 	var data []map[string]interface{}
@@ -1157,7 +1157,7 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 		processGroupTitles[group.TitleEn] = true
 	}
 
-	// Fetch user names
+	// Fetch user full names
 	users, err := ps.userSvc.GetAllUsers()
 	if err != nil {
 		return nil, nil, fmt.Errorf("error fetching users: %v", err)
@@ -1169,11 +1169,22 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 		userFullNames[fullName] = true
 	}
 
+	// Fetch control titles
+	controls, err := ps.controlSvc.GetAllControls()
+	if err != nil {
+		return nil, nil, fmt.Errorf("error fetching controls: %v", err)
+	}
+
+	controlTitles := make(map[string]bool)
+	for _, control := range controls {
+		controlTitles[control.TitleEn] = true
+	}
+
 	for i, row := range rows {
 		if i == 0 {
 			// Validate headers
 			if !utility.ValidateHeaders(headers, row) {
-				return nil, nil, fmt.Errorf("invalid headers in the Excel file")
+				return nil, nil, utility.NewValidationError(fmt.Errorf("invalid headers in the Excel file"), "invalid_header", "Process Template")
 			}
 			continue
 		}
@@ -1198,6 +1209,20 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 					rowErrors[header] = "Field is required"
 				} else if !userFullNames[value] {
 					rowErrors[header] = fmt.Sprintf("Invalid owner name: %s", value)
+				}
+			case "Controls":
+				if value == "" {
+					rowErrors[header] = "Field is required"
+				} else {
+					controlList := utility.ParseCommaSeparatedValues(value)
+					for _, control := range controlList {
+						if !controlTitles[control] {
+							if rowErrors[header] == nil {
+								rowErrors[header] = []string{}
+							}
+							rowErrors[header] = append(rowErrors[header].([]string), fmt.Sprintf("Invalid control: %s", control))
+						}
+					}
 				}
 			case "TitleEn", "TitleAr":
 				if value == "" {
@@ -1225,13 +1250,13 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 // 	}
 
 // 	headers := []string{
-// 		"ProcessGroupTitle", "OwnerID", "TitleEn", "TitleAr", "Description", "ControlIds", "DocumentIds",
+// 		"ProcessGroupTitle", "Owner", "TitleEn", "TitleAr", "Description", "ControlIds", "DocumentIds",
 // 	}
 
 // 	var data []map[string]interface{}
 // 	var validationErrors []map[string]interface{}
 
-// 	// Fetch process group titles from the database
+// 	// Fetch process group titles
 // 	processGroups, err := ps.processGroupSvc.GetAll("", "", "", "active")
 // 	if err != nil {
 // 		return nil, nil, fmt.Errorf("error fetching process groups: %v", err)
@@ -1240,6 +1265,18 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 // 	processGroupTitles := make(map[string]bool)
 // 	for _, group := range processGroups {
 // 		processGroupTitles[group.TitleEn] = true
+// 	}
+
+// 	// Fetch user names
+// 	users, err := ps.userSvc.GetAllUsers()
+// 	if err != nil {
+// 		return nil, nil, fmt.Errorf("error fetching users: %v", err)
+// 	}
+
+// 	userFullNames := make(map[string]bool)
+// 	for _, user := range users {
+// 		fullName := user.FirstNameEn + " " + user.LastNameEn
+// 		userFullNames[fullName] = true
 // 	}
 
 // 	for i, row := range rows {
@@ -1264,13 +1301,13 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 // 				if value == "" {
 // 					rowErrors[header] = "Field is required"
 // 				} else if !processGroupTitles[value] {
-// 					rowErrors[header] = "Invalid process group title"
+// 					rowErrors[header] = fmt.Sprintf("Invalid process group title: %s", value)
 // 				}
-// 			case "OwnerID":
+// 			case "Owner":
 // 				if value == "" {
 // 					rowErrors[header] = "Field is required"
-// 				} else if !utility.IsValidID(value) {
-// 					rowErrors[header] = "Invalid ID format"
+// 				} else if !userFullNames[value] {
+// 					rowErrors[header] = fmt.Sprintf("Invalid owner name: %s", value)
 // 				}
 // 			case "TitleEn", "TitleAr":
 // 				if value == "" {

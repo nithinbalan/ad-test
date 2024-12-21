@@ -327,8 +327,14 @@ func (pc *ProcessController) ValidateProcessTemplate(c *gin.Context) {
 
 	data, _, err := pc.service.ValidateProcessTemplate(file)
 	if err != nil {
-		utility.SendInternalErrResp(pc.db, c, "Failed to validate template")
-		return
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(pc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(200, data)

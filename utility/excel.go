@@ -176,3 +176,7 @@ func GetStringPointer(value string) *string {
 	}
 	return &value
 }
+
+func ParseCommaSeparatedValues(input string) []string {
+	return strings.Split(strings.TrimSpace(input), ";")
+}

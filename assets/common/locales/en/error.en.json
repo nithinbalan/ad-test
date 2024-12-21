@@ -126,5 +126,9 @@
   {
     "id": "conflict",
     "translation": "Conflict"
+  },
+  {
+    "id": "invalid_header",
+    "translation": "Invalid headers in the Excel file : '{{.Field}}'"
   }
 ]

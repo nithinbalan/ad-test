@@ -126,6 +126,10 @@
 {
   "id": "conflict",
   "translation": "تعارض "
+},
+{
+  "id": "invalid_header",
+  "translation": "رؤوس غير صالحة في ملف Excel: '{{.Field}}'"
 }
 
 ]
