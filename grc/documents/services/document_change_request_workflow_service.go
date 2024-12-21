@@ -13,9 +13,14 @@ import (
 
 type DocumentChangeRequestWorkflowServiceInterface interface {
 	CreateDocumentCRWorkflow(documentChangeRequestId uint, documentId uint, currentUserID uint, tx ...utility.DatabaseTransaction) error
+	UpdateDocumentCRWorkflow(documentCRWorkflow *models.DocumentChangeRequestWorkflow, tx ...utility.DatabaseTransaction) error
 	CreateDocumentCRWorkflowParticipant(userID uint, documentCRWorkflowID uint, participant *settingDTOs.WorkflowLevelParticipantDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error
 
 	GetDocumentCRWorkflowByLevel(changeRequestID uint, currentApprovalLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentChangeRequestWorkflow, error)
+	GetDocumentCRWorkflowByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentChangeRequestWorkflow, error)
+	GetNextLevel(id uint, currentLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentChangeRequestWorkflow, error)
+
+	CheckAllParticipantsApproved(workflowID uint, workflowParticipants []*models.DocumentChangeRequestWorkflowParticipant) (bool, error)
 
 	DeleteDocumentCRWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteDocumentCRWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
@@ -151,6 +156,14 @@ func (dcrws *DocumentChangeRequestWorkflowService) CreateDocumentCRWorkflow(docu
 	return nil
 }
 
+func (dcrws *DocumentChangeRequestWorkflowService) UpdateDocumentCRWorkflow(documentCRWorkflow *models.DocumentChangeRequestWorkflow, tx ...utility.DatabaseTransaction) error {
+	err := dcrws.repo.UpdateDocumentCRWorkflow(documentCRWorkflow, tx...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (dcrws *DocumentChangeRequestWorkflowService) CreateDocumentCRWorkflowParticipant(userID uint, documentCRWorkflowID uint, participant *settingDTOs.WorkflowLevelParticipantDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error {
 	docCRWorkflowParticipant := &models.DocumentChangeRequestWorkflowParticipant{
 		DocumentChangeRequestWorkflowID: documentCRWorkflowID,
@@ -214,4 +227,34 @@ func (dcrws *DocumentChangeRequestWorkflowService) GetDocumentCRWorkflowByLevel(
 		return nil, err
 	}
 	return documentCRWorkflow, nil
+}
+
+func (dcrws *DocumentChangeRequestWorkflowService) GetDocumentCRWorkflowByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentChangeRequestWorkflow, error) {
+	documentCRWorkflow, err := dcrws.repo.GetDocumentCRWorkflowByID(id, tx...)
+	if err != nil {
+		return nil, err
+	}
+	return documentCRWorkflow, nil
+}
+
+func (dcrws *DocumentChangeRequestWorkflowService) GetNextLevel(id uint, currentLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentChangeRequestWorkflow, error) {
+	nextWorkflow, err := dcrws.repo.GetNextLevel(id, currentLevel, tx...)
+	if err != nil {
+		return nil, err // Handle or log error as needed
+	}
+	return nextWorkflow, nil
+}
+
+func (dcrws *DocumentChangeRequestWorkflowService) CheckAllParticipantsApproved(workflowID uint, workflowParticipants []*models.DocumentChangeRequestWorkflowParticipant) (bool, error) {
+	count, err := dcrws.repo.CountApprovedParticipants(workflowID)
+	if err != nil {
+		return false, err
+	}
+
+	// If the count of unique approvers is less than the number of participants, not all have approved.
+	if count < len(workflowParticipants) {
+		return false, nil
+	}
+
+	return true, nil
 }
