@@ -11,10 +11,12 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"time"
 )
 
 type BusinessImpactAssessmentServiceInterface interface {
 	GetAll(params *businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentListResponseDTO, error)
+	GetAllBusinessImpactAssessmentRecoveryObjectives(params *businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListResponseDTO, error)
 	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.BusinessImpactAssessmentFormDTO) (uint, error)
 	UpdateBusinessImpactAssessment(businessImpactAssessmentFormDTO businessContinuityDTOs.BusinessImpactAssessmentFormDTO, currentUserID uint) error
 	UpdateRecoveryObjective(businessImpactAssessmentRecoveryObjectiveFormDTO businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveFormDTO, currentUserID uint) error
@@ -55,6 +57,10 @@ func (bias *BusinessImpactAssessmentService) GetAll(params *businessContinuityDT
 	return bias.repo.GetAll(params)
 }
 
+func (bias *BusinessImpactAssessmentService) GetAllBusinessImpactAssessmentRecoveryObjectives(params *businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListResponseDTO, error) {
+	return bias.repo.GetAllBusinessImpactAssessmentRecoveryObjectives(params)
+}
+
 func (bias *BusinessImpactAssessmentService) Create(currentUserID uint, businessImpactAssessmentFormDTO *businessContinuityDTOs.BusinessImpactAssessmentFormDTO) (uint, error) {
 	tx := bias.repo.BeginTransaction()
 	impactCategories, err := bias.impactCategorySvc.GetAll("", "", "", "")
@@ -85,6 +91,24 @@ func (bias *BusinessImpactAssessmentService) Create(currentUserID uint, business
 		tx.Rollback()
 		return 0, err
 	}
+
+	existingProcess, err := bias.processSvc.GetByID(*businessImpactAssessmentFormDTO.ProcessID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	now := time.Now()
+	existingProcess.IsBiaPerformed = true
+	existingProcess.LastAssessedByID = &currentUserID
+	existingProcess.LastAssessedAt = &now
+
+	err = bias.repo.UpdateProcess(existingProcess, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	if process.Assets != nil {
 		for _, asset := range process.Assets {
 			recoveryObjective := &models.BusinessImpactAssessmentRecoveryObjective{

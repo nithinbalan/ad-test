@@ -20,6 +20,9 @@ type Process struct {
 	MtpdUnitId                  *uint      `json:"mtpd_uint_id" gorm:"default:null"`
 	Rpo                         *uint      `json:"rpo" gorm:"default:null"`
 	RpoUnitId                   *uint      `json:"rpo_uint_id" gorm:"default:null"`
+	IsBiaPerformed              bool       `json:"is_bia_performed" gorm:"default:false"`
+	LastAssessedAt              *time.Time `json:"last_assessed_at" gorm:"type:datetime; null" binding:"-"`
+	LastAssessedByID            *uint      `json:"last_assessed_by_id" gorm:"default:null;column:last_assessed_by_id" binding:"omitempty"`
 	CreatedBYID                 uint       `json:"created_by_id" gorm:"not null;column:created_by_id" binding:"required"`
 	UpdatedBYID                 *uint      `json:"updated_by_id" gorm:"default:null;column:updated_by_id" binding:"omitempty"`
 	CreatedAt                   time.Time  `json:"created_at" gorm:"type:datetime;not null" binding:"-"`
@@ -37,11 +40,15 @@ type Process struct {
 	RiskMatrixRatingValue *RiskMatrixRiskRatingValue   `gorm:"foreignKey:RiskMatrixRiskRatingValueID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser         *User                        `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser         *User                        `gorm:"foreignKey:UpdatedBYID"`
+	LastAssessedByUser    *User                        `gorm:"foreignKey:LastAssessedByID"`
 	Controls              []*ProcessControl            `gorm:"foreignKey:ProcessID"`
 	Assets                []*ProcessAsset              `gorm:"foreignKey:ProcessID"`
 	Documents             []*ProcessAssociatedDocument `gorm:"foreignKey:ProcessID"`
 	Risks                 []*RiskProcess               `gorm:"foreignKey:ProcessID"`
 	AuditableItems        []*AuditableItem             `gorm:"foreignKey:ProcessID"`
+	RtoUnit               *TimeUnit                    `gorm:"foreignKey:RtoUnitId"`
+	MtpdUnit              *TimeUnit                    `gorm:"foreignKey:MtpdUnitId"`
+	RpoUnit               *TimeUnit                    `gorm:"foreignKey:RpoUnitId"`
 }
 
 func (Process) TableName() string {

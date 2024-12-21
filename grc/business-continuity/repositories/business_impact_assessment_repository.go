@@ -12,7 +12,7 @@ import (
 type BusinessImpactAssessmentRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentListResponseDTO, error)
-
+	GetAllBusinessImpactAssessmentRecoveryObjectives(params *businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListResponseDTO, error)
 	CreateBusinessImpactAssessment(businessImpactAssessment *models.BusinessImpactAssessment, tx ...utility.DatabaseTransaction) error
 	UpdateBusinessImpactAssessment(businessImpactAssessment *models.BusinessImpactAssessment, tx ...utility.DatabaseTransaction) error
 	CreateRecoveryObjective(businessImpactAssessmentRecoveryObjective *models.BusinessImpactAssessmentRecoveryObjective, tx ...utility.DatabaseTransaction) error
@@ -139,6 +139,140 @@ func (repo *BusinessImpactAssessmentRepository) GetAll(params *businessContinuit
 	}
 
 	response := &businessContinuityDTOs.BusinessImpactAssessmentListResponseDTO{
+		Items: businessImpactAssessments,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *BusinessImpactAssessmentRepository) GetAllBusinessImpactAssessmentRecoveryObjectives(params *businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListResponseDTO, error) {
+	var businessImpactAssessments []*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListDTO
+	var totalCount int64
+
+	query := repo.db.Table("business_impact_assessment_recovery_objectives").
+		Select(`
+            business_impact_assessment_recovery_objectives.*,
+			processes.title_en AS process_title_en,
+			processes.title_ar AS process_title_ar,
+			asset_register.title_en AS asset_register_title_en,
+			asset_register.title_ar AS asset_register_title_ar,
+			asset_register.rto AS asset_register_rto,
+			asset_register.rto_unit_id AS asset_register_rto_unit_id,
+			asset_register_rto_time_unit.title_en AS asset_register_rto_unit_title_en,
+			asset_register_rto_time_unit.title_ar AS asset_register_rto_unit_title_ar,
+			asset_register.mtpd AS asset_register_mtpd,
+			asset_register.mtpd_unit_id AS asset_register_mtpd_unit_id,
+			asset_register_mtpd_time_unit.title_en AS asset_register_mtpd_unit_title_en,
+			asset_register_mtpd_time_unit.title_ar AS asset_register_mtpd_unit_title_ar,
+			asset_register.rpo AS asset_register_rpo,
+			asset_register.rpo_unit_id AS asset_register_rpo_unit_id,
+			asset_register_rpo_time_unit.title_en AS asset_register_rpo_unit_title_en,
+			asset_register_rpo_time_unit.title_ar AS asset_register_rpo_unit_title_ar,
+			documents.title_en AS document_title_en,
+			documents.title_ar AS document_title_ar,
+			documents.rto AS document_rto,
+			documents.rto_unit_id AS document_rto_unit_id,
+			document_rto_time_unit.title_en AS document_rto_unit_title_en,
+			document_rto_time_unit.title_ar AS document_rto_unit_title_ar,
+			documents.mtpd AS document_mtpd,
+			documents.mtpd_unit_id AS document_mtpd_unit_id,
+			document_mtpd_time_unit.title_en AS document_mtpd_unit_title_en,
+			document_mtpd_time_unit.title_ar AS document_mtpd_unit_title_ar,
+			documents.rpo AS document_rpo,
+			documents.rpo_unit_id AS document_rpo_unit_id,
+			document_rpo_time_unit.title_en AS document_rpo_unit_title_en,
+			document_rpo_time_unit.title_ar AS document_rpo_unit_title_ar,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+            created_user.color AS created_user_color,
+            created_user.email AS created_user_email,
+            created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+            updated_user.color AS updated_user_color,
+            updated_user.email AS updated_user_email,
+            updated_user.profile_image_path AS updated_user_profile_image_path  
+        `).
+		Joins(`
+		    LEFT JOIN processes ON processes.id = business_impact_assessment_recovery_objectives.process_id
+		    LEFT JOIN asset_register ON asset_register.id = business_impact_assessment_recovery_objectives.asset_register_id
+			LEFT JOIN time_units AS asset_register_rto_time_unit ON asset_register_rto_time_unit.id = asset_register.rto_unit_id
+			LEFT JOIN time_units AS asset_register_mtpd_time_unit ON asset_register_mtpd_time_unit.id = asset_register.mtpd_unit_id
+			LEFT JOIN time_units AS asset_register_rpo_time_unit ON asset_register_rpo_time_unit.id = asset_register.rpo_unit_id
+			LEFT JOIN documents ON documents.id = business_impact_assessment_recovery_objectives.document_id
+			LEFT JOIN time_units AS document_rto_time_unit ON document_rto_time_unit.id = documents.rto_unit_id
+			LEFT JOIN time_units AS document_mtpd_time_unit ON document_mtpd_time_unit.id = documents.mtpd_unit_id
+			LEFT JOIN time_units AS document_rpo_time_unit ON document_rpo_time_unit.id = documents.rpo_unit_id
+			LEFT JOIN users AS created_user ON created_user.id = business_impact_assessment_recovery_objectives.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = business_impact_assessment_recovery_objectives.updated_by_id
+        `)
+	// Apply dynamic filters to the query
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(processes.title_en LIKE ? OR
+			processes.title_ar LIKE ? OR
+			asset_register.title_en LIKE ? OR
+			asset_register.title_ar LIKE ? OR
+			documents.title_en LIKE ? OR
+			documents.title_ar LIKE ? OR
+			created_user.first_name_en LIKE ? OR
+			created_user.first_name_ar LIKE ? OR
+			created_user.last_name_en LIKE ? OR
+			created_user.last_name_ar LIKE ? OR
+    		updated_user.first_name_en LIKE ? OR
+			updated_user.first_name_ar LIKE ? OR
+			updated_user.last_name_en LIKE ? OR
+			updated_user.last_name_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	// query = query.Order(params.SortBy + " " + params.Sort)
+
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	err := query.Find(&businessImpactAssessments).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
+
+	response := &businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListResponseDTO{
 		Items: businessImpactAssessments,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,

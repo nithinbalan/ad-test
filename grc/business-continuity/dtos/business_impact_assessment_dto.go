@@ -7,9 +7,6 @@ type BusinessImpactAssessmentListDTO struct {
 	ProcessID                   *uint   `json:"process_id"`
 	ProcessTitleEn              string  `json:"process_title_en"`
 	ProcessTitleAr              string  `json:"process_title_ar"`
-	AssetRegisterID             *uint   `json:"asset_register_id"`
-	AssetRegisterTitleEn        string  `json:"asset_register_title_en"`
-	AssetRegisterTitleAr        string  `json:"asset_register_title_ar"`
 	ImpactCategoryID            uint    `json:"impact_category_id"`
 	ImpactCategoryTitleEn       string  `json:"impact_category_title_en"`
 	ImpactCategoryTitleAr       string  `json:"impact_category_title_ar"`
@@ -41,6 +38,63 @@ type BusinessImpactAssessmentListDTO struct {
 	UpdatedUserProfileImagePath string  `json:"updated_user_profile_image_path"`
 }
 
+type BusinessImpactAssessmentRecoveryObjectiveListDTO struct {
+	ID                           uint    `json:"id"`
+	ProcessID                    *uint   `json:"process_id"`
+	ProcessTitleEn               string  `json:"process_title_en"`
+	ProcessTitleAr               string  `json:"process_title_ar"`
+	AssetRegisterID              *uint   `json:"asset_register_id"`
+	AssetRegisterTitleEn         string  `json:"asset_register_title_en"`
+	AssetRegisterTitleAr         string  `json:"asset_register_title_ar"`
+	AssetRegisterRto             *uint   `json:"asset_register_rto"`
+	AssetRegisterRtoUnitId       *uint   `json:"asset_register_rto_unit_id"`
+	AssetRegisterRtoUnitTitleEn  *string `json:"asset_register_rto_unit_title_en"`
+	AssetRegisterRtoUnitTitleAr  *string `json:"asset_register_rto_unit_title_ar"`
+	AssetRegisterMtpd            *uint   `json:"asset_register_mtpd"`
+	AssetRegisterMtpdUnitId      *uint   `json:"asset_register_mtpd_unit_id"`
+	AssetRegisterMtpdUnitTitleEn *string `json:"asset_register_mtpd_unit_title_en"`
+	AssetRegisterMtpdUnitTitleAr *string `json:"asset_register_mtpd_unit_title_ar"`
+	AssetRegisterRpo             *uint   `json:"asset_register_rpo"`
+	AssetRegisterRpoUnitId       *uint   `json:"asset_register_rpo_unit_id"`
+	AssetRegisterRpoUnitTitleEn  *string `json:"asset_register_rpo_unit_title_en"`
+	AssetRegisterRpoUnitTitleAr  *string `json:"asset_register_rpo_unit_title_ar"`
+	DocumentID                   *uint   `json:"document_id"`
+	DocumentTitleEn              string  `json:"document_title_en"`
+	DocumentTitleAr              string  `json:"document_title_ar"`
+	DocumentRto                  *uint   `json:"document_rto"`
+	DocumentRtoUnitId            *uint   `json:"document_rto_unit_id"`
+	DocumentRtoUnitTitleEn       *string `json:"document_rto_unit_title_en"`
+	DocumentRtoUnitTitleAr       *string `json:"document_rto_unit_title_ar"`
+	DocumentMtpd                 *uint   `json:"document_mtpd"`
+	DocumentMtpdUnitId           *uint   `json:"document_mtpd_unit_id"`
+	DocumentMtpdUnitTitleEn      *string `json:"document_mtpd_unit_title_en"`
+	DocumentMtpdUnitTitleAr      *string `json:"document_mtpd_unit_title_ar"`
+	DocumentRpo                  *uint   `json:"document_rpo"`
+	DocumentRpoUnitId            *uint   `json:"document_rpo_unit_id"`
+	DocumentRpoUnitTitleEn       *string `json:"document_rpo_unit_title_en"`
+	DocumentRpoUnitTitleAr       *string `json:"document_rpo_unit_title_ar"`
+	CreatedAt                    string  `json:"created_at"`
+	UpdatedAt                    string  `json:"updated_at"`
+	CreatedUserID                uint    `json:"created_user_id"`
+	CreatedUserFirstNameEn       string  `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr       string  `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn        string  `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr        string  `json:"created_user_last_name_ar"`
+	CreatedUserInitial           string  `json:"created_user_initial"`
+	CreatedUserColor             string  `json:"created_user_color"`
+	CreatedUserEmail             string  `json:"created_user_email"`
+	CreatedUserProfileImagePath  string  `json:"created_user_profile_image_path"`
+	UpdatedUserID                *uint   `json:"updated_user_id"`
+	UpdatedUserFirstNameEn       string  `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr       string  `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn        string  `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr        string  `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial           string  `json:"updated_user_initial"`
+	UpdatedUserColor             string  `json:"updated_user_color"`
+	UpdatedUserEmail             string  `json:"updated_user_email"`
+	UpdatedUserProfileImagePath  string  `json:"updated_user_profile_image_path"`
+}
+
 type BusinessImpactAssessmentListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
@@ -57,10 +111,25 @@ type BusinessImpactAssessmentListResponseDTO struct {
 	Pagination commonDTOs.PaginationInfoDTO       `json:"pagination"`
 }
 
+type BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO struct {
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Page        int
+	PageSize    int
+	Filters     map[string][]string
+	QuickFilter []string
+	Export      bool
+}
+
+type BusinessImpactAssessmentRecoveryObjectiveListResponseDTO struct {
+	Items      []*BusinessImpactAssessmentRecoveryObjectiveListDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO                        `json:"pagination"`
+}
+
 type BusinessImpactAssessmentFormDTO struct {
 	Type                      string                        `json:"type"`
 	ProcessID                 *uint                         `json:"process_id"`
-	AssetRegisterID           *uint                         `json:"asset_register_id"`
 	BusinessImpactAssessments []BusinessImpactAssessmentDTO `json:"business_impact_assessments"`
 }
 

@@ -27,6 +27,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// Business Impact Assessment
 	businessContinuityRoutes.GET("/business-impact-assessments", middlewares.RolePermissionMiddleware(db, "bia", "view"), businessImpactAssessmentController.GetAllBusinessImpactAssessments)
+	businessContinuityRoutes.GET("/business-impact-assessment-recovery-objectives", middlewares.RolePermissionMiddleware(db, "bia", "view"), businessImpactAssessmentController.GetAllBusinessImpactAssessmentRecoveryObjectives)
 	businessContinuityRoutes.POST("/business-impact-assessments", middlewares.RolePermissionMiddleware(db, "bia", "modify"), businessImpactAssessmentController.CreateBusinessImpactAssessment)
 	businessContinuityRoutes.PUT("/business-impact-assessments", middlewares.RolePermissionMiddleware(db, "bia", "modify"), businessImpactAssessmentController.UpdateBusinessImpactAssessment)
 	businessContinuityRoutes.PUT("/business-impact-assessment-recovery-objectives", middlewares.RolePermissionMiddleware(db, "bia", "modify"), businessImpactAssessmentController.UpdateBusinessImpactAssessmentRecoveryObjective)
