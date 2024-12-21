@@ -303,16 +303,15 @@ func (repo *MeetingActionPlanRepository) GetMeetingActionPlanSummary(meetingID u
 	// Count open action plans
 	err = repo.db.Model(&models.MeetingActionPlan{}).
 		Joins("JOIN action_plan_statuses ON meeting_action_plans.action_plan_status_id = action_plan_statuses.id").
-		Where("meeting_action_plans.meeting_id = ? AND action_plan_statuses.type IN ?", meetingID, []string{"new", "in_progress", "on_hold"}).
+		Where("meeting_action_plans.meeting_id = ? AND action_plan_statuses.type IN ?", meetingID, []string{"new", "in_progress", "on_hold","reopen"}).
 		Count(&open).Error
 	if err != nil {
 		return 0, 0, err
 	}
-
 	// Count closed action plans
 	err = repo.db.Model(&models.MeetingActionPlan{}).
 		Joins("JOIN action_plan_statuses ON meeting_action_plans.action_plan_status_id = action_plan_statuses.id").
-		Where("meeting_action_plans.meeting_id = ? AND action_plan_statuses.type IN ?", meetingID, []string{"completed", "terminated"}).
+		Where("meeting_action_plans.meeting_id = ? AND action_plan_statuses.type IN ?", meetingID, []string{"completed", "terminated", "close"}).
 		Count(&closed).Error
 	if err != nil {
 		return 0, 0, err
