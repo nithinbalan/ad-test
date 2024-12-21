@@ -9,6 +9,7 @@ import (
 )
 
 type DocumentChangeRequestWorkflowRepositoryInterface interface {
+	GetWorkflowList(id uint) (*models.DocumentChangeRequest, error)
 	CreateDocumentCRWorkflow(documentCRWorkflow *models.DocumentChangeRequestWorkflow, tx ...utility.DatabaseTransaction) (uint, error)
 	UpdateDocumentCRWorkflow(documentCRWorkflow *models.DocumentChangeRequestWorkflow, tx ...utility.DatabaseTransaction) error
 	CreateDocumentCRWorkflowParticipant(docWorkflowCRParticipant *models.DocumentChangeRequestWorkflowParticipant, tx ...utility.DatabaseTransaction) error
@@ -31,6 +32,27 @@ func NewDocumentChangeRequestWorkflowRepository(db *gorm.DB) *DocumentChangeRequ
 	return &DocumentChangeRequestWorkflowRepository{
 		db: db,
 	}
+}
+
+func (repo *DocumentChangeRequestWorkflowRepository) GetWorkflowList(id uint) (*models.DocumentChangeRequest, error) {
+	var documentChangeRequest models.DocumentChangeRequest
+	result := repo.db.
+		Preload("SubmittedByUser").
+		Preload("DocumentChangeRequestWorkflows").
+		Preload("DocumentChangeRequestWorkflows.DocumentChangeRequestWorkflowStatus").
+		Preload("DocumentChangeRequestWorkflows.DocumentChangeRequestWorkflowParticipants").
+		Preload("DocumentChangeRequestWorkflows.DocumentChangeRequestWorkflowParticipants.User").
+		Preload("DocumentChangeRequestWorkflows.DocumentChangeRequestWorkflowParticipants.Role").
+		Preload("DocumentChangeRequestWorkflows.DocumentChangeRequestWorkflowReviews", "document_change_request_workflow_status_id IN (?)", repo.db.Model(&models.DocumentChangeRequestWorkflowStatus{}).Select("id").Where("type = ?", "approve")).
+		Preload("DocumentChangeRequestWorkflows.DocumentChangeRequestWorkflowReviews.CreatedByUser").
+		Where("id = ?", id).
+		Find(&documentChangeRequest)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &documentChangeRequest, nil
 }
 
 func (repo *DocumentChangeRequestWorkflowRepository) CreateDocumentCRWorkflow(documentCRWorkflow *models.DocumentChangeRequestWorkflow, tx ...utility.DatabaseTransaction) (uint, error) {
