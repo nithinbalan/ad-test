@@ -31,6 +31,8 @@ type DocumentChangeRequestServiceInterface interface {
 	Update(id uint, currentUserID uint, formDTO *documentDTOs.DocumentChangeRequestFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
+	UpdateDocumentChangeRequest(documentChangeRequest *models.DocumentChangeRequest, tx ...utility.DatabaseTransaction) error
+
 	CheckoutDocument(id uint, currentUserID uint, token string) (string, error)
 	CheckinDocument(id uint, currentUserID uint, documentCheckinFormDTO *documentDTOs.DocumentCheckinFormDTO) error
 	RevertDocumentCheckout(id uint, currentUserID uint) error
@@ -818,6 +820,15 @@ func (dcrs *DocumentChangeRequestService) SubmitDocumentChangeRequest(id uint, c
 	// 		}
 	// 	}
 	// }()
+
+	return nil
+}
+
+func (dcrs *DocumentChangeRequestService) UpdateDocumentChangeRequest(documentChangeRequest *models.DocumentChangeRequest, tx ...utility.DatabaseTransaction) error {
+	err := dcrs.repo.Update(documentChangeRequest, tx...)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

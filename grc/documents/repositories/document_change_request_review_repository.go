@@ -9,7 +9,7 @@ import (
 
 type DocumentChangeRequestReviewRepositoryInterface interface {
 	GetComments(id uint, currentApprovalLevel int) (*models.DocumentChangeRequest, error)
-	CreateDocumentWorkflowReview(documentWorkflowReview *models.DocumentWorkflowReview, tx ...utility.DatabaseTransaction) error
+	CreateDocumentWorkflowReview(documentWorkflowReview *models.DocumentChangeRequestWorkflowReview, tx ...utility.DatabaseTransaction) error
 }
 
 type DocumentChangeRequestReviewRepository struct {
@@ -42,7 +42,7 @@ func (repo *DocumentChangeRequestReviewRepository) GetComments(id uint, currentA
 	return &documentChangeRequest, nil
 }
 
-func (repo *DocumentChangeRequestReviewRepository) CreateDocumentWorkflowReview(documentWorkflowReview *models.DocumentWorkflowReview, tx ...utility.DatabaseTransaction) error {
+func (repo *DocumentChangeRequestReviewRepository) CreateDocumentWorkflowReview(documentWorkflowReview *models.DocumentChangeRequestWorkflowReview, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()

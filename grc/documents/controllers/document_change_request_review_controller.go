@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/documents/services"
 	"jethur/utility"
 	"net/http"
@@ -21,7 +22,7 @@ func NewDocumentChangeRequestReviewController(service services.DocumentChangeReq
 	}
 }
 
-func (drc *DocumentChangeRequestReviewController) GetComments(c *gin.Context) {
+func (dcrrc *DocumentChangeRequestReviewController) GetComments(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -29,7 +30,7 @@ func (drc *DocumentChangeRequestReviewController) GetComments(c *gin.Context) {
 		return
 	}
 
-	comments, err := drc.service.GetComments(uint(id))
+	comments, err := dcrrc.service.GetComments(uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -47,40 +48,40 @@ func (drc *DocumentChangeRequestReviewController) GetComments(c *gin.Context) {
 	c.JSON(http.StatusOK, comments)
 }
 
-// func (drc *DocumentChangeRequestReviewController) AddComment(c *gin.Context) {
-// 	var documentReviewCommentFormDTO documentDTOs.DocumentReviewCommentFormDTO
-// 	if err := c.ShouldBindJSON(&documentReviewCommentFormDTO); err != nil {
-// 		utility.SendInvalidErrResp(c, err)
-// 		return
-// 	}
+func (dcrrc *DocumentChangeRequestReviewController) AddComment(c *gin.Context) {
+	var documentCRReviewCommentFormDTO documentDTOs.DocumentCRReviewCommentFormDTO
+	if err := c.ShouldBindJSON(&documentCRReviewCommentFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 
-// 	idStr := c.Param("id")
-// 	id, err := strconv.ParseUint(idStr, 10, 32)
-// 	if err != nil {
-// 		utility.SendNotFoundErrResp(c)
-// 		return
-// 	}
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 
-// 	currentUserID, err := utility.GetCurrentUserID(c)
-// 	if err != nil {
-// 		utility.SendInternalErrResp(drc.db, c, err.Error())
-// 		return
-// 	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(dcrrc.db, c, err.Error())
+		return
+	}
 
-// 	err = drc.service.AddComment(uint(id), currentUserID, &documentReviewCommentFormDTO)
-// 	if err != nil {
-// 		switch e := err.(type) {
-// 		case *utility.ValidationError:
-// 			utility.SendInvalidErrResp(c, e)
-// 			return
-// 		case *utility.ForbiddenError:
-// 			utility.SendForbiddenErrResp(c, err.Error())
-// 			return
-// 		default:
-// 			utility.SendInternalErrResp(drc.db, c, e.Error())
-// 			return
-// 		}
-// 	}
+	err = dcrrc.service.AddComment(uint(id), currentUserID, &documentCRReviewCommentFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, err.Error())
+			return
+		default:
+			utility.SendInternalErrResp(dcrrc.db, c, e.Error())
+			return
+		}
+	}
 
-// 	c.Status(http.StatusOK)
-// }
+	c.Status(http.StatusOK)
+}

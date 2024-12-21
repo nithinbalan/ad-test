@@ -30,6 +30,7 @@ type DocumentModule struct {
 	DocumentChangeRequestStatusController         *controllers.DocumentChangeRequestStatusController
 	DocumentChangeRequestController               *controllers.DocumentChangeRequestController
 	DocumentChangeRequestWorkflowStatusController *controllers.DocumentChangeRequestWorkflowStatusController
+	DocumentChangeRequestReviewController         *controllers.DocumentChangeRequestReviewController
 
 	DocumentSvc services.DocumentServiceInterface
 }
@@ -183,6 +184,20 @@ func NewDocumentModule(db *gorm.DB,
 
 	documentChangeRequestSvc.SetDocumentChangeRequestWorkflowService(documentChangeRequestWorkflowSvc)
 
+	documentCRReviewRepo := repositories.NewDocumentChangeRequestReviewRepository(db)
+	documentCRReviewSvc := services.NewDocumentChangeRequestReviewService(
+		documentCRReviewRepo,
+		sharedModule.ActivityLogService,
+		documentSvc,
+		documentChangeRequestSvc,
+		documentChangeRequestWorkflowSvc,
+		documentChangeRequestWorkflowStatusRepo,
+		documentChangeRequestStatusSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+		taskModule.TaskService)
+	documentCRReviewController := controllers.NewDocumentChangeRequestReviewController(documentCRReviewSvc)
+
 	return &DocumentModule{
 		DocumentCategoryController:                    documentCategoryController,
 		DocumentTypeController:                        documentTypeController,
@@ -205,6 +220,7 @@ func NewDocumentModule(db *gorm.DB,
 		DocumentChangeRequestStatusController:         documentChangeRequestStatusController,
 		DocumentChangeRequestController:               documentChangeRequestController,
 		DocumentChangeRequestWorkflowStatusController: documentChangeRequestWorkflowStatusController,
+		DocumentChangeRequestReviewController:         documentCRReviewController,
 
 		DocumentSvc: documentSvc,
 	}
