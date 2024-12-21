@@ -43,6 +43,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentChangeRequestController := app.DocumentModule.DocumentChangeRequestController
 	documentChangeRequestWorkflowStatusController := app.DocumentModule.DocumentChangeRequestWorkflowStatusController
 	documentChangeRequestReviewController := app.DocumentModule.DocumentChangeRequestReviewController
+	documentChangeRequestWorkflowController := app.DocumentModule.DocumentChangeRequestWorkflowController
 
 	documentRoutes.GET("/document-categories", documentCategoryController.GetAllDocumentCategories)
 	documentRoutes.GET("/document-categories/:id", documentCategoryController.GetDocumentCategoryDetails)
@@ -167,6 +168,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	documentRoutes.GET("/document-change-requests/:id/comments", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestReviewController.GetComments)
 	documentRoutes.POST("/document-change-requests/:id/comments", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestReviewController.AddComment)
-	// documentRoutes.GET("/documents/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentWorkflowController.GetWorkflowList)
+	documentRoutes.GET("/document-change-requests/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestWorkflowController.GetWorkflowList)
 
 }

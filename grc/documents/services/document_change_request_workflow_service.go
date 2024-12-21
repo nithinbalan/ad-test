@@ -2,16 +2,20 @@ package services
 
 import (
 	"fmt"
+	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/documents/repositories"
 	logSvc "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	organizationSvc "jethur/grc/organization/services"
 	settingDTOs "jethur/grc/settings/dtos"
 	settinsSvc "jethur/grc/settings/services"
 	"jethur/utility"
+	"time"
 )
 
 type DocumentChangeRequestWorkflowServiceInterface interface {
+	GetDocumentCRWorkflowList(id uint) (*documentDTOs.DocumentCRWorkflowListDTO, error)
 	CreateDocumentCRWorkflow(documentChangeRequestId uint, documentId uint, currentUserID uint, tx ...utility.DatabaseTransaction) error
 	UpdateDocumentCRWorkflow(documentCRWorkflow *models.DocumentChangeRequestWorkflow, tx ...utility.DatabaseTransaction) error
 	CreateDocumentCRWorkflowParticipant(userID uint, documentCRWorkflowID uint, participant *settingDTOs.WorkflowLevelParticipantDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error
@@ -34,6 +38,7 @@ type DocumentChangeRequestWorkflowService struct {
 	workflowSvc                            settinsSvc.WorkflowServiceInterface
 	documentChangeRequestWorkflowStatusSvc DocumentChangeRequestWorkflowStatusServiceInterface
 	userSvc                                organizationSvc.UserServiceInterface
+	documentChangeRequestSvc               DocumentChangeRequestServiceInterface
 }
 
 func NewDocumentChangeRequestWorkflowService(
@@ -43,6 +48,7 @@ func NewDocumentChangeRequestWorkflowService(
 	workflowSvc settinsSvc.WorkflowServiceInterface,
 	documentChangeRequestWorkflowStatusSvc DocumentChangeRequestWorkflowStatusServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
+	documentChangeRequestSvc DocumentChangeRequestServiceInterface,
 ) *DocumentChangeRequestWorkflowService {
 	return &DocumentChangeRequestWorkflowService{
 		repo:                                   repo,
@@ -51,6 +57,7 @@ func NewDocumentChangeRequestWorkflowService(
 		workflowSvc:                            workflowSvc,
 		documentChangeRequestWorkflowStatusSvc: documentChangeRequestWorkflowStatusSvc,
 		userSvc:                                userSvc,
+		documentChangeRequestSvc:               documentChangeRequestSvc,
 	}
 }
 
@@ -258,3 +265,82 @@ func (dcrws *DocumentChangeRequestWorkflowService) CheckAllParticipantsApproved(
 
 	return true, nil
 }
+
+func (dcrws *DocumentChangeRequestWorkflowService) GetDocumentCRWorkflowList(id uint) (*documentDTOs.DocumentCRWorkflowListDTO, error) {
+	// document, err := dcrws.documentChangeRequestSvc.GetFullDetailsByID(id)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	documentChangeRequest, err := dcrws.repo.GetWorkflowList(id)
+	if err != nil {
+		return nil, err
+	}
+
+	dto := &documentDTOs.DocumentCRWorkflowListDTO{
+		ID:                documentChangeRequest.ID,
+		SubmittedAt:       documentChangeRequest.SubmittedAt,
+		SubmittedByUser:   mapUserToDTO(documentChangeRequest.SubmittedByUser),
+		DocumentWorkflows: []*documentDTOs.DocumentWorkflowListDTO{},
+	}
+
+	for _, workflow := range documentChangeRequest.DocumentChangeRequestWorkflows {
+		workflowDTO := &documentDTOs.DocumentWorkflowListDTO{
+			Level:         workflow.Level,
+			ApprovalType:  workflow.ApprovalTypes,
+			CurrentStatus: mapStatusToDTO((*models.DocumentWorkflowStatus)(workflow.DocumentChangeRequestWorkflowStatus)),
+			ApprovedUsers: []*organizationDTOs.UserMinimalDTO{},
+			ReviewUsers:   []*organizationDTOs.UserMinimalDTO{},
+		}
+
+		var lastApprovedAt time.Time
+		for _, review := range workflow.DocumentChangeRequestWorkflowReviews {
+			userDTO := mapUserToDTO(review.CreatedByUser)
+			workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, userDTO)
+			if review.CreatedAt.After(lastApprovedAt) {
+				lastApprovedAt = review.CreatedAt
+			}
+		}
+
+		for _, participant := range workflow.DocumentChangeRequestWorkflowParticipants {
+			userDTO := mapUserToDTO(participant.User)
+			workflowDTO.ReviewUsers = append(workflowDTO.ReviewUsers, userDTO)
+		}
+
+		workflowDTO.ApprovedAt = lastApprovedAt
+		dto.DocumentWorkflows = append(dto.DocumentWorkflows, workflowDTO)
+	}
+
+	return dto, nil
+}
+
+// func mapUserToDTO(user *models.User) *organizationDTOs.UserMinimalDTO {
+// 	if user == nil {
+// 		return &organizationDTOs.UserMinimalDTO{}
+// 	}
+// 	return &organizationDTOs.UserMinimalDTO{
+// 		ID:               int(user.ID),
+// 		FirstNameEN:      user.FirstNameEn,
+// 		LastNameEN:       user.LastNameEn,
+// 		FirstNameAR:      user.FirstNameAr,
+// 		LastNameAR:       user.LastNameAr,
+// 		ProfileImagePath: user.ProfileImagePath,
+// 		Email:            user.Email,
+// 		Initial:          user.Initial,
+// 		Color:            user.Color,
+// 	}
+// }
+
+// func mapStatusToDTO(status *models.DocumentWorkflowStatus) documentDTOs.DocumentStatusDTO {
+// 	if status == nil {
+// 		return documentDTOs.DocumentStatusDTO{}
+// 	}
+// 	return documentDTOs.DocumentStatusDTO{
+// 		ID:        int(status.ID),
+// 		Type:      status.Type,
+// 		TitleEn:   status.TitleEn,
+// 		TitleAr:   status.TitleAr,
+// 		ColorCode: status.ColorCode,
+// 		Status:    status.Status,
+// 	}
+// }

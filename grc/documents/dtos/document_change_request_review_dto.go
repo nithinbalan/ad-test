@@ -7,10 +7,9 @@ import (
 
 type DocumentCRWorkflowListDTO struct {
 	ID                uint                             `json:"id"`
-	DocumentID        uint                             `json:"document_id"`
 	SubmittedAt       *time.Time                       `json:"submitted_at"`
 	SubmittedByUser   *organizationDTOs.UserMinimalDTO `json:"submitted_by"`
-	DocumentWorkflows []*DocumentWorkflowListDTO       `json:"document_workflows"`
+	DocumentWorkflows []*DocumentWorkflowListDTO       `json:"document_change_request_workflows"`
 }
 
 type DocumentCRReviewCommentFormDTO struct {
