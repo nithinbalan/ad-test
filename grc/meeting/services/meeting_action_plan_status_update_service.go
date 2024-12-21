@@ -154,7 +154,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 		}
 	}
 	// Check if all related action plans are completed or terminated
-	completedStatuses := []string{"completed", "terminated", "on_hold"}
+	completedStatuses := []string{"completed", "terminated", "close"}
 
 	meetingMinuteID := meetingActionPlan.MeetingMinuteID
 	meetingActionPlanStatus, err := masus.actionPlanStatusSvc.GetByID(meetingActionPlanStatusUpdateFormDTO.ActionPlanStatusID)
