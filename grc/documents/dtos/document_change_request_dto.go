@@ -72,7 +72,8 @@ type DocumentChangeRequestDetailsDTO struct {
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 
-	DocumentChangeRequestWorkflows []DocumentCRWorkflowDTO `json:"document_change_request_workflow"`
+	DocumentChangeRequestWorkflows []DocumentCRWorkflowDTO    `json:"document_change_request_workflow"`
+	DocumentCREditHistory          []DocumentCREditHistoryDTO `json:"document_change_request_edit_history"`
 }
 
 // Document DTO
@@ -110,6 +111,18 @@ type DocumentChangeRequestFormDTO struct {
 	DocumentChangeRequestInitiateID *uint                      `json:"document_change_request_initiate_id"`
 	ReasonForChange                 *string                    `json:"reason_for_change"`
 	Document                        commonDTOs.DocumentFormDTO `json:"document" binding:"required"`
+}
+
+type DocumentCREditHistoryDTO struct {
+	ID                      *uint   `json:"id"`
+	DocumentChangeRequestID uint    `json:"document_change_request_id"`
+	ActionType              string  `json:"action_type"`
+	URL                     *string `json:"url"`
+	FileName                *string `json:"file_name"`
+	OriginalName            *string `json:"original_name"`
+	Type                    *string `json:"type"`
+	Size                    *int    `json:"size"`
+	Comment                 *string `json:"comment"`
 }
 
 type DocumentChangeRequestWorkflowDTO struct {

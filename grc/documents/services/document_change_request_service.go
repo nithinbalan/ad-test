@@ -9,6 +9,7 @@ import (
 	documentRepositories "jethur/grc/documents/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
 	"log"
 	"os"
@@ -39,6 +40,7 @@ type DocumentChangeRequestServiceInterface interface {
 	SubmitDocumentChangeRequest(id uint, currentUserID uint) error
 
 	GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error)
+	GetDocumentCRLastEditSummary(id uint) (*documentDTOs.DocumentLastEditSummaryDTO, error)
 }
 
 type DocumentChangeRequestService struct {
@@ -169,6 +171,21 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 		return 0, err
 	}
 
+	documentCREditHistory := &documentDTOs.DocumentCREditHistoryDTO{
+		DocumentChangeRequestID: id,
+		ActionType:              "create",
+		FileName:                &formDTO.Document.FileName,
+		OriginalName:            &formDTO.Document.OriginalName,
+		Type:                    &formDTO.Document.Type,
+		Size:                    &formDTO.Document.Size,
+	}
+
+	err = dcrs.CreateDocumentCREditHistory(documentCREditHistory, &storagePath, currentUserID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -264,6 +281,21 @@ func (dcrs *DocumentChangeRequestService) Update(id uint, currentUserID uint, fo
 		}
 
 		if err := utility.StoreFile(formDTO.Document.FileName, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		documentCREditHistory := &documentDTOs.DocumentCREditHistoryDTO{
+			DocumentChangeRequestID: id,
+			ActionType:              "update",
+			FileName:                &formDTO.Document.FileName,
+			OriginalName:            &formDTO.Document.OriginalName,
+			Type:                    &formDTO.Document.Type,
+			Size:                    &formDTO.Document.Size,
+		}
+
+		err = dcrs.CreateDocumentCREditHistory(documentCREditHistory, &storagePath, currentUserID, tx)
+		if err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -466,6 +498,18 @@ func (dcrs *DocumentChangeRequestService) CheckoutDocument(id uint, currentUserI
 		return "", fmt.Errorf("error retrieving document path: %w", err)
 	}
 
+	//document cr history
+	documentCREditHistory := &documentDTOs.DocumentCREditHistoryDTO{
+		DocumentChangeRequestID: id,
+		ActionType:              "check-out",
+	}
+
+	err = dcrs.CreateDocumentCREditHistory(documentCREditHistory, nil, currentUserID, tx)
+	if err != nil {
+		tx.Rollback()
+		return "", err
+	}
+
 	tx.Commit()
 	return documentPath, nil
 }
@@ -552,6 +596,23 @@ func (dcrs *DocumentChangeRequestService) CheckinDocument(id uint, currentUserID
 	}
 
 	if err := utility.StoreFile(documentCheckinFormDTO.Document.FileName, destinationDir); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	//add document cr history
+	documentCREditHistory := &documentDTOs.DocumentCREditHistoryDTO{
+		DocumentChangeRequestID: id,
+		ActionType:              "check-in",
+		FileName:                &documentCheckinFormDTO.Document.FileName,
+		OriginalName:            &documentCheckinFormDTO.Document.OriginalName,
+		Type:                    &documentCheckinFormDTO.Document.Type,
+		Size:                    &documentCheckinFormDTO.Document.Size,
+		Comment:                 documentCheckinFormDTO.Comment,
+	}
+
+	err = dcrs.CreateDocumentCREditHistory(documentCREditHistory, &destinationDir, currentUserID, tx)
+	if err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -864,4 +925,123 @@ func (dcrs *DocumentChangeRequestService) GetDocumentPath(id uint, token string,
 	}
 
 	return fullPath, nil
+}
+
+func (dcrs *DocumentChangeRequestService) CreateDocumentCREditHistory(documentCREditHistoryDTO *documentDTOs.DocumentCREditHistoryDTO, sourceDir *string, currentUserId uint, tx ...utility.DatabaseTransaction) error {
+	if sourceDir != nil {
+		dataToEncrypt := []byte(*documentCREditHistoryDTO.FileName)
+		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
+			return err
+		}
+		url := utility.GenerateDocumentURL("document", "change-requests", strconv.FormatUint(uint64(documentCREditHistoryDTO.DocumentChangeRequestID), 10), "document-history")
+		documentCREditHistory := &models.DocumentChangeRequestEditHistory{
+			DocumentChangeRequestID: documentCREditHistoryDTO.DocumentChangeRequestID,
+			ActionType:              documentCREditHistoryDTO.ActionType,
+			Comment:                 documentCREditHistoryDTO.Comment,
+			URL:                     &url,
+			Name:                    documentCREditHistoryDTO.FileName,
+			Size:                    documentCREditHistoryDTO.Size,
+			Token:                   &encryptedFilename,
+			OriginalName:            documentCREditHistoryDTO.OriginalName,
+			Type:                    documentCREditHistoryDTO.Type,
+			CreatedBYID:             currentUserId,
+		}
+		id, err := dcrs.repo.CreateDocumentCREditHistory(documentCREditHistory, tx...)
+		if err != nil {
+			return err
+		}
+		destinationDir := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(documentCREditHistoryDTO.DocumentChangeRequestID), 10), "document-history", strconv.FormatUint(uint64(id), 10), "documents")
+		err = utility.CopyFileFromPaths(*sourceDir, destinationDir, *documentCREditHistoryDTO.FileName)
+		if err != nil {
+			return fmt.Errorf("failed to copy file: %w", err)
+		}
+	} else {
+		documentCREditHistory := &models.DocumentChangeRequestEditHistory{
+			DocumentChangeRequestID: documentCREditHistoryDTO.DocumentChangeRequestID,
+			ActionType:              documentCREditHistoryDTO.ActionType,
+			CreatedBYID:             currentUserId,
+		}
+
+		_, err := dcrs.repo.CreateDocumentCREditHistory(documentCREditHistory, tx...)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (dcrs *DocumentChangeRequestService) GetDocumentCRLastEditSummary(id uint) (*documentDTOs.DocumentLastEditSummaryDTO, error) {
+	documentChangeRequest, err := dcrs.GetFullDetailsByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch the latest edit activity
+	activity, err := dcrs.repo.GetDocumentCRLatestEditHistory(id)
+	var latestActivityDTO documentDTOs.ActivityDTO
+
+	// Handle case where activity is not found
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			emptyString := ""
+			zeroTime := time.Time{}
+			latestActivityDTO = documentDTOs.ActivityDTO{
+				Activity:  "No activity found",
+				By:        nil,
+				Comment:   &emptyString,
+				Timestamp: zeroTime,
+			}
+		} else {
+			return nil, err
+		}
+	} else {
+		userDTO := mapUserToDTO(activity.CreatedByUser)
+		latestActivityDTO = documentDTOs.ActivityDTO{
+			Activity:  activity.ActionType,
+			By:        userDTO,
+			Comment:   activity.Comment,
+			Timestamp: activity.CreatedAt,
+		}
+	}
+
+	// Initialize variables for the current document workflow
+	var currentDocumentCRWorkflow *models.DocumentChangeRequestWorkflow
+	var participants []*organizationDTOs.UserMinimalDTO
+	totalComments := 0
+
+	// Check if there is a next review level and fetch the corresponding workflow
+	if documentChangeRequest.NextReviewLevel != nil {
+		currentDocumentCRWorkflow, err = dcrs.documentChangeRequestWorkflowSvc.GetDocumentCRWorkflowByLevel(id, *documentChangeRequest.NextReviewLevel)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Process workflow participants and count comments
+	if currentDocumentCRWorkflow != nil {
+		for _, participant := range currentDocumentCRWorkflow.DocumentChangeRequestWorkflowParticipants {
+			userDTO := mapUserToDTO(participant.User)
+			if userDTO != nil {
+				participants = append(participants, userDTO)
+			}
+		}
+
+		for _, review := range currentDocumentCRWorkflow.DocumentChangeRequestWorkflowReviews {
+			if review.Comment != "" {
+				totalComments++
+			}
+		}
+	}
+
+	// Prepare the response DTO
+	responseDTO := &documentDTOs.DocumentLastEditSummaryDTO{
+		LatestActivity: latestActivityDTO,
+		CurrentLevel:   documentChangeRequest.NextReviewLevel,
+		Participants:   participants,
+		TotalComments:  &totalComments,
+	}
+
+	return responseDTO, nil
 }

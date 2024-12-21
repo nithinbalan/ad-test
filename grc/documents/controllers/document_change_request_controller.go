@@ -427,3 +427,26 @@ func (dcrc *DocumentChangeRequestController) SubmitDocumentChangeRequest(c *gin.
 
 	c.Status(http.StatusOK)
 }
+
+func (dcrc *DocumentChangeRequestController) GetLastEditSummary(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	lastEditSummary, err := dcrc.service.GetDocumentCRLastEditSummary(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(dcrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, lastEditSummary)
+}
