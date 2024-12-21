@@ -35,8 +35,8 @@ func (dcrc *DocumentChangeRequestController) GetAllDocumentChangeRequests(c *gin
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
-		"document_change_reuqest_type_ids",
-		"document_change_reuqest_status_ids",
+		"document_change_request_type_ids",
+		"document_change_request_status_ids",
 		"document_ids",
 	}
 

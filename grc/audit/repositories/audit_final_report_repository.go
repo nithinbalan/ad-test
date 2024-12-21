@@ -28,6 +28,10 @@ type AuditFinalReportRepositoryInterface interface {
 
 	CreateAuditFindingDocuments(docs []*models.AuditFindingDocument, tx ...utility.DatabaseTransaction) error
 	DeleteAuditFindingDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetAuditFinalReportLatestEditHistory(auditFinalReportID uint) (*models.AuditReportEditHistory, error) 
+	CreateAuditReportEditHistory(auditReportEditHistory *models.AuditReportEditHistory, tx ...utility.DatabaseTransaction) error
+	DeleteAuditReportEditHistories(auditFinalReportID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditFinalReportRepository struct {
@@ -157,6 +161,7 @@ func (repo *AuditFinalReportRepository) GetByAuditID(auditID uint) (*models.Audi
 	result := repo.db.Where("audit_id = ?", auditID).
 		Preload("Audit").
 		Preload("Audit.AuditPlan").
+		Preload("AuditFinalReportStatus").
 		First(&auditFinalReport)
 	if result.Error != nil {
 		return nil, result.Error
@@ -291,6 +296,43 @@ func (repo *AuditFinalReportRepository) DeleteAuditFindingDocuments(docIds []*ui
 
 	// Delete documents by IDs
 	if err := db.Where("id IN (?)", docIds).Delete(&models.AuditFindingDocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AuditFinalReportRepository) GetAuditFinalReportLatestEditHistory(auditFinalReportID uint) (*models.AuditReportEditHistory, error) {
+	var history models.AuditReportEditHistory
+	err := repo.db.
+		Preload("CreatedByUser").
+		Where("audit_final_report_id = ?", auditFinalReportID).
+		Order("created_at DESC").
+		First(&history).Error
+	if err != nil {
+		return nil, err
+	}
+	return &history, nil
+}
+
+func (repo *AuditFinalReportRepository) CreateAuditReportEditHistory(auditReportEditHistory *models.AuditReportEditHistory, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(auditReportEditHistory).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AuditFinalReportRepository) DeleteAuditReportEditHistories(auditFinalReportID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Where("audit_final_report_id = ?", auditFinalReportID).Delete(&models.AuditReportEditHistory{}).Error; err != nil {
 		return err
 	}
 

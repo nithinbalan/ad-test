@@ -29,6 +29,8 @@ type DocumentChangeRequestListDTO struct {
 	CreatedByUserLastNameEn   string `json:"created_by_user_last_name_en"`
 	CreatedByUserLastNameAr   string `json:"created_by_user_last_name_ar"`
 	CreatedByUserEmail        string `json:"created_by_user_email"`
+	CreatedByUserInitial      string `json:"created_by_user_initial"`
+	CreatedByUserColor        string `json:"created_by_user_color"`
 	CreatedByUserProfileImage string `json:"created_by_user_profile_image"`
 
 	UpdatedByUserID           *uint   `json:"updated_by_user_id"`
@@ -37,6 +39,8 @@ type DocumentChangeRequestListDTO struct {
 	UpdatedByUserLastNameEn   *string `json:"updated_by_user_last_name_en"`
 	UpdatedByUserLastNameAr   *string `json:"updated_by_user_last_name_ar"`
 	UpdatedByUserEmail        *string `json:"updated_by_user_email"`
+	UpdatedByUserInitial      *string `json:"updated_by_user_initial"`
+	UpdatedByUserColor        *string `json:"updated_by_user_color"`
 	UpdatedByUserProfileImage *string `json:"updated_by_user_profile_image"`
 
 	CreatedAt time.Time  `json:"created_at"`

@@ -72,6 +72,8 @@ func (repo *DocumentChangeRequestRepository) GetAll(params *dtos.DocumentChangeR
 			created_by_user.last_name_en AS created_by_user_last_name_en,
 			created_by_user.last_name_ar AS created_by_user_last_name_ar,
 			created_by_user.email AS created_by_user_email,
+			created_by_user.initial AS created_by_user_initial,
+	        created_by_user.color AS created_by_user_color,
 			created_by_user.profile_image_path AS created_by_user_profile_image_path,
 			updated_by_user.id AS updated_by_user_id,
 			updated_by_user.first_name_en AS updated_by_user_first_name_en,
@@ -79,6 +81,8 @@ func (repo *DocumentChangeRequestRepository) GetAll(params *dtos.DocumentChangeR
 			updated_by_user.last_name_en AS updated_by_user_last_name_en,
 			updated_by_user.last_name_ar AS updated_by_user_last_name_ar,
 			updated_by_user.email AS updated_by_user_email,
+			updated_by_user.initial AS created_by_user_initial,
+	        updated_by_user.color AS created_by_user_color,
 			updated_by_user.profile_image_path AS updated_by_user_profile_image_path,
 			document_change_requests.created_at,
 			document_change_requests.updated_at
@@ -169,6 +173,9 @@ func (repo *DocumentChangeRequestRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("DocumentChangeRequestInitiate").
 		Preload("Document").
 		Preload("Document.ResponsibleUser").
+		Preload("Document.ResponsibleUnit").
+		Preload("Document.DocumentType").
+		Preload("Document.DocumentCategory").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("DocumentChangeRequestWorkflows").
