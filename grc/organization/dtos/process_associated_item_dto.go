@@ -126,6 +126,26 @@ type ProcessDocumentListDTO struct {
 	IsLocked                   bool       `json:"is_locked"`
 }
 
+type ProcessAssetListDTO struct {
+	ID                   uint     `json:"id"`
+	AssetRegisterID      uint     `json:"asset_register_id"`
+	ProcessID            uint     `json:"process_id"`
+	ReferenceNumber      string   `json:"reference_number"`
+	TitleEn              string   `json:"title_en"`
+	TitleAr              string   `json:"title_ar"`
+	AssetTypeTitleEn     *string  `json:"asset_type_title_en"`
+	AssetTypeTitleAr     *string  `json:"asset_type_title_ar"`
+	AssetCategoryTitleEn *string  `json:"asset_category_title_en"`
+	AssetCategoryTitleAr *string  `json:"asset_category_title_ar"`
+	AssetStatusTitleEn   string   `json:"asset_status_title_en"`
+	AssetStatusTitleAr   string   `json:"asset_status_title_ar"`
+	AssetStatusColorCode string   `json:"asset_status_color_code"`
+	Location             *string  `json:"location"`
+	Description          *string  `json:"description"`
+	AcquisitionDate      string   `json:"acquisition_date"`
+	TotalScore           *float64 `json:"total_score"`
+}
+
 type ProcessAssociatedItemListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
@@ -149,6 +169,11 @@ type ProcessAssociatedItemRiskListResponseDTO struct {
 
 type ProcessAssociatedItemDocumentListResponseDTO struct {
 	Items      []*ProcessDocumentListDTO    `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type ProcessAssociatedItemAssetListResponseDTO struct {
+	Items      []*ProcessAssetListDTO       `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 

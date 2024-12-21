@@ -29,6 +29,8 @@ type DocumentChangeRequestListDTO struct {
 	CreatedByUserLastNameEn   string `json:"created_by_user_last_name_en"`
 	CreatedByUserLastNameAr   string `json:"created_by_user_last_name_ar"`
 	CreatedByUserEmail        string `json:"created_by_user_email"`
+	CreatedByUserInitial      string `json:"created_by_user_initial"`
+	CreatedByUserColor        string `json:"created_by_user_color"`
 	CreatedByUserProfileImage string `json:"created_by_user_profile_image"`
 
 	UpdatedByUserID           *uint   `json:"updated_by_user_id"`
@@ -37,6 +39,8 @@ type DocumentChangeRequestListDTO struct {
 	UpdatedByUserLastNameEn   *string `json:"updated_by_user_last_name_en"`
 	UpdatedByUserLastNameAr   *string `json:"updated_by_user_last_name_ar"`
 	UpdatedByUserEmail        *string `json:"updated_by_user_email"`
+	UpdatedByUserInitial      *string `json:"updated_by_user_initial"`
+	UpdatedByUserColor        *string `json:"updated_by_user_color"`
 	UpdatedByUserProfileImage *string `json:"updated_by_user_profile_image"`
 
 	CreatedAt time.Time  `json:"created_at"`
@@ -68,7 +72,8 @@ type DocumentChangeRequestDetailsDTO struct {
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 
-	DocumentChangeRequestWorkflows []DocumentCRWorkflowDTO `json:"document_change_request_workflow"`
+	DocumentChangeRequestWorkflows []DocumentCRWorkflowDTO    `json:"document_change_request_workflow"`
+	DocumentCREditHistory          []DocumentCREditHistoryDTO `json:"document_change_request_edit_history"`
 }
 
 // Document DTO
@@ -106,6 +111,26 @@ type DocumentChangeRequestFormDTO struct {
 	DocumentChangeRequestInitiateID *uint                      `json:"document_change_request_initiate_id"`
 	ReasonForChange                 *string                    `json:"reason_for_change"`
 	Document                        commonDTOs.DocumentFormDTO `json:"document" binding:"required"`
+}
+
+type DocumentCREditHistoryDTO struct {
+	ID                      *uint   `json:"id"`
+	DocumentChangeRequestID uint    `json:"document_change_request_id"`
+	ActionType              string  `json:"action_type"`
+	URL                     *string `json:"url"`
+	FileName                *string `json:"file_name"`
+	OriginalName            *string `json:"original_name"`
+	Type                    *string `json:"type"`
+	Size                    *int    `json:"size"`
+	Comment                 *string `json:"comment"`
+}
+
+type DocumentChangeRequestWorkflowDTO struct {
+	ID uint `json:"id"`
+	// ChangeRequestID                uint                            `json:"change_request_id"`
+	SubmittedAt                    time.Time                       `json:"submitted_at"`
+	SubmittedByUser                organizationDTOs.UserMinimalDTO `json:"submitted_by"`
+	DocumentChangeRequestWorkflows []*DocumentCRWorkflowDTO        `json:"document_change_request_workflows"`
 }
 
 type DocumentCRWorkflowDTO struct {

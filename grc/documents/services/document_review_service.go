@@ -226,10 +226,12 @@ func (drs *DocumentReviewService) handleApprovedCase(id uint, currentUserID uint
 			if err != nil {
 				return err
 			}
+			fmt.Println("123")
 			allApproved, err := drs.documentWorkflowSvc.CheckAllParticipantsApproved(currentDocumentWorkflow.ID, currentDocumentWorkflow.DocumentWorkflowParticipants)
 			if err != nil {
 				return err
 			}
+			fmt.Println("124")
 
 			if !allApproved {
 				return nil

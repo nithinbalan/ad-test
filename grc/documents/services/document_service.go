@@ -779,7 +779,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 			DocumentID:        id,
 			DocumentVersionID: existingDocVersion.ID,
-			ActionType:        "create",
+			ActionType:        "update",
 			FileName:          &documentTemplate.Document.Name,
 			OriginalName:      &documentTemplate.Document.OriginalName,
 			Type:              &documentTemplate.Document.Type,

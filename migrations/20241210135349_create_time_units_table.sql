@@ -11,5 +11,5 @@ CREATE TABLE time_units (
 
 -- +goose Down
 -- +goose StatementBegin
-SELECT 'down SQL query';
+DROP TABLE dbo.time_units;
 -- +goose StatementEnd

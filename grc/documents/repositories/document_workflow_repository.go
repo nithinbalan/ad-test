@@ -163,34 +163,40 @@ func (repo *DocumentWorkflowRepository) GetNextLevel(documentVersionID uint, cur
 
 //		return int(count), nil
 //	}
+
 func (repo *DocumentWorkflowRepository) CountApprovedParticipants(workflowID uint, tx ...utility.DatabaseTransaction) (int, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	// Get the maximum `id` for the resubmit entry
-	var resubmitID uint
+	var resubmitID *uint // Pointer to handle NULL values
 	err := db.Raw(`
-		SELECT MAX(id) 
-		FROM document_workflow_reviews 
-		WHERE document_workflow_id = ? 
-		  AND document_workflow_status_id = (SELECT id FROM document_workflow_statuses WHERE type = 'resubmit')
-	`, workflowID).Scan(&resubmitID).Error
+        SELECT MAX(id)
+        FROM document_workflow_reviews
+        WHERE document_workflow_id = ?
+          AND document_workflow_status_id = (
+              SELECT id
+              FROM document_workflow_statuses
+              WHERE type = 'resubmit'
+          )
+    `, workflowID).Scan(&resubmitID).Error
 
 	if err != nil {
 		return 0, err
 	}
 
-	// Count distinct approved participants
+	if resubmitID == nil {
+		resubmitID = new(uint) // Initialize to zero if needed
+	}
+
 	var count int64
 	query := db.Model(&models.DocumentWorkflowReview{}).
 		Where("document_workflow_id = ? AND document_workflow_status_id = (SELECT id FROM document_workflow_statuses WHERE type = 'approve')", workflowID).
 		Distinct("created_by_id")
 
-	// Apply the filter only if a valid resubmitID is found
-	if resubmitID > 0 {
-		query = query.Where("id > ?", resubmitID)
+	if *resubmitID > 0 {
+		query = query.Where("id > ?", *resubmitID)
 	}
 
 	err = query.Count(&count).Error

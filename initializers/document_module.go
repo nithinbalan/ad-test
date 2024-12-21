@@ -30,6 +30,8 @@ type DocumentModule struct {
 	DocumentChangeRequestStatusController         *controllers.DocumentChangeRequestStatusController
 	DocumentChangeRequestController               *controllers.DocumentChangeRequestController
 	DocumentChangeRequestWorkflowStatusController *controllers.DocumentChangeRequestWorkflowStatusController
+	DocumentChangeRequestReviewController         *controllers.DocumentChangeRequestReviewController
+	DocumentChangeRequestWorkflowController       *controllers.DocumentChangeRequestWorkflowController
 
 	DocumentSvc services.DocumentServiceInterface
 }
@@ -168,6 +170,7 @@ func NewDocumentModule(db *gorm.DB,
 		documentChangeRequestTypeSvc,
 		documentChangeRequestStatusSvc,
 		documentChangeRequestWorkflowStatusSvc,
+		documentSvc,
 	)
 	documentChangeRequestController := controllers.NewDocumentChangeRequestController(documentChangeRequestSvc)
 
@@ -179,9 +182,26 @@ func NewDocumentModule(db *gorm.DB,
 		settingsModule.WorkflowSvc,
 		documentChangeRequestWorkflowStatusSvc,
 		organizationModule.UserSvc,
+		documentChangeRequestSvc,
 	)
 
+	documentChangeRequestWorkflowController := controllers.NewDocumentChangeRequestWorkflowController(documentChangeRequestWorkflowSvc)
+
 	documentChangeRequestSvc.SetDocumentChangeRequestWorkflowService(documentChangeRequestWorkflowSvc)
+
+	documentCRReviewRepo := repositories.NewDocumentChangeRequestReviewRepository(db)
+	documentCRReviewSvc := services.NewDocumentChangeRequestReviewService(
+		documentCRReviewRepo,
+		sharedModule.ActivityLogService,
+		documentSvc,
+		documentChangeRequestSvc,
+		documentChangeRequestWorkflowSvc,
+		documentChangeRequestWorkflowStatusRepo,
+		documentChangeRequestStatusSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+		taskModule.TaskService)
+	documentCRReviewController := controllers.NewDocumentChangeRequestReviewController(documentCRReviewSvc)
 
 	return &DocumentModule{
 		DocumentCategoryController:                    documentCategoryController,
@@ -205,6 +225,8 @@ func NewDocumentModule(db *gorm.DB,
 		DocumentChangeRequestStatusController:         documentChangeRequestStatusController,
 		DocumentChangeRequestController:               documentChangeRequestController,
 		DocumentChangeRequestWorkflowStatusController: documentChangeRequestWorkflowStatusController,
+		DocumentChangeRequestReviewController:         documentCRReviewController,
+		DocumentChangeRequestWorkflowController:       documentChangeRequestWorkflowController,
 
 		DocumentSvc: documentSvc,
 	}

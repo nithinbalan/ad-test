@@ -161,6 +161,7 @@ func (repo *AuditFinalReportRepository) GetByAuditID(auditID uint) (*models.Audi
 	result := repo.db.Where("audit_id = ?", auditID).
 		Preload("Audit").
 		Preload("Audit.AuditPlan").
+		Preload("AuditFinalReportStatus").
 		First(&auditFinalReport)
 	if result.Error != nil {
 		return nil, result.Error

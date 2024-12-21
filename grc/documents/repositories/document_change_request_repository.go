@@ -29,6 +29,12 @@ type DocumentChangeRequestRepositoryInterface interface {
 	UpdateDocument(doc *models.DocumentChangeRequestDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocument(docId uint, tx ...utility.DatabaseTransaction) error
 
+	CreateDocumentCREditHistory(documentHistory *models.DocumentChangeRequestEditHistory, tx ...utility.DatabaseTransaction) (uint, error)
+	DeleteDocumentCREditHistory(docEditHistoryIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetDocumentCRLatestEditHistory(changeRequestID uint) (*models.DocumentChangeRequestEditHistory, error)
+	GetDocumentCREditHistories(changeRequestID uint) ([]*models.DocumentChangeRequestEditHistory, error)
+
 	CreateDocumentCRWorkflowReview(documentCRWorkflowReview *models.DocumentChangeRequestWorkflowReview, tx ...utility.DatabaseTransaction) error
 }
 
@@ -72,6 +78,8 @@ func (repo *DocumentChangeRequestRepository) GetAll(params *dtos.DocumentChangeR
 			created_by_user.last_name_en AS created_by_user_last_name_en,
 			created_by_user.last_name_ar AS created_by_user_last_name_ar,
 			created_by_user.email AS created_by_user_email,
+			created_by_user.initial AS created_by_user_initial,
+	        created_by_user.color AS created_by_user_color,
 			created_by_user.profile_image_path AS created_by_user_profile_image_path,
 			updated_by_user.id AS updated_by_user_id,
 			updated_by_user.first_name_en AS updated_by_user_first_name_en,
@@ -79,6 +87,8 @@ func (repo *DocumentChangeRequestRepository) GetAll(params *dtos.DocumentChangeR
 			updated_by_user.last_name_en AS updated_by_user_last_name_en,
 			updated_by_user.last_name_ar AS updated_by_user_last_name_ar,
 			updated_by_user.email AS updated_by_user_email,
+			updated_by_user.initial AS created_by_user_initial,
+	        updated_by_user.color AS created_by_user_color,
 			updated_by_user.profile_image_path AS updated_by_user_profile_image_path,
 			document_change_requests.created_at,
 			document_change_requests.updated_at
@@ -169,8 +179,12 @@ func (repo *DocumentChangeRequestRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("DocumentChangeRequestInitiate").
 		Preload("Document").
 		Preload("Document.ResponsibleUser").
+		Preload("Document.ResponsibleUnit").
+		Preload("Document.DocumentType").
+		Preload("Document.DocumentCategory").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("DocumentCREditHistory").
 		Preload("DocumentChangeRequestWorkflows").
 		Preload("DocumentChangeRequestWorkflows.DocumentChangeRequestWorkflowStatus").
 		Preload("DocumentChangeRequestWorkflows.DocumentChangeRequestWorkflowParticipants").
@@ -310,4 +324,53 @@ func (repo *DocumentChangeRequestRepository) CreateDocumentCRWorkflowReview(docu
 		return err
 	}
 	return nil
+}
+
+func (repo *DocumentChangeRequestRepository) CreateDocumentCREditHistory(documentHistory *models.DocumentChangeRequestEditHistory, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(documentHistory).Error; err != nil {
+		return 0, err
+	}
+	return documentHistory.ID, nil
+}
+
+func (repo *DocumentChangeRequestRepository) DeleteDocumentCREditHistory(docEditHistoryIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", docEditHistoryIds).Delete(&models.DocumentChangeRequestEditHistory{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *DocumentChangeRequestRepository) GetDocumentCRLatestEditHistory(changeRequestID uint) (*models.DocumentChangeRequestEditHistory, error) {
+	var history models.DocumentChangeRequestEditHistory
+	err := repo.db.
+		Preload("CreatedByUser").
+		Where("document_change_request_id = ?", changeRequestID).
+		Order("created_at DESC").
+		First(&history).Error
+	if err != nil {
+		return nil, err
+	}
+	return &history, nil
+}
+
+func (repo *DocumentChangeRequestRepository) GetDocumentCREditHistories(changeRequestID uint) ([]*models.DocumentChangeRequestEditHistory, error) {
+	var histories []*models.DocumentChangeRequestEditHistory
+	err := repo.db.
+		Where("document_change_request_id = ?", changeRequestID).
+		Order("created_at DESC").
+		Find(&histories).Error
+	if err != nil {
+		return nil, err
+	}
+	return histories, nil
 }

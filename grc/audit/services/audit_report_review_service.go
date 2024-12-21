@@ -101,21 +101,24 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 	if err != nil {
 		return err
 	}
+	auditFinalReport, err := arrs.auditFinalReportSvc.GetByID(existingAuditFinalReport.ID)
+	if err != nil {
+		return err
+	}
+	tx := arrs.repo.BeginTransaction()
+	currentDateStr := time.Now()
 
+	// currentDateStr := time.Now().Format("2006-01-02")
+	// submittedAt, err := utility.ParseDate(currentDateStr)
+	// if err != nil {
+	// 	return fmt.Errorf("error parsing current date: %w", err)
+	// }
+	//begin tx
+	
 	auditFinalReportStatus, err := arrs.auditFinalReportStatusSvc.GetByType("in-review")
 	if err != nil {
 		return err
 	}
-
-	existingAuditFinalReport.AuditFinalReportStatusID = auditFinalReportStatus.ID
-
-	currentDateStr := time.Now().Format("2006-01-02")
-	submittedAt, err := utility.ParseDate(currentDateStr)
-	if err != nil {
-		return fmt.Errorf("error parsing current date: %w", err)
-	}
-	//begin tx
-	tx := arrs.repo.BeginTransaction()
 	var level int
 	if existingAuditFinalReport.AuditFinalReportStatus.Type == "revert" {
 		level = existingAuditFinalReport.NextReviewLevel
@@ -124,17 +127,19 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 		level = 1
 	}
 
-	existingAuditFinalReport.SubmittedBYID = &currentUserID
-	existingAuditFinalReport.SubmittedAt = submittedAt
-	existingAuditFinalReport.NextReviewLevel = level
+	auditFinalReport.AuditFinalReportStatusID = auditFinalReportStatus.ID
+	auditFinalReport.SubmittedBYID = &currentUserID
+	auditFinalReport.SubmittedAt = &currentDateStr
+	auditFinalReport.NextReviewLevel = level
 
-	err = arrs.auditFinalReportSvc.Update(existingAuditFinalReport,tx)
+	err = arrs.auditFinalReportSvc.Update(auditFinalReport,tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
+
 	// Fetch the workflow level details, including participants (review users)
-	auditReportWorkflowLevel, err := arrs.auditReportWorkflowSvc.GetAuditReportWorkflowByLevel(existingAuditFinalReport.ID, level, tx)
+	auditReportWorkflowLevel, err := arrs.auditReportWorkflowSvc.GetAuditReportWorkflowByLevel(auditFinalReport.ID, level, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -714,6 +719,21 @@ func (arrs *AuditReportReviewService) handleRevertedCase(id, currentUserID uint,
 		return err
 	}
 	//todo
+	auditFinalReportStatus, err := arrs.auditFinalReportStatusSvc.GetByType("revert")
+	if err != nil {
+		return err
+	}
+	auditFinalReport, err := arrs.auditFinalReportSvc.GetByID(auditFinalReportDetailDTO.ID)
+	if err != nil {
+		return err
+	}
+	auditFinalReport.AuditFinalReportStatusID = auditFinalReportStatus.ID
+	auditFinalReport.UpdatedBYID = &currentUserID
+
+	err = arrs.auditFinalReportSvc.Update(auditFinalReport)
+	if err != nil {
+		return err
+	}
 
 	arrs.sendRevertedNotification(id, currentUserID, auditFinalReportDetailDTO)
 
