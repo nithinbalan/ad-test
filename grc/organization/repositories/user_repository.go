@@ -13,6 +13,7 @@ import (
 type UserRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error)
+	GetAllUsers() ([]*models.User, error)
 	GetByID(id uint) (*models.User, error)
 	GetFullDetailsByID(id uint) (*models.User, error)
 	GetByEmail(email string) (*models.User, error)
@@ -196,6 +197,12 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 		},
 	}
 	return response, nil
+}
+
+func (repo *UserRepository) GetAllUsers() ([]*models.User, error) {
+	var users []*models.User
+	result := repo.db.Select("id, first_name_en, last_name_en").Find(&users)
+	return users, result.Error
 }
 
 func (repo *UserRepository) GetByID(id uint) (*models.User, error) {
