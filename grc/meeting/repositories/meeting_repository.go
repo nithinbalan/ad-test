@@ -14,7 +14,7 @@ import (
 
 type MeetingRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(currentUserID uint, params *meetingDTOs.MeetingListQueryParamsDTO) (*meetingDTOs.MeetingListResponseDTO, error)
+	GetAll(currentUserID uint, params *meetingDTOs.MeetingListQueryParamsDTO, isSuperAdmin bool) (*meetingDTOs.MeetingListResponseDTO, error)
 	GetByID(id uint) (*models.Meeting, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Meeting, error)
 	Create(meeting *models.Meeting, tx ...utility.DatabaseTransaction) (uint, error)
@@ -54,7 +54,7 @@ func (repo *MeetingRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.MeetingListQueryParamsDTO) (*meetingDTOs.MeetingListResponseDTO, error) {
+func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.MeetingListQueryParamsDTO, isSuperAdmin bool) (*meetingDTOs.MeetingListResponseDTO, error) {
 	var meetings []*meetingDTOs.MeetingListDTO
 	var totalCount int64
 
@@ -115,8 +115,10 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
             LEFT JOIN users AS created_user ON created_user.id = meetings.created_by_id
             LEFT JOIN users AS updated_user ON updated_user.id = meetings.updated_by_id
         `)
-		//.Where("(meetings.is_public = ? OR meetings.organizer_id = ? OR meetings.id IN (SELECT meeting_id FROM meeting_participants WHERE user_id = ?))", true, currentUserID, currentUserID)
-
+    // Apply filters based on user role(if super admin list all meetings else based on follwing condition)
+    if !isSuperAdmin {
+        query = query.Where("(meetings.is_public = ? OR meetings.organizer_id = ? OR meetings.id IN (SELECT meeting_id FROM meeting_participants WHERE user_id = ?))", true, currentUserID, currentUserID)
+    }
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {

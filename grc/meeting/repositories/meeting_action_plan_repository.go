@@ -300,21 +300,22 @@ func (repo *MeetingActionPlanRepository) DeleteMeetingActionPlanStatusUpdates(id
 func (repo *MeetingActionPlanRepository) GetMeetingActionPlanSummary(meetingID uint) (openCount int, closedCount int, err error) {
 	var open int64
 	var closed int64
-
+	// Count open action plans
 	err = repo.db.Model(&models.MeetingActionPlan{}).
-		Where("meeting_id = ? AND action_plan_status_id IN (SELECT id FROM action_plan_statuses WHERE type IN ('new', 'in_progress', 'on_hold'))", meetingID).
+		Joins("JOIN action_plan_statuses ON meeting_action_plans.action_plan_status_id = action_plan_statuses.id").
+		Where("meeting_action_plans.meeting_id = ? AND action_plan_statuses.type IN ?", meetingID, []string{"new", "in_progress", "on_hold","reopen"}).
 		Count(&open).Error
 	if err != nil {
 		return 0, 0, err
 	}
-
+	// Count closed action plans
 	err = repo.db.Model(&models.MeetingActionPlan{}).
-		Where("meeting_id = ? AND action_plan_status_id IN (SELECT id FROM action_plan_statuses WHERE type IN ('completed', 'terminated'))", meetingID).
+		Joins("JOIN action_plan_statuses ON meeting_action_plans.action_plan_status_id = action_plan_statuses.id").
+		Where("meeting_action_plans.meeting_id = ? AND action_plan_statuses.type IN ?", meetingID, []string{"completed", "terminated", "close"}).
 		Count(&closed).Error
 	if err != nil {
 		return 0, 0, err
 	}
-
 	openCount = int(open)
 	closedCount = int(closed)
 
