@@ -105,7 +105,6 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 	if err != nil {
 		return err
 	}
-	fmt.Println("hiiii111111111111111111")
 	tx := arrs.repo.BeginTransaction()
 	currentDateStr := time.Now()
 
@@ -127,7 +126,6 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 		// For non-reverted report, start from level 1
 		level = 1
 	}
-	fmt.Println("hiiii1111111111111111112222222222222")
 
 	auditFinalReport.AuditFinalReportStatusID = auditFinalReportStatus.ID
 	auditFinalReport.SubmittedBYID = &currentUserID
@@ -139,7 +137,6 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 		tx.Rollback()
 		return err
 	}
-	fmt.Println("hiiii1111111111111111113333333333333333333333")
 
 	// Fetch the workflow level details, including participants (review users)
 	auditReportWorkflowLevel, err := arrs.auditReportWorkflowSvc.GetAuditReportWorkflowByLevel(auditFinalReport.ID, level, tx)
@@ -161,7 +158,6 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 	if err != nil {
 		return err
 	}
-	fmt.Println("4444444444444444444444444444444444444")
 
 	urlParam := fmt.Sprintf(`{"id":%d}`, existingAuditFinalReport.ID)
 	var taskIDs []uint
@@ -220,7 +216,6 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 		tx.Rollback()
 		return err
 	}
-	fmt.Println("hiiii1111111111111111115555555555555555555555555555555")
 
 	tx.Commit()
 
