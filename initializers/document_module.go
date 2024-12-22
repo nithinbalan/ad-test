@@ -171,6 +171,8 @@ func NewDocumentModule(db *gorm.DB,
 		documentChangeRequestStatusSvc,
 		documentChangeRequestWorkflowStatusSvc,
 		documentSvc,
+		taskModule.TaskService,
+		commonModule.NotificationService,
 	)
 	documentChangeRequestController := controllers.NewDocumentChangeRequestController(documentChangeRequestSvc)
 

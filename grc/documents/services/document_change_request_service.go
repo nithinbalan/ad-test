@@ -1,15 +1,18 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	documentDTOs "jethur/grc/documents/dtos"
 	documentRepositories "jethur/grc/documents/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 	"log"
 	"os"
@@ -52,6 +55,8 @@ type DocumentChangeRequestService struct {
 	documentChangeRequestWorkflowSvc DocumentChangeRequestWorkflowServiceInterface
 	documentCRWorkflowStatusSvc      DocumentChangeRequestWorkflowStatusServiceInterface
 	documentSvc                      DocumentServiceInterface
+	taskSvc                          taskServices.TaskServiceInterface
+	notificationSvc                  commonServices.NotificationServiceInterface
 }
 
 func NewDocumentChangeRequestService(
@@ -61,6 +66,8 @@ func NewDocumentChangeRequestService(
 	documentChangeRequestStatusSvc DocumentChangeRequestStatusServiceInterface,
 	documentCRWorkflowStatusSvc DocumentChangeRequestWorkflowStatusServiceInterface,
 	documentSvc DocumentServiceInterface,
+	taskSvc taskServices.TaskServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) DocumentChangeRequestServiceInterface {
 	return &DocumentChangeRequestService{
 		repo:                           repo,
@@ -69,6 +76,8 @@ func NewDocumentChangeRequestService(
 		documentChangeRequestStatusSvc: documentChangeRequestStatusSvc,
 		documentCRWorkflowStatusSvc:    documentCRWorkflowStatusSvc,
 		documentSvc:                    documentSvc,
+		taskSvc:                        taskSvc,
+		notificationSvc:                notificationSvc,
 	}
 }
 
@@ -794,120 +803,120 @@ func (dcrs *DocumentChangeRequestService) SubmitDocumentChangeRequest(id uint, c
 
 	tx.Commit()
 
-	// urlParam := fmt.Sprintf(`{"id":%d}`, id)
-	// var taskIDs []uint
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	var taskIDs []uint
 
-	// for _, participant := range docWorkflowLevel.DocumentWorkflowParticipants {
-	// 	taskDTO := commonDTOs.TaskFormDTO{
-	// 		ModuleIdentifier:   "document",
-	// 		DocumentID:         &id,
-	// 		DocumentWorkflowID: &docWorkflowLevel.ID,
-	// 		Title:              existingDocument.TitleEn,
-	// 		Description:        existingDocument.DescriptionEn,
-	// 		URLParam:           &urlParam,
-	// 		QueryParam:         nil,
-	// 		ResponsibleUserID:  participant.User.ID,
-	// 	}
+	for _, participant := range docCRWorkflowLevel.DocumentChangeRequestWorkflowParticipants {
+		taskDTO := commonDTOs.TaskFormDTO{
+			ModuleIdentifier:                "document",
+			DocumentChangeRequestID:         &id,
+			DocumentChangeRequestWorkflowID: &docCRWorkflowLevel.ID,
+			// Title:                           existingDocument.TitleEn,
+			// Description:                     existingDocument.DescriptionEn,
+			URLParam:          &urlParam,
+			QueryParam:        nil,
+			ResponsibleUserID: participant.User.ID,
+		}
 
-	// 	taskID, err := ds.taskSvc.Create(taskDTO, currentUserID)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	taskIDs = append(taskIDs, taskID)
+		taskID, err := dcrs.taskSvc.Create(taskDTO, currentUserID)
+		if err != nil {
+			return err
+		}
+		taskIDs = append(taskIDs, taskID)
 
-	// }
+	}
 
-	// for _, taskID := range taskIDs {
-	// 	relatedTaskIDs := []uint{}
-	// 	for _, otherTaskID := range taskIDs {
-	// 		if otherTaskID != taskID {
-	// 			relatedTaskIDs = append(relatedTaskIDs, otherTaskID)
-	// 		}
-	// 	}
+	for _, taskID := range taskIDs {
+		relatedTaskIDs := []uint{}
+		for _, otherTaskID := range taskIDs {
+			if otherTaskID != taskID {
+				relatedTaskIDs = append(relatedTaskIDs, otherTaskID)
+			}
+		}
 
-	// 	relatedTaskIDsJSON, err := json.Marshal(relatedTaskIDs)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+		relatedTaskIDsJSON, err := json.Marshal(relatedTaskIDs)
+		if err != nil {
+			return err
+		}
 
-	// 	err = ds.taskSvc.UpdateTaskWithRelatedIDs(taskID, string(relatedTaskIDsJSON))
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
+		err = ds.taskSvc.UpdateTaskWithRelatedIDs(taskID, string(relatedTaskIDsJSON))
+		if err != nil {
+			return err
+		}
+	}
 
-	//to do
-	//activity log
+	// to do
+	// activity log
 
-	// Prepare notification
-	// go func() {
-	// 	urlParam = fmt.Sprintf(`{"id":%d}`, id)
-	// 	entity := "document"
-	// 	action := "review-user-assign"
+	//Prepare notification
+	go func() {
+		urlParam = fmt.Sprintf(`{"id":%d}`, id)
+		entity := "document"
+		action := "review-user-assign"
 
-	// 	for _, participant := range docWorkflowLevel.DocumentWorkflowParticipants {
-	// 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-	// 			UserID:               participant.User.ID,
-	// 			ModuleIdentifier:     "document",
-	// 			NotificationType:     string(commonDTOs.ReviewType),
-	// 			ReferenceNumber:      existingDocument.ReferenceNumber,
-	// 			HeadingEn:            "Document Review",
-	// 			HeadingAr:            "مراجعة الوثيقة",
-	// 			TitleEn:              existingDocument.TitleEn,
-	// 			TitleAr:              existingDocument.TitleAr,
-	// 			Entity:               &entity,
-	// 			Action:               &action,
-	// 			URLParam:             urlParam,
-	// 			IsSystemNotification: false,
-	// 			CreatedByID:          &currentUserID,
-	// 		}
+		for _, participant := range docWorkflowLevel.DocumentWorkflowParticipants {
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               participant.User.ID,
+				ModuleIdentifier:     "document",
+				NotificationType:     string(commonDTOs.ReviewType),
+				ReferenceNumber:      existingDocument.ReferenceNumber,
+				HeadingEn:            "Document Review",
+				HeadingAr:            "مراجعة الوثيقة",
+				TitleEn:              existingDocument.TitleEn,
+				TitleAr:              existingDocument.TitleAr,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
 
-	// 		responsibleUser, err := ds.userSvc.GetByID(participant.User.ID)
-	// 		if err != nil {
-	// 			utility.LogError("Failed to fetch review user", map[string]interface{}{
-	// 				"error": err.Error(),
-	// 			})
-	// 			return
-	// 		}
+			responsibleUser, err := ds.userSvc.GetByID(participant.User.ID)
+			if err != nil {
+				utility.LogError("Failed to fetch review user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
 
-	// 		assignedBy, err := ds.userSvc.GetByID(currentUserID)
-	// 		if err != nil {
-	// 			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
-	// 				"error": err.Error(),
-	// 			})
-	// 			return
-	// 		}
+			assignedBy, err := ds.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
 
-	// 		emailTo := []string{responsibleUser.Email}
-	// 		subject := fmt.Sprintf("Document/%s: Review Assigned", existingDocument.TitleEn)
-	// 		appURL := utility.GetAppURL()
-	// 		emailData := map[string]interface{}{
-	// 			"FirstNameEn":           responsibleUser.FirstNameEn,
-	// 			"LastNameEn":            responsibleUser.LastNameEn,
-	// 			"DocumentTitle":         existingDocument.TitleEn,
-	// 			"DocumentType":          document.DocumentType.TitleEn,
-	// 			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
-	// 			"AssignedByLastNameEn":  assignedBy.LastNameEn,
-	// 			"AssignedOn":            time.Now().Format("2006-01-02"),
-	// 			"RedirectURL":           fmt.Sprintf("%s/document/register/%d", appURL, id),
-	// 		}
+			emailTo := []string{responsibleUser.Email}
+			subject := fmt.Sprintf("Document/%s: Review Assigned", existingDocument.TitleEn)
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn":           responsibleUser.FirstNameEn,
+				"LastNameEn":            responsibleUser.LastNameEn,
+				"DocumentTitle":         existingDocument.TitleEn,
+				"DocumentType":          document.DocumentType.TitleEn,
+				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+				"AssignedByLastNameEn":  assignedBy.LastNameEn,
+				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           fmt.Sprintf("%s/document/register/%d", appURL, id),
+			}
 
-	// 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-	// 			EmailTo:              emailTo,
-	// 			Subject:              subject,
-	// 			TemplateRelativePath: "document/templates/email/document_workflow_review_user_mail.html",
-	// 			EmailData:            emailData,
-	// 		}
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "document/templates/email/document_workflow_review_user_mail.html",
+				EmailData:            emailData,
+			}
 
-	// 		// Send Notification and Email
-	// 		err = ds.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document")
-	// 		if err != nil {
-	// 			utility.LogError("Failed to send notifications", map[string]interface{}{
-	// 				"error": err.Error(),
-	// 			})
-	// 		}
-	// 	}
-	// }()
+			// Send Notification and Email
+			err = ds.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+	}()
 
 	return nil
 }

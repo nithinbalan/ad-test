@@ -45,27 +45,29 @@ type DocumentFormDTO struct {
 }
 
 type TaskFormDTO struct {
-	ID                       *uint      `json:"id,omitempty"`
-	ModuleIdentifier         string     `json:"module_identifier" binding:"required"`
-	ComplianceActionPlanID   *uint      `json:"compliance_action_plan_id,omitempty"`
-	SLAActionPlanID          *uint      `json:"sla_action_plan_id,omitempty"`
-	IncidentActionPlanID     *uint      `json:"incident_action_plan_id,omitempty"`
-	ControlActionPlanID      *uint      `json:"control_action_plan_id,omitempty"`
-	RiskActionPlanID         *uint      `json:"risk_action_plan_id,omitempty"`
-	MeetingActionPlanID      *uint      `json:"meeting_action_plan_id,omitempty"`
-	AuditFindingActionPlanID *uint      `json:"audit_finding_action_plan_id,omitempty"`
-	DocumentID               *uint      `json:"document_id,omitempty"`
-	DocumentWorkflowID       *uint      `json:"document_workflow_id,omitempty"`
-	AuditDocumentRequestID   *uint      `json:"audit_document_request_id,omitempty"`
-	AuditFinalReportID       *uint      `json:"audit_final_report_id,omitempty"`
-	AuditDraftReportID       *uint      `json:"audit_draft_report_id,omitempty"`
-	AuditReportWorkflowID    *uint      `json:"audit_report_workflow_id,omitempty"`
-	Title                    string     `json:"title" binding:"required"`
-	Description              *string    `json:"description,omitempty"`
-	TargetDate               *time.Time `json:"target_date,omitempty"`
-	URLParam                 *string    `json:"url_param,omitempty"`
-	QueryParam               *string    `json:"query_param,omitempty"`
-	SeverityLevelID          *uint      `json:"severity_level_id,omitempty"`
-	ResponsibleUserID        uint       `json:"responsible_user_id" binding:"required"`
-	TaskStatusID             *uint      `json:"task_status_id"`
+	ID                              *uint      `json:"id,omitempty"`
+	ModuleIdentifier                string     `json:"module_identifier" binding:"required"`
+	ComplianceActionPlanID          *uint      `json:"compliance_action_plan_id,omitempty"`
+	SLAActionPlanID                 *uint      `json:"sla_action_plan_id,omitempty"`
+	IncidentActionPlanID            *uint      `json:"incident_action_plan_id,omitempty"`
+	ControlActionPlanID             *uint      `json:"control_action_plan_id,omitempty"`
+	RiskActionPlanID                *uint      `json:"risk_action_plan_id,omitempty"`
+	MeetingActionPlanID             *uint      `json:"meeting_action_plan_id,omitempty"`
+	AuditFindingActionPlanID        *uint      `json:"audit_finding_action_plan_id,omitempty"`
+	DocumentID                      *uint      `json:"document_id,omitempty"`
+	DocumentWorkflowID              *uint      `json:"document_workflow_id,omitempty"`
+	DocumentChangeRequestID         *uint      `json:"document_change_request_id,omitempty"`
+	DocumentChangeRequestWorkflowID *uint      `json:"document_change_request_workflow_id,omitempty"`
+	AuditDocumentRequestID          *uint      `json:"audit_document_request_id,omitempty"`
+	AuditFinalReportID              *uint      `json:"audit_final_report_id,omitempty"`
+	AuditDraftReportID              *uint      `json:"audit_draft_report_id,omitempty"`
+	AuditReportWorkflowID           *uint      `json:"audit_report_workflow_id,omitempty"`
+	Title                           string     `json:"title" binding:"required"`
+	Description                     *string    `json:"description,omitempty"`
+	TargetDate                      *time.Time `json:"target_date,omitempty"`
+	URLParam                        *string    `json:"url_param,omitempty"`
+	QueryParam                      *string    `json:"query_param,omitempty"`
+	SeverityLevelID                 *uint      `json:"severity_level_id,omitempty"`
+	ResponsibleUserID               uint       `json:"responsible_user_id" binding:"required"`
+	TaskStatusID                    *uint      `json:"task_status_id"`
 }
