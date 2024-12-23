@@ -78,6 +78,7 @@ func (repo *RiskHeatmapRepository) GetAllRiskRegisters() ([]models.RiskRegister,
 		Preload("CurrentRiskRatingValue").
 		Preload("RiskResponseStrategy").
 		Preload("RiskStatus").
+		Preload("ReviewFrequency").
 		Find(&risks).Error
 	if err != nil {
 		return nil, err
