@@ -5,6 +5,8 @@ import (
 	"fmt"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	documentDTOs "jethur/grc/documents/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
@@ -49,6 +51,7 @@ type AuditFinalReportService struct {
 	auditFinalReportStatusSvc AuditFinalReportStatusServiceInterface
 	auditFindingSvc           AuditFindingServiceInterface
 	auditReportWorkflowSvc    AuditReportWorkflowServiceInterface
+	notificationSvc           commonServices.NotificationServiceInterface
 }
 
 func NewAuditFinalReportService(
@@ -61,6 +64,7 @@ func NewAuditFinalReportService(
 	userSvc organizationServices.UserServiceInterface,
 	auditFinalReportStatusSvc AuditFinalReportStatusServiceInterface,
 	auditFindingSvc AuditFindingServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) AuditFinalReportServiceInterface {
 	return &AuditFinalReportService{
 		repo:                      repo,
@@ -72,6 +76,7 @@ func NewAuditFinalReportService(
 		userSvc:                   userSvc,
 		auditFinalReportStatusSvc: auditFinalReportStatusSvc,
 		auditFindingSvc:           auditFindingSvc,
+		notificationSvc:           notificationSvc,
 	}
 }
 func (afrs *AuditFinalReportService) SetAuditReportWorkflowService(svc AuditReportWorkflowServiceInterface) {
@@ -337,7 +342,7 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 		PublishedByUser:            publishedByUser,
 		PublishedAt:                publishedAt,
 		UpdatedByUser:              updatedByUser,
-		PreparedAt:                 auditFinalReport.CreatedAt.Format("2006-01-02"),
+		PreparedAt:                 auditFinalReport.CreatedAt.UTC().Format("2006-01-02T15:04:05.000Z"),
 	}
 	// Check if AuditFinalReportRecipients exists and map them
 	if auditFinalReport.AuditFinalReportRecipients != nil && len(auditFinalReport.AuditFinalReportRecipients) > 0 {
@@ -345,6 +350,7 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 			auditReportDTO.AuditFinalReportRecipients = append(auditReportDTO.AuditFinalReportRecipients, &auditDTOs.AuditFinalReportRecipientDTO{
 				ID:                 &recipient.ID,
 				AuditFinalReportID: recipient.AuditFinalReportID,
+				Type:               recipient.Type,
 				UserID:             recipient.UserID,
 				User:               mapUserToUserMinimalDTO(recipient.User),
 			})
@@ -1135,6 +1141,72 @@ func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, a
 
 	tx.Commit()
 	go func() {
+		urlParam := fmt.Sprintf(`{"id":%d}`, auditID)
+		entity := "audit-final-report"
+		action := "publish"
+
+		for _, recipient := range auditFinalReportRecipients {
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               recipient.User.ID,
+				ModuleIdentifier:     "audit",
+				NotificationType:     string(commonDTOs.ReviewType),
+				ReferenceNumber:      existingAuditFinalReport.ReferenceNumber,
+				HeadingEn:            "Publish Audit Final Report",
+				HeadingAr:            "نشر التقرير النهائي للتدقيق",
+				TitleEn:              existingAuditFinalReport.Audit.AuditPlan.Title,
+				TitleAr:              existingAuditFinalReport.Audit.AuditPlan.Title,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			responsibleUser, err := afrs.userSvc.GetByID(recipient.User.ID)
+			if err != nil {
+				utility.LogError("Failed to fetch review user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			assignedBy, err := afrs.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			emailTo := []string{responsibleUser.Email}
+			subject := fmt.Sprintf("Audit Final Report /%s: Published", existingAuditFinalReport.Audit.AuditPlan.Title)
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn":            responsibleUser.FirstNameEn,
+				"LastNameEn":             responsibleUser.LastNameEn,
+				"AuditTitle":             existingAuditFinalReport.Audit.AuditPlan.Title,
+				"ReferenceNumber":        existingAuditFinalReport.Audit.AuditPlan.ReferenceNumber,
+				"PublishedByFirstNameEn": assignedBy.FirstNameEn,
+				"PublishedByLastNameEn":  assignedBy.LastNameEn,
+				"PublishedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":            fmt.Sprintf("%s/audits/%d", appURL, auditID),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "audit/templates/email/audit_final_report_publish_mail.html",
+				EmailData:            emailData,
+			}
+
+			// Send Notification and Email
+			err = afrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
 		err := afrs.activityLogSvc.LogActivity(
 			models.SubmitAction,
 			models.AuditFinalReport{}.TableName(),

@@ -113,5 +113,6 @@ type AuditFinalReportRecipientDTO struct {
 	ID                 *uint                           `json:"id"`
 	AuditFinalReportID uint                            `json:"audit_final_report_id"`
 	UserID             uint                            `json:"user_id"`
+	Type               string                          `json:"type"`
 	User               organizationDTOs.UserMinimalDTO `json:"user"`
 }
