@@ -1,7 +1,5 @@
 package dtos
 
-import commonDTOs "jethur/grc/common/dtos"
-
 type BusinessImpactAssessmentListDTO struct {
 	ID                          uint    `json:"id"`
 	ProcessID                   *uint   `json:"process_id"`
@@ -28,14 +26,14 @@ type BusinessImpactAssessmentListDTO struct {
 	CreatedUserEmail            string  `json:"created_user_email"`
 	CreatedUserProfileImagePath string  `json:"created_user_profile_image_path"`
 	UpdatedUserID               *uint   `json:"updated_user_id"`
-	UpdatedUserFirstNameEn      string  `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr      string  `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn       string  `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr       string  `json:"updated_user_last_name_ar"`
-	UpdatedUserInitial          string  `json:"updated_user_initial"`
-	UpdatedUserColor            string  `json:"updated_user_color"`
-	UpdatedUserEmail            string  `json:"updated_user_email"`
-	UpdatedUserProfileImagePath string  `json:"updated_user_profile_image_path"`
+	UpdatedUserFirstNameEn      *string `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr      *string `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn       *string `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr       *string `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial          *string `json:"updated_user_initial"`
+	UpdatedUserColor            *string `json:"updated_user_color"`
+	UpdatedUserEmail            *string `json:"updated_user_email"`
+	UpdatedUserProfileImagePath *string `json:"updated_user_profile_image_path"`
 }
 
 type BusinessImpactAssessmentRecoveryObjectiveListDTO struct {
@@ -44,8 +42,8 @@ type BusinessImpactAssessmentRecoveryObjectiveListDTO struct {
 	ProcessTitleEn               string  `json:"process_title_en"`
 	ProcessTitleAr               string  `json:"process_title_ar"`
 	AssetRegisterID              *uint   `json:"asset_register_id"`
-	AssetRegisterTitleEn         string  `json:"asset_register_title_en"`
-	AssetRegisterTitleAr         string  `json:"asset_register_title_ar"`
+	AssetRegisterTitleEn         *string `json:"asset_register_title_en"`
+	AssetRegisterTitleAr         *string `json:"asset_register_title_ar"`
 	AssetRegisterRto             *uint   `json:"asset_register_rto"`
 	AssetRegisterRtoUnitId       *uint   `json:"asset_register_rto_unit_id"`
 	AssetRegisterRtoUnitTitleEn  *string `json:"asset_register_rto_unit_title_en"`
@@ -59,8 +57,8 @@ type BusinessImpactAssessmentRecoveryObjectiveListDTO struct {
 	AssetRegisterRpoUnitTitleEn  *string `json:"asset_register_rpo_unit_title_en"`
 	AssetRegisterRpoUnitTitleAr  *string `json:"asset_register_rpo_unit_title_ar"`
 	DocumentID                   *uint   `json:"document_id"`
-	DocumentTitleEn              string  `json:"document_title_en"`
-	DocumentTitleAr              string  `json:"document_title_ar"`
+	DocumentTitleEn              *string `json:"document_title_en"`
+	DocumentTitleAr              *string `json:"document_title_ar"`
 	DocumentRto                  *uint   `json:"document_rto"`
 	DocumentRtoUnitId            *uint   `json:"document_rto_unit_id"`
 	DocumentRtoUnitTitleEn       *string `json:"document_rto_unit_title_en"`
@@ -85,50 +83,43 @@ type BusinessImpactAssessmentRecoveryObjectiveListDTO struct {
 	CreatedUserEmail             string  `json:"created_user_email"`
 	CreatedUserProfileImagePath  string  `json:"created_user_profile_image_path"`
 	UpdatedUserID                *uint   `json:"updated_user_id"`
-	UpdatedUserFirstNameEn       string  `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr       string  `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn        string  `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr        string  `json:"updated_user_last_name_ar"`
-	UpdatedUserInitial           string  `json:"updated_user_initial"`
-	UpdatedUserColor             string  `json:"updated_user_color"`
-	UpdatedUserEmail             string  `json:"updated_user_email"`
-	UpdatedUserProfileImagePath  string  `json:"updated_user_profile_image_path"`
+	UpdatedUserFirstNameEn       *string `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr       *string `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn        *string `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr        *string `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial           *string `json:"updated_user_initial"`
+	UpdatedUserColor             *string `json:"updated_user_color"`
+	UpdatedUserEmail             *string `json:"updated_user_email"`
+	UpdatedUserProfileImagePath  *string `json:"updated_user_profile_image_path"`
 }
 
 type BusinessImpactAssessmentListQueryParamsDTO struct {
-	Sort        string
-	SortBy      string
-	Keyword     string
-	Page        int
-	PageSize    int
-	Filters     map[string][]string
-	QuickFilter []string
-	Export      bool
+	Sort    string
+	SortBy  string
+	Keyword string
+	Filters map[string][]string
 }
 
 type BusinessImpactAssessmentListResponseDTO struct {
-	Items      []*BusinessImpactAssessmentListDTO `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO       `json:"pagination"`
+	Items []*BusinessImpactAssessmentListDTO `json:"items"`
 }
 
 type BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO struct {
-	Sort        string
-	SortBy      string
-	Keyword     string
-	Page        int
-	PageSize    int
-	Filters     map[string][]string
-	QuickFilter []string
-	Export      bool
+	Sort    string
+	SortBy  string
+	Keyword string
+	Filters map[string][]string
 }
 
 type BusinessImpactAssessmentRecoveryObjectiveListResponseDTO struct {
-	Items      []*BusinessImpactAssessmentRecoveryObjectiveListDTO `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO                        `json:"pagination"`
+	Items []*BusinessImpactAssessmentRecoveryObjectiveListDTO `json:"items"`
+}
+
+type BusinessImpactFormDTO struct {
+	ProcessID *uint `json:"process_id"`
 }
 
 type BusinessImpactAssessmentFormDTO struct {
-	Type                      string                        `json:"type"`
 	ProcessID                 *uint                         `json:"process_id"`
 	BusinessImpactAssessments []BusinessImpactAssessmentDTO `json:"business_impact_assessments"`
 }
@@ -141,7 +132,6 @@ type BusinessImpactAssessmentDTO struct {
 }
 
 type BusinessImpactAssessmentRecoveryObjectiveFormDTO struct {
-	Type               string                                         `json:"type"`
 	ProcessID          *uint                                          `json:"process_id"`
 	Rto                *uint                                          `json:"rto"`
 	RtoUnitId          *uint                                          `json:"rto_unit_id"`

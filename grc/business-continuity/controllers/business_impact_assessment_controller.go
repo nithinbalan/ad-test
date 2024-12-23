@@ -1,13 +1,11 @@
 package controllers
 
 import (
-	"errors"
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	"jethur/grc/business-continuity/services"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/utility"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -26,55 +24,20 @@ func NewBusinessImpactAssessmentController(service services.BusinessImpactAssess
 
 func (biac *BusinessImpactAssessmentController) GetAllBusinessImpactAssessments(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "id")
 	keyword := c.Query("keyword")
-	quickFilter := c.QueryArray("quick_filter")
-
-	// Convert the export parameter to a boolean
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(biac.db, c, "Invalid export parameter")
-		return
-	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"process_ids",
-		"asset_register_ids",
 		"risk_level_ids",
-	}
-	validSortFields := map[string]string{
-		"id": "business_impact_assessments.id",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
-	page, err := utility.ParseQueryParamToInt(c, "page", 1)
-	if err != nil {
-		utility.SendInternalErrResp(biac.db, c, "Invalid page parameter")
-		return
-	}
-
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
-	if err != nil {
-		utility.SendInternalErrResp(biac.db, c, "Invalid page_size parameter")
-		return
-	}
-	sortField, valid := validSortFields[sortBy]
-	if !valid {
-		err := errors.New("invalid 'sort_by' parameter")
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
 	queryParams := businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortField,
-		Keyword:     keyword,
-		Page:        page,
-		PageSize:    pageSize,
-		Filters:     filters,
-		QuickFilter: quickFilter,
-		Export:      export,
+		Sort:    sort,
+		Keyword: keyword,
+		Filters: filters,
 	}
 	businessImpactAssessments, err := biac.service.GetAll(&queryParams)
 
@@ -88,56 +51,21 @@ func (biac *BusinessImpactAssessmentController) GetAllBusinessImpactAssessments(
 
 func (biac *BusinessImpactAssessmentController) GetAllBusinessImpactAssessmentRecoveryObjectives(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "id")
 	keyword := c.Query("keyword")
-	quickFilter := c.QueryArray("quick_filter")
-
-	// Convert the export parameter to a boolean
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(biac.db, c, "Invalid export parameter")
-		return
-	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"process_ids",
 	}
-	validSortFields := map[string]string{
-		"id": "business_impact_assessment_recovery_objectives.id",
-	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
-	page, err := utility.ParseQueryParamToInt(c, "page", 1)
-	if err != nil {
-		utility.SendInternalErrResp(biac.db, c, "Invalid page parameter")
-		return
-	}
-
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
-	if err != nil {
-		utility.SendInternalErrResp(biac.db, c, "Invalid page_size parameter")
-		return
-	}
-	sortField, valid := validSortFields[sortBy]
-	if !valid {
-		err := errors.New("invalid 'sort_by' parameter")
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
 	queryParams := businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortField,
-		Keyword:     keyword,
-		Page:        page,
-		PageSize:    pageSize,
-		Filters:     filters,
-		QuickFilter: quickFilter,
-		Export:      export,
+		Sort:    sort,
+		Keyword: keyword,
+		Filters: filters,
 	}
 	businessImpactAssessments, err := biac.service.GetAllBusinessImpactAssessmentRecoveryObjectives(&queryParams)
-
 	if err != nil {
 		utility.SendInternalErrResp(biac.db, c, err.Error())
 		return
@@ -147,7 +75,7 @@ func (biac *BusinessImpactAssessmentController) GetAllBusinessImpactAssessmentRe
 }
 
 func (biac *BusinessImpactAssessmentController) CreateBusinessImpactAssessment(c *gin.Context) {
-	var businessImpactAssessmentFormDTO businessContinuityDTOs.BusinessImpactAssessmentFormDTO
+	var businessImpactAssessmentFormDTO businessContinuityDTOs.BusinessImpactFormDTO
 
 	if err := c.ShouldBindJSON(&businessImpactAssessmentFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -161,7 +89,6 @@ func (biac *BusinessImpactAssessmentController) CreateBusinessImpactAssessment(c
 	}
 
 	id, err := biac.service.Create(currentUserID, &businessImpactAssessmentFormDTO)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -179,7 +106,7 @@ func (biac *BusinessImpactAssessmentController) CreateBusinessImpactAssessment(c
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
-func (biac *BusinessImpactAssessmentController) UpdateBusinessImpactAssessment(c *gin.Context) {
+func (biac *BusinessImpactAssessmentController) UpdateImpactAssessment(c *gin.Context) {
 	var BusinessImpactAssessmentFormDTO businessContinuityDTOs.BusinessImpactAssessmentFormDTO
 
 	if err := c.ShouldBindJSON(&BusinessImpactAssessmentFormDTO); err != nil {
@@ -193,8 +120,7 @@ func (biac *BusinessImpactAssessmentController) UpdateBusinessImpactAssessment(c
 		return
 	}
 
-	err = biac.service.UpdateBusinessImpactAssessment(BusinessImpactAssessmentFormDTO, currentUserID)
-
+	err = biac.service.UpdateImpactAssessment(BusinessImpactAssessmentFormDTO, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -211,7 +137,7 @@ func (biac *BusinessImpactAssessmentController) UpdateBusinessImpactAssessment(c
 	c.Status(http.StatusOK)
 }
 
-func (biac *BusinessImpactAssessmentController) UpdateBusinessImpactAssessmentRecoveryObjective(c *gin.Context) {
+func (biac *BusinessImpactAssessmentController) UpdateRecoveryObjective(c *gin.Context) {
 	var businessImpactAssessmentRecoveryObjectiveFormDTO businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveFormDTO
 
 	if err := c.ShouldBindJSON(&businessImpactAssessmentRecoveryObjectiveFormDTO); err != nil {
@@ -225,8 +151,7 @@ func (biac *BusinessImpactAssessmentController) UpdateBusinessImpactAssessmentRe
 		return
 	}
 
-	err = biac.service.UpdateRecoveryObjective(businessImpactAssessmentRecoveryObjectiveFormDTO, currentUserID)
-
+	err = biac.service.UpdateRecoveryObjectives(businessImpactAssessmentRecoveryObjectiveFormDTO, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

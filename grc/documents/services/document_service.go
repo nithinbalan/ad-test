@@ -58,6 +58,7 @@ type DocumentServiceInterface interface {
 
 	GetDocumentVersionByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentVersion, error)
 	UpdateDocumentVersion(documentVersion *models.DocumentVersion, tx ...utility.DatabaseTransaction) error
+	UpdateDocumentBusinessImpactAssessment(document *models.Document, tx utility.DatabaseTransaction) error
 }
 
 type DocumentService struct {
@@ -2232,4 +2233,15 @@ func (ds *DocumentService) notifyUsersOnPublish(document *documentDTOs.DocumentD
 
 		}
 	}()
+}
+
+func (ds *DocumentService) UpdateDocumentBusinessImpactAssessment(document *models.Document, tx utility.DatabaseTransaction) error {
+
+	err := ds.repo.Update(document, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return nil
 }

@@ -2,7 +2,6 @@ package repositories
 
 import (
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
-	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -20,9 +19,6 @@ type BusinessImpactAssessmentRepositoryInterface interface {
 	DeleteBusinessImpactAssessmentsByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
 	DeleteBusinessImpactAssessmentRecoveryObjectivesByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
 	GetBusinessImpactAssessmentsByProcessID(processID uint) ([]*models.BusinessImpactAssessment, error)
-	UpdateAsset(assetRegister *models.AssetRegister, tx ...utility.DatabaseTransaction) error
-	UpdateProcess(process *models.Process, tx ...utility.DatabaseTransaction) error
-	UpdateDocument(process *models.Document, tx ...utility.DatabaseTransaction) error
 }
 
 type BusinessImpactAssessmentRepository struct {
@@ -121,31 +117,15 @@ func (repo *BusinessImpactAssessmentRepository) GetAll(params *businessContinuit
 		return nil, err
 	}
 
-	// query = query.Order(params.SortBy + " " + params.Sort)
-
-	if !params.Export {
-		offset := (params.Page - 1) * params.PageSize
-		query = query.Offset(offset).Limit(params.PageSize)
-	}
+	query = query.Order("business_impact_assessments.id")
 
 	err := query.Find(&businessImpactAssessments).Error
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := 1
-	if !params.Export {
-		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-	}
-
 	response := &businessContinuityDTOs.BusinessImpactAssessmentListResponseDTO{
 		Items: businessImpactAssessments,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
 	}
 	return response, nil
 }
@@ -255,31 +235,15 @@ func (repo *BusinessImpactAssessmentRepository) GetAllBusinessImpactAssessmentRe
 		return nil, err
 	}
 
-	// query = query.Order(params.SortBy + " " + params.Sort)
-
-	if !params.Export {
-		offset := (params.Page - 1) * params.PageSize
-		query = query.Offset(offset).Limit(params.PageSize)
-	}
+	query = query.Order("business_impact_assessment_recovery_objectives.id")
 
 	err := query.Find(&businessImpactAssessments).Error
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := 1
-	if !params.Export {
-		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-	}
-
 	response := &businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListResponseDTO{
 		Items: businessImpactAssessments,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
 	}
 	return response, nil
 }
@@ -368,25 +332,4 @@ func (repo *BusinessImpactAssessmentRepository) GetBusinessImpactAssessmentsByPr
 		return nil, err
 	}
 	return businessImpactAssessments, nil
-}
-
-func (repo *BusinessImpactAssessmentRepository) UpdateAsset(assetRegister *models.AssetRegister, tx ...utility.DatabaseTransaction) error {
-	if err := repo.db.Save(assetRegister).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *BusinessImpactAssessmentRepository) UpdateProcess(process *models.Process, tx ...utility.DatabaseTransaction) error {
-	if err := repo.db.Save(process).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *BusinessImpactAssessmentRepository) UpdateDocument(document *models.Document, tx ...utility.DatabaseTransaction) error {
-	if err := repo.db.Save(document).Error; err != nil {
-		return err
-	}
-	return nil
 }

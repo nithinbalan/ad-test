@@ -24,6 +24,7 @@ type AssetRegisterServiceInterface interface {
 
 	UpdateTotalScore(assetID uint, totalScore float64, tx ...utility.DatabaseTransaction) error
 	GetControlSummary(assetID uint) (map[string]interface{}, error)
+	UpdateAssetBusinessImpactAssessment(asset *models.AssetRegister, tx utility.DatabaseTransaction) error
 }
 
 type AssetRegisterService struct {
@@ -568,4 +569,15 @@ func (ars *AssetRegisterService) GetControlSummary(assetID uint) (map[string]int
 	}
 
 	return summary, nil
+}
+
+func (ars *AssetRegisterService) UpdateAssetBusinessImpactAssessment(assetRegister *models.AssetRegister, tx utility.DatabaseTransaction) error {
+
+	err := ars.repo.Update(assetRegister, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return nil
 }

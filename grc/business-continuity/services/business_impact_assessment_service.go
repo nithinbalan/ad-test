@@ -17,9 +17,9 @@ import (
 type BusinessImpactAssessmentServiceInterface interface {
 	GetAll(params *businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentListResponseDTO, error)
 	GetAllBusinessImpactAssessmentRecoveryObjectives(params *businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListResponseDTO, error)
-	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.BusinessImpactAssessmentFormDTO) (uint, error)
-	UpdateBusinessImpactAssessment(businessImpactAssessmentFormDTO businessContinuityDTOs.BusinessImpactAssessmentFormDTO, currentUserID uint) error
-	UpdateRecoveryObjective(businessImpactAssessmentRecoveryObjectiveFormDTO businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveFormDTO, currentUserID uint) error
+	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.BusinessImpactFormDTO) (uint, error)
+	UpdateImpactAssessment(businessImpactAssessmentFormDTO businessContinuityDTOs.BusinessImpactAssessmentFormDTO, currentUserID uint) error
+	UpdateRecoveryObjectives(businessImpactAssessmentRecoveryObjectiveFormDTO businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveFormDTO, currentUserID uint) error
 }
 
 // Service and implementations
@@ -61,7 +61,7 @@ func (bias *BusinessImpactAssessmentService) GetAllBusinessImpactAssessmentRecov
 	return bias.repo.GetAllBusinessImpactAssessmentRecoveryObjectives(params)
 }
 
-func (bias *BusinessImpactAssessmentService) Create(currentUserID uint, businessImpactAssessmentFormDTO *businessContinuityDTOs.BusinessImpactAssessmentFormDTO) (uint, error) {
+func (bias *BusinessImpactAssessmentService) Create(currentUserID uint, businessImpactAssessmentFormDTO *businessContinuityDTOs.BusinessImpactFormDTO) (uint, error) {
 	tx := bias.repo.BeginTransaction()
 	impactCategories, err := bias.impactCategorySvc.GetAll("", "", "", "")
 	if err != nil {
@@ -103,7 +103,7 @@ func (bias *BusinessImpactAssessmentService) Create(currentUserID uint, business
 	existingProcess.LastAssessedByID = &currentUserID
 	existingProcess.LastAssessedAt = &now
 
-	err = bias.repo.UpdateProcess(existingProcess, tx)
+	err = bias.processSvc.UpdateProcessBusinessImpactAssessment(existingProcess, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -153,7 +153,7 @@ func (bias *BusinessImpactAssessmentService) Create(currentUserID uint, business
 	return process.ID, nil
 }
 
-func (bias *BusinessImpactAssessmentService) UpdateBusinessImpactAssessment(businessImpactAssessmentFormDTO businessContinuityDTOs.BusinessImpactAssessmentFormDTO, currentUserID uint) error {
+func (bias *BusinessImpactAssessmentService) UpdateImpactAssessment(businessImpactAssessmentFormDTO businessContinuityDTOs.BusinessImpactAssessmentFormDTO, currentUserID uint) error {
 	tx := bias.repo.BeginTransaction()
 	var oldBusinessImpactAssessment []map[string]interface{}
 	var existingBusinessImpactAssessment []*models.BusinessImpactAssessment
@@ -235,7 +235,7 @@ func (bias *BusinessImpactAssessmentService) UpdateBusinessImpactAssessment(busi
 	return nil
 }
 
-func (bias *BusinessImpactAssessmentService) UpdateRecoveryObjective(businessImpactAssessmentRecoveryObjectiveFormDTO businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveFormDTO, currentUserID uint) error {
+func (bias *BusinessImpactAssessmentService) UpdateRecoveryObjectives(businessImpactAssessmentRecoveryObjectiveFormDTO businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveFormDTO, currentUserID uint) error {
 	tx := bias.repo.BeginTransaction()
 	var oldBusinessImpactAssessment []map[string]interface{}
 	var existingBusinessImpactAssessment []*models.BusinessImpactAssessmentRecoveryObjective
@@ -287,7 +287,7 @@ func (bias *BusinessImpactAssessmentService) UpdateRecoveryObjective(businessImp
 				existingAsset.RpoUnitId = recoveryObjective.RpoUnitId
 				existingAsset.UpdatedBYID = &currentUserID
 
-				err = bias.repo.UpdateAsset(existingAsset, tx)
+				err = bias.assetRegisterSvc.UpdateAssetBusinessImpactAssessment(existingAsset, tx)
 				if err != nil {
 					tx.Rollback()
 					return err
@@ -307,7 +307,7 @@ func (bias *BusinessImpactAssessmentService) UpdateRecoveryObjective(businessImp
 				existingDocument.RpoUnitId = recoveryObjective.RpoUnitId
 				existingDocument.UpdatedBYID = &currentUserID
 
-				err = bias.repo.UpdateDocument(existingDocument, tx)
+				err = bias.documentSvc.UpdateDocumentBusinessImpactAssessment(existingDocument, tx)
 				if err != nil {
 					tx.Rollback()
 					return err
@@ -328,7 +328,7 @@ func (bias *BusinessImpactAssessmentService) UpdateRecoveryObjective(businessImp
 		existingProcess.RpoUnitId = businessImpactAssessmentRecoveryObjectiveFormDTO.RpoUnitId
 		existingProcess.UpdatedBYID = &currentUserID
 
-		err = bias.repo.UpdateProcess(existingProcess, tx)
+		err = bias.processSvc.UpdateProcessBusinessImpactAssessment(existingProcess, tx)
 		if err != nil {
 			tx.Rollback()
 			return err
