@@ -35,6 +35,7 @@ type AuditFinalReportServiceInterface interface {
 	GetAuditFinalReportLastEditSummary(auditID uint) (*auditDTOs.AuditFinalReportLastEditSummaryDTO, error)
 
 	CreateAuditReportEditHistory(auditReportEditSummaryDTO *auditDTOs.AuditReportEditHistoryDTO, currentUserId uint, tx ...utility.DatabaseTransaction) error
+	Publish(auditID uint, currentUserID uint, auditFinalReportPublishFormDTO *auditDTOs.AuditFinalReportPublishFormDTO) error
 }
 
 type AuditFinalReportService struct {
@@ -1033,4 +1034,104 @@ func mapSectionToDTO(section *models.AuditFinalReportSection) *auditDTOs.AuditFi
 		CreatedAt: section.CreatedAt.Format("2006-01-02"),
 		// UpdatedAt: section.UpdatedAt.Format("2006-01-02"),
 	}
+}
+
+func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, auditFinalReportPublishFormDTO *auditDTOs.AuditFinalReportPublishFormDTO) error {
+	if _, err := afrs.auditSvc.GetByID(auditID); err != nil {
+		return err
+	}
+	existingAuditFinalReport, err := afrs.GetByAuditID(auditID)
+	if err != nil {
+		return err
+	}
+	auditFinalReport, err := afrs.GetByID(existingAuditFinalReport.ID)
+	if err != nil {
+		return err
+	}
+	auditFinalReportStatusPublished, err := afrs.auditFinalReportStatusSvc.GetByType("published")
+	if err != nil {
+		return err
+	}
+	if existingAuditFinalReport.AuditFinalReportStatusID == auditFinalReportStatusPublished.ID {
+		return utility.NewForbiddenError("The audit final report has already been published.")
+	}
+	auditFinalReportStatus, err := afrs.auditFinalReportStatusSvc.GetByType("approve")
+	if err != nil {
+		return err
+	}
+	if existingAuditFinalReport.AuditFinalReportStatusID != auditFinalReportStatus.ID {
+		return utility.NewForbiddenError("The audit final report has not been approved.")
+	}
+
+	tx := afrs.repo.BeginTransaction()
+
+	var auditFinalReportRecipients []*models.AuditFinalReportRecipient
+
+	// Add CC users
+	for _, userID := range auditFinalReportPublishFormDTO.CCUserIDs {
+		auditFinalReportRecipient := &models.AuditFinalReportRecipient{
+			AuditFinalReportID: existingAuditFinalReport.ID,
+			UserID:             userID,
+			Type:               "cc",
+			CreatedBYID:        currentUserID,
+		}
+		auditFinalReportRecipients = append(auditFinalReportRecipients, auditFinalReportRecipient)
+	}
+	
+	// Add To user
+	toRecipient := &models.AuditFinalReportRecipient{
+		AuditFinalReportID: existingAuditFinalReport.ID,
+		UserID:             auditFinalReportPublishFormDTO.ToUserID,
+		Type:               "to",
+		CreatedBYID:        currentUserID,
+	}
+	auditFinalReportRecipients = append(auditFinalReportRecipients, toRecipient)
+	
+	// Save recipients to the database
+	if len(auditFinalReportRecipients) > 0 {
+		if err := afrs.repo.CreateAuditFinalReportRecipients(auditFinalReportRecipients, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	
+	
+	//update status & Publishedby user details on final report
+	currentDateStr := time.Now()
+	auditFinalReport.AuditFinalReportStatusID = auditFinalReportStatusPublished.ID
+	auditFinalReport.PublishedBYID = &currentUserID
+	auditFinalReport.PublishedAt = &currentDateStr
+	auditFinalReport.Comment = auditFinalReportPublishFormDTO.Comment
+
+	err = afrs.repo.Update(auditFinalReport,tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+	go func() {
+		err := afrs.activityLogSvc.LogActivity(
+			models.SubmitAction,
+			models.AuditFinalReport{}.TableName(),
+			existingAuditFinalReport.ID,
+			auditFinalReportPublishFormDTO,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.SubmitAction,
+				"tableName": models.AuditFinalReport{}.TableName(),
+				"recordID":  existingAuditFinalReport.ID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
 }

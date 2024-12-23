@@ -100,3 +100,9 @@ type ActivityDTO struct {
 	Comment   *string                          `json:"comment"`
 	Timestamp time.Time                        `json:"timestamp"`
 }
+
+type AuditFinalReportPublishFormDTO struct {
+	CCUserIDs []uint  `json:"cc_user_ids" binding:"required"`
+	ToUserID  uint    `json:"to_user_id" binding:"required"`
+	Comment   *string `json:"comment"`
+}

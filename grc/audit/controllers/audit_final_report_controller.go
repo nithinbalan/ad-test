@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"jethur/grc/audit/dtos"
 	"jethur/grc/audit/services"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/utility"
@@ -140,4 +141,44 @@ func (afrc *AuditFinalReportController) GetLastEditSummary(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, lastEditSummary)
+}
+
+func (afrc *AuditFinalReportController) PublishAuditFinalReport(c *gin.Context) {
+	auditID, err := strconv.Atoi(c.Param("auditId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(afrc.db, c, err.Error())
+		return
+	}
+	var auditFinalReportPublishFormDTO dtos.AuditFinalReportPublishFormDTO
+
+	if err := c.ShouldBindJSON(&auditFinalReportPublishFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	err = afrc.service.Publish(uint(auditID), currentUserID, &auditFinalReportPublishFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(afrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
 }
