@@ -266,7 +266,6 @@ type RiskRegisterFormDTO struct {
 	Description              *string                       `json:"description"`
 	ReportedAt               *string                       `json:"reported_at" binding:"required,datetime=2006-01-02"`
 	ReviewFrequencyID        *uint                         `json:"review_frequency_id"`
-	RiskResponseStrategyID   *uint                         `json:"risk_response_strategy_id"`
 	NextReviewDate           *string                       `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
 	LastReviewNote           *string                       `json:"last_review_note" binding:"omitempty"`
 	Documents                []*commonDTOs.DocumentFormDTO `json:"documents"`
