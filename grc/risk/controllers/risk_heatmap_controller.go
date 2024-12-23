@@ -244,8 +244,8 @@ func (rhc *RiskHeatmapController) GetRiskHeatmapByRiskStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, riskHeatmap)
 }
 
-func (rhc *RiskHeatmapController) GetRiskHeatmapByResponseFrequency(c *gin.Context) {
-	riskHeatmap, err := rhc.service.GetRiskHeatmapByResponseFrequency()
+func (rhc *RiskHeatmapController) GetRiskHeatmapByReviewFrequency(c *gin.Context) {
+	riskHeatmap, err := rhc.service.GetRiskHeatmapByReviewFrequency()
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

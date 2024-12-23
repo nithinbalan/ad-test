@@ -17,7 +17,7 @@ type RiskHeatmapServiceInterface interface {
 	GetRiskHeatmapByRiskMatrix() ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
 	GetRiskHeatmapByResponseStrategy() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
 	GetRiskHeatmapByRiskStatus() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
-	GetRiskHeatmapByResponseFrequency() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
+	GetRiskHeatmapByReviewFrequency() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
 }
 
 type RiskHeatmapService struct {
@@ -525,7 +525,7 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByRiskStatus() ([]*riskDTOs.RiskHea
 	return heatmapResponses, nil
 }
 
-func (rhs *RiskHeatmapService) GetRiskHeatmapByResponseFrequency() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error) {
+func (rhs *RiskHeatmapService) GetRiskHeatmapByReviewFrequency() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error) {
 	riskRegisters, err := rhs.repo.GetAllRiskRegisters()
 	if err != nil {
 		return nil, err
