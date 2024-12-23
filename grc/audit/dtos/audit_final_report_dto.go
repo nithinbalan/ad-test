@@ -17,6 +17,7 @@ type AuditFinalReportDetailDTO struct {
 	ReferenceNumber            string                           `json:"reference_number"`
 	Title                      string                           `json:"title"`
 	Description                *string                          `json:"description"`
+	Comments                   *string                          `json:"comments"`
 	NextReviewLevel            int                              `json:"next_review_level"`
 	PreparedAt                 string                           `json:"prepared_at"`
 	PreparedBy                 organizationDTOs.UserMinimalDTO  `json:"prepared_by"`

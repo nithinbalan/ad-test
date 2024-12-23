@@ -341,6 +341,7 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 		PreparedBy:                 createdByUser,
 		PublishedByUser:            publishedByUser,
 		PublishedAt:                publishedAt,
+		Comments:                	auditFinalReport.Comments,
 		UpdatedByUser:              updatedByUser,
 		PreparedAt:                 auditFinalReport.CreatedAt.UTC().Format("2006-01-02T15:04:05.000Z"),
 	}
