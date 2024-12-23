@@ -1101,7 +1101,7 @@ func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, a
 	auditFinalReport.AuditFinalReportStatusID = auditFinalReportStatusPublished.ID
 	auditFinalReport.PublishedBYID = &currentUserID
 	auditFinalReport.PublishedAt = &currentDateStr
-	auditFinalReport.Comment = auditFinalReportPublishFormDTO.Comment
+	auditFinalReport.Comments = auditFinalReportPublishFormDTO.Comments
 
 	err = afrs.repo.Update(auditFinalReport,tx)
 	if err != nil {

@@ -104,5 +104,5 @@ type ActivityDTO struct {
 type AuditFinalReportPublishFormDTO struct {
 	CCUserIDs []uint  `json:"cc_user_ids" binding:"required"`
 	ToUserID  uint    `json:"to_user_id" binding:"required"`
-	Comment   *string `json:"comment"`
+	Comments  *string `json:"comments"`
 }

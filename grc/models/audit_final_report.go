@@ -14,7 +14,7 @@ type AuditFinalReport struct {
 	PublishedBYID            *uint      `json:"published_by_id" gorm:"default:null"`
 	PublishedAt              *time.Time `json:"published_at" gorm:"type:datetime;default:null"`
 	NextReviewLevel          int        `json:"next_review_level" gorm:"default:0"`
-	Comment                  *string    `json:"Comment" gorm:"type:nvarchar(MAX);default:null"`
+	Comments                 *string    `json:"Comments" gorm:"type:nvarchar(MAX);default:null"`
 	CreatedAt                time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedBYID              uint       `json:"created_by_id" gorm:"not null"`
