@@ -24,6 +24,7 @@ type TaskRepositoryInteface interface {
 
 	UpdateTaskRelatedIDs(taskID uint, relatedTaskIDsJSON string, tx ...utility.DatabaseTransaction) error
 	UpdateDocumentTaskStatus(documentID uint, userID uint, documentWorkflowID uint, status uint) (*models.Task, error)
+	UpdateDocumentChangeRequestTaskStatus(documentCRID uint, userID uint, documentCRWorkflowID uint, status uint) (*models.Task, error)
 	UpdateAuditReportTaskStatus(auditFinalReportID uint, userID uint, auditReportWorkflowID uint, status uint) (*models.Task, error)
 	UpdateAuditDraftReportTaskStatus(auditDraftReportID uint, userID uint, auditReportWorkflowID uint, status uint) (*models.Task, error)
 }
@@ -285,6 +286,24 @@ func (repo *TaskRepository) UpdateDocumentTaskStatus(documentID uint, userID uin
 
 	// Find the task by document and user ID
 	if err := repo.db.Where("document_id = ? AND responsible_user_id = ? AND document_workflow_id = ?", documentID, userID, documentWorkflowID).First(&task).Error; err != nil {
+		return nil, err
+	}
+
+	// Update the task status
+	task.TaskStatusID = status
+	task.UpdatedByID = userID
+	if err := repo.db.Save(&task).Error; err != nil {
+		return nil, err
+	}
+
+	return &task, nil
+}
+
+func (repo *TaskRepository) UpdateDocumentChangeRequestTaskStatus(documentCRID uint, userID uint, documentCRWorkflowID uint, status uint) (*models.Task, error) {
+	var task models.Task
+
+	// Find the task by document and user ID
+	if err := repo.db.Where("document_change_request_id = ? AND responsible_user_id = ? AND document_change_request_workflow_id = ?", documentCRID, userID, documentCRWorkflowID).First(&task).Error; err != nil {
 		return nil, err
 	}
 

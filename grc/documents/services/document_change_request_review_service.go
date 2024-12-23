@@ -149,12 +149,12 @@ func (dcrrs *DocumentChangeRequestReviewService) handleApprovedCase(id uint, cur
 			return err
 		}
 
-		// _, err = drs.taskSvc.UpdateDocumentTaskStatus(id, currentUserID, currentDocumentWorkflow.ID)
-		// if err != nil {
-		// 	return err
-		// }
+		_, err = dcrrs.taskSvc.UpdateDocumentChangeRequestTaskStatus(id, currentUserID, currentDocumentCRWorkflow.ID)
+		if err != nil {
+			return err
+		}
 
-		// drs.sendApprovalNotification(id, currentUserID, document)
+		dcrrs.sendApprovalNotification(id, currentUserID, documentChangeRequest)
 
 		nextDocCRWorkflowLevel, err := dcrrs.documentCRWorkflowSvc.GetNextLevel(id, currentApprovalLevel)
 		if err != nil {
@@ -186,16 +186,16 @@ func (dcrrs *DocumentChangeRequestReviewService) handleApprovedCase(id uint, cur
 			if err != nil {
 				return err
 			}
-			// nextWorkflow, err := drs.documentWorkflowSvc.GetDocumentWorkflowByLevel(document.LatestDocumentVersion.ID, nextDocWorkflowLevel.Level)
-			// if err != nil {
-			// 	return err
-			// }
-			// err = drs.CreateTasksForNextLevelUsers(id, nextWorkflow, document)
-			// if err != nil {
-			// 	return err
-			// }
+			nextWorkflow, err := dcrrs.documentCRWorkflowSvc.GetDocumentCRWorkflowByLevel(id, nextDocCRWorkflowLevel.Level)
+			if err != nil {
+				return err
+			}
+			err = dcrrs.CreateTasksForNextLevelUsers(id, nextWorkflow, documentChangeRequest)
+			if err != nil {
+				return err
+			}
 
-			// drs.notifyNextLevelUsers(id, nextWorkflow, document)
+			dcrrs.notifyNextLevelUsers(id, nextWorkflow, documentChangeRequest)
 		}
 	case "multiple-users", "role":
 		allowed := false
@@ -222,13 +222,13 @@ func (dcrrs *DocumentChangeRequestReviewService) handleApprovedCase(id uint, cur
 			return err
 		}
 
-		//drs.sendApprovalNotification(id, currentUserID, document)
+		dcrrs.sendApprovalNotification(id, currentUserID, documentChangeRequest)
 
 		if currentDocumentCRWorkflow.ApprovalTypes == "all" {
-			// _, err := drs.taskSvc.UpdateDocumentTaskStatus(id, currentUserID, currentDocumentWorkflow.ID)
-			// if err != nil {
-			// 	return err
-			//}
+			_, err := dcrrs.taskSvc.UpdateDocumentChangeRequestTaskStatus(id, currentUserID, currentDocumentCRWorkflow.ID)
+			if err != nil {
+				return err
+			}
 			allApproved, err := dcrrs.documentCRWorkflowSvc.CheckAllParticipantsApproved(currentDocumentCRWorkflow.ID, currentDocumentCRWorkflow.DocumentChangeRequestWorkflowParticipants)
 			if err != nil {
 				return err
@@ -279,15 +279,15 @@ func (dcrrs *DocumentChangeRequestReviewService) handleApprovedCase(id uint, cur
 					if err != nil {
 						return err
 					}
-					// nextWorkflow, err := drs.documentWorkflowSvc.GetDocumentWorkflowByLevel(document.LatestDocumentVersion.ID, nextDocWorkflowLevel.Level)
-					// if err != nil {
-					// 	return err
-					// }
-					// err = drs.CreateTasksForNextLevelUsers(id, nextWorkflow, document)
-					// if err != nil {
-					// 	return err
-					// }
-					// drs.notifyNextLevelUsers(id, nextWorkflow, document)
+					nextWorkflow, err := dcrrs.documentCRWorkflowSvc.GetDocumentCRWorkflowByLevel(id, nextDocCRWorkflowLevel.Level)
+					if err != nil {
+						return err
+					}
+					err = dcrrs.CreateTasksForNextLevelUsers(id, nextWorkflow, documentChangeRequest)
+					if err != nil {
+						return err
+					}
+					dcrrs.notifyNextLevelUsers(id, nextWorkflow, documentChangeRequest)
 				}
 			}
 		} else {
@@ -302,30 +302,30 @@ func (dcrrs *DocumentChangeRequestReviewService) handleApprovedCase(id uint, cur
 				return err
 			}
 
-			// task, err := drs.taskSvc.UpdateDocumentTaskStatus(id, currentUserID, currentDocumentWorkflow.ID)
-			// if err != nil {
-			// 	return err
-			// }
+			task, err := dcrrs.taskSvc.UpdateDocumentTaskStatus(id, currentUserID, currentDocumentCRWorkflow.ID)
+			if err != nil {
+				return err
+			}
 
-			// // Parse the related_task_ids from the task
-			// var relatedTaskIDs []uint
-			// if task.RelatedTaskIDs != nil {
-			// 	if err := json.Unmarshal([]byte(*task.RelatedTaskIDs), &relatedTaskIDs); err != nil {
-			// 		return err
-			// 	}
+			// Parse the related_task_ids from the task
+			var relatedTaskIDs []uint
+			if task.RelatedTaskIDs != nil {
+				if err := json.Unmarshal([]byte(*task.RelatedTaskIDs), &relatedTaskIDs); err != nil {
+					return err
+				}
 
-			// 	// Close each related task
-			// 	for _, relatedTaskID := range relatedTaskIDs {
-			// 		relatedTask, err := drs.taskSvc.GetByID(relatedTaskID)
-			// 		if err != nil {
-			// 			return err
-			// 		}
-			// 		_, err = drs.taskSvc.UpdateDocumentTaskStatus(id, relatedTask.ResponsibleUserID, currentDocumentWorkflow.ID)
-			// 		if err != nil {
-			// 			return err
-			// 		}
-			// 	}
-			// }
+				// Close each related task
+				for _, relatedTaskID := range relatedTaskIDs {
+					relatedTask, err := dcrrs.taskSvc.GetByID(relatedTaskID)
+					if err != nil {
+						return err
+					}
+					_, err = dcrrs.taskSvc.UpdateDocumentChangeRequestTaskStatus(id, relatedTask.ResponsibleUserID, currentDocumentCRWorkflow.ID)
+					if err != nil {
+						return err
+					}
+				}
+			}
 
 			nextDocCRWorkflowLevel, err := dcrrs.documentCRWorkflowSvc.GetNextLevel(id, currentApprovalLevel)
 			if err != nil {
@@ -359,17 +359,17 @@ func (dcrrs *DocumentChangeRequestReviewService) handleApprovedCase(id uint, cur
 					return err
 				}
 
-				// nextWorkflow, err := drs.documentWorkflowSvc.GetDocumentWorkflowByLevel(document.LatestDocumentVersion.ID, nextDocWorkflowLevel.Level)
-				// if err != nil {
-				// 	return err
-				// }
+				nextWorkflow, err := dcrrs.documentCRWorkflowSvc.GetDocumentCRWorkflowByLevel(id, nextDocCRWorkflowLevel.Level)
+				if err != nil {
+					return err
+				}
 
-				// err = drs.CreateTasksForNextLevelUsers(id, nextWorkflow, document)
-				// if err != nil {
-				// 	return err
-				// }
+				err = dcrrs.CreateTasksForNextLevelUsers(id, nextWorkflow, documentChangeRequest)
+				if err != nil {
+					return err
+				}
 
-				// drs.notifyNextLevelUsers(id, nextWorkflow, document)
+				dcrrs.notifyNextLevelUsers(id, nextWorkflow, documentChangeRequest)
 			}
 		}
 	}
@@ -421,32 +421,32 @@ func (dcrrs *DocumentChangeRequestReviewService) handleRejectedCase(id uint, cur
 		return err
 	}
 
-	// task, err := drs.taskSvc.UpdateDocumentTaskStatus(id, currentUserID, currentDocumentWorkflow.ID)
-	// if err != nil {
-	// 	return err
-	// }
+	task, err := dcrrs.taskSvc.UpdateDocumentChangeRequestTaskStatus(id, currentUserID, currentDocumentCRWorkflow.ID)
+	if err != nil {
+		return err
+	}
 
-	// // Parse the related_task_ids from the task
-	// var relatedTaskIDs []uint
-	// if task.RelatedTaskIDs != nil {
-	// 	if err := json.Unmarshal([]byte(*task.RelatedTaskIDs), &relatedTaskIDs); err != nil {
-	// 		return err
-	// 	}
+	// Parse the related_task_ids from the task
+	var relatedTaskIDs []uint
+	if task.RelatedTaskIDs != nil {
+		if err := json.Unmarshal([]byte(*task.RelatedTaskIDs), &relatedTaskIDs); err != nil {
+			return err
+		}
 
-	// 	// Close each related task
-	// 	for _, relatedTaskID := range relatedTaskIDs {
-	// 		relatedTask, err := drs.taskSvc.GetByID(relatedTaskID)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 		_, err = drs.taskSvc.UpdateDocumentTaskStatus(id, relatedTask.ResponsibleUserID, currentDocumentWorkflow.ID)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 	}
-	// }
+		// Close each related task
+		for _, relatedTaskID := range relatedTaskIDs {
+			relatedTask, err := dcrrs.taskSvc.GetByID(relatedTaskID)
+			if err != nil {
+				return err
+			}
+			_, err = dcrrs.taskSvc.UpdateDocumentChangeRequestTaskStatus(id, relatedTask.ResponsibleUserID, currentDocumentCRWorkflow.ID)
+			if err != nil {
+				return err
+			}
+		}
+	}
 
-	// drs.sendRejectedNotification(id, currentUserID, document)
+	dcrrs.sendRejectedNotification(id, currentUserID, documentChangeRequest)
 
 	return nil
 }
@@ -494,32 +494,32 @@ func (dcrrs *DocumentChangeRequestReviewService) handleRevertedCase(id, currentU
 		return err
 	}
 
-	// task, err := drs.taskSvc.UpdateDocumentTaskStatus(id, currentUserID, currentDocumentWorkflow.ID)
-	// if err != nil {
-	// 	return err
-	// }
+	task, err := dcrrs.taskSvc.UpdateDocumentChangeRequestTaskStatus(id, currentUserID, currentDocumentCRWorkflow.ID)
+	if err != nil {
+		return err
+	}
 
-	// // Parse the related_task_ids from the task
-	// var relatedTaskIDs []uint
-	// if task.RelatedTaskIDs != nil {
-	// 	if err := json.Unmarshal([]byte(*task.RelatedTaskIDs), &relatedTaskIDs); err != nil {
-	// 		return err
-	// 	}
+	// Parse the related_task_ids from the task
+	var relatedTaskIDs []uint
+	if task.RelatedTaskIDs != nil {
+		if err := json.Unmarshal([]byte(*task.RelatedTaskIDs), &relatedTaskIDs); err != nil {
+			return err
+		}
 
-	// 	// Close each related task
-	// 	for _, relatedTaskID := range relatedTaskIDs {
-	// 		relatedTask, err := drs.taskSvc.GetByID(relatedTaskID)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 		_, err = drs.taskSvc.UpdateDocumentTaskStatus(id, relatedTask.ResponsibleUserID, currentDocumentWorkflow.ID)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 	}
-	// }
+		// Close each related task
+		for _, relatedTaskID := range relatedTaskIDs {
+			relatedTask, err := dcrrs.taskSvc.GetByID(relatedTaskID)
+			if err != nil {
+				return err
+			}
+			_, err = dcrrs.taskSvc.UpdateDocumentChangeRequestTaskStatus(id, relatedTask.ResponsibleUserID, currentDocumentCRWorkflow.ID)
+			if err != nil {
+				return err
+			}
+		}
+	}
 
-	// drs.sendRevertedNotification(id, currentUserID, document)
+	dcrrs.sendRevertedNotification(id, currentUserID, documentChangeRequest)
 
 	return nil
 }
@@ -541,28 +541,28 @@ func (dcrrs *DocumentChangeRequestReviewService) handleCommentOnlyCase(id, curre
 		return err
 	}
 
-	//drs.sendCommentNotification(id, currentUserID, documentReviewCommentFormDTO.Comment, document)
+	dcrrs.sendCommentNotification(id, currentUserID, documentCRReviewCommentFormDTO.Comment, documentChangeRequest)
 
 	return nil
 }
 
-func (drs *DocumentChangeRequestReviewService) sendApprovalNotification(id uint, currentUserID uint, document *documentDTOs.DocumentDetailsDTO) {
+func (dcrrs *DocumentChangeRequestReviewService) sendApprovalNotification(id uint, currentUserID uint, documentChangeRequest *documentDTOs.DocumentChangeRequestDetailsDTO) {
 	go func() {
 		// Prepare URL and parameters for the notification
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
-		entity := "document"
+		entity := "document-change-request"
 		action := "approval"
 
 		// Create the database notification DTO
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               uint(document.ResponsibleUser.ID),
+			UserID:               uint(documentChangeRequest.Document.ResponsibleUser.ID),
 			ModuleIdentifier:     "document",
 			NotificationType:     string(commonDTOs.ApprovalType),
-			HeadingEn:            "Document Approval",
-			HeadingAr:            "مراجعة الوثيقة",
-			ReferenceNumber:      document.ReferenceNumber,
-			TitleEn:              document.TitleEn,
-			TitleAr:              document.TitleAr,
+			HeadingEn:            "Document change Request Approval",
+			HeadingAr:            "الموافقة على طلب تغيير المستند",
+			ReferenceNumber:      documentChangeRequest.ReferenceNumber,
+			TitleEn:              documentChangeRequest.Document.TitleEn,
+			TitleAr:              documentChangeRequest.Document.TitleAr,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
@@ -571,7 +571,7 @@ func (drs *DocumentChangeRequestReviewService) sendApprovalNotification(id uint,
 		}
 
 		// Get the approving user's details
-		approvedByUser, err := drs.userSvc.GetByID(currentUserID)
+		approvedByUser, err := dcrrs.userSvc.GetByID(currentUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch approving user", map[string]interface{}{
 				"error": err.Error(),
@@ -581,15 +581,15 @@ func (drs *DocumentChangeRequestReviewService) sendApprovalNotification(id uint,
 
 		// Prepare email details
 		appURL := utility.GetAppURL()
-		emailTo := []string{document.ResponsibleUser.Email}
-		subject := fmt.Sprintf("Document/%s: Approval Notification", document.TitleEn)
-		urlParam = fmt.Sprintf("%s/document/register/%d", appURL, id)
+		emailTo := []string{documentChangeRequest.Document.ResponsibleUser.Email}
+		subject := fmt.Sprintf("Document Change Request/%s: Approval Notification", documentChangeRequest.Document.TitleEn)
+		urlParam = fmt.Sprintf("%s/document/change-request/%d", appURL, id)
 
 		emailData := map[string]interface{}{
-			"FirstNameEn":           document.ResponsibleUser.FirstNameEN,
-			"LastNameEn":            document.ResponsibleUser.LastNameEN,
-			"DocumentTitle":         document.TitleEn,
-			"DocumentType":          document.DocumentType.TitleEn,
+			"FirstNameEn":           documentChangeRequest.Document.ResponsibleUser.FirstNameEN,
+			"LastNameEn":            documentChangeRequest.Document.ResponsibleUser.LastNameEN,
+			"DocumentTitle":         documentChangeRequest.Document.TitleEn,
+			"DocumentType":          documentChangeRequest.Document.DocumentType.TitleEn,
 			"ApprovedByFirstNameEn": approvedByUser.FirstNameEn,
 			"ApprovedByLastNameEn":  approvedByUser.LastNameEn,
 			"ApprovedAt":            time.Now().Format("2006-01-02"),
@@ -600,12 +600,12 @@ func (drs *DocumentChangeRequestReviewService) sendApprovalNotification(id uint,
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
 			Subject:              subject,
-			TemplateRelativePath: "document/templates/email/document_workflow_approve_user_mail.html",
+			TemplateRelativePath: "document/templates/email/document_change_request_workflow_approve_user_mail.html",
 			EmailData:            emailData,
 		}
 
 		// Send the notification
-		err = drs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document")
+		err = dcrrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document_change_request")
 		if err != nil {
 			utility.LogError("Failed to send approval notification email", map[string]interface{}{
 				"error": err.Error(),
@@ -614,14 +614,14 @@ func (drs *DocumentChangeRequestReviewService) sendApprovalNotification(id uint,
 	}()
 }
 
-func (drs *DocumentChangeRequestReviewService) notifyNextLevelUsers(id uint, nextDocWorkflowLevel *models.DocumentWorkflow, document *documentDTOs.DocumentDetailsDTO) {
+func (dcrrs *DocumentChangeRequestReviewService) notifyNextLevelUsers(id uint, nextDocWorkflowLevel *models.DocumentChangeRequestWorkflow, documentChangeRequest *documentDTOs.DocumentChangeRequestDetailsDTO) {
 	go func() {
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
-		entity := "document"
+		entity := "document-change-request"
 		action := "review-user-assign"
 
-		for _, participant := range nextDocWorkflowLevel.DocumentWorkflowParticipants {
-			responsibleUser, err := drs.userSvc.GetByID(participant.UserID)
+		for _, participant := range nextDocWorkflowLevel.DocumentChangeRequestWorkflowParticipants {
+			responsibleUser, err := dcrrs.userSvc.GetByID(participant.UserID)
 			if err != nil {
 				utility.LogError("Failed to fetch review user", map[string]interface{}{
 					"error": err.Error(),
@@ -629,17 +629,17 @@ func (drs *DocumentChangeRequestReviewService) notifyNextLevelUsers(id uint, nex
 				continue
 			}
 
-			createdByID := uint(document.ResponsibleUser.ID)
+			createdByID := uint(documentChangeRequest.Document.ResponsibleUser.ID)
 			// Prepare database notification DTO
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 				UserID:               participant.UserID,
 				ModuleIdentifier:     "document",
 				NotificationType:     string(commonDTOs.ReviewType),
-				HeadingEn:            "Document Review",
-				HeadingAr:            "مراجعة الوثيقة",
-				ReferenceNumber:      document.ReferenceNumber,
-				TitleEn:              document.TitleEn,
-				TitleAr:              document.TitleAr,
+				HeadingEn:            "Document Change Request Review",
+				HeadingAr:            "مراجعة طلب تغيير المستند",
+				ReferenceNumber:      documentChangeRequest.ReferenceNumber,
+				TitleEn:              documentChangeRequest.Document.TitleEn,
+				TitleAr:              documentChangeRequest.Document.TitleAr,
 				Entity:               &entity,
 				Action:               &action,
 				URLParam:             urlParam,
@@ -649,29 +649,31 @@ func (drs *DocumentChangeRequestReviewService) notifyNextLevelUsers(id uint, nex
 
 			// Prepare email notification DTO
 			emailTo := []string{responsibleUser.Email}
-			subject := fmt.Sprintf("Document/%s: Review Assigned", document.TitleEn)
+			subject := fmt.Sprintf("Document Change Request/%s: Review Assigned", documentChangeRequest.Document.TitleEn)
 			appURL := utility.GetAppURL()
 
 			emailData := map[string]interface{}{
-				"FirstNameEn":           responsibleUser.FirstNameEn,
-				"LastNameEn":            responsibleUser.LastNameEn,
-				"DocumentTitle":         document.TitleEn,
-				"DocumentType":          document.DocumentType.TitleEn,
-				"AssignedByFirstNameEn": document.ResponsibleUser.FirstNameEN,
-				"AssignedByLastNameEn":  document.ResponsibleUser.LastNameEN,
-				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/document/register/%d", appURL, id),
+				"FirstNameEn":               responsibleUser.FirstNameEn,
+				"LastNameEn":                responsibleUser.LastNameEn,
+				"DocumentTitle":             documentChangeRequest.Document.TitleEn,
+				"DocumentType":              documentChangeRequest.Document.DocumentType.TitleEn,
+				"DocumentChangeRequestType": documentChangeRequest.DocumentChangeRequestType.TitleEn,
+				"ReasonForChange":           documentChangeRequest.ReasonForChange,
+				"AssignedByFirstNameEn":     documentChangeRequest.Document.ResponsibleUser.FirstNameEN,
+				"AssignedByLastNameEn":      documentChangeRequest.Document.ResponsibleUser.LastNameEN,
+				"AssignedOn":                time.Now().Format("2006-01-02"),
+				"RedirectURL":               fmt.Sprintf("%s/document/change-request/%d", appURL, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 				EmailTo:              emailTo,
 				Subject:              subject,
-				TemplateRelativePath: "document/templates/email/document_workflow_review_user_mail.html",
+				TemplateRelativePath: "document/templates/email/document_change_request_workflow_review_user_mail.html",
 				EmailData:            emailData,
 			}
 
 			// Send both database and email notifications
-			err = drs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document")
+			err = dcrrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document_change_request")
 			if err != nil {
 				utility.LogError("Failed to send next level review notification", map[string]interface{}{
 					"error": err.Error(),
@@ -681,25 +683,25 @@ func (drs *DocumentChangeRequestReviewService) notifyNextLevelUsers(id uint, nex
 	}()
 }
 
-func (drs *DocumentChangeRequestReviewService) CreateTasksForNextLevelUsers(documentID uint, workflowLevel *models.DocumentWorkflow, document *documentDTOs.DocumentDetailsDTO) error {
-	urlParam := fmt.Sprintf(`{"id":%d}`, documentID)
+func (dcrrs *DocumentChangeRequestReviewService) CreateTasksForNextLevelUsers(changeRequestID uint, workflowLevel *models.DocumentChangeRequestWorkflow, documentChangeRequest *documentDTOs.DocumentChangeRequestDetailsDTO) error {
+	urlParam := fmt.Sprintf(`{"id":%d}`, changeRequestID)
 	var taskIDs []uint
 
-	createdByID := uint(document.ResponsibleUser.ID)
+	createdByID := uint(documentChangeRequest.Document.ResponsibleUser.ID)
 	// Loop through each participant and create a task
-	for _, participant := range workflowLevel.DocumentWorkflowParticipants {
+	for _, participant := range workflowLevel.DocumentChangeRequestWorkflowParticipants {
 		taskDTO := commonDTOs.TaskFormDTO{
-			ModuleIdentifier:   "document",
-			DocumentID:         &documentID,
-			DocumentWorkflowID: &workflowLevel.ID,
-			Title:              document.TitleEn,
-			Description:        document.DescriptionEn,
-			URLParam:           &urlParam,
-			QueryParam:         nil,
-			ResponsibleUserID:  participant.User.ID,
+			ModuleIdentifier:                "document",
+			DocumentChangeRequestID:         &changeRequestID,
+			DocumentChangeRequestWorkflowID: &workflowLevel.ID,
+			// Title:              documentChangeRequest.Document.TitleEn,
+			// Description:        documentChangeRequest.Document.DescriptionEn,
+			URLParam:          &urlParam,
+			QueryParam:        nil,
+			ResponsibleUserID: participant.User.ID,
 		}
 
-		taskID, err := drs.taskSvc.Create(taskDTO, createdByID)
+		taskID, err := dcrrs.taskSvc.Create(taskDTO, createdByID)
 		if err != nil {
 			return err
 		}
@@ -720,7 +722,7 @@ func (drs *DocumentChangeRequestReviewService) CreateTasksForNextLevelUsers(docu
 			return err
 		}
 
-		err = drs.taskSvc.UpdateTaskWithRelatedIDs(taskID, string(relatedTaskIDsJSON))
+		err = dcrrs.taskSvc.UpdateTaskWithRelatedIDs(taskID, string(relatedTaskIDsJSON))
 		if err != nil {
 			return err
 		}
@@ -729,23 +731,23 @@ func (drs *DocumentChangeRequestReviewService) CreateTasksForNextLevelUsers(docu
 	return nil
 }
 
-func (drs *DocumentChangeRequestReviewService) sendRejectedNotification(id uint, currentUserID uint, document *documentDTOs.DocumentDetailsDTO) {
+func (dcrrs *DocumentChangeRequestReviewService) sendRejectedNotification(id uint, currentUserID uint, documentChangeRequest *documentDTOs.DocumentChangeRequestDetailsDTO) {
 	go func() {
 		// Prepare URL and parameters for the notification
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
-		entity := "document"
+		entity := "document-change-request"
 		action := "rejected"
 
 		// Create the database notification DTO
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               uint(document.ResponsibleUser.ID),
+			UserID:               uint(documentChangeRequest.Document.ResponsibleUser.ID),
 			ModuleIdentifier:     "document",
 			NotificationType:     string(commonDTOs.RejectType),
-			HeadingEn:            "Document Rejected",
+			HeadingEn:            "Document Change Request Rejected",
 			HeadingAr:            "تم رفض الوثيقة",
-			ReferenceNumber:      document.ReferenceNumber,
-			TitleEn:              document.TitleEn,
-			TitleAr:              document.TitleAr,
+			ReferenceNumber:      documentChangeRequest.Document.ReferenceNumber,
+			TitleEn:              documentChangeRequest.Document.TitleEn,
+			TitleAr:              documentChangeRequest.Document.TitleAr,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
@@ -754,7 +756,7 @@ func (drs *DocumentChangeRequestReviewService) sendRejectedNotification(id uint,
 		}
 
 		// Get the approving user's details
-		rejectedByUser, err := drs.userSvc.GetByID(currentUserID)
+		rejectedByUser, err := dcrrs.userSvc.GetByID(currentUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch review performed user", map[string]interface{}{
 				"error": err.Error(),
@@ -764,31 +766,32 @@ func (drs *DocumentChangeRequestReviewService) sendRejectedNotification(id uint,
 
 		// Prepare email details
 		appURL := utility.GetAppURL()
-		emailTo := []string{document.ResponsibleUser.Email}
-		subject := fmt.Sprintf("Document/%s: Rejected Notification", document.TitleEn)
+		emailTo := []string{documentChangeRequest.Document.ResponsibleUser.Email}
+		subject := fmt.Sprintf("Document Change Request/%s: Rejected Notification", documentChangeRequest.Document.TitleEn)
 		urlParam = fmt.Sprintf("%s/document/register/%d", appURL, id)
 
 		emailData := map[string]interface{}{
-			"FirstNameEn":           document.ResponsibleUser.FirstNameEN,
-			"LastNameEn":            document.ResponsibleUser.LastNameEN,
-			"DocumentTitle":         document.TitleEn,
-			"DocumentType":          document.DocumentType.TitleEn,
-			"RejectedByFirstNameEn": rejectedByUser.FirstNameEn,
-			"RejectedByLastNameEn":  rejectedByUser.LastNameEn,
-			"ApprovedAt":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           urlParam,
+			"FirstNameEn":               documentChangeRequest.Document.ResponsibleUser.FirstNameEN,
+			"LastNameEn":                documentChangeRequest.Document.ResponsibleUser.LastNameEN,
+			"DocumentTitle":             documentChangeRequest.Document.TitleEn,
+			"DocumentType":              documentChangeRequest.Document.DocumentType.TitleEn,
+			"DocumentChangeRequestType": documentChangeRequest.DocumentChangeRequestType.TitleEn,
+			"RejectedByFirstNameEn":     rejectedByUser.FirstNameEn,
+			"RejectedByLastNameEn":      rejectedByUser.LastNameEn,
+			"ApprovedAt":                time.Now().Format("2006-01-02"),
+			"RedirectURL":               urlParam,
 		}
 
 		// Create the email notification DTO
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
 			Subject:              subject,
-			TemplateRelativePath: "document/templates/email/document_workflow_reject_user_mail.html",
+			TemplateRelativePath: "document/templates/email/document_change_request_workflow_reject_user_mail.html",
 			EmailData:            emailData,
 		}
 
 		// Send the notification
-		err = drs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document")
+		err = dcrrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document_change_request")
 		if err != nil {
 			utility.LogError("Failed to send rejected notification email", map[string]interface{}{
 				"error": err.Error(),
@@ -797,23 +800,23 @@ func (drs *DocumentChangeRequestReviewService) sendRejectedNotification(id uint,
 	}()
 }
 
-func (drs *DocumentChangeRequestReviewService) sendRevertedNotification(id uint, currentUserID uint, document *documentDTOs.DocumentDetailsDTO) {
+func (dcrrs *DocumentChangeRequestReviewService) sendRevertedNotification(id uint, currentUserID uint, documentChangeRequest *documentDTOs.DocumentChangeRequestDetailsDTO) {
 	go func() {
 		// Prepare URL and parameters for the notification
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
-		entity := "document"
+		entity := "document-change-request"
 		action := "reverted"
 
 		// Create the database notification DTO
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               uint(document.ResponsibleUser.ID),
+			UserID:               uint(documentChangeRequest.Document.ResponsibleUser.ID),
 			ModuleIdentifier:     "document",
 			NotificationType:     string(commonDTOs.RevertType),
-			HeadingEn:            "Document Reverted",
-			HeadingAr:            "تم إعادة الوثيقة",
-			ReferenceNumber:      document.ReferenceNumber,
-			TitleEn:              document.TitleEn,
-			TitleAr:              document.TitleAr,
+			HeadingEn:            "Document Change Request Reverted",
+			HeadingAr:            "تم التراجع عن طلب تغيير المستند",
+			ReferenceNumber:      documentChangeRequest.ReferenceNumber,
+			TitleEn:              documentChangeRequest.Document.TitleEn,
+			TitleAr:              documentChangeRequest.Document.TitleAr,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
@@ -822,7 +825,7 @@ func (drs *DocumentChangeRequestReviewService) sendRevertedNotification(id uint,
 		}
 
 		// Get the user who performed the reversion
-		revertedByUser, err := drs.userSvc.GetByID(currentUserID)
+		revertedByUser, err := dcrrs.userSvc.GetByID(currentUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch reversion performed user", map[string]interface{}{
 				"error": err.Error(),
@@ -832,31 +835,32 @@ func (drs *DocumentChangeRequestReviewService) sendRevertedNotification(id uint,
 
 		// Prepare email details
 		appURL := utility.GetAppURL()
-		emailTo := []string{document.ResponsibleUser.Email}
-		subject := fmt.Sprintf("Document/%s: Reverted Notification", document.TitleEn)
+		emailTo := []string{documentChangeRequest.Document.ResponsibleUser.Email}
+		subject := fmt.Sprintf("Document Change Request/%s: Reverted Notification", documentChangeRequest.Document.TitleEn)
 		urlParam = fmt.Sprintf("%s/document/register/%d", appURL, id)
 
 		emailData := map[string]interface{}{
-			"FirstNameEn":           document.ResponsibleUser.FirstNameEN,
-			"LastNameEn":            document.ResponsibleUser.LastNameEN,
-			"DocumentTitle":         document.TitleEn,
-			"DocumentType":          document.DocumentType.TitleEn,
-			"RevertedByFirstNameEn": revertedByUser.FirstNameEn,
-			"RevertedByLastNameEn":  revertedByUser.LastNameEn,
-			"RevertedAt":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           urlParam,
+			"FirstNameEn":               documentChangeRequest.Document.ResponsibleUser.FirstNameEN,
+			"LastNameEn":                documentChangeRequest.Document.ResponsibleUser.LastNameEN,
+			"DocumentTitle":             documentChangeRequest.Document.TitleEn,
+			"DocumentType":              documentChangeRequest.Document.DocumentType.TitleEn,
+			"DocumentChangeRequestType": documentChangeRequest.DocumentChangeRequestType.TitleEn,
+			"RevertedByFirstNameEn":     revertedByUser.FirstNameEn,
+			"RevertedByLastNameEn":      revertedByUser.LastNameEn,
+			"RevertedAt":                time.Now().Format("2006-01-02"),
+			"RedirectURL":               urlParam,
 		}
 
 		// Create the email notification DTO
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
 			Subject:              subject,
-			TemplateRelativePath: "document/templates/email/document_workflow_revert_user_mail.html",
+			TemplateRelativePath: "document/templates/email/document_change_request_workflow_revert_user_mail.html",
 			EmailData:            emailData,
 		}
 
 		// Send the notification
-		err = drs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document")
+		err = dcrrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document_change_request")
 		if err != nil {
 			utility.LogError("Failed to send reverted notification email", map[string]interface{}{
 				"error": err.Error(),
@@ -865,23 +869,23 @@ func (drs *DocumentChangeRequestReviewService) sendRevertedNotification(id uint,
 	}()
 }
 
-func (drs *DocumentChangeRequestReviewService) sendCommentNotification(id uint, currentUserID uint, commentText string, document *documentDTOs.DocumentDetailsDTO) {
+func (dcrrs *DocumentChangeRequestReviewService) sendCommentNotification(id uint, currentUserID uint, commentText string, documentChangeRequest *documentDTOs.DocumentChangeRequestDetailsDTO) {
 	go func() {
 		// Prepare URL and parameters for the notification
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
-		entity := "document"
+		entity := "document-change-request"
 		action := "comment"
 
 		// Create the database notification DTO
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               uint(document.ResponsibleUser.ID),
+			UserID:               uint(documentChangeRequest.Document.ResponsibleUser.ID),
 			ModuleIdentifier:     "document",
 			NotificationType:     string(commonDTOs.CommentType),
-			HeadingEn:            "New Document Comment",
-			HeadingAr:            "تعليق جديد على الوثيقة",
-			ReferenceNumber:      document.ReferenceNumber,
-			TitleEn:              document.TitleEn,
-			TitleAr:              document.TitleAr,
+			HeadingEn:            "New Document Change Request Comment",
+			HeadingAr:            "تعليق جديد على طلب تغيير المستند",
+			ReferenceNumber:      documentChangeRequest.ReferenceNumber,
+			TitleEn:              documentChangeRequest.Document.TitleEn,
+			TitleAr:              documentChangeRequest.Document.TitleAr,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
@@ -890,7 +894,7 @@ func (drs *DocumentChangeRequestReviewService) sendCommentNotification(id uint, 
 		}
 
 		// Get the user who made the comment
-		commentByUser, err := drs.userSvc.GetByID(currentUserID)
+		commentByUser, err := dcrrs.userSvc.GetByID(currentUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch user who commented", map[string]interface{}{
 				"error": err.Error(),
@@ -900,32 +904,33 @@ func (drs *DocumentChangeRequestReviewService) sendCommentNotification(id uint, 
 
 		// Prepare email details
 		appURL := utility.GetAppURL()
-		emailTo := []string{document.ResponsibleUser.Email}
-		subject := fmt.Sprintf("Document/%s: New Comment Notification", document.TitleEn)
+		emailTo := []string{documentChangeRequest.Document.ResponsibleUser.Email}
+		subject := fmt.Sprintf("Document/%s: New Comment Notification", documentChangeRequest.Document.TitleEn)
 		urlParam = fmt.Sprintf("%s/document/register/%d", appURL, id)
 
 		emailData := map[string]interface{}{
-			"FirstNameEn":          document.ResponsibleUser.FirstNameEN,
-			"LastNameEn":           document.ResponsibleUser.LastNameEN,
-			"DocumentTitle":        document.TitleEn,
-			"DocumentType":         document.DocumentType.TitleEn,
-			"CommentByFirstNameEn": commentByUser.FirstNameEn,
-			"CommentByLastNameEn":  commentByUser.LastNameEn,
-			"CommentText":          commentText,
-			"CommentedAt":          time.Now().Format("2006-01-02"),
-			"RedirectURL":          urlParam,
+			"FirstNameEn":               documentChangeRequest.Document.ResponsibleUser.FirstNameEN,
+			"LastNameEn":                documentChangeRequest.Document.ResponsibleUser.LastNameEN,
+			"DocumentTitle":             documentChangeRequest.Document.TitleEn,
+			"DocumentType":              documentChangeRequest.Document.DocumentType.TitleEn,
+			"DocumentChangeRequestType": documentChangeRequest.DocumentChangeRequestType.TitleEn,
+			"CommentByFirstNameEn":      commentByUser.FirstNameEn,
+			"CommentByLastNameEn":       commentByUser.LastNameEn,
+			"CommentText":               commentText,
+			"CommentedAt":               time.Now().Format("2006-01-02"),
+			"RedirectURL":               urlParam,
 		}
 
 		// Create the email notification DTO
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
 			Subject:              subject,
-			TemplateRelativePath: "document/templates/email/document_workflow_comment_user_mail.html",
+			TemplateRelativePath: "document/templates/email/document_change_request_workflow_comment_user_mail.html",
 			EmailData:            emailData,
 		}
 
 		// Send the notification
-		err = drs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document")
+		err = dcrrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document_change_request")
 		if err != nil {
 			utility.LogError("Failed to send comment notification email", map[string]interface{}{
 				"error": err.Error(),
