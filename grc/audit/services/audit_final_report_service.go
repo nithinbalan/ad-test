@@ -1187,6 +1187,7 @@ func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, a
 				"LastNameEn":             responsibleUser.LastNameEn,
 				"AuditTitle":             existingAuditFinalReport.Audit.AuditPlan.Title,
 				"ReferenceNumber":        existingAuditFinalReport.Audit.AuditPlan.ReferenceNumber,
+				"Comments":        		  auditFinalReportPublishFormDTO.Comments,
 				"PublishedByFirstNameEn": assignedBy.FirstNameEn,
 				"PublishedByLastNameEn":  assignedBy.LastNameEn,
 				"PublishedOn":            time.Now().Format("2006-01-02"),
