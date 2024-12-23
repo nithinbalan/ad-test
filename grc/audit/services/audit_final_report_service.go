@@ -1147,7 +1147,7 @@ func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, a
 
 		for _, recipient := range auditFinalReportRecipients {
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               recipient.User.ID,
+				UserID:               recipient.UserID,
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.ReviewType),
 				ReferenceNumber:      existingAuditFinalReport.ReferenceNumber,
@@ -1162,7 +1162,7 @@ func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, a
 				CreatedByID:          &currentUserID,
 			}
 
-			responsibleUser, err := afrs.userSvc.GetByID(recipient.User.ID)
+			responsibleUser, err := afrs.userSvc.GetByID(recipient.UserID)
 			if err != nil {
 				utility.LogError("Failed to fetch review user", map[string]interface{}{
 					"error": err.Error(),
