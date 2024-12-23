@@ -1,15 +1,20 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	documentDTOs "jethur/grc/documents/dtos"
 	documentRepositories "jethur/grc/documents/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
+	organizationSvc "jethur/grc/organization/services"
+	settingsSvc "jethur/grc/settings/services"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 	"log"
 	"os"
@@ -52,6 +57,11 @@ type DocumentChangeRequestService struct {
 	documentChangeRequestWorkflowSvc DocumentChangeRequestWorkflowServiceInterface
 	documentCRWorkflowStatusSvc      DocumentChangeRequestWorkflowStatusServiceInterface
 	documentSvc                      DocumentServiceInterface
+	taskSvc                          taskServices.TaskServiceInterface
+	notificationSvc                  commonServices.NotificationServiceInterface
+	userSvc                          organizationSvc.UserServiceInterface
+	documentAccessSvc                DocumentAccessServiceInterface
+	orgLevelSvc                      settingsSvc.OrganizationLevelServiceInterface
 }
 
 func NewDocumentChangeRequestService(
@@ -61,6 +71,11 @@ func NewDocumentChangeRequestService(
 	documentChangeRequestStatusSvc DocumentChangeRequestStatusServiceInterface,
 	documentCRWorkflowStatusSvc DocumentChangeRequestWorkflowStatusServiceInterface,
 	documentSvc DocumentServiceInterface,
+	taskSvc taskServices.TaskServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
+	userSvc organizationSvc.UserServiceInterface,
+	documentAccessSvc DocumentAccessServiceInterface,
+	orgLevelSvc settingsSvc.OrganizationLevelServiceInterface,
 ) DocumentChangeRequestServiceInterface {
 	return &DocumentChangeRequestService{
 		repo:                           repo,
@@ -69,6 +84,11 @@ func NewDocumentChangeRequestService(
 		documentChangeRequestStatusSvc: documentChangeRequestStatusSvc,
 		documentCRWorkflowStatusSvc:    documentCRWorkflowStatusSvc,
 		documentSvc:                    documentSvc,
+		taskSvc:                        taskSvc,
+		notificationSvc:                notificationSvc,
+		userSvc:                        userSvc,
+		documentAccessSvc:              documentAccessSvc,
+		orgLevelSvc:                    orgLevelSvc,
 	}
 }
 
@@ -119,6 +139,15 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 
 	if err := dcrs.validateFormDTO(formDTO); err != nil {
 		return 0, err
+	}
+
+	existingChangeRequests, err := dcrs.repo.GetNonPublishedChangeRequests(formDTO.DocumentID)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(existingChangeRequests) > 0 {
+		return 0, utility.NewForbiddenError("cannot create a new change request for this document as there are existing change requests not in a published status")
 	}
 
 	changeRequestStatus, err := dcrs.documentChangeRequestStatusSvc.GetByType("draft")
@@ -230,6 +259,17 @@ func (dcrs *DocumentChangeRequestService) Update(id uint, currentUserID uint, fo
 	existingChangeRequest, err := dcrs.GetByID(id)
 	if err != nil {
 		return err
+	}
+
+	if existingChangeRequest.DocumentID != formDTO.DocumentID {
+		existingChangeRequests, err := dcrs.repo.GetNonPublishedChangeRequests(formDTO.DocumentID)
+		if err != nil {
+			return err
+		}
+
+		if len(existingChangeRequests) > 0 {
+			return utility.NewForbiddenError("cannot create a new change request for this document as there are existing change requests not in a published status")
+		}
 	}
 
 	existingCRFullDetails, err := dcrs.repo.GetFullDetailsByID(id)
@@ -396,21 +436,70 @@ func (dcrs *DocumentChangeRequestService) Delete(ids []uint, currentUserID uint)
 	var failedIds []uint
 	var successfulIds []uint
 
-	documentsToDelete := make(map[uint][]*documentDTOs.DocumentChangeRequestDocumentDTO)
+	documentsToDelete := make(map[uint][]*models.DocumentChangeRequestDocument)
+	documentCREditHistoryToDelete := make(map[uint][]*models.DocumentChangeRequestEditHistory)
 
 	for _, id := range ids {
-
-		changeRequest, err := dcrs.GetFullDetailsByID(id, tx)
+		var deleteDocumentCREditHistoryIds []*uint
+		var deleteDocumentWorkflowIds []*uint
+		var deleteDocumentWorkflowParticipantIds []*uint
+		var deleteDocumentWorkflowReviewIds []*uint
+		changeRequest, err := dcrs.repo.GetFullDetailsByID(id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue
+		}
+
+		if len(changeRequest.DocumentCREditHistory) > 0 {
+			for _, history := range changeRequest.DocumentCREditHistory {
+				documentCREditHistoryToDelete[id] = append(documentCREditHistoryToDelete[id], history)
+				deleteDocumentCREditHistoryIds = append(deleteDocumentCREditHistoryIds, &history.ID)
+			}
+		}
+
+		if err := dcrs.repo.DeleteDocumentCREditHistory(deleteDocumentCREditHistoryIds, tx); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		if len(changeRequest.DocumentChangeRequestWorkflows) > 0 {
+			for _, docWorkflow := range changeRequest.DocumentChangeRequestWorkflows {
+				deleteDocumentWorkflowIds = append(deleteDocumentWorkflowIds, &docWorkflow.ID)
+
+				if len(docWorkflow.DocumentChangeRequestWorkflowParticipants) > 0 {
+					for _, participant := range docWorkflow.DocumentChangeRequestWorkflowParticipants {
+						deleteDocumentWorkflowParticipantIds = append(deleteDocumentWorkflowParticipantIds, &participant.ID)
+					}
+				}
+
+				if len(docWorkflow.DocumentChangeRequestWorkflowReviews) > 0 {
+					for _, reviews := range docWorkflow.DocumentChangeRequestWorkflowReviews {
+						deleteDocumentWorkflowReviewIds = append(deleteDocumentWorkflowReviewIds, &reviews.ID)
+					}
+				}
+			}
+		}
+
+		if err := dcrs.documentChangeRequestWorkflowSvc.DeleteDocumentCRWorkflowParticipants(deleteDocumentWorkflowParticipantIds, tx); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		if err := dcrs.documentChangeRequestWorkflowSvc.DeleteDocumentCRWorkflowReviews(deleteDocumentWorkflowReviewIds, tx); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		if err := dcrs.documentChangeRequestWorkflowSvc.DeleteDocumentCRWorkflows(deleteDocumentWorkflowIds, tx); err != nil {
+			tx.Rollback()
+			return nil, err
 		}
 
 		if changeRequest.ChangeRequestDocument != nil {
 			documentsToDelete[id] = append(documentsToDelete[id], changeRequest.ChangeRequestDocument)
 
 			// Remove the related document from the database
-			if err := dcrs.repo.DeleteDocument(*changeRequest.ChangeRequestDocument.ID, tx); err != nil {
+			if err := dcrs.repo.DeleteDocument(changeRequest.ChangeRequestDocument.ID, tx); err != nil {
 				failedIds = append(failedIds, id)
 				continue
 			}
@@ -430,12 +519,29 @@ func (dcrs *DocumentChangeRequestService) Delete(ids []uint, currentUserID uint)
 
 	// Deleting files should not affect the main operation result
 	if len(successfulIds) > 0 {
+		for documentCRID, history := range documentCREditHistoryToDelete {
+			for _, doc := range history {
+				if doc.Name != nil {
+					storagePath := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(documentCRID), 10), "document-history", strconv.FormatUint(uint64(doc.ID), 10), "documents")
+					if err := utility.RemoveFile(*doc.Name, storagePath); err != nil {
+						tx.Rollback()
+						fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
+					}
+				}
+
+			}
+			destinationPath := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(documentCRID), 10), "document-history")
+			if err := utility.RemoveFolder(destinationPath); err != nil {
+				tx.Rollback()
+			}
+		}
+
 		for changeRequestID, documents := range documentsToDelete {
 			for _, doc := range documents {
 				storagePath := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(changeRequestID), 10), "documents")
 				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 					tx.Rollback()
-					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
+					fmt.Printf("Failed to delete file at URL %s: %v\n", doc.URL, err)
 				}
 			}
 			destinationPath := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(changeRequestID), 10))
@@ -794,120 +900,122 @@ func (dcrs *DocumentChangeRequestService) SubmitDocumentChangeRequest(id uint, c
 
 	tx.Commit()
 
-	// urlParam := fmt.Sprintf(`{"id":%d}`, id)
-	// var taskIDs []uint
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	var taskIDs []uint
 
-	// for _, participant := range docWorkflowLevel.DocumentWorkflowParticipants {
-	// 	taskDTO := commonDTOs.TaskFormDTO{
-	// 		ModuleIdentifier:   "document",
-	// 		DocumentID:         &id,
-	// 		DocumentWorkflowID: &docWorkflowLevel.ID,
-	// 		Title:              existingDocument.TitleEn,
-	// 		Description:        existingDocument.DescriptionEn,
-	// 		URLParam:           &urlParam,
-	// 		QueryParam:         nil,
-	// 		ResponsibleUserID:  participant.User.ID,
-	// 	}
+	for _, participant := range docCRWorkflowLevel.DocumentChangeRequestWorkflowParticipants {
+		taskDTO := commonDTOs.TaskFormDTO{
+			ModuleIdentifier:                "document",
+			DocumentChangeRequestID:         &id,
+			DocumentChangeRequestWorkflowID: &docCRWorkflowLevel.ID,
+			//Title:                           documentCRFullDetails.Document.TitleEn,
+			// Description:                     existingDocument.DescriptionEn,
+			URLParam:          &urlParam,
+			QueryParam:        nil,
+			ResponsibleUserID: participant.User.ID,
+		}
 
-	// 	taskID, err := ds.taskSvc.Create(taskDTO, currentUserID)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	taskIDs = append(taskIDs, taskID)
+		taskID, err := dcrs.taskSvc.Create(taskDTO, currentUserID)
+		if err != nil {
+			return err
+		}
+		taskIDs = append(taskIDs, taskID)
 
-	// }
+	}
 
-	// for _, taskID := range taskIDs {
-	// 	relatedTaskIDs := []uint{}
-	// 	for _, otherTaskID := range taskIDs {
-	// 		if otherTaskID != taskID {
-	// 			relatedTaskIDs = append(relatedTaskIDs, otherTaskID)
-	// 		}
-	// 	}
+	for _, taskID := range taskIDs {
+		relatedTaskIDs := []uint{}
+		for _, otherTaskID := range taskIDs {
+			if otherTaskID != taskID {
+				relatedTaskIDs = append(relatedTaskIDs, otherTaskID)
+			}
+		}
 
-	// 	relatedTaskIDsJSON, err := json.Marshal(relatedTaskIDs)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+		relatedTaskIDsJSON, err := json.Marshal(relatedTaskIDs)
+		if err != nil {
+			return err
+		}
 
-	// 	err = ds.taskSvc.UpdateTaskWithRelatedIDs(taskID, string(relatedTaskIDsJSON))
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
+		err = dcrs.taskSvc.UpdateTaskWithRelatedIDs(taskID, string(relatedTaskIDsJSON))
+		if err != nil {
+			return err
+		}
+	}
 
-	//to do
-	//activity log
+	// to do
+	// activity log
 
-	// Prepare notification
-	// go func() {
-	// 	urlParam = fmt.Sprintf(`{"id":%d}`, id)
-	// 	entity := "document"
-	// 	action := "review-user-assign"
+	//Prepare notification
+	go func() {
+		urlParam = fmt.Sprintf(`{"id":%d}`, id)
+		entity := "document-change_request"
+		action := "review-user-assign"
 
-	// 	for _, participant := range docWorkflowLevel.DocumentWorkflowParticipants {
-	// 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-	// 			UserID:               participant.User.ID,
-	// 			ModuleIdentifier:     "document",
-	// 			NotificationType:     string(commonDTOs.ReviewType),
-	// 			ReferenceNumber:      existingDocument.ReferenceNumber,
-	// 			HeadingEn:            "Document Review",
-	// 			HeadingAr:            "مراجعة الوثيقة",
-	// 			TitleEn:              existingDocument.TitleEn,
-	// 			TitleAr:              existingDocument.TitleAr,
-	// 			Entity:               &entity,
-	// 			Action:               &action,
-	// 			URLParam:             urlParam,
-	// 			IsSystemNotification: false,
-	// 			CreatedByID:          &currentUserID,
-	// 		}
+		for _, participant := range docCRWorkflowLevel.DocumentChangeRequestWorkflowParticipants {
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               participant.User.ID,
+				ModuleIdentifier:     "document",
+				NotificationType:     string(commonDTOs.ReviewType),
+				ReferenceNumber:      existingCRDocument.ReferenceNumber,
+				HeadingEn:            "Document Change Request Review",
+				HeadingAr:            "مراجعة طلب تغيير المستند",
+				TitleEn:              documentCRFullDetails.Document.TitleEn,
+				TitleAr:              documentCRFullDetails.Document.TitleAr,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
 
-	// 		responsibleUser, err := ds.userSvc.GetByID(participant.User.ID)
-	// 		if err != nil {
-	// 			utility.LogError("Failed to fetch review user", map[string]interface{}{
-	// 				"error": err.Error(),
-	// 			})
-	// 			return
-	// 		}
+			responsibleUser, err := dcrs.userSvc.GetByID(participant.User.ID)
+			if err != nil {
+				utility.LogError("Failed to fetch review user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
 
-	// 		assignedBy, err := ds.userSvc.GetByID(currentUserID)
-	// 		if err != nil {
-	// 			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
-	// 				"error": err.Error(),
-	// 			})
-	// 			return
-	// 		}
+			assignedBy, err := dcrs.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
 
-	// 		emailTo := []string{responsibleUser.Email}
-	// 		subject := fmt.Sprintf("Document/%s: Review Assigned", existingDocument.TitleEn)
-	// 		appURL := utility.GetAppURL()
-	// 		emailData := map[string]interface{}{
-	// 			"FirstNameEn":           responsibleUser.FirstNameEn,
-	// 			"LastNameEn":            responsibleUser.LastNameEn,
-	// 			"DocumentTitle":         existingDocument.TitleEn,
-	// 			"DocumentType":          document.DocumentType.TitleEn,
-	// 			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
-	// 			"AssignedByLastNameEn":  assignedBy.LastNameEn,
-	// 			"AssignedOn":            time.Now().Format("2006-01-02"),
-	// 			"RedirectURL":           fmt.Sprintf("%s/document/register/%d", appURL, id),
-	// 		}
+			emailTo := []string{responsibleUser.Email}
+			subject := fmt.Sprintf("Document Change Request/%s: Review Assigned", documentCRFullDetails.Document.TitleEn)
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn":               responsibleUser.FirstNameEn,
+				"LastNameEn":                responsibleUser.LastNameEn,
+				"DocumentTitle":             documentCRFullDetails.Document.TitleEn,
+				"DocumentType":              documentCRFullDetails.Document.DocumentType.TitleEn,
+				"DocumentChangeRequestType": documentCRFullDetails.DocumentChangeRequestType.TitleEn,
+				"ReasonForChange":           documentCRFullDetails.ReasonForChange,
+				"AssignedByFirstNameEn":     assignedBy.FirstNameEn,
+				"AssignedByLastNameEn":      assignedBy.LastNameEn,
+				"AssignedOn":                time.Now().Format("2006-01-02"),
+				"RedirectURL":               fmt.Sprintf("%s/document/change-request/%d", appURL, id),
+			}
 
-	// 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-	// 			EmailTo:              emailTo,
-	// 			Subject:              subject,
-	// 			TemplateRelativePath: "document/templates/email/document_workflow_review_user_mail.html",
-	// 			EmailData:            emailData,
-	// 		}
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "document/templates/email/document_change_request_workflow_review_user_mail.html",
+				EmailData:            emailData,
+			}
 
-	// 		// Send Notification and Email
-	// 		err = ds.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document")
-	// 		if err != nil {
-	// 			utility.LogError("Failed to send notifications", map[string]interface{}{
-	// 				"error": err.Error(),
-	// 			})
-	// 		}
-	// 	}
-	// }()
+			// Send Notification and Email
+			err = dcrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document_change_request")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+	}()
 
 	return nil
 }
@@ -1183,10 +1291,171 @@ func (dcrs *DocumentChangeRequestService) PublishDocumentChangeRequest(id uint, 
 
 	tx.Commit()
 
-	//ds.notifyUsersOnPublish(document, id, currentUserID)
+	dcrs.notifyUsersOnPublish(documentCRFullDetails, id, currentUserID)
 
 	//to do
 	//activity log
 
 	return nil
+}
+
+func (dcrs *DocumentChangeRequestService) notifyUsersOnPublish(documentChangeRequest *documentDTOs.DocumentChangeRequestDetailsDTO, documentCRID uint, publishedBy uint) {
+	go func() {
+		entity := "document-change-request"
+		action := "published"
+		appURL := utility.GetAppURL()
+		subject := fmt.Sprintf("Document Change Request/%s: Published Notification", documentChangeRequest.Document.TitleEn)
+		redirectURL := fmt.Sprintf("%s/document/register/%d", appURL, documentCRID)
+
+		publishedUser, _ := dcrs.userSvc.GetByID(publishedBy)
+
+		// Collect users to notify based on access type
+		var usersToNotify []*organizationDTOs.UserMinimalDTO
+
+		if documentChangeRequest.Document.DocumentAccessType.Type == "public" {
+			params := &organizationDTOs.UserListQueryParamsDTO{
+				Sort:        "asc",
+				SortBy:      "first_name_en",
+				Keyword:     "",
+				Status:      "",
+				Page:        1,
+				PageSize:    0,
+				UserIDs:     nil,
+				Filters:     nil,
+				QuickFilter: nil,
+				Export:      true,
+			}
+
+			userResponse, err := dcrs.userSvc.GetAll(params)
+			if err != nil {
+				utility.LogError("Failed to fetch all users for public document notification", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+			for _, user := range userResponse.Items {
+				minimalUser := &organizationDTOs.UserMinimalDTO{
+					ID:          int(user.ID),
+					FirstNameEN: user.FirstNameEn,
+					LastNameEN:  user.LastNameEn,
+					Email:       user.Email,
+				}
+				usersToNotify = append(usersToNotify, minimalUser)
+			}
+		} else if documentChangeRequest.Document.DocumentAccessType.Type == "shared" {
+			const page = 1
+			const pageSize = 10000
+			sharedUsers, _ := dcrs.documentAccessSvc.GetSharedUsers(uint(documentChangeRequest.Document.ID), page, pageSize)
+			usersToNotify = append(usersToNotify, sharedUsers.Items...)
+
+			reviewUsers, _ := dcrs.documentAccessSvc.GetReviewUsers(uint(documentChangeRequest.Document.ID))
+			usersToNotify = append(usersToNotify, reviewUsers...)
+
+			primaryLevel, _ := dcrs.orgLevelSvc.GetPrimaryLevel()
+			columnName := fmt.Sprintf("organization_unit_%d_id", primaryLevel.Level)
+
+			sharedUnits, _ := dcrs.documentAccessSvc.GetSharedUnits(uint(documentChangeRequest.Document.ID))
+			if len(sharedUnits) > 0 {
+
+				unitIDs := make([]uint, len(sharedUnits))
+				for i, unit := range sharedUnits {
+					unitIDs[i] = uint(unit.ID)
+				}
+
+				// Convert unit IDs to string slice
+				unitIDsStr := make([]string, len(unitIDs))
+				for i, id := range unitIDs {
+					unitIDsStr[i] = strconv.Itoa(int(id))
+				}
+
+				params := &organizationDTOs.UserListQueryParamsDTO{
+					Sort:        "asc",
+					SortBy:      "first_name_en",
+					Keyword:     "",
+					Status:      "",
+					Page:        1,
+					PageSize:    0,
+					UserIDs:     nil,
+					Filters:     map[string][]string{columnName: unitIDsStr},
+					QuickFilter: nil,
+					Export:      true,
+				}
+
+				unitUserResponse, err := dcrs.userSvc.GetAll(params)
+				if err != nil {
+					utility.LogError("Failed to fetch all users for public document notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+
+				for _, user := range unitUserResponse.Items {
+					minimalUser := &organizationDTOs.UserMinimalDTO{
+						ID:          int(user.ID),
+						FirstNameEN: user.FirstNameEn,
+						LastNameEN:  user.LastNameEn,
+						Email:       user.Email,
+					}
+					usersToNotify = append(usersToNotify, minimalUser)
+				}
+			}
+
+		}
+
+		// Send notifications to all users in the usersToNotify list
+		uniqueUsers := make(map[uint]bool)
+		for _, user := range usersToNotify {
+			if _, exists := uniqueUsers[uint(user.ID)]; exists {
+				continue
+			}
+
+			uniqueUsers[uint(user.ID)] = true
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               uint(user.ID),
+				ModuleIdentifier:     "document",
+				NotificationType:     string(commonDTOs.PublishType),
+				HeadingEn:            "Document Change Request Published",
+				HeadingAr:            "تم نشر طلب تغيير المستند",
+				ReferenceNumber:      documentChangeRequest.ReferenceNumber,
+				TitleEn:              documentChangeRequest.Document.TitleEn,
+				TitleAr:              documentChangeRequest.Document.TitleAr,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             fmt.Sprintf(`{"id":%d}`, documentCRID),
+				IsSystemNotification: false,
+				CreatedByID:          &publishedBy,
+			}
+
+			// Prepare email data
+			emailTo := []string{user.Email}
+			emailData := map[string]interface{}{
+				"FirstNameEn":               user.FirstNameEN,
+				"LastNameEn":                user.LastNameEN,
+				"DocumentTitle":             documentChangeRequest.Document.TitleEn,
+				"DocumentType":              documentChangeRequest.Document.DocumentType.TitleEn,
+				"DocumentChangeRequestType": documentChangeRequest.DocumentChangeRequestType.TitleEn,
+				"PublishedByFirstNameEn":    publishedUser.FirstNameEn,
+				"PublishedByFirstLastEn":    publishedUser.LastNameEn,
+				"PublishedAt":               time.Now().Format("2006-01-02"),
+				"RedirectURL":               redirectURL,
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "document/templates/email/document_change_request_publish_user_mail.html",
+				EmailData:            emailData,
+			}
+
+			// Send both database and email notifications
+			err := dcrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document_change_request")
+			if err != nil {
+				utility.LogError("Failed to send document publish notification", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+		}
+	}()
 }

@@ -36,6 +36,8 @@ type DocumentChangeRequestRepositoryInterface interface {
 	GetDocumentCREditHistories(changeRequestID uint) ([]*models.DocumentChangeRequestEditHistory, error)
 
 	CreateDocumentCRWorkflowReview(documentCRWorkflowReview *models.DocumentChangeRequestWorkflowReview, tx ...utility.DatabaseTransaction) error
+
+	GetNonPublishedChangeRequests(documentID uint) ([]models.DocumentChangeRequest, error)
 }
 
 type DocumentChangeRequestRepository struct {
@@ -373,4 +375,14 @@ func (repo *DocumentChangeRequestRepository) GetDocumentCREditHistories(changeRe
 		return nil, err
 	}
 	return histories, nil
+}
+
+func (repo *DocumentChangeRequestRepository) GetNonPublishedChangeRequests(documentID uint) ([]models.DocumentChangeRequest, error) {
+	var changeRequests []models.DocumentChangeRequest
+
+	err := repo.db.Joins("JOIN document_change_request_statuses ON document_change_requests.document_change_request_status_id = document_change_request_statuses.id").
+		Where("document_change_requests.document_id = ? AND document_change_request_statuses.type != ?", documentID, "published").
+		Find(&changeRequests).Error
+
+	return changeRequests, err
 }
