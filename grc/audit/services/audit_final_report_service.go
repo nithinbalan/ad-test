@@ -111,6 +111,17 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 		updatedByUserDTO := mapUserToUserMinimalDTO(auditFinalReport.UpdatedByUser)
 		updatedByUser = &updatedByUserDTO
 	}
+	var publishedByUser *organizationDTOs.UserMinimalDTO
+	var publishedAt *string
+
+	if auditFinalReport.PublishedByUser != nil {
+		publishedByUserDTO := mapUserToUserMinimalDTO(auditFinalReport.PublishedByUser)
+		publishedByUser = &publishedByUserDTO
+	}
+	if auditFinalReport.PublishedAt != nil {
+		formattedPublishedAt := auditFinalReport.PublishedAt.UTC().Format("2006-01-02T15:04:05.000Z")
+		publishedAt = &formattedPublishedAt
+	}
 	// Map the AuditDraftReportStatus
 	auditFinalReportStatusDTO := auditDTOs.AuditFinalReportStatusDTO{
 		ID:        auditFinalReport.AuditFinalReportStatus.ID,
@@ -313,17 +324,31 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 
 	// Map other fielafrs and create the DTO
 	auditReportDTO := &auditDTOs.AuditFinalReportDetailDTO{
-		ID:                     auditFinalReport.ID,
-		AuditID:                auditFinalReport.AuditID,
-		NextReviewLevel:        auditFinalReport.NextReviewLevel,
-		Title:                  auditFinalReport.Audit.AuditPlan.Title,
-		Description:            auditFinalReport.Audit.AuditPlan.Description,
-		ReferenceNumber:        auditFinalReport.Audit.AuditPlan.ReferenceNumber,
-		MainSections:           mainSections,
-		AuditFinalReportStatus: &auditFinalReportStatusDTO,
-		PreparedBy:             createdByUser,
-		UpdatedByUser:          updatedByUser,
-		PreparedAt:             auditFinalReport.CreatedAt.Format("2006-01-02"),
+		ID:                         auditFinalReport.ID,
+		AuditID:                    auditFinalReport.AuditID,
+		NextReviewLevel:            auditFinalReport.NextReviewLevel,
+		Title:                      auditFinalReport.Audit.AuditPlan.Title,
+		Description:                auditFinalReport.Audit.AuditPlan.Description,
+		ReferenceNumber:            auditFinalReport.Audit.AuditPlan.ReferenceNumber,
+		MainSections:               mainSections,
+		AuditFinalReportStatus:     &auditFinalReportStatusDTO,
+		AuditFinalReportRecipients: []*auditDTOs.AuditFinalReportRecipientDTO{},
+		PreparedBy:                 createdByUser,
+		PublishedByUser:            publishedByUser,
+		PublishedAt:                publishedAt,
+		UpdatedByUser:              updatedByUser,
+		PreparedAt:                 auditFinalReport.CreatedAt.Format("2006-01-02"),
+	}
+	// Check if AuditFinalReportRecipients exists and map them
+	if auditFinalReport.AuditFinalReportRecipients != nil && len(auditFinalReport.AuditFinalReportRecipients) > 0 {
+		for _, recipient := range auditFinalReport.AuditFinalReportRecipients {
+			auditReportDTO.AuditFinalReportRecipients = append(auditReportDTO.AuditFinalReportRecipients, &auditDTOs.AuditFinalReportRecipientDTO{
+				ID:                 &recipient.ID,
+				AuditFinalReportID: recipient.AuditFinalReportID,
+				UserID:             recipient.UserID,
+				User:               mapUserToUserMinimalDTO(recipient.User),
+			})
+		}
 	}
 
 	// Return the DTO
@@ -1077,7 +1102,7 @@ func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, a
 		}
 		auditFinalReportRecipients = append(auditFinalReportRecipients, auditFinalReportRecipient)
 	}
-	
+
 	// Add To user
 	toRecipient := &models.AuditFinalReportRecipient{
 		AuditFinalReportID: existingAuditFinalReport.ID,
@@ -1086,7 +1111,7 @@ func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, a
 		CreatedBYID:        currentUserID,
 	}
 	auditFinalReportRecipients = append(auditFinalReportRecipients, toRecipient)
-	
+
 	// Save recipients to the database
 	if len(auditFinalReportRecipients) > 0 {
 		if err := afrs.repo.CreateAuditFinalReportRecipients(auditFinalReportRecipients, tx); err != nil {
@@ -1094,8 +1119,7 @@ func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, a
 			return err
 		}
 	}
-	
-	
+
 	//update status & Publishedby user details on final report
 	currentDateStr := time.Now()
 	auditFinalReport.AuditFinalReportStatusID = auditFinalReportStatusPublished.ID
@@ -1103,7 +1127,7 @@ func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, a
 	auditFinalReport.PublishedAt = &currentDateStr
 	auditFinalReport.Comments = auditFinalReportPublishFormDTO.Comments
 
-	err = afrs.repo.Update(auditFinalReport,tx)
+	err = afrs.repo.Update(auditFinalReport, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
