@@ -184,6 +184,7 @@ func (repo *DocumentChangeRequestRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("Document.ResponsibleUnit").
 		Preload("Document.DocumentType").
 		Preload("Document.DocumentCategory").
+		Preload("Document.DocumentAccessType").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("DocumentCREditHistory").
