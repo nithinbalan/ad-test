@@ -13,6 +13,7 @@ import (
 	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/utility"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -1186,7 +1187,7 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 
 	controlTitles := make(map[string]bool)
 	for _, control := range controls {
-		controlTitles[control.TitleEn] = true
+		controlTitles[strings.TrimSpace(control.TitleEn)] = true
 	}
 
 	// Iterate through the rows of the file
@@ -1230,11 +1231,12 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 				if value != "" {
 					controlList := utility.ParseCommaSeparatedValues(value)
 					for _, control := range controlList {
-						if !controlTitles[control] {
+						trimmedControl := strings.TrimSpace(control) // Trim spaces for comparison
+						if !controlTitles[trimmedControl] {
 							if _, exists := rowErrors[header]; !exists {
 								rowErrors[header] = []string{}
 							}
-							rowErrors[header] = append(rowErrors[header].([]string), fmt.Sprintf("Invalid control: %s", control))
+							rowErrors[header] = append(rowErrors[header].([]string), fmt.Sprintf("Invalid control: %s", trimmedControl))
 						}
 					}
 				}
@@ -1292,7 +1294,7 @@ func (ps *ProcessService) ImportProcesses(input []map[string]interface{}, curren
 
 	controlTitles := make(map[string]uint)
 	for _, control := range controls {
-		controlTitles[control.TitleEn] = control.ID
+		controlTitles[strings.TrimSpace(control.TitleEn)] = control.ID
 	}
 
 	// Loop through input records
@@ -1337,8 +1339,9 @@ func (ps *ProcessService) ImportProcesses(input []map[string]interface{}, curren
 					controlList := utility.ParseCommaSeparatedValues(value)
 					invalidControls := []string{}
 					for _, control := range controlList {
-						if id, exists := controlTitles[control]; !exists {
-							invalidControls = append(invalidControls, fmt.Sprintf("Invalid control: %s", control))
+						trimmedControl := strings.TrimSpace(control) // Trim spaces for comparison
+						if id, exists := controlTitles[trimmedControl]; !exists {
+							invalidControls = append(invalidControls, fmt.Sprintf("Invalid control: %s", trimmedControl))
 						} else {
 							controlIDs = append(controlIDs, &id)
 						}

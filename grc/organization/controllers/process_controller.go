@@ -361,9 +361,6 @@ func (pc *ProcessController) ImportProcesses(c *gin.Context) {
 
 	// If validation errors exist, return them
 	if len(validationErrors) > 0 {
-		// c.JSON(http.StatusBadRequest, gin.H{
-		// 	"validation_errors": validationErrors,
-		// })
 		c.JSON(200, validationErrors)
 		return
 	}
