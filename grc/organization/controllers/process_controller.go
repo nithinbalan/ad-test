@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"errors"
-	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/organization/services"
@@ -341,41 +340,34 @@ func (pc *ProcessController) ValidateProcessTemplate(c *gin.Context) {
 }
 
 func (pc *ProcessController) ImportProcesses(c *gin.Context) {
-	// Retrieve the uploaded file
-	file, err := c.FormFile("file")
-	if err != nil {
-		utility.SendInvalidErrResp(c, fmt.Errorf("file is required"))
+	var input []map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	src, err := file.Open()
-	if err != nil {
-		utility.SendInternalErrResp(pc.db, c, "Failed to open file")
-		return
-	}
-	defer src.Close()
-
-	// Pass the file to the service layer for processing
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(pc.db, c, err.Error())
 		return
 	}
 
-	failedRows, err := pc.service.ImportProcesses(src, currentUserID)
+	// Pass the input to the service for validation and creation
+	validationErrors, err := pc.service.ImportProcesses(input, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(pc.db, c, err.Error())
 		return
 	}
 
-	// Respond with success or error details
-	if len(failedRows) > 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message":     "Some rows failed to import",
-			"failed_rows": failedRows,
-		})
+	// If validation errors exist, return them
+	if len(validationErrors) > 0 {
+		// c.JSON(http.StatusBadRequest, gin.H{
+		// 	"validation_errors": validationErrors,
+		// })
+		c.JSON(200, validationErrors)
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "All rows imported successfully"})
+	// Success response
+	c.Status(http.StatusCreated)
 }

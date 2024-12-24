@@ -5,7 +5,6 @@ import (
 	"io"
 	"mime/multipart"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/xuri/excelize/v2"
@@ -150,33 +149,22 @@ func ValidateHeaders(expected, actual []string) bool {
 	return true
 }
 
-func IsValidID(value string) bool {
-	_, err := strconv.Atoi(value)
-	return err == nil
-}
-
-func ParseUint(value string) uint {
-	val, _ := strconv.Atoi(value)
-	return uint(val)
-}
-
-func ParseUintSlice(value string) []*uint {
-	var result []*uint
-	values := strings.Split(value, ",")
-	for _, v := range values {
-		parsed := ParseUint(v)
-		result = append(result, &parsed)
-	}
-	return result
-}
-
-func GetStringPointer(value string) *string {
-	if value == "" {
-		return nil // If the string is empty, return nil
-	}
-	return &value
-}
-
 func ParseCommaSeparatedValues(input string) []string {
 	return strings.Split(strings.TrimSpace(input), ";")
+}
+
+// GetOptionalString retrieves a pointer to a string from an interface.
+// If the input is nil or not a string, it returns nil.
+func GetOptionalString(value interface{}) *string {
+	if value == nil {
+		return nil
+	}
+
+	// Assert the value as a string
+	str, ok := value.(string)
+	if !ok || str == "" {
+		return nil
+	}
+
+	return &str
 }
