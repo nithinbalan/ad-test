@@ -703,8 +703,10 @@ func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTO
 		return utility.NewValidationError(fmt.Errorf("control type does not exist"), "not_exist", "control type")
 	}
 
-	if _, err := cs.controlCategorySvc.GetByID(uint(controlFormDTO.ControlCategoryID)); err != nil {
-		return utility.NewValidationError(fmt.Errorf("control category does not exist"), "not_exist", "control category")
+	if controlFormDTO.ControlCategoryID != nil {
+		if _, err := cs.controlCategorySvc.GetByID(uint(*controlFormDTO.ControlCategoryID)); err != nil {
+			return utility.NewValidationError(fmt.Errorf("control category does not exist"), "not_exist", "control category")
+		}
 	}
 
 	if _, err := cs.userSvc.GetByID(uint(controlFormDTO.OwnerID)); err != nil {

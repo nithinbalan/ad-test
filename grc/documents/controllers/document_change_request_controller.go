@@ -136,6 +136,9 @@ func (dcrc *DocumentChangeRequestController) CreateDocumentChangeRequest(c *gin.
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, err.Error())
+			return
 		default:
 			utility.SendInternalErrResp(dcrc.db, c, e.Error())
 			return
@@ -173,6 +176,9 @@ func (dcrc *DocumentChangeRequestController) UpdateDocumentChangeRequest(c *gin.
 			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, err.Error())
 			return
 		default:
 			utility.SendInternalErrResp(dcrc.db, c, e.Error())

@@ -239,6 +239,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("risks/heatmap-by-risk-category", middlewares.RolePermissionMiddleware(db, "risk_heatmap", "view"), riskHeatmapController.GetRiskHeatmapByRiskCategory)
 	riskRoutes.GET("risks/heatmap-by-risk-source", middlewares.RolePermissionMiddleware(db, "risk_heatmap", "view"), riskHeatmapController.GetRiskHeatmapByRiskSource)
 	riskRoutes.GET("risks/heatmap-by-risk-matrix", middlewares.RolePermissionMiddleware(db, "risk_heatmap", "view"), riskHeatmapController.GetRiskHeatmapByRiskMatrix)
+	riskRoutes.GET("risks/heatmap-by-risk-response-strategy", middlewares.RolePermissionMiddleware(db, "risk_heatmap", "view"), riskHeatmapController.GetRiskHeatmapByResponseStrategy)
+	riskRoutes.GET("risks/heatmap-by-risk-status", middlewares.RolePermissionMiddleware(db, "risk_heatmap", "view"), riskHeatmapController.GetRiskHeatmapByRiskStatus)
+	riskRoutes.GET("risks/heatmap-by-review-frequency", middlewares.RolePermissionMiddleware(db, "risk_heatmap", "view"), riskHeatmapController.GetRiskHeatmapByReviewFrequency)
 
 	riskRoutes.GET("processes/:processId/risk-heatmap", middlewares.RolePermissionMiddleware(db, "process", "view"), riskHeatmapController.GetProcessRiskHeatmap)
 	riskRoutes.GET("controls/:controlId/risk-heatmap", middlewares.RolePermissionMiddleware(db, "controls", "view"), riskHeatmapController.GetControlRiskHeatmap)

@@ -7,15 +7,15 @@ import (
 type Control struct {
 	ID                            uint       `json:"id" gorm:"primaryKey;autoIncrement" binding:"-"`
 	ControlTypeID                 uint       `json:"control_type_id" gorm:"not null" binding:"required"`
-	ControlCategoryID             uint       `json:"control_category_id" gorm:"not null" binding:"required"`
+	ControlCategoryID             *uint      `json:"control_category_id" gorm:"not null"`
 	OwnerUnitID                   uint       `json:"owner_unit_id" gorm:"not null" binding:"required"`
 	OwnerID                       uint       `json:"owner_id" gorm:"not null" binding:"required"`
 	ControlImplementationStatusID *uint      `json:"control_implementation_status_id" gorm:"default:null"`
 	ControlEfficiencyStatusID     *uint      `json:"control_efficiency_status_id" gorm:"default:null"`
 	ReferenceNumber               string     `json:"reference_number" gorm:"type:varchar(45);not null;unique" binding:"required"`
 	Code                          *string    `json:"code,omitempty" gorm:"type:varchar(45);default:null" binding:"omitempty"`
-	TitleEn                       string     `json:"title_en" gorm:"type:nvarchar(500);not null" binding:"required"`
-	TitleAr                       string     `json:"title_ar" gorm:"type:nvarchar(500);not null" binding:"required"`
+	TitleEn                       string     `json:"title_en" gorm:"type:nvarchar(MAX);not null" binding:"required"`
+	TitleAr                       string     `json:"title_ar" gorm:"type:nvarchar(MAX);not null" binding:"required"`
 	Description                   *string    `json:"description,omitempty" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
 	EfficiencyScore               *uint      `json:"efficiency_score" gorm:"default:0;check:efficiency_score >= 0 AND efficiency_score <= 100" binding:"omitempty"`
 	Objective                     *string    `json:"objective,omitempty" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
