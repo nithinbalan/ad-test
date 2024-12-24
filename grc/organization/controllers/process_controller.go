@@ -336,10 +336,10 @@ func (pc *ProcessController) ValidateProcessTemplate(c *gin.Context) {
 		}
 	}
 
-	c.JSON(200, data)
+	c.JSON(http.StatusOK, data)
 }
 
-func (pc *ProcessController) ImportProcesses(c *gin.Context) {
+func (pc *ProcessController) ValidateImportProcess(c *gin.Context) {
 	var input []map[string]interface{}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -353,18 +353,12 @@ func (pc *ProcessController) ImportProcesses(c *gin.Context) {
 	}
 
 	// Pass the input to the service for validation and creation
-	validationErrors, err := pc.service.ImportProcesses(input, currentUserID)
+	validationResult, err := pc.service.ImportProcesses(input, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(pc.db, c, err.Error())
 		return
 	}
 
-	// If validation errors exist, return them
-	if len(validationErrors) > 0 {
-		c.JSON(200, validationErrors)
-		return
-	}
+	c.JSON(http.StatusOK, validationResult)
 
-	// Success response
-	c.Status(http.StatusCreated)
 }

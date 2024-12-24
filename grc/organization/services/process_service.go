@@ -1153,18 +1153,45 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 		return nil, nil, utility.NewValidationError(fmt.Errorf("invalid headers in the Excel file"), "invalid_header", "Process Template")
 	}
 
-	var data []map[string]interface{}
-	var validationErrors []map[string]interface{}
+	// Convert rows to input format
+	var input []map[string]interface{}
+	for _, row := range rows[1:] { // Skip header row
+		record := make(map[string]interface{})
+		for i, header := range snakeCaseHeaders {
+			if i < len(row) {
+				record[header] = row[i]
+			} else {
+				record[header] = "" // Pad missing columns
+			}
+		}
+		input = append(input, record)
+	}
 
+	// Call the reusable validation function
+	return ps.validateProcesses(input, snakeCaseHeaders)
+}
+
+func (ps *ProcessService) ImportProcesses(input []map[string]interface{}, currentUserID uint) ([]map[string]interface{}, error) {
+	headers := []string{"process_group_title", "owner", "title_en", "title_ar", "description", "controls"}
+
+	// Call the reusable validation function
+	validatedData, _, err := ps.validateProcesses(input, headers)
+	if err != nil {
+		return nil, err
+	}
+
+	return validatedData, nil
+}
+
+func (ps *ProcessService) validateProcesses(input []map[string]interface{}, headers []string) ([]map[string]interface{}, []map[string]interface{}, error) {
 	// Fetch process group titles
 	processGroups, err := ps.processGroupSvc.GetAll("", "", "", "active")
 	if err != nil {
 		return nil, nil, fmt.Errorf("error fetching process groups: %v", err)
 	}
-
 	processGroupTitles := make(map[string]bool)
 	for _, group := range processGroups {
-		processGroupTitles[group.TitleEn] = true
+		processGroupTitles[strings.TrimSpace(group.TitleEn)] = true
 	}
 
 	// Fetch user full names
@@ -1172,10 +1199,9 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 	if err != nil {
 		return nil, nil, fmt.Errorf("error fetching users: %v", err)
 	}
-
 	userFullNames := make(map[string]bool)
 	for _, user := range users {
-		fullName := user.FirstNameEn + " " + user.LastNameEn
+		fullName := strings.TrimSpace(user.FirstNameEn + " " + user.LastNameEn)
 		userFullNames[fullName] = true
 	}
 
@@ -1184,166 +1210,50 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 	if err != nil {
 		return nil, nil, fmt.Errorf("error fetching controls: %v", err)
 	}
-
 	controlTitles := make(map[string]bool)
 	for _, control := range controls {
 		controlTitles[strings.TrimSpace(control.TitleEn)] = true
 	}
 
-	// Iterate through the rows of the file
-	for i, row := range rows {
-		if i == 0 {
-			// Skip header row
-			continue
-		}
+	// Perform validation
+	var validatedData []map[string]interface{}
+	var validationErrors []map[string]interface{}
 
-		// Pad row if it's shorter than the headers
-		if len(row) < len(inputHeaders) {
-			for len(row) < len(inputHeaders) {
-				row = append(row, "")
-			}
-		}
-
-		rowData := make(map[string]interface{})
-		rowErrors := make(map[string]interface{})
-
-		// Map data from the input headers to snake case headers
-		for j, header := range snakeCaseHeaders {
-			value := row[j]
-			rowData[header] = value
-
-			// Validation logic
-			switch header {
-			case "process_group_title":
-				if value == "" {
-					rowErrors[header] = "Field is required"
-				} else if !processGroupTitles[value] {
-					rowErrors[header] = fmt.Sprintf("Invalid process group title: %s", value)
-				}
-			case "owner":
-				if value == "" {
-					rowErrors[header] = "Field is required"
-				} else if !userFullNames[value] {
-					rowErrors[header] = fmt.Sprintf("Invalid owner name: %s", value)
-				}
-			case "controls":
-				// If Controls is not empty, validate the controls
-				if value != "" {
-					controlList := utility.ParseCommaSeparatedValues(value)
-					for _, control := range controlList {
-						trimmedControl := strings.TrimSpace(control) // Trim spaces for comparison
-						if !controlTitles[trimmedControl] {
-							if _, exists := rowErrors[header]; !exists {
-								rowErrors[header] = []string{}
-							}
-							rowErrors[header] = append(rowErrors[header].([]string), fmt.Sprintf("Invalid control: %s", trimmedControl))
-						}
-					}
-				}
-			case "title_en", "title_ar":
-				if value == "" {
-					rowErrors[header] = "Field is required"
-				}
-			}
-		}
-
-		rowData["errors"] = rowErrors
-		data = append(data, rowData)
-
-		if len(rowErrors) > 0 {
-			validationErrors = append(validationErrors, rowErrors)
-		}
-	}
-
-	return data, validationErrors, nil
-}
-
-func (ps *ProcessService) ImportProcesses(input []map[string]interface{}, currentUserID uint) ([]map[string]interface{}, error) {
-	// Headers for validation
-	headers := []string{"process_group_title", "owner", "title_en", "title_ar", "description", "controls"}
-
-	var results []map[string]interface{}
-
-	// Fetch required data for validation
-	processGroups, err := ps.processGroupSvc.GetAll("", "", "", "active")
-	if err != nil {
-		return nil, fmt.Errorf("error fetching process groups: %v", err)
-	}
-
-	users, err := ps.userSvc.GetAllUsers()
-	if err != nil {
-		return nil, fmt.Errorf("error fetching users: %v", err)
-	}
-
-	controls, err := ps.controlSvc.GetAllControls()
-	if err != nil {
-		return nil, fmt.Errorf("error fetching controls: %v", err)
-	}
-
-	// Map data for faster validation
-	processGroupTitles := make(map[string]uint)
-	for _, group := range processGroups {
-		processGroupTitles[group.TitleEn] = group.ID
-	}
-
-	userFullNames := make(map[string]uint)
-	for _, user := range users {
-		fullName := user.FirstNameEn + " " + user.LastNameEn
-		userFullNames[fullName] = user.ID
-	}
-
-	controlTitles := make(map[string]uint)
-	for _, control := range controls {
-		controlTitles[strings.TrimSpace(control.TitleEn)] = control.ID
-	}
-
-	// Loop through input records
 	for _, record := range input {
 		rowErrors := make(map[string]interface{})
-		var controlIDs []*uint
-		var processGroupID uint
-		var ownerID uint
-
-		// Retain the original record for the response
 		processedRecord := make(map[string]interface{})
+
+		// Copy the original record for the response
 		for key, value := range record {
 			processedRecord[key] = value
 		}
 
-		// Validate fields using switch cases
+		// Validate fields
 		for _, header := range headers {
+			value, ok := record[header].(string)
 			switch header {
 			case "process_group_title":
-				value, ok := record[header].(string)
 				if !ok || value == "" {
 					rowErrors["process_group_title"] = "Field is required"
-				} else if id, exists := processGroupTitles[value]; !exists {
+				} else if !processGroupTitles[strings.TrimSpace(value)] {
 					rowErrors["process_group_title"] = fmt.Sprintf("Invalid process group title: %s", value)
-				} else {
-					processGroupID = id
 				}
 
 			case "owner":
-				value, ok := record[header].(string)
 				if !ok || value == "" {
 					rowErrors["owner"] = "Field is required"
-				} else if id, exists := userFullNames[value]; !exists {
+				} else if !userFullNames[strings.TrimSpace(value)] {
 					rowErrors["owner"] = fmt.Sprintf("Invalid owner name: %s", value)
-				} else {
-					ownerID = id
 				}
 
 			case "controls":
-				value, ok := record[header].(string)
-				if ok && value != "" { // Only validate if controls field is provided
+				if ok && value != "" { // Validate only if controls field is provided
 					controlList := utility.ParseCommaSeparatedValues(value)
 					invalidControls := []string{}
 					for _, control := range controlList {
-						trimmedControl := strings.TrimSpace(control) // Trim spaces for comparison
-						if id, exists := controlTitles[trimmedControl]; !exists {
+						trimmedControl := strings.TrimSpace(control)
+						if !controlTitles[trimmedControl] {
 							invalidControls = append(invalidControls, fmt.Sprintf("Invalid control: %s", trimmedControl))
-						} else {
-							controlIDs = append(controlIDs, &id)
 						}
 					}
 					if len(invalidControls) > 0 {
@@ -1352,7 +1262,6 @@ func (ps *ProcessService) ImportProcesses(input []map[string]interface{}, curren
 				}
 
 			case "title_en", "title_ar":
-				value, ok := record[header].(string)
 				if !ok || value == "" {
 					rowErrors[header] = "Field is required"
 				}
@@ -1362,32 +1271,13 @@ func (ps *ProcessService) ImportProcesses(input []map[string]interface{}, curren
 			}
 		}
 
-		// If there are validation errors, add them to the processed record
+		// Add errors or success record
+		processedRecord["errors"] = rowErrors
+		validatedData = append(validatedData, processedRecord)
 		if len(rowErrors) > 0 {
-			processedRecord["errors"] = rowErrors
-			results = append(results, processedRecord)
-			continue
+			validationErrors = append(validationErrors, rowErrors)
 		}
-
-		// Create the process if no errors
-		processDTO := organizationDTOs.ProcessFormDTO{
-			ProcessGroupID: processGroupID,
-			OwnerID:        ownerID,
-			TitleEn:        record["title_en"].(string),
-			TitleAr:        record["title_ar"].(string),
-			Description:    utility.GetOptionalString(record["description"]),
-			ControlIds:     controlIDs,
-		}
-
-		_, err := ps.Create(currentUserID, &processDTO)
-		if err != nil {
-			return nil, fmt.Errorf("error creating process: %v", err)
-		}
-
-		// Append the successfully processed record without errors
-		processedRecord["errors"] = nil
-		results = append(results, processedRecord)
 	}
 
-	return results, nil
+	return validatedData, validationErrors, nil
 }
