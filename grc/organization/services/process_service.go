@@ -1186,6 +1186,27 @@ func (ps *ProcessService) ValidateImportProcess(input []map[string]interface{}) 
 	return validatedData, nil
 }
 
+func (ps *ProcessService) ImportProcesses(processFormDTO []organizationDTOs.ProcessFormDTO, currentUserID uint) ([]uint, []map[string]interface{}, error) {
+	var createdProcessIDs []uint
+	var errors []map[string]interface{}
+
+	for _, processForm := range processFormDTO {
+		// Call the existing Create function to create the process
+		processID, err := ps.Create(currentUserID, &processForm)
+		if err != nil {
+			errors = append(errors, map[string]interface{}{
+				"process_form": processForm,
+			})
+			continue
+		}
+
+		// Add the successfully created process ID to the list
+		createdProcessIDs = append(createdProcessIDs, processID)
+	}
+
+	return createdProcessIDs, errors, nil
+}
+
 func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]map[string]interface{}, []map[string]interface{}, error) {
 	headers := []string{"process_group_title", "owner", "title_en", "title_ar", "description", "controls"}
 
@@ -1294,25 +1315,4 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 	}
 
 	return validatedData, validationErrors, nil
-}
-
-func (ps *ProcessService) ImportProcesses(processFormDTO []organizationDTOs.ProcessFormDTO, currentUserID uint) ([]uint, []map[string]interface{}, error) {
-	var createdProcessIDs []uint
-	var errors []map[string]interface{}
-
-	for _, processForm := range processFormDTO {
-		// Call the existing Create function to create the process
-		processID, err := ps.Create(currentUserID, &processForm)
-		if err != nil {
-			errors = append(errors, map[string]interface{}{
-				"process_form": processForm,
-			})
-			continue
-		}
-
-		// Add the successfully created process ID to the list
-		createdProcessIDs = append(createdProcessIDs, processID)
-	}
-
-	return createdProcessIDs, errors, nil
 }
