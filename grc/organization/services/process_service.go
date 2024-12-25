@@ -37,6 +37,7 @@ type ProcessServiceInterface interface {
 	GenerateProcessTemplate() (*os.File, error)
 	ValidateProcessTemplate(file io.Reader) ([]map[string]interface{}, error)
 	ValidateImportProcess(input []map[string]interface{}) ([]map[string]interface{}, error)
+	ImportProcesses(processFormDTO []organizationDTOs.ProcessFormDTO, currentUserID uint) ([]uint, []map[string]interface{}, error)
 
 	UpdateProcessRiskRating(process *models.Process, tx utility.DatabaseTransaction) error
 }
@@ -1188,35 +1189,35 @@ func (ps *ProcessService) ValidateImportProcess(input []map[string]interface{}) 
 func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]map[string]interface{}, []map[string]interface{}, error) {
 	headers := []string{"process_group_title", "owner", "title_en", "title_ar", "description", "controls"}
 
-	// Fetch process group titles
+	// Fetch process group titles and map to IDs
 	processGroups, err := ps.processGroupSvc.GetAll("", "", "", "active")
 	if err != nil {
 		return nil, nil, fmt.Errorf("error fetching process groups: %v", err)
 	}
-	processGroupTitles := make(map[string]bool)
+	processGroupTitles := make(map[string]uint)
 	for _, group := range processGroups {
-		processGroupTitles[strings.TrimSpace(group.TitleEn)] = true
+		processGroupTitles[strings.TrimSpace(group.TitleEn)] = group.ID
 	}
 
-	// Fetch user full names
+	// Fetch user full names and map to IDs
 	users, err := ps.userSvc.GetAllUsers()
 	if err != nil {
 		return nil, nil, fmt.Errorf("error fetching users: %v", err)
 	}
-	userFullNames := make(map[string]bool)
+	userFullNames := make(map[string]uint)
 	for _, user := range users {
 		fullName := strings.TrimSpace(user.FirstNameEn + " " + user.LastNameEn)
-		userFullNames[fullName] = true
+		userFullNames[fullName] = user.ID
 	}
 
-	// Fetch control titles
+	// Fetch control titles and map to IDs
 	controls, err := ps.controlSvc.GetAllControls()
 	if err != nil {
 		return nil, nil, fmt.Errorf("error fetching controls: %v", err)
 	}
-	controlTitles := make(map[string]bool)
+	controlTitles := make(map[string]uint)
 	for _, control := range controls {
-		controlTitles[strings.TrimSpace(control.TitleEn)] = true
+		controlTitles[strings.TrimSpace(control.TitleEn)] = control.ID
 	}
 
 	// Perform validation
@@ -1232,36 +1233,45 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 			processedRecord[key] = value
 		}
 
-		// Validate fields
+		// Validate fields and map IDs
 		for _, header := range headers {
 			value, ok := record[header].(string)
 			switch header {
 			case "process_group_title":
 				if !ok || value == "" {
 					rowErrors["process_group_title"] = "Field is required"
-				} else if !processGroupTitles[strings.TrimSpace(value)] {
+				} else if id, exists := processGroupTitles[strings.TrimSpace(value)]; !exists {
 					rowErrors["process_group_title"] = fmt.Sprintf("Invalid process group title: %s", value)
+				} else {
+					processedRecord["process_group_id"] = id // Add the ID
 				}
 
 			case "owner":
 				if !ok || value == "" {
 					rowErrors["owner"] = "Field is required"
-				} else if !userFullNames[strings.TrimSpace(value)] {
+				} else if id, exists := userFullNames[strings.TrimSpace(value)]; !exists {
 					rowErrors["owner"] = fmt.Sprintf("Invalid owner name: %s", value)
+				} else {
+					processedRecord["owner_id"] = id // Add the ID
 				}
 
 			case "controls":
 				if ok && value != "" { // Validate only if controls field is provided
 					controlList := utility.ParseCommaSeparatedValues(value)
+					var controlIDs []uint
 					invalidControls := []string{}
 					for _, control := range controlList {
 						trimmedControl := strings.TrimSpace(control)
-						if !controlTitles[trimmedControl] {
+						if id, exists := controlTitles[trimmedControl]; exists {
+							controlIDs = append(controlIDs, id)
+						} else {
 							invalidControls = append(invalidControls, fmt.Sprintf("Invalid control: %s", trimmedControl))
 						}
 					}
 					if len(invalidControls) > 0 {
 						rowErrors["controls"] = invalidControls
+					} else {
+						processedRecord["control_ids"] = controlIDs // Add the IDs
 					}
 				}
 
@@ -1284,4 +1294,25 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 	}
 
 	return validatedData, validationErrors, nil
+}
+
+func (ps *ProcessService) ImportProcesses(processFormDTO []organizationDTOs.ProcessFormDTO, currentUserID uint) ([]uint, []map[string]interface{}, error) {
+	var createdProcessIDs []uint
+	var errors []map[string]interface{}
+
+	for _, processForm := range processFormDTO {
+		// Call the existing Create function to create the process
+		processID, err := ps.Create(currentUserID, &processForm)
+		if err != nil {
+			errors = append(errors, map[string]interface{}{
+				"process_form": processForm,
+			})
+			continue
+		}
+
+		// Add the successfully created process ID to the list
+		createdProcessIDs = append(createdProcessIDs, processID)
+	}
+
+	return createdProcessIDs, errors, nil
 }

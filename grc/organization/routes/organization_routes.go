@@ -220,7 +220,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/processes/template", middlewares.RolePermissionMiddleware(db, "process", "modify"), processController.GetProcessesTemplate)
 	organizationRoutes.POST("/processes/template/validate", middlewares.RolePermissionMiddleware(db, "process", "modify"), processController.ValidateProcessTemplate)
 	organizationRoutes.POST("/processes/import/validate", middlewares.RolePermissionMiddleware(db, "process", "modify"), processController.ValidateImportProcess)
-	// organizationRoutes.POST("/processes/import", middlewares.RolePermissionMiddleware(db, "process", "modify"), processController.ImportProcesses)
+	organizationRoutes.POST("/processes/import", middlewares.RolePermissionMiddleware(db, "process", "modify"), processController.ImportProcesses)
 	organizationRoutes.GET("/processes/export", middlewares.RolePermissionMiddleware(db, "process", "view"), processController.GetProcessesExport)
 	organizationRoutes.GET("/processes", middlewares.RolePermissionMiddleware(db, "process", "view"), processController.GetAllProcesses)
 	organizationRoutes.GET("/processes/:processId", middlewares.RolePermissionMiddleware(db, "process", "view"), processController.GetProcessDetails)
