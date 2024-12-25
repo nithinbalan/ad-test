@@ -168,3 +168,11 @@ func GetOptionalString(value interface{}) *string {
 
 	return &str
 }
+
+func GetOptionalStringValue(value interface{}) *string {
+	strValue, ok := value.(string)
+	if ok && strValue != "" {
+		return &strValue
+	}
+	return nil
+}

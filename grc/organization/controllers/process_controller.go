@@ -363,10 +363,35 @@ func (pc *ProcessController) ValidateImportProcess(c *gin.Context) {
 
 }
 
-func (pc *ProcessController) ImportProcesses(c *gin.Context) {
-	var processFormDTO []organizationDTOs.ProcessFormDTO
+// func (pc *ProcessController) ImportProcesses(c *gin.Context) {
+// 	var processFormDTO []organizationDTOs.ProcessFormDTO
 
-	if err := c.ShouldBindJSON(&processFormDTO); err != nil {
+// 	if err := c.ShouldBindJSON(&processFormDTO); err != nil {
+// 		utility.SendInvalidErrResp(c, err)
+// 		return
+// 	}
+
+// 	currentUserID, err := utility.GetCurrentUserID(c)
+// 	if err != nil {
+// 		utility.SendInternalErrResp(pc.db, c, err.Error())
+// 		return
+// 	}
+
+// 	createdIDs, errors, err := pc.service.ImportProcesses(processFormDTO, currentUserID)
+// 	if err != nil {
+// 		utility.SendInternalErrResp(pc.db, c, err.Error())
+// 		return
+// 	}
+
+// 	c.JSON(http.StatusOK, map[string]interface{}{
+// 		"created_ids": createdIDs,
+// 		"errors":      errors,
+// 	})
+// }
+
+func (pc *ProcessController) ImportProcesses(c *gin.Context) {
+	var input []map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -377,7 +402,7 @@ func (pc *ProcessController) ImportProcesses(c *gin.Context) {
 		return
 	}
 
-	createdIDs, errors, err := pc.service.ImportProcesses(processFormDTO, currentUserID)
+	createdIDs, errors, err := pc.service.ImportProcesses(input, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(pc.db, c, err.Error())
 		return
