@@ -35,9 +35,8 @@ type ProcessServiceInterface interface {
 
 	ExportProcesses(data []*organizationDTOs.ProcessListDTO, currentUserID uint) (*os.File, error)
 	GenerateProcessTemplate() (*os.File, error)
-	ValidateProcessTemplate(file io.Reader) ([]map[string]interface{}, []map[string]interface{}, error)
-	// ImportProcesses(file multipart.File, currentUserID uint) ([]int, error)
-	ImportProcesses(input []map[string]interface{}, currentUserID uint) ([]map[string]interface{}, error)
+	ValidateProcessTemplate(file io.Reader) ([]map[string]interface{}, error)
+	ValidateImportProcess(input []map[string]interface{}) ([]map[string]interface{}, error)
 
 	UpdateProcessRiskRating(process *models.Process, tx utility.DatabaseTransaction) error
 }
@@ -1133,11 +1132,11 @@ func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
 	return file, nil
 }
 
-func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]interface{}, []map[string]interface{}, error) {
+func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]interface{}, error) {
 	// Read Excel file
 	rows, err := utility.ReadExcelFile(file)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// Define headers in the input format and map them to snake case
@@ -1145,12 +1144,12 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 	snakeCaseHeaders := []string{"process_group_title", "owner", "title_en", "title_ar", "description", "controls"}
 
 	if len(rows) == 0 {
-		return nil, nil, fmt.Errorf("empty Excel file")
+		return nil, fmt.Errorf("empty Excel file")
 	}
 
 	// Validate headers
 	if !utility.ValidateHeaders(inputHeaders, rows[0]) {
-		return nil, nil, utility.NewValidationError(fmt.Errorf("invalid headers in the Excel file"), "invalid_header", "Process Template")
+		return nil, utility.NewValidationError(fmt.Errorf("invalid headers in the Excel file"), "invalid_header", "Process Template")
 	}
 
 	// Convert rows to input format
@@ -1167,15 +1166,7 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 		input = append(input, record)
 	}
 
-	// Call the reusable validation function
-	return ps.validateProcesses(input, snakeCaseHeaders)
-}
-
-func (ps *ProcessService) ImportProcesses(input []map[string]interface{}, currentUserID uint) ([]map[string]interface{}, error) {
-	headers := []string{"process_group_title", "owner", "title_en", "title_ar", "description", "controls"}
-
-	// Call the reusable validation function
-	validatedData, _, err := ps.validateProcesses(input, headers)
+	validatedData, _, err := ps.validateProcesses(input)
 	if err != nil {
 		return nil, err
 	}
@@ -1183,7 +1174,20 @@ func (ps *ProcessService) ImportProcesses(input []map[string]interface{}, curren
 	return validatedData, nil
 }
 
-func (ps *ProcessService) validateProcesses(input []map[string]interface{}, headers []string) ([]map[string]interface{}, []map[string]interface{}, error) {
+func (ps *ProcessService) ValidateImportProcess(input []map[string]interface{}) ([]map[string]interface{}, error) {
+
+	// Call the reusable validation function
+	validatedData, _, err := ps.validateProcesses(input)
+	if err != nil {
+		return nil, err
+	}
+
+	return validatedData, nil
+}
+
+func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]map[string]interface{}, []map[string]interface{}, error) {
+	headers := []string{"process_group_title", "owner", "title_en", "title_ar", "description", "controls"}
+
 	// Fetch process group titles
 	processGroups, err := ps.processGroupSvc.GetAll("", "", "", "active")
 	if err != nil {

@@ -324,7 +324,7 @@ func (pc *ProcessController) ValidateProcessTemplate(c *gin.Context) {
 	}
 	defer file.Close()
 
-	data, _, err := pc.service.ValidateProcessTemplate(file)
+	validationResult, err := pc.service.ValidateProcessTemplate(file)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -336,27 +336,27 @@ func (pc *ProcessController) ValidateProcessTemplate(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, data)
+	c.JSON(http.StatusOK, validationResult)
 }
 
 func (pc *ProcessController) ValidateImportProcess(c *gin.Context) {
 	var input []map[string]interface{}
+
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	currentUserID, err := utility.GetCurrentUserID(c)
+	validationResult, err := pc.service.ValidateImportProcess(input)
 	if err != nil {
-		utility.SendInternalErrResp(pc.db, c, err.Error())
-		return
-	}
-
-	// Pass the input to the service for validation and creation
-	validationResult, err := pc.service.ImportProcesses(input, currentUserID)
-	if err != nil {
-		utility.SendInternalErrResp(pc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(pc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, validationResult)
