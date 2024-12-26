@@ -10,8 +10,8 @@ import (
 
 type BusinessImpactAssessmentRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAllImpactAnalysis(params *businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentListResponseDTO, error)
-	GetAllRecoveryObjectives(params *businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListResponseDTO, error)
+	GetAllImpactAnalysis(params *businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO) ([]*businessContinuityDTOs.BusinessImpactAssessmentListDTO, error)
+	GetAllRecoveryObjectives(params *businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO) ([]*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListDTO, error)
 	CreateBusinessImpactAssessment(businessImpactAssessment *models.BusinessImpactAssessment, tx ...utility.DatabaseTransaction) error
 	UpdateBusinessImpactAssessment(businessImpactAssessment *models.BusinessImpactAssessment, tx ...utility.DatabaseTransaction) error
 	CreateRecoveryObjective(businessImpactAssessmentRecoveryObjective *models.BusinessImpactAssessmentRecoveryObjective, tx ...utility.DatabaseTransaction) error
@@ -37,7 +37,7 @@ func (repo *BusinessImpactAssessmentRepository) BeginTransaction() utility.Datab
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentListResponseDTO, error) {
+func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO) ([]*businessContinuityDTOs.BusinessImpactAssessmentListDTO, error) {
 	var businessImpactAssessments []*businessContinuityDTOs.BusinessImpactAssessmentListDTO
 	var totalCount int64
 
@@ -125,14 +125,11 @@ func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *bus
 		return nil, err
 	}
 
-	response := &businessContinuityDTOs.BusinessImpactAssessmentListResponseDTO{
-		Items: businessImpactAssessments,
-	}
-	return response, nil
+	return businessImpactAssessments, nil
 }
 
-func (repo *BusinessImpactAssessmentRepository) GetAllRecoveryObjectives(params *businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListResponseDTO, error) {
-	var businessImpactAssessments []*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListDTO
+func (repo *BusinessImpactAssessmentRepository) GetAllRecoveryObjectives(params *businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO) ([]*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListDTO, error) {
+	var recoveryObjectives []*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListDTO
 	var totalCount int64
 
 	query := repo.db.Table("business_impact_assessment_recovery_objectives").
@@ -238,15 +235,12 @@ func (repo *BusinessImpactAssessmentRepository) GetAllRecoveryObjectives(params 
 
 	query = query.Order("business_impact_assessment_recovery_objectives.id")
 
-	err := query.Find(&businessImpactAssessments).Error
+	err := query.Find(&recoveryObjectives).Error
 	if err != nil {
 		return nil, err
 	}
 
-	response := &businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListResponseDTO{
-		Items: businessImpactAssessments,
-	}
-	return response, nil
+	return recoveryObjectives, nil
 }
 
 func (repo *BusinessImpactAssessmentRepository) CreateBusinessImpactAssessment(businessImpactAssessment *models.BusinessImpactAssessment, tx ...utility.DatabaseTransaction) error {
