@@ -367,6 +367,9 @@ func (dcrc *DocumentChangeRequestController) CheckinDocument(c *gin.Context) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, err.Error())
+			return
 		default:
 			utility.SendInternalErrResp(dcrc.db, c, e.Error())
 			return
