@@ -37,7 +37,7 @@ type ProcessServiceInterface interface {
 	ImportProcesses(file multipart.File, currentUserID uint) ([]int, error)
 
 	UpdateProcessRiskRating(process *models.Process, tx utility.DatabaseTransaction) error
-	UpdateProcessBusinessImpactAssessment(process *models.Process, tx utility.DatabaseTransaction) error
+	UpdateProcessRecoveryObjective(process *models.Process, tx utility.DatabaseTransaction) error
 }
 
 type ProcessService struct {
@@ -1257,7 +1257,7 @@ func (ps *ProcessService) ImportProcesses(file multipart.File, currentUserID uin
 	return failedRows, nil
 }
 
-func (ps *ProcessService) UpdateProcessBusinessImpactAssessment(process *models.Process, tx utility.DatabaseTransaction) error {
+func (ps *ProcessService) UpdateProcessRecoveryObjective(process *models.Process, tx utility.DatabaseTransaction) error {
 
 	err := ps.repo.Update(process, tx)
 	if err != nil {

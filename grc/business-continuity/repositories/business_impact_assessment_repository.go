@@ -10,15 +10,16 @@ import (
 
 type BusinessImpactAssessmentRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentListResponseDTO, error)
-	GetAllBusinessImpactAssessmentRecoveryObjectives(params *businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListResponseDTO, error)
+	GetAllImpactAnalysis(params *businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentListResponseDTO, error)
+	GetAllRecoveryObjectives(params *businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListResponseDTO, error)
 	CreateBusinessImpactAssessment(businessImpactAssessment *models.BusinessImpactAssessment, tx ...utility.DatabaseTransaction) error
 	UpdateBusinessImpactAssessment(businessImpactAssessment *models.BusinessImpactAssessment, tx ...utility.DatabaseTransaction) error
 	CreateRecoveryObjective(businessImpactAssessmentRecoveryObjective *models.BusinessImpactAssessmentRecoveryObjective, tx ...utility.DatabaseTransaction) error
 	UpdateRecoveryObjective(businessImpactAssessmentRecoveryObjective *models.BusinessImpactAssessmentRecoveryObjective, tx ...utility.DatabaseTransaction) error
-	DeleteBusinessImpactAssessmentsByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
-	DeleteBusinessImpactAssessmentRecoveryObjectivesByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
-	GetBusinessImpactAssessmentsByProcessID(processID uint) ([]*models.BusinessImpactAssessment, error)
+
+	DeleteImpactAssessmentsByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
+	DeleteRecoveryObjectivesByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
+	GetImpactAssessmentsByProcessID(processID uint) ([]*models.BusinessImpactAssessment, error)
 }
 
 type BusinessImpactAssessmentRepository struct {
@@ -36,7 +37,7 @@ func (repo *BusinessImpactAssessmentRepository) BeginTransaction() utility.Datab
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *BusinessImpactAssessmentRepository) GetAll(params *businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentListResponseDTO, error) {
+func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentListResponseDTO, error) {
 	var businessImpactAssessments []*businessContinuityDTOs.BusinessImpactAssessmentListDTO
 	var totalCount int64
 
@@ -130,7 +131,7 @@ func (repo *BusinessImpactAssessmentRepository) GetAll(params *businessContinuit
 	return response, nil
 }
 
-func (repo *BusinessImpactAssessmentRepository) GetAllBusinessImpactAssessmentRecoveryObjectives(params *businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListResponseDTO, error) {
+func (repo *BusinessImpactAssessmentRepository) GetAllRecoveryObjectives(params *businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO) (*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListResponseDTO, error) {
 	var businessImpactAssessments []*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListDTO
 	var totalCount int64
 
@@ -296,7 +297,7 @@ func (repo *BusinessImpactAssessmentRepository) UpdateRecoveryObjective(business
 	return nil
 }
 
-func (repo *BusinessImpactAssessmentRepository) DeleteBusinessImpactAssessmentsByProcessID(processID uint, tx ...utility.DatabaseTransaction) error {
+func (repo *BusinessImpactAssessmentRepository) DeleteImpactAssessmentsByProcessID(processID uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -308,7 +309,7 @@ func (repo *BusinessImpactAssessmentRepository) DeleteBusinessImpactAssessmentsB
 	return nil
 }
 
-func (repo *BusinessImpactAssessmentRepository) DeleteBusinessImpactAssessmentRecoveryObjectivesByProcessID(processID uint, tx ...utility.DatabaseTransaction) error {
+func (repo *BusinessImpactAssessmentRepository) DeleteRecoveryObjectivesByProcessID(processID uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -320,7 +321,7 @@ func (repo *BusinessImpactAssessmentRepository) DeleteBusinessImpactAssessmentRe
 	return nil
 }
 
-func (repo *BusinessImpactAssessmentRepository) GetBusinessImpactAssessmentsByProcessID(processID uint) ([]*models.BusinessImpactAssessment, error) {
+func (repo *BusinessImpactAssessmentRepository) GetImpactAssessmentsByProcessID(processID uint) ([]*models.BusinessImpactAssessment, error) {
 	var businessImpactAssessments []*models.BusinessImpactAssessment
 	err := repo.db.Table("business_impact_assessments").
 		Select("business_impact_assessments.*").
