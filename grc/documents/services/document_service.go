@@ -1564,7 +1564,7 @@ func (ds *DocumentService) GetDocumentPath(id uint, token string, fileType strin
 
 	var storagePath string
 
-	if existingDocument.DocumentStatus.Type == "published" {
+	if existingDocument.DocumentStatus.Type == "published" || existingDocument.DocumentStatus.Type == "archived" {
 		storagePath = filepath.Join("document", "published", strconv.FormatUint(uint64(id), 10), "documents")
 		fileType = "pdf"
 	} else {
@@ -1942,17 +1942,31 @@ func (ds *DocumentService) GetDocumentLastEditSummary(documentID uint) (*documen
 	}
 
 	activity, err := ds.repo.GetDocumentLatestEditHistory(document.LatestDocumentVersion.ID)
-	if err != nil {
+	var latestActivityDTO documentDTOs.ActivityDTO
+
+	// Handle case where activity is not found
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// Populate default values when no activity is found
+		emptyString := ""
+		zeroTime := time.Time{}
+		latestActivityDTO = documentDTOs.ActivityDTO{
+			Activity:  "No activity found",
+			By:        nil,
+			Comment:   &emptyString,
+			Timestamp: zeroTime,
+		}
+	} else if err != nil {
+		// Return other unexpected errors
 		return nil, err
-	}
-
-	userDTO := mapUserToDTO(activity.CreatedByUser)
-
-	latestActivityDTO := documentDTOs.ActivityDTO{
-		Activity:  activity.ActionType,
-		By:        userDTO,
-		Comment:   activity.Comment,
-		Timestamp: activity.CreatedAt,
+	} else {
+		// Map activity details to DTO
+		userDTO := mapUserToDTO(activity.CreatedByUser)
+		latestActivityDTO = documentDTOs.ActivityDTO{
+			Activity:  activity.ActionType,
+			By:        userDTO,
+			Comment:   activity.Comment,
+			Timestamp: activity.CreatedAt,
+		}
 	}
 	// Initialize variables for the current document workflow
 	var currentDocumentWorkflow *models.DocumentWorkflow
