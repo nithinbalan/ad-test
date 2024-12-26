@@ -68,6 +68,29 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		processes.marked_as_auditable_item,
 		process_groups.title_en AS process_group_title_en,
 		process_groups.title_ar AS process_group_title_ar,
+		processes.rto as rto,
+		processes.rto_unit_id as rto_unit_id,
+		rto_time_unit.title_en AS rto_unit_title_en,
+		rto_time_unit.title_ar AS rto_unit_title_ar,
+		processes.mtpd as mtpd,
+		processes.mtpd_unit_id as mtpd_unit_id,
+		mtpd_time_unit.title_en AS mtpd_unit_title_en,
+		mtpd_time_unit.title_ar AS mtpd_unit_title_ar,
+		processes.rpo as rpo,
+		processes.rpo_unit_id as rpo_unit_id,
+		rpo_time_unit.title_en AS rpo_unit_title_en,
+		rpo_time_unit.title_ar AS rpo_unit_title_ar,
+		processes.is_bia_performed,
+		processes.last_assessed_at,
+		last_assessed_user.id AS last_assessed_user_id,
+		last_assessed_user.first_name_en AS last_assessed_user_first_name_en,
+		last_assessed_user.first_name_ar AS last_assessed_user_first_name_ar,
+		last_assessed_user.last_name_en AS last_assessed_user_last_name_en,
+		last_assessed_user.last_name_ar AS last_assessed_user_last_name_ar,
+		last_assessed_user.initial AS last_assessed_user_initial,
+		last_assessed_user.color AS last_assessed_user_color,
+		last_assessed_user.email AS last_assessed_user_email,
+		last_assessed_user.profile_image_path AS last_assessed_user_profile_image_path,
 		organization_units.title_en AS owner_unit_title_en,
 		organization_units.title_ar AS owner_unit_title_ar,
 		owner.id AS owner_id,
@@ -113,6 +136,10 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		Joins("LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = processes.created_by_id").
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = processes.updated_by_id").
+		Joins("LEFT JOIN users AS last_assessed_user ON last_assessed_user.id = processes.last_assessed_by_id").
+		Joins("LEFT JOIN time_units AS rto_time_unit ON rto_time_unit.id = processes.rto_unit_id").
+		Joins("LEFT JOIN time_units AS mtpd_time_unit ON mtpd_time_unit.id = processes.mtpd_unit_id").
+		Joins("LEFT JOIN time_units AS rpo_time_unit ON rpo_time_unit.id = processes.rpo_unit_id").
 		Joins("LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = processes.risk_matrix_risk_rating_id").
 		Joins("LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = processes.risk_matrix_risk_rating_value_id")
 
@@ -225,6 +252,7 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("Assets").
 		Preload("Assets.Asset").
 		Preload("Documents").
+		Preload("Documents.Document").
 		Preload("Risks").
 		Preload("RiskMatrixRating").
 		Preload("RiskMatrixRatingValue").
@@ -232,6 +260,10 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("CreatedByUser.OrganizationUnit1").
 		Preload("UpdatedByUser").
 		Preload("UpdatedByUser.OrganizationUnit1").
+		Preload("RtoUnit").
+		Preload("MtpdUnit").
+		Preload("RpoUnit").
+		Preload("LastAssessedByUser").
 		Preload("AuditableItems", func(db *gorm.DB) *gorm.DB {
 			return db.Order("created_at DESC").Limit(5) // Fetch the latest 5 auditable items
 		}).

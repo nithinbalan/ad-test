@@ -41,6 +41,7 @@ type OrganizationModule struct {
 	ControlTestSvc                 services.ControlTestServiceInterface
 	ControlImplementationStatusSvc services.ControlImplementationStatusServiceInterface
 	ControlEfficiencyStatusSvc     services.ControlEfficiencyStatusServiceInterface
+	ProcessAssociatedItemSvc       services.ProcessAssociatedItemServiceInterface
 }
 
 func NewOrganizationModule(
@@ -205,5 +206,6 @@ func NewOrganizationModule(
 		ControlTestSvc:                 controlTestSvc,
 		ControlImplementationStatusSvc: controlImplementationStatusSvc,
 		ControlEfficiencyStatusSvc:     controlEfficiencyStatusSvc,
+		ProcessAssociatedItemSvc:       processAssociatedItemSvc,
 	}
 }
