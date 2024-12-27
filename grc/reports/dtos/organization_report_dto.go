@@ -1,18 +1,18 @@
 package dtos
 
 type UsersByStatusDTO struct {
-	UserStatusID        uint   `json:"user_status_id"`
-	UserStatusTitleEn   string `json:"user_status_title_en"`
-	UserStatusTitleAr   string `json:"user_status_title_ar"`
-	UserStatusColorCode string `json:"user_status_color_code"`
-	UserStatusType      string `json:"user_status_type"`
+	UserStatusID        uint   `json:"id"`
+	UserStatusTitleEn   string `json:"title_en"`
+	UserStatusTitleAr   string `json:"title_ar"`
+	UserStatusColorCode string `json:"color_code"`
+	UserStatusType      string `json:"type"`
 	Count               int    `json:"count"`
 }
 
 type UsersByRoleDTO struct {
-	RoleID      uint   `json:"role_id"`
-	RoleTitleEn string `json:"role_title_en"`
-	RoleTitleAr string `json:"role_title_ar"`
+	RoleID      uint   `json:"id"`
+	RoleTitleEn string `json:"title_en"`
+	RoleTitleAr string `json:"title_ar"`
 	Count       int    `json:"count"`
 }
 
