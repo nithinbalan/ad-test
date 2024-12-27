@@ -170,7 +170,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 
 	control := &models.Control{
 		ControlTypeID:                 controlFormDTO.ControlTypeID,
-		ControlCategoryID:             controlFormDTO.ControlCategoryID,
+		ControlCategoryID:             &controlFormDTO.ControlCategoryID,
 		OwnerID:                       controlFormDTO.OwnerID,
 		OwnerUnitID:                   organizationUnitID,
 		ControlImplementationStatusID: controlFormDTO.ControlImplementationStatusID,
@@ -323,7 +323,7 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 		existingControl.OwnerUnitID = organizationUnitID
 	}
 	existingControl.ControlTypeID = controlFormDTO.ControlTypeID
-	existingControl.ControlCategoryID = controlFormDTO.ControlCategoryID
+	existingControl.ControlCategoryID = &controlFormDTO.ControlCategoryID
 	existingControl.OwnerID = controlFormDTO.OwnerID
 	existingControl.ControlImplementationStatusID = controlFormDTO.ControlImplementationStatusID
 	existingControl.ControlEfficiencyStatusID = controlFormDTO.ControlEfficiencyStatusID
@@ -705,11 +705,11 @@ func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTO
 		return utility.NewValidationError(fmt.Errorf("control type does not exist"), "not_exist", "control type")
 	}
 
-	if controlFormDTO.ControlCategoryID != nil {
-		if _, err := cs.controlCategorySvc.GetByID(uint(*controlFormDTO.ControlCategoryID)); err != nil {
-			return utility.NewValidationError(fmt.Errorf("control category does not exist"), "not_exist", "control category")
-		}
+	// if controlFormDTO.ControlCategoryID != nil {
+	if _, err := cs.controlCategorySvc.GetByID(uint(controlFormDTO.ControlCategoryID)); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control category does not exist"), "not_exist", "control category")
 	}
+	// }
 
 	if _, err := cs.userSvc.GetByID(uint(controlFormDTO.OwnerID)); err != nil {
 		return utility.NewValidationError(fmt.Errorf("control owner does not exist"), "not_exist", "control owner")
