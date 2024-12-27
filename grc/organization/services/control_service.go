@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"mime/multipart"
 	"os"
 	"time"
 
@@ -33,6 +34,7 @@ type ControlServiceInterface interface {
 	ReviewStatusUpdate(control *models.Control, tx utility.DatabaseTransaction) error
 
 	ExportControls(data []*organizationDTOs.ControlListDTO, currentUserID uint) (*os.File, error)
+	ImportProcesses(file multipart.File, currentUserID uint) ([]int, error)
 
 	UpdateControlRiskRating(control *models.Control, tx utility.DatabaseTransaction) error
 	MarkControlAsApplicable(controlID uint, currentUserID uint, controlApplicableFormDTO *organizationDTOs.ControlApplicableFormDTO) error
@@ -168,13 +170,13 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 
 	control := &models.Control{
 		ControlTypeID:                 controlFormDTO.ControlTypeID,
-		ControlCategoryID:             controlFormDTO.ControlCategoryID,
+		ControlCategoryID:             &controlFormDTO.ControlCategoryID,
 		OwnerID:                       controlFormDTO.OwnerID,
 		OwnerUnitID:                   organizationUnitID,
 		ControlImplementationStatusID: controlFormDTO.ControlImplementationStatusID,
 		ControlEfficiencyStatusID:     controlFormDTO.ControlEfficiencyStatusID,
 		ReferenceNumber:               referenceNumber,
-		Code:                          controlFormDTO.Code,
+		Code:                          &controlFormDTO.Code,
 		TitleEn:                       controlFormDTO.TitleEn,
 		TitleAr:                       controlFormDTO.TitleAr,
 		Description:                   controlFormDTO.Description,
@@ -321,11 +323,11 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 		existingControl.OwnerUnitID = organizationUnitID
 	}
 	existingControl.ControlTypeID = controlFormDTO.ControlTypeID
-	existingControl.ControlCategoryID = controlFormDTO.ControlCategoryID
+	existingControl.ControlCategoryID = &controlFormDTO.ControlCategoryID
 	existingControl.OwnerID = controlFormDTO.OwnerID
 	existingControl.ControlImplementationStatusID = controlFormDTO.ControlImplementationStatusID
 	existingControl.ControlEfficiencyStatusID = controlFormDTO.ControlEfficiencyStatusID
-	existingControl.Code = controlFormDTO.Code
+	existingControl.Code = &controlFormDTO.Code
 	existingControl.TitleEn = controlFormDTO.TitleEn
 	existingControl.TitleAr = controlFormDTO.TitleAr
 	existingControl.Description = controlFormDTO.Description
@@ -703,11 +705,11 @@ func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTO
 		return utility.NewValidationError(fmt.Errorf("control type does not exist"), "not_exist", "control type")
 	}
 
-	if controlFormDTO.ControlCategoryID != nil {
-		if _, err := cs.controlCategorySvc.GetByID(uint(*controlFormDTO.ControlCategoryID)); err != nil {
-			return utility.NewValidationError(fmt.Errorf("control category does not exist"), "not_exist", "control category")
-		}
+	// if controlFormDTO.ControlCategoryID != nil {
+	if _, err := cs.controlCategorySvc.GetByID(uint(controlFormDTO.ControlCategoryID)); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control category does not exist"), "not_exist", "control category")
 	}
+	// }
 
 	if _, err := cs.userSvc.GetByID(uint(controlFormDTO.OwnerID)); err != nil {
 		return utility.NewValidationError(fmt.Errorf("control owner does not exist"), "not_exist", "control owner")
@@ -981,4 +983,40 @@ func (cs *ControlService) MarkControlAsNotApplicable(controlID uint, currentUser
 	}
 
 	return nil
+}
+
+func (ps *ControlService) ImportProcesses(file multipart.File, currentUserID uint) ([]int, error) {
+	mandatoryFields := []string{"Code", "ControlTypeID", "ControlCategoryID", "TitleEn", "TitleAr", "OwnerID", "TestResponsibleUserID"}
+	// // Parse the Excel file
+	fmt.Println(mandatoryFields)
+	data, err := utility.ParseExcelFile(file, mandatoryFields)
+	if err != nil {
+		return nil, fmt.Errorf("invalid file format: %v", err)
+	}
+
+	// Track failed rows
+	var failedRows []int
+
+	// Process each row
+	for i, row := range data {
+		// Map the row data to the ProcessFormDTO
+		processForm := organizationDTOs.ControlFormDTO{
+			Code:                  row["Code"],
+			ControlTypeID:         utility.ParseUint(row["ControlTypeID"]),
+			ControlCategoryID:     utility.ParseUint(row["ControlCategoryID"]),
+			OwnerID:               utility.ParseUint(row["OwnerID"]),
+			TitleEn:               row["TitleEn"],
+			TitleAr:               row["TitleAr"],
+			TestResponsibleUserID: utility.ParseUint(row["TestResponsibleUserID"]),
+		}
+
+		// Validate and create the process
+		_, err := ps.Create(currentUserID, &processForm)
+		if err != nil {
+			// Log the row number that failed (+2 to account for the header row)
+			failedRows = append(failedRows, i+2)
+		}
+	}
+
+	return failedRows, nil
 }

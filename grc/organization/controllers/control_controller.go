@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/organization/services"
@@ -408,4 +409,44 @@ func (cc *ControlController) MarkControlAsNotApplicable(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (pc *ControlController) ImportProcesses(c *gin.Context) {
+	// Retrieve the uploaded file
+	file, err := c.FormFile("file")
+	if err != nil {
+		utility.SendInvalidErrResp(c, fmt.Errorf("file is required"))
+		return
+	}
+
+	src, err := file.Open()
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, "Failed to open file")
+		return
+	}
+	defer src.Close()
+
+	// Pass the file to the service layer for processing
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, err.Error())
+		return
+	}
+
+	failedRows, err := pc.service.ImportProcesses(src, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, err.Error())
+		return
+	}
+
+	// Respond with success or error details
+	if len(failedRows) > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message":     "Some rows failed to import",
+			"failed_rows": failedRows,
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "All rows imported successfully"})
 }
