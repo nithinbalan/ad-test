@@ -160,8 +160,18 @@ func (afrc *AuditFinalReportController) ExportAuditFinalReportPDF(c *gin.Context
 	// Delegate to service to handle PDF generation
 	fileName, err := afrc.service.ExportAuditFinalReportToPDF(uint(auditID), uint(currentUserID))
 	if err != nil {
-		utility.SendInternalErrResp(afrc.db, c, fmt.Sprintf("Failed to export PDF: %s", err.Error()))
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(afrc.db, c, fmt.Sprintf("Failed to export PDF: %s", err.Error()))
+			return
+		}
 	}
 
 	// Set headers to ensure the file is served with the correct file name
