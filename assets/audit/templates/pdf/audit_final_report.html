@@ -1,0 +1,48 @@
+{{define "title"}}Audit Final Report{{end}}
+
+{{define "content"}}
+    <table>
+        <tr>
+            <th>Reference Number</th>
+            <td>{{.ReferenceNumber}}</td>
+        </tr>
+        <tr>
+            <th>Title</th>
+            <td>{{.Title}}</td>
+        </tr>
+        <tr>
+            <th>Prepared By</th>
+            <td>{{.PreparedBy.FirstNameEN}}</td>
+        </tr>
+        <tr>
+            <th>Prepared At</th>
+            <td>{{.PreparedAt}}</td>
+        </tr>
+        <tr>
+            <th>Status</th>
+            <td>{{if .AuditFinalReportStatus}}{{.AuditFinalReportStatus.TitleEn}}{{else}}N/A{{end}}</td>
+        </tr>
+    </table>
+
+    {{range .MainSections}}
+    <div class="section">
+        <h3>Section: {{.TitleEn}}</h3>
+        {{if .Findings}}
+        <h4>Findings</h4>
+        <ul>
+            {{range .Findings}}
+            <li>{{.Description}}</li>
+            {{end}}
+        </ul>
+        {{end}}
+        {{if .SubSections}}
+        <h4>Subsections</h4>
+        <ul>
+            {{range .SubSections}}
+            <li class="subsection">{{.TitleEn}}</li>
+            {{end}}
+        </ul>
+        {{end}}
+    </div>
+    {{end}}
+{{end}}

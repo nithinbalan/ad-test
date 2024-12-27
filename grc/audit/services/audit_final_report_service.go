@@ -1,8 +1,11 @@
 package services
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"html/template"
+	"jethur/assets"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	complianceDTOs "jethur/grc/compliance/dtos"
@@ -16,6 +19,8 @@ import (
 	riskDTOs "jethur/grc/risk/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -35,6 +40,9 @@ type AuditFinalReportServiceInterface interface {
 	GetAuditFinalReportLastEditSummary(auditID uint) (*auditDTOs.AuditFinalReportLastEditSummaryDTO, error)
 
 	CreateAuditReportEditHistory(auditReportEditSummaryDTO *auditDTOs.AuditReportEditHistoryDTO, currentUserId uint, tx ...utility.DatabaseTransaction) error
+	ExportAuditFinalReportToPDF(auditID uint, currentUserID uint) (string, error)
+	GeneratePDFContent(dto *auditDTOs.AuditFinalReportDetailDTO, templateRelativePath string) (string, error)
+	ConvertHTMLContentToPDF(htmlContent, pdfFileName string) error
 }
 
 type AuditFinalReportService struct {
@@ -324,7 +332,6 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 		UpdatedByUser:          updatedByUser,
 		PreparedAt:             auditFinalReport.CreatedAt.Format("2006-01-02"),
 	}
-
 	// Return the DTO
 	return auditReportDTO, nil
 }
@@ -1011,6 +1018,87 @@ func (afrs *AuditFinalReportService) CreateAuditReportEditHistory(auditReportEdi
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (afrs *AuditFinalReportService) ExportAuditFinalReportToPDF(auditID uint, currentUserID uint) (string, error) {
+	auditFinalReport, err := afrs.GetFullDetailsByID(auditID, currentUserID)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch audit report details: %w", err)
+	}
+
+	// Generate the PDF
+	pdfFileName := fmt.Sprintf("AuditFinalReport_%d.pdf", auditID)
+	// Generate the HTML content
+	templatePath := "audit/templates/pdf/audit_final_report.html"
+	htmlContent, err := afrs.GeneratePDFContent(auditFinalReport, templatePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate HTML content: %w", err)
+	}
+
+	// Convert the HTML content to a PDF file
+	if err := afrs.ConvertHTMLContentToPDF(htmlContent, pdfFileName); err != nil {
+		return "", fmt.Errorf("failed to generate PDF: %w", err)
+	}
+
+	return pdfFileName, nil
+}
+
+func (afrs *AuditFinalReportService) GeneratePDFContent(dto *auditDTOs.AuditFinalReportDetailDTO, templateRelativePath string) (string, error) {
+	templates := template.New("pdf").Funcs(template.FuncMap{
+		"formatDate": func(date string) string { return date },
+	})
+
+	// Parse all templates at once
+	templatePaths := []string{
+		"audit/templates/pdf/base.html",
+		"audit/templates/pdf/header.html",
+		"audit/templates/pdf/footer.html",
+		templateRelativePath,
+	}
+
+	for _, path := range templatePaths {
+		content, err := assets.FS.ReadFile(path)
+		if err != nil {
+			return "", fmt.Errorf("failed to read template %s: %w", path, err)
+		}
+		_, err = templates.Parse(string(content))
+		if err != nil {
+			return "", fmt.Errorf("failed to parse template %s: %w", path, err)
+		}
+	}
+
+	// Render the template into a buffer
+	var renderedHTML bytes.Buffer
+	if err := templates.Execute(&renderedHTML, dto); err != nil {
+		return "", fmt.Errorf("failed to execute template: %w", err)
+	}
+
+	return renderedHTML.String(), nil
+}
+
+func (afrs *AuditFinalReportService) ConvertHTMLContentToPDF(htmlContent, pdfFileName string) error {
+	// Create a temporary HTML file
+	tempHTMLFile, err := os.CreateTemp("", "audit_report_*.html")
+	if err != nil {
+		return fmt.Errorf("failed to create temporary HTML file: %w", err)
+	}
+	defer os.Remove(tempHTMLFile.Name())
+
+	// Write the HTML content to the temporary file
+	if _, err := tempHTMLFile.Write([]byte(htmlContent)); err != nil {
+		return fmt.Errorf("failed to write HTML content to file: %w", err)
+	}
+	tempHTMLFile.Close()
+
+	// Execute `wkhtmltopdf` to generate the PDF
+	cmd := exec.Command("C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe", tempHTMLFile.Name(), pdfFileName)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to convert HTML to PDF: %s: %w", stderr.String(), err)
+	}
+
 	return nil
 }
 
