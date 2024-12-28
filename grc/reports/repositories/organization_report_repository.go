@@ -154,6 +154,8 @@ func (repo *OrganizationReportRepository) GetProcessesByResponsibleUser(params *
 			users.first_name_ar AS responsible_user_first_name_ar,
 			users.last_name_en AS responsible_user_last_name_en,
 			users.last_name_ar AS responsible_user_last_name_ar,
+			CONCAT(users.first_name_en, ' ', users.last_name_en) AS responsible_user_title_en,
+            CONCAT(users.first_name_ar, ' ', users.last_name_ar) AS responsible_user_title_ar,
 			users.initial AS responsible_user_initial,
 			users.color AS responsible_user_color,
 			users.email AS responsible_user_email,
