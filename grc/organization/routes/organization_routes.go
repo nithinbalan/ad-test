@@ -165,6 +165,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/controls/:controlId/reviews/:id", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlReviewController.UpdateControlReview)
 
 	//Control
+	organizationRoutes.POST("/controls/import", middlewares.RolePermissionMiddleware(db, "process", "modify"), controlController.ImportProcesses)
+
 	organizationRoutes.GET("/controls/export", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlController.GetControlsExport)
 	organizationRoutes.GET("/controls", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlController.GetAllControls)
 	organizationRoutes.GET("/controls/:controlId", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlController.GetControlDetails)

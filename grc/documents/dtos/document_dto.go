@@ -32,6 +32,7 @@ type DocumentListDTO struct {
 	DocumentStatusTitleEn           string     `json:"document_status_title_en"`
 	DocumentStatusTitleAr           string     `json:"document_status_title_ar"`
 	DocumentStatusColorCode         string     `json:"document_status_color_code"`
+	DocumentStatusType              string     `json:"document_status_type"`
 	DocumentVersion                 float64    `json:"document_version"`
 	DocumentURL                     string     `json:"document_url"`
 	DocumentName                    string     `json:"document_name"`

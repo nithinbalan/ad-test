@@ -127,6 +127,14 @@ func ParseUint(value string) uint {
 	return uint(val)
 }
 
+func ParseOptionalUint(value string) *uint {
+	if value == "" {
+		return nil
+	}
+	parsed := ParseUint(value)
+	return &parsed
+}
+
 func ParseUintSlice(value string) []*uint {
 	var result []*uint
 	values := strings.Split(value, ",")
@@ -140,6 +148,13 @@ func ParseUintSlice(value string) []*uint {
 func GetStringPointer(value string) *string {
 	if value == "" {
 		return nil // If the string is empty, return nil
+	}
+	return &value
+}
+
+func ParseOptionalString(value string) *string {
+	if value == "" {
+		return nil
 	}
 	return &value
 }
