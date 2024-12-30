@@ -337,11 +337,15 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		Facebook:       &socialLinks.Facebook,
 	}
 
+	appURL := utility.GetAppURL()
+	redirectURL := fmt.Sprintf("%sauth/login", appURL)
+
 	emailData := userDTOs.SendNewPasswordEmailDTO{
 		FirstNameEn: userFormDTO.FirstNameEn,
 		LastNameEn:  userFormDTO.LastNameEn,
 		Email:       userFormDTO.Email,
 		Password:    password,
+		RedirectURL: redirectURL,
 	}
 
 	to := []string{user.Email}
