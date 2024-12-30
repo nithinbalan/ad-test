@@ -20,6 +20,7 @@ type BusinessImpactAssessmentRepositoryInterface interface {
 	DeleteImpactAssessmentsByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
 	DeleteRecoveryObjectivesByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
 	GetImpactAssessmentsByProcessID(processID uint) ([]*models.BusinessImpactAssessment, error)
+	GetBIAMatrix() ([]businessContinuityDTOs.BIAMatrixResponse, error)
 }
 
 type BusinessImpactAssessmentRepository struct {
@@ -322,9 +323,41 @@ func (repo *BusinessImpactAssessmentRepository) GetImpactAssessmentsByProcessID(
 		Where("process_id = ?", processID).
 		Order("id").
 		Find(&businessImpactAssessments).Error
-
 	if err != nil {
 		return nil, err
 	}
 	return businessImpactAssessments, nil
+}
+
+func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix() ([]businessContinuityDTOs.BIAMatrixResponse, error) {
+	var result []businessContinuityDTOs.BIAMatrixResponse
+
+	err := repo.db.Raw(`
+        SELECT 
+            bf.title AS business_function_title,
+            sl.title_en AS severity_level_title_en,
+            sl.title_ar AS severity_level_title_ar,
+            p.id AS process_id,
+            p.title_en AS process_title_en,
+            p.title_ar AS process_title_ar,
+            p.rto AS process_rto,
+            p.rto_unit_id AS process_rto_unit_id,
+            p.mtpd AS process_mtpd,
+            p.mtpd_unit_id AS process_mtpd_unit_id,
+            p.rpo AS process_rpo,
+            p.rpo_unit_id AS process_rpo_unit_id
+        FROM 
+            business_function_processes bfp
+        INNER JOIN 
+            business_functions bf ON bf.id = bfp.business_function_id
+        LEFT JOIN 
+            severity_levels sl ON sl.id = bf.severity_level_id
+        INNER JOIN 
+            processes p ON p.id = bfp.process_id
+    `).Scan(&result).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }

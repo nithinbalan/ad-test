@@ -8,7 +8,6 @@ import (
 )
 
 func RegisterRoutes(app *initializers.App, router *gin.Engine) {
-
 	businessContinuityRoutes := router.Group("/")
 
 	businessContinuityRoutes.Use(middlewares.AuthMiddleware())
@@ -18,7 +17,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessFunctionController := app.BusinessContinuityModule.BusinessFunctionController
 	businessImpactAssessmentController := app.BusinessContinuityModule.BusinessImpactAssessmentController
 
-	//Business Function
+	// Business Function
 	businessContinuityRoutes.GET("/business-functions", middlewares.RolePermissionMiddleware(db, "business_functions", "view"), businessFunctionController.GetAllBusinessFunctions)
 	businessContinuityRoutes.GET("/business-functions/:id", middlewares.RolePermissionMiddleware(db, "business_functions", "view"), businessFunctionController.GetBusinessFunctionDetails)
 	businessContinuityRoutes.POST("/business-functions", middlewares.RolePermissionMiddleware(db, "business_functions", "modify"), businessFunctionController.CreateBusinessFunction)
@@ -37,4 +36,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.PUT("/bia-impact-analysis", middlewares.RolePermissionMiddleware(db, "bia", "modify"), businessImpactAssessmentController.UpdateImpactAnalysis)
 	businessContinuityRoutes.PUT("/bia-recovery-objectives", middlewares.RolePermissionMiddleware(db, "bia", "modify"), businessImpactAssessmentController.UpdateRecoveryObjective)
 
+	businessContinuityRoutes.GET("/bia-matrix", middlewares.RolePermissionMiddleware(db, "bia", "view"), businessImpactAssessmentController.GetBIAMatrix)
 }

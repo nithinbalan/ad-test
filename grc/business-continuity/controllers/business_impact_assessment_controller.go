@@ -2,14 +2,15 @@ package controllers
 
 import (
 	"errors"
+	"net/http"
+	"strconv"
+
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	"jethur/grc/business-continuity/services"
 	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	processServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -24,7 +25,8 @@ type BusinessImpactAssessmentController struct {
 
 func NewBusinessImpactAssessmentController(service services.BusinessImpactAssessmentServiceInterface,
 	processAssociatedItemSvc processServices.ProcessAssociatedItemServiceInterface,
-	processSvc processServices.ProcessServiceInterface) *BusinessImpactAssessmentController {
+	processSvc processServices.ProcessServiceInterface,
+) *BusinessImpactAssessmentController {
 	return &BusinessImpactAssessmentController{
 		service:                  service,
 		processAssociatedItemSvc: processAssociatedItemSvc,
@@ -149,7 +151,6 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessIncidents(c *gin.Co
 		QuickFilter: quickFilter,
 	}
 	incidents, err := biac.processAssociatedItemSvc.GetAllIncidents(uint(processID), &queryParams)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -203,7 +204,6 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessDocuments(c *gin.Co
 		QuickFilter: quickFilter,
 	}
 	documents, err := biac.processAssociatedItemSvc.GetAllDocuments(uint(processID), &queryParams)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -257,7 +257,6 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessAssets(c *gin.Conte
 		QuickFilter: quickFilter,
 	}
 	assets, err := biac.processAssociatedItemSvc.GetAllAssets(uint(processID), &queryParams)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -292,7 +291,6 @@ func (biac *BusinessImpactAssessmentController) GetAllBIAImpactAnalysis(c *gin.C
 		Filters: filters,
 	}
 	businessImpactAssessments, err := biac.service.GetAllImpactAnalysis(&queryParams)
-
 	if err != nil {
 		utility.SendInternalErrResp(biac.db, c, err.Error())
 		return
@@ -418,4 +416,14 @@ func (biac *BusinessImpactAssessmentController) UpdateRecoveryObjective(c *gin.C
 		}
 	}
 	c.Status(http.StatusOK)
+}
+
+func (biac *BusinessImpactAssessmentController) GetBIAMatrix(c *gin.Context) {
+	data, err := biac.service.GetBIAMatrix()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, data)
 }

@@ -2,6 +2,8 @@ package services
 
 import (
 	"fmt"
+	"time"
+
 	assetServices "jethur/grc/asset/services"
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	businessImpactAssessmentRepositories "jethur/grc/business-continuity/repositories"
@@ -11,7 +13,6 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"time"
 )
 
 type BusinessImpactAssessmentServiceInterface interface {
@@ -20,6 +21,7 @@ type BusinessImpactAssessmentServiceInterface interface {
 	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.BusinessImpactFormDTO) (uint, error)
 	UpdateImpactAnalysis(businessImpactAssessmentFormDTO businessContinuityDTOs.BusinessImpactAssessmentFormDTO, currentUserID uint) error
 	UpdateRecoveryObjectives(businessImpactAssessmentRecoveryObjectiveFormDTO businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveFormDTO, currentUserID uint) error
+	GetBIAMatrix() ([]businessContinuityDTOs.BIAMatrixResponse, error)
 }
 
 // Service and implementations
@@ -227,7 +229,6 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -370,7 +371,6 @@ func (bias *BusinessImpactAssessmentService) UpdateRecoveryObjectives(businessIm
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -385,4 +385,8 @@ func (bias *BusinessImpactAssessmentService) UpdateRecoveryObjectives(businessIm
 		}
 	}()
 	return nil
+}
+
+func (bias *BusinessImpactAssessmentService) GetBIAMatrix() ([]businessContinuityDTOs.BIAMatrixResponse, error) {
+	return bias.repo.GetBIAMatrix()
 }

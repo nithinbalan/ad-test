@@ -154,3 +154,18 @@ type BusinessImpactAssessmentRecoveryObjectiveDTO struct {
 	RpoUnitId         *uint   `json:"rpo_unit_id"`
 	ImpactDescription *string `json:"impact_description"`
 }
+
+type BIAMatrixResponse struct {
+	BusinessFunctionTitle string `json:"business_function_title"`
+	SeverityLevelTitleEn  string `json:"severity_level_title_en"`
+	SeverityLevelTitleAr  string `json:"severity_level_title_ar"`
+	ProcessID             uint   `json:"process_id"`
+	ProcessTitleEn        string `json:"process_title_en"`
+	ProcessTitleAr        string `json:"process_title_ar"`
+	ProcessRTO            uint   `json:"process_rto"`
+	ProcessRTOUnitID      uint   `json:"process_rto_unit_id"`
+	ProcessMTPD           uint   `json:"process_mtpd"`
+	ProcessMTPDUnitID     uint   `json:"process_mtpd_unit_id"`
+	ProcessRPO            uint   `json:"process_rpo"`
+	ProcessRPOUnitID      uint   `json:"process_rpo_unit_id"`
+}
