@@ -21,7 +21,7 @@ type BusinessImpactAssessmentServiceInterface interface {
 	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.BusinessImpactFormDTO) (uint, error)
 	UpdateImpactAnalysis(businessImpactAssessmentFormDTO businessContinuityDTOs.BusinessImpactAssessmentFormDTO, currentUserID uint) error
 	UpdateRecoveryObjectives(businessImpactAssessmentRecoveryObjectiveFormDTO businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveFormDTO, currentUserID uint) error
-	GetBIAMatrix() ([]businessContinuityDTOs.BIAMatrixResponse, error)
+	GetBIAMatrix() ([]businessContinuityDTOs.BIAMatrixResponseDTO, error)
 }
 
 // Service and implementations
@@ -387,6 +387,6 @@ func (bias *BusinessImpactAssessmentService) UpdateRecoveryObjectives(businessIm
 	return nil
 }
 
-func (bias *BusinessImpactAssessmentService) GetBIAMatrix() ([]businessContinuityDTOs.BIAMatrixResponse, error) {
+func (bias *BusinessImpactAssessmentService) GetBIAMatrix() ([]businessContinuityDTOs.BIAMatrixResponseDTO, error) {
 	return bias.repo.GetBIAMatrix()
 }

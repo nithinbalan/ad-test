@@ -20,7 +20,7 @@ type BusinessImpactAssessmentRepositoryInterface interface {
 	DeleteImpactAssessmentsByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
 	DeleteRecoveryObjectivesByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
 	GetImpactAssessmentsByProcessID(processID uint) ([]*models.BusinessImpactAssessment, error)
-	GetBIAMatrix() ([]businessContinuityDTOs.BIAMatrixResponse, error)
+	GetBIAMatrix() ([]businessContinuityDTOs.BIAMatrixResponseDTO, error)
 }
 
 type BusinessImpactAssessmentRepository struct {
@@ -329,8 +329,8 @@ func (repo *BusinessImpactAssessmentRepository) GetImpactAssessmentsByProcessID(
 	return businessImpactAssessments, nil
 }
 
-func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix() ([]businessContinuityDTOs.BIAMatrixResponse, error) {
-	var result []businessContinuityDTOs.BIAMatrixResponse
+func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix() ([]businessContinuityDTOs.BIAMatrixResponseDTO, error) {
+	var result []businessContinuityDTOs.BIAMatrixResponseDTO
 
 	err := repo.db.Raw(`
        SELECT 

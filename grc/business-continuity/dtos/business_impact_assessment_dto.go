@@ -155,7 +155,7 @@ type BusinessImpactAssessmentRecoveryObjectiveDTO struct {
 	ImpactDescription *string `json:"impact_description"`
 }
 
-type BIAMatrixResponse struct {
+type BIAMatrixResponseDTO struct {
 	BusinessFunctionTitle  string `json:"business_function_title"`
 	BusinessFunctionId     uint   `json:"business_function_id"`
 	ProcessID              uint   `json:"process_id"`

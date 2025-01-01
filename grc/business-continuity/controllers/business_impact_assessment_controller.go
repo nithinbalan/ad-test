@@ -419,11 +419,20 @@ func (biac *BusinessImpactAssessmentController) UpdateRecoveryObjective(c *gin.C
 }
 
 func (biac *BusinessImpactAssessmentController) GetBIAMatrix(c *gin.Context) {
-	data, err := biac.service.GetBIAMatrix()
+	matrix, err := biac.service.GetBIAMatrix()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(biac.db, c, e.Error())
+			return
+		}
 	}
 
-	c.JSON(http.StatusOK, data)
+	c.JSON(http.StatusOK, matrix)
 }
