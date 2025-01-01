@@ -156,18 +156,21 @@ type BusinessImpactAssessmentRecoveryObjectiveDTO struct {
 }
 
 type BIAMatrixResponse struct {
-	BusinessFunctionTitle string `json:"business_function_title"`
-	BusinessFunctionId    string `json:"business_function_id"`
-	RiskLevelId           string `json:"risk_level_id"`
-	RiskLevelTitleEn      string `json:"risk_level_title_en"`
-	RiskLevelTitleAr      string `json:"risk_level_title_ar"`
-	ProcessID             uint   `json:"process_id"`
-	ProcessTitleEn        string `json:"process_title_en"`
-	ProcessTitleAr        string `json:"process_title_ar"`
-	ProcessRTO            uint   `json:"process_rto"`
-	ProcessRTOUnitID      uint   `json:"process_rto_unit_id"`
-	ProcessMTPD           uint   `json:"process_mtpd"`
-	ProcessMTPDUnitID     uint   `json:"process_mtpd_unit_id"`
-	ProcessRPO            uint   `json:"process_rpo"`
-	ProcessRPOUnitID      uint   `json:"process_rpo_unit_id"`
+	BusinessFunctionTitle  string `json:"business_function_title"`
+	BusinessFunctionId     uint   `json:"business_function_id"`
+	ProcessID              uint   `json:"process_id"`
+	ProcessTitleEn         string `json:"process_title_en"`
+	ProcessTitleAr         string `json:"process_title_ar"`
+	ProcessRTOUnitId       uint   `json:"process_rto_unit_id"`
+	ProcessRTOUnitTitleEn  string `json:"process_rto_unit_title_en"`
+	ProcessRTOUnitTitleAr  string `json:"process_rto_unit_title_ar"`
+	ProcessMTPDUnitId      uint   `json:"process_mtpd_unit_id"`
+	ProcessMTPDUnitTitleEn string `json:"process_mtpd_unit_title_en"`
+	ProcessMTPDUnitTitleAr string `json:"process_mtpd_unit_title_ar"`
+	ProcessRPOUnitId       uint   `json:"process_rpo_unit_id"`
+	ProcessRPOUnitTitleEn  string `json:"process_rpo_unit_title_en"`
+	ProcessRPOUnitTitleAr  string `json:"process_rpo_unit_title_ar"`
+	RiskLevelId            uint   `json:"risk_level_id"`
+	RiskLevelTitleEn       string `json:"risk_level_title_en"`
+	RiskLevelTitleAr       string `json:"risk_level_title_ar"`
 }
