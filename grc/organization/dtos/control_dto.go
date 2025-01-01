@@ -129,11 +129,11 @@ type ControlListResponseDTO struct {
 
 type ControlFormDTO struct {
 	ControlTypeID                 uint    `json:"control_type_id" binding:"required"`
-	ControlCategoryID             uint    `json:"control_category_id" `
+	ControlCategoryID             *uint   `json:"control_category_id" `
 	OwnerID                       uint    `json:"owner_id" binding:"required"`
 	ControlImplementationStatusID *uint   `json:"control_implementation_status_id" binding:"omitempty"`
 	ControlEfficiencyStatusID     *uint   `json:"control_efficiency_status_id" binding:"omitempty"`
-	Code                          string  `json:"code" binding:"omitempty"`
+	Code                          *string `json:"code" binding:"omitempty"`
 	TitleEn                       string  `json:"title_en" binding:"required"`
 	TitleAr                       string  `json:"title_ar" binding:"required"`
 	Description                   *string `json:"description" binding:"omitempty"`

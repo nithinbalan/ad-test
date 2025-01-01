@@ -163,6 +163,8 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 			query = query.Where("lifecycle_statuses.type = ?", "archived")
 		case "high_risk":
 			query = query.Where("risk_matrix_risk_ratings.type IN (?)", []string{"high", "very_high"})
+		case "is_bia_performed":
+			query = query.Where("processes.is_bia_performed = ?", true)
 		}
 	}
 
