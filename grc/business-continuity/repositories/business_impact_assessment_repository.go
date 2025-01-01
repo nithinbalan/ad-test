@@ -335,8 +335,6 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix() ([]businessContin
 	err := repo.db.Raw(`
         SELECT 
             bf.title AS business_function_title,
-            sl.title_en AS severity_level_title_en,
-            sl.title_ar AS severity_level_title_ar,
             p.id AS process_id,
             p.title_en AS process_title_en,
             p.title_ar AS process_title_ar,
@@ -345,15 +343,20 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix() ([]businessContin
             p.mtpd AS process_mtpd,
             p.mtpd_unit_id AS process_mtpd_unit_id,
             p.rpo AS process_rpo,
-            p.rpo_unit_id AS process_rpo_unit_id
+            p.rpo_unit_id AS process_rpo_unit_id,
+            p.risk_level_id AS risk_level_id,
+            rl.title_en AS risk_level_title_en, 
+            rl.title_ar AS risk_level_title_ar
         FROM 
             business_function_processes bfp
         INNER JOIN 
             business_functions bf ON bf.id = bfp.business_function_id
-        LEFT JOIN 
-            severity_levels sl ON sl.id = bf.severity_level_id
         INNER JOIN 
             processes p ON p.id = bfp.process_id
+        LEFT JOIN 
+            risk_levels rl ON rl.id = p.risk_level_id
+        WHERE 
+            p.is_bia_performed = 1
     `).Scan(&result).Error
 	if err != nil {
 		return nil, err

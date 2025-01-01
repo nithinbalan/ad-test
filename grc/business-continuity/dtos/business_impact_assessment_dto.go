@@ -157,8 +157,8 @@ type BusinessImpactAssessmentRecoveryObjectiveDTO struct {
 
 type BIAMatrixResponse struct {
 	BusinessFunctionTitle string `json:"business_function_title"`
-	SeverityLevelTitleEn  string `json:"severity_level_title_en"`
-	SeverityLevelTitleAr  string `json:"severity_level_title_ar"`
+	RiskLevelTitleEn      string `json:"risk_level_title_en"`
+	RiskLevelTitleAr      string `json:"risk_level_title_ar"`
 	ProcessID             uint   `json:"process_id"`
 	ProcessTitleEn        string `json:"process_title_en"`
 	ProcessTitleAr        string `json:"process_title_ar"`
