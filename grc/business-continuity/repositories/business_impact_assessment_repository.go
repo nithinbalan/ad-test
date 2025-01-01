@@ -334,29 +334,30 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix() ([]businessContin
 
 	err := repo.db.Raw(`
         SELECT 
-            bf.title AS business_function_title,
-            p.id AS process_id,
-            p.title_en AS process_title_en,
-            p.title_ar AS process_title_ar,
-            p.rto AS process_rto,
-            p.rto_unit_id AS process_rto_unit_id,
-            p.mtpd AS process_mtpd,
-            p.mtpd_unit_id AS process_mtpd_unit_id,
-            p.rpo AS process_rpo,
-            p.rpo_unit_id AS process_rpo_unit_id,
-            p.risk_level_id AS risk_level_id,
-            rl.title_en AS risk_level_title_en, 
-            rl.title_ar AS risk_level_title_ar
+            business_functions.title AS business_function_title,
+            business_functions.id AS business_function_id,
+            processes.id AS process_id,
+            processes.title_en AS process_title_en,
+            processes.title_ar AS process_title_ar,
+            processes.rto AS process_rto,
+            processes.rto_unit_id AS process_rto_unit_id,
+            processes.mtpd AS process_mtpd,
+            processes.mtpd_unit_id AS process_mtpd_unit_id,
+            processes.rpo AS process_rpo,
+            processes.rpo_unit_id AS process_rpo_unit_id,
+            processes.risk_level_id AS risk_level_id,
+            risk_levels.title_en AS risk_level_title_en, 
+            risk_levels.title_ar AS risk_level_title_ar
         FROM 
-            business_function_processes bfp
+            business_function_processes 
         INNER JOIN 
-            business_functions bf ON bf.id = bfp.business_function_id
+            business_functions ON business_functions.id = business_function_processes.business_function_id
         INNER JOIN 
-            processes p ON p.id = bfp.process_id
+            processes ON processes.id = business_function_processes.process_id
         LEFT JOIN 
-            risk_levels rl ON rl.id = p.risk_level_id
+            risk_levels ON risk_levels.id = processes.risk_level_id
         WHERE 
-            p.is_bia_performed = 1
+            processes.is_bia_performed = 1
     `).Scan(&result).Error
 	if err != nil {
 		return nil, err
