@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
 	"jethur/grc/incident/services"
@@ -32,12 +33,23 @@ func (iclc *IncidentCommunicationLogController) GetAllIncidentCommunicationLogs(
 		return
 	}
 
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
-	keyword := c.Query("keyword")
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "communicated_at")
 	status := c.Query("status")
+	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"incident_register_ids",
+	}
+	validSortFields := map[string]string{
+		"communicated_at":      "incident_communication_logs.communicated_at",
+		"communicated_by":      "incident_communication_logs.communicated_by",
+		"communicated_to":      "incident_communication_logs.communicated_to",
+		"communication_method": "incident_communication_logs.communication_method",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 	// Parse target_date_from, target_date_to
 	communicatedAt := c.Query("communicated_at")
 
@@ -52,14 +64,20 @@ func (iclc *IncidentCommunicationLogController) GetAllIncidentCommunicationLogs(
 		utility.SendInternalErrResp(iclc.db, c, "Invalid page_size parameter")
 		return
 	}
-
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 	queryParams := incidentDTOs.IncidentCommunicationLogListQueryParamsDTO{
 		Sort:           sort,
-		SortBy:         sortBy,
+		SortBy:         sortField,
 		Keyword:        keyword,
 		Status:         status,
 		Page:           page,
 		PageSize:       pageSize,
+		Filters:        filters,
 		QuickFilter:    quickFilter,
 		CommunicatedAt: communicatedAt,
 	}
