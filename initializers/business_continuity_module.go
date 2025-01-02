@@ -22,6 +22,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	organizationModule *OrganizationModule,
 	assetModule *AssetModule,
 	documentModule *DocumentModule,
+	riskModule *RiskModule,
 ) *BusinessContinuityModule {
 
 	businessFunctionRepo := repositories.NewBusinessFunctionRepository(db)
@@ -33,7 +34,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	businessFunctionController := controllers.NewBusinessFunctionController(businessFunctionSvc)
 
 	businessImpactAssessmentRepo := repositories.NewBusinessImpactAssessmentRepository(db)
-	businessImpactAssessmentSvc := services.NewBusinessImpactAssessmentService(businessImpactAssessmentRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, masterModule.ImpactCategorySvc, organizationModule.ProcessSvc, assetModule.AssetRegisterSvc, documentModule.DocumentSvc)
+	businessImpactAssessmentSvc := services.NewBusinessImpactAssessmentService(businessImpactAssessmentRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, masterModule.ImpactCategorySvc, organizationModule.ProcessSvc, assetModule.AssetRegisterSvc, documentModule.DocumentSvc, riskModule.RiskLevelSvc)
 	businessImpactAssessmentController := controllers.NewBusinessImpactAssessmentController(businessImpactAssessmentSvc, organizationModule.ProcessAssociatedItemSvc, organizationModule.ProcessSvc)
 
 	return &BusinessContinuityModule{

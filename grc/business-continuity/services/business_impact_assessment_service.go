@@ -10,6 +10,7 @@ import (
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+	riskServices "jethur/grc/risk/services"
 	"jethur/utility"
 	"time"
 )
@@ -20,6 +21,8 @@ type BusinessImpactAssessmentServiceInterface interface {
 	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.BusinessImpactFormDTO) (uint, error)
 	UpdateImpactAnalysis(businessImpactAssessmentFormDTO businessContinuityDTOs.BusinessImpactAssessmentFormDTO, currentUserID uint) error
 	UpdateRecoveryObjectives(businessImpactAssessmentRecoveryObjectiveFormDTO businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveFormDTO, currentUserID uint) error
+
+	DetermineProcessRiskLevel(riskLevels []string) (*models.RiskLevel, error)
 }
 
 // Service and implementations
@@ -31,6 +34,7 @@ type BusinessImpactAssessmentService struct {
 	processSvc        organizationServices.ProcessServiceInterface
 	assetRegisterSvc  assetServices.AssetRegisterServiceInterface
 	documentSvc       documentServices.DocumentServiceInterface
+	riskLevelSvc      riskServices.RiskLevelServiceInterface
 }
 
 func NewBusinessImpactAssessmentService(
@@ -41,6 +45,7 @@ func NewBusinessImpactAssessmentService(
 	processSvc organizationServices.ProcessServiceInterface,
 	assetRegisterSvc assetServices.AssetRegisterServiceInterface,
 	documentSvc documentServices.DocumentServiceInterface,
+	riskLevelSvc riskServices.RiskLevelServiceInterface,
 ) BusinessImpactAssessmentServiceInterface {
 	return &BusinessImpactAssessmentService{
 		repo:              repo,
@@ -50,6 +55,7 @@ func NewBusinessImpactAssessmentService(
 		processSvc:        processSvc,
 		assetRegisterSvc:  assetRegisterSvc,
 		documentSvc:       documentSvc,
+		riskLevelSvc:      riskLevelSvc,
 	}
 }
 
@@ -64,7 +70,7 @@ func (bias *BusinessImpactAssessmentService) GetAllRecoveryObjectives(params *bu
 func (bias *BusinessImpactAssessmentService) Create(currentUserID uint, businessImpactAssessmentFormDTO *businessContinuityDTOs.BusinessImpactFormDTO) (uint, error) {
 	tx := bias.repo.BeginTransaction()
 
-	impactCategories, err := bias.impactCategorySvc.GetAll("", "", "", "")
+	impactCategories, err := bias.impactCategorySvc.GetAll("", "", "", "active")
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -77,7 +83,7 @@ func (bias *BusinessImpactAssessmentService) Create(currentUserID uint, business
 		businessImpactAssessment := &models.BusinessImpactAssessment{
 			ProcessID:        businessImpactAssessmentFormDTO.ProcessID,
 			ImpactCategoryID: impactCategory.ID,
-			RiskLevelID:      1,
+			RiskLevelID:      nil,
 			Cost:             nil,
 			Comments:         nil,
 			CreatedByID:      currentUserID,
@@ -187,7 +193,7 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 			tx.Rollback()
 			return err
 		}
-
+		var riskLevels []string
 		for _, impactAssessment := range businessImpactAssessmentFormDTO.BusinessImpactAssessments {
 			businessImpactAssessment := &models.BusinessImpactAssessment{
 				ProcessID:        businessImpactAssessmentFormDTO.ProcessID,
@@ -203,8 +209,37 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 				tx.Rollback()
 				return err
 			}
+			// Add the risk level type for evaluation
+			if impactAssessment.RiskLevelID != nil {
+				riskLevel, err := bias.riskLevelSvc.GetByID(*impactAssessment.RiskLevelID)
+				if err != nil {
+					tx.Rollback()
+					return err
+				}
+				riskLevels = append(riskLevels, riskLevel.Type)
+			}
 
 		}
+		// Determine overall process risk level
+		overallRiskLevel, err := bias.DetermineProcessRiskLevel(riskLevels)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		// Update the process risk level
+		existingProcess, err := bias.processSvc.GetByID(*businessImpactAssessmentFormDTO.ProcessID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		existingProcess.RiskLevelId = &overallRiskLevel.ID
+		if err := bias.processSvc.UpdateProcessRecoveryObjective(existingProcess, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
 	}
 
 	tx.Commit()
@@ -385,4 +420,40 @@ func (bias *BusinessImpactAssessmentService) UpdateRecoveryObjectives(businessIm
 		}
 	}()
 	return nil
+}
+
+func (bias *BusinessImpactAssessmentService) DetermineProcessRiskLevel(riskLevels []string) (*models.RiskLevel, error) {
+	hasHigh := false
+	hasMedium := false
+	var riskLevelType string
+
+	for _, level := range riskLevels {
+		if level == "high" {
+			hasHigh = true
+			break
+		} else if level == "medium" {
+			hasMedium = true
+		}
+	}
+
+	if hasHigh {
+		riskLevelType = "high"
+	} else if hasMedium {
+		riskLevelType = "medium"
+	} else {
+		riskLevelType = "low"
+	}
+
+	// Fetch RiskLevel model from the database
+	riskLevel, err := bias.riskLevelSvc.GetByType(riskLevelType)
+	if err != nil {
+		// Log the error and return it
+		utility.LogError("Failed to fetch RiskLevel", map[string]interface{}{
+			"error":         err.Error(),
+			"riskLevelType": riskLevelType,
+		})
+		return nil, err
+	}
+
+	return riskLevel, nil
 }
