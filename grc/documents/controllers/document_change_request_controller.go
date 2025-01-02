@@ -139,6 +139,9 @@ func (dcrc *DocumentChangeRequestController) CreateDocumentChangeRequest(c *gin.
 		case *utility.ForbiddenError:
 			utility.SendForbiddenErrResp(c, err.Error())
 			return
+		case *utility.ResourceConflictError:
+			utility.SendConflictErrResp(c, err.Error())
+			return
 		default:
 			utility.SendInternalErrResp(dcrc.db, c, e.Error())
 			return

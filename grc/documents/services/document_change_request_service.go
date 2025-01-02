@@ -150,7 +150,7 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 	}
 
 	if len(existingChangeRequests) > 0 {
-		return 0, utility.NewForbiddenError("cannot create a new change request for this document as there are existing change requests not in a published status")
+		return 0, utility.NewResourceConflictError(errors.New("cannot create a new change request for this document as there are existing change requests not in a published status"))
 	}
 
 	changeRequestStatus, err := dcrs.documentChangeRequestStatusSvc.GetByType("draft")
