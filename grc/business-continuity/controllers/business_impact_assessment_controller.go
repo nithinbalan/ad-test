@@ -38,9 +38,6 @@ func (biac *BusinessImpactAssessmentController) GetAllProcesses(c *gin.Context) 
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
-	// Add "is_bia_performed" filter internally
-	quickFilter = append(quickFilter, "is_bia_performed")
-
 	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
 	if err != nil {
 		utility.SendInternalErrResp(biac.db, c, "Invalid export parameter")
