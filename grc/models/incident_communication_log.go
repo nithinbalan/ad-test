@@ -7,7 +7,7 @@ import (
 type IncidentCommunicationLog struct {
 	ID                  uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	IncidentRegisterID  uint       `json:"incident_register_id" binding:"required" gorm:"not null"`
-	CommunicatedAt      time.Time  `json:"communicated_at" binding:"required" gorm:"type:datetime;not null"`
+	CommunicatedAt      *time.Time `json:"communicated_at" binding:"required" gorm:"type:datetime;not null"`
 	CommunicatedBy      string     `json:"communicated_by" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
 	CommunicatedTo      string     `json:"communicated_to" binding:"required,max=1000" gorm:"type:nvarchar(1000);not null"`
 	CommunicationMethod string     `json:"communication_method" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`

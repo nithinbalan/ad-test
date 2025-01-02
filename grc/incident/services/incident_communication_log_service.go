@@ -115,7 +115,7 @@ func (icls *IncidentCommunicationLogService) Create(incidentID uint, currentUser
 
 	incidentCommunicationLog := &models.IncidentCommunicationLog{
 		IncidentRegisterID:  incidentID,
-		CommunicatedAt:      *dates.CommunicatedAt,
+		CommunicatedAt:      dates.CommunicatedAt,
 		CommunicatedBy:      incidentCommunicationLogFormDTO.CommunicatedBy,
 		CommunicatedTo:      incidentCommunicationLogFormDTO.CommunicatedTo,
 		CommunicationMethod: incidentCommunicationLogFormDTO.CommunicationMethod,
@@ -215,7 +215,7 @@ func (icls *IncidentCommunicationLogService) Update(incidentID uint, id uint, cu
 	}
 
 	// Update Incident CommunicationLog
-	existingIncidentCommunicationLog.CommunicatedAt = *dates.CommunicatedAt
+	existingIncidentCommunicationLog.CommunicatedAt = dates.CommunicatedAt
 	existingIncidentCommunicationLog.CommunicatedBy = incidentCommunicationLogFormDTO.CommunicatedBy
 	existingIncidentCommunicationLog.CommunicatedTo = incidentCommunicationLogFormDTO.CommunicatedTo
 	existingIncidentCommunicationLog.CommunicationMethod = incidentCommunicationLogFormDTO.CommunicationMethod
