@@ -20,7 +20,7 @@ type IncidentActionPlanStatusUpdateListDTO struct {
 	CreatedUserFirstNameEn      string                                           `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string                                           `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn       string                                           `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr       *string                                          `json:"created_user_last_name_ar"`
+	CreatedUserLastNameAr       string                                           `json:"created_user_last_name_ar"`
 	CreatedUserInitial          string                                           `json:"created_user_initial"`
 	CreatedUserColor            string                                           `json:"created_user_color"`
 	CreatedUserEmail            string                                           `json:"created_user_email"`
