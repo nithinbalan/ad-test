@@ -150,6 +150,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.GET("/document-change-request-statuses", documentChangeRequestStatusController.GetAllDocumentChangeRequestStatuses)
 	documentRoutes.GET("/document-change-request-statuses/:id", documentChangeRequestStatusController.GetDocumentChangeRequestStatusDetails)
 
+	documentRoutes.GET("/document-change-requests/export", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetDocumentChangeRequestExport)
 	documentRoutes.GET("/document-change-requests", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetAllDocumentChangeRequests)
 	documentRoutes.GET("/document-change-requests/:id", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetDocumentChangeRequestDetails)
 	documentRoutes.POST("/document-change-requests", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.CreateDocumentChangeRequest)
