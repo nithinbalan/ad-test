@@ -7,6 +7,7 @@ import (
 	incidentRepositories "jethur/grc/incident/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 	"time"
 
@@ -29,6 +30,7 @@ type IncidentCommunicationLogService struct {
 	activityLogSvc      logServices.ActivityLogServiceInterface
 	incidentRegisterSvc IncidentRegisterServiceInterface
 	incidentTimelineSvc IncidentTimelineServiceInterface
+	userSvc                  organizationServices.UserServiceInterface
 }
 
 func NewIncidentCommunicationLogService(
@@ -36,12 +38,14 @@ func NewIncidentCommunicationLogService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	incidentRegisterSvc IncidentRegisterServiceInterface,
 	incidentTimelineSvc IncidentTimelineServiceInterface,
+	userSvc                  organizationServices.UserServiceInterface,
 ) IncidentCommunicationLogServiceInterface {
 	return &IncidentCommunicationLogService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
 		incidentRegisterSvc: incidentRegisterSvc,
 		incidentTimelineSvc: incidentTimelineSvc,
+		userSvc: userSvc,
 	}
 }
 
@@ -107,7 +111,7 @@ func (icls *IncidentCommunicationLogService) Create(incidentID uint, currentUser
 		return 0, err
 	}
 
-	dates, err := icls.parseIncidentCommunicationLogDates(incidentCommunicationLogFormDTO)
+	dates, err := icls.parseIncidentCommunicationLogDates(incidentCommunicationLogFormDTO, currentUserID)
 	if err != nil {
 		return 0, err
 	}
@@ -208,7 +212,7 @@ func (icls *IncidentCommunicationLogService) Update(incidentID uint, id uint, cu
 		return err
 	}
 
-	dates, err := icls.parseIncidentCommunicationLogDates(incidentCommunicationLogFormDTO)
+	dates, err := icls.parseIncidentCommunicationLogDates(incidentCommunicationLogFormDTO, currentUserID)
 	if err != nil {
 		return err
 	}
@@ -364,16 +368,24 @@ func (icls *IncidentCommunicationLogService) Delete(incidentID uint, ids []uint,
 	return failedIds, nil
 }
 
-func (icls *IncidentCommunicationLogService) parseIncidentCommunicationLogDates(dto *incidentDTOs.IncidentCommunicationLogFormDTO) (*incidentDTOs.IncidentCommunicationLogParsedDates, error) {
+func (icls *IncidentCommunicationLogService) parseIncidentCommunicationLogDates(dto *incidentDTOs.IncidentCommunicationLogFormDTO, currentUserID uint) (*incidentDTOs.IncidentCommunicationLogParsedDates, error) {
 	parsed := &incidentDTOs.IncidentCommunicationLogParsedDates{}
+	userPreference, err := icls.userSvc.GetCurrentUserDetails(currentUserID)
+	if err != nil {
+		return nil, err
+	}
 
-	var err error
+	timezoneName := userPreference.UserSetting.Timezone.Name
+
+	fmt.Println(timezoneName)
+
 	if dto.CommunicatedAt != "" {
-		parsed.CommunicatedAt, err = utility.ParseDateTime(dto.CommunicatedAt)
+		parsed.CommunicatedAt, err = utility.ConvertToUTC(dto.CommunicatedAt, timezoneName)
 		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid communicated date"), "invalid_date", "communicated at")
+			return nil, utility.NewValidationError(fmt.Errorf("invalid communicated date: %w", err), "invalid_date", "communicated at")
 		}
 	}
+
 
 	return parsed, nil
 }
