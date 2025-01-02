@@ -129,6 +129,9 @@ func (repo *IncidentActionPlanRepository) GetAll(incidentID uint, params *incide
 			query = query.Where("action_plan_statuses.type = ?", "in_progress")
 		}
 	}
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
