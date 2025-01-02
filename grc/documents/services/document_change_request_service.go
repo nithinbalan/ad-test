@@ -175,6 +175,10 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 		newVersion = currentVersion + 0.1
 	} else if documentChangeRequestType.Type == "major" {
 		newVersion = currentVersion + 1.0
+	} else if documentChangeRequestType.Type == "restore-with-minor-update" {
+		newVersion = currentVersion + 0.1
+	} else if documentChangeRequestType.Type == "restore-with-major-update" {
+		newVersion = currentVersion + 1.0
 	}
 	// else {
 	// 	tx.Rollback()
@@ -200,7 +204,7 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 
 	var storagePath string
 	var is_pdf bool = false
-	if documentChangeRequestType.Type == "minor" || documentChangeRequestType.Type == "major" {
+	if documentChangeRequestType.Type != "archive" && documentChangeRequestType.Type != "restore" {
 		dataToEncrypt := []byte(formDTO.Document.FileName)
 		encryptedFileName, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
