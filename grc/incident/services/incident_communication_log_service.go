@@ -239,7 +239,7 @@ func (icls *IncidentCommunicationLogService) Update(incidentID uint, id uint, cu
 		//log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
-			"communicated_at":      oldIncidentCommunicationLog.CommunicatedAtString,
+			"communicated_at":      oldIncidentCommunicationLog.CommunicatedAt,
 			"communicated_by":      oldIncidentCommunicationLog.CommunicatedBy,
 			"communicated_to":      oldIncidentCommunicationLog.CommunicatedTo,
 			"communication_method": oldIncidentCommunicationLog.CommunicationMethod,
@@ -247,7 +247,7 @@ func (icls *IncidentCommunicationLogService) Update(incidentID uint, id uint, cu
 		}
 
 		newData := map[string]interface{}{
-			"communicated_at":      existingCommunicationLog.CommunicatedAtString,
+			"communicated_at":      existingCommunicationLog.CommunicatedAt,
 			"communicated_by":      existingCommunicationLog.CommunicatedBy,
 			"communicated_to":      existingCommunicationLog.CommunicatedTo,
 			"communication_method": existingCommunicationLog.CommunicationMethod,
