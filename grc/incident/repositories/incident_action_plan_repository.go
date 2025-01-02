@@ -152,9 +152,6 @@ func (repo *IncidentActionPlanRepository) GetAll(incidentID uint, params *incide
 	if incidentID != 0 {
 		query = query.Where("incident_action_plans.incident_register_id = ?", incidentID)
 	}
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	if !params.Export {
