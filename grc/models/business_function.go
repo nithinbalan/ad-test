@@ -11,6 +11,10 @@ type BusinessFunction struct {
 	SeverityLevelID   *uint      `json:"severity_level_id" binding:"required"`
 	Title             string     `json:"title" binding:"required,max=255" gorm:"type:nvarchar(255);not null"`
 	Description       *string    `json:"description" gorm:"type:nvarchar(max)"`
+	BcpStatus         bool       `json:"bcp_status"`
+	ReviewFrequencyID *uint      `json:"review_frequency_id"`
+	NextReviewDate    *time.Time `json:"next_review_date"`
+	LastReviewDate    *time.Time `json:"last_review_date"`
 	CreatedBYID       uint       `json:"created_by_id" binding:"required"`
 	UpdatedBYID       *uint      `json:"updated_by_id"`
 	CreatedAt         time.Time  `json:"created_at" gorm:"type:datetime;not null"`
@@ -18,6 +22,7 @@ type BusinessFunction struct {
 
 	// Relationships
 	SeverityLevel   *SeverityLevel             `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewFrequency *ReviewFrequency           `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUser *User                      `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Processes       []*BusinessFunctionProcess `gorm:"foreignKey:BusinessFunctionID"`
 	CreatedByUser   *User                      `gorm:"foreignKey:CreatedBYID"`

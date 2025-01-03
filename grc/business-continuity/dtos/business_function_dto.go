@@ -13,6 +13,10 @@ type BusinessFunctionListDTO struct {
 	Title                           string  `json:"title"`
 	Description                     *string `json:"description"`
 	SeverityLevelID                 *uint   `json:"severity_level_id"`
+	ReviewFrequencyID               *uint   `json:"review_frequency_id"`
+	LastReviewDate                  *string `json:"last_review_date"`
+	NextReviewDate                  *string `json:"next_review_date"`
+	BcpStatus                       bool    `json:"bcp_status"`
 	ResponsibleUserFirstNameEn      string  `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr      string  `json:"responsible_user_first_name_ar"`
 	ResponsibleUserLastNameEn       string  `json:"responsible_user_last_name_en"`
@@ -24,6 +28,8 @@ type BusinessFunctionListDTO struct {
 	SeverityLevelTitleEn            string  `json:"severity_level_title_en"`
 	SeverityLevelTitleAr            string  `json:"severity_level_title_ar"`
 	SeverityLevelColorCode          string  `json:"severity_level_color_code"`
+	ReviewFrequencyTitleEn          *string `json:"review_frequency_title_en"`
+	ReviewFrequencyTitleAr          *string `json:"review_frequency_title_ar"`
 	CreatedAt                       string  `json:"created_at"`
 	UpdatedAt                       string  `json:"updated_at"`
 	CreatedUserID                   uint    `json:"created_user_id"`
@@ -52,6 +58,9 @@ type BusinessFunctionFormDTO struct {
 	SeverityLevelID   *uint   `json:"severity_level_id" binding:"required"`
 	ResponsibleUserID uint    `json:"responsible_user_id" binding:"required"`
 	ProcessIDs        []*uint `json:"process_ids"`
+	ReviewFrequencyID *uint   `json:"review_frequency_id"`
+	LastReviewDate    *string `json:"last_review_date"`
+	NextReviewDate    *string `json:"next_review_date"`
 }
 
 type BusinessFunctionListQueryParamsDTO struct {
@@ -71,14 +80,19 @@ type BusinessFunctionListResponseDTO struct {
 }
 
 type BusinessFunctionDetailDTO struct {
-	ID                uint                            `json:"id"`
-	ReferenceNumber   string                          `json:"reference_number"`
-	Title             string                          `json:"title"`
-	Description       string                          `json:"description"`
-	SeverityLevelID   *uint                           `json:"severity_level_id" binding:"required"`
-	ResponsibleUserID uint                            `json:"responsible_user_id" binding:"required"`
-	ResponsibleUser   organizationDTOs.UserMinimalDTO `json:"responsible_user"`
-	SeverityLevel     *masterDTOs.SeverityLevelDTO    `json:"severity_level"`
+	ID                   uint                            `json:"id"`
+	ReferenceNumber      string                          `json:"reference_number"`
+	Title                string                          `json:"title"`
+	Description          string                          `json:"description"`
+	SeverityLevelID      *uint                           `json:"severity_level_id" binding:"required"`
+	ResponsibleUserID    uint                            `json:"responsible_user_id" binding:"required"`
+	ReviewFrequencyID    uint                            `json:"review_frequency_id"`
+	BcpStatus            bool                            `json:"bcp_status" gorm:"default:false"`
+	NextReviewDateString *string                         `json:"next_review_date"`
+	LastReviewDateString *string                         `json:"last_review_date"`
+	ResponsibleUser      organizationDTOs.UserMinimalDTO `json:"responsible_user"`
+	SeverityLevel        *masterDTOs.SeverityLevelDTO    `json:"severity_level"`
+	ReviewFrequency      *masterDTOs.ReviewFrequencyDTO  `json:"review_frequency"`
 
 	Processes     []*BusinessFunctionProcessDTO   `json:"processes"`
 	CreatedAt     time.Time                       `json:"created_at"`
@@ -92,4 +106,9 @@ type BusinessFunctionProcessDTO struct {
 	BusinessFunctionID uint                              `json:"business_function_register_id"`
 	ProcessID          uint                              `json:"process_id"`
 	Process            organizationDTOs.ProcessDetailDTO `json:"process"`
+}
+
+type BusinessFunctionParsedDates struct {
+	NextReviewDate *time.Time
+	LastReviewDate *time.Time
 }
