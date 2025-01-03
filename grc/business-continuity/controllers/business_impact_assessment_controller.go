@@ -324,6 +324,21 @@ func (biac *BusinessImpactAssessmentController) GetAllBIARecoveryObjectives(c *g
 	c.JSON(http.StatusOK, businessImpactAssessments)
 }
 
+func (biac *BusinessImpactAssessmentController) GetProcessDetails(c *gin.Context) {
+	processID, err := strconv.Atoi(c.Param("processId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	process, err := biac.processSvc.GetFullDetailsByID(uint(processID))
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, process)
+}
+
 func (biac *BusinessImpactAssessmentController) CreateBusinessImpactAssessment(c *gin.Context) {
 	var businessImpactAssessmentFormDTO businessContinuityDTOs.BusinessImpactFormDTO
 

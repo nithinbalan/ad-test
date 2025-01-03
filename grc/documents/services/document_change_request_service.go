@@ -47,6 +47,8 @@ type DocumentChangeRequestServiceInterface interface {
 
 	GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error)
 	GetDocumentCRLastEditSummary(id uint) (*documentDTOs.DocumentLastEditSummaryDTO, error)
+
+	ExportDocumentChangeRequest(data []*documentDTOs.DocumentChangeRequestListDTO, currentUserID uint) (*os.File, error)
 }
 
 type DocumentChangeRequestService struct {
@@ -63,6 +65,7 @@ type DocumentChangeRequestService struct {
 	userSvc                          organizationSvc.UserServiceInterface
 	documentAccessSvc                DocumentAccessServiceInterface
 	orgLevelSvc                      settingsSvc.OrganizationLevelServiceInterface
+	userSettingSvc                   organizationSvc.UserSettingServiceInterface
 }
 
 func NewDocumentChangeRequestService(
@@ -78,6 +81,7 @@ func NewDocumentChangeRequestService(
 	userSvc organizationSvc.UserServiceInterface,
 	documentAccessSvc DocumentAccessServiceInterface,
 	orgLevelSvc settingsSvc.OrganizationLevelServiceInterface,
+	userSettingSvc organizationSvc.UserSettingServiceInterface,
 ) DocumentChangeRequestServiceInterface {
 	return &DocumentChangeRequestService{
 		repo:                           repo,
@@ -92,6 +96,7 @@ func NewDocumentChangeRequestService(
 		userSvc:                        userSvc,
 		documentAccessSvc:              documentAccessSvc,
 		orgLevelSvc:                    orgLevelSvc,
+		userSettingSvc:                 userSettingSvc,
 	}
 }
 
@@ -150,7 +155,7 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 	}
 
 	if len(existingChangeRequests) > 0 {
-		return 0, utility.NewForbiddenError("cannot create a new change request for this document as there are existing change requests not in a published status")
+		return 0, utility.NewResourceConflictError(errors.New("cannot create a new change request for this document as there are existing change requests not in a published status"))
 	}
 
 	changeRequestStatus, err := dcrs.documentChangeRequestStatusSvc.GetByType("draft")
@@ -174,6 +179,10 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 	if documentChangeRequestType.Type == "minor" {
 		newVersion = currentVersion + 0.1
 	} else if documentChangeRequestType.Type == "major" {
+		newVersion = currentVersion + 1.0
+	} else if documentChangeRequestType.Type == "restore-with-minor-update" {
+		newVersion = currentVersion + 0.1
+	} else if documentChangeRequestType.Type == "restore-with-major-update" {
 		newVersion = currentVersion + 1.0
 	}
 	// else {
@@ -200,7 +209,7 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 
 	var storagePath string
 	var is_pdf bool = false
-	if documentChangeRequestType.Type == "minor" || documentChangeRequestType.Type == "major" {
+	if documentChangeRequestType.Type != "archive" && documentChangeRequestType.Type != "restore" {
 		dataToEncrypt := []byte(formDTO.Document.FileName)
 		encryptedFileName, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
@@ -564,6 +573,22 @@ func (dcrs *DocumentChangeRequestService) Update(id uint, currentUserID uint, fo
 			return err
 		}
 		if documentChangeRequestType.Type == "restore-with-minor-update" || documentChangeRequestType.Type == "restore-with-major-update" {
+
+			documentFullDetails, err := dcrs.documentSvc.GetFullDetailsByID(formDTO.DocumentID, nil, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			var newVersion float64
+			currentVersion := documentFullDetails.LatestDocumentVersion.Version
+			if documentChangeRequestType.Type == "restore-with-minor-update" {
+				newVersion = currentVersion + 0.1
+			} else if documentChangeRequestType.Type == "restore-with-major-update" {
+				newVersion = currentVersion + 1.0
+			}
+
+			existingChangeRequest.Version = newVersion
+
 			if formDTO.Document.IsNewFile != nil && *formDTO.Document.IsNewFile {
 				isNewFileProvided = true
 				existingDocumentFileName := existingDocument.Name
@@ -1826,4 +1851,88 @@ func (dcrs *DocumentChangeRequestService) notifyUsersOnPublish(documentChangeReq
 
 		}
 	}()
+}
+
+func (dcrs *DocumentChangeRequestService) ExportDocumentChangeRequest(data []*documentDTOs.DocumentChangeRequestListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := dcrs.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers based on user language setting
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"رقم",               // SL No.
+			"رقم الإشارة",       // Ref No.
+			"العنوان",           // Title
+			"نوع الطلب",         // Change Request Type
+			"سبب التغيير",       // Reason for Change
+			"الإصدار",           // Version
+			"تاريخ الإنشاء",     // Created At
+			"أنشئ بواسطة",       // Created By
+			"تم التحديث بواسطة", // Updated By
+			"الحالة",            // Status
+		}
+	} else {
+		headers = []string{
+			"SL No.",              // SL No.
+			"Ref No.",             // Ref No.
+			"Title",               // Title
+			"Change Request Type", // Change Request Type
+			"Reason for Change",   // Reason for Change
+			"Version",             // Version
+			"Created At",          // Created At
+			"Created By",          // Created By
+			"Updated By",          // Updated By
+			"Status",              // Status
+		}
+	}
+
+	// Prepare the data rows
+	rows := make([][]interface{}, len(data))
+	for i, documentCR := range data {
+		var refNo, title, changeRequestType, reasonForChange, createdAt, createdBy, updatedBy, status string
+		var version float64
+
+		// Assign values based on language preference
+		if userSetting.Language == "ar" {
+			refNo = documentCR.ReferenceNumber
+			title = documentCR.DocumentTitleAr
+			changeRequestType = documentCR.DocumentChangeRequestTypeAr
+			reasonForChange = *documentCR.ReasonForChange
+			version = documentCR.Version
+			createdAt = documentCR.CreatedAt.Format("02 يناير 2006 03:04 م") // Example Arabic date format
+			createdBy = utility.GetStringValue(documentCR.CreatedByUserFirstNameAr) + " " + utility.GetStringValue(documentCR.CreatedByUserLastNameAr)
+			updatedBy = utility.GetStringValue(documentCR.UpdatedByUserFirstNameAr) + " " + utility.GetStringValue(documentCR.UpdatedByUserLastNameAr)
+			status = documentCR.DocumentChangeRequestStatusTitleAr
+		} else {
+			refNo = documentCR.ReferenceNumber
+			title = documentCR.DocumentTitleEn
+			changeRequestType = documentCR.DocumentChangeRequestTypeEn
+			reasonForChange = *documentCR.ReasonForChange
+			version = documentCR.Version
+			createdAt = documentCR.CreatedAt.Format("Jan 02, 2006 03:04 PM") // Example English date format
+			createdBy = utility.GetStringValue(documentCR.CreatedByUserFirstNameEn) + " " + utility.GetStringValue(documentCR.CreatedByUserLastNameEn)
+			updatedBy = utility.GetStringValue(documentCR.UpdatedByUserFirstNameEn) + " " + utility.GetStringValue(documentCR.UpdatedByUserLastNameEn)
+			status = documentCR.DocumentChangeRequestStatusTitleEn
+		}
+
+		rows[i] = []interface{}{
+			i + 1,             // SL No.
+			refNo,             // Ref No.
+			title,             // Title
+			changeRequestType, // Change Request Type
+			reasonForChange,   // Reason for Change
+			version,           // Version
+			createdAt,         // Created At
+			createdBy,         // Created By
+			updatedBy,         // Updated By
+			status,            // Status
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }
