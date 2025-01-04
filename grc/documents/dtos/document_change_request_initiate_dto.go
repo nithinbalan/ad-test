@@ -71,6 +71,7 @@ type DocumentChangeRequestInitiateDocumentDTO struct {
 	OriginalName string  `json:"original_name"`
 	Type         string  `json:"type"`
 	Size         int     `json:"size"`
+	Token        string  `json:"token"`
 }
 
 type DocumentChangeRequestInitiateListResponseDTO struct {
