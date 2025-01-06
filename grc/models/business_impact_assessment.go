@@ -9,7 +9,7 @@ type BusinessImpactAssessment struct {
 	ProcessID        *uint      `json:"process_id"`
 	AssetRegisterID  *uint      `json:"asset_register_id"`
 	ImpactCategoryID uint       `json:"impact_category_id" binding:"required"`
-	RiskLevelID      uint       `json:"risk_level_id"  binding:"required"`
+	RiskLevelID      *uint      `json:"risk_level_id"`
 	Cost             *uint      `json:"cost"`
 	Comments         *string    `json:"comments" gorm:"type:nvarchar(max)"`
 	CreatedByID      uint       `json:"created_by_id" binding:"required"`

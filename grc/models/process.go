@@ -20,6 +20,7 @@ type Process struct {
 	MtpdUnitId                  *uint      `json:"mtpd_uint_id" gorm:"default:null"`
 	Rpo                         *uint      `json:"rpo" gorm:"default:null"`
 	RpoUnitId                   *uint      `json:"rpo_uint_id" gorm:"default:null"`
+	RiskLevelId                 *uint      `json:"risk_level_id" gorm:"default:null"`
 	IsBiaPerformed              bool       `json:"is_bia_performed" gorm:"default:false"`
 	LastAssessedAt              *time.Time `json:"last_assessed_at" gorm:"type:datetime; null" binding:"-"`
 	LastAssessedByID            *uint      `json:"last_assessed_by_id" gorm:"default:null;column:last_assessed_by_id" binding:"omitempty"`
@@ -49,6 +50,7 @@ type Process struct {
 	RtoUnit               *TimeUnit                    `gorm:"foreignKey:RtoUnitId"`
 	MtpdUnit              *TimeUnit                    `gorm:"foreignKey:MtpdUnitId"`
 	RpoUnit               *TimeUnit                    `gorm:"foreignKey:RpoUnitId"`
+	RiskLevel             *RiskLevel                   `gorm:"foreignKey:RiskLevelId"`
 }
 
 func (Process) TableName() string {

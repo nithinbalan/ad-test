@@ -177,6 +177,7 @@ func NewDocumentModule(db *gorm.DB,
 		organizationModule.UserSvc,
 		documentAccessSvc,
 		settingsModule.OrganizationLevelSvc,
+		organizationModule.UserSettingSvc,
 	)
 	documentChangeRequestController := controllers.NewDocumentChangeRequestController(documentChangeRequestSvc)
 
