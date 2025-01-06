@@ -43,6 +43,7 @@ type AuditFinalReportServiceInterface interface {
 type AuditFinalReportService struct {
 	repo                      repositories.AuditFinalReportRepositoryInterface
 	activityLogSvc            logServices.ActivityLogServiceInterface
+	auditStatusSvc            AuditStatusServiceInterface
 	auditSvc                  AuditServiceInterface
 	auditDraftReportStatusSvc AuditDraftReportStatusServiceInterface
 	auditDraftReportSvc       AuditDraftReportServiceInterface
@@ -57,6 +58,7 @@ type AuditFinalReportService struct {
 func NewAuditFinalReportService(
 	repo repositories.AuditFinalReportRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
+	auditStatusSvc AuditStatusServiceInterface,
 	auditSvc AuditServiceInterface,
 	auditDraftReportStatusSvc AuditDraftReportStatusServiceInterface,
 	auditDraftReportSvc AuditDraftReportServiceInterface,
@@ -70,6 +72,7 @@ func NewAuditFinalReportService(
 		repo:                      repo,
 		activityLogSvc:            activityLogSvc,
 		auditSvc:                  auditSvc,
+		auditStatusSvc:            auditStatusSvc,
 		auditDraftReportStatusSvc: auditDraftReportStatusSvc,
 		auditDraftReportSvc:       auditDraftReportSvc,
 		auditDraftFindingSvc:      auditDraftFindingSvc,
@@ -1255,6 +1258,10 @@ func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, a
 	if err != nil {
 		return err
 	}
+	auditCompleteStatus, err := afrs.auditStatusSvc.GetByType("completed")
+	if err != nil {
+		return err
+	}
 	if existingAuditFinalReport.AuditFinalReportStatusID != auditFinalReportStatus.ID {
 		return utility.NewForbiddenError("The audit final report has not been approved.")
 	}
@@ -1303,7 +1310,11 @@ func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, a
 		tx.Rollback()
 		return err
 	}
-
+	err = afrs.auditSvc.StatusUpdate(auditID, currentUserID, uint(auditCompleteStatus.ID), tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 	tx.Commit()
 	go func() {
 		urlParam := fmt.Sprintf(`{"id":%d}`, auditID)

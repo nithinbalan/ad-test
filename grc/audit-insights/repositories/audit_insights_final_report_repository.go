@@ -91,7 +91,7 @@ func (repo *AuditInsightsFinalReportRepository) GetAll(params *auditDTOs.AuditFi
             LEFT JOIN auditable_items ON auditable_items.id = audit_plan_auditable_items.auditable_item_id
             LEFT JOIN audit_plans ON audit_plans.id = audit_plan_auditable_items.audit_plan_id
             LEFT JOIN audits ON audits.audit_plan_id = audit_plans.id
-            LEFT JOIN audit_statuses ON audit_statuses.id = audit_plans.audit_status_id
+            LEFT JOIN audit_statuses ON audit_statuses.id = audits.audit_status_id
             LEFT JOIN audit_categories ON audit_categories.id = audit_plans.audit_category_id
             LEFT JOIN users AS team_lead ON team_lead.id = audit_plans.team_lead_id
             LEFT JOIN audit_final_reports ON audit_final_reports.audit_id = audits.id
@@ -100,7 +100,7 @@ func (repo *AuditInsightsFinalReportRepository) GetAll(params *auditDTOs.AuditFi
             LEFT JOIN users AS created_user ON created_user.id = audit_final_reports.created_by_id
             LEFT JOIN users AS updated_user ON updated_user.id = audit_final_reports.updated_by_id
         `).
-		Where("auditable_items.responsible_unit_id = ? AND audit_final_report_statuses.type ? AND audit_final_reports.id IS NOT NULL", currentUserResponsibleUnitID, "published").
+		Where("auditable_items.responsible_unit_id = ? AND audit_final_report_statuses.type = ? AND audit_final_reports.id IS NOT NULL", currentUserResponsibleUnitID, "published").
 		Group(`
             audit_final_reports.id,
             audit_final_reports.audit_id,

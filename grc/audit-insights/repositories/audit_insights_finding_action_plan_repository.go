@@ -10,7 +10,7 @@ import (
 )
 
 type AuditInsightsFindingActionPlanRepositoryInterface interface {
-	GetAll(params *auditDTOs.AuditFindingActionPlanListQueryParamsDTO, currentUserResponsibleUnitID uint) (*auditDTOs.AuditFindingActionPlanListResponseDTO, error) 
+	GetAll(params *auditDTOs.AuditFindingActionPlanListQueryParamsDTO, currentUserResponsibleUnitID uint) (*auditDTOs.AuditFindingActionPlanListResponseDTO, error)
 	GetFullDetailsByID(id uint) (*models.AuditFindingActionPlan, error)
 }
 
@@ -93,6 +93,7 @@ func (repo *AuditInsightsFindingActionPlanRepository) GetAll(params *auditDTOs.A
 		Joins(`
         LEFT JOIN audit_findings ON audit_findings.id = audit_finding_action_plans.audit_finding_id
         LEFT JOIN audits ON audits.id = audit_findings.audit_id
+        LEFT JOIN audit_statuses ON audit_statuses.id = audits.audit_status_id
         LEFT JOIN audit_plans ON audit_plans.id = audits.audit_plan_id
         LEFT JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id
         LEFT JOIN audit_finding_categories ON audit_finding_categories.id = audit_findings.audit_finding_category_id
@@ -104,7 +105,7 @@ func (repo *AuditInsightsFindingActionPlanRepository) GetAll(params *auditDTOs.A
         LEFT JOIN users AS responsible_user ON responsible_user.id = audit_finding_action_plans.responsible_user_id
 		LEFT JOIN users AS review_user ON review_user.id = audit_finding_action_plans.review_user_id
     `).
-		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID).
+		Where("auditable_items.responsible_unit_id = ? AND audit_statuses.type = ?", currentUserResponsibleUnitID, "completed").
 		Group(`
 			audit_finding_action_plans.id,
 			audit_finding_action_plans.audit_finding_id,
