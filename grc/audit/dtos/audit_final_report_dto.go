@@ -12,18 +12,22 @@ type AuditFinalReportFormDTO struct {
 }
 
 type AuditFinalReportDetailDTO struct {
-	ID                     uint                             `json:"id"`
-	AuditID                uint                             `json:"audit_id"`
-	ReferenceNumber        string                           `json:"reference_number"`
-	Title                  string                           `json:"title"`
-	Description            *string                          `json:"description"`
-	NextReviewLevel        int                              `json:"next_review_level"`
-	PreparedAt             string                           `json:"prepared_at"`
-	PreparedBy             organizationDTOs.UserMinimalDTO  `json:"prepared_by"`
-	MainSections           []*AuditFinalReportSectionDTO    `json:"main_sections"` // Main sections with subsections
-	AuditFinalReportStatus *AuditFinalReportStatusDTO       `json:"audit_final_report_status"`
-	UpdatedByUser          *organizationDTOs.UserMinimalDTO `json:"updated_by"`
-	UpdatedAt              *string                          `json:"updated_at"`
+	ID                         uint                             `json:"id"`
+	AuditID                    uint                             `json:"audit_id"`
+	ReferenceNumber            string                           `json:"reference_number"`
+	Title                      string                           `json:"title"`
+	Description                *string                          `json:"description"`
+	Comments                   *string                          `json:"comments"`
+	NextReviewLevel            int                              `json:"next_review_level"`
+	PreparedAt                 string                           `json:"prepared_at"`
+	PreparedBy                 organizationDTOs.UserMinimalDTO  `json:"prepared_by"`
+	MainSections               []*AuditFinalReportSectionDTO    `json:"main_sections"` // Main sections with subsections
+	AuditFinalReportStatus     *AuditFinalReportStatusDTO       `json:"audit_final_report_status"`
+	AuditFinalReportRecipients []*AuditFinalReportRecipientDTO  `json:"audit_final_report_recipients"`
+	PublishedByUser            *organizationDTOs.UserMinimalDTO `json:"published_by"`
+	PublishedAt                *string                          `json:"published_at"`
+	UpdatedByUser              *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	UpdatedAt                  *string                          `json:"updated_at"`
 }
 
 type AuditFinalReportSectionDTO struct {
@@ -99,4 +103,17 @@ type ActivityDTO struct {
 	By        *organizationDTOs.UserMinimalDTO `json:"by"`
 	Comment   *string                          `json:"comment"`
 	Timestamp time.Time                        `json:"timestamp"`
+}
+
+type AuditFinalReportPublishFormDTO struct {
+	CCUserIDs []uint  `json:"cc_user_ids" binding:"required"`
+	ToUserID  uint    `json:"to_user_id" binding:"required"`
+	Comments  *string `json:"comments"`
+}
+type AuditFinalReportRecipientDTO struct {
+	ID                 *uint                           `json:"id"`
+	AuditFinalReportID uint                            `json:"audit_final_report_id"`
+	UserID             uint                            `json:"user_id"`
+	Type               string                          `json:"type"`
+	User               organizationDTOs.UserMinimalDTO `json:"user"`
 }
