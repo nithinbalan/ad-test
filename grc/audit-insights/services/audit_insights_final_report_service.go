@@ -48,7 +48,7 @@ func (aidrs *AuditInsightsFinalReportService) GetFullDetailsByID(id uint, curren
 		return nil, err
 	}
 	auditID := auditFinalReport.AuditID
-	audit, err := aidrs.auditFinalReportSvc.GetFullDetailsByID(auditID, currentUserID, tx...)
+	audit, err := aidrs.auditFinalReportSvc.GetFullDetailsByID(auditID, currentUserID, "audit-insight", tx...)
 	if err != nil {
 		return nil, err
 	}

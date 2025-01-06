@@ -100,7 +100,7 @@ func (repo *AuditInsightsFinalReportRepository) GetAll(params *auditDTOs.AuditFi
             LEFT JOIN users AS created_user ON created_user.id = audit_final_reports.created_by_id
             LEFT JOIN users AS updated_user ON updated_user.id = audit_final_reports.updated_by_id
         `).
-		Where("auditable_items.responsible_unit_id = ? AND audit_final_reports.id IS NOT NULL", currentUserResponsibleUnitID).
+		Where("auditable_items.responsible_unit_id = ? AND audit_final_report_statuses.type ? AND audit_final_reports.id IS NOT NULL", currentUserResponsibleUnitID, "published").
 		Group(`
             audit_final_reports.id,
             audit_final_reports.audit_id,
@@ -195,14 +195,6 @@ func (repo *AuditInsightsFinalReportRepository) GetAll(params *auditDTOs.AuditFi
 			submitted_user.last_name_en LIKE ? OR
 			submitted_user.last_name_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
-	}
-
-	// Sort by the specified column and order
-	if params.SortBy == "" {
-		params.SortBy = "audit_final_reports.submitted_at"
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc"
 	}
 	query = query.Order(params.SortBy + " " + params.Sort)
 

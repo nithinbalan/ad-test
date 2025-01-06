@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"jethur/grc/audit-insights/services"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/utility"
@@ -24,7 +25,7 @@ func NewAuditInsightsFinalReportController(service services.AuditInsightsFinalRe
 
 func (aidrc *AuditInsightsFinalReportController) GetAllAuditInsightsFinalReports(c *gin.Context) {
 	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sortBy := c.DefaultQuery("sort_by", "audit_plan_title")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
@@ -53,10 +54,29 @@ func (aidrc *AuditInsightsFinalReportController) GetAllAuditInsightsFinalReports
 		utility.SendInternalErrResp(aidrc.db, c, "Invalid page_size parameter")
 		return
 	}
+	validSortFields := map[string]string{
+		"audit_plan_title":                   "audit_plans.title",
+		"start_date":                         "audits.start_date",
+		"end_date":                           "audits.end_date",
+		"audit_category_title_en":            "audit_categories.title_en",
+		"audit_category_title_ar":            "audit_categories.title_ar",
+		"audit_status_title_en":              "audit_statuses.title_en",
+		"audit_status_title_ar":              "audit_statuses.title_ar",
+		"audit_final_report_status_title_en": "audit_final_report_statuses.title_en",
+		"audit_final_report_status_title_ar": "audit_final_report_statuses.title_ar",
+		"team_lead_first_name_en":            "team_lead.first_name_en",
+		"team_lead_first_name_ar":            "team_lead.first_name_ar",
+	}
 
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 	queryParams := auditDTOs.AuditFinalReportListQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      sortBy,
+		SortBy:      sortField,
 		Keyword:     keyword,
 		Status:      status,
 		Page:        page,
