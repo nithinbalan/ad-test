@@ -21,6 +21,7 @@ type AuditInsightsModule struct {
 	AuditInsightsFindingRootCauseAnalysisController      *controllers.AuditInsightsFindingRootCauseAnalysisController
 	AuditInsightsFindingActionPlanController             *controllers.AuditInsightsFindingActionPlanController
 	AuditInsightsFindingActionPlanStatusUpdateController *controllers.AuditInsightsFindingActionPlanStatusUpdateController
+	AuditInsightsFinalReportController                   *controllers.AuditInsightsFinalReportController
 }
 
 func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, auditModule *AuditModule, commonModule *CommonModule) *AuditInsightsModule {
@@ -136,6 +137,15 @@ func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizatio
 	)
 	auditInsightsFindingActionPlanStatusUpdateController := controllers.NewAuditInsightsFindingActionPlanStatusUpdateController(auditInsightsFindingActionPlanStatusUpdateSvc)
 
+	auditInsightsFinalReportRepo := repositories.NewAuditInsightsFinalReportRepository(db)
+	auditInsightsFinalReportSvc := services.NewAuditInsightsFinalReportService(
+		auditInsightsFinalReportRepo,
+		organizationModule.UserSvc,
+		auditModule.AuditSvc,
+		auditModule.AuditFinalReportSvc,
+	)
+	auditInsightsFinalReportController := controllers.NewAuditInsightsFinalReportController(auditInsightsFinalReportSvc)
+
 	return &AuditInsightsModule{
 		AuditInsightsAuditPlanController:                     auditInsightsAuditPlanController,
 		AuditInsightsAuditController:                         auditInsightsAuditController,
@@ -149,5 +159,6 @@ func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizatio
 		AuditInsightsFindingRootCauseAnalysisController:      auditInsightsFindingRootCauseAnalysisController,
 		AuditInsightsFindingActionPlanController:             auditInsightsFindingActionPlanController,
 		AuditInsightsFindingActionPlanStatusUpdateController: auditInsightsFindingActionPlanStatusUpdateController,
+		AuditInsightsFinalReportController:                   auditInsightsFinalReportController,
 	}
 }

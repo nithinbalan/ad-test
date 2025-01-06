@@ -27,6 +27,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditInsightsFindingRootCauseAnalysisController := app.AuditInsightsModule.AuditInsightsFindingRootCauseAnalysisController
 	auditInsightsFindingActionPlanController := app.AuditInsightsModule.AuditInsightsFindingActionPlanController
 	auditInsightsFindingActionPlanStatusUpdateController := app.AuditInsightsModule.AuditInsightsFindingActionPlanStatusUpdateController
+	auditInsightsFinalReportController := app.AuditInsightsModule.AuditInsightsFinalReportController
 
 	// Audit Insights Audit plans
 	auditInsightsRoutes.GET("/audit-insights/audit-plans", middlewares.RolePermissionMiddleware(db, "audit_insight_plans", "view"), auditInsightsAuditPlanController.GetAllAuditInsightsAuditPlans)
@@ -84,5 +85,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditInsightsRoutes.POST("/audit-insights/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightsFindingActionPlanStatusUpdateController.CreateAuditInsightsFindingActionPlanStatusUpdate)
 	auditInsightsRoutes.PUT("/audit-insights/action-plans/:actionPlanId/status-updates/:id", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightsFindingActionPlanStatusUpdateController.UpdateAuditInsightsFindingActionPlanStatusUpdate)
 	auditInsightsRoutes.GET("/audit-insights/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsFindingActionPlanStatusUpdateController.GetLatestAuditInsightsFindingActionPlanStatusUpdate)
+
+	// Audit Insights Draft Report
+	auditInsightsRoutes.GET("/audit-insights/final-reports", middlewares.RolePermissionMiddleware(db, "final_reports", "view"), auditInsightsFinalReportController.GetAllAuditInsightsFinalReports)
+	auditInsightsRoutes.GET("/audit-insights/final-reports/:id", middlewares.RolePermissionMiddleware(db, "final_reports", "view"), auditInsightsFinalReportController.GetAuditInsightsFinalReportDetails)
 
 }
