@@ -282,6 +282,7 @@ func (repo *DocumentRepository) GetFullDetailsByID(id uint, currentUserID *uint,
 		Preload("DocumentVersions").
 		Preload("DocumentVersions.CreatedByUser").
 		Preload("DocumentVersions.UpdatedByUser").
+		Preload("DocumentVersions.PublishedByUser").
 		Preload("DocumentVersions.DocumentEditHistory").
 		Preload("DocumentVersions.DocumentWorkflows").
 		Preload("DocumentVersions.DocumentWorkflows.DocumentWorkflowParticipants").
