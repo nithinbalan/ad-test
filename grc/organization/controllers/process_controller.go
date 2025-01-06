@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"errors"
-	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/organization/services"
@@ -311,42 +310,84 @@ func (pc *ProcessController) GetProcessesTemplate(c *gin.Context) {
 	c.File(file.Name())
 }
 
-func (pc *ProcessController) ImportProcesses(c *gin.Context) {
-	// Retrieve the uploaded file
-	file, err := c.FormFile("file")
+func (pc *ProcessController) ValidateProcessTemplate(c *gin.Context) {
+	fileHeader, err := c.FormFile("file")
 	if err != nil {
-		utility.SendInvalidErrResp(c, fmt.Errorf("file is required"))
+		utility.SendInternalErrResp(pc.db, c, "Failed to read uploaded file")
 		return
 	}
 
-	src, err := file.Open()
+	file, err := fileHeader.Open()
 	if err != nil {
 		utility.SendInternalErrResp(pc.db, c, "Failed to open file")
 		return
 	}
-	defer src.Close()
+	defer file.Close()
 
-	// Pass the file to the service layer for processing
+	validationResult, err := pc.service.ValidateProcessTemplate(file)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(pc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, validationResult)
+}
+
+func (pc *ProcessController) ValidateImportProcess(c *gin.Context) {
+	var input []map[string]interface{}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	validationResult, err := pc.service.ValidateImportProcess(input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(pc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, validationResult)
+
+}
+
+func (pc *ProcessController) ImportProcesses(c *gin.Context) {
+	var input []map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(pc.db, c, err.Error())
 		return
 	}
 
-	failedRows, err := pc.service.ImportProcesses(src, currentUserID)
+	createdIDs, err := pc.service.ImportProcesses(input, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(pc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(pc.db, c, e.Error())
+			return
+		}
 	}
 
-	// Respond with success or error details
-	if len(failedRows) > 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message":     "Some rows failed to import",
-			"failed_rows": failedRows,
-		})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"message": "All rows imported successfully"})
+	c.JSON(http.StatusOK, map[string]interface{}{
+		"created_ids": createdIDs})
 }

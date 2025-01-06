@@ -2,6 +2,7 @@ package utility
 
 import (
 	"fmt"
+	"io"
 	"mime/multipart"
 	"os"
 	"strconv"
@@ -73,6 +74,46 @@ func GenerateExcelFile(headers []string, data [][]interface{}) (*os.File, error)
 	return tempFile, nil
 }
 
+func ReadExcelFile(file io.Reader) ([][]string, error) {
+	f, err := excelize.OpenReader(file)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	rows, err := f.GetRows(f.GetSheetName(0))
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
+}
+
+func ValidateHeaders(expected, actual []string) bool {
+	if len(expected) != len(actual) {
+		return false
+	}
+	for i, header := range expected {
+		if header != actual[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func ParseCommaSeparatedValues(input string) []string {
+	return strings.Split(strings.TrimSpace(input), ";")
+}
+
+func GetOptionalStringValue(value interface{}) *string {
+	strValue, ok := value.(string)
+	if ok && strValue != "" {
+		return &strValue
+	}
+	return nil
+}
+
+// control import
 func ParseExcelFile(file multipart.File, mandatoryFields []string) ([]map[string]string, error) {
 	xlsx, err := excelize.OpenReader(file)
 	if err != nil {
@@ -133,23 +174,6 @@ func ParseOptionalUint(value string) *uint {
 	}
 	parsed := ParseUint(value)
 	return &parsed
-}
-
-func ParseUintSlice(value string) []*uint {
-	var result []*uint
-	values := strings.Split(value, ",")
-	for _, v := range values {
-		parsed := ParseUint(v)
-		result = append(result, &parsed)
-	}
-	return result
-}
-
-func GetStringPointer(value string) *string {
-	if value == "" {
-		return nil // If the string is empty, return nil
-	}
-	return &value
 }
 
 func ParseOptionalString(value string) *string {

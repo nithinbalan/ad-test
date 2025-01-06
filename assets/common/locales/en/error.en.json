@@ -126,5 +126,14 @@
   {
     "id": "conflict",
     "translation": "Conflict"
+  },
+  {
+    "id": "invalid_header",
+    "translation": "Invalid headers in the Excel file : '{{.Field}}'"
+  },
+  {
+    "id": "invalid_data",
+    "translation": "The provided import data contains errors. Please review and correct the data before trying again."
   }
+  
 ]

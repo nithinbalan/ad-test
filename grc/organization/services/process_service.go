@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"io"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
@@ -11,8 +12,8 @@ import (
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/utility"
-	"mime/multipart"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -34,7 +35,9 @@ type ProcessServiceInterface interface {
 
 	ExportProcesses(data []*organizationDTOs.ProcessListDTO, currentUserID uint) (*os.File, error)
 	GenerateProcessTemplate() (*os.File, error)
-	ImportProcesses(file multipart.File, currentUserID uint) ([]int, error)
+	ValidateProcessTemplate(file io.Reader) ([]map[string]interface{}, error)
+	ValidateImportProcess(input []map[string]interface{}) ([]map[string]interface{}, error)
+	ImportProcesses(input []map[string]interface{}, currentUserID uint) ([]uint, error)
 
 	UpdateProcessRiskRating(process *models.Process, tx utility.DatabaseTransaction) error
 	UpdateProcessRecoveryObjective(process *models.Process, tx utility.DatabaseTransaction) error
@@ -1208,7 +1211,7 @@ func (ps *ProcessService) UpdateProcessRiskRating(process *models.Process, tx ut
 
 func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
 	headers := []string{
-		"ProcessGroupID", "OwnerID", "TitleEn", "TitleAr", "Description", "ControlIds", "DocumentIds",
+		"ProcessGroupTitle", "OwnerID", "TitleEn", "TitleAr", "Description", "ControlIds",
 	}
 
 	// Pass empty data for the template
@@ -1222,39 +1225,208 @@ func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
 	return file, nil
 }
 
-func (ps *ProcessService) ImportProcesses(file multipart.File, currentUserID uint) ([]int, error) {
-	mandatoryFields := []string{"ProcessGroupID", "OwnerID", "TitleEn", "TitleAr"}
-	// Parse the Excel file
-	data, err := utility.ParseExcelFile(file, mandatoryFields)
+func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]interface{}, error) {
+	// Read Excel file
+	rows, err := utility.ReadExcelFile(file)
 	if err != nil {
-		return nil, fmt.Errorf("invalid file format: %v", err)
+		return nil, err
 	}
 
-	// Track failed rows
-	var failedRows []int
+	// Define headers in the input format and map them to snake case
+	inputHeaders := []string{"ProcessGroupTitle", "Owner", "TitleEn", "TitleAr", "Description", "Controls"}
+	snakeCaseHeaders := []string{"process_group_title", "owner", "title_en", "title_ar", "description", "controls"}
 
-	// Process each row
-	for i, row := range data {
-		// Map the row data to the ProcessFormDTO
-		processForm := organizationDTOs.ProcessFormDTO{
-			ProcessGroupID: utility.ParseUint(row["ProcessGroupID"]),
-			OwnerID:        utility.ParseUint(row["OwnerID"]),
-			TitleEn:        row["TitleEn"],
-			TitleAr:        row["TitleAr"],
-			Description:    utility.GetStringPointer(row["Description"]),
-			ControlIds:     utility.ParseUintSlice(row["ControlIds"]),
-			DocumentIds:    utility.ParseUintSlice(row["DocumentIds"]),
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("empty Excel file")
+	}
+
+	// Validate headers
+	if !utility.ValidateHeaders(inputHeaders, rows[0]) {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid headers in the Excel file"), "invalid_header", "Process Template")
+	}
+
+	// Convert rows to input format
+	var input []map[string]interface{}
+	for _, row := range rows[1:] { // Skip header row
+		record := make(map[string]interface{})
+		for i, header := range snakeCaseHeaders {
+			if i < len(row) {
+				record[header] = row[i]
+			} else {
+				record[header] = "" // Pad missing columns
+			}
+		}
+		input = append(input, record)
+	}
+
+	validatedData, err := ps.validateProcesses(input)
+	if err != nil {
+		return nil, err
+	}
+
+	return validatedData, nil
+}
+
+func (ps *ProcessService) ValidateImportProcess(input []map[string]interface{}) ([]map[string]interface{}, error) {
+
+	validatedData, err := ps.validateProcesses(input)
+	if err != nil {
+		return nil, err
+	}
+
+	return validatedData, nil
+}
+
+func (ps *ProcessService) ImportProcesses(input []map[string]interface{}, currentUserID uint) ([]uint, error) {
+	validatedData, err := ps.validateProcesses(input)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println(validatedData)
+
+	for _, record := range validatedData {
+		if errors, ok := record["errors"].(map[string]interface{}); ok && len(errors) > 0 {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid data in the import file"), "invalid_data", "Invalid Data")
+		}
+	}
+
+	var createdProcessIDs []uint
+	for _, record := range validatedData {
+		processFormDTO := &organizationDTOs.ProcessFormDTO{
+			ProcessGroupID: record["process_group_id"].(uint),
+			OwnerID:        record["owner_id"].(uint),
+			TitleEn:        record["title_en"].(string),
+			TitleAr:        record["title_ar"].(string),
+			Description:    utility.GetOptionalStringValue(record["description"]),
 		}
 
-		// Validate and create the process
-		_, err := ps.Create(currentUserID, &processForm)
+		if controls, ok := record["control_ids"].([]uint); ok {
+			var controlIDs []*uint
+			for _, id := range controls {
+				controlID := id
+				controlIDs = append(controlIDs, &controlID)
+			}
+			processFormDTO.ControlIds = controlIDs
+		} else {
+			processFormDTO.ControlIds = nil
+		}
+
+		processID, err := ps.Create(currentUserID, processFormDTO)
 		if err != nil {
-			// Log the row number that failed (+2 to account for the header row)
-			failedRows = append(failedRows, i+2)
+			return nil, fmt.Errorf("failed to create process for record: %+v, error: %v", record, err)
 		}
+
+		createdProcessIDs = append(createdProcessIDs, processID)
 	}
 
-	return failedRows, nil
+	return createdProcessIDs, nil
+}
+
+func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]map[string]interface{}, error) {
+	headers := []string{"process_group_title", "owner", "title_en", "title_ar", "description", "controls"}
+
+	// Fetch process group titles and map to IDs
+	processGroups, err := ps.processGroupSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching process groups: %v", err)
+	}
+	processGroupTitles := make(map[string]uint)
+	for _, group := range processGroups {
+		processGroupTitles[strings.TrimSpace(group.TitleEn)] = group.ID
+	}
+
+	// Fetch user full names and map to IDs
+	users, err := ps.userSvc.GetAllUsers()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching users: %v", err)
+	}
+	userFullNames := make(map[string]uint)
+	for _, user := range users {
+		fullName := strings.TrimSpace(user.FirstNameEn + " " + user.LastNameEn)
+		userFullNames[fullName] = user.ID
+	}
+
+	// Fetch control titles and map to IDs
+	controls, err := ps.controlSvc.GetAllControls()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching controls: %v", err)
+	}
+	controlTitles := make(map[string]uint)
+	for _, control := range controls {
+		controlTitles[strings.TrimSpace(control.TitleEn)] = control.ID
+	}
+
+	// Perform validation
+	var validatedData []map[string]interface{}
+
+	for _, record := range input {
+		rowErrors := make(map[string]interface{})
+		processedRecord := make(map[string]interface{})
+
+		// Copy the original record for the response
+		for key, value := range record {
+			processedRecord[key] = value
+		}
+
+		// Validate fields and map IDs
+		for _, header := range headers {
+			value, ok := record[header].(string)
+			switch header {
+			case "process_group_title":
+				if !ok || value == "" {
+					rowErrors["process_group_title"] = "Field is required"
+				} else if id, exists := processGroupTitles[strings.TrimSpace(value)]; !exists {
+					rowErrors["process_group_title"] = fmt.Sprintf("Invalid process group title: %s", value)
+				} else {
+					processedRecord["process_group_id"] = id // Add the ID
+				}
+
+			case "owner":
+				if !ok || value == "" {
+					rowErrors["owner"] = "Field is required"
+				} else if id, exists := userFullNames[strings.TrimSpace(value)]; !exists {
+					rowErrors["owner"] = fmt.Sprintf("Invalid owner name: %s", value)
+				} else {
+					processedRecord["owner_id"] = id // Add the ID
+				}
+
+			case "controls":
+				if ok && value != "" { // Validate only if controls field is provided
+					controlList := utility.ParseCommaSeparatedValues(value)
+					var controlIDs []uint
+					invalidControls := []string{}
+					for _, control := range controlList {
+						trimmedControl := strings.TrimSpace(control)
+						if id, exists := controlTitles[trimmedControl]; exists {
+							controlIDs = append(controlIDs, id)
+						} else {
+							invalidControls = append(invalidControls, fmt.Sprintf("Invalid control: %s", trimmedControl))
+						}
+					}
+					if len(invalidControls) > 0 {
+						rowErrors["controls"] = invalidControls
+					} else {
+						processedRecord["control_ids"] = controlIDs // Add the IDs as []uint
+					}
+				}
+
+			case "title_en", "title_ar":
+				if !ok || value == "" {
+					rowErrors[header] = "Field is required"
+				}
+
+			case "description":
+				// Optional field, no validation needed
+			}
+		}
+
+		// Add errors or success record
+		processedRecord["errors"] = rowErrors
+		validatedData = append(validatedData, processedRecord)
+	}
+
+	return validatedData, nil
 }
 
 func (ps *ProcessService) UpdateProcessRecoveryObjective(process *models.Process, tx utility.DatabaseTransaction) error {
