@@ -93,6 +93,7 @@ func (aidfc *AuditInsightsDraftFindingController) ChallengeAuditDraftFinding(c *
 		case *utility.ForbiddenError:
 			// Return a 403 Forbidden response with the error message
 			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(aidfc.db, c, e.Error())
 			return

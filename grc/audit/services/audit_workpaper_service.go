@@ -6,7 +6,6 @@ import (
 	"jethur/config"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
-	commonDTOs "jethur/grc/common/dtos"
 	logServices "jethur/grc/logs/services"
 	mastersServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -95,6 +94,8 @@ func (aws *AuditWorkpaperService) GetFullDetailsByID(id uint, tx ...utility.Data
 func (aws *AuditWorkpaperService) Create(auditID uint, currentUserID uint, formDTO *auditDTOs.AuditWorkpaperFormDTO) ([]uint, error) {
 	tx := aws.repo.BeginTransaction()
 
+	var addedAuditWorkpaper []map[string]interface{}
+
 	// Validate audit ID
 	if _, err := aws.auditSvc.GetByID(auditID); err != nil {
 		tx.Rollback()
@@ -152,35 +153,47 @@ func (aws *AuditWorkpaperService) Create(auditID uint, currentUserID uint, formD
 		// Append the created workpaper ID to the list
 		workpaperIDs = append(workpaperIDs, id)
 
-		// Log activity asynchronously
-		go func(id uint, document *commonDTOs.DocumentFormDTO) {
-			err := aws.activityLogSvc.LogActivity(
-				models.CreateAction,
-				models.AuditWorkpaper{}.TableName(),
-				id,
-				document,
-				currentUserID,
-				nil,
-			)
-			if err != nil {
-				fields := map[string]interface{}{
-					"action":    models.CreateAction,
-					"tableName": models.AuditWorkpaper{}.TableName(),
-					"recordID":  id,
-					"userID":    currentUserID,
-					"error":     err.Error(),
-				}
-				utility.LogError("Failed to log activity", fields)
-			}
-		}(id, document)
+		addedAuditWorkpaper = append(addedAuditWorkpaper, map[string]interface{}{
+			"id":        id,
+			"workpaper": workpaper,
+		})
+
 	}
 
 	tx.Commit()
+	// Log activity asynchronously
+	go func() {
+		err := aws.activityLogSvc.LogBulkActivities(
+			models.CreateAction,
+			models.AuditWorkpaper{}.TableName(),
+			workpaperIDs,
+			addedAuditWorkpaper,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.CreateAction,
+				"tableName": models.AuditWorkpaper{}.TableName(),
+				"recordID":  auditID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
 	return workpaperIDs, nil
 }
 
 func (aws *AuditWorkpaperService) Update(id uint, auditID uint, currentUserID uint, formDTO *auditDTOs.AuditWorkpaperUpdateFormDTO) error {
 	tx := aws.repo.BeginTransaction()
+
+	oldAuditWorkpaper, err := aws.repo.GetFullDetailsByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
 
 	// Validate audit ID
 	if _, err := aws.auditSvc.GetByID(auditID); err != nil {
@@ -250,24 +263,48 @@ func (aws *AuditWorkpaperService) Update(id uint, auditID uint, currentUserID ui
 
 	// Asynchronously log the activity
 	go func() {
-		err := aws.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.AuditWorkpaper{}.TableName(),
-			id,
-			formDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingAuditWorkpaper, err := aws.repo.GetFullDetailsByID(id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.AuditWorkpaper{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"title":       oldAuditWorkpaper.Title,
+			"description": oldAuditWorkpaper.Description,
+		}
+
+		newData := map[string]interface{}{
+			"title":       existingAuditWorkpaper.Title,
+			"description": existingAuditWorkpaper.Description,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := aws.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditWorkpaper{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditWorkpaper{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+				utility.LogError("Failed to log activity", fields)
 			}
-			utility.LogError("Failed to log activity", fields)
 		}
 	}()
 
@@ -278,7 +315,7 @@ func (aws *AuditWorkpaperService) Delete(ids []uint, currentUserID uint) ([]uint
 	tx := aws.repo.BeginTransaction()
 	var failedIDs []uint
 	var successfulIDs []uint
-
+	var deletedAuditWorkpaper []map[string]interface{}
 	for _, id := range ids {
 		workpaper, err := aws.GetByID(id)
 		if err != nil {
@@ -299,6 +336,11 @@ func (aws *AuditWorkpaperService) Delete(ids []uint, currentUserID uint) ([]uint
 			continue
 		}
 		successfulIDs = append(successfulIDs, id)
+
+		deletedAuditWorkpaper = append(deletedAuditWorkpaper, map[string]interface{}{
+			"id":    id,
+			"title": workpaper.Title,
+		})
 	}
 
 	if len(successfulIDs) > 0 {
@@ -310,7 +352,7 @@ func (aws *AuditWorkpaperService) Delete(ids []uint, currentUserID uint) ([]uint
 					models.DeleteAction,
 					models.AuditWorkpaper{}.TableName(),
 					id,
-					nil,
+					deletedAuditWorkpaper,
 					currentUserID,
 					nil,
 				)

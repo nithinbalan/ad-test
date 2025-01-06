@@ -91,47 +91,55 @@ func (arrs *AuditReportReviewService) GetComments(auditID uint) (*auditDTOs.Audi
 	if err != nil {
 		return nil, err
 	}
-
+	// Explicitly map `id` to `audit_final_report_id`
+	auditFinalReportWorkflowDTO.AuditFinalReportID = auditFinalReportWorkflowDTO.ID
 	return &auditFinalReportWorkflowDTO, nil
 }
 
 func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) error {
-	tx := arrs.repo.BeginTransaction()
 	existingAuditFinalReport, err := arrs.auditFinalReportSvc.GetByAuditID(auditID)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
+	auditFinalReport, err := arrs.auditFinalReportSvc.GetByID(existingAuditFinalReport.ID)
+	if err != nil {
+		return err
+	}
+	tx := arrs.repo.BeginTransaction()
+	currentDateStr := time.Now()
 
+	// currentDateStr := time.Now().Format("2006-01-02")
+	// submittedAt, err := utility.ParseDate(currentDateStr)
+	// if err != nil {
+	// 	return fmt.Errorf("error parsing current date: %w", err)
+	// }
+	//begin tx
+	
 	auditFinalReportStatus, err := arrs.auditFinalReportStatusSvc.GetByType("in-review")
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
-
-	existingAuditFinalReport.AuditFinalReportStatusID = auditFinalReportStatus.ID
-
-	currentDateStr := time.Now().Format("2006-01-02")
-	submittedAt, err := utility.ParseDate(currentDateStr)
-	if err != nil {
-		tx.Rollback()
-		return fmt.Errorf("error parsing current date: %w", err)
+	var level int
+	if existingAuditFinalReport.AuditFinalReportStatus.Type == "revert" {
+		level = existingAuditFinalReport.NextReviewLevel
+	} else {
+		// For non-reverted report, start from level 1
+		level = 1
 	}
 
-	var level int = 1
+	auditFinalReport.AuditFinalReportStatusID = auditFinalReportStatus.ID
+	auditFinalReport.SubmittedBYID = &currentUserID
+	auditFinalReport.SubmittedAt = &currentDateStr
+	auditFinalReport.NextReviewLevel = level
 
-	existingAuditFinalReport.SubmittedBYID = &currentUserID
-	existingAuditFinalReport.SubmittedAt = submittedAt
-	existingAuditFinalReport.NextReviewLevel = level
-
-	err = arrs.auditFinalReportSvc.Update(existingAuditFinalReport)
+	err = arrs.auditFinalReportSvc.Update(auditFinalReport,tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	// Fetch the workflow level details, including participants (review users)
-	auditReportWorkflowLevel, err := arrs.auditReportWorkflowSvc.GetAuditReportWorkflowByLevel(existingAuditFinalReport.ID, level, tx)
+	auditReportWorkflowLevel, err := arrs.auditReportWorkflowSvc.GetAuditReportWorkflowByLevel(auditFinalReport.ID, level, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -146,10 +154,11 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 		CreatedBYID:           currentUserID,
 	}
 
-	err = arrs.repo.CreateAuditReportReview(auditReportReview)
+	err = arrs.repo.CreateAuditReportReview(auditReportReview, tx)
 	if err != nil {
 		return err
 	}
+
 	urlParam := fmt.Sprintf(`{"id":%d}`, existingAuditFinalReport.ID)
 	var taskIDs []uint
 	auditFinalReportID := &existingAuditFinalReport.ID
@@ -195,6 +204,19 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 			return err
 		}
 	}
+	//add audit report edit history
+	auditReportEditHistoryDTO := &auditDTOs.AuditReportEditHistoryDTO{
+		AuditID:            auditID,
+		AuditFinalReportID: existingAuditFinalReport.ID,
+		ActionType:         "submit",
+	}
+
+	err = arrs.auditFinalReportSvc.CreateAuditReportEditHistory(auditReportEditHistoryDTO, currentUserID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	tx.Commit()
 
 	//to do
@@ -241,12 +263,13 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 			}
 
 			emailTo := []string{responsibleUser.Email}
-			subject := fmt.Sprintf("Audit Finale Report /%s: Review Assigned", existingAuditFinalReport.Audit.AuditPlan.Title)
+			subject := fmt.Sprintf("Audit Final Report /%s: Review Assigned", existingAuditFinalReport.Audit.AuditPlan.Title)
 			appURL := utility.GetAppURL()
 			emailData := map[string]interface{}{
 				"FirstNameEn":           responsibleUser.FirstNameEn,
 				"LastNameEn":            responsibleUser.LastNameEn,
 				"AuditTitle":            existingAuditFinalReport.Audit.AuditPlan.Title,
+				"ReferenceNumber":       existingAuditFinalReport.Audit.AuditPlan.ReferenceNumber,
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
@@ -553,6 +576,18 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 			}
 		}
 	}
+	//add audit report edit history
+	auditReportEditHistoryDTO := &auditDTOs.AuditReportEditHistoryDTO{
+		AuditID:            auditFinalReport.AuditID,
+		AuditFinalReportID: auditFinalReport.ID,
+		ActionType:         "approve",
+		Comment: &auditReportReviewCommentFormDTO.Comment,
+	}
+
+	err = arrs.auditFinalReportSvc.CreateAuditReportEditHistory(auditReportEditHistoryDTO, currentUserID)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -671,7 +706,34 @@ func (arrs *AuditReportReviewService) handleRevertedCase(id, currentUserID uint,
 			}
 		}
 	}
+	//add audit report edit history
+	auditReportEditHistoryDTO := &auditDTOs.AuditReportEditHistoryDTO{
+		AuditID:            auditFinalReportDetailDTO.AuditID,
+		AuditFinalReportID: auditFinalReportDetailDTO.ID,
+		ActionType:         "revert",
+		Comment:         &auditReportReviewCommentFormDTO.Comment,
+	}
+
+	err = arrs.auditFinalReportSvc.CreateAuditReportEditHistory(auditReportEditHistoryDTO, currentUserID)
+	if err != nil {
+		return err
+	}
 	//todo
+	auditFinalReportStatus, err := arrs.auditFinalReportStatusSvc.GetByType("revert")
+	if err != nil {
+		return err
+	}
+	auditFinalReport, err := arrs.auditFinalReportSvc.GetByID(auditFinalReportDetailDTO.ID)
+	if err != nil {
+		return err
+	}
+	auditFinalReport.AuditFinalReportStatusID = auditFinalReportStatus.ID
+	auditFinalReport.UpdatedBYID = &currentUserID
+
+	err = arrs.auditFinalReportSvc.Update(auditFinalReport)
+	if err != nil {
+		return err
+	}
 
 	arrs.sendRevertedNotification(id, currentUserID, auditFinalReportDetailDTO)
 

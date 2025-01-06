@@ -14,6 +14,8 @@ type AuditDraftReport struct {
 	InternalReviewSubmittedAt   *time.Time `json:"internal_review_submitted_at" gorm:"type:datetime;default:null"`
 	AuditeeReviewSubmittedBYID  *uint      `json:"auditee_review_submitted_by_id" gorm:"default:null"`
 	AuditeeReviewSubmittedAt    *time.Time `json:"auditee_review_submitted_at" gorm:"type:datetime;default:null"`
+	CompletedBYID               *uint      `json:"completed_by_id" gorm:"default:null"`
+	CompletedAt                 *time.Time `json:"completed_at" gorm:"type:datetime;default:null"`
 	AuditDraftReportStatusID    uint       `json:"audit_draft_report_status_id" gorm:"not null;"`
 	NextReviewLevel             int        `json:"next_review_level" gorm:"default:0"`
 	CreatedAt                   time.Time  `json:"created_at" gorm:"type:datetime;not null"`
@@ -27,6 +29,7 @@ type AuditDraftReport struct {
 	UpdatedByUser                 *User                      `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	InternalReviewSubmittedByUser *User                      `gorm:"foreignKey:InternalReviewSubmittedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	AuditeeReviewSubmittedByUser  *User                      `gorm:"foreignKey:AuditeeReviewSubmittedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	CompletedByUser               *User                      `gorm:"foreignKey:CompletedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	AuditDraftReportStatus        *AuditDraftReportStatus    `gorm:"foreignKey:AuditDraftReportStatusID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	AuditDraftReportComments      []*AuditDraftReportComment `gorm:"foreignKey:AuditDraftReportID"`
 	AuditReportWorkflows          []*AuditReportWorkflow     `gorm:"foreignKey:AuditDraftReportID"`

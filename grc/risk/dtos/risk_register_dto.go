@@ -1,14 +1,14 @@
 package dtos
 
 import (
+	"time"
+
 	assetDTOs "jethur/grc/asset/dtos"
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
-
-	"time"
 )
 
 type RiskRegisterListDTO struct {
@@ -104,6 +104,8 @@ type RiskRegisterListQueryParamsDTO struct {
 	NextReviewDateFrom string
 	NextReviewDateTo   string
 	Export             bool
+	DateFrom           string
+	DateTo             string
 }
 
 type RiskRegisterListResponseDTO struct {

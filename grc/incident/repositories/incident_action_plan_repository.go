@@ -129,7 +129,9 @@ func (repo *IncidentActionPlanRepository) GetAll(incidentID uint, params *incide
 			query = query.Where("action_plan_statuses.type = ?", "in_progress")
 		}
 	}
-
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -150,13 +152,7 @@ func (repo *IncidentActionPlanRepository) GetAll(incidentID uint, params *incide
 	if incidentID != 0 {
 		query = query.Where("incident_action_plans.incident_register_id = ?", incidentID)
 	}
-
 	query = query.Order(params.SortBy + " " + params.Sort)
-
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
 
 	if !params.Export {
 		offset := (params.Page - 1) * params.PageSize
@@ -172,8 +168,10 @@ func (repo *IncidentActionPlanRepository) GetAll(incidentID uint, params *incide
 			Items: incidentActionPlans,
 		}, nil
 	}
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
 	response := &incidentDTOs.IncidentActionPlanListResponseDTO{
 		Items: incidentActionPlans,
 		Pagination: commonDTOs.PaginationInfoDTO{

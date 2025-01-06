@@ -1,12 +1,27 @@
 package dtos
 
+import (
+	masterDTOs "jethur/grc/masters/dtos"
+)
+
 type UserSettingDTO struct {
-	UserID         uint   `json:"user_id"`
-	TimezoneID     uint   `json:"timezone_id"`
-	Language       string `json:"language"`
-	Timeout        int    `json:"timeout"`
-	IsNotification bool   `json:"is_notification"`
-	IsMfa          bool   `json:"is_mfa"`
+	UserID         uint                    `json:"user_id"`
+	TimezoneID     uint                    `json:"timezone_id"`
+	Language       string                  `json:"language"`
+	Timeout        int                     `json:"timeout"`
+	IsNotification bool                    `json:"is_notification"`
+	IsMfa          bool                    `json:"is_mfa"`
+	Timezone       *masterDTOs.TimezoneDTO `json:"timezone"`
+}
+
+type UserPreferenceSettingDTO struct {
+	UserID         uint    `json:"user_id"`
+	TimezoneID     uint    `json:"timezone_id"`
+	Language       string  `json:"language"`
+	Timeout        int     `json:"timeout"`
+	IsNotification bool    `json:"is_notification"`
+	IsMfa          bool    `json:"is_mfa"`
+	Timezone       *string `json:"timezone"`
 }
 
 type UserSettingFormDTO struct {

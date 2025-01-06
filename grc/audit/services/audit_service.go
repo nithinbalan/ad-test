@@ -216,11 +216,19 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 	tx.Commit()
 
 	go func() {
-		err := as.activityLogSvc.LogActivity(
+		existingAudit, err := as.GetFullDetailsByID(audit.ID)
+		if err != nil {
+			utility.LogError("Failed to fetch audit", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = as.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.Audit{}.TableName(),
 			id,
-			auditFormDTO,
+			existingAudit,
 			currentUserID,
 			nil,
 		)
@@ -361,6 +369,12 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 func (as *AuditService) Update(id uint, currentUserID uint, auditFormDTO *auditDTOs.AuditFormDTO) error {
 	tx := as.repo.BeginTransaction()
 
+	oldAudit, err := as.repo.GetFullDetailsByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
+
 	existingAudit, err := as.repo.GetByID(id)
 	if err != nil {
 		tx.Rollback()
@@ -391,24 +405,51 @@ func (as *AuditService) Update(id uint, currentUserID uint, auditFormDTO *auditD
 	tx.Commit()
 
 	go func() {
-		err := as.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.Audit{}.TableName(),
-			id,
-			auditFormDTO,
-			currentUserID,
-			nil,
-		)
+		existingAudit, err := as.repo.GetFullDetailsByID(id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.Audit{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"audit_plan": oldAudit.AuditPlan.Title,
+			"start_date": oldAudit.StartDate,
+			"end_date":   oldAudit.EndDate,
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		newData := map[string]interface{}{
+			"audit_plan": existingAudit.AuditPlan.Title,
+			"start_date": existingAudit.StartDate,
+			"end_date":   existingAudit.EndDate,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+
+			err := as.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.Audit{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.Audit{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -419,10 +460,10 @@ func (as *AuditService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	tx := as.repo.BeginTransaction()
 	var failedIDs []uint
 	var successfulIDs []uint
-
+	var deletedAudit []map[string]interface{}
 	for _, id := range ids {
 		// Get existing audit details
-		_, err := as.GetFullDetailsByID(id, tx)
+		audit, err := as.GetFullDetailsByID(id, tx)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				failedIDs = append(failedIDs, id)
@@ -444,6 +485,11 @@ func (as *AuditService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 		}
 
 		successfulIDs = append(successfulIDs, id)
+
+		deletedAudit = append(deletedAudit, map[string]interface{}{
+			"id":         id,
+			"audit_plan": audit.AuditPlan.Title,
+		})
 	}
 
 	if len(successfulIDs) > 0 {
@@ -455,7 +501,7 @@ func (as *AuditService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 					models.DeleteAction,
 					models.Audit{}.TableName(),
 					id,
-					nil,
+					deletedAudit,
 					currentUserID,
 					nil,
 				)

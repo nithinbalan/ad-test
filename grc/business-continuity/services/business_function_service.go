@@ -97,7 +97,7 @@ func (bfs *BusinessFunctionService) Create(currentUserID uint, businessFunctionF
 		ResponsibleUserID: businessFunctionFormDTO.ResponsibleUserID,
 		Title:             businessFunctionFormDTO.Title,
 		Description:       businessFunctionFormDTO.Description,
-		CreatedByID:       currentUserID,
+		CreatedBYID:       currentUserID,
 	}
 
 	id, err := bfs.repo.Create(businessFunction, tx)
@@ -176,7 +176,7 @@ func (bfs *BusinessFunctionService) Update(id uint, currentUserID uint, business
 	existingBusinessFunction.ResponsibleUserID = businessFunctionFormDTO.ResponsibleUserID
 	existingBusinessFunction.Title = businessFunctionFormDTO.Title
 	existingBusinessFunction.Description = businessFunctionFormDTO.Description
-	existingBusinessFunction.UpdatedByID = &currentUserID
+	existingBusinessFunction.UpdatedBYID = &currentUserID
 
 	err = bfs.repo.Update(existingBusinessFunction, tx)
 

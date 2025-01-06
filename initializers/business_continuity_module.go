@@ -9,7 +9,8 @@ import (
 )
 
 type BusinessContinuityModule struct {
-	BusinessFunctionController *controllers.BusinessFunctionController
+	BusinessFunctionController         *controllers.BusinessFunctionController
+	BusinessImpactAssessmentController *controllers.BusinessImpactAssessmentController
 
 	BusinessFunctionSvc services.BusinessFunctionServiceInterface
 }
@@ -19,6 +20,9 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	settingsModule *SettingsModule,
 	masterModule *MasterModule,
 	organizationModule *OrganizationModule,
+	assetModule *AssetModule,
+	documentModule *DocumentModule,
+	riskModule *RiskModule,
 ) *BusinessContinuityModule {
 
 	businessFunctionRepo := repositories.NewBusinessFunctionRepository(db)
@@ -29,8 +33,13 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	)
 	businessFunctionController := controllers.NewBusinessFunctionController(businessFunctionSvc)
 
+	businessImpactAssessmentRepo := repositories.NewBusinessImpactAssessmentRepository(db)
+	businessImpactAssessmentSvc := services.NewBusinessImpactAssessmentService(businessImpactAssessmentRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, masterModule.ImpactCategorySvc, organizationModule.ProcessSvc, assetModule.AssetRegisterSvc, documentModule.DocumentSvc, riskModule.RiskLevelSvc)
+	businessImpactAssessmentController := controllers.NewBusinessImpactAssessmentController(businessImpactAssessmentSvc, organizationModule.ProcessAssociatedItemSvc, organizationModule.ProcessSvc)
+
 	return &BusinessContinuityModule{
-		BusinessFunctionController: businessFunctionController,
+		BusinessFunctionController:         businessFunctionController,
+		BusinessImpactAssessmentController: businessImpactAssessmentController,
 
 		BusinessFunctionSvc: businessFunctionSvc,
 	}

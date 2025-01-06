@@ -20,7 +20,7 @@ type AuditFindingRepositoryInterface interface {
 	Create(auditFinding *models.AuditFinding, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(auditFinding *models.AuditFinding, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
-	GenerateReferenceNumber() (string, error)
+	GenerateReferenceNumber(tx ...utility.DatabaseTransaction) (string, error)
 
 	CreateDocuments(docs []*models.AuditFindingDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
@@ -222,9 +222,13 @@ func (repo *AuditFindingRepository) Delete(id uint, tx ...utility.DatabaseTransa
 	return nil
 }
 
-func (repo *AuditFindingRepository) GenerateReferenceNumber() (string, error) {
+func (repo *AuditFindingRepository) GenerateReferenceNumber(tx ...utility.DatabaseTransaction) (string, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var lastReferenceNumber string
-	err := repo.db.Model(&models.AuditFinding{}).
+	err := db.Model(&models.AuditFinding{}).
 		Select("reference_number").
 		Order("reference_number desc").
 		Limit(1).

@@ -126,9 +126,10 @@ func (aats *AuditActivityTypeService) Update(id uint, currentUserID uint, update
 func (aats *AuditActivityTypeService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedAuditActivityType []map[string]interface{}
 	for _, id := range ids {
 
-		_, err := aats.repo.GetByID(id)
+		activityType, err := aats.repo.GetByID(id)
 
 		if err != nil {
 			fmt.Print(err)
@@ -141,6 +142,11 @@ func (aats *AuditActivityTypeService) Delete(ids []uint, currentUserID uint) ([]
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedAuditActivityType = append(deletedAuditActivityType, map[string]interface{}{
+			"id":       id,
+			"title_en": activityType.TitleEn,
+			"title_ar": activityType.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -150,7 +156,7 @@ func (aats *AuditActivityTypeService) Delete(ids []uint, currentUserID uint) ([]
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.AuditActivityType{}.TableName(),
 				successfulIds,
-				nil,
+				deletedAuditActivityType,
 				currentUserID,
 				nil,
 			)

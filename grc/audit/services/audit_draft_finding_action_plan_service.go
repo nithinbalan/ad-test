@@ -17,7 +17,7 @@ type AuditDraftFindingActionPlanServiceInterface interface {
 	GetAll(findingID uint, params *auditFindingDTOs.AuditDraftFindingActionPlanListQueryParamsDTO) (*auditFindingDTOs.AuditDraftFindingActionPlanListResponseDTO, error)
 	GetByID(findingID uint, id uint) (*models.AuditDraftFindingActionPlan, error)
 	GetFullDetailsByID(findingID uint, id uint) (*auditFindingDTOs.AuditDraftFindingActionPlanDetailDTO, error)
-	Create(findingID uint, currentUserID uint, AuditDraftFindingActionPlanFormDTO *auditFindingDTOs.AuditDraftFindingActionPlanFormDTO) (uint, error)
+	Create(findingID uint, currentUserID uint, AuditDraftFindingActionPlanFormDTO *auditFindingDTOs.AuditDraftFindingActionPlanFormDTO, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(findingID uint, id uint, currentUserID uint, auditFinding *auditFindingDTOs.AuditDraftFindingActionPlanFormDTO) error
 	Delete(findingID uint, ids []uint, currentUserID uint) ([]uint, error)
 }
@@ -97,11 +97,10 @@ func (adfaps AuditDraftFindingActionPlanService) GetFullDetailsByID(findingID ui
 	return &auditDraftFindingActionPlanDTO, nil
 }
 
-func (adfaps *AuditDraftFindingActionPlanService) Create(findingID uint, currentUserID uint, AuditDraftFindingActionPlanFormDTO *auditFindingDTOs.AuditDraftFindingActionPlanFormDTO) (uint, error) {
-	tx := adfaps.repo.BeginTransaction()
-	if _, err := adfaps.auditDraftFindingSvc.GetByID(findingID); err != nil {
-		return 0, err
-	}
+func (adfaps *AuditDraftFindingActionPlanService) Create(findingID uint, currentUserID uint, AuditDraftFindingActionPlanFormDTO *auditFindingDTOs.AuditDraftFindingActionPlanFormDTO, tx ...utility.DatabaseTransaction) (uint, error) {
+	// if _, err := adfaps.auditDraftFindingSvc.GetByID(findingID); err != nil {
+	// 	return 0, err
+	// }
 
 	dates, err := adfaps.parseAuditDraftFindingActionPlanDates(AuditDraftFindingActionPlanFormDTO)
 	if err != nil {
@@ -111,26 +110,32 @@ func (adfaps *AuditDraftFindingActionPlanService) Create(findingID uint, current
 	auditDraftFindingActionPlan := &models.AuditDraftFindingActionPlan{
 		AuditDraftFindingID: findingID,
 		Title:               AuditDraftFindingActionPlanFormDTO.Title,
-		Description:         *AuditDraftFindingActionPlanFormDTO.Description,
+		Description:         AuditDraftFindingActionPlanFormDTO.Description,
 		ResponsibleUserID:   &AuditDraftFindingActionPlanFormDTO.ResponsibleUserID,
 		TargetDate:          dates.TargetDate,
 		CreatedBYID:         currentUserID,
 	}
 
-	id, err := adfaps.repo.Create(auditDraftFindingActionPlan, tx)
+	id, err := adfaps.repo.Create(auditDraftFindingActionPlan, tx...)
 	if err != nil {
-		tx.Rollback()
 		return 0, err
 	}
 
-	tx.Commit()
-
 	go func() {
-		err := adfaps.activityLogSvc.LogActivity(
+
+		existingAuditDraftFindingActionPlan, err := adfaps.GetFullDetailsByID(findingID, id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit draft finding", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = adfaps.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditDraftFindingActionPlan{}.TableName(),
 			id,
-			AuditDraftFindingActionPlanFormDTO,
+			existingAuditDraftFindingActionPlan,
 			currentUserID,
 			nil,
 		)
@@ -158,6 +163,12 @@ func (adfaps *AuditDraftFindingActionPlanService) Update(findingID uint, id uint
 		return err
 	}
 
+	oldAuditDraftFindingActionPlan, err := adfaps.repo.GetFullDetailsByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
+
 	existingAuditDraftFindingActionPlan, err := adfaps.GetByID(findingID, id)
 
 	if err != nil {
@@ -171,7 +182,7 @@ func (adfaps *AuditDraftFindingActionPlanService) Update(findingID uint, id uint
 
 	// Update Audit Finding ActionPlan
 	existingAuditDraftFindingActionPlan.Title = AuditDraftFindingActionPlanFormDTO.Title
-	existingAuditDraftFindingActionPlan.Description = *AuditDraftFindingActionPlanFormDTO.Description
+	existingAuditDraftFindingActionPlan.Description = AuditDraftFindingActionPlanFormDTO.Description
 	existingAuditDraftFindingActionPlan.ResponsibleUserID = &AuditDraftFindingActionPlanFormDTO.ResponsibleUserID
 	existingAuditDraftFindingActionPlan.TargetDate = dates.TargetDate
 	existingAuditDraftFindingActionPlan.UpdatedBYID = &currentUserID
@@ -183,6 +194,56 @@ func (adfaps *AuditDraftFindingActionPlanService) Update(findingID uint, id uint
 	}
 
 	tx.Commit()
+	go func() {
+		existingAuditDraftFindingActionPlan, err := adfaps.repo.GetFullDetailsByID(id)
+		if err != nil {
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"title":            oldAuditDraftFindingActionPlan.Title,
+			"description":      oldAuditDraftFindingActionPlan.Description,
+			"responsible_user": fmt.Sprintf("%s %s", oldAuditDraftFindingActionPlan.ResponsibleUser.FirstNameEn, oldAuditDraftFindingActionPlan.ResponsibleUser.LastNameEn),
+			"target_date":      oldAuditDraftFindingActionPlan.TargetDate,
+		}
+
+		newData := map[string]interface{}{
+			"title":            existingAuditDraftFindingActionPlan.Title,
+			"description":      existingAuditDraftFindingActionPlan.Description,
+			"responsible_user": fmt.Sprintf("%s %s", existingAuditDraftFindingActionPlan.ResponsibleUser.FirstNameEn, existingAuditDraftFindingActionPlan.ResponsibleUser.LastNameEn),
+			"target_date":      existingAuditDraftFindingActionPlan.TargetDate,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := adfaps.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditDraftFindingActionPlan{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditDraftFindingActionPlan{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 
 	return nil
 }
@@ -196,9 +257,10 @@ func (adfaps *AuditDraftFindingActionPlanService) Delete(findingID uint, ids []u
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedAuditDraftFindingActionPlan []map[string]interface{}
 	for _, id := range ids {
 
-		_, err := adfaps.GetFullDetailsByID(findingID, id)
+		auditDraftFindingActionPlan, err := adfaps.GetFullDetailsByID(findingID, id)
 
 		if err != nil {
 			continue
@@ -210,6 +272,11 @@ func (adfaps *AuditDraftFindingActionPlanService) Delete(findingID uint, ids []u
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedAuditDraftFindingActionPlan = append(deletedAuditDraftFindingActionPlan, map[string]interface{}{
+			"id":                  id,
+			"audit_draft_finding": auditDraftFindingActionPlan.AuditDraftFinding.Title,
+			"auditable_item":      auditDraftFindingActionPlan.Title,
+		})
 	}
 	tx.Commit()
 
@@ -220,7 +287,7 @@ func (adfaps *AuditDraftFindingActionPlanService) Delete(findingID uint, ids []u
 				models.DeleteAction,
 				models.AuditFinding{}.TableName(),
 				successfulIds,
-				nil,
+				deletedAuditDraftFindingActionPlan,
 				currentUserID,
 				nil,
 			)

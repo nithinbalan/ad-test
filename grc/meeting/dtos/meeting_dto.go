@@ -174,10 +174,10 @@ type MeetingRiskDTO struct {
 }
 
 type MeetingProcessDTO struct {
-	ID         *uint                             `json:"id"`
-	MeetingID  uint                              `json:"meeting_id"`
-	ProocessID uint                              `json:"process_id"`
-	Process    organizationDTOs.ProcessDetailDTO `json:"process"`
+	ID        *uint                             `json:"id"`
+	MeetingID uint                              `json:"meeting_id"`
+	ProcessID uint                              `json:"process_id"`
+	Process   organizationDTOs.ProcessDetailDTO `json:"process"`
 }
 
 type MeetingIncidentDTO struct {

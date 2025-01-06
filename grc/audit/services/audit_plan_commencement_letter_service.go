@@ -101,6 +101,9 @@ func (aps *AuditPlanCommencementLetterService) GetByID(auditPlanID uint, letterI
 func (aps *AuditPlanCommencementLetterService) Create(auditPlanId uint, currentUserID uint) error {
 	tx := aps.repo.BeginTransaction()
 
+	var createdIds []uint
+	var addedAuditPlanCommencementLetter []map[string]interface{}
+
 	auditPlanDetails, err := aps.auditPlanSvc.GetFullDetailsByID(auditPlanId)
 	if err != nil {
 		return err
@@ -138,18 +141,51 @@ func (aps *AuditPlanCommencementLetterService) Create(auditPlanId uint, currentU
 			CreatedAt:                           time.Now(),
 		}
 
-		if _, err := aps.repo.Create(commencementLetter, tx); err != nil {
+		id, err := aps.repo.Create(commencementLetter, tx)
+		if err != nil {
 			tx.Rollback()
 			return err
 		}
+		addedAuditPlanCommencementLetter = append(addedAuditPlanCommencementLetter, map[string]interface{}{
+			"id":                  id,
+			"commencement_letter": commencementLetter,
+		})
+
+		createdIds = append(createdIds, id)
 	}
 
 	tx.Commit()
+	go func() {
+		err := aps.activityLogSvc.LogBulkActivities(
+			models.CreateAction,
+			models.AuditPlanCommencementLetter{}.TableName(),
+			createdIds,
+			addedAuditPlanCommencementLetter,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.CreateAction,
+				"tableName": models.AuditPlanCommencementLetter{}.TableName(),
+				"recordID":  auditPlanId,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log control activity", fields)
+		}
+	}()
 	return nil
 }
 
 func (aps *AuditPlanCommencementLetterService) Update(auditPlanID uint, letterID uint, currentUserID uint, commencementLetterFormDTO *auditDTOs.AuditPlanCommencementLetterFormDTO) error {
 	if _, err := aps.auditPlanSvc.GetByID(auditPlanID); err != nil {
+		return err
+	}
+
+	oldCommencementLetter, err := aps.GetFullDetailsByID(auditPlanID, letterID)
+	if err != nil {
 		return err
 	}
 
@@ -171,7 +207,56 @@ func (aps *AuditPlanCommencementLetterService) Update(auditPlanID uint, letterID
 	if err != nil {
 		return err
 	}
+	go func() {
+		existingCommencementLetter, err := aps.GetFullDetailsByID(auditPlanID, letterID)
+		if err != nil {
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"subject_en": oldCommencementLetter.SubjectEn,
+			"subject_ar": oldCommencementLetter.SubjectAr,
+			"body_en":    oldCommencementLetter.BodyEn,
+			"body_ar":    oldCommencementLetter.BodyAr,
+			"from_user":  fmt.Sprintf("%s %s", oldCommencementLetter.FromUser.FirstNameEn, oldCommencementLetter.FromUser.LastNameEn),
+		}
 
+		newData := map[string]interface{}{
+			"subject_en": existingCommencementLetter.SubjectEn,
+			"subject_ar": existingCommencementLetter.SubjectAr,
+			"body_en":    existingCommencementLetter.BodyEn,
+			"body_ar":    existingCommencementLetter.BodyAr,
+			"from_user":  fmt.Sprintf("%s %s", existingCommencementLetter.FromUser.FirstNameEn, existingCommencementLetter.FromUser.LastNameEn),
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := aps.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditPlanCommencementLetter{}.TableName(),
+				letterID,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditPlanCommencementLetter{}.TableName(),
+					"recordID":  letterID,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+				fmt.Printf("Failed to log activity: %v\n", fields)
+			}
+		}
+	}()
 	return nil
 }
 
@@ -181,8 +266,14 @@ func (aps *AuditPlanCommencementLetterService) Delete(auditPlanID uint, letterID
 	}
 
 	var failedID uint
+	var deletedAuditPlanCommecementLetter []map[string]interface{}
 
 	_, err := aps.GetByID(auditPlanID, letterID)
+	if err != nil {
+		return 0, err
+	}
+
+	auditPlanCommencementLetter, err := aps.GetFullDetailsByID(auditPlanID, letterID)
 	if err != nil {
 		return 0, err
 	}
@@ -192,12 +283,19 @@ func (aps *AuditPlanCommencementLetterService) Delete(auditPlanID uint, letterID
 		return failedID, err
 	}
 
+	deletedAuditPlanCommecementLetter = append(deletedAuditPlanCommecementLetter, map[string]interface{}{
+		"id":         letterID,
+		"audit_plan": auditPlanCommencementLetter.AuditPlan.Title,
+		"subject_en": auditPlanCommencementLetter.SubjectEn,
+		"subject_ar": auditPlanCommencementLetter.SubjectAr,
+	})
+
 	go func() {
 		err := aps.activityLogSvc.LogActivity(
 			models.DeleteAction,
 			models.AuditPlanCommencementLetter{}.TableName(),
 			letterID,
-			nil,
+			deletedAuditPlanCommecementLetter,
 			currentUserID,
 			nil,
 		)
@@ -306,6 +404,7 @@ func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID u
 
 		// Prepare DB Notification (unchanged)
 		entity := "audit-plan"
+		urlParam := fmt.Sprintf(`{"id":%d}`, auditPlanID)
 		action := "send-commencement-letter"
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserID:               commencementLetterSendFormDTO.ToUserID,
@@ -317,6 +416,7 @@ func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID u
 			TitleAr:              auditPlan.Title,
 			Entity:               &entity,
 			Action:               &action,
+			URLParam:             urlParam,
 			IsSystemNotification: false,
 			CreatedByID:          &currentUserID,
 		}

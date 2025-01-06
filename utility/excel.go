@@ -5,6 +5,7 @@ import (
 	"io"
 	"mime/multipart"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/xuri/excelize/v2"
@@ -73,6 +74,46 @@ func GenerateExcelFile(headers []string, data [][]interface{}) (*os.File, error)
 	return tempFile, nil
 }
 
+func ReadExcelFile(file io.Reader) ([][]string, error) {
+	f, err := excelize.OpenReader(file)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	rows, err := f.GetRows(f.GetSheetName(0))
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
+}
+
+func ValidateHeaders(expected, actual []string) bool {
+	if len(expected) != len(actual) {
+		return false
+	}
+	for i, header := range expected {
+		if header != actual[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func ParseCommaSeparatedValues(input string) []string {
+	return strings.Split(strings.TrimSpace(input), ";")
+}
+
+func GetOptionalStringValue(value interface{}) *string {
+	strValue, ok := value.(string)
+	if ok && strValue != "" {
+		return &strValue
+	}
+	return nil
+}
+
+// control import
 func ParseExcelFile(file multipart.File, mandatoryFields []string) ([]map[string]string, error) {
 	xlsx, err := excelize.OpenReader(file)
 	if err != nil {
@@ -122,57 +163,22 @@ func ParseExcelFile(file multipart.File, mandatoryFields []string) ([]map[string
 	return data, nil
 }
 
-func ReadExcelFile(file io.Reader) ([][]string, error) {
-	f, err := excelize.OpenReader(file)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	rows, err := f.GetRows(f.GetSheetName(0))
-	if err != nil {
-		return nil, err
-	}
-
-	return rows, nil
+func ParseUint(value string) uint {
+	val, _ := strconv.Atoi(value)
+	return uint(val)
 }
 
-func ValidateHeaders(expected, actual []string) bool {
-	if len(expected) != len(actual) {
-		return false
-	}
-	for i, header := range expected {
-		if header != actual[i] {
-			return false
-		}
-	}
-	return true
-}
-
-func ParseCommaSeparatedValues(input string) []string {
-	return strings.Split(strings.TrimSpace(input), ";")
-}
-
-// GetOptionalString retrieves a pointer to a string from an interface.
-// If the input is nil or not a string, it returns nil.
-func GetOptionalString(value interface{}) *string {
-	if value == nil {
+func ParseOptionalUint(value string) *uint {
+	if value == "" {
 		return nil
 	}
-
-	// Assert the value as a string
-	str, ok := value.(string)
-	if !ok || str == "" {
-		return nil
-	}
-
-	return &str
+	parsed := ParseUint(value)
+	return &parsed
 }
 
-func GetOptionalStringValue(value interface{}) *string {
-	strValue, ok := value.(string)
-	if ok && strValue != "" {
-		return &strValue
+func ParseOptionalString(value string) *string {
+	if value == "" {
+		return nil
 	}
-	return nil
+	return &value
 }

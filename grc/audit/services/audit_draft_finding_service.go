@@ -24,7 +24,7 @@ type AuditDraftFindingServiceInterface interface {
 	GetAll(params *auditDTOs.AuditDraftFindingListQueryParamsDTO) (*auditDTOs.AuditDraftFindingListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDraftFindingDetailDTO, error)
 	GetByID(id uint) (*models.AuditDraftFinding, error)
-	GetAllFindingsByAuditID(auditId uint) ([]*models.AuditDraftFinding, error)
+	GetAllFindingsByAuditID(auditId uint, tx ...utility.DatabaseTransaction) ([]*models.AuditDraftFinding, error)
 	Create(currentUserID uint, auditDraftFindingFormDTO *auditDTOs.AuditDraftFindingFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, auditDraftFindingFormDTO *auditDTOs.AuditDraftFindingFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -108,9 +108,10 @@ func (adfs *AuditDraftFindingService) GetFullDetailsByID(id uint, tx ...utility.
 	return &auditDraftFindingDTO, nil
 }
 
-func (adfs *AuditDraftFindingService) GetAllFindingsByAuditID(auditId uint) ([]*models.AuditDraftFinding, error) {
+func (adfs *AuditDraftFindingService) GetAllFindingsByAuditID(auditId uint, tx ...utility.DatabaseTransaction) ([]*models.AuditDraftFinding, error) {
 	// Retrieve audit findings from the repository by audit ID
-	auditDraftFindings, err := adfs.repo.GetAllFindingsByAuditID(auditId)
+	
+	auditDraftFindings, err := adfs.repo.GetAllFindingsByAuditID(auditId, tx...)
 	if err != nil {
 		// If no records found, return a "not found" error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -204,11 +205,19 @@ func (adfs *AuditDraftFindingService) Create(currentUserID uint, auditDraftFindi
 	tx.Commit()
 
 	go func() {
-		err := adfs.activityLogSvc.LogActivity(
+		existingAuditDraftFinding, err := adfs.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit draft finding", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = adfs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditDraftFinding{}.TableName(),
 			id,
-			auditDraftFindingFormDTO,
+			existingAuditDraftFinding,
 			currentUserID,
 			nil,
 		)
@@ -233,6 +242,12 @@ func (adfs *AuditDraftFindingService) Update(id uint, currentUserID uint, auditD
 	tx := adfs.repo.BeginTransaction()
 
 	existingAuditDraftFinding, err := adfs.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
+
+	oldAuditDraftFinding, err := adfs.repo.GetFullDetailsByID(id)
 	if err != nil {
 		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
@@ -337,25 +352,59 @@ func (adfs *AuditDraftFindingService) Update(id uint, currentUserID uint, auditD
 	tx.Commit()
 
 	go func() {
-		err := adfs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.AuditDraftFinding{}.TableName(),
-			id,
-			auditDraftFindingFormDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingAuditDraftFinding, err := adfs.repo.GetFullDetailsByID(id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.AuditDraftFinding{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"auditable_item":         oldAuditDraftFinding.AuditableItem.TitleEn,
+			"title":                  oldAuditDraftFinding.Title,
+			"description":            oldAuditDraftFinding.Description,
+			"audit_finding_category": oldAuditDraftFinding.AuditFindingCategory.TitleEn,
+			"audit_checklist":        oldAuditDraftFinding.AuditChecklist.Question,
+			"severity_level":         oldAuditDraftFinding.SeverityLevel.TitleEn,
+			"recommendations":        oldAuditDraftFinding.Recommendations,
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		newData := map[string]interface{}{
+			"auditable_item":         existingAuditDraftFinding.AuditableItem.TitleEn,
+			"title":                  existingAuditDraftFinding.Title,
+			"description":            existingAuditDraftFinding.Description,
+			"audit_finding_category": existingAuditDraftFinding.AuditFindingCategory.TitleEn,
+			"audit_checklist":        existingAuditDraftFinding.AuditChecklist.Question,
+			"severity_level":         existingAuditDraftFinding.SeverityLevel.TitleEn,
+			"recommendations":        existingAuditDraftFinding.Recommendations,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := adfs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditDraftFinding{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditDraftFinding{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -367,6 +416,7 @@ func (adfs *AuditDraftFindingService) Delete(ids []uint, currentUserID uint) ([]
 	tx := adfs.repo.BeginTransaction()
 	var failedIDs []uint
 	var successfulIDs []uint
+	var deletedAuditDraftFinding []map[string]interface{}
 	documentsToDelete := make(map[uint][]*auditDTOs.AuditDraftFindingDocumentDTO)
 	var auditID uint64
 	for _, id := range ids {
@@ -402,6 +452,12 @@ func (adfs *AuditDraftFindingService) Delete(ids []uint, currentUserID uint) ([]
 		}
 
 		successfulIDs = append(successfulIDs, id)
+
+		deletedAuditDraftFinding = append(deletedAuditDraftFinding, map[string]interface{}{
+			"id":              id,
+			"auditable_item":  auditDraftFinding.AuditableItem.TitleEn,
+			"audit_checklist": auditDraftFinding.AuditChecklist.Question,
+		})
 	}
 
 	if len(successfulIDs) > 0 {
@@ -426,7 +482,7 @@ func (adfs *AuditDraftFindingService) Delete(ids []uint, currentUserID uint) ([]
 					models.DeleteAction,
 					models.AuditDraftFinding{}.TableName(),
 					id,
-					nil,
+					deletedAuditDraftFinding,
 					currentUserID,
 					nil,
 				)

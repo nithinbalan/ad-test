@@ -67,6 +67,7 @@ type ComplianceRequirementListQueryParamsDTO struct {
 	DeadlineTo   string
 	DateFrom     string
 	DateTo       string
+	Export       bool
 }
 
 type ComplianceRequirementListResponseDTO struct {

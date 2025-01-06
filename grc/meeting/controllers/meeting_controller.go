@@ -272,6 +272,29 @@ func (mc *MeetingController) GetAllCounts(c *gin.Context) {
 	c.JSON(http.StatusOK, associatedCounts)
 }
 
+func (mc *MeetingController) GetMeetingEffectiveness(c *gin.Context) {
+	meetingIDStr := c.Param("id")
+
+	meetingID, err := strconv.ParseUint(meetingIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	effectiveness, err := mc.service.GetMeetingEffectiveness(uint(meetingID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(mc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, effectiveness)
+}
+
 func (mc *MeetingController) GetMeetingExport(c *gin.Context) {
 	c.Request.URL.RawQuery += "&export=true"
 

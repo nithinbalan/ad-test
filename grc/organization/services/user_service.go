@@ -169,10 +169,11 @@ func (us *UserService) GetFullDetailsByID(id uint) (*userDTOs.UserDetailsDTO, er
 	roles := make([]settingDTOs.RoleDTO, 0, len(*user.UserRoles))
 	for _, userRole := range *user.UserRoles {
 		roles = append(roles, settingDTOs.RoleDTO{
-			ID:      userRole.Role.ID,
-			TitleEn: userRole.Role.TitleEn,
-			TitleAr: userRole.Role.TitleAr,
-			Status:  userRole.Role.Status,
+			ID:           userRole.Role.ID,
+			TitleEn:      userRole.Role.TitleEn,
+			TitleAr:      userRole.Role.TitleAr,
+			IsSuperAdmin: userRole.Role.IsSuperAdmin,
+			Status:       userRole.Role.Status,
 		})
 	}
 	userDetailsDTO.Roles = &roles
@@ -341,11 +342,15 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		Facebook:       &socialLinks.Facebook,
 	}
 
+	appURL := utility.GetAppURL()
+	redirectURL := fmt.Sprintf("%sauth/login", appURL)
+
 	emailData := userDTOs.SendNewPasswordEmailDTO{
 		FirstNameEn: userFormDTO.FirstNameEn,
 		LastNameEn:  userFormDTO.LastNameEn,
 		Email:       userFormDTO.Email,
 		Password:    password,
+		RedirectURL: redirectURL,
 	}
 
 	to := []string{user.Email}
@@ -712,10 +717,11 @@ func (us *UserService) GetCurrentUserDetails(id uint) (*userDTOs.CurrentUserDeta
 	roles := make([]settingDTOs.RoleDTO, 0, len(*user.UserRoles))
 	for _, userRole := range *user.UserRoles {
 		roles = append(roles, settingDTOs.RoleDTO{
-			ID:      userRole.Role.ID,
-			TitleEn: userRole.Role.TitleEn,
-			TitleAr: userRole.Role.TitleAr,
-			Status:  userRole.Role.Status,
+			ID:           userRole.Role.ID,
+			TitleEn:      userRole.Role.TitleEn,
+			TitleAr:      userRole.Role.TitleAr,
+			Status:       userRole.Role.Status,
+			IsSuperAdmin: userRole.Role.IsSuperAdmin,
 		})
 	}
 	userDetailsDTO.Roles = &roles

@@ -57,7 +57,10 @@ type DocumentServiceInterface interface {
 	ExportDocuments(data []*documentDTOs.DocumentListDTO, currentUserID uint) (*os.File, error)
 
 	GetDocumentVersionByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentVersion, error)
+	CreateDocumentVersion(documentVersion *models.DocumentVersion, tx ...utility.DatabaseTransaction) (uint, error)
 	UpdateDocumentVersion(documentVersion *models.DocumentVersion, tx ...utility.DatabaseTransaction) error
+
+	UpdateDocumentRecoveryObjective(document *models.Document, tx utility.DatabaseTransaction) error
 }
 
 type DocumentService struct {
@@ -128,8 +131,8 @@ func (ds *DocumentService) GetAll(params *documentDTOs.DocumentListQueryParamsDT
 	return ds.repo.GetAll(params, currentUserID)
 }
 
-func (crs DocumentService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error) {
-	document, err := crs.repo.GetByID(id)
+func (ds DocumentService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error) {
+	document, err := ds.repo.GetByID(id)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -237,9 +240,9 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		sharedUnits := make([]*models.DocumentSharedUnit, 0, len(documentFormDTO.SharedUnitIDs))
 		for _, unitID := range documentFormDTO.SharedUnitIDs {
 			sharedUnit := &models.DocumentSharedUnit{
-				DocumentID:         id,
-				OrganizationUnitID: *unitID,
-				CreatedBYID:        currentUserID,
+				DocumentID:  id,
+				OrgUnitID:   *unitID,
+				CreatedBYID: currentUserID,
 			}
 			sharedUnits = append(sharedUnits, sharedUnit)
 		}
@@ -257,6 +260,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 	url := utility.GenerateDocumentURL("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
 	destinationDir := filepath.Join("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
 	var docVersionId uint
+	var fileName string
 	if documentFormDTO.DocumentTemplateID != nil {
 		var documentTemplate *documentDTOs.DocumentTemplateDetailsDTO
 		documentTemplate, err = ds.documentTemplateSvc.GetFullDetailsByID(*documentFormDTO.DocumentTemplateID)
@@ -290,6 +294,8 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			tx.Rollback()
 			return 0, err
 		}
+
+		fileName = documentTemplate.Document.Name
 
 		sourceDir := filepath.Join("document", "document-template", strconv.FormatUint(uint64(documentTemplate.ID), 10), "documents")
 		fileName := documentTemplate.Document.Name
@@ -342,6 +348,8 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			return 0, err
 		}
 
+		fileName = documentFormDTO.Document.FileName
+
 		if err := utility.StoreFile(documentFormDTO.Document.FileName, destinationDir); err != nil {
 			tx.Rollback()
 			return 0, err
@@ -378,11 +386,13 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 
 	tx.Commit()
 
-	go func() {
-		if err := utility.ConvertDocxToPDF(destinationDir, documentFormDTO.Document.FileName, destinationDir); err != nil {
+	fileNameCopy := fileName
+
+	go func(fileName string) {
+		if err := utility.ConvertDocxToPDF(destinationDir, fileName, destinationDir); err != nil {
 			log.Printf("Failed to convert document to PDF: %v", err)
 		}
-	}()
+	}(fileNameCopy)
 
 	go func() {
 
@@ -427,6 +437,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		return err
 	}
 	existingDocumentAccessTypeID := existingDocument.DocumentAccessTypeID
+	existingDocumentTypeID := existingDocument.DocumentTypeID
 	documentAccessType, err := ds.documentAccessTypeSvc.GetByID(documentFormDTO.DocumentAccessTypeID)
 	if err != nil {
 		return err
@@ -458,7 +469,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		}
 	}
 
-	if documentFormDTO.Document.IsNewFile != nil && *documentFormDTO.Document.IsNewFile {
+	if (documentFormDTO.Document != nil && documentFormDTO.Document.IsNewFile != nil && *documentFormDTO.Document.IsNewFile) || documentFormDTO.DocumentTemplateID != nil {
 		documentStatus, err := ds.documentStatusSvc.GetByType("draft")
 		if err != nil {
 			return err
@@ -490,6 +501,21 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 
 	documentFullDetails, err := ds.repo.GetFullDetailsByID(id, nil, tx)
 	if err != nil {
+		return err
+	}
+
+	existingDocVersion, err := ds.repo.GetDocumentVersionByID(documentFullDetails.LatestDocumentVersion.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingDocVersion.Version = documentFormDTO.DocumentVersion
+
+	err = ds.repo.UpdateDocumentVersion(existingDocVersion, tx)
+
+	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -588,9 +614,9 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			for _, unitID := range documentFormDTO.SharedUnitIDs {
 				if !existingUnitIDs[*unitID] {
 					sharedUnits = append(sharedUnits, &models.DocumentSharedUnit{
-						DocumentID:         id,
-						OrganizationUnitID: *unitID,
-						CreatedBYID:        currentUserID,
+						DocumentID:  id,
+						OrgUnitID:   *unitID,
+						CreatedBYID: currentUserID,
 					})
 				} else {
 					delete(existingUnitIDs, *unitID)
@@ -627,9 +653,9 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			}
 			for _, unitID := range documentFormDTO.SharedUnitIDs {
 				sharedUnits = append(sharedUnits, &models.DocumentSharedUnit{
-					DocumentID:         id,
-					OrganizationUnitID: *unitID,
-					CreatedBYID:        currentUserID,
+					DocumentID:  id,
+					OrgUnitID:   *unitID,
+					CreatedBYID: currentUserID,
 				})
 			}
 
@@ -691,31 +717,39 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 	}
 
 	destinationDir := filepath.Join("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
-	if documentFormDTO.Document.IsNewFile != nil && *documentFormDTO.Document.IsNewFile {
-		existingDocumentFileName := documentFullDetails.LatestDocumentVersion.Name
-		baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
-
-		url := utility.GenerateDocumentURL("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
-
-		dataToEncrypt := []byte(documentFormDTO.Document.FileName)
-		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+	var fileName string
+	if documentFormDTO.DocumentTemplateID != nil {
+		var documentTemplate *documentDTOs.DocumentTemplateDetailsDTO
+		documentTemplate, err = ds.documentTemplateSvc.GetFullDetailsByID(*documentFormDTO.DocumentTemplateID)
 		if err != nil {
 			tx.Rollback()
 			return err
 		}
+
+		existingDocumentFileName := documentFullDetails.LatestDocumentVersion.Name
+		baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
+
+		//generate token
+		dataToEncrypt := []byte(documentTemplate.Document.Name)
+		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
+			return err
+		}
+
+		url := utility.GenerateDocumentURL("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
 
 		existingDocVersion, err := ds.repo.GetDocumentVersionByID(documentFullDetails.LatestDocumentVersion.ID, tx)
 		if err != nil {
 			tx.Rollback()
 			return err
 		}
-		existingDocVersion.Version = documentFormDTO.DocumentVersion
+
 		existingDocVersion.URL = url
-		existingDocVersion.Name = documentFormDTO.Document.FileName
-		existingDocVersion.Size = documentFormDTO.Document.Size
+		existingDocVersion.Name = documentTemplate.Document.Name
+		existingDocVersion.Size = documentTemplate.Document.Size
 		existingDocVersion.Token = encryptedFilename
-		existingDocVersion.OriginalName = &documentFormDTO.Document.OriginalName
-		existingDocVersion.Type = documentFormDTO.Document.Type
+		existingDocVersion.OriginalName = &documentTemplate.Document.OriginalName
+		existingDocVersion.Type = documentTemplate.Document.Type
 		existingDocVersion.UpdatedBYID = &currentUserID
 
 		err = ds.repo.UpdateDocumentVersion(existingDocVersion, tx)
@@ -735,9 +769,13 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			return err
 		}
 
-		if err := utility.StoreFile(documentFormDTO.Document.FileName, destinationDir); err != nil {
+		sourceDir := filepath.Join("document", "document-template", strconv.FormatUint(uint64(documentTemplate.ID), 10), "documents")
+		fileName = documentTemplate.Document.Name
+
+		err = utility.CopyFileFromPaths(sourceDir, destinationDir, fileName)
+		if err != nil {
 			tx.Rollback()
-			return err
+			return fmt.Errorf("failed to copy file: %w", err)
 		}
 
 		//add document history
@@ -745,10 +783,10 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			DocumentID:        id,
 			DocumentVersionID: existingDocVersion.ID,
 			ActionType:        "update",
-			FileName:          &documentFormDTO.Document.FileName,
-			OriginalName:      &documentFormDTO.Document.OriginalName,
-			Type:              &documentFormDTO.Document.Type,
-			Size:              &documentFormDTO.Document.Size,
+			FileName:          &documentTemplate.Document.Name,
+			OriginalName:      &documentTemplate.Document.OriginalName,
+			Type:              &documentTemplate.Document.Type,
+			Size:              &documentTemplate.Document.Size,
 		}
 
 		err = ds.CreateDocumentEditHistory(documentEditHistory, &destinationDir, currentUserID, tx)
@@ -757,9 +795,79 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			return err
 		}
 
+	} else {
+		if documentFormDTO.Document.IsNewFile != nil && *documentFormDTO.Document.IsNewFile {
+			existingDocumentFileName := documentFullDetails.LatestDocumentVersion.Name
+			baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
+
+			url := utility.GenerateDocumentURL("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
+
+			dataToEncrypt := []byte(documentFormDTO.Document.FileName)
+			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			existingDocVersion, err := ds.repo.GetDocumentVersionByID(documentFullDetails.LatestDocumentVersion.ID, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			existingDocVersion.URL = url
+			existingDocVersion.Name = documentFormDTO.Document.FileName
+			existingDocVersion.Size = documentFormDTO.Document.Size
+			existingDocVersion.Token = encryptedFilename
+			existingDocVersion.OriginalName = &documentFormDTO.Document.OriginalName
+			existingDocVersion.Type = documentFormDTO.Document.Type
+			existingDocVersion.UpdatedBYID = &currentUserID
+
+			err = ds.repo.UpdateDocumentVersion(existingDocVersion, tx)
+
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			fileName = documentFormDTO.Document.FileName
+
+			if err := utility.RemoveFile(existingDocumentFileName, destinationDir); err != nil {
+				tx.Rollback()
+				return err
+			}
+			pdfFileName := baseFileName + ".pdf"
+			if err := utility.RemoveFile(pdfFileName, destinationDir); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if err := utility.StoreFile(documentFormDTO.Document.FileName, destinationDir); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			//add document history
+			documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
+				DocumentID:        id,
+				DocumentVersionID: existingDocVersion.ID,
+				ActionType:        "update",
+				FileName:          &documentFormDTO.Document.FileName,
+				OriginalName:      &documentFormDTO.Document.OriginalName,
+				Type:              &documentFormDTO.Document.Type,
+				Size:              &documentFormDTO.Document.Size,
+			}
+
+			err = ds.CreateDocumentEditHistory(documentEditHistory, &destinationDir, currentUserID, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+		}
 	}
 
-	if existingDocument.DocumentTypeID != documentFormDTO.DocumentTypeID {
+	if existingDocumentTypeID != documentFormDTO.DocumentTypeID {
 
 		var deleteDocumentWorkflowIds []*uint
 		var deleteDocumentWorkflowParticipantIds []*uint
@@ -826,7 +934,8 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 
 	tx.Commit()
 
-	go func() {
+	fileNameCopy := fileName
+	go func(fileName string) {
 
 		existingDoc, err := ds.repo.GetFullDetailsByID(id, nil)
 		if err != nil {
@@ -895,12 +1004,12 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 				utility.LogError("Failed to log activity", fields)
 			}
 		}
-		if documentFormDTO.Document.IsNewFile != nil && *documentFormDTO.Document.IsNewFile {
-			if err := utility.ConvertDocxToPDF(destinationDir, documentFormDTO.Document.FileName, destinationDir); err != nil {
+		if (documentFormDTO.Document != nil && documentFormDTO.Document.IsNewFile != nil && *documentFormDTO.Document.IsNewFile) || documentFormDTO.DocumentTemplateID != nil {
+			if err := utility.ConvertDocxToPDF(destinationDir, fileName, destinationDir); err != nil {
 				log.Printf("Failed to convert document to PDF: %v", err)
 			}
 		}
-	}()
+	}(fileNameCopy)
 
 	return nil
 }
@@ -941,7 +1050,7 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 		if len(document.DocumentSharedUnits) > 0 {
 			var deleteSharedUnitIds []uint
 			for _, unit := range document.DocumentSharedUnits {
-				deleteSharedUnitIds = append(deleteSharedUnitIds, unit.OrganizationUnitID)
+				deleteSharedUnitIds = append(deleteSharedUnitIds, unit.OrgUnitID)
 			}
 			if err := ds.documentAccessSvc.DeleteSharedUnits(id, deleteSharedUnitIds, tx); err != nil {
 				tx.Rollback()
@@ -1457,7 +1566,7 @@ func (ds *DocumentService) GetDocumentPath(id uint, token string, fileType strin
 
 	var storagePath string
 
-	if existingDocument.DocumentStatus.Type == "published" {
+	if existingDocument.DocumentStatus.Type == "published" || existingDocument.DocumentStatus.Type == "archived" {
 		storagePath = filepath.Join("document", "published", strconv.FormatUint(uint64(id), 10), "documents")
 		fileType = "pdf"
 	} else {
@@ -1835,17 +1944,31 @@ func (ds *DocumentService) GetDocumentLastEditSummary(documentID uint) (*documen
 	}
 
 	activity, err := ds.repo.GetDocumentLatestEditHistory(document.LatestDocumentVersion.ID)
-	if err != nil {
+	var latestActivityDTO documentDTOs.ActivityDTO
+
+	// Handle case where activity is not found
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// Populate default values when no activity is found
+		emptyString := ""
+		zeroTime := time.Time{}
+		latestActivityDTO = documentDTOs.ActivityDTO{
+			Activity:  "No activity found",
+			By:        nil,
+			Comment:   &emptyString,
+			Timestamp: zeroTime,
+		}
+	} else if err != nil {
+		// Return other unexpected errors
 		return nil, err
-	}
-
-	userDTO := mapUserToDTO(activity.CreatedByUser)
-
-	latestActivityDTO := documentDTOs.ActivityDTO{
-		Activity:  activity.ActionType,
-		By:        userDTO,
-		Comment:   activity.Comment,
-		Timestamp: activity.CreatedAt,
+	} else {
+		// Map activity details to DTO
+		userDTO := mapUserToDTO(activity.CreatedByUser)
+		latestActivityDTO = documentDTOs.ActivityDTO{
+			Activity:  activity.ActionType,
+			By:        userDTO,
+			Comment:   activity.Comment,
+			Timestamp: activity.CreatedAt,
+		}
 	}
 	// Initialize variables for the current document workflow
 	var currentDocumentWorkflow *models.DocumentWorkflow
@@ -1957,6 +2080,15 @@ func (ds *DocumentService) GetDocumentVersionByID(id uint, tx ...utility.Databas
 	}
 
 	return documentVersion, nil
+}
+
+func (ds *DocumentService) CreateDocumentVersion(documentVersion *models.DocumentVersion, tx ...utility.DatabaseTransaction) (uint, error) {
+	docVersionId, err := ds.repo.CreateDocumentVersion(documentVersion, tx...)
+	if err != nil {
+		return 0, err
+	}
+
+	return docVersionId, nil
 }
 
 func (ds *DocumentService) UpdateDocumentVersion(documentVersion *models.DocumentVersion, tx ...utility.DatabaseTransaction) error {
@@ -2126,4 +2258,15 @@ func (ds *DocumentService) notifyUsersOnPublish(document *documentDTOs.DocumentD
 
 		}
 	}()
+}
+
+func (ds *DocumentService) UpdateDocumentRecoveryObjective(document *models.Document, tx utility.DatabaseTransaction) error {
+
+	err := ds.repo.Update(document, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return nil
 }

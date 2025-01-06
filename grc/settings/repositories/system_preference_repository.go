@@ -25,7 +25,9 @@ func NewSystemPreferenceRepository(db *gorm.DB) *SystemPreferenceRepository {
 
 func (repo *SystemPreferenceRepository) GetSystemPreference() (*models.SystemPreference, error) {
 	var systemPreference *models.SystemPreference
-	result := repo.db.First(&systemPreference)
+	result := repo.db.
+		Preload("Timezone").
+		First(&systemPreference)
 
 	if result.Error != nil {
 		return nil, result.Error

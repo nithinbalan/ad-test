@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/documents/services"
 	"jethur/utility"
@@ -31,11 +32,19 @@ func (dalc *DocumentAuditLogController) GetAllDocumentAuditLogs(c *gin.Context) 
 		return
 	}
 
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "action_date")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+
+	validSortFields := map[string]string{
+		"action_date":     "document_audit_logs.created_at",
+		"action_en":       "document_audit_log_types.title_en",
+		"action_ar":       "document_audit_log_types.title_ar",
+		"performed_by_en": "users.first_name_en",
+		"performed_by_ar": "users.first_name_ar",
+	}
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -48,9 +57,16 @@ func (dalc *DocumentAuditLogController) GetAllDocumentAuditLogs(c *gin.Context) 
 		utility.SendInternalErrResp(dalc.db, c, "Invalid page_size parameter")
 		return
 	}
+
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 	queryParams := documentDTOs.DocumentAuditLogListQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      sortBy,
+		SortBy:      dbField,
 		Keyword:     keyword,
 		Status:      status,
 		Page:        page,

@@ -118,3 +118,26 @@ func (afrc *AuditFinalReportController) DeleteAuditFinalReport(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+func (afrc *AuditFinalReportController) GetLastEditSummary(c *gin.Context) {
+	idStr := c.Param("auditId")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	lastEditSummary, err := afrc.service.GetAuditFinalReportLastEditSummary(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(afrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, lastEditSummary)
+}

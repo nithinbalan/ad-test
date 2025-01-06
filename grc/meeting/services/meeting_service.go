@@ -31,6 +31,7 @@ type MeetingServiceInterface interface {
 	Update(id uint, currentUserID uint, meetingFormDTO *meetingDTOs.MeetingFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GetAllCounts(meetingID uint) (*meetingDTOs.MeetingsCountResponseDTO, error)
+	GetMeetingEffectiveness(meetingID uint) (float64, error)
 
 	ExportMeeting(data []*meetingDTOs.MeetingListDTO, currentUserID uint) (*os.File, error)
 }
@@ -84,7 +85,25 @@ func NewMeetingService(
 }
 
 func (ms *MeetingService) GetAll(currentUserID uint, params *meetingDTOs.MeetingListQueryParamsDTO) (*meetingDTOs.MeetingListResponseDTO, error) {
-	return ms.repo.GetAll(currentUserID, params)
+	// Retrieve user details to check for super admin role
+	userDetails, err := ms.userSvc.GetCurrentUserDetails(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Determine if the user is a super admin
+	isSuperAdmin := false
+	if userDetails.Roles != nil {
+		for _, role := range *userDetails.Roles {
+			if role.IsSuperAdmin {
+				isSuperAdmin = true
+				break
+			}
+		}
+	}
+
+	// Pass the isSuperAdmin flag to the repository method
+	return ms.repo.GetAll(currentUserID, params, isSuperAdmin)
 }
 
 func (ms MeetingService) GetByID(id uint) (*models.Meeting, error) {
@@ -1572,6 +1591,18 @@ func (ms *MeetingService) GetAllCounts(meetingID uint) (*meetingDTOs.MeetingsCou
 	response, err := ms.repo.GetAllCounts(meetingID)
 	if err != nil {
 		return nil, err
+	}
+
+	return response, nil
+}
+
+func (ms *MeetingService) GetMeetingEffectiveness(meetingID uint) (float64, error) {
+	if _, err := ms.GetByID(meetingID); err != nil {
+		return 0, err
+	}
+	response, err := ms.repo.GetMeetingEffectiveness(meetingID)
+	if err != nil {
+		return 0, err
 	}
 
 	return response, nil

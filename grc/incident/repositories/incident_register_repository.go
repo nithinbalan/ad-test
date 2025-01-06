@@ -189,10 +189,6 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	if !params.Export {

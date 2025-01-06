@@ -6,12 +6,16 @@ import (
 	"jethur/config"
 	"jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -33,6 +37,9 @@ type AuditDraftFindingConversationService struct {
 	auditDraftFindingSvc       AuditDraftFindingServiceInterface
 	auditDraftFindingStatusSvc AuditDraftFindingStatusServiceInterface
 	auditSvc                   AuditServiceInterface
+	userSvc                    organizationServices.UserServiceInterface
+	notificationSvc            commonServices.NotificationServiceInterface
+	auditDraftReportSvc        AuditDraftReportServiceInterface
 }
 
 func NewAuditDraftFindingConversationService(
@@ -41,6 +48,9 @@ func NewAuditDraftFindingConversationService(
 	auditDraftFindingSvc AuditDraftFindingServiceInterface,
 	auditDraftFindingStatusSvc AuditDraftFindingStatusServiceInterface,
 	auditSvc AuditServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
+	auditDraftReportSvc AuditDraftReportServiceInterface,
 ) AuditDraftFindingConversationServiceInterface {
 	return &AuditDraftFindingConversationService{
 		repo:                       repo,
@@ -48,6 +58,9 @@ func NewAuditDraftFindingConversationService(
 		auditDraftFindingSvc:       auditDraftFindingSvc,
 		auditDraftFindingStatusSvc: auditDraftFindingStatusSvc,
 		auditSvc:                   auditSvc,
+		userSvc:                    userSvc,
+		notificationSvc:            notificationSvc,
+		auditDraftReportSvc:        auditDraftReportSvc,
 	}
 }
 
@@ -102,8 +115,6 @@ func (adfcs AuditDraftFindingConversationService) GetFullDetailsByID(auditDraftF
 	return &auditDraftFindingConversationDTO, nil
 }
 func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID uint, currentUserID uint, formDTO *dtos.AuditDraftFindingConversationFormDTO) (uint, error) {
-	tx := adfcs.repo.BeginTransaction()
-
 	existingAuditDraftFinding, err := adfcs.auditDraftFindingSvc.GetByID(auditDraftFindingID)
 	if err != nil {
 		return 0, err
@@ -114,7 +125,6 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 		auditID := existingAuditDraftFinding.AuditID
 		audit, err := adfcs.auditSvc.GetFullDetailsByID(auditID)
 		if err != nil {
-			tx.Rollback()
 			return 0, err
 		}
 
@@ -136,10 +146,11 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 
 		// If the current user is not authorized, rollback and return forbidden error
 		if !isAuthorizedUser {
-			tx.Rollback()
 			return 0, utility.NewForbiddenError("The current user is not authorized to perform this action.")
 		}
 	}
+	//begin tx
+	tx := adfcs.repo.BeginTransaction()
 
 	conversation := &models.AuditDraftFindingConversation{
 		AuditDraftFindingID: auditDraftFindingID,
@@ -147,10 +158,9 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 		Type:                formDTO.Type,
 		IsAccepted:          *formDTO.IsAccepted,
 		IsDismissed:         *formDTO.IsDismissed,
-		IsReopened:         *formDTO.IsReopened,
+		IsReopened:          *formDTO.IsReopened,
 		CreatedBYID:         currentUserID,
 	}
-
 	id, err := adfcs.repo.Create(conversation, tx)
 	if err != nil {
 		tx.Rollback()
@@ -169,7 +179,7 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 			return 0, utility.NewForbiddenError("The finding has already been accepted.")
 		}
 		// Update Audit Draft Finding Status
-		if err := adfcs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatus.ID); err != nil {
+		if err := adfcs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatus.ID, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -186,7 +196,7 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 			return 0, utility.NewForbiddenError("Action not allowed. The audit finding must be in not finalized' status before any further actions can be taken.")
 		}
 		// Update Audit Draft Finding Status
-		if err := adfcs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusDismissed.ID); err != nil {
+		if err := adfcs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusDismissed.ID, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -206,9 +216,9 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 		}
 		if existingAuditDraftFinding.AuditDraftFindingStatus != nil && existingAuditDraftFinding.AuditDraftFindingStatus.ID != auditDraftFindingStatusDismissed.ID {
 			return 0, utility.NewForbiddenError("Action not allowed. The audit finding status must be 'Dismissed' before any further actions can be taken.")
-		}		
+		}
 		// Update Audit Draft Finding Status
-		if err := adfcs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusOpen.ID); err != nil {
+		if err := adfcs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusOpen.ID, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -236,7 +246,6 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 
 		documents = append(documents, document)
 	}
-
 	if len(documents) > 0 {
 		if err := adfcs.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
@@ -251,13 +260,301 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 		}
 	}
 	tx.Commit()
-
+	utility.LogInfo("formDTO state", map[string]interface{}{
+		"IsReopened": formDTO.IsReopened,
+		"IsDismissed": formDTO.IsDismissed,
+		"IsAccepted": formDTO.IsAccepted,
+	})
+	
 	go func() {
-		err := adfcs.activityLogSvc.LogActivity(
+		defer func() {
+			if r := recover(); r != nil {
+				utility.LogError("Panic recovered in notification goroutine", map[string]interface{}{
+					"recover": r,
+				})
+			}
+		}()
+		existingAuditDraftFindingFullDetails, err := adfcs.auditDraftFindingSvc.GetFullDetailsByID(auditDraftFindingID)
+		if err != nil {
+			utility.LogError("Failed to fetch finding", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		auditID := existingAuditDraftFindingFullDetails.AuditID
+		auditDraftReport, err := adfcs.auditDraftReportSvc.GetByAuditID(auditID)
+		if err != nil {
+			utility.LogError("Failed to fetch draft report", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		if formDTO.IsReopened != nil && *formDTO.IsReopened {
+			urlParam := fmt.Sprintf(`{"id":%d}`, auditDraftReport.ID)
+			entity := "audit-draft-report"
+			action := "reopened"
+
+			// Create a map to track unique recipients
+			recipientsMap := make(map[uint]bool)
+
+			// Add participants excluding the current user
+			for _, participant := range auditDraftReport.Audit.AuditPlan.Members {
+				if participant.UserID != currentUserID {
+					recipientsMap[participant.UserID] = true
+				}
+			}
+
+			// Add InternalReviewSubmittedBYID
+			recipientsMap[*auditDraftReport.Audit.AuditPlan.TeamLeadID] = true
+
+			// Extract unique recipients into a slice
+			var uniqueRecipients []uint
+			for userID := range recipientsMap {
+				uniqueRecipients = append(uniqueRecipients, userID)
+			}
+
+			// Now `uniqueRecipients` contains all unique UserIDs
+
+			// Iterate through recipients
+			for _, userID := range uniqueRecipients {
+				responsibleUser, err := adfcs.userSvc.GetByID(userID)
+				if err != nil {
+					utility.LogError("Failed to fetch review user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				assignedBy, err := adfcs.userSvc.GetByID(currentUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				emailTo := []string{responsibleUser.Email}
+				subject := fmt.Sprintf("Audit Draft Report /%s: Findings Reopened Notification", auditDraftReport.Audit.AuditPlan.Title)
+				appURL := utility.GetAppURL()
+
+				emailData := map[string]interface{}{
+					"FirstNameEn":           responsibleUser.FirstNameEn,
+					"LastNameEn":            responsibleUser.LastNameEn,
+					"AuditTitle":            auditDraftReport.Audit.AuditPlan.Title,
+					"FindingTitle":          existingAuditDraftFindingFullDetails.Title,
+					"FindingDescription":    existingAuditDraftFindingFullDetails.Description,
+					"FindingCategoryTitle":  existingAuditDraftFindingFullDetails.AuditFindingCategory.TitleEn,
+					"ReopenedByFirstNameEn": assignedBy.FirstNameEn,
+					"ReopenedByLastNameEn":  assignedBy.LastNameEn,
+					"ReopenedOn":            time.Now().Format("2006-01-02"),
+					"RedirectURL":           fmt.Sprintf("%s/audit/audits/%d/draft-report", appURL, auditID),
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              emailTo,
+					Subject:              subject,
+					TemplateRelativePath: "audit/templates/email/audit_draft_report_finding_reopened_user_mail.html",
+					EmailData:            emailData,
+				}
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               userID,
+					ModuleIdentifier:     "audit",
+					NotificationType:     string(commonDTOs.ReviewType),
+					HeadingEn:            "Audit Draft Report Finding Reopened",
+					HeadingAr:            "إعادة فتح نتيجة تقرير مسودة التدقيق",
+					TitleEn:              existingAuditDraftFindingFullDetails.Title,
+					TitleAr:              existingAuditDraftFindingFullDetails.Title,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				// Send Notification and Email
+				err = adfcs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
+				if err != nil {
+					utility.LogError("Failed to send notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+			}
+		}
+		if formDTO.IsDismissed != nil && *formDTO.IsDismissed {
+			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+			entity := "audit-draft-report"
+			action := "dismissed"
+			if auditDraftReport.Audit.AuditPlan.AuditableItems != nil {
+				for _, item := range auditDraftReport.Audit.AuditPlan.AuditableItems {
+					if item.AuditableItem.ResponsibleUser == nil {
+						utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+							"error": err.Error(),
+						})
+						return
+					}
+					responsibleUser := item.AuditableItem.ResponsibleUser
+					dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+						UserID:               responsibleUser.ID,
+						ModuleIdentifier:     "audit_insight_draft_reports",
+						NotificationType:     string(commonDTOs.ReviewType),
+						HeadingEn:            "Audit Draft Report Finding Dismissed",
+						HeadingAr:            "رفض نتيجة تقرير مسودة التدقيق",
+						TitleEn:              auditDraftReport.Audit.AuditPlan.Title,
+						TitleAr:              auditDraftReport.Audit.AuditPlan.Title,
+						Entity:               &entity,
+						Action:               &action,
+						URLParam:             urlParam,
+						IsSystemNotification: false,
+						CreatedByID:          &currentUserID,
+					}
+
+					assignedBy, err := adfcs.userSvc.GetByID(currentUserID)
+					if err != nil {
+						utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					emailTo := []string{responsibleUser.Email}
+					subject := fmt.Sprintf("Audit Draft Report /%s: Finding /%s: Dismissed", auditDraftReport.Audit.AuditPlan.Title, existingAuditDraftFindingFullDetails.Title)
+					appURL := utility.GetAppURL()
+					emailData := map[string]interface{}{
+						"FirstNameEn":            responsibleUser.FirstNameEn,
+						"LastNameEn":             responsibleUser.LastNameEn,
+						"AuditTitle":             auditDraftReport.Audit.AuditPlan.Title,
+						"FindingTitle":           existingAuditDraftFindingFullDetails.Title,
+						"FindingDescription":     existingAuditDraftFindingFullDetails.Description,
+						"FindingCategoryTitle":   existingAuditDraftFindingFullDetails.AuditFindingCategory.TitleEn,
+						"DismissedByFirstNameEn": assignedBy.FirstNameEn,
+						"DismissedByLastNameEn":  assignedBy.LastNameEn,
+						"DismissedOn":            time.Now().Format("2006-01-02"),
+						"RedirectURL":            fmt.Sprintf("%s/audit-insight/draft-report/%d/details", appURL, id),
+					}
+
+					emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+						EmailTo:              emailTo,
+						Subject:              subject,
+						TemplateRelativePath: "audit/templates/email/audit_draft_report_finding_dismissed_user_mail.html",
+						EmailData:            emailData,
+					}
+
+					// Send Notification and Email
+					err = adfcs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit_insight_draft_reports")
+					if err != nil {
+						utility.LogError("Failed to send notifications", map[string]interface{}{
+							"error": err.Error(),
+						})
+					}
+				}
+			}	
+		}
+		if formDTO.IsAccepted != nil && *formDTO.IsAccepted {
+			urlParam := fmt.Sprintf(`{"id":%d}`, auditDraftReport.ID)
+			entity := "audit-draft-report"
+			action := "approval"
+
+			// Create a map to track unique recipients
+			recipientsMap := make(map[uint]bool)
+
+			// Add participants excluding the current user
+			for _, participant := range auditDraftReport.Audit.AuditPlan.Members {
+				if participant.UserID != currentUserID {
+					recipientsMap[participant.UserID] = true
+				}
+			}
+
+			// Add InternalReviewSubmittedBYID
+			recipientsMap[*auditDraftReport.Audit.AuditPlan.TeamLeadID] = true
+
+			// Extract unique recipients into a slice
+			var uniqueRecipients []uint
+			for userID := range recipientsMap {
+				uniqueRecipients = append(uniqueRecipients, userID)
+			}
+
+			// Now `uniqueRecipients` contains all unique UserIDs
+
+			// Iterate through recipients
+			for _, userID := range uniqueRecipients {
+				responsibleUser, err := adfcs.userSvc.GetByID(userID)
+				if err != nil {
+					utility.LogError("Failed to fetch review user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				assignedBy, err := adfcs.userSvc.GetByID(currentUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				emailTo := []string{responsibleUser.Email}
+				subject := fmt.Sprintf("Audit Draft Report /%s: Findings Accepted Notification", auditDraftReport.Audit.AuditPlan.Title)
+				appURL := utility.GetAppURL()
+
+				emailData := map[string]interface{}{
+					"FirstNameEn":           responsibleUser.FirstNameEn,
+					"LastNameEn":            responsibleUser.LastNameEn,
+					"AuditTitle":            auditDraftReport.Audit.AuditPlan.Title,
+					"FindingTitle":          existingAuditDraftFindingFullDetails.Title,
+					"FindingDescription":    existingAuditDraftFindingFullDetails.Description,
+					"FindingCategoryTitle":  existingAuditDraftFindingFullDetails.AuditFindingCategory.TitleEn,
+					"AcceptedByFirstNameEn": assignedBy.FirstNameEn,
+					"AcceptedByLastNameEn":  assignedBy.LastNameEn,
+					"AcceptedOn":            time.Now().Format("2006-01-02"),
+					"RedirectURL":           fmt.Sprintf("%s/audit/audits/%d/draft-report", appURL, auditID),
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              emailTo,
+					Subject:              subject,
+					TemplateRelativePath: "audit/templates/email/audit_draft_report_finding_accept_user_mail.html",
+					EmailData:            emailData,
+				}
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               userID,
+					ModuleIdentifier:     "audit",
+					NotificationType:     string(commonDTOs.ReviewType),
+					HeadingEn:            "Approve Audit Draft Report Finding",
+					HeadingAr:            "قبول نتائج مسودة تقرير التدقيق",
+					TitleEn:              existingAuditDraftFindingFullDetails.Title,
+					TitleAr:              existingAuditDraftFindingFullDetails.Title,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				// Send Notification and Email
+				err = adfcs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
+				if err != nil {
+					utility.LogError("Failed to send notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+			}
+		}
+		existingAuditDraftFindingConversation, err := adfcs.GetFullDetailsByID(auditDraftFindingID, id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit draft finding", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = adfcs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditDraftFindingConversation{}.TableName(),
 			id,
-			conversation,
+			existingAuditDraftFindingConversation,
 			currentUserID,
 			nil,
 		)
@@ -282,6 +579,12 @@ func (adfcs *AuditDraftFindingConversationService) Update(auditDraftFindingID ui
 	existingAuditDraftFinding, err := adfcs.auditDraftFindingSvc.GetByID(auditDraftFindingID)
 	if err != nil {
 		return err
+	}
+
+	oldAuditDraftFindingConversation, err := adfcs.repo.GetFullDetailsByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
 	}
 
 	existingAuditDraftFindingConversation, err := adfcs.GetByID(auditDraftFindingID, id)
@@ -382,7 +685,52 @@ func (adfcs *AuditDraftFindingConversationService) Update(auditDraftFindingID ui
 		}
 	}
 	tx.Commit()
+	go func() {
+		existingAuditDraftFindingConversation, err := adfcs.repo.GetFullDetailsByID(id)
+		if err != nil {
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"comment": oldAuditDraftFindingConversation.Comment,
+			"type":    oldAuditDraftFindingConversation.Type,
+		}
 
+		newData := map[string]interface{}{
+			"comment": existingAuditDraftFindingConversation.Comment,
+			"type":    existingAuditDraftFindingConversation.Type,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := adfcs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditDraftFindingConversation{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditDraftFindingConversation{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 	return nil
 }
 
@@ -396,6 +744,7 @@ func (adfcs *AuditDraftFindingConversationService) Delete(auditDraftFindingID ui
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedAuditDraftFindingConversation []map[string]interface{}
 	documentsToDelete := make(map[uint][]*dtos.AuditDraftFindingConversationDocumentDTO)
 
 	for _, id := range ids {
@@ -423,6 +772,12 @@ func (adfcs *AuditDraftFindingConversationService) Delete(auditDraftFindingID ui
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedAuditDraftFindingConversation = append(deletedAuditDraftFindingConversation, map[string]interface{}{
+			"id":                  id,
+			"comment":             auditDraftFindingConversation.Comment,
+			"audit_draft_finding": auditDraftFindingConversation.AuditDraftFinding.Title,
+		})
 	}
 	if len(failedIds) > 0 {
 		tx.Rollback()
@@ -450,7 +805,7 @@ func (adfcs *AuditDraftFindingConversationService) Delete(auditDraftFindingID ui
 				models.DeleteAction,
 				models.AuditFinding{}.TableName(),
 				successfulIds,
-				nil,
+				deletedAuditDraftFindingConversation,
 				currentUserID,
 				nil,
 			)

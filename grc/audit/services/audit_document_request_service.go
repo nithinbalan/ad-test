@@ -13,6 +13,7 @@ import (
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -37,6 +38,7 @@ type AuditDocumentRequestService struct {
 	auditableItemSvc              AuditableItemServiceInterface
 	userSvc                       organizationServices.UserServiceInterface
 	notificationSvc               commonServices.NotificationServiceInterface
+	taskSvc                       taskServices.TaskServiceInterface
 }
 
 func NewAuditDocumentRequestService(
@@ -47,6 +49,7 @@ func NewAuditDocumentRequestService(
 	auditableItemSvc AuditableItemServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	taskSvc taskServices.TaskServiceInterface,
 ) AuditDocumentRequestServiceInterface {
 	return &AuditDocumentRequestService{
 		repo:                          repo,
@@ -56,6 +59,7 @@ func NewAuditDocumentRequestService(
 		auditableItemSvc:              auditableItemSvc,
 		userSvc:                       userSvc,
 		notificationSvc:               notificationSvc,
+		taskSvc:                       taskSvc,
 	}
 }
 
@@ -101,7 +105,7 @@ func (adrs *AuditDocumentRequestService) GetFullDetailsByID(id uint, tx ...utili
 	if documentRequest.Audit != nil && documentRequest.Audit.AuditPlan != nil {
 		// Create a map to track unique users by ID
 		uniqueUsers := make(map[int]bool)
-	
+
 		// Add TeamLead
 		if documentRequest.Audit.AuditPlan.TeamLead != nil {
 			teamLeadID := int(documentRequest.Audit.AuditPlan.TeamLead.ID)
@@ -122,7 +126,7 @@ func (adrs *AuditDocumentRequestService) GetFullDetailsByID(id uint, tx ...utili
 				uniqueUsers[teamLeadID] = true
 			}
 		}
-	
+
 		// Add Members
 		for _, member := range documentRequest.Audit.AuditPlan.Members {
 			if member.User != nil {
@@ -145,7 +149,7 @@ func (adrs *AuditDocumentRequestService) GetFullDetailsByID(id uint, tx ...utili
 				}
 			}
 		}
-	}	
+	}
 
 	documentRequestDTO.AuditTeams = auditTeams
 
@@ -168,9 +172,10 @@ func (adrs *AuditDocumentRequestService) GetFullDetailsByID(id uint, tx ...utili
 	return &documentRequestDTO, nil
 }
 
-
 func (adrs *AuditDocumentRequestService) Create(auditID uint, currentUserID uint, formDTO *auditDTOs.AuditDocumentRequestFormDTO) ([]uint, error) {
 	tx := adrs.repo.BeginTransaction()
+
+	var addedAuditDocumentRequest []map[string]interface{}
 
 	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
 		tx.Rollback()
@@ -250,7 +255,6 @@ func (adrs *AuditDocumentRequestService) Create(auditID uint, currentUserID uint
 				CreatedBYID:            itemDTO.CreatedBYID,
 			})
 		}
-
 		// Save the AuditableItems
 		if len(auditableItems) > 0 {
 			if err := adrs.repo.CreateAuditableItems(auditableItems, tx); err != nil {
@@ -259,15 +263,26 @@ func (adrs *AuditDocumentRequestService) Create(auditID uint, currentUserID uint
 			}
 		}
 
+		existingDocumentRequest, err := adrs.repo.GetFullDetailsByID(id, tx)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		addedAuditDocumentRequest = append(addedAuditDocumentRequest, map[string]interface{}{
+			"id":               id,
+			"document_request": existingDocumentRequest,
+		})
+
 		requestIDs = append(requestIDs, id)
 
 		// Log activity asynchronously
 		go func(requestID uint, formDTO *auditDTOs.AuditDocumentRequestFormDTO) {
-			err := adrs.activityLogSvc.LogActivity(
+			err := adrs.activityLogSvc.LogBulkActivities(
 				models.CreateAction,
 				models.AuditDocumentRequest{}.TableName(),
-				requestID,
-				formDTO,
+				requestIDs,
+				addedAuditDocumentRequest,
 				currentUserID,
 				nil,
 			)
@@ -294,6 +309,12 @@ func (adrs *AuditDocumentRequestService) Update(auditID uint, id uint, currentUs
 		tx.Rollback()
 		return err
 	}
+
+	oldDocumentRequest, err := adrs.GetFullDetailsByID(id)
+	if err != nil {
+		return err
+	}
+
 	documentRequest, err := adrs.repo.GetByID(id)
 	if err != nil {
 		tx.Rollback()
@@ -313,23 +334,47 @@ func (adrs *AuditDocumentRequestService) Update(auditID uint, id uint, currentUs
 	tx.Commit()
 
 	go func() {
-		err := adrs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.AuditDocumentRequest{}.TableName(),
-			id,
-			formDTO,
-			currentUserID,
-			nil,
-		)
+		existingCommencementLetter, err := adrs.GetFullDetailsByID(id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.AuditDocumentRequest{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		// log changes
+		oldData := map[string]interface{}{
+			"title":       oldDocumentRequest.Title,
+			"description": oldDocumentRequest.Description,
+		}
+
+		newData := map[string]interface{}{
+			"title":       existingCommencementLetter.Title,
+			"description": existingCommencementLetter.Description,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := adrs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditDocumentRequest{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditDocumentRequest{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+				utility.LogError("Failed to log activity", fields)
 			}
-			utility.LogError("Failed to log activity", fields)
 		}
 	}()
 
@@ -337,17 +382,17 @@ func (adrs *AuditDocumentRequestService) Update(auditID uint, id uint, currentUs
 }
 
 func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUserID uint) error {
-	tx := adrs.repo.BeginTransaction()
 	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	documentRequest, err := adrs.repo.GetFullDetailsByID(id)
+	documentRequest, err := adrs.repo.GetByID(id)
 	if err != nil {
-		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
 	}
+
+	tx := adrs.repo.BeginTransaction()
+
 	documentRequestFullDetails, err := adrs.GetFullDetailsByID(id, tx)
 	if err != nil {
 		tx.Rollback()
@@ -371,6 +416,25 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	// Create a task for the document submission
+	urlParam := fmt.Sprintf(`{"audit_id":%d,"document_request_id":%d}`, auditID, id)
+
+	taskDTO := commonDTOs.TaskFormDTO{
+		ModuleIdentifier:       "audit",
+		AuditDocumentRequestID: &id,
+		Title:                  documentRequestFullDetails.Title,
+		Description:            documentRequestFullDetails.Description,
+		// TargetDate:             documentRequestFullDetails.Audit.EndDateString,
+		URLParam:          &urlParam,
+		QueryParam:        nil,
+		ResponsibleUserID: documentRequest.ResponsibleUserID,
+	}
+
+	if _, err := adrs.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to create task: %w", err)
 	}
 
 	// todo -> send email notifications to responsible users
@@ -405,7 +469,7 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 		}
 
 		responsibleUserID := documentRequest.ResponsibleUserID
-		responsibleUser, err := adrs.userSvc.GetByID(responsibleUserID)
+		responsibleUser, err := adrs.userSvc.GetByID(uint(responsibleUserID))
 		if err != nil {
 			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 				"userID": responsibleUserID,
@@ -414,7 +478,7 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 			return
 		}
 
-		requestedBy, err := adrs.userSvc.GetByID(*documentRequest.RequestedBYID)
+		requestedBy, err := adrs.userSvc.GetByID(uint(*documentRequest.RequestedBYID))
 		if err != nil {
 			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
 				"error": err.Error(),
@@ -428,14 +492,14 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 		appURL := utility.GetAppURL()
 
 		dbNotification := &commonDTOs.DBNotificationDTO{
-			UserID:               responsibleUserID,
+			UserID:               uint(responsibleUserID),
 			ModuleIdentifier:     "audit",
 			NotificationType:     string(commonDTOs.InformationType),
-			ReferenceNumber:      documentRequest.Audit.AuditPlan.ReferenceNumber,
+			ReferenceNumber:      documentRequestFullDetails.Audit.AuditPlan.ReferenceNumber,
 			HeadingEn:            "New Document Submitted",
 			HeadingAr:            "تم تقديم مستند جديد",
-			TitleEn:              documentRequest.Title,
-			TitleAr:              documentRequest.Title,
+			TitleEn:              documentRequestFullDetails.Title,
+			TitleAr:              documentRequestFullDetails.Title,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
@@ -445,15 +509,15 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 
 		emailNotification := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              []string{responsibleUser.Email},
-			Subject:              fmt.Sprintf("Document Submitted: %s", documentRequest.Title),
+			Subject:              fmt.Sprintf("Document Submitted: %s", documentRequestFullDetails.Title),
 			TemplateRelativePath: "audit/templates/email/audit_document_submitted.html",
 			EmailData: map[string]interface{}{
 				"FirstNameEn":     responsibleUser.FirstNameEn,
 				"LastNameEn":      responsibleUser.LastNameEn,
-				"AuditTitle":      documentRequest.Audit.AuditPlan.Title,
-				"Title":           documentRequest.Title,
-				"Description":     documentRequest.Description,
-				"ResponsibleUnit": documentRequest.ResponsibleUnit.TitleEn,
+				"AuditTitle":      documentRequestFullDetails.Audit.AuditPlan.Title,
+				"Title":           documentRequestFullDetails.Title,
+				"Description":     documentRequestFullDetails.Description,
+				"ResponsibleUnit": documentRequestFullDetails.ResponsibleUnit.TitleEn,
 				"RequestedBy":     fmt.Sprintf("%s %s", requestedBy.FirstNameEn, requestedBy.LastNameEn),
 				"RequestedAt":     time.Now().Format("2006-01-02"),
 				"RedirectURL":     fmt.Sprintf("%saudit/audits/%d/document-request", appURL, auditID),

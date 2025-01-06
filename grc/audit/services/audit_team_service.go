@@ -207,11 +207,19 @@ func (ats *AuditTeamService) Create(currentUserID uint, auditTeamFormDTO *auditD
 	tx.Commit()
 
 	go func() {
-		err := ats.activityLogSvc.LogActivity(
+		existingAuditTeam, err := ats.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit team", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = ats.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditTeam{}.TableName(),
 			id,
-			auditTeamFormDTO,
+			existingAuditTeam,
 			currentUserID,
 			nil,
 		)
@@ -234,6 +242,12 @@ func (ats *AuditTeamService) Create(currentUserID uint, auditTeamFormDTO *auditD
 
 func (ats *AuditTeamService) Update(id uint, currentUserID uint, auditTeamFormDTO *auditDTOs.AuditTeamFormDTO) error {
 	tx := ats.repo.BeginTransaction()
+
+	oldAuditTeam, err := ats.repo.GetFullDetailsByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
 
 	existingAuditTeam, err := ats.GetByID(id)
 
@@ -308,7 +322,78 @@ func (ats *AuditTeamService) Update(id uint, currentUserID uint, auditTeamFormDT
 		}
 	}
 	tx.Commit()
+	go func() {
+		existingAuditTeam, err := ats.repo.GetFullDetailsByID(id)
+		if err != nil {
+			return
+		}
 
+		usersAdded := []uint{}
+		usersRemoved := []uint{}
+		for id := range newUserIDs {
+			if !existingUserIDs[id] {
+				usersAdded = append(usersAdded, id)
+			}
+		}
+		for id := range existingUserIDs {
+			if !newUserIDs[id] {
+				usersRemoved = append(usersRemoved, id)
+			}
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
+
+		if len(usersAdded) > 0 || len(usersRemoved) > 0 {
+			associatedItems["user_ids"] = map[string]interface{}{
+				"added":   usersAdded,
+				"removed": usersRemoved,
+			}
+		}
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+		//log changes
+		oldData := map[string]interface{}{
+			"title_en":  oldAuditTeam.TitleEn,
+			"title_ar":  oldAuditTeam.TitleAr,
+			"team_lead": fmt.Sprintf("%s %s", oldAuditTeam.TeamLead.FirstNameEn, oldAuditTeam.TeamLead.LastNameEn),
+		}
+
+		newData := map[string]interface{}{
+			"title_en":  existingAuditTeam.TitleEn,
+			"title_ar":  existingAuditTeam.TitleAr,
+			"team_lead": fmt.Sprintf("%s %s", existingAuditTeam.TeamLead.FirstNameEn, existingAuditTeam.TeamLead.LastNameEn),
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := ats.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditTeam{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditTeam{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 	return nil
 }
 
@@ -316,7 +401,7 @@ func (ats *AuditTeamService) Delete(ids []uint, currentUserID uint) ([]uint, err
 	tx := ats.repo.BeginTransaction()
 	var failedIds []uint
 	var successfulIds []uint
-
+	var deletedAuditTeam []map[string]interface{}
 	for _, id := range ids {
 		auditTeam, err := ats.GetFullDetailsByID(id, tx)
 		if err != nil {
@@ -341,6 +426,12 @@ func (ats *AuditTeamService) Delete(ids []uint, currentUserID uint) ([]uint, err
 			continue
 		}
 		successfulIds = append(successfulIds, id)
+
+		deletedAuditTeam = append(deletedAuditTeam, map[string]interface{}{
+			"id":       id,
+			"title_en": auditTeam.TitleEn,
+			"title_ar": auditTeam.TitleAr,
+		})
 	}
 
 	if len(failedIds) > 0 {
@@ -356,7 +447,7 @@ func (ats *AuditTeamService) Delete(ids []uint, currentUserID uint) ([]uint, err
 				models.DeleteAction,
 				models.AuditTeam{}.TableName(),
 				successfulIds,
-				nil,
+				deletedAuditTeam,
 				currentUserID,
 				nil,
 			)

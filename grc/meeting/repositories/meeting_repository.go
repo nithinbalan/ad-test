@@ -14,7 +14,7 @@ import (
 
 type MeetingRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(currentUserID uint, params *meetingDTOs.MeetingListQueryParamsDTO) (*meetingDTOs.MeetingListResponseDTO, error)
+	GetAll(currentUserID uint, params *meetingDTOs.MeetingListQueryParamsDTO, isSuperAdmin bool) (*meetingDTOs.MeetingListResponseDTO, error)
 	GetByID(id uint) (*models.Meeting, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Meeting, error)
 	Create(meeting *models.Meeting, tx ...utility.DatabaseTransaction) (uint, error)
@@ -37,6 +37,7 @@ type MeetingRepositoryInterface interface {
 	DeleteMeetingIncidents(incidentIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetAllCounts(meetingID uint) (*meetingDTOs.MeetingsCountResponseDTO, error)
+	GetMeetingEffectiveness(meetingID uint) (float64, error)
 }
 
 type MeetingRepository struct {
@@ -53,7 +54,7 @@ func (repo *MeetingRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.MeetingListQueryParamsDTO) (*meetingDTOs.MeetingListResponseDTO, error) {
+func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.MeetingListQueryParamsDTO, isSuperAdmin bool) (*meetingDTOs.MeetingListResponseDTO, error) {
 	var meetings []*meetingDTOs.MeetingListDTO
 	var totalCount int64
 
@@ -114,8 +115,10 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
             LEFT JOIN users AS created_user ON created_user.id = meetings.created_by_id
             LEFT JOIN users AS updated_user ON updated_user.id = meetings.updated_by_id
         `)
-		//.Where("(meetings.is_public = ? OR meetings.organizer_id = ? OR meetings.id IN (SELECT meeting_id FROM meeting_participants WHERE user_id = ?))", true, currentUserID, currentUserID)
-
+    // Apply filters based on user role(if super admin list all meetings else based on follwing condition)
+    if !isSuperAdmin {
+        query = query.Where("(meetings.is_public = ? OR meetings.organizer_id = ? OR meetings.id IN (SELECT meeting_id FROM meeting_participants WHERE user_id = ?))", true, currentUserID, currentUserID)
+    }
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
@@ -510,4 +513,35 @@ func (repo *MeetingRepository) GetAllCounts(meetingID uint) (*meetingDTOs.Meetin
 		Mom:        int(momCount),
 		ActionPlan: int(actionPlanCount),
 	}, nil
+}
+
+func (repo *MeetingRepository) GetMeetingEffectiveness(meetingID uint) (float64, error) {
+	var closedCount, openCount int64
+
+	// Count closed MoMs
+	err := repo.db.Model(&models.MeetingMinute{}).
+		Joins("JOIN meeting_minute_statuses ON meeting_minute_statuses.id = meeting_minutes.meeting_minute_status_id").
+		Where("meeting_minutes.meeting_id = ? AND meeting_minute_statuses.type = ?", meetingID, "closed").
+		Count(&closedCount).Error
+	if err != nil {
+		return 0, err
+	}
+
+	// Count open MoMs
+	err = repo.db.Model(&models.MeetingMinute{}).
+		Joins("JOIN meeting_minute_statuses ON meeting_minute_statuses.id = meeting_minutes.meeting_minute_status_id").
+		Where("meeting_minutes.meeting_id = ? AND meeting_minute_statuses.type = ?", meetingID, "open").
+		Count(&openCount).Error
+	if err != nil {
+		return 0, err
+	}
+
+	// Calculate effectiveness
+	total := closedCount + openCount
+	if total == 0 {
+		return 0, nil // Avoid division by zero; no MoMs means effectiveness is 0
+	}
+
+	effectiveness := float64(closedCount) / float64(total)
+	return effectiveness, nil
 }

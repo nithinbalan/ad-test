@@ -33,10 +33,17 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 	userIdsStr := c.Query("user_ids")
+	roleIdsStr := c.Query("role_ids")
 
 	userIds, err := utility.ParseCommaSeparatedStringToIntArray(userIdsStr)
 	if err != nil {
 		utility.SendInvalidErrResp(c, errors.New("invalid 'user_ids' parameter"))
+		return
+	}
+
+	roleIds, err := utility.ParseCommaSeparatedStringToIntArray(roleIdsStr)
+	if err != nil {
+		utility.SendInvalidErrResp(c, errors.New("invalid 'role_ids' parameter"))
 		return
 	}
 
@@ -105,6 +112,7 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		Page:        page,
 		PageSize:    pageSize,
 		UserIDs:     userIds,
+		RoleIDs:     roleIds,
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		Export:      export,

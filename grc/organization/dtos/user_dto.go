@@ -98,6 +98,7 @@ type SendNewPasswordEmailDTO struct {
 	LastNameEn  string `json:"last_name_en"`
 	Email       string `json:"email"`
 	Password    string `json:"password"`
+	RedirectURL string `json:"redirect_url"`
 }
 
 type OrganizationUnit1DTO struct {

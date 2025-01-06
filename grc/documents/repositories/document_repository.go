@@ -84,6 +84,7 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 	document_statuses.title_en AS document_status_title_en,
 	document_statuses.title_ar AS document_status_title_ar,
 	document_statuses.color_code AS document_status_color_code,
+	document_statuses.type AS document_status_type,
 	created_user.id AS created_user_id,
     created_user.first_name_en AS created_user_first_name_en,
 	created_user.first_name_ar AS created_user_first_name_ar,

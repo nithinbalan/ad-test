@@ -1229,7 +1229,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title":            oldRiskRegister.Title,
 			"description":      oldRiskRegister.Description,

@@ -13,6 +13,7 @@ type ProcessAssociatedItemRepositoryInterface interface {
 	GetAllRisks(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemRiskListResponseDTO, error)
 	GetAllIncidents(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error)
 	GetAllDocuments(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemDocumentListResponseDTO, error)
+	GetAllAssets(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemAssetListResponseDTO, error)
 	GetAllAssociatedCounts(processID uint) (*organizationDTOs.ProcessAssociatedItemsCountResponseDTO, error)
 }
 
@@ -400,6 +401,88 @@ func (repo *ProcessAssociatedItemRepository) GetAllDocuments(processID uint, par
 
 	response := &organizationDTOs.ProcessAssociatedItemDocumentListResponseDTO{
 		Items: documentList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *ProcessAssociatedItemRepository) GetAllAssets(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemAssetListResponseDTO, error) {
+	var assetList []*organizationDTOs.ProcessAssetListDTO
+	var totalCount int64
+
+	query := repo.db.Table("process_assets").
+		Select(`
+			process_assets.id,
+			process_assets.asset_register_id,
+			process_assets.process_id,
+			asset_register.reference_number,
+			asset_register.title_en,
+			asset_register.title_ar,
+			asset_register.location,
+			asset_register.description,
+			CONVERT(VARCHAR, asset_register.acquisition_date, 23) AS acquisition_date,
+			asset_types.title_en AS asset_type_title_en,
+			asset_types.title_ar AS asset_type_title_ar,
+			asset_categories.title_en AS asset_category_title_en,
+			asset_categories.title_ar AS asset_category_title_ar,
+			asset_statuses.title_en AS asset_status_title_en,
+			asset_statuses.title_ar AS asset_status_title_ar,
+			asset_statuses.color_code AS asset_status_color_code,
+			asset_register.total_score
+		`).
+		Joins(`
+			LEFT JOIN asset_register ON asset_register.id = process_assets.asset_register_id
+			LEFT JOIN asset_types ON asset_types.id = asset_register.asset_type_id
+			LEFT JOIN asset_categories ON asset_categories.id = asset_register.asset_category_id
+			LEFT JOIN asset_statuses ON asset_statuses.id = asset_register.asset_status_id
+		`).
+		Where("process_assets.process_id = ?", processID)
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(asset_register.title_en LIKE ? OR
+			asset_register.title_ar LIKE ? OR
+			asset_register.reference_number LIKE ? OR
+			asset_register.description LIKE ? OR
+			asset_types.title_en LIKE ? OR
+			asset_types.title_ar LIKE ? OR
+			asset_categories.title_en LIKE ? OR
+			asset_categories.title_ar LIKE ? OR
+			asset_statuses.title_en LIKE ? OR
+			asset_statuses.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "asset_register.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&assetList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &organizationDTOs.ProcessAssociatedItemAssetListResponseDTO{
+		Items: assetList,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
 			PageSize:    params.PageSize,

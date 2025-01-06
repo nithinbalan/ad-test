@@ -42,8 +42,8 @@ func (krc *KRIRegisterController) GetAllKRIRegisters(c *gin.Context) {
 		"kri_category_ids",
 		"risk_level_ids",
 		"review_frequency_ids",
-		"owner_ids",
-		"owner_unit_ids",
+		"responsible_user_ids",
+		"responsible_unit_ids",
 	}
 
 	validSortFields := map[string]string{
@@ -90,6 +90,9 @@ func (krc *KRIRegisterController) GetAllKRIRegisters(c *gin.Context) {
 		return
 	}
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
 	queryParams := riskDTOs.KRIRegisterListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      dbField,
@@ -100,6 +103,8 @@ func (krc *KRIRegisterController) GetAllKRIRegisters(c *gin.Context) {
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 	kriRegisters, err := krc.service.GetAll(&queryParams)
 
