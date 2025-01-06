@@ -436,8 +436,21 @@ func (biac *BusinessImpactAssessmentController) GetBIAMatrix(c *gin.Context) {
 	validSortFields := map[string]string{
 		"business_function_title": "business_functions.title",
 		"process_title_en":        "processes.title_en",
+		"process_title_ar":        "processes.title_ar",
 		"risk_level_title_en":     "risk_levels.title_en",
+		"risk_level_title_ar":     "risk_levels.title_ar",
 		"rto":                     "processes.rto",
+		"mtp":                     "processes.mtpd",
+		"rpo":                     "processes.rpo",
+		"rto_unit_title_en":       "time_units_rto.title_en",
+		"rto_unit_title_ar":       "time_units_rto.title_ar",
+		"mtp_unit_title_en":       "time_units_mtpd.title_en",
+		"mtp_unit_title_ar":       "time_units_mtpd.title_ar",
+		"rpo_unit_title_en":       "time_units_rpo.title_en",
+		"rpo_unit_title_ar":       "time_units_rpo.title_ar",
+		"risk_level_id":           "processes.risk_level_id",
+		"created_at":              "processes.created_at",
+		"updated_at":              "processes.updated_at",
 	}
 
 	sortField, valid := validSortFields[sortBy]

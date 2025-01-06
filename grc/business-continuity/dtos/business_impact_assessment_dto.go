@@ -170,13 +170,13 @@ type BIAMatrixResponseDTO struct {
 	ProcessRPO             int     `json:"process_rpo"`
 	ProcessRTOUnitTitleEn  *string `json:"process_rto_unit_title_en"`
 	ProcessRTOUnitTitleAr  *string `json:"process_rto_unit_title_ar"`
-	ProcessMTPDUnitID      *int    `json:"process_mtpd_unit_id"`
+	ProcessMTPDUnitID      *uint   `json:"process_mtpd_unit_id"`
 	ProcessMTPDUnitTitleEn *string `json:"process_mtpd_unit_title_en"`
 	ProcessMTPDUnitTitleAr *string `json:"process_mtpd_unit_title_ar"`
-	ProcessRPOUnitID       *int    `json:"process_rpo_unit_id"`
+	ProcessRPOUnitID       *uint   `json:"process_rpo_unit_id"`
 	ProcessRPOUnitTitleEn  *string `json:"process_rpo_unit_title_en"`
 	ProcessRPOUnitTitleAr  *string `json:"process_rpo_unit_title_ar"`
-	RiskLevelID            *int    `json:"risk_level_id"`
+	RiskLevelID            *uint   `json:"risk_level_id"`
 	RiskLevelTitleEn       *string `json:"risk_level_title_en"`
 	RiskLevelTitleAr       *string `json:"risk_level_title_ar"`
 }

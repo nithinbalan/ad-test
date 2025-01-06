@@ -344,17 +344,17 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
         processes.rto AS process_rto,
         processes.mtpd AS process_mtpd,
         processes.rpo AS process_rpo,
-        COALESCE(time_units_rto.title_en, NULL) AS process_rto_unit_title_en, 
-        COALESCE(time_units_rto.title_ar, NULL) AS process_rto_unit_title_ar,
-        COALESCE(processes.mtpd_unit_id, NULL) AS process_mtpd_unit_id,
-        COALESCE(time_units_mtpd.title_en, NULL) AS process_mtpd_unit_title_en, 
-        COALESCE(time_units_mtpd.title_ar, NULL) AS process_mtpd_unit_title_ar,
-        COALESCE(processes.rpo_unit_id, NULL) AS process_rpo_unit_id,
-        COALESCE(time_units_rpo.title_en, NULL) AS process_rpo_unit_title_en, 
-        COALESCE(time_units_rpo.title_ar, NULL) AS process_rpo_unit_title_ar,
-        COALESCE(processes.risk_level_id, NULL) AS risk_level_id,
-        COALESCE(risk_levels.title_en, NULL) AS risk_level_title_en, 
-        COALESCE(risk_levels.title_ar, NULL) AS risk_level_title_ar
+        time_units_rto.title_en AS process_rto_unit_title_en,
+        time_units_rto.title_ar AS process_rto_unit_title_ar,
+        processes.mtpd_unit_id AS process_mtpd_unit_id,
+        time_units_mtpd.title_en AS process_mtpd_unit_title_en,
+        time_units_mtpd.title_ar AS process_mtpd_unit_title_ar,
+        processes.rpo_unit_id AS process_rpo_unit_id,
+        time_units_rpo.title_en AS process_rpo_unit_title_en,
+        time_units_rpo.title_ar AS process_rpo_unit_title_ar,
+        processes.risk_level_id AS risk_level_id,
+        risk_levels.title_en AS risk_level_title_en,
+        risk_levels.title_ar AS risk_level_title_ar
     `).
 		Joins(`
         INNER JOIN business_functions ON business_functions.id = business_function_processes.business_function_id
