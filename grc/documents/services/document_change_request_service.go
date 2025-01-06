@@ -47,6 +47,8 @@ type DocumentChangeRequestServiceInterface interface {
 
 	GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error)
 	GetDocumentCRLastEditSummary(id uint) (*documentDTOs.DocumentLastEditSummaryDTO, error)
+
+	ExportDocumentChangeRequest(data []*documentDTOs.DocumentChangeRequestListDTO, currentUserID uint) (*os.File, error)
 }
 
 type DocumentChangeRequestService struct {
@@ -57,11 +59,13 @@ type DocumentChangeRequestService struct {
 	documentChangeRequestWorkflowSvc DocumentChangeRequestWorkflowServiceInterface
 	documentCRWorkflowStatusSvc      DocumentChangeRequestWorkflowStatusServiceInterface
 	documentSvc                      DocumentServiceInterface
+	documentStatusSvc                DocumentStatusServiceInterface
 	taskSvc                          taskServices.TaskServiceInterface
 	notificationSvc                  commonServices.NotificationServiceInterface
 	userSvc                          organizationSvc.UserServiceInterface
 	documentAccessSvc                DocumentAccessServiceInterface
 	orgLevelSvc                      settingsSvc.OrganizationLevelServiceInterface
+	userSettingSvc                   organizationSvc.UserSettingServiceInterface
 }
 
 func NewDocumentChangeRequestService(
@@ -71,11 +75,13 @@ func NewDocumentChangeRequestService(
 	documentChangeRequestStatusSvc DocumentChangeRequestStatusServiceInterface,
 	documentCRWorkflowStatusSvc DocumentChangeRequestWorkflowStatusServiceInterface,
 	documentSvc DocumentServiceInterface,
+	documentStatusSvc DocumentStatusServiceInterface,
 	taskSvc taskServices.TaskServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
 	documentAccessSvc DocumentAccessServiceInterface,
 	orgLevelSvc settingsSvc.OrganizationLevelServiceInterface,
+	userSettingSvc organizationSvc.UserSettingServiceInterface,
 ) DocumentChangeRequestServiceInterface {
 	return &DocumentChangeRequestService{
 		repo:                           repo,
@@ -84,11 +90,13 @@ func NewDocumentChangeRequestService(
 		documentChangeRequestStatusSvc: documentChangeRequestStatusSvc,
 		documentCRWorkflowStatusSvc:    documentCRWorkflowStatusSvc,
 		documentSvc:                    documentSvc,
+		documentStatusSvc:              documentStatusSvc,
 		taskSvc:                        taskSvc,
 		notificationSvc:                notificationSvc,
 		userSvc:                        userSvc,
 		documentAccessSvc:              documentAccessSvc,
 		orgLevelSvc:                    orgLevelSvc,
+		userSettingSvc:                 userSettingSvc,
 	}
 }
 
@@ -147,7 +155,7 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 	}
 
 	if len(existingChangeRequests) > 0 {
-		return 0, utility.NewForbiddenError("cannot create a new change request for this document as there are existing change requests not in a published status")
+		return 0, utility.NewResourceConflictError(errors.New("cannot create a new change request for this document as there are existing change requests not in a published status"))
 	}
 
 	changeRequestStatus, err := dcrs.documentChangeRequestStatusSvc.GetByType("draft")
@@ -172,10 +180,15 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 		newVersion = currentVersion + 0.1
 	} else if documentChangeRequestType.Type == "major" {
 		newVersion = currentVersion + 1.0
-	} else {
-		tx.Rollback()
-		return 0, fmt.Errorf("invalid document change request type")
+	} else if documentChangeRequestType.Type == "restore-with-minor-update" {
+		newVersion = currentVersion + 0.1
+	} else if documentChangeRequestType.Type == "restore-with-major-update" {
+		newVersion = currentVersion + 1.0
 	}
+	// else {
+	// 	tx.Rollback()
+	// 	return 0, fmt.Errorf("invalid document change request type")
+	// }
 
 	changeRequest := &models.DocumentChangeRequest{
 		ReferenceNumber:                 referenceNumber,
@@ -194,31 +207,63 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 		return 0, err
 	}
 
-	dataToEncrypt := []byte(formDTO.Document.FileName)
-	encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-	url := utility.GenerateDocumentURL("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
-	document := &models.DocumentChangeRequestDocument{
-		DocumentChangeRequestID: id,
-		URL:                     url,
-		Name:                    formDTO.Document.FileName,
-		Size:                    formDTO.Document.Size,
-		Token:                   encryptedFileName,
-		OriginalName:            &formDTO.Document.OriginalName,
-		Type:                    formDTO.Document.Type,
-	}
+	var storagePath string
+	var is_pdf bool = false
+	if documentChangeRequestType.Type != "archive" && documentChangeRequestType.Type != "restore" {
+		dataToEncrypt := []byte(formDTO.Document.FileName)
+		encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		url := utility.GenerateDocumentURL("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+		document := &models.DocumentChangeRequestDocument{
+			DocumentChangeRequestID: id,
+			URL:                     url,
+			Name:                    formDTO.Document.FileName,
+			Size:                    formDTO.Document.Size,
+			Token:                   encryptedFileName,
+			OriginalName:            &formDTO.Document.OriginalName,
+			Type:                    formDTO.Document.Type,
+		}
 
-	if err := dcrs.repo.CreateDocument(document, tx); err != nil {
-		tx.Rollback()
-		return 0, err
-	}
+		if err := dcrs.repo.CreateDocument(document, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 
-	storagePath := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
-	if err := utility.StoreFile(formDTO.Document.FileName, storagePath); err != nil {
-		return 0, err
+		storagePath = filepath.Join("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.StoreFile(formDTO.Document.FileName, storagePath); err != nil {
+			return 0, err
+		}
+
+		is_pdf = true
+
+		documentCREditHistory := &documentDTOs.DocumentCREditHistoryDTO{
+			DocumentChangeRequestID: id,
+			ActionType:              "create",
+			FileName:                &formDTO.Document.FileName,
+			OriginalName:            &formDTO.Document.OriginalName,
+			Type:                    &formDTO.Document.Type,
+			Size:                    &formDTO.Document.Size,
+		}
+
+		err = dcrs.CreateDocumentCREditHistory(documentCREditHistory, &storagePath, currentUserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	} else {
+		documentCREditHistory := &documentDTOs.DocumentCREditHistoryDTO{
+			DocumentChangeRequestID: id,
+			ActionType:              "create",
+		}
+
+		err = dcrs.CreateDocumentCREditHistory(documentCREditHistory, nil, currentUserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	err = dcrs.documentChangeRequestWorkflowSvc.CreateDocumentCRWorkflow(id, formDTO.DocumentID, currentUserID, tx)
@@ -227,27 +272,15 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 		return 0, err
 	}
 
-	documentCREditHistory := &documentDTOs.DocumentCREditHistoryDTO{
-		DocumentChangeRequestID: id,
-		ActionType:              "create",
-		FileName:                &formDTO.Document.FileName,
-		OriginalName:            &formDTO.Document.OriginalName,
-		Type:                    &formDTO.Document.Type,
-		Size:                    &formDTO.Document.Size,
-	}
-
-	err = dcrs.CreateDocumentCREditHistory(documentCREditHistory, &storagePath, currentUserID, tx)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-
 	tx.Commit()
 
 	go func() {
-		if err := utility.ConvertDocxToPDF(storagePath, formDTO.Document.FileName, storagePath); err != nil {
-			log.Printf("Failed to convert document to PDF: %v", err)
+		if is_pdf {
+			if err := utility.ConvertDocxToPDF(storagePath, formDTO.Document.FileName, storagePath); err != nil {
+				log.Printf("Failed to convert document to PDF: %v", err)
+			}
 		}
+
 	}()
 
 	return id, nil
@@ -272,6 +305,11 @@ func (dcrs *DocumentChangeRequestService) Update(id uint, currentUserID uint, fo
 		}
 	}
 
+	documentChangeRequestType, err := dcrs.documentChangeRequestTypeSvc.GetByID(formDTO.DocumentChangeRequestTypeID)
+	if err != nil {
+		return err
+	}
+
 	existingCRFullDetails, err := dcrs.repo.GetFullDetailsByID(id)
 	if err != nil {
 		return err
@@ -290,82 +328,371 @@ func (dcrs *DocumentChangeRequestService) Update(id uint, currentUserID uint, fo
 	existingChangeRequest.ReasonForChange = formDTO.ReasonForChange
 	existingChangeRequest.UpdatedBYID = &currentUserID
 
+	// err = dcrs.repo.Update(existingChangeRequest, tx)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return err
+	// }
+
+	// Handle document changes
+	var isNewFileProvided bool
+	var storagePath string
+	if existingCRFullDetails.DocumentChangeRequestType.Type == "minor" || existingCRFullDetails.DocumentChangeRequestType.Type == "major" {
+		existingDocument, err := dcrs.repo.GetDocumentByChangeRequestID(id)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		if documentChangeRequestType.Type == "minor" || documentChangeRequestType.Type == "major" {
+			if formDTO.Document.IsNewFile != nil && *formDTO.Document.IsNewFile {
+				isNewFileProvided = true
+				existingDocumentFileName := existingDocument.Name
+				baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
+
+				// Encrypt file name
+				dataToEncrypt := []byte(formDTO.Document.FileName)
+				encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+				if err != nil {
+					tx.Rollback()
+					return err
+				}
+
+				// Generate file URL
+				url := utility.GenerateDocumentURL("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+
+				// Update document fields
+				existingDocument.URL = url
+				existingDocument.Name = formDTO.Document.FileName
+				existingDocument.Size = formDTO.Document.Size
+				existingDocument.Token = encryptedFileName
+				existingDocument.OriginalName = &formDTO.Document.OriginalName
+				existingDocument.Type = formDTO.Document.Type
+
+				// Save the document
+				err = dcrs.repo.UpdateDocument(existingDocument, tx)
+				if err != nil {
+					tx.Rollback()
+					return err
+				}
+
+				// Remove old file and store the new file
+				storagePath = filepath.Join("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
+				if err := utility.RemoveFile(existingDocument.Name, storagePath); err != nil {
+					tx.Rollback()
+					return err
+				}
+				pdfFileName := baseFileName + ".pdf"
+				if err := utility.RemoveFile(pdfFileName, storagePath); err != nil {
+					tx.Rollback()
+					return err
+				}
+
+				if err := utility.StoreFile(formDTO.Document.FileName, storagePath); err != nil {
+					tx.Rollback()
+					return err
+				}
+
+				documentCREditHistory := &documentDTOs.DocumentCREditHistoryDTO{
+					DocumentChangeRequestID: id,
+					ActionType:              "update",
+					FileName:                &formDTO.Document.FileName,
+					OriginalName:            &formDTO.Document.OriginalName,
+					Type:                    &formDTO.Document.Type,
+					Size:                    &formDTO.Document.Size,
+				}
+
+				err = dcrs.CreateDocumentCREditHistory(documentCREditHistory, &storagePath, currentUserID, tx)
+				if err != nil {
+					tx.Rollback()
+					return err
+				}
+			}
+		} else if documentChangeRequestType.Type == "archive" {
+			existingChangeRequest.Version = 0
+			isNewFileProvided = true
+			existingDocumentFileName := existingDocument.Name
+			baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
+
+			err := dcrs.repo.DeleteDocument(existingDocument.ID, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			documentCREditHistory := &documentDTOs.DocumentCREditHistoryDTO{
+				DocumentChangeRequestID: id,
+				ActionType:              "update",
+			}
+
+			err = dcrs.CreateDocumentCREditHistory(documentCREditHistory, nil, currentUserID, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			// Remove old file and store the new file
+			storagePath = filepath.Join("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
+			if err := utility.RemoveFile(existingDocument.Name, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+			pdfFileName := baseFileName + ".pdf"
+			if err := utility.RemoveFile(pdfFileName, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	} else if existingCRFullDetails.DocumentChangeRequestType.Type == "archive" {
+		if documentChangeRequestType.Type == "minor" || documentChangeRequestType.Type == "major" {
+			documentFullDetails, err := dcrs.documentSvc.GetFullDetailsByID(formDTO.DocumentID, nil, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			var newVersion float64
+			currentVersion := documentFullDetails.LatestDocumentVersion.Version
+			if documentChangeRequestType.Type == "minor" {
+				newVersion = currentVersion + 0.1
+			} else if documentChangeRequestType.Type == "major" {
+				newVersion = currentVersion + 1.0
+			}
+
+			existingChangeRequest.Version = newVersion
+
+			if formDTO.Document.IsNewFile != nil && *formDTO.Document.IsNewFile {
+				isNewFileProvided = true
+				dataToEncrypt := []byte(formDTO.Document.FileName)
+				encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+				if err != nil {
+					tx.Rollback()
+					return err
+				}
+				url := utility.GenerateDocumentURL("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+				document := &models.DocumentChangeRequestDocument{
+					DocumentChangeRequestID: id,
+					URL:                     url,
+					Name:                    formDTO.Document.FileName,
+					Size:                    formDTO.Document.Size,
+					Token:                   encryptedFileName,
+					OriginalName:            &formDTO.Document.OriginalName,
+					Type:                    formDTO.Document.Type,
+				}
+
+				if err := dcrs.repo.CreateDocument(document, tx); err != nil {
+					tx.Rollback()
+					return err
+				}
+
+				storagePath = filepath.Join("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
+				if err := utility.StoreFile(formDTO.Document.FileName, storagePath); err != nil {
+					return err
+				}
+
+				documentCREditHistory := &documentDTOs.DocumentCREditHistoryDTO{
+					DocumentChangeRequestID: id,
+					ActionType:              "update",
+					FileName:                &formDTO.Document.FileName,
+					OriginalName:            &formDTO.Document.OriginalName,
+					Type:                    &formDTO.Document.Type,
+					Size:                    &formDTO.Document.Size,
+				}
+
+				err = dcrs.CreateDocumentCREditHistory(documentCREditHistory, &storagePath, currentUserID, tx)
+				if err != nil {
+					tx.Rollback()
+					return err
+				}
+			}
+		}
+	} else if existingCRFullDetails.DocumentChangeRequestType.Type == "restore" {
+		if documentChangeRequestType.Type == "restore-with-minor-update" || documentChangeRequestType.Type == "restore-with-major-update" {
+			documentFullDetails, err := dcrs.documentSvc.GetFullDetailsByID(formDTO.DocumentID, nil, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			var newVersion float64
+			currentVersion := documentFullDetails.LatestDocumentVersion.Version
+			if documentChangeRequestType.Type == "restore-with-minor-update" {
+				newVersion = currentVersion + 0.1
+			} else if documentChangeRequestType.Type == "restore-with-major-update" {
+				newVersion = currentVersion + 1.0
+			}
+
+			existingChangeRequest.Version = newVersion
+
+			if formDTO.Document.IsNewFile != nil && *formDTO.Document.IsNewFile {
+				isNewFileProvided = true
+				dataToEncrypt := []byte(formDTO.Document.FileName)
+				encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+				if err != nil {
+					tx.Rollback()
+					return err
+				}
+				url := utility.GenerateDocumentURL("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+				document := &models.DocumentChangeRequestDocument{
+					DocumentChangeRequestID: id,
+					URL:                     url,
+					Name:                    formDTO.Document.FileName,
+					Size:                    formDTO.Document.Size,
+					Token:                   encryptedFileName,
+					OriginalName:            &formDTO.Document.OriginalName,
+					Type:                    formDTO.Document.Type,
+				}
+
+				if err := dcrs.repo.CreateDocument(document, tx); err != nil {
+					tx.Rollback()
+					return err
+				}
+
+				storagePath = filepath.Join("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
+				if err := utility.StoreFile(formDTO.Document.FileName, storagePath); err != nil {
+					return err
+				}
+
+				documentCREditHistory := &documentDTOs.DocumentCREditHistoryDTO{
+					DocumentChangeRequestID: id,
+					ActionType:              "update",
+					FileName:                &formDTO.Document.FileName,
+					OriginalName:            &formDTO.Document.OriginalName,
+					Type:                    &formDTO.Document.Type,
+					Size:                    &formDTO.Document.Size,
+				}
+
+				err = dcrs.CreateDocumentCREditHistory(documentCREditHistory, &storagePath, currentUserID, tx)
+				if err != nil {
+					tx.Rollback()
+					return err
+				}
+			}
+		}
+	} else if existingCRFullDetails.DocumentChangeRequestType.Type == "restore-with-minor-update" || existingCRFullDetails.DocumentChangeRequestType.Type == "restore-with-major-update" {
+		existingDocument, err := dcrs.repo.GetDocumentByChangeRequestID(id)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		if documentChangeRequestType.Type == "restore-with-minor-update" || documentChangeRequestType.Type == "restore-with-major-update" {
+
+			documentFullDetails, err := dcrs.documentSvc.GetFullDetailsByID(formDTO.DocumentID, nil, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			var newVersion float64
+			currentVersion := documentFullDetails.LatestDocumentVersion.Version
+			if documentChangeRequestType.Type == "restore-with-minor-update" {
+				newVersion = currentVersion + 0.1
+			} else if documentChangeRequestType.Type == "restore-with-major-update" {
+				newVersion = currentVersion + 1.0
+			}
+
+			existingChangeRequest.Version = newVersion
+
+			if formDTO.Document.IsNewFile != nil && *formDTO.Document.IsNewFile {
+				isNewFileProvided = true
+				existingDocumentFileName := existingDocument.Name
+				baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
+
+				// Encrypt file name
+				dataToEncrypt := []byte(formDTO.Document.FileName)
+				encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+				if err != nil {
+					tx.Rollback()
+					return err
+				}
+
+				// Generate file URL
+				url := utility.GenerateDocumentURL("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+
+				// Update document fields
+				existingDocument.URL = url
+				existingDocument.Name = formDTO.Document.FileName
+				existingDocument.Size = formDTO.Document.Size
+				existingDocument.Token = encryptedFileName
+				existingDocument.OriginalName = &formDTO.Document.OriginalName
+				existingDocument.Type = formDTO.Document.Type
+
+				// Save the document
+				err = dcrs.repo.UpdateDocument(existingDocument, tx)
+				if err != nil {
+					tx.Rollback()
+					return err
+				}
+
+				// Remove old file and store the new file
+				storagePath = filepath.Join("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
+				if err := utility.RemoveFile(existingDocument.Name, storagePath); err != nil {
+					tx.Rollback()
+					return err
+				}
+				pdfFileName := baseFileName + ".pdf"
+				if err := utility.RemoveFile(pdfFileName, storagePath); err != nil {
+					tx.Rollback()
+					return err
+				}
+
+				if err := utility.StoreFile(formDTO.Document.FileName, storagePath); err != nil {
+					tx.Rollback()
+					return err
+				}
+
+				documentCREditHistory := &documentDTOs.DocumentCREditHistoryDTO{
+					DocumentChangeRequestID: id,
+					ActionType:              "update",
+					FileName:                &formDTO.Document.FileName,
+					OriginalName:            &formDTO.Document.OriginalName,
+					Type:                    &formDTO.Document.Type,
+					Size:                    &formDTO.Document.Size,
+				}
+
+				err = dcrs.CreateDocumentCREditHistory(documentCREditHistory, &storagePath, currentUserID, tx)
+				if err != nil {
+					tx.Rollback()
+					return err
+				}
+			}
+		} else if documentChangeRequestType.Type == "restore" {
+			existingChangeRequest.Version = 0
+			isNewFileProvided = true
+			existingDocumentFileName := existingDocument.Name
+			baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
+
+			err := dcrs.repo.DeleteDocument(existingDocument.ID, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			documentCREditHistory := &documentDTOs.DocumentCREditHistoryDTO{
+				DocumentChangeRequestID: id,
+				ActionType:              "update",
+			}
+
+			err = dcrs.CreateDocumentCREditHistory(documentCREditHistory, nil, currentUserID, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			// Remove old file and store the new file
+			storagePath = filepath.Join("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
+			if err := utility.RemoveFile(existingDocument.Name, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+			pdfFileName := baseFileName + ".pdf"
+			if err := utility.RemoveFile(pdfFileName, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
 	err = dcrs.repo.Update(existingChangeRequest, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
-	}
-
-	// Handle document changes
-	existingDocument, err := dcrs.repo.GetDocumentByChangeRequestID(id)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	var isNewFileProvided bool
-	if formDTO.Document.IsNewFile != nil && *formDTO.Document.IsNewFile {
-		isNewFileProvided = true
-		existingDocumentFileName := existingDocument.Name
-		baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
-
-		// Encrypt file name
-		dataToEncrypt := []byte(formDTO.Document.FileName)
-		encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		// Generate file URL
-		url := utility.GenerateDocumentURL("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
-
-		// Update document fields
-		existingDocument.URL = url
-		existingDocument.Name = formDTO.Document.FileName
-		existingDocument.Size = formDTO.Document.Size
-		existingDocument.Token = encryptedFileName
-		existingDocument.OriginalName = &formDTO.Document.OriginalName
-		existingDocument.Type = formDTO.Document.Type
-
-		// Save the document
-		err = dcrs.repo.UpdateDocument(existingDocument, tx)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		// Remove old file and store the new file
-		storagePath := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
-		if err := utility.RemoveFile(existingDocument.Name, storagePath); err != nil {
-			tx.Rollback()
-			return err
-		}
-		pdfFileName := baseFileName + ".pdf"
-		if err := utility.RemoveFile(pdfFileName, storagePath); err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		if err := utility.StoreFile(formDTO.Document.FileName, storagePath); err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		documentCREditHistory := &documentDTOs.DocumentCREditHistoryDTO{
-			DocumentChangeRequestID: id,
-			ActionType:              "update",
-			FileName:                &formDTO.Document.FileName,
-			OriginalName:            &formDTO.Document.OriginalName,
-			Type:                    &formDTO.Document.Type,
-			Size:                    &formDTO.Document.Size,
-		}
-
-		err = dcrs.CreateDocumentCREditHistory(documentCREditHistory, &storagePath, currentUserID, tx)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
 	}
 
 	if existingChangeRequestDocumentID != formDTO.DocumentID {
@@ -559,9 +886,16 @@ func (dcrs *DocumentChangeRequestService) validateFormDTO(dto *documentDTOs.Docu
 	if _, err := dcrs.documentChangeRequestTypeSvc.GetByID(dto.DocumentChangeRequestTypeID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("document change request type does not exist"), "not_exist", "change request type")
 	}
-	err := dcrs.ValidateDocument(&dto.Document)
+
+	documentCRType, err := dcrs.documentChangeRequestTypeSvc.GetByID(dto.DocumentChangeRequestTypeID)
 	if err != nil {
 		return err
+	}
+	if documentCRType.Type == "minor" || documentCRType.Type == "major" {
+		err = dcrs.ValidateDocument(&dto.Document)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -589,6 +923,11 @@ func (dcrs *DocumentChangeRequestService) CheckoutDocument(id uint, currentUserI
 	if documentChangeRequest.DocumentChangeRequestStatus.Type != "draft" && documentChangeRequest.DocumentChangeRequestStatus.Type != "in-review" {
 		tx.Rollback()
 		return "", utility.NewForbiddenError("Checkout only allowed for documents in 'draft' or 'in-review' status.")
+	}
+
+	if documentChangeRequest.DocumentChangeRequestType.Type == "archive" || documentChangeRequest.DocumentChangeRequestType.Type != "restore" {
+		tx.Rollback()
+		return "", utility.NewForbiddenError("Checkout not allowed for document change request type archive and restore")
 	}
 
 	if documentChangeRequest.IsLocked {
@@ -663,6 +1002,11 @@ func (dcrs *DocumentChangeRequestService) CheckinDocument(id uint, currentUserID
 	if documentChangeRequest.DocumentChangeRequestStatus.Type != "draft" && documentChangeRequest.DocumentChangeRequestStatus.Type != "in-review" {
 		tx.Rollback()
 		return fmt.Errorf("checkin only allowed for documents in 'draft' or 'in-review' status")
+	}
+
+	if documentChangeRequest.DocumentChangeRequestType.Type == "archive" || documentChangeRequest.DocumentChangeRequestType.Type != "restore" {
+		tx.Rollback()
+		return utility.NewForbiddenError("Checkin not allowed for document change request type archive and restore")
 	}
 
 	if !documentChangeRequest.IsLocked {
@@ -767,6 +1111,11 @@ func (dcrs *DocumentChangeRequestService) RevertDocumentCheckout(id uint, curren
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	if documentCRFullDetails.DocumentChangeRequestType.Type == "archive" || documentCRFullDetails.DocumentChangeRequestType.Type != "restore" {
+		tx.Rollback()
+		return utility.NewForbiddenError("Checkout revert not allowed for document change request type archive and restore")
 	}
 
 	if !documentCRFullDetails.IsLocked {
@@ -1225,68 +1574,112 @@ func (dcrs *DocumentChangeRequestService) PublishDocumentChangeRequest(id uint, 
 		return err
 	}
 
-	existingLatestDocumentVersion, err := dcrs.documentSvc.GetDocumentVersionByID(documentFullDetails.LatestDocumentVersion.ID, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	existingLatestDocumentVersion.IsLatestVersion = false
+	if documentCRFullDetails.DocumentChangeRequestType.Type == "archive" {
+		documentStatus, err := dcrs.documentStatusSvc.GetByType("archived")
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 
-	err = dcrs.documentSvc.UpdateDocumentVersion(existingLatestDocumentVersion, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+		existingDocument, err := dcrs.documentSvc.GetByID(uint(documentCRFullDetails.Document.ID), tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 
-	//generate token
-	dataToEncrypt := []byte(documentCRFullDetails.ChangeRequestDocument.Name)
-	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
-	if err != nil {
-		return err
-	}
+		existingDocument.DocumentStatusID = documentStatus.ID
 
-	url := utility.GenerateDocumentURL("document", "published", strconv.FormatUint(uint64(documentCRFullDetails.Document.ID), 10), "documents")
+		err = dcrs.documentSvc.UpdateDocument(existingDocument, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 
-	documentVersion := &models.DocumentVersion{
-		DocumentID:      uint(documentCRFullDetails.Document.ID),
-		Version:         documentCRFullDetails.Version,
-		IsLatestVersion: true,
-		URL:             url,
-		Name:            documentCRFullDetails.ChangeRequestDocument.Name,
-		Size:            documentCRFullDetails.ChangeRequestDocument.Size,
-		Token:           encryptedFilename,
-		OriginalName:    &documentCRFullDetails.ChangeRequestDocument.OriginalName,
-		Type:            documentCRFullDetails.ChangeRequestDocument.Type,
-		CreatedBYID:     currentUserID,
-		PublishedBYID:   &currentUserID,
-		PublishedAt:     publishedAt,
-	}
+	} else if documentCRFullDetails.DocumentChangeRequestType.Type == "restore" {
+		documentStatus, err := dcrs.documentStatusSvc.GetByType("published")
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 
-	_, err = dcrs.documentSvc.CreateDocumentVersion(documentVersion, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+		existingDocument, err := dcrs.documentSvc.GetByID(uint(documentCRFullDetails.Document.ID), tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 
-	fileName := documentCRFullDetails.ChangeRequestDocument.Name
-	baseFileName := strings.TrimSuffix(fileName, filepath.Ext(fileName)) // Remove the extension to get the base name
+		existingDocument.DocumentStatusID = documentStatus.ID
 
-	sourceDir := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
-	destinationDir := filepath.Join("document", "published", strconv.FormatUint(uint64(documentCRFullDetails.Document.ID), 10), "documents")
+		err = dcrs.documentSvc.UpdateDocument(existingDocument, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	} else {
+		existingLatestDocumentVersion, err := dcrs.documentSvc.GetDocumentVersionByID(documentFullDetails.LatestDocumentVersion.ID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		existingLatestDocumentVersion.IsLatestVersion = false
 
-	//copy docx file
-	err = utility.CopyFileFromPaths(sourceDir, destinationDir, fileName)
-	if err != nil {
-		tx.Rollback()
-		return fmt.Errorf("error copying .docx file: %w", err)
-	}
+		err = dcrs.documentSvc.UpdateDocumentVersion(existingLatestDocumentVersion, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 
-	//copy pdf file
-	pdfFileName := baseFileName + ".pdf"
-	err = utility.CopyFileFromPaths(sourceDir, destinationDir, pdfFileName)
-	if err != nil {
-		tx.Rollback()
-		return fmt.Errorf("error copying .pdf file: %w", err)
+		//generate token
+		dataToEncrypt := []byte(documentCRFullDetails.ChangeRequestDocument.Name)
+		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
+			return err
+		}
+
+		url := utility.GenerateDocumentURL("document", "published", strconv.FormatUint(uint64(documentCRFullDetails.Document.ID), 10), "documents")
+
+		documentVersion := &models.DocumentVersion{
+			DocumentID:      uint(documentCRFullDetails.Document.ID),
+			Version:         documentCRFullDetails.Version,
+			IsLatestVersion: true,
+			URL:             url,
+			Name:            documentCRFullDetails.ChangeRequestDocument.Name,
+			Size:            documentCRFullDetails.ChangeRequestDocument.Size,
+			Token:           encryptedFilename,
+			OriginalName:    &documentCRFullDetails.ChangeRequestDocument.OriginalName,
+			Type:            documentCRFullDetails.ChangeRequestDocument.Type,
+			CreatedBYID:     currentUserID,
+			PublishedBYID:   &currentUserID,
+			PublishedAt:     publishedAt,
+		}
+
+		_, err = dcrs.documentSvc.CreateDocumentVersion(documentVersion, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		fileName := documentCRFullDetails.ChangeRequestDocument.Name
+		baseFileName := strings.TrimSuffix(fileName, filepath.Ext(fileName)) // Remove the extension to get the base name
+
+		sourceDir := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
+		destinationDir := filepath.Join("document", "published", strconv.FormatUint(uint64(documentCRFullDetails.Document.ID), 10), "documents")
+
+		//copy docx file
+		err = utility.CopyFileFromPaths(sourceDir, destinationDir, fileName)
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("error copying .docx file: %w", err)
+		}
+
+		//copy pdf file
+		pdfFileName := baseFileName + ".pdf"
+		err = utility.CopyFileFromPaths(sourceDir, destinationDir, pdfFileName)
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("error copying .pdf file: %w", err)
+		}
+
 	}
 
 	tx.Commit()
@@ -1458,4 +1851,88 @@ func (dcrs *DocumentChangeRequestService) notifyUsersOnPublish(documentChangeReq
 
 		}
 	}()
+}
+
+func (dcrs *DocumentChangeRequestService) ExportDocumentChangeRequest(data []*documentDTOs.DocumentChangeRequestListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := dcrs.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers based on user language setting
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"رقم",               // SL No.
+			"رقم الإشارة",       // Ref No.
+			"العنوان",           // Title
+			"نوع الطلب",         // Change Request Type
+			"سبب التغيير",       // Reason for Change
+			"الإصدار",           // Version
+			"تاريخ الإنشاء",     // Created At
+			"أنشئ بواسطة",       // Created By
+			"تم التحديث بواسطة", // Updated By
+			"الحالة",            // Status
+		}
+	} else {
+		headers = []string{
+			"SL No.",              // SL No.
+			"Ref No.",             // Ref No.
+			"Title",               // Title
+			"Change Request Type", // Change Request Type
+			"Reason for Change",   // Reason for Change
+			"Version",             // Version
+			"Created At",          // Created At
+			"Created By",          // Created By
+			"Updated By",          // Updated By
+			"Status",              // Status
+		}
+	}
+
+	// Prepare the data rows
+	rows := make([][]interface{}, len(data))
+	for i, documentCR := range data {
+		var refNo, title, changeRequestType, reasonForChange, createdAt, createdBy, updatedBy, status string
+		var version float64
+
+		// Assign values based on language preference
+		if userSetting.Language == "ar" {
+			refNo = documentCR.ReferenceNumber
+			title = documentCR.DocumentTitleAr
+			changeRequestType = documentCR.DocumentChangeRequestTypeAr
+			reasonForChange = *documentCR.ReasonForChange
+			version = documentCR.Version
+			createdAt = documentCR.CreatedAt.Format("02 يناير 2006 03:04 م") // Example Arabic date format
+			createdBy = utility.GetStringValue(documentCR.CreatedByUserFirstNameAr) + " " + utility.GetStringValue(documentCR.CreatedByUserLastNameAr)
+			updatedBy = utility.GetStringValue(documentCR.UpdatedByUserFirstNameAr) + " " + utility.GetStringValue(documentCR.UpdatedByUserLastNameAr)
+			status = documentCR.DocumentChangeRequestStatusTitleAr
+		} else {
+			refNo = documentCR.ReferenceNumber
+			title = documentCR.DocumentTitleEn
+			changeRequestType = documentCR.DocumentChangeRequestTypeEn
+			reasonForChange = *documentCR.ReasonForChange
+			version = documentCR.Version
+			createdAt = documentCR.CreatedAt.Format("Jan 02, 2006 03:04 PM") // Example English date format
+			createdBy = utility.GetStringValue(documentCR.CreatedByUserFirstNameEn) + " " + utility.GetStringValue(documentCR.CreatedByUserLastNameEn)
+			updatedBy = utility.GetStringValue(documentCR.UpdatedByUserFirstNameEn) + " " + utility.GetStringValue(documentCR.UpdatedByUserLastNameEn)
+			status = documentCR.DocumentChangeRequestStatusTitleEn
+		}
+
+		rows[i] = []interface{}{
+			i + 1,             // SL No.
+			refNo,             // Ref No.
+			title,             // Title
+			changeRequestType, // Change Request Type
+			reasonForChange,   // Reason for Change
+			version,           // Version
+			createdAt,         // Created At
+			createdBy,         // Created By
+			updatedBy,         // Updated By
+			status,            // Status
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }

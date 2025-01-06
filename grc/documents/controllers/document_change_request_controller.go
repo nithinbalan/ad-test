@@ -33,6 +33,12 @@ func (dcrc *DocumentChangeRequestController) GetAllDocumentChangeRequests(c *gin
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(dcrc.db, c, "Invalid export parameter")
+		return
+	}
+
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"document_change_request_type_ids",
@@ -81,11 +87,34 @@ func (dcrc *DocumentChangeRequestController) GetAllDocumentChangeRequests(c *gin
 		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
+		Export:      export,
 	}
 
 	documentChangeRequests, err := dcrc.service.GetAll(&params)
 	if err != nil {
 		utility.SendInternalErrResp(dcrc.db, c, err.Error())
+		return
+	}
+
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(dcrc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := dcrc.service.ExportDocumentChangeRequest(documentChangeRequests.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(dcrc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="DocumentChangeRequests.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
 		return
 	}
 
@@ -138,6 +167,9 @@ func (dcrc *DocumentChangeRequestController) CreateDocumentChangeRequest(c *gin.
 			return
 		case *utility.ForbiddenError:
 			utility.SendForbiddenErrResp(c, err.Error())
+			return
+		case *utility.ResourceConflictError:
+			utility.SendConflictErrResp(c, err.Error())
 			return
 		default:
 			utility.SendInternalErrResp(dcrc.db, c, e.Error())
@@ -367,6 +399,9 @@ func (dcrc *DocumentChangeRequestController) CheckinDocument(c *gin.Context) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, err.Error())
+			return
 		default:
 			utility.SendInternalErrResp(dcrc.db, c, e.Error())
 			return
@@ -483,4 +518,10 @@ func (dcrc *DocumentChangeRequestController) PublishDocumentChangeRequest(c *gin
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (dcrc *DocumentChangeRequestController) GetDocumentChangeRequestExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	dcrc.GetAllDocumentChangeRequests(c)
 }

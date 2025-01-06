@@ -49,15 +49,15 @@ type IncidentCommunicationLogParsedDates struct {
 }
 
 type IncidentCommunicationLogDetailDTO struct {
-	ID                   int                             `json:"id"`
-	CommunicatedAtString string                          `json:"communicated_at"`
-	CommunicatedBy       string                          `json:"communicated_by"`
-	CommunicatedTo       string                          `json:"communicated_to"`
-	CommunicationMethod  string                          `json:"communication_method"`
-	Summary              *string                         `json:"summary"`
-	IncidentRegister     IncidentRegisterDetailDTO       `json:"incident_register"`
-	CreatedAt            time.Time                       `json:"created_at"`
-	UpdatedAt            *time.Time                      `json:"updated_at"`
-	CreatedByUser        organizationDTOs.UserMinimalDTO `json:"created_by"`
-	UpdatedByUser        organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	ID                  int                             `json:"id"`
+	CommunicatedAt      time.Time                       `json:"communicated_at"`
+	CommunicatedBy      string                          `json:"communicated_by"`
+	CommunicatedTo      string                          `json:"communicated_to"`
+	CommunicationMethod string                          `json:"communication_method"`
+	Summary             *string                         `json:"summary"`
+	IncidentRegister    IncidentRegisterDetailDTO       `json:"incident_register"`
+	CreatedAt           time.Time                       `json:"created_at"`
+	UpdatedAt           *time.Time                      `json:"updated_at"`
+	CreatedByUser       organizationDTOs.UserMinimalDTO `json:"created_by"`
+	UpdatedByUser       organizationDTOs.UserMinimalDTO `json:"updated_by"`
 }

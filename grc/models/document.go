@@ -23,6 +23,12 @@ type Document struct {
 	LastCheckoutBYID      *uint      `json:"last_checkout_by_id" gorm:"default:null"`
 	LastCheckinAt         *time.Time `json:"last_checkin_at" gorm:"type:date;default:null"`
 	LastCheckinBYID       *uint      `json:"last_checkin_by_id" gorm:"default:null"`
+	Rto                   *uint      `json:"rto" gorm:"default:null"`
+	RtoUnitId             *uint      `json:"rto_uint_id" gorm:"default:null"`
+	Mtpd                  *uint      `json:"mtpd" gorm:"default:null"`
+	MtpdUnitId            *uint      `json:"mtpd_uint_id" gorm:"default:null"`
+	Rpo                   *uint      `json:"rpo" gorm:"default:null"`
+	RpoUnitId             *uint      `json:"rpo_uint_id" gorm:"default:null"`
 	CreatedBYID           uint       `json:"created_by_id" binding:"required" gorm:"not null"`
 	UpdatedBYID           *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt             time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`

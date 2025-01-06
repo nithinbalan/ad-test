@@ -97,6 +97,7 @@ type DocumentChangeRequestQueryParamsDTO struct {
 	PageSize    int
 	Filters     map[string][]string
 	QuickFilter []string
+	Export      bool
 }
 
 // List Response DTO
