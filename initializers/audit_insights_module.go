@@ -127,6 +127,7 @@ func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizatio
 		auditInsightsFindingActionPlanRepo,
 		sharedModule.ActivityLogService,
 		organizationModule.UserSvc,
+		auditModule.AuditFindingSvc,
 		auditModule.AuditFindingActionPlanSvc,
 	)
 	auditInsightsFindingActionPlanController := controllers.NewAuditInsightsFindingActionPlanController(auditInsightsFindingActionPlanSvc)
