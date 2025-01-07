@@ -44,6 +44,7 @@ func (dalc *DocumentAuditLogController) GetAllDocumentAuditLogs(c *gin.Context) 
 		"action_ar":       "document_audit_log_types.title_ar",
 		"performed_by_en": "users.first_name_en",
 		"performed_by_ar": "users.first_name_ar",
+		"version":         "document_versions.version",
 	}
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
