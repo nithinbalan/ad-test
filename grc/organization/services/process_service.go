@@ -1211,7 +1211,7 @@ func (ps *ProcessService) UpdateProcessRiskRating(process *models.Process, tx ut
 
 func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
 	headers := []string{
-		"ProcessGroupTitle", "OwnerID", "TitleEn", "TitleAr", "Description", "ControlIds",
+		"ProcessGroupTitle", "Owner", "TitleEn", "TitleAr", "Description", "Controls",
 	}
 
 	// Pass empty data for the template
@@ -1422,7 +1422,11 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 		}
 
 		// Add errors or success record
-		processedRecord["errors"] = rowErrors
+		if len(rowErrors) == 0 {
+			processedRecord["errors"] = nil
+		} else {
+			processedRecord["errors"] = rowErrors
+		}
 		validatedData = append(validatedData, processedRecord)
 	}
 
