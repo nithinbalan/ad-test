@@ -131,7 +131,7 @@ func (bfs *BusinessFunctionService) Create(currentUserID uint, businessFunctionF
 		process := &models.BusinessFunctionProcess{
 			BusinessFunctionID: id,
 			ProcessID:          *processID,
-			CreatedByID:        currentUserID,
+			CreatedBYID:        currentUserID,
 		}
 		processes = append(processes, process)
 	}
@@ -237,7 +237,7 @@ func (bfs *BusinessFunctionService) Update(id uint, currentUserID uint, business
 			process := &models.BusinessFunctionProcess{
 				BusinessFunctionID: id,
 				ProcessID:          *newProcessID,
-				CreatedByID:        currentUserID,
+				CreatedBYID:        currentUserID,
 			}
 			processesToAdd = append(processesToAdd, process)
 		}

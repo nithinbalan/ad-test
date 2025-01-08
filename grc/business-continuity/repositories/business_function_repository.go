@@ -185,6 +185,7 @@ func (repo *BusinessFunctionRepository) GetFullDetailsByID(id uint, tx ...utilit
 	result := db.
 		Preload("SeverityLevel").
 		Preload("Processes").
+		Preload("Processes.Process").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("ReviewFrequency").

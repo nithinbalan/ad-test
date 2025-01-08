@@ -21,6 +21,8 @@ type BusinessContinuityPlanServiceInterface interface {
 	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.BusinessContinuityPlanFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, businessContinuityPlan *businessContinuityDTOs.BusinessContinuityPlanFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	UpdateRecoveryObjectives(businessContinuityPlan *models.BusinessContinuityPlan, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -87,15 +89,6 @@ func (bcps BusinessContinuityPlanService) GetFullDetailsByID(id uint, tx ...util
 }
 
 func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessContinuityPlanFormDTO *businessContinuityDTOs.BusinessContinuityPlanFormDTO) (uint, error) {
-	// // First, check if an business continuity already exists for the given business function
-	// existingAudit, err := bcps.repo.GetBusinessContinuityPlanByBusinessFunctionID(businessContinuityPlanFormDTO.BusinessFunctionID)
-	// if err != nil {
-	// 	return 0, err // Handle DB query error
-	// }
-	// // If an business continuity plan already exists, return an error without starting a transaction
-	// if existingAudit != nil {
-	// 	return 0, utility.NewForbiddenError("Business Continuity Plan has already been created for this business function")
-	// }
 
 	tx := bcps.repo.BeginTransaction()
 
@@ -141,6 +134,33 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 	if err := bcps.businessFunctionSvc.UpdateBcpStatus(businessFunction, tx); err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+
+	businessFunctionDetails, err := bcps.businessFunctionSvc.GetFullDetailsByID(businessContinuityPlanFormDTO.BusinessFunctionID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	for _, existingProcess := range businessFunctionDetails.Processes {
+		bcpProcess := &models.BcpProcess{
+			ProcessID:                existingProcess.ProcessID,
+			BusinessContinuityPlanID: id,
+			RiskLevelID:              existingProcess.Process.RiskLevelId,
+			Rto:                      existingProcess.Process.Rto,
+			RtoUnitId:                existingProcess.Process.RtoUnitId,
+			Mtpd:                     existingProcess.Process.Mtpd,
+			MtpdUnitId:               existingProcess.Process.MtpdUnitId,
+			Rpo:                      existingProcess.Process.Rpo,
+			RpoUnitId:                existingProcess.Process.RpoUnitId,
+			CreatedBYID:              currentUserID,
+		}
+		fmt.Println(existingProcess)
+		err := bcps.repo.CreateBcpProcesses(bcpProcess, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	tx.Commit()
@@ -319,4 +339,15 @@ func (bcps *BusinessContinuityPlanService) Delete(ids []uint, currentUserID uint
 	}
 
 	return failedIds, nil
+}
+
+func (bfs *BusinessContinuityPlanService) UpdateRecoveryObjectives(businessContinuityPlan *models.BusinessContinuityPlan, tx utility.DatabaseTransaction) error {
+
+	err := bfs.repo.Update(businessContinuityPlan, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return nil
 }

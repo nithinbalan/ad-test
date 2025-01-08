@@ -23,6 +23,7 @@ type BusinessContinuityPlanRepositoryInterface interface {
 	GenerateReferenceNumber() (string, error)
 
 	GetBusinessContinuityPlanByBusinessFunctionID(businessFunctionId uint) (*models.BusinessContinuityPlan, error)
+	CreateBcpProcesses(bcpProcess *models.BcpProcess, tx ...utility.DatabaseTransaction) error
 }
 
 type BusinessContinuityPlanRepository struct {
@@ -154,6 +155,12 @@ func (repo *BusinessContinuityPlanRepository) GetFullDetailsByID(id uint, tx ...
 
 	result := db.
 		Preload("BusinessFunction").
+		Preload("RtoUnit").
+		Preload("MtpdUnit").
+		Preload("RpoUnit").
+		Preload("Processes").
+		Preload("Processes.Process").
+		Preload("Processes.Process.Owner").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&businessContinuityPlan, id)
@@ -248,4 +255,15 @@ func (repo *BusinessContinuityPlanRepository) GetBusinessContinuityPlanByBusines
 
 	// Return the found audit if it exists
 	return &businessContinuityPlan, nil
+}
+
+func (repo *BusinessContinuityPlanRepository) CreateBcpProcesses(bcpProcess *models.BcpProcess, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(bcpProcess).Error; err != nil {
+		return err
+	}
+	return nil
 }

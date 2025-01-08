@@ -12,6 +12,7 @@ type BusinessContinuityModule struct {
 	BusinessFunctionController         *controllers.BusinessFunctionController
 	BusinessImpactAssessmentController *controllers.BusinessImpactAssessmentController
 	BusinessContinuityPlanController   *controllers.BusinessContinuityPlanController
+	BcpBiaMatrixController             *controllers.BcpBiaMatrixController
 
 	BusinessFunctionSvc services.BusinessFunctionServiceInterface
 }
@@ -42,10 +43,15 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	businessContinuityPlanSvc := services.NewBusinessContinuityPlanService(businessContinuityPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, businessFunctionSvc)
 	businessContinuityPlanController := controllers.NewBusinessContinuityPlanController(businessContinuityPlanSvc)
 
+	bcpBiaMatrixRepo := repositories.NewBcpBiaMatrixRepository(db)
+	bcpBiaMatrixSvc := services.NewBcpBiaMatrixService(bcpBiaMatrixRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, businessContinuityPlanSvc)
+	bcpBiaMatrixController := controllers.NewBcpBiaMatrixController(bcpBiaMatrixSvc)
+
 	return &BusinessContinuityModule{
 		BusinessFunctionController:         businessFunctionController,
 		BusinessImpactAssessmentController: businessImpactAssessmentController,
 		BusinessContinuityPlanController:   businessContinuityPlanController,
+		BcpBiaMatrixController:             bcpBiaMatrixController,
 
 		BusinessFunctionSvc: businessFunctionSvc,
 	}

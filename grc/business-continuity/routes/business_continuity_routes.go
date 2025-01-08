@@ -18,6 +18,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessFunctionController := app.BusinessContinuityModule.BusinessFunctionController
 	businessImpactAssessmentController := app.BusinessContinuityModule.BusinessImpactAssessmentController
 	businessContinuityPlanController := app.BusinessContinuityModule.BusinessContinuityPlanController
+	BcpBiaMatrixController := app.BusinessContinuityModule.BcpBiaMatrixController
 
 	//Business Function
 	businessContinuityRoutes.GET("/business-functions", middlewares.RolePermissionMiddleware(db, "business_functions", "view"), businessFunctionController.GetAllBusinessFunctions)
@@ -32,6 +33,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.GET("bia/processes/:processId/incidents", middlewares.RolePermissionMiddleware(db, "bia", "view"), businessImpactAssessmentController.GetAllProcessIncidents)
 	businessContinuityRoutes.GET("bia/processes/:processId/assets", middlewares.RolePermissionMiddleware(db, "bia", "view"), businessImpactAssessmentController.GetAllProcessAssets)
 	businessContinuityRoutes.GET("bia/processes/:processId/documents", middlewares.RolePermissionMiddleware(db, "bia", "view"), businessImpactAssessmentController.GetAllProcessDocuments)
+	businessContinuityRoutes.GET("bia/processes/:processId/risks", middlewares.RolePermissionMiddleware(db, "bia", "view"), businessImpactAssessmentController.GetAllProcessRisks)
 
 	businessContinuityRoutes.POST("/business-impact-assessments", middlewares.RolePermissionMiddleware(db, "bia", "modify"), businessImpactAssessmentController.CreateBusinessImpactAssessment)
 	businessContinuityRoutes.GET("/bia-impact-analysis", middlewares.RolePermissionMiddleware(db, "bia", "view"), businessImpactAssessmentController.GetAllBIAImpactAnalysis)
@@ -46,4 +48,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.PUT("/business-continuity-plans/:id", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), businessContinuityPlanController.UpdateBusinessContinuityPlan)
 	businessContinuityRoutes.POST("/business-continuity-plans/delete", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), businessContinuityPlanController.DeleteBusinessContinuityPlans)
 
+	// bcp bia matrix
+	businessContinuityRoutes.GET("/bcp/:id/bia-matrics", middlewares.RolePermissionMiddleware(db, "bcp", "view"), BcpBiaMatrixController.GetBcpBiaMatrixDetails)
+	businessContinuityRoutes.PUT("/bcp/:id/bia-matrics", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), BcpBiaMatrixController.UpdateBcpBiaMatrix)
 }

@@ -2,6 +2,7 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"time"
 )
@@ -73,8 +74,25 @@ type BusinessContinuityPlanDetailDTO struct {
 	Scope              *string                          `json:"scope"`
 	Objectives         *string                          `json:"objectives"`
 	Assumptions        *string                          `json:"assumptions"`
+	Rto                *uint                            `json:"rto"`
+	RtoUnitId          *uint                            `json:"rto_unit_id"`
+	RtoUnit            *masterDTOs.TimeUnitDTO          `json:"rto_unit"`
+	Mtpd               *uint                            `json:"mtpd"`
+	MtpdUnitId         *uint                            `json:"mtpd_unit_id"`
+	MtpdUnit           *masterDTOs.TimeUnitDTO          `json:"mtpd_unit"`
+	Rpo                *uint                            `json:"rpo"`
+	RpoUnitId          *uint                            `json:"rpo_unit_id"`
+	RpoUnit            *masterDTOs.TimeUnitDTO          `json:"rpo_unit"`
+	Processes          []*BcpProcessDTO                 `json:"processes"`
 	CreatedAt          time.Time                        `json:"created_at"`
 	UpdatedAt          *time.Time                       `json:"updated_at"`
 	CreatedByUser      organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser      *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+}
+
+type BcpProcessDTO struct {
+	ID                       *uint                             `json:"id"`
+	BusinessContinuityPlanID uint                              `json:"business_continuity_plan_id"`
+	ProcessID                uint                              `json:"process_id"`
+	Process                  organizationDTOs.ProcessDetailDTO `json:"process"`
 }
