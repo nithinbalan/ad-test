@@ -1425,6 +1425,16 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 		if len(rowErrors) == 0 {
 			processedRecord["errors"] = nil
 		} else {
+			// Ensure all keys are present in the `errors` map
+			for _, header := range headers {
+				if _, exists := rowErrors[header]; !exists {
+					if header == "controls" {
+						rowErrors[header] = []string{} // Empty array for controls
+					} else {
+						rowErrors[header] = nil // Empty string for other fields
+					}
+				}
+			}
 			processedRecord["errors"] = rowErrors
 		}
 		validatedData = append(validatedData, processedRecord)
