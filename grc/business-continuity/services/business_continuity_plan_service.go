@@ -131,7 +131,7 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 
 	businessFunction.BcpStatus = true
 
-	if err := bcps.businessFunctionSvc.UpdateBcpStatus(businessFunction, tx); err != nil {
+	if err := bcps.businessFunctionSvc.UpdateBusinessFunction(businessFunction, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -155,7 +155,6 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 			RpoUnitId:                existingProcess.Process.RpoUnitId,
 			CreatedBYID:              currentUserID,
 		}
-		fmt.Println(existingProcess)
 		err := bcps.repo.CreateBcpProcesses(bcpProcess, tx)
 		if err != nil {
 			tx.Rollback()

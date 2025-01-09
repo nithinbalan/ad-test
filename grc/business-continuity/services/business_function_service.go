@@ -22,7 +22,7 @@ type BusinessFunctionServiceInterface interface {
 	Update(id uint, currentUserID uint, businessFunction *businessContinuityDTOs.BusinessFunctionFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
-	UpdateBcpStatus(businessFunction *models.BusinessFunction, tx utility.DatabaseTransaction) error
+	UpdateBusinessFunction(businessFunction *models.BusinessFunction, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -423,7 +423,7 @@ func (bfs *BusinessFunctionService) Delete(ids []uint, currentUserID uint) ([]ui
 	return failedIds, nil
 }
 
-func (bfs *BusinessFunctionService) UpdateBcpStatus(businessFunction *models.BusinessFunction, tx utility.DatabaseTransaction) error {
+func (bfs *BusinessFunctionService) UpdateBusinessFunction(businessFunction *models.BusinessFunction, tx utility.DatabaseTransaction) error {
 
 	err := bfs.repo.Update(businessFunction, tx)
 	if err != nil {

@@ -25,6 +25,7 @@ type BcpBiaMatrixService struct {
 	activityLogSvc            logServices.ActivityLogServiceInterface
 	userSvc                   organizationServices.UserServiceInterface
 	businessContinuityPlanSvc BusinessContinuityPlanServiceInterface
+	businessFunctionSvc       BusinessFunctionServiceInterface
 }
 
 func NewBcpBiaMatrixService(
@@ -32,12 +33,14 @@ func NewBcpBiaMatrixService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	businessContinuityPlanSvc BusinessContinuityPlanServiceInterface,
+	businessFunctionSvc BusinessFunctionServiceInterface,
 ) BcpBiaMatrixServiceInterface {
 	return &BcpBiaMatrixService{
 		repo:                      repo,
 		activityLogSvc:            activityLogSvc,
 		userSvc:                   userSvc,
 		businessContinuityPlanSvc: businessContinuityPlanSvc,
+		businessFunctionSvc:       businessFunctionSvc,
 	}
 }
 
@@ -91,6 +94,27 @@ func (bbms *BcpBiaMatrixService) Update(bcpId uint, currentUserID uint, bcpProce
 		tx.Rollback()
 		return err
 	}
+
+	existingBusinessFunction, err := bbms.businessFunctionSvc.GetByID(existingBusinessContinuityPlan.BusinessFunctionID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, bcpId)
+	}
+
+	existingBusinessFunction.Rto = bcpProcessFormDTO.Rto
+	existingBusinessFunction.RtoUnitId = bcpProcessFormDTO.RtoUnitId
+	existingBusinessFunction.Mtpd = bcpProcessFormDTO.Mtpd
+	existingBusinessFunction.MtpdUnitId = bcpProcessFormDTO.MtpdUnitId
+	existingBusinessFunction.Rpo = bcpProcessFormDTO.Rpo
+	existingBusinessFunction.RpoUnitId = bcpProcessFormDTO.RpoUnitId
+	existingBusinessFunction.UpdatedBYID = &currentUserID
+
+	err = bbms.businessFunctionSvc.UpdateBusinessFunction(existingBusinessFunction, tx)
+
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	// var bcpProcesses []*models.BcpProcess
 	for _, process := range bcpProcessFormDTO.Processes {
 		existingBcpProcess, err := bbms.repo.GetByID(process.ID)

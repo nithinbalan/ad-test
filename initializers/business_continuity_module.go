@@ -44,7 +44,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	businessContinuityPlanController := controllers.NewBusinessContinuityPlanController(businessContinuityPlanSvc)
 
 	bcpBiaMatrixRepo := repositories.NewBcpBiaMatrixRepository(db)
-	bcpBiaMatrixSvc := services.NewBcpBiaMatrixService(bcpBiaMatrixRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, businessContinuityPlanSvc)
+	bcpBiaMatrixSvc := services.NewBcpBiaMatrixService(bcpBiaMatrixRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, businessContinuityPlanSvc, businessFunctionSvc)
 	bcpBiaMatrixController := controllers.NewBcpBiaMatrixController(bcpBiaMatrixSvc)
 
 	return &BusinessContinuityModule{
