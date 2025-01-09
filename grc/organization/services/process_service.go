@@ -1405,7 +1405,7 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 						}
 					}
 					if len(invalidControls) > 0 {
-						rowErrors["controls"] = invalidControls
+						rowErrors["controls"] = strings.Join(invalidControls, "; ") // Combine errors into a single string
 					} else {
 						processedRecord["control_ids"] = controlIDs // Add the IDs as []uint
 					}
@@ -1428,11 +1428,7 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 			// Ensure all keys are present in the `errors` map
 			for _, header := range headers {
 				if _, exists := rowErrors[header]; !exists {
-					if header == "controls" {
-						rowErrors[header] = []string{} // Empty array for controls
-					} else {
-						rowErrors[header] = nil // Empty string for other fields
-					}
+					rowErrors[header] = "" // Empty string for other fields
 				}
 			}
 			processedRecord["errors"] = rowErrors
