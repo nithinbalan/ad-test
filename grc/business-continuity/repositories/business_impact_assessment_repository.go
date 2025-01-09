@@ -2,6 +2,7 @@ package repositories
 
 import (
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
+	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -20,6 +21,7 @@ type BusinessImpactAssessmentRepositoryInterface interface {
 	DeleteImpactAssessmentsByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
 	DeleteRecoveryObjectivesByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
 	GetImpactAssessmentsByProcessID(processID uint) ([]*models.BusinessImpactAssessment, error)
+	GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) (*businessContinuityDTOs.BIAMatrixResponsePaginatedDTO, error)
 }
 
 type BusinessImpactAssessmentRepository struct {
@@ -322,9 +324,97 @@ func (repo *BusinessImpactAssessmentRepository) GetImpactAssessmentsByProcessID(
 		Where("process_id = ?", processID).
 		Order("id").
 		Find(&businessImpactAssessments).Error
-
 	if err != nil {
 		return nil, err
 	}
 	return businessImpactAssessments, nil
+}
+
+func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) (*businessContinuityDTOs.BIAMatrixResponsePaginatedDTO, error) {
+	var results []businessContinuityDTOs.BIAMatrixResponseDTO
+	var totalCount int64
+
+	query := repo.db.Table("business_function_processes").
+		Select(`
+        business_functions.id AS business_function_id,
+        business_functions.title AS business_function_title,
+        processes.id AS process_id,
+        processes.title_en AS process_title_en,
+        processes.title_ar AS process_title_ar,
+        processes.rto AS process_rto,
+        processes.mtpd AS process_mtpd,
+        processes.rpo AS process_rpo,
+        time_units_rto.title_en AS process_rto_unit_title_en,
+        time_units_rto.title_ar AS process_rto_unit_title_ar,
+        processes.mtpd_unit_id AS process_mtpd_unit_id,
+        time_units_mtpd.title_en AS process_mtpd_unit_title_en,
+        time_units_mtpd.title_ar AS process_mtpd_unit_title_ar,
+        processes.rpo_unit_id AS process_rpo_unit_id,
+        time_units_rpo.title_en AS process_rpo_unit_title_en,
+        time_units_rpo.title_ar AS process_rpo_unit_title_ar,
+        processes.risk_level_id AS risk_level_id,
+        risk_levels.title_en AS risk_level_title_en,
+        risk_levels.title_ar AS risk_level_title_ar
+    `).
+		Joins(`
+        INNER JOIN business_functions ON business_functions.id = business_function_processes.business_function_id
+        INNER JOIN processes ON processes.id = business_function_processes.process_id
+        LEFT JOIN risk_levels ON risk_levels.id = processes.risk_level_id
+        LEFT JOIN time_units AS time_units_rto ON time_units_rto.id = processes.rto_unit_id
+        LEFT JOIN time_units AS time_units_mtpd ON time_units_mtpd.id = processes.mtpd_unit_id
+        LEFT JOIN time_units AS time_units_rpo ON time_units_rpo.id = processes.rpo_unit_id
+    `).
+		Where("processes.is_bia_performed = ?", 1)
+
+	// Apply filters
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
+	// Apply keyword search
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+            business_functions.title LIKE ? OR 
+            processes.title_en LIKE ? OR 
+            processes.title_ar LIKE ? OR 
+            risk_levels.title_en LIKE ? OR 
+            risk_levels.title_ar LIKE ?`,
+			keyword, keyword, keyword, keyword, keyword)
+	}
+
+	// Count total results for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Apply sorting
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	// Apply pagination
+	offset := (params.Page - 1) * params.PageSize
+	query = query.Offset(offset).Limit(params.PageSize)
+
+	// Fetch results
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	// Calculate total pages
+	totalPages := (totalCount + int64(params.PageSize) - 1) / int64(params.PageSize)
+
+	// Build response
+	response := &businessContinuityDTOs.BIAMatrixResponsePaginatedDTO{
+		Items: results,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  int(totalPages),
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
 }
