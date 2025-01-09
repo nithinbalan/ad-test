@@ -13,6 +13,7 @@ type BusinessContinuityModule struct {
 	BusinessImpactAssessmentController *controllers.BusinessImpactAssessmentController
 	BusinessContinuityPlanController   *controllers.BusinessContinuityPlanController
 	BcpBiaMatrixController             *controllers.BcpBiaMatrixController
+	BcpPhaseController                 *controllers.BcpPhaseController
 
 	BusinessFunctionSvc services.BusinessFunctionServiceInterface
 }
@@ -47,11 +48,16 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	bcpBiaMatrixSvc := services.NewBcpBiaMatrixService(bcpBiaMatrixRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, businessContinuityPlanSvc, businessFunctionSvc)
 	bcpBiaMatrixController := controllers.NewBcpBiaMatrixController(bcpBiaMatrixSvc)
 
+	bcpPhaseRepo := repositories.NewBcpPhaseRepository(db)
+	bcpPhaseSvc := services.NewBcpPhaseService(bcpPhaseRepo)
+	bcpPhaseController := controllers.NewBcpPhaseController(bcpPhaseSvc)
+
 	return &BusinessContinuityModule{
 		BusinessFunctionController:         businessFunctionController,
 		BusinessImpactAssessmentController: businessImpactAssessmentController,
 		BusinessContinuityPlanController:   businessContinuityPlanController,
 		BcpBiaMatrixController:             bcpBiaMatrixController,
+		BcpPhaseController:                 bcpPhaseController,
 
 		BusinessFunctionSvc: businessFunctionSvc,
 	}

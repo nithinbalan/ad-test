@@ -18,7 +18,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessFunctionController := app.BusinessContinuityModule.BusinessFunctionController
 	businessImpactAssessmentController := app.BusinessContinuityModule.BusinessImpactAssessmentController
 	businessContinuityPlanController := app.BusinessContinuityModule.BusinessContinuityPlanController
-	BcpBiaMatrixController := app.BusinessContinuityModule.BcpBiaMatrixController
+	bcpBiaMatrixController := app.BusinessContinuityModule.BcpBiaMatrixController
+	bcpPhaseController := app.BusinessContinuityModule.BcpPhaseController
+
+	// bcp phase
+	businessContinuityRoutes.GET("/bcp-phases", bcpPhaseController.GetAllBcpPhases)
+	businessContinuityRoutes.GET("/bcp-phases/:id", bcpPhaseController.GetBcpPhaseDetails)
 
 	//Business Function
 	businessContinuityRoutes.GET("/business-functions", middlewares.RolePermissionMiddleware(db, "business_functions", "view"), businessFunctionController.GetAllBusinessFunctions)
@@ -49,6 +54,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.POST("/business-continuity-plans/delete", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), businessContinuityPlanController.DeleteBusinessContinuityPlans)
 
 	// bcp bia matrix
-	businessContinuityRoutes.GET("/bcp/:id/bia-matrics", middlewares.RolePermissionMiddleware(db, "bcp", "view"), BcpBiaMatrixController.GetBcpBiaMatrixDetails)
-	businessContinuityRoutes.PUT("/bcp/:id/bia-matrics", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), BcpBiaMatrixController.UpdateBcpBiaMatrix)
+	businessContinuityRoutes.GET("/bcp/:id/bia-matrics", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpBiaMatrixController.GetBcpBiaMatrixDetails)
+	businessContinuityRoutes.PUT("/bcp/:id/bia-matrics", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpBiaMatrixController.UpdateBcpBiaMatrix)
 }
