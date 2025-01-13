@@ -2,14 +2,15 @@ package controllers
 
 import (
 	"errors"
+	"net/http"
+	"strconv"
+
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	"jethur/grc/business-continuity/services"
 	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	processServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -24,7 +25,8 @@ type BusinessImpactAssessmentController struct {
 
 func NewBusinessImpactAssessmentController(service services.BusinessImpactAssessmentServiceInterface,
 	processAssociatedItemSvc processServices.ProcessAssociatedItemServiceInterface,
-	processSvc processServices.ProcessServiceInterface) *BusinessImpactAssessmentController {
+	processSvc processServices.ProcessServiceInterface,
+) *BusinessImpactAssessmentController {
 	return &BusinessImpactAssessmentController{
 		service:                  service,
 		processAssociatedItemSvc: processAssociatedItemSvc,
@@ -149,7 +151,6 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessIncidents(c *gin.Co
 		QuickFilter: quickFilter,
 	}
 	incidents, err := biac.processAssociatedItemSvc.GetAllIncidents(uint(processID), &queryParams)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -203,7 +204,6 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessDocuments(c *gin.Co
 		QuickFilter: quickFilter,
 	}
 	documents, err := biac.processAssociatedItemSvc.GetAllDocuments(uint(processID), &queryParams)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -257,7 +257,6 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessAssets(c *gin.Conte
 		QuickFilter: quickFilter,
 	}
 	assets, err := biac.processAssociatedItemSvc.GetAllAssets(uint(processID), &queryParams)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -292,7 +291,6 @@ func (biac *BusinessImpactAssessmentController) GetAllBIAImpactAnalysis(c *gin.C
 		Filters: filters,
 	}
 	businessImpactAssessments, err := biac.service.GetAllImpactAnalysis(&queryParams)
-
 	if err != nil {
 		utility.SendInternalErrResp(biac.db, c, err.Error())
 		return
@@ -433,4 +431,75 @@ func (biac *BusinessImpactAssessmentController) UpdateRecoveryObjective(c *gin.C
 		}
 	}
 	c.Status(http.StatusOK)
+}
+
+func (biac *BusinessImpactAssessmentController) GetBIAMatrix(c *gin.Context) {
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "business_function_title")
+	keyword := c.Query("keyword")
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, "Invalid page parameter")
+		return
+	}
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	validSortFields := map[string]string{
+		"business_function_title": "business_functions.title",
+		"process_title_en":        "processes.title_en",
+		"process_title_ar":        "processes.title_ar",
+		"risk_level_title_en":     "risk_levels.title_en",
+		"risk_level_title_ar":     "risk_levels.title_ar",
+		"rto":                     "processes.rto",
+		"mtp":                     "processes.mtpd",
+		"rpo":                     "processes.rpo",
+		"rto_unit_title_en":       "time_units_rto.title_en",
+		"rto_unit_title_ar":       "time_units_rto.title_ar",
+		"mtp_unit_title_en":       "time_units_mtpd.title_en",
+		"mtp_unit_title_ar":       "time_units_mtpd.title_ar",
+		"rpo_unit_title_en":       "time_units_rpo.title_en",
+		"rpo_unit_title_ar":       "time_units_rpo.title_ar",
+		"risk_level_id":           "processes.risk_level_id",
+		"created_at":              "processes.created_at",
+		"updated_at":              "processes.updated_at",
+	}
+
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	filters := utility.ParseQueryFilters([]string{"risk_level_id"}, c.Request.URL.Query())
+
+	queryParams := businessContinuityDTOs.BIAMatrixQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortField,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Filters:  filters,
+	}
+
+	matrix, err := biac.service.GetBIAMatrix(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(biac.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, matrix)
 }
