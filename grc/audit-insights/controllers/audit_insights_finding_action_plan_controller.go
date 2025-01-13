@@ -148,7 +148,7 @@ func (aifapc *AuditInsightsFindingActionPlanController) CreateAuditInsightsFindi
 func (aifapc *AuditInsightsFindingActionPlanController) UpdateAuditInsightsFindingActionPlan(c *gin.Context) {
 	var AuditInsightsFindingActionPlanFormDTO auditDTOs.AuditFindingActionPlanFormDTO
 
-	idStr := c.Param("id")
+	idStr := c.Param("actionPlanId")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
