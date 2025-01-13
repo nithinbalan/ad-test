@@ -58,6 +58,7 @@ type ControlListDTO struct {
 	ImplementedAt                        *time.Time `json:"implemented_at"`
 	IsApplicable                         bool       `json:"is_applicable"`
 	Justification                        *string    `json:"justification"`
+	ImplementationGuideline              *string    `json:"implementation_guideline"`
 	ApplicabilityChangeDate              *string    `json:"applicability_change_date"`
 	LifecycleStatusTitleEn               string     `json:"lifecycle_status_title_en"`
 	LifecycleStatusTitleAr               string     `json:"lifecycle_status_title_ar"`
@@ -151,6 +152,7 @@ type ControlFormDTO struct {
 	IsApplicable                  bool    `json:"is_applicable"`
 	Justification                 *string `json:"justification" binding:"omitempty"`
 	ApplicabilityChangeDate       *string `json:"applicability_change_date" binding:"omitempty,datetime=2006-01-02"`
+	ImplementationGuideline       *string `json:"implementation_guideline" binding:"omitempty"`
 }
 
 type ControlParsedDates struct {
@@ -201,6 +203,7 @@ type ControlDetailDTO struct {
 	RiskMatrixRatingValue         *RiskMatrixRiskRatingValueDTO    `json:"risk_matrix_rating_value"`
 	IsApplicable                  bool                             `json:"is_applicable"`
 	Justification                 *string                          `json:"justification"`
+	ImplementationGuideline       *string                          `json:"implementation_guideline"`
 	ApplicabilityChangeDateString *string                          `json:"applicability_change_date"`
 }
 

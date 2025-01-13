@@ -201,6 +201,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 		IsApplicable:                  controlFormDTO.IsApplicable,
 		Justification:                 controlFormDTO.Justification,
 		ApplicabilityChangeDate:       dates.ApplicabilityChangeDate,
+		ImplementationGuideline:       controlFormDTO.ImplementationGuideline,
 	}
 
 	id, err := cs.repo.Create(control)
@@ -348,6 +349,7 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 	existingControl.NextTestDate = dates.NextTestDate
 	existingControl.IsApplicable = controlFormDTO.IsApplicable
 	existingControl.Justification = controlFormDTO.Justification
+	existingControl.ImplementationGuideline = controlFormDTO.ImplementationGuideline
 	existingControl.ApplicabilityChangeDate = dates.ApplicabilityChangeDate
 	existingControl.UpdatedByID = &currentUserID
 
