@@ -65,6 +65,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditFinalReportSectionController := app.AuditModule.AuditFinalReportSectionController
 	auditReportWorkflowController := app.AuditModule.AuditReportWorkflowController
 	auditReportReviewController := app.AuditModule.AuditReportReviewController
+	auditFinalReportAppendixController := app.AuditModule.AuditFinalReportAppendixController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -369,18 +370,22 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.GET("/audits/:auditId/final-reports/last-edit-summary", auditFinalReportController.GetLastEditSummary)
 	auditRoutes.POST("/audits/:auditId/final-reports/publish", auditFinalReportController.PublishAuditFinalReport)
 
-
 	//Audit Final Report Section
 	auditRoutes.GET("/audits/:auditId/final-report-sections/:id", auditFinalReportSectionController.GetAuditFinalReportSectionDetails)
 	auditRoutes.PUT("/audits/:auditId/final-report-sections/:id", auditFinalReportSectionController.UpdateAuditFinalReportSection)
 	auditRoutes.DELETE("/audits/:auditId/final-report-sections/:id", auditFinalReportSectionController.DeleteAuditFinalReportSection)
 
+	//Audit Final Report
+	auditRoutes.GET("/audits/:auditId/final-reports/:finalReportId/sections/:sectionId/appendices/:id", auditFinalReportAppendixController.GetAuditFinalReportAppendixDetails)
+	auditRoutes.POST("/audits/:auditId/final-reports/:finalReportId/sections/:sectionId/appendices", auditFinalReportAppendixController.CreateAuditFinalReportAppendix)
+	auditRoutes.PUT("/audits/:auditId/final-reports/:finalReportId/sections/:sectionId/appendices/:id", auditFinalReportAppendixController.UpdateAuditFinalReportAppendix)
+	auditRoutes.DELETE("/audits/:auditId/final-reports/:finalReportId/sections/:sectionId/appendices/:id", auditFinalReportAppendixController.DeleteAuditFinalReportAppendix)
+
 	//workflow
 	auditRoutes.GET("/audits/:auditId/final-reports/workflow-list", auditReportWorkflowController.GetWorkflowList)
-	
+
 	auditRoutes.POST("/audits/:auditId/final-reports/submit", auditReportReviewController.SubmitAuditFinalReport)
 	auditRoutes.GET("/audits/:auditId/final-reports/comments", auditReportReviewController.GetComments)
 	auditRoutes.POST("/audits/:auditId/final-reports/comments", auditReportReviewController.AddComment)
-
 
 }
