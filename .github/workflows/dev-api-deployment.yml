@@ -43,14 +43,14 @@ jobs:
           Copy-Item -Path $sourcePath -Destination $destinationPath -Force
         shell: powershell
 
-      # Step 6: Modify script.bat for Environment
-      - name: Modify script.bat for Environment
+      # Step 6: Modify script.bat for Database Name
+      - name: Modify script.bat for Database Name
         run: |
           $scriptPath = "${{ github.workspace }}\script.bat"
-          $environment = "${{ github.event.inputs.environment }}" # dev, prod, etc.
+          $staticDatabaseName = "jethur_dev_db" # Replace with your static database name
 
-          # Replace 'ProjectName' with the environment name
-          (Get-Content -Path $scriptPath) -replace "ProjectName", $environment | Set-Content -Path $scriptPath
+          # Replace 'ProjectName' with the static database name
+          (Get-Content -Path $scriptPath) -replace "ProjectName", $staticDatabaseName | Set-Content -Path $scriptPath
         shell: powershell
 
       # Step 7: Switch to migration_new Branch and Run Migrations
