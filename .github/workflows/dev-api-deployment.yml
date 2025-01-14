@@ -1,4 +1,4 @@
-name: go-api-dev-deployment
+name: dev-api-deployment
 
 on:
   workflow_dispatch:
