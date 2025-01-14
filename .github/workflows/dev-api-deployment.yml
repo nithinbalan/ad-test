@@ -1,0 +1,124 @@
+name: dev-api-deployment(dev.jethur.com)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment for deployment (e.g., dev, prod)"
+        required: true
+        default: "dev"
+
+jobs:
+  deploy:
+    runs-on: windows-latest
+    steps:
+      # Step 1: Checkout Code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Step 2: Set Go Path
+      - name: Set Go Path
+        run: |
+          $env:PATH = "C:\Program Files\Go\bin;$env:PATH"
+        shell: powershell
+
+      # Step 3: Verify Go Version
+      - name: Verify Go Version
+        run: go version
+
+      # Step 4: Install Dependencies
+      - name: Install Dependencies
+        run: |
+          go mod tidy
+          go install github.com/pressly/goose/v3/cmd/goose@latest
+        shell: powershell
+
+      # Step 5: Download script.bat from Server
+      - name: Download script.bat
+        run: |
+          $sourcePath = "\\\\server-name\\C$\deployment\deployment-files\script.bat"
+          $destinationPath = "${{ github.workspace }}\script.bat"
+
+          # Copy script.bat from server to workspace
+          Copy-Item -Path $sourcePath -Destination $destinationPath -Force
+        shell: powershell
+
+      # Step 6: Modify script.bat for Database Name
+      - name: Modify script.bat for Database Name
+        run: |
+          $scriptPath = "${{ github.workspace }}\script.bat"
+          $staticDatabaseName = "jethur_dev_db" # Replace with your static database name
+
+          # Replace 'ProjectName' with the static database name
+          (Get-Content -Path $scriptPath) -replace "ProjectName", $staticDatabaseName | Set-Content -Path $scriptPath
+        shell: powershell
+
+      # Step 7: Switch to migration_new Branch and Run Migrations
+      - name: Switch to migration_new Branch
+        run: git checkout migration_new
+
+      - name: Run Migrations and Seed
+        run: |
+          .\script.bat migrateup
+          .\script.bat seed
+        shell: powershell
+
+      # Step 8: Switch Back to Main Branch and Build API
+      - name: Switch Back to Main Branch
+        run: git checkout main
+
+      - name: Build API
+        run: go build ./cmd/api
+
+      # Step 9: Stop NSSM Task
+      - name: Stop NSSM Task
+        run: nssm stop dev-api
+        shell: powershell
+
+      # Step 10: Backup and Deploy API Executable
+      - name: Backup and Deploy API Executable
+        run: |
+          $iisDocRoot = "C:\inetpub\wwwroot\dev\dev-api"
+          $apiBackup = "$iisDocRoot\api.exe_backup"
+          $apiExecutable = "$iisDocRoot\api.exe"
+
+          # Delete the old backup file if it exists
+          if (Test-Path $apiBackup) {
+              Remove-Item -Force $apiBackup
+          }
+
+          # Rename existing executable to backup
+          if (Test-Path $apiExecutable) {
+              Rename-Item -Path $apiExecutable -NewName "api.exe_backup"
+          }
+
+          # Copy new executable to IIS document root
+          Copy-Item -Path "${{ github.workspace }}\api.exe" -Destination $iisDocRoot
+        shell: powershell
+        
+      # Step 11: Start NSSM Task
+      - name: Start NSSM Task
+        run: nssm start dev-api
+        shell: powershell
+        
+      # Step 12: Restart IIS Site
+      - name: Restart IIS Site
+        run: |
+          $siteName = "api"
+
+          # Restart the IIS site
+          Import-Module WebAdministration
+          if ((Get-Website -Name $siteName).State -eq "Started") {
+              Stop-Website -Name $siteName
+          }
+          Start-Website -Name $siteName
+        shell: powershell
+
+
+      # Step 13: Cleanup Deployment Environment
+      - name: Cleanup Deployment Environment
+        run: |
+          # Clean up temporary files or directories created during deployment
+          Remove-Item -Recurse -Force "${{ github.workspace }}\temp" -ErrorAction SilentlyContinue
+          Write-Host "Deployment environment cleanup completed."
+        shell: powershell
