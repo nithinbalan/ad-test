@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"jethur/grc/audit-insights/services"
 	auditDTOs "jethur/grc/audit/dtos"
 	commonDTOs "jethur/grc/common/dtos"
@@ -72,6 +73,7 @@ func (aifsuc *AuditInsightsFindingActionPlanStatusUpdateController) GetAllAuditI
 
 func (aifsuc *AuditInsightsFindingActionPlanStatusUpdateController) CreateAuditInsightsFindingActionPlanStatusUpdate(c *gin.Context) {
 	var auditFindingStatusUpdateFormDTO auditDTOs.AuditFindingActionPlanStatusUpdateFormDTO
+	fmt.Println("hiiiiiiiiiiiiiiiiiiiiiiii000000000000000000")
 
 	actionPlanIDStr := c.Param("actionPlanId")
 
@@ -100,6 +102,7 @@ func (aifsuc *AuditInsightsFindingActionPlanStatusUpdateController) CreateAuditI
 			return
 		}
 	}
+	fmt.Println("hiiiiiiiiiiiiiiiiiiiiiiii=", findingID)
 	if err := c.ShouldBindJSON(&auditFindingStatusUpdateFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
