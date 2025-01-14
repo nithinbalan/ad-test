@@ -17,8 +17,8 @@ import (
 type AuditInsightsFindingActionPlanServiceInterface interface {
 	GetAll(params *auditDTOs.AuditFindingActionPlanListQueryParamsDTO, currentUserID uint) (*auditDTOs.AuditFindingActionPlanListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFindingActionPlanDetailDTO, error)
-	Create(currentUserID uint, AuditInsightsFindingActionPlanFormDTO *auditDTOs.AuditFindingActionPlanFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, auditFinding *auditDTOs.AuditFindingActionPlanFormDTO) error
+	Create(findingID uint, currentUserID uint, AuditInsightsFindingActionPlanFormDTO *auditDTOs.AuditFindingActionPlanFormDTO) (uint, error)
+	Update(findingID uint, id uint, currentUserID uint, auditFinding *auditDTOs.AuditFindingActionPlanFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GetAuditInsightsFindingActionPlanCountByStatus(findingId uint) ([]auditFindingDTOs.AuditFindingActionPlanStatusCountResponseDTO, error)
 }
@@ -83,22 +83,22 @@ func (aifaps *AuditInsightsFindingActionPlanService) GetFullDetailsByID(id uint,
 	return &auditFindingActionPlanDTO, nil
 }
 
-func (aifaps *AuditInsightsFindingActionPlanService) Create(currentUserID uint, auditInsightsFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) (uint, error) {
-	if err := aifaps.validateAuditInsightsFindingActionPlanDTO(*auditInsightsFindingActionPlanFormDTO.FindingID, currentUserID); err != nil {
+func (aifaps *AuditInsightsFindingActionPlanService) Create(findingID uint, currentUserID uint, auditInsightsFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) (uint, error) {
+	if err := aifaps.validateAuditInsightsFindingActionPlanDTO(findingID, currentUserID); err != nil {
 		return 0, err
 	}
-	id, err := aifaps.auditFindingActionPlanSvc.Create(*auditInsightsFindingActionPlanFormDTO.FindingID, currentUserID, auditInsightsFindingActionPlanFormDTO)
+	id, err := aifaps.auditFindingActionPlanSvc.Create(findingID, currentUserID, auditInsightsFindingActionPlanFormDTO)
 	if err != nil {
 		return 0, err
 	}
 	return id, nil
 }
 
-func (aifaps *AuditInsightsFindingActionPlanService) Update(id uint, currentUserID uint, auditInsightsFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) error {
-	if err := aifaps.validateAuditInsightsFindingActionPlanDTO(*auditInsightsFindingActionPlanFormDTO.FindingID, currentUserID); err != nil {
+func (aifaps *AuditInsightsFindingActionPlanService) Update(findingID uint, id uint, currentUserID uint, auditInsightsFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) error {
+	if err := aifaps.validateAuditInsightsFindingActionPlanDTO(findingID, currentUserID); err != nil {
 		return err
 	}
-	err := aifaps.auditFindingActionPlanSvc.Update(*auditInsightsFindingActionPlanFormDTO.FindingID, id, currentUserID, auditInsightsFindingActionPlanFormDTO)
+	err := aifaps.auditFindingActionPlanSvc.Update(findingID, id, currentUserID, auditInsightsFindingActionPlanFormDTO)
 	if err != nil {
 		return err
 	}
