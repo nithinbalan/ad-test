@@ -224,7 +224,7 @@ func (afapc *AuditFindingActionPlanController) DeleteAuditFindingActionPlans(c *
 
 	findingIDStr := c.Param("findingId")
 
-	findingID, err := strconv.ParseUint(findingIDStr, 10, 64)
+	_, err := strconv.ParseUint(findingIDStr, 10, 64)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -241,7 +241,7 @@ func (afapc *AuditFindingActionPlanController) DeleteAuditFindingActionPlans(c *
 		return
 	}
 
-	failedIDs, err := afapc.service.Delete(uint(findingID), request.IDs, currentUserID)
+	failedIDs, err := afapc.service.Delete(request.IDs, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

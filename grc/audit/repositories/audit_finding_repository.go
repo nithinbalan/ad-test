@@ -170,6 +170,15 @@ func (repo *AuditFindingRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 
 	result := db.
 		Preload("AuditableItem").
+		Preload("AuditableItem.Process").
+		Preload("AuditableItem.Control").
+		Preload("AuditableItem.Document").
+		Preload("AuditableItem.IncidentRegister").
+		Preload("AuditableItem.ComplianceRequirement").
+		Preload("AuditableItem.RiskRegister").
+		Preload("AuditableItem.User").
+		Preload("AuditableItem.ResponsibleUnit").
+		Preload("AuditableItem.ResponsibleUser").
 		Preload("AuditFindingCategory").
 		Preload("SeverityLevel").
 		Preload("AuditFindingStatus").

@@ -29,6 +29,7 @@ type AuditServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	GetAllAuditableItems(auditID uint, params *auditDTOs.AuditAuditableItemListQueryParamsDTO) (*auditDTOs.AuditAuditableItemListResponseDTO, error)
+	StatusUpdate(id uint, currentUserID uint, auditStatusID uint, tx utility.DatabaseTransaction) error
 }
 
 type AuditService struct {
@@ -647,4 +648,23 @@ func (as *AuditService) GetAllAuditableItems(auditID uint, params *auditDTOs.Aud
 		return nil, err
 	}
 	return as.repo.GetAllAuditableItems(auditID, params)
+}
+
+func (as *AuditService) StatusUpdate(id uint, currentUserID uint, auditStatusID uint, tx utility.DatabaseTransaction) error {
+	existingAudit, err := as.GetByID(id)
+	if err != nil {
+		return err
+	}
+	now := time.Now()
+
+	existingAudit.UpdatedAt = &now
+	existingAudit.AuditStatusID = auditStatusID
+	existingAudit.UpdatedBYID = &currentUserID
+
+	err = as.repo.Update(existingAudit, tx)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
