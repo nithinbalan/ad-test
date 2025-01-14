@@ -1,16 +1,11 @@
-name: dev-api-deployment(dev.jethur.com)
+name: dev-api-deployment(devi-api.jethur.com)
 
 on:
   workflow_dispatch:
-    inputs:
-      environment:
-        description: "Target environment for deployment (e.g., dev, prod)"
-        required: true
-        default: "dev"
 
 jobs:
   deploy:
-    runs-on: windows-latest
+    runs-on: dev
     steps:
       # Step 1: Checkout Code
       - name: Checkout Code
