@@ -71,6 +71,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//Audit Insights  Findings
 	auditInsightsRoutes.GET("/audit-insights/audit-findings", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsAuditFindingController.GetAllAuditInsightsAuditFindings)
 	auditInsightsRoutes.GET("/audit-insights/audit-findings/:findingId", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsAuditFindingController.GetAuditInsightsAuditFindingDetails)
+	auditInsightsRoutes.GET("/audits-insights/audits/:auditId/audit-finding-summary", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsAuditFindingController.GetAuditInsightFindingCountByCategory)
 
 	auditInsightsRoutes.GET("/audit-insights/audit-findings/:findingId/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsFindingRootCauseAnalysisController.GetAllAuditInsightsFindingRootCauseAnalyses)
 	auditInsightsRoutes.POST("/audit-insights/audit-findings/:findingId/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightsFindingRootCauseAnalysisController.CreateAuditInsightsFindingRootCauseAnalysis)
