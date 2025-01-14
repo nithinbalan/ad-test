@@ -1,4 +1,4 @@
-name: dev-api-deployment
+name: dev-api-deployment(dev.jethur.com)
 
 on:
   workflow_dispatch:
