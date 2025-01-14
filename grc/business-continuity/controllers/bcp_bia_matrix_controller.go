@@ -23,7 +23,7 @@ func NewBcpBiaMatrixController(service services.BcpBiaMatrixServiceInterface) *B
 }
 
 func (bbmc *BcpBiaMatrixController) GetBcpBiaMatrixDetails(c *gin.Context) {
-	idStr := c.Param("id")
+	idStr := c.Param("bcpId")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -48,7 +48,7 @@ func (bbmc *BcpBiaMatrixController) GetBcpBiaMatrixDetails(c *gin.Context) {
 func (bbmc *BcpBiaMatrixController) UpdateBcpBiaMatrix(c *gin.Context) {
 	var businessContinuityPlanFormDTO businessContinuityDTOs.BcpProcessFormDTO
 
-	businessContinuityPlanID, err := strconv.Atoi(c.Param("id"))
+	businessContinuityPlanID, err := strconv.Atoi(c.Param("bcpId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return

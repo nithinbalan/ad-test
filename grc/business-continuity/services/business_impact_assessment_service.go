@@ -69,15 +69,6 @@ func (bias *BusinessImpactAssessmentService) GetAllRecoveryObjectives(params *bu
 
 func (bias *BusinessImpactAssessmentService) Create(currentUserID uint, businessImpactAssessmentFormDTO *businessContinuityDTOs.BusinessImpactFormDTO) (uint, error) {
 	tx := bias.repo.BeginTransaction()
-	exists, err := bias.repo.GetImpactAssessmentsByProcessID(uint(*businessImpactAssessmentFormDTO.ProcessID))
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-	if len(exists) > 0 {
-		tx.Rollback()
-		return 0, utility.NewValidationError(fmt.Errorf("business impact assessment already exists for this process"), "unique", "process")
-	}
 
 	impactCategories, err := bias.impactCategorySvc.GetAll("", "", "", "active")
 	if err != nil {

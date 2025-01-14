@@ -20,6 +20,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityPlanController := app.BusinessContinuityModule.BusinessContinuityPlanController
 	bcpBiaMatrixController := app.BusinessContinuityModule.BcpBiaMatrixController
 	bcpPhaseController := app.BusinessContinuityModule.BcpPhaseController
+	bcpRecoveryPlanController := app.BusinessContinuityModule.BcpRecoveryPlanController
+	bcpCommunicationPlanController := app.BusinessContinuityModule.BcpCommunicationPlanController
 
 	// bcp phase
 	businessContinuityRoutes.GET("/bcp-phases", bcpPhaseController.GetAllBcpPhases)
@@ -54,6 +56,20 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.POST("/business-continuity-plans/delete", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), businessContinuityPlanController.DeleteBusinessContinuityPlans)
 
 	// bcp bia matrix
-	businessContinuityRoutes.GET("/bcp/:id/bia-matrics", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpBiaMatrixController.GetBcpBiaMatrixDetails)
-	businessContinuityRoutes.PUT("/bcp/:id/bia-matrics", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpBiaMatrixController.UpdateBcpBiaMatrix)
+	businessContinuityRoutes.GET("/bcp/:bcpId/bia-matrics", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpBiaMatrixController.GetBcpBiaMatrixDetails)
+	businessContinuityRoutes.PUT("/bcp/:bcpId/bia-matrics", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpBiaMatrixController.UpdateBcpBiaMatrix)
+
+	//Bcp Recovery Plan
+	businessContinuityRoutes.GET("/bcp/:bcpId/bcp-recovery-plans", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpRecoveryPlanController.GetAllBcpRecoveryPlans)
+	businessContinuityRoutes.GET("/bcp/:bcpId/bcp-recovery-plans/:id", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpRecoveryPlanController.GetBcpRecoveryPlanDetails)
+	businessContinuityRoutes.POST("/bcp/:bcpId/bcp-recovery-plans", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpRecoveryPlanController.CreateBcpRecoveryPlan)
+	businessContinuityRoutes.PUT("/bcp/:bcpId/bcp-recovery-plans/:id", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpRecoveryPlanController.UpdateBcpRecoveryPlan)
+	businessContinuityRoutes.POST("/bcp/:bcpId/bcp-recovery-plans/delete", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpRecoveryPlanController.DeleteBcpRecoveryPlans)
+
+	//Bcp Recovery Plan
+	businessContinuityRoutes.GET("/bcp/:bcpId/bcp-communication-plans", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpCommunicationPlanController.GetAllBcpCommunicationPlans)
+	businessContinuityRoutes.GET("/bcp/:bcpId/bcp-communication-plans/:id", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpCommunicationPlanController.GetBcpCommunicationPlanDetails)
+	businessContinuityRoutes.POST("/bcp/:bcpId/bcp-communication-plans", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpCommunicationPlanController.CreateBcpCommunicationPlan)
+	businessContinuityRoutes.PUT("/bcp/:bcpId/bcp-communication-plans/:id", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpCommunicationPlanController.UpdateBcpCommunicationPlan)
+	businessContinuityRoutes.POST("/bcp/:bcpId/bcp-communication-plans/delete", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpCommunicationPlanController.DeleteBcpCommunicationPlans)
 }
