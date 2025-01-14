@@ -52,7 +52,7 @@ func (aifapc *AuditInsightsFindingActionPlanController) GetAllAuditInsightsFindi
 
 	// Directly add the `findingId` filter as a string (no need to parse it to uint64)
 	if findingIDStr != "" {
-		filters["audit_finding_ids"] = []string{findingIDStr}
+		filters["audit_finding_id"] = []string{findingIDStr}
 	}
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
