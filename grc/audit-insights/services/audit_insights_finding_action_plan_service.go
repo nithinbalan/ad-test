@@ -20,6 +20,7 @@ type AuditInsightsFindingActionPlanServiceInterface interface {
 	Create(currentUserID uint, AuditInsightsFindingActionPlanFormDTO *auditDTOs.AuditFindingActionPlanFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, auditFinding *auditDTOs.AuditFindingActionPlanFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	GetAuditInsightsFindingActionPlanCountByStatus(findingId uint) ([]auditFindingDTOs.AuditFindingActionPlanStatusCountResponseDTO, error)
 }
 
 type AuditInsightsFindingActionPlanService struct {
@@ -126,4 +127,13 @@ func (aifaps *AuditInsightsFindingActionPlanService) validateAuditInsightsFindin
 		return utility.NewForbiddenError("Action not allowed:  Only users from the responsible unit can perform this action.")
 	}
 	return nil
+}
+
+func (aifaps *AuditInsightsFindingActionPlanService) GetAuditInsightsFindingActionPlanCountByStatus(findingId uint) ([]auditFindingDTOs.AuditFindingActionPlanStatusCountResponseDTO, error) {
+	response, err := aifaps.auditFindingActionPlanSvc.GetAuditFindingActionPlanCountByStatus(findingId)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
