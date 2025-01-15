@@ -5,7 +5,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: dev
+    runs-on: jethur-dev
     steps:
       # Step 1: Checkout Code
       - name: Checkout Code
