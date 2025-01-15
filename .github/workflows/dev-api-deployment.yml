@@ -31,7 +31,7 @@ jobs:
       # Step 5: Download script.bat from Server
       - name: Download script.bat
         run: |
-          $sourcePath = "\\\\server-name\\C$\deployment\deployment-files\script.bat"
+          $sourcePath = "C:\deployment\deployment-files\script.bat"
           $destinationPath = "${{ github.workspace }}\script.bat"
 
           # Copy script.bat from server to workspace
