@@ -16,6 +16,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceReportController := app.ReportsModule.ComplianceReportController
 	organizationReportController := app.ReportsModule.OrganizationReportController
 	riskReportController := app.ReportsModule.RiskReportController
+	auditReportController := app.ReportsModule.AuditReportController
 
 	//Compliance
 	reportsRoutes.GET("/reports/compliance-registers", complianceReportController.GetAllComplianceRegisters)
@@ -93,4 +94,24 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/risk-action-plan-by-status", riskReportController.GetRiskActionPlansByStatus)
 	reportsRoutes.GET("/reports/risk-action-plan-by-responsible-user", riskReportController.GetRiskActionPlansByResponsibleUser)
 	reportsRoutes.GET("/reports/risk-action-plan-by-severity-level", riskReportController.GetRiskActionPlansBySeverityLevel)
+
+	//Audits Plan
+	reportsRoutes.GET("/reports/audit-plans", auditReportController.GetAllAuditPlans)
+	reportsRoutes.GET("/reports/audit-plans/export", auditReportController.GetAuditPlanExport)
+	reportsRoutes.GET("/reports/audit-plan-by-category", auditReportController.GetAuditPlanByCategory)
+	reportsRoutes.GET("/reports/audit-plan-by-status", auditReportController.GetAuditPlanByStatus)
+	reportsRoutes.GET("/reports/audit-plan-by-team", auditReportController.GetAuditPlanByTeam)
+	reportsRoutes.GET("/reports/audit-plan-by-team-lead", auditReportController.GetAuditPlanByTeamLead)
+	reportsRoutes.GET("/reports/audit-plan-by-year", auditReportController.GetAuditPlanByYear)
+
+	//Audits
+	reportsRoutes.GET("/reports/audit-by-category", auditReportController.GetAuditByCategory)
+	reportsRoutes.GET("/reports/audit-by-status", auditReportController.GetAuditByStatus)
+	reportsRoutes.GET("/reports/audit-by-open-vs-closed", auditReportController.GetAuditByOpenVsClosed)
+	reportsRoutes.GET("/reports/audit-by-month", auditReportController.GetAuditByMonth)
+	reportsRoutes.GET("/reports/audit-by-team-lead", auditReportController.GetAuditByTeamLead)
+
+	//Audit findings
+	reportsRoutes.GET("/reports/audit-finding-by-category", auditReportController.GetAuditFindingByCategory)
+
 }
