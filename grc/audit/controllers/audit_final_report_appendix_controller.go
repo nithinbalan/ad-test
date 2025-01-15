@@ -86,7 +86,7 @@ func (afrac *AuditFinalReportAppendixController) CreateAuditFinalReportAppendix(
 		return
 	}
 
-	err = afrac.service.Create(uint(auditID), uint(finalReportID), uint(sectionID), currentUserID, &auditFinalReportAppendixFormDTO)
+	_, err = afrac.service.Create(uint(auditID), uint(finalReportID), uint(sectionID), currentUserID, &auditFinalReportAppendixFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -173,10 +173,8 @@ func (afrac *AuditFinalReportAppendixController) DeleteAuditFinalReportAppendix(
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	var request struct {
+		IDs []uint `json:"ids"`
 	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)
@@ -185,7 +183,7 @@ func (afrac *AuditFinalReportAppendixController) DeleteAuditFinalReportAppendix(
 		return
 	}
 
-	failedID, err := afrac.service.Delete(uint(auditID), uint(finalReportID), uint(sectionID), uint(id), currentUserID)
+	failedID, err := afrac.service.Delete(uint(auditID), uint(finalReportID), uint(sectionID), request.IDs, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
