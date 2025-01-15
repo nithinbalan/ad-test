@@ -44,7 +44,7 @@ jobs:
           $scriptPath = "${{ github.workspace }}\script.bat"
           $staticDatabaseName = "jethur_dev_db" # Replace with your static database name
 
-          # Replace 'ProjectName' with the static database name
+          # Replace 'DatabasetName' with the static database name
           (Get-Content -Path $scriptPath) -replace "DatabaseName", $staticDatabaseName | Set-Content -Path $scriptPath
         shell: powershell
 
