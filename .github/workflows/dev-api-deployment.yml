@@ -93,12 +93,13 @@ jobs:
           Copy-Item -Path "${{ github.workspace }}\api.exe" -Destination $iisDocRoot
         shell: powershell
         
-      # Step 11: Start NSSM Task
-      - name: Start NSSM Task
+      # Step 11: Start NSSM Task 
+      - name: Start NSSM Service
         run: |
-          nssm start dev-api
-          timeout /t 10
-        shell: powershell
+          nssm start dev-api || echo "Start command issued, checking service status..."
+          for /l %%i in (1, 10) do ( nssm status dev-api | findstr /i "SERVICE_RUNNING" && exit /b 0 timeout /t 1 > nul )
+          echo "Service failed to start within the expected time." && exit /b 1
+        shell: cmd
         
       # Step 12: Restart IIS Site
       - name: Restart IIS Site
