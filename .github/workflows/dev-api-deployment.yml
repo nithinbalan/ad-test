@@ -50,7 +50,9 @@ jobs:
 
       # Step 7: Switch to migration_new Branch and Run Migrations
       - name: Switch to migration_new Branch
-        run: git checkout migration_new
+        run: |
+          git fetch origin migration_new # Fetch the specific branch from the remote
+          git checkout migration_new
 
       - name: Run Migrations and Seed
         run: |
@@ -99,7 +101,7 @@ jobs:
       # Step 12: Restart IIS Site
       - name: Restart IIS Site
         run: |
-          $siteName = "api"
+          $siteName = "dev-api-test"
 
           # Restart the IIS site
           Import-Module WebAdministration
