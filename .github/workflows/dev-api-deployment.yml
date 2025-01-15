@@ -5,7 +5,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: dev
+    runs-on: jethur-dev
     steps:
       # Step 1: Checkout Code
       - name: Checkout Code
@@ -31,7 +31,7 @@ jobs:
       # Step 5: Download script.bat from Server
       - name: Download script.bat
         run: |
-          $sourcePath = "\\\\server-name\\C$\deployment\deployment-files\script.bat"
+          $sourcePath = "C:\deployment\deployment-files\script.bat"
           $destinationPath = "${{ github.workspace }}\script.bat"
 
           # Copy script.bat from server to workspace
@@ -42,7 +42,7 @@ jobs:
       - name: Modify script.bat for Database Name
         run: |
           $scriptPath = "${{ github.workspace }}\script.bat"
-          $staticDatabaseName = "jethur_dev_db" # Replace with your static database name
+          $staticDatabaseName = "jethur_dev_test_db" # Replace with your static database name
 
           # Replace 'ProjectName' with the static database name
           (Get-Content -Path $scriptPath) -replace "ProjectName", $staticDatabaseName | Set-Content -Path $scriptPath
@@ -67,14 +67,14 @@ jobs:
 
       # Step 9: Stop NSSM Task
       - name: Stop NSSM Task
-        run: nssm stop dev-api
+        run: nssm stop dev-api-test
         shell: powershell
 
       # Step 10: Backup and Deploy API Executable
       - name: Backup and Deploy API Executable
         run: |
-          $iisDocRoot = "C:\inetpub\wwwroot\dev\dev-api"
-          $apiBackup = "$iisDocRoot\api.exe_backup"
+          $iisDocRoot = "C:\inetpub\wwwroot\dev\dev-api-test"
+          $apiBackup = "$iisDocRoot\api_backup.exe"
           $apiExecutable = "$iisDocRoot\api.exe"
 
           # Delete the old backup file if it exists
@@ -93,7 +93,7 @@ jobs:
         
       # Step 11: Start NSSM Task
       - name: Start NSSM Task
-        run: nssm start dev-api
+        run: nssm start dev-api-test
         shell: powershell
         
       # Step 12: Restart IIS Site
