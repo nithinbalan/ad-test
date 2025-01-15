@@ -109,7 +109,7 @@ func (afrac *AuditFinalReportAppendixController) UpdateAuditFinalReportAppendix(
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-	var auditFinalReportAppendixFormDTO dtos.AuditFinalReportAppendixFormDTO
+	var auditFinalReportAppendixFormDTO dtos.AuditFinalReportAppendixUpdateFormDTO
 
 	finalReportID, err := strconv.Atoi(c.Param("finalReportId"))
 	if err != nil {
@@ -173,8 +173,10 @@ func (afrac *AuditFinalReportAppendixController) DeleteAuditFinalReportAppendix(
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-	var request struct {
-		IDs []uint `json:"ids"`
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
 	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)
@@ -183,7 +185,7 @@ func (afrac *AuditFinalReportAppendixController) DeleteAuditFinalReportAppendix(
 		return
 	}
 
-	failedID, err := afrac.service.Delete(uint(auditID), uint(finalReportID), uint(sectionID), request.IDs, currentUserID)
+	deletedID, err := afrac.service.Delete(uint(auditID), uint(finalReportID), uint(sectionID), uint(id), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -199,5 +201,5 @@ func (afrac *AuditFinalReportAppendixController) DeleteAuditFinalReportAppendix(
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"failed_id": failedID})
+	c.JSON(http.StatusOK, gin.H{"deleted_id": deletedID})
 }

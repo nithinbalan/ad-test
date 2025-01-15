@@ -28,6 +28,7 @@ type AuditFinalReport struct {
 	PublishedByUser            *User                        `gorm:"foreignKey:PublishedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	AuditReportWorkflows       []*AuditReportWorkflow       `gorm:"foreignKey:AuditFinalReportID"`
 	AuditFinalReportRecipients []*AuditFinalReportRecipient `gorm:"foreignKey:AuditFinalReportID"`
+	Appendices                 []*AuditFinalReportAppendix  `gorm:"foreignKey:AuditFinalReportID"`
 	CreatedByUser              *User                        `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	UpdatedByUser              *User                        `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 }

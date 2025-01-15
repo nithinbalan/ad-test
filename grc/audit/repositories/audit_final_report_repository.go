@@ -29,10 +29,10 @@ type AuditFinalReportRepositoryInterface interface {
 	CreateAuditFindingDocuments(docs []*models.AuditFindingDocument, tx ...utility.DatabaseTransaction) error
 	DeleteAuditFindingDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 
-	GetAuditFinalReportLatestEditHistory(auditFinalReportID uint) (*models.AuditReportEditHistory, error) 
+	GetAuditFinalReportLatestEditHistory(auditFinalReportID uint) (*models.AuditReportEditHistory, error)
 	CreateAuditReportEditHistory(auditReportEditHistory *models.AuditReportEditHistory, tx ...utility.DatabaseTransaction) error
 	DeleteAuditReportEditHistories(auditFinalReportID uint, tx ...utility.DatabaseTransaction) error
-	CreateAuditFinalReportRecipients(auditFinalReportRecipients []*models.AuditFinalReportRecipient, tx ...utility.DatabaseTransaction) error 
+	CreateAuditFinalReportRecipients(auditFinalReportRecipients []*models.AuditFinalReportRecipient, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditFinalReportRepository struct {
@@ -108,6 +108,8 @@ func (repo *AuditFinalReportRepository) GetFullDetailsByID(auditID uint, tx ...u
 		Preload("AuditFinalReportRecipients").
 		Preload("AuditFinalReportRecipients.User").
 		Preload("PublishedByUser").
+		Preload("Appendices").
+		Preload("Appendices.CreatedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&auditFinalReport)

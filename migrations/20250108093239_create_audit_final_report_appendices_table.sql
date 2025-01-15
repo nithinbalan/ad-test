@@ -16,7 +16,7 @@ CREATE TABLE audit_final_report_appendices
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
     CONSTRAINT FK_audit_final_report_appendices_final_reports FOREIGN KEY (audit_final_report_id) REFERENCES audit_final_reports(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_audit_final_report_appendices_audit_final_report_sections FOREIGN KEY (audit_final_report_id) REFERENCES audit_final_report_sections(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_audit_final_report_appendices_audit_final_report_sections FOREIGN KEY (audit_final_report_section_id) REFERENCES audit_final_report_sections(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_audit_final_report_appendices_users_1 FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_audit_final_report_appendices_users_2 FOREIGN KEY (updated_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );

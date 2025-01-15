@@ -6,9 +6,10 @@ import (
 )
 
 type AuditFinalReportAppendixFormDTO struct {
-	AuditFinalReportID        uint                       `json:"audit_final_report_id" binding:"required"`
-	AuditFinalReportSectionID uint                       `json:"audit_final_report_section_id" binding:"required"`
-	Document                  commonDTOs.DocumentFormDTO `json:"document" binding:"required"`
+	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"required"`
+}
+type AuditFinalReportAppendixUpdateFormDTO struct {
+	Documents commonDTOs.DocumentFormDTO `json:"documents" binding:"required"`
 }
 
 type AuditFinalReportAppendixDetailDTO struct {

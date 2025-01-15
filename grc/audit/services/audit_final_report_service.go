@@ -479,6 +479,35 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 				// Assign findings to the main section DTO
 				mainSectionDTO.Findings = findingsDTOs
 			}
+			if section.Type == "custom" {
+				// Fetch and map appendices for this section
+				appendicesDTOs := []*auditDTOs.AuditFinalReportAppendixDetailDTO{}
+
+				for _, appendix := range auditFinalReport.Appendices {
+					if appendix.AuditFinalReportSectionID == section.ID {
+						// Map the appendix to the DTO
+						appendixDTO := &auditDTOs.AuditFinalReportAppendixDetailDTO{
+							ID:                        appendix.ID,
+							AuditFinalReportID:        appendix.AuditFinalReportID,
+							AuditFinalReportSectionID: appendix.AuditFinalReportSectionID,
+							URL:                       appendix.URL,
+							Name:                      appendix.Name,
+							Size:                      appendix.Size,
+							Token:                     appendix.Token,
+							OriginalName:              appendix.OriginalName,
+							Type:                      appendix.Type,
+							CreatedBYID:               appendix.CreatedBYID,
+							UpdatedBYID:               appendix.UpdatedBYID,
+							CreatedByUser:             mapUserToUserMinimalDTO(appendix.CreatedByUser),
+							CreatedAt:                 appendix.CreatedAt.UTC().Format("2006-01-02T15:04:05.000Z"),
+						}
+						appendicesDTOs = append(appendicesDTOs, appendixDTO)
+					}
+				}
+
+				// Add appendices to the section DTO
+				mainSectionDTO.Appendices = appendicesDTOs
+			}
 
 			// Add subsections (if any)
 			subSections := []*auditDTOs.AuditFinalReportSectionDTO{}
@@ -513,7 +542,7 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 		PreparedAt:                 auditFinalReport.CreatedAt.UTC().Format("2006-01-02T15:04:05.000Z"),
 	}
 	// Check if AuditFinalReportRecipients exists and map them
-	if auditFinalReport.AuditFinalReportRecipients != nil && len(auditFinalReport.AuditFinalReportRecipients) > 0 {
+	if len(auditFinalReport.AuditFinalReportRecipients) > 0 {
 		for _, recipient := range auditFinalReport.AuditFinalReportRecipients {
 			auditReportDTO.AuditFinalReportRecipients = append(auditReportDTO.AuditFinalReportRecipients, &auditDTOs.AuditFinalReportRecipientDTO{
 				ID:                 &recipient.ID,
