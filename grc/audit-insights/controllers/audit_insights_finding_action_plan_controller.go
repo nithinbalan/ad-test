@@ -30,6 +30,8 @@ func (aifapc *AuditInsightsFindingActionPlanController) GetAllAuditInsightsFindi
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+	// Check if `findingId` exists in the route
+	findingIDStr := c.Param("findingId")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -41,8 +43,17 @@ func (aifapc *AuditInsightsFindingActionPlanController) GetAllAuditInsightsFindi
 		"audit_finding_status_ids",
 	}
 
+	// If `findingId` exists in the route, include "audit_finding_ids" in allowedParams
+	if findingIDStr != "" {
+		allowedParams = append(allowedParams, "audit_finding_ids")
+	}
+
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
+	// Directly add the `findingId` filter as a string (no need to parse it to uint64)
+	if findingIDStr != "" {
+		filters["audit_finding_id"] = []string{findingIDStr}
+	}
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(aifapc.db, c, "Invalid page parameter")
@@ -114,10 +125,24 @@ func (aifapc *AuditInsightsFindingActionPlanController) GetAuditInsightsFindingA
 }
 
 func (aifapc *AuditInsightsFindingActionPlanController) CreateAuditInsightsFindingActionPlan(c *gin.Context) {
-	var AuditInsightsFindingActionPlanFormDTO auditDTOs.AuditFindingActionPlanFormDTO
-	if err := c.ShouldBindJSON(&AuditInsightsFindingActionPlanFormDTO); err != nil {
+	var auditInsightsFindingActionPlanFormDTO auditDTOs.AuditFindingActionPlanFormDTO
+	if err := c.ShouldBindJSON(&auditInsightsFindingActionPlanFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
+	}
+
+	// Get findingId from route if available
+	var findingId uint64
+	if findingIDStr := c.Param("findingId"); findingIDStr != "" {
+		var err error
+		findingId, err = strconv.ParseUint(findingIDStr, 10, 64)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		// Otherwise, use the value from the request body
+		findingId = uint64(*auditInsightsFindingActionPlanFormDTO.FindingID)
 	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)
@@ -126,7 +151,7 @@ func (aifapc *AuditInsightsFindingActionPlanController) CreateAuditInsightsFindi
 		return
 	}
 
-	id, err := aifapc.service.Create(currentUserID, &AuditInsightsFindingActionPlanFormDTO)
+	id, err := aifapc.service.Create(uint(findingId), currentUserID, &auditInsightsFindingActionPlanFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -146,7 +171,7 @@ func (aifapc *AuditInsightsFindingActionPlanController) CreateAuditInsightsFindi
 }
 
 func (aifapc *AuditInsightsFindingActionPlanController) UpdateAuditInsightsFindingActionPlan(c *gin.Context) {
-	var AuditInsightsFindingActionPlanFormDTO auditDTOs.AuditFindingActionPlanFormDTO
+	var auditInsightsFindingActionPlanFormDTO auditDTOs.AuditFindingActionPlanFormDTO
 
 	idStr := c.Param("actionPlanId")
 
@@ -156,18 +181,30 @@ func (aifapc *AuditInsightsFindingActionPlanController) UpdateAuditInsightsFindi
 		return
 	}
 
-	if err := c.ShouldBindJSON(&AuditInsightsFindingActionPlanFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&auditInsightsFindingActionPlanFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
-
+	// Get findingId from route if available
+	var findingId uint64
+	if findingIDStr := c.Param("findingId"); findingIDStr != "" {
+		var err error
+		findingId, err = strconv.ParseUint(findingIDStr, 10, 64)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		// Otherwise, use the value from the request body
+		findingId = uint64(*auditInsightsFindingActionPlanFormDTO.FindingID)
+	}
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(aifapc.db, c, err.Error())
 		return
 	}
 
-	err = aifapc.service.Update(uint(id), currentUserID, &AuditInsightsFindingActionPlanFormDTO)
+	err = aifapc.service.Update(uint(findingId), uint(id), currentUserID, &auditInsightsFindingActionPlanFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -216,4 +253,27 @@ func (aifapc *AuditInsightsFindingActionPlanController) DeleteAuditInsightsFindi
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (aifapc *AuditInsightsFindingActionPlanController) GetAuditInsightsFindingActionPlanCountByStatus(c *gin.Context) {
+	findingIDStr := c.Param("findingId")
+
+	findingId, err := strconv.ParseUint(findingIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanCounts, err := aifapc.service.GetAuditInsightsFindingActionPlanCountByStatus(uint(findingId))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(aifapc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, actionPlanCounts)
 }
