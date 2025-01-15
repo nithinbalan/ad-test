@@ -12,6 +12,7 @@ import (
 type AuditInsightsAuditFindingServiceInterface interface {
 	GetAll(params *auditDTOs.AuditFindingListQueryParamsDTO, currentUserID uint) (*auditDTOs.AuditFindingListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFindingDetailDTO, error)
+	GetAuditInsightFindingCountByCategory(auditId uint) ([]auditDTOs.AuditFindingCategoryCountResponseDTO, error)
 }
 
 type AuditInsightsAuditFindingService struct {
@@ -49,4 +50,13 @@ func (aiafs *AuditInsightsAuditFindingService) GetFullDetailsByID(id uint, tx ..
 		return nil, err
 	}
 	return auditFinding, nil
+}
+
+func (aiafs *AuditInsightsAuditFindingService) GetAuditInsightFindingCountByCategory(auditId uint) ([]auditDTOs.AuditFindingCategoryCountResponseDTO, error) {
+	response, err := aiafs.auditFindingSvc.GetAuditFindingCountByCategory(auditId)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
