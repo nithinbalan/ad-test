@@ -42,10 +42,10 @@ jobs:
       - name: Modify script.bat for Database Name
         run: |
           $scriptPath = "${{ github.workspace }}\script.bat"
-          $staticDatabaseName = "jethur_dev_test_db" # Replace with your static database name
+          $staticDatabaseName = "jethur_dev_db" # Replace with your static database name
 
-          # Replace 'ProjectName' with the static database name
-          (Get-Content -Path $scriptPath) -replace "ProjectName", $staticDatabaseName | Set-Content -Path $scriptPath
+          # Replace 'DatabasetName' with the static database name
+          (Get-Content -Path $scriptPath) -replace "DatabaseName", $staticDatabaseName | Set-Content -Path $scriptPath
         shell: powershell
 
       # Step 7: Switch to migration_new Branch and Run Migrations
@@ -69,13 +69,13 @@ jobs:
 
       # Step 9: Stop NSSM Task
       - name: Stop NSSM Task
-        run: nssm stop dev-api-test
+        run: nssm stop dev-api
         shell: powershell
 
       # Step 10: Backup and Deploy API Executable
       - name: Backup and Deploy API Executable
         run: |
-          $iisDocRoot = "C:\inetpub\wwwroot\dev\dev-api-test"
+          $iisDocRoot = "C:\inetpub\wwwroot\dev\dev-api"
           $apiBackup = "$iisDocRoot\api_backup.exe"
           $apiExecutable = "$iisDocRoot\api.exe"
 
@@ -86,7 +86,7 @@ jobs:
 
           # Rename existing executable to backup
           if (Test-Path $apiExecutable) {
-              Rename-Item -Path $apiExecutable -NewName "api.exe_backup"
+              Rename-Item -Path $apiExecutable -NewName "api_backup.exe"
           }
 
           # Copy new executable to IIS document root
@@ -95,13 +95,15 @@ jobs:
         
       # Step 11: Start NSSM Task
       - name: Start NSSM Task
-        run: nssm start dev-api-test
+        run: |
+          nssm start dev-api
+          timeout /t 10
         shell: powershell
         
       # Step 12: Restart IIS Site
       - name: Restart IIS Site
         run: |
-          $siteName = "dev-api-test"
+          $siteName = "dev-api"
 
           # Restart the IIS site
           Import-Module WebAdministration
