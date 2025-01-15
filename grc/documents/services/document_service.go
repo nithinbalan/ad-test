@@ -188,6 +188,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		DocumentCategoryID:   documentFormDTO.DocumentCategoryID,
 		ResponsibleUserID:    documentFormDTO.ResponsibleUserID,
 		ResponsibleUnitID:    responsibleUnitID,
+		ReviewFrequencyID:    documentFormDTO.ReviewFrequencyID,
 		DocumentAccessTypeID: documentFormDTO.DocumentAccessTypeID,
 		DocumentStatusID:     documentStatus.ID,
 		CreatedBYID:          currentUserID,
@@ -480,6 +481,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 	existingDocument.DocumentCategoryID = documentFormDTO.DocumentCategoryID
 	existingDocument.ResponsibleUserID = documentFormDTO.ResponsibleUserID
 	existingDocument.ResponsibleUnitID = responsibleUnitID
+	existingDocument.ReviewFrequencyID = documentFormDTO.ReviewFrequencyID
 	existingDocument.DocumentAccessTypeID = documentFormDTO.DocumentAccessTypeID
 	existingDocument.UpdatedBYID = &currentUserID
 

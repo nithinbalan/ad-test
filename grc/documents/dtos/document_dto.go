@@ -2,6 +2,7 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
 	"time"
@@ -105,6 +106,7 @@ type DocumentFormDTO struct {
 	DocumentVersion      float64                     `json:"document_version" binding:"required"`
 	SharedUserIDs        []*uint                     `json:"shared_user_ids"`
 	SharedUnitIDs        []*uint                     `json:"shared_unit_ids"`
+	ReviewFrequencyID    *uint                       `json:"review_frequency_id" binding:"omitempty"`
 }
 
 type DocumentDetailsDTO struct {
@@ -130,6 +132,7 @@ type DocumentDetailsDTO struct {
 	CreatedAt             time.Time                        `json:"created_at"`
 	UpdatedAt             *time.Time                       `json:"updated_at"`
 	Acknowledged          *bool                            `json:"acknowledged,omitempty"`
+	ReviewFrequency       *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
 }
 
 type DocumentVersionDTO struct {
