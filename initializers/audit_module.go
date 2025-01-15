@@ -73,6 +73,7 @@ type AuditModule struct {
 	AuditFindingRootCauseAnalysisSvc      services.AuditFindingRootCauseAnalysisServiceInterface
 	AuditFindingActionPlanSvc             services.AuditFindingActionPlanServiceInterface
 	AuditFindingActionPlanStatusUpdateSvc services.AuditFindingActionPlanStatusUpdateServiceInterface
+	AuditFinalReportSvc                   services.AuditFinalReportServiceInterface
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule, taskModule *TaskModule, commonModule *CommonModule) *AuditModule {
@@ -448,6 +449,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditFinalReportSvc := services.NewAuditFinalReportService(
 		auditFinalReportRepo,
 		sharedModule.ActivityLogService,
+		auditStatusSvc,
 		auditSvc,
 		auditDraftReportStatusSvc,
 		auditDraftReportSvc,
@@ -558,5 +560,6 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditFindingRootCauseAnalysisSvc:      auditFindingRootCauseAnalysisSvc,
 		AuditFindingActionPlanSvc:             auditFindingActionPlanSvc,
 		AuditFindingActionPlanStatusUpdateSvc: auditFindingActionPlanStatusUpdateSvc,
+		AuditFinalReportSvc:                   auditFinalReportSvc,
 	}
 }

@@ -23,7 +23,6 @@ func NewAuditFinalReportController(service services.AuditFinalReportServiceInter
 	}
 }
 
-
 func (afrc *AuditFinalReportController) GetAuditFinalReportDetails(c *gin.Context) {
 	auditID, err := strconv.Atoi(c.Param("auditId"))
 	if err != nil {
@@ -35,7 +34,7 @@ func (afrc *AuditFinalReportController) GetAuditFinalReportDetails(c *gin.Contex
 		utility.SendInternalErrResp(afrc.db, c, err.Error())
 		return
 	}
-	auditFinalReport, err := afrc.service.GetFullDetailsByID(uint(auditID),currentUserID)
+	auditFinalReport, err := afrc.service.GetFullDetailsByID(uint(auditID), currentUserID, "")
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -59,7 +58,7 @@ func (afrc *AuditFinalReportController) CreateAuditFinalReport(c *gin.Context) {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-	
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(afrc.db, c, err.Error())
@@ -101,7 +100,7 @@ func (afrc *AuditFinalReportController) DeleteAuditFinalReport(c *gin.Context) {
 		return
 	}
 
-	err = afrc.service.Delete(uint(auditID),currentUserID)
+	err = afrc.service.Delete(uint(auditID), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

@@ -375,12 +375,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.PUT("/audits/:auditId/final-report-sections/:id", auditFinalReportSectionController.UpdateAuditFinalReportSection)
 	auditRoutes.DELETE("/audits/:auditId/final-report-sections/:id", auditFinalReportSectionController.DeleteAuditFinalReportSection)
 
-	//Audit Final Report
-	auditRoutes.GET("/audits/:auditId/final-reports/:finalReportId/sections/:sectionId/appendices/:id", auditFinalReportAppendixController.GetAuditFinalReportAppendixDetails)
-	auditRoutes.POST("/audits/:auditId/final-reports/:finalReportId/sections/:sectionId/appendices", auditFinalReportAppendixController.CreateAuditFinalReportAppendix)
-	auditRoutes.PUT("/audits/:auditId/final-reports/:finalReportId/sections/:sectionId/appendices/:id", auditFinalReportAppendixController.UpdateAuditFinalReportAppendix)
-	auditRoutes.DELETE("/audits/:auditId/final-reports/:finalReportId/sections/:sectionId/appendices/:id", auditFinalReportAppendixController.DeleteAuditFinalReportAppendix)
-
 	//workflow
 	auditRoutes.GET("/audits/:auditId/final-reports/workflow-list", auditReportWorkflowController.GetWorkflowList)
 
@@ -388,4 +382,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.GET("/audits/:auditId/final-reports/comments", auditReportReviewController.GetComments)
 	auditRoutes.POST("/audits/:auditId/final-reports/comments", auditReportReviewController.AddComment)
 
+	auditRoutes.GET("/audits/:auditId/final-reports/:finalReportId/sections/:sectionId/appendices/:id", auditFinalReportAppendixController.GetAuditFinalReportAppendixDetails)
+	auditRoutes.POST("/audits/:auditId/final-reports/:finalReportId/sections/:sectionId/appendices", auditFinalReportAppendixController.CreateAuditFinalReportAppendix)
+	auditRoutes.PUT("/audits/:auditId/final-reports/:finalReportId/sections/:sectionId/appendices/:id", auditFinalReportAppendixController.UpdateAuditFinalReportAppendix)
+	auditRoutes.DELETE("/audits/:auditId/final-reports/:finalReportId/sections/:sectionId/appendices/:id", auditFinalReportAppendixController.DeleteAuditFinalReportAppendix)
 }
