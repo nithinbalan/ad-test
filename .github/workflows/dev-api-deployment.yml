@@ -95,7 +95,9 @@ jobs:
         
       # Step 11: Start NSSM Task
       - name: Start NSSM Task
-        run: nssm start dev-api
+        run: |
+          nssm start dev-api
+          timeout /t 10
         shell: powershell
         
       # Step 12: Restart IIS Site
