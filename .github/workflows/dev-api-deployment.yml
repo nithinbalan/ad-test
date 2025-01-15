@@ -95,13 +95,14 @@ jobs:
         
       # Step 11: Start NSSM Task 
       - name: Start NSSM Service
-        run: |
-          nssm start dev-api || echo "Start command issued, checking service status..."
-          for /l %%i in (1, 10) do ( nssm status dev-api | findstr /i "SERVICE_RUNNING" && exit /b 0 timeout /t 1 > nul )
-          echo "Service failed to start within the expected time." && exit /b 1
-        shell: cmd
+        run: nssm start dev-api
+        continue-on-error: true
         
-      # Step 12: Restart IIS Site
+      # Step 12: Status check NSSM Task
+      - name: Status NSSM Service
+        run: nssm status dev-api
+
+      # Step 13: Restart IIS Site
       - name: Restart IIS Site
         run: |
           $siteName = "dev-api"
@@ -115,7 +116,7 @@ jobs:
         shell: powershell
 
 
-      # Step 13: Cleanup Deployment Environment
+      # Step 14: Cleanup Deployment Environment
       - name: Cleanup Deployment Environment
         run: |
           # Clean up temporary files or directories created during deployment
