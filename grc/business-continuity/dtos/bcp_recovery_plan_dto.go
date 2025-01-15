@@ -51,18 +51,14 @@ type BcpRecoveryPlanListDTO struct {
 }
 
 type BcpRecoveryPlanListQueryParamsDTO struct {
-	Sort           string
-	SortBy         string
-	Keyword        string
-	Status         string
-	Page           int
-	PageSize       int
-	Filters        map[string][]string
-	QuickFilter    []string
-	TargetDateFrom string
-	TargetDateTo   string
-	DateFrom       string
-	DateTo         string
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Status      string
+	Page        int
+	PageSize    int
+	Filters     map[string][]string
+	QuickFilter []string
 }
 
 type BcpRecoveryPlanListResponseDTO struct {
