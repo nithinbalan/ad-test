@@ -120,7 +120,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.PUT("/documents/:id/clauses/:clauseId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentClauseController.UpdateDocumentClause)
 	documentRoutes.POST("/documents/:id/clauses/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentClauseController.DeleteDocumentClauses)
 
-	//document associated item lists
+	//document associated item list
 	documentRoutes.GET("documents/:id/controls", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAssociatedItemController.GetAllDocumentControls)
 	documentRoutes.GET("documents/:id/compliance-requirements", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAssociatedItemController.GetAllDocumentComplianceRequirements)
 	documentRoutes.GET("documents/:id/processes", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAssociatedItemController.GetAllDocumentProcesses)
