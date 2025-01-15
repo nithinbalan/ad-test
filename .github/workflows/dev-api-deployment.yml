@@ -93,14 +93,16 @@ jobs:
           Copy-Item -Path "${{ github.workspace }}\api.exe" -Destination $iisDocRoot
         shell: powershell
         
-      # Step 11: Start NSSM Task
-      - name: Start NSSM Task
-        run: |
-          nssm start dev-api
-          timeout /t 10
-        shell: powershell
+      # Step 11: Start NSSM Task 
+      - name: Start NSSM Service
+        run: nssm start dev-api
+        continue-on-error: true
         
-      # Step 12: Restart IIS Site
+      # Step 12: Status check NSSM Task
+      - name: Status NSSM Service
+        run: nssm status dev-api
+
+      # Step 13: Restart IIS Site
       - name: Restart IIS Site
         run: |
           $siteName = "dev-api"
@@ -114,7 +116,7 @@ jobs:
         shell: powershell
 
 
-      # Step 13: Cleanup Deployment Environment
+      # Step 14: Cleanup Deployment Environment
       - name: Cleanup Deployment Environment
         run: |
           # Clean up temporary files or directories created during deployment
