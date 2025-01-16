@@ -22,6 +22,7 @@ import (
 
 type ControlServiceInterface interface {
 	GetAll(params *organizationDTOs.ControlListQueryParamsDTO) (*organizationDTOs.ControlListResponseDTO, error)
+	GetAllControls() ([]*models.Control, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationDTOs.ControlDetailDTO, error)
 	Create(currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) (uint, error)
@@ -85,6 +86,10 @@ func NewControlService(
 
 func (cs *ControlService) GetAll(params *organizationDTOs.ControlListQueryParamsDTO) (*organizationDTOs.ControlListResponseDTO, error) {
 	return cs.repo.GetAll(params)
+}
+
+func (cs *ControlService) GetAllControls() ([]*models.Control, error) {
+	return cs.repo.GetAllControls()
 }
 
 func (cs *ControlService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error) {
@@ -196,6 +201,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 		IsApplicable:                  controlFormDTO.IsApplicable,
 		Justification:                 controlFormDTO.Justification,
 		ApplicabilityChangeDate:       dates.ApplicabilityChangeDate,
+		ImplementationGuideline:       controlFormDTO.ImplementationGuideline,
 	}
 
 	id, err := cs.repo.Create(control)
@@ -343,6 +349,7 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 	existingControl.NextTestDate = dates.NextTestDate
 	existingControl.IsApplicable = controlFormDTO.IsApplicable
 	existingControl.Justification = controlFormDTO.Justification
+	existingControl.ImplementationGuideline = controlFormDTO.ImplementationGuideline
 	existingControl.ApplicabilityChangeDate = dates.ApplicabilityChangeDate
 	existingControl.UpdatedByID = &currentUserID
 

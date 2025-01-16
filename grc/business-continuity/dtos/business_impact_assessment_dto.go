@@ -1,5 +1,9 @@
 package dtos
 
+import (
+	commonDTOs "jethur/grc/common/dtos"
+)
+
 type BusinessImpactAssessmentListDTO struct {
 	ID                          uint    `json:"id"`
 	ProcessID                   *uint   `json:"process_id"`
@@ -153,4 +157,40 @@ type BusinessImpactAssessmentRecoveryObjectiveDTO struct {
 	Rpo               *uint   `json:"rpo"`
 	RpoUnitId         *uint   `json:"rpo_unit_id"`
 	ImpactDescription *string `json:"impact_description"`
+}
+
+type BIAMatrixResponseDTO struct {
+	BusinessFunctionID     uint    `json:"business_function_id"`
+	BusinessFunctionTitle  string  `json:"business_function_title"`
+	ProcessID              uint    `json:"process_id"`
+	ProcessTitleEn         string  `json:"process_title_en"`
+	ProcessTitleAr         string  `json:"process_title_ar"`
+	ProcessRTO             int     `json:"process_rto"`
+	ProcessMTPD            int     `json:"process_mtpd"`
+	ProcessRPO             int     `json:"process_rpo"`
+	ProcessRTOUnitTitleEn  *string `json:"process_rto_unit_title_en"`
+	ProcessRTOUnitTitleAr  *string `json:"process_rto_unit_title_ar"`
+	ProcessMTPDUnitID      *uint   `json:"process_mtpd_unit_id"`
+	ProcessMTPDUnitTitleEn *string `json:"process_mtpd_unit_title_en"`
+	ProcessMTPDUnitTitleAr *string `json:"process_mtpd_unit_title_ar"`
+	ProcessRPOUnitID       *uint   `json:"process_rpo_unit_id"`
+	ProcessRPOUnitTitleEn  *string `json:"process_rpo_unit_title_en"`
+	ProcessRPOUnitTitleAr  *string `json:"process_rpo_unit_title_ar"`
+	RiskLevelID            *uint   `json:"risk_level_id"`
+	RiskLevelTitleEn       *string `json:"risk_level_title_en"`
+	RiskLevelTitleAr       *string `json:"risk_level_title_ar"`
+}
+
+type BIAMatrixQueryParamsDTO struct {
+	Sort     string
+	SortBy   string
+	Keyword  string
+	Page     int
+	PageSize int
+	Filters  map[string][]string
+}
+
+type BIAMatrixResponsePaginatedDTO struct {
+	Items      []BIAMatrixResponseDTO       `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }

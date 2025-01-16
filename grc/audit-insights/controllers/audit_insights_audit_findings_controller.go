@@ -40,7 +40,7 @@ func (aiafc *AuditInsightsAuditFindingController) GetAllAuditInsightsAuditFindin
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
-	
+
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(aiafc.db, c, "Invalid page parameter")
@@ -109,4 +109,27 @@ func (aiafc *AuditInsightsAuditFindingController) GetAuditInsightsAuditFindingDe
 		}
 	}
 	c.JSON(http.StatusOK, audit)
+}
+
+func (aiafc *AuditInsightsAuditFindingController) GetAuditInsightFindingCountByCategory(c *gin.Context) {
+	auditIDStr := c.Param("auditId")
+
+	auditId, err := strconv.ParseUint(auditIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	findingCounts, err := aiafc.service.GetAuditInsightFindingCountByCategory(uint(auditId))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(aiafc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, findingCounts)
 }

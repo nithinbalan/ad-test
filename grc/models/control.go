@@ -41,6 +41,7 @@ type Control struct {
 	ApplicabilityChangeDate       *time.Time `json:"applicability_change_date,omitempty" gorm:"type:datetime;default:null" binding:"omitempty"`
 	RiskMatrixRiskRatingID        *uint      `json:"risk_matrix_risk_rating_id" gorm:"default:null"`
 	RiskMatrixRiskRatingValueID   *uint      `json:"risk_matrix_risk_rating_value_id" gorm:"default:null"`
+	ImplementationGuideline       *string    `json:"implementation_guideline,omitempty" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
 
 	// Relationships
 	ControlType                 *ControlType                 `gorm:"foreignKey:ControlTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

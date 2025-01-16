@@ -85,11 +85,6 @@ func (repo *DocumentAuditLogRepository) GetAll(documentID uint, documentVersionI
 		`).
 		Where("document_audit_logs.document_id = ? AND document_audit_logs.document_version_id = ?", documentID, documentVersionID)
 
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -107,14 +102,11 @@ func (repo *DocumentAuditLogRepository) GetAll(documentID uint, documentVersionI
 	}
 
 	// Apply sorting
-	if params.SortBy == "" {
-		params.SortBy = "document_audit_logs.created_at"
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc"
-	}
-
 	query = query.Order(params.SortBy + " " + params.Sort)
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 
 	offset := (params.Page - 1) * params.PageSize
 

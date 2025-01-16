@@ -8,7 +8,6 @@ import (
 )
 
 func RegisterRoutes(app *initializers.App, router *gin.Engine) {
-
 	businessContinuityRoutes := router.Group("/")
 
 	businessContinuityRoutes.Use(middlewares.AuthMiddleware())
@@ -27,7 +26,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.GET("/bcp-phases", bcpPhaseController.GetAllBcpPhases)
 	businessContinuityRoutes.GET("/bcp-phases/:id", bcpPhaseController.GetBcpPhaseDetails)
 
-	//Business Function
+	// Business Function
 	businessContinuityRoutes.GET("/business-functions", middlewares.RolePermissionMiddleware(db, "business_functions", "view"), businessFunctionController.GetAllBusinessFunctions)
 	businessContinuityRoutes.GET("/business-functions/:id", middlewares.RolePermissionMiddleware(db, "business_functions", "view"), businessFunctionController.GetBusinessFunctionDetails)
 	businessContinuityRoutes.POST("/business-functions", middlewares.RolePermissionMiddleware(db, "business_functions", "modify"), businessFunctionController.CreateBusinessFunction)
@@ -73,4 +72,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.POST("/bcp/:bcpId/bcp-communication-plans", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpCommunicationPlanController.CreateBcpCommunicationPlan)
 	businessContinuityRoutes.PUT("/bcp/:bcpId/bcp-communication-plans/:id", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpCommunicationPlanController.UpdateBcpCommunicationPlan)
 	businessContinuityRoutes.POST("/bcp/:bcpId/bcp-communication-plans/delete", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpCommunicationPlanController.DeleteBcpCommunicationPlans)
+	businessContinuityRoutes.GET("/bia-matrix", middlewares.RolePermissionMiddleware(db, "bia_matrics", "view"), businessImpactAssessmentController.GetBIAMatrix)
 }

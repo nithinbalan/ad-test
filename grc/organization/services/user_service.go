@@ -25,6 +25,7 @@ import (
 
 type UserServiceInterface interface {
 	GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error)
+	GetAllUsers() ([]*models.User, error)
 	GetByID(id uint) (*models.User, error)
 	GetFullDetailsByID(id uint) (*userDTOs.UserDetailsDTO, error)
 	GetByEmail(email string) (*models.User, error)
@@ -129,6 +130,10 @@ func (us *UserService) GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTO
 	}
 
 	return us.repo.GetAll(params)
+}
+
+func (us *UserService) GetAllUsers() ([]*models.User, error) {
+	return us.repo.GetAllUsers()
 }
 
 func (us *UserService) GetByID(id uint) (*models.User, error) {

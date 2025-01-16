@@ -11,7 +11,7 @@ type AuditFinalReportSection struct {
 	TitleAr                   string     `json:"title_ar" binding:"required,max=255" gorm:"type:nvarchar(255);not null"`
 	DescriptionEn             *string    `json:"description_en" gorm:"type:nvarchar(MAX);default:null"`
 	DescriptionAr             *string    `json:"description_ar" gorm:"type:nvarchar(MAX);default:null"`
-	Type                      string     `json:"type" binding:"required,oneof=overview finding-summary findings conclusion custom" gorm:"type:varchar(20);not null;check:type IN ('overview', 'finding-summary', 'findings', 'conclusion', 'custom')"`
+	Type                      string     `json:"type" binding:"required,oneof=overview finding-summary findings conclusion custom appendix" gorm:"type:varchar(20);not null;check:type IN ('overview', 'finding-summary', 'findings', 'conclusion', 'custom', 'appendix')"`
 	Order                     *float64   `json:"order" gorm:"type:decimal(10,2);default:null"`
 	AuditFinalReportSectionID *uint      `json:"audit_final_report_section_id" gorm:"default:null"`
 	CreatedAt                 time.Time  `json:"created_at" gorm:"type:datetime;not null"`
