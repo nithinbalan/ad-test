@@ -29,10 +29,11 @@ type AuditFinalReportRepositoryInterface interface {
 	CreateAuditFindingDocuments(docs []*models.AuditFindingDocument, tx ...utility.DatabaseTransaction) error
 	DeleteAuditFindingDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 
-	GetAuditFinalReportLatestEditHistory(auditFinalReportID uint) (*models.AuditReportEditHistory, error) 
+	GetAuditFinalReportLatestEditHistory(auditFinalReportID uint) (*models.AuditReportEditHistory, error)
 	CreateAuditReportEditHistory(auditReportEditHistory *models.AuditReportEditHistory, tx ...utility.DatabaseTransaction) error
 	DeleteAuditReportEditHistories(auditFinalReportID uint, tx ...utility.DatabaseTransaction) error
-	CreateAuditFinalReportRecipients(auditFinalReportRecipients []*models.AuditFinalReportRecipient, tx ...utility.DatabaseTransaction) error 
+	CreateAuditFinalReportRecipients(auditFinalReportRecipients []*models.AuditFinalReportRecipient, tx ...utility.DatabaseTransaction) error
+	DeleteAuditFinalReportAppendices(deleteAppendixIDs []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditFinalReportRepository struct {
@@ -108,6 +109,8 @@ func (repo *AuditFinalReportRepository) GetFullDetailsByID(auditID uint, tx ...u
 		Preload("AuditFinalReportRecipients").
 		Preload("AuditFinalReportRecipients.User").
 		Preload("PublishedByUser").
+		Preload("Appendices").
+		Preload("Appendices.CreatedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&auditFinalReport)
@@ -350,6 +353,19 @@ func (repo *AuditFinalReportRepository) CreateAuditFinalReportRecipients(auditFi
 	}
 
 	if err := db.Create(&auditFinalReportRecipients).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AuditFinalReportRepository) DeleteAuditFinalReportAppendices(deleteAppendixIDs []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", deleteAppendixIDs).Delete(&models.AuditFinalReportAppendix{}).Error; err != nil {
 		return err
 	}
 
