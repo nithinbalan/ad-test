@@ -12,6 +12,7 @@ type AuditInsightsFindingActionPlanStatusUpdateServiceInterface interface {
 	Update(findingID uint, actionPlanID uint, id uint, currentUserID uint, actionPlanStatusUpdateFormDTO *auditDTOs.AuditFindingActionPlanStatusUpdateFormDTO, tx ...utility.DatabaseTransaction) error
 	GetLatestAuditInsightsFindingActionPlanStatusUpdate(findingID uint, actionPlanID uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFindingActionPlanStatusUpdateListDTO, error)
 	GetFindingIDByActionPlan(actionPlanID uint) (uint, error)
+	GetDocumentPath(findingID uint, actionPlanID uint, id uint, token string, tx ...utility.DatabaseTransaction) (string, error)
 }
 
 type AuditInsightsFindingActionPlanStatusUpdateService struct {
@@ -64,4 +65,13 @@ func (aifapsus *AuditInsightsFindingActionPlanStatusUpdateService) GetFindingIDB
 		return 0, err
 	}
 	return auditInsightsFindingActionPlan.AuditFinding.ID, nil
+}
+
+func (aifapsus *AuditInsightsFindingActionPlanStatusUpdateService) GetDocumentPath(findingID uint, actionPlanID uint, id uint, token string, tx ...utility.DatabaseTransaction) (string, error) {
+	auditDocumentRequest, err := aifapsus.auditFindingActionPlanStatusUpdateSvc.GetDocumentPath(findingID, actionPlanID, id, token)
+	if err != nil {
+		return "", err
+	}
+
+	return auditDocumentRequest, nil
 }

@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	"fmt"
 	"jethur/grc/audit-insights/services"
 	auditDTOs "jethur/grc/audit/dtos"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -73,7 +73,6 @@ func (aifsuc *AuditInsightsFindingActionPlanStatusUpdateController) GetAllAuditI
 
 func (aifsuc *AuditInsightsFindingActionPlanStatusUpdateController) CreateAuditInsightsFindingActionPlanStatusUpdate(c *gin.Context) {
 	var auditFindingStatusUpdateFormDTO auditDTOs.AuditFindingActionPlanStatusUpdateFormDTO
-	fmt.Println("hiiiiiiiiiiiiiiiiiiiiiiii000000000000000000")
 
 	actionPlanIDStr := c.Param("actionPlanId")
 
@@ -102,7 +101,6 @@ func (aifsuc *AuditInsightsFindingActionPlanStatusUpdateController) CreateAuditI
 			return
 		}
 	}
-	fmt.Println("hiiiiiiiiiiiiiiiiiiiiiiii=", findingID)
 	if err := c.ShouldBindJSON(&auditFindingStatusUpdateFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -242,4 +240,56 @@ func (aifsuc *AuditInsightsFindingActionPlanStatusUpdateController) GetLatestAud
 	}
 
 	c.JSON(http.StatusOK, auditInsightsFindingActionPlanStatusUpdate)
+}
+
+func (aifsuc *AuditInsightsFindingActionPlanStatusUpdateController) DownloadAuditInsightsFindingActionPlanStatusUpdateDocument(c *gin.Context) {
+	actionPlanIDStr := c.Param("actionPlanId")
+	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	findingIDStr := c.Param("findingId")
+	findingID, err := strconv.ParseUint(findingIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := aifsuc.service.GetDocumentPath(uint(findingID), uint(actionPlanID), uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(aifsuc.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(documentPath)
+
+	// Set the content type and disposition headers for the file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	// Serve the file
+	c.File(documentPath)
 }
