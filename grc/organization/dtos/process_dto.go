@@ -44,6 +44,9 @@ type ProcessListDTO struct {
 	RpoUnitId                        *uint      `json:"rpo_uint_id"`
 	RpoUnitTitleEn                   *string    `json:"rpo_unit_title_en"`
 	RpoUnitTitleAr                   *string    `json:"rpo_unit_title_ar"`
+	RiskLevelId                      *uint      `json:"risk_level_id"`
+	RiskLevelTitleEn                 *uint      `json:"risk_level_title_en"`
+	RiskLevelTitleAr                 *uint      `json:"risk_level_title_ar"`
 	LastAssessedAt                   *time.Time `json:"last_assessed_at"`
 	LastAssessedUserID               *uint      `json:"last_assessed_user_id"`
 	LastAssessedUserFirstNameEn      *string    `json:"last_assessed_user_first_name_en"`
@@ -135,6 +138,7 @@ type ProcessDetailDTO struct {
 	Rpo                   *uint                             `json:"rpo"`
 	RpoUnitId             *uint                             `json:"rpo_uint_id"`
 	RpoUnit               masterDTOs.TimeUnitDTO            `json:"rpo_unit"`
+	RiskLevelId           *uint                             `json:"risk_level_id"`
 	LastAssessedAt        *time.Time                        `json:"last_assessed_at"`
 	LastAssessedByUser    *UserMinimalDTO                   `json:"last_assessed_by"`
 	IsBiaPerformed        bool                              `json:"is_bia_performed"`
