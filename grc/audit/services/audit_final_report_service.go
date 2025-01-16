@@ -479,7 +479,31 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 				// Assign findings to the main section DTO
 				mainSectionDTO.Findings = findingsDTOs
 			}
+			appendicesDTOs := []*auditDTOs.AuditFinalReportAppendixDetailDTO{}
+			if section.Type == "appendix" {
+				// Fetch and map appendices for this section
+				for _, appendix := range auditFinalReport.Appendices {
+					// Map the appendix to the DTO
+					appendixDTO := &auditDTOs.AuditFinalReportAppendixDetailDTO{
+						ID:                 appendix.ID,
+						AuditFinalReportID: appendix.AuditFinalReportID,
+						URL:                appendix.URL,
+						Name:               appendix.Name,
+						Size:               appendix.Size,
+						Token:              appendix.Token,
+						OriginalName:       appendix.OriginalName,
+						Type:               appendix.Type,
+						CreatedBYID:        appendix.CreatedBYID,
+						UpdatedBYID:        appendix.UpdatedBYID,
+						CreatedByUser:      mapUserToUserMinimalDTO(appendix.CreatedByUser),
+						CreatedAt:          appendix.CreatedAt.UTC().Format("2006-01-02T15:04:05.000Z"),
+					}
+					appendicesDTOs = append(appendicesDTOs, appendixDTO)
+				}
 
+			}
+			// Add appendices to the section DTO
+			mainSectionDTO.Appendices = appendicesDTOs
 			// Add subsections (if any)
 			subSections := []*auditDTOs.AuditFinalReportSectionDTO{}
 			for _, subSection := range auditFinalReport.AuditFinalReportSections {
@@ -513,7 +537,7 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 		PreparedAt:                 auditFinalReport.CreatedAt.UTC().Format("2006-01-02T15:04:05.000Z"),
 	}
 	// Check if AuditFinalReportRecipients exists and map them
-	if auditFinalReport.AuditFinalReportRecipients != nil && len(auditFinalReport.AuditFinalReportRecipients) > 0 {
+	if len(auditFinalReport.AuditFinalReportRecipients) > 0 {
 		for _, recipient := range auditFinalReport.AuditFinalReportRecipients {
 			auditReportDTO.AuditFinalReportRecipients = append(auditReportDTO.AuditFinalReportRecipients, &auditDTOs.AuditFinalReportRecipientDTO{
 				ID:                 &recipient.ID,
@@ -624,7 +648,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 		{"Audit Findings", "finding-summary"},
 		{"Findings", "findings"},
 		{"Conclusions", "conclusion"},
-		{"Appendix", "custom"},
+		{"Appendix", "appendix"},
 	}
 
 	var reportSections []*models.AuditFinalReportSection
@@ -1106,6 +1130,27 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 		tx.Rollback()
 		return err
 	}
+	// Delete appendices
+	if len(auditFinalReport.Appendices) > 0 {
+		var deleteAppendixIDs []*uint
+		for _, appendix := range auditFinalReport.Appendices {
+			deleteAppendixIDs = append(deleteAppendixIDs, &appendix.ID)
+
+			// Delete appendix files
+			storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "final-report", "appendix")
+			if err := utility.RemoveFile(appendix.Name, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+
+		// Delete appendix entries from the database
+		if err := afrs.repo.DeleteAuditFinalReportAppendices(deleteAppendixIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	if err := afrs.repo.Delete(auditFinalReport.ID, tx); err != nil {
 		tx.Rollback()
 		return err
