@@ -61,13 +61,13 @@ type BcpProcessDetailsDTO struct {
 	ID          uint                    `json:"id"`
 	Process     ProcessDetailDTO        `json:"process"`
 	Rto         *uint                   `json:"rto"`
-	RtoUnitId   *uint                   `json:"rto_uint_id"`
+	RtoUnitId   *uint                   `json:"rto_unit_id"`
 	RtoUnit     *masterDTOs.TimeUnitDTO `json:"rto_unit"`
 	Mtpd        *uint                   `json:"mtpd"`
-	MtpdUnitId  *uint                   `json:"mtpd_uint_id"`
+	MtpdUnitId  *uint                   `json:"mtpd_unit_id"`
 	MtpdUnit    *masterDTOs.TimeUnitDTO `json:"mtpd_unit"`
 	Rpo         *uint                   `json:"rpo"`
-	RpoUnitId   *uint                   `json:"rpo_uint_id"`
+	RpoUnitId   *uint                   `json:"rpo_unit_id"`
 	RpoUnit     *masterDTOs.TimeUnitDTO `json:"rpo_unit"`
 	RiskLevelId *uint                   `json:"risk_level_id"`
 	RiskLevel   riskDTOs.RiskLevelDTO   `json:"risk_level"`
