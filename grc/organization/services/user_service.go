@@ -205,9 +205,15 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 	}
 	// @todo - need to validate organization unit in validateUserFormDTO
 
-	password, err := us.GenerateRandomPassword(12)
-	if err != nil {
-		return 0, err
+	var password string
+	if userFormDTO.Password != "" {
+		password = userFormDTO.Password
+	} else {
+		var err error
+		password, err = us.GenerateRandomPassword(12)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -320,49 +326,51 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		}
 	}()
 
-	emailTemplateSettings, err := us.emailTemplateSettingsSvc.GetEmailTemplateSettings()
-	if err != nil {
-		return 0, err
+	if userFormDTO.IsSentEmail {
+
+		emailTemplateSettings, err := us.emailTemplateSettingsSvc.GetEmailTemplateSettings()
+		if err != nil {
+			return 0, err
+		}
+
+		socialLinks, err := us.notificationSvc.GetSocialMediaLinks()
+		if err != nil {
+			return 0, err
+		}
+
+		emailTemplateAndSocialDTO := &commonDTOs.EmailTemplateAndSocialDTO{
+			HeaderImageURL: emailTemplateSettings.HeaderImageURL,
+			SupportText:    emailTemplateSettings.SupportText,
+			ClosingText:    emailTemplateSettings.ClosingText,
+			FooterLogoURL:  emailTemplateSettings.FooterLogoURL,
+			FooterAddress:  emailTemplateSettings.FooterAddress,
+			FooterEmail:    emailTemplateSettings.FooterEmail,
+			Linkedin:       &socialLinks.Linkedin,
+			X:              &socialLinks.X,
+			Facebook:       &socialLinks.Facebook,
+		}
+
+		appURL := utility.GetAppURL()
+		redirectURL := fmt.Sprintf("%sauth/login", appURL)
+
+		emailData := userDTOs.SendNewPasswordEmailDTO{
+			FirstNameEn: userFormDTO.FirstNameEn,
+			LastNameEn:  userFormDTO.LastNameEn,
+			Email:       userFormDTO.Email,
+			Password:    password,
+			RedirectURL: redirectURL,
+		}
+
+		to := []string{user.Email}
+		subject := "Important: Welcome to Jethur!"
+		templateRelativePath := "organization/templates/email/user_welcome.html"
+
+		err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, emailTemplateAndSocialDTO, nil)
+
+		if err != nil {
+			return 0, err
+		}
 	}
-
-	socialLinks, err := us.notificationSvc.GetSocialMediaLinks()
-	if err != nil {
-		return 0, err
-	}
-
-	emailTemplateAndSocialDTO := &commonDTOs.EmailTemplateAndSocialDTO{
-		HeaderImageURL: emailTemplateSettings.HeaderImageURL,
-		SupportText:    emailTemplateSettings.SupportText,
-		ClosingText:    emailTemplateSettings.ClosingText,
-		FooterLogoURL:  emailTemplateSettings.FooterLogoURL,
-		FooterAddress:  emailTemplateSettings.FooterAddress,
-		FooterEmail:    emailTemplateSettings.FooterEmail,
-		Linkedin:       &socialLinks.Linkedin,
-		X:              &socialLinks.X,
-		Facebook:       &socialLinks.Facebook,
-	}
-
-	appURL := utility.GetAppURL()
-	redirectURL := fmt.Sprintf("%sauth/login", appURL)
-
-	emailData := userDTOs.SendNewPasswordEmailDTO{
-		FirstNameEn: userFormDTO.FirstNameEn,
-		LastNameEn:  userFormDTO.LastNameEn,
-		Email:       userFormDTO.Email,
-		Password:    password,
-		RedirectURL: redirectURL,
-	}
-
-	to := []string{user.Email}
-	subject := "Important: Welcome to Jethur!"
-	templateRelativePath := "organization/templates/email/user_welcome.html"
-
-	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, emailTemplateAndSocialDTO, nil)
-
-	if err != nil {
-		return 0, err
-	}
-
 	return userID, nil
 }
 
@@ -599,6 +607,12 @@ func (us *UserService) validateUserFormDTO(id *uint, userFormDTO *userDTOs.UserF
 			return err
 		} else if exists {
 			return utility.NewValidationError(fmt.Errorf("email already exists: %s", userFormDTO.Email), "unique", "email")
+		}
+	}
+
+	if userFormDTO.Password != "" {
+		if !utility.IsValidPassword(userFormDTO.Password) {
+			return utility.NewValidationError(fmt.Errorf("password does not meet the requirements"), "password_complexity", "password")
 		}
 	}
 
