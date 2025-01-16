@@ -111,7 +111,7 @@ type AuditFinalReportSectionDTO struct {
 	Order                     *float64                             `json:"order"`
 	SubSections               []*AuditFinalReportSectionDTO        `json:"sub_sections"` // Recursive structure for subsections
 	Findings                  []*AuditFinalReportFindingDTO        `json:"findings,omitempty"`
-	Appendices                []*AuditFinalReportAppendixDetailDTO `json:"appendices,omitempty"`
+	Appendices                []*AuditFinalReportAppendixDetailDTO `json:"appendices"`
 	CreatedByUser             organizationDTOs.UserMinimalDTO      `json:"created_by"`
 	UpdatedByUser             *organizationDTOs.UserMinimalDTO     `json:"updated_by"`
 	CreatedAt                 string                               `json:"created_at"`

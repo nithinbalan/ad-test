@@ -3,11 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -15,10 +17,10 @@ import (
 )
 
 type AuditFinalReportAppendixServiceInterface interface {
-	GetByID(auditID uint, finalReportID uint, sectionID uint, id uint) (*models.AuditFinalReportAppendix, error)
-	Create(auditID uint, finalReportID uint, sectionID uint, currentUserID uint, auditFinalReportAppendixFormDTO *auditDTOs.AuditFinalReportAppendixFormDTO) ([]uint, error)
-	Update(auditID uint, finalReportID uint, sectionID uint, id, currentUserID uint, auditFinalReportAppendixFormDTO *auditDTOs.AuditFinalReportAppendixUpdateFormDTO) error
-	Delete(auditID uint, finalReportID uint, sectionID uint, id uint, currentUserID uint) (uint, error)
+	GetByID(auditID uint, finalReportID uint, id uint) (*models.AuditFinalReportAppendix, error)
+	Create(auditID uint, finalReportID uint, currentUserID uint, auditFinalReportAppendixFormDTO *auditDTOs.AuditFinalReportAppendixFormDTO) ([]uint, error)
+	Delete(auditID uint, finalReportID uint, id uint, currentUserID uint) (uint, error)
+	GetDocumentPath(auditId uint, finalReportID uint, id uint, token string) (string, error)
 }
 
 type AuditFinalReportAppendixService struct {
@@ -39,7 +41,7 @@ func NewAuditFinalReportAppendixService(
 	}
 }
 
-func (afras *AuditFinalReportAppendixService) GetByID(auditID uint, finalReportID uint, sectionID uint, id uint) (*models.AuditFinalReportAppendix, error) {
+func (afras *AuditFinalReportAppendixService) GetByID(auditID uint, finalReportID uint, id uint) (*models.AuditFinalReportAppendix, error) {
 	if _, err := afras.auditSvc.GetByID(auditID); err != nil {
 		return nil, err
 	}
@@ -53,15 +55,13 @@ func (afras *AuditFinalReportAppendixService) GetByID(auditID uint, finalReportI
 	return appendix, nil
 }
 
-func (afras *AuditFinalReportAppendixService) Create(auditID uint, finalReportID uint, sectionID uint, currentUserID uint, auditFinalReportAppendixFormDTO *auditDTOs.AuditFinalReportAppendixFormDTO) ([]uint, error) {
+func (afras *AuditFinalReportAppendixService) Create(auditID uint, finalReportID uint, currentUserID uint, auditFinalReportAppendixFormDTO *auditDTOs.AuditFinalReportAppendixFormDTO) ([]uint, error) {
 	if _, err := afras.auditSvc.GetByID(auditID); err != nil {
 		return nil, err
 	}
 	tx := afras.repo.BeginTransaction()
 	var appendixIDs []uint
 	var addedAppendix []map[string]interface{}
-	fmt.Println("Final ID=", finalReportID)
-	fmt.Println("Sect ID=", sectionID)
 	for _, document := range auditFinalReportAppendixFormDTO.Documents {
 		dataToEncrypt := []byte(document.FileName)
 		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
@@ -69,25 +69,24 @@ func (afras *AuditFinalReportAppendixService) Create(auditID uint, finalReportID
 			return nil, err
 		}
 
-		url := utility.GenerateDocumentURL("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "appendix")
+		url := utility.GenerateDocumentURL("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "final-report", "appendix")
 
 		appendix := &models.AuditFinalReportAppendix{
-			AuditFinalReportID:        finalReportID,
-			AuditFinalReportSectionID: sectionID,
-			URL:                       url,
-			Name:                      document.FileName,
-			Size:                      document.Size,
-			Token:                     encryptedFilename,
-			OriginalName:              document.OriginalName,
-			Type:                      document.Type,
-			CreatedBYID:               currentUserID,
+			AuditFinalReportID: finalReportID,
+			URL:                url,
+			Name:               document.FileName,
+			Size:               document.Size,
+			Token:              encryptedFilename,
+			OriginalName:       document.OriginalName,
+			Type:               document.Type,
+			CreatedBYID:        currentUserID,
 		}
 		id, err := afras.repo.Create(appendix, tx)
 		if err != nil {
 			tx.Rollback()
 			return nil, err
 		}
-		storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "appendix")
+		storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "final-report", "appendix")
 		if err := utility.StoreFile(document.FileName, storagePath); err != nil {
 			tx.Rollback()
 			return nil, err
@@ -125,54 +124,7 @@ func (afras *AuditFinalReportAppendixService) Create(auditID uint, finalReportID
 	return appendixIDs, nil
 }
 
-func (afras *AuditFinalReportAppendixService) Update(auditID uint, finalReportID uint, sectionID uint, id uint, currentUserID uint, auditFinalReportAppendixFormDTO *auditDTOs.AuditFinalReportAppendixUpdateFormDTO) error {
-	if _, err := afras.auditSvc.GetByID(auditID); err != nil {
-		return err
-	}
-	tx := afras.repo.BeginTransaction()
-
-	existingAppendix, err := afras.repo.GetByID(id)
-	if err != nil {
-		return utility.NewResourceNotFoundError(err, id)
-	}
-	document := auditFinalReportAppendixFormDTO.Documents
-	if document.IsNewFile != nil && *document.IsNewFile {
-		dataToEncrypt := []byte(document.FileName)
-		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-		storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "appendix")
-		if existingAppendix.Name != "" {
-			if err := utility.RemoveFile(existingAppendix.Name, storagePath); err != nil {
-				tx.Rollback()
-				return err
-			}
-		}
-
-		url := utility.GenerateDocumentURL("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "appendix")
-		if err := utility.StoreFile(document.FileName, storagePath); err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		existingAppendix.URL = url
-		existingAppendix.Name = document.FileName
-		existingAppendix.Size = document.Size
-		existingAppendix.Token = encryptedFilename
-		existingAppendix.OriginalName = document.OriginalName
-	}
-
-	if err := afras.repo.Update(existingAppendix, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-	tx.Commit()
-	return nil
-}
-
-func (afras *AuditFinalReportAppendixService) Delete(auditID uint, finalReportID uint, sectionID uint, id uint, currentUserID uint) (uint, error) {
+func (afras *AuditFinalReportAppendixService) Delete(auditID uint, finalReportID uint, id uint, currentUserID uint) (uint, error) {
 	if _, err := afras.auditSvc.GetByID(auditID); err != nil {
 		return 0, err
 	}
@@ -183,7 +135,7 @@ func (afras *AuditFinalReportAppendixService) Delete(auditID uint, finalReportID
 	tx := afras.repo.BeginTransaction()
 	var deletedAppendix []map[string]interface{}
 
-	storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "appendix")
+	storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "final-report", "appendix")
 	if err := utility.RemoveFile(appendix.Name, storagePath); err != nil {
 		tx.Rollback()
 		return 0, err
@@ -222,4 +174,35 @@ func (afras *AuditFinalReportAppendixService) Delete(auditID uint, finalReportID
 		}
 	}()
 	return id, nil
+}
+
+func (afras *AuditFinalReportAppendixService) GetDocumentPath(auditId uint, finalReportID uint, id uint, token string) (string, error) {
+	_, err := afras.auditSvc.GetByID(auditId)
+	if err != nil {
+		return "", err
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditId), 10), "final-report", "appendix")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }
