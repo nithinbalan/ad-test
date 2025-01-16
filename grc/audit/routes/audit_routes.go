@@ -65,6 +65,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditFinalReportSectionController := app.AuditModule.AuditFinalReportSectionController
 	auditReportWorkflowController := app.AuditModule.AuditReportWorkflowController
 	auditReportReviewController := app.AuditModule.AuditReportReviewController
+	auditFinalReportAppendixController := app.AuditModule.AuditFinalReportAppendixController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -380,5 +381,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audits/:auditId/final-reports/submit", auditReportReviewController.SubmitAuditFinalReport)
 	auditRoutes.GET("/audits/:auditId/final-reports/comments", auditReportReviewController.GetComments)
 	auditRoutes.POST("/audits/:auditId/final-reports/comments", auditReportReviewController.AddComment)
+
+	auditRoutes.GET("/audits/:auditId/final-reports/:finalReportId/appendices/:id", auditFinalReportAppendixController.GetAuditFinalReportAppendixDetails)
+	auditRoutes.POST("/audits/:auditId/final-reports/:finalReportId/appendices", auditFinalReportAppendixController.CreateAuditFinalReportAppendix)
+	auditRoutes.DELETE("/audits/:auditId/final-reports/:finalReportId/appendices/:id", auditFinalReportAppendixController.DeleteAuditFinalReportAppendix)
+	unauthenticatedRoutes.GET("/audits/:auditId/final-reports/:finalReportId/appendices/:id/document-download", auditFinalReportAppendixController.DownloadFinalReportAppendixDocument)
 
 }
