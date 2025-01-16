@@ -75,6 +75,7 @@ type BusinessImpactAssessmentRecoveryObjectiveListDTO struct {
 	DocumentRpoUnitId            *uint   `json:"document_rpo_unit_id"`
 	DocumentRpoUnitTitleEn       *string `json:"document_rpo_unit_title_en"`
 	DocumentRpoUnitTitleAr       *string `json:"document_rpo_unit_title_ar"`
+	ImpactDescription            *string `json:"impact_description"`
 	CreatedAt                    string  `json:"created_at"`
 	UpdatedAt                    string  `json:"updated_at"`
 	CreatedUserID                uint    `json:"created_user_id"`
