@@ -36,7 +36,6 @@ func (bcpc *BcpBiaMatrixController) GetAllBcpKeyProcesses(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "process_title_en")
 	keyword := c.Query("keyword")
-	quickFilter := c.QueryArray("quick_filter")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -67,13 +66,12 @@ func (bcpc *BcpBiaMatrixController) GetAllBcpKeyProcesses(c *gin.Context) {
 		return
 	}
 	queryParams := businessContinuityDTOs.BcpKeyProcessListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortField,
-		Keyword:     keyword,
-		Page:        page,
-		PageSize:    pageSize,
-		Filters:     filters,
-		QuickFilter: quickFilter,
+		Sort:     sort,
+		SortBy:   sortField,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Filters:  filters,
 	}
 	bcpKeyProcesses, err := bcpc.service.GetAllKeyProcess(uint(bcpId), &queryParams)
 
@@ -94,7 +92,7 @@ func (bbmc *BcpBiaMatrixController) GetBcpBiaMatrixDetails(c *gin.Context) {
 		return
 	}
 
-	businessContinuityPlan, err := bbmc.service.GetFullDetailsByID(uint(id))
+	bcpBiaMatrix, err := bbmc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -105,11 +103,11 @@ func (bbmc *BcpBiaMatrixController) GetBcpBiaMatrixDetails(c *gin.Context) {
 			return
 		}
 	}
-	c.JSON(http.StatusOK, businessContinuityPlan)
+	c.JSON(http.StatusOK, bcpBiaMatrix)
 }
 
 func (bbmc *BcpBiaMatrixController) UpdateBcpBiaMatrix(c *gin.Context) {
-	var businessContinuityPlanFormDTO businessContinuityDTOs.BcpProcessFormDTO
+	var bcpProcessFormDTO businessContinuityDTOs.BcpProcessFormDTO
 
 	businessContinuityPlanID, err := strconv.Atoi(c.Param("bcpId"))
 	if err != nil {
@@ -117,7 +115,7 @@ func (bbmc *BcpBiaMatrixController) UpdateBcpBiaMatrix(c *gin.Context) {
 		return
 	}
 
-	if err := c.ShouldBindJSON(&businessContinuityPlanFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&bcpProcessFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -128,7 +126,7 @@ func (bbmc *BcpBiaMatrixController) UpdateBcpBiaMatrix(c *gin.Context) {
 		return
 	}
 
-	err = bbmc.service.Update(uint(businessContinuityPlanID), currentUserID, &businessContinuityPlanFormDTO)
+	err = bbmc.service.Update(uint(businessContinuityPlanID), currentUserID, &bcpProcessFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

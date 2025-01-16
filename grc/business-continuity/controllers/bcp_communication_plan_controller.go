@@ -37,7 +37,6 @@ func (bcpc *BcpCommunicationPlanController) GetAllBcpCommunicationPlans(c *gin.C
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
-	quickFilter := c.QueryArray("quick_filter")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -73,13 +72,12 @@ func (bcpc *BcpCommunicationPlanController) GetAllBcpCommunicationPlans(c *gin.C
 		return
 	}
 	queryParams := businessContinuityDTOs.BcpCommunicationPlanListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortField,
-		Keyword:     keyword,
-		Page:        page,
-		PageSize:    pageSize,
-		Filters:     filters,
-		QuickFilter: quickFilter,
+		Sort:     sort,
+		SortBy:   sortField,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Filters:  filters,
 	}
 	bcpCommunicationPlans, err := bcpc.service.GetAll(uint(bcpId), &queryParams)
 

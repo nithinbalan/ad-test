@@ -2,15 +2,14 @@ package controllers
 
 import (
 	"errors"
-	"net/http"
-	"strconv"
-
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	"jethur/grc/business-continuity/services"
 	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	processServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -25,8 +24,7 @@ type BusinessImpactAssessmentController struct {
 
 func NewBusinessImpactAssessmentController(service services.BusinessImpactAssessmentServiceInterface,
 	processAssociatedItemSvc processServices.ProcessAssociatedItemServiceInterface,
-	processSvc processServices.ProcessServiceInterface,
-) *BusinessImpactAssessmentController {
+	processSvc processServices.ProcessServiceInterface) *BusinessImpactAssessmentController {
 	return &BusinessImpactAssessmentController{
 		service:                  service,
 		processAssociatedItemSvc: processAssociatedItemSvc,
@@ -38,13 +36,6 @@ func (biac *BusinessImpactAssessmentController) GetAllProcesses(c *gin.Context) 
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
-	quickFilter := c.QueryArray("quick_filter")
-
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(biac.db, c, "Invalid export parameter")
-		return
-	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -94,16 +85,14 @@ func (biac *BusinessImpactAssessmentController) GetAllProcesses(c *gin.Context) 
 	}
 
 	queryParams := organizationDTOs.ProcessListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortField,
-		Keyword:     keyword,
-		Page:        page,
-		PageSize:    pageSize,
-		Filters:     filters,
-		QuickFilter: quickFilter,
-		Export:      export,
-		DateFrom:    dateFrom,
-		DateTo:      dateTo,
+		Sort:     sort,
+		SortBy:   sortField,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Filters:  filters,
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
 	}
 
 	processes, err := biac.processSvc.GetAll(&queryParams)
@@ -127,7 +116,6 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessIncidents(c *gin.Co
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -142,15 +130,15 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessIncidents(c *gin.Co
 	}
 
 	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Status:   status,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	incidents, err := biac.processAssociatedItemSvc.GetAllIncidents(uint(processID), &queryParams)
+
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -180,7 +168,6 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessDocuments(c *gin.Co
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -195,15 +182,15 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessDocuments(c *gin.Co
 	}
 
 	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Status:   status,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	documents, err := biac.processAssociatedItemSvc.GetAllDocuments(uint(processID), &queryParams)
+
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -233,7 +220,6 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessAssets(c *gin.Conte
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -248,15 +234,15 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessAssets(c *gin.Conte
 	}
 
 	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Status:   status,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	assets, err := biac.processAssociatedItemSvc.GetAllAssets(uint(processID), &queryParams)
+
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -286,7 +272,6 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessRisks(c *gin.Contex
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -301,13 +286,12 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessRisks(c *gin.Contex
 	}
 
 	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Status:   status,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	documents, err := biac.processAssociatedItemSvc.GetAllRisks(uint(processID), &queryParams)
 
@@ -345,6 +329,7 @@ func (biac *BusinessImpactAssessmentController) GetAllBIAImpactAnalysis(c *gin.C
 		Filters: filters,
 	}
 	businessImpactAssessments, err := biac.service.GetAllImpactAnalysis(&queryParams)
+
 	if err != nil {
 		utility.SendInternalErrResp(biac.db, c, err.Error())
 		return

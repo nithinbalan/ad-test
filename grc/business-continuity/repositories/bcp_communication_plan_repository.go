@@ -43,6 +43,8 @@ func (repo *BcpCommunicationPlanRepository) GetAll(bcpId uint, params *businessC
             bcp_communication_plans.*,
 			bcp_phases.title_en AS bcp_phase_title_en,
 			bcp_phases.title_ar AS bcp_phase_title_ar,
+			processes.title_en AS bcp_process_title_en,
+			processes.title_ar AS bcp_process_title_ar,
 			responsible_user.id AS responsible_user_id,
 			responsible_user.first_name_en AS responsible_user_first_name_en,
             responsible_user.first_name_ar AS responsible_user_first_name_ar,
@@ -73,6 +75,8 @@ func (repo *BcpCommunicationPlanRepository) GetAll(bcpId uint, params *businessC
         `).
 		Joins(`
 			LEFT JOIN bcp_phases ON bcp_phases.id = bcp_communication_plans.bcp_phase_id
+			LEFT JOIN bcp_processes ON bcp_processes.id = bcp_communication_plans.bcp_process_id
+			LEFT JOIN processes ON processes.id = bcp_processes.process_id
 		    LEFT JOIN users AS responsible_user ON responsible_user.id = bcp_communication_plans.responsible_user_id
 			LEFT JOIN users AS created_user ON created_user.id = bcp_communication_plans.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = bcp_communication_plans.updated_by_id
@@ -169,6 +173,8 @@ func (repo *BcpCommunicationPlanRepository) GetFullDetailsByID(id uint, tx ...ut
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("BcpPhase").
+		Preload("BcpProcess").
+		Preload("BcpProcess.Process").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&BcpCommunicationPlan, id)

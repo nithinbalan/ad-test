@@ -8,6 +8,7 @@ type BcpCommunicationPlan struct {
 	ID                       uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	BusinessContinuityPlanID uint       `json:"business_continuity_id" binding:"required"`
 	BcpPhaseID               uint       `json:"bcp_phase_id" binding:"required"`
+	BcpProcessID             uint       `json:"bcp_process_id" binding:"required"`
 	Title                    string     `json:"title"`
 	ResponsibleUserID        uint       `json:"responsible_user_id" gorm:"not null" binding:"required"`
 	ResponsibleUnitID        uint       `json:"responsible_unit_id" gorm:"not null" binding:"required"`
@@ -21,6 +22,7 @@ type BcpCommunicationPlan struct {
 
 	// Relationships
 	BusinessContinuityPlan *BusinessContinuityPlan `gorm:"foreignKey:BusinessContinuityPlanID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	BcpProcess             *BcpProcess             `gorm:"foreignKey:BcpProcessID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	BcpPhase               *BcpPhase               `gorm:"foreignKey:BcpPhaseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUser        *User                   `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUnit        *OrganizationUnit       `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

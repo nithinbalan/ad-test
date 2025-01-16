@@ -136,20 +136,12 @@ func (repo *BusinessFunctionRepository) GetAll(params *businessContinuityDTOs.Bu
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	if !params.Export {
-		offset := (params.Page - 1) * params.PageSize
-		query = query.Offset(offset).Limit(params.PageSize)
-	}
-
 	err := query.Find(&businessFunctions).Error
 	if err != nil {
 		return nil, err
 	}
 
 	totalPages := 1
-	if !params.Export {
-		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-	}
 
 	response := &businessContinuityDTOs.BusinessFunctionListResponseDTO{
 		Items: businessFunctions,

@@ -28,14 +28,6 @@ func (bfc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *gi
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "id")
 	keyword := c.Query("keyword")
-	quickFilter := c.QueryArray("quick_filter")
-
-	// Convert the export parameter to a boolean
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(bfc.db, c, "Invalid export parameter")
-		return
-	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -67,14 +59,12 @@ func (bfc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *gi
 		return
 	}
 	queryParams := businessContinuityDTOs.BusinessContinuityPlanListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortField,
-		Keyword:     keyword,
-		Page:        page,
-		PageSize:    pageSize,
-		Filters:     filters,
-		QuickFilter: quickFilter,
-		Export:      export,
+		Sort:     sort,
+		SortBy:   sortField,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Filters:  filters,
 	}
 	businessContinuityPlans, err := bfc.service.GetAll(&queryParams)
 

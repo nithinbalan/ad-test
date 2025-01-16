@@ -12,6 +12,8 @@ type BcpCommunicationPlanListDTO struct {
 	Title                           string  `json:"title"`
 	BcpPhaseTitleEn                 string  `json:"bcp_phase_title_en"`
 	BcpPhaseTitleAr                 string  `json:"bcp_phase_title_ar"`
+	BcpProcessTitleEn               string  `json:"bcp_process_title_en"`
+	BcpProcessTitleAr               string  `json:"bcp_process_title_ar"`
 	ResponsibleUserID               uint    `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn      string  `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr      string  `json:"responsible_user_first_name_ar"`
@@ -61,7 +63,8 @@ type BcpCommunicationPlanListResponseDTO struct {
 }
 
 type BcpCommunicationPlanFormDTO struct {
-	BcpPhaseID        *uint   `json:"bcp_phase_id"`
+	BcpPhaseID        uint    `json:"bcp_phase_id"`
+	BcpProcessID      uint    `json:"bcp_process_id"`
 	Title             string  `json:"title" binding:"required"`
 	ResponsibleUserID uint    `json:"responsible_user_id" binding:"required"`
 	Frequency         *string `json:"frequency"`
@@ -75,6 +78,8 @@ type BcpCommunicationPlanDetailDTO struct {
 	BusinessContinuityPlan BusinessContinuityPlanDetailDTO  `json:"business_continuity_plan"`
 	BcpPhaseID             uint                             `json:"bcp_phase_id"`
 	BcpPhase               BcpPhaseDTO                      `json:"bcp_phase"`
+	BcpProcessID           uint                             `json:"bcp_process_id"`
+	BcpProcess             BcpProcessDTO                    `json:"bcp_process"`
 	ResponsibleUserID      uint                             `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	ResponsibleUser        organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
 	Frequency              *string                          `json:"frequency"`

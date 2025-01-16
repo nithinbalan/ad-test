@@ -92,8 +92,10 @@ func (bcps *BcpCommunicationPlanService) Create(bcpId uint, currentUserID uint, 
 		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "bcp communication plan responsible unit")
 	}
 
+	fmt.Println("12")
 	BcpCommunicationPlan := &models.BcpCommunicationPlan{
-		BcpPhaseID:               *BcpCommunicationPlanFormDTO.BcpPhaseID,
+		BcpPhaseID:               BcpCommunicationPlanFormDTO.BcpPhaseID,
+		BcpProcessID:             BcpCommunicationPlanFormDTO.BcpProcessID,
 		BusinessContinuityPlanID: bcpId,
 		ResponsibleUserID:        BcpCommunicationPlanFormDTO.ResponsibleUserID,
 		ResponsibleUnitID:        responsibleUnitID,
@@ -165,7 +167,8 @@ func (bcps *BcpCommunicationPlanService) Update(id uint, currentUserID uint, Bcp
 		existingBcpCommunicationPlan.ResponsibleUnitID = responsibleUnitID
 	}
 
-	existingBcpCommunicationPlan.BcpPhaseID = *BcpCommunicationPlanFormDTO.BcpPhaseID
+	existingBcpCommunicationPlan.BcpPhaseID = BcpCommunicationPlanFormDTO.BcpPhaseID
+	existingBcpCommunicationPlan.BcpProcessID = BcpCommunicationPlanFormDTO.BcpProcessID
 	existingBcpCommunicationPlan.ResponsibleUserID = BcpCommunicationPlanFormDTO.ResponsibleUserID
 	existingBcpCommunicationPlan.Title = BcpCommunicationPlanFormDTO.Title
 	existingBcpCommunicationPlan.Frequency = BcpCommunicationPlanFormDTO.Frequency
@@ -195,6 +198,7 @@ func (bcps *BcpCommunicationPlanService) Update(id uint, currentUserID uint, Bcp
 			"responsible_user": fmt.Sprintf("%s %s", oldBcpCommunicationPlan.ResponsibleUser.FirstNameEN, oldBcpCommunicationPlan.ResponsibleUser.LastNameEN),
 			"title":            oldBcpCommunicationPlan.Title,
 			"bcp_phase":        oldBcpCommunicationPlan.BcpPhase.TitleEn,
+			"bcp_process":      oldBcpCommunicationPlan.BcpProcess.Process.TitleEn,
 			"frequency":        oldBcpCommunicationPlan.Frequency,
 			"channel":          oldBcpCommunicationPlan.Channel,
 			"recipient":        oldBcpCommunicationPlan.Recipient,
@@ -204,6 +208,7 @@ func (bcps *BcpCommunicationPlanService) Update(id uint, currentUserID uint, Bcp
 			"responsible_user": fmt.Sprintf("%s %s", existingBcpCommunicationPlan.ResponsibleUser.FirstNameEN, existingBcpCommunicationPlan.ResponsibleUser.LastNameEN),
 			"title":            existingBcpCommunicationPlan.Title,
 			"bcp_phase":        existingBcpCommunicationPlan.BcpPhase.TitleEn,
+			"bcp_process":      existingBcpCommunicationPlan.BcpProcess.Process.TitleEn,
 			"frequency":        existingBcpCommunicationPlan.Frequency,
 			"channel":          existingBcpCommunicationPlan.Channel,
 			"recipient":        existingBcpCommunicationPlan.Recipient,
