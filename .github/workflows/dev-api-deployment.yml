@@ -18,7 +18,7 @@ jobs:
           password: ${{ secrets.ZEPTO_PASSWORD }}
           subject: "Pipeline Started"
           body: "GitHub Actions DEV-API deployment has started."
-          to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com
+          to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
           from: info@jethur.com
           
       # Step 2: Checkout Code
@@ -148,5 +148,5 @@ jobs:
           password: ${{ secrets.ZEPTO_PASSWORD }}
           subject: "Pipeline Completed"
           body: "GitHub Actions DEV-API deployment has completed successfully."
-          to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com
+          to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
           from: info@jethur.com
