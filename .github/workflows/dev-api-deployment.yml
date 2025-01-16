@@ -17,7 +17,7 @@ jobs:
           username: ${{ secrets.ZEPTO_USERNAME }}
           password: ${{ secrets.ZEPTO_PASSWORD }}
           subject: "Pipeline Started"
-          body: "GitHub Actions DEV-API pipeline has started."
+          body: "GitHub Actions DEV-API deployment has started."
           to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com
           from: info@jethur.com
           
@@ -137,3 +137,16 @@ jobs:
           Remove-Item -Recurse -Force "${{ github.workspace }}\temp" -ErrorAction SilentlyContinue
           Write-Host "Deployment environment cleanup completed."
         shell: powershell
+
+     # Step 16: Send Completion Email
+      - name: Send Completion Email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.zeptomail.in
+          server_port: 587
+          username: ${{ secrets.ZEPTO_USERNAME }}
+          password: ${{ secrets.ZEPTO_PASSWORD }}
+          subject: "Pipeline Completed"
+          body: "GitHub Actions DEV-API deployment has completed successfully."
+          to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com
+          from: info@jethur.com
