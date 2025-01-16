@@ -57,6 +57,7 @@ type AuditModule struct {
 	AuditFinalReportSectionController            *controllers.AuditFinalReportSectionController
 	AuditReportWorkflowController                *controllers.AuditReportWorkflowController
 	AuditReportReviewController                  *controllers.AuditReportReviewController
+	AuditFinalReportAppendixController           *controllers.AuditFinalReportAppendixController
 
 	AuditPlanSvc                          services.AuditPlanServiceInterface
 	AuditSvc                              services.AuditServiceInterface
@@ -486,6 +487,14 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		taskModule.TaskService)
 	auditReportReviewController := controllers.NewAuditReportReviewController(auditReportReviewSvc)
 
+	auditFinalReportAppendixRepo := repositories.NewAuditFinalReportAppendixRepository(db)
+	auditFinalReportAppendixSvc := services.NewAuditFinalReportAppendixService(
+		auditFinalReportAppendixRepo,
+		sharedModule.ActivityLogService,
+		auditSvc,
+	)
+	auditFinalReportAppendixController := controllers.NewAuditFinalReportAppendixController(auditFinalReportAppendixSvc)
+
 	return &AuditModule{
 		AuditorRiskRatingController:                  auditorRiskRatingController,
 		AuditUniverseController:                      auditUniverseController,
@@ -535,6 +544,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditFinalReportSectionController:            auditFinalReportSectionController,
 		AuditReportWorkflowController:                auditReportWorkflowController,
 		AuditReportReviewController:                  auditReportReviewController,
+		AuditFinalReportAppendixController:           auditFinalReportAppendixController,
 
 		AuditPlanSvc:                          auditPlanSvc,
 		AuditSvc:                              auditSvc,

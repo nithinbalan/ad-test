@@ -20,6 +20,7 @@ type DocumentChangeRequestListDTO struct {
 	DocumentChangeRequestStatusTitleEn   string  `json:"document_change_request_status_title_en"`
 	DocumentChangeRequestStatusTitleAr   string  `json:"document_change_request_status_title_ar"`
 	DocumentChangeRequestStatusColorCode string  `json:"document_change_request_status_color_code"`
+	DocumentChangeRequestStatusType      string  `json:"document_change_request_status_type"`
 	ReasonForChange                      *string `json:"reason_for_change"`
 	Version                              float64 `json:"version"`
 
