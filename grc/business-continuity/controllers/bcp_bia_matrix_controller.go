@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	"jethur/grc/business-continuity/services"
 	"jethur/utility"
@@ -20,6 +21,68 @@ func NewBcpBiaMatrixController(service services.BcpBiaMatrixServiceInterface) *B
 	return &BcpBiaMatrixController{
 		service: service,
 	}
+}
+
+func (bcpc *BcpBiaMatrixController) GetAllBcpKeyProcesses(c *gin.Context) {
+
+	idStr := c.Param("bcpId")
+
+	bcpId, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "process_title_en")
+	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
+
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"ids",
+	}
+	validSortFields := map[string]string{
+		"process_title_en": "processes.title_en",
+		"process_title_ar": "processes.title_ar",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(bcpc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(bcpc.db, c, "Invalid page_size parameter")
+		return
+	}
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+	queryParams := businessContinuityDTOs.BcpKeyProcessListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortField,
+		Keyword:     keyword,
+		Page:        page,
+		PageSize:    pageSize,
+		Filters:     filters,
+		QuickFilter: quickFilter,
+	}
+	bcpKeyProcesses, err := bcpc.service.GetAllKeyProcess(uint(bcpId), &queryParams)
+
+	if err != nil {
+		utility.SendInternalErrResp(bcpc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, bcpKeyProcesses)
 }
 
 func (bbmc *BcpBiaMatrixController) GetBcpBiaMatrixDetails(c *gin.Context) {

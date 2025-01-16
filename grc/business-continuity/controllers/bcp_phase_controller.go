@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"jethur/grc/business-continuity/services"
 	"jethur/utility"
 	"net/http"
@@ -27,7 +26,6 @@ func (icc *BcpPhaseController) GetAllBcpPhases(c *gin.Context) {
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
-	fmt.Println("1")
 	bcpPhases, err := icc.service.GetAll(sort, sortBy, keyword, status)
 
 	if err != nil {

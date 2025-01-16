@@ -14,7 +14,7 @@ import (
 )
 
 type BcpBiaMatrixServiceInterface interface {
-	// GetAll(bcpId uint, params *businessContinuityDTOs.BcpBiaMatrixListQueryParamsDTO) (*businessContinuityDTOs.BcpBiaMatrixListResponseDTO, error)
+	GetAllKeyProcess(bcpId uint, params *businessContinuityDTOs.BcpKeyProcessListQueryParamsDTO) (*businessContinuityDTOs.BcpKeyProcessListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.BcpBiaMatrixDetailDTO, error)
 	Update(bcpId uint, currentUserID uint, bcpProcessFormDTO *businessContinuityDTOs.BcpProcessFormDTO) error
 }
@@ -42,6 +42,10 @@ func NewBcpBiaMatrixService(
 		businessContinuityPlanSvc: businessContinuityPlanSvc,
 		businessFunctionSvc:       businessFunctionSvc,
 	}
+}
+
+func (bbms BcpBiaMatrixService) GetAllKeyProcess(bcpId uint, params *businessContinuityDTOs.BcpKeyProcessListQueryParamsDTO) (*businessContinuityDTOs.BcpKeyProcessListResponseDTO, error) {
+	return bbms.repo.GetAllKeyProcess(bcpId, params)
 }
 
 func (bbms BcpBiaMatrixService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.BcpBiaMatrixDetailDTO, error) {
