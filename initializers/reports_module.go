@@ -44,7 +44,9 @@ func NewReportsModule(db *gorm.DB,
 	auditReportSvc := services.NewAuditReportService(auditReportRepo)
 	auditReportController := controllers.NewAuditReportController(auditReportSvc,
 		auditModule.AuditPlanSvc,
-		auditModule.AuditSvc)
+		auditModule.AuditSvc,
+		auditModule.AuditFindingSvc,
+		auditModule.AuditFindingActionPlanSvc)
 
 	return &ReportsModule{
 		ComplianceReportController:   complianceReportController,

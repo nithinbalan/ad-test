@@ -94,3 +94,91 @@ type AuditFindingByCategoryDTO struct {
 	AuditFindingCategoryTitleAr string `json:"title_ar" gorm:"column:title_ar"`
 	Count                       uint   `json:"count" gorm:"column:count"`
 }
+type AuditFindingByStatusDTO struct {
+	ID        uint   `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Count     uint   `json:"count"`
+}
+
+type AuditFindingBySeverityLevelDTO struct {
+	ID        uint   `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Count     uint   `json:"count"`
+}
+
+type AuditFindingByResponsibleUnitDTO struct {
+	ResponsibleUnitID        uint   `json:"id"`
+	ResponsibleUnitTitleEn   string `json:"title_en"`
+	ResponsibleUnitTitleAr   string `json:"title_ar"`
+	ResponsibleUnitColorCode string `json:"color_code"`
+	Count                    uint   `json:"count"`
+}
+
+type AuditFindingByMonthDTO struct {
+	TitleEn string `json:"title_en" gorm:"column:title_en"` // Month in English
+	TitleAr string `json:"title_ar" gorm:"column:title_ar"` // Month in Arabic
+	Count   uint   `json:"count" gorm:"column:count"`
+}
+type AuditFindingByAuditorDTO struct {
+	ID                   uint   `json:"id"`
+	UserFirstNameEn      string `json:"user_first_name_en"`
+	UserFirstNameAr      string `json:"user_first_name_ar"`
+	UserLastNameEn       string `json:"user_last_name_en"`
+	UserLastNameAr       string `json:"user_last_name_ar"`
+	UserTitleEn          string `json:"user_title_en"`
+	UserTitleAr          string `json:"user_title_ar"`
+	UserInitial          string `json:"user_initial"`
+	UserColor            string `json:"user_color"`
+	UserEmail            string `json:"user_email"`
+	UserProfileImagePath string `json:"user_profile_image_path"`
+	Count                int    `json:"count"`
+}
+
+type AuditActionPlanByStatusDTO struct {
+	ID        uint   `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Count     uint   `json:"count"`
+}
+
+type AuditActionPlanBySeverityLevelDTO struct {
+	ID        uint   `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Count     uint   `json:"count"`
+}
+
+type AuditActionPlanByResponsibleUnitDTO struct {
+	ResponsibleUnitID      uint   `json:"id"`
+	ResponsibleUnitTitleEn string `json:"title_en"`
+	ResponsibleUnitTitleAr string `json:"title_ar"`
+	ColorCode              string `json:"color_code"`
+	Count                  uint   `json:"count"`
+}
+
+type AuditActionPlanByResponsibleUserDTO struct {
+	ResponsibleUserID               uint   `json:"id"`
+	ResponsibleUserFirstNameEn      string `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string `json:"responsible_user_last_name_ar"`
+	ResponsibleUserTitleEn          string `json:"responsible_user_title_en"`
+	ResponsibleUserTitleAr          string `json:"responsible_user_title_ar"`
+	ResponsibleUserInitial          string `json:"responsible_user_initial"`
+	ResponsibleUserColor            string `json:"responsible_user_color"`
+	ResponsibleUserEmail            string `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath string `json:"responsible_user_profile_image_path"`
+	Count                           int    `json:"count"`
+}
+
+type AuditActionPlanOnTimeVsDelayedDTO struct {
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+	Count   uint   `json:"count"`
+}

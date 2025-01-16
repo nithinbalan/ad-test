@@ -19,6 +19,17 @@ type AuditReportServiceInterface interface {
 	GetAuditByTeamLead(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditByTeamLeadDTO, error)
 
 	GetAuditFindingByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByCategoryDTO, error)
+	GetAuditFindingByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByStatusDTO, error)
+	GetAuditFindingBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingBySeverityLevelDTO, error)
+	GetAuditFindingByResponsibleUnit(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByResponsibleUnitDTO, error)
+	GetAuditFindingByMonth(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByMonthDTO, error)
+	GetAuditFindingByAuditor(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByAuditorDTO, error)
+
+	GetAuditActionPlanByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanByStatusDTO, error)
+	GetAuditActionPlanBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanBySeverityLevelDTO, error)
+	GetAuditActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanByResponsibleUserDTO, error)
+	GetAuditActionPlanByResponsibleUnit(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanByResponsibleUnitDTO, error)
+	GetAuditActionPlanOnTimeVsDelayed(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanOnTimeVsDelayedDTO, error)
 }
 
 type AuditReportService struct {
@@ -71,4 +82,44 @@ func (ars *AuditReportService) GetAuditByTeamLead(params *reportDTOs.ReportListQ
 
 func (ars *AuditReportService) GetAuditFindingByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByCategoryDTO, error) {
 	return ars.repo.GetAuditFindingByCategory(params)
+}
+
+func (ars *AuditReportService) GetAuditFindingByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByStatusDTO, error) {
+	return ars.repo.GetAuditFindingByStatus(params)
+}
+
+func (ars *AuditReportService) GetAuditFindingBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingBySeverityLevelDTO, error) {
+	return ars.repo.GetAuditFindingBySeverityLevel(params)
+}
+
+func (ars *AuditReportService) GetAuditFindingByResponsibleUnit(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByResponsibleUnitDTO, error) {
+	return ars.repo.GetAuditFindingByResponsibleUnit(params)
+}
+
+func (ars *AuditReportService) GetAuditFindingByMonth(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByMonthDTO, error) {
+	return ars.repo.GetAuditFindingByMonth(params)
+}
+
+func (ars *AuditReportService) GetAuditFindingByAuditor(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByAuditorDTO, error) {
+	return ars.repo.GetAuditFindingByAuditor(params)
+}
+
+func (ars *AuditReportService) GetAuditActionPlanByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanByStatusDTO, error) {
+	return ars.repo.GetAuditActionPlanByStatus(params)
+}
+
+func (ars *AuditReportService) GetAuditActionPlanBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanBySeverityLevelDTO, error) {
+	return ars.repo.GetAuditActionPlanBySeverityLevel(params)
+}
+
+func (ars *AuditReportService) GetAuditActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanByResponsibleUserDTO, error) {
+	return ars.repo.GetAuditActionPlanByResponsibleUser(params)
+}
+
+func (ars *AuditReportService) GetAuditActionPlanByResponsibleUnit(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanByResponsibleUnitDTO, error) {
+	return ars.repo.GetAuditActionPlanByResponsibleUnit(params)
+}
+
+func (ars *AuditReportService) GetAuditActionPlanOnTimeVsDelayed(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanOnTimeVsDelayedDTO, error) {
+	return ars.repo.GetAuditActionPlanOnTimeVsDelayed(params)
 }

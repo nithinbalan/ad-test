@@ -105,6 +105,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/audit-plan-by-year", auditReportController.GetAuditPlanByYear)
 
 	//Audits
+	reportsRoutes.GET("/reports/audit-categories", auditReportController.GetAllAudits)
+	reportsRoutes.GET("/reports/audit-categories/export", auditReportController.GetAuditExport)
 	reportsRoutes.GET("/reports/audit-by-category", auditReportController.GetAuditByCategory)
 	reportsRoutes.GET("/reports/audit-by-status", auditReportController.GetAuditByStatus)
 	reportsRoutes.GET("/reports/audit-by-open-vs-closed", auditReportController.GetAuditByOpenVsClosed)
@@ -112,6 +114,22 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/audit-by-team-lead", auditReportController.GetAuditByTeamLead)
 
 	//Audit findings
+	reportsRoutes.GET("/reports/audit-findings", auditReportController.GetAllAuditFindings)
+	reportsRoutes.GET("/reports/audit-findings/export", auditReportController.GetAuditFindingExport)
 	reportsRoutes.GET("/reports/audit-finding-by-category", auditReportController.GetAuditFindingByCategory)
+	reportsRoutes.GET("/reports/audit-finding-by-status", auditReportController.GetAuditFindingByStatus)
+	reportsRoutes.GET("/reports/audit-finding-by-severity-level", auditReportController.GetAuditFindingBySeverityLevel)
+	reportsRoutes.GET("/reports/audit-finding-by-responsible-unit", auditReportController.GetAuditFindingByResponsibleUnit)
+	reportsRoutes.GET("/reports/audit-finding-by-month", auditReportController.GetAuditFindingByMonth)
+	reportsRoutes.GET("/reports/audit-finding-by-auditor", auditReportController.GetAuditFindingByAuditor)
+
+	//Audit Action plans
+	reportsRoutes.GET("/reports/audit-action-plans", auditReportController.GetAllAuditActionPlans)
+	reportsRoutes.GET("/reports/audit-action-plans/export", auditReportController.GetAuditActionPlanExport)
+	reportsRoutes.GET("/reports/audit-action-plan-by-status", auditReportController.GetAuditActionPlanByStatus)
+	reportsRoutes.GET("/reports/audit-action-plan-by-severity-level", auditReportController.GetAuditActionPlanBySeverityLevel)
+	reportsRoutes.GET("/reports/audit-action-plan-by-responsible-user", auditReportController.GetAuditActionPlanByResponsibleUser)
+	reportsRoutes.GET("/reports/audit-action-plan-by-responsible-unit", auditReportController.GetAuditActionPlanByResponsibleUnit)
+	reportsRoutes.GET("/reports/audit-action-plan-by-on-time-vs-delayed", auditReportController.GetAuditActionPlanOnTimeVsDelayed)
 
 }
