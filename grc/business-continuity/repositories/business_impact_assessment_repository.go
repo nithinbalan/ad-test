@@ -2,7 +2,6 @@ package repositories
 
 import (
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
-	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -332,7 +331,6 @@ func (repo *BusinessImpactAssessmentRepository) GetImpactAssessmentsByProcessID(
 
 func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) (*businessContinuityDTOs.BIAMatrixResponsePaginatedDTO, error) {
 	var results []businessContinuityDTOs.BIAMatrixResponseDTO
-	var totalCount int64
 
 	query := repo.db.Table("business_function_processes").
 		Select(`
@@ -383,29 +381,14 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
 			keyword, keyword, keyword, keyword, keyword)
 	}
 
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	query = query.Order(params.SortBy + " " + params.Sort)
-
-	offset := (params.Page - 1) * params.PageSize
-	query = query.Offset(offset).Limit(params.PageSize)
 
 	if err := query.Scan(&results).Error; err != nil {
 		return nil, err
 	}
 
-	totalPages := (totalCount + int64(params.PageSize) - 1) / int64(params.PageSize)
-
 	response := &businessContinuityDTOs.BIAMatrixResponsePaginatedDTO{
 		Items: results,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  int(totalPages),
-			TotalCount:  totalCount,
-		},
 	}
 
 	return response, nil

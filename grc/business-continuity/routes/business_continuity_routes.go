@@ -76,7 +76,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.GET("/bia-matrix", middlewares.RolePermissionMiddleware(db, "bia_matrics", "view"), businessImpactAssessmentController.GetBIAMatrix)
 
 	// teams and roles
-	// businessContinuityRoutes.GET("/bcp/teams", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpRolesController.GetAllBcpRoles)
 	businessContinuityRoutes.GET("/bcp/:bcpId/teams", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpRolesController.GetAllBcpRoles)
 	businessContinuityRoutes.POST("/bcp/:bcpId/teams", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpRolesController.CreateBcpRole)
 	businessContinuityRoutes.PUT("/bcp/:bcpId/teams/:id", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpRolesController.UpdateBcpRole)

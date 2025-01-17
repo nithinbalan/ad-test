@@ -476,16 +476,6 @@ func (biac *BusinessImpactAssessmentController) GetBIAMatrix(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "business_function_title")
 	keyword := c.Query("keyword")
-	page, err := utility.ParseQueryParamToInt(c, "page", 1)
-	if err != nil {
-		utility.SendInternalErrResp(biac.db, c, "Invalid page parameter")
-		return
-	}
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
-	if err != nil {
-		utility.SendInternalErrResp(biac.db, c, "Invalid page_size parameter")
-		return
-	}
 
 	validSortFields := map[string]string{
 		"business_function_title": "business_functions.title",
@@ -520,8 +510,6 @@ func (biac *BusinessImpactAssessmentController) GetBIAMatrix(c *gin.Context) {
 		Sort:     sort,
 		SortBy:   sortField,
 		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
 		Filters:  filters,
 	}
 
