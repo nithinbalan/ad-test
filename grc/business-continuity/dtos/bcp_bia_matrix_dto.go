@@ -1,7 +1,6 @@
 package dtos
 
 import (
-	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	riskDTOs "jethur/grc/risk/dtos"
 )
@@ -29,17 +28,14 @@ type BcpKeyProcessListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
 	Keyword     string
-	Status      string
-	Page        int
-	PageSize    int
 	Filters     map[string][]string
 	QuickFilter []string
 }
 
-type BcpKeyProcessListResponseDTO struct {
-	Items      []*BcpKeyProcessListDTO      `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
-}
+// type BcpKeyProcessListResponseDTO struct {
+// 	Items      []*BcpKeyProcessListDTO      `json:"items"`
+// 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+// }
 
 type BcpBiaMatrixDetailDTO struct {
 	ID                 uint                    `json:"id"`

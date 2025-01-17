@@ -2,7 +2,6 @@ package repositories
 
 import (
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
-	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -11,7 +10,7 @@ import (
 
 type BcpBiaMatrixRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAllKeyProcess(bcpId uint, params *businessContinuityDTOs.BcpKeyProcessListQueryParamsDTO) (*businessContinuityDTOs.BcpKeyProcessListResponseDTO, error)
+	GetAllKeyProcess(bcpId uint, params *businessContinuityDTOs.BcpKeyProcessListQueryParamsDTO) ([]*businessContinuityDTOs.BcpKeyProcessListDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.BusinessContinuityPlan, error)
 	GetByID(bcpProcessId uint) (*models.BcpProcess, error)
 	Update(bcpProcess *models.BcpProcess, tx ...utility.DatabaseTransaction) error
@@ -32,7 +31,7 @@ func (repo *BcpBiaMatrixRepository) BeginTransaction() utility.DatabaseTransacti
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *BcpBiaMatrixRepository) GetAllKeyProcess(bcpId uint, params *businessContinuityDTOs.BcpKeyProcessListQueryParamsDTO) (*businessContinuityDTOs.BcpKeyProcessListResponseDTO, error) {
+func (repo *BcpBiaMatrixRepository) GetAllKeyProcess(bcpId uint, params *businessContinuityDTOs.BcpKeyProcessListQueryParamsDTO) ([]*businessContinuityDTOs.BcpKeyProcessListDTO, error) {
 	var BcpKeyProcesss []*businessContinuityDTOs.BcpKeyProcessListDTO
 	var totalCount int64
 
@@ -85,28 +84,12 @@ func (repo *BcpBiaMatrixRepository) GetAllKeyProcess(bcpId uint, params *busines
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
-	query = query.Offset(offset).Limit(params.PageSize)
-
 	err := query.Find(&BcpKeyProcesss).Error
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := 1
-	totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
-	response := &businessContinuityDTOs.BcpKeyProcessListResponseDTO{
-		Items: BcpKeyProcesss,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
-	}
-
-	return response, nil
+	return BcpKeyProcesss, nil
 }
 
 func (repo *BcpBiaMatrixRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.BusinessContinuityPlan, error) {

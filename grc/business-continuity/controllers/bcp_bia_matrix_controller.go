@@ -48,17 +48,6 @@ func (bcpc *BcpBiaMatrixController) GetAllBcpKeyProcesses(c *gin.Context) {
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
-	page, err := utility.ParseQueryParamToInt(c, "page", 1)
-	if err != nil {
-		utility.SendInternalErrResp(bcpc.db, c, "Invalid page parameter")
-		return
-	}
-
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
-	if err != nil {
-		utility.SendInternalErrResp(bcpc.db, c, "Invalid page_size parameter")
-		return
-	}
 	sortField, valid := validSortFields[sortBy]
 	if !valid {
 		err := errors.New("invalid 'sort_by' parameter")
@@ -66,12 +55,10 @@ func (bcpc *BcpBiaMatrixController) GetAllBcpKeyProcesses(c *gin.Context) {
 		return
 	}
 	queryParams := businessContinuityDTOs.BcpKeyProcessListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortField,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
-		Filters:  filters,
+		Sort:    sort,
+		SortBy:  sortField,
+		Keyword: keyword,
+		Filters: filters,
 	}
 	bcpKeyProcesses, err := bcpc.service.GetAllKeyProcess(uint(bcpId), &queryParams)
 
