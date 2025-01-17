@@ -6,7 +6,7 @@ import (
 
 type BcpRole struct {
 	ID                       uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	BusinessContinuityPlanID uint       `json:"business_continuity_plan_id" binding:"required"`
+	BusinessContinuityPlanID uint       `json:"business_continuity_plan_id"`
 	ResponsibleUserID        uint       `json:"responsible_user_id" binding:"required"`
 	ResponsibleUnitID        uint       `json:"responsible_unit_id" binding:"required"`
 	Responsibility           string     `json:"responsibility" binding:"required" gorm:"type:nvarchar(max);not null"`
@@ -22,7 +22,6 @@ type BcpRole struct {
 	BackupUser             *User                   `gorm:"foreignKey:BackupUserID"`
 	CreatedByUser          *User                   `gorm:"foreignKey:CreatedByID"`
 }
-
 
 func (BcpRole) TableName() string {
 	return "bcp_roles"

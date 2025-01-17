@@ -16,8 +16,10 @@ type BusinessContinuityModule struct {
 	BcpPhaseController                 *controllers.BcpPhaseController
 	BcpRecoveryPlanController          *controllers.BcpRecoveryPlanController
 	BcpCommunicationPlanController     *controllers.BcpCommunicationPlanController
+	BcpRolesController                 *controllers.BcpRolesController
 
 	BusinessFunctionSvc services.BusinessFunctionServiceInterface
+	BcpRoleSvc          services.BcpRolesServiceInterface
 }
 
 func NewBusinessContinuityModule(db *gorm.DB,
@@ -29,7 +31,6 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	documentModule *DocumentModule,
 	riskModule *RiskModule,
 ) *BusinessContinuityModule {
-
 	businessFunctionRepo := repositories.NewBusinessFunctionRepository(db)
 
 	businessFunctionSvc := services.NewBusinessFunctionService(businessFunctionRepo,
@@ -62,6 +63,10 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	bcpCommunicationPlanSvc := services.NewBcpCommunicationPlanService(bcpCommunicationPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc)
 	bcpCommunicationPlanController := controllers.NewBcpCommunicationPlanController(bcpCommunicationPlanSvc)
 
+	bcpRolesRepo := repositories.NewBcpRolesRepository(db)
+	bcpRolesSvc := services.NewBcpRolesService(bcpRolesRepo)
+	bcpRolesController := controllers.NewBcpRolesController(bcpRolesSvc)
+
 	return &BusinessContinuityModule{
 		BusinessFunctionController:         businessFunctionController,
 		BusinessImpactAssessmentController: businessImpactAssessmentController,
@@ -70,7 +75,9 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		BcpPhaseController:                 bcpPhaseController,
 		BcpRecoveryPlanController:          bcpRecoveryPlanController,
 		BcpCommunicationPlanController:     bcpCommunicationPlanController,
+		BcpRolesController:                 bcpRolesController,
 
 		BusinessFunctionSvc: businessFunctionSvc,
+		BcpRoleSvc:          bcpRolesSvc,
 	}
 }
