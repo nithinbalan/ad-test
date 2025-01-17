@@ -17,6 +17,18 @@ type BusinessContinuityPlanListDTO struct {
 	Scope                       *string `json:"scope"`
 	Objectives                  *string `json:"objectives"`
 	Assumptions                 *string `json:"assumptions"`
+	Rto                         *int    `json:"rto"`
+	RtoUnitId                   *uint   `json:"rto_unit_id"`
+	RtoUnitTitleEn              *string `json:"rto_unit_title_en"`
+	RtoUnitTitleAr              *string `json:"rto_unit_title_ar"`
+	Mtpd                        *int    `json:"mtpd"`
+	MtpdUnitId                  *uint   `json:"mtpd_unit_id"`
+	MtpdUnitTitleEn             *string `json:"mtpd_unit_title_en"`
+	MtpdUnitTitleAr             *string `json:"mtpd_unit_title_ar"`
+	Rpo                         *int    `json:"rpo"`
+	RpoUnitId                   *uint   `json:"rpo_unit_id"`
+	RpoUnitTitleEn              *string `json:"rpo_unit_title_en"`
+	RpoUnitTitleAr              *string `json:"rpo_unit_title_ar"`
 	CreatedAt                   string  `json:"created_at"`
 	UpdatedAt                   string  `json:"updated_at"`
 	CreatedUserID               uint    `json:"created_user_id"`
@@ -74,13 +86,13 @@ type BusinessContinuityPlanDetailDTO struct {
 	Scope              *string                          `json:"scope"`
 	Objectives         *string                          `json:"objectives"`
 	Assumptions        *string                          `json:"assumptions"`
-	Rto                *uint                            `json:"rto"`
+	Rto                *int                             `json:"rto"`
 	RtoUnitId          *uint                            `json:"rto_unit_id"`
 	RtoUnit            *masterDTOs.TimeUnitDTO          `json:"rto_unit"`
-	Mtpd               *uint                            `json:"mtpd"`
+	Mtpd               *int                             `json:"mtpd"`
 	MtpdUnitId         *uint                            `json:"mtpd_unit_id"`
 	MtpdUnit           *masterDTOs.TimeUnitDTO          `json:"mtpd_unit"`
-	Rpo                *uint                            `json:"rpo"`
+	Rpo                *int                             `json:"rpo"`
 	RpoUnitId          *uint                            `json:"rpo_unit_id"`
 	RpoUnit            *masterDTOs.TimeUnitDTO          `json:"rpo_unit"`
 	Processes          []*BcpProcessDTO                 `json:"processes"`

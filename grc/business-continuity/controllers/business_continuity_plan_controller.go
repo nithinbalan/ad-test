@@ -29,6 +29,12 @@ func (bfc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *gi
 	sortBy := c.DefaultQuery("sort_by", "business_function_title")
 	keyword := c.Query("keyword")
 
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(bfc.db, c, "Invalid export parameter")
+		return
+	}
+
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"business_function_ids",
@@ -65,11 +71,35 @@ func (bfc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *gi
 		Page:     page,
 		PageSize: pageSize,
 		Filters:  filters,
+		Export:   export,
 	}
 	businessContinuityPlans, err := bfc.service.GetAll(&queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(bfc.db, c, err.Error())
+		return
+	}
+
+	if export {
+
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(bfc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := bfc.service.ExportBusinessContinuityPlan(businessContinuityPlans.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(bfc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="BusinessContinuityPlan.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
 		return
 	}
 
@@ -193,4 +223,10 @@ func (bfc *BusinessContinuityPlanController) DeleteBusinessContinuityPlans(c *gi
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (bfc *BusinessContinuityPlanController) GetAllBusinessContinuityPlanExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	bfc.GetAllBusinessContinuityPlans(c)
 }

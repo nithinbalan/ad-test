@@ -50,6 +50,12 @@ func (repo *BusinessContinuityPlanRepository) GetAll(params *businessContinuityD
 		Select(`
             business_continuity_plans.*,
 			business_functions.title AS business_function_title,
+			rto_time_unit.title_en AS rto_unit_title_en,
+			rto_time_unit.title_ar AS rto_unit_title_ar,
+			mtpd_time_unit.title_en AS mtpd_unit_title_en,
+			mtpd_time_unit.title_ar AS mtpd_unit_title_ar,
+			rpo_time_unit.title_en AS rpo_unit_title_en,
+			rpo_time_unit.title_ar AS rpo_unit_title_ar,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -71,6 +77,9 @@ func (repo *BusinessContinuityPlanRepository) GetAll(params *businessContinuityD
         `).
 		Joins(`
 		    LEFT JOIN business_functions ON business_functions.id = business_continuity_plans.business_function_id
+			LEFT JOIN time_units AS rto_time_unit ON rto_time_unit.id = business_continuity_plans.rto_unit_id
+			LEFT JOIN time_units AS mtpd_time_unit ON mtpd_time_unit.id = business_continuity_plans.mtpd_unit_id
+			LEFT JOIN time_units AS rpo_time_unit ON rpo_time_unit.id = business_continuity_plans.rpo_unit_id
 			LEFT JOIN users AS created_user ON created_user.id = business_continuity_plans.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = business_continuity_plans.updated_by_id
         `)
@@ -108,12 +117,20 @@ func (repo *BusinessContinuityPlanRepository) GetAll(params *businessContinuityD
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
 	err := query.Find(&businessContinuityPlans).Error
 	if err != nil {
 		return nil, err
 	}
 
 	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
 
 	response := &businessContinuityDTOs.BusinessContinuityPlanListResponseDTO{
 		Items: businessContinuityPlans,

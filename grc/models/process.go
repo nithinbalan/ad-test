@@ -14,11 +14,11 @@ type Process struct {
 	TitleEn                     string     `json:"title_en" gorm:"type:nvarchar(500);not null" binding:"required"`
 	TitleAr                     string     `json:"title_ar" gorm:"type:nvarchar(500);not null" binding:"required"`
 	Description                 *string    `json:"description" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
-	Rto                         *uint      `json:"rto" gorm:"default:null"`
+	Rto                         *int       `json:"rto" gorm:"default:null"`
 	RtoUnitId                   *uint      `json:"rto_uint_id" gorm:"default:null"`
-	Mtpd                        *uint      `json:"mtpd" gorm:"default:null"`
+	Mtpd                        *int       `json:"mtpd" gorm:"default:null"`
 	MtpdUnitId                  *uint      `json:"mtpd_uint_id" gorm:"default:null"`
-	Rpo                         *uint      `json:"rpo" gorm:"default:null"`
+	Rpo                         *int       `json:"rpo" gorm:"default:null"`
 	RpoUnitId                   *uint      `json:"rpo_uint_id" gorm:"default:null"`
 	RiskLevelId                 *uint      `json:"risk_level_id" gorm:"default:null"`
 	IsBiaPerformed              bool       `json:"is_bia_performed" gorm:"default:false"`

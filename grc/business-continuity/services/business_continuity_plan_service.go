@@ -9,6 +9,7 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"os"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -23,6 +24,7 @@ type BusinessContinuityPlanServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	UpdateRecoveryObjectives(businessContinuityPlan *models.BusinessContinuityPlan, tx utility.DatabaseTransaction) error
+	ExportBusinessContinuityPlan(data []*businessContinuityDTOs.BusinessContinuityPlanListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -31,6 +33,7 @@ type BusinessContinuityPlanService struct {
 	activityLogSvc      logServices.ActivityLogServiceInterface
 	userSvc             organizationServices.UserServiceInterface
 	businessFunctionSvc BusinessFunctionServiceInterface
+	userSettingSvc      organizationServices.UserSettingServiceInterface
 }
 
 func NewBusinessContinuityPlanService(
@@ -38,12 +41,14 @@ func NewBusinessContinuityPlanService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	businessFunctionSvc BusinessFunctionServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) BusinessContinuityPlanServiceInterface {
 	return &BusinessContinuityPlanService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
 		userSvc:             userSvc,
 		businessFunctionSvc: businessFunctionSvc,
+		userSettingSvc:      userSettingSvc,
 	}
 }
 
@@ -411,4 +416,57 @@ func (bfs *BusinessContinuityPlanService) UpdateRecoveryObjectives(businessConti
 	}
 
 	return nil
+}
+
+func (bfs *BusinessContinuityPlanService) ExportBusinessContinuityPlan(data []*businessContinuityDTOs.BusinessContinuityPlanListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := bfs.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"RTO",
+			"MTPD",
+			"RPO",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"RTO",
+			"MTPD",
+			"RPO",
+		}
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, bcp := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				bcp.ReferenceNumber,
+				bcp.BusinessFunctionTitle,
+				utility.GetIntValueAsString(bcp.Rto) + " " + utility.GetStringValue(bcp.RtoUnitTitleAr),
+				utility.GetIntValueAsString(bcp.Mtpd) + " " + utility.GetStringValue(bcp.MtpdUnitTitleAr),
+				utility.GetIntValueAsString(bcp.Rpo) + " " + utility.GetStringValue(bcp.RpoUnitTitleAr),
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				bcp.ReferenceNumber,
+				bcp.BusinessFunctionTitle,
+				utility.GetIntValueAsString(bcp.Rto) + " " + utility.GetStringValue(bcp.RtoUnitTitleEn),
+				utility.GetIntValueAsString(bcp.Mtpd) + " " + utility.GetStringValue(bcp.MtpdUnitTitleEn),
+				utility.GetIntValueAsString(bcp.Rpo) + " " + utility.GetStringValue(bcp.RpoUnitTitleEn),
+			}
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }
