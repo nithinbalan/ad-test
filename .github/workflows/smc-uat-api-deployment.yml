@@ -8,7 +8,7 @@ jobs:
     runs-on: jethur-dev
     steps:
 
-      # Step 1: Start email notification
+      # Step: Start email notification
       - name: Send Start Email
         uses: dawidd6/action-send-mail@v3
         with:
@@ -21,28 +21,37 @@ jobs:
           to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
           from: "Jethur Notifications <info@jethur.com>"
           
-      # Step 2: Checkout Code
+      # Step: Checkout Code
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Step 3: Set Go Path
+      # Step: Set Go Path
       - name: Set Go Path
         run: |
           $env:PATH = "C:\Program Files\Go\bin;$env:PATH"
         shell: powershell
 
-      # Step 4: Verify Go Version
+      # Step: Verify Go Version
       - name: Verify Go Version
         run: go version
 
-      # Step 5: Install Dependencies
+      # Step: Cache Go Modules
+      - name: Cache Go Modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      # Step: Install Dependencies
       - name: Install Dependencies
         run: |
           go mod tidy
           go install github.com/pressly/goose/v3/cmd/goose@latest
         shell: powershell
 
-      # Step 6: Download script.bat from Server
+      # Step: Download script.bat from Server
       - name: Download script.bat
         run: |
           $sourcePath = "C:\deployment\deployment-files\script.bat"
@@ -52,7 +61,7 @@ jobs:
           Copy-Item -Path $sourcePath -Destination $destinationPath -Force
         shell: powershell
 
-      # Step 7: Modify script.bat for Database Name
+      # Step: Modify script.bat for Database Name
       - name: Modify script.bat for Database Name
         run: |
           $scriptPath = "${{ github.workspace }}\script.bat"
@@ -62,7 +71,7 @@ jobs:
           (Get-Content -Path $scriptPath) -replace "DatabaseName", $staticDatabaseName | Set-Content -Path $scriptPath
         shell: powershell
 
-      # Step 8: Switch to migration_new Branch and Run Migrations
+      # Step: Switch to migration_new Branch and Run Migrations
       - name: Switch to migration_new Branch
         run: |
           git fetch origin migration_new # Fetch the specific branch from the remote
@@ -74,19 +83,19 @@ jobs:
           .\script.bat seed
         shell: powershell
 
-      # Step 9: Switch Back to Main Branch and Build API
+      # Step: Switch Back to Main Branch and Build API
       - name: Switch Back to Main Branch
         run: git checkout main
 
       - name: Build API
         run: go build ./cmd/api
 
-      # Step 10: Stop NSSM Task
+      # Step: Stop NSSM Task
       - name: Stop NSSM Task
         run: nssm stop smc-uat-api
         shell: powershell
 
-      # Step 11: Backup and Deploy API Executable
+      # Step: Backup and Deploy API Executable
       - name: Backup and Deploy API Executable
         run: |
           $iisDocRoot = "C:\inetpub\wwwroot\smc-uat\smc-uat-api"
@@ -107,16 +116,16 @@ jobs:
           Copy-Item -Path "${{ github.workspace }}\api.exe" -Destination $iisDocRoot
         shell: powershell
         
-      # Step 12: Start NSSM Task 
+      # Step: Start NSSM Task 
       - name: Start NSSM Service
         run: nssm start smc-uat-api
         continue-on-error: true
         
-      # Step 13: Status check NSSM Task
+      # Step: Status check NSSM Task
       - name: Status NSSM Service
         run: nssm status smc-uat-api
 
-      # Step 14: Restart IIS Site
+      # Step: Restart IIS Site
       - name: Restart IIS Site
         run: |
           $siteName = "smc-uat-api"
@@ -130,7 +139,7 @@ jobs:
         shell: powershell
 
 
-      # Step 15: Cleanup Deployment Environment
+      # Step: Cleanup Deployment Environment
       - name: Cleanup Deployment Environment
         run: |
           # Clean up temporary files or directories created during deployment
@@ -138,7 +147,7 @@ jobs:
           Write-Host "Deployment environment cleanup completed."
         shell: powershell
 
-     # Step 16: Send Completion Email
+     # Step: Send Completion Email
       - name: Send Completion Email
         uses: dawidd6/action-send-mail@v3
         with:
