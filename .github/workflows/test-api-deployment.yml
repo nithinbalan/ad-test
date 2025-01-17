@@ -19,7 +19,7 @@ jobs:
           subject: "Pipeline Started"
           body: "GitHub Actions TEST-API deployment has started."
           to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
-          from: info@jethur.com
+          from: "Jethur Notifications <info@jethur.com>"
           
       # Step 2: Checkout Code
       - name: Checkout Code
@@ -149,4 +149,4 @@ jobs:
           subject: "Pipeline Completed"
           body: "GitHub Actions TEST-API deployment has completed successfully."
           to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
-          from: info@jethur.com
+          from: "Jethur Notifications <info@jethur.com>"
