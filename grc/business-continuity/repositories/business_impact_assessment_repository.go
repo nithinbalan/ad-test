@@ -366,14 +366,12 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
     `).
 		Where("processes.is_bia_performed = ?", 1)
 
-	// Apply filters
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
 			query = query.Where(columnName+" IN (?)", values)
 		}
 	}
 
-	// Apply keyword search
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
@@ -385,27 +383,21 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
 			keyword, keyword, keyword, keyword, keyword)
 	}
 
-	// Count total results for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
-	// Apply sorting
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	// Apply pagination
 	offset := (params.Page - 1) * params.PageSize
 	query = query.Offset(offset).Limit(params.PageSize)
 
-	// Fetch results
 	if err := query.Scan(&results).Error; err != nil {
 		return nil, err
 	}
 
-	// Calculate total pages
 	totalPages := (totalCount + int64(params.PageSize) - 1) / int64(params.PageSize)
 
-	// Build response
 	response := &businessContinuityDTOs.BIAMatrixResponsePaginatedDTO{
 		Items: results,
 		Pagination: commonDTOs.PaginationInfoDTO{
