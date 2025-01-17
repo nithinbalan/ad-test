@@ -1,7 +1,6 @@
 package dtos
 
 import (
-	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	riskDTOs "jethur/grc/risk/dtos"
 )
@@ -29,29 +28,26 @@ type BcpKeyProcessListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
 	Keyword     string
-	Status      string
-	Page        int
-	PageSize    int
 	Filters     map[string][]string
 	QuickFilter []string
 }
 
-type BcpKeyProcessListResponseDTO struct {
-	Items      []*BcpKeyProcessListDTO      `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
-}
+// type BcpKeyProcessListResponseDTO struct {
+// 	Items      []*BcpKeyProcessListDTO      `json:"items"`
+// 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+// }
 
 type BcpBiaMatrixDetailDTO struct {
 	ID                 uint                    `json:"id"`
 	ReferenceNumber    string                  `json:"reference_number"`
 	BusinessFunctionID uint                    `json:"business_function_id"`
-	Rto                *uint                   `json:"rto"`
+	Rto                *int                    `json:"rto"`
 	RtoUnitId          *uint                   `json:"rto_unit_id"`
 	RtoUnit            *masterDTOs.TimeUnitDTO `json:"rto_unit"`
-	Mtpd               *uint                   `json:"mtpd"`
+	Mtpd               *int                    `json:"mtpd"`
 	MtpdUnitId         *uint                   `json:"mtpd_unit_id"`
 	MtpdUnit           *masterDTOs.TimeUnitDTO `json:"mtpd_unit"`
-	Rpo                *uint                   `json:"rpo"`
+	Rpo                *int                    `json:"rpo"`
 	RpoUnitId          *uint                   `json:"rpo_unit_id"`
 	RpoUnit            *masterDTOs.TimeUnitDTO `json:"rpo_unit"`
 	Processes          []*BcpProcessDetailsDTO `json:"processes"`
@@ -60,13 +56,13 @@ type BcpBiaMatrixDetailDTO struct {
 type BcpProcessDetailsDTO struct {
 	ID          uint                    `json:"id"`
 	Process     ProcessDetailDTO        `json:"process"`
-	Rto         *uint                   `json:"rto"`
+	Rto         *int                    `json:"rto"`
 	RtoUnitId   *uint                   `json:"rto_unit_id"`
 	RtoUnit     *masterDTOs.TimeUnitDTO `json:"rto_unit"`
-	Mtpd        *uint                   `json:"mtpd"`
+	Mtpd        *int                    `json:"mtpd"`
 	MtpdUnitId  *uint                   `json:"mtpd_unit_id"`
 	MtpdUnit    *masterDTOs.TimeUnitDTO `json:"mtpd_unit"`
-	Rpo         *uint                   `json:"rpo"`
+	Rpo         *int                    `json:"rpo"`
 	RpoUnitId   *uint                   `json:"rpo_unit_id"`
 	RpoUnit     *masterDTOs.TimeUnitDTO `json:"rpo_unit"`
 	RiskLevelId *uint                   `json:"risk_level_id"`
@@ -80,11 +76,11 @@ type ProcessDetailDTO struct {
 }
 
 type BcpProcessFormDTO struct {
-	Rto        *uint             `json:"rto"`
+	Rto        *int              `json:"rto"`
 	RtoUnitId  *uint             `json:"rto_unit_id"`
-	Mtpd       *uint             `json:"mtpd"`
+	Mtpd       *int              `json:"mtpd"`
 	MtpdUnitId *uint             `json:"mtpd_unit_id"`
-	Rpo        *uint             `json:"rpo"`
+	Rpo        *int              `json:"rpo"`
 	RpoUnitId  *uint             `json:"rpo_unit_id"`
 	Processes  []*ProcessFormDTO `json:"processes"`
 }
@@ -93,10 +89,10 @@ type ProcessFormDTO struct {
 	ID          uint  `json:"id"`
 	ProcessID   uint  `json:"process_id"`
 	RiskLevelID *uint `json:"risk_level_id"`
-	Rto         *uint `json:"rto"`
+	Rto         *int  `json:"rto"`
 	RtoUnitId   *uint `json:"rto_unit_id"`
-	Mtpd        *uint `json:"mtpd"`
+	Mtpd        *int  `json:"mtpd"`
 	MtpdUnitId  *uint `json:"mtpd_unit_id"`
-	Rpo         *uint `json:"rpo"`
+	Rpo         *int  `json:"rpo"`
 	RpoUnitId   *uint `json:"rpo_unit_id"`
 }

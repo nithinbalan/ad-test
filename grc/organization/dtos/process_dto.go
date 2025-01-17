@@ -129,13 +129,13 @@ type ProcessDetailDTO struct {
 	CreatedByUser         UserMinimalDTO                    `json:"created_by"`
 	UpdatedByUser         *UserMinimalDTO                   `json:"updated_by"`
 	LifecycleStatus       masterDTOs.LifecycleStatusDTO     `json:"status"`
-	Rto                   *uint                             `json:"rto"`
+	Rto                   *int                              `json:"rto"`
 	RtoUnitId             *uint                             `json:"rto_uint_id"`
 	RtoUnit               masterDTOs.TimeUnitDTO            `json:"rto_unit"`
-	Mtpd                  *uint                             `json:"mtpd"`
+	Mtpd                  *int                              `json:"mtpd"`
 	MtpdUnitId            *uint                             `json:"mtpd_uint_id"`
 	MtpdUnit              masterDTOs.TimeUnitDTO            `json:"mtpd_unit"`
-	Rpo                   *uint                             `json:"rpo"`
+	Rpo                   *int                              `json:"rpo"`
 	RpoUnitId             *uint                             `json:"rpo_uint_id"`
 	RpoUnit               masterDTOs.TimeUnitDTO            `json:"rpo_unit"`
 	RiskLevelId           *uint                             `json:"risk_level_id"`
@@ -234,11 +234,11 @@ type DocumentDetailsDTO struct {
 	DescriptionAr *string `json:"description_ar"`
 	IsLocked      bool    `json:"is_locked"`
 	Acknowledged  *bool   `json:"acknowledged,omitempty"`
-	Rto           *uint   `json:"rto"`
+	Rto           *int    `json:"rto"`
 	RtoUnitId     *uint   `json:"rto_uint_id"`
-	Mtpd          *uint   `json:"mtpd"`
+	Mtpd          *int    `json:"mtpd"`
 	MtpdUnitId    *uint   `json:"mtpd_uint_id"`
-	Rpo           *uint   `json:"rpo"`
+	Rpo           *int    `json:"rpo"`
 	RpoUnitId     *uint   `json:"rpo_uint_id"`
 }
 
@@ -254,10 +254,10 @@ type AssetMinimalDTO struct {
 	TitleEn     string  `json:"title_en"`
 	TitleAr     string  `json:"title_ar"`
 	Description *string `json:"description"`
-	Rto         *uint   `json:"rto"`
+	Rto         *int    `json:"rto"`
 	RtoUnitId   *uint   `json:"rto_uint_id"`
-	Mtpd        *uint   `json:"mtpd"`
+	Mtpd        *int    `json:"mtpd"`
 	MtpdUnitId  *uint   `json:"mtpd_uint_id"`
-	Rpo         *uint   `json:"rpo"`
+	Rpo         *int    `json:"rpo"`
 	RpoUnitId   *uint   `json:"rpo_uint_id"`
 }

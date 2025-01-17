@@ -12,11 +12,11 @@ type BusinessContinuityPlan struct {
 	Purpose            *string    `json:"purpose"`
 	Scope              *string    `json:"scope"`
 	Objectives         *string    `json:"objectives"`
-	Rto                *uint      `json:"rto"`
+	Rto                *int       `json:"rto"`
 	RtoUnitId          *uint      `json:"rto_unit_id"`
-	Mtpd               *uint      `json:"mtpd"`
+	Mtpd               *int       `json:"mtpd"`
 	MtpdUnitId         *uint      `json:"mtpd_unit_id"`
-	Rpo                *uint      `json:"rpo"`
+	Rpo                *int       `json:"rpo"`
 	RpoUnitId          *uint      `json:"rpo_unit_id"`
 	Assumptions        *string    `json:"assumptions"`
 	CreatedBYID        uint       `json:"created_by_id" binding:"required"`
