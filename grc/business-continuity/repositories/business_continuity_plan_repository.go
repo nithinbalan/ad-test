@@ -24,6 +24,7 @@ type BusinessContinuityPlanRepositoryInterface interface {
 
 	GetBusinessContinuityPlanByBusinessFunctionID(businessFunctionId uint) (*models.BusinessContinuityPlan, error)
 	CreateBcpProcesses(bcpProcess *models.BcpProcess, tx ...utility.DatabaseTransaction) error
+	DeleteBcpProcesses(bcpProcessIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type BusinessContinuityPlanRepository struct {
@@ -147,6 +148,8 @@ func (repo *BusinessContinuityPlanRepository) GetFullDetailsByID(id uint, tx ...
 
 	result := db.
 		Preload("BusinessFunction").
+		Preload("BusinessFunction.SeverityLevel").
+		Preload("BusinessFunction.ReviewFrequency").
 		Preload("RtoUnit").
 		Preload("MtpdUnit").
 		Preload("RpoUnit").
@@ -257,5 +260,19 @@ func (repo *BusinessContinuityPlanRepository) CreateBcpProcesses(bcpProcess *mod
 	if err := db.Create(bcpProcess).Error; err != nil {
 		return err
 	}
+	return nil
+}
+
+func (repo *BusinessContinuityPlanRepository) DeleteBcpProcesses(bcpProcessIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete processes by IDs
+	if err := db.Where("id IN (?)", bcpProcessIds).Delete(&models.BcpProcess{}).Error; err != nil {
+		return err
+	}
+
 	return nil
 }

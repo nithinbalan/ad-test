@@ -197,6 +197,21 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 func (bcps *BusinessContinuityPlanService) Update(id uint, currentUserID uint, businessContinuityPlanFormDTO *businessContinuityDTOs.BusinessContinuityPlanFormDTO) error {
 	tx := bcps.repo.BeginTransaction()
 
+	// Check for uniqueness of the BusinessFunctionID
+	duplicatePlan, err := bcps.repo.GetBusinessContinuityPlanByBusinessFunctionID(businessContinuityPlanFormDTO.BusinessFunctionID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	if duplicatePlan != nil && duplicatePlan.ID != id {
+		tx.Rollback()
+		return utility.NewValidationError(
+			fmt.Errorf("a business continuity plan with this business function already exists"),
+			"unique",
+			"business function",
+		)
+	}
+
 	existingBusinessContinuityPlan, err := bcps.repo.GetByID(id)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, id)
@@ -217,10 +232,46 @@ func (bcps *BusinessContinuityPlanService) Update(id uint, currentUserID uint, b
 	existingBusinessContinuityPlan.UpdatedBYID = &currentUserID
 
 	err = bcps.repo.Update(existingBusinessContinuityPlan, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	if businessContinuityPlanFormDTO.BusinessFunctionID != oldBusinessContinuityPlan.BusinessFunctionID {
+		if len(oldBusinessContinuityPlan.Processes) > 0 {
+			var deleteprocessIDs []*uint
+			for _, process := range oldBusinessContinuityPlan.Processes {
+				deleteprocessIDs = append(deleteprocessIDs, process.ID)
+			}
+			if err := bcps.repo.DeleteBcpProcesses(deleteprocessIDs, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+		businessFunctionDetails, err := bcps.businessFunctionSvc.GetFullDetailsByID(businessContinuityPlanFormDTO.BusinessFunctionID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		for _, existingProcess := range businessFunctionDetails.Processes {
+			bcpProcess := &models.BcpProcess{
+				ProcessID:                existingProcess.ProcessID,
+				BusinessContinuityPlanID: id,
+				RiskLevelID:              existingProcess.Process.RiskLevelId,
+				Rto:                      existingProcess.Process.Rto,
+				RtoUnitId:                existingProcess.Process.RtoUnitId,
+				Mtpd:                     existingProcess.Process.Mtpd,
+				MtpdUnitId:               existingProcess.Process.MtpdUnitId,
+				Rpo:                      existingProcess.Process.Rpo,
+				RpoUnitId:                existingProcess.Process.RpoUnitId,
+				CreatedBYID:              currentUserID,
+			}
+			err := bcps.repo.CreateBcpProcesses(bcpProcess, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
 	}
 
 	tx.Commit()
@@ -302,6 +353,17 @@ func (bcps *BusinessContinuityPlanService) Delete(ids []uint, currentUserID uint
 			"business_function": businessContinuityPlan.BusinessFunction.Title,
 			"version":           businessContinuityPlan.Version,
 		})
+
+		if len(businessContinuityPlan.Processes) > 0 {
+			var deleteprocessIDs []*uint
+			for _, process := range businessContinuityPlan.Processes {
+				deleteprocessIDs = append(deleteprocessIDs, process.ID)
+			}
+			if err := bcps.repo.DeleteBcpProcesses(deleteprocessIDs, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
 
 		// Delete the business
 		if err := bcps.repo.Delete(id, tx); err != nil {

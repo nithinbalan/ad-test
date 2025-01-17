@@ -92,7 +92,6 @@ func (bcps *BcpCommunicationPlanService) Create(bcpId uint, currentUserID uint, 
 		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "bcp communication plan responsible unit")
 	}
 
-	fmt.Println("12")
 	BcpCommunicationPlan := &models.BcpCommunicationPlan{
 		BcpPhaseID:               BcpCommunicationPlanFormDTO.BcpPhaseID,
 		BcpProcessID:             BcpCommunicationPlanFormDTO.BcpProcessID,

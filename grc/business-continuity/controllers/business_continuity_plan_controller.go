@@ -26,7 +26,7 @@ func NewBusinessContinuityPlanController(service services.BusinessContinuityPlan
 
 func (bfc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "id")
+	sortBy := c.DefaultQuery("sort_by", "business_function_title")
 	keyword := c.Query("keyword")
 
 	// Define an array of allowed parameter names
