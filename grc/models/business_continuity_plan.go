@@ -12,6 +12,7 @@ type BusinessContinuityPlan struct {
 	Purpose            *string    `json:"purpose"`
 	Scope              *string    `json:"scope"`
 	Objectives         *string    `json:"objectives"`
+	BcpStatusID        uint       `json:"bcp_status_id" binding:"required" gorm:"not null"`
 	Rto                *int       `json:"rto"`
 	RtoUnitId          *uint      `json:"rto_unit_id"`
 	Mtpd               *int       `json:"mtpd"`
@@ -27,6 +28,7 @@ type BusinessContinuityPlan struct {
 	// Relationships
 	BusinessFunction *BusinessFunction `gorm:"foreignKey:BusinessFunctionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Processes        []BcpProcess      `gorm:"foreignKey:BusinessContinuityPlanID"`
+	BcpStatus        *BcpStatus        `gorm:"foreignKey:BcpStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RtoUnit          *TimeUnit         `gorm:"foreignKey:RtoUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	MtpdUnit         *TimeUnit         `gorm:"foreignKey:MtpdUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RpoUnit          *TimeUnit         `gorm:"foreignKey:RpoUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

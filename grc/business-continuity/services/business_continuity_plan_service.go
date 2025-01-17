@@ -34,6 +34,7 @@ type BusinessContinuityPlanService struct {
 	userSvc             organizationServices.UserServiceInterface
 	businessFunctionSvc BusinessFunctionServiceInterface
 	userSettingSvc      organizationServices.UserSettingServiceInterface
+	bcpStatusSvc        BcpStatusServiceInterface
 }
 
 func NewBusinessContinuityPlanService(
@@ -42,6 +43,7 @@ func NewBusinessContinuityPlanService(
 	userSvc organizationServices.UserServiceInterface,
 	businessFunctionSvc BusinessFunctionServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	bcpStatusSvc BcpStatusServiceInterface,
 ) BusinessContinuityPlanServiceInterface {
 	return &BusinessContinuityPlanService{
 		repo:                repo,
@@ -49,6 +51,7 @@ func NewBusinessContinuityPlanService(
 		userSvc:             userSvc,
 		businessFunctionSvc: businessFunctionSvc,
 		userSettingSvc:      userSettingSvc,
+		bcpStatusSvc:        bcpStatusSvc,
 	}
 }
 
@@ -112,6 +115,11 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 		return 0, err
 	}
 
+	bcpStatus, err := bcps.bcpStatusSvc.GetByType("draft")
+	if err != nil {
+		return 0, err
+	}
+
 	businessContinuityPlan := &models.BusinessContinuityPlan{
 		ReferenceNumber:    referenceNumber,
 		BusinessFunctionID: businessContinuityPlanFormDTO.BusinessFunctionID,
@@ -120,6 +128,7 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 		Scope:              businessContinuityPlanFormDTO.Scope,
 		Objectives:         businessContinuityPlanFormDTO.Objectives,
 		Assumptions:        businessContinuityPlanFormDTO.Assumptions,
+		BcpStatusID:        bcpStatus.ID,
 		CreatedBYID:        currentUserID,
 	}
 	id, err := bcps.repo.Create(businessContinuityPlan, tx)
