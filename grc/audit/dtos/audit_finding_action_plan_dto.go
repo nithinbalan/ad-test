@@ -75,6 +75,7 @@ type AuditFindingActionPlanListQueryParamsDTO struct {
 	QuickFilter    []string
 	TargetDateFrom string
 	TargetDateTo   string
+	Export         bool
 }
 
 type AuditFindingActionPlanListResponseDTO struct {

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/services"
 	commonDTOs "jethur/grc/common/dtos"
@@ -25,12 +26,18 @@ func NewAuditFindingController(service services.AuditFindingServiceInterface) *A
 }
 
 func (afc *AuditFindingController) GetAllAuditFindings(c *gin.Context) {
-
 	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+
+	// Convert the export parameter to a boolean
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(afc.db, c, "Invalid export parameter")
+		return
+	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -54,16 +61,38 @@ func (afc *AuditFindingController) GetAllAuditFindings(c *gin.Context) {
 		utility.SendInternalErrResp(afc.db, c, "Invalid page_size parameter")
 		return
 	}
-
+	validSortFields := map[string]string{
+		"reference_number":                "audit_findings.reference_number",
+		"title":                           "audit_findings.title",
+		"description":                     "audit_findings.description",
+		"recommendations":                 "audit_findings.recommendations",
+		"audit_id":                        "audits.id",
+		"audit_title":                     "audit_plans.title",
+		"auditable_item_title_en":         "auditable_items.title_en",
+		"auditable_item_title_ar":         "auditable_items.title_ar",
+		"audit_finding_category_title_en": "audit_finding_categories.title_en",
+		"audit_finding_category_title_ar": "audit_finding_categories.title_ar",
+		"severity_level_title_en":         "severity_levels.title_en",
+		"severity_level_title_ar":         "severity_levels.title_ar",
+		"audit_finding_status_title_en":   "audit_finding_statuses.title_en",
+		"audit_finding_status_title_ar":   "audit_finding_statuses.title_ar",
+	}
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 	queryParams := auditDTOs.AuditFindingListQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      sortBy,
+		SortBy:      sortField,
 		Keyword:     keyword,
 		Status:      status,
 		Page:        page,
 		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
+		Export:      export,
 	}
 
 	auditFindings, err := afc.service.GetAll(&queryParams)
@@ -71,7 +100,35 @@ func (afc *AuditFindingController) GetAllAuditFindings(c *gin.Context) {
 		utility.SendInternalErrResp(afc.db, c, err.Error())
 		return
 	}
+	// If export is true, generate and return the Excel file
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(afc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := afc.service.ExportAuditFindings(auditFindings.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(afc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Audit Findings.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
 	c.JSON(http.StatusOK, auditFindings)
+}
+
+func (afc *AuditFindingController) GetAuditFindingExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	afc.GetAllAuditFindings(c)
 }
 
 func (afc *AuditFindingController) GetAuditFindingDetails(c *gin.Context) {

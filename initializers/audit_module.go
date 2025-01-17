@@ -132,6 +132,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		organizationModule.UserSvc,
 		auditableItemSvc,
 		commonModule.NotificationService,
+		organizationModule.UserSettingSvc,
 	)
 	auditPlanController := controllers.NewAuditPlanController(auditPlanSvc)
 
@@ -217,6 +218,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditStatusSvc,
 		organizationModule.UserSvc,
 		commonModule.NotificationService,
+		organizationModule.UserSettingSvc,
 	)
 	auditController := controllers.NewAuditController(auditSvc)
 
@@ -268,6 +270,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditableItemSvc,
 		auditFindingCategorySvc,
 		masterModule.SeverityLevelSvc,
+		organizationModule.UserSettingSvc,
 	)
 	auditFindingController := controllers.NewAuditFindingController(auditFindingSvc)
 
@@ -337,6 +340,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		taskModule.TaskService,
 		organizationModule.UserSvc,
 		commonModule.NotificationService,
+		organizationModule.UserSettingSvc,
 	)
 	auditFindingActionPlanController := controllers.NewAuditFindingActionPlanController(auditFindingActionPlanSvc)
 

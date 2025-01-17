@@ -30,7 +30,12 @@ func (apc *AuditController) GetAllAudits(c *gin.Context) {
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
-
+	// Convert the export parameter to a boolean
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(apc.db, c, "Invalid export parameter")
+		return
+	}
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"audit_plan_ids",
@@ -85,6 +90,7 @@ func (apc *AuditController) GetAllAudits(c *gin.Context) {
 		QuickFilter: quickFilter,
 		StartDate:   startDate,
 		EndDate:     endDate,
+		Export:      export,
 	}
 
 	audits, err := apc.service.GetAll(&queryParams)
@@ -92,7 +98,35 @@ func (apc *AuditController) GetAllAudits(c *gin.Context) {
 		utility.SendInternalErrResp(apc.db, c, err.Error())
 		return
 	}
+	// If export is true, generate and return the Excel file
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(apc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := apc.service.ExportAudits(audits.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(apc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Audits.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
 	c.JSON(http.StatusOK, audits)
+}
+
+func (apc *AuditController) GetAuditsExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	apc.GetAllAudits(c)
 }
 
 func (apc *AuditController) GetAuditDetails(c *gin.Context) {

@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -29,6 +30,7 @@ type AuditPlanServiceInterface interface {
 	Publish(id uint, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(id uint, currentUserID uint, auditStatusID uint, tx utility.DatabaseTransaction) error
+	ExportAuditPlans(data []*auditDTOs.AuditPlanListDTO, currentUserID uint) (*os.File, error)
 }
 
 type AuditPlanService struct {
@@ -40,6 +42,7 @@ type AuditPlanService struct {
 	userSvc          organizationServices.UserServiceInterface
 	auditableItemSvc AuditableItemServiceInterface
 	notificationSvc  commonServices.NotificationServiceInterface
+	userSettingSvc   organizationServices.UserSettingServiceInterface
 }
 
 func NewAuditPlanService(
@@ -51,6 +54,7 @@ func NewAuditPlanService(
 	userSvc organizationServices.UserServiceInterface,
 	auditableItemSvc AuditableItemServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) AuditPlanServiceInterface {
 	return &AuditPlanService{
 		repo:             repo,
@@ -61,6 +65,7 @@ func NewAuditPlanService(
 		userSvc:          userSvc,
 		auditableItemSvc: auditableItemSvc,
 		notificationSvc:  notificationSvc,
+		userSettingSvc:   userSettingSvc,
 	}
 }
 
@@ -800,4 +805,89 @@ func (aps *AuditPlanService) parseAuditPlanDates(dto *auditDTOs.AuditPlanFormDTO
 	}
 
 	return parsed, nil
+}
+
+func (aps *AuditPlanService) ExportAuditPlans(data []*auditDTOs.AuditPlanListDTO, currentUserID uint) (*os.File, error) {
+	// Retrieve user settings for language preference
+	userSetting, err := aps.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	// Define headers based on the user's language setting
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"Audit Category (AR)",
+			"Start Date",
+			"Target Date",
+			"Status (AR)",
+			"Team Lead (AR)",
+			"Audit Team (AR)",
+			"Published By (AR)",
+			"Published At",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"Audit Category (EN)",
+			"Start Date",
+			"Target Date",
+			"Status (EN)",
+			"Team Lead (EN)",
+			"Audit Team (EN)",
+			"Published By (EN)",
+			"Published At",
+		}
+	}
+
+	// Convert data to [][]interface{} based on language preference
+	rows := make([][]interface{}, len(data))
+	for i, item := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				item.ReferenceNumber,
+				item.Title,
+				item.AuditCategoryTitleAr,
+				formatNullableString(item.StartDate),
+				formatNullableString(item.TargetDate),
+				item.AuditStatusTitleAr,
+				item.TeamLeadFirstNameAr + " " + item.TeamLeadLastNameAr,
+				item.AuditTeamTitleAr,
+				formatNullableString(item.PublishedUserFirstNameAr) + " " + formatNullableString(item.PublishedUserLastNameAr),
+				formatNullableString(item.PublishedAt),
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				item.ReferenceNumber,
+				item.Title,
+				item.AuditCategoryTitleEn,
+				formatNullableString(item.StartDate),
+				formatNullableString(item.TargetDate),
+				item.AuditStatusTitleEn,
+				item.TeamLeadFirstNameEn + " " + item.TeamLeadLastNameEn,
+				item.AuditTeamTitleEn,
+				formatNullableString(item.PublishedUserFirstNameEn) + " " + formatNullableString(item.PublishedUserLastNameEn),
+				formatNullableString(item.PublishedAt),
+			}
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
+}
+
+// Helper function to format nullable strings
+func formatNullableString(input *string) string {
+	if input == nil {
+		return ""
+	}
+	return *input
 }

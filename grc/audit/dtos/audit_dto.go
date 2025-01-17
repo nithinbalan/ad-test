@@ -85,6 +85,7 @@ type AuditListQueryParamsDTO struct {
 	QuickFilter []string
 	StartDate   string
 	EndDate     string
+	Export      bool
 }
 
 type AuditListResponseDTO struct {

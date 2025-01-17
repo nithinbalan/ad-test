@@ -114,6 +114,7 @@ type AuditFindingListQueryParamsDTO struct {
 	PageSize    int
 	Filters     map[string][]string
 	QuickFilter []string
+	Export      bool
 }
 
 type AuditFindingListResponseDTO struct {

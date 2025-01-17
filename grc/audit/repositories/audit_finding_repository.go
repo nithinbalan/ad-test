@@ -99,7 +99,23 @@ func (repo *AuditFindingRepository) GetAll(params *auditDTOs.AuditFindingListQue
 			query = query.Where(columnName+" IN (?)", values)
 		}
 	}
-
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "new":
+			query = query.Where("audit_finding_statuses.type = ?", "new")
+		case "resolved":
+			query = query.Where("audit_finding_statuses.type = ?", "resolved")
+		case "reopened":
+			query = query.Where("audit_finding_statuses.type = ?", "reopened")
+		case "closed":
+			query = query.Where("audit_finding_statuses.type = ?", "closed")
+		case "deferred":
+			query = query.Where("audit_finding_statuses.type = ?", "deferred")
+		case "in_progress":
+			query = query.Where("audit_finding_statuses.type = ?", "in-progress")
+		}
+	}
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
@@ -118,26 +134,22 @@ func (repo *AuditFindingRepository) GetAll(params *auditDTOs.AuditFindingListQue
 			keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
-	// Sort by the specified column and order
-	if params.SortBy == "" {
-		params.SortBy = "audit_findings.created_at" // Default sort by created_at if no sortBy is specified
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
-	}
-
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
 
-	// Execute the query
-	err := query.Offset(offset).Limit(params.PageSize).Find(&auditFindings).Error
+	err := query.Find(&auditFindings).Error
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
 	response := &auditDTOs.AuditFindingListResponseDTO{
 		Items: auditFindings,
 		Pagination: commonDTOs.PaginationInfoDTO{
