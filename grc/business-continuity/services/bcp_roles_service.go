@@ -2,7 +2,6 @@ package services
 
 import (
 	"errors"
-	"strconv"
 
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	businessFunctionRepositories "jethur/grc/business-continuity/repositories"
@@ -13,11 +12,11 @@ import (
 )
 
 type BcpRolesServiceInterface interface {
-	GetAll(bcpId uint, params *businessContinuityDTOs.BcpRolesListQueryParamsDTO) (*businessContinuityDTOs.BcpRolesListResponseDTO, error)
+	GetAll(params *businessContinuityDTOs.BcpRolesListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpRolesListDTO, error)
 	GetByID(id uint) (*models.BcpRole, error)
 	Create(bcpId uint, currentUserID uint, bcpRoleForm *businessContinuityDTOs.BcpRolesFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, bcpRoleForm *businessContinuityDTOs.BcpRolesFormDTO) error
-	Delete(roleID uint) error
+	Delete(roleIDs []uint, currentUserID uint) ([]uint, error)
 }
 
 type BcpRolesService struct {
@@ -30,16 +29,10 @@ func NewBcpRolesService(repo businessFunctionRepositories.BcpRolesRepositoryInte
 	}
 }
 
-func (brs *BcpRolesService) GetAll(bcpId uint, params *businessContinuityDTOs.BcpRolesListQueryParamsDTO) (*businessContinuityDTOs.BcpRolesListResponseDTO, error) {
-	if params.Filters == nil {
-		params.Filters = make(map[string][]string)
-	}
-	params.Filters["bcp_roles.business_continuity_plan_id"] = []string{strconv.FormatUint(uint64(bcpId), 10)}
-
-	return brs.repo.GetAll(params)
+func (brs *BcpRolesService) GetAll(params *businessContinuityDTOs.BcpRolesListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpRolesListDTO, error) {
+	return brs.repo.GetAll(params, bcpId)
 }
 
-// GetByID fetches a BCP role by its ID.
 func (brs *BcpRolesService) GetByID(id uint) (*models.BcpRole, error) {
 	role, err := brs.repo.GetByID(id)
 	if err != nil {
@@ -51,12 +44,9 @@ func (brs *BcpRolesService) GetByID(id uint) (*models.BcpRole, error) {
 	return role, nil
 }
 
-// Create adds a new BCP role associated with a specific business continuity plan.
 func (brs *BcpRolesService) Create(bcpId uint, currentUserID uint, bcpRoleForm *businessContinuityDTOs.BcpRolesFormDTO) (uint, error) {
-	// Begin a new transaction
 	tx := brs.repo.BeginTransaction()
 
-	// Map the form DTO to the model
 	bcpRole := &models.BcpRole{
 		BusinessContinuityPlanID: bcpId,
 		ResponsibleUserID:        bcpRoleForm.ResponsibleUserID,
@@ -66,7 +56,6 @@ func (brs *BcpRolesService) Create(bcpId uint, currentUserID uint, bcpRoleForm *
 		CreatedByID:              currentUserID,
 	}
 
-	// Create the BCP role
 	id, err := brs.repo.Create(bcpRole, tx)
 	if err != nil {
 		tx.Rollback()
@@ -77,11 +66,9 @@ func (brs *BcpRolesService) Create(bcpId uint, currentUserID uint, bcpRoleForm *
 	return id, nil
 }
 
-// Update modifies an existing BCP role.
 func (brs *BcpRolesService) Update(id uint, currentUserID uint, bcpRoleForm *businessContinuityDTOs.BcpRolesFormDTO) error {
 	tx := brs.repo.BeginTransaction()
 
-	// Fetch the existing role
 	existingRole, err := brs.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -90,14 +77,11 @@ func (brs *BcpRolesService) Update(id uint, currentUserID uint, bcpRoleForm *bus
 		return err
 	}
 
-	// Update the fields
 	existingRole.ResponsibleUserID = bcpRoleForm.ResponsibleUserID
 	existingRole.ResponsibleUnitID = bcpRoleForm.ResponsibleUnitID
 	existingRole.Responsibility = bcpRoleForm.Responsibility
 	existingRole.BackupUserID = bcpRoleForm.BackupUserID
-	// existingRole.UpdatedAt = utility.GetCurrentTimePointer()
 
-	// Save the updated role
 	if err := brs.repo.Update(existingRole, tx); err != nil {
 		tx.Rollback()
 		return err
@@ -107,21 +91,32 @@ func (brs *BcpRolesService) Update(id uint, currentUserID uint, bcpRoleForm *bus
 	return nil
 }
 
-func (brs *BcpRolesService) Delete(roleID uint) error {
+func (brs *BcpRolesService) Delete(roleIDs []uint, currentUserID uint) ([]uint, error) {
 	tx := brs.repo.BeginTransaction()
 
-	if _, err := brs.repo.GetByID(roleID); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return utility.NewResourceNotFoundError(err, roleID)
+	var failedIDs []uint
+
+	for _, roleID := range roleIDs {
+		if _, err := brs.repo.GetByID(roleID); err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				failedIDs = append(failedIDs, roleID)
+				continue
+			}
+			tx.Rollback()
+			return nil, err
 		}
-		return err
+
+		if err := brs.repo.Delete(roleID, tx); err != nil {
+			failedIDs = append(failedIDs, roleID)
+			continue
+		}
 	}
 
-	if err := brs.repo.Delete(roleID, tx); err != nil {
+	if len(failedIDs) > 0 {
 		tx.Rollback()
-		return err
+		return failedIDs, nil
 	}
 
 	tx.Commit()
-	return nil
+	return failedIDs, nil
 }

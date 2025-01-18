@@ -34,13 +34,17 @@ func (brc *BcpRolesController) GetAllBcpRoles(ctx *gin.Context) {
 	}
 
 	sort := ctx.DefaultQuery("sort_order", "asc")
-	sortBy := ctx.DefaultQuery("sort_by", "created_at")
+	sortBy := ctx.DefaultQuery("sort_by", "bcp_roles.responsibility")
 	keyword := ctx.Query("keyword")
 
 	allowedParams := []string{"responsible_user_id", "responsible_unit_id"}
 	validSortFields := map[string]string{
-		"created_at":     "bcp_roles.created_at",
-		"responsibility": "bcp_roles.responsibility",
+		"responsibility":              "bcp_roles.responsibility",
+		"responsible_user_first_name": "responsible_user.first_name_en",
+		"responsible_user_last_name":  "responsible_user.last_name_en",
+		"responsible_unit_title":      "organization_units.title_en",
+		"backup_user_first_name":      "backup_user.first_name_en",
+		"backup_user_last_name":       "backup_user.last_name_en",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, ctx.Request.URL.Query())
@@ -58,7 +62,7 @@ func (brc *BcpRolesController) GetAllBcpRoles(ctx *gin.Context) {
 		Filters: filters,
 	}
 
-	roles, err := brc.service.GetAll(uint(bcpId), &queryParams)
+	roles, err := brc.service.GetAll(&queryParams, uint(bcpId))
 	if err != nil {
 		utility.SendInternalErrResp(brc.db, ctx, err.Error())
 		return
@@ -151,16 +155,9 @@ func (brc *BcpRolesController) UpdateBcpRole(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }
 
-func (brc *BcpRolesController) DeleteBcpRole(ctx *gin.Context) {
-	bcpIdParam := ctx.Param("bcpId")
-	bcpId, err := strconv.Atoi(bcpIdParam)
-	if err != nil || bcpId <= 0 {
-		utility.SendInvalidErrResp(ctx, errors.New("invalid Business Continuity Plan ID"))
-		return
-	}
-
+func (brc *BcpRolesController) DeleteBcpRoles(ctx *gin.Context) {
 	var request struct {
-		RoleID uint `json:"role_id" binding:"required"`
+		IDs []uint `json:"ids" binding:"required"` 
 	}
 
 	if err := ctx.ShouldBindJSON(&request); err != nil {
@@ -168,15 +165,17 @@ func (brc *BcpRolesController) DeleteBcpRole(ctx *gin.Context) {
 		return
 	}
 
-	err = brc.service.Delete(request.RoleID)
+	currentUserID, err := utility.GetCurrentUserID(ctx)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			utility.SendNotFoundErrResp(ctx)
-			return
-		}
 		utility.SendInternalErrResp(brc.db, ctx, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Role deleted successfully"})
+	failedIDs, err := brc.service.Delete(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(brc.db, ctx, err.Error())
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }

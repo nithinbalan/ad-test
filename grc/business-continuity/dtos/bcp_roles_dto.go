@@ -38,7 +38,3 @@ type BcpRolesListQueryParamsDTO struct {
 	QuickFilter []string
 	Export      bool
 }
-
-type BcpRolesListResponseDTO struct {
-	Items []*BcpRolesListDTO `json:"items"`
-}

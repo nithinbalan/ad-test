@@ -13,7 +13,7 @@ type BcpRole struct {
 	BackupUserID             *uint      `json:"backup_user_id"`
 	CreatedByID              uint       `json:"created_by_id" binding:"required"`
 	CreatedAt                time.Time  `json:"created_at" gorm:"type:datetime;not null"`
-	UpdatedAt                *time.Time `json:"updated_at" gorm:"type:datetime"`
+	UpdatedAt                *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
 	// Relationships
 	BusinessContinuityPlan *BusinessContinuityPlan `gorm:"foreignKey:BusinessContinuityPlanID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

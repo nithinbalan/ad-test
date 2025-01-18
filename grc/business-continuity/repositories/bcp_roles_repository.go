@@ -10,7 +10,7 @@ import (
 
 type BcpRolesRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *businessContinuityDTOs.BcpRolesListQueryParamsDTO) (*businessContinuityDTOs.BcpRolesListResponseDTO, error)
+	GetAll(params *businessContinuityDTOs.BcpRolesListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpRolesListDTO, error)
 	GetByID(id uint) (*models.BcpRole, error)
 	Create(bcpRole *models.BcpRole, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(bcpRole *models.BcpRole, tx ...utility.DatabaseTransaction) error
@@ -31,7 +31,7 @@ func (repo *BcpRolesRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *BcpRolesRepository) GetAll(params *businessContinuityDTOs.BcpRolesListQueryParamsDTO) (*businessContinuityDTOs.BcpRolesListResponseDTO, error) {
+func (repo *BcpRolesRepository) GetAll(params *businessContinuityDTOs.BcpRolesListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpRolesListDTO, error) {
 	var roles []*businessContinuityDTOs.BcpRolesListDTO
 
 	query := repo.db.Table("bcp_roles").
@@ -57,16 +57,15 @@ func (repo *BcpRolesRepository) GetAll(params *businessContinuityDTOs.BcpRolesLi
 		Joins(`LEFT JOIN users AS responsible_user ON responsible_user.id = bcp_roles.responsible_user_id`).
 		Joins(`LEFT JOIN users AS backup_user ON backup_user.id = bcp_roles.backup_user_id`).
 		Joins(`LEFT JOIN users AS created_user ON created_user.id = bcp_roles.created_by_id`).
-		Joins(`LEFT JOIN organization_units ON organization_units.id = bcp_roles.responsible_unit_id`)
+		Joins(`LEFT JOIN organization_units ON organization_units.id = bcp_roles.responsible_unit_id`).
+		Where("bcp_roles.business_continuity_plan_id = ?", bcpId)
 
-	// Apply filters dynamically, including `bcpId`
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
 			query = query.Where(columnName+" IN (?)", values)
 		}
 	}
 
-	// Apply keyword search
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
@@ -92,20 +91,17 @@ func (repo *BcpRolesRepository) GetAll(params *businessContinuityDTOs.BcpRolesLi
 			keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
-	// Fetch all results
+	if params.SortBy != "" && params.Sort != "" {
+		query = query.Order(params.SortBy + " " + params.Sort)
+	}
+
 	if err := query.Find(&roles).Error; err != nil {
 		return nil, err
 	}
 
-	// Construct response
-	response := &businessContinuityDTOs.BcpRolesListResponseDTO{
-		Items: roles,
-	}
-
-	return response, nil
+	return roles, nil
 }
 
-// GetByID fetches a BCP role by its ID.
 func (repo *BcpRolesRepository) GetByID(id uint) (*models.BcpRole, error) {
 	var role models.BcpRole
 
@@ -116,7 +112,6 @@ func (repo *BcpRolesRepository) GetByID(id uint) (*models.BcpRole, error) {
 	return &role, nil
 }
 
-// Create inserts a new BCP role.
 func (repo *BcpRolesRepository) Create(bcpRole *models.BcpRole, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -130,7 +125,6 @@ func (repo *BcpRolesRepository) Create(bcpRole *models.BcpRole, tx ...utility.Da
 	return bcpRole.ID, nil
 }
 
-// Update modifies an existing BCP role.
 func (repo *BcpRolesRepository) Update(bcpRole *models.BcpRole, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
