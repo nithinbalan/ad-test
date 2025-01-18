@@ -44,30 +44,30 @@ type BusinessImpactAssessmentRecoveryObjectiveListDTO struct {
 	AssetRegisterID              *uint   `json:"asset_register_id"`
 	AssetRegisterTitleEn         *string `json:"asset_register_title_en"`
 	AssetRegisterTitleAr         *string `json:"asset_register_title_ar"`
-	AssetRegisterRto             *uint   `json:"asset_register_rto"`
+	AssetRegisterRto             *int    `json:"asset_register_rto"`
 	AssetRegisterRtoUnitId       *uint   `json:"asset_register_rto_unit_id"`
 	AssetRegisterRtoUnitTitleEn  *string `json:"asset_register_rto_unit_title_en"`
 	AssetRegisterRtoUnitTitleAr  *string `json:"asset_register_rto_unit_title_ar"`
-	AssetRegisterMtpd            *uint   `json:"asset_register_mtpd"`
+	AssetRegisterMtpd            *int    `json:"asset_register_mtpd"`
 	AssetRegisterMtpdUnitId      *uint   `json:"asset_register_mtpd_unit_id"`
 	AssetRegisterMtpdUnitTitleEn *string `json:"asset_register_mtpd_unit_title_en"`
 	AssetRegisterMtpdUnitTitleAr *string `json:"asset_register_mtpd_unit_title_ar"`
-	AssetRegisterRpo             *uint   `json:"asset_register_rpo"`
+	AssetRegisterRpo             *int    `json:"asset_register_rpo"`
 	AssetRegisterRpoUnitId       *uint   `json:"asset_register_rpo_unit_id"`
 	AssetRegisterRpoUnitTitleEn  *string `json:"asset_register_rpo_unit_title_en"`
 	AssetRegisterRpoUnitTitleAr  *string `json:"asset_register_rpo_unit_title_ar"`
 	DocumentID                   *uint   `json:"document_id"`
 	DocumentTitleEn              *string `json:"document_title_en"`
 	DocumentTitleAr              *string `json:"document_title_ar"`
-	DocumentRto                  *uint   `json:"document_rto"`
+	DocumentRto                  *int    `json:"document_rto"`
 	DocumentRtoUnitId            *uint   `json:"document_rto_unit_id"`
 	DocumentRtoUnitTitleEn       *string `json:"document_rto_unit_title_en"`
 	DocumentRtoUnitTitleAr       *string `json:"document_rto_unit_title_ar"`
-	DocumentMtpd                 *uint   `json:"document_mtpd"`
+	DocumentMtpd                 *int    `json:"document_mtpd"`
 	DocumentMtpdUnitId           *uint   `json:"document_mtpd_unit_id"`
 	DocumentMtpdUnitTitleEn      *string `json:"document_mtpd_unit_title_en"`
 	DocumentMtpdUnitTitleAr      *string `json:"document_mtpd_unit_title_ar"`
-	DocumentRpo                  *uint   `json:"document_rpo"`
+	DocumentRpo                  *int    `json:"document_rpo"`
 	DocumentRpoUnitId            *uint   `json:"document_rpo_unit_id"`
 	DocumentRpoUnitTitleEn       *string `json:"document_rpo_unit_title_en"`
 	DocumentRpoUnitTitleAr       *string `json:"document_rpo_unit_title_ar"`
@@ -134,11 +134,11 @@ type BusinessImpactAssessmentDTO struct {
 
 type BusinessImpactAssessmentRecoveryObjectiveFormDTO struct {
 	ProcessID          *uint                                          `json:"process_id"`
-	Rto                *uint                                          `json:"rto"`
+	Rto                *int                                           `json:"rto"`
 	RtoUnitId          *uint                                          `json:"rto_unit_id"`
-	Mtpd               *uint                                          `json:"mtpd"`
+	Mtpd               *int                                           `json:"mtpd"`
 	MtpdUnitId         *uint                                          `json:"mtpd_unit_id"`
-	Rpo                *uint                                          `json:"rpo"`
+	Rpo                *int                                           `json:"rpo"`
 	RpoUnitId          *uint                                          `json:"rpo_unit_id"`
 	RecoveryObjectives []BusinessImpactAssessmentRecoveryObjectiveDTO `json:"recovery_objectives"`
 }
@@ -147,11 +147,11 @@ type BusinessImpactAssessmentRecoveryObjectiveDTO struct {
 	AssetRegisterID   *uint   `json:"asset_register_id"`
 	DocumentID        *uint   `json:"document_id"`
 	RoleInProcess     *string `json:"role_in_process" gorm:"type:nvarchar(max)"`
-	Rto               *uint   `json:"rto"`
+	Rto               *int    `json:"rto"`
 	RtoUnitId         *uint   `json:"rto_unit_id"`
-	Mtpd              *uint   `json:"mtpd"`
+	Mtpd              *int    `json:"mtpd"`
 	MtpdUnitId        *uint   `json:"mtpd_unit_id"`
-	Rpo               *uint   `json:"rpo"`
+	Rpo               *int    `json:"rpo"`
 	RpoUnitId         *uint   `json:"rpo_unit_id"`
 	ImpactDescription *string `json:"impact_description"`
 }

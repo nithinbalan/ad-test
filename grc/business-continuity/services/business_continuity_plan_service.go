@@ -9,6 +9,7 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"os"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -23,6 +24,7 @@ type BusinessContinuityPlanServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	UpdateRecoveryObjectives(businessContinuityPlan *models.BusinessContinuityPlan, tx utility.DatabaseTransaction) error
+	ExportBusinessContinuityPlan(data []*businessContinuityDTOs.BusinessContinuityPlanListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -31,6 +33,8 @@ type BusinessContinuityPlanService struct {
 	activityLogSvc      logServices.ActivityLogServiceInterface
 	userSvc             organizationServices.UserServiceInterface
 	businessFunctionSvc BusinessFunctionServiceInterface
+	userSettingSvc      organizationServices.UserSettingServiceInterface
+	bcpStatusSvc        BcpStatusServiceInterface
 }
 
 func NewBusinessContinuityPlanService(
@@ -38,12 +42,16 @@ func NewBusinessContinuityPlanService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	businessFunctionSvc BusinessFunctionServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
+	bcpStatusSvc BcpStatusServiceInterface,
 ) BusinessContinuityPlanServiceInterface {
 	return &BusinessContinuityPlanService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
 		userSvc:             userSvc,
 		businessFunctionSvc: businessFunctionSvc,
+		userSettingSvc:      userSettingSvc,
+		bcpStatusSvc:        bcpStatusSvc,
 	}
 }
 
@@ -107,6 +115,11 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 		return 0, err
 	}
 
+	bcpStatus, err := bcps.bcpStatusSvc.GetByType("draft")
+	if err != nil {
+		return 0, err
+	}
+
 	businessContinuityPlan := &models.BusinessContinuityPlan{
 		ReferenceNumber:    referenceNumber,
 		BusinessFunctionID: businessContinuityPlanFormDTO.BusinessFunctionID,
@@ -115,6 +128,7 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 		Scope:              businessContinuityPlanFormDTO.Scope,
 		Objectives:         businessContinuityPlanFormDTO.Objectives,
 		Assumptions:        businessContinuityPlanFormDTO.Assumptions,
+		BcpStatusID:        bcpStatus.ID,
 		CreatedBYID:        currentUserID,
 	}
 	id, err := bcps.repo.Create(businessContinuityPlan, tx)
@@ -197,6 +211,21 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 func (bcps *BusinessContinuityPlanService) Update(id uint, currentUserID uint, businessContinuityPlanFormDTO *businessContinuityDTOs.BusinessContinuityPlanFormDTO) error {
 	tx := bcps.repo.BeginTransaction()
 
+	// Check for uniqueness of the BusinessFunctionID
+	duplicatePlan, err := bcps.repo.GetBusinessContinuityPlanByBusinessFunctionID(businessContinuityPlanFormDTO.BusinessFunctionID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	if duplicatePlan != nil && duplicatePlan.ID != id {
+		tx.Rollback()
+		return utility.NewValidationError(
+			fmt.Errorf("a business continuity plan with this business function already exists"),
+			"unique",
+			"business function",
+		)
+	}
+
 	existingBusinessContinuityPlan, err := bcps.repo.GetByID(id)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, id)
@@ -217,10 +246,46 @@ func (bcps *BusinessContinuityPlanService) Update(id uint, currentUserID uint, b
 	existingBusinessContinuityPlan.UpdatedBYID = &currentUserID
 
 	err = bcps.repo.Update(existingBusinessContinuityPlan, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	if businessContinuityPlanFormDTO.BusinessFunctionID != oldBusinessContinuityPlan.BusinessFunctionID {
+		if len(oldBusinessContinuityPlan.Processes) > 0 {
+			var deleteprocessIDs []*uint
+			for _, process := range oldBusinessContinuityPlan.Processes {
+				deleteprocessIDs = append(deleteprocessIDs, process.ID)
+			}
+			if err := bcps.repo.DeleteBcpProcesses(deleteprocessIDs, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+		businessFunctionDetails, err := bcps.businessFunctionSvc.GetFullDetailsByID(businessContinuityPlanFormDTO.BusinessFunctionID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		for _, existingProcess := range businessFunctionDetails.Processes {
+			bcpProcess := &models.BcpProcess{
+				ProcessID:                existingProcess.ProcessID,
+				BusinessContinuityPlanID: id,
+				RiskLevelID:              existingProcess.Process.RiskLevelId,
+				Rto:                      existingProcess.Process.Rto,
+				RtoUnitId:                existingProcess.Process.RtoUnitId,
+				Mtpd:                     existingProcess.Process.Mtpd,
+				MtpdUnitId:               existingProcess.Process.MtpdUnitId,
+				Rpo:                      existingProcess.Process.Rpo,
+				RpoUnitId:                existingProcess.Process.RpoUnitId,
+				CreatedBYID:              currentUserID,
+			}
+			err := bcps.repo.CreateBcpProcesses(bcpProcess, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
 	}
 
 	tx.Commit()
@@ -303,6 +368,17 @@ func (bcps *BusinessContinuityPlanService) Delete(ids []uint, currentUserID uint
 			"version":           businessContinuityPlan.Version,
 		})
 
+		if len(businessContinuityPlan.Processes) > 0 {
+			var deleteprocessIDs []*uint
+			for _, process := range businessContinuityPlan.Processes {
+				deleteprocessIDs = append(deleteprocessIDs, process.ID)
+			}
+			if err := bcps.repo.DeleteBcpProcesses(deleteprocessIDs, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
 		// Delete the business
 		if err := bcps.repo.Delete(id, tx); err != nil {
 			failedIds = append(failedIds, id)
@@ -349,4 +425,57 @@ func (bfs *BusinessContinuityPlanService) UpdateRecoveryObjectives(businessConti
 	}
 
 	return nil
+}
+
+func (bfs *BusinessContinuityPlanService) ExportBusinessContinuityPlan(data []*businessContinuityDTOs.BusinessContinuityPlanListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := bfs.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"RTO",
+			"MTPD",
+			"RPO",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"RTO",
+			"MTPD",
+			"RPO",
+		}
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, bcp := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				bcp.ReferenceNumber,
+				bcp.BusinessFunctionTitle,
+				utility.GetIntValueAsString(bcp.Rto) + " " + utility.GetStringValue(bcp.RtoUnitTitleAr),
+				utility.GetIntValueAsString(bcp.Mtpd) + " " + utility.GetStringValue(bcp.MtpdUnitTitleAr),
+				utility.GetIntValueAsString(bcp.Rpo) + " " + utility.GetStringValue(bcp.RpoUnitTitleAr),
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				bcp.ReferenceNumber,
+				bcp.BusinessFunctionTitle,
+				utility.GetIntValueAsString(bcp.Rto) + " " + utility.GetStringValue(bcp.RtoUnitTitleEn),
+				utility.GetIntValueAsString(bcp.Mtpd) + " " + utility.GetStringValue(bcp.MtpdUnitTitleEn),
+				utility.GetIntValueAsString(bcp.Rpo) + " " + utility.GetStringValue(bcp.RpoUnitTitleEn),
+			}
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }

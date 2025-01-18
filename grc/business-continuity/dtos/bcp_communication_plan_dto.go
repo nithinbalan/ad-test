@@ -63,8 +63,8 @@ type BcpCommunicationPlanListResponseDTO struct {
 }
 
 type BcpCommunicationPlanFormDTO struct {
-	BcpPhaseID        uint    `json:"bcp_phase_id"`
-	BcpProcessID      uint    `json:"bcp_process_id"`
+	BcpPhaseID        uint    `json:"bcp_phase_id" binding:"required"`
+	BcpProcessID      uint    `json:"bcp_process_id" binding:"required"`
 	Title             string  `json:"title" binding:"required"`
 	ResponsibleUserID uint    `json:"responsible_user_id" binding:"required"`
 	Frequency         *string `json:"frequency"`
