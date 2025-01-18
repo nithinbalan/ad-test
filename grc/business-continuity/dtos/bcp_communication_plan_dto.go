@@ -57,11 +57,6 @@ type BcpCommunicationPlanListQueryParamsDTO struct {
 	QuickFilter []string
 }
 
-// type BcpCommunicationPlanListResponseDTO struct {
-// 	Items      []*BcpCommunicationPlanListDTO `json:"items"`
-// 	Pagination commonDTOs.PaginationInfoDTO   `json:"pagination"`
-// }
-
 type BcpCommunicationPlanFormDTO struct {
 	BcpPhaseID        uint    `json:"bcp_phase_id" binding:"required"`
 	BcpProcessID      uint    `json:"bcp_process_id" binding:"required"`

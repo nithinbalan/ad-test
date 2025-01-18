@@ -61,11 +61,6 @@ type BcpRecoveryPlanListQueryParamsDTO struct {
 	QuickFilter []string
 }
 
-// type BcpRecoveryPlanListResponseDTO struct {
-// 	Items      []*BcpRecoveryPlanListDTO    `json:"items"`
-// 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
-// }
-
 type BcpRecoveryPlanFormDTO struct {
 	BcpPhaseID             *uint   `json:"bcp_phase_id"`
 	BcpProcessID           *uint   `json:"bcp_process_id"`

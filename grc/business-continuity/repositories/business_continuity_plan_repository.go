@@ -186,6 +186,7 @@ func (repo *BusinessContinuityPlanRepository) GetFullDetailsByID(id uint, tx ...
 		Preload("BusinessFunction.SeverityLevel").
 		Preload("BusinessFunction.ReviewFrequency").
 		Preload("ResponsibleUser").
+		Preload("ResponsibleUnit").
 		Preload("Documents").
 		Preload("BcpStatus").
 		Preload("RtoUnit").

@@ -299,7 +299,7 @@ func (bcps *BusinessContinuityPlanService) Update(id uint, currentUserID uint, b
 	if existingBusinessContinuityPlan.ResponsibleUserID != *businessContinuityPlanFormDTO.ResponsibleUserID {
 		responsibleUnitID, err := bcps.userSvc.GetUserPrimaryUnitID(existingBusinessContinuityPlan.ResponsibleUserID)
 		if err != nil {
-			return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "risk responsible unit")
+			return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "business continuity plan responsible unit")
 		}
 		existingBusinessContinuityPlan.ResponsibleUnitID = &responsibleUnitID
 	}
