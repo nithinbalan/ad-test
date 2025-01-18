@@ -1210,13 +1210,11 @@ func (ps *ProcessService) UpdateProcessRiskRating(process *models.Process, tx ut
 }
 
 func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
-	// Headers for the first sheet
+	// Headers for the first sheet (Template)
 	templateHeaders := []string{
 		"ProcessGroupTitle", "Owner", "TitleEn", "TitleAr", "Description", "Controls",
 	}
-
-	// Data for the first sheet (empty for the template)
-	templateData := [][]interface{}{}
+	templateData := [][]interface{}{} // Empty template data
 
 	// Fetch process groups for the second sheet
 	processGroups, err := ps.processGroupSvc.GetAll("", "", "", "active")
@@ -1224,22 +1222,47 @@ func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
 		return nil, err
 	}
 
-	// Headers for the second sheet
+	// Headers and data for the second sheet (ProcessGroup)
 	processGroupHeaders := []string{"ProcessGroupTitle"}
-
-	// Data for the second sheet
-	processGroup := [][]interface{}{}
+	processGroupData := [][]interface{}{}
 	for _, group := range processGroups {
-		processGroup = append(processGroup, []interface{}{group.TitleEn})
+		processGroupData = append(processGroupData, []interface{}{group.TitleEn})
 	}
 
-	// Generate the Excel file with two sheets
-	file, err := utility.GenerateExcelFileWithSheets(
-		map[string][][]interface{}{
-			"Template":     append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
-			"ProcessGroup": append([][]interface{}{utility.ConvertToInterfaceSlice(processGroupHeaders)}, processGroup...),
-		},
-	)
+	// Fetch owners for the third sheet
+	owners, err := ps.userSvc.GetAllUsers()
+	if err != nil {
+		return nil, err
+	}
+
+	// Headers and data for the third sheet (Owner)
+	ownerHeaders := []string{"Owner"}
+	ownerData := [][]interface{}{}
+	for _, owner := range owners {
+		ownerFullName := fmt.Sprintf("%s %s", owner.FirstNameEn, owner.LastNameEn)
+		ownerData = append(ownerData, []interface{}{ownerFullName})
+	}
+
+	// Fetch controls for the fourth sheet
+	controls, err := ps.controlSvc.GetAllControls()
+	if err != nil {
+		return nil, err
+	}
+
+	// Headers and data for the fourth sheet (Controls)
+	controlHeaders := []string{"Controls"}
+	controlData := [][]interface{}{}
+	for _, control := range controls {
+		controlData = append(controlData, []interface{}{control.TitleEn})
+	}
+
+	// Generate the Excel file with "Template," "ProcessGroup," "Owner," and "Controls" sheets
+	file, err := utility.GenerateExcelFileWithSheets(map[string][][]interface{}{
+		"Template":     append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
+		"ProcessGroup": append([][]interface{}{utility.ConvertToInterfaceSlice(processGroupHeaders)}, processGroupData...),
+		"Owner":        append([][]interface{}{utility.ConvertToInterfaceSlice(ownerHeaders)}, ownerData...),
+		"Controls":     append([][]interface{}{utility.ConvertToInterfaceSlice(controlHeaders)}, controlData...),
+	})
 	if err != nil {
 		return nil, err
 	}
