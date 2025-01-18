@@ -3,6 +3,7 @@ package repositories
 import (
 	"fmt"
 	reportDTOs "jethur/grc/reports/dtos"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -46,18 +47,21 @@ func NewAuditReportRepository(db *gorm.DB) *AuditReportRepository {
 func (r *AuditReportRepository) GetAuditPlanByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditPlanByCategoryDTO, error) {
 	results := []*reportDTOs.AuditPlanByCategoryDTO{}
 
-	query := r.db.Table("audit_plans").
+	// Start the query from audit_categories
+	query := r.db.Table("audit_categories").
 		Select(`audit_categories.id AS audit_category_id, 
 				audit_categories.title_en AS audit_category_title_en, 
 				audit_categories.title_ar AS audit_category_title_ar, 
 				COUNT(audit_plans.id) AS count`).
-		Joins("JOIN audit_categories ON audit_categories.id = audit_plans.audit_category_id").
+		Joins("LEFT JOIN audit_plans ON audit_plans.audit_category_id = audit_categories.id").
 		Group("audit_categories.id, audit_categories.title_en, audit_categories.title_ar")
 
+	// Apply date filters if provided
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("audit_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
+	// Execute the query
 	err := query.Scan(&results).Error
 	return results, err
 }
@@ -65,13 +69,13 @@ func (r *AuditReportRepository) GetAuditPlanByCategory(params *reportDTOs.Report
 func (r *AuditReportRepository) GetAuditPlanByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditPlanByStatusDTO, error) {
 	results := []*reportDTOs.AuditPlanByStatusDTO{}
 
-	query := r.db.Table("audit_plans").
+	query := r.db.Table("audit_statuses").
 		Select(`audit_statuses.id AS audit_status_id,
 				audit_statuses.title_en AS audit_status_title_en,
 				audit_statuses.title_ar AS audit_status_title_ar,
 				audit_statuses.color_code AS color_code,
 				COUNT(audit_plans.id) AS count`).
-		Joins("JOIN audit_statuses ON audit_statuses.id = audit_plans.audit_status_id").
+		Joins("LEFT JOIN audit_plans ON audit_plans.audit_status_id = audit_statuses.id").
 		Group("audit_statuses.id, audit_statuses.title_en, audit_statuses.title_ar, audit_statuses.color_code")
 
 	// Apply date filter if provided
@@ -170,13 +174,13 @@ func (r *AuditReportRepository) GetAuditPlanByYear(params *reportDTOs.ReportList
 func (r *AuditReportRepository) GetAuditByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditByCategoryDTO, error) {
 	results := []*reportDTOs.AuditByCategoryDTO{}
 
-	query := r.db.Table("audits").
+	query := r.db.Table("audit_categories").
 		Select(`audit_categories.id AS audit_category_id, 
-				audit_categories.title_en AS audit_category_title_en, 
-				audit_categories.title_ar AS audit_category_title_ar, 
-				COUNT(audits.id) AS count`).
-		Joins("JOIN audit_plans ON audit_plans.id = audits.audit_plan_id").
-		Joins("JOIN audit_categories ON audit_categories.id = audit_plans.audit_category_id").
+			audit_categories.title_en AS audit_category_title_en, 
+			audit_categories.title_ar AS audit_category_title_ar, 
+			COUNT(audits.id) AS count`).
+		Joins("LEFT JOIN audit_plans ON audit_plans.audit_category_id = audit_categories.id").
+		Joins("LEFT JOIN audits ON audits.audit_plan_id = audit_plans.id").
 		Group("audit_categories.id, audit_categories.title_en, audit_categories.title_ar")
 
 	// Apply date filter if provided
@@ -191,13 +195,13 @@ func (r *AuditReportRepository) GetAuditByCategory(params *reportDTOs.ReportList
 func (r *AuditReportRepository) GetAuditByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditByStatusDTO, error) {
 	results := []*reportDTOs.AuditByStatusDTO{}
 
-	query := r.db.Table("audits").
+	query := r.db.Table("audit_statuses").
 		Select(`audit_statuses.id AS audit_status_id,
 				audit_statuses.title_en AS audit_status_title_en,
 				audit_statuses.title_ar AS audit_status_title_ar,
 				audit_statuses.color_code AS color_code,
 				COUNT(audits.id) AS count`).
-		Joins("JOIN audit_statuses ON audit_statuses.id = audits.audit_status_id").
+		Joins("LEFT JOIN audits ON audits.audit_status_id = audit_statuses.id").
 		Group("audit_statuses.id, audit_statuses.title_en, audit_statuses.title_ar, audit_statuses.color_code")
 
 	// Apply date filter if provided
@@ -287,7 +291,6 @@ func (r *AuditReportRepository) GetAuditByOpenVsClosed(params *reportDTOs.Report
 
 	return results, nil
 }
-
 func (r *AuditReportRepository) GetAuditByMonth(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditByMonthDTO, error) {
 	results := []*reportDTOs.AuditByMonthDTO{}
 
@@ -298,7 +301,20 @@ func (r *AuditReportRepository) GetAuditByMonth(params *reportDTOs.ReportListQue
 		"Sep": "سبتمبر", "Oct": "أكتوبر", "Nov": "نوفمبر", "Dec": "ديسمبر",
 	}
 
-	// Fetch last 12 months' audit count
+	// Generate the last 12 months
+	last12Months := make(map[string]*reportDTOs.AuditByMonthDTO)
+	now := time.Now()
+	for i := 0; i < 12; i++ {
+		month := now.AddDate(0, -i, 0).Format("Jan 2006") // e.g., "Jan 2025"
+		monthShort := month[:3]                           // Extract short form (e.g., "Jan")
+		last12Months[month] = &reportDTOs.AuditByMonthDTO{
+			TitleEn: month,
+			TitleAr: monthTranslations[monthShort] + " " + month[4:], // Arabic + Year
+			Count:   0,                                               // Default count
+		}
+	}
+
+	// Fetch data for the last 12 months
 	var rawResults []struct {
 		MonthEn string `gorm:"column:title_en"`
 		Count   uint   `gorm:"column:count"`
@@ -315,14 +331,17 @@ func (r *AuditReportRepository) GetAuditByMonth(params *reportDTOs.ReportListQue
 		return nil, err
 	}
 
-	// Convert English month names to Arabic and store results
+	// Merge database results into the last 12 months
 	for _, record := range rawResults {
-		monthShort := record.MonthEn[:3] // Extract three-letter month abbreviation (e.g., "Jan", "Feb")
-		results = append(results, &reportDTOs.AuditByMonthDTO{
-			TitleEn: record.MonthEn,
-			TitleAr: monthTranslations[monthShort] + " " + record.MonthEn[4:], // Arabic + Year
-			Count:   record.Count,
-		})
+		if dto, exists := last12Months[record.MonthEn]; exists {
+			dto.Count = record.Count // Update count for the matching month
+		}
+	}
+
+	// Convert map to a slice in chronological order
+	for i := 11; i >= 0; i-- {
+		month := now.AddDate(0, -i, 0).Format("Jan 2006") // Same key format
+		results = append(results, last12Months[month])
 	}
 
 	return results, nil
@@ -360,12 +379,12 @@ func (r *AuditReportRepository) GetAuditByTeamLead(params *reportDTOs.ReportList
 func (r *AuditReportRepository) GetAuditFindingByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByCategoryDTO, error) {
 	results := []*reportDTOs.AuditFindingByCategoryDTO{}
 
-	query := r.db.Table("audit_findings").
+	query := r.db.Table("audit_finding_categories").
 		Select(`audit_finding_categories.id AS id, 
 				audit_finding_categories.title_en AS title_en, 
 				audit_finding_categories.title_ar AS title_ar, 
 				COUNT(audit_findings.id) AS count`).
-		Joins("JOIN audit_finding_categories ON audit_finding_categories.id = audit_findings.audit_finding_category_id").
+		Joins("LEFT JOIN audit_findings ON audit_findings.audit_finding_category_id = audit_finding_categories.id").
 		Group("audit_finding_categories.id, audit_finding_categories.title_en, audit_finding_categories.title_ar").
 		Order("COUNT(audit_findings.id) DESC") // Order by highest count
 
@@ -385,13 +404,13 @@ func (r *AuditReportRepository) GetAuditFindingByCategory(params *reportDTOs.Rep
 func (r *AuditReportRepository) GetAuditFindingByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByStatusDTO, error) {
 	results := []*reportDTOs.AuditFindingByStatusDTO{}
 
-	query := r.db.Table("audit_findings").
+	query := r.db.Table("audit_finding_statuses").
 		Select(`audit_finding_statuses.id,
                 audit_finding_statuses.title_en,
                 audit_finding_statuses.title_ar,
                 audit_finding_statuses.color_code,
                 COUNT(audit_findings.id) AS count`).
-		Joins("JOIN audit_finding_statuses ON audit_finding_statuses.id = audit_findings.audit_finding_status_id").
+		Joins("LEFT JOIN audit_findings ON audit_findings.audit_finding_status_id = audit_finding_statuses.id").
 		Group("audit_finding_statuses.id, audit_finding_statuses.title_en, audit_finding_statuses.title_ar, audit_finding_statuses.color_code")
 
 	// Apply date filter if provided
@@ -406,13 +425,13 @@ func (r *AuditReportRepository) GetAuditFindingByStatus(params *reportDTOs.Repor
 func (r *AuditReportRepository) GetAuditFindingBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingBySeverityLevelDTO, error) {
 	results := []*reportDTOs.AuditFindingBySeverityLevelDTO{}
 
-	query := r.db.Table("audit_findings").
+	query := r.db.Table("severity_levels").
 		Select(`severity_levels.id,
                 severity_levels.title_en,
                 severity_levels.title_ar,
                 severity_levels.color_code,
                 COUNT(audit_findings.id) AS count`).
-		Joins("JOIN severity_levels ON severity_levels.id = audit_findings.severity_level_id").
+		Joins("LEFT JOIN audit_findings ON audit_findings.severity_level_id = severity_levels.id").
 		Group("severity_levels.id, severity_levels.title_en, severity_levels.title_ar, severity_levels.color_code")
 
 	// Apply date filter if provided
@@ -458,7 +477,20 @@ func (r *AuditReportRepository) GetAuditFindingByMonth(params *reportDTOs.Report
 		"Sep": "سبتمبر", "Oct": "أكتوبر", "Nov": "نوفمبر", "Dec": "ديسمبر",
 	}
 
-	// Fetch last 12 months' audit finding count
+	// Generate the last 12 months
+	last12Months := make(map[string]*reportDTOs.AuditFindingByMonthDTO)
+	now := time.Now()
+	for i := 0; i < 12; i++ {
+		month := now.AddDate(0, -i, 0).Format("Jan 2006") // e.g., "Jan 2025"
+		monthShort := month[:3]                           // Extract short form (e.g., "Jan")
+		last12Months[month] = &reportDTOs.AuditFindingByMonthDTO{
+			TitleEn: month,
+			TitleAr: monthTranslations[monthShort] + " " + month[4:], // Arabic + Year
+			Count:   0,                                               // Default count
+		}
+	}
+
+	// Fetch data for the last 12 months
 	var rawResults []struct {
 		MonthEn string `gorm:"column:title_en"`
 		Count   uint   `gorm:"column:count"`
@@ -475,14 +507,17 @@ func (r *AuditReportRepository) GetAuditFindingByMonth(params *reportDTOs.Report
 		return nil, err
 	}
 
-	// Convert English month names to Arabic and store results
+	// Merge database results into the last 12 months
 	for _, record := range rawResults {
-		monthShort := record.MonthEn[:3] // Extract three-letter month abbreviation (e.g., "Jan", "Feb")
-		results = append(results, &reportDTOs.AuditFindingByMonthDTO{
-			TitleEn: record.MonthEn,
-			TitleAr: monthTranslations[monthShort] + " " + record.MonthEn[4:], // Arabic + Year
-			Count:   record.Count,
-		})
+		if dto, exists := last12Months[record.MonthEn]; exists {
+			dto.Count = record.Count // Update count for the matching month
+		}
+	}
+
+	// Convert map to a slice in chronological order
+	for i := 11; i >= 0; i-- {
+		month := now.AddDate(0, -i, 0).Format("Jan 2006") // Same key format
+		results = append(results, last12Months[month])
 	}
 
 	return results, nil
@@ -521,7 +556,7 @@ func (r *AuditReportRepository) GetAuditFindingByAuditor(params *reportDTOs.Repo
 func (r *AuditReportRepository) GetAuditActionPlanByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanByStatusDTO, error) {
 	results := []*reportDTOs.AuditActionPlanByStatusDTO{}
 
-	query := r.db.Table("audit_finding_action_plans").
+	query := r.db.Table("action_plan_statuses").
 		Select(`
             action_plan_statuses.id,
             action_plan_statuses.title_en,
@@ -529,7 +564,7 @@ func (r *AuditReportRepository) GetAuditActionPlanByStatus(params *reportDTOs.Re
             action_plan_statuses.color_code,
             COUNT(audit_finding_action_plans.id) AS count
         `).
-		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = audit_finding_action_plans.action_plan_status_id").
+		Joins("LEFT JOIN audit_finding_action_plans ON audit_finding_action_plans.action_plan_status_id = action_plan_statuses.id").
 		Group("action_plan_statuses.id, action_plan_statuses.title_en, action_plan_statuses.title_ar, action_plan_statuses.color_code")
 
 	// Apply date filter if provided
@@ -544,13 +579,13 @@ func (r *AuditReportRepository) GetAuditActionPlanByStatus(params *reportDTOs.Re
 func (r *AuditReportRepository) GetAuditActionPlanBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanBySeverityLevelDTO, error) {
 	results := []*reportDTOs.AuditActionPlanBySeverityLevelDTO{}
 
-	query := r.db.Table("audit_finding_action_plans").
+	query := r.db.Table("severity_levels").
 		Select(`severity_levels.id,
                 severity_levels.title_en,
                 severity_levels.title_ar,
                 severity_levels.color_code,
                 COUNT(audit_finding_action_plans.id) AS count`).
-		Joins("JOIN severity_levels ON severity_levels.id = audit_finding_action_plans.severity_level_id").
+		Joins("LEFT JOIN audit_finding_action_plans ON audit_finding_action_plans.severity_level_id = severity_levels.id").
 		Group("severity_levels.id, severity_levels.title_en, severity_levels.title_ar, severity_levels.color_code")
 
 	// Apply date filter if provided

@@ -1,10 +1,10 @@
 package dtos
 
 type AuditPlanByCategoryDTO struct {
-	AuditPlanCategoryID      uint   `json:"id" gorm:"column:audit_category_id"`
-	AuditPlanCategoryTitleEn string `json:"title_en" gorm:"column:audit_category_title_en"`
-	AuditPlanCategoryTitleAr string `json:"title_ar" gorm:"column:audit_category_title_ar"`
-	Count                    uint   `json:"count" gorm:"column:count"`
+	AuditCategoryID      uint   `json:"id" gorm:"column:audit_category_id"`
+	AuditCategoryTitleEn string `json:"title_en" gorm:"column:audit_category_title_en"`
+	AuditCategoryTitleAr string `json:"title_ar" gorm:"column:audit_category_title_ar"`
+	Count                uint   `json:"count" gorm:"column:count"`
 }
 
 type AuditPlanByStatusDTO struct {
