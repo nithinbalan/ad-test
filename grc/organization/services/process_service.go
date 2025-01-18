@@ -1210,14 +1210,36 @@ func (ps *ProcessService) UpdateProcessRiskRating(process *models.Process, tx ut
 }
 
 func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
-	headers := []string{
+	// Headers for the first sheet
+	templateHeaders := []string{
 		"ProcessGroupTitle", "Owner", "TitleEn", "TitleAr", "Description", "Controls",
 	}
 
-	// Pass empty data for the template
-	data := [][]interface{}{}
+	// Data for the first sheet (empty for the template)
+	templateData := [][]interface{}{}
 
-	file, err := utility.GenerateExcelFile(headers, data)
+	// Fetch process groups for the second sheet
+	processGroups, err := ps.processGroupSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, err
+	}
+
+	// Headers for the second sheet
+	processGroupHeaders := []string{"ProcessGroupTitle"}
+
+	// Data for the second sheet
+	processGroup := [][]interface{}{}
+	for _, group := range processGroups {
+		processGroup = append(processGroup, []interface{}{group.TitleEn})
+	}
+
+	// Generate the Excel file with two sheets
+	file, err := utility.GenerateExcelFileWithSheets(
+		map[string][][]interface{}{
+			"Template":     append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
+			"ProcessGroup": append([][]interface{}{utility.ConvertToInterfaceSlice(processGroupHeaders)}, processGroup...),
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
