@@ -186,7 +186,3 @@ type BIAMatrixQueryParamsDTO struct {
 	PageSize int
 	Filters  map[string][]string
 }
-
-type BIAMatrixResponsePaginatedDTO struct {
-	Items      []BIAMatrixResponseDTO       `json:"items"`
-}

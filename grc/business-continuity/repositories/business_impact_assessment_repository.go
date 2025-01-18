@@ -20,7 +20,7 @@ type BusinessImpactAssessmentRepositoryInterface interface {
 	DeleteImpactAssessmentsByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
 	DeleteRecoveryObjectivesByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
 	GetImpactAssessmentsByProcessID(processID uint) ([]*models.BusinessImpactAssessment, error)
-	GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) (*businessContinuityDTOs.BIAMatrixResponsePaginatedDTO, error)
+	GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) ([]businessContinuityDTOs.BIAMatrixResponseDTO, error)
 }
 
 type BusinessImpactAssessmentRepository struct {
@@ -329,7 +329,7 @@ func (repo *BusinessImpactAssessmentRepository) GetImpactAssessmentsByProcessID(
 	return businessImpactAssessments, nil
 }
 
-func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) (*businessContinuityDTOs.BIAMatrixResponsePaginatedDTO, error) {
+func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) ([]businessContinuityDTOs.BIAMatrixResponseDTO, error) {
 	var results []businessContinuityDTOs.BIAMatrixResponseDTO
 
 	query := repo.db.Table("business_function_processes").
@@ -387,9 +387,5 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
 		return nil, err
 	}
 
-	response := &businessContinuityDTOs.BIAMatrixResponsePaginatedDTO{
-		Items: results,
-	}
-
-	return response, nil
+	return results, nil
 }
