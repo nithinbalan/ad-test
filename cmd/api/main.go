@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"jethur/config"
 	assetRoutes "jethur/grc/asset/routes"
 	auditInsightsRoutes "jethur/grc/audit-insights/routes"
@@ -31,7 +32,17 @@ import (
 
 func main() {
 
-	config.LoadEnv()
+	config.LoadEnv() // Load environment variables first
+
+	// Define command-line flags
+	checkPDF := flag.Bool("check-pdf", false, "Check if PDF conversion is working")
+	flag.Parse()
+
+	// Handle the `--check-pdf` flag
+	if *checkPDF {
+		utility.RunPDFConversionCheck()
+		return
+	}
 
 	time.Local = time.UTC
 

@@ -74,6 +74,8 @@ type UserFormDTO struct {
 	ProfileImagePath    *string `json:"profile_image_path" binding:"omitempty"`
 	RoleIDs             []uint  `json:"role_ids" binding:"required"`
 	UserStatusID        uint    `json:"user_status_id" binding:"required"`
+	Password            string  `json:"password" binding:"omitempty"`
+	IsSentEmail         bool    `json:"is_sent_email"`
 }
 
 type UserUpdateDTO struct {

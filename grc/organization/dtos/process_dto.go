@@ -44,6 +44,9 @@ type ProcessListDTO struct {
 	RpoUnitId                        *uint      `json:"rpo_uint_id"`
 	RpoUnitTitleEn                   *string    `json:"rpo_unit_title_en"`
 	RpoUnitTitleAr                   *string    `json:"rpo_unit_title_ar"`
+	RiskLevelId                      *uint      `json:"risk_level_id"`
+	RiskLevelTitleEn                 *uint      `json:"risk_level_title_en"`
+	RiskLevelTitleAr                 *uint      `json:"risk_level_title_ar"`
 	LastAssessedAt                   *time.Time `json:"last_assessed_at"`
 	LastAssessedUserID               *uint      `json:"last_assessed_user_id"`
 	LastAssessedUserFirstNameEn      *string    `json:"last_assessed_user_first_name_en"`
@@ -126,15 +129,16 @@ type ProcessDetailDTO struct {
 	CreatedByUser         UserMinimalDTO                    `json:"created_by"`
 	UpdatedByUser         *UserMinimalDTO                   `json:"updated_by"`
 	LifecycleStatus       masterDTOs.LifecycleStatusDTO     `json:"status"`
-	Rto                   *uint                             `json:"rto"`
+	Rto                   *int                              `json:"rto"`
 	RtoUnitId             *uint                             `json:"rto_uint_id"`
 	RtoUnit               masterDTOs.TimeUnitDTO            `json:"rto_unit"`
-	Mtpd                  *uint                             `json:"mtpd"`
+	Mtpd                  *int                              `json:"mtpd"`
 	MtpdUnitId            *uint                             `json:"mtpd_uint_id"`
 	MtpdUnit              masterDTOs.TimeUnitDTO            `json:"mtpd_unit"`
-	Rpo                   *uint                             `json:"rpo"`
+	Rpo                   *int                              `json:"rpo"`
 	RpoUnitId             *uint                             `json:"rpo_uint_id"`
 	RpoUnit               masterDTOs.TimeUnitDTO            `json:"rpo_unit"`
+	RiskLevelId           *uint                             `json:"risk_level_id"`
 	LastAssessedAt        *time.Time                        `json:"last_assessed_at"`
 	LastAssessedByUser    *UserMinimalDTO                   `json:"last_assessed_by"`
 	IsBiaPerformed        bool                              `json:"is_bia_performed"`
@@ -230,11 +234,11 @@ type DocumentDetailsDTO struct {
 	DescriptionAr *string `json:"description_ar"`
 	IsLocked      bool    `json:"is_locked"`
 	Acknowledged  *bool   `json:"acknowledged,omitempty"`
-	Rto           *uint   `json:"rto"`
+	Rto           *int    `json:"rto"`
 	RtoUnitId     *uint   `json:"rto_uint_id"`
-	Mtpd          *uint   `json:"mtpd"`
+	Mtpd          *int    `json:"mtpd"`
 	MtpdUnitId    *uint   `json:"mtpd_uint_id"`
-	Rpo           *uint   `json:"rpo"`
+	Rpo           *int    `json:"rpo"`
 	RpoUnitId     *uint   `json:"rpo_uint_id"`
 }
 
@@ -250,10 +254,10 @@ type AssetMinimalDTO struct {
 	TitleEn     string  `json:"title_en"`
 	TitleAr     string  `json:"title_ar"`
 	Description *string `json:"description"`
-	Rto         *uint   `json:"rto"`
+	Rto         *int    `json:"rto"`
 	RtoUnitId   *uint   `json:"rto_uint_id"`
-	Mtpd        *uint   `json:"mtpd"`
+	Mtpd        *int    `json:"mtpd"`
 	MtpdUnitId  *uint   `json:"mtpd_uint_id"`
-	Rpo         *uint   `json:"rpo"`
+	Rpo         *int    `json:"rpo"`
 	RpoUnitId   *uint   `json:"rpo_uint_id"`
 }
