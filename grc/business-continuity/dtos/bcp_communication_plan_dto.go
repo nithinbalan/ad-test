@@ -3,13 +3,13 @@ package dtos
 import (
 	"time"
 
-	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 )
 
 type BcpCommunicationPlanListDTO struct {
 	ID                              uint    `json:"id"`
 	Title                           string  `json:"title"`
+	BcpPhaseID                      string  `json:"bcp_phase_id"`
 	BcpPhaseTitleEn                 string  `json:"bcp_phase_title_en"`
 	BcpPhaseTitleAr                 string  `json:"bcp_phase_title_ar"`
 	BcpProcessTitleEn               string  `json:"bcp_process_title_en"`
@@ -57,10 +57,10 @@ type BcpCommunicationPlanListQueryParamsDTO struct {
 	QuickFilter []string
 }
 
-type BcpCommunicationPlanListResponseDTO struct {
-	Items      []*BcpCommunicationPlanListDTO `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO   `json:"pagination"`
-}
+// type BcpCommunicationPlanListResponseDTO struct {
+// 	Items      []*BcpCommunicationPlanListDTO `json:"items"`
+// 	Pagination commonDTOs.PaginationInfoDTO   `json:"pagination"`
+// }
 
 type BcpCommunicationPlanFormDTO struct {
 	BcpPhaseID        uint    `json:"bcp_phase_id" binding:"required"`

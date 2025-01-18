@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	businessContinuityPlanRepositories "jethur/grc/business-continuity/repositories"
 	logServices "jethur/grc/logs/services"
@@ -10,6 +11,8 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 	"os"
+	"path/filepath"
+	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -25,6 +28,8 @@ type BusinessContinuityPlanServiceInterface interface {
 
 	UpdateRecoveryObjectives(businessContinuityPlan *models.BusinessContinuityPlan, tx utility.DatabaseTransaction) error
 	ExportBusinessContinuityPlan(data []*businessContinuityDTOs.BusinessContinuityPlanListDTO, currentUserID uint) (*os.File, error)
+
+	GetDocumentPath(id uint, token string) (string, error)
 }
 
 // Service and implementations
@@ -120,6 +125,11 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 		return 0, err
 	}
 
+	responsibleUnitID, err := bcps.userSvc.GetUserPrimaryUnitID(*businessContinuityPlanFormDTO.ResponsibleUserID)
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "bcp communication plan responsible unit")
+	}
+
 	businessContinuityPlan := &models.BusinessContinuityPlan{
 		ReferenceNumber:    referenceNumber,
 		BusinessFunctionID: businessContinuityPlanFormDTO.BusinessFunctionID,
@@ -129,6 +139,8 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 		Objectives:         businessContinuityPlanFormDTO.Objectives,
 		Assumptions:        businessContinuityPlanFormDTO.Assumptions,
 		BcpStatusID:        bcpStatus.ID,
+		ResponsibleUserID:  *businessContinuityPlanFormDTO.ResponsibleUserID,
+		ResponsibleUnitID:  &responsibleUnitID,
 		CreatedBYID:        currentUserID,
 	}
 	id, err := bcps.repo.Create(businessContinuityPlan, tx)
@@ -174,6 +186,53 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 			tx.Rollback()
 			return 0, err
 		}
+	}
+
+	var documents []*models.BcpDocument
+
+	// Iterate over each document in the array
+	for _, doc := range businessContinuityPlanFormDTO.Documents {
+		// Encrypt the filename
+		dataToEncrypt := []byte(doc.FileName)
+		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		// Construct the URL for the document
+		url := utility.GenerateDocumentURL("business-continuity", "business-continuity-plan", strconv.FormatUint(uint64(id), 10), "documents")
+
+		// Create a new ComplianceRequirementStatusUpdateDocument instance
+		document := &models.BcpDocument{
+			BusinessContinuityPlanID: id,
+			URL:                      url,
+			Name:                     doc.FileName,
+			Size:                     doc.Size,
+			Token:                    encryptedFilename,
+			OriginalName:             doc.OriginalName,
+			Type:                     doc.Type,
+			CreatedByID:              currentUserID,
+		}
+		// Append the document to the slice
+		documents = append(documents, document)
+
+	}
+	if len(documents) > 0 {
+		// Save the ComplianceRequirementStatusUpdateDocument
+		if err := bcps.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		//move file to storage
+		for _, doc := range documents {
+			storagePath := filepath.Join("business-continuity", "business-continuity-plan", strconv.FormatUint(uint64(id), 10), "documents")
+			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+
 	}
 
 	tx.Commit()
@@ -237,12 +296,21 @@ func (bcps *BusinessContinuityPlanService) Update(id uint, currentUserID uint, b
 		return err
 	}
 
+	if existingBusinessContinuityPlan.ResponsibleUserID != *businessContinuityPlanFormDTO.ResponsibleUserID {
+		responsibleUnitID, err := bcps.userSvc.GetUserPrimaryUnitID(existingBusinessContinuityPlan.ResponsibleUserID)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "risk responsible unit")
+		}
+		existingBusinessContinuityPlan.ResponsibleUnitID = &responsibleUnitID
+	}
+
 	existingBusinessContinuityPlan.BusinessFunctionID = businessContinuityPlanFormDTO.BusinessFunctionID
 	existingBusinessContinuityPlan.Version = businessContinuityPlanFormDTO.Version
 	existingBusinessContinuityPlan.Purpose = businessContinuityPlanFormDTO.Purpose
 	existingBusinessContinuityPlan.Scope = businessContinuityPlanFormDTO.Scope
 	existingBusinessContinuityPlan.Objectives = businessContinuityPlanFormDTO.Objectives
 	existingBusinessContinuityPlan.Assumptions = businessContinuityPlanFormDTO.Assumptions
+	existingBusinessContinuityPlan.ResponsibleUserID = *businessContinuityPlanFormDTO.ResponsibleUserID
 	existingBusinessContinuityPlan.UpdatedBYID = &currentUserID
 
 	err = bcps.repo.Update(existingBusinessContinuityPlan, tx)
@@ -285,6 +353,86 @@ func (bcps *BusinessContinuityPlanService) Update(id uint, currentUserID uint, b
 				tx.Rollback()
 				return err
 			}
+		}
+	}
+
+	var documents []*models.BcpDocument
+	var deleteDocumentIds []*uint
+	var documentsToDelete []*models.BcpDocument
+
+	for _, doc := range businessContinuityPlanFormDTO.Documents {
+
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			// Encrypt the filename
+			dataToEncrypt := []byte(doc.FileName)
+			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			//genereate URL
+			url := utility.GenerateDocumentURL("business-continuity", "business-continuity-plan", strconv.FormatUint(uint64(id), 10), "documents")
+			// Create a new Control test Document instance
+			document := &models.BcpDocument{
+				BusinessContinuityPlanID: id,
+				URL:                      url,
+				Name:                     doc.FileName,
+				Size:                     doc.Size,
+				Token:                    encryptedFileName,
+				OriginalName:             doc.OriginalName,
+				Type:                     doc.Type,
+				CreatedByID:              currentUserID,
+			}
+
+			// Append the document to the slice
+			documents = append(documents, document)
+
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			if doc.ID != nil {
+				existingDocument, err := bcps.repo.GetDocumentByID(*doc.ID)
+				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return utility.NewResourceNotFoundError(err, id)
+					}
+					return err
+				}
+
+				documentsToDelete = append(documentsToDelete, existingDocument)
+				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
+			}
+		}
+	}
+
+	if len(documents) > 0 {
+		if err := bcps.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if len(deleteDocumentIds) > 0 {
+		if err := bcps.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, doc := range documents {
+		storagePath := filepath.Join("business-continuity", "business-continuity-plan", strconv.FormatUint(uint64(id), 10), "documents")
+
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, document := range documentsToDelete {
+		storagePath := filepath.Join("business-continuity", "business-continuity-plan", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
 		}
 	}
 
@@ -355,6 +503,8 @@ func (bcps *BusinessContinuityPlanService) Delete(ids []uint, currentUserID uint
 	var successfulIds []uint
 	var deletedBusinessContinuityPlan []map[string]interface{}
 
+	documentsToDelete := make(map[uint][]*businessContinuityDTOs.BcpDocumentDTO)
+
 	for _, id := range ids {
 		businessContinuityPlan, err := bcps.GetFullDetailsByID(id, tx)
 		if err != nil {
@@ -374,6 +524,19 @@ func (bcps *BusinessContinuityPlanService) Delete(ids []uint, currentUserID uint
 				deleteprocessIDs = append(deleteprocessIDs, process.ID)
 			}
 			if err := bcps.repo.DeleteBcpProcesses(deleteprocessIDs, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		// Delete each Compliance document if documents exist
+		if len(businessContinuityPlan.Documents) > 0 {
+			var deleteDocumentIds []*uint
+			for _, doc := range businessContinuityPlan.Documents {
+				documentsToDelete[id] = append(documentsToDelete[id], doc)
+				deleteDocumentIds = append(deleteDocumentIds, &doc.ID)
+			}
+			if err := bcps.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
@@ -478,4 +641,39 @@ func (bfs *BusinessContinuityPlanService) ExportBusinessContinuityPlan(data []*b
 	}
 
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (crs *BusinessContinuityPlanService) GetDocumentPath(id uint, token string) (string, error) {
+	existingBcp, err := crs.GetFullDetailsByID(id)
+	if err != nil {
+		return "", err
+	}
+
+	if len(existingBcp.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the business continuity plan")
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("business-continuity", "business-continuity-plan", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }
