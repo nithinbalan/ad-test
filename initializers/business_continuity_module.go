@@ -16,6 +16,8 @@ type BusinessContinuityModule struct {
 	BcpPhaseController                 *controllers.BcpPhaseController
 	BcpRecoveryPlanController          *controllers.BcpRecoveryPlanController
 	BcpCommunicationPlanController     *controllers.BcpCommunicationPlanController
+	BcpTestAndExerciseController       *controllers.BcpTestAndExerciseController
+	BcpStatusController                *controllers.BcpStatusController
 
 	BusinessFunctionSvc services.BusinessFunctionServiceInterface
 }
@@ -42,8 +44,12 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	businessImpactAssessmentSvc := services.NewBusinessImpactAssessmentService(businessImpactAssessmentRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, masterModule.ImpactCategorySvc, organizationModule.ProcessSvc, assetModule.AssetRegisterSvc, documentModule.DocumentSvc, riskModule.RiskLevelSvc)
 	businessImpactAssessmentController := controllers.NewBusinessImpactAssessmentController(businessImpactAssessmentSvc, organizationModule.ProcessAssociatedItemSvc, organizationModule.ProcessSvc)
 
+	bcpStatusRepo := repositories.NewBcpStatusRepository(db)
+	bcpStatusSvc := services.NewBcpStatusService(bcpStatusRepo)
+	bcpStatusController := controllers.NewBcpStatusController(bcpStatusSvc)
+
 	businessContinuityPlanRepo := repositories.NewBusinessContinuityPlanRepository(db)
-	businessContinuityPlanSvc := services.NewBusinessContinuityPlanService(businessContinuityPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, businessFunctionSvc)
+	businessContinuityPlanSvc := services.NewBusinessContinuityPlanService(businessContinuityPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, businessFunctionSvc, organizationModule.UserSettingSvc, bcpStatusSvc)
 	businessContinuityPlanController := controllers.NewBusinessContinuityPlanController(businessContinuityPlanSvc)
 
 	bcpBiaMatrixRepo := repositories.NewBcpBiaMatrixRepository(db)
@@ -62,6 +68,10 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	bcpCommunicationPlanSvc := services.NewBcpCommunicationPlanService(bcpCommunicationPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc)
 	bcpCommunicationPlanController := controllers.NewBcpCommunicationPlanController(bcpCommunicationPlanSvc)
 
+	bcpTestAndExerciseRepo := repositories.NewBcpTestAndExerciseRepository(db)
+	bcpTestAndExerciseSvc := services.NewBcpTestAndExerciseService(bcpTestAndExerciseRepo, sharedModule.ActivityLogService, organizationModule.UserSvc)
+	bcpTestAndExerciseController := controllers.NewBcpTestAndExerciseController(bcpTestAndExerciseSvc)
+
 	return &BusinessContinuityModule{
 		BusinessFunctionController:         businessFunctionController,
 		BusinessImpactAssessmentController: businessImpactAssessmentController,
@@ -70,6 +80,8 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		BcpPhaseController:                 bcpPhaseController,
 		BcpRecoveryPlanController:          bcpRecoveryPlanController,
 		BcpCommunicationPlanController:     bcpCommunicationPlanController,
+		BcpTestAndExerciseController:       bcpTestAndExerciseController,
+		BcpStatusController:                bcpStatusController,
 
 		BusinessFunctionSvc: businessFunctionSvc,
 	}

@@ -14,7 +14,7 @@ import (
 )
 
 type BcpBiaMatrixServiceInterface interface {
-	GetAllKeyProcess(bcpId uint, params *businessContinuityDTOs.BcpKeyProcessListQueryParamsDTO) (*businessContinuityDTOs.BcpKeyProcessListResponseDTO, error)
+	GetAllKeyProcess(bcpId uint, params *businessContinuityDTOs.BcpKeyProcessListQueryParamsDTO) ([]*businessContinuityDTOs.BcpKeyProcessListDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.BcpBiaMatrixDetailDTO, error)
 	Update(bcpId uint, currentUserID uint, bcpProcessFormDTO *businessContinuityDTOs.BcpProcessFormDTO) error
 }
@@ -44,7 +44,7 @@ func NewBcpBiaMatrixService(
 	}
 }
 
-func (bbms BcpBiaMatrixService) GetAllKeyProcess(bcpId uint, params *businessContinuityDTOs.BcpKeyProcessListQueryParamsDTO) (*businessContinuityDTOs.BcpKeyProcessListResponseDTO, error) {
+func (bbms BcpBiaMatrixService) GetAllKeyProcess(bcpId uint, params *businessContinuityDTOs.BcpKeyProcessListQueryParamsDTO) ([]*businessContinuityDTOs.BcpKeyProcessListDTO, error) {
 	return bbms.repo.GetAllKeyProcess(bcpId, params)
 }
 
@@ -132,6 +132,7 @@ func (bbms *BcpBiaMatrixService) Update(bcpId uint, currentUserID uint, bcpProce
 		existingBcpProcess.MtpdUnitId = process.MtpdUnitId
 		existingBcpProcess.Rpo = process.Rpo
 		existingBcpProcess.RpoUnitId = process.RpoUnitId
+		existingBcpProcess.RiskLevelID = process.RiskLevelID
 		existingBcpProcess.UpdatedBYID = &currentUserID
 
 		err = bbms.repo.Update(existingBcpProcess, tx)

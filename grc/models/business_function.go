@@ -15,11 +15,11 @@ type BusinessFunction struct {
 	ReviewFrequencyID *uint      `json:"review_frequency_id"`
 	NextReviewDate    *time.Time `json:"next_review_date"`
 	LastReviewDate    *time.Time `json:"last_review_date"`
-	Rto               *uint      `json:"rto"`
+	Rto               *int       `json:"rto"`
 	RtoUnitId         *uint      `json:"rto_unit_id"`
-	Mtpd              *uint      `json:"mtpd"`
+	Mtpd              *int       `json:"mtpd"`
 	MtpdUnitId        *uint      `json:"mtpd_unit_id"`
-	Rpo               *uint      `json:"rpo"`
+	Rpo               *int       `json:"rpo"`
 	RpoUnitId         *uint      `json:"rpo_unit_id"`
 	CreatedBYID       uint       `json:"created_by_id" binding:"required"`
 	UpdatedBYID       *uint      `json:"updated_by_id"`
