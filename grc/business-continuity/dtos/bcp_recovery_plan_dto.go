@@ -30,6 +30,7 @@ type BcpRecoveryPlanListDTO struct {
 	TargetCompletion                string  `json:"target_completion"`
 	TargetCompletionUnitTitleEn     *string `json:"target_completion_unit_title_en"`
 	TargetCompletionUnitTitleAr     *string `json:"target_completion_unit_title_ar"`
+	CreatedAt                       string  `json:"created_at"`
 	CreatedUserID                   uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn          string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string  `json:"created_user_first_name_ar"`

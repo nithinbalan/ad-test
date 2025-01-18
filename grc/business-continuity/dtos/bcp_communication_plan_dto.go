@@ -26,6 +26,7 @@ type BcpCommunicationPlanListDTO struct {
 	Frequency                       *string `json:"frequency"`
 	Recipient                       *string `json:"recipient"`
 	Channel                         *string `json:"channel"`
+	CreatedAt                       string  `json:"created_at"`
 	CreatedUserID                   uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn          string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string  `json:"created_user_first_name_ar"`
