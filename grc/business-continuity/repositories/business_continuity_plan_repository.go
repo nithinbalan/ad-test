@@ -50,6 +50,10 @@ func (repo *BusinessContinuityPlanRepository) GetAll(params *businessContinuityD
 		Select(`
             business_continuity_plans.*,
 			business_functions.title AS business_function_title,
+			bcp_statuses.title_en AS bcp_status_title_en,
+			bcp_statuses.title_ar AS bcp_status_title_ar,
+			bcp_statuses.color_code AS bcp_status_color_code,
+			bcp_statuses.type AS bcp_status_type,
 			rto_time_unit.title_en AS rto_unit_title_en,
 			rto_time_unit.title_ar AS rto_unit_title_ar,
 			mtpd_time_unit.title_en AS mtpd_unit_title_en,
@@ -77,6 +81,7 @@ func (repo *BusinessContinuityPlanRepository) GetAll(params *businessContinuityD
         `).
 		Joins(`
 		    LEFT JOIN business_functions ON business_functions.id = business_continuity_plans.business_function_id
+			LEFT JOIN bcp_statuses ON bcp_statuses.id = business_continuity_plans.bcp_status_id
 			LEFT JOIN time_units AS rto_time_unit ON rto_time_unit.id = business_continuity_plans.rto_unit_id
 			LEFT JOIN time_units AS mtpd_time_unit ON mtpd_time_unit.id = business_continuity_plans.mtpd_unit_id
 			LEFT JOIN time_units AS rpo_time_unit ON rpo_time_unit.id = business_continuity_plans.rpo_unit_id
@@ -167,6 +172,7 @@ func (repo *BusinessContinuityPlanRepository) GetFullDetailsByID(id uint, tx ...
 		Preload("BusinessFunction").
 		Preload("BusinessFunction.SeverityLevel").
 		Preload("BusinessFunction.ReviewFrequency").
+		Preload("BcpStatus").
 		Preload("RtoUnit").
 		Preload("MtpdUnit").
 		Preload("RpoUnit").

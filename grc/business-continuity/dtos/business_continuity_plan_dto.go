@@ -17,6 +17,10 @@ type BusinessContinuityPlanListDTO struct {
 	Scope                       *string `json:"scope"`
 	Objectives                  *string `json:"objectives"`
 	Assumptions                 *string `json:"assumptions"`
+	BcpStatusTitleEn            string  `json:"bcp_status_title_en"`
+	BcpStatusTitleAr            string  `json:"bcp_status_title_ar"`
+	BcpStatusColorCode          string  `json:"bcp_status_color_code"`
+	BcpStatusType               string  `json:"bcp_status_type"`
 	Rto                         *int    `json:"rto"`
 	RtoUnitId                   *uint   `json:"rto_unit_id"`
 	RtoUnitTitleEn              *string `json:"rto_unit_title_en"`
@@ -86,6 +90,7 @@ type BusinessContinuityPlanDetailDTO struct {
 	Scope              *string                          `json:"scope"`
 	Objectives         *string                          `json:"objectives"`
 	Assumptions        *string                          `json:"assumptions"`
+	BcpStatus          BcpStatusDTO                     `json:"bcp_status"`
 	Rto                *int                             `json:"rto"`
 	RtoUnitId          *uint                            `json:"rto_unit_id"`
 	RtoUnit            *masterDTOs.TimeUnitDTO          `json:"rto_unit"`
