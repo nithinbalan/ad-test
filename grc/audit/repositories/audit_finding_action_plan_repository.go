@@ -102,8 +102,11 @@ func (repo *AuditFindingActionPlanRepository) GetAll(findingID uint, params *aud
 		LEFT JOIN users AS review_user ON review_user.id = audit_finding_action_plans.review_user_id
         LEFT JOIN users AS created_user ON created_user.id = audit_finding_action_plans.created_by_id
         LEFT JOIN users AS updated_user ON updated_user.id = audit_finding_action_plans.updated_by_id
-    `).Where("audit_finding_action_plans.audit_finding_id = ?", findingID)
-
+    `)
+	// Apply findingID filter only if it's non-zero
+	if findingID != 0 {
+		query = query.Where("audit_finding_action_plans.audit_finding_id = ?", findingID)
+	}
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {

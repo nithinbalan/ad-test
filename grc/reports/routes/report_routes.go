@@ -105,8 +105,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/audit-plan-by-year", auditReportController.GetAuditPlanByYear)
 
 	//Audits
-	reportsRoutes.GET("/reports/audit-categories", auditReportController.GetAllAudits)
-	reportsRoutes.GET("/reports/audit-categories/export", auditReportController.GetAuditExport)
+	reportsRoutes.GET("/reports/audits", auditReportController.GetAllAudits)
+	reportsRoutes.GET("/reports/audits/export", auditReportController.GetAuditExport)
 	reportsRoutes.GET("/reports/audit-by-category", auditReportController.GetAuditByCategory)
 	reportsRoutes.GET("/reports/audit-by-status", auditReportController.GetAuditByStatus)
 	reportsRoutes.GET("/reports/audit-by-open-vs-closed", auditReportController.GetAuditByOpenVsClosed)

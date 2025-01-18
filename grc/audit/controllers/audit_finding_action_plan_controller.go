@@ -25,16 +25,18 @@ func NewAuditFindingActionPlanController(service services.AuditFindingActionPlan
 }
 
 func (afapc *AuditFindingActionPlanController) GetAllAuditFindingActionPlans(c *gin.Context) {
-
-	var findingID uint64
+	var findingID *uint64
 	var err error
 
+	// Retrieve the finding ID from the request, if provided
 	findingIDStr := c.Param("findingId")
-
-	findingID, err = strconv.ParseUint(findingIDStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	if findingIDStr != "" {
+		parsedID, err := strconv.ParseUint(findingIDStr, 10, 64)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+		findingID = &parsedID
 	}
 
 	sort := c.Query("sort_order")
@@ -75,6 +77,7 @@ func (afapc *AuditFindingActionPlanController) GetAllAuditFindingActionPlans(c *
 		utility.SendInternalErrResp(afapc.db, c, "Invalid page_size parameter")
 		return
 	}
+
 	validSortFields := map[string]string{
 		"id":                             "audit_finding_action_plans.id",
 		"audit_finding_id":               "audit_finding_action_plans.audit_finding_id",
@@ -103,12 +106,14 @@ func (afapc *AuditFindingActionPlanController) GetAllAuditFindingActionPlans(c *
 		"action_plan_status_title_en":    "action_plan_statuses.title_en",
 		"action_plan_status_title_ar":    "action_plan_statuses.title_ar",
 	}
+
 	sortField, valid := validSortFields[sortBy]
 	if !valid {
 		err := errors.New("invalid 'sort_by' parameter")
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
+
 	queryParams := auditFindingDTOs.AuditFindingActionPlanListQueryParamsDTO{
 		Sort:           sort,
 		SortBy:         sortField,
@@ -122,7 +127,14 @@ func (afapc *AuditFindingActionPlanController) GetAllAuditFindingActionPlans(c *
 		TargetDateTo:   targetDateTo,
 		Export:         export,
 	}
-	auditFindingActionPlans, err := afapc.service.GetAll(uint(findingID), &queryParams)
+
+	// Handle the optional findingID
+	var findingIDValue uint
+	if findingID != nil {
+		findingIDValue = uint(*findingID)
+	}
+
+	auditFindingActionPlans, err := afapc.service.GetAll(findingIDValue, &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -134,6 +146,7 @@ func (afapc *AuditFindingActionPlanController) GetAllAuditFindingActionPlans(c *
 			return
 		}
 	}
+
 	// If export is true, generate and return the Excel file
 	if export {
 		currentUserID, err := utility.GetCurrentUserID(c)

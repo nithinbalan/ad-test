@@ -45,6 +45,13 @@ func (arc *AuditReportController) GetAllAuditPlans(c *gin.Context) {
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	// Convert the export parameter to a boolean
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(arc.db, c, "Invalid export parameter")
+		return
+	}
+
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"audit_category_ids",
@@ -99,11 +106,34 @@ func (arc *AuditReportController) GetAllAuditPlans(c *gin.Context) {
 		QuickFilter: quickFilter,
 		StartDate:   startDate,
 		TargetDate:  targetDate,
+		Export:      export,
 	}
 
 	auditPlans, err := arc.auditPlanSvc.GetAll(&queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(arc.db, c, err.Error())
+		return
+	}
+	// If export is true, generate and return the Excel file
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(arc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := arc.auditPlanSvc.ExportAuditPlans(auditPlans.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(arc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Audit Plans.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
 		return
 	}
 	c.JSON(http.StatusOK, auditPlans)
@@ -499,7 +529,12 @@ func (arc *AuditReportController) GetAllAudits(c *gin.Context) {
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
-
+	// Convert the export parameter to a boolean
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(arc.db, c, "Invalid export parameter")
+		return
+	}
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"audit_plan_ids",
@@ -554,11 +589,34 @@ func (arc *AuditReportController) GetAllAudits(c *gin.Context) {
 		QuickFilter: quickFilter,
 		StartDate:   startDate,
 		EndDate:     endDate,
+		Export:      export,
 	}
 
 	audits, err := arc.auditSvc.GetAll(&queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(arc.db, c, err.Error())
+		return
+	}
+	// If export is true, generate and return the Excel file
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(arc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := arc.auditSvc.ExportAudits(audits.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(arc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Audits.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
 		return
 	}
 	c.JSON(http.StatusOK, audits)
@@ -571,12 +629,18 @@ func (arc *AuditReportController) GetAuditExport(c *gin.Context) {
 }
 
 func (arc *AuditReportController) GetAllAuditFindings(c *gin.Context) {
-
 	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+
+	// Convert the export parameter to a boolean
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(arc.db, c, "Invalid export parameter")
+		return
+	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -600,21 +664,65 @@ func (arc *AuditReportController) GetAllAuditFindings(c *gin.Context) {
 		utility.SendInternalErrResp(arc.db, c, "Invalid page_size parameter")
 		return
 	}
-
+	validSortFields := map[string]string{
+		"reference_number":                "audit_findings.reference_number",
+		"title":                           "audit_findings.title",
+		"description":                     "audit_findings.description",
+		"recommendations":                 "audit_findings.recommendations",
+		"audit_id":                        "audits.id",
+		"audit_title":                     "audit_plans.title",
+		"auditable_item_title_en":         "auditable_items.title_en",
+		"auditable_item_title_ar":         "auditable_items.title_ar",
+		"audit_finding_category_title_en": "audit_finding_categories.title_en",
+		"audit_finding_category_title_ar": "audit_finding_categories.title_ar",
+		"severity_level_title_en":         "severity_levels.title_en",
+		"severity_level_title_ar":         "severity_levels.title_ar",
+		"audit_finding_status_title_en":   "audit_finding_statuses.title_en",
+		"audit_finding_status_title_ar":   "audit_finding_statuses.title_ar",
+	}
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 	queryParams := auditDTOs.AuditFindingListQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      sortBy,
+		SortBy:      sortField,
 		Keyword:     keyword,
 		Status:      status,
 		Page:        page,
 		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
+		Export:      export,
 	}
 
 	auditFindings, err := arc.auditFindingSvc.GetAll(&queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(arc.db, c, err.Error())
+		return
+	}
+	// If export is true, generate and return the Excel file
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(arc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := arc.auditFindingSvc.ExportAuditFindings(auditFindings.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(arc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Audit Findings.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
 		return
 	}
 	c.JSON(http.StatusOK, auditFindings)
@@ -626,23 +734,32 @@ func (arc *AuditReportController) GetAuditFindingExport(c *gin.Context) {
 }
 
 func (arc *AuditReportController) GetAllAuditActionPlans(c *gin.Context) {
-
-	var findingID uint64
+	var findingID *uint64
 	var err error
 
+	// Retrieve the finding ID from the request, if provided
 	findingIDStr := c.Param("findingId")
-
-	findingID, err = strconv.ParseUint(findingIDStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	if findingIDStr != "" {
+		parsedID, err := strconv.ParseUint(findingIDStr, 10, 64)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+		findingID = &parsedID
 	}
 
 	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+
+	// Convert the export parameter to a boolean
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(arc.db, c, "Invalid export parameter")
+		return
+	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -670,9 +787,45 @@ func (arc *AuditReportController) GetAllAuditActionPlans(c *gin.Context) {
 		return
 	}
 
+	validSortFields := map[string]string{
+		"id":                             "audit_finding_action_plans.id",
+		"audit_finding_id":               "audit_finding_action_plans.audit_finding_id",
+		"audit_finding_reference_number": "audit_findings.reference_number",
+		"audit_finding_title":            "audit_findings.title",
+		"audit_finding_description":      "audit_findings.description",
+		"title":                          "audit_finding_action_plans.title",
+		"description":                    "audit_finding_action_plans.description",
+		"severity_level_title_en":        "severity_levels.title_en",
+		"severity_level_title_ar":        "severity_levels.title_ar",
+		"responsible_user_id":            "responsible_users.id",
+		"responsible_user_first_name_en": "responsible_users.first_name_en",
+		"responsible_user_first_name_ar": "responsible_users.first_name_ar",
+		"responsible_user_last_name_en":  "responsible_users.last_name_en",
+		"responsible_user_last_name_ar":  "responsible_users.last_name_ar",
+		"responsible_user_email":         "responsible_users.email",
+		"review_user_id":                 "review_users.id",
+		"review_user_first_name_en":      "review_users.first_name_en",
+		"review_user_first_name_ar":      "review_users.first_name_ar",
+		"review_user_last_name_en":       "review_users.last_name_en",
+		"review_user_last_name_ar":       "review_users.last_name_ar",
+		"review_user_email":              "review_users.email",
+		"target_date":                    "audit_finding_action_plans.target_date",
+		"percentage":                     "audit_finding_action_plans.percentage",
+		"comments":                       "audit_finding_action_plans.comments",
+		"action_plan_status_title_en":    "action_plan_statuses.title_en",
+		"action_plan_status_title_ar":    "action_plan_statuses.title_ar",
+	}
+
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	queryParams := auditDTOs.AuditFindingActionPlanListQueryParamsDTO{
 		Sort:           sort,
-		SortBy:         sortBy,
+		SortBy:         sortField,
 		Keyword:        keyword,
 		Status:         status,
 		Page:           page,
@@ -681,8 +834,16 @@ func (arc *AuditReportController) GetAllAuditActionPlans(c *gin.Context) {
 		QuickFilter:    quickFilter,
 		TargetDateFrom: targetDateFrom,
 		TargetDateTo:   targetDateTo,
+		Export:         export,
 	}
-	auditFindingActionPlans, err := arc.auditFindingActionPlanSvc.GetAll(uint(findingID), &queryParams)
+
+	// Handle the optional findingID
+	var findingIDValue uint
+	if findingID != nil {
+		findingIDValue = uint(*findingID)
+	}
+
+	auditFindingActionPlans, err := arc.auditFindingActionPlanSvc.GetAll(findingIDValue, &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -693,6 +854,29 @@ func (arc *AuditReportController) GetAllAuditActionPlans(c *gin.Context) {
 			utility.SendInternalErrResp(arc.db, c, e.Error())
 			return
 		}
+	}
+
+	// If export is true, generate and return the Excel file
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(arc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := arc.auditFindingActionPlanSvc.ExportAuditFindingActionPlans(auditFindingActionPlans.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(arc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Audit Finding Action Plans.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
 	}
 	c.JSON(http.StatusOK, auditFindingActionPlans)
 }
