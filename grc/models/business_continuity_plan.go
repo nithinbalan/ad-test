@@ -12,6 +12,8 @@ type BusinessContinuityPlan struct {
 	Purpose            *string    `json:"purpose"`
 	Scope              *string    `json:"scope"`
 	Objectives         *string    `json:"objectives"`
+	ResponsibleUserID  uint       `json:"responsible_user_id" binding:"required" gorm:"not null"`
+	ResponsibleUnitID  *uint      `json:"responsible_unit_id" gorm:"not null" binding:"required"`
 	BcpStatusID        uint       `json:"bcp_status_id" binding:"required" gorm:"not null"`
 	Rto                *int       `json:"rto"`
 	RtoUnitId          *uint      `json:"rto_unit_id"`
@@ -29,9 +31,12 @@ type BusinessContinuityPlan struct {
 	BusinessFunction *BusinessFunction `gorm:"foreignKey:BusinessFunctionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Processes        []BcpProcess      `gorm:"foreignKey:BusinessContinuityPlanID"`
 	BcpStatus        *BcpStatus        `gorm:"foreignKey:BcpStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser  *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUnit  *OrganizationUnit `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RtoUnit          *TimeUnit         `gorm:"foreignKey:RtoUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	MtpdUnit         *TimeUnit         `gorm:"foreignKey:MtpdUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RpoUnit          *TimeUnit         `gorm:"foreignKey:RpoUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Documents        []BcpDocument     `gorm:"foreignKey:BusinessContinuityPlanID"`
 	CreatedByUser    *User             `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedBYID"`
 }

@@ -2,7 +2,6 @@ package repositories
 
 import (
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
-	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -11,7 +10,7 @@ import (
 
 type BcpCommunicationPlanRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(bcpId uint, params *businessContinuityDTOs.BcpCommunicationPlanListQueryParamsDTO) (*businessContinuityDTOs.BcpCommunicationPlanListResponseDTO, error)
+	GetAll(bcpId uint, params *businessContinuityDTOs.BcpCommunicationPlanListQueryParamsDTO) ([]*businessContinuityDTOs.BcpCommunicationPlanListDTO, error)
 	GetByID(id uint) (*models.BcpCommunicationPlan, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.BcpCommunicationPlan, error)
 	Create(BcpCommunicationPlan *models.BcpCommunicationPlan, tx ...utility.DatabaseTransaction) (uint, error)
@@ -34,7 +33,7 @@ func (repo *BcpCommunicationPlanRepository) BeginTransaction() utility.DatabaseT
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *BcpCommunicationPlanRepository) GetAll(bcpId uint, params *businessContinuityDTOs.BcpCommunicationPlanListQueryParamsDTO) (*businessContinuityDTOs.BcpCommunicationPlanListResponseDTO, error) {
+func (repo *BcpCommunicationPlanRepository) GetAll(bcpId uint, params *businessContinuityDTOs.BcpCommunicationPlanListQueryParamsDTO) ([]*businessContinuityDTOs.BcpCommunicationPlanListDTO, error) {
 	var BcpCommunicationPlans []*businessContinuityDTOs.BcpCommunicationPlanListDTO
 	var totalCount int64
 
@@ -125,27 +124,12 @@ func (repo *BcpCommunicationPlanRepository) GetAll(bcpId uint, params *businessC
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
-	query = query.Offset(offset).Limit(params.PageSize)
-
 	err := query.Find(&BcpCommunicationPlans).Error
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := 1
-	totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
-	response := &businessContinuityDTOs.BcpCommunicationPlanListResponseDTO{
-		Items: BcpCommunicationPlans,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
-	}
-	return response, nil
+	return BcpCommunicationPlans, nil
 }
 
 func (repo *BcpCommunicationPlanRepository) GetByID(id uint) (*models.BcpCommunicationPlan, error) {
