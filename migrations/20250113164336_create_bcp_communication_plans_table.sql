@@ -23,5 +23,5 @@ CREATE TABLE bcp_communication_plans (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE dbo.business_impact_assessments;
+DROP TABLE dbo.bcp_communication_plans;
 -- +goose StatementEnd
