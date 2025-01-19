@@ -65,7 +65,7 @@
   },
   {
     "id": "password_complexity",
-    "translation": "password does not meet the requirements."
+    "translation": "password does not meet the requirements, it should contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character"
   },
   {
     "id": "password_mismatch",
