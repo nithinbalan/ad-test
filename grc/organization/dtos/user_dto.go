@@ -266,3 +266,14 @@ type MarkNotificationAsReadFormDTO struct {
 	Type                string `json:"type" binding:"required,oneof=all individual"`
 	UserNotificationIDs []uint `json:"user_notification_ids" binding:"required_if=Type individual,dive,gt=0"`
 }
+
+type UserPrimaryDetailsDTO struct {
+	ID               int     `json:"id"`
+	FirstNameEN      string  `json:"first_name_en"`
+	LastNameEN       string  `json:"last_name_en"`
+	Email            string  `json:"email"`
+	Designation      string  `json:"designation"`
+	PrimaryUnit      string  `json:"primary_unit"`
+	MobileNumber     *string `json:"mobile_number"`
+	ProfileImagePath *string `json:"profile_image_path"`
+}

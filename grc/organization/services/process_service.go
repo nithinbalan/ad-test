@@ -1223,24 +1223,29 @@ func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
 	}
 
 	// Headers and data for the second sheet (ProcessGroup)
-	processGroupHeaders := []string{"ProcessGroupTitle"}
+	processGroupHeaders := []string{"ProcessGroupTitleEn", "ProcessGroupTitleAr"}
 	processGroupData := [][]interface{}{}
 	for _, group := range processGroups {
-		processGroupData = append(processGroupData, []interface{}{group.TitleEn})
-	}
-
-	// Fetch owners for the third sheet
-	owners, err := ps.userSvc.GetAllUsers()
-	if err != nil {
-		return nil, err
+		processGroupData = append(processGroupData, []interface{}{group.TitleEn, group.TitleAr})
 	}
 
 	// Headers and data for the third sheet (Owner)
-	ownerHeaders := []string{"Owner"}
+	// Fetch user details
+	users, err := ps.userSvc.GetAllUsers()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch owners: %v", err)
+	}
+
+	// Prepare data for Owner sheet
+	ownerHeaders := []string{"OwnerName", "Email", "Designation", "PrimaryDepartment"}
 	ownerData := [][]interface{}{}
-	for _, owner := range owners {
-		ownerFullName := fmt.Sprintf("%s %s", owner.FirstNameEn, owner.LastNameEn)
-		ownerData = append(ownerData, []interface{}{ownerFullName})
+	for _, user := range users {
+		ownerData = append(ownerData, []interface{}{
+			fmt.Sprintf("%s %s", user.FirstNameEN, user.LastNameEN),
+			user.Email,
+			user.Designation,
+			user.PrimaryUnit,
+		})
 	}
 
 	// Fetch controls for the fourth sheet
@@ -1388,8 +1393,8 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 	}
 	userFullNames := make(map[string]uint)
 	for _, user := range users {
-		fullName := strings.TrimSpace(user.FirstNameEn + " " + user.LastNameEn)
-		userFullNames[fullName] = user.ID
+		fullName := strings.TrimSpace(user.FirstNameEN + " " + user.LastNameEN)
+		userFullNames[fullName] = uint(user.ID)
 	}
 
 	// Fetch control titles and map to IDs
