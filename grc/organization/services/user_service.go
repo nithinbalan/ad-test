@@ -25,7 +25,7 @@ import (
 
 type UserServiceInterface interface {
 	GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error)
-	GetAllUsers() ([]*models.User, error)
+	GetAllUsers() ([]*userDTOs.UserPrimaryDetailsDTO, error)
 	GetByID(id uint) (*models.User, error)
 	GetFullDetailsByID(id uint) (*userDTOs.UserDetailsDTO, error)
 	GetByEmail(email string) (*models.User, error)
@@ -132,9 +132,34 @@ func (us *UserService) GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTO
 	return us.repo.GetAll(params)
 }
 
-func (us *UserService) GetAllUsers() ([]*models.User, error) {
-	return us.repo.GetAllUsers()
+func (us *UserService) GetAllUsers() ([]*userDTOs.UserPrimaryDetailsDTO, error) {
+	primaryLevel, err := us.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return nil, err
+	}
+
+	var primaryOrgUnitField string
+	switch primaryLevel.Level {
+	case 1:
+		primaryOrgUnitField = "organization_unit_1_id"
+	case 2:
+		primaryOrgUnitField = "organization_unit_2_id"
+	case 3:
+		primaryOrgUnitField = "organization_unit_3_id"
+	case 4:
+		primaryOrgUnitField = "organization_unit_4_id"
+	case 5:
+		primaryOrgUnitField = "organization_unit_5_id"
+	default:
+		return nil, fmt.Errorf("unsupported primary level")
+	}
+
+	return us.repo.GetAllUsers(primaryOrgUnitField)
 }
+
+// func (us *UserService) GetAllUsers() ([]*models.User, error) {
+// 	return us.repo.GetAllUsers()
+// }
 
 func (us *UserService) GetByID(id uint) (*models.User, error) {
 	user, err := us.repo.GetByID(id)
