@@ -129,10 +129,16 @@ jobs:
       # Step: Cleanup Deployment Environment
       - name: Cleanup Deployment Environment
         run: |
-          # Clean up the entire repository directory
-          Remove-Item -Recurse -Force "${{ github.workspace }}" -ErrorAction SilentlyContinue
-          Write-Host "Deployment environment cleanup completed."
+          Write-Host "Cleaning up directory: ${{ github.workspace }}"
+          if (Test-Path "${{ github.workspace }}") {
+          Write-Host "Directory exists, attempting to delete..."
+          Remove-Item -Recurse -Force "${{ github.workspace }}" -ErrorAction Stop
+          Write-Host "Directory deleted successfully."
+          } else {
+          Write-Host "Directory does not exist."
+          }
         shell: powershell
+
 
 
 
