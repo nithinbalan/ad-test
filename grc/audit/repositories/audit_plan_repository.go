@@ -128,6 +128,9 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
 	if params.TargetDate != "" {
 		query = query.Where("target_date <= ?", params.TargetDate)
 	}
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("audit_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {

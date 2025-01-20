@@ -115,6 +115,8 @@ type AuditFindingListQueryParamsDTO struct {
 	Filters     map[string][]string
 	QuickFilter []string
 	Export      bool
+	DateFrom    string
+	DateTo      string
 }
 
 type AuditFindingListResponseDTO struct {

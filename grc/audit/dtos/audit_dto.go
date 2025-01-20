@@ -86,6 +86,8 @@ type AuditListQueryParamsDTO struct {
 	StartDate   string
 	EndDate     string
 	Export      bool
+	DateFrom    string
+	DateTo      string
 }
 
 type AuditListResponseDTO struct {

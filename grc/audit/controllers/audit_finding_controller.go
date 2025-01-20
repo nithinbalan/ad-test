@@ -50,6 +50,9 @@ func (afc *AuditFindingController) GetAllAuditFindings(c *gin.Context) {
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(afc.db, c, "Invalid page parameter")
@@ -93,6 +96,8 @@ func (afc *AuditFindingController) GetAllAuditFindings(c *gin.Context) {
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 
 	auditFindings, err := afc.service.GetAll(&queryParams)

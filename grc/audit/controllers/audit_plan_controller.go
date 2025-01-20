@@ -51,6 +51,8 @@ func (apc *AuditPlanController) GetAllAuditPlans(c *gin.Context) {
 	startDate := c.Query("start_date")
 	targetDate := c.Query("target_date")
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(apc.db, c, "Invalid page parameter")
@@ -93,6 +95,8 @@ func (apc *AuditPlanController) GetAllAuditPlans(c *gin.Context) {
 		StartDate:   startDate,
 		TargetDate:  targetDate,
 		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 
 	auditPlans, err := apc.service.GetAll(&queryParams)

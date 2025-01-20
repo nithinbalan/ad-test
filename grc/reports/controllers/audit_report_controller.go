@@ -65,6 +65,8 @@ func (arc *AuditReportController) GetAllAuditPlans(c *gin.Context) {
 	startDate := c.Query("start_date")
 	targetDate := c.Query("target_date")
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(arc.db, c, "Invalid page parameter")
@@ -107,6 +109,8 @@ func (arc *AuditReportController) GetAllAuditPlans(c *gin.Context) {
 		StartDate:   startDate,
 		TargetDate:  targetDate,
 		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 
 	auditPlans, err := arc.auditPlanSvc.GetAll(&queryParams)
@@ -549,6 +553,8 @@ func (arc *AuditReportController) GetAllAudits(c *gin.Context) {
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(arc.db, c, "Invalid page parameter")
@@ -590,6 +596,8 @@ func (arc *AuditReportController) GetAllAudits(c *gin.Context) {
 		StartDate:   startDate,
 		EndDate:     endDate,
 		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 
 	audits, err := arc.auditSvc.GetAll(&queryParams)
@@ -653,6 +661,8 @@ func (arc *AuditReportController) GetAllAuditFindings(c *gin.Context) {
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(arc.db, c, "Invalid page parameter")
@@ -696,6 +706,8 @@ func (arc *AuditReportController) GetAllAuditFindings(c *gin.Context) {
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 
 	auditFindings, err := arc.auditFindingSvc.GetAll(&queryParams)
@@ -775,6 +787,8 @@ func (arc *AuditReportController) GetAllAuditActionPlans(c *gin.Context) {
 	targetDateFrom := c.Query("target_date_from")
 	targetDateTo := c.Query("target_date_to")
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(arc.db, c, "Invalid page parameter")
@@ -835,6 +849,8 @@ func (arc *AuditReportController) GetAllAuditActionPlans(c *gin.Context) {
 		TargetDateFrom: targetDateFrom,
 		TargetDateTo:   targetDateTo,
 		Export:         export,
+		DateFrom:       dateFrom,
+		DateTo:         dateTo,
 	}
 
 	// Handle the optional findingID

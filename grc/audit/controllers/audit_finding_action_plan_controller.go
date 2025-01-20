@@ -66,6 +66,8 @@ func (afapc *AuditFindingActionPlanController) GetAllAuditFindingActionPlans(c *
 	targetDateFrom := c.Query("target_date_from")
 	targetDateTo := c.Query("target_date_to")
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(afapc.db, c, "Invalid page parameter")
@@ -126,6 +128,8 @@ func (afapc *AuditFindingActionPlanController) GetAllAuditFindingActionPlans(c *
 		TargetDateFrom: targetDateFrom,
 		TargetDateTo:   targetDateTo,
 		Export:         export,
+		DateFrom:       dateFrom,
+		DateTo:         dateTo,
 	}
 
 	// Handle the optional findingID

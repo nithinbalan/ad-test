@@ -76,6 +76,8 @@ type AuditFindingActionPlanListQueryParamsDTO struct {
 	TargetDateFrom string
 	TargetDateTo   string
 	Export         bool
+	DateFrom       string
+	DateTo         string
 }
 
 type AuditFindingActionPlanListResponseDTO struct {

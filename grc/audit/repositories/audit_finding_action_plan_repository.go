@@ -121,7 +121,9 @@ func (repo *AuditFindingActionPlanRepository) GetAll(findingID uint, params *aud
 	if params.TargetDateTo != "" {
 		query = query.Where("target_date <= ?", params.TargetDateTo)
 	}
-
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("audit_finding_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
