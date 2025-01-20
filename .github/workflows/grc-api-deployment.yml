@@ -9,12 +9,13 @@ jobs:
     steps:
 
       # Step: Cleanup build folder
-      - name: Cleanup build folder
+      - name: Cleanup build
         run: |
-          ls -la ./
-          rm -rf ./* || true
-          rm -rf ./.??* || true
-          ls -la ./
+          Get-ChildItem -Force
+          Remove-Item -Recurse -Force * -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force .??* -ErrorAction SilentlyContinue
+          Get-ChildItem -Force
+        shell: powershell
           
       # Step: Checkout Code
       - name: Checkout Code
