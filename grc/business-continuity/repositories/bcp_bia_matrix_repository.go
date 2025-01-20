@@ -38,6 +38,7 @@ func (repo *BcpBiaMatrixRepository) GetAllKeyProcess(bcpId uint, params *busines
 	query := repo.db.Table("bcp_processes").
 		Select(`
             bcp_processes.*,
+			processes.reference_number AS process_reference_number,
             processes.title_en AS process_title_en,
             processes.title_ar AS process_title_ar,
 			processes.description AS process_description,
@@ -51,12 +52,21 @@ func (repo *BcpBiaMatrixRepository) GetAllKeyProcess(bcpId uint, params *busines
 			owner.initial AS process_owner_initial,
 			owner.color AS process_owner_color,
 			owner.email AS process_owner_email,
-			owner.profile_image_path AS process_owner_profile_image_path
-            
+			owner.profile_image_path AS process_owner_profile_image_path,
+			risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
+			risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
+			risk_matrix_risk_ratings.color_code AS risk_rating_color_code,
+			risk_matrix_risk_rating_values.value AS risk_rating_value,
+            lifecycle_statuses.title_en AS lifecycle_status_title_en,
+			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
+			lifecycle_statuses.color_code AS lifecycle_status_color_code
         `).
 		Joins(`
 			LEFT JOIN processes ON processes.id = bcp_processes.process_id
 			LEFT JOIN users AS owner ON owner.id = processes.owner_id
+			LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = processes.risk_matrix_risk_rating_id
+			LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = processes.risk_matrix_risk_rating_value_id
+			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id
 			LEFT JOIN organization_units ON organization_units.id = processes.owner_unit_id
         `).Where("bcp_processes.business_continuity_plan_id = ?", bcpId)
 	// Apply dynamic filters to the query

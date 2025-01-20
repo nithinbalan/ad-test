@@ -8,6 +8,7 @@ import (
 type BcpKeyProcessListDTO struct {
 	ID                           uint    `json:"id"`
 	ProcessID                    uint    `json:"process_id"`
+	ProcessReferenceNumber       string  `json:"process_reference_number"`
 	ProcessTitleEn               string  `json:"process_title_en"`
 	ProcessTitleAr               string  `json:"process_title_ar"`
 	ProcessDescription           string  `json:"process_description"`
@@ -22,6 +23,13 @@ type BcpKeyProcessListDTO struct {
 	ProcessOwnerColor            string  `json:"process_owner_color"`
 	ProcessOwnerEmail            string  `json:"process_owner_email"`
 	ProcessOwnerProfileImagePath string  `json:"process_owner_profile_image_path"`
+	LifecycleStatusTitleEn       string  `json:"lifecycle_status_title_en"`
+	LifecycleStatusTitleAr       string  `json:"lifecycle_status_title_ar"`
+	LifecycleStatusColorCode     string  `json:"lifecycle_status_color_code"`
+	RiskRatingTitleEn            *string `json:"risk_rating_title_en"`
+	RiskRatingTitleAr            *string `json:"risk_rating_title_ar"`
+	RiskRatingColorCode          *string `json:"risk_rating_color_code"`
+	RiskRatingValue              *uint   `json:"risk_rating_value"`
 }
 
 type BcpKeyProcessListQueryParamsDTO struct {
