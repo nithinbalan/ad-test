@@ -1,6 +1,6 @@
 package dtos
 
-type BcpRolesListDTO struct {
+type BcpTeamsListDTO struct {
 	ID                              uint    `json:"id"`
 	BusinessContinuityPlanID        uint    `json:"business_continuity_plan_id"`
 	ResponsibleUserID               uint    `json:"responsible_user_id"`
@@ -28,13 +28,13 @@ type BcpRolesListDTO struct {
 	CreatedUserLastNameEn           string  `json:"created_user_last_name_en"`
 }
 
-type BcpRolesFormDTO struct {
+type BcpTeamsFormDTO struct {
 	ResponsibleUserID uint   `json:"responsible_user_id" binding:"required"`
 	Responsibility    string `json:"responsibility" binding:"required,max=5000"`
 	BackupUserID      *uint  `json:"backup_user_id"`
 }
 
-type BcpRolesListQueryParamsDTO struct {
+type BcpTeamsListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
 	Keyword     string
