@@ -44,7 +44,7 @@ func (brc *BcpRolesController) GetAllBcpRoles(c *gin.Context) {
 		"responsible_user_last_name":     "responsible_user.last_name_en",
 		"responsible_user_first_name_ar": "responsible_user.first_name_ar",
 		"responsible_user_last_name_ar":  "responsible_user.last_name_ar",
-		"responsible_unit_title":         "organization_units.title_en",
+		"responsible_unit_title_en":      "organization_units.title_en",
 		"responsible_unit_title_ar":      "organization_units.title_ar",
 		"backup_user_first_name":         "backup_user.first_name_en",
 		"backup_user_last_name":          "backup_user.last_name_en",
