@@ -9,23 +9,26 @@ type BcpTeamsListDTO struct {
 	ResponsibleUnitTitleAr          string  `json:"responsible_unit_title_ar"`
 	Responsibility                  string  `json:"responsibility"`
 	BackupUserID                    *uint   `json:"backup_user_id"`
-	CreatedByID                     uint    `json:"created_by_id"`
+	CreatedBYID                     uint    `json:"created_by_id"`
 	ResponsibleUserFirstNameEn      string  `json:"responsible_user_first_name_en"`
 	ResponsibleUserLastNameEn       string  `json:"responsible_user_last_name_en"`
 	ResponsibleUserFirstNameAr      string  `json:"responsible_user_first_name_ar"`
 	ResponsibleUserLastNameAr       string  `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          string  `json:"responsible_user_initial"`
 	ResponsibleUserEmail            string  `json:"responsible_user_email"`
 	ResponsibleUserProfileImagePath string  `json:"responsible_user_profile_image_path"`
 	BackupUserFirstNameEn           string  `json:"backup_user_first_name_en"`
 	BackupUserLastNameEn            string  `json:"backup_user_last_name_en"`
 	BackupUserFirstNameAr           string  `json:"backup_user_first_name_ar"`
 	BackupUserLastNameAr            string  `json:"backup_user_last_name_ar"`
+	BackupUserInitial               string  `json:"backup_user_initial"`
 	BackupUserEmail                 string  `json:"backup_user_email"`
 	BackupUserProfileImagePath      string  `json:"backup_user_profile_image_path"`
 	CreatedAt                       string  `json:"created_at"`
 	UpdatedAt                       *string `json:"updated_at"`
 	CreatedUserFirstNameEn          string  `json:"created_user_first_name_en"`
 	CreatedUserLastNameEn           string  `json:"created_user_last_name_en"`
+	CreatedUserInitial              string  `json:"created_user_initial"`
 }
 
 type BcpTeamsFormDTO struct {
