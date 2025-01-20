@@ -63,7 +63,7 @@ func (brs *BcpTeamService) Create(bcpId uint, currentUserID uint, bcpTeamForm *b
 		ResponsibleUnitID:        organizationUnitID,
 		Responsibility:           bcpTeamForm.Responsibility,
 		BackupUserID:             bcpTeamForm.BackupUserID,
-		CreatedByID:              currentUserID,
+		CreatedBYID:              currentUserID,
 	}
 
 	id, err := brs.repo.Create(bcpTeam, tx)
@@ -79,10 +79,10 @@ func (brs *BcpTeamService) Create(bcpId uint, currentUserID uint, bcpTeamForm *b
 func (brs *BcpTeamService) Update(id uint, currentUserID uint, bcpTeamForm *businessContinuityDTOs.BcpTeamsFormDTO) error {
 	tx := brs.repo.BeginTransaction()
 
-	existingTeam, err := brs.GetByID(id)
+	existingTeam, err := brs.repo.GetByID(id)
 	if err != nil {
 		tx.Rollback()
-		return err
+		return utility.NewResourceNotFoundError(err, id)
 	}
 
 	if existingTeam.ResponsibleUserID != bcpTeamForm.ResponsibleUserID {
@@ -95,10 +95,14 @@ func (brs *BcpTeamService) Update(id uint, currentUserID uint, bcpTeamForm *busi
 				"responsible_user_unit",
 			)
 		}
+		existingTeam.ResponsibleUserID = bcpTeamForm.ResponsibleUserID
 		existingTeam.ResponsibleUnitID = organizationUnitID
 	}
 
-	existingTeam.Responsibility = bcpTeamForm.Responsibility
+	if bcpTeamForm.Responsibility != "" {
+		existingTeam.Responsibility = bcpTeamForm.Responsibility
+	}
+
 	existingTeam.BackupUserID = bcpTeamForm.BackupUserID
 
 	if err := brs.repo.Update(existingTeam, tx); err != nil {

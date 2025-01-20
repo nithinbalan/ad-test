@@ -41,18 +41,21 @@ func (repo *BcpTeamRepository) GetAll(params *businessContinuityDTOs.BcpTeamsLis
             responsible_user.first_name_ar AS responsible_user_first_name_ar,
             responsible_user.last_name_en AS responsible_user_last_name_en,
             responsible_user.last_name_ar AS responsible_user_last_name_ar,
+            responsible_user.initial AS responsible_user_initial,
             responsible_user.email AS responsible_user_email,
             responsible_user.profile_image_path AS responsible_user_profile_image_path,
             backup_user.first_name_en AS backup_user_first_name_en,
             backup_user.first_name_ar AS backup_user_first_name_ar,
             backup_user.last_name_en AS backup_user_last_name_en,
             backup_user.last_name_ar AS backup_user_last_name_ar,
+            backup_user.initial AS backup_user_initial,
             backup_user.email AS backup_user_email,
             backup_user.profile_image_path AS backup_user_profile_image_path,
             created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
             created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
             created_user.email AS created_user_email,
             organization_units.title_en AS responsible_unit_title_en,
             organization_units.title_ar AS responsible_unit_title_ar
@@ -106,13 +109,21 @@ func (repo *BcpTeamRepository) GetAll(params *businessContinuityDTOs.BcpTeamsLis
 }
 
 func (repo *BcpTeamRepository) GetByID(id uint) (*models.BcpTeam, error) {
-	var Team models.BcpTeam
+	var team models.BcpTeam
 
-	if err := repo.db.First(&Team, id).Error; err != nil {
+	if err := repo.db.
+		Preload("BusinessContinuityPlan").
+		Preload("ResponsibleUser").
+		Preload("BackupUser").
+		Preload("ResponsibleUser.OrganizationUnit1").
+		Preload("ResponsibleUnit").
+		Preload("CreatedByUser").
+		Where("id = ?", id).
+		First(&team).Error; err != nil {
 		return nil, err
 	}
 
-	return &Team, nil
+	return &team, nil
 }
 
 func (repo *BcpTeamRepository) Create(bcpTeam *models.BcpTeam, tx ...utility.DatabaseTransaction) (uint, error) {
@@ -134,7 +145,7 @@ func (repo *BcpTeamRepository) Update(bcpTeam *models.BcpTeam, tx ...utility.Dat
 		db = tx[0].DB()
 	}
 
-	if err := db.Save(bcpTeam).Error; err != nil {
+	if err := db.Model(&models.BcpTeam{}).Where("id = ?", bcpTeam.ID).Updates(bcpTeam).Error; err != nil {
 		return err
 	}
 

@@ -11,16 +11,16 @@ type BcpTeam struct {
 	ResponsibleUnitID        uint       `json:"responsible_unit_id"`
 	Responsibility           string     `json:"responsibility" binding:"required" gorm:"type:nvarchar(max);not null"`
 	BackupUserID             *uint      `json:"backup_user_id"`
-	CreatedByID              uint       `json:"created_by_id" binding:"required"`
+	CreatedBYID              uint       `json:"created_by_id" binding:"required"`
 	CreatedAt                time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
 	// Relationships
 	BusinessContinuityPlan *BusinessContinuityPlan `gorm:"foreignKey:BusinessContinuityPlanID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUser        *User                   `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUnit        *Unit                   `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUnit        *OrganizationUnit       `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	BackupUser             *User                   `gorm:"foreignKey:BackupUserID"`
-	CreatedByUser          *User                   `gorm:"foreignKey:CreatedByID"`
+	CreatedByUser          *User                   `gorm:"foreignKey:CreatedBYID"`
 }
 
 func (BcpTeam) TableName() string {

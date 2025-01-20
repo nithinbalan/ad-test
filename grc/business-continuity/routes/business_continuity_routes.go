@@ -95,6 +95,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// teams and roles
 	businessContinuityRoutes.GET("/bcp/:bcpId/teams", middlewares.RolePermissionMiddleware(db, "bcp", "view"), BcpTeamController.GetAllBcpTeams)
+	businessContinuityRoutes.GET("/bcp/teams/:id", middlewares.RolePermissionMiddleware(db, "bcp", "view"), BcpTeamController.GetBcpTeamByID)
 	businessContinuityRoutes.POST("/bcp/:bcpId/teams", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), BcpTeamController.CreateBcpTeam)
 	businessContinuityRoutes.PUT("/bcp/:bcpId/teams/:id", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), BcpTeamController.UpdateBcpTeam)
 	businessContinuityRoutes.POST("/bcp/teams/delete", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), BcpTeamController.DeleteBcpTeams)
