@@ -26,6 +26,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	bcpTestAndExerciseController := app.BusinessContinuityModule.BcpTestAndExerciseController
 	bcpStatusController := app.BusinessContinuityModule.BcpStatusController
 	BcpTeamController := app.BusinessContinuityModule.BcpTeamController
+	testAndExerciseStatusController := app.BusinessContinuityModule.TestAndExerciseStatusController
 
 	// bcp phase
 	businessContinuityRoutes.GET("/bcp-phases", bcpPhaseController.GetAllBcpPhases)
@@ -34,6 +35,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// bcp status
 	businessContinuityRoutes.GET("/bcp-statuses", bcpStatusController.GetAllBcpStatuses)
 	businessContinuityRoutes.GET("/bcp-statuses/:id", bcpStatusController.GetBcpStatusDetails)
+
+	// test and exercise status
+	businessContinuityRoutes.GET("/test-and-exercise-statuses", testAndExerciseStatusController.GetAllTestAndExerciseStatuses)
+	businessContinuityRoutes.GET("/test-and-exercise-statuses/:id", testAndExerciseStatusController.GetTestAndExerciseStatusDetails)
 
 	// Business Function
 	businessContinuityRoutes.GET("/business-functions", middlewares.RolePermissionMiddleware(db, "business_functions", "view"), businessFunctionController.GetAllBusinessFunctions)
