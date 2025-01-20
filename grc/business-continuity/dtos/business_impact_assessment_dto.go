@@ -1,9 +1,5 @@
 package dtos
 
-import (
-	commonDTOs "jethur/grc/common/dtos"
-)
-
 type BusinessImpactAssessmentListDTO struct {
 	ID                          uint    `json:"id"`
 	ProcessID                   *uint   `json:"process_id"`
@@ -189,9 +185,4 @@ type BIAMatrixQueryParamsDTO struct {
 	Page     int
 	PageSize int
 	Filters  map[string][]string
-}
-
-type BIAMatrixResponsePaginatedDTO struct {
-	Items      []BIAMatrixResponseDTO       `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }

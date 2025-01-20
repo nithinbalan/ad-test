@@ -25,6 +25,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	bcpCommunicationPlanController := app.BusinessContinuityModule.BcpCommunicationPlanController
 	bcpTestAndExerciseController := app.BusinessContinuityModule.BcpTestAndExerciseController
 	bcpStatusController := app.BusinessContinuityModule.BcpStatusController
+	bcpRolesController := app.BusinessContinuityModule.BcpRolesController
 
 	// bcp phase
 	businessContinuityRoutes.GET("/bcp-phases", bcpPhaseController.GetAllBcpPhases)
@@ -91,4 +92,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.POST("/bcp/:bcpId/test-and-exercises", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpTestAndExerciseController.CreateBcpTestAndExercise)
 	businessContinuityRoutes.PUT("/bcp/:bcpId/test-and-exercises/:id", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpTestAndExerciseController.UpdateBcpTestAndExercise)
 	businessContinuityRoutes.POST("/bcp/:bcpId/test-and-exercises/delete", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpTestAndExerciseController.DeleteBcpTestAndExercises)
+
+	// teams and roles
+	businessContinuityRoutes.GET("/bcp/:bcpId/teams", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpRolesController.GetAllBcpRoles)
+	businessContinuityRoutes.POST("/bcp/:bcpId/teams", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpRolesController.CreateBcpRole)
+	businessContinuityRoutes.PUT("/bcp/:bcpId/teams/:id", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpRolesController.UpdateBcpRole)
+	businessContinuityRoutes.POST("/bcp/teams/delete", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpRolesController.DeleteBcpRoles)
 }
