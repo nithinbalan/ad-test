@@ -24,5 +24,5 @@ type BcpTeam struct {
 }
 
 func (BcpTeam) TableName() string {
-	return "bcp_roles"
+	return "bcp_teams"
 }
