@@ -10,6 +10,7 @@ import (
 	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/documents/repositories"
 	"jethur/grc/logs/services"
+	masterSvc "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationSvc "jethur/grc/organization/services"
@@ -81,6 +82,7 @@ type DocumentService struct {
 	taskSvc                   taskServices.TaskServiceInterface
 	notificationSvc           commonServices.NotificationServiceInterface
 	orgLevelSvc               settinsSvc.OrganizationLevelServiceInterface
+	reviewFrequencySvc        masterSvc.ReviewFrequencyServiceInterface
 }
 
 func NewDocumentService(
@@ -99,6 +101,7 @@ func NewDocumentService(
 	taskSvc taskServices.TaskServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	orgLevelSvc settinsSvc.OrganizationLevelServiceInterface,
+	reviewFrequencySvc masterSvc.ReviewFrequencyServiceInterface,
 ) DocumentServiceInterface {
 	return &DocumentService{
 		repo:                      repo,
@@ -116,6 +119,7 @@ func NewDocumentService(
 		taskSvc:                   taskSvc,
 		notificationSvc:           notificationSvc,
 		orgLevelSvc:               orgLevelSvc,
+		reviewFrequencySvc:        reviewFrequencySvc,
 	}
 }
 
@@ -1832,10 +1836,22 @@ func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
 		return fmt.Errorf("error parsing current date: %w", err)
 	}
 
+	// Calculate next review date based on review frequency
+	var nextReviewDate time.Time
+	if &document.ReviewFrequency.ID != nil {
+		reviewFrequency, err := ds.reviewFrequencySvc.GetByID(document.ReviewFrequency.ID)
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("error fetching review frequency: %w", err)
+		}
+		nextReviewDate = ds.calculateNextReviewDate(*publishedAt, reviewFrequency.Type)
+	}
+
 	existingDocument.DocumentStatusID = documentStatus.ID
 	existingDocument.ReferenceNumber = referenceNumber
 	existingDocument.PublishedBYID = &currentUserID
 	existingDocument.PublishedAt = publishedAt
+	existingDocument.NextReviewDate = &nextReviewDate
 
 	err = ds.repo.Update(existingDocument, tx)
 	if err != nil {
@@ -2271,4 +2287,25 @@ func (ds *DocumentService) UpdateDocumentRecoveryObjective(document *models.Docu
 	}
 
 	return nil
+}
+
+func (ds *DocumentService) calculateNextReviewDate(baseDate time.Time, frequencyType string) time.Time {
+	switch frequencyType {
+	case "daily":
+		return baseDate.AddDate(0, 0, 1)
+	case "weekly":
+		return baseDate.AddDate(0, 0, 7)
+	case "biweekly":
+		return baseDate.AddDate(0, 0, 14)
+	case "monthly":
+		return baseDate.AddDate(0, 1, 0)
+	case "quarterly":
+		return baseDate.AddDate(0, 3, 0)
+	case "half-yearly":
+		return baseDate.AddDate(0, 6, 0)
+	case "annually":
+		return baseDate.AddDate(1, 0, 0)
+	default:
+		return baseDate // Default to the base date if no frequency is matched
+	}
 }
