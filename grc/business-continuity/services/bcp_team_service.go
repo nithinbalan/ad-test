@@ -13,7 +13,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type BcpTeamsServiceInterface interface {
+type BcpTeamServiceInterface interface {
 	GetAll(params *businessContinuityDTOs.BcpTeamsListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpTeamsListDTO, error)
 	GetByID(id uint) (*models.BcpTeam, error)
 	Create(bcpId uint, currentUserID uint, bcpTeamForm *businessContinuityDTOs.BcpTeamsFormDTO) (uint, error)
@@ -21,23 +21,23 @@ type BcpTeamsServiceInterface interface {
 	Delete(TeamIDs []uint, currentUserID uint) ([]uint, error)
 }
 
-type BcpTeamsService struct {
-	repo    businessFunctionRepositories.BcpTeamsRepositoryInterface
+type BcpTeamService struct {
+	repo    businessFunctionRepositories.BcpTeamRepositoryInterface
 	userSvc organizationServices.UserServiceInterface
 }
 
-func NewBcpTeamsService(repo businessFunctionRepositories.BcpTeamsRepositoryInterface, userSvc organizationServices.UserServiceInterface) BcpTeamsServiceInterface {
-	return &BcpTeamsService{
+func NewBcpTeamService(repo businessFunctionRepositories.BcpTeamRepositoryInterface, userSvc organizationServices.UserServiceInterface) BcpTeamServiceInterface {
+	return &BcpTeamService{
 		repo:    repo,
 		userSvc: userSvc,
 	}
 }
 
-func (brs *BcpTeamsService) GetAll(params *businessContinuityDTOs.BcpTeamsListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpTeamsListDTO, error) {
+func (brs *BcpTeamService) GetAll(params *businessContinuityDTOs.BcpTeamsListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpTeamsListDTO, error) {
 	return brs.repo.GetAll(params, bcpId)
 }
 
-func (brs *BcpTeamsService) GetByID(id uint) (*models.BcpTeam, error) {
+func (brs *BcpTeamService) GetByID(id uint) (*models.BcpTeam, error) {
 	Team, err := brs.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -48,7 +48,7 @@ func (brs *BcpTeamsService) GetByID(id uint) (*models.BcpTeam, error) {
 	return Team, nil
 }
 
-func (brs *BcpTeamsService) Create(bcpId uint, currentUserID uint, bcpTeamForm *businessContinuityDTOs.BcpTeamsFormDTO) (uint, error) {
+func (brs *BcpTeamService) Create(bcpId uint, currentUserID uint, bcpTeamForm *businessContinuityDTOs.BcpTeamsFormDTO) (uint, error) {
 	tx := brs.repo.BeginTransaction()
 
 	organizationUnitID, err := brs.userSvc.GetUserPrimaryUnitID(uint(bcpTeamForm.ResponsibleUserID))
@@ -76,7 +76,7 @@ func (brs *BcpTeamsService) Create(bcpId uint, currentUserID uint, bcpTeamForm *
 	return id, nil
 }
 
-func (brs *BcpTeamsService) Update(id uint, currentUserID uint, bcpTeamForm *businessContinuityDTOs.BcpTeamsFormDTO) error {
+func (brs *BcpTeamService) Update(id uint, currentUserID uint, bcpTeamForm *businessContinuityDTOs.BcpTeamsFormDTO) error {
 	tx := brs.repo.BeginTransaction()
 
 	existingTeam, err := brs.GetByID(id)
@@ -110,7 +110,7 @@ func (brs *BcpTeamsService) Update(id uint, currentUserID uint, bcpTeamForm *bus
 	return nil
 }
 
-func (brs *BcpTeamsService) Delete(TeamIDs []uint, currentUserID uint) ([]uint, error) {
+func (brs *BcpTeamService) Delete(TeamIDs []uint, currentUserID uint) ([]uint, error) {
 	tx := brs.repo.BeginTransaction()
 
 	var failedIDs []uint

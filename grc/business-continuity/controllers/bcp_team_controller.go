@@ -14,18 +14,18 @@ import (
 	"gorm.io/gorm"
 )
 
-type BcpTeamsController struct {
-	service services.BcpTeamsServiceInterface
+type BcpTeamController struct {
+	service services.BcpTeamServiceInterface
 	db      *gorm.DB
 }
 
-func NewBcpTeamsController(service services.BcpTeamsServiceInterface) *BcpTeamsController {
-	return &BcpTeamsController{
+func NewBcpTeamController(service services.BcpTeamServiceInterface) *BcpTeamController {
+	return &BcpTeamController{
 		service: service,
 	}
 }
 
-func (brc *BcpTeamsController) GetAllBcpTeams(c *gin.Context) {
+func (brc *BcpTeamController) GetAllBcpTeams(c *gin.Context) {
 	bcpIdStr := c.Param("bcpId")
 	bcpId, err := strconv.ParseUint(bcpIdStr, 10, 32)
 	if err != nil {
@@ -76,7 +76,7 @@ func (brc *BcpTeamsController) GetAllBcpTeams(c *gin.Context) {
 	c.JSON(http.StatusOK, teams)
 }
 
-func (brc *BcpTeamsController) GetBcpTeamByID(c *gin.Context) {
+func (brc *BcpTeamController) GetBcpTeamByID(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -99,7 +99,7 @@ func (brc *BcpTeamsController) GetBcpTeamByID(c *gin.Context) {
 	c.JSON(http.StatusOK, team)
 }
 
-func (brc *BcpTeamsController) CreateBcpTeam(c *gin.Context) {
+func (brc *BcpTeamController) CreateBcpTeam(c *gin.Context) {
 	idStr := c.Param("bcpId")
 	bcpId, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -137,7 +137,7 @@ func (brc *BcpTeamsController) CreateBcpTeam(c *gin.Context) {
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
-func (brc *BcpTeamsController) UpdateBcpTeam(c *gin.Context) {
+func (brc *BcpTeamController) UpdateBcpTeam(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
@@ -175,7 +175,7 @@ func (brc *BcpTeamsController) UpdateBcpTeam(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (brc *BcpTeamsController) DeleteBcpTeams(c *gin.Context) {
+func (brc *BcpTeamController) DeleteBcpTeams(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids" binding:"required"`
 	}

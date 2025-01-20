@@ -18,10 +18,10 @@ type BusinessContinuityModule struct {
 	BcpCommunicationPlanController     *controllers.BcpCommunicationPlanController
 	BcpTestAndExerciseController       *controllers.BcpTestAndExerciseController
 	BcpStatusController                *controllers.BcpStatusController
-	BcpTeamsController                 *controllers.BcpTeamsController
+	BcpTeamController                 *controllers.BcpTeamController
 
 	BusinessFunctionSvc services.BusinessFunctionServiceInterface
-	BcpTeamSvc          services.BcpTeamsServiceInterface
+	BcpTeamSvc          services.BcpTeamServiceInterface
 }
 
 func NewBusinessContinuityModule(db *gorm.DB,
@@ -73,9 +73,9 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	bcpTestAndExerciseSvc := services.NewBcpTestAndExerciseService(bcpTestAndExerciseRepo, sharedModule.ActivityLogService, organizationModule.UserSvc)
 	bcpTestAndExerciseController := controllers.NewBcpTestAndExerciseController(bcpTestAndExerciseSvc)
 
-	bcpTeamsRepo := repositories.NewBcpTeamsRepository(db)
-	bcpTeamsSvc := services.NewBcpTeamsService(bcpTeamsRepo, organizationModule.UserSvc)
-	bcpTeamsController := controllers.NewBcpTeamsController(bcpTeamsSvc)
+	bcpTeamRepo := repositories.NewBcpTeamRepository(db)
+	bcpTeamSvc := services.NewBcpTeamService(bcpTeamRepo, organizationModule.UserSvc)
+	bcpTeamController := controllers.NewBcpTeamController(bcpTeamSvc)
 
 	return &BusinessContinuityModule{
 		BusinessFunctionController:         businessFunctionController,
@@ -87,9 +87,9 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		BcpCommunicationPlanController:     bcpCommunicationPlanController,
 		BcpTestAndExerciseController:       bcpTestAndExerciseController,
 		BcpStatusController:                bcpStatusController,
-		BcpTeamsController:                 bcpTeamsController,
+		BcpTeamController:                 bcpTeamController,
 
 		BusinessFunctionSvc: businessFunctionSvc,
-		BcpTeamSvc:          bcpTeamsSvc,
+		BcpTeamSvc:          bcpTeamSvc,
 	}
 }

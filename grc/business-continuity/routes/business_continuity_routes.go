@@ -25,7 +25,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	bcpCommunicationPlanController := app.BusinessContinuityModule.BcpCommunicationPlanController
 	bcpTestAndExerciseController := app.BusinessContinuityModule.BcpTestAndExerciseController
 	bcpStatusController := app.BusinessContinuityModule.BcpStatusController
-	BcpTeamsController := app.BusinessContinuityModule.BcpTeamsController
+	BcpTeamController := app.BusinessContinuityModule.BcpTeamController
 
 	// bcp phase
 	businessContinuityRoutes.GET("/bcp-phases", bcpPhaseController.GetAllBcpPhases)
@@ -94,8 +94,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.POST("/bcp/:bcpId/test-and-exercises/delete", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpTestAndExerciseController.DeleteBcpTestAndExercises)
 
 	// teams and roles
-	businessContinuityRoutes.GET("/bcp/:bcpId/teams", middlewares.RolePermissionMiddleware(db, "bcp", "view"), BcpTeamsController.GetAllBcpTeams)
-	businessContinuityRoutes.POST("/bcp/:bcpId/teams", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), BcpTeamsController.CreateBcpTeam)
-	businessContinuityRoutes.PUT("/bcp/:bcpId/teams/:id", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), BcpTeamsController.UpdateBcpTeam)
-	businessContinuityRoutes.POST("/bcp/teams/delete", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), BcpTeamsController.DeleteBcpTeams)
+	businessContinuityRoutes.GET("/bcp/:bcpId/teams", middlewares.RolePermissionMiddleware(db, "bcp", "view"), BcpTeamController.GetAllBcpTeams)
+	businessContinuityRoutes.POST("/bcp/:bcpId/teams", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), BcpTeamController.CreateBcpTeam)
+	businessContinuityRoutes.PUT("/bcp/:bcpId/teams/:id", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), BcpTeamController.UpdateBcpTeam)
+	businessContinuityRoutes.POST("/bcp/teams/delete", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), BcpTeamController.DeleteBcpTeams)
 }

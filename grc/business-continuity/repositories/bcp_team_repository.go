@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type BcpTeamsRepositoryInterface interface {
+type BcpTeamRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *businessContinuityDTOs.BcpTeamsListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpTeamsListDTO, error)
 	GetByID(id uint) (*models.BcpTeam, error)
@@ -17,21 +17,21 @@ type BcpTeamsRepositoryInterface interface {
 	Delete(TeamID uint, tx ...utility.DatabaseTransaction) error
 }
 
-type BcpTeamsRepository struct {
+type BcpTeamRepository struct {
 	db *gorm.DB
 }
 
-func NewBcpTeamsRepository(db *gorm.DB) *BcpTeamsRepository {
-	return &BcpTeamsRepository{
+func NewBcpTeamRepository(db *gorm.DB) *BcpTeamRepository {
+	return &BcpTeamRepository{
 		db: db,
 	}
 }
 
-func (repo *BcpTeamsRepository) BeginTransaction() utility.DatabaseTransaction {
+func (repo *BcpTeamRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *BcpTeamsRepository) GetAll(params *businessContinuityDTOs.BcpTeamsListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpTeamsListDTO, error) {
+func (repo *BcpTeamRepository) GetAll(params *businessContinuityDTOs.BcpTeamsListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpTeamsListDTO, error) {
 	var teams []*businessContinuityDTOs.BcpTeamsListDTO
 
 	query := repo.db.Table("bcp_teams").
@@ -105,7 +105,7 @@ func (repo *BcpTeamsRepository) GetAll(params *businessContinuityDTOs.BcpTeamsLi
 	return teams, nil
 }
 
-func (repo *BcpTeamsRepository) GetByID(id uint) (*models.BcpTeam, error) {
+func (repo *BcpTeamRepository) GetByID(id uint) (*models.BcpTeam, error) {
 	var Team models.BcpTeam
 
 	if err := repo.db.First(&Team, id).Error; err != nil {
@@ -115,7 +115,7 @@ func (repo *BcpTeamsRepository) GetByID(id uint) (*models.BcpTeam, error) {
 	return &Team, nil
 }
 
-func (repo *BcpTeamsRepository) Create(bcpTeam *models.BcpTeam, tx ...utility.DatabaseTransaction) (uint, error) {
+func (repo *BcpTeamRepository) Create(bcpTeam *models.BcpTeam, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -128,7 +128,7 @@ func (repo *BcpTeamsRepository) Create(bcpTeam *models.BcpTeam, tx ...utility.Da
 	return bcpTeam.ID, nil
 }
 
-func (repo *BcpTeamsRepository) Update(bcpTeam *models.BcpTeam, tx ...utility.DatabaseTransaction) error {
+func (repo *BcpTeamRepository) Update(bcpTeam *models.BcpTeam, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -141,7 +141,7 @@ func (repo *BcpTeamsRepository) Update(bcpTeam *models.BcpTeam, tx ...utility.Da
 	return nil
 }
 
-func (repo *BcpTeamsRepository) Delete(TeamID uint, tx ...utility.DatabaseTransaction) error {
+func (repo *BcpTeamRepository) Delete(TeamID uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
