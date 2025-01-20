@@ -13,60 +13,60 @@ import (
 	"gorm.io/gorm"
 )
 
-type BcpRolesServiceInterface interface {
-	GetAll(params *businessContinuityDTOs.BcpRolesListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpRolesListDTO, error)
-	GetByID(id uint) (*models.BcpRole, error)
-	Create(bcpId uint, currentUserID uint, bcpRoleForm *businessContinuityDTOs.BcpRolesFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, bcpRoleForm *businessContinuityDTOs.BcpRolesFormDTO) error
-	Delete(roleIDs []uint, currentUserID uint) ([]uint, error)
+type BcpTeamsServiceInterface interface {
+	GetAll(params *businessContinuityDTOs.BcpTeamsListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpTeamsListDTO, error)
+	GetByID(id uint) (*models.BcpTeam, error)
+	Create(bcpId uint, currentUserID uint, bcpTeamForm *businessContinuityDTOs.BcpTeamsFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, bcpTeamForm *businessContinuityDTOs.BcpTeamsFormDTO) error
+	Delete(TeamIDs []uint, currentUserID uint) ([]uint, error)
 }
 
-type BcpRolesService struct {
-	repo    businessFunctionRepositories.BcpRolesRepositoryInterface
+type BcpTeamsService struct {
+	repo    businessFunctionRepositories.BcpTeamsRepositoryInterface
 	userSvc organizationServices.UserServiceInterface
 }
 
-func NewBcpRolesService(repo businessFunctionRepositories.BcpRolesRepositoryInterface, userSvc organizationServices.UserServiceInterface) BcpRolesServiceInterface {
-	return &BcpRolesService{
+func NewBcpTeamsService(repo businessFunctionRepositories.BcpTeamsRepositoryInterface, userSvc organizationServices.UserServiceInterface) BcpTeamsServiceInterface {
+	return &BcpTeamsService{
 		repo:    repo,
 		userSvc: userSvc,
 	}
 }
 
-func (brs *BcpRolesService) GetAll(params *businessContinuityDTOs.BcpRolesListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpRolesListDTO, error) {
+func (brs *BcpTeamsService) GetAll(params *businessContinuityDTOs.BcpTeamsListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpTeamsListDTO, error) {
 	return brs.repo.GetAll(params, bcpId)
 }
 
-func (brs *BcpRolesService) GetByID(id uint) (*models.BcpRole, error) {
-	role, err := brs.repo.GetByID(id)
+func (brs *BcpTeamsService) GetByID(id uint) (*models.BcpTeam, error) {
+	Team, err := brs.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
 		}
 		return nil, err
 	}
-	return role, nil
+	return Team, nil
 }
 
-func (brs *BcpRolesService) Create(bcpId uint, currentUserID uint, bcpRoleForm *businessContinuityDTOs.BcpRolesFormDTO) (uint, error) {
+func (brs *BcpTeamsService) Create(bcpId uint, currentUserID uint, bcpTeamForm *businessContinuityDTOs.BcpTeamsFormDTO) (uint, error) {
 	tx := brs.repo.BeginTransaction()
 
-	organizationUnitID, err := brs.userSvc.GetUserPrimaryUnitID(uint(bcpRoleForm.ResponsibleUserID))
+	organizationUnitID, err := brs.userSvc.GetUserPrimaryUnitID(uint(bcpTeamForm.ResponsibleUserID))
 	if err != nil {
 		tx.Rollback()
 		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "responsible_user_unit")
 	}
 
-	bcpRole := &models.BcpRole{
+	bcpTeam := &models.BcpTeam{
 		BusinessContinuityPlanID: bcpId,
-		ResponsibleUserID:        bcpRoleForm.ResponsibleUserID,
+		ResponsibleUserID:        bcpTeamForm.ResponsibleUserID,
 		ResponsibleUnitID:        organizationUnitID,
-		Responsibility:           bcpRoleForm.Responsibility,
-		BackupUserID:             bcpRoleForm.BackupUserID,
+		Responsibility:           bcpTeamForm.Responsibility,
+		BackupUserID:             bcpTeamForm.BackupUserID,
 		CreatedByID:              currentUserID,
 	}
 
-	id, err := brs.repo.Create(bcpRole, tx)
+	id, err := brs.repo.Create(bcpTeam, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -76,17 +76,17 @@ func (brs *BcpRolesService) Create(bcpId uint, currentUserID uint, bcpRoleForm *
 	return id, nil
 }
 
-func (brs *BcpRolesService) Update(id uint, currentUserID uint, bcpRoleForm *businessContinuityDTOs.BcpRolesFormDTO) error {
+func (brs *BcpTeamsService) Update(id uint, currentUserID uint, bcpTeamForm *businessContinuityDTOs.BcpTeamsFormDTO) error {
 	tx := brs.repo.BeginTransaction()
 
-	existingRole, err := brs.GetByID(id)
+	existingTeam, err := brs.GetByID(id)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	if existingRole.ResponsibleUserID != bcpRoleForm.ResponsibleUserID {
-		organizationUnitID, err := brs.userSvc.GetUserPrimaryUnitID(bcpRoleForm.ResponsibleUserID)
+	if existingTeam.ResponsibleUserID != bcpTeamForm.ResponsibleUserID {
+		organizationUnitID, err := brs.userSvc.GetUserPrimaryUnitID(bcpTeamForm.ResponsibleUserID)
 		if err != nil {
 			tx.Rollback()
 			return utility.NewValidationError(
@@ -95,13 +95,13 @@ func (brs *BcpRolesService) Update(id uint, currentUserID uint, bcpRoleForm *bus
 				"responsible_user_unit",
 			)
 		}
-		existingRole.ResponsibleUnitID = organizationUnitID
+		existingTeam.ResponsibleUnitID = organizationUnitID
 	}
 
-	existingRole.Responsibility = bcpRoleForm.Responsibility
-	existingRole.BackupUserID = bcpRoleForm.BackupUserID
+	existingTeam.Responsibility = bcpTeamForm.Responsibility
+	existingTeam.BackupUserID = bcpTeamForm.BackupUserID
 
-	if err := brs.repo.Update(existingRole, tx); err != nil {
+	if err := brs.repo.Update(existingTeam, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -110,23 +110,23 @@ func (brs *BcpRolesService) Update(id uint, currentUserID uint, bcpRoleForm *bus
 	return nil
 }
 
-func (brs *BcpRolesService) Delete(roleIDs []uint, currentUserID uint) ([]uint, error) {
+func (brs *BcpTeamsService) Delete(TeamIDs []uint, currentUserID uint) ([]uint, error) {
 	tx := brs.repo.BeginTransaction()
 
 	var failedIDs []uint
 
-	for _, roleID := range roleIDs {
-		if _, err := brs.repo.GetByID(roleID); err != nil {
+	for _, TeamID := range TeamIDs {
+		if _, err := brs.repo.GetByID(TeamID); err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				failedIDs = append(failedIDs, roleID)
+				failedIDs = append(failedIDs, TeamID)
 				continue
 			}
 			tx.Rollback()
 			return nil, err
 		}
 
-		if err := brs.repo.Delete(roleID, tx); err != nil {
-			failedIDs = append(failedIDs, roleID)
+		if err := brs.repo.Delete(TeamID, tx); err != nil {
+			failedIDs = append(failedIDs, TeamID)
 			continue
 		}
 	}

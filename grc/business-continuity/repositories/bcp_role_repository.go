@@ -8,35 +8,35 @@ import (
 	"gorm.io/gorm"
 )
 
-type BcpRolesRepositoryInterface interface {
+type BcpTeamsRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *businessContinuityDTOs.BcpRolesListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpRolesListDTO, error)
-	GetByID(id uint) (*models.BcpRole, error)
-	Create(bcpRole *models.BcpRole, tx ...utility.DatabaseTransaction) (uint, error)
-	Update(bcpRole *models.BcpRole, tx ...utility.DatabaseTransaction) error
-	Delete(roleID uint, tx ...utility.DatabaseTransaction) error
+	GetAll(params *businessContinuityDTOs.BcpTeamsListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpTeamsListDTO, error)
+	GetByID(id uint) (*models.BcpTeam, error)
+	Create(bcpTeam *models.BcpTeam, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(bcpTeam *models.BcpTeam, tx ...utility.DatabaseTransaction) error
+	Delete(TeamID uint, tx ...utility.DatabaseTransaction) error
 }
 
-type BcpRolesRepository struct {
+type BcpTeamsRepository struct {
 	db *gorm.DB
 }
 
-func NewBcpRolesRepository(db *gorm.DB) *BcpRolesRepository {
-	return &BcpRolesRepository{
+func NewBcpTeamsRepository(db *gorm.DB) *BcpTeamsRepository {
+	return &BcpTeamsRepository{
 		db: db,
 	}
 }
 
-func (repo *BcpRolesRepository) BeginTransaction() utility.DatabaseTransaction {
+func (repo *BcpTeamsRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *BcpRolesRepository) GetAll(params *businessContinuityDTOs.BcpRolesListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpRolesListDTO, error) {
-	var roles []*businessContinuityDTOs.BcpRolesListDTO
+func (repo *BcpTeamsRepository) GetAll(params *businessContinuityDTOs.BcpTeamsListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpTeamsListDTO, error) {
+	var teams []*businessContinuityDTOs.BcpTeamsListDTO
 
-	query := repo.db.Table("bcp_roles").
+	query := repo.db.Table("bcp_teams").
 		Select(`
-            bcp_roles.*,
+            bcp_teams.*,
             responsible_user.first_name_en AS responsible_user_first_name_en,
             responsible_user.first_name_ar AS responsible_user_first_name_ar,
             responsible_user.last_name_en AS responsible_user_last_name_en,
@@ -57,11 +57,11 @@ func (repo *BcpRolesRepository) GetAll(params *businessContinuityDTOs.BcpRolesLi
             organization_units.title_en AS responsible_unit_title_en,
             organization_units.title_ar AS responsible_unit_title_ar
         `).
-		Joins(`LEFT JOIN users AS responsible_user ON responsible_user.id = bcp_roles.responsible_user_id`).
-		Joins(`LEFT JOIN users AS backup_user ON backup_user.id = bcp_roles.backup_user_id`).
-		Joins(`LEFT JOIN users AS created_user ON created_user.id = bcp_roles.created_by_id`).
-		Joins(`LEFT JOIN organization_units ON organization_units.id = bcp_roles.responsible_unit_id`).
-		Where("bcp_roles.business_continuity_plan_id = ?", bcpId)
+		Joins(`LEFT JOIN users AS responsible_user ON responsible_user.id = bcp_teams.responsible_user_id`).
+		Joins(`LEFT JOIN users AS backup_user ON backup_user.id = bcp_teams.backup_user_id`).
+		Joins(`LEFT JOIN users AS created_user ON created_user.id = bcp_teams.created_by_id`).
+		Joins(`LEFT JOIN organization_units ON organization_units.id = bcp_teams.responsible_unit_id`).
+		Where("bcp_teams.business_continuity_plan_id = ?", bcpId)
 
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
@@ -72,7 +72,7 @@ func (repo *BcpRolesRepository) GetAll(params *businessContinuityDTOs.BcpRolesLi
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(bcp_roles.responsibility LIKE ? OR
+			(bcp_teams.responsibility LIKE ? OR
 			responsible_user.first_name_en LIKE ? OR
 			responsible_user.first_name_ar LIKE ? OR
 			responsible_user.last_name_en LIKE ? OR
@@ -98,56 +98,56 @@ func (repo *BcpRolesRepository) GetAll(params *businessContinuityDTOs.BcpRolesLi
 		query = query.Order(params.SortBy + " " + params.Sort)
 	}
 
-	if err := query.Find(&roles).Error; err != nil {
+	if err := query.Find(&teams).Error; err != nil {
 		return nil, err
 	}
 
-	return roles, nil
+	return teams, nil
 }
 
-func (repo *BcpRolesRepository) GetByID(id uint) (*models.BcpRole, error) {
-	var role models.BcpRole
+func (repo *BcpTeamsRepository) GetByID(id uint) (*models.BcpTeam, error) {
+	var Team models.BcpTeam
 
-	if err := repo.db.First(&role, id).Error; err != nil {
+	if err := repo.db.First(&Team, id).Error; err != nil {
 		return nil, err
 	}
 
-	return &role, nil
+	return &Team, nil
 }
 
-func (repo *BcpRolesRepository) Create(bcpRole *models.BcpRole, tx ...utility.DatabaseTransaction) (uint, error) {
+func (repo *BcpTeamsRepository) Create(bcpTeam *models.BcpTeam, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	if err := db.Create(bcpRole).Error; err != nil {
+	if err := db.Create(bcpTeam).Error; err != nil {
 		return 0, err
 	}
 
-	return bcpRole.ID, nil
+	return bcpTeam.ID, nil
 }
 
-func (repo *BcpRolesRepository) Update(bcpRole *models.BcpRole, tx ...utility.DatabaseTransaction) error {
+func (repo *BcpTeamsRepository) Update(bcpTeam *models.BcpTeam, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	if err := db.Save(bcpRole).Error; err != nil {
+	if err := db.Save(bcpTeam).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (repo *BcpRolesRepository) Delete(roleID uint, tx ...utility.DatabaseTransaction) error {
+func (repo *BcpTeamsRepository) Delete(TeamID uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	if err := db.Where("id = ?", roleID).Delete(&models.BcpRole{}).Error; err != nil {
+	if err := db.Where("id = ?", TeamID).Delete(&models.BcpTeam{}).Error; err != nil {
 		return err
 	}
 

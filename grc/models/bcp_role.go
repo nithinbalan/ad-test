@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type BcpRole struct {
+type BcpTeam struct {
 	ID                       uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	BusinessContinuityPlanID uint       `json:"business_continuity_plan_id"`
 	ResponsibleUserID        uint       `json:"responsible_user_id" binding:"required"`
@@ -23,6 +23,6 @@ type BcpRole struct {
 	CreatedByUser          *User                   `gorm:"foreignKey:CreatedByID"`
 }
 
-func (BcpRole) TableName() string {
+func (BcpTeam) TableName() string {
 	return "bcp_roles"
 }
