@@ -7,27 +7,8 @@ jobs:
   deploy:
     runs-on: jethur-dev
     steps:
-      # Step: Start email notification
-      - name: Send Start Email
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.zeptomail.in # Replace with your SMTP host
-          server_port: 587   # Replace with your SMTP port
-          username: ${{ secrets.ZEPTO_USERNAME }}
-          password: ${{ secrets.ZEPTO_PASSWORD }}
-          subject: "Pipeline Started"
-          body: "GitHub Actions GRC-API deployment has started."
-          to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
-          from: "Jethur Notifications <info@jethur.com>"
+
           
-      # Step: Cleanup build folder
-      - name: Cleanup build
-        run: |
-          Get-ChildItem -Force
-          Remove-Item -Recurse -Force * -ErrorAction SilentlyContinue
-          Remove-Item -Recurse -Force .??* -ErrorAction SilentlyContinue
-          Get-ChildItem -Force
-        shell: powershell
           
       # Step: Checkout Code
       - name: Checkout Code
@@ -146,18 +127,14 @@ jobs:
           Start-Website -Name $siteName
         shell: powershell
 
-      # Step: Send Completion Email
-      - name: Send Completion Email
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.zeptomail.in
-          server_port: 587
-          username: ${{ secrets.ZEPTO_USERNAME }}
-          password: ${{ secrets.ZEPTO_PASSWORD }}
-          subject: "Pipeline Completed"
-          body: "GitHub Actions GRC-API deployment has completed successfully."
-          to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
-          from: "Jethur Notifications <info@jethur.com>"
+      # Step: Cleanup build folder
+      - name: Cleanup build
+        run: |
+          Get-ChildItem -Force
+          Remove-Item -Recurse -Force * -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force .??* -ErrorAction SilentlyContinue
+          Get-ChildItem -Force
+        shell: powershell
 
 
 
