@@ -1210,14 +1210,64 @@ func (ps *ProcessService) UpdateProcessRiskRating(process *models.Process, tx ut
 }
 
 func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
-	headers := []string{
+	// Headers for the first sheet (Template)
+	templateHeaders := []string{
 		"ProcessGroupTitle", "Owner", "TitleEn", "TitleAr", "Description", "Controls",
 	}
+	templateData := [][]interface{}{} // Empty template data
 
-	// Pass empty data for the template
-	data := [][]interface{}{}
+	// Fetch process groups for the second sheet
+	processGroups, err := ps.processGroupSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, err
+	}
 
-	file, err := utility.GenerateExcelFile(headers, data)
+	// Headers and data for the second sheet (ProcessGroup)
+	processGroupHeaders := []string{"ProcessGroupTitleEn", "ProcessGroupTitleAr"}
+	processGroupData := [][]interface{}{}
+	for _, group := range processGroups {
+		processGroupData = append(processGroupData, []interface{}{group.TitleEn, group.TitleAr})
+	}
+
+	// Headers and data for the third sheet (Owner)
+	// Fetch user details
+	users, err := ps.userSvc.GetAllUsers()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch owners: %v", err)
+	}
+
+	// Prepare data for Owner sheet
+	ownerHeaders := []string{"OwnerName", "Email", "Designation", "PrimaryDepartment"}
+	ownerData := [][]interface{}{}
+	for _, user := range users {
+		ownerData = append(ownerData, []interface{}{
+			fmt.Sprintf("%s %s", user.FirstNameEN, user.LastNameEN),
+			user.Email,
+			user.Designation,
+			user.PrimaryUnit,
+		})
+	}
+
+	// Fetch controls for the fourth sheet
+	controls, err := ps.controlSvc.GetAllControls()
+	if err != nil {
+		return nil, err
+	}
+
+	// Headers and data for the fourth sheet (Controls)
+	controlHeaders := []string{"Controls"}
+	controlData := [][]interface{}{}
+	for _, control := range controls {
+		controlData = append(controlData, []interface{}{control.TitleEn})
+	}
+
+	// Generate the Excel file with "Template," "ProcessGroup," "Owner," and "Controls" sheets
+	file, err := utility.GenerateExcelFileWithSheets(map[string][][]interface{}{
+		"Template":     append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
+		"ProcessGroup": append([][]interface{}{utility.ConvertToInterfaceSlice(processGroupHeaders)}, processGroupData...),
+		"Owner":        append([][]interface{}{utility.ConvertToInterfaceSlice(ownerHeaders)}, ownerData...),
+		"Controls":     append([][]interface{}{utility.ConvertToInterfaceSlice(controlHeaders)}, controlData...),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -1343,8 +1393,8 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 	}
 	userFullNames := make(map[string]uint)
 	for _, user := range users {
-		fullName := strings.TrimSpace(user.FirstNameEn + " " + user.LastNameEn)
-		userFullNames[fullName] = user.ID
+		fullName := strings.TrimSpace(user.FirstNameEN + " " + user.LastNameEN)
+		userFullNames[fullName] = uint(user.ID)
 	}
 
 	// Fetch control titles and map to IDs

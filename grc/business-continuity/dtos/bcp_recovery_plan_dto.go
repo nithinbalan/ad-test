@@ -3,7 +3,6 @@ package dtos
 import (
 	"time"
 
-	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 )
@@ -11,6 +10,7 @@ import (
 type BcpRecoveryPlanListDTO struct {
 	ID                              uint    `json:"id"`
 	Title                           string  `json:"title"`
+	BcpPhaseID                      uint    `json:"bcp_phase_id"`
 	BcpPhaseTitleEn                 string  `json:"bcp_phase_title_en"`
 	BcpPhaseTitleAr                 string  `json:"bcp_phase_title_ar"`
 	BcpProcessTitleEn               string  `json:"bcp_process_title_en"`
@@ -30,6 +30,7 @@ type BcpRecoveryPlanListDTO struct {
 	TargetCompletion                string  `json:"target_completion"`
 	TargetCompletionUnitTitleEn     *string `json:"target_completion_unit_title_en"`
 	TargetCompletionUnitTitleAr     *string `json:"target_completion_unit_title_ar"`
+	CreatedAt                       string  `json:"created_at"`
 	CreatedUserID                   uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn          string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string  `json:"created_user_first_name_ar"`
@@ -59,11 +60,6 @@ type BcpRecoveryPlanListQueryParamsDTO struct {
 	PageSize    int
 	Filters     map[string][]string
 	QuickFilter []string
-}
-
-type BcpRecoveryPlanListResponseDTO struct {
-	Items      []*BcpRecoveryPlanListDTO    `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
 type BcpRecoveryPlanFormDTO struct {

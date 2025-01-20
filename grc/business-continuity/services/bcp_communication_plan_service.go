@@ -15,7 +15,7 @@ import (
 )
 
 type BcpCommunicationPlanServiceInterface interface {
-	GetAll(bcpId uint, params *businessContinuityDTOs.BcpCommunicationPlanListQueryParamsDTO) (*businessContinuityDTOs.BcpCommunicationPlanListResponseDTO, error)
+	GetAll(bcpId uint, params *businessContinuityDTOs.BcpCommunicationPlanListQueryParamsDTO) ([]*businessContinuityDTOs.BcpCommunicationPlanListDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.BcpCommunicationPlanDetailDTO, error)
 	GetByID(id uint) (*models.BcpCommunicationPlan, error)
 	Create(bcpId uint, currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.BcpCommunicationPlanFormDTO) (uint, error)
@@ -42,7 +42,7 @@ func NewBcpCommunicationPlanService(
 	}
 }
 
-func (bcps *BcpCommunicationPlanService) GetAll(bcpId uint, params *businessContinuityDTOs.BcpCommunicationPlanListQueryParamsDTO) (*businessContinuityDTOs.BcpCommunicationPlanListResponseDTO, error) {
+func (bcps *BcpCommunicationPlanService) GetAll(bcpId uint, params *businessContinuityDTOs.BcpCommunicationPlanListQueryParamsDTO) ([]*businessContinuityDTOs.BcpCommunicationPlanListDTO, error) {
 	return bcps.repo.GetAll(bcpId, params)
 }
 

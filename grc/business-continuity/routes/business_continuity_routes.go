@@ -12,6 +12,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	businessContinuityRoutes.Use(middlewares.AuthMiddleware())
 
+	unauthenticatedRoutes := router.Group("/")
+
 	db := app.DB
 
 	businessFunctionController := app.BusinessContinuityModule.BusinessFunctionController
@@ -55,7 +57,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.PUT("/bia-recovery-objectives", middlewares.RolePermissionMiddleware(db, "bia", "modify"), businessImpactAssessmentController.UpdateRecoveryObjective)
 	businessContinuityRoutes.GET("/bia-matrix", middlewares.RolePermissionMiddleware(db, "bia_matrics", "view"), businessImpactAssessmentController.GetBIAMatrix)
 
-	// Business Continuity Plan
+	//Business Continuity Plan
+	unauthenticatedRoutes.GET("/business-continuity-plans/:id/document-preview", businessContinuityPlanController.GetBusinessContinuityPlanDocumentPreview)
+	unauthenticatedRoutes.GET("/business-continuity-plans/:id/document-download", businessContinuityPlanController.DownloadBusinessContinuityPlanDocument)
 	businessContinuityRoutes.GET("/business-continuity-plans", middlewares.RolePermissionMiddleware(db, "bcp", "view"), businessContinuityPlanController.GetAllBusinessContinuityPlans)
 	businessContinuityRoutes.GET("/business-continuity-plans/:id", middlewares.RolePermissionMiddleware(db, "bcp", "view"), businessContinuityPlanController.GetBusinessContinuityPlanDetails)
 	businessContinuityRoutes.POST("/business-continuity-plans", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), businessContinuityPlanController.CreateBusinessContinuityPlan)

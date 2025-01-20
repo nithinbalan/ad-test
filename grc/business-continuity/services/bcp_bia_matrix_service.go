@@ -132,6 +132,7 @@ func (bbms *BcpBiaMatrixService) Update(bcpId uint, currentUserID uint, bcpProce
 		existingBcpProcess.MtpdUnitId = process.MtpdUnitId
 		existingBcpProcess.Rpo = process.Rpo
 		existingBcpProcess.RpoUnitId = process.RpoUnitId
+		existingBcpProcess.RiskLevelID = process.RiskLevelID
 		existingBcpProcess.UpdatedBYID = &currentUserID
 
 		err = bbms.repo.Update(existingBcpProcess, tx)
