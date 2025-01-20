@@ -7,7 +7,15 @@ jobs:
   deploy:
     runs-on: jethur-dev
     steps:
-    
+
+      # Step: Cleanup build folder
+      - name: Cleanup build folder
+        run: |
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true
+          ls -la ./
+          
       # Step: Checkout Code
       - name: Checkout Code
         uses: actions/checkout@v3
