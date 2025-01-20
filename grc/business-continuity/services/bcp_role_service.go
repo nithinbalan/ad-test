@@ -2,10 +2,12 @@ package services
 
 import (
 	"errors"
+	"fmt"
 
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	businessFunctionRepositories "jethur/grc/business-continuity/repositories"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -20,12 +22,14 @@ type BcpRolesServiceInterface interface {
 }
 
 type BcpRolesService struct {
-	repo businessFunctionRepositories.BcpRolesRepositoryInterface
+	repo    businessFunctionRepositories.BcpRolesRepositoryInterface
+	userSvc organizationServices.UserServiceInterface
 }
 
-func NewBcpRolesService(repo businessFunctionRepositories.BcpRolesRepositoryInterface) BcpRolesServiceInterface {
+func NewBcpRolesService(repo businessFunctionRepositories.BcpRolesRepositoryInterface, userSvc organizationServices.UserServiceInterface) BcpRolesServiceInterface {
 	return &BcpRolesService{
-		repo: repo,
+		repo:    repo,
+		userSvc: userSvc,
 	}
 }
 
@@ -47,10 +51,16 @@ func (brs *BcpRolesService) GetByID(id uint) (*models.BcpRole, error) {
 func (brs *BcpRolesService) Create(bcpId uint, currentUserID uint, bcpRoleForm *businessContinuityDTOs.BcpRolesFormDTO) (uint, error) {
 	tx := brs.repo.BeginTransaction()
 
+	organizationUnitID, err := brs.userSvc.GetUserPrimaryUnitID(uint(bcpRoleForm.ResponsibleUserID))
+	if err != nil {
+		tx.Rollback()
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "responsible_user_unit")
+	}
+
 	bcpRole := &models.BcpRole{
 		BusinessContinuityPlanID: bcpId,
 		ResponsibleUserID:        bcpRoleForm.ResponsibleUserID,
-		ResponsibleUnitID:        bcpRoleForm.ResponsibleUnitID,
+		ResponsibleUnitID:        organizationUnitID,
 		Responsibility:           bcpRoleForm.Responsibility,
 		BackupUserID:             bcpRoleForm.BackupUserID,
 		CreatedByID:              currentUserID,
@@ -69,16 +79,25 @@ func (brs *BcpRolesService) Create(bcpId uint, currentUserID uint, bcpRoleForm *
 func (brs *BcpRolesService) Update(id uint, currentUserID uint, bcpRoleForm *businessContinuityDTOs.BcpRolesFormDTO) error {
 	tx := brs.repo.BeginTransaction()
 
-	existingRole, err := brs.repo.GetByID(id)
+	existingRole, err := brs.GetByID(id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return utility.NewResourceNotFoundError(err, id)
-		}
+		tx.Rollback()
 		return err
 	}
 
-	existingRole.ResponsibleUserID = bcpRoleForm.ResponsibleUserID
-	existingRole.ResponsibleUnitID = bcpRoleForm.ResponsibleUnitID
+	if existingRole.ResponsibleUserID != bcpRoleForm.ResponsibleUserID {
+		organizationUnitID, err := brs.userSvc.GetUserPrimaryUnitID(bcpRoleForm.ResponsibleUserID)
+		if err != nil {
+			tx.Rollback()
+			return utility.NewValidationError(
+				fmt.Errorf("organization unit not set for responsible user"),
+				"not_exist",
+				"responsible_user_unit",
+			)
+		}
+		existingRole.ResponsibleUnitID = organizationUnitID
+	}
+
 	existingRole.Responsibility = bcpRoleForm.Responsibility
 	existingRole.BackupUserID = bcpRoleForm.BackupUserID
 

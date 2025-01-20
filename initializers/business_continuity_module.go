@@ -74,7 +74,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	bcpTestAndExerciseController := controllers.NewBcpTestAndExerciseController(bcpTestAndExerciseSvc)
 
 	bcpRolesRepo := repositories.NewBcpRolesRepository(db)
-	bcpRolesSvc := services.NewBcpRolesService(bcpRolesRepo)
+	bcpRolesSvc := services.NewBcpRolesService(bcpRolesRepo, organizationModule.UserSvc)
 	bcpRolesController := controllers.NewBcpRolesController(bcpRolesSvc)
 
 	return &BusinessContinuityModule{

@@ -42,17 +42,20 @@ func (repo *BcpRolesRepository) GetAll(params *businessContinuityDTOs.BcpRolesLi
             responsible_user.last_name_en AS responsible_user_last_name_en,
             responsible_user.last_name_ar AS responsible_user_last_name_ar,
             responsible_user.email AS responsible_user_email,
+            responsible_user.profile_image_path AS responsible_user_profile_image_path,
             backup_user.first_name_en AS backup_user_first_name_en,
             backup_user.first_name_ar AS backup_user_first_name_ar,
             backup_user.last_name_en AS backup_user_last_name_en,
             backup_user.last_name_ar AS backup_user_last_name_ar,
             backup_user.email AS backup_user_email,
+            backup_user.profile_image_path AS backup_user_profile_image_path,
             created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
             created_user.last_name_ar AS created_user_last_name_ar,
             created_user.email AS created_user_email,
-            organization_units.title_en AS responsible_unit_title_en
+            organization_units.title_en AS responsible_unit_title_en,
+            organization_units.title_ar AS responsible_unit_title_ar
         `).
 		Joins(`LEFT JOIN users AS responsible_user ON responsible_user.id = bcp_roles.responsible_user_id`).
 		Joins(`LEFT JOIN users AS backup_user ON backup_user.id = bcp_roles.backup_user_id`).
