@@ -74,6 +74,96 @@ func GenerateExcelFile(headers []string, data [][]interface{}) (*os.File, error)
 	return tempFile, nil
 }
 
+func GenerateExcelFileWithSheets(dataBySheet map[string][][]interface{}) (*os.File, error) {
+	f := excelize.NewFile()
+
+	// Flag to check if Sheet1 is needed
+	sheet1Used := false
+
+	// Iterate over sheets and populate data
+	for sheetName, data := range dataBySheet {
+		// If adding data to "Sheet1," mark it as used
+		if sheetName == "Sheet1" {
+			sheet1Used = true
+		} else {
+			// Create a new sheet for other sheet names
+			if _, err := f.NewSheet(sheetName); err != nil {
+				return nil, err
+			}
+		}
+
+		// Get headers and rows
+		if len(data) == 0 {
+			continue
+		}
+		headers := data[0]
+		rows := data[1:]
+
+		// Set headers as bold
+		boldStyle, err := f.NewStyle(&excelize.Style{
+			Font: &excelize.Font{
+				Bold: true,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+		for i, header := range headers {
+			cell := fmt.Sprintf("%s1", string(rune('A'+i)))
+			f.SetCellValue(sheetName, cell, header)
+			f.SetCellStyle(sheetName, cell, cell, boldStyle)
+		}
+
+		// Populate rows
+		for rowIndex, row := range rows {
+			for colIndex, value := range row {
+				cell := fmt.Sprintf("%s%d", string(rune('A'+colIndex)), rowIndex+2) // +2 for the header row
+				f.SetCellValue(sheetName, cell, value)
+			}
+		}
+
+		// Adjust column width
+		for colIndex, header := range headers {
+			maxWidth := len(fmt.Sprint(header))
+			for _, row := range rows {
+				if colIndex < len(row) {
+					cellWidth := len(fmt.Sprint(row[colIndex]))
+					if cellWidth > maxWidth {
+						maxWidth = cellWidth
+					}
+				}
+			}
+			columnName := string(rune('A' + colIndex))
+			f.SetColWidth(sheetName, columnName, columnName, float64(maxWidth+2)) // Add padding
+		}
+	}
+
+	// Remove default "Sheet1" if it's not used
+	if !sheet1Used {
+		f.DeleteSheet("Sheet1")
+	}
+
+	// Save the file
+	tempFile, err := os.CreateTemp("", "template_*.xlsx")
+	if err != nil {
+		return nil, err
+	}
+
+	if err := f.SaveAs(tempFile.Name()); err != nil {
+		return nil, err
+	}
+
+	return tempFile, nil
+}
+
+func ConvertToInterfaceSlice(slice []string) []interface{} {
+	interfaceSlice := make([]interface{}, len(slice))
+	for i, v := range slice {
+		interfaceSlice[i] = v
+	}
+	return interfaceSlice
+}
+
 func ReadExcelFile(file io.Reader) ([][]string, error) {
 	f, err := excelize.OpenReader(file)
 	if err != nil {

@@ -15,7 +15,7 @@ import (
 )
 
 type BcpRecoveryPlanServiceInterface interface {
-	GetAll(bcpId uint, params *businessContinuityDTOs.BcpRecoveryPlanListQueryParamsDTO) (*businessContinuityDTOs.BcpRecoveryPlanListResponseDTO, error)
+	GetAll(bcpId uint, params *businessContinuityDTOs.BcpRecoveryPlanListQueryParamsDTO) ([]*businessContinuityDTOs.BcpRecoveryPlanListDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.BcpRecoveryPlanDetailDTO, error)
 	GetByID(id uint) (*models.BcpRecoveryPlan, error)
 	Create(bcpId uint, currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.BcpRecoveryPlanFormDTO) (uint, error)
@@ -42,7 +42,7 @@ func NewBcpRecoveryPlanService(
 	}
 }
 
-func (brps *BcpRecoveryPlanService) GetAll(bcpId uint, params *businessContinuityDTOs.BcpRecoveryPlanListQueryParamsDTO) (*businessContinuityDTOs.BcpRecoveryPlanListResponseDTO, error) {
+func (brps *BcpRecoveryPlanService) GetAll(bcpId uint, params *businessContinuityDTOs.BcpRecoveryPlanListQueryParamsDTO) ([]*businessContinuityDTOs.BcpRecoveryPlanListDTO, error) {
 	return brps.repo.GetAll(bcpId, params)
 }
 

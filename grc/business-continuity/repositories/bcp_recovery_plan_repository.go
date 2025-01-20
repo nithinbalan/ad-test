@@ -2,7 +2,6 @@ package repositories
 
 import (
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
-	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -11,7 +10,7 @@ import (
 
 type BcpRecoveryPlanRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(bcpId uint, params *businessContinuityDTOs.BcpRecoveryPlanListQueryParamsDTO) (*businessContinuityDTOs.BcpRecoveryPlanListResponseDTO, error)
+	GetAll(bcpId uint, params *businessContinuityDTOs.BcpRecoveryPlanListQueryParamsDTO) ([]*businessContinuityDTOs.BcpRecoveryPlanListDTO, error)
 	GetByID(id uint) (*models.BcpRecoveryPlan, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.BcpRecoveryPlan, error)
 	Create(BcpRecoveryPlan *models.BcpRecoveryPlan, tx ...utility.DatabaseTransaction) (uint, error)
@@ -34,7 +33,7 @@ func (repo *BcpRecoveryPlanRepository) BeginTransaction() utility.DatabaseTransa
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *BcpRecoveryPlanRepository) GetAll(bcpId uint, params *businessContinuityDTOs.BcpRecoveryPlanListQueryParamsDTO) (*businessContinuityDTOs.BcpRecoveryPlanListResponseDTO, error) {
+func (repo *BcpRecoveryPlanRepository) GetAll(bcpId uint, params *businessContinuityDTOs.BcpRecoveryPlanListQueryParamsDTO) ([]*businessContinuityDTOs.BcpRecoveryPlanListDTO, error) {
 	var BcpRecoveryPlans []*businessContinuityDTOs.BcpRecoveryPlanListDTO
 	var totalCount int64
 
@@ -134,27 +133,12 @@ func (repo *BcpRecoveryPlanRepository) GetAll(bcpId uint, params *businessContin
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
-	query = query.Offset(offset).Limit(params.PageSize)
-
 	err := query.Find(&BcpRecoveryPlans).Error
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := 1
-	totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
-	response := &businessContinuityDTOs.BcpRecoveryPlanListResponseDTO{
-		Items: BcpRecoveryPlans,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
-	}
-	return response, nil
+	return BcpRecoveryPlans, nil
 }
 
 func (repo *BcpRecoveryPlanRepository) GetByID(id uint) (*models.BcpRecoveryPlan, error) {

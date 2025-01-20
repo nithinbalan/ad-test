@@ -25,6 +25,9 @@ type BusinessContinuityPlanRepositoryInterface interface {
 	GetBusinessContinuityPlanByBusinessFunctionID(businessFunctionId uint) (*models.BusinessContinuityPlan, error)
 	CreateBcpProcesses(bcpProcess *models.BcpProcess, tx ...utility.DatabaseTransaction) error
 	DeleteBcpProcesses(bcpProcessIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateDocuments(docs []*models.BcpDocument, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint) (*models.BcpDocument, error)
+	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type BusinessContinuityPlanRepository struct {
@@ -50,12 +53,25 @@ func (repo *BusinessContinuityPlanRepository) GetAll(params *businessContinuityD
 		Select(`
             business_continuity_plans.*,
 			business_functions.title AS business_function_title,
+			bcp_statuses.title_en AS bcp_status_title_en,
+			bcp_statuses.title_ar AS bcp_status_title_ar,
+			bcp_statuses.color_code AS bcp_status_color_code,
+			bcp_statuses.type AS bcp_status_type,
 			rto_time_unit.title_en AS rto_unit_title_en,
 			rto_time_unit.title_ar AS rto_unit_title_ar,
 			mtpd_time_unit.title_en AS mtpd_unit_title_en,
 			mtpd_time_unit.title_ar AS mtpd_unit_title_ar,
 			rpo_time_unit.title_en AS rpo_unit_title_en,
 			rpo_time_unit.title_ar AS rpo_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+            responsible_user.first_name_ar AS responsible_user_first_name_ar,
+            responsible_user.last_name_en AS responsible_user_last_name_en,
+            responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+            responsible_user.color AS responsible_user_color,
+            responsible_user.email AS responsible_user_email,
+            responsible_user.profile_image_path AS responsible_user_profile_image_path,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -77,6 +93,8 @@ func (repo *BusinessContinuityPlanRepository) GetAll(params *businessContinuityD
         `).
 		Joins(`
 		    LEFT JOIN business_functions ON business_functions.id = business_continuity_plans.business_function_id
+			LEFT JOIN bcp_statuses ON bcp_statuses.id = business_continuity_plans.bcp_status_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = business_continuity_plans.responsible_user_id
 			LEFT JOIN time_units AS rto_time_unit ON rto_time_unit.id = business_continuity_plans.rto_unit_id
 			LEFT JOIN time_units AS mtpd_time_unit ON mtpd_time_unit.id = business_continuity_plans.mtpd_unit_id
 			LEFT JOIN time_units AS rpo_time_unit ON rpo_time_unit.id = business_continuity_plans.rpo_unit_id
@@ -167,6 +185,11 @@ func (repo *BusinessContinuityPlanRepository) GetFullDetailsByID(id uint, tx ...
 		Preload("BusinessFunction").
 		Preload("BusinessFunction.SeverityLevel").
 		Preload("BusinessFunction.ReviewFrequency").
+		Preload("BusinessFunction.ResponsibleUser").
+		Preload("ResponsibleUser").
+		Preload("ResponsibleUnit").
+		Preload("Documents").
+		Preload("BcpStatus").
 		Preload("RtoUnit").
 		Preload("MtpdUnit").
 		Preload("RpoUnit").
@@ -288,6 +311,40 @@ func (repo *BusinessContinuityPlanRepository) DeleteBcpProcesses(bcpProcessIds [
 
 	// Delete processes by IDs
 	if err := db.Where("id IN (?)", bcpProcessIds).Delete(&models.BcpProcess{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *BusinessContinuityPlanRepository) CreateDocuments(docs []*models.BcpDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	// Save all documents in a single transaction
+	if err := db.Create(&docs).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *BusinessContinuityPlanRepository) GetDocumentByID(id uint) (*models.BcpDocument, error) {
+	var document models.BcpDocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
+}
+
+func (repo *BusinessContinuityPlanRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete documents by IDs
+	if err := db.Where("id IN (?)", docIds).Delete(&models.BcpDocument{}).Error; err != nil {
 		return err
 	}
 

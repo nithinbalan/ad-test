@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	userDTOs "jethur/grc/organization/dtos"
@@ -13,7 +14,7 @@ import (
 type UserRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error)
-	GetAllUsers() ([]*models.User, error)
+	GetAllUsers(primaryOrgUnitField string) ([]*userDTOs.UserPrimaryDetailsDTO, error)
 	GetByID(id uint) (*models.User, error)
 	GetFullDetailsByID(id uint) (*models.User, error)
 	GetByEmail(email string) (*models.User, error)
@@ -198,10 +199,30 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 	return response, nil
 }
 
-func (repo *UserRepository) GetAllUsers() ([]*models.User, error) {
-	var users []*models.User
-	result := repo.db.Select("id, first_name_en, last_name_en").Find(&users)
-	return users, result.Error
+func (repo *UserRepository) GetAllUsers(primaryOrgUnitField string) ([]*userDTOs.UserPrimaryDetailsDTO, error) {
+	var users []*userDTOs.UserPrimaryDetailsDTO
+
+	// Perform the query
+	err := repo.db.
+		Table("users").
+		Select(`
+			users.id,
+			users.first_name_en,
+			users.last_name_en,
+			users.email,
+			designations.title_en AS designation,
+			primary_unit.title_en AS primary_unit,
+			users.mobile_number,
+			users.profile_image_path`).
+		Joins("LEFT JOIN designations ON designations.id = users.designation_id").
+		Joins(fmt.Sprintf("LEFT JOIN organization_units AS primary_unit ON primary_unit.id = users.%s", primaryOrgUnitField)).
+		Where("users.user_status_id = ?", 1).
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }
 
 func (repo *UserRepository) GetByID(id uint) (*models.User, error) {
