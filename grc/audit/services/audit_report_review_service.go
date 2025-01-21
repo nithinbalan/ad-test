@@ -297,7 +297,7 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 }
 
 func (arrs *AuditReportReviewService) AddComment(id uint, currentUserID uint, auditReportReviewCommentFormDTO *auditDTOs.AuditReportReviewCommentFormDTO) error {
-	auditFinalReport, err := arrs.auditFinalReportSvc.GetFullDetailsByID(id, currentUserID)
+	auditFinalReport, err := arrs.auditFinalReportSvc.GetFullDetailsByID(id, currentUserID,"")
 	if err != nil {
 		return err
 	}

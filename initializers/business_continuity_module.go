@@ -11,8 +11,18 @@ import (
 type BusinessContinuityModule struct {
 	BusinessFunctionController         *controllers.BusinessFunctionController
 	BusinessImpactAssessmentController *controllers.BusinessImpactAssessmentController
+	BusinessContinuityPlanController   *controllers.BusinessContinuityPlanController
+	BcpBiaMatrixController             *controllers.BcpBiaMatrixController
+	BcpPhaseController                 *controllers.BcpPhaseController
+	BcpRecoveryPlanController          *controllers.BcpRecoveryPlanController
+	BcpCommunicationPlanController     *controllers.BcpCommunicationPlanController
+	BcpTestAndExerciseController       *controllers.BcpTestAndExerciseController
+	BcpStatusController                *controllers.BcpStatusController
+	BcpTeamController                  *controllers.BcpTeamController
+	TestAndExerciseStatusController    *controllers.TestAndExerciseStatusController
 
 	BusinessFunctionSvc services.BusinessFunctionServiceInterface
+	BcpTeamSvc          services.BcpTeamServiceInterface
 }
 
 func NewBusinessContinuityModule(db *gorm.DB,
@@ -22,8 +32,8 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	organizationModule *OrganizationModule,
 	assetModule *AssetModule,
 	documentModule *DocumentModule,
+	riskModule *RiskModule,
 ) *BusinessContinuityModule {
-
 	businessFunctionRepo := repositories.NewBusinessFunctionRepository(db)
 
 	businessFunctionSvc := services.NewBusinessFunctionService(businessFunctionRepo,
@@ -33,13 +43,59 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	businessFunctionController := controllers.NewBusinessFunctionController(businessFunctionSvc)
 
 	businessImpactAssessmentRepo := repositories.NewBusinessImpactAssessmentRepository(db)
-	businessImpactAssessmentSvc := services.NewBusinessImpactAssessmentService(businessImpactAssessmentRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, masterModule.ImpactCategorySvc, organizationModule.ProcessSvc, assetModule.AssetRegisterSvc, documentModule.DocumentSvc)
+	businessImpactAssessmentSvc := services.NewBusinessImpactAssessmentService(businessImpactAssessmentRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, masterModule.ImpactCategorySvc, organizationModule.ProcessSvc, assetModule.AssetRegisterSvc, documentModule.DocumentSvc, riskModule.RiskLevelSvc)
 	businessImpactAssessmentController := controllers.NewBusinessImpactAssessmentController(businessImpactAssessmentSvc, organizationModule.ProcessAssociatedItemSvc, organizationModule.ProcessSvc)
+
+	bcpStatusRepo := repositories.NewBcpStatusRepository(db)
+	bcpStatusSvc := services.NewBcpStatusService(bcpStatusRepo)
+	bcpStatusController := controllers.NewBcpStatusController(bcpStatusSvc)
+
+	businessContinuityPlanRepo := repositories.NewBusinessContinuityPlanRepository(db)
+	businessContinuityPlanSvc := services.NewBusinessContinuityPlanService(businessContinuityPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, businessFunctionSvc, organizationModule.UserSettingSvc, bcpStatusSvc)
+	businessContinuityPlanController := controllers.NewBusinessContinuityPlanController(businessContinuityPlanSvc)
+
+	bcpBiaMatrixRepo := repositories.NewBcpBiaMatrixRepository(db)
+	bcpBiaMatrixSvc := services.NewBcpBiaMatrixService(bcpBiaMatrixRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, businessContinuityPlanSvc, businessFunctionSvc)
+	bcpBiaMatrixController := controllers.NewBcpBiaMatrixController(bcpBiaMatrixSvc)
+
+	bcpPhaseRepo := repositories.NewBcpPhaseRepository(db)
+	bcpPhaseSvc := services.NewBcpPhaseService(bcpPhaseRepo)
+	bcpPhaseController := controllers.NewBcpPhaseController(bcpPhaseSvc)
+
+	bcpRecoveryPlanRepo := repositories.NewBcpRecoveryPlanRepository(db)
+	bcpRecoveryPlanSvc := services.NewBcpRecoveryPlanService(bcpRecoveryPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc)
+	bcpRecoveryPlanController := controllers.NewBcpRecoveryPlanController(bcpRecoveryPlanSvc)
+
+	bcpCommunicationPlanRepo := repositories.NewBcpCommunicationPlanRepository(db)
+	bcpCommunicationPlanSvc := services.NewBcpCommunicationPlanService(bcpCommunicationPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc)
+	bcpCommunicationPlanController := controllers.NewBcpCommunicationPlanController(bcpCommunicationPlanSvc)
+
+	bcpTestAndExerciseRepo := repositories.NewBcpTestAndExerciseRepository(db)
+	bcpTestAndExerciseSvc := services.NewBcpTestAndExerciseService(bcpTestAndExerciseRepo, sharedModule.ActivityLogService, organizationModule.UserSvc)
+	bcpTestAndExerciseController := controllers.NewBcpTestAndExerciseController(bcpTestAndExerciseSvc)
+
+	bcpTeamRepo := repositories.NewBcpTeamRepository(db)
+	bcpTeamSvc := services.NewBcpTeamService(bcpTeamRepo, organizationModule.UserSvc)
+	bcpTeamController := controllers.NewBcpTeamController(bcpTeamSvc)
+
+	testAndExerciseStatusRepo := repositories.NewTestAndExerciseStatusRepository(db)
+	testAndExerciseStatusSvc := services.NewTestAndExerciseStatusService(testAndExerciseStatusRepo)
+	testAndExerciseStatusController := controllers.NewTestAndExerciseStatusController(testAndExerciseStatusSvc)
 
 	return &BusinessContinuityModule{
 		BusinessFunctionController:         businessFunctionController,
 		BusinessImpactAssessmentController: businessImpactAssessmentController,
+		BusinessContinuityPlanController:   businessContinuityPlanController,
+		BcpBiaMatrixController:             bcpBiaMatrixController,
+		BcpPhaseController:                 bcpPhaseController,
+		BcpRecoveryPlanController:          bcpRecoveryPlanController,
+		BcpCommunicationPlanController:     bcpCommunicationPlanController,
+		BcpTestAndExerciseController:       bcpTestAndExerciseController,
+		BcpStatusController:                bcpStatusController,
+		BcpTeamController:                  bcpTeamController,
+		TestAndExerciseStatusController:    testAndExerciseStatusController,
 
 		BusinessFunctionSvc: businessFunctionSvc,
+		BcpTeamSvc:          bcpTeamSvc,
 	}
 }

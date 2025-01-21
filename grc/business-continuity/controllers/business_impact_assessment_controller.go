@@ -36,13 +36,6 @@ func (biac *BusinessImpactAssessmentController) GetAllProcesses(c *gin.Context) 
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
-	quickFilter := c.QueryArray("quick_filter")
-
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(biac.db, c, "Invalid export parameter")
-		return
-	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -92,16 +85,14 @@ func (biac *BusinessImpactAssessmentController) GetAllProcesses(c *gin.Context) 
 	}
 
 	queryParams := organizationDTOs.ProcessListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortField,
-		Keyword:     keyword,
-		Page:        page,
-		PageSize:    pageSize,
-		Filters:     filters,
-		QuickFilter: quickFilter,
-		Export:      export,
-		DateFrom:    dateFrom,
-		DateTo:      dateTo,
+		Sort:     sort,
+		SortBy:   sortField,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Filters:  filters,
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
 	}
 
 	processes, err := biac.processSvc.GetAll(&queryParams)
@@ -125,7 +116,6 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessIncidents(c *gin.Co
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -140,13 +130,12 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessIncidents(c *gin.Co
 	}
 
 	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Status:   status,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	incidents, err := biac.processAssociatedItemSvc.GetAllIncidents(uint(processID), &queryParams)
 
@@ -179,7 +168,6 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessDocuments(c *gin.Co
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -194,13 +182,12 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessDocuments(c *gin.Co
 	}
 
 	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Status:   status,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	documents, err := biac.processAssociatedItemSvc.GetAllDocuments(uint(processID), &queryParams)
 
@@ -233,7 +220,6 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessAssets(c *gin.Conte
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -248,13 +234,12 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessAssets(c *gin.Conte
 	}
 
 	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Status:   status,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	assets, err := biac.processAssociatedItemSvc.GetAllAssets(uint(processID), &queryParams)
 
@@ -272,6 +257,58 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessAssets(c *gin.Conte
 		}
 	}
 	c.JSON(http.StatusOK, assets)
+}
+
+func (biac *BusinessImpactAssessmentController) GetAllProcessRisks(c *gin.Context) {
+	processIDStr := c.Param("processId")
+
+	processID, err := strconv.ParseUint(processIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Status:   status,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	documents, err := biac.processAssociatedItemSvc.GetAllRisks(uint(processID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(biac.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, documents)
 }
 
 func (biac *BusinessImpactAssessmentController) GetAllBIAImpactAnalysis(c *gin.Context) {
@@ -324,6 +361,21 @@ func (biac *BusinessImpactAssessmentController) GetAllBIARecoveryObjectives(c *g
 	}
 
 	c.JSON(http.StatusOK, businessImpactAssessments)
+}
+
+func (biac *BusinessImpactAssessmentController) GetProcessDetails(c *gin.Context) {
+	processID, err := strconv.Atoi(c.Param("processId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	process, err := biac.processSvc.GetFullDetailsByID(uint(processID))
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, process)
 }
 
 func (biac *BusinessImpactAssessmentController) CreateBusinessImpactAssessment(c *gin.Context) {
@@ -418,4 +470,63 @@ func (biac *BusinessImpactAssessmentController) UpdateRecoveryObjective(c *gin.C
 		}
 	}
 	c.Status(http.StatusOK)
+}
+
+func (biac *BusinessImpactAssessmentController) GetBIAMatrix(c *gin.Context) {
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "business_function_title")
+	keyword := c.Query("keyword")
+
+	validSortFields := map[string]string{
+		"business_function_title": "business_functions.title",
+		"process_title_en":        "processes.title_en",
+		"process_title_ar":        "processes.title_ar",
+		"risk_level_title_en":     "risk_levels.title_en",
+		"risk_level_title_ar":     "risk_levels.title_ar",
+		"rto":                     "processes.rto",
+		"mtp":                     "processes.mtpd",
+		"rpo":                     "processes.rpo",
+		"rto_unit_title_en":       "time_units_rto.title_en",
+		"rto_unit_title_ar":       "time_units_rto.title_ar",
+		"mtp_unit_title_en":       "time_units_mtpd.title_en",
+		"mtp_unit_title_ar":       "time_units_mtpd.title_ar",
+		"rpo_unit_title_en":       "time_units_rpo.title_en",
+		"rpo_unit_title_ar":       "time_units_rpo.title_ar",
+		"risk_level_id":           "processes.risk_level_id",
+		"created_at":              "processes.created_at",
+		"updated_at":              "processes.updated_at",
+	}
+
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	filters := utility.ParseQueryFilters([]string{"risk_level_id"}, c.Request.URL.Query())
+
+	queryParams := businessContinuityDTOs.BIAMatrixQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortField,
+		Keyword:  keyword,
+		Filters:  filters,
+	}
+
+	matrix, err := biac.service.GetBIAMatrix(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(biac.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, matrix)
 }

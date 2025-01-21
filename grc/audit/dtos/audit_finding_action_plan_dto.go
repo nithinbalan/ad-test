@@ -83,6 +83,7 @@ type AuditFindingActionPlanListResponseDTO struct {
 }
 
 type AuditFindingActionPlanFormDTO struct {
+	FindingID          *uint   `json:"finding_id" binding:"omitempty"`
 	Title              string  `json:"title" binding:"required"`
 	Description        *string `json:"description" binding:"omitempty"`
 	SeverityLevelID    *uint   `json:"severity_level_id" binding:"omitempty"`

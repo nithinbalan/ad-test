@@ -72,6 +72,7 @@ func (repo *DocumentChangeRequestRepository) GetAll(params *dtos.DocumentChangeR
 			change_request_statuses.title_en AS document_change_request_status_title_en,
 			change_request_statuses.title_ar AS document_change_request_status_title_ar,
 			change_request_statuses.color_code AS document_change_request_status_color_code,
+			change_request_statuses.type AS document_change_request_status_type,
 			document_change_requests.reason_for_change,
 			document_change_requests.version,
 			created_by_user.id AS created_by_user_id,
@@ -185,7 +186,10 @@ func (repo *DocumentChangeRequestRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("Document.DocumentType").
 		Preload("Document.DocumentCategory").
 		Preload("Document.DocumentAccessType").
-		Preload("Document.LatestDocumentVersion").
+		Preload("Document.LatestDocumentVersion", "is_latest_version = ?", true).
+		Preload("Document.LatestDocumentVersion.CreatedByUser").
+		Preload("Document.LatestDocumentVersion.UpdatedByUser").
+		Preload("Document.LatestDocumentVersion.PublishedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("DocumentCREditHistory").

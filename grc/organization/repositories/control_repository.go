@@ -15,6 +15,7 @@ import (
 type ControlRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *organizationDTOs.ControlListQueryParamsDTO) (*organizationDTOs.ControlListResponseDTO, error)
+	GetAllControls() ([]*models.Control, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error)
 	Create(control *models.Control) (uint, error)
@@ -276,6 +277,12 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 		},
 	}
 	return response, nil
+}
+
+func (repo *ControlRepository) GetAllControls() ([]*models.Control, error) {
+	var controls []*models.Control
+	result := repo.db.Select("id, title_en").Find(&controls)
+	return controls, result.Error
 }
 
 func (repo *ControlRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error) {

@@ -25,6 +25,7 @@ import (
 
 type UserServiceInterface interface {
 	GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error)
+	GetAllUsers() ([]*userDTOs.UserPrimaryDetailsDTO, error)
 	GetByID(id uint) (*models.User, error)
 	GetFullDetailsByID(id uint) (*userDTOs.UserDetailsDTO, error)
 	GetByEmail(email string) (*models.User, error)
@@ -131,6 +132,35 @@ func (us *UserService) GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTO
 	return us.repo.GetAll(params)
 }
 
+func (us *UserService) GetAllUsers() ([]*userDTOs.UserPrimaryDetailsDTO, error) {
+	primaryLevel, err := us.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return nil, err
+	}
+
+	var primaryOrgUnitField string
+	switch primaryLevel.Level {
+	case 1:
+		primaryOrgUnitField = "organization_unit_1_id"
+	case 2:
+		primaryOrgUnitField = "organization_unit_2_id"
+	case 3:
+		primaryOrgUnitField = "organization_unit_3_id"
+	case 4:
+		primaryOrgUnitField = "organization_unit_4_id"
+	case 5:
+		primaryOrgUnitField = "organization_unit_5_id"
+	default:
+		return nil, fmt.Errorf("unsupported primary level")
+	}
+
+	return us.repo.GetAllUsers(primaryOrgUnitField)
+}
+
+// func (us *UserService) GetAllUsers() ([]*models.User, error) {
+// 	return us.repo.GetAllUsers()
+// }
+
 func (us *UserService) GetByID(id uint) (*models.User, error) {
 	user, err := us.repo.GetByID(id)
 
@@ -200,9 +230,15 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 	}
 	// @todo - need to validate organization unit in validateUserFormDTO
 
-	password, err := us.GenerateRandomPassword(12)
-	if err != nil {
-		return 0, err
+	var password string
+	if userFormDTO.Password != "" {
+		password = userFormDTO.Password
+	} else {
+		var err error
+		password, err = us.GenerateRandomPassword(12)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -247,7 +283,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 
 	userSecurityDTO := &userDTOs.UserSecurityFormDTO{
 		PasswordHash: string(passwordHash),
-		IsMFA:        true,
+		IsMFA:        false,
 	}
 
 	if err = us.userSettingSvc.CreateUserSecurity(userID, userSecurityDTO, tx); err != nil {
@@ -315,45 +351,51 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		}
 	}()
 
-	emailTemplateSettings, err := us.emailTemplateSettingsSvc.GetEmailTemplateSettings()
-	if err != nil {
-		return 0, err
+	if userFormDTO.IsSentEmail {
+
+		emailTemplateSettings, err := us.emailTemplateSettingsSvc.GetEmailTemplateSettings()
+		if err != nil {
+			return 0, err
+		}
+
+		socialLinks, err := us.notificationSvc.GetSocialMediaLinks()
+		if err != nil {
+			return 0, err
+		}
+
+		emailTemplateAndSocialDTO := &commonDTOs.EmailTemplateAndSocialDTO{
+			HeaderImageURL: emailTemplateSettings.HeaderImageURL,
+			SupportText:    emailTemplateSettings.SupportText,
+			ClosingText:    emailTemplateSettings.ClosingText,
+			FooterLogoURL:  emailTemplateSettings.FooterLogoURL,
+			FooterAddress:  emailTemplateSettings.FooterAddress,
+			FooterEmail:    emailTemplateSettings.FooterEmail,
+			Linkedin:       &socialLinks.Linkedin,
+			X:              &socialLinks.X,
+			Facebook:       &socialLinks.Facebook,
+		}
+
+		appURL := utility.GetAppURL()
+		redirectURL := fmt.Sprintf("%sauth/login", appURL)
+
+		emailData := userDTOs.SendNewPasswordEmailDTO{
+			FirstNameEn: userFormDTO.FirstNameEn,
+			LastNameEn:  userFormDTO.LastNameEn,
+			Email:       userFormDTO.Email,
+			Password:    password,
+			RedirectURL: redirectURL,
+		}
+
+		to := []string{user.Email}
+		subject := "Important: Welcome to Jethur!"
+		templateRelativePath := "organization/templates/email/user_welcome.html"
+
+		err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, emailTemplateAndSocialDTO, nil)
+
+		if err != nil {
+			return 0, err
+		}
 	}
-
-	socialLinks, err := us.notificationSvc.GetSocialMediaLinks()
-	if err != nil {
-		return 0, err
-	}
-
-	emailTemplateAndSocialDTO := &commonDTOs.EmailTemplateAndSocialDTO{
-		HeaderImageURL: emailTemplateSettings.HeaderImageURL,
-		SupportText:    emailTemplateSettings.SupportText,
-		ClosingText:    emailTemplateSettings.ClosingText,
-		FooterLogoURL:  emailTemplateSettings.FooterLogoURL,
-		FooterAddress:  emailTemplateSettings.FooterAddress,
-		FooterEmail:    emailTemplateSettings.FooterEmail,
-		Linkedin:       &socialLinks.Linkedin,
-		X:              &socialLinks.X,
-		Facebook:       &socialLinks.Facebook,
-	}
-
-	emailData := userDTOs.SendNewPasswordEmailDTO{
-		FirstNameEn: userFormDTO.FirstNameEn,
-		LastNameEn:  userFormDTO.LastNameEn,
-		Email:       userFormDTO.Email,
-		Password:    password,
-	}
-
-	to := []string{user.Email}
-	subject := "Important: Welcome to Jethur!"
-	templateRelativePath := "organization/templates/email/user_welcome.html"
-
-	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, emailTemplateAndSocialDTO, nil)
-
-	if err != nil {
-		return 0, err
-	}
-
 	return userID, nil
 }
 
@@ -590,6 +632,12 @@ func (us *UserService) validateUserFormDTO(id *uint, userFormDTO *userDTOs.UserF
 			return err
 		} else if exists {
 			return utility.NewValidationError(fmt.Errorf("email already exists: %s", userFormDTO.Email), "unique", "email")
+		}
+	}
+
+	if userFormDTO.Password != "" {
+		if !utility.IsValidPassword(userFormDTO.Password) {
+			return utility.NewValidationError(fmt.Errorf("password does not meet the requirements"), "password_complexity", "password")
 		}
 	}
 

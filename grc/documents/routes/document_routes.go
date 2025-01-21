@@ -45,6 +45,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentChangeRequestReviewController := app.DocumentModule.DocumentChangeRequestReviewController
 	documentChangeRequestWorkflowController := app.DocumentModule.DocumentChangeRequestWorkflowController
 
+	documentPeriodicReviewController := app.DocumentModule.DocumentPeriodicReviewController
+
 	documentRoutes.GET("/document-categories", documentCategoryController.GetAllDocumentCategories)
 	documentRoutes.GET("/document-categories/:id", documentCategoryController.GetDocumentCategoryDetails)
 	documentRoutes.POST("/document-categories", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), documentCategoryController.CreateDocumentCategory)
@@ -120,7 +122,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.PUT("/documents/:id/clauses/:clauseId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentClauseController.UpdateDocumentClause)
 	documentRoutes.POST("/documents/:id/clauses/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentClauseController.DeleteDocumentClauses)
 
-	//document associated item list
+	//document associated item lists
 	documentRoutes.GET("documents/:id/controls", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAssociatedItemController.GetAllDocumentControls)
 	documentRoutes.GET("documents/:id/compliance-requirements", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAssociatedItemController.GetAllDocumentComplianceRequirements)
 	documentRoutes.GET("documents/:id/processes", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAssociatedItemController.GetAllDocumentProcesses)
@@ -150,6 +152,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.GET("/document-change-request-statuses", documentChangeRequestStatusController.GetAllDocumentChangeRequestStatuses)
 	documentRoutes.GET("/document-change-request-statuses/:id", documentChangeRequestStatusController.GetDocumentChangeRequestStatusDetails)
 
+	documentRoutes.GET("/document-change-requests/export", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetDocumentChangeRequestExport)
 	documentRoutes.GET("/document-change-requests", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetAllDocumentChangeRequests)
 	documentRoutes.GET("/document-change-requests/:id", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetDocumentChangeRequestDetails)
 	documentRoutes.POST("/document-change-requests", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.CreateDocumentChangeRequest)
@@ -173,4 +176,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	documentRoutes.GET("/document-change-requests/:id/last-edit-summary", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetLastEditSummary)
 
+	//review
+	documentRoutes.GET("/documents/:id/reviews", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentPeriodicReviewController.GetAllDocumentPeriodicReviews)
+	documentRoutes.GET("/documents/:id/reviews/:reviewId", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentPeriodicReviewController.GetDocumentPeriodicReviewDetails)
+	documentRoutes.POST("/documents/:id/reviews", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentPeriodicReviewController.CreateDocumentPeriodicReview)
+	documentRoutes.PUT("/documents/:id/reviews/:reviewId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentPeriodicReviewController.UpdateDocumentPeriodicReview)
+	documentRoutes.POST("/documents/:id/reviews/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentPeriodicReviewController.DeleteDocumentPeriodicReview)
 }

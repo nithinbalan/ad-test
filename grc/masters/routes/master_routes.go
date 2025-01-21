@@ -34,6 +34,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	integrationCategoryController := app.MasterModule.IntegrationCategoryController
 	impactCategoryController := app.MasterModule.ImpactCategoryController
 	timeUnitController := app.MasterModule.TimeUnitController
+	reviewStatusController := app.MasterModule.ReviewStatusController
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
@@ -124,4 +125,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	masterRoutes.GET("/time-units", timeUnitController.GetAllTimeUnits)
 	masterRoutes.GET("/time-units/:id", timeUnitController.GetTimeUnitDetails)
+
+	masterRoutes.GET("/review-statuses", reviewStatusController.GetAllReviewStatuses)
+	masterRoutes.GET("/review-statuses/:id", reviewStatusController.GetReviewStatusDetails)
 }

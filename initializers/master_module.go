@@ -28,6 +28,7 @@ type MasterModule struct {
 	IntegrationCategoryController *controllers.IntegrationCategoryController
 	ImpactCategoryController      *controllers.ImpactCategoryController
 	TimeUnitController            *controllers.TimeUnitController
+	ReviewStatusController        *controllers.ReviewStatusController
 
 	ReviewFrequencySvc     services.ReviewFrequencyServiceInterface
 	SeverityLevelSvc       services.SeverityLevelServiceInterface
@@ -48,6 +49,7 @@ type MasterModule struct {
 	IntegrationCategorySvc services.IntegrationCategoryServiceInterface
 	ImpactCategorySvc      services.ImpactCategoryServiceInterface
 	TimeUnitSvc            services.TimeUnitServiceInterface
+	ReviewStatusSvc        services.ReviewStatusServiceInterface
 }
 
 func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
@@ -143,6 +145,11 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	timeUnitSvc := services.NewTimeUnitService(timeUnitRepo)
 	timeUnitController := controllers.NewTimeUnitController(timeUnitSvc)
 
+	//review status
+	reviewStatusRepo := repositories.NewReviewStatusRepository(db)
+	reviewStatusSvc := services.NewReviewStatusService(reviewStatusRepo)
+	reviewStatusController := controllers.NewReviewStatusController(reviewStatusSvc)
+
 	return &MasterModule{
 		ReviewFrequencyController:     reviewFrequencyController,
 		SeverityLevelController:       severityLevelController,
@@ -163,6 +170,7 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		IntegrationCategoryController: integrationCategoryController,
 		ImpactCategoryController:      impactCategoryController,
 		TimeUnitController:            timeUnitController,
+		ReviewStatusController:        reviewStatusController,
 
 		ReviewFrequencySvc:     reviewFrequencySvc,
 		SeverityLevelSvc:       severityLevelSvc,
@@ -183,5 +191,6 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		IntegrationCategorySvc: integrationCategorySvc,
 		ImpactCategorySvc:      impactCategorySvc,
 		TimeUnitSvc:            timeUnitSvc,
+		ReviewStatusSvc:        reviewStatusSvc,
 	}
 }

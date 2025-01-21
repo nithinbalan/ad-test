@@ -89,6 +89,8 @@ func (r *RiskReportRepository) GetKRIByResponsibleUser(params *reportDTOs.Report
 			users.first_name_ar AS responsible_user_first_name_ar,
 			users.last_name_en AS responsible_user_last_name_en,
 			users.last_name_ar AS responsible_user_last_name_ar,
+			CONCAT(users.first_name_en, ' ', users.last_name_en) AS responsible_user_title_en,
+            CONCAT(users.first_name_ar, ' ', users.last_name_ar) AS responsible_user_title_ar,
 			users.initial AS responsible_user_initial,
 			users.color AS responsible_user_color,
 			users.email AS responsible_user_email,
@@ -196,6 +198,8 @@ func (r *RiskReportRepository) GetRiskByResponsibleUser(params *reportDTOs.Repor
 			users.first_name_ar AS responsible_user_first_name_ar,
 			users.last_name_en AS responsible_user_last_name_en,
 			users.last_name_ar AS responsible_user_last_name_ar,
+			CONCAT(users.first_name_en, ' ', users.last_name_en) AS responsible_user_title_en,
+            CONCAT(users.first_name_ar, ' ', users.last_name_ar) AS responsible_user_title_ar,
 			users.initial AS responsible_user_initial,
 			users.color AS responsible_user_color,
 			users.email AS responsible_user_email,
@@ -344,26 +348,34 @@ func (r *RiskReportRepository) GetRiskByRiskAppetiteToleranceLevel(params *repor
 func (r *RiskReportRepository) GetRiskByKRIEnabledStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.RiskByKRIEnabledStatusDTO, error) {
 	results := []*reportDTOs.RiskByKRIEnabledStatusDTO{}
 
-	// Build the subquery with date filtering applied
 	subQuery := r.db.Table("risk_register").
 		Select(`risk_register.id AS risk_id,
 				CASE 
-					WHEN EXISTS (SELECT 1 FROM risk_kris WHERE risk_kris.risk_register_id = risk_register.id) 
-					THEN 'Enabled' 
+					WHEN EXISTS (
+						SELECT 1 
+						FROM risk_kris 
+						WHERE risk_kris.risk_register_id = risk_register.id
+					) THEN 'Enabled' 
 					ELSE 'Not Enabled' 
-				END AS kri_status`)
+				END AS kri_status_en,
+				CASE 
+					WHEN EXISTS (
+						SELECT 1 
+						FROM risk_kris 
+						WHERE risk_kris.risk_register_id = risk_register.id
+					) THEN N'مفعل' 
+					ELSE N'غير مفعل' 
+				END AS kri_status_ar`)
 
-	// Apply date filtering in the subquery
 	if params.DateFrom != "" && params.DateTo != "" {
 		subQuery = subQuery.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
-	// Use the subquery to calculate counts grouped by KRI status
+	// Wrap the subquery and perform the grouping in the main query
 	query := r.db.Table("(?) AS sub", subQuery).
-		Select(`kri_status, COUNT(*) AS count`).
-		Group("kri_status")
+		Select("kri_status_en, kri_status_ar, COUNT(*) AS count").
+		Group("kri_status_en, kri_status_ar")
 
-	// Execute the query
 	err := query.Scan(&results).Error
 	return results, err
 }
@@ -398,6 +410,8 @@ func (r *RiskReportRepository) GetRiskActionPlansByResponsibleUser(params *repor
 				users.first_name_ar AS responsible_user_first_name_ar,
 				users.last_name_en AS responsible_user_last_name_en,
 				users.last_name_ar AS responsible_user_last_name_ar,
+				CONCAT(users.first_name_en, ' ', users.last_name_en) AS responsible_user_title_en,
+            	CONCAT(users.first_name_ar, ' ', users.last_name_ar) AS responsible_user_title_ar,
 				users.initial AS responsible_user_initial,
 				users.color AS responsible_user_color,
 				users.email AS responsible_user_email,

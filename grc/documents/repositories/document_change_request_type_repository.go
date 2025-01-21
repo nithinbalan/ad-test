@@ -32,15 +32,31 @@ func (repo *DocumentChangeRequestTypeRepository) GetAll(sort string, sortBy stri
 	if keyword != "" {
 		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
 	}
+	if status == "active" || status == "inactive" {
+		query = query.Where("status = ?", status)
+	}
+
+	// Define the custom order
+	customOrder := `
+		CASE 
+			WHEN type = 'major' THEN 1
+			WHEN type = 'minor' THEN 2
+			WHEN type = 'archive' THEN 3
+			WHEN type = 'restore' THEN 4
+			WHEN type = 'restore-with-minor-update' THEN 5
+			WHEN type = 'restore-with-major-update' THEN 6
+			ELSE 7
+		END
+	`
+
+	query = query.Order(customOrder)
+
+	// Sorting fallback
 	if sortBy == "" {
 		sortBy = "title_en"
 	}
 	if sort != "asc" && sort != "desc" {
 		sort = "asc"
-	}
-
-	if status == "active" || status == "inactive" {
-		query = query.Where("status = ?", status)
 	}
 
 	query = query.Order(sortBy + " " + sort)

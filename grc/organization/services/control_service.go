@@ -22,6 +22,7 @@ import (
 
 type ControlServiceInterface interface {
 	GetAll(params *organizationDTOs.ControlListQueryParamsDTO) (*organizationDTOs.ControlListResponseDTO, error)
+	GetAllControls() ([]*models.Control, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationDTOs.ControlDetailDTO, error)
 	Create(currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) (uint, error)
@@ -85,6 +86,10 @@ func NewControlService(
 
 func (cs *ControlService) GetAll(params *organizationDTOs.ControlListQueryParamsDTO) (*organizationDTOs.ControlListResponseDTO, error) {
 	return cs.repo.GetAll(params)
+}
+
+func (cs *ControlService) GetAllControls() ([]*models.Control, error) {
+	return cs.repo.GetAllControls()
 }
 
 func (cs *ControlService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error) {
@@ -170,13 +175,13 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 
 	control := &models.Control{
 		ControlTypeID:                 controlFormDTO.ControlTypeID,
-		ControlCategoryID:             &controlFormDTO.ControlCategoryID,
+		ControlCategoryID:             controlFormDTO.ControlCategoryID,
 		OwnerID:                       controlFormDTO.OwnerID,
 		OwnerUnitID:                   organizationUnitID,
 		ControlImplementationStatusID: controlFormDTO.ControlImplementationStatusID,
 		ControlEfficiencyStatusID:     controlFormDTO.ControlEfficiencyStatusID,
 		ReferenceNumber:               referenceNumber,
-		Code:                          &controlFormDTO.Code,
+		Code:                          controlFormDTO.Code,
 		TitleEn:                       controlFormDTO.TitleEn,
 		TitleAr:                       controlFormDTO.TitleAr,
 		Description:                   controlFormDTO.Description,
@@ -196,6 +201,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 		IsApplicable:                  controlFormDTO.IsApplicable,
 		Justification:                 controlFormDTO.Justification,
 		ApplicabilityChangeDate:       dates.ApplicabilityChangeDate,
+		ImplementationGuideline:       controlFormDTO.ImplementationGuideline,
 	}
 
 	id, err := cs.repo.Create(control)
@@ -323,11 +329,11 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 		existingControl.OwnerUnitID = organizationUnitID
 	}
 	existingControl.ControlTypeID = controlFormDTO.ControlTypeID
-	existingControl.ControlCategoryID = &controlFormDTO.ControlCategoryID
+	existingControl.ControlCategoryID = controlFormDTO.ControlCategoryID
 	existingControl.OwnerID = controlFormDTO.OwnerID
 	existingControl.ControlImplementationStatusID = controlFormDTO.ControlImplementationStatusID
 	existingControl.ControlEfficiencyStatusID = controlFormDTO.ControlEfficiencyStatusID
-	existingControl.Code = &controlFormDTO.Code
+	existingControl.Code = controlFormDTO.Code
 	existingControl.TitleEn = controlFormDTO.TitleEn
 	existingControl.TitleAr = controlFormDTO.TitleAr
 	existingControl.Description = controlFormDTO.Description
@@ -343,6 +349,7 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 	existingControl.NextTestDate = dates.NextTestDate
 	existingControl.IsApplicable = controlFormDTO.IsApplicable
 	existingControl.Justification = controlFormDTO.Justification
+	existingControl.ImplementationGuideline = controlFormDTO.ImplementationGuideline
 	existingControl.ApplicabilityChangeDate = dates.ApplicabilityChangeDate
 	existingControl.UpdatedByID = &currentUserID
 
@@ -705,11 +712,11 @@ func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTO
 		return utility.NewValidationError(fmt.Errorf("control type does not exist"), "not_exist", "control type")
 	}
 
-	// if controlFormDTO.ControlCategoryID != nil {
-	if _, err := cs.controlCategorySvc.GetByID(uint(controlFormDTO.ControlCategoryID)); err != nil {
-		return utility.NewValidationError(fmt.Errorf("control category does not exist"), "not_exist", "control category")
+	if controlFormDTO.ControlCategoryID != nil {
+		if _, err := cs.controlCategorySvc.GetByID(uint(*controlFormDTO.ControlCategoryID)); err != nil {
+			return utility.NewValidationError(fmt.Errorf("control category does not exist"), "not_exist", "control category")
+		}
 	}
-	// }
 
 	if _, err := cs.userSvc.GetByID(uint(controlFormDTO.OwnerID)); err != nil {
 		return utility.NewValidationError(fmt.Errorf("control owner does not exist"), "not_exist", "control owner")
@@ -1001,9 +1008,9 @@ func (ps *ControlService) ImportProcesses(file multipart.File, currentUserID uin
 	for i, row := range data {
 		// Map the row data to the ProcessFormDTO
 		processForm := organizationDTOs.ControlFormDTO{
-			Code:                  row["Code"],
+			Code:                  utility.ParseOptionalString(row["Code"]),
 			ControlTypeID:         utility.ParseUint(row["ControlTypeID"]),
-			ControlCategoryID:     utility.ParseUint(row["ControlCategoryID"]),
+			ControlCategoryID:     utility.ParseOptionalUint(row["ControlCategoryID"]),
 			OwnerID:               utility.ParseUint(row["OwnerID"]),
 			TitleEn:               row["TitleEn"],
 			TitleAr:               row["TitleAr"],

@@ -2,6 +2,7 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
 	"time"
@@ -32,6 +33,7 @@ type DocumentListDTO struct {
 	DocumentStatusTitleEn           string     `json:"document_status_title_en"`
 	DocumentStatusTitleAr           string     `json:"document_status_title_ar"`
 	DocumentStatusColorCode         string     `json:"document_status_color_code"`
+	DocumentStatusType              string     `json:"document_status_type"`
 	DocumentVersion                 float64    `json:"document_version"`
 	DocumentURL                     string     `json:"document_url"`
 	DocumentName                    string     `json:"document_name"`
@@ -105,6 +107,7 @@ type DocumentFormDTO struct {
 	DocumentVersion      float64                     `json:"document_version" binding:"required"`
 	SharedUserIDs        []*uint                     `json:"shared_user_ids"`
 	SharedUnitIDs        []*uint                     `json:"shared_unit_ids"`
+	ReviewFrequencyID    *uint                       `json:"review_frequency_id" binding:"omitempty"`
 }
 
 type DocumentDetailsDTO struct {
@@ -130,6 +133,8 @@ type DocumentDetailsDTO struct {
 	CreatedAt             time.Time                        `json:"created_at"`
 	UpdatedAt             *time.Time                       `json:"updated_at"`
 	Acknowledged          *bool                            `json:"acknowledged,omitempty"`
+	ReviewFrequency       *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
+	NextReviewDate        *time.Time                       `json:"next_review_date"`
 }
 
 type DocumentVersionDTO struct {
@@ -149,6 +154,8 @@ type DocumentVersionDTO struct {
 	UpdatedByUser       organizationDTOs.UserMinimalDTO  `json:"updated_by"`
 	CreatedAt           time.Time                        `json:"created_at"`
 	UpdatedAt           *time.Time                       `json:"updated_at"`
+	PublishedAt         *time.Time                       `json:"published_at"`
+	PublishedByUser     organizationDTOs.UserMinimalDTO  `json:"published_by"`
 	DocumentEditHistory []DocumentEditHistoryDTO         `json:"document_edit_history"`
 	DocumentWorkflows   []DocumentWorkflowDTO            `json:"document_workflow"`
 }

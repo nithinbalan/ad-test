@@ -62,6 +62,7 @@ func (iapc *IncidentActionPlanController) GetAllIncidentActionPlans(c *gin.Conte
 
 	validSortFields := map[string]string{
 		"title":               "incident_action_plans.title",
+		"description":         "incident_action_plans.description",
 		"incident_title":      "incident_register.title",
 		"severity_level_en":   "severity_levels.title_en",
 		"severity_level_ar":   "severity_levels.title_ar",

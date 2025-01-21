@@ -20,6 +20,7 @@ type DocumentChangeRequestListDTO struct {
 	DocumentChangeRequestStatusTitleEn   string  `json:"document_change_request_status_title_en"`
 	DocumentChangeRequestStatusTitleAr   string  `json:"document_change_request_status_title_ar"`
 	DocumentChangeRequestStatusColorCode string  `json:"document_change_request_status_color_code"`
+	DocumentChangeRequestStatusType      string  `json:"document_change_request_status_type"`
 	ReasonForChange                      *string `json:"reason_for_change"`
 	Version                              float64 `json:"version"`
 
@@ -97,6 +98,7 @@ type DocumentChangeRequestQueryParamsDTO struct {
 	PageSize    int
 	Filters     map[string][]string
 	QuickFilter []string
+	Export      bool
 }
 
 // List Response DTO
@@ -111,6 +113,7 @@ type DocumentChangeRequestFormDTO struct {
 	DocumentChangeRequestInitiateID *uint                      `json:"document_change_request_initiate_id"`
 	ReasonForChange                 *string                    `json:"reason_for_change"`
 	Document                        commonDTOs.DocumentFormDTO `json:"document" binding:"required"`
+	DocumentReviewID                *uint                      `json:"document_review_id"`
 }
 
 type DocumentCREditHistoryDTO struct {

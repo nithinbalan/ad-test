@@ -1,0 +1,166 @@
+name: grc-api-deployment(grc-api.jethur.com)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: jethur-dev
+    steps:
+
+      # Step: Start email notification
+      - name: Send Start Email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.zeptomail.in # Replace with your SMTP host
+          server_port: 587   # Replace with your SMTP port
+          username: ${{ secrets.ZEPTO_USERNAME }}
+          password: ${{ secrets.ZEPTO_PASSWORD }}
+          subject: "Pipeline Started"
+          body: "GitHub Actions GRC-API deployment has started."
+          to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
+          from: "Jethur Notifications <info@jethur.com>"    
+          
+      # Step: Checkout Code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Step: Set Go Path
+      - name: Set Go Path
+        run: |
+          $env:PATH = "C:\Program Files\Go\bin;$env:PATH"
+        shell: powershell
+
+      # Step: Verify Go Version
+      - name: Verify Go Version
+        run: go version
+
+      # Step: Cache Go Modules
+      - name: Cache Go Modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      # Step: Install Dependencies
+      - name: Install Dependencies
+        run: |
+          go mod tidy
+          go install github.com/pressly/goose/v3/cmd/goose@latest
+        shell: powershell
+
+      # Step: Download script.bat from Server
+      - name: Download script.bat
+        run: |
+          $sourcePath = "C:\deployment\deployment-files\script.bat"
+          $destinationPath = "${{ github.workspace }}\script.bat"
+
+          # Copy script.bat from server to workspace
+          Copy-Item -Path $sourcePath -Destination $destinationPath -Force
+        shell: powershell
+
+      # Step: Modify script.bat for Database Name
+      - name: Modify script.bat for Database Name
+        run: |
+          $scriptPath = "${{ github.workspace }}\script.bat"
+          $staticDatabaseName = "jethur_grc_db" # Replace with your static database name
+
+          # Replace 'DatabasetName' with the static database name
+          (Get-Content -Path $scriptPath) -replace "DatabaseName", $staticDatabaseName | Set-Content -Path $scriptPath
+        shell: powershell
+
+      # Step: Switch to migration_new Branch and Run Migrations
+      - name: Switch to migration_new Branch
+        run: |
+          git fetch origin migration_new # Fetch the specific branch from the remote
+          git checkout migration_new
+
+      - name: Run Migrations and Seed
+        run: |
+          .\script.bat migrateup
+          .\script.bat seed
+        shell: powershell
+
+      # Step: Switch Back to Main Branch and Build API
+      - name: Switch Back to Main Branch
+        run: git checkout main
+
+      - name: Build API
+        run: go build ./cmd/api
+
+      # Step: Stop NSSM Task
+      - name: Stop NSSM Task
+        run: nssm stop grc-api
+        shell: powershell
+
+      # Step: Backup and Deploy API Executable
+      - name: Backup and Deploy API Executable
+        run: |
+          $iisDocRoot = "C:\inetpub\wwwroot\grc\grc-api"
+          $apiBackup = "$iisDocRoot\api_backup.exe"
+          $apiExecutable = "$iisDocRoot\api.exe"
+
+          # Delete the old backup file if it exists
+          if (Test-Path $apiBackup) {
+              Remove-Item -Force $apiBackup
+          }
+
+          # Rename existing executable to backup
+          if (Test-Path $apiExecutable) {
+              Rename-Item -Path $apiExecutable -NewName "api_backup.exe"
+          }
+
+          # Copy new executable to IIS document root
+          Copy-Item -Path "${{ github.workspace }}\api.exe" -Destination $iisDocRoot
+        shell: powershell
+        
+      # Step: Start NSSM Task 
+      - name: Start NSSM Service
+        run: nssm start grc-api
+        continue-on-error: true
+        
+      # Step: Status check NSSM Task
+      - name: Status NSSM Service
+        run: nssm status grc-api
+
+      # Step: Restart IIS Site
+      - name: Restart IIS Site
+        run: |
+          $siteName = "grc-api"
+
+          # Restart the IIS site
+          Import-Module WebAdministration
+          if ((Get-Website -Name $siteName).State -eq "Started") {
+              Stop-Website -Name $siteName
+          }
+          Start-Website -Name $siteName
+        shell: powershell
+
+      # Step: Cleanup build folder
+      - name: Cleanup build
+        run: |
+          Get-ChildItem -Force
+          Remove-Item -Recurse -Force * -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force .??* -ErrorAction SilentlyContinue
+          Get-ChildItem -Force
+        shell: powershell
+
+      # Step: Send Completion Email
+      - name: Completion Email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.zeptomail.in
+          server_port: 587
+          username: ${{ secrets.ZEPTO_USERNAME }}
+          password: ${{ secrets.ZEPTO_PASSWORD }}
+          subject: "Pipeline Completed"
+          body: "GitHub Actions GRC-API deployment has completed successfully."
+          to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
+          from: "Jethur Notifications <info@jethur.com>"
+
+
+
+
+

@@ -27,7 +27,7 @@ type AuditFindingActionPlanServiceInterface interface {
 	GetFullDetailsByID(findingID uint, id uint) (*auditFindingDTOs.AuditFindingActionPlanDetailDTO, error)
 	Create(findingID uint, currentUserID uint, AuditFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) (uint, error)
 	Update(findingID uint, id uint, currentUserID uint, auditFinding *auditFindingDTOs.AuditFindingActionPlanFormDTO) error
-	Delete(findingID uint, ids []uint, currentUserID uint) ([]uint, error)
+	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(findingID uint, id uint, currentUserID uint, auditFindingActionPlanStatusUpdateFormDTO *auditFindingDTOs.AuditFindingActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
 
 	GetAuditFindingActionPlanCountByStatus(findingId uint) ([]auditFindingDTOs.AuditFindingActionPlanStatusCountResponseDTO, error)
@@ -558,12 +558,8 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	return nil
 }
 
-func (afaps *AuditFindingActionPlanService) Delete(findingID uint, ids []uint, currentUserID uint) ([]uint, error) {
+func (afaps *AuditFindingActionPlanService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	tx := afaps.repo.BeginTransaction()
-
-	if _, err := afaps.auditFindingSvc.GetByID(findingID); err != nil {
-		return nil, err
-	}
 
 	var failedIds []uint
 	var successfulIds []uint

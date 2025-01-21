@@ -74,6 +74,8 @@ type UserFormDTO struct {
 	ProfileImagePath    *string `json:"profile_image_path" binding:"omitempty"`
 	RoleIDs             []uint  `json:"role_ids" binding:"required"`
 	UserStatusID        uint    `json:"user_status_id" binding:"required"`
+	Password            string  `json:"password" binding:"omitempty"`
+	IsSentEmail         bool    `json:"is_sent_email"`
 }
 
 type UserUpdateDTO struct {
@@ -98,6 +100,7 @@ type SendNewPasswordEmailDTO struct {
 	LastNameEn  string `json:"last_name_en"`
 	Email       string `json:"email"`
 	Password    string `json:"password"`
+	RedirectURL string `json:"redirect_url"`
 }
 
 type OrganizationUnit1DTO struct {
@@ -262,4 +265,15 @@ type UserNotificationListResponseDTO struct {
 type MarkNotificationAsReadFormDTO struct {
 	Type                string `json:"type" binding:"required,oneof=all individual"`
 	UserNotificationIDs []uint `json:"user_notification_ids" binding:"required_if=Type individual,dive,gt=0"`
+}
+
+type UserPrimaryDetailsDTO struct {
+	ID               int     `json:"id"`
+	FirstNameEN      string  `json:"first_name_en"`
+	LastNameEN       string  `json:"last_name_en"`
+	Email            string  `json:"email"`
+	Designation      string  `json:"designation"`
+	PrimaryUnit      string  `json:"primary_unit"`
+	MobileNumber     *string `json:"mobile_number"`
+	ProfileImagePath *string `json:"profile_image_path"`
 }

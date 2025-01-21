@@ -2,6 +2,7 @@ package utility
 
 import (
 	"fmt"
+	"io"
 	"mime/multipart"
 	"os"
 	"strconv"
@@ -73,6 +74,136 @@ func GenerateExcelFile(headers []string, data [][]interface{}) (*os.File, error)
 	return tempFile, nil
 }
 
+func GenerateExcelFileWithSheets(dataBySheet map[string][][]interface{}) (*os.File, error) {
+	f := excelize.NewFile()
+
+	// Flag to check if Sheet1 is needed
+	sheet1Used := false
+
+	// Iterate over sheets and populate data
+	for sheetName, data := range dataBySheet {
+		// If adding data to "Sheet1," mark it as used
+		if sheetName == "Sheet1" {
+			sheet1Used = true
+		} else {
+			// Create a new sheet for other sheet names
+			if _, err := f.NewSheet(sheetName); err != nil {
+				return nil, err
+			}
+		}
+
+		// Get headers and rows
+		if len(data) == 0 {
+			continue
+		}
+		headers := data[0]
+		rows := data[1:]
+
+		// Set headers as bold
+		boldStyle, err := f.NewStyle(&excelize.Style{
+			Font: &excelize.Font{
+				Bold: true,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+		for i, header := range headers {
+			cell := fmt.Sprintf("%s1", string(rune('A'+i)))
+			f.SetCellValue(sheetName, cell, header)
+			f.SetCellStyle(sheetName, cell, cell, boldStyle)
+		}
+
+		// Populate rows
+		for rowIndex, row := range rows {
+			for colIndex, value := range row {
+				cell := fmt.Sprintf("%s%d", string(rune('A'+colIndex)), rowIndex+2) // +2 for the header row
+				f.SetCellValue(sheetName, cell, value)
+			}
+		}
+
+		// Adjust column width
+		for colIndex, header := range headers {
+			maxWidth := len(fmt.Sprint(header))
+			for _, row := range rows {
+				if colIndex < len(row) {
+					cellWidth := len(fmt.Sprint(row[colIndex]))
+					if cellWidth > maxWidth {
+						maxWidth = cellWidth
+					}
+				}
+			}
+			columnName := string(rune('A' + colIndex))
+			f.SetColWidth(sheetName, columnName, columnName, float64(maxWidth+2)) // Add padding
+		}
+	}
+
+	// Remove default "Sheet1" if it's not used
+	if !sheet1Used {
+		f.DeleteSheet("Sheet1")
+	}
+
+	// Save the file
+	tempFile, err := os.CreateTemp("", "template_*.xlsx")
+	if err != nil {
+		return nil, err
+	}
+
+	if err := f.SaveAs(tempFile.Name()); err != nil {
+		return nil, err
+	}
+
+	return tempFile, nil
+}
+
+func ConvertToInterfaceSlice(slice []string) []interface{} {
+	interfaceSlice := make([]interface{}, len(slice))
+	for i, v := range slice {
+		interfaceSlice[i] = v
+	}
+	return interfaceSlice
+}
+
+func ReadExcelFile(file io.Reader) ([][]string, error) {
+	f, err := excelize.OpenReader(file)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	rows, err := f.GetRows(f.GetSheetName(0))
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
+}
+
+func ValidateHeaders(expected, actual []string) bool {
+	if len(expected) != len(actual) {
+		return false
+	}
+	for i, header := range expected {
+		if header != actual[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func ParseCommaSeparatedValues(input string) []string {
+	return strings.Split(strings.TrimSpace(input), ";")
+}
+
+func GetOptionalStringValue(value interface{}) *string {
+	strValue, ok := value.(string)
+	if ok && strValue != "" {
+		return &strValue
+	}
+	return nil
+}
+
+// control import
 func ParseExcelFile(file multipart.File, mandatoryFields []string) ([]map[string]string, error) {
 	xlsx, err := excelize.OpenReader(file)
 	if err != nil {
@@ -127,19 +258,17 @@ func ParseUint(value string) uint {
 	return uint(val)
 }
 
-func ParseUintSlice(value string) []*uint {
-	var result []*uint
-	values := strings.Split(value, ",")
-	for _, v := range values {
-		parsed := ParseUint(v)
-		result = append(result, &parsed)
+func ParseOptionalUint(value string) *uint {
+	if value == "" {
+		return nil
 	}
-	return result
+	parsed := ParseUint(value)
+	return &parsed
 }
 
-func GetStringPointer(value string) *string {
+func ParseOptionalString(value string) *string {
 	if value == "" {
-		return nil // If the string is empty, return nil
+		return nil
 	}
 	return &value
 }

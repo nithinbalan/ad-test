@@ -20,11 +20,11 @@ type AssetRegister struct {
 	AssetCriticalityMatrixID            uint       `json:"asset_criticality_matrix_id"`
 	AssetCriticalityMatrixRatingScaleID *uint      `json:"asset_criticality_matrix_rating_scale_id,omitempty" gorm:"default:null"`
 	TotalScore                          *float64   `json:"total_score,omitempty" gorm:"default:null"`
-	Rto                                 *uint      `json:"rto" gorm:"default:null"`
+	Rto                                 *int       `json:"rto" gorm:"default:null"`
 	RtoUnitId                           *uint      `json:"rto_uint_id" gorm:"default:null"`
-	Mtpd                                *uint      `json:"mtpd" gorm:"default:null"`
+	Mtpd                                *int       `json:"mtpd" gorm:"default:null"`
 	MtpdUnitId                          *uint      `json:"mtpd_uint_id" gorm:"default:null"`
-	Rpo                                 *uint      `json:"rpo" gorm:"default:null"`
+	Rpo                                 *int       `json:"rpo" gorm:"default:null"`
 	RpoUnitId                           *uint      `json:"rpo_uint_id" gorm:"default:null"`
 	CreatedBYID                         uint       `json:"created_by_id" gorm:"not null" binding:"required"`
 	CreatedAt                           time.Time  `json:"created_at" gorm:"type:datetime;not null"`

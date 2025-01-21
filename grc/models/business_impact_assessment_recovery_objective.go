@@ -10,11 +10,11 @@ type BusinessImpactAssessmentRecoveryObjective struct {
 	AssetRegisterID   *uint      `json:"asset_register_id"`
 	DocumentID        *uint      `json:"document_id"`
 	RoleInProcess     *string    `json:"role_in_process" gorm:"type:nvarchar(max)"`
-	Rto               *uint      `json:"rto"`
+	Rto               *int       `json:"rto"`
 	RtoUnitId         *uint      `json:"rto_unit_id"`
-	Mtpd              *uint      `json:"mtpd"`
+	Mtpd              *int       `json:"mtpd"`
 	MtpdUnitId        *uint      `json:"mtpd_unit_id"`
-	Rpo               *uint      `json:"rpo"`
+	Rpo               *int       `json:"rpo"`
 	RpoUnitId         *uint      `json:"rpo_unit_id"`
 	ImpactDescription *string    `json:"impact_description"`
 	CreatedByID       uint       `json:"created_by_id" binding:"required"`
