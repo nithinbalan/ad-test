@@ -9,9 +9,17 @@ import (
 	"os/exec"
 )
 
-func GeneratePDFContent(dto interface{}, templatePaths []string) (string, error) {
+func GeneratePDFContent(dto interface{}, templatePaths []string, logoImagePath string, coverBGImagePath string) (string, error) {
+	// Prepare the data to include image paths
+	data := map[string]interface{}{
+		"LogoImagePath":    template.HTML(logoImagePath),
+		"CoverBGImagePath": template.HTML(coverBGImagePath),
+		"Data":             dto,
+	}
+
 	templates := template.New("pdf").Funcs(template.FuncMap{
-		"formatDate": func(date string) string { return date }, // Example: Custom date formatting
+		"formatDate": func(date string) string { return date },
+		"safeHTML":   func(content string) template.HTML { return template.HTML(content) },
 	})
 
 	// Parse all templates at once
@@ -28,7 +36,7 @@ func GeneratePDFContent(dto interface{}, templatePaths []string) (string, error)
 
 	// Render the template into a buffer
 	var renderedHTML bytes.Buffer
-	if err := templates.Execute(&renderedHTML, dto); err != nil {
+	if err := templates.Execute(&renderedHTML, data); err != nil {
 		return "", fmt.Errorf("failed to execute template: %w", err)
 	}
 
@@ -62,7 +70,8 @@ func ConvertHTMLContentToPDF(htmlContent, pdfFileName string) error {
 	tempHTMLFile.Close()
 
 	// Execute `wkhtmltopdf` to generate the PDF
-	cmd := exec.Command(wkhtmltopdfPath, tempHTMLFile.Name(), pdfFileName)
+	cmd := exec.Command(wkhtmltopdfPath, "--enable-local-file-access", tempHTMLFile.Name(), pdfFileName)
+
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {

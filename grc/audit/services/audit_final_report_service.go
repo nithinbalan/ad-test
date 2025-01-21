@@ -15,10 +15,12 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	riskDTOs "jethur/grc/risk/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
+	settingsServices "jethur/grc/settings/services"
 	"jethur/utility"
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -49,6 +51,7 @@ type AuditFinalReportService struct {
 	auditFinalReportStatusSvc AuditFinalReportStatusServiceInterface
 	auditFindingSvc           AuditFindingServiceInterface
 	auditReportWorkflowSvc    AuditReportWorkflowServiceInterface
+	settingSvc                settingsServices.AuditTemplateSettingServiceInterface
 }
 
 func NewAuditFinalReportService(
@@ -61,6 +64,7 @@ func NewAuditFinalReportService(
 	userSvc organizationServices.UserServiceInterface,
 	auditFinalReportStatusSvc AuditFinalReportStatusServiceInterface,
 	auditFindingSvc AuditFindingServiceInterface,
+	settingSvc settingsServices.AuditTemplateSettingServiceInterface,
 ) AuditFinalReportServiceInterface {
 	return &AuditFinalReportService{
 		repo:                      repo,
@@ -72,6 +76,7 @@ func NewAuditFinalReportService(
 		userSvc:                   userSvc,
 		auditFinalReportStatusSvc: auditFinalReportStatusSvc,
 		auditFindingSvc:           auditFindingSvc,
+		settingSvc:                settingSvc,
 	}
 }
 func (afrs *AuditFinalReportService) SetAuditReportWorkflowService(svc AuditReportWorkflowServiceInterface) {
@@ -1020,21 +1025,32 @@ func (afrs *AuditFinalReportService) ExportAuditFinalReportToPDF(auditID uint, c
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch audit report details: %w", err)
 	}
-
+	auditTemplateSetting, err := afrs.settingSvc.GetFirst()
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch audit template details: %w", err)
+	}
+	logoImagePath, err := afrs.settingSvc.GetImagePath(auditTemplateSetting.ID, "logo")
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch audit template logo Image Path: %w", err)
+	}
+	finalReportCoverPageBGImagePath, err := afrs.settingSvc.GetImagePath(auditTemplateSetting.ID, "final_report")
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch audit template cover bg Image Path: %w", err)
+	}
 	// Define template paths
 	templatePaths := []string{
-		"audit/templates/pdf/base.html",
-		"audit/templates/pdf/header.html",
-		"audit/templates/pdf/footer.html",
 		"audit/templates/pdf/audit_final_report.html", // Content-specific template
 	}
+	logoImagePath = "file:///" + strings.ReplaceAll(logoImagePath, "\\", "/")
+	finalReportCoverPageBGImagePath = "file:///" + strings.ReplaceAll(finalReportCoverPageBGImagePath, "\\", "/")
 
+	fmt.Println("logoImagePath =", logoImagePath)
+	fmt.Println("finalReportCoverPageBGImagePath =", finalReportCoverPageBGImagePath)
 	// Generate the HTML content
-	htmlContent, err := utility.GeneratePDFContent(auditFinalReport, templatePaths)
+	htmlContent, err := utility.GeneratePDFContent(auditFinalReport, templatePaths, logoImagePath, finalReportCoverPageBGImagePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate HTML content: %w", err)
 	}
-
 	// Define the output PDF file name
 	pdfFileName := fmt.Sprintf("AuditFinalReport_%d.pdf", auditID)
 

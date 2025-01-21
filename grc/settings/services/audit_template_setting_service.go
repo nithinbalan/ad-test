@@ -19,6 +19,7 @@ import (
 type AuditTemplateSettingServiceInterface interface {
 	GetAll(params *settingsDTOs.AuditTemplateSettingListQueryParamsDTO) ([]*settingsDTOs.AuditTemplateSettingListDTO, error)
 	GetByID(id uint) (*models.AuditTemplateSetting, error)
+	GetFirst() (*models.AuditTemplateSetting, error)
 	Update(id uint, currentUserID uint, updatedTemplateSettingDTO *settingsDTOs.AuditTemplateSettingFormDTO) error
 	GetImagePath(id uint, templateType string) (string, error)
 }
@@ -56,6 +57,16 @@ func (atss AuditTemplateSettingService) GetByID(id uint) (*models.AuditTemplateS
 	return auditTemplateSetting, nil
 }
 
+func (atss AuditTemplateSettingService) GetFirst() (*models.AuditTemplateSetting, error) {
+	auditTemplateSetting, err := atss.repo.GetFirst()
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, nil)
+		}
+		return nil, err
+	}
+	return auditTemplateSetting, nil
+}
 func (atss *AuditTemplateSettingService) Update(id uint, currentUserID uint, updatedTemplateSettingDTO *settingsDTOs.AuditTemplateSettingFormDTO) error {
 	// Begin a database transaction
 	tx := atss.repo.BeginTransaction()

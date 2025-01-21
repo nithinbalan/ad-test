@@ -379,7 +379,6 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	)
 	auditDraftFindingConversationController := controllers.NewAuditDraftFindingConversationController(auditDraftFindingConversationSvc)
 
-
 	rcmRepo := repositories.NewRCMRepository(db)
 	rcmSvc := services.NewRCMService(
 		rcmRepo,
@@ -455,6 +454,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		organizationModule.UserSvc,
 		auditFinalReportStatusSvc,
 		auditFindingSvc,
+		settingModule.AuditTemplateSettingSvc,
 	)
 	auditFinalReportController := controllers.NewAuditFinalReportController(auditFinalReportSvc)
 
