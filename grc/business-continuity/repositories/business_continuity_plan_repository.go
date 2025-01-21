@@ -196,6 +196,12 @@ func (repo *BusinessContinuityPlanRepository) GetFullDetailsByID(id uint, tx ...
 		Preload("Processes").
 		Preload("Processes.Process").
 		Preload("Processes.Process.Owner").
+		Preload("BcpRecoveryPlans").
+		Preload("BcpRecoveryPlans.SeverityLevel").
+		Preload("BcpRecoveryPlans.BcpProcess").
+		Preload("BcpRecoveryPlans.BcpProcess.Process").
+		Preload("BcpCommunicationPlans").
+		Preload("BcpCommunicationPlans.BcpProcess").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&businessContinuityPlan, id)

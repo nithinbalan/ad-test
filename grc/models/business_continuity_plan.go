@@ -28,17 +28,19 @@ type BusinessContinuityPlan struct {
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relationships
-	BusinessFunction *BusinessFunction `gorm:"foreignKey:BusinessFunctionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Processes        []BcpProcess      `gorm:"foreignKey:BusinessContinuityPlanID"`
-	BcpStatus        *BcpStatus        `gorm:"foreignKey:BcpStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser  *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUnit  *OrganizationUnit `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	RtoUnit          *TimeUnit         `gorm:"foreignKey:RtoUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	MtpdUnit         *TimeUnit         `gorm:"foreignKey:MtpdUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	RpoUnit          *TimeUnit         `gorm:"foreignKey:RpoUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Documents        []BcpDocument     `gorm:"foreignKey:BusinessContinuityPlanID"`
-	CreatedByUser    *User             `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedBYID"`
+	BusinessFunction      *BusinessFunction      `gorm:"foreignKey:BusinessFunctionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Processes             []BcpProcess           `gorm:"foreignKey:BusinessContinuityPlanID"`
+	BcpStatus             *BcpStatus             `gorm:"foreignKey:BcpStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser       *User                  `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUnit       *OrganizationUnit      `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RtoUnit               *TimeUnit              `gorm:"foreignKey:RtoUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	MtpdUnit              *TimeUnit              `gorm:"foreignKey:MtpdUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RpoUnit               *TimeUnit              `gorm:"foreignKey:RpoUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Documents             []BcpDocument          `gorm:"foreignKey:BusinessContinuityPlanID"`
+	BcpRecoveryPlans      []BcpRecoveryPlan      `gorm:"foreignKey:BusinessContinuityPlanID"`
+	BcpCommunicationPlans []BcpCommunicationPlan `gorm:"foreignKey:BusinessContinuityPlanID"`
+	CreatedByUser         *User                  `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser         *User                  `gorm:"foreignKey:UpdatedBYID"`
 }
 
 // TableName overrides the table name used by BusinessContinuityPlan to `business_continuity_plans`

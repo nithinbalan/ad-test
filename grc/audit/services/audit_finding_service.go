@@ -14,6 +14,7 @@ import (
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -30,6 +31,7 @@ type AuditFindingServiceInterface interface {
 
 	GetAuditFindingCountByCategory(auditId uint) ([]auditDTOs.AuditFindingCategoryCountResponseDTO, error)
 	GetDocumentPath(id uint, token string) (string, error)
+	ExportAuditFindings(data []*auditDTOs.AuditFindingListDTO, currentUserID uint) (*os.File, error)
 }
 
 type AuditFindingService struct {
@@ -41,6 +43,7 @@ type AuditFindingService struct {
 	auditableItemSvc      AuditableItemServiceInterface
 	auditFindingCategory  AuditFindingCategoryServiceInterface
 	severityLevelSvc      masterServices.SeverityLevelServiceInterface
+	userSettingSvc        organizationServices.UserSettingServiceInterface
 }
 
 func NewAuditFindingService(
@@ -52,6 +55,7 @@ func NewAuditFindingService(
 	auditableItemSvc AuditableItemServiceInterface,
 	auditFindingCategory AuditFindingCategoryServiceInterface,
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) AuditFindingServiceInterface {
 	return &AuditFindingService{
 		repo:                  repo,
@@ -62,6 +66,7 @@ func NewAuditFindingService(
 		auditableItemSvc:      auditableItemSvc,
 		auditFindingCategory:  auditFindingCategory,
 		severityLevelSvc:      severityLevelSvc,
+		userSettingSvc:        userSettingSvc,
 	}
 }
 
@@ -556,4 +561,97 @@ func (afs *AuditFindingService) GetDocumentPath(id uint, token string) (string, 
 	}
 
 	return fullPath, nil
+}
+
+func (afs *AuditFindingService) ExportAuditFindings(data []*auditDTOs.AuditFindingListDTO, currentUserID uint) (*os.File, error) {
+	// Retrieve user settings for language preference
+	userSetting, err := afs.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	// Define headers based on the user's language setting
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Audit Title",
+			"Finding Title",
+			"Description (AR)",
+			"Recommendations (AR)",
+			"Auditable Item (AR)",
+			"Category (AR)",
+			"Severity Level (AR)",
+			"Severity Color",
+			"Status (AR)",
+			"Status Color",
+			"Created At",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Audit Title",
+			"Finding Title",
+			"Description (EN)",
+			"Recommendations (EN)",
+			"Auditable Item (EN)",
+			"Category (EN)",
+			"Severity Level (EN)",
+			"Severity Color",
+			"Status (EN)",
+			"Status Color",
+			"Created At",
+		}
+	}
+
+	// Convert data to [][]interface{} based on language preference
+	rows := make([][]interface{}, len(data))
+	for i, item := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				item.ReferenceNumber,
+				item.AuditTitle,
+				item.Title,
+				safeString(item.Description),
+				safeString(item.Recommendations),
+				item.AuditableItemTitleAr,
+				item.AuditFindingCategoryTitleAr,
+				item.SeverityLevelTitleAr,
+				item.SeverityLevelColorCode,
+				item.AuditFindingStatusTitleAr,
+				item.AuditFindingStatusColorCode,
+				item.CreatedAt,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				item.ReferenceNumber,
+				item.AuditTitle,
+				item.Title,
+				safeString(item.Description),
+				safeString(item.Recommendations),
+				item.AuditableItemTitleEn,
+				item.AuditFindingCategoryTitleEn,
+				item.SeverityLevelTitleEn,
+				item.SeverityLevelColorCode,
+				item.AuditFindingStatusTitleEn,
+				item.AuditFindingStatusColorCode,
+				item.CreatedAt,
+			}
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
+}
+
+// Helper function to handle nullable strings
+func safeString(input *string) string {
+	if input == nil {
+		return ""
+	}
+	return *input
 }

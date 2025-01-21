@@ -4,6 +4,7 @@ import (
 	"time"
 
 	organizationDTOs "jethur/grc/organization/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
 )
 
 type BcpCommunicationPlanListDTO struct {
@@ -76,8 +77,10 @@ type BcpCommunicationPlanDetailDTO struct {
 	BcpPhase               BcpPhaseDTO                      `json:"bcp_phase"`
 	BcpProcessID           uint                             `json:"bcp_process_id"`
 	BcpProcess             BcpProcessDTO                    `json:"bcp_process"`
-	ResponsibleUserID      uint                             `json:"responsible_user_id" binding:"required" gorm:"not null"`
+	ResponsibleUserID      uint                             `json:"responsible_user_id"`
 	ResponsibleUser        organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
+	ResponsibleUnitID      uint                             `json:"responsible_unit_id"`
+	ResponsibleUnit        settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
 	Frequency              *string                          `json:"frequency"`
 	Recipient              *string                          `json:"recipient"`
 	Channel                *string                          `json:"channel"`
