@@ -27,6 +27,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	bcpStatusController := app.BusinessContinuityModule.BcpStatusController
 	BcpTeamController := app.BusinessContinuityModule.BcpTeamController
 	testAndExerciseStatusController := app.BusinessContinuityModule.TestAndExerciseStatusController
+	testAndExerciseController := app.BusinessContinuityModule.TestAndExerciseController
 
 	// bcp phase
 	businessContinuityRoutes.GET("/bcp-phases", bcpPhaseController.GetAllBcpPhases)
@@ -104,4 +105,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.POST("/bcp/:bcpId/teams", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), BcpTeamController.CreateBcpTeam)
 	businessContinuityRoutes.PUT("/bcp/:bcpId/teams/:id", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), BcpTeamController.UpdateBcpTeam)
 	businessContinuityRoutes.POST("/bcp/:bcpId/teams/delete", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), BcpTeamController.DeleteBcpTeams)
+
+	// Bcp Test and Exercise
+	businessContinuityRoutes.GET("/test-and-exercises", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "view"), testAndExerciseController.GetAllTestAndExercises)
+	businessContinuityRoutes.GET("/test-and-exercises/:id", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "view"), testAndExerciseController.GetTestAndExerciseDetails)
+	businessContinuityRoutes.POST("/test-and-exercises", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseController.CreateTestAndExercise)
+	businessContinuityRoutes.PUT("/test-and-exercises/:id", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseController.UpdateTestAndExercise)
+	businessContinuityRoutes.POST("/test-and-exercises/delete", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseController.DeleteTestAndExercises)
 }
