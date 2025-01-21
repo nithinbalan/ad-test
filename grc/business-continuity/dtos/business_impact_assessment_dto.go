@@ -102,20 +102,12 @@ type BusinessImpactAssessmentListQueryParamsDTO struct {
 	Filters map[string][]string
 }
 
-// type BusinessImpactAssessmentListResponseDTO struct {
-// 	Items []*BusinessImpactAssessmentListDTO `json:"items"`
-// }
-
 type BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO struct {
 	Sort    string
 	SortBy  string
 	Keyword string
 	Filters map[string][]string
 }
-
-// type BusinessImpactAssessmentRecoveryObjectiveListResponseDTO struct {
-// 	Items []*BusinessImpactAssessmentRecoveryObjectiveListDTO `json:"items"`
-// }
 
 type BusinessImpactFormDTO struct {
 	ProcessID *uint `json:"process_id"`
