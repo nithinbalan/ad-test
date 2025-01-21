@@ -8,6 +8,7 @@ type BusinessImpactAssessmentListDTO struct {
 	ImpactCategoryID            uint    `json:"impact_category_id"`
 	ImpactCategoryTitleEn       string  `json:"impact_category_title_en"`
 	ImpactCategoryTitleAr       string  `json:"impact_category_title_ar"`
+	ImpactCategoryType          string  `json:"impact_category_type"`
 	RiskLevelID                 *uint   `json:"risk_level_id"`
 	RiskLevelTitleEn            string  `json:"risk_level_title_en"`
 	RiskLevelTitleAr            string  `json:"risk_level_title_ar"`
