@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"jethur/config"
@@ -1173,8 +1174,11 @@ func (crs *ComplianceRegisterService) validateComplianceDocumentFormDTO(document
 	if document == nil {
 		return utility.NewValidationError(fmt.Errorf("document is required"), "required", "document")
 	}
+	// Normalize the file type to lowercase for case-insensitive comparison
+	fileType := strings.ToLower(document.Type)
+
 	// Validate file type (PDF)
-	if document.Type != ".pdf" {
+	if fileType != ".pdf" {
 		return utility.NewValidationError(fmt.Errorf("only PDF files are allowed"), "invalid_file_type", "type")
 	}
 

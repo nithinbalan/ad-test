@@ -2,7 +2,6 @@ package repositories
 
 import (
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
-	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -21,7 +20,7 @@ type BusinessImpactAssessmentRepositoryInterface interface {
 	DeleteImpactAssessmentsByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
 	DeleteRecoveryObjectivesByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
 	GetImpactAssessmentsByProcessID(processID uint) ([]*models.BusinessImpactAssessment, error)
-	GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) (*businessContinuityDTOs.BIAMatrixResponsePaginatedDTO, error)
+	GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) ([]businessContinuityDTOs.BIAMatrixResponseDTO, error)
 }
 
 type BusinessImpactAssessmentRepository struct {
@@ -52,6 +51,7 @@ func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *bus
 			asset_register.title_ar AS asset_register_title_ar,
 			impact_categories.title_en AS impact_category_title_en,
 			impact_categories.title_ar AS impact_category_title_ar,
+			impact_categories.type AS impact_category_type,
 			risk_levels.title_en AS risk_level_title_en,
 			risk_levels.title_ar AS risk_level_title_ar,
 			risk_levels.color_code AS risk_level_color_code,
@@ -330,9 +330,8 @@ func (repo *BusinessImpactAssessmentRepository) GetImpactAssessmentsByProcessID(
 	return businessImpactAssessments, nil
 }
 
-func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) (*businessContinuityDTOs.BIAMatrixResponsePaginatedDTO, error) {
+func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) ([]businessContinuityDTOs.BIAMatrixResponseDTO, error) {
 	var results []businessContinuityDTOs.BIAMatrixResponseDTO
-	var totalCount int64
 
 	query := repo.db.Table("business_function_processes").
 		Select(`
@@ -366,14 +365,12 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
     `).
 		Where("processes.is_bia_performed = ?", 1)
 
-	// Apply filters
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
 			query = query.Where(columnName+" IN (?)", values)
 		}
 	}
 
-	// Apply keyword search
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
@@ -385,36 +382,11 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
 			keyword, keyword, keyword, keyword, keyword)
 	}
 
-	// Count total results for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
-	// Apply sorting
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	// Apply pagination
-	offset := (params.Page - 1) * params.PageSize
-	query = query.Offset(offset).Limit(params.PageSize)
-
-	// Fetch results
 	if err := query.Scan(&results).Error; err != nil {
 		return nil, err
 	}
 
-	// Calculate total pages
-	totalPages := (totalCount + int64(params.PageSize) - 1) / int64(params.PageSize)
-
-	// Build response
-	response := &businessContinuityDTOs.BIAMatrixResponsePaginatedDTO{
-		Items: results,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  int(totalPages),
-			TotalCount:  totalCount,
-		},
-	}
-
-	return response, nil
+	return results, nil
 }

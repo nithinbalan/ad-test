@@ -134,6 +134,7 @@ type DocumentDetailsDTO struct {
 	UpdatedAt             *time.Time                       `json:"updated_at"`
 	Acknowledged          *bool                            `json:"acknowledged,omitempty"`
 	ReviewFrequency       *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
+	NextReviewDate        *time.Time                       `json:"next_review_date"`
 }
 
 type DocumentVersionDTO struct {

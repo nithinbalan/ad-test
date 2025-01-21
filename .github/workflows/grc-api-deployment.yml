@@ -19,7 +19,7 @@ jobs:
           subject: "Pipeline Started"
           body: "GitHub Actions GRC-API deployment has started."
           to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
-          from: "Jethur Notifications <info@jethur.com>"
+          from: "Jethur Notifications <info@jethur.com>"    
           
       # Step: Checkout Code
       - name: Checkout Code
@@ -138,17 +138,17 @@ jobs:
           Start-Website -Name $siteName
         shell: powershell
 
-
-      # Step: Cleanup Deployment Environment
-      - name: Cleanup Deployment Environment
+      # Step: Cleanup build folder
+      - name: Cleanup build
         run: |
-          # Clean up temporary files or directories created during deployment
-          Remove-Item -Recurse -Force "${{ github.workspace }}\temp" -ErrorAction SilentlyContinue
-          Write-Host "Deployment environment cleanup completed."
+          Get-ChildItem -Force
+          Remove-Item -Recurse -Force * -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force .??* -ErrorAction SilentlyContinue
+          Get-ChildItem -Force
         shell: powershell
 
-     # Step: Send Completion Email
-      - name: Send Completion Email
+      # Step: Send Completion Email
+      - name: Completion Email
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.zeptomail.in
@@ -159,3 +159,8 @@ jobs:
           body: "GitHub Actions GRC-API deployment has completed successfully."
           to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
           from: "Jethur Notifications <info@jethur.com>"
+
+
+
+
+

@@ -18,8 +18,11 @@ type BusinessContinuityModule struct {
 	BcpCommunicationPlanController     *controllers.BcpCommunicationPlanController
 	BcpTestAndExerciseController       *controllers.BcpTestAndExerciseController
 	BcpStatusController                *controllers.BcpStatusController
+	BcpTeamController                  *controllers.BcpTeamController
+	TestAndExerciseStatusController    *controllers.TestAndExerciseStatusController
 
 	BusinessFunctionSvc services.BusinessFunctionServiceInterface
+	BcpTeamSvc          services.BcpTeamServiceInterface
 }
 
 func NewBusinessContinuityModule(db *gorm.DB,
@@ -31,7 +34,6 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	documentModule *DocumentModule,
 	riskModule *RiskModule,
 ) *BusinessContinuityModule {
-
 	businessFunctionRepo := repositories.NewBusinessFunctionRepository(db)
 
 	businessFunctionSvc := services.NewBusinessFunctionService(businessFunctionRepo,
@@ -72,6 +74,14 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	bcpTestAndExerciseSvc := services.NewBcpTestAndExerciseService(bcpTestAndExerciseRepo, sharedModule.ActivityLogService, organizationModule.UserSvc)
 	bcpTestAndExerciseController := controllers.NewBcpTestAndExerciseController(bcpTestAndExerciseSvc)
 
+	bcpTeamRepo := repositories.NewBcpTeamRepository(db)
+	bcpTeamSvc := services.NewBcpTeamService(bcpTeamRepo, organizationModule.UserSvc)
+	bcpTeamController := controllers.NewBcpTeamController(bcpTeamSvc)
+
+	testAndExerciseStatusRepo := repositories.NewTestAndExerciseStatusRepository(db)
+	testAndExerciseStatusSvc := services.NewTestAndExerciseStatusService(testAndExerciseStatusRepo)
+	testAndExerciseStatusController := controllers.NewTestAndExerciseStatusController(testAndExerciseStatusSvc)
+
 	return &BusinessContinuityModule{
 		BusinessFunctionController:         businessFunctionController,
 		BusinessImpactAssessmentController: businessImpactAssessmentController,
@@ -82,7 +92,10 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		BcpCommunicationPlanController:     bcpCommunicationPlanController,
 		BcpTestAndExerciseController:       bcpTestAndExerciseController,
 		BcpStatusController:                bcpStatusController,
+		BcpTeamController:                  bcpTeamController,
+		TestAndExerciseStatusController:    testAndExerciseStatusController,
 
 		BusinessFunctionSvc: businessFunctionSvc,
+		BcpTeamSvc:          bcpTeamSvc,
 	}
 }

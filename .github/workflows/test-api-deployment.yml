@@ -130,12 +130,13 @@ jobs:
         shell: powershell
 
 
-      # Step: Cleanup Deployment Environment
-      - name: Cleanup Deployment Environment
+      # Step: Cleanup build folder
+      - name: Cleanup build
         run: |
-          # Clean up temporary files or directories created during deployment
-          Remove-Item -Recurse -Force "${{ github.workspace }}\temp" -ErrorAction SilentlyContinue
-          Write-Host "Deployment environment cleanup completed."
+          Get-ChildItem -Force
+          Remove-Item -Recurse -Force * -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force .??* -ErrorAction SilentlyContinue
+          Get-ChildItem -Force
         shell: powershell
 
      # Step: Send Completion Email

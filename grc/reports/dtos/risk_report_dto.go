@@ -114,8 +114,9 @@ type RiskByRiskAppetiteToleranceLevelDTO struct {
 }
 
 type RiskByKRIEnabledStatusDTO struct {
-	KRIStatus string `json:"kri_status"`
-	Count     uint   `json:"count"`
+	KRIStatusEn string `json:"title_en"`
+	KRIStatusAr string `json:"title_ar"`
+	Count       uint   `json:"count"`
 }
 
 type RiskActionPlansByStatusDTO struct {

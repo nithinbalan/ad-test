@@ -45,6 +45,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentChangeRequestReviewController := app.DocumentModule.DocumentChangeRequestReviewController
 	documentChangeRequestWorkflowController := app.DocumentModule.DocumentChangeRequestWorkflowController
 
+	documentPeriodicReviewController := app.DocumentModule.DocumentPeriodicReviewController
+
 	documentRoutes.GET("/document-categories", documentCategoryController.GetAllDocumentCategories)
 	documentRoutes.GET("/document-categories/:id", documentCategoryController.GetDocumentCategoryDetails)
 	documentRoutes.POST("/document-categories", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), documentCategoryController.CreateDocumentCategory)
@@ -174,4 +176,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	documentRoutes.GET("/document-change-requests/:id/last-edit-summary", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.GetLastEditSummary)
 
+	//review
+	documentRoutes.GET("/documents/:id/reviews", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentPeriodicReviewController.GetAllDocumentPeriodicReviews)
+	documentRoutes.GET("/documents/:id/reviews/:reviewId", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentPeriodicReviewController.GetDocumentPeriodicReviewDetails)
+	documentRoutes.POST("/documents/:id/reviews", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentPeriodicReviewController.CreateDocumentPeriodicReview)
+	documentRoutes.PUT("/documents/:id/reviews/:reviewId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentPeriodicReviewController.UpdateDocumentPeriodicReview)
+	documentRoutes.POST("/documents/:id/reviews/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentPeriodicReviewController.DeleteDocumentPeriodicReview)
 }

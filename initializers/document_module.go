@@ -32,6 +32,7 @@ type DocumentModule struct {
 	DocumentChangeRequestWorkflowStatusController *controllers.DocumentChangeRequestWorkflowStatusController
 	DocumentChangeRequestReviewController         *controllers.DocumentChangeRequestReviewController
 	DocumentChangeRequestWorkflowController       *controllers.DocumentChangeRequestWorkflowController
+	DocumentPeriodicReviewController              *controllers.DocumentPeriodicReviewController
 
 	DocumentSvc services.DocumentServiceInterface
 }
@@ -97,7 +98,8 @@ func NewDocumentModule(db *gorm.DB,
 		organizationModule.UserSettingSvc,
 		taskModule.TaskService,
 		commonModule.NotificationService,
-		settingsModule.OrganizationLevelSvc)
+		settingsModule.OrganizationLevelSvc,
+		masterModule.ReviewFrequencySvc)
 
 	documentSvc.SetDocumentWorkflowService(documentWorkflowSvc)
 
@@ -210,6 +212,16 @@ func NewDocumentModule(db *gorm.DB,
 		taskModule.TaskService)
 	documentCRReviewController := controllers.NewDocumentChangeRequestReviewController(documentCRReviewSvc)
 
+	documentPeriodicReviewRepo := repositories.NewDocumentPeriodicReviewRepository(db)
+	documentPeriodicReviewSvc := services.NewDocumentPeriodicReviewService(
+		documentPeriodicReviewRepo,
+		sharedModule.ActivityLogService,
+		documentSvc,
+		masterModule.ReviewStatusSvc,
+		documentChangeRequestSvc,
+	)
+	documentPeriodicReviewController := controllers.NewDocumentPeriodicReviewController(documentPeriodicReviewSvc)
+
 	return &DocumentModule{
 		DocumentCategoryController:                    documentCategoryController,
 		DocumentTypeController:                        documentTypeController,
@@ -234,6 +246,7 @@ func NewDocumentModule(db *gorm.DB,
 		DocumentChangeRequestWorkflowStatusController: documentChangeRequestWorkflowStatusController,
 		DocumentChangeRequestReviewController:         documentCRReviewController,
 		DocumentChangeRequestWorkflowController:       documentChangeRequestWorkflowController,
+		DocumentPeriodicReviewController:              documentPeriodicReviewController,
 
 		DocumentSvc: documentSvc,
 	}
