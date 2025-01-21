@@ -27,6 +27,7 @@ type DocumentChangeRequest struct {
 	UpdatedBYID                     *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt                       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                       *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
+	DocumentReviewID                *uint      `json:"document_review_id" gorm:"default:null"`
 
 	// Relations
 	Document                      *Document                      `gorm:"foreignKey:DocumentID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -39,6 +40,7 @@ type DocumentChangeRequest struct {
 	LastCheckinByUser             *User                          `gorm:"foreignKey:LastCheckinBYID"`
 	CreatedByUser                 *User                          `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser                 *User                          `gorm:"foreignKey:UpdatedBYID"`
+	DocumentReview                *DocumentReview                `gorm:"foreignKey:DocumentReviewID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 
 	ChangeRequestDocument          *DocumentChangeRequestDocument      `json:"change_request_document" gorm:"foreignKey:DocumentChangeRequestID"`
 	DocumentChangeRequestWorkflows []*DocumentChangeRequestWorkflow    `gorm:"foreignKey:DocumentChangeRequestID"`

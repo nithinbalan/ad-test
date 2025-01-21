@@ -23,17 +23,18 @@ type DocumentPeriodicReviewServiceInterface interface {
 	GetByID(id uint) (*models.DocumentReview, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*documentDTOs.DocumentPeriodicReviewDetailsDTO, error)
 	Create(currentUserID uint, documentID uint, formDTO *documentDTOs.DocumentPeriodicReviewFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, formDTO *documentDTOs.DocumentPeriodicReviewFormDTO) error
+	Update(id uint, documentID uint, currentUserID uint, formDTO *documentDTOs.DocumentPeriodicReviewFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	GetDocumentPath(id uint, token string, tx ...utility.DatabaseTransaction) (string, error)
 }
 
 type DocumentPeriodicReviewService struct {
-	repo                    documentRepositories.DocumentPeriodicReviewRepositoryInterface
-	activityLogSvc          services.ActivityLogServiceInterface
-	documentSvc             DocumentServiceInterface
-	documentReviewStatusSvc masterService.ReviewStatusServiceInterface
+	repo                     documentRepositories.DocumentPeriodicReviewRepositoryInterface
+	activityLogSvc           services.ActivityLogServiceInterface
+	documentSvc              DocumentServiceInterface
+	documentReviewStatusSvc  masterService.ReviewStatusServiceInterface
+	documentChangeRequestSvc DocumentChangeRequestServiceInterface
 }
 
 func NewDocumentPeriodicReviewService(
@@ -41,12 +42,14 @@ func NewDocumentPeriodicReviewService(
 	activityLogSvc services.ActivityLogServiceInterface,
 	documentSvc DocumentServiceInterface,
 	documentReviewStatusSvc masterService.ReviewStatusServiceInterface,
+	documentChangeRequestSvc DocumentChangeRequestServiceInterface,
 ) DocumentPeriodicReviewServiceInterface {
 	return &DocumentPeriodicReviewService{
-		repo:                    repo,
-		activityLogSvc:          activityLogSvc,
-		documentSvc:             documentSvc,
-		documentReviewStatusSvc: documentReviewStatusSvc,
+		repo:                     repo,
+		activityLogSvc:           activityLogSvc,
+		documentSvc:              documentSvc,
+		documentReviewStatusSvc:  documentReviewStatusSvc,
+		documentChangeRequestSvc: documentChangeRequestSvc,
 	}
 }
 
@@ -151,6 +154,35 @@ func (dprs *DocumentPeriodicReviewService) Create(currentUserID uint, documentID
 		}
 	}
 
+	// If change is required, create a change request
+	if formDTO.ISChangeRequired {
+		changeRequestForm := &documentDTOs.DocumentChangeRequestFormDTO{
+			DocumentChangeRequestTypeID: formDTO.DocumentChangeRequestTypeID,
+			ReasonForChange:             formDTO.ReasonForChange,
+			Document:                    formDTO.Document,
+			DocumentID:                  documentID,
+			DocumentReviewID:            &id,
+		}
+
+		_, err := dprs.documentChangeRequestSvc.Create(currentUserID, changeRequestForm, tx)
+		if err != nil {
+			tx.Rollback()
+			// Handle specific errors
+			var conflictError *utility.ResourceConflictError
+			if errors.As(err, &conflictError) {
+				return 0, conflictError // Propagate conflict error
+			}
+
+			var validationError *utility.ValidationError
+			if errors.As(err, &validationError) {
+				return 0, validationError // Propagate validation error
+			}
+
+			// For other errors, wrap and return
+			return 0, fmt.Errorf("failed to create change request: %w", err)
+		}
+	}
+
 	tx.Commit()
 
 	for _, doc := range documents {
@@ -163,13 +195,15 @@ func (dprs *DocumentPeriodicReviewService) Create(currentUserID uint, documentID
 	return id, nil
 }
 
-func (dprs *DocumentPeriodicReviewService) Update(id uint, currentUserID uint, formDTO *documentDTOs.DocumentPeriodicReviewFormDTO) error {
+func (dprs *DocumentPeriodicReviewService) Update(id uint, documentID uint, currentUserID uint, formDTO *documentDTOs.DocumentPeriodicReviewFormDTO) error {
 	tx := dprs.repo.BeginTransaction()
 
 	existing, err := dprs.GetByID(id)
 	if err != nil {
 		return err
 	}
+
+	existingChangeRequired := existing.ISChangeRequired
 
 	dates, err := dprs.parseControlDates(formDTO)
 	if err != nil {
@@ -211,6 +245,34 @@ func (dprs *DocumentPeriodicReviewService) Update(id uint, currentUserID uint, f
 		if err := dprs.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return err
+		}
+	}
+
+	if formDTO.ISChangeRequired && !existingChangeRequired {
+		changeRequestForm := &documentDTOs.DocumentChangeRequestFormDTO{
+			DocumentChangeRequestTypeID: formDTO.DocumentChangeRequestTypeID,
+			ReasonForChange:             formDTO.ReasonForChange,
+			Document:                    formDTO.Document,
+			DocumentID:                  documentID,
+			DocumentReviewID:            &id,
+		}
+
+		_, err := dprs.documentChangeRequestSvc.Create(currentUserID, changeRequestForm, tx)
+		if err != nil {
+			tx.Rollback()
+			// Handle specific errors
+			var conflictError *utility.ResourceConflictError
+			if errors.As(err, &conflictError) {
+				return conflictError // Propagate conflict error
+			}
+
+			var validationError *utility.ValidationError
+			if errors.As(err, &validationError) {
+				return validationError // Propagate validation error
+			}
+
+			// For other errors, wrap and return
+			return fmt.Errorf("failed to create change request: %w", err)
 		}
 	}
 

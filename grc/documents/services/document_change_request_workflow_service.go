@@ -63,21 +63,22 @@ func NewDocumentChangeRequestWorkflowService(
 
 func (dcrws *DocumentChangeRequestWorkflowService) CreateDocumentCRWorkflow(documentChangeRequestId uint, documentId uint, currentUserID uint, tx ...utility.DatabaseTransaction) error {
 
+	fmt.Println("12")
 	document, err := dcrws.documentSvc.GetByID(documentId, tx...)
 	if err != nil {
 		return err
 	}
-
+	fmt.Println("13")
 	workflow, err := dcrws.workflowSvc.GetWorkflowByDocumentType(document.DocumentTypeID, tx...)
 	if err != nil {
 		return err
 	}
-
+	fmt.Println("14")
 	workflowLevels, err := dcrws.workflowSvc.GetWorkflowLevels(workflow.ID, tx...)
 	if err != nil {
 		return err
 	}
-
+	fmt.Println("15")
 	documentChangeRequestWorkflowStatus, err := dcrws.documentChangeRequestWorkflowStatusSvc.GetByType("pending")
 
 	if err != nil {
@@ -155,7 +156,7 @@ func (dcrws *DocumentChangeRequestWorkflowService) CreateDocumentCRWorkflow(docu
 			}
 		}
 	}
-
+	fmt.Println("16")
 	// if err := dws.documentAccessSvc.CreateUsers(sharedUsers, tx...); err != nil {
 	// 	return err
 	// }

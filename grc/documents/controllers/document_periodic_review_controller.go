@@ -141,6 +141,12 @@ func (dprc *DocumentPeriodicReviewController) CreateDocumentPeriodicReview(c *gi
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, err.Error())
+			return
+		case *utility.ResourceConflictError:
+			utility.SendConflictErrResp(c, err.Error())
+			return
 		default:
 			utility.SendInternalErrResp(dprc.db, c, e.Error())
 			return
@@ -158,6 +164,13 @@ func (dprc *DocumentPeriodicReviewController) UpdateDocumentPeriodicReview(c *gi
 		return
 	}
 
+	documentIdStr := c.Param("id")
+	documentId, err := strconv.ParseUint(documentIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	var formDTO documentDTOs.DocumentPeriodicReviewFormDTO
 	if err := c.ShouldBindJSON(&formDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -170,7 +183,7 @@ func (dprc *DocumentPeriodicReviewController) UpdateDocumentPeriodicReview(c *gi
 		return
 	}
 
-	err = dprc.service.Update(uint(id), currentUserID, &formDTO)
+	err = dprc.service.Update(uint(id), uint(documentId), currentUserID, &formDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

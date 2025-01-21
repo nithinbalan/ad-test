@@ -136,7 +136,7 @@ func (ds *DocumentService) GetAll(params *documentDTOs.DocumentListQueryParamsDT
 }
 
 func (ds DocumentService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error) {
-	document, err := ds.repo.GetByID(id)
+	document, err := ds.repo.GetByID(id, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
