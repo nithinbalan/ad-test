@@ -225,8 +225,8 @@ func (repo *AuditReportRepository) GetAuditByOpenVsClosed(params *reportDTOs.Rep
 	// Step 1: Fetch audit statuses with their details
 	query := repo.db.Table("audits").
 		Select(`audit_statuses.id, audit_statuses.type, 
-				audit_statuses.title_en, audit_statuses.title_ar, 
-				audit_statuses.color_code`).
+                audit_statuses.title_en, audit_statuses.title_ar, 
+                audit_statuses.color_code`).
 		Joins("JOIN audit_statuses ON audit_statuses.id = audits.audit_status_id")
 
 	// Apply date filter if provided
@@ -239,58 +239,44 @@ func (repo *AuditReportRepository) GetAuditByOpenVsClosed(params *reportDTOs.Rep
 		return nil, err
 	}
 
-	// Step 2: Process data in Go
-	openCount := 0
-	closedCount := 0
-	var openStatus, closedStatus *reportDTOs.AuditByOpenVsClosedDTO
+	// Step 2: Initialize default statuses with 0 counts
+	openStatus := &reportDTOs.AuditByOpenVsClosedDTO{
+		TitleEn:   "Open",
+		TitleAr:   "مفتوح",
+		Type:      "open",
+		ColorCode: "", // Default, will be overwritten if records exist
+		Count:     0,
+	}
+	closedStatus := &reportDTOs.AuditByOpenVsClosedDTO{
+		TitleEn:   "Closed",
+		TitleAr:   "مغلق",
+		Type:      "closed",
+		ColorCode: "", // Default, will be overwritten if records exist
+		Count:     0,
+	}
 
+	// Step 3: Process data in Go
 	for _, record := range rawResults {
 		if record.Type == "published" || record.Type == "completed" {
-			closedCount++
-			if closedStatus == nil { // Initialize Closed status
-				closedStatus = &reportDTOs.AuditByOpenVsClosedDTO{
-					ID:        record.ID,
-					TitleEn:   "Closed",
-					TitleAr:   "مغلق", // Use Arabic title from DB
-					Type:      "closed",
-					ColorCode: record.ColorCode,
-					Count:     0,
-				}
-			}
+			closedStatus.Count++
+			closedStatus.ID = record.ID
+			closedStatus.ColorCode = record.ColorCode
 		} else {
-			openCount++
-			if openStatus == nil { // Initialize Open status
-				openStatus = &reportDTOs.AuditByOpenVsClosedDTO{
-					ID:        record.ID,
-					TitleEn:   "Open",
-					TitleAr:   "مفتوح", // Use Arabic title from DB
-					ColorCode: record.ColorCode,
-					Type:      "open",
-					Count:     0,
-				}
-			}
+			openStatus.Count++
+			openStatus.ID = record.ID
+			openStatus.ColorCode = record.ColorCode
 		}
 	}
 
-	// Assign final counts
-	if openStatus != nil {
-		openStatus.Count = uint(openCount)
-	}
-	if closedStatus != nil {
-		closedStatus.Count = uint(closedCount)
-	}
-
-	// Step 3: Prepare the response as a slice of pointers
-	results := []*reportDTOs.AuditByOpenVsClosedDTO{}
-	if openStatus != nil {
-		results = append(results, openStatus)
-	}
-	if closedStatus != nil {
-		results = append(results, closedStatus)
+	// Step 4: Prepare the response as a slice of pointers
+	results := []*reportDTOs.AuditByOpenVsClosedDTO{
+		openStatus,
+		closedStatus,
 	}
 
 	return results, nil
 }
+
 func (repo *AuditReportRepository) GetAuditByMonth(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditByMonthDTO, error) {
 	results := []*reportDTOs.AuditByMonthDTO{}
 
