@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -30,6 +31,8 @@ type AuditServiceInterface interface {
 
 	GetAllAuditableItems(auditID uint, params *auditDTOs.AuditAuditableItemListQueryParamsDTO) (*auditDTOs.AuditAuditableItemListResponseDTO, error)
 	StatusUpdate(id uint, currentUserID uint, auditStatusID uint, tx utility.DatabaseTransaction) error
+
+	ExportAudits(data []*auditDTOs.AuditListDTO, currentUserID uint) (*os.File, error)
 }
 
 type AuditService struct {
@@ -42,6 +45,7 @@ type AuditService struct {
 	auditStatusSvc       AuditStatusServiceInterface
 	userSvc              organizationServices.UserServiceInterface
 	notificationSvc      commonServices.NotificationServiceInterface
+	userSettingSvc       organizationServices.UserSettingServiceInterface
 }
 
 func NewAuditService(
@@ -54,6 +58,7 @@ func NewAuditService(
 	auditStatusSvc AuditStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) AuditServiceInterface {
 	return &AuditService{
 		repo:                 repo,
@@ -65,6 +70,7 @@ func NewAuditService(
 		auditStatusSvc:       auditStatusSvc,
 		userSvc:              userSvc,
 		notificationSvc:      notificationSvc,
+		userSettingSvc:       userSettingSvc,
 	}
 }
 
@@ -667,4 +673,81 @@ func (as *AuditService) StatusUpdate(id uint, currentUserID uint, auditStatusID 
 	}
 
 	return nil
+}
+
+func (as *AuditService) ExportAudits(data []*auditDTOs.AuditListDTO, currentUserID uint) (*os.File, error) {
+	// Retrieve user settings for language preference
+	userSetting, err := as.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	// Define headers based on the user's language setting
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Audit Plan Title",
+			"Audit Plan Description",
+			"Audit Plan Purpose",
+			"Audit Plan Objective",
+			"Start Date",
+			"End Date",
+			"Audit Category (AR)",
+			"Audit Status (AR)",
+			"Team Lead (AR)",
+			"Created By (AR)",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Audit Plan Title",
+			"Audit Plan Description",
+			"Audit Plan Purpose",
+			"Audit Plan Objective",
+			"Start Date",
+			"End Date",
+			"Audit Category (EN)",
+			"Audit Status (EN)",
+			"Team Lead (EN)",
+			"Created By (EN)",
+		}
+	}
+
+	// Convert data to [][]interface{} based on language preference
+	rows := make([][]interface{}, len(data))
+	for i, item := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				item.AuditPlanTitle,
+				item.AuditPlanDescription,
+				item.AuditPlanPurpose,
+				item.AuditPlanObjective,
+				item.StartDate,
+				item.EndDate,
+				item.AuditCategoryTitleAr,
+				item.AuditStatusTitleAr,
+				item.TeamLeadFirstNameAr + " " + item.TeamLeadLastNameAr,
+				item.CreatedUserFirstNameAr + " " + item.CreatedUserLastNameAr,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				item.AuditPlanTitle,
+				item.AuditPlanDescription,
+				item.AuditPlanPurpose,
+				item.AuditPlanObjective,
+				item.StartDate,
+				item.EndDate,
+				item.AuditCategoryTitleEn,
+				item.AuditStatusTitleEn,
+				item.TeamLeadFirstNameEn + " " + item.TeamLeadLastNameEn,
+				item.CreatedUserFirstNameEn + " " + item.CreatedUserLastNameEn,
+			}
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }

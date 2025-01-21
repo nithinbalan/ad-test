@@ -31,6 +31,13 @@ func (apc *AuditPlanController) GetAllAuditPlans(c *gin.Context) {
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	// Convert the export parameter to a boolean
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(apc.db, c, "Invalid export parameter")
+		return
+	}
+
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"audit_category_ids",
@@ -44,6 +51,8 @@ func (apc *AuditPlanController) GetAllAuditPlans(c *gin.Context) {
 	startDate := c.Query("start_date")
 	targetDate := c.Query("target_date")
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(apc.db, c, "Invalid page parameter")
@@ -85,6 +94,9 @@ func (apc *AuditPlanController) GetAllAuditPlans(c *gin.Context) {
 		QuickFilter: quickFilter,
 		StartDate:   startDate,
 		TargetDate:  targetDate,
+		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 
 	auditPlans, err := apc.service.GetAll(&queryParams)
@@ -92,7 +104,35 @@ func (apc *AuditPlanController) GetAllAuditPlans(c *gin.Context) {
 		utility.SendInternalErrResp(apc.db, c, err.Error())
 		return
 	}
+	// If export is true, generate and return the Excel file
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(apc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := apc.service.ExportAuditPlans(auditPlans.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(apc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Audit Plans.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
 	c.JSON(http.StatusOK, auditPlans)
+}
+
+func (apc *AuditPlanController) GetAuditPlanExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	apc.GetAllAuditPlans(c)
 }
 
 func (apc *AuditPlanController) GetAuditPlanDetails(c *gin.Context) {
