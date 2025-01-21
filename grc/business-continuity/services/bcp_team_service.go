@@ -15,10 +15,10 @@ import (
 
 type BcpTeamServiceInterface interface {
 	GetAll(params *businessContinuityDTOs.BcpTeamsListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpTeamsListDTO, error)
-	GetByID(id uint) (*models.BcpTeam, error)
+	GetByID(bcpId uint, id uint) (*models.BcpTeam, error)
 	Create(bcpId uint, currentUserID uint, bcpTeamForm *businessContinuityDTOs.BcpTeamsFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, bcpTeamForm *businessContinuityDTOs.BcpTeamsFormDTO) error
-	Delete(TeamIDs []uint, currentUserID uint) ([]uint, error)
+	Delete(bcpId uint, TeamIDs []uint, currentUserID uint) ([]uint, error)
 }
 
 type BcpTeamService struct {
@@ -37,7 +37,7 @@ func (brs *BcpTeamService) GetAll(params *businessContinuityDTOs.BcpTeamsListQue
 	return brs.repo.GetAll(params, bcpId)
 }
 
-func (brs *BcpTeamService) GetByID(id uint) (*models.BcpTeam, error) {
+func (brs *BcpTeamService) GetByID(bcpId uint, id uint) (*models.BcpTeam, error) {
 	Team, err := brs.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -114,7 +114,7 @@ func (brs *BcpTeamService) Update(id uint, currentUserID uint, bcpTeamForm *busi
 	return nil
 }
 
-func (brs *BcpTeamService) Delete(TeamIDs []uint, currentUserID uint) ([]uint, error) {
+func (brs *BcpTeamService) Delete(bcpId uint, TeamIDs []uint, currentUserID uint) ([]uint, error) {
 	tx := brs.repo.BeginTransaction()
 
 	var failedIDs []uint

@@ -77,6 +77,13 @@ func (brc *BcpTeamController) GetAllBcpTeams(c *gin.Context) {
 }
 
 func (brc *BcpTeamController) GetBcpTeamByID(c *gin.Context) {
+	bcpIdStr := c.Param("bcpId")
+	bcpId, err := strconv.ParseUint(bcpIdStr, 10, 32)
+	if err != nil {
+		utility.SendInvalidErrResp(c, errors.New("invalid business continuity plan ID"))
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -84,7 +91,7 @@ func (brc *BcpTeamController) GetBcpTeamByID(c *gin.Context) {
 		return
 	}
 
-	team, err := brc.service.GetByID(uint(id))
+	team, err := brc.service.GetByID(uint(bcpId), uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -185,13 +192,20 @@ func (brc *BcpTeamController) DeleteBcpTeams(c *gin.Context) {
 		return
 	}
 
+	bcpIdStr := c.Param("bcpId")
+	bcpId, err := strconv.ParseUint(bcpIdStr, 10, 32)
+	if err != nil {
+		utility.SendInvalidErrResp(c, errors.New("invalid business continuity plan ID"))
+		return
+	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(brc.db, c, err.Error())
 		return
 	}
 
-	failedIDs, err := brc.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := brc.service.Delete(uint(bcpId), request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(brc.db, c, err.Error())
 		return
