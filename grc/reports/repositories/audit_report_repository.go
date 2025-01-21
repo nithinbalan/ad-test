@@ -44,11 +44,11 @@ func NewAuditReportRepository(db *gorm.DB) *AuditReportRepository {
 }
 
 // Implementation of the `GetAuditPlanByCategory` method
-func (r *AuditReportRepository) GetAuditPlanByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditPlanByCategoryDTO, error) {
+func (repo *AuditReportRepository) GetAuditPlanByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditPlanByCategoryDTO, error) {
 	results := []*reportDTOs.AuditPlanByCategoryDTO{}
 
 	// Start the query from audit_categories
-	query := r.db.Table("audit_categories").
+	query := repo.db.Table("audit_categories").
 		Select(`audit_categories.id AS audit_category_id, 
 				audit_categories.title_en AS audit_category_title_en, 
 				audit_categories.title_ar AS audit_category_title_ar, 
@@ -66,10 +66,10 @@ func (r *AuditReportRepository) GetAuditPlanByCategory(params *reportDTOs.Report
 	return results, err
 }
 
-func (r *AuditReportRepository) GetAuditPlanByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditPlanByStatusDTO, error) {
+func (repo *AuditReportRepository) GetAuditPlanByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditPlanByStatusDTO, error) {
 	results := []*reportDTOs.AuditPlanByStatusDTO{}
 
-	query := r.db.Table("audit_statuses").
+	query := repo.db.Table("audit_statuses").
 		Select(`audit_statuses.id AS audit_status_id,
 				audit_statuses.title_en AS audit_status_title_en,
 				audit_statuses.title_ar AS audit_status_title_ar,
@@ -87,10 +87,10 @@ func (r *AuditReportRepository) GetAuditPlanByStatus(params *reportDTOs.ReportLi
 	return results, err
 }
 
-func (r *AuditReportRepository) GetAuditPlanByTeam(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditPlanByTeamDTO, error) {
+func (repo *AuditReportRepository) GetAuditPlanByTeam(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditPlanByTeamDTO, error) {
 	results := []*reportDTOs.AuditPlanByTeamDTO{}
 
-	query := r.db.Table("audit_plans").
+	query := repo.db.Table("audit_plans").
 		Select(`audit_teams.id AS audit_team_id,
 				audit_teams.title_en AS audit_team_title_en,
 				audit_teams.title_ar AS audit_team_title_ar,
@@ -107,22 +107,22 @@ func (r *AuditReportRepository) GetAuditPlanByTeam(params *reportDTOs.ReportList
 	return results, err
 }
 
-func (r *AuditReportRepository) GetAuditPlanByTeamLead(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditPlanByTeamLeadDTO, error) {
+func (repo *AuditReportRepository) GetAuditPlanByTeamLead(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditPlanByTeamLeadDTO, error) {
 	results := []*reportDTOs.AuditPlanByTeamLeadDTO{}
 
-	query := r.db.Table("audit_plans").
+	query := repo.db.Table("audit_plans").
 		Select(`users.id AS team_lead_id,
-			users.first_name_en AS team_lead_first_name_en,
-			users.first_name_ar AS team_lead_first_name_ar,
-			users.last_name_en AS team_lead_last_name_en,
-			users.last_name_ar AS team_lead_last_name_ar,
-			CONCAT(users.first_name_en, ' ', users.last_name_en) AS team_lead_title_en,
-			CONCAT(users.first_name_ar, ' ', users.last_name_ar) AS team_lead_title_ar,
-			users.initial AS team_lead_initial,
-			users.color AS team_lead_color,
-			users.email AS team_lead_email,
-			users.profile_image_path AS team_lead_profile_image_path,
-			COUNT(audit_plans.id) AS count`).
+            users.first_name_en AS team_lead_first_name_en,
+            users.first_name_ar AS team_lead_first_name_ar,
+            users.last_name_en AS team_lead_last_name_en,
+            users.last_name_ar AS team_lead_last_name_ar,
+            CONCAT(users.first_name_en, ' ', users.last_name_en) AS team_lead_title_en,
+            CONCAT(users.first_name_ar, ' ', users.last_name_ar) AS team_lead_title_ar,
+            users.initial AS team_lead_initial,
+            users.color AS team_lead_color,
+            users.email AS team_lead_email,
+            users.profile_image_path AS team_lead_profile_image_path,
+            COUNT(audit_plans.id) AS count`).
 		Joins("JOIN users ON users.id = audit_plans.team_lead_id").
 		Group("users.id, users.first_name_en, users.first_name_ar, users.last_name_en, users.last_name_ar, users.initial, users.color, users.email, users.profile_image_path")
 
@@ -135,7 +135,7 @@ func (r *AuditReportRepository) GetAuditPlanByTeamLead(params *reportDTOs.Report
 	return results, err
 }
 
-func (r *AuditReportRepository) GetAuditPlanByYear(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditPlanByYearDTO, error) {
+func (repo *AuditReportRepository) GetAuditPlanByYear(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditPlanByYearDTO, error) {
 	results := []*reportDTOs.AuditPlanByYearDTO{}
 
 	// Fetch yearly audit plan count
@@ -144,7 +144,7 @@ func (r *AuditReportRepository) GetAuditPlanByYear(params *reportDTOs.ReportList
 		Count uint `gorm:"column:count"`
 	}
 
-	query := r.db.Table("audit_plans").
+	query := repo.db.Table("audit_plans").
 		Select(`YEAR(audit_plans.created_at) AS year, COUNT(audit_plans.id) AS count`).
 		Group("YEAR(audit_plans.created_at)").
 		Order("YEAR(audit_plans.created_at) ASC")
@@ -171,10 +171,10 @@ func (r *AuditReportRepository) GetAuditPlanByYear(params *reportDTOs.ReportList
 	return results, nil
 }
 
-func (r *AuditReportRepository) GetAuditByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditByCategoryDTO, error) {
+func (repo *AuditReportRepository) GetAuditByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditByCategoryDTO, error) {
 	results := []*reportDTOs.AuditByCategoryDTO{}
 
-	query := r.db.Table("audit_categories").
+	query := repo.db.Table("audit_categories").
 		Select(`audit_categories.id AS audit_category_id, 
 			audit_categories.title_en AS audit_category_title_en, 
 			audit_categories.title_ar AS audit_category_title_ar, 
@@ -192,10 +192,10 @@ func (r *AuditReportRepository) GetAuditByCategory(params *reportDTOs.ReportList
 	return results, err
 }
 
-func (r *AuditReportRepository) GetAuditByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditByStatusDTO, error) {
+func (repo *AuditReportRepository) GetAuditByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditByStatusDTO, error) {
 	results := []*reportDTOs.AuditByStatusDTO{}
 
-	query := r.db.Table("audit_statuses").
+	query := repo.db.Table("audit_statuses").
 		Select(`audit_statuses.id AS audit_status_id,
 				audit_statuses.title_en AS audit_status_title_en,
 				audit_statuses.title_ar AS audit_status_title_ar,
@@ -213,7 +213,7 @@ func (r *AuditReportRepository) GetAuditByStatus(params *reportDTOs.ReportListQu
 	return results, err
 }
 
-func (r *AuditReportRepository) GetAuditByOpenVsClosed(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditByOpenVsClosedDTO, error) {
+func (repo *AuditReportRepository) GetAuditByOpenVsClosed(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditByOpenVsClosedDTO, error) {
 	var rawResults []struct {
 		ID        uint   `gorm:"column:id"`
 		Type      string `gorm:"column:type"`
@@ -223,7 +223,7 @@ func (r *AuditReportRepository) GetAuditByOpenVsClosed(params *reportDTOs.Report
 	}
 
 	// Step 1: Fetch audit statuses with their details
-	query := r.db.Table("audits").
+	query := repo.db.Table("audits").
 		Select(`audit_statuses.id, audit_statuses.type, 
 				audit_statuses.title_en, audit_statuses.title_ar, 
 				audit_statuses.color_code`).
@@ -291,7 +291,7 @@ func (r *AuditReportRepository) GetAuditByOpenVsClosed(params *reportDTOs.Report
 
 	return results, nil
 }
-func (r *AuditReportRepository) GetAuditByMonth(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditByMonthDTO, error) {
+func (repo *AuditReportRepository) GetAuditByMonth(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditByMonthDTO, error) {
 	results := []*reportDTOs.AuditByMonthDTO{}
 
 	// Define static Arabic month translations
@@ -320,7 +320,7 @@ func (r *AuditReportRepository) GetAuditByMonth(params *reportDTOs.ReportListQue
 		Count   uint   `gorm:"column:count"`
 	}
 
-	query := r.db.Table("audits").
+	query := repo.db.Table("audits").
 		Select(`FORMAT(audits.created_at, 'MMM yyyy') AS title_en, COUNT(audits.id) AS count`).
 		Where("audits.created_at >= DATEADD(MONTH, -11, GETDATE())").
 		Group("FORMAT(audits.created_at, 'MMM yyyy')").
@@ -347,10 +347,10 @@ func (r *AuditReportRepository) GetAuditByMonth(params *reportDTOs.ReportListQue
 	return results, nil
 }
 
-func (r *AuditReportRepository) GetAuditByTeamLead(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditByTeamLeadDTO, error) {
+func (repo *AuditReportRepository) GetAuditByTeamLead(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditByTeamLeadDTO, error) {
 	results := []*reportDTOs.AuditByTeamLeadDTO{}
 
-	query := r.db.Table("audits").
+	query := repo.db.Table("audits").
 		Select(`users.id AS team_lead_id,
 			users.first_name_en AS team_lead_first_name_en,
 			users.first_name_ar AS team_lead_first_name_ar,
@@ -376,13 +376,13 @@ func (r *AuditReportRepository) GetAuditByTeamLead(params *reportDTOs.ReportList
 	return results, err
 }
 
-func (r *AuditReportRepository) GetAuditFindingByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByCategoryDTO, error) {
+func (repo *AuditReportRepository) GetAuditFindingByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByCategoryDTO, error) {
 	results := []*reportDTOs.AuditFindingByCategoryDTO{}
 
-	query := r.db.Table("audit_finding_categories").
-		Select(`audit_finding_categories.id AS id, 
-				audit_finding_categories.title_en AS title_en, 
-				audit_finding_categories.title_ar AS title_ar, 
+	query := repo.db.Table("audit_finding_categories").
+		Select(`audit_finding_categories.id AS audit_finding_category_id, 
+				audit_finding_categories.title_en AS audit_finding_category_title_en, 
+				audit_finding_categories.title_ar AS audit_finding_category_title_ar, 
 				COUNT(audit_findings.id) AS count`).
 		Joins("LEFT JOIN audit_findings ON audit_findings.audit_finding_category_id = audit_finding_categories.id").
 		Group("audit_finding_categories.id, audit_finding_categories.title_en, audit_finding_categories.title_ar").
@@ -401,10 +401,10 @@ func (r *AuditReportRepository) GetAuditFindingByCategory(params *reportDTOs.Rep
 	return results, nil
 }
 
-func (r *AuditReportRepository) GetAuditFindingByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByStatusDTO, error) {
+func (repo *AuditReportRepository) GetAuditFindingByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByStatusDTO, error) {
 	results := []*reportDTOs.AuditFindingByStatusDTO{}
 
-	query := r.db.Table("audit_finding_statuses").
+	query := repo.db.Table("audit_finding_statuses").
 		Select(`audit_finding_statuses.id,
                 audit_finding_statuses.title_en,
                 audit_finding_statuses.title_ar,
@@ -422,10 +422,10 @@ func (r *AuditReportRepository) GetAuditFindingByStatus(params *reportDTOs.Repor
 	return results, err
 }
 
-func (r *AuditReportRepository) GetAuditFindingBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingBySeverityLevelDTO, error) {
+func (repo *AuditReportRepository) GetAuditFindingBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingBySeverityLevelDTO, error) {
 	results := []*reportDTOs.AuditFindingBySeverityLevelDTO{}
 
-	query := r.db.Table("severity_levels").
+	query := repo.db.Table("severity_levels").
 		Select(`severity_levels.id,
                 severity_levels.title_en,
                 severity_levels.title_ar,
@@ -443,10 +443,10 @@ func (r *AuditReportRepository) GetAuditFindingBySeverityLevel(params *reportDTO
 	return results, err
 }
 
-func (r *AuditReportRepository) GetAuditFindingByResponsibleUnit(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByResponsibleUnitDTO, error) {
+func (repo *AuditReportRepository) GetAuditFindingByResponsibleUnit(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByResponsibleUnitDTO, error) {
 	results := []*reportDTOs.AuditFindingByResponsibleUnitDTO{}
 
-	query := r.db.Table("audit_findings").
+	query := repo.db.Table("audit_findings").
 		Select(`
             organization_units.id AS responsible_unit_id,
             organization_units.title_en AS responsible_unit_title_en,
@@ -467,7 +467,7 @@ func (r *AuditReportRepository) GetAuditFindingByResponsibleUnit(params *reportD
 	return results, err
 }
 
-func (r *AuditReportRepository) GetAuditFindingByMonth(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByMonthDTO, error) {
+func (repo *AuditReportRepository) GetAuditFindingByMonth(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByMonthDTO, error) {
 	results := []*reportDTOs.AuditFindingByMonthDTO{}
 
 	// Define static Arabic month translations
@@ -496,7 +496,7 @@ func (r *AuditReportRepository) GetAuditFindingByMonth(params *reportDTOs.Report
 		Count   uint   `gorm:"column:count"`
 	}
 
-	query := r.db.Table("audit_findings").
+	query := repo.db.Table("audit_findings").
 		Select(`FORMAT(audit_findings.created_at, 'MMM yyyy') AS title_en, COUNT(audit_findings.id) AS count`).
 		Where("audit_findings.created_at >= DATEADD(MONTH, -11, GETDATE())").
 		Group("FORMAT(audit_findings.created_at, 'MMM yyyy')").
@@ -523,10 +523,10 @@ func (r *AuditReportRepository) GetAuditFindingByMonth(params *reportDTOs.Report
 	return results, nil
 }
 
-func (r *AuditReportRepository) GetAuditFindingByAuditor(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByAuditorDTO, error) {
+func (repo *AuditReportRepository) GetAuditFindingByAuditor(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditFindingByAuditorDTO, error) {
 	results := []*reportDTOs.AuditFindingByAuditorDTO{}
 
-	query := r.db.Table("audit_findings").
+	query := repo.db.Table("audit_findings").
 		Select(`
             users.id AS id,
             users.first_name_en AS user_first_name_en,
@@ -553,10 +553,10 @@ func (r *AuditReportRepository) GetAuditFindingByAuditor(params *reportDTOs.Repo
 	return results, err
 }
 
-func (r *AuditReportRepository) GetAuditActionPlanByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanByStatusDTO, error) {
+func (repo *AuditReportRepository) GetAuditActionPlanByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanByStatusDTO, error) {
 	results := []*reportDTOs.AuditActionPlanByStatusDTO{}
 
-	query := r.db.Table("action_plan_statuses").
+	query := repo.db.Table("action_plan_statuses").
 		Select(`
             action_plan_statuses.id,
             action_plan_statuses.title_en,
@@ -576,10 +576,10 @@ func (r *AuditReportRepository) GetAuditActionPlanByStatus(params *reportDTOs.Re
 	return results, err
 }
 
-func (r *AuditReportRepository) GetAuditActionPlanBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanBySeverityLevelDTO, error) {
+func (repo *AuditReportRepository) GetAuditActionPlanBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanBySeverityLevelDTO, error) {
 	results := []*reportDTOs.AuditActionPlanBySeverityLevelDTO{}
 
-	query := r.db.Table("severity_levels").
+	query := repo.db.Table("severity_levels").
 		Select(`severity_levels.id,
                 severity_levels.title_en,
                 severity_levels.title_ar,
@@ -597,10 +597,10 @@ func (r *AuditReportRepository) GetAuditActionPlanBySeverityLevel(params *report
 	return results, err
 }
 
-func (r *AuditReportRepository) GetAuditActionPlanByResponsibleUnit(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanByResponsibleUnitDTO, error) {
+func (repo *AuditReportRepository) GetAuditActionPlanByResponsibleUnit(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanByResponsibleUnitDTO, error) {
 	results := []*reportDTOs.AuditActionPlanByResponsibleUnitDTO{}
 
-	query := r.db.Table("audit_finding_action_plans").
+	query := repo.db.Table("audit_finding_action_plans").
 		Select(`
 			organization_units.id AS responsible_unit_id,
 			organization_units.title_en AS responsible_unit_title_en,
@@ -622,10 +622,10 @@ func (r *AuditReportRepository) GetAuditActionPlanByResponsibleUnit(params *repo
 	return results, err
 }
 
-func (r *AuditReportRepository) GetAuditActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanByResponsibleUserDTO, error) {
+func (repo *AuditReportRepository) GetAuditActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanByResponsibleUserDTO, error) {
 	results := []*reportDTOs.AuditActionPlanByResponsibleUserDTO{}
 
-	query := r.db.Table("audit_finding_action_plans").
+	query := repo.db.Table("audit_finding_action_plans").
 		Select(`
             users.id AS responsible_user_id,
             users.first_name_en AS responsible_user_first_name_en,
@@ -652,12 +652,12 @@ func (r *AuditReportRepository) GetAuditActionPlanByResponsibleUser(params *repo
 	return results, err
 }
 
-func (r *AuditReportRepository) GetAuditActionPlanOnTimeVsDelayed(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanOnTimeVsDelayedDTO, error) {
+func (repo *AuditReportRepository) GetAuditActionPlanOnTimeVsDelayed(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.AuditActionPlanOnTimeVsDelayedDTO, error) {
 	var results []*reportDTOs.AuditActionPlanOnTimeVsDelayedDTO
 
 	// Query for on-time action plans
 	var onTimeCount uint
-	onTimeQuery := r.db.Table("audit_finding_action_plans").
+	onTimeQuery := repo.db.Table("audit_finding_action_plans").
 		Select("COUNT(audit_finding_action_plans.id)"). // Fully qualify the id column
 		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = audit_finding_action_plans.action_plan_status_id").
 		Where("action_plan_statuses.type IN ('completed', 'close')")
@@ -681,7 +681,7 @@ func (r *AuditReportRepository) GetAuditActionPlanOnTimeVsDelayed(params *report
 
 	// Query for delayed action plans
 	var delayedCount uint
-	delayedQuery := r.db.Table("audit_finding_action_plans").
+	delayedQuery := repo.db.Table("audit_finding_action_plans").
 		Select("COUNT(audit_finding_action_plans.id)"). // Fully qualify the id column
 		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = audit_finding_action_plans.action_plan_status_id").
 		Where("action_plan_statuses.type NOT IN ('completed', 'close')").
