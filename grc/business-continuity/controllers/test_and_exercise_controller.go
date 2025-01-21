@@ -33,7 +33,6 @@ func (tec *TestAndExerciseController) GetAllTestAndExercises(c *gin.Context) {
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"responsible_user_ids",
-		"review_frequency_ids",
 	}
 	validSortFields := map[string]string{
 		"title":                          "bcp_test_and_exercises.title",

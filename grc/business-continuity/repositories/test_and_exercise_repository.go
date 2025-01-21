@@ -186,7 +186,6 @@ func (repo *TestAndExerciseRepository) GetFullDetailsByID(id uint, tx ...utility
 		Preload("BusinessContinuityPlan").
 		Preload("BusinessContinuityPlan.BusinessFunction").
 		Preload("ResponsibleUser").
-		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("BcpTestAndExercise").
 		Preload("TestAndExerciseProcesses").
 		Preload("TestAndExerciseProcesses.Process").
@@ -324,7 +323,7 @@ func (repo *TestAndExerciseRepository) DeleteTestAndExerciseCommunicationActionP
 
 func (repo *TestAndExerciseRepository) GenerateReferenceNumber() (string, error) {
 	var lastReferenceNumber string
-	err := repo.db.Model(&models.BusinessFunction{}).
+	err := repo.db.Model(&models.TestAndExercise{}).
 		Select("reference_number").
 		Order("reference_number desc").
 		Limit(1).

@@ -73,28 +73,28 @@ type TestAndExerciseFormDTO struct {
 }
 
 type TestAndExerciseDetailDTO struct {
-	ID                                      int                                       `json:"id"`
-	ReferenceNumber                         string                                    `json:"reference_number"`
-	BusinessContinuityPlanID                uint                                      `json:"business_continuity_plan_id"`
-	BusinessContinuityPlan                  BusinessContinuityPlanDetailDTO           `json:"business_continuity_plan"`
-	ResponsibleUserID                       uint                                      `json:"responsible_user_id" binding:"required" gorm:"not null"`
-	ResponsibleUser                         *organizationDTOs.UserMinimalDTO          `json:"responsible_user"`
-	BcpTestAndExerciseID                    uint                                      `json:"bcp_test_and_exercise_id"`
-	BcpTestAndExercise                      *BcpTestAndExerciseDetailDTO              `json:"bcp_test_and_exercise"`
-	TestAndExerciseProcesses                []*TestAndExerciseProcess                 `json:"test_and_exercise_processes"`
-	TestAndExerciseRecoveryActionPlans      []*TestAndExerciseRecoveryActionPlan      `json:"test_and_exercise_recovery_action_plans"`
-	TestAndExerciseCommunicationActionPlans []*TestAndExerciseCommunicationActionPlan `json:"test_and_exercise_communication_action_plans"`
-	TestingDateString                       string                                    `json:"testing_date"`
-	Description                             *string                                   `json:"description"`
-	TestAndExerciseStatusID                 uint                                      `json:"test_and_exercise_status_id"`
-	TestAndExerciseStatus                   TestAndExerciseStatusDTO                  `json:"test_and_exercise_status"`
-	CreatedAt                               time.Time                                 `json:"created_at"`
-	UpdatedAt                               *time.Time                                `json:"updated_at"`
-	CreatedByUser                           organizationDTOs.UserMinimalDTO           `json:"created_by_user"`
-	UpdatedByUser                           *organizationDTOs.UserMinimalDTO          `json:"updated_by_user"`
+	ID                                      int                                          `json:"id"`
+	ReferenceNumber                         string                                       `json:"reference_number"`
+	BusinessContinuityPlanID                uint                                         `json:"business_continuity_plan_id"`
+	BusinessContinuityPlan                  BusinessContinuityPlanDetailDTO              `json:"business_continuity_plan"`
+	ResponsibleUserID                       uint                                         `json:"responsible_user_id" binding:"required" gorm:"not null"`
+	ResponsibleUser                         *organizationDTOs.UserMinimalDTO             `json:"responsible_user"`
+	BcpTestAndExerciseID                    uint                                         `json:"bcp_test_and_exercise_id"`
+	BcpTestAndExercise                      *BcpTestAndExerciseDetailDTO                 `json:"bcp_test_and_exercise"`
+	TestAndExerciseProcesses                []*TestAndExerciseProcessDTO                 `json:"test_and_exercise_processes"`
+	TestAndExerciseRecoveryActionPlans      []*TestAndExerciseRecoveryActionPlanDTO      `json:"test_and_exercise_recovery_action_plans"`
+	TestAndExerciseCommunicationActionPlans []*TestAndExerciseCommunicationActionPlanDTO `json:"test_and_exercise_communication_action_plans"`
+	TestingDateString                       string                                       `json:"testing_date"`
+	Description                             *string                                      `json:"description"`
+	TestAndExerciseStatusID                 uint                                         `json:"test_and_exercise_status_id"`
+	TestAndExerciseStatus                   TestAndExerciseStatusDTO                     `json:"test_and_exercise_status"`
+	CreatedAt                               time.Time                                    `json:"created_at"`
+	UpdatedAt                               *time.Time                                   `json:"updated_at"`
+	CreatedByUser                           organizationDTOs.UserMinimalDTO              `json:"created_by_user"`
+	UpdatedByUser                           *organizationDTOs.UserMinimalDTO             `json:"updated_by_user"`
 }
 
-type TestAndExerciseProcess struct {
+type TestAndExerciseProcessDTO struct {
 	ID                *uint                             `json:"id"`
 	TestAndExerciseID uint                              `json:"test_and_exercise_id"`
 	ProcessID         uint                              `json:"process_id"`
@@ -119,7 +119,7 @@ type TestAndExerciseProcess struct {
 	ActualRpoUnit     *masterDTOs.TimeUnitDTO           `json:"actual_rpo_unit"`
 }
 
-type TestAndExerciseRecoveryActionPlan struct {
+type TestAndExerciseRecoveryActionPlanDTO struct {
 	ID                     *uint                             `json:"id"`
 	TestAndExerciseID      uint                              `json:"test_and_exercise_id"`
 	ProcessID              uint                              `json:"process_id"`
@@ -136,7 +136,7 @@ type TestAndExerciseRecoveryActionPlan struct {
 	TargetCompletionUnit   *masterDTOs.TimeUnitDTO           `json:"target_completion_time_unit"`
 }
 
-type TestAndExerciseCommunicationActionPlan struct {
+type TestAndExerciseCommunicationActionPlanDTO struct {
 	ID                *uint                             `json:"id"`
 	TestAndExerciseID uint                              `json:"test_and_exercise_id"`
 	ProcessID         uint                              `json:"process_id"`
