@@ -33,7 +33,7 @@ type DocumentChangeRequestServiceInterface interface {
 	GetAll(params *documentDTOs.DocumentChangeRequestQueryParamsDTO) (*documentDTOs.DocumentChangeRequestListResponseDTO, error)
 	GetByID(id uint) (*models.DocumentChangeRequest, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*documentDTOs.DocumentChangeRequestDetailsDTO, error)
-	Create(currentUserID uint, formDTO *documentDTOs.DocumentChangeRequestFormDTO) (uint, error)
+	Create(currentUserID uint, formDTO *documentDTOs.DocumentChangeRequestFormDTO, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(id uint, currentUserID uint, formDTO *documentDTOs.DocumentChangeRequestFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
@@ -137,8 +137,17 @@ func (dcrs *DocumentChangeRequestService) GetFullDetailsByID(id uint, tx ...util
 	return &detailsDTO, nil
 }
 
-func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *documentDTOs.DocumentChangeRequestFormDTO) (uint, error) {
-	tx := dcrs.repo.BeginTransaction()
+func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *documentDTOs.DocumentChangeRequestFormDTO, tx ...utility.DatabaseTransaction) (uint, error) {
+	var transaction utility.DatabaseTransaction
+
+	if len(tx) > 0 && tx[0] != nil {
+		fmt.Println("123")
+		transaction = tx[0]
+	} else {
+		fmt.Println("124")
+		transaction = dcrs.repo.BeginTransaction()
+		defer transaction.Rollback() // Ensure rollback if transaction was started here and not committed
+	}
 
 	referenceNumber, err := dcrs.repo.GenerateReferenceNumber()
 	if err != nil {
@@ -148,7 +157,7 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 	if err := dcrs.validateFormDTO(formDTO); err != nil {
 		return 0, err
 	}
-
+	fmt.Println("125")
 	existingChangeRequests, err := dcrs.repo.GetNonPublishedChangeRequests(formDTO.DocumentID)
 	if err != nil {
 		return 0, err
@@ -162,18 +171,17 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 	if err != nil {
 		return 0, err
 	}
-
+	fmt.Println("126")
 	documentChangeRequestType, err := dcrs.documentChangeRequestTypeSvc.GetByID(formDTO.DocumentChangeRequestTypeID)
 	if err != nil {
 		return 0, err
 	}
 
-	documentFullDetails, err := dcrs.documentSvc.GetFullDetailsByID(formDTO.DocumentID, nil, tx)
+	documentFullDetails, err := dcrs.documentSvc.GetFullDetailsByID(formDTO.DocumentID, nil, transaction)
 	if err != nil {
-		tx.Rollback()
 		return 0, err
 	}
-
+	fmt.Println("127")
 	var newVersion float64
 	currentVersion := documentFullDetails.LatestDocumentVersion.Version
 	if documentChangeRequestType.Type == "minor" {
@@ -199,21 +207,20 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 		DocumentChangeRequestStatusID:   changeRequestStatus.ID,
 		Version:                         newVersion,
 		CreatedBYID:                     currentUserID,
+		DocumentReviewID:                formDTO.DocumentReviewID,
 	}
 
-	id, err := dcrs.repo.Create(changeRequest, tx)
+	id, err := dcrs.repo.Create(changeRequest, transaction)
 	if err != nil {
-		tx.Rollback()
 		return 0, err
 	}
-
+	fmt.Println("128")
 	var storagePath string
 	var is_pdf bool = false
 	if documentChangeRequestType.Type != "archive" && documentChangeRequestType.Type != "restore" {
 		dataToEncrypt := []byte(formDTO.Document.FileName)
 		encryptedFileName, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
-			tx.Rollback()
 			return 0, err
 		}
 		url := utility.GenerateDocumentURL("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
@@ -227,8 +234,7 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 			Type:                    formDTO.Document.Type,
 		}
 
-		if err := dcrs.repo.CreateDocument(document, tx); err != nil {
-			tx.Rollback()
+		if err := dcrs.repo.CreateDocument(document, transaction); err != nil {
 			return 0, err
 		}
 
@@ -248,9 +254,8 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 			Size:                    &formDTO.Document.Size,
 		}
 
-		err = dcrs.CreateDocumentCREditHistory(documentCREditHistory, &storagePath, currentUserID, tx)
+		err = dcrs.CreateDocumentCREditHistory(documentCREditHistory, &storagePath, currentUserID, transaction)
 		if err != nil {
-			tx.Rollback()
 			return 0, err
 		}
 	} else {
@@ -259,20 +264,21 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 			ActionType:              "create",
 		}
 
-		err = dcrs.CreateDocumentCREditHistory(documentCREditHistory, nil, currentUserID, tx)
+		err = dcrs.CreateDocumentCREditHistory(documentCREditHistory, nil, currentUserID, transaction)
 		if err != nil {
-			tx.Rollback()
 			return 0, err
 		}
 	}
-
-	err = dcrs.documentChangeRequestWorkflowSvc.CreateDocumentCRWorkflow(id, formDTO.DocumentID, currentUserID, tx)
+	fmt.Println("129")
+	err = dcrs.documentChangeRequestWorkflowSvc.CreateDocumentCRWorkflow(id, formDTO.DocumentID, currentUserID, transaction)
 	if err != nil {
-		tx.Rollback()
 		return 0, err
 	}
-
-	tx.Commit()
+	fmt.Println("130")
+	// Commit if this function started the transaction
+	if len(tx) == 0 {
+		transaction.Commit()
+	}
 
 	go func() {
 		if is_pdf {
@@ -891,7 +897,7 @@ func (dcrs *DocumentChangeRequestService) validateFormDTO(dto *documentDTOs.Docu
 	if err != nil {
 		return err
 	}
-	if documentCRType.Type == "minor" || documentCRType.Type == "major" {
+	if documentCRType.Type == "minor" || documentCRType.Type == "major" || documentCRType.Type == "restore-with-minor-update" || documentCRType.Type == "restore-with-major-update" {
 		err = dcrs.ValidateDocument(&dto.Document)
 		if err != nil {
 			return err

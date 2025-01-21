@@ -48,7 +48,8 @@ type DocumentPeriodicReviewDetailsDTO struct {
 	CreatedByUser organizationDTOs.UserMinimalDTO  `json:"created_by_user"`
 	UpdatedByUser *organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
 
-	SupportDocuments []*DocumentPeriodicReviewSupportDocumentDTO `json:"support_documents"`
+	SupportDocuments      []*DocumentPeriodicReviewSupportDocumentDTO `json:"support_documents"`
+	DocumentChangeRequest *DocumentChangeRequestDetailsDTO            `json:"document_change_request"`
 
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt *time.Time `json:"updated_at"`
@@ -59,6 +60,10 @@ type DocumentPeriodicReviewFormDTO struct {
 	ISChangeRequired bool                          `json:"is_change_required"`
 	Description      *string                       `json:"description" binding:"omitempty"`
 	SupportDocuments []*commonDTOs.DocumentFormDTO `json:"support_documents" binding:"omitempty"`
+
+	DocumentChangeRequestTypeID uint                       `json:"document_change_request_type_id"`
+	ReasonForChange             *string                    `json:"reason_for_change"`
+	Document                    commonDTOs.DocumentFormDTO `json:"document"`
 }
 
 type DocumentPeriodicReviewSupportDocumentDTO struct {

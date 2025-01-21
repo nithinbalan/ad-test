@@ -151,6 +151,8 @@ func (repo *DocumentPeriodicReviewRepository) GetFullDetailsByID(id uint, tx ...
 	}
 	var review models.DocumentReview
 	result := db.Preload("SupportDocuments").
+		Preload("DocumentChangeRequest").
+		Preload("DocumentChangeRequest.DocumentChangeRequestStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&review, id)

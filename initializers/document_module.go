@@ -213,7 +213,13 @@ func NewDocumentModule(db *gorm.DB,
 	documentCRReviewController := controllers.NewDocumentChangeRequestReviewController(documentCRReviewSvc)
 
 	documentPeriodicReviewRepo := repositories.NewDocumentPeriodicReviewRepository(db)
-	documentPeriodicReviewSvc := services.NewDocumentPeriodicReviewService(documentPeriodicReviewRepo, sharedModule.ActivityLogService, documentSvc, masterModule.ReviewStatusSvc)
+	documentPeriodicReviewSvc := services.NewDocumentPeriodicReviewService(
+		documentPeriodicReviewRepo,
+		sharedModule.ActivityLogService,
+		documentSvc,
+		masterModule.ReviewStatusSvc,
+		documentChangeRequestSvc,
+	)
 	documentPeriodicReviewController := controllers.NewDocumentPeriodicReviewController(documentPeriodicReviewSvc)
 
 	return &DocumentModule{

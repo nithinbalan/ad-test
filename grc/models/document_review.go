@@ -18,7 +18,8 @@ type DocumentReview struct {
 	CreatedByUser *User     `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser *User     `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 
-	SupportDocuments []*DocumentReviewSupportDocument `gorm:"foreignKey:DocumentReviewID"`
+	SupportDocuments      []*DocumentReviewSupportDocument `gorm:"foreignKey:DocumentReviewID"`
+	DocumentChangeRequest *DocumentChangeRequest           `gorm:"foreignKey:DocumentReviewID"`
 }
 
 func (DocumentReview) TableName() string {
