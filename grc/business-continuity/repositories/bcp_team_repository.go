@@ -44,6 +44,7 @@ func (repo *BcpTeamRepository) GetAll(bcpId uint, params *businessContinuityDTOs
             responsible_user.last_name_ar AS responsible_user_last_name_ar,
             responsible_user.initial AS responsible_user_initial,
             responsible_user.email AS responsible_user_email,
+            responsible_user.color AS responsible_user_color,
             responsible_user.profile_image_path AS responsible_user_profile_image_path,
             backup_user.first_name_en AS backup_user_first_name_en,
             backup_user.first_name_ar AS backup_user_first_name_ar,
@@ -51,6 +52,7 @@ func (repo *BcpTeamRepository) GetAll(bcpId uint, params *businessContinuityDTOs
             backup_user.last_name_ar AS backup_user_last_name_ar,
             backup_user.initial AS backup_user_initial,
             backup_user.email AS backup_user_email,
+            backup_user.color AS backup_user_color,
             backup_user.profile_image_path AS backup_user_profile_image_path,
             created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -58,6 +60,7 @@ func (repo *BcpTeamRepository) GetAll(bcpId uint, params *businessContinuityDTOs
             created_user.last_name_ar AS created_user_last_name_ar,
 			created_user.initial AS created_user_initial,
             created_user.email AS created_user_email,
+            created_user.color AS created_user_color,
             organization_units.title_en AS responsible_unit_title_en,
             organization_units.title_ar AS responsible_unit_title_ar
         `).

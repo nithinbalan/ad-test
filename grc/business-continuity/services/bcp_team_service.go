@@ -145,7 +145,6 @@ func (brs *BcpTeamService) Create(bcpId uint, currentUserID uint, bcpTeamForm *b
 func (brs *BcpTeamService) Update(id uint, currentUserID uint, bcpTeamForm *businessContinuityDTOs.BcpTeamsFormDTO) error {
 	tx := brs.repo.BeginTransaction()
 
-	// Fetch existing team
 	existingTeam, err := brs.repo.GetByID(id)
 	if err != nil {
 		tx.Rollback()
@@ -179,25 +178,46 @@ func (brs *BcpTeamService) Update(id uint, currentUserID uint, bcpTeamForm *busi
 	tx.Commit()
 
 	go func() {
-		updatedTeamDetails, err := brs.GetFullDetailsByID(existingTeam.BusinessContinuityPlanID, id)
+		newTeamDetails, err := brs.GetFullDetailsByID(existingTeam.BusinessContinuityPlanID, id)
 		if err != nil {
-			utility.LogError("Failed to fetch updated BCP team details", map[string]interface{}{"error": err})
+			utility.LogError("Failed to fetch updated BCP team details", map[string]interface{}{
+				"error": err.Error(),
+			})
 			return
 		}
 
-		// Compare old and new details
-		changes := utility.CompareFieldChanges(oldTeamDetails, updatedTeamDetails)
-		if len(changes) > 0 {
-			err = brs.activityLogSvc.LogActivity(
+		oldData := map[string]interface{}{
+			"responsibility":         oldTeamDetails.Responsibility,
+			"responsible_user":       fmt.Sprintf("%s %s", oldTeamDetails.ResponsibleUser.FirstNameEN, oldTeamDetails.ResponsibleUser.LastNameEN),
+			"backup_user":            fmt.Sprintf("%s %s", oldTeamDetails.BackupUser.FirstNameEN, oldTeamDetails.BackupUser.LastNameEN),
+			"responsible_unit_title": oldTeamDetails.ResponsibleUnit.TitleEn,
+		}
+
+		newData := map[string]interface{}{
+			"responsibility":         newTeamDetails.Responsibility,
+			"responsible_user":       fmt.Sprintf("%s %s", newTeamDetails.ResponsibleUser.FirstNameEN, newTeamDetails.ResponsibleUser.LastNameEN),
+			"backup_user":            fmt.Sprintf("%s %s", newTeamDetails.BackupUser.FirstNameEN, newTeamDetails.BackupUser.LastNameEN),
+			"responsible_unit_title": newTeamDetails.ResponsibleUnit.TitleEn,
+		}
+
+		changedData := utility.CompareFieldChanges(oldData, newData)
+		if len(changedData) > 0 {
+			err := brs.activityLogSvc.LogActivity(
 				models.UpdateAction,
 				models.BcpTeam{}.TableName(),
 				id,
-				changes,
+				changedData,
 				currentUserID,
 				nil,
 			)
 			if err != nil {
-				utility.LogError("Failed to log activity for BCP team update", map[string]interface{}{"error": err})
+				utility.LogError("Failed to log activity for BCP team update", map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.BcpTeam{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				})
 			}
 		}
 	}()
@@ -208,7 +228,6 @@ func (brs *BcpTeamService) Update(id uint, currentUserID uint, bcpTeamForm *busi
 func (brs *BcpTeamService) Delete(bcpId uint, teamIDs []uint, currentUserID uint) ([]uint, error) {
 	tx := brs.repo.BeginTransaction()
 
-	// Validate BCP existence
 	if _, err := brs.businessContinuityPlanSvc.GetByID(bcpId); err != nil {
 		return nil, err
 	}
@@ -217,7 +236,6 @@ func (brs *BcpTeamService) Delete(bcpId uint, teamIDs []uint, currentUserID uint
 	var deletedTeams []map[string]interface{}
 
 	for _, teamID := range teamIDs {
-		// Fetch the team details for logging and validation
 		team, err := brs.repo.GetByID(teamID)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -228,20 +246,17 @@ func (brs *BcpTeamService) Delete(bcpId uint, teamIDs []uint, currentUserID uint
 			return nil, err
 		}
 
-		// Validate if the team belongs to the correct BCP
 		if team.BusinessContinuityPlanID != bcpId {
 			failedIDs = append(failedIDs, teamID)
 			continue
 		}
 
-		// Add the team details for activity logging
 		deletedTeams = append(deletedTeams, map[string]interface{}{
 			"id":               team.ID,
 			"responsibility":   team.Responsibility,
 			"responsible_user": fmt.Sprintf("%s %s", team.ResponsibleUser.FirstNameEn, team.ResponsibleUser.FirstNameEn),
 		})
 
-		// Delete the team
 		if err := brs.repo.Delete(teamID, tx); err != nil {
 			failedIDs = append(failedIDs, teamID)
 			continue
