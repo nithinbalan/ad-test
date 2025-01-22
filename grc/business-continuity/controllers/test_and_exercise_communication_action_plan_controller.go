@@ -24,7 +24,7 @@ func NewTestAndExerciseCommunicationActionPlanController(service services.TestAn
 	}
 }
 
-func (bcpc *TestAndExerciseCommunicationActionPlanController) GetAllTestAndExerciseCommunicationActionPlans(c *gin.Context) {
+func (tecapc *TestAndExerciseCommunicationActionPlanController) GetAllTestAndExerciseCommunicationActionPlans(c *gin.Context) {
 
 	idStr := c.Param("testAndExerciseId")
 
@@ -56,13 +56,13 @@ func (bcpc *TestAndExerciseCommunicationActionPlanController) GetAllTestAndExerc
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
-		utility.SendInternalErrResp(bcpc.db, c, "Invalid page parameter")
+		utility.SendInternalErrResp(tecapc.db, c, "Invalid page parameter")
 		return
 	}
 
 	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
 	if err != nil {
-		utility.SendInternalErrResp(bcpc.db, c, "Invalid page_size parameter")
+		utility.SendInternalErrResp(tecapc.db, c, "Invalid page_size parameter")
 		return
 	}
 	sortField, valid := validSortFields[sortBy]
@@ -79,17 +79,17 @@ func (bcpc *TestAndExerciseCommunicationActionPlanController) GetAllTestAndExerc
 		PageSize: pageSize,
 		Filters:  filters,
 	}
-	bcpCommunicationPlans, err := bcpc.service.GetAll(uint(testAndExerciseId), &queryParams)
+	communicationActionPlans, err := tecapc.service.GetAll(uint(testAndExerciseId), &queryParams)
 
 	if err != nil {
-		utility.SendInternalErrResp(bcpc.db, c, err.Error())
+		utility.SendInternalErrResp(tecapc.db, c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, bcpCommunicationPlans)
+	c.JSON(http.StatusOK, communicationActionPlans)
 }
 
-func (bcpc *TestAndExerciseCommunicationActionPlanController) GetTestAndExerciseCommunicationActionPlanDetails(c *gin.Context) {
+func (tecapc *TestAndExerciseCommunicationActionPlanController) GetTestAndExerciseCommunicationActionPlanDetails(c *gin.Context) {
 	testAndExerciseIdStr := c.Param("testAndExerciseId")
 
 	testAndExerciseId, err := strconv.ParseUint(testAndExerciseIdStr, 10, 32)
@@ -106,21 +106,21 @@ func (bcpc *TestAndExerciseCommunicationActionPlanController) GetTestAndExercise
 		return
 	}
 
-	bcpCommunicationPlan, err := bcpc.service.GetFullDetailsByID(uint(testAndExerciseId), uint(id))
+	bcpCommunicationPlan, err := tecapc.service.GetFullDetailsByID(uint(testAndExerciseId), uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(bcpc.db, c, e.Error())
+			utility.SendInternalErrResp(tecapc.db, c, e.Error())
 			return
 		}
 	}
 	c.JSON(http.StatusOK, bcpCommunicationPlan)
 }
 
-func (bcpc *TestAndExerciseCommunicationActionPlanController) CreateTestAndExerciseCommunicationActionPlan(c *gin.Context) {
+func (tecapc *TestAndExerciseCommunicationActionPlanController) CreateTestAndExerciseCommunicationActionPlan(c *gin.Context) {
 
 	idStr := c.Param("testAndExerciseId")
 
@@ -139,11 +139,11 @@ func (bcpc *TestAndExerciseCommunicationActionPlanController) CreateTestAndExerc
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(bcpc.db, c, err.Error())
+		utility.SendInternalErrResp(tecapc.db, c, err.Error())
 		return
 	}
 
-	id, err := bcpc.service.Create(uint(testAndExerciseId), currentUserID, &bcpCommunicationPlanFormDTO)
+	id, err := tecapc.service.Create(uint(testAndExerciseId), currentUserID, &bcpCommunicationPlanFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -154,7 +154,7 @@ func (bcpc *TestAndExerciseCommunicationActionPlanController) CreateTestAndExerc
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(bcpc.db, c, e.Error())
+			utility.SendInternalErrResp(tecapc.db, c, e.Error())
 			return
 		}
 	}
@@ -162,7 +162,7 @@ func (bcpc *TestAndExerciseCommunicationActionPlanController) CreateTestAndExerc
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
-func (bcpc *TestAndExerciseCommunicationActionPlanController) UpdateTestAndExerciseCommunicationActionPlan(c *gin.Context) {
+func (tecapc *TestAndExerciseCommunicationActionPlanController) UpdateTestAndExerciseCommunicationActionPlan(c *gin.Context) {
 	testAndExerciseIdStr := c.Param("testAndExerciseId")
 
 	testAndExerciseId, err := strconv.ParseUint(testAndExerciseIdStr, 10, 32)
@@ -186,11 +186,11 @@ func (bcpc *TestAndExerciseCommunicationActionPlanController) UpdateTestAndExerc
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(bcpc.db, c, err.Error())
+		utility.SendInternalErrResp(tecapc.db, c, err.Error())
 		return
 	}
 
-	err = bcpc.service.Update(uint(testAndExerciseId), uint(bcpCommunicationPlanID), currentUserID, &bcpCommunicationPlanFormDTO)
+	err = tecapc.service.Update(uint(testAndExerciseId), uint(bcpCommunicationPlanID), currentUserID, &bcpCommunicationPlanFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -200,7 +200,7 @@ func (bcpc *TestAndExerciseCommunicationActionPlanController) UpdateTestAndExerc
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(bcpc.db, c, e.Error())
+			utility.SendInternalErrResp(tecapc.db, c, e.Error())
 			return
 		}
 	}
@@ -208,7 +208,7 @@ func (bcpc *TestAndExerciseCommunicationActionPlanController) UpdateTestAndExerc
 	c.Status(http.StatusOK)
 }
 
-func (bcpc *TestAndExerciseCommunicationActionPlanController) DeleteTestAndExerciseCommunicationActionPlans(c *gin.Context) {
+func (tecapc *TestAndExerciseCommunicationActionPlanController) DeleteTestAndExerciseCommunicationActionPlans(c *gin.Context) {
 	testAndExerciseIdStr := c.Param("testAndExerciseId")
 
 	testAndExerciseId, err := strconv.ParseUint(testAndExerciseIdStr, 10, 32)
@@ -228,13 +228,13 @@ func (bcpc *TestAndExerciseCommunicationActionPlanController) DeleteTestAndExerc
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(bcpc.db, c, err.Error())
+		utility.SendInternalErrResp(tecapc.db, c, err.Error())
 		return
 	}
 
-	failedIDs, err := bcpc.service.Delete(uint(testAndExerciseId), request.IDs, currentUserID)
+	failedIDs, err := tecapc.service.Delete(uint(testAndExerciseId), request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(bcpc.db, c, err.Error())
+		utility.SendInternalErrResp(tecapc.db, c, err.Error())
 		return
 	}
 

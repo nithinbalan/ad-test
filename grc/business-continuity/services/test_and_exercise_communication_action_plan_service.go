@@ -45,12 +45,12 @@ func NewTestAndExerciseCommunicationActionPlanService(
 	}
 }
 
-func (tes *TestAndExerciseCommunicationActionPlanService) GetAll(testAndExerciseId uint, params *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListQueryParamsDTO) (*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListResponseDTO, error) {
-	return tes.repo.GetAll(params)
+func (tecaps *TestAndExerciseCommunicationActionPlanService) GetAll(testAndExerciseId uint, params *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListQueryParamsDTO) (*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListResponseDTO, error) {
+	return tecaps.repo.GetAll(params)
 }
 
-func (tes TestAndExerciseCommunicationActionPlanService) GetByID(testAndExerciseId uint, id uint) (*models.TestAndExerciseCommunicationActionPlan, error) {
-	TestAndExerciseCommunicationActionPlan, err := tes.repo.GetByID(id)
+func (tecaps TestAndExerciseCommunicationActionPlanService) GetByID(testAndExerciseId uint, id uint) (*models.TestAndExerciseCommunicationActionPlan, error) {
+	TestAndExerciseCommunicationActionPlan, err := tecaps.repo.GetByID(id)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -62,11 +62,11 @@ func (tes TestAndExerciseCommunicationActionPlanService) GetByID(testAndExercise
 	return TestAndExerciseCommunicationActionPlan, nil
 }
 
-func (tes TestAndExerciseCommunicationActionPlanService) GetFullDetailsByID(testAndExerciseId uint, id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanDetailDTO, error) {
+func (tecaps TestAndExerciseCommunicationActionPlanService) GetFullDetailsByID(testAndExerciseId uint, id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanDetailDTO, error) {
 	// Initialize your DTO
 	var testAndExerciseDTO businessContinuityDTOs.TestAndExerciseCommunicationActionPlanDetailDTO
 
-	testAndExercise, err := tes.repo.GetFullDetailsByID(id, tx...)
+	testAndExercise, err := tecaps.repo.GetFullDetailsByID(id, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -87,15 +87,15 @@ func (tes TestAndExerciseCommunicationActionPlanService) GetFullDetailsByID(test
 	return &testAndExerciseDTO, nil
 }
 
-func (tes *TestAndExerciseCommunicationActionPlanService) Create(testAndExerciseId uint, currentUserID uint, testAndExerciseFormDTO *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanFormDTO) (uint, error) {
-	tx := tes.repo.BeginTransaction()
+func (tecaps *TestAndExerciseCommunicationActionPlanService) Create(testAndExerciseId uint, currentUserID uint, testAndExerciseFormDTO *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanFormDTO) (uint, error) {
+	tx := tecaps.repo.BeginTransaction()
 
-	responsibleUnitID, err := tes.userSvc.GetUserPrimaryUnitID(testAndExerciseFormDTO.ResponsibleUserID)
+	responsibleUnitID, err := tecaps.userSvc.GetUserPrimaryUnitID(testAndExerciseFormDTO.ResponsibleUserID)
 	if err != nil {
 		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "test and exercise responsible unit")
 	}
 
-	communicationActionPlanStatus, err := tes.communicationActionPlanStatusSvc.GetByType("pending")
+	communicationActionPlanStatus, err := tecaps.communicationActionPlanStatusSvc.GetByType("pending")
 	if err != nil {
 		return 0, err
 	}
@@ -115,7 +115,7 @@ func (tes *TestAndExerciseCommunicationActionPlanService) Create(testAndExercise
 		CreatedBYID:                     currentUserID,
 	}
 
-	id, err := tes.repo.Create(TestAndExerciseCommunicationActionPlan, tx)
+	id, err := tecaps.repo.Create(TestAndExerciseCommunicationActionPlan, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -123,7 +123,7 @@ func (tes *TestAndExerciseCommunicationActionPlanService) Create(testAndExercise
 
 	tx.Commit()
 	go func() {
-		existingTestAndExerciseCommunicationActionPlan, err := tes.GetFullDetailsByID(testAndExerciseId, TestAndExerciseCommunicationActionPlan.ID)
+		existingTestAndExerciseCommunicationActionPlan, err := tecaps.GetFullDetailsByID(testAndExerciseId, TestAndExerciseCommunicationActionPlan.ID)
 		if err != nil {
 			utility.LogError("Failed to fetch test and exercise", map[string]interface{}{
 				"error": err.Error(),
@@ -131,7 +131,7 @@ func (tes *TestAndExerciseCommunicationActionPlanService) Create(testAndExercise
 			return
 		}
 
-		err = tes.activityLogSvc.LogActivity(
+		err = tecaps.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.TestAndExerciseCommunicationActionPlan{}.TableName(),
 			id,
@@ -154,22 +154,22 @@ func (tes *TestAndExerciseCommunicationActionPlanService) Create(testAndExercise
 	}()
 	return id, nil
 }
-func (tes *TestAndExerciseCommunicationActionPlanService) Update(testAndExerciseId uint, id uint, currentUserID uint, testAndExerciseFormDTO *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanFormDTO) error {
-	tx := tes.repo.BeginTransaction()
+func (tecaps *TestAndExerciseCommunicationActionPlanService) Update(testAndExerciseId uint, id uint, currentUserID uint, testAndExerciseFormDTO *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanFormDTO) error {
+	tx := tecaps.repo.BeginTransaction()
 
-	existingTestAndExerciseCommunicationActionPlan, err := tes.repo.GetByID(id)
+	existingTestAndExerciseCommunicationActionPlan, err := tecaps.repo.GetByID(id)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, id)
 	}
 
-	oldTestAndExerciseCommunicationActionPlan, err := tes.GetFullDetailsByID(testAndExerciseId, id, tx)
+	oldTestAndExerciseCommunicationActionPlan, err := tecaps.GetFullDetailsByID(testAndExerciseId, id, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	if existingTestAndExerciseCommunicationActionPlan.ResponsibleUserID != testAndExerciseFormDTO.ResponsibleUserID {
-		responsibleUnitID, err := tes.userSvc.GetUserPrimaryUnitID(existingTestAndExerciseCommunicationActionPlan.ResponsibleUserID)
+		responsibleUnitID, err := tecaps.userSvc.GetUserPrimaryUnitID(existingTestAndExerciseCommunicationActionPlan.ResponsibleUserID)
 		if err != nil {
 			return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "risk responsible unit")
 		}
@@ -187,7 +187,7 @@ func (tes *TestAndExerciseCommunicationActionPlanService) Update(testAndExercise
 	existingTestAndExerciseCommunicationActionPlan.Description = testAndExerciseFormDTO.Description
 	existingTestAndExerciseCommunicationActionPlan.UpdatedBYID = &currentUserID
 
-	err = tes.repo.Update(existingTestAndExerciseCommunicationActionPlan, tx)
+	err = tecaps.repo.Update(existingTestAndExerciseCommunicationActionPlan, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -195,7 +195,7 @@ func (tes *TestAndExerciseCommunicationActionPlanService) Update(testAndExercise
 
 	tx.Commit()
 	go func() {
-		existingTestAndExerciseCommunicationActionPlan, err := tes.GetFullDetailsByID(testAndExerciseId, id)
+		existingTestAndExerciseCommunicationActionPlan, err := tecaps.GetFullDetailsByID(testAndExerciseId, id)
 		if err != nil {
 			return
 		}
@@ -229,7 +229,7 @@ func (tes *TestAndExerciseCommunicationActionPlanService) Update(testAndExercise
 		}
 		// Log activity if there are any changes
 		if len(changedData) > 0 {
-			err := tes.activityLogSvc.LogActivity(
+			err := tecaps.activityLogSvc.LogActivity(
 				models.UpdateAction,
 				models.TestAndExerciseCommunicationActionPlan{}.TableName(),
 				id,
@@ -255,14 +255,14 @@ func (tes *TestAndExerciseCommunicationActionPlanService) Update(testAndExercise
 	return nil
 }
 
-func (tes *TestAndExerciseCommunicationActionPlanService) Delete(testAndExerciseId uint, ids []uint, currentUserID uint) ([]uint, error) {
-	tx := tes.repo.BeginTransaction()
+func (tecaps *TestAndExerciseCommunicationActionPlanService) Delete(testAndExerciseId uint, ids []uint, currentUserID uint) ([]uint, error) {
+	tx := tecaps.repo.BeginTransaction()
 	var failedIds []uint
 	var successfulIds []uint
 	var deletedTestAndExerciseCommunicationActionPlan []map[string]interface{}
 
 	for _, id := range ids {
-		testAndExercise, err := tes.GetFullDetailsByID(testAndExerciseId, id, tx)
+		testAndExercise, err := tecaps.GetFullDetailsByID(testAndExerciseId, id, tx)
 		if err != nil {
 			tx.Rollback()
 			return nil, err
@@ -274,7 +274,7 @@ func (tes *TestAndExerciseCommunicationActionPlanService) Delete(testAndExercise
 		})
 
 		// Delete the test and exercise
-		if err := tes.repo.Delete(id, tx); err != nil {
+		if err := tecaps.repo.Delete(id, tx); err != nil {
 			failedIds = append(failedIds, id)
 			continue
 		} else {
@@ -291,7 +291,7 @@ func (tes *TestAndExerciseCommunicationActionPlanService) Delete(testAndExercise
 	// Log bulk delete activities for successful deletions
 	if len(successfulIds) > 0 {
 		go func() {
-			err := tes.activityLogSvc.LogBulkActivities(
+			err := tecaps.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.TestAndExerciseCommunicationActionPlan{}.TableName(),
 				successfulIds,
