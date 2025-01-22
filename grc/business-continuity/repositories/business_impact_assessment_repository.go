@@ -51,6 +51,7 @@ func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *bus
 			asset_register.title_ar AS asset_register_title_ar,
 			impact_categories.title_en AS impact_category_title_en,
 			impact_categories.title_ar AS impact_category_title_ar,
+			impact_categories.type AS impact_category_type,
 			risk_levels.title_en AS risk_level_title_en,
 			risk_levels.title_ar AS risk_level_title_ar,
 			risk_levels.color_code AS risk_level_color_code,

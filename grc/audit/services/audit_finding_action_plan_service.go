@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	auditFindingDTOs "jethur/grc/audit/dtos"
@@ -31,6 +32,7 @@ type AuditFindingActionPlanServiceInterface interface {
 	StatusUpdate(findingID uint, id uint, currentUserID uint, auditFindingActionPlanStatusUpdateFormDTO *auditFindingDTOs.AuditFindingActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
 
 	GetAuditFindingActionPlanCountByStatus(findingId uint) ([]auditFindingDTOs.AuditFindingActionPlanStatusCountResponseDTO, error)
+	ExportAuditFindingActionPlans(data []*auditFindingDTOs.AuditFindingActionPlanListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -44,6 +46,7 @@ type AuditFindingActionPlanService struct {
 	taskSvc             taskServices.TaskServiceInterface
 	userSvc             organizationServices.UserServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
+	userSettingSvc      organizationServices.UserSettingServiceInterface
 }
 
 func NewAuditFindingActionPlanService(
@@ -56,6 +59,7 @@ func NewAuditFindingActionPlanService(
 	taskSvc taskServices.TaskServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) AuditFindingActionPlanServiceInterface {
 	return &AuditFindingActionPlanService{
 		repo:                repo,
@@ -67,6 +71,7 @@ func NewAuditFindingActionPlanService(
 		taskSvc:             taskSvc,
 		userSvc:             userSvc,
 		notificationSvc:     notificationSvc,
+		userSettingSvc:      userSettingSvc,
 	}
 }
 
@@ -785,4 +790,97 @@ func (afaps *AuditFindingActionPlanService) GetAuditFindingActionPlanCountByStat
 	}
 
 	return response, nil
+}
+
+func (afs *AuditFindingActionPlanService) ExportAuditFindingActionPlans(data []*auditFindingDTOs.AuditFindingActionPlanListDTO, currentUserID uint) (*os.File, error) {
+	// Retrieve user settings for language preference
+	userSetting, err := afs.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	// Define headers based on the user's language setting
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Finding Title (AR)",
+			"Finding Description (AR)",
+			"Action Plan Title (AR)",
+			"Action Plan Description (AR)",
+			"Severity Level (AR)",
+			"Severity Color",
+			"Responsible User (AR)",
+			"Review User (AR)",
+			"Target Date",
+			"Percentage",
+			"Status (AR)",
+			"Status Color",
+			"Created At",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Finding Title (EN)",
+			"Finding Description (EN)",
+			"Action Plan Title (EN)",
+			"Action Plan Description (EN)",
+			"Severity Level (EN)",
+			"Severity Color",
+			"Responsible User (EN)",
+			"Review User (EN)",
+			"Target Date",
+			"Percentage",
+			"Status (EN)",
+			"Status Color",
+			"Created At",
+		}
+	}
+
+	// Convert data to [][]interface{} based on language preference
+	rows := make([][]interface{}, len(data))
+	for i, item := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				item.AuditFindingReferenceNumber,
+				item.AuditFindingTitle,
+				safeString(&item.AuditFindingDescription),
+				item.Title,
+				item.Description,
+				item.SeverityLevelTitleAr,
+				item.SeverityLevelColorCode,
+				item.ResponsibleUserFirstNameAr + " " + item.ResponsibleUserLastNameAr,
+				safeString(item.ReviewUserFirstNameAr) + " " + safeString(item.ReviewUserLastNameAr),
+				item.TargetDate,
+				item.Percentage,
+				item.ActionPlanStatusTitleAr,
+				item.ActionPlanStatusColorCode,
+				item.CreatedAt,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				item.AuditFindingReferenceNumber,
+				item.AuditFindingTitle,
+				safeString(&item.AuditFindingDescription),
+				item.Title,
+				item.Description,
+				item.SeverityLevelTitleEn,
+				item.SeverityLevelColorCode,
+				item.ResponsibleUserFirstNameEn + " " + item.ResponsibleUserLastNameEn,
+				safeString(&item.ReviewUserFirstNameEn) + " " + safeString(item.ReviewUserLastNameEn),
+				item.TargetDate,
+				item.Percentage,
+				item.ActionPlanStatusTitleEn,
+				item.ActionPlanStatusColorCode,
+				item.CreatedAt,
+			}
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }

@@ -19,30 +19,38 @@ type BcpTestAndExerciseServiceInterface interface {
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.BcpTestAndExerciseDetailDTO, error)
 	GetByID(id uint) (*models.BcpTestAndExercise, error)
 	Create(bcpId uint, currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.BcpTestAndExerciseFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, BcpTestAndExercise *businessContinuityDTOs.BcpTestAndExerciseFormDTO) error
+	Update(id uint, currentUserID uint, bcpTestAndExercise *businessContinuityDTOs.BcpTestAndExerciseFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
 type BcpTestAndExerciseService struct {
-	repo           BcpTestAndExerciseRepositories.BcpTestAndExerciseRepositoryInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
-	userSvc        organizationServices.UserServiceInterface
+	repo                      BcpTestAndExerciseRepositories.BcpTestAndExerciseRepositoryInterface
+	activityLogSvc            logServices.ActivityLogServiceInterface
+	userSvc                   organizationServices.UserServiceInterface
+	businessContinuityPlanSvc BusinessContinuityPlanServiceInterface
 }
 
 func NewBcpTestAndExerciseService(
 	repo BcpTestAndExerciseRepositories.BcpTestAndExerciseRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	businessContinuityPlanSvc BusinessContinuityPlanServiceInterface,
 ) BcpTestAndExerciseServiceInterface {
 	return &BcpTestAndExerciseService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
-		userSvc:        userSvc,
+		repo:                      repo,
+		activityLogSvc:            activityLogSvc,
+		userSvc:                   userSvc,
+		businessContinuityPlanSvc: businessContinuityPlanSvc,
 	}
 }
 
 func (btes *BcpTestAndExerciseService) GetAll(bcpId uint, params *businessContinuityDTOs.BcpTestAndExerciseListQueryParamsDTO) (*businessContinuityDTOs.BcpTestAndExerciseListResponseDTO, error) {
+	if bcpId != 0 {
+		if _, err := btes.businessContinuityPlanSvc.GetByID(bcpId); err != nil {
+			return nil, err
+		}
+	}
 	return btes.repo.GetAll(bcpId, params)
 }
 

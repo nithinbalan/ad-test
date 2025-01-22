@@ -102,8 +102,11 @@ func (repo *AuditFindingActionPlanRepository) GetAll(findingID uint, params *aud
 		LEFT JOIN users AS review_user ON review_user.id = audit_finding_action_plans.review_user_id
         LEFT JOIN users AS created_user ON created_user.id = audit_finding_action_plans.created_by_id
         LEFT JOIN users AS updated_user ON updated_user.id = audit_finding_action_plans.updated_by_id
-    `).Where("audit_finding_action_plans.audit_finding_id = ?", findingID)
-
+    `)
+	// Apply findingID filter only if it's non-zero
+	if findingID != 0 {
+		query = query.Where("audit_finding_action_plans.audit_finding_id = ?", findingID)
+	}
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
@@ -118,7 +121,9 @@ func (repo *AuditFindingActionPlanRepository) GetAll(findingID uint, params *aud
 	if params.TargetDateTo != "" {
 		query = query.Where("target_date <= ?", params.TargetDateTo)
 	}
-
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("audit_finding_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
@@ -156,26 +161,22 @@ func (repo *AuditFindingActionPlanRepository) GetAll(findingID uint, params *aud
 		query = query.Where("audit_finding_action_plans.audit_finding_id = ?", findingID)
 	}
 
-	// Sort by the specified column and order
-	if params.SortBy == "" {
-		params.SortBy = "title" // Default sort by title if no sortBy is specified
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
-	}
-
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
 
-	// Execute the query
-	err := query.Offset(offset).Limit(params.PageSize).Find(&auditFindingActionPlans).Error
+	err := query.Find(&auditFindingActionPlans).Error
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
 	response := &auditFindingDTOs.AuditFindingActionPlanListResponseDTO{
 		Items: auditFindingActionPlans,
 		Pagination: commonDTOs.PaginationInfoDTO{

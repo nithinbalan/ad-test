@@ -134,6 +134,11 @@
   {
     "id": "invalid_data",
     "translation": "The provided import data contains errors. Please review and correct the data before trying again."
+  },
+  {
+    "id": "edit_not_allowed",
+    "translation": "Editing is not allowed for the current item because it does not meet the required conditions"
   }
+
   
 ]

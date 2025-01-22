@@ -8,6 +8,7 @@ type BusinessImpactAssessmentListDTO struct {
 	ImpactCategoryID            uint    `json:"impact_category_id"`
 	ImpactCategoryTitleEn       string  `json:"impact_category_title_en"`
 	ImpactCategoryTitleAr       string  `json:"impact_category_title_ar"`
+	ImpactCategoryType          string  `json:"impact_category_type"`
 	RiskLevelID                 *uint   `json:"risk_level_id"`
 	RiskLevelTitleEn            string  `json:"risk_level_title_en"`
 	RiskLevelTitleAr            string  `json:"risk_level_title_ar"`
@@ -101,20 +102,12 @@ type BusinessImpactAssessmentListQueryParamsDTO struct {
 	Filters map[string][]string
 }
 
-// type BusinessImpactAssessmentListResponseDTO struct {
-// 	Items []*BusinessImpactAssessmentListDTO `json:"items"`
-// }
-
 type BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO struct {
 	Sort    string
 	SortBy  string
 	Keyword string
 	Filters map[string][]string
 }
-
-// type BusinessImpactAssessmentRecoveryObjectiveListResponseDTO struct {
-// 	Items []*BusinessImpactAssessmentRecoveryObjectiveListDTO `json:"items"`
-// }
 
 type BusinessImpactFormDTO struct {
 	ProcessID *uint `json:"process_id"`

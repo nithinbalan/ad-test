@@ -113,6 +113,7 @@ type DocumentChangeRequestFormDTO struct {
 	DocumentChangeRequestInitiateID *uint                      `json:"document_change_request_initiate_id"`
 	ReasonForChange                 *string                    `json:"reason_for_change"`
 	Document                        commonDTOs.DocumentFormDTO `json:"document" binding:"required"`
+	DocumentReviewID                *uint                      `json:"document_review_id"`
 }
 
 type DocumentCREditHistoryDTO struct {
