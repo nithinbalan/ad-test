@@ -307,6 +307,18 @@ func (rrc *RiskReportController) GetAllRiskRegisters(c *gin.Context) {
 		"next_review_date":          "risk_register.next_review_date",
 	}
 
+	// Retrieve RiskAppetiteToleranceLevelID from query
+	riskAppetiteToleranceLevelIDStr := c.Query("risk_appetite_tolerance_level_id")
+	var riskAppetiteToleranceLevelID uint
+	if riskAppetiteToleranceLevelIDStr != "" {
+		parsedID, err := strconv.ParseUint(riskAppetiteToleranceLevelIDStr, 10, 32)
+		if err != nil {
+			utility.SendInternalErrResp(rrc.db, c, "Invalid RiskAppetiteToleranceLevelID parameter")
+			return
+		}
+		riskAppetiteToleranceLevelID = uint(parsedID) // Explicit casting from uint64 to uint
+	}
+
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	reportedAtFrom := c.Query("reported_at")
@@ -345,22 +357,23 @@ func (rrc *RiskReportController) GetAllRiskRegisters(c *gin.Context) {
 	}
 
 	queryParams := riskDTOs.RiskRegisterListQueryParamsDTO{
-		Sort:               sort,
-		SortBy:             dbField,
-		Keyword:            keyword,
-		Status:             status,
-		Page:               page,
-		PageSize:           pageSize,
-		Value:              value,
-		Filters:            filters,
-		QuickFilter:        quickFilter,
-		ReportedAtFrom:     reportedAtFrom,
-		ReportedAtTo:       reportedAtTo,
-		NextReviewDateFrom: nextReviewDateFrom,
-		NextReviewDateTo:   nextReviewDateTo,
-		Export:             export,
-		DateFrom:           dateFrom,
-		DateTo:             dateTo,
+		Sort:                         sort,
+		SortBy:                       dbField,
+		Keyword:                      keyword,
+		Status:                       status,
+		Page:                         page,
+		PageSize:                     pageSize,
+		Value:                        value,
+		Filters:                      filters,
+		QuickFilter:                  quickFilter,
+		ReportedAtFrom:               reportedAtFrom,
+		ReportedAtTo:                 reportedAtTo,
+		NextReviewDateFrom:           nextReviewDateFrom,
+		NextReviewDateTo:             nextReviewDateTo,
+		Export:                       export,
+		DateFrom:                     dateFrom,
+		DateTo:                       dateTo,
+		RiskAppetiteToleranceLevelID: riskAppetiteToleranceLevelID,
 	}
 	risks, err := rrc.riskRegisterSvc.GetAll(&queryParams)
 	if err != nil {

@@ -90,22 +90,23 @@ type RiskRegisterListDTO struct {
 }
 
 type RiskRegisterListQueryParamsDTO struct {
-	Sort               string
-	SortBy             string
-	Keyword            string
-	Status             string
-	Page               int
-	PageSize           int
-	Value              int
-	Filters            map[string][]string
-	QuickFilter        []string
-	ReportedAtFrom     string
-	ReportedAtTo       string
-	NextReviewDateFrom string
-	NextReviewDateTo   string
-	Export             bool
-	DateFrom           string
-	DateTo             string
+	Sort                         string
+	SortBy                       string
+	Keyword                      string
+	Status                       string
+	Page                         int
+	PageSize                     int
+	Value                        int
+	Filters                      map[string][]string
+	QuickFilter                  []string
+	ReportedAtFrom               string
+	ReportedAtTo                 string
+	NextReviewDateFrom           string
+	NextReviewDateTo             string
+	Export                       bool
+	DateFrom                     string
+	DateTo                       string
+	RiskAppetiteToleranceLevelID uint
 }
 
 type RiskRegisterListResponseDTO struct {
