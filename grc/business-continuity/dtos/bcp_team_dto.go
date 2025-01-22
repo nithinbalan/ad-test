@@ -1,5 +1,12 @@
 package dtos
 
+import (
+	"time"
+
+	organizationDTOs "jethur/grc/organization/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
+)
+
 type BcpTeamsListDTO struct {
 	ID                              uint    `json:"id"`
 	BusinessContinuityPlanID        uint    `json:"business_continuity_plan_id"`
@@ -46,4 +53,20 @@ type BcpTeamsListQueryParamsDTO struct {
 	Filters     map[string][]string
 	QuickFilter []string
 	Export      bool
+}
+
+type BcpTeamsDetailDTO struct {
+	ID                       uint                             `json:"id"`
+	BusinessContinuityPlanID uint                             `json:"business_continuity_plan_id"`
+	ResponsibleUserID        uint                             `json:"responsible_user_id"`
+	ResponsibleUnitID        uint                             `json:"responsible_unit_id"`
+	ResponsibleUnit          settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
+	Responsibility           string                           `json:"responsibility"`
+	BackupUserID             *uint                            `json:"backup_user_id"`
+	CreatedBYID              uint                             `json:"created_by_id"`
+	ResponsibleUser          organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
+	BackupUser               organizationDTOs.UserMinimalDTO  `json:"backup_user"`
+	CreatedAt                time.Time                        `json:"created_at"`
+	UpdatedAt                *time.Time                        `json:"updated_at"`
+	CreatedByUser            organizationDTOs.UserMinimalDTO  `json:"created_by_user"`
 }
