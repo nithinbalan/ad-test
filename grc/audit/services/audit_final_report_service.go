@@ -163,6 +163,38 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 			// Main section
 			mainSectionDTO := mapSectionToDTO(section)
 
+			if section.Type == "finding-summary" {
+				// Finding summary: category-wise count
+				categoryWiseCounts := map[int]int{}
+				for _, finding := range auditFinalReport.Audit.AuditFindings {
+					if finding.AuditFindingCategoryID != 0 {
+						categoryWiseCounts[int(finding.AuditFindingCategoryID)]++
+					}
+				}
+
+				// Convert the map to a DTO structure
+				findingCategoryCounts := []*auditDTOs.FindingCategorySummaryDTO{}
+				for categoryID, count := range categoryWiseCounts {
+					category := findCategoryByID(auditFinalReport.Audit.AuditFindings, uint(categoryID))
+					if category != nil {
+						findingCategoryCounts = append(findingCategoryCounts, &auditDTOs.FindingCategorySummaryDTO{
+							Category: &auditDTOs.AuditFindingCategoryDTO{
+								ID:            int(category.ID),
+								TitleEn:       category.TitleEn,
+								TitleAr:       category.TitleAr,
+								ColorCode:     category.ColorCode,
+								DescriptionEn: safeStringPointer(category.DescriptionEn),
+								DescriptionAr: safeStringPointer(category.DescriptionAr),
+							},
+							Count: count,
+						})
+					}
+				}
+
+				// Assign category-wise counts to the section DTO
+				mainSectionDTO.FindingCategorySummary = findingCategoryCounts
+			}
+
 			// If this section is for findings, map the findings directly to it
 			if section.Type == "findings" {
 				findingsDTOs := []*auditDTOs.AuditFinalReportFindingDTO{}
@@ -1499,5 +1531,14 @@ func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, a
 		}
 	}()
 
+	return nil
+}
+
+func findCategoryByID(findings []*models.AuditFinding, categoryID uint) *models.AuditFindingCategory {
+	for _, finding := range findings {
+		if finding.AuditFindingCategory != nil && finding.AuditFindingCategory.ID == categoryID {
+			return finding.AuditFindingCategory
+		}
+	}
 	return nil
 }

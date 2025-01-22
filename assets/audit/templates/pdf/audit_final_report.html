@@ -63,30 +63,26 @@
                 <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #000;">{{.Order}}. {{.TitleEn}}</h4>
                 {{if .DescriptionEn}}<p style="margin: 0 0 20px 0; color: #000;">{{.DescriptionEn}}</p>{{end}}
                 {{if eq .Type "finding-summary"}}
+                {{if .FindingCategorySummary}}
                 <table
                     style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; background: #fff; text-align: center; width: 100%; margin: 0 auto; margin-bottom: 15px;">
                     <tbody>
                         <tr style="border: 1px solid #ccc;">
+                            {{range .FindingCategorySummary}}
                             <th
                                 style="text-align: left; font-size: 14px; font-weight: bold; border: 1px solid #ccc; padding: 8px;">
-                                Major NCs
+                                {{if .Category}} {{.Category.TitleEn}} {{end}}
                             </th>
-                            <th
-                                style="text-align: left; font-size: 14px; font-weight: bold; border: 1px solid #ccc; padding: 8px;">
-                                Minor NCs
-                            </th>
-                            <th
-                                style="text-align: left; font-size: 14px; font-weight: bold; border: 1px solid #ccc; padding: 8px;">
-                                OFIs
-                            </th>
+                            {{end}}
                         </tr>
                         <tr style="border: 1px solid #ccc;">
-                            <td style="padding: 10px; text-align: left;">5</td>
-                            <td style="padding: 10px; text-align: left;">5</td>
-                            <td style="padding: 10px; text-align: left;">5</td>
+                            {{range .FindingCategorySummary}}
+                            <td style="padding: 10px; text-align: left;">{{if .Count}} {{.Count}} {{end}}</td>
+                            {{end}}
                         </tr>
                     </tbody>
                 </table>
+                {{end}}
                 {{end}}
 
                 {{if eq .Type "findings"}}
@@ -157,10 +153,8 @@
 
                 </ol>
                 <h6 style="margin: 0 0 10px 0;font-weight: bold; font-size: 14px; ">Department Response:</h6>
-                <p style="margin: 0 0 20px 0; color: #000;margin-bottom: 5px;">John Smith (Auditor):</p>
-                <p style="margin: 0 0 20px 0; color: #000;">The department has initiated corrective actions to ensure
-                    QMS documentation is regularly reviewed and approved. A progress update will be provided in the next
-                    review meeting.</p>
+                <p style="margin: 0 0 20px 0; color: #000;margin-bottom: 5px;">(Auditor):</p>
+                <p style="margin: 0 0 20px 0; color: #000;"> </p>
                 
                 {{if .ActionPlans}}
                 <h6 style="margin: 0 0 10px 0;font-weight: bold; font-size: 14px; ">Action Plan:</h6>
@@ -208,13 +202,12 @@
 
                 <h5 style=" margin: 0 0 10px 0;font-size: 16px; color: #000;">{{.Order}}. {{.TitleEn}}</h5>
 
-                {{if eq .Type "overview"}}
-                    {{if eq .TitleEn "Scope of the Audit"}}
+                {{if and (eq .Type "overview") (eq .TitleEn "Scope of the Audit")}}
                     {{safeHTML .DescriptionEn}}
-                    {{end}}
                 {{else}}
                     {{if .DescriptionEn}}<p style="margin: 0 0 20px 0; color: #000;">{{safeHTML .DescriptionEn}}</p>{{end}}
                 {{end}}
+
                 {{end}}
                 {{end}}
 
