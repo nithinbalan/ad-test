@@ -475,7 +475,7 @@ func (tes *TestAndExerciseService) Delete(ids []uint, currentUserID uint) ([]uin
 		}
 		if len(testAndExercise.TestAndExerciseCommunicationActionPlans) > 0 {
 			var deleteCommunicationActionPlanIDs []*uint
-			for _, communicationActionPlan := range testAndExercise.TestAndExerciseRecoveryActionPlans {
+			for _, communicationActionPlan := range testAndExercise.TestAndExerciseCommunicationActionPlans {
 				deleteCommunicationActionPlanIDs = append(deleteCommunicationActionPlanIDs, communicationActionPlan.ID)
 			}
 			if err := tes.repo.DeleteTestAndExerciseCommunicationActionPlans(deleteCommunicationActionPlanIDs, tx); err != nil {
