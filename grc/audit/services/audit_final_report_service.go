@@ -1318,11 +1318,18 @@ func (afrs *AuditFinalReportService) ExportAuditFinalReportToPDF(auditID uint, c
 	templatePaths := []string{
 		"audit/templates/pdf/audit_final_report.html", // Content-specific template
 	}
+	// Ensure paths are properly formatted for use in wkhtmltopdf
 	logoImagePath = "file:///" + strings.ReplaceAll(logoImagePath, "\\", "/")
 	finalReportCoverPageBGImagePath = "file:///" + strings.ReplaceAll(finalReportCoverPageBGImagePath, "\\", "/")
 
-	fmt.Println("logoImagePath =", logoImagePath)
-	fmt.Println("finalReportCoverPageBGImagePath =", finalReportCoverPageBGImagePath)
+	// Encode spaces in paths to make them URL-compatible
+	logoImagePath = strings.ReplaceAll(logoImagePath, " ", "%20")
+	finalReportCoverPageBGImagePath = strings.ReplaceAll(finalReportCoverPageBGImagePath, " ", "%20")
+
+	// Debugging: Print the paths to verify
+	fmt.Println("Logo Image Path:", logoImagePath)
+	fmt.Println("Final Report Cover Page BG Image Path:", finalReportCoverPageBGImagePath)
+
 	// Generate the HTML content
 	htmlContent, err := utility.GeneratePDFContent(auditFinalReport, templatePaths, logoImagePath, finalReportCoverPageBGImagePath)
 	if err != nil {
