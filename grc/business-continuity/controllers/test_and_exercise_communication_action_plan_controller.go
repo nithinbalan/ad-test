@@ -106,7 +106,7 @@ func (tecapc *TestAndExerciseCommunicationActionPlanController) GetTestAndExerci
 		return
 	}
 
-	bcpCommunicationPlan, err := tecapc.service.GetFullDetailsByID(uint(testAndExerciseId), uint(id))
+	communicationActionPlan, err := tecapc.service.GetFullDetailsByID(uint(testAndExerciseId), uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -117,7 +117,7 @@ func (tecapc *TestAndExerciseCommunicationActionPlanController) GetTestAndExerci
 			return
 		}
 	}
-	c.JSON(http.StatusOK, bcpCommunicationPlan)
+	c.JSON(http.StatusOK, communicationActionPlan)
 }
 
 func (tecapc *TestAndExerciseCommunicationActionPlanController) CreateTestAndExerciseCommunicationActionPlan(c *gin.Context) {
@@ -130,9 +130,9 @@ func (tecapc *TestAndExerciseCommunicationActionPlanController) CreateTestAndExe
 		return
 	}
 
-	var bcpCommunicationPlanFormDTO businessContinuityDTOs.TestAndExerciseCommunicationActionPlanFormDTO
+	var communicationActionPlanFormDTO businessContinuityDTOs.TestAndExerciseCommunicationActionPlanFormDTO
 
-	if err := c.ShouldBindJSON(&bcpCommunicationPlanFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&communicationActionPlanFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -143,7 +143,7 @@ func (tecapc *TestAndExerciseCommunicationActionPlanController) CreateTestAndExe
 		return
 	}
 
-	id, err := tecapc.service.Create(uint(testAndExerciseId), currentUserID, &bcpCommunicationPlanFormDTO)
+	id, err := tecapc.service.Create(uint(testAndExerciseId), currentUserID, &communicationActionPlanFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -171,15 +171,15 @@ func (tecapc *TestAndExerciseCommunicationActionPlanController) UpdateTestAndExe
 		return
 	}
 
-	var bcpCommunicationPlanFormDTO businessContinuityDTOs.TestAndExerciseCommunicationActionPlanFormDTO
+	var communicationActionPlanFormDTO businessContinuityDTOs.TestAndExerciseCommunicationActionPlanFormDTO
 
-	bcpCommunicationPlanID, err := strconv.Atoi(c.Param("id"))
+	communicationActionPlanID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	if err := c.ShouldBindJSON(&bcpCommunicationPlanFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&communicationActionPlanFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -190,7 +190,7 @@ func (tecapc *TestAndExerciseCommunicationActionPlanController) UpdateTestAndExe
 		return
 	}
 
-	err = tecapc.service.Update(uint(testAndExerciseId), uint(bcpCommunicationPlanID), currentUserID, &bcpCommunicationPlanFormDTO)
+	err = tecapc.service.Update(uint(testAndExerciseId), uint(communicationActionPlanID), currentUserID, &communicationActionPlanFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
