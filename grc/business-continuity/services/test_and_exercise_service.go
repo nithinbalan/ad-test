@@ -25,12 +25,13 @@ type TestAndExerciseServiceInterface interface {
 
 // Service and implementations
 type TestAndExerciseService struct {
-	repo                      TestAndExerciseRepositories.TestAndExerciseRepositoryInterface
-	activityLogSvc            logServices.ActivityLogServiceInterface
-	userSvc                   organizationServices.UserServiceInterface
-	bcpTestAndExerciseSvc     BcpTestAndExerciseServiceInterface
-	businessContinuityPlanSvc BusinessContinuityPlanServiceInterface
-	testAndExerciseStatusSvc  TestAndExerciseStatusServiceInterface
+	repo                             TestAndExerciseRepositories.TestAndExerciseRepositoryInterface
+	activityLogSvc                   logServices.ActivityLogServiceInterface
+	userSvc                          organizationServices.UserServiceInterface
+	bcpTestAndExerciseSvc            BcpTestAndExerciseServiceInterface
+	businessContinuityPlanSvc        BusinessContinuityPlanServiceInterface
+	testAndExerciseStatusSvc         TestAndExerciseStatusServiceInterface
+	communicationActionPlanStatusSvc CommunicationActionPlanStatusServiceInterface
 }
 
 func NewTestAndExerciseService(
@@ -40,14 +41,16 @@ func NewTestAndExerciseService(
 	bcpTestAndExerciseSvc BcpTestAndExerciseServiceInterface,
 	businessContinuityPlanSvc BusinessContinuityPlanServiceInterface,
 	testAndExerciseStatusSvc TestAndExerciseStatusServiceInterface,
+	communicationActionPlanStatusSvc CommunicationActionPlanStatusServiceInterface,
 ) TestAndExerciseServiceInterface {
 	return &TestAndExerciseService{
-		repo:                      repo,
-		activityLogSvc:            activityLogSvc,
-		userSvc:                   userSvc,
-		bcpTestAndExerciseSvc:     bcpTestAndExerciseSvc,
-		businessContinuityPlanSvc: businessContinuityPlanSvc,
-		testAndExerciseStatusSvc:  testAndExerciseStatusSvc,
+		repo:                             repo,
+		activityLogSvc:                   activityLogSvc,
+		userSvc:                          userSvc,
+		bcpTestAndExerciseSvc:            bcpTestAndExerciseSvc,
+		businessContinuityPlanSvc:        businessContinuityPlanSvc,
+		testAndExerciseStatusSvc:         testAndExerciseStatusSvc,
+		communicationActionPlanStatusSvc: communicationActionPlanStatusSvc,
 	}
 }
 
@@ -141,7 +144,7 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 
 	// Save Processes
 
-	bcpTestAndExercise, err := tes.bcpTestAndExerciseSvc.GetFullDetailsByID(testAndExerciseFormDTO.BcpTestAndExerciseID)
+	bcpTestAndExercise, err := tes.bcpTestAndExerciseSvc.GetFullDetailsByID(testAndExerciseFormDTO.BusinessContinuityPlanID, testAndExerciseFormDTO.BcpTestAndExerciseID)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -208,17 +211,24 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 		var testAndExerciseCommunicationActionPlan []*models.TestAndExerciseCommunicationActionPlan
 
 		for _, bcpCommunicationPlan := range businessContinuityPlan.BcpCommunicationPlans {
+
+			communicationActionPlanStatus, err := tes.communicationActionPlanStatusSvc.GetByType("pending")
+			if err != nil {
+				return 0, err
+			}
+
 			process := &models.TestAndExerciseCommunicationActionPlan{
-				TestAndExerciseID: id,
-				ProcessID:         bcpCommunicationPlan.BcpProcess.ProcessID,
-				Title:             bcpCommunicationPlan.Title,
-				BcpPhaseID:        bcpCommunicationPlan.BcpPhaseID,
-				ResponsibleUserID: bcpCommunicationPlan.ResponsibleUserID,
-				ResponsibleUnitID: bcpCommunicationPlan.ResponsibleUnitID,
-				Recipient:         bcpCommunicationPlan.Recipient,
-				Frequency:         bcpCommunicationPlan.Frequency,
-				Channel:           bcpCommunicationPlan.Channel,
-				CreatedBYID:       currentUserID,
+				TestAndExerciseID:               id,
+				ProcessID:                       bcpCommunicationPlan.BcpProcess.ProcessID,
+				Title:                           bcpCommunicationPlan.Title,
+				BcpPhaseID:                      bcpCommunicationPlan.BcpPhaseID,
+				ResponsibleUserID:               bcpCommunicationPlan.ResponsibleUserID,
+				ResponsibleUnitID:               bcpCommunicationPlan.ResponsibleUnitID,
+				Recipient:                       bcpCommunicationPlan.Recipient,
+				Frequency:                       bcpCommunicationPlan.Frequency,
+				Channel:                         bcpCommunicationPlan.Channel,
+				CommunicationActionPlanStatusID: &communicationActionPlanStatus.ID,
+				CreatedBYID:                     currentUserID,
 			}
 			testAndExerciseCommunicationActionPlan = append(testAndExerciseCommunicationActionPlan, process)
 		}
@@ -317,7 +327,7 @@ func (tes *TestAndExerciseService) Update(id uint, currentUserID uint, testAndEx
 			existingBcpProcessIDs[proc.ProcessID] = true
 		}
 
-		bcpTestAndExercise, err := tes.bcpTestAndExerciseSvc.GetFullDetailsByID(testAndExerciseFormDTO.BcpTestAndExerciseID)
+		bcpTestAndExercise, err := tes.bcpTestAndExerciseSvc.GetFullDetailsByID(testAndExerciseFormDTO.BusinessContinuityPlanID, testAndExerciseFormDTO.BcpTestAndExerciseID)
 		if err != nil {
 			tx.Rollback()
 			return err
