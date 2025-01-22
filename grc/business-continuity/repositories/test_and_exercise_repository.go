@@ -54,6 +54,7 @@ func (repo *TestAndExerciseRepository) GetAll(params *businessContinuityDTOs.Tes
 	query := repo.db.Table("test_and_exercises").
 		Select(`
             test_and_exercises.*,
+			CONVERT(VARCHAR, test_and_exercises.testing_date, 23) AS testing_date,
 			business_functions.id AS business_function_id,
 			business_functions.title AS business_function_title,
 			responsible_user.id AS responsible_user_id,

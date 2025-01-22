@@ -28,6 +28,7 @@ type TestAndExerciseListDTO struct {
 	TestAndExerciseStatusTitleEn    string  `json:"test_and_exercise_status_title_en"`
 	TestAndExerciseStatusTitleAr    string  `json:"test_and_exercise_status_title_ar"`
 	TestAndExerciseStatusColorCode  string  `json:"test_and_exercise_status_color_code"`
+	CreatedAt                       string  `json:"created_at"`
 	CreatedUserID                   uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn          string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string  `json:"created_user_first_name_ar"`

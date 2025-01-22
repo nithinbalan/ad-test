@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	commonDTOs "jethur/grc/common/dtos"
@@ -30,6 +31,7 @@ type ComplianceActionPlanServiceInterface interface {
 	Update(complianceID uint, id uint, currentUserID uint, compliance *complianceDTOs.ComplianceActionPlanFormDTO) error
 	Delete(complianceID uint, ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(complianceID uint, id uint, currentUserID uint, complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
+	ExportComplianceActionPlans(data []*complianceDTOs.ComplianceActionPlanListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -44,6 +46,7 @@ type ComplianceActionPlanService struct {
 	moduleSvc                settingService.ModuleServiceInterface
 	userSvc                  organizationServices.UserServiceInterface
 	notificationSvc          commonServices.NotificationServiceInterface
+	userSettingSvc           organizationServices.UserSettingServiceInterface
 }
 
 func NewComplianceActionPlanService(
@@ -57,6 +60,7 @@ func NewComplianceActionPlanService(
 	moduleSvc settingService.ModuleServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) ComplianceActionPlanServiceInterface {
 	return &ComplianceActionPlanService{
 		repo:                     repo,
@@ -69,6 +73,7 @@ func NewComplianceActionPlanService(
 		moduleSvc:                moduleSvc,
 		userSvc:                  userSvc,
 		notificationSvc:          notificationSvc,
+		userSettingSvc:           userSettingSvc,
 	}
 }
 
@@ -788,4 +793,76 @@ func (caps *ComplianceActionPlanService) parseComplianceActionPlanDates(dto *com
 	}
 
 	return parsed, nil
+}
+
+func (capc *ComplianceActionPlanService) ExportComplianceActionPlans(data []*complianceDTOs.ComplianceActionPlanListDTO, currentUserID uint) (*os.File, error) {
+	// Retrieve user settings for language preference
+	userSetting, err := capc.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	// Define headers based on the user's language setting
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Title",
+			"Description",
+			"Severity Level (AR)",
+			"Responsible User (AR)",
+			"Review User (AR)",
+			"Target Date",
+			"Percentage",
+			"Comments",
+			"ActionPlan Status (AR)",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Title",
+			"Description",
+			"Severity Level (EN)",
+			"Responsible User (EN)",
+			"Review User (EN)",
+			"Target Date",
+			"Percentage",
+			"Comments",
+			"ActionPlan Status (EN)",
+		}
+	}
+
+	// Convert data to [][]interface{} based on language preference
+	rows := make([][]interface{}, len(data))
+	for i, item := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				item.Title,
+				utility.GetStringValue(item.Description),
+				item.SeverityLevelTitleAr,
+				item.ResponsibleUserFirstNameAr + " " + item.ResponsibleUserLastNameAr,
+				utility.GetStringValue(item.ReviewUserFirstNameEn) + " " + utility.GetStringValue(item.ReviewUserLastNameEn),
+				item.TargetDate,
+				item.Percentage,
+				utility.GetStringValue(item.Comments),
+				item.ActionPlanStatusTitleAr,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				item.Title,
+				utility.GetStringValue(item.Description),
+				item.SeverityLevelTitleEn,
+				item.ResponsibleUserFirstNameEn + " " + item.ResponsibleUserLastNameEn,
+				utility.GetStringValue(item.ReviewUserFirstNameEn) + " " + utility.GetStringValue(item.ReviewUserLastNameEn),
+				item.TargetDate,
+				item.Percentage,
+				utility.GetStringValue(item.Comments),
+				item.ActionPlanStatusTitleEn,
+			}
+		}
+	}
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }

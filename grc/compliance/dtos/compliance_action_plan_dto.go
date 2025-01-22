@@ -27,8 +27,8 @@ type ComplianceActionPlanListDTO struct {
 	ResponsibleUserColor            string  `json:"responsible_user_color"`
 	ResponsibleUserEmail            string  `json:"responsible_user_email"`
 	ResponsibleUserProfileImagePath string  `json:"responsible_user_profile_image_path"`
-	ReviewUserFirstNameEn           string  `json:"review_user_first_name_en"`
 	ReviewUserID                    *uint   `json:"review_user_id"`
+	ReviewUserFirstNameEn           *string `json:"review_user_first_name_en"`
 	ReviewUserFirstNameAr           *string `json:"review_user_first_name_ar"`
 	ReviewUserLastNameEn            *string `json:"review_user_last_name_en"`
 	ReviewUserLastNameAr            *string `json:"review_user_last_name_ar"`
@@ -38,7 +38,7 @@ type ComplianceActionPlanListDTO struct {
 	ReviewUserProfileImagePath      *string `json:"review_user_profile_image_path"`
 	TargetDate                      string  `json:"target_date"`
 	Percentage                      uint    `json:"percentage"`
-	Comments                        string  `json:"comments"`
+	Comments                        *string `json:"comments"`
 	ActionPlanStatusTitleEn         string  `json:"action_plan_status_title_en"`
 	ActionPlanStatusTitleAr         string  `json:"action_plan_status_title_ar"`
 	ActionPlanStatusColorCode       string  `json:"action_plan_status_color_code"`
@@ -75,6 +75,7 @@ type ComplianceActionPlanListQueryParamsDTO struct {
 	TargetDateTo   string
 	DateFrom       string
 	DateTo         string
+	Export         bool
 }
 
 type ComplianceActionPlanListResponseDTO struct {
@@ -114,7 +115,7 @@ type ComplianceActionPlanDetailDTO struct {
 	SeverityLevel           *masterDTOs.SeverityLevelDTO           `json:"severity_level"`
 	ResponsibleUserID       uint                                   `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	ResponsibleUser         organizationDTOs.UserMinimalDTO        `json:"responsible_user"`
-	ReviewUser              organizationDTOs.UserMinimalDTO        `json:"review_user"`
+	ReviewUser              *organizationDTOs.UserMinimalDTO       `json:"review_user"`
 	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO         `json:"action_plan_status"`
 	Percentage              *uint                                  `json:"percentage"`
 	Comments                *string                                `json:"comments"`

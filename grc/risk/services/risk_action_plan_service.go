@@ -794,7 +794,7 @@ func (raps *RiskActionPlanService) ExportRiskActionPlan(data []*riskDTOs.RiskAct
 		headers = []string{
 			"SL No.",
 			"Action Plan",
-			"Incident",
+			"Risk",
 			"Description",
 			"Severity",
 			"Responsible User",

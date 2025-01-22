@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
@@ -111,7 +112,7 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			query = query.Where(fmt.Sprintf("compliance_action_plans.%s IN (?)", columnName), values)
 		}
 	}
 
@@ -175,10 +176,13 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
 
 	// Execute the query
-	err := query.Offset(offset).Limit(params.PageSize).Find(&complianceActionPlans).Error
+	err := query.Find(&complianceActionPlans).Error
 	if err != nil {
 		return nil, err
 	}

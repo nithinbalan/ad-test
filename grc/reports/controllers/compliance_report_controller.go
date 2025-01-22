@@ -467,6 +467,12 @@ func (crc *ComplianceReportController) GetAllComplianceActionPlans(c *gin.Contex
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Invalid export parameter")
+		return
+	}
+
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, "Invalid page parameter")
@@ -492,6 +498,7 @@ func (crc *ComplianceReportController) GetAllComplianceActionPlans(c *gin.Contex
 		TargetDateTo:   targetDateTo,
 		DateFrom:       dateFrom,
 		DateTo:         dateTo,
+		Export:         export,
 	}
 	complianceActionPlans, err := crc.complianceActionPlanSvc.GetAll(uint(complianceID), &queryParams)
 
@@ -505,7 +512,36 @@ func (crc *ComplianceReportController) GetAllComplianceActionPlans(c *gin.Contex
 			return
 		}
 	}
+
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := crc.complianceActionPlanSvc.ExportComplianceActionPlans(complianceActionPlans.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Compliance Action Plans.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+
 	c.JSON(http.StatusOK, complianceActionPlans)
+}
+
+func (crc *ComplianceReportController) GetComplianceActionPlanExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	crc.GetAllComplianceActionPlans(c)
 }
 
 func (crc *ComplianceReportController) GetComplianceActionPlanByStatus(c *gin.Context) {

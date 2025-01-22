@@ -170,6 +170,13 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
             LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = risk_register.residual_risk_rating_id
             LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
         `)
+
+	if params.RiskAppetiteToleranceLevelID != 0 {
+		query = query.Joins(`
+				LEFT JOIN risk_evaluations ON risk_evaluations.risk_register_id = risk_register.id
+				LEFT JOIN risk_appetite_alignments ON risk_appetite_alignments.risk_evaluation_id = risk_evaluations.id
+			`).Where("risk_appetite_alignments.risk_appetite_tolerance_level_id = ?", params.RiskAppetiteToleranceLevelID)
+	}
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {

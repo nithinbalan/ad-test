@@ -178,6 +178,13 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 			keyword, keyword, keyword)
 	}
 
+	if params.SortBy == "" {
+		params.SortBy = "compliance_clauses.clause_no"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	if !params.Export {

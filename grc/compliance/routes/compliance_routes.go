@@ -129,6 +129,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliance-requirements/:requirementId/documents", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceRequirementAssociatedItemController.GetAllComplianceRequirementDocuments)
 
 	//Compliance Action Plan
+	complianceRoutes.GET("/compliance-action-plans/export", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceActionPlanController.GetComplianceActionPlanExport)
+	complianceRoutes.GET("/compliance-action-plans", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceActionPlanController.GetAllComplianceActionPlans)
 	complianceRoutes.GET("/compliances/:complianceId/action-plans", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceActionPlanController.GetAllComplianceActionPlans)
 	complianceRoutes.GET("/compliances/:complianceId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceActionPlanController.GetComplianceActionPlanDetails)
 	complianceRoutes.POST("/compliances/:complianceId/action-plans", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceActionPlanController.CreateComplianceActionPlan)
