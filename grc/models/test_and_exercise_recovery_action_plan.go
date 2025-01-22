@@ -15,6 +15,7 @@ type TestAndExerciseRecoveryActionPlan struct {
 	ResponsibleUnitID      uint      `json:"responsible_unit_id" gorm:"not null" binding:"required"`
 	TargetCompletion       *string   `json:"target_completion"`
 	TargetCompletionUnitId *uint     `json:"target_completion_unit_id"`
+	StatusID               *uint     `json:"status_id"`
 	CreatedBYID            uint      `json:"created_by_id" binding:"required"`
 	CreatedAt              time.Time `json:"created_at" gorm:"type:datetime;not null"`
 
@@ -24,6 +25,7 @@ type TestAndExerciseRecoveryActionPlan struct {
 	Process              *Process          `gorm:"foreignKey:ProcessID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SeverityLevel        *SeverityLevel    `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	TargetCompletionUnit *TimeUnit         `gorm:"foreignKey:TargetCompletionUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Status               *ActionPlanStatus `gorm:"foreignKey:StatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUser      *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUnit      *OrganizationUnit `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser        *User             `gorm:"foreignKey:CreatedBYID"`
