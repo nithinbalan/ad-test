@@ -25,6 +25,7 @@ type TestAndExerciseListDTO struct {
 	ResponsibleUserEmail            *string `json:"responsible_user_email"`
 	ResponsibleUserProfileImagePath *string `json:"responsible_user_profile_image_path"`
 	TestingDate                     string  `json:"testing_date"`
+	Decription                      *string `json:"description"`
 	TestAndExerciseStatusTitleEn    string  `json:"test_and_exercise_status_title_en"`
 	TestAndExerciseStatusTitleAr    string  `json:"test_and_exercise_status_title_ar"`
 	TestAndExerciseStatusColorCode  string  `json:"test_and_exercise_status_color_code"`
