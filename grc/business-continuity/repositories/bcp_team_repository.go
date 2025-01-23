@@ -10,8 +10,9 @@ import (
 
 type BcpTeamRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *businessContinuityDTOs.BcpTeamsListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpTeamsListDTO, error)
+	GetAll(bcpId uint, params *businessContinuityDTOs.BcpTeamsListQueryParamsDTO) ([]*businessContinuityDTOs.BcpTeamsListDTO, error)
 	GetByID(id uint) (*models.BcpTeam, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.BcpTeam, error)
 	Create(bcpTeam *models.BcpTeam, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(bcpTeam *models.BcpTeam, tx ...utility.DatabaseTransaction) error
 	Delete(TeamID uint, tx ...utility.DatabaseTransaction) error
@@ -31,7 +32,7 @@ func (repo *BcpTeamRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *BcpTeamRepository) GetAll(params *businessContinuityDTOs.BcpTeamsListQueryParamsDTO, bcpId uint) ([]*businessContinuityDTOs.BcpTeamsListDTO, error) {
+func (repo *BcpTeamRepository) GetAll(bcpId uint, params *businessContinuityDTOs.BcpTeamsListQueryParamsDTO) ([]*businessContinuityDTOs.BcpTeamsListDTO, error) {
 	var teams []*businessContinuityDTOs.BcpTeamsListDTO
 
 	query := repo.db.Table("bcp_teams").
@@ -43,6 +44,7 @@ func (repo *BcpTeamRepository) GetAll(params *businessContinuityDTOs.BcpTeamsLis
             responsible_user.last_name_ar AS responsible_user_last_name_ar,
             responsible_user.initial AS responsible_user_initial,
             responsible_user.email AS responsible_user_email,
+            responsible_user.color AS responsible_user_color,
             responsible_user.profile_image_path AS responsible_user_profile_image_path,
             backup_user.first_name_en AS backup_user_first_name_en,
             backup_user.first_name_ar AS backup_user_first_name_ar,
@@ -50,6 +52,7 @@ func (repo *BcpTeamRepository) GetAll(params *businessContinuityDTOs.BcpTeamsLis
             backup_user.last_name_ar AS backup_user_last_name_ar,
             backup_user.initial AS backup_user_initial,
             backup_user.email AS backup_user_email,
+            backup_user.color AS backup_user_color,
             backup_user.profile_image_path AS backup_user_profile_image_path,
             created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -57,6 +60,7 @@ func (repo *BcpTeamRepository) GetAll(params *businessContinuityDTOs.BcpTeamsLis
             created_user.last_name_ar AS created_user_last_name_ar,
 			created_user.initial AS created_user_initial,
             created_user.email AS created_user_email,
+            created_user.color AS created_user_color,
             organization_units.title_en AS responsible_unit_title_en,
             organization_units.title_ar AS responsible_unit_title_ar
         `).
@@ -110,8 +114,20 @@ func (repo *BcpTeamRepository) GetAll(params *businessContinuityDTOs.BcpTeamsLis
 
 func (repo *BcpTeamRepository) GetByID(id uint) (*models.BcpTeam, error) {
 	var team models.BcpTeam
+	if err := repo.db.First(&team, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &team, nil
+}
 
-	if err := repo.db.
+func (repo *BcpTeamRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.BcpTeam, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var bcpTeam *models.BcpTeam
+	result := db.
 		Preload("BusinessContinuityPlan").
 		Preload("ResponsibleUser").
 		Preload("BackupUser").
@@ -119,11 +135,13 @@ func (repo *BcpTeamRepository) GetByID(id uint) (*models.BcpTeam, error) {
 		Preload("ResponsibleUnit").
 		Preload("CreatedByUser").
 		Where("id = ?", id).
-		First(&team).Error; err != nil {
-		return nil, err
+		First(&bcpTeam, id)
+
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	return &team, nil
+	return bcpTeam, nil
 }
 
 func (repo *BcpTeamRepository) Create(bcpTeam *models.BcpTeam, tx ...utility.DatabaseTransaction) (uint, error) {
