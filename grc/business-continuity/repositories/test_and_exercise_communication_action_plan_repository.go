@@ -2,7 +2,6 @@ package repositories
 
 import (
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
-	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -11,7 +10,7 @@ import (
 
 type TestAndExerciseCommunicationActionPlanRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListQueryParamsDTO) (*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListResponseDTO, error)
+	GetAll(params *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListQueryParamsDTO) ([]*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListDTO, error)
 	GetByID(id uint) (*models.TestAndExerciseCommunicationActionPlan, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.TestAndExerciseCommunicationActionPlan, error)
 	Create(TestAndExerciseCommunicationActionPlan *models.TestAndExerciseCommunicationActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
@@ -34,7 +33,7 @@ func (repo *TestAndExerciseCommunicationActionPlanRepository) BeginTransaction()
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *TestAndExerciseCommunicationActionPlanRepository) GetAll(params *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListQueryParamsDTO) (*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListResponseDTO, error) {
+func (repo *TestAndExerciseCommunicationActionPlanRepository) GetAll(params *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListQueryParamsDTO) ([]*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListDTO, error) {
 	var testAndExerciseCommunicationActionPlans []*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListDTO
 	var totalCount int64
 
@@ -125,27 +124,12 @@ func (repo *TestAndExerciseCommunicationActionPlanRepository) GetAll(params *bus
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
-	query = query.Offset(offset).Limit(params.PageSize)
-
 	err := query.Find(&testAndExerciseCommunicationActionPlans).Error
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := 1
-	totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
-	response := &businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListResponseDTO{
-		Items: testAndExerciseCommunicationActionPlans,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
-	}
-	return response, nil
+	return testAndExerciseCommunicationActionPlans, nil
 }
 
 func (repo *TestAndExerciseCommunicationActionPlanRepository) GetByID(id uint) (*models.TestAndExerciseCommunicationActionPlan, error) {

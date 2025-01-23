@@ -15,7 +15,7 @@ import (
 )
 
 type TestAndExerciseCommunicationActionPlanServiceInterface interface {
-	GetAll(testAndExerciseId uint, params *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListQueryParamsDTO) (*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListResponseDTO, error)
+	GetAll(testAndExerciseId uint, params *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListQueryParamsDTO) ([]*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListDTO, error)
 	GetFullDetailsByID(testAndExerciseId uint, id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanDetailDTO, error)
 	GetByID(testAndExerciseId uint, id uint) (*models.TestAndExerciseCommunicationActionPlan, error)
 	Create(testAndExerciseId uint, currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanFormDTO) (uint, error)
@@ -45,7 +45,7 @@ func NewTestAndExerciseCommunicationActionPlanService(
 	}
 }
 
-func (tecaps *TestAndExerciseCommunicationActionPlanService) GetAll(testAndExerciseId uint, params *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListQueryParamsDTO) (*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListResponseDTO, error) {
+func (tecaps *TestAndExerciseCommunicationActionPlanService) GetAll(testAndExerciseId uint, params *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListQueryParamsDTO) ([]*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListDTO, error) {
 	return tecaps.repo.GetAll(params)
 }
 
