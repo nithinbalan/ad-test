@@ -17,6 +17,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationReportController := app.ReportsModule.OrganizationReportController
 	riskReportController := app.ReportsModule.RiskReportController
 	auditReportController := app.ReportsModule.AuditReportController
+	incidentReportController := app.ReportsModule.IncidentReportController
 
 	//Compliance
 	reportsRoutes.GET("/reports/compliance-registers", complianceReportController.GetAllComplianceRegisters)
@@ -131,5 +132,28 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/audit-action-plan-by-responsible-user", auditReportController.GetAuditActionPlanByResponsibleUser)
 	reportsRoutes.GET("/reports/audit-action-plan-by-responsible-unit", auditReportController.GetAuditActionPlanByResponsibleUnit)
 	reportsRoutes.GET("/reports/audit-action-plan-by-on-time-vs-delayed", auditReportController.GetAuditActionPlanOnTimeVsDelayed)
+
+	//Incidents
+	// reportsRoutes.GET("/reports/incidents", incidentReportController.GetAllIncidents)
+	// reportsRoutes.GET("/reports/incidents/export", incidentReportController.GetIncidentExport)
+	reportsRoutes.GET("/reports/incident-by-category", incidentReportController.GetIncidentByCategory)
+	reportsRoutes.GET("/reports/incident-by-status", incidentReportController.GetIncidentByStatus)
+	reportsRoutes.GET("/reports/incident-by-severity-level", incidentReportController.GetIncidentBySeverityLevel)
+	reportsRoutes.GET("/reports/incident-by-responsible-unit", incidentReportController.GetIncidentByResponsibleUnit)
+	reportsRoutes.GET("/reports/incident-by-reported-user", incidentReportController.GetIncidentByReportedUser)
+	reportsRoutes.GET("/reports/incident-by-reported-year", incidentReportController.GetIncidentByReportedYear)
+
+	reportsRoutes.GET("/reports/incident-by-asset", incidentReportController.GetIncidentByAsset)
+	reportsRoutes.GET("/reports/incident-by-sla", incidentReportController.GetIncidentBySLA)
+
+	reportsRoutes.GET("/reports/incident-investigation-summary", incidentReportController.GetIncidentInvestigationSummary)
+	reportsRoutes.GET("/reports/incident-rca", incidentReportController.GetIncidentRCA)
+	reportsRoutes.GET("/reports/incident-closure", incidentReportController.GetIncidentClosure)
+	reportsRoutes.GET("/reports/incident-by-risk", incidentReportController.GetOpenIncidentsWithRisk)
+
+	reportsRoutes.GET("/reports/incident-pending-action-plan", incidentReportController.GetIncidentPendingActionPlan)
+	reportsRoutes.GET("/reports/incident-action-plan-by-status", incidentReportController.GetIncidentActionPlanByStatus)
+	reportsRoutes.GET("/reports/incident-action-plan-by-responsible-user", incidentReportController.GetIncidentActionPlanByResponsibleUser)
+	reportsRoutes.GET("/reports/incident-action-plan-by-responsible-unit", incidentReportController.GetIncidentActionPlanByResponsibleUnit)
 
 }
