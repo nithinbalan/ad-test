@@ -23,10 +23,13 @@ type BusinessContinuityModule struct {
 	TestAndExerciseController                        *controllers.TestAndExerciseController
 	CommunicationActionPlanStatusController          *controllers.CommunicationActionPlanStatusController
 	TestAndExerciseCommunicationActionPlanController *controllers.TestAndExerciseCommunicationActionPlanController
+	TestAndExerciseRecoveryActionPlanController      *controllers.TestAndExerciseRecoveryActionPlanController
 
-	BusinessFunctionSvc       services.BusinessFunctionServiceInterface
-	BcpTeamSvc                services.BcpTeamServiceInterface
-	businessContinuityPlanSvc services.BusinessContinuityPlanServiceInterface
+	BusinessFunctionSvc                  services.BusinessFunctionServiceInterface
+	BcpTeamSvc                           services.BcpTeamServiceInterface
+	businessContinuityPlanSvc            services.BusinessContinuityPlanServiceInterface
+	testAndExerciseSvc                   services.TestAndExerciseServiceInterface
+	testAndExerciseRecoveryActionPlanSvc services.TestAndExerciseRecoveryActionPlanServiceInterface
 }
 
 func NewBusinessContinuityModule(db *gorm.DB,
@@ -98,6 +101,10 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	testAndExerciseCommunicationActionPlanSvc := services.NewTestAndExerciseCommunicationActionPlanService(testAndExerciseCommunicationActionPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, communicationActionPlanStatusSvc)
 	testAndExerciseCommunicationActionPlanController := controllers.NewTestAndExerciseCommunicationActionPlanController(testAndExerciseCommunicationActionPlanSvc)
 
+	testAndExerciseRecoveryActionPlanRepo := repositories.NewTestAndExerciseRecoveryActionPlanRepository(db)
+	testAndExerciseRecoveryActionPlanSvc := services.NewTestAndExerciseRecoveryActionPlanService(testAndExerciseRecoveryActionPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, testAndExerciseSvc)
+	testAndExerciseRecoveryActionPlanController := controllers.NewTestAndExerciseRecoveryActionPlanController(testAndExerciseRecoveryActionPlanSvc)
+
 	return &BusinessContinuityModule{
 		BusinessFunctionController:                       businessFunctionController,
 		BusinessImpactAssessmentController:               businessImpactAssessmentController,
@@ -113,9 +120,12 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		TestAndExerciseController:                        testAndExerciseController,
 		CommunicationActionPlanStatusController:          communicationActionPlanStatusController,
 		TestAndExerciseCommunicationActionPlanController: testAndExerciseCommunicationActionPlanController,
+		TestAndExerciseRecoveryActionPlanController:      testAndExerciseRecoveryActionPlanController,
 
-		BusinessFunctionSvc:       businessFunctionSvc,
-		BcpTeamSvc:                bcpTeamSvc,
-		businessContinuityPlanSvc: businessContinuityPlanSvc,
+		BusinessFunctionSvc:                  businessFunctionSvc,
+		BcpTeamSvc:                           bcpTeamSvc,
+		businessContinuityPlanSvc:            businessContinuityPlanSvc,
+		testAndExerciseRecoveryActionPlanSvc: testAndExerciseRecoveryActionPlanSvc,
+		testAndExerciseSvc:                   testAndExerciseSvc,
 	}
 }
