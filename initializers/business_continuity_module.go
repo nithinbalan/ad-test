@@ -9,19 +9,20 @@ import (
 )
 
 type BusinessContinuityModule struct {
-	BusinessFunctionController              *controllers.BusinessFunctionController
-	BusinessImpactAssessmentController      *controllers.BusinessImpactAssessmentController
-	BusinessContinuityPlanController        *controllers.BusinessContinuityPlanController
-	BcpBiaMatrixController                  *controllers.BcpBiaMatrixController
-	BcpPhaseController                      *controllers.BcpPhaseController
-	BcpRecoveryPlanController               *controllers.BcpRecoveryPlanController
-	BcpCommunicationPlanController          *controllers.BcpCommunicationPlanController
-	BcpTestAndExerciseController            *controllers.BcpTestAndExerciseController
-	BcpStatusController                     *controllers.BcpStatusController
-	BcpTeamController                       *controllers.BcpTeamController
-	TestAndExerciseStatusController         *controllers.TestAndExerciseStatusController
-	TestAndExerciseController               *controllers.TestAndExerciseController
-	CommunicationActionPlanStatusController *controllers.CommunicationActionPlanStatusController
+	BusinessFunctionController                       *controllers.BusinessFunctionController
+	BusinessImpactAssessmentController               *controllers.BusinessImpactAssessmentController
+	BusinessContinuityPlanController                 *controllers.BusinessContinuityPlanController
+	BcpBiaMatrixController                           *controllers.BcpBiaMatrixController
+	BcpPhaseController                               *controllers.BcpPhaseController
+	BcpRecoveryPlanController                        *controllers.BcpRecoveryPlanController
+	BcpCommunicationPlanController                   *controllers.BcpCommunicationPlanController
+	BcpTestAndExerciseController                     *controllers.BcpTestAndExerciseController
+	BcpStatusController                              *controllers.BcpStatusController
+	BcpTeamController                                *controllers.BcpTeamController
+	TestAndExerciseStatusController                  *controllers.TestAndExerciseStatusController
+	TestAndExerciseController                        *controllers.TestAndExerciseController
+	CommunicationActionPlanStatusController          *controllers.CommunicationActionPlanStatusController
+	TestAndExerciseCommunicationActionPlanController *controllers.TestAndExerciseCommunicationActionPlanController
 
 	BusinessFunctionSvc services.BusinessFunctionServiceInterface
 	BcpTeamSvc          services.BcpTeamServiceInterface
@@ -84,28 +85,33 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	testAndExerciseStatusSvc := services.NewTestAndExerciseStatusService(testAndExerciseStatusRepo)
 	testAndExerciseStatusController := controllers.NewTestAndExerciseStatusController(testAndExerciseStatusSvc)
 
-	testAndExerciseRepo := repositories.NewTestAndExerciseRepository(db)
-	testAndExerciseSvc := services.NewTestAndExerciseService(testAndExerciseRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, bcpTestAndExerciseSvc, businessContinuityPlanSvc, testAndExerciseStatusSvc)
-	testAndExerciseController := controllers.NewTestAndExerciseController(testAndExerciseSvc)
-
 	communicationActionPlanStatusRepo := repositories.NewCommunicationActionPlanStatusRepository(db)
 	communicationActionPlanStatusSvc := services.NewCommunicationActionPlanStatusService(communicationActionPlanStatusRepo)
 	communicationActionPlanStatusController := controllers.NewCommunicationActionPlanStatusController(communicationActionPlanStatusSvc)
 
+	testAndExerciseRepo := repositories.NewTestAndExerciseRepository(db)
+	testAndExerciseSvc := services.NewTestAndExerciseService(testAndExerciseRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, bcpTestAndExerciseSvc, businessContinuityPlanSvc, testAndExerciseStatusSvc, communicationActionPlanStatusSvc)
+	testAndExerciseController := controllers.NewTestAndExerciseController(testAndExerciseSvc)
+
+	testAndExerciseCommunicationActionPlanRepo := repositories.NewTestAndExerciseCommunicationActionPlanRepository(db)
+	testAndExerciseCommunicationActionPlanSvc := services.NewTestAndExerciseCommunicationActionPlanService(testAndExerciseCommunicationActionPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, communicationActionPlanStatusSvc)
+	testAndExerciseCommunicationActionPlanController := controllers.NewTestAndExerciseCommunicationActionPlanController(testAndExerciseCommunicationActionPlanSvc)
+
 	return &BusinessContinuityModule{
-		BusinessFunctionController:              businessFunctionController,
-		BusinessImpactAssessmentController:      businessImpactAssessmentController,
-		BusinessContinuityPlanController:        businessContinuityPlanController,
-		BcpBiaMatrixController:                  bcpBiaMatrixController,
-		BcpPhaseController:                      bcpPhaseController,
-		BcpRecoveryPlanController:               bcpRecoveryPlanController,
-		BcpCommunicationPlanController:          bcpCommunicationPlanController,
-		BcpTestAndExerciseController:            bcpTestAndExerciseController,
-		BcpStatusController:                     bcpStatusController,
-		BcpTeamController:                       bcpTeamController,
-		TestAndExerciseStatusController:         testAndExerciseStatusController,
-		TestAndExerciseController:               testAndExerciseController,
-		CommunicationActionPlanStatusController: communicationActionPlanStatusController,
+		BusinessFunctionController:                       businessFunctionController,
+		BusinessImpactAssessmentController:               businessImpactAssessmentController,
+		BusinessContinuityPlanController:                 businessContinuityPlanController,
+		BcpBiaMatrixController:                           bcpBiaMatrixController,
+		BcpPhaseController:                               bcpPhaseController,
+		BcpRecoveryPlanController:                        bcpRecoveryPlanController,
+		BcpCommunicationPlanController:                   bcpCommunicationPlanController,
+		BcpTestAndExerciseController:                     bcpTestAndExerciseController,
+		BcpStatusController:                              bcpStatusController,
+		BcpTeamController:                                bcpTeamController,
+		TestAndExerciseStatusController:                  testAndExerciseStatusController,
+		TestAndExerciseController:                        testAndExerciseController,
+		CommunicationActionPlanStatusController:          communicationActionPlanStatusController,
+		TestAndExerciseCommunicationActionPlanController: testAndExerciseCommunicationActionPlanController,
 
 		BusinessFunctionSvc: businessFunctionSvc,
 		BcpTeamSvc:          bcpTeamSvc,
