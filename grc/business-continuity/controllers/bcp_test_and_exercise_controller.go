@@ -90,6 +90,14 @@ func (btec *BcpTestAndExerciseController) GetAllBcpTestAndExercises(c *gin.Conte
 }
 
 func (btec *BcpTestAndExerciseController) GetBcpTestAndExerciseDetails(c *gin.Context) {
+	bcpIDStr := c.Param("bcpId")
+
+	bcpId, err := strconv.ParseUint(bcpIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	idStr := c.Param("id")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -98,7 +106,7 @@ func (btec *BcpTestAndExerciseController) GetBcpTestAndExerciseDetails(c *gin.Co
 		return
 	}
 
-	bcpTestAndExercise, err := btec.service.GetFullDetailsByID(uint(id))
+	bcpTestAndExercise, err := btec.service.GetFullDetailsByID(uint(bcpId), uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -157,6 +165,14 @@ func (btec *BcpTestAndExerciseController) CreateBcpTestAndExercise(c *gin.Contex
 func (btec *BcpTestAndExerciseController) UpdateBcpTestAndExercise(c *gin.Context) {
 	var bcpTestAndExerciseFormDTO businessContinuityDTOs.BcpTestAndExerciseFormDTO
 
+	bcpIDStr := c.Param("bcpId")
+
+	bcpId, err := strconv.ParseUint(bcpIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	bcpTestAndExerciseID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -174,7 +190,7 @@ func (btec *BcpTestAndExerciseController) UpdateBcpTestAndExercise(c *gin.Contex
 		return
 	}
 
-	err = btec.service.Update(uint(bcpTestAndExerciseID), currentUserID, &bcpTestAndExerciseFormDTO)
+	err = btec.service.Update(uint(bcpId), uint(bcpTestAndExerciseID), currentUserID, &bcpTestAndExerciseFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -197,6 +213,14 @@ func (btec *BcpTestAndExerciseController) DeleteBcpTestAndExercises(c *gin.Conte
 		IDs []uint `json:"ids"`
 	}
 
+	bcpIDStr := c.Param("bcpId")
+
+	bcpId, err := strconv.ParseUint(bcpIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	if err := c.ShouldBindJSON(&request); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -208,7 +232,7 @@ func (btec *BcpTestAndExerciseController) DeleteBcpTestAndExercises(c *gin.Conte
 		return
 	}
 
-	failedIDs, err := btec.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := btec.service.Delete(uint(bcpId), request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(btec.db, c, err.Error())
 		return

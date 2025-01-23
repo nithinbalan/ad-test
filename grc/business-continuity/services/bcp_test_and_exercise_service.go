@@ -16,11 +16,11 @@ import (
 
 type BcpTestAndExerciseServiceInterface interface {
 	GetAll(bcpId uint, params *businessContinuityDTOs.BcpTestAndExerciseListQueryParamsDTO) (*businessContinuityDTOs.BcpTestAndExerciseListResponseDTO, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.BcpTestAndExerciseDetailDTO, error)
-	GetByID(id uint) (*models.BcpTestAndExercise, error)
+	GetFullDetailsByID(bcpId uint, id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.BcpTestAndExerciseDetailDTO, error)
+	GetByID(bcpId uint, id uint) (*models.BcpTestAndExercise, error)
 	Create(bcpId uint, currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.BcpTestAndExerciseFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, bcpTestAndExercise *businessContinuityDTOs.BcpTestAndExerciseFormDTO) error
-	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	Update(bcpId uint, id uint, currentUserID uint, bcpTestAndExercise *businessContinuityDTOs.BcpTestAndExerciseFormDTO) error
+	Delete(bcpId uint, ids []uint, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
@@ -54,7 +54,11 @@ func (btes *BcpTestAndExerciseService) GetAll(bcpId uint, params *businessContin
 	return btes.repo.GetAll(bcpId, params)
 }
 
-func (btes BcpTestAndExerciseService) GetByID(id uint) (*models.BcpTestAndExercise, error) {
+func (btes BcpTestAndExerciseService) GetByID(bcpId uint, id uint) (*models.BcpTestAndExercise, error) {
+	if _, err := btes.businessContinuityPlanSvc.GetByID(bcpId); err != nil {
+		return nil, err
+	}
+
 	BcpTestAndExercise, err := btes.repo.GetByID(id)
 
 	if err != nil {
@@ -67,9 +71,13 @@ func (btes BcpTestAndExerciseService) GetByID(id uint) (*models.BcpTestAndExerci
 	return BcpTestAndExercise, nil
 }
 
-func (btes BcpTestAndExerciseService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.BcpTestAndExerciseDetailDTO, error) {
+func (btes BcpTestAndExerciseService) GetFullDetailsByID(bcpId uint, id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.BcpTestAndExerciseDetailDTO, error) {
 	// Initialize your DTO
 	var BcpTestAndExerciseDTO businessContinuityDTOs.BcpTestAndExerciseDetailDTO
+
+	if _, err := btes.businessContinuityPlanSvc.GetByID(bcpId); err != nil {
+		return nil, err
+	}
 
 	BcpTestAndExercise, err := btes.repo.GetFullDetailsByID(id, tx...)
 
@@ -94,6 +102,10 @@ func (btes BcpTestAndExerciseService) GetFullDetailsByID(id uint, tx ...utility.
 
 func (btes *BcpTestAndExerciseService) Create(bcpId uint, currentUserID uint, bcpTestAndExerciseFormDTO *businessContinuityDTOs.BcpTestAndExerciseFormDTO) (uint, error) {
 	tx := btes.repo.BeginTransaction()
+
+	if _, err := btes.businessContinuityPlanSvc.GetByID(bcpId); err != nil {
+		return 0, err
+	}
 
 	responsibleUnitID, err := btes.userSvc.GetUserPrimaryUnitID(*bcpTestAndExerciseFormDTO.ResponsibleUserID)
 	if err != nil {
@@ -138,7 +150,7 @@ func (btes *BcpTestAndExerciseService) Create(bcpId uint, currentUserID uint, bc
 
 	tx.Commit()
 	go func() {
-		existingBcpTestAndExercise, err := btes.GetFullDetailsByID(BcpTestAndExercise.ID)
+		existingBcpTestAndExercise, err := btes.GetFullDetailsByID(bcpId, BcpTestAndExercise.ID)
 		if err != nil {
 			utility.LogError("Failed to fetch bcp communication plan", map[string]interface{}{
 				"error": err.Error(),
@@ -169,15 +181,19 @@ func (btes *BcpTestAndExerciseService) Create(bcpId uint, currentUserID uint, bc
 	}()
 	return id, nil
 }
-func (btes *BcpTestAndExerciseService) Update(id uint, currentUserID uint, bcpTestAndExerciseFormDTO *businessContinuityDTOs.BcpTestAndExerciseFormDTO) error {
+func (btes *BcpTestAndExerciseService) Update(bcpId uint, id uint, currentUserID uint, bcpTestAndExerciseFormDTO *businessContinuityDTOs.BcpTestAndExerciseFormDTO) error {
 	tx := btes.repo.BeginTransaction()
+
+	if _, err := btes.businessContinuityPlanSvc.GetByID(bcpId); err != nil {
+		return err
+	}
 
 	existingBcpTestAndExercise, err := btes.repo.GetByID(id)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, id)
 	}
 
-	oldBcpTestAndExercise, err := btes.GetFullDetailsByID(id, tx)
+	oldBcpTestAndExercise, err := btes.GetFullDetailsByID(bcpId, id, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -207,7 +223,7 @@ func (btes *BcpTestAndExerciseService) Update(id uint, currentUserID uint, bcpTe
 	}
 
 	// Collect existing bcpProcess IDs
-	existingTestAndExercise, err := btes.GetFullDetailsByID(id, tx)
+	existingTestAndExercise, err := btes.GetFullDetailsByID(bcpId, id, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -266,7 +282,7 @@ func (btes *BcpTestAndExerciseService) Update(id uint, currentUserID uint, bcpTe
 
 	tx.Commit()
 	go func() {
-		existingBcpTestAndExercise, err := btes.GetFullDetailsByID(id)
+		existingBcpTestAndExercise, err := btes.GetFullDetailsByID(bcpId, id)
 		if err != nil {
 			return
 		}
@@ -351,14 +367,17 @@ func (btes *BcpTestAndExerciseService) Update(id uint, currentUserID uint, bcpTe
 	return nil
 }
 
-func (btes *BcpTestAndExerciseService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (btes *BcpTestAndExerciseService) Delete(bcpId uint, ids []uint, currentUserID uint) ([]uint, error) {
+	if _, err := btes.businessContinuityPlanSvc.GetByID(bcpId); err != nil {
+		return nil, err
+	}
 	tx := btes.repo.BeginTransaction()
 	var failedIds []uint
 	var successfulIds []uint
 	var deletedBcpTestAndExercise []map[string]interface{}
 
 	for _, id := range ids {
-		bcpTestAndExercise, err := btes.GetFullDetailsByID(id, tx)
+		bcpTestAndExercise, err := btes.GetFullDetailsByID(bcpId, id, tx)
 		if err != nil {
 			tx.Rollback()
 			return nil, err
