@@ -36,6 +36,7 @@ func (biac *BusinessImpactAssessmentController) GetAllProcesses(c *gin.Context) 
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -85,14 +86,15 @@ func (biac *BusinessImpactAssessmentController) GetAllProcesses(c *gin.Context) 
 	}
 
 	queryParams := organizationDTOs.ProcessListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortField,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
-		Filters:  filters,
-		DateFrom: dateFrom,
-		DateTo:   dateTo,
+		Sort:        sort,
+		SortBy:      sortField,
+		Keyword:     keyword,
+		Page:        page,
+		PageSize:    pageSize,
+		Filters:     filters,
+		QuickFilter: quickFilter,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 
 	processes, err := biac.processSvc.GetAll(&queryParams)
@@ -507,10 +509,10 @@ func (biac *BusinessImpactAssessmentController) GetBIAMatrix(c *gin.Context) {
 	filters := utility.ParseQueryFilters([]string{"risk_level_id"}, c.Request.URL.Query())
 
 	queryParams := businessContinuityDTOs.BIAMatrixQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortField,
-		Keyword:  keyword,
-		Filters:  filters,
+		Sort:    sort,
+		SortBy:  sortField,
+		Keyword: keyword,
+		Filters: filters,
 	}
 
 	matrix, err := biac.service.GetBIAMatrix(&queryParams)

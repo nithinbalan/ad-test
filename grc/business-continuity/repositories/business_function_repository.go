@@ -98,6 +98,13 @@ func (repo *BusinessFunctionRepository) GetAll(params *businessContinuityDTOs.Bu
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "is_not_bcp":
+			query = query.Where("business_functions.bcp_status = ?", false)
+		}
+	}
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"

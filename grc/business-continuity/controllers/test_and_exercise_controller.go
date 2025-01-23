@@ -81,7 +81,7 @@ func (tec *TestAndExerciseController) GetAllTestAndExercises(c *gin.Context) {
 }
 
 func (tec *TestAndExerciseController) GetTestAndExerciseDetails(c *gin.Context) {
-	idStr := c.Param("id")
+	idStr := c.Param("testAndExerciseId")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -140,7 +140,7 @@ func (tec *TestAndExerciseController) CreateTestAndExercise(c *gin.Context) {
 func (tec *TestAndExerciseController) UpdateTestAndExercise(c *gin.Context) {
 	var testAndExerciseFormDTO businessContinuityDTOs.TestAndExerciseFormDTO
 
-	testAndExerciseID, err := strconv.Atoi(c.Param("id"))
+	testAndExerciseID, err := strconv.Atoi(c.Param("testAndExerciseId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
