@@ -28,6 +28,7 @@ func (bfc *BusinessFunctionController) GetAllBusinessFunctions(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -67,12 +68,13 @@ func (bfc *BusinessFunctionController) GetAllBusinessFunctions(c *gin.Context) {
 		return
 	}
 	queryParams := businessContinuityDTOs.BusinessFunctionListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortField,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
-		Filters:  filters,
+		Sort:        sort,
+		SortBy:      sortField,
+		Keyword:     keyword,
+		Page:        page,
+		PageSize:    pageSize,
+		Filters:     filters,
+		QuickFilter: quickFilter,
 	}
 	businessFunctions, err := bfc.service.GetAll(&queryParams)
 
