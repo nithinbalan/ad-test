@@ -47,6 +47,9 @@ func (irc *IncidentRegisterController) GetAllIncidentRegisters(c *gin.Context) {
 		"incident_status_ids",
 		"reported_user_ids",
 		"incident_type_ids",
+		"severity_level_ids",
+		"responsible_unit_ids",
+		"responsible_user_ids",
 	}
 	validSortFields := map[string]string{
 		"incident_at":                    "incident_register.incident_at",
@@ -85,7 +88,8 @@ func (irc *IncidentRegisterController) GetAllIncidentRegisters(c *gin.Context) {
 
 	incidentAt := c.Query("incident_at")
 	reportedAt := c.Query("reported")
-
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(irc.db, c, "Invalid page parameter")
@@ -115,6 +119,8 @@ func (irc *IncidentRegisterController) GetAllIncidentRegisters(c *gin.Context) {
 		IncidentAt:  incidentAt,
 		ReportedAt:  reportedAt,
 		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 	incidents, err := irc.service.GetAll(&queryParams)
 

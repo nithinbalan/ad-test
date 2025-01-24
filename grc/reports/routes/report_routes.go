@@ -135,8 +135,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/audit-action-plan-by-on-time-vs-delayed", auditReportController.GetAuditActionPlanOnTimeVsDelayed)
 
 	//Incidents
-	// reportsRoutes.GET("/reports/incidents", incidentReportController.GetAllIncidents)
-	// reportsRoutes.GET("/reports/incidents/export", incidentReportController.GetIncidentExport)
+	reportsRoutes.GET("/reports/incidents", incidentReportController.GetAllIncidents)
+	reportsRoutes.GET("/reports/incidents/export", incidentReportController.GetIncidentExport)
 	reportsRoutes.GET("/reports/incident-by-category", incidentReportController.GetIncidentByCategory)
 	reportsRoutes.GET("/reports/incident-by-status", incidentReportController.GetIncidentByStatus)
 	reportsRoutes.GET("/reports/incident-by-severity-level", incidentReportController.GetIncidentBySeverityLevel)
@@ -151,8 +151,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/incident-rca", incidentReportController.GetIncidentRCA)
 	reportsRoutes.GET("/reports/incident-closure", incidentReportController.GetIncidentClosure)
 	reportsRoutes.GET("/reports/incident-by-risk", incidentReportController.GetOpenIncidentsWithRisk)
-
 	reportsRoutes.GET("/reports/incident-pending-action-plan", incidentReportController.GetIncidentPendingActionPlan)
+
+	reportsRoutes.GET("/reports/incident-action-plans", incidentReportController.GetAllIncidentActionPlans)
+	reportsRoutes.GET("/reports/incident-action-plans/export", incidentReportController.GetIncidentActionPlanExport)
 	reportsRoutes.GET("/reports/incident-action-plan-by-status", incidentReportController.GetIncidentActionPlanByStatus)
 	reportsRoutes.GET("/reports/incident-action-plan-by-responsible-user", incidentReportController.GetIncidentActionPlanByResponsibleUser)
 	reportsRoutes.GET("/reports/incident-action-plan-by-responsible-unit", incidentReportController.GetIncidentActionPlanByResponsibleUnit)
