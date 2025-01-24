@@ -23,6 +23,9 @@ type BusinessContinuityModule struct {
 	TestAndExerciseController                        *controllers.TestAndExerciseController
 	CommunicationActionPlanStatusController          *controllers.CommunicationActionPlanStatusController
 	TestAndExerciseCommunicationActionPlanController *controllers.TestAndExerciseCommunicationActionPlanController
+	TimelinessController                             *controllers.TimelinessController
+	FeedbackOptionController                         *controllers.FeedbackOptionController
+	TestResultOptionController                       *controllers.TestResultOptionController
 
 	BusinessFunctionSvc       services.BusinessFunctionServiceInterface
 	BcpTeamSvc                services.BcpTeamServiceInterface
@@ -98,6 +101,18 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	testAndExerciseCommunicationActionPlanSvc := services.NewTestAndExerciseCommunicationActionPlanService(testAndExerciseCommunicationActionPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, communicationActionPlanStatusSvc)
 	testAndExerciseCommunicationActionPlanController := controllers.NewTestAndExerciseCommunicationActionPlanController(testAndExerciseCommunicationActionPlanSvc)
 
+	timelinessRepo := repositories.NewTimelinessRepository(db)
+	timelinessSvc := services.NewTimelinessService(timelinessRepo)
+	timelinessController := controllers.NewTimelinessController(timelinessSvc)
+
+	feedbackOptionRepo := repositories.NewFeedbackOptionRepository(db)
+	feedbackOptionSvc := services.NewFeedbackOptionService(feedbackOptionRepo)
+	feedbackOptionController := controllers.NewFeedbackOptionController(feedbackOptionSvc)
+
+	testResultOptionRepo := repositories.NewTestResultOptionRepository(db)
+	testResultOptionSvc := services.NewTestResultOptionService(testResultOptionRepo)
+	testResultOptionController := controllers.NewTestResultOptionController(testResultOptionSvc)
+
 	return &BusinessContinuityModule{
 		BusinessFunctionController:                       businessFunctionController,
 		BusinessImpactAssessmentController:               businessImpactAssessmentController,
@@ -113,6 +128,9 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		TestAndExerciseController:                        testAndExerciseController,
 		CommunicationActionPlanStatusController:          communicationActionPlanStatusController,
 		TestAndExerciseCommunicationActionPlanController: testAndExerciseCommunicationActionPlanController,
+		TimelinessController:                             timelinessController,
+		FeedbackOptionController:                         feedbackOptionController,
+		TestResultOptionController:                       testResultOptionController,
 
 		BusinessFunctionSvc:       businessFunctionSvc,
 		BcpTeamSvc:                bcpTeamSvc,
