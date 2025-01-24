@@ -39,11 +39,11 @@ type DocumentPeriodicReviewListDTO struct {
 }
 
 type DocumentPeriodicReviewDetailsDTO struct {
-	ID               uint      `json:"id"`
-	DocumentID       uint      `json:"document_id"`
-	ReviewDate       time.Time `json:"review_date"`
-	IsChangeRequired bool      `json:"is_change_required"`
-	Description      *string   `json:"description"`
+	ID               uint    `json:"id"`
+	DocumentID       uint    `json:"document_id"`
+	ReviewDateString string  `json:"review_date"`
+	IsChangeRequired bool    `json:"is_change_required"`
+	Description      *string `json:"description"`
 
 	CreatedByUser organizationDTOs.UserMinimalDTO  `json:"created_by_user"`
 	UpdatedByUser *organizationDTOs.UserMinimalDTO `json:"updated_by_user"`

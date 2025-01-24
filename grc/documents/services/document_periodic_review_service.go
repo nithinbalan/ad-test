@@ -77,12 +77,20 @@ func (dprs *DocumentPeriodicReviewService) GetFullDetailsByID(id uint, tx ...uti
 		}
 		return nil, err
 	}
+
+	// Check and format ReviewDate explicitly
+
+	detailsDTO.ReviewDateString = review.ReviewDate.Format("2006-01-02")
+
+	// Decode other fields
 	err = mapstructure.Decode(review, &detailsDTO)
 	if err != nil {
 		return nil, err
 	}
+
 	detailsDTO.CreatedAt = review.CreatedAt
 	detailsDTO.UpdatedAt = review.UpdatedAt
+
 	return &detailsDTO, nil
 }
 
