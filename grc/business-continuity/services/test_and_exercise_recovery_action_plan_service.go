@@ -7,6 +7,7 @@ import (
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	TestAndExerciseRecoveryActionPlanRepositories "jethur/grc/business-continuity/repositories"
 	logServices "jethur/grc/logs/services"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
@@ -25,10 +26,11 @@ type TestAndExerciseRecoveryActionPlanServiceInterface interface {
 }
 
 type TestAndExerciseRecoveryActionPlanService struct {
-	repo               TestAndExerciseRecoveryActionPlanRepositories.TestAndExerciseRecoveryActionPlanRepositoryInterface
-	activityLogSvc     logServices.ActivityLogServiceInterface
-	userSvc            organizationServices.UserServiceInterface
-	testAndExerciseSvc TestAndExerciseServiceInterface
+	repo                TestAndExerciseRecoveryActionPlanRepositories.TestAndExerciseRecoveryActionPlanRepositoryInterface
+	activityLogSvc      logServices.ActivityLogServiceInterface
+	userSvc             organizationServices.UserServiceInterface
+	testAndExerciseSvc  TestAndExerciseServiceInterface
+	ActionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 }
 
 func NewTestAndExerciseRecoveryActionPlanService(
@@ -36,16 +38,21 @@ func NewTestAndExerciseRecoveryActionPlanService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	testAndExerciseSvc TestAndExerciseServiceInterface,
+	ActionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 ) TestAndExerciseRecoveryActionPlanServiceInterface {
 	return &TestAndExerciseRecoveryActionPlanService{
-		repo:               repo,
-		activityLogSvc:     activityLogSvc,
-		userSvc:            userSvc,
-		testAndExerciseSvc: testAndExerciseSvc,
+		repo:                repo,
+		activityLogSvc:      activityLogSvc,
+		userSvc:             userSvc,
+		testAndExerciseSvc:  testAndExerciseSvc,
+		ActionPlanStatusSvc: ActionPlanStatusSvc,
 	}
 }
 
 func (teraps *TestAndExerciseRecoveryActionPlanService) GetAll(testAndExerciseId uint, params *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanQueryParamsDTO) (*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListResponseDTO, error) {
+	if _, err := teraps.testAndExerciseSvc.GetByID(testAndExerciseId); err != nil {
+		return nil, err
+	}
 	return teraps.repo.GetAll(testAndExerciseId, params)
 }
 
@@ -61,6 +68,9 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) GetByID(testAndExerciseI
 }
 
 func (teraps *TestAndExerciseRecoveryActionPlanService) GetFullDetailsByID(testAndExerciseID uint, id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanDetailDTO, error) {
+	if _, err := teraps.testAndExerciseSvc.GetByID(testAndExerciseID); err != nil {
+		return nil, err
+	}
 	var detailDTO businessContinuityDTOs.TestAndExerciseRecoveryActionPlanDetailDTO
 
 	actionPlan, err := teraps.repo.GetFullDetailsByID(id, tx...)
@@ -85,9 +95,18 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) GetFullDetailsByID(testA
 func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID uint, currentUserID uint, formDto *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanFormDTO) (uint, error) {
 	tx := teraps.repo.BeginTransaction()
 
+	if _, err := teraps.testAndExerciseSvc.GetByID(testAndExerciseID); err != nil {
+		return 0, err
+	}
+
 	responsibleUnitID, err := teraps.userSvc.GetUserPrimaryUnitID(formDto.ResponsibleUserID)
 	if err != nil {
 		return 0, utility.NewValidationError(errors.New("organization unit not set for responsible user"), "not_exist", "responsible unit")
+	}
+
+	ActionPlanStatus, err := teraps.ActionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
 	}
 
 	actionPlan := &models.TestAndExerciseRecoveryActionPlan{
@@ -100,7 +119,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID
 		ResponsibleUnitID:      responsibleUnitID,
 		TargetCompletionUnitId: formDto.TargetCompletionUnitID,
 		TargetCompletion:       &formDto.TargetDate,
-		ActionPlanStatusId:     &formDto.ActionPlanStatusID,
+		ActionPlanStatusId:     &ActionPlanStatus.ID,
 		CreatedBYID:            currentUserID,
 	}
 
@@ -172,7 +191,6 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 	existingRecoveryPlan.ResponsibleUserID = formDto.ResponsibleUserID
 	existingRecoveryPlan.TargetCompletion = &formDto.TargetDate
 	existingRecoveryPlan.TargetCompletionUnitId = formDto.TargetCompletionUnitID
-	existingRecoveryPlan.ActionPlanStatusId = &formDto.ActionPlanStatusID
 	existingRecoveryPlan.UpdatedBYID = &currentUserID
 
 	err = teraps.repo.Update(existingRecoveryPlan, tx)
@@ -243,6 +261,10 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 
 func (teraps *TestAndExerciseRecoveryActionPlanService) Delete(testAndExerciseID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := teraps.repo.BeginTransaction()
+
+	if _, err := teraps.testAndExerciseSvc.GetByID(testAndExerciseID); err != nil {
+		return nil, err
+	}
 
 	var failedIDs []uint
 	var successfulIDs []uint

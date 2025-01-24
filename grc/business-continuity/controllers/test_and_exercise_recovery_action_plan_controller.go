@@ -39,11 +39,11 @@ func (terapc *TestAndExerciseRecoveryActionPlanController) GetAllTestAndExercise
 	keyword := c.Query("keyword")
 
 	allowedParams := []string{
-		"phase_ids",
+		"bcp_phase_ids",
 		"process_ids",
 		"responsible_user_ids",
 		"severity_level_ids",
-		"status_ids",
+		"action_plan_status_id",
 	}
 	validSortFields := map[string]string{
 		"title":                          "test_and_exercise_recovery_action_plans.title",

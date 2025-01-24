@@ -43,6 +43,8 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
             test_and_exercise_recovery_action_plans.test_and_exercise_id,
             test_and_exercise_recovery_action_plans.bcp_phase_id,
             test_and_exercise_recovery_action_plans.process_id,
+			bcp_phases.title_en AS bcp_phase_title_en,
+			bcp_phases.title_ar AS bcp_phase_title_ar,
             processes.title_en AS process_title_en, 
             processes.title_ar AS process_title_ar, 
             test_and_exercise_recovery_action_plans.severity_level_id,
@@ -89,6 +91,7 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
             updated_user.color AS updated_user_color, 
             test_and_exercise_recovery_action_plans.updated_at
         `).
+		Joins(`LEFT JOIN bcp_phases ON bcp_phases.id = test_and_exercise_recovery_action_plans.bcp_phase_id`).
 		Joins(`LEFT JOIN processes ON processes.id = test_and_exercise_recovery_action_plans.process_id`).
 		Joins(`LEFT JOIN severity_levels ON severity_levels.id = test_and_exercise_recovery_action_plans.severity_level_id`).
 		Joins(`LEFT JOIN users AS responsible_user ON responsible_user.id = test_and_exercise_recovery_action_plans.responsible_user_id`).
@@ -112,7 +115,9 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(processes.title_en LIKE ? OR
+			(bcp_phases.title_en LIKE ? OR
+			bcp_phases.title_ar LIKE ? OR
+			processes.title_en LIKE ? OR
 			processes.title_ar LIKE ? OR
 			organization_units.title_en LIKE ? OR
 			organization_units.title_ar LIKE ? OR
@@ -136,9 +141,11 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
 			updated_user.first_name_ar LIKE ? OR
 			updated_user.last_name_ar LIKE ? OR
 			updated_user.email LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword,
+		)
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
