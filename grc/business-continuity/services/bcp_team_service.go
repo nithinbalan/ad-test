@@ -78,10 +78,6 @@ func (brs *BcpTeamService) GetFullDetailsByID(bcpId uint, id uint, tx ...utility
 		return nil, err
 	}
 
-	if bcpTeam.BusinessContinuityPlanID != bcpId {
-		return nil, utility.NewResourceNotFoundError(errors.New("mismatched business continuity plan ID"), bcpId)
-	}
-
 	if err := mapstructure.Decode(bcpTeam, &bcpTeamDTO); err != nil {
 		return nil, err
 	}
