@@ -66,18 +66,6 @@ func (terapc *TestAndExerciseRecoveryActionPlanController) GetAllTestAndExercise
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
-	page, err := utility.ParseQueryParamToInt(c, "page", 1)
-	if err != nil {
-		utility.SendInternalErrResp(terapc.db, c, "Invalid page parameter")
-		return
-	}
-
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
-	if err != nil {
-		utility.SendInternalErrResp(terapc.db, c, "Invalid page_size parameter")
-		return
-	}
-
 	sortField, valid := validSortFields[sortBy]
 	if !valid {
 		err := errors.New("invalid 'sort_by' parameter")
@@ -86,12 +74,10 @@ func (terapc *TestAndExerciseRecoveryActionPlanController) GetAllTestAndExercise
 	}
 
 	queryParams := businessContinuityDTOs.TestAndExerciseRecoveryActionPlanQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortField,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
-		Filters:  filters,
+		Sort:    sort,
+		SortBy:  sortField,
+		Keyword: keyword,
+		Filters: filters,
 	}
 
 	actionPlans, err := terapc.service.GetAll(uint(testAndExerciseID), &queryParams)

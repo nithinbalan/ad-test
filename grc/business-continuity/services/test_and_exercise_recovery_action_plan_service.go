@@ -17,7 +17,7 @@ import (
 )
 
 type TestAndExerciseRecoveryActionPlanServiceInterface interface {
-	GetAll(testAndExerciseId uint, params *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanQueryParamsDTO) (*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListResponseDTO, error)
+	GetAll(testAndExerciseId uint, params *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanQueryParamsDTO) ([]*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListDTO, error)
 	GetByID(testAndExerciseID uint, id uint) (*models.TestAndExerciseRecoveryActionPlan, error)
 	GetFullDetailsByID(testAndExerciseID uint, id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanDetailDTO, error)
 	Create(testAndExerciseID uint, currentUserID uint, dto *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanFormDTO) (uint, error)
@@ -49,7 +49,7 @@ func NewTestAndExerciseRecoveryActionPlanService(
 	}
 }
 
-func (teraps *TestAndExerciseRecoveryActionPlanService) GetAll(testAndExerciseId uint, params *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanQueryParamsDTO) (*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListResponseDTO, error) {
+func (teraps *TestAndExerciseRecoveryActionPlanService) GetAll(testAndExerciseId uint, params *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanQueryParamsDTO) ([]*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListDTO, error) {
 	if _, err := teraps.testAndExerciseSvc.GetByID(testAndExerciseId); err != nil {
 		return nil, err
 	}
