@@ -24,6 +24,7 @@ type SystemPreferenceDTO struct {
 	CreatedByID         uint        `json:"created_by_id"`
 	UpdatedByID         *uint       `json:"updated_by_id"`
 	Timezone            TimezoneDTO `json:"timezone"`
+	Currency            CurrencyDTO `json:"currency"`
 }
 
 type TimezoneDTO struct {
@@ -31,6 +32,13 @@ type TimezoneDTO struct {
 	Name        string `json:"name"`
 	Offset      string `json:"offset"`
 	DisplayName string `json:"display_name"`
+}
+
+type CurrencyDTO struct {
+	ID    int    `json:"id"`
+	Title string `json:"title"`
+	Code  string `json:"code"`
+	Icon  string `json:"icon"`
 }
 
 type OrganizationPreferenceResponseDTO struct {

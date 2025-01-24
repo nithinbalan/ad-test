@@ -31,6 +31,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	communicationActionPlanStatusController := app.BusinessContinuityModule.CommunicationActionPlanStatusController
 	testAndExerciseCommunicationActionPlanController := app.BusinessContinuityModule.TestAndExerciseCommunicationActionPlanController
 	testAndExerciseRecoveryActionPlanController := app.BusinessContinuityModule.TestAndExerciseRecoveryActionPlanController
+	timelinessController := app.BusinessContinuityModule.TimelinessController
+	feedbackOptionController := app.BusinessContinuityModule.FeedbackOptionController
+	testResultOptionController := app.BusinessContinuityModule.TestResultOptionController
 
 	// bcp phase
 	businessContinuityRoutes.GET("/bcp-phases", bcpPhaseController.GetAllBcpPhases)
@@ -44,9 +47,21 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.GET("/test-and-exercise-statuses", testAndExerciseStatusController.GetAllTestAndExerciseStatuses)
 	businessContinuityRoutes.GET("/test-and-exercise-statuses/:id", testAndExerciseStatusController.GetTestAndExerciseStatusDetails)
 
-	// test and exercise status
+	// communication action plan status
 	businessContinuityRoutes.GET("/communication-action-plan-statuses", communicationActionPlanStatusController.GetAllCommunicationActionPlanStatuses)
 	businessContinuityRoutes.GET("/communication-action-plan-statuses/:id", communicationActionPlanStatusController.GetCommunicationActionPlanStatusDetails)
+
+	// timeliness
+	businessContinuityRoutes.GET("/timeliness", timelinessController.GetAllTimeliness)
+	businessContinuityRoutes.GET("/timeliness/:id", timelinessController.GetTimelinessDetails)
+
+	// feedback option
+	businessContinuityRoutes.GET("/feedback-options", feedbackOptionController.GetAllFeedbackOptions)
+	businessContinuityRoutes.GET("/feedback-options/:id", feedbackOptionController.GetFeedbackOptionDetails)
+
+	// test result option
+	businessContinuityRoutes.GET("/test-result-options", testResultOptionController.GetAllTestResultOptions)
+	businessContinuityRoutes.GET("/test-result-options/:id", testResultOptionController.GetTestResultOptionDetails)
 
 	// Business Function
 	businessContinuityRoutes.GET("/business-functions", middlewares.RolePermissionMiddleware(db, "business_functions", "view"), businessFunctionController.GetAllBusinessFunctions)
