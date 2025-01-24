@@ -23,10 +23,16 @@ type BusinessContinuityModule struct {
 	TestAndExerciseController                        *controllers.TestAndExerciseController
 	CommunicationActionPlanStatusController          *controllers.CommunicationActionPlanStatusController
 	TestAndExerciseCommunicationActionPlanController *controllers.TestAndExerciseCommunicationActionPlanController
+	TestAndExerciseRecoveryActionPlanController      *controllers.TestAndExerciseRecoveryActionPlanController
+	TimelinessController                             *controllers.TimelinessController
+	FeedbackOptionController                         *controllers.FeedbackOptionController
+	TestResultOptionController                       *controllers.TestResultOptionController
 
-	BusinessFunctionSvc       services.BusinessFunctionServiceInterface
-	BcpTeamSvc                services.BcpTeamServiceInterface
-	businessContinuityPlanSvc services.BusinessContinuityPlanServiceInterface
+	BusinessFunctionSvc                  services.BusinessFunctionServiceInterface
+	BcpTeamSvc                           services.BcpTeamServiceInterface
+	businessContinuityPlanSvc            services.BusinessContinuityPlanServiceInterface
+	testAndExerciseSvc                   services.TestAndExerciseServiceInterface
+	testAndExerciseRecoveryActionPlanSvc services.TestAndExerciseRecoveryActionPlanServiceInterface
 }
 
 func NewBusinessContinuityModule(db *gorm.DB,
@@ -98,6 +104,22 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	testAndExerciseCommunicationActionPlanSvc := services.NewTestAndExerciseCommunicationActionPlanService(testAndExerciseCommunicationActionPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, communicationActionPlanStatusSvc)
 	testAndExerciseCommunicationActionPlanController := controllers.NewTestAndExerciseCommunicationActionPlanController(testAndExerciseCommunicationActionPlanSvc)
 
+	testAndExerciseRecoveryActionPlanRepo := repositories.NewTestAndExerciseRecoveryActionPlanRepository(db)
+	testAndExerciseRecoveryActionPlanSvc := services.NewTestAndExerciseRecoveryActionPlanService(testAndExerciseRecoveryActionPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, testAndExerciseSvc, masterModule.ActionPlanStatusSvc)
+	testAndExerciseRecoveryActionPlanController := controllers.NewTestAndExerciseRecoveryActionPlanController(testAndExerciseRecoveryActionPlanSvc)
+
+	timelinessRepo := repositories.NewTimelinessRepository(db)
+	timelinessSvc := services.NewTimelinessService(timelinessRepo)
+	timelinessController := controllers.NewTimelinessController(timelinessSvc)
+
+	feedbackOptionRepo := repositories.NewFeedbackOptionRepository(db)
+	feedbackOptionSvc := services.NewFeedbackOptionService(feedbackOptionRepo)
+	feedbackOptionController := controllers.NewFeedbackOptionController(feedbackOptionSvc)
+
+	testResultOptionRepo := repositories.NewTestResultOptionRepository(db)
+	testResultOptionSvc := services.NewTestResultOptionService(testResultOptionRepo)
+	testResultOptionController := controllers.NewTestResultOptionController(testResultOptionSvc)
+
 	return &BusinessContinuityModule{
 		BusinessFunctionController:                       businessFunctionController,
 		BusinessImpactAssessmentController:               businessImpactAssessmentController,
@@ -113,9 +135,15 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		TestAndExerciseController:                        testAndExerciseController,
 		CommunicationActionPlanStatusController:          communicationActionPlanStatusController,
 		TestAndExerciseCommunicationActionPlanController: testAndExerciseCommunicationActionPlanController,
+		TestAndExerciseRecoveryActionPlanController:      testAndExerciseRecoveryActionPlanController,
+		TimelinessController:                             timelinessController,
+		FeedbackOptionController:                         feedbackOptionController,
+		TestResultOptionController:                       testResultOptionController,
 
-		BusinessFunctionSvc:       businessFunctionSvc,
-		BcpTeamSvc:                bcpTeamSvc,
-		businessContinuityPlanSvc: businessContinuityPlanSvc,
+		BusinessFunctionSvc:                  businessFunctionSvc,
+		BcpTeamSvc:                           bcpTeamSvc,
+		businessContinuityPlanSvc:            businessContinuityPlanSvc,
+		testAndExerciseRecoveryActionPlanSvc: testAndExerciseRecoveryActionPlanSvc,
+		testAndExerciseSvc:                   testAndExerciseSvc,
 	}
 }

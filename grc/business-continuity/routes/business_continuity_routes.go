@@ -30,6 +30,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	testAndExerciseController := app.BusinessContinuityModule.TestAndExerciseController
 	communicationActionPlanStatusController := app.BusinessContinuityModule.CommunicationActionPlanStatusController
 	testAndExerciseCommunicationActionPlanController := app.BusinessContinuityModule.TestAndExerciseCommunicationActionPlanController
+	testAndExerciseRecoveryActionPlanController := app.BusinessContinuityModule.TestAndExerciseRecoveryActionPlanController
+	timelinessController := app.BusinessContinuityModule.TimelinessController
+	feedbackOptionController := app.BusinessContinuityModule.FeedbackOptionController
+	testResultOptionController := app.BusinessContinuityModule.TestResultOptionController
 
 	// bcp phase
 	businessContinuityRoutes.GET("/bcp-phases", bcpPhaseController.GetAllBcpPhases)
@@ -43,9 +47,21 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.GET("/test-and-exercise-statuses", testAndExerciseStatusController.GetAllTestAndExerciseStatuses)
 	businessContinuityRoutes.GET("/test-and-exercise-statuses/:id", testAndExerciseStatusController.GetTestAndExerciseStatusDetails)
 
-	// test and exercise status
+	// communication action plan status
 	businessContinuityRoutes.GET("/communication-action-plan-statuses", communicationActionPlanStatusController.GetAllCommunicationActionPlanStatuses)
 	businessContinuityRoutes.GET("/communication-action-plan-statuses/:id", communicationActionPlanStatusController.GetCommunicationActionPlanStatusDetails)
+
+	// timeliness
+	businessContinuityRoutes.GET("/timeliness", timelinessController.GetAllTimeliness)
+	businessContinuityRoutes.GET("/timeliness/:id", timelinessController.GetTimelinessDetails)
+
+	// feedback option
+	businessContinuityRoutes.GET("/feedback-options", feedbackOptionController.GetAllFeedbackOptions)
+	businessContinuityRoutes.GET("/feedback-options/:id", feedbackOptionController.GetFeedbackOptionDetails)
+
+	// test result option
+	businessContinuityRoutes.GET("/test-result-options", testResultOptionController.GetAllTestResultOptions)
+	businessContinuityRoutes.GET("/test-result-options/:id", testResultOptionController.GetTestResultOptionDetails)
 
 	// Business Function
 	businessContinuityRoutes.GET("/business-functions", middlewares.RolePermissionMiddleware(db, "business_functions", "view"), businessFunctionController.GetAllBusinessFunctions)
@@ -119,11 +135,17 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.PUT("/test-and-exercises/:testAndExerciseId", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseController.UpdateTestAndExercise)
 	businessContinuityRoutes.POST("/test-and-exercises/delete", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseController.DeleteTestAndExercises)
 
-	//Test and exercise communication action plan
+	// Test and exercise communication action plan
 	businessContinuityRoutes.GET("/test-and-exercises/:testAndExerciseId/communication-action-plans", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "view"), testAndExerciseCommunicationActionPlanController.GetAllTestAndExerciseCommunicationActionPlans)
 	businessContinuityRoutes.GET("/test-and-exercises/:testAndExerciseId/communication-action-plans/:id", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "view"), testAndExerciseCommunicationActionPlanController.GetTestAndExerciseCommunicationActionPlanDetails)
 	businessContinuityRoutes.POST("/test-and-exercises/:testAndExerciseId/communication-action-plans", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseCommunicationActionPlanController.CreateTestAndExerciseCommunicationActionPlan)
 	businessContinuityRoutes.PUT("/test-and-exercises/:testAndExerciseId/communication-action-plans/:id", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseCommunicationActionPlanController.UpdateTestAndExerciseCommunicationActionPlan)
 	businessContinuityRoutes.POST("/test-and-exercises/:testAndExerciseId/communication-action-plans/delete", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseCommunicationActionPlanController.DeleteTestAndExerciseCommunicationActionPlans)
 
+	// test and exercise recovery action plan
+	businessContinuityRoutes.GET("/test-and-exercises/:testAndExerciseId/recovery-action-plans", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "view"), testAndExerciseRecoveryActionPlanController.GetAllTestAndExerciseRecoveryActionPlans)
+	businessContinuityRoutes.GET("/test-and-exercises/:testAndExerciseId/recovery-action-plans/:id", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "view"), testAndExerciseRecoveryActionPlanController.GetTestAndExerciseRecoveryActionPlanDetails)
+	businessContinuityRoutes.POST("/test-and-exercises/:testAndExerciseId/recovery-action-plans", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseRecoveryActionPlanController.CreateTestAndExerciseRecoveryActionPlan)
+	businessContinuityRoutes.PUT("/test-and-exercises/:testAndExerciseId/recovery-action-plans/:id", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseRecoveryActionPlanController.UpdateTestAndExerciseRecoveryActionPlan)
+	businessContinuityRoutes.POST("/test-and-exercises/:testAndExerciseId/recovery-action-plans/delete", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseRecoveryActionPlanController.DeleteTestAndExerciseRecoveryActionPlans)
 }
