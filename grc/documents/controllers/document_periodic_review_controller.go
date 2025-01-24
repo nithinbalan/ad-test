@@ -192,6 +192,9 @@ func (dprc *DocumentPeriodicReviewController) UpdateDocumentPeriodicReview(c *gi
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ResourceConflictError:
+			utility.SendConflictErrResp(c, err.Error())
+			return
 		default:
 			utility.SendInternalErrResp(dprc.db, c, e.Error())
 			return
