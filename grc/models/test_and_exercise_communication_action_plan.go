@@ -6,7 +6,7 @@ import (
 
 type TestAndExerciseCommunicationActionPlan struct {
 	ID                              uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	TestAndExerciseID               uint       `json:"bcp_test_and_exercise_id" binding:"required"`
+	TestAndExerciseID               uint       `json:"test_and_exercise_id" binding:"required"`
 	BcpPhaseID                      uint       `json:"bcp_phase_id" binding:"required"`
 	ProcessID                       uint       `json:"process_id" binding:"required"`
 	Title                           string     `json:"title"`

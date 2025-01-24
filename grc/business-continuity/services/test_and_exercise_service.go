@@ -21,6 +21,8 @@ type TestAndExerciseServiceInterface interface {
 	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.TestAndExerciseFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, TestAndExercise *businessContinuityDTOs.TestAndExerciseFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	GetTestAndExerciseProcessByID(id uint) (*models.TestAndExerciseProcess, error)
 }
 
 // Service and implementations
@@ -544,4 +546,17 @@ func (bfs *TestAndExerciseService) parseTestAndExerciseDates(dto *businessContin
 	}
 
 	return parsed, nil
+}
+
+func (tes TestAndExerciseService) GetTestAndExerciseProcessByID(id uint) (*models.TestAndExerciseProcess, error) {
+	TestAndExerciseProcess, err := tes.repo.GetTestAndExerciseProcessByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	return TestAndExerciseProcess, nil
 }
