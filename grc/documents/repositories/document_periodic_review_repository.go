@@ -120,6 +120,19 @@ func (repo *DocumentPeriodicReviewRepository) GetAll(params *dtos.DocumentPeriod
 		return nil, err
 	}
 
+	// Fetch supportive documents for each review
+	for _, review := range reviews {
+		var supportDocs []*dtos.DocumentPeriodicReviewSupportDocumentDTO
+		err := repo.db.Table("document_review_support_documents").
+			Select("id, url, name, size, token, original_name, type").
+			Where("document_review_id = ?", review.ID).
+			Find(&supportDocs).Error
+		if err != nil {
+			return nil, err
+		}
+		review.SupportDocuments = supportDocs
+	}
+
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
 	// Build the response

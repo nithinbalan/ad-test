@@ -36,6 +36,8 @@ type DocumentPeriodicReviewListDTO struct {
 
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt *time.Time `json:"updated_at"`
+
+	SupportDocuments []*DocumentPeriodicReviewSupportDocumentDTO `json:"support_documents" gorm:"-"`
 }
 
 type DocumentPeriodicReviewDetailsDTO struct {
