@@ -48,6 +48,7 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
             test_and_exercise_recovery_action_plans.severity_level_id,
             severity_levels.title_en AS severity_level_title_en, 
             severity_levels.title_ar AS severity_level_title_ar, 
+			severity_levels.color_code AS severity_level_color_code,
             test_and_exercise_recovery_action_plans.title,
             test_and_exercise_recovery_action_plans.responsible_user_id,
             test_and_exercise_recovery_action_plans.responsible_unit_id,

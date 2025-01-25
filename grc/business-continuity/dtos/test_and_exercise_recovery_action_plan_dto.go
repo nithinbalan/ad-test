@@ -20,6 +20,7 @@ type TestAndExerciseRecoveryActionPlanListDTO struct {
 	SeverityLevelID                 *uint      `json:"severity_level_id"`
 	SeverityLevelTitleEn            *string    `json:"severity_level_title_en"`
 	SeverityLevelTitleAr            *string    `json:"severity_level_title_ar"`
+	SeverityLevelColorCode          *string    `json:"severity_level_color_code"`
 	Title                           string     `json:"title"`
 	ResponsibleUserID               uint       `json:"responsible_user_id"`
 	ResponsibleUnitID               uint       `json:"responsible_unit_id"`
