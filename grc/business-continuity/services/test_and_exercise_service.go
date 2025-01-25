@@ -219,7 +219,7 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 				continue
 			}
 
-			ActionPlanStatus, err := tes.actionPlanSvc.GetByType("new")
+			actionPlanStatus, err := tes.actionPlanSvc.GetByType("new")
 			if err != nil {
 				return 0, err
 			}
@@ -232,7 +232,7 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 				ResponsibleUserID:  bcpRecoveryPlan.ResponsibleUserID,
 				ResponsibleUnitID:  bcpRecoveryPlan.ResponsibleUnitID,
 				TargetDate:         &targetDate,
-				ActionPlanStatusId: &ActionPlanStatus.ID,
+				ActionPlanStatusId: &actionPlanStatus.ID,
 				CreatedBYID:        currentUserID,
 			}
 			testAndExerciseRecoveryActionPlan = append(testAndExerciseRecoveryActionPlan, process)
