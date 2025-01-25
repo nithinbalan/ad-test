@@ -182,4 +182,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/documents/:id/reviews", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentPeriodicReviewController.CreateDocumentPeriodicReview)
 	documentRoutes.PUT("/documents/:id/reviews/:reviewId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentPeriodicReviewController.UpdateDocumentPeriodicReview)
 	documentRoutes.POST("/documents/:id/reviews/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentPeriodicReviewController.DeleteDocumentPeriodicReview)
+
+	unauthenticatedRoutes.GET("/documents/:id/reviews/:reviewId/document-download", documentPeriodicReviewController.DownloadDocumentPeriodicReviewDocument)
 }
