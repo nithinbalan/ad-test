@@ -431,61 +431,6 @@ func (tetrs *TestAndExerciseTestResultService) Update(testAndExerciseId uint, cu
 	return nil
 }
 
-// func (tetrs *TestAndExerciseTestResultService) Delete(testAndExerciseId uint, ids []uint, currentUserID uint) ([]uint, error) {
-// 	tx := tetrs.repo.BeginTransaction()
-// 	var failedIds []uint
-// 	var successfulIds []uint
-// 	var deletedTestAndExerciseTestResult []map[string]interface{}
-
-// 	for _, id := range ids {
-// 		testAndExercise, err := tetrs.GetFullDetailsByID(testAndExerciseId, tx)
-// 		if err != nil {
-// 			tx.Rollback()
-// 			return nil, err
-// 		}
-
-// 		deletedTestAndExerciseTestResult = append(deletedTestAndExerciseTestResult, map[string]interface{}{
-// 			"id":                id,
-// 			"test_and_exercise": testAndExercise.ID,
-// 		})
-
-// 		// Delete the test and exercise
-// 		if err := tetrs.repo.Delete(id, tx); err != nil {
-// 			failedIds = append(failedIds, id)
-// 			continue
-// 		} else {
-// 			successfulIds = append(successfulIds, id)
-// 		}
-// 	}
-// 	if len(failedIds) > 0 {
-// 		tx.Rollback()
-// 		return failedIds, nil
-// 	}
-
-// 	tx.Commit()
-
-// 	// Log bulk delete activities for successful deletions
-// 	if len(successfulIds) > 0 {
-// 		go func() {
-// 			err := tetrs.activityLogSvc.LogBulkActivities(
-// 				models.DeleteAction, // Make sure this action constant is defined appropriately
-// 				models.TestAndExerciseTestResult{}.TableName(),
-// 				successfulIds,
-// 				deletedTestAndExerciseTestResult,
-// 				currentUserID,
-// 				nil,
-// 			)
-// 			if err != nil {
-// 				// @todo - save to log file
-// 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
-// 			}
-
-// 		}()
-// 	}
-
-// 	return failedIds, nil
-// }
-
 func (tetrs *TestAndExerciseTestResultService) Delete(testAndExerciseId uint, currentUserID uint) (uint, error) {
 	tx := tetrs.repo.BeginTransaction()
 	var failedId uint

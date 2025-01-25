@@ -48,6 +48,7 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
             test_and_exercise_recovery_action_plans.severity_level_id,
             severity_levels.title_en AS severity_level_title_en, 
             severity_levels.title_ar AS severity_level_title_ar, 
+			severity_levels.color_code AS severity_level_color_code,
             test_and_exercise_recovery_action_plans.title,
             test_and_exercise_recovery_action_plans.responsible_user_id,
             test_and_exercise_recovery_action_plans.responsible_unit_id,
@@ -61,10 +62,7 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
             responsible_user.email AS responsible_user_email, 
             responsible_user.color AS responsible_user_color, 
             responsible_user.profile_image_path AS responsible_user_profile_image_path, 
-            test_and_exercise_recovery_action_plans.target_completion,
-            test_and_exercise_recovery_action_plans.target_completion_unit_id,
-            time_units.title_en AS target_completion_unit_en,
-            time_units.title_ar AS target_completion_unit_ar,
+            CONVERT(VARCHAR, test_and_exercise_recovery_action_plans.target_date, 23) AS target_date,
             test_and_exercise_recovery_action_plans.action_plan_status_id,
             action_plan_statuses.title_en AS action_plan_status_title_en, 
             action_plan_statuses.title_ar AS action_plan_status_title_ar, 
@@ -94,7 +92,6 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
 		Joins(`LEFT JOIN severity_levels ON severity_levels.id = test_and_exercise_recovery_action_plans.severity_level_id`).
 		Joins(`LEFT JOIN users AS responsible_user ON responsible_user.id = test_and_exercise_recovery_action_plans.responsible_user_id`).
 		Joins(`LEFT JOIN organization_units ON organization_units.id = test_and_exercise_recovery_action_plans.responsible_unit_id`).
-		Joins(`LEFT JOIN time_units ON time_units.id = test_and_exercise_recovery_action_plans.target_completion_unit_id`).
 		Joins(`LEFT JOIN action_plan_statuses ON action_plan_statuses.id = test_and_exercise_recovery_action_plans.action_plan_status_id`).
 		Joins(`LEFT JOIN users AS created_user ON created_user.id = test_and_exercise_recovery_action_plans.created_by_id`).
 		Joins(`LEFT JOIN users AS updated_user ON updated_user.id = test_and_exercise_recovery_action_plans.updated_by_id`).
@@ -123,8 +120,6 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
 			action_plan_statuses.title_en LIKE ? OR
 			action_plan_statuses.title_ar LIKE ? OR
 			test_and_exercise_recovery_action_plans.title LIKE ? OR
-			time_units.title_en LIKE ? OR
-			time_units.title_ar LIKE ? OR
 			created_user.first_name_en LIKE ? OR
 			created_user.last_name_en LIKE ? OR
 			created_user.first_name_ar LIKE ? OR
@@ -138,7 +133,7 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword,
 		)
 	}
 
@@ -173,7 +168,6 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetFullDetailsByID(id u
 		Preload("BcpPhase").
 		Preload("Process").
 		Preload("SeverityLevel").
-		Preload("TargetCompletionUnit").
 		Preload("ActionPlanStatus").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUnit").
