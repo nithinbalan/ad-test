@@ -33,7 +33,7 @@ func (tetrc *TestAndExerciseTestResultController) GetTestAndExerciseTestResultDe
 		return
 	}
 
-	communicationActionPlan, err := tetrc.service.GetFullDetailsByID(uint(testAndExerciseId))
+	testResult, err := tetrc.service.GetFullDetailsByID(uint(testAndExerciseId))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -44,7 +44,7 @@ func (tetrc *TestAndExerciseTestResultController) GetTestAndExerciseTestResultDe
 			return
 		}
 	}
-	c.JSON(http.StatusOK, communicationActionPlan)
+	c.JSON(http.StatusOK, testResult)
 }
 
 func (tetrc *TestAndExerciseTestResultController) CreateTestAndExerciseTestResult(c *gin.Context) {
@@ -57,9 +57,9 @@ func (tetrc *TestAndExerciseTestResultController) CreateTestAndExerciseTestResul
 		return
 	}
 
-	var communicationActionPlanFormDTO businessContinuityDTOs.TestAndExerciseTestResultFormDTO
+	var testExerciseTestResultFormDTO businessContinuityDTOs.TestAndExerciseTestResultFormDTO
 
-	if err := c.ShouldBindJSON(&communicationActionPlanFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&testExerciseTestResultFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -70,7 +70,7 @@ func (tetrc *TestAndExerciseTestResultController) CreateTestAndExerciseTestResul
 		return
 	}
 
-	id, err := tetrc.service.Create(uint(testAndExerciseId), currentUserID, &communicationActionPlanFormDTO)
+	id, err := tetrc.service.Create(uint(testAndExerciseId), currentUserID, &testExerciseTestResultFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -98,9 +98,9 @@ func (tetrc *TestAndExerciseTestResultController) UpdateTestAndExerciseTestResul
 		return
 	}
 
-	var communicationActionPlanFormDTO businessContinuityDTOs.TestAndExerciseTestResultFormDTO
+	var testExerciseTestResultFormDTO businessContinuityDTOs.TestAndExerciseTestResultFormDTO
 
-	if err := c.ShouldBindJSON(&communicationActionPlanFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&testExerciseTestResultFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -111,7 +111,7 @@ func (tetrc *TestAndExerciseTestResultController) UpdateTestAndExerciseTestResul
 		return
 	}
 
-	err = tetrc.service.Update(uint(testAndExerciseId), currentUserID, &communicationActionPlanFormDTO)
+	err = tetrc.service.Update(uint(testAndExerciseId), currentUserID, &testExerciseTestResultFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
