@@ -6,9 +6,12 @@ import (
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	TestAndExerciseRepositories "jethur/grc/business-continuity/repositories"
 	logServices "jethur/grc/logs/services"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"strconv"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -34,6 +37,7 @@ type TestAndExerciseService struct {
 	businessContinuityPlanSvc        BusinessContinuityPlanServiceInterface
 	testAndExerciseStatusSvc         TestAndExerciseStatusServiceInterface
 	communicationActionPlanStatusSvc CommunicationActionPlanStatusServiceInterface
+	actionPlanSvc                    masterServices.ActionPlanStatusServiceInterface
 }
 
 func NewTestAndExerciseService(
@@ -44,6 +48,7 @@ func NewTestAndExerciseService(
 	businessContinuityPlanSvc BusinessContinuityPlanServiceInterface,
 	testAndExerciseStatusSvc TestAndExerciseStatusServiceInterface,
 	communicationActionPlanStatusSvc CommunicationActionPlanStatusServiceInterface,
+	actionPlanSvc masterServices.ActionPlanStatusServiceInterface,
 ) TestAndExerciseServiceInterface {
 	return &TestAndExerciseService{
 		repo:                             repo,
@@ -53,6 +58,7 @@ func NewTestAndExerciseService(
 		businessContinuityPlanSvc:        businessContinuityPlanSvc,
 		testAndExerciseStatusSvc:         testAndExerciseStatusSvc,
 		communicationActionPlanStatusSvc: communicationActionPlanStatusSvc,
+		actionPlanSvc:                    actionPlanSvc,
 	}
 }
 
@@ -185,17 +191,49 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 		var testAndExerciseRecoveryActionPlan []*models.TestAndExerciseRecoveryActionPlan
 
 		for _, bcpRecoveryPlan := range businessContinuityPlan.BcpRecoveryPlans {
+			testingDate, err := time.Parse("2006-01-02", testAndExerciseFormDTO.TestingDate)
+			if err != nil {
+				// Handle parsing error
+				continue
+			}
+
+			// Convert TargetCompletion to an integer
+			targetCompletion, err := strconv.Atoi(*bcpRecoveryPlan.TargetCompletion)
+			if err != nil {
+				// Handle parsing error for TargetCompletion
+				continue
+			}
+
+			var targetDate time.Time
+			switch bcpRecoveryPlan.TargetCompletionUnit.TitleEn {
+			case "Minutes":
+				targetDate = testingDate.Add(time.Duration(targetCompletion) * time.Minute)
+			case "Hours":
+				targetDate = testingDate.Add(time.Duration(targetCompletion) * time.Hour)
+			case "Days":
+				targetDate = testingDate.AddDate(0, 0, targetCompletion)
+			case "Weeks":
+				targetDate = testingDate.AddDate(0, 0, targetCompletion*7)
+			default:
+				// Handle unsupported unit
+				continue
+			}
+
+			ActionPlanStatus, err := tes.actionPlanSvc.GetByType("new")
+			if err != nil {
+				return 0, err
+			}
 			process := &models.TestAndExerciseRecoveryActionPlan{
-				TestAndExerciseID:      id,
-				ProcessID:              bcpRecoveryPlan.BcpProcess.Process.ID,
-				Title:                  bcpRecoveryPlan.Title,
-				SeverityLevelID:        &bcpRecoveryPlan.SeverityLevel.ID,
-				BcpPhaseID:             bcpRecoveryPlan.BcpPhaseID,
-				ResponsibleUserID:      bcpRecoveryPlan.ResponsibleUserID,
-				ResponsibleUnitID:      bcpRecoveryPlan.ResponsibleUnitID,
-				TargetCompletion:       bcpRecoveryPlan.TargetCompletion,
-				TargetCompletionUnitId: bcpRecoveryPlan.TargetCompletionUnitID,
-				CreatedBYID:            currentUserID,
+				TestAndExerciseID:  id,
+				ProcessID:          bcpRecoveryPlan.BcpProcess.Process.ID,
+				Title:              bcpRecoveryPlan.Title,
+				SeverityLevelID:    &bcpRecoveryPlan.SeverityLevel.ID,
+				BcpPhaseID:         bcpRecoveryPlan.BcpPhaseID,
+				ResponsibleUserID:  bcpRecoveryPlan.ResponsibleUserID,
+				ResponsibleUnitID:  bcpRecoveryPlan.ResponsibleUnitID,
+				TargetDate:         &targetDate,
+				ActionPlanStatusId: &ActionPlanStatus.ID,
+				CreatedBYID:        currentUserID,
 			}
 			testAndExerciseRecoveryActionPlan = append(testAndExerciseRecoveryActionPlan, process)
 		}

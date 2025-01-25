@@ -125,20 +125,18 @@ type TestAndExerciseProcessDTO struct {
 }
 
 type TestAndExerciseRecoveryActionPlanDTO struct {
-	ID                     *uint                             `json:"id"`
-	TestAndExerciseID      uint                              `json:"test_and_exercise_id"`
-	ProcessID              uint                              `json:"process_id"`
-	Process                organizationDTOs.ProcessDetailDTO `json:"process"`
-	BcpPhaseID             uint                              `json:"bcp_phase_id"`
-	BcpPhase               BcpPhaseDTO                       `json:"bcp_phase"`
-	SeverityLevel          *masterDTOs.SeverityLevelDTO      `json:"severity_level"`
-	ResponsibleUserID      uint                              `json:"responsible_user_id" binding:"required" gorm:"not null"`
-	ResponsibleUser        organizationDTOs.UserMinimalDTO   `json:"responsible_user"`
-	ResponsibleUnitID      uint                              `json:"responsible_unit_id"`
-	ResponsibleUnit        settingsDTOs.OrganizationUnitDTO  `json:"responsible_unit"`
-	TargetCompletion       *string                           `json:"target_completion"`
-	TargetCompletionUnitID *uint                             `json:"target_completion_time_unit_id"`
-	TargetCompletionUnit   *masterDTOs.TimeUnitDTO           `json:"target_completion_time_unit"`
+	ID                *uint                             `json:"id"`
+	TestAndExerciseID uint                              `json:"test_and_exercise_id"`
+	ProcessID         uint                              `json:"process_id"`
+	Process           organizationDTOs.ProcessDetailDTO `json:"process"`
+	BcpPhaseID        uint                              `json:"bcp_phase_id"`
+	BcpPhase          BcpPhaseDTO                       `json:"bcp_phase"`
+	SeverityLevel     *masterDTOs.SeverityLevelDTO      `json:"severity_level"`
+	ResponsibleUserID uint                              `json:"responsible_user_id" binding:"required" gorm:"not null"`
+	ResponsibleUser   organizationDTOs.UserMinimalDTO   `json:"responsible_user"`
+	ResponsibleUnitID uint                              `json:"responsible_unit_id"`
+	ResponsibleUnit   settingsDTOs.OrganizationUnitDTO  `json:"responsible_unit"`
+	TargetDateString  *string                           `json:"target_date"`
 }
 
 type TestAndExerciseCommunicationActionPlanDTO struct {
