@@ -532,7 +532,7 @@ func (tetrs *TestAndExerciseTestResultService) Delete(testAndExerciseId uint, cu
 		}
 	}
 
-	// Delete each incidentInvestigation document if documents exist
+	// Delete each test result document if documents exist
 	if len(testResult.Documents) > 0 {
 		var deleteDocumentIds []*uint
 		for _, doc := range testResult.Documents {
@@ -570,7 +570,7 @@ func (tetrs *TestAndExerciseTestResultService) Delete(testAndExerciseId uint, cu
 	go func() {
 		err := tetrs.activityLogSvc.LogActivity(
 			models.DeleteAction,
-			models.IncidentInvestigation{}.TableName(),
+			models.TestAndExerciseTestResult{}.TableName(),
 			uint(testResult.ID),
 			deletedTestResult,
 			currentUserID,

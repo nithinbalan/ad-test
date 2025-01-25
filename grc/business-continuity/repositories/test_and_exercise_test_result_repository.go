@@ -113,7 +113,7 @@ func (repo *TestAndExerciseTestResultRepository) Delete(id uint, tx ...utility.D
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	// Delete the Business Communication Plan
+	// Delete the Business test restul
 	if err := db.Delete(&models.TestAndExerciseTestResult{}, id).Error; err != nil {
 		return err
 	}
