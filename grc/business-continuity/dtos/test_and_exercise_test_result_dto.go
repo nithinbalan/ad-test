@@ -10,9 +10,9 @@ import (
 
 type TestAndExerciseTestResultFormDTO struct {
 	TestCompletionDate            string                             `json:"test_completion_date" binding:"required"`
-	CommunicationFeedbackOptionID *uint                              `json:"communication_feedback_option_id" binding:"required"`
-	RecoveryFeedbackOptionID      *uint                              `json:"recovery_feedback_option_id" binding:"required"`
-	TestResultOptionID            *uint                              `json:"test_result_option_id" binding:"required"`
+	CommunicationFeedbackOptionID uint                               `json:"communication_feedback_option_id" binding:"required"`
+	RecoveryFeedbackOptionID      uint                               `json:"recovery_feedback_option_id" binding:"required"`
+	TestResultOptionID            uint                               `json:"test_result_option_id" binding:"required"`
 	TestObservations              *string                            `json:"test_observations"`
 	Recommendations               *string                            `json:"recommendations"`
 	Findings                      *string                            `json:"findings"`

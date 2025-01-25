@@ -109,9 +109,9 @@ func (tetrs *TestAndExerciseTestResultService) Create(testAndExerciseId uint, cu
 	TestAndExerciseTestResult := &models.TestAndExerciseTestResult{
 		TestAndExerciseID:             testAndExerciseId,
 		TestCompletionDate:            dates.TestCompletionDate,
-		CommunicationFeedbackOptionID: *testAndExerciseTestResultFormDTO.CommunicationFeedbackOptionID,
-		RecoveryFeedbackOptionID:      *testAndExerciseTestResultFormDTO.RecoveryFeedbackOptionID,
-		TestResultOptionID:            *testAndExerciseTestResultFormDTO.TestResultOptionID,
+		CommunicationFeedbackOptionID: testAndExerciseTestResultFormDTO.CommunicationFeedbackOptionID,
+		RecoveryFeedbackOptionID:      testAndExerciseTestResultFormDTO.RecoveryFeedbackOptionID,
+		TestResultOptionID:            testAndExerciseTestResultFormDTO.TestResultOptionID,
 		TestObservations:              testAndExerciseTestResultFormDTO.TestObservations,
 		Recommendations:               testAndExerciseTestResultFormDTO.Recommendations,
 		Findings:                      testAndExerciseTestResultFormDTO.Findings,
@@ -250,9 +250,9 @@ func (tetrs *TestAndExerciseTestResultService) Update(testAndExerciseId uint, cu
 
 	existingTestAndExerciseTestResult.TestAndExerciseID = testAndExerciseId
 	existingTestAndExerciseTestResult.TestCompletionDate = dates.TestCompletionDate
-	existingTestAndExerciseTestResult.CommunicationFeedbackOptionID = *testAndExerciseTestResultFormDTO.CommunicationFeedbackOptionID
-	existingTestAndExerciseTestResult.RecoveryFeedbackOptionID = *testAndExerciseTestResultFormDTO.RecoveryFeedbackOptionID
-	existingTestAndExerciseTestResult.TestResultOptionID = *testAndExerciseTestResultFormDTO.TestResultOptionID
+	existingTestAndExerciseTestResult.CommunicationFeedbackOptionID = testAndExerciseTestResultFormDTO.CommunicationFeedbackOptionID
+	existingTestAndExerciseTestResult.RecoveryFeedbackOptionID = testAndExerciseTestResultFormDTO.RecoveryFeedbackOptionID
+	existingTestAndExerciseTestResult.TestResultOptionID = testAndExerciseTestResultFormDTO.TestResultOptionID
 	existingTestAndExerciseTestResult.TestObservations = testAndExerciseTestResultFormDTO.TestObservations
 	existingTestAndExerciseTestResult.Recommendations = testAndExerciseTestResultFormDTO.Recommendations
 	existingTestAndExerciseTestResult.Findings = testAndExerciseTestResultFormDTO.Findings
