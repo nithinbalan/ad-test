@@ -111,6 +111,7 @@ type AuditFinalReportSectionDTO struct {
 	Order                     *float64                             `json:"order"`
 	SubSections               []*AuditFinalReportSectionDTO        `json:"sub_sections"` // Recursive structure for subsections
 	Findings                  []*AuditFinalReportFindingDTO        `json:"findings,omitempty"`
+	FindingCategorySummary    []*FindingCategorySummaryDTO         `json:"finding_category_summary,omitempty"`
 	Appendices                []*AuditFinalReportAppendixDetailDTO `json:"appendices"`
 	CreatedByUser             organizationDTOs.UserMinimalDTO      `json:"created_by"`
 	UpdatedByUser             *organizationDTOs.UserMinimalDTO     `json:"updated_by"`
@@ -204,4 +205,9 @@ type AuditFinalReportListQueryParamsDTO struct {
 type AuditFinalReportListResponseDTO struct {
 	Items      []*AuditFinalReportListDTO   `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type FindingCategorySummaryDTO struct {
+	Category *AuditFindingCategoryDTO `json:"category"`
+	Count    int                      `json:"count"`
 }
