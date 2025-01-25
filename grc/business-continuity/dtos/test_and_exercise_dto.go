@@ -119,6 +119,9 @@ type TestAndExerciseProcessDTO struct {
 	ActualRpo         *int                              `json:"actual_rpo"`
 	ActualRpoUnitId   *uint                             `json:"actual_rpo_unit_id"`
 	ActualRpoUnit     *masterDTOs.TimeUnitDTO           `json:"actual_rpo_unit"`
+	TimelinessID      *uint                             `json:"timeliness_id"`
+	Timeliness        TimelinessDTO                     `json:"timeliness"`
+	IsRecovered       bool                              `json:"is_recovered"`
 }
 
 type TestAndExerciseRecoveryActionPlanDTO struct {
