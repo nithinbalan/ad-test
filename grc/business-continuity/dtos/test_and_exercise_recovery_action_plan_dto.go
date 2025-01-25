@@ -85,7 +85,7 @@ type TestAndExerciseRecoveryActionPlanFormDTO struct {
 	Title             string `json:"title"`
 	BcpPhaseID        uint   `json:"bcp_phase_id" binding:"required"`
 	ProcessID         uint   `json:"process_id" binding:"required"`
-	SeverityID        *uint  `json:"severity_id"`
+	SeverityLevelID   *uint  `json:"severity_level_id"`
 	ResponsibleUserID uint   `json:"responsible_user_id" binding:"required"`
 	TargetDate        string `json:"target_date" binding:"required"`
 }

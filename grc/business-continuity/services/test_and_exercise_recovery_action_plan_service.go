@@ -123,7 +123,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID
 		TestAndExerciseID:  testAndExerciseID,
 		BcpPhaseID:         recoveryActionPlanFormDTO.BcpPhaseID,
 		ProcessID:          recoveryActionPlanFormDTO.ProcessID,
-		SeverityLevelID:    recoveryActionPlanFormDTO.SeverityID,
+		SeverityLevelID:    recoveryActionPlanFormDTO.SeverityLevelID,
 		Title:              recoveryActionPlanFormDTO.Title,
 		ResponsibleUserID:  recoveryActionPlanFormDTO.ResponsibleUserID,
 		ResponsibleUnitID:  responsibleUnitID,
@@ -200,7 +200,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 
 	existingRecoveryPlan.BcpPhaseID = recoveryActionPlanFormDTO.BcpPhaseID
 	existingRecoveryPlan.ProcessID = recoveryActionPlanFormDTO.ProcessID
-	existingRecoveryPlan.SeverityLevelID = recoveryActionPlanFormDTO.SeverityID
+	existingRecoveryPlan.SeverityLevelID = recoveryActionPlanFormDTO.SeverityLevelID
 	existingRecoveryPlan.Title = recoveryActionPlanFormDTO.Title
 	existingRecoveryPlan.ResponsibleUserID = recoveryActionPlanFormDTO.ResponsibleUserID
 	existingRecoveryPlan.TargetDate = dates.TargetDate
