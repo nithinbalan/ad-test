@@ -109,7 +109,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID
 		return 0, utility.NewValidationError(errors.New("organization unit not set for responsible user"), "not_exist", "responsible unit")
 	}
 
-	ActionPlanStatus, err := teraps.ActionPlanStatusSvc.GetByType("new")
+	actionPlanStatus, err := teraps.ActionPlanStatusSvc.GetByType("new")
 	if err != nil {
 		return 0, err
 	}
@@ -128,7 +128,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID
 		ResponsibleUserID:  recoveryActionPlanFormDTO.ResponsibleUserID,
 		ResponsibleUnitID:  responsibleUnitID,
 		TargetDate:         dates.TargetDate,
-		ActionPlanStatusId: &ActionPlanStatus.ID,
+		ActionPlanStatusId: &actionPlanStatus.ID,
 		CreatedBYID:        currentUserID,
 	}
 

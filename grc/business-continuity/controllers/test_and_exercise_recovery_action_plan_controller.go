@@ -96,6 +96,7 @@ func (terapc *TestAndExerciseRecoveryActionPlanController) GetByID(c *gin.Contex
 		utility.SendNotFoundErrResp(c)
 		return
 	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
