@@ -3,7 +3,6 @@ package dtos
 import (
 	"time"
 
-	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
@@ -105,9 +104,4 @@ type TestAndExerciseRecoveryActionPlanQueryParamsDTO struct {
 	Filters     map[string][]string
 	QuickFilter []string
 	Export      bool
-}
-
-type TestAndExerciseRecoveryActionPlanListResponseDTO struct {
-	Items      []*TestAndExerciseRecoveryActionPlanListDTO `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO                `json:"pagination"`
 }

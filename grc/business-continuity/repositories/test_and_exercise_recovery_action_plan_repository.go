@@ -2,7 +2,6 @@ package repositories
 
 import (
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
-	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -11,7 +10,7 @@ import (
 
 type TestAndExerciseRecoveryActionPlanRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(testAndExerciseID uint, params *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanQueryParamsDTO) (*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListResponseDTO, error)
+	GetAll(testAndExerciseID uint, params *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanQueryParamsDTO) ([]*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListDTO, error)
 	GetByID(id uint) (*models.TestAndExerciseRecoveryActionPlan, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.TestAndExerciseRecoveryActionPlan, error)
 	Create(actionPlan *models.TestAndExerciseRecoveryActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
@@ -33,9 +32,8 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) BeginTransaction() util
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseID uint, params *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanQueryParamsDTO) (*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListResponseDTO, error) {
+func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseID uint, params *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanQueryParamsDTO) ([]*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListDTO, error) {
 	var testAndExerciseRecoveryActionPlans []*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListDTO
-	var totalCount int64
 
 	query := repo.db.Table("test_and_exercise_recovery_action_plans").
 		Select(`
@@ -108,10 +106,6 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
 		}
 	}
 
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
@@ -148,33 +142,15 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
 		)
 	}
 
-	if err := query.Count(&totalCount).Error; err != nil {
+	if params.SortBy != "" && params.Sort != "" {
+		query = query.Order(params.SortBy + " " + params.Sort)
+	}
+
+	if err := query.Find(&testAndExerciseRecoveryActionPlans).Error; err != nil {
 		return nil, err
 	}
 
-	query = query.Order(params.SortBy + " " + params.Sort)
-
-	offset := (params.Page - 1) * params.PageSize
-	query = query.Offset(offset).Limit(params.PageSize)
-
-	err := query.Find(&testAndExerciseRecoveryActionPlans).Error
-	if err != nil {
-		return nil, err
-	}
-
-	totalPages := 1
-	totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
-	response := &businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListResponseDTO{
-		Items: testAndExerciseRecoveryActionPlans,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
-	}
-	return response, nil
+	return testAndExerciseRecoveryActionPlans, nil
 }
 
 func (repo *TestAndExerciseRecoveryActionPlanRepository) GetByID(id uint) (*models.TestAndExerciseRecoveryActionPlan, error) {
