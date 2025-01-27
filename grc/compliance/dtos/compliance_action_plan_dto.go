@@ -12,7 +12,8 @@ type ComplianceActionPlanListDTO struct {
 	ID                              uint    `json:"id"`
 	ComplianceClauseNo              string  `json:"compliance_clause_no"`
 	ComplianceClauseTitle           string  `json:"compliance_clause_title"`
-	ComplianceRequirementTitle      string  `json:"compliance_requirement_title"`
+	ComplianceRequirementTitleEn    string  `json:"compliance_requirement_title_en"`
+	ComplianceRequirementTitleAr    string  `json:"compliance_requirement_title_ar"`
 	Title                           string  `json:"title"`
 	Description                     string  `json:"description"`
 	SeverityLevelTitleEn            string  `json:"severity_level_title_en"`
@@ -103,7 +104,8 @@ type ComplianceActionPlanParsedDates struct {
 type ComplianceRequirementMinimalDTO struct {
 	ID               int                 `json:"id"`
 	ComplianceClause ComplianceClauseDTO `json:"compliance_clause"`
-	Title            string              `json:"title"`
+	TitleEn          string              `json:"title_en"`
+	TitleAr          string              `json:"title_ar"`
 }
 
 type ComplianceActionPlanDetailDTO struct {

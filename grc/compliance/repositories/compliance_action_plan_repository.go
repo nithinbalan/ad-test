@@ -48,7 +48,8 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
 		Select(`
         compliance_action_plans.*,
 		CONVERT(VARCHAR, compliance_action_plans.target_date, 23) AS target_date,
-        compliance_requirements.title AS compliance_requirement_title,
+        compliance_requirements.title_en AS compliance_requirement_title_en,
+        compliance_requirements.title_ar AS compliance_requirement_title_ar,
         compliance_clauses.clause_no AS compliance_clause_no,
         compliance_clauses.title AS compliance_clause_title,
         action_plan_statuses.title_en AS action_plan_status_title_en,
