@@ -30,6 +30,12 @@ func (tec *TestAndExerciseController) GetAllTestAndExercises(c *gin.Context) {
 	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
 
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(tec.db, c, "Invalid export parameter")
+		return
+	}
+
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"responsible_user_ids",
@@ -69,11 +75,35 @@ func (tec *TestAndExerciseController) GetAllTestAndExercises(c *gin.Context) {
 		Page:     page,
 		PageSize: pageSize,
 		Filters:  filters,
+		Export:   export,
 	}
 	testAndExercises, err := tec.service.GetAll(&queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(tec.db, c, err.Error())
+		return
+	}
+
+	if export {
+
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(tec.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := tec.service.ExportTestAndExercise(testAndExercises.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(tec.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="TestAndExercise.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
 		return
 	}
 
@@ -198,4 +228,10 @@ func (tec *TestAndExerciseController) DeleteTestAndExercises(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (tec *TestAndExerciseController) GetAllTestAndExerciseExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	tec.GetAllTestAndExercises(c)
 }

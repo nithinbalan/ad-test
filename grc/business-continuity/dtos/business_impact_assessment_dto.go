@@ -178,4 +178,5 @@ type BIAMatrixQueryParamsDTO struct {
 	Page     int
 	PageSize int
 	Filters  map[string][]string
+	Export   bool
 }

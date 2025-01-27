@@ -59,6 +59,7 @@ type TestAndExerciseListQueryParamsDTO struct {
 	PageSize    int
 	Filters     map[string][]string
 	QuickFilter []string
+	Export      bool
 }
 
 type TestAndExerciseListResponseDTO struct {

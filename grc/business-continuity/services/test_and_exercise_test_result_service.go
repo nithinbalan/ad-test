@@ -468,8 +468,6 @@ func (tetrs *TestAndExerciseTestResultService) Delete(testAndExerciseId uint, cu
 		existingProcess.IsRecovered = false
 		existingProcess.UpdatedBYID = &currentUserID
 
-		fmt.Println(existingProcess)
-
 		err = tetrs.repo.UpdateTestAndExerciseProcess(existingProcess, tx)
 		if err != nil {
 			tx.Rollback()
