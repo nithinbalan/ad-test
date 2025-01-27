@@ -33,7 +33,7 @@ type ComplianceRegisterRepositoryInterface interface {
 	CreateDocument(doc *models.ComplianceDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.ComplianceDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
-	GetLatestDocumentByComplianceID(id uint) (*models.ComplianceDocument, error)
+	GetLatestDocumentByComplianceID(id uint, language string) (*models.ComplianceDocument, error)
 
 	CreateInitialComplianceStatusUpdate(complianceStatusUpdate *models.ComplianceStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteComplianceStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
@@ -296,7 +296,8 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("ReviewResponsibleUser").
 		Preload("SeverityLevel").
 		Preload("LifecycleStatus").
-		Preload("Documents").
+		Preload("DocumentEn").
+		Preload("DocumentAr").
 		Preload("Controls").
 		Preload("Controls.Control.ControlCategory").
 		Preload("Controls.Control.ControlType").
@@ -459,9 +460,9 @@ func (repo *ComplianceRegisterRepository) DeleteDocuments(docIds []*uint, tx ...
 	return nil
 }
 
-func (repo *ComplianceRegisterRepository) GetLatestDocumentByComplianceID(id uint) (*models.ComplianceDocument, error) {
+func (repo *ComplianceRegisterRepository) GetLatestDocumentByComplianceID(id uint, language string) (*models.ComplianceDocument, error) {
 	var document models.ComplianceDocument
-	if err := repo.db.Where("compliance_register_id = ?", id).First(&document).Error; err != nil {
+	if err := repo.db.Where("compliance_register_id = ? AND language = ?", id, language).First(&document).Error; err != nil {
 		return nil, err
 	}
 	return &document, nil
