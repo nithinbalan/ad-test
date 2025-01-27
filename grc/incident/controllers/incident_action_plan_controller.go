@@ -55,8 +55,9 @@ func (iapc *IncidentActionPlanController) GetAllIncidentActionPlans(c *gin.Conte
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"severity_level_ids",
-		"responsible_user_ids",
 		"action_plan_status_ids",
+		"responsible_unit_ids",
+		"responsible_user_ids",
 		"incident_register_ids",
 	}
 
@@ -80,6 +81,8 @@ func (iapc *IncidentActionPlanController) GetAllIncidentActionPlans(c *gin.Conte
 	targetDateFrom := c.Query("target_date_from")
 	targetDateTo := c.Query("target_date_to")
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(iapc.db, c, "Invalid page parameter")
@@ -111,6 +114,8 @@ func (iapc *IncidentActionPlanController) GetAllIncidentActionPlans(c *gin.Conte
 		TargetDateFrom: targetDateFrom,
 		TargetDateTo:   targetDateTo,
 		Export:         export,
+		DateFrom:       dateFrom,
+		DateTo:         dateTo,
 	}
 	incidentActionPlans, err := iapc.service.GetAll(uint(incidentID), &queryParams)
 

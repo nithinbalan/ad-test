@@ -131,16 +131,24 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 			LEFT JOIN users AS created_user ON created_user.id = incident_register.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = incident_register.updated_by_id
         `)
+
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			if len(params.Filters["incident_category_id"]) > 0 {
+				query = query.Where("incident_register.incident_category_id IN (?)", params.Filters["incident_category_id"])
+			} else {
+				query = query.Where(columnName+" IN (?)", values)
+			}
 		}
 	}
 
 	// Apply other filters as needed (e.g., date filters)
 	if params.ReportedAt != "" {
 		query = query.Where("reported_at >= ?", params.ReportedAt)
+	}
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("incident_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {

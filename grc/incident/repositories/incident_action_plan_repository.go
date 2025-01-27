@@ -103,10 +103,23 @@ func (repo *IncidentActionPlanRepository) GetAll(incidentID uint, params *incide
         LEFT JOIN users AS updated_user ON updated_user.id = incident_action_plans.updated_by_id
     `)
 
+	// Define explicit mapping for fields to table aliases
+	fieldMappings := map[string]string{
+		"severity_level_id":     "incident_action_plans.severity_level_id",
+		"action_plan_status_id": "incident_action_plans.action_plan_status_id",
+		"responsible_unit_id":   "incident_register.responsible_unit_id",
+		"responsible_user_id":   "incident_action_plans.responsible_user_id",
+	}
+
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			// Check if the column name has a mapping, otherwise use the column name as is
+			if mappedField, exists := fieldMappings[columnName]; exists {
+				query = query.Where(mappedField+" IN (?)", values)
+			} else {
+				query = query.Where(columnName+" IN (?)", values)
+			}
 		}
 	}
 
@@ -118,6 +131,9 @@ func (repo *IncidentActionPlanRepository) GetAll(incidentID uint, params *incide
 		query = query.Where("target_date <= ?", params.TargetDateTo)
 	}
 
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("incident_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
