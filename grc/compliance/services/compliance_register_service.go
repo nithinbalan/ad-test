@@ -367,47 +367,6 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 	return id, nil
 }
 
-func (crs *ComplianceRegisterService) handleDocument(currentUserID uint, complianceRegisterID uint, documentDTO *complianceDTOs.ComplianceDocumentFormDTO, tx ...utility.DatabaseTransaction) error {
-	if documentDTO == nil {
-		return nil // Skip if no document is provided
-	}
-
-	// Generate encrypted token for the file name
-	encryptedFilename, err := utility.EncryptData([]byte(documentDTO.FileName))
-	if err != nil {
-		return fmt.Errorf("failed to encrypt document filename: %w", err)
-	}
-
-	// Generate the document URL
-	url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(complianceRegisterID), 10), "documents")
-
-	// Create a new ComplianceDocument instance
-	complianceDocument := &models.ComplianceDocument{
-		ComplianceRegisterID: complianceRegisterID,
-		Language:             documentDTO.Language,
-		URL:                  url,
-		Name:                 documentDTO.FileName,
-		Size:                 documentDTO.Size,
-		Token:                encryptedFilename,
-		OriginalName:         documentDTO.OriginalName,
-		Type:                 documentDTO.Type,
-		CreatedByID:          currentUserID,
-	}
-
-	// Save the document record in the database
-	if err := crs.repo.CreateDocument(complianceDocument, tx...); err != nil {
-		return fmt.Errorf("failed to save document record: %w", err)
-	}
-
-	// Store the document file in the storage
-	storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceRegisterID), 10), "documents")
-	if err := utility.StoreFile(documentDTO.FileName, storagePath); err != nil {
-		return fmt.Errorf("failed to store document file: %w", err)
-	}
-
-	return nil
-}
-
 func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, complianceRegisterFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error {
 	tx := crs.repo.BeginTransaction()
 
@@ -1348,4 +1307,45 @@ func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complian
 	}
 	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (crs *ComplianceRegisterService) handleDocument(currentUserID uint, complianceRegisterID uint, documentDTO *complianceDTOs.ComplianceDocumentFormDTO, tx ...utility.DatabaseTransaction) error {
+	if documentDTO == nil {
+		return nil // Skip if no document is provided
+	}
+
+	// Generate encrypted token for the file name
+	encryptedFilename, err := utility.EncryptData([]byte(documentDTO.FileName))
+	if err != nil {
+		return fmt.Errorf("failed to encrypt document filename: %w", err)
+	}
+
+	// Generate the document URL
+	url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(complianceRegisterID), 10), "documents")
+
+	// Create a new ComplianceDocument instance
+	complianceDocument := &models.ComplianceDocument{
+		ComplianceRegisterID: complianceRegisterID,
+		Language:             documentDTO.Language,
+		URL:                  url,
+		Name:                 documentDTO.FileName,
+		Size:                 documentDTO.Size,
+		Token:                encryptedFilename,
+		OriginalName:         documentDTO.OriginalName,
+		Type:                 documentDTO.Type,
+		CreatedByID:          currentUserID,
+	}
+
+	// Save the document record in the database
+	if err := crs.repo.CreateDocument(complianceDocument, tx...); err != nil {
+		return fmt.Errorf("failed to save document record: %w", err)
+	}
+
+	// Store the document file in the storage
+	storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceRegisterID), 10), "documents")
+	if err := utility.StoreFile(documentDTO.FileName, storagePath); err != nil {
+		return fmt.Errorf("failed to store document file: %w", err)
+	}
+
+	return nil
 }
