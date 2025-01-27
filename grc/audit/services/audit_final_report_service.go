@@ -329,7 +329,8 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 							}
 							if finding.AuditableItem.ComplianceRequirement != nil {
 								findingDTO.AuditableItem.ComplianceRequirement = &complianceDTOs.ComplianceRequirementDetailDTO{
-									Title: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.Title),
+									TitleEn: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.TitleEn),
+									TitleAr: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.TitleAr),
 								}
 							}
 							if finding.AuditableItem.IncidentRegister != nil {
@@ -484,7 +485,8 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 						}
 						if finding.AuditableItem.ComplianceRequirement != nil {
 							findingDTO.AuditableItem.ComplianceRequirement = &complianceDTOs.ComplianceRequirementDetailDTO{
-								Title: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.Title),
+								TitleEn: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.TitleEn),
+								TitleAr: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.TitleAr),
 							}
 						}
 						if finding.AuditableItem.IncidentRegister != nil {
@@ -794,8 +796,8 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 					titleAr = auditableItem.AuditableItem.IncidentRegister.Title
 
 				case "compliance_requirement":
-					titleEn = auditableItem.AuditableItem.ComplianceRequirement.Title
-					titleAr = auditableItem.AuditableItem.ComplianceRequirement.Title
+					titleEn = auditableItem.AuditableItem.ComplianceRequirement.TitleEn
+					titleAr = auditableItem.AuditableItem.ComplianceRequirement.TitleAr
 
 				case "risk":
 					titleEn = auditableItem.AuditableItem.RiskRegister.Title

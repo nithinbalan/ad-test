@@ -7,7 +7,8 @@ import (
 type ComplianceRequirement struct {
 	ID                              uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	ComplianceClauseID              uint       `json:"compliance_clause_id" binding:"required" gorm:"not null"`
-	Title                           string     `json:"title" binding:"required,max=255" gorm:"type:varchar(255);not null"`
+	TitleEn                         string     `json:"title_en" binding:"required,max=255" gorm:"type:varchar(255);not null"`
+	TitleAr                         string     `json:"title_ar" binding:"required,max=255" gorm:"type:varchar(255);not null"`
 	ComplianceRequirementCategoryID uint       `json:"compliance_requirement_category_id" binding:"required" gorm:"not null"`
 	SeverityLevelID                 uint       `json:"severity_level_id" binding:"required" gorm:"not null"`
 	ResponsibleUserID               uint       `json:"responsible_user_id" binding:"required" gorm:"not null"`
