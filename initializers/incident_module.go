@@ -26,7 +26,8 @@ type IncidentModule struct {
 	IncidentAssociatedItemController          *controllers.IncidentAssociatedItemController
 	IncidentTimelineController                *controllers.IncidentTimelineController
 
-	IncidentRegisterSvc services.IncidentRegisterServiceInterface
+	IncidentRegisterSvc   services.IncidentRegisterServiceInterface
+	IncidentActionPlanSvc services.IncidentActionPlanServiceInterface
 }
 
 func NewIncidentModule(db *gorm.DB,
@@ -163,6 +164,7 @@ func NewIncidentModule(db *gorm.DB,
 		IncidentAssociatedItemController:          incidentAssociatedItemController,
 		IncidentTimelineController:                incidentTimelineController,
 
-		IncidentRegisterSvc: incidentRegisterSvc,
+		IncidentRegisterSvc:   incidentRegisterSvc,
+		IncidentActionPlanSvc: incidentActionPlanSvc,
 	}
 }

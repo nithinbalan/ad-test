@@ -13,13 +13,15 @@ type ReportsModule struct {
 	OrganizationReportController *controllers.OrganizationReportController
 	RiskReportController         *controllers.RiskReportController
 	AuditReportController        *controllers.AuditReportController
+	IncidentReportController     *controllers.IncidentReportController
 }
 
 func NewReportsModule(db *gorm.DB,
 	complianceModule *ComplianceModule,
 	organizationModule *OrganizationModule,
 	riskModule *RiskModule,
-	auditModule *AuditModule) *ReportsModule {
+	auditModule *AuditModule,
+	incidentModule *IncidentModule) *ReportsModule {
 
 	organizationReportRepo := repositories.NewOrganizationReportRepository(db)
 	organizationReportSvc := services.NewOrganizationReportService(organizationReportRepo)
@@ -48,10 +50,17 @@ func NewReportsModule(db *gorm.DB,
 		auditModule.AuditFindingSvc,
 		auditModule.AuditFindingActionPlanSvc)
 
+	incidentReportRepo := repositories.NewIncidentReportRepository(db)
+	incidentReportSvc := services.NewIncidentReportService(incidentReportRepo)
+	incidentReportController := controllers.NewIncidentReportController(incidentReportSvc,
+		incidentModule.IncidentRegisterSvc,
+		incidentModule.IncidentActionPlanSvc)
+
 	return &ReportsModule{
 		ComplianceReportController:   complianceReportController,
 		OrganizationReportController: organizationReportController,
 		RiskReportController:         riskReportController,
 		AuditReportController:        auditReportController,
+		IncidentReportController:     incidentReportController,
 	}
 }
