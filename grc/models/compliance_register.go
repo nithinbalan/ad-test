@@ -46,7 +46,8 @@ type ComplianceRegister struct {
 	LifecycleStatus         *LifecycleStatus          `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	LastReviewedUser        *User                     `gorm:"foreignKey:LastReviewedUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceReviewStatus  *ComplianceReviewStatus   `gorm:"foreignKey:ComplianceReviewStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Documents               []ComplianceDocument      `gorm:"foreignKey:ComplianceRegisterID"`
+	DocumentEn              *ComplianceDocument       `gorm:"foreignKey:ComplianceRegisterID"`
+	DocumentAr              *ComplianceDocument       `gorm:"foreignKey:ComplianceRegisterID"`
 	CreatedByUser           *User                     `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser           *User                     `gorm:"foreignKey:UpdatedByID"`
 	Controls                []*ComplianceControl      `gorm:"foreignKey:ComplianceRegisterID"`
