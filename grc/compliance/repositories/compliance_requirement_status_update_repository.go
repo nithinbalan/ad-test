@@ -178,7 +178,8 @@ func (repo *ComplianceRequirementStatusUpdateRepository) GetLatestComplianceRequ
 	query := repo.db.Table("compliance_requirement_status_updates").
 		Select(`
             compliance_requirement_status_updates.*,
-            compliance_requirements.title AS compliance_requirement_title,
+            compliance_requirements.title_en AS compliance_requirement_title_en,
+            compliance_requirements.title_ar AS compliance_requirement_title_ar,
             compliance_statuses.title_en AS compliance_status_title_en,
             compliance_statuses.title_ar AS compliance_status_title_ar,
             compliance_statuses.color_code AS compliance_status_color_code,
