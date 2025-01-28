@@ -15,6 +15,7 @@ type BusinessImpactAssessmentListDTO struct {
 	RiskLevelColorCode          string  `json:"risk_level_color_code"`
 	Cost                        *uint   `json:"cost"`
 	Comments                    *string `json:"comments"`
+	IsApplicable                bool    `json:"is_applicable"`
 	CreatedAt                   string  `json:"created_at"`
 	UpdatedAt                   string  `json:"updated_at"`
 	CreatedUserID               uint    `json:"created_user_id"`
@@ -123,6 +124,7 @@ type BusinessImpactAssessmentDTO struct {
 	RiskLevelID      *uint   `json:"risk_level_id"`
 	Cost             *uint   `json:"cost"`
 	Comments         *string `json:"comments"`
+	IsApplicable     bool    `json:"is_applicable"`
 }
 
 type BusinessImpactAssessmentRecoveryObjectiveFormDTO struct {
