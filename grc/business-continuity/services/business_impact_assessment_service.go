@@ -95,7 +95,7 @@ func (bias *BusinessImpactAssessmentService) Create(currentUserID uint, business
 			RiskLevelID:      nil,
 			Cost:             nil,
 			Comments:         nil,
-			IsAvailable:      false,
+			IsApplicable:     false,
 			CreatedByID:      currentUserID,
 		}
 		err := bias.repo.CreateBusinessImpactAssessment(businessImpactAssessment, tx)
@@ -195,7 +195,7 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 				"risk_level_id":      impactAssessment.RiskLevelID,
 				"cost":               impactAssessment.Cost,
 				"comments":           impactAssessment.Comments,
-				"is_available":       impactAssessment.IsAvailable,
+				"is_applicable":      impactAssessment.IsApplicable,
 			})
 		}
 
@@ -212,7 +212,7 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 				RiskLevelID:      impactAssessment.RiskLevelID,
 				Cost:             impactAssessment.Cost,
 				Comments:         impactAssessment.Comments,
-				IsAvailable:      impactAssessment.IsAvailable,
+				IsApplicable:     impactAssessment.IsApplicable,
 				CreatedByID:      currentUserID,
 			}
 			existingBusinessImpactAssessment = append(existingBusinessImpactAssessment, businessImpactAssessment)
