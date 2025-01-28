@@ -70,10 +70,7 @@ func (tetrs TestAndExerciseTestResultService) GetFullDetailsByID(testAndExercise
 	testAndExerciseTestResult, err := tetrs.repo.GetFullDetailsByID(testAndExerciseId, tx...)
 
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, testAndExerciseId)
-		}
-		return nil, err
+		return nil, nil
 	}
 
 	// Map the result to your DTO
