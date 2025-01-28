@@ -60,6 +60,9 @@ func (repo *TestAndExerciseTestResultRepository) GetFullDetailsByID(testAndExerc
 		Preload("TestAndExercise.BusinessContinuityPlan").
 		Preload("TestAndExercise.BusinessContinuityPlan.BusinessFunction").
 		Preload("TestAndExercise.TestAndExerciseStatus").
+		Preload("TestAndExercise.BcpTestAndExercise").
+		Preload("TestAndExercise.BcpTestAndExercise.ResponsibleUser").
+		Preload("TestAndExercise.BcpTestAndExercise.ReviewFrequency").
 		Preload("TestAndExercise.TestAndExerciseProcesses").
 		Preload("TestAndExercise.TestAndExerciseProcesses.Process").
 		Preload("TestAndExercise.TestAndExerciseProcesses.PlannedRtoUnit").
