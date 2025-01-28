@@ -12,6 +12,7 @@ type BusinessImpactAssessment struct {
 	RiskLevelID      *uint      `json:"risk_level_id"`
 	Cost             *uint      `json:"cost"`
 	Comments         *string    `json:"comments" gorm:"type:nvarchar(max)"`
+	IsAvailable      bool       `json:"is_available"`
 	CreatedByID      uint       `json:"created_by_id" binding:"required"`
 	UpdatedByID      *uint      `json:"updated_by_id"`
 	CreatedAt        time.Time  `json:"created_at" gorm:"type:datetime;not null"`

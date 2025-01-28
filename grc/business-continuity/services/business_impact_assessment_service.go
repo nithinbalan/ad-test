@@ -23,6 +23,7 @@ type BusinessImpactAssessmentServiceInterface interface {
 	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.BusinessImpactFormDTO) (uint, error)
 	UpdateImpactAnalysis(businessImpactAssessmentFormDTO businessContinuityDTOs.BusinessImpactAssessmentFormDTO, currentUserID uint) error
 	UpdateRecoveryObjectives(businessImpactAssessmentRecoveryObjectiveFormDTO businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveFormDTO, currentUserID uint) error
+	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) ([]businessContinuityDTOs.BIAMatrixResponseDTO, error)
 
 	DetermineProcessRiskLevel(riskLevels []string) (*models.RiskLevel, error)
@@ -67,6 +68,7 @@ func NewBusinessImpactAssessmentService(
 }
 
 func (bias *BusinessImpactAssessmentService) GetAllImpactAnalysis(params *businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO) ([]*businessContinuityDTOs.BusinessImpactAssessmentListDTO, error) {
+	fmt.Println(params)
 	return bias.repo.GetAllImpactAnalysis(params)
 }
 
@@ -93,6 +95,7 @@ func (bias *BusinessImpactAssessmentService) Create(currentUserID uint, business
 			RiskLevelID:      nil,
 			Cost:             nil,
 			Comments:         nil,
+			IsAvailable:      false,
 			CreatedByID:      currentUserID,
 		}
 		err := bias.repo.CreateBusinessImpactAssessment(businessImpactAssessment, tx)
@@ -192,6 +195,7 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 				"risk_level_id":      impactAssessment.RiskLevelID,
 				"cost":               impactAssessment.Cost,
 				"comments":           impactAssessment.Comments,
+				"is_available":       impactAssessment.IsAvailable,
 			})
 		}
 
@@ -208,6 +212,7 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 				RiskLevelID:      impactAssessment.RiskLevelID,
 				Cost:             impactAssessment.Cost,
 				Comments:         impactAssessment.Comments,
+				IsAvailable:      impactAssessment.IsAvailable,
 				CreatedByID:      currentUserID,
 			}
 			existingBusinessImpactAssessment = append(existingBusinessImpactAssessment, businessImpactAssessment)
@@ -461,6 +466,86 @@ func (bias *BusinessImpactAssessmentService) DetermineProcessRiskLevel(riskLevel
 	}
 
 	return riskLevel, nil
+}
+
+func (bias *BusinessImpactAssessmentService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+	tx := bias.repo.BeginTransaction()
+	var failedIds []uint
+	var successfulIds []uint
+	var deletedProcess []map[string]interface{}
+
+	for _, id := range ids {
+		process, err := bias.processSvc.GetFullDetailsByID(id, tx)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		deletedProcess = append(deletedProcess, map[string]interface{}{
+			"id":    id,
+			"title": process.TitleEn,
+		})
+
+		// Delete existing BusinessImpactAssessments
+		if err := bias.repo.DeleteImpactAssessmentsByProcessID(id, tx); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		if err := bias.repo.DeleteRecoveryObjectivesByProcessID(id, tx); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		existingProcess, err := bias.processSvc.GetByID(id, tx)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		existingProcess.Rto = nil
+		existingProcess.RtoUnitId = nil
+		existingProcess.Mtpd = nil
+		existingProcess.MtpdUnitId = nil
+		existingProcess.Rpo = nil
+		existingProcess.RpoUnitId = nil
+		existingProcess.IsBiaPerformed = false
+		existingProcess.RiskLevelId = nil
+		existingProcess.LastAssessedAt = nil
+		existingProcess.LastAssessedByID = nil
+
+		err = bias.processSvc.UpdateProcessRecoveryObjective(existingProcess, tx)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+	}
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
+	tx.Commit()
+
+	// Log bulk delete activities for successful deletions
+	if len(successfulIds) > 0 {
+		go func() {
+			err := bias.activityLogSvc.LogBulkActivities(
+				models.DeleteAction, // Make sure this action constant is defined appropriately
+				models.BusinessImpactAssessment{}.TableName(),
+				successfulIds,
+				deletedProcess,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				// @todo - save to log file
+				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			}
+
+		}()
+	}
+
+	return failedIds, nil
 }
 
 func (bias *BusinessImpactAssessmentService) GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) ([]businessContinuityDTOs.BIAMatrixResponseDTO, error) {

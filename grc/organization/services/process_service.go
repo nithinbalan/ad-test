@@ -288,7 +288,7 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 			"AssignedByFirstNameEn":  existingProcess.CreatedByUser.FirstNameEN,
 			"AssignedByLastNameEn":   existingProcess.CreatedByUser.LastNameEN,
 			"AssignedOn":             existingProcess.CreatedAt.Format("2006-01-02"),
-			"RedirectURL":            fmt.Sprintf("%s/process/%d", appURL, id),
+			"RedirectURL":            fmt.Sprintf("%sorganization/process/%d/overview", appURL, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -740,7 +740,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 				"AssignedByFirstNameEn":  existingProcess.CreatedByUser.FirstNameEN,
 				"AssignedByLastNameEn":   existingProcess.CreatedByUser.LastNameEN,
 				"AssignedOn":             existingProcess.CreatedAt.Format("2006-01-02"),
-				"RedirectURL":            fmt.Sprintf("%s/process/%d", appURL, id),
+				"RedirectURL":            fmt.Sprintf("%sorganization/process/%d/overview", appURL, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{

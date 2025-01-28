@@ -505,6 +505,31 @@ func (biac *BusinessImpactAssessmentController) UpdateRecoveryObjective(c *gin.C
 	c.Status(http.StatusOK)
 }
 
+func (biac *BusinessImpactAssessmentController) DeleteBusinessImpactAssessments(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := biac.service.Delete(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
 func (biac *BusinessImpactAssessmentController) GetBIAMatrix(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "business_function_title")
