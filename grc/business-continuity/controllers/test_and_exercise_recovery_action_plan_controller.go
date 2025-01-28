@@ -37,6 +37,7 @@ func (terapc *TestAndExerciseRecoveryActionPlanController) GetAllTestAndExercise
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
 
 	allowedParams := []string{
 		"bcp_phase_ids",
@@ -74,10 +75,11 @@ func (terapc *TestAndExerciseRecoveryActionPlanController) GetAllTestAndExercise
 	}
 
 	queryParams := businessContinuityDTOs.TestAndExerciseRecoveryActionPlanQueryParamsDTO{
-		Sort:    sort,
-		SortBy:  sortField,
-		Keyword: keyword,
-		Filters: filters,
+		Sort:        sort,
+		SortBy:      sortField,
+		Keyword:     keyword,
+		Filters:     filters,
+		QuickFilter: quickFilter,
 	}
 
 	actionPlans, err := terapc.service.GetAll(uint(testAndExerciseID), &queryParams)

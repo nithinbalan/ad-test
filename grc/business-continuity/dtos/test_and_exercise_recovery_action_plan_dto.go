@@ -38,6 +38,7 @@ type TestAndExerciseRecoveryActionPlanListDTO struct {
 	ActionPlanStatusID              *uint      `json:"action_plan_status_id"`
 	ActionPlanStatusTitleEn         *string    `json:"action_plan_status_title_en"`
 	ActionPlanStatusTitleAr         *string    `json:"action_plan_status_title_ar"`
+	IsRecovery                      bool       `json:"is_recovery"`
 	CreatedByID                     uint       `json:"created_by_id"`
 	CreatedUserFirstNameEn          string     `json:"created_user_first_name_en"`
 	CreatedUserLastNameEn           string     `json:"created_user_last_name_en"`
@@ -73,6 +74,7 @@ type TestAndExerciseRecoveryActionPlanDetailDTO struct {
 	TargetDateString   *string                           `json:"target_date"`
 	ActionPlanStatusID *uint                             `json:"action_plan_status_id"`
 	ActionPlanStatus   masterDTOs.ActionPlanStatusDTO    `json:"action_plan_status"`
+	IsRecovery         bool                              `json:"is_recovery"`
 	CreatedBYID        uint                              `json:"created_by_id"`
 	CreatedByUser      organizationDTOs.UserMinimalDTO   `json:"created_by_user"`
 	CreatedAt          time.Time                         `json:"created_at"`
@@ -88,6 +90,7 @@ type TestAndExerciseRecoveryActionPlanFormDTO struct {
 	SeverityLevelID   *uint  `json:"severity_level_id"`
 	ResponsibleUserID uint   `json:"responsible_user_id" binding:"required"`
 	TargetDate        string `json:"target_date" binding:"required"`
+	IsRecovery        bool   `json:"is_recovery"`
 }
 
 type TestAndExerciseRecoveryActionPlanQueryParamsDTO struct {

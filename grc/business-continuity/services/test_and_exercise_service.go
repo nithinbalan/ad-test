@@ -10,6 +10,7 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"os"
 	"strconv"
 	"time"
 
@@ -26,6 +27,7 @@ type TestAndExerciseServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	GetTestAndExerciseProcessByID(id uint) (*models.TestAndExerciseProcess, error)
+	ExportTestAndExercise(data []*businessContinuityDTOs.TestAndExerciseListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -38,6 +40,7 @@ type TestAndExerciseService struct {
 	testAndExerciseStatusSvc         TestAndExerciseStatusServiceInterface
 	communicationActionPlanStatusSvc CommunicationActionPlanStatusServiceInterface
 	actionPlanSvc                    masterServices.ActionPlanStatusServiceInterface
+	userSettingSvc                   organizationServices.UserSettingServiceInterface
 }
 
 func NewTestAndExerciseService(
@@ -49,6 +52,7 @@ func NewTestAndExerciseService(
 	testAndExerciseStatusSvc TestAndExerciseStatusServiceInterface,
 	communicationActionPlanStatusSvc CommunicationActionPlanStatusServiceInterface,
 	actionPlanSvc masterServices.ActionPlanStatusServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) TestAndExerciseServiceInterface {
 	return &TestAndExerciseService{
 		repo:                             repo,
@@ -59,6 +63,7 @@ func NewTestAndExerciseService(
 		testAndExerciseStatusSvc:         testAndExerciseStatusSvc,
 		communicationActionPlanStatusSvc: communicationActionPlanStatusSvc,
 		actionPlanSvc:                    actionPlanSvc,
+		userSettingSvc:                   userSettingSvc,
 	}
 }
 
@@ -191,7 +196,7 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 		var testAndExerciseRecoveryActionPlan []*models.TestAndExerciseRecoveryActionPlan
 
 		for _, bcpRecoveryPlan := range businessContinuityPlan.BcpRecoveryPlans {
-			testingDate, err := time.Parse("2006-01-02", testAndExerciseFormDTO.TestingDate)
+			testingDate, err := utility.ParseDate(testAndExerciseFormDTO.TestingDate) //time.Parse("2006-01-02", testAndExerciseFormDTO.TestingDate)
 			if err != nil {
 				// Handle parsing error
 				continue
@@ -233,6 +238,7 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 				ResponsibleUnitID:  bcpRecoveryPlan.ResponsibleUnitID,
 				TargetDate:         &targetDate,
 				ActionPlanStatusId: &actionPlanStatus.ID,
+				IsRecovery:         true,
 				CreatedBYID:        currentUserID,
 			}
 			testAndExerciseRecoveryActionPlan = append(testAndExerciseRecoveryActionPlan, process)
@@ -571,7 +577,7 @@ func (tes *TestAndExerciseService) Delete(ids []uint, currentUserID uint) ([]uin
 	return failedIds, nil
 }
 
-func (bfs *TestAndExerciseService) parseTestAndExerciseDates(dto *businessContinuityDTOs.TestAndExerciseFormDTO) (*businessContinuityDTOs.TestAndExerciseParsedDates, error) {
+func (tes *TestAndExerciseService) parseTestAndExerciseDates(dto *businessContinuityDTOs.TestAndExerciseFormDTO) (*businessContinuityDTOs.TestAndExerciseParsedDates, error) {
 	parsed := &businessContinuityDTOs.TestAndExerciseParsedDates{}
 
 	var err error
@@ -597,4 +603,53 @@ func (tes TestAndExerciseService) GetTestAndExerciseProcessByID(id uint) (*model
 	}
 
 	return TestAndExerciseProcess, nil
+}
+
+func (tes *TestAndExerciseService) ExportTestAndExercise(data []*businessContinuityDTOs.TestAndExerciseListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := tes.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"Business Function",
+			"Testing Date",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"Business Function",
+			"Testing Date",
+		}
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, testAndExercise := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				testAndExercise.ReferenceNumber,
+				testAndExercise.BcpTestAndExerciseTitle,
+				testAndExercise.BusinessFunctionTitle,
+				testAndExercise.TestingDate,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				testAndExercise.ReferenceNumber,
+				testAndExercise.BcpTestAndExerciseTitle,
+				testAndExercise.BusinessFunctionTitle,
+				testAndExercise.TestingDate,
+			}
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }

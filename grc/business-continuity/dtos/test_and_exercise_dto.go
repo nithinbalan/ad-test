@@ -59,6 +59,7 @@ type TestAndExerciseListQueryParamsDTO struct {
 	PageSize    int
 	Filters     map[string][]string
 	QuickFilter []string
+	Export      bool
 }
 
 type TestAndExerciseListResponseDTO struct {
@@ -90,6 +91,7 @@ type TestAndExerciseDetailDTO struct {
 	Description                             *string                                      `json:"description"`
 	TestAndExerciseStatusID                 uint                                         `json:"test_and_exercise_status_id"`
 	TestAndExerciseStatus                   TestAndExerciseStatusDTO                     `json:"test_and_exercise_status"`
+	TestAndExerciseTestResult               *TestAndExerciseTestResultDetailDTO          `json:"test_and_exercise_test_result"`
 	CreatedAt                               time.Time                                    `json:"created_at"`
 	UpdatedAt                               *time.Time                                   `json:"updated_at"`
 	CreatedByUser                           organizationDTOs.UserMinimalDTO              `json:"created_by_user"`

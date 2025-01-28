@@ -28,6 +28,7 @@ type TestAndExercise struct {
 	TestAndExerciseProcesses                []*TestAndExerciseProcess                 `gorm:"foreignKey:TestAndExerciseID"`
 	TestAndExerciseRecoveryActionPlans      []*TestAndExerciseRecoveryActionPlan      `gorm:"foreignKey:TestAndExerciseID"`
 	TestAndExerciseCommunicationActionPlans []*TestAndExerciseCommunicationActionPlan `gorm:"foreignKey:TestAndExerciseID"`
+	TestAndExerciseTestResult               *TestAndExerciseTestResult                `gorm:"foreignKey:TestAndExerciseID"`
 	CreatedByUser                           *User                                     `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser                           *User                                     `gorm:"foreignKey:UpdatedBYID"`
 }

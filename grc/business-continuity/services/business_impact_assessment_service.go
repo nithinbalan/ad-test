@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	assetServices "jethur/grc/asset/services"
@@ -25,6 +26,7 @@ type BusinessImpactAssessmentServiceInterface interface {
 	GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) ([]businessContinuityDTOs.BIAMatrixResponseDTO, error)
 
 	DetermineProcessRiskLevel(riskLevels []string) (*models.RiskLevel, error)
+	ExportBiaMatrix(data []businessContinuityDTOs.BIAMatrixResponseDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -37,6 +39,7 @@ type BusinessImpactAssessmentService struct {
 	assetRegisterSvc  assetServices.AssetRegisterServiceInterface
 	documentSvc       documentServices.DocumentServiceInterface
 	riskLevelSvc      riskServices.RiskLevelServiceInterface
+	userSettingSvc    organizationServices.UserSettingServiceInterface
 }
 
 func NewBusinessImpactAssessmentService(
@@ -48,6 +51,7 @@ func NewBusinessImpactAssessmentService(
 	assetRegisterSvc assetServices.AssetRegisterServiceInterface,
 	documentSvc documentServices.DocumentServiceInterface,
 	riskLevelSvc riskServices.RiskLevelServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) BusinessImpactAssessmentServiceInterface {
 	return &BusinessImpactAssessmentService{
 		repo:              repo,
@@ -58,6 +62,7 @@ func NewBusinessImpactAssessmentService(
 		assetRegisterSvc:  assetRegisterSvc,
 		documentSvc:       documentSvc,
 		riskLevelSvc:      riskLevelSvc,
+		userSettingSvc:    userSettingSvc,
 	}
 }
 
@@ -460,4 +465,60 @@ func (bias *BusinessImpactAssessmentService) DetermineProcessRiskLevel(riskLevel
 
 func (bias *BusinessImpactAssessmentService) GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) ([]businessContinuityDTOs.BIAMatrixResponseDTO, error) {
 	return bias.repo.GetBIAMatrix(params)
+}
+
+func (bias *BusinessImpactAssessmentService) ExportBiaMatrix(data []businessContinuityDTOs.BIAMatrixResponseDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := bias.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Business Function",
+			"Process",
+			"Risk Level",
+			"RTO",
+			"MTPD",
+			"RPO",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Business Function",
+			"Process",
+			"Risk Level",
+			"RTO",
+			"MTPD",
+			"RPO",
+		}
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, bia := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				bia.BusinessFunctionTitle,
+				bia.ProcessTitleAr,
+				*bia.RiskLevelTitleAr,
+				utility.GetIntValueAsString(bia.ProcessRTO) + " " + utility.GetStringValue(bia.ProcessRTOUnitTitleAr),
+				utility.GetIntValueAsString(bia.ProcessMTPD) + " " + utility.GetStringValue(bia.ProcessMTPDUnitTitleAr),
+				utility.GetIntValueAsString(bia.ProcessRPO) + " " + utility.GetStringValue(bia.ProcessRPOUnitTitleAr),
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				bia.BusinessFunctionTitle,
+				bia.ProcessTitleEn,
+				*bia.RiskLevelTitleEn,
+				utility.GetIntValueAsString(bia.ProcessRTO) + " " + utility.GetStringValue(bia.ProcessRTOUnitTitleEn),
+				utility.GetIntValueAsString(bia.ProcessMTPD) + " " + utility.GetStringValue(bia.ProcessMTPDUnitTitleEn),
+				utility.GetIntValueAsString(bia.ProcessRPO) + " " + utility.GetStringValue(bia.ProcessRPOUnitTitleEn),
+			}
+		}
+	}
+	return utility.GenerateExcelFile(headers, rows)
 }

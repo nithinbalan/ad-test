@@ -102,7 +102,15 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
 			query = query.Where(columnName+" IN (?)", values)
 		}
 	}
-
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "is_recovery":
+			query = query.Where("test_and_exercise_recovery_action_plans.is_recovery = ?", true)
+		case "is_not_recovery":
+			query = query.Where("test_and_exercise_recovery_action_plans.is_recovery = ?", false)
+		}
+	}
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`

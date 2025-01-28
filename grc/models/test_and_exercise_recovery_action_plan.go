@@ -15,6 +15,7 @@ type TestAndExerciseRecoveryActionPlan struct {
 	ResponsibleUnitID  uint       `json:"responsible_unit_id" gorm:"not null" binding:"required"`
 	TargetDate         *time.Time `json:"target_date"`
 	ActionPlanStatusId *uint      `json:"action_plan_status_id"`
+	IsRecovery         bool       `json:"is_recovery"`
 	CreatedBYID        uint       `json:"created_by_id" binding:"required"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedBYID        *uint      `json:"updated_by_id"`

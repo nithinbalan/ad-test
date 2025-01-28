@@ -50,11 +50,12 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	businessFunctionSvc := services.NewBusinessFunctionService(businessFunctionRepo,
 		sharedModule.ActivityLogService,
 		organizationModule.UserSvc,
+		organizationModule.UserSettingSvc,
 	)
 	businessFunctionController := controllers.NewBusinessFunctionController(businessFunctionSvc)
 
 	businessImpactAssessmentRepo := repositories.NewBusinessImpactAssessmentRepository(db)
-	businessImpactAssessmentSvc := services.NewBusinessImpactAssessmentService(businessImpactAssessmentRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, masterModule.ImpactCategorySvc, organizationModule.ProcessSvc, assetModule.AssetRegisterSvc, documentModule.DocumentSvc, riskModule.RiskLevelSvc)
+	businessImpactAssessmentSvc := services.NewBusinessImpactAssessmentService(businessImpactAssessmentRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, masterModule.ImpactCategorySvc, organizationModule.ProcessSvc, assetModule.AssetRegisterSvc, documentModule.DocumentSvc, riskModule.RiskLevelSvc, organizationModule.UserSettingSvc)
 	businessImpactAssessmentController := controllers.NewBusinessImpactAssessmentController(businessImpactAssessmentSvc, organizationModule.ProcessAssociatedItemSvc, organizationModule.ProcessSvc)
 
 	bcpStatusRepo := repositories.NewBcpStatusRepository(db)
@@ -98,7 +99,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	communicationActionPlanStatusController := controllers.NewCommunicationActionPlanStatusController(communicationActionPlanStatusSvc)
 
 	testAndExerciseRepo := repositories.NewTestAndExerciseRepository(db)
-	testAndExerciseSvc := services.NewTestAndExerciseService(testAndExerciseRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, bcpTestAndExerciseSvc, businessContinuityPlanSvc, testAndExerciseStatusSvc, communicationActionPlanStatusSvc, masterModule.ActionPlanStatusSvc)
+	testAndExerciseSvc := services.NewTestAndExerciseService(testAndExerciseRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, bcpTestAndExerciseSvc, businessContinuityPlanSvc, testAndExerciseStatusSvc, communicationActionPlanStatusSvc, masterModule.ActionPlanStatusSvc, organizationModule.UserSettingSvc)
 	testAndExerciseController := controllers.NewTestAndExerciseController(testAndExerciseSvc)
 
 	testAndExerciseCommunicationActionPlanRepo := repositories.NewTestAndExerciseCommunicationActionPlanRepository(db)
