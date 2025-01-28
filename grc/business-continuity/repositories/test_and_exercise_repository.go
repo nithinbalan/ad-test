@@ -197,6 +197,7 @@ func (repo *TestAndExerciseRepository) GetFullDetailsByID(id uint, tx ...utility
 		Preload("TestAndExerciseProcesses.ActualRtoUnit").
 		Preload("TestAndExerciseProcesses.ActualMtpdUnit").
 		Preload("TestAndExerciseProcesses.ActualRpoUnit").
+		Preload("TestAndExerciseProcesses.Timeliness").
 		Preload("TestAndExerciseRecoveryActionPlans").
 		Preload("TestAndExerciseCommunicationActionPlans").
 		Preload("TestAndExerciseStatus").
