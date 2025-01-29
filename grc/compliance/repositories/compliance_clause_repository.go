@@ -17,9 +17,9 @@ type ComplianceClauseRepositoryInterface interface {
 	Update(clause *models.ComplianceClause, tx ...utility.DatabaseTransaction) error
 	Delete(clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 
-	GetNextClauseSequence(parentClauseID uint, tx ...utility.DatabaseTransaction) (int, error)
-	GetNextTopLevelClauseSequence(tx ...utility.DatabaseTransaction) (int, error)
-	GetByClauseNo(clauseNo string, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error)
+	GetNextClauseSequence(parentClauseID uint, complianceRegisterID uint, tx ...utility.DatabaseTransaction) (int, error)
+	GetNextTopLevelClauseSequence(complianceRegisterID uint, tx ...utility.DatabaseTransaction) (int, error)
+	GetByClauseNo(clauseNo string, complianceRegisterID uint, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error)
 	GetClauseWithChildren(clauseID uint, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error)
 }
 
@@ -110,7 +110,7 @@ func (repo *ComplianceClauseRepository) Delete(clauseIDs []uint, tx ...utility.D
 	return nil
 }
 
-func (repo *ComplianceClauseRepository) GetNextClauseSequence(parentClauseID uint, tx ...utility.DatabaseTransaction) (int, error) {
+func (repo *ComplianceClauseRepository) GetNextClauseSequence(parentClauseID uint, complianceRegisterID uint, tx ...utility.DatabaseTransaction) (int, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -122,9 +122,9 @@ func (repo *ComplianceClauseRepository) GetNextClauseSequence(parentClauseID uin
 	query := `
 		SELECT COALESCE(MAX(TRY_CAST(RIGHT(clause_no, CHARINDEX('.', REVERSE(clause_no)) - 1) AS INT)), 0) 
 		FROM compliance_clauses 
-		WHERE compliance_clause_id = ?`
+		WHERE compliance_clause_id = ? AND compliance_register_id = ?`
 
-	err := db.Raw(query, parentClauseID).Row().Scan(&maxSequence)
+	err := db.Raw(query, parentClauseID, complianceRegisterID).Row().Scan(&maxSequence)
 	if err != nil {
 		return 0, err
 	}
@@ -132,7 +132,7 @@ func (repo *ComplianceClauseRepository) GetNextClauseSequence(parentClauseID uin
 	return maxSequence + 1, nil
 }
 
-func (repo *ComplianceClauseRepository) GetNextTopLevelClauseSequence(tx ...utility.DatabaseTransaction) (int, error) {
+func (repo *ComplianceClauseRepository) GetNextTopLevelClauseSequence(complianceRegisterID uint, tx ...utility.DatabaseTransaction) (int, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -143,9 +143,9 @@ func (repo *ComplianceClauseRepository) GetNextTopLevelClauseSequence(tx ...util
 	query := `
 		SELECT COALESCE(MAX(TRY_CAST(clause_no AS INT)), 0) 
 		FROM compliance_clauses 
-		WHERE compliance_clause_id IS NULL`
+		WHERE compliance_clause_id IS NULL AND compliance_register_id = ?`
 
-	err := db.Raw(query).Row().Scan(&maxSequence)
+	err := db.Raw(query, complianceRegisterID).Row().Scan(&maxSequence)
 	if err != nil {
 		return 0, err
 	}
@@ -153,19 +153,21 @@ func (repo *ComplianceClauseRepository) GetNextTopLevelClauseSequence(tx ...util
 	return maxSequence + 1, nil
 }
 
-func (repo *ComplianceClauseRepository) GetByClauseNo(clauseNo string, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error) {
+func (repo *ComplianceClauseRepository) GetByClauseNo(clauseNo string, complianceRegisterID uint, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
+
 	var clause models.ComplianceClause
-	err := db.Where("clause_no = ?", clauseNo).First(&clause).Error
+	err := db.Where("clause_no = ? AND compliance_register_id = ?", clauseNo, complianceRegisterID).First(&clause).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, err
 	}
+
 	return &clause, nil
 }
 

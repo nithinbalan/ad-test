@@ -136,7 +136,7 @@ func (ccs *ComplianceClauseService) Create(complianceID uint, currentUserID uint
 		}
 
 		// Generate clause number
-		nextSequence, err := ccs.repo.GetNextClauseSequence(*formDTO.ParentClauseID, tx)
+		nextSequence, err := ccs.repo.GetNextClauseSequence(*formDTO.ParentClauseID, complianceID, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, fmt.Errorf("failed to generate clause number: %v", err)
@@ -144,7 +144,7 @@ func (ccs *ComplianceClauseService) Create(complianceID uint, currentUserID uint
 		clauseNo = fmt.Sprintf("%s.%d", parentClause.ClauseNo, nextSequence)
 	} else {
 		// Generate top-level clause number
-		nextSequence, err := ccs.repo.GetNextTopLevelClauseSequence(tx)
+		nextSequence, err := ccs.repo.GetNextTopLevelClauseSequence(complianceID, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, fmt.Errorf("failed to generate top-level clause number: %v", err)
@@ -153,7 +153,7 @@ func (ccs *ComplianceClauseService) Create(complianceID uint, currentUserID uint
 	}
 
 	// Validate unique clause number
-	existingClause, _ := ccs.repo.GetByClauseNo(clauseNo, tx)
+	existingClause, _ := ccs.repo.GetByClauseNo(clauseNo, complianceID, tx)
 	if existingClause != nil {
 		tx.Rollback()
 		return 0, fmt.Errorf("clause number '%s' already exists", clauseNo)
