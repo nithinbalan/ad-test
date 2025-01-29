@@ -773,6 +773,12 @@ func (caps *ComplianceActionPlanService) validateComplianceActionPlanFormDTO(com
 		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
 
+	if ComplianceActionPlanFormDTO.ReviewUserID != nil {
+		if ComplianceActionPlanFormDTO.ResponsibleUserID == *ComplianceActionPlanFormDTO.ReviewUserID {
+			return utility.NewValidationError(fmt.Errorf("review user and responsible user must be distinct"), "distinct_review_user", "compliance action plan distinct review user")
+		}
+	}
+
 	if ComplianceActionPlanFormDTO.Percentage == nil {
 		defaultValue := uint(0)
 		ComplianceActionPlanFormDTO.Percentage = &defaultValue
