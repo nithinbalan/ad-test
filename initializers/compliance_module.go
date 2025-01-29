@@ -30,6 +30,7 @@ type ComplianceModule struct {
 	SLAActionPlanController                       *controllers.SLAActionPlanController
 	SLAActionPlanStatusUpdateController           *controllers.SLAActionPlanStatusUpdateController
 	SLAAssociatedItemController                   *controllers.SLAAssociatedItemController
+	CompliacneClauseController                    *controllers.ComplianceClauseController
 
 	ComplianceRegisterSvc    services.ComplianceRegisterServiceInterface
 	ComplianceRequirementSvc services.ComplianceRequirementServiceInterface
@@ -180,6 +181,10 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	slaAssociatedItemSvc := services.NewSLAAssociatedItemService(slaAssociatedItemRepo, slaRegisterSvc)
 	slaAssociatedItemController := controllers.NewSLAAssociatedItemController(slaAssociatedItemSvc)
 
+	compilanceClauseRepo := repositories.NewComplianceClauseRepository(db)
+	compilanceClauseSvc := services.NewComplianceClauseService(compilanceClauseRepo)
+	compilanceClauseController := controllers.NewComplianceClauseController(compilanceClauseSvc)
+
 	return &ComplianceModule{
 		ComplianceCategoryController:                  complianceCategoryController,
 		ComplianceStatusController:                    complianceStatusController,
@@ -202,6 +207,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		SLAActionPlanController:                       slaActionPlanController,
 		SLAActionPlanStatusUpdateController:           slaActionPlanStatusUpdateController,
 		SLAAssociatedItemController:                   slaAssociatedItemController,
+		CompliacneClauseController:                    compilanceClauseController,
 
 		ComplianceRequirementSvc: complianceRequirementSvc,
 		ComplianceRegisterSvc:    complianceRegisterSvc,

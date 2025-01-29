@@ -30,6 +30,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRequirementStatusUpdateController := app.ComplianceModule.ComplianceRequirementStatusUpdateController
 	complianceActionPlanStatusUpdateController := app.ComplianceModule.ComplianceActionPlanStatusUpdateController
 	complianceReviewController := app.ComplianceModule.ComplianceReviewController
+	complianceClauseController := app.ComplianceModule.CompliacneClauseController
 	SLACategoryController := app.ComplianceModule.SLACategoryController
 	SLARegisterController := app.ComplianceModule.SLARegisterController
 	SLACheckQuestionController := app.ComplianceModule.SLACheckQuestionController
@@ -106,6 +107,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.PUT("/sla-register/archive", middlewares.RolePermissionMiddleware(db, "sla_contracts", "modify"), SLARegisterController.ArchiveSLARegisters)
 	complianceRoutes.PUT("/sla-register/restore", middlewares.RolePermissionMiddleware(db, "sla_contracts", "modify"), SLARegisterController.RestoreSLARegisters)
 	complianceRoutes.GET("/slas/:slaId/assessment-status-summary", middlewares.RolePermissionMiddleware(db, "sla_contracts", "view"), SLARegisterController.AssessmentStatusSummary)
+
+	//compliance clause
+	complianceRoutes.GET("/compliances/:complianceId/clause", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.GetAllComplianceClauses)
+	complianceRoutes.GET("/compliances/:complianceId/clause/:clauseId", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.GetComplianceClauseDetails)
+	complianceRoutes.POST("/compliances/:complianceId/clause", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.CreateComplianceClause)
+	complianceRoutes.PUT("/compliances/:complianceId/clause/:clauseId", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.UpdateComplianceClause)
+	complianceRoutes.DELETE("/compliances/:complianceId/clause/:clauseId", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.DeleteComplianceClause)
 
 	//SLA Renew
 	complianceRoutes.GET("/slas/:slaId/renew-history", middlewares.RolePermissionMiddleware(db, "sla_contracts", "view"), SLARenewController.GetSLARenewHistory)

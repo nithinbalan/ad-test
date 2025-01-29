@@ -493,7 +493,7 @@ func (repo *ComplianceRequirementRepository) GetOrCreateComplianceClause(complia
 	}
 	var existingClause models.ComplianceClause
 
-	err := db.Where("clause_no = ? AND title = ? AND compliance_register_id = ?", complianceClause.ClauseNo, complianceClause.Title, complianceClause.ComplianceRegisterID).First(&existingClause).Error
+	err := db.Where("clause_no = ? AND title = ? AND compliance_register_id = ?", complianceClause.ClauseNo, complianceClause.TitleEn, complianceClause.ComplianceRegisterID).First(&existingClause).Error
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
