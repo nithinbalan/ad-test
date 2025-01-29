@@ -41,6 +41,7 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
             test_and_exercise_recovery_action_plans.test_and_exercise_id,
             test_and_exercise_recovery_action_plans.bcp_phase_id,
             test_and_exercise_recovery_action_plans.process_id,
+			test_and_exercise_recovery_action_plans.percentage,
 			bcp_phases.title_en AS bcp_phase_title_en,
 			bcp_phases.title_ar AS bcp_phase_title_ar,
             processes.title_en AS process_title_en, 
