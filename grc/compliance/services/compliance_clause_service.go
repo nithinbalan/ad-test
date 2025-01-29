@@ -33,6 +33,11 @@ func (ccs *ComplianceClauseService) GetAll(complianceID uint) ([]*complianceDTOs
 		return nil, err
 	}
 
+	// If no clauses are found, return an empty slice
+	if len(clauses) == 0 {
+		return []*complianceDTOs.ComplianceClauseListDTO{}, nil
+	}
+
 	// Build a proper hierarchy by filtering out child clauses from the root level
 	var rootClauses []*complianceDTOs.ComplianceClauseListDTO
 	clauseMap := make(map[uint]*complianceDTOs.ComplianceClauseListDTO)
