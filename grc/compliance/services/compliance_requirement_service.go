@@ -166,7 +166,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	complianceClause := &models.ComplianceClause{
 		ComplianceRegisterID: complianceID,
 		ClauseNo:             complianceRequirementFormDTO.ComplianceClauseNo,
-		Title:                complianceRequirementFormDTO.ComplianceClauseTitle,
+		TitleEn:              complianceRequirementFormDTO.ComplianceClauseTitle,
 	}
 
 	clause, err := crs.repo.GetOrCreateComplianceClause(complianceClause, tx)
@@ -428,7 +428,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	complianceClause := &models.ComplianceClause{
 		ComplianceRegisterID: complianceID,
 		ClauseNo:             complianceRequirementFormDTO.ComplianceClauseNo,
-		Title:                complianceRequirementFormDTO.ComplianceClauseTitle,
+		TitleEn:              complianceRequirementFormDTO.ComplianceClauseTitle,
 	}
 
 	clause, err := crs.repo.GetOrCreateComplianceClause(complianceClause, tx)
@@ -846,7 +846,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 				"ComplianceTitle":               compliance.TitleEn,
 				"ComplianceRequirementCategory": complianceRequirementCategory.TitleEn,
 				"RequirementTitleEn":            existingComplianceRequirement.TitleEn,
-				"ComplianceClauseTitle":         complianceClause.Title,
+				"ComplianceClauseTitle":         complianceClause.TitleEn,
 				"Deadline":                      dates.Deadline.Format("2006-01-02"),
 				"UpdatedByFirstNameEn":          updatedByUser.FirstNameEn,
 				"UpdatedByLastNameEn":           updatedByUser.LastNameEn,
@@ -871,7 +871,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 				"ComplianceTitle":               compliance.TitleEn,
 				"ComplianceRequirementCategory": complianceRequirementCategory.TitleEn,
 				"RequirementTitleEn":            existingComplianceRequirement.TitleEn,
-				"ComplianceClauseTitle":         complianceClause.Title,
+				"ComplianceClauseTitle":         complianceClause.TitleEn,
 				"Deadline":                      dates.Deadline.Format("2006-01-02"),
 				"UpdatedByFirstNameEn":          updatedByUser.FirstNameEn,
 				"UpdatedByLastNameEn":           updatedByUser.LastNameEn,
