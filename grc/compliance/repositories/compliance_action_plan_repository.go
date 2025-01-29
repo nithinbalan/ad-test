@@ -227,11 +227,13 @@ func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint, tx ...ut
 		Preload("ComplianceRegister").
 		Preload("SeverityLevel").
 		Preload("ResponsibleUser").
+		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("ActionPlanStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("ActionPlanStatusUpdates").
 		Preload("ReviewUser").
+		Preload("ReviewUser.OrganizationUnit1").
 		First(&complianceActionPlan, id)
 
 	if result.Error != nil {
