@@ -130,6 +130,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID
 		TargetDate:         dates.TargetDate,
 		ActionPlanStatusId: &actionPlanStatus.ID,
 		IsRecovery:         recoveryActionPlanFormDTO.IsRecovery,
+		Percentage:         recoveryActionPlanFormDTO.Percentage,
 		CreatedBYID:        currentUserID,
 	}
 
@@ -206,6 +207,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 	existingRecoveryPlan.ResponsibleUserID = recoveryActionPlanFormDTO.ResponsibleUserID
 	existingRecoveryPlan.TargetDate = dates.TargetDate
 	existingRecoveryPlan.IsRecovery = recoveryActionPlanFormDTO.IsRecovery
+	existingRecoveryPlan.Percentage = recoveryActionPlanFormDTO.Percentage
 	existingRecoveryPlan.UpdatedBYID = &currentUserID
 
 	err = teraps.repo.Update(existingRecoveryPlan, tx)

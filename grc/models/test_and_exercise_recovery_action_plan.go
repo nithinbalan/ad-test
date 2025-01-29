@@ -7,7 +7,7 @@ import (
 type TestAndExerciseRecoveryActionPlan struct {
 	ID                 uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	TestAndExerciseID  uint       `json:"bcp_test_and_exercise_id" binding:"required"`
-	BcpPhaseID         uint       `json:"bcp_phase_id" binding:"required"`
+	BcpPhaseID         *uint      `json:"bcp_phase_id"`
 	ProcessID          uint       `json:"process_id" binding:"required"`
 	SeverityLevelID    *uint      `json:"severity_level_id"`
 	Title              string     `json:"title"`
@@ -16,6 +16,7 @@ type TestAndExerciseRecoveryActionPlan struct {
 	TargetDate         *time.Time `json:"target_date"`
 	ActionPlanStatusId *uint      `json:"action_plan_status_id"`
 	IsRecovery         bool       `json:"is_recovery"`
+	Percentage         *int       `json:"percentage"`
 	CreatedBYID        uint       `json:"created_by_id" binding:"required"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedBYID        *uint      `json:"updated_by_id"`

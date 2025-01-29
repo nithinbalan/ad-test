@@ -11,9 +11,9 @@ import (
 type TestAndExerciseRecoveryActionPlanListDTO struct {
 	ID                              uint       `json:"id"`
 	TestAndExerciseID               uint       `json:"test_and_exercise_id"`
-	BcpPhaseID                      uint       `json:"bcp_phase_id"`
-	BcpPhaseTitleEn                 string     `json:"bcp_phase_title_en"`
-	BcpPhaseTitleAr                 string     `json:"bcp_phase_title_ar"`
+	BcpPhaseID                      *uint      `json:"bcp_phase_id"`
+	BcpPhaseTitleEn                 *string    `json:"bcp_phase_title_en"`
+	BcpPhaseTitleAr                 *string    `json:"bcp_phase_title_ar"`
 	ProcessID                       uint       `json:"process_id"`
 	ProcessTitleEn                  string     `json:"process_title_en"`
 	ProcessTitleAr                  string     `json:"process_title_ar"`
@@ -39,6 +39,7 @@ type TestAndExerciseRecoveryActionPlanListDTO struct {
 	ActionPlanStatusTitleEn         *string    `json:"action_plan_status_title_en"`
 	ActionPlanStatusTitleAr         *string    `json:"action_plan_status_title_ar"`
 	IsRecovery                      bool       `json:"is_recovery"`
+	Percentage                      *int       `json:"percentage"`
 	CreatedByID                     uint       `json:"created_by_id"`
 	CreatedUserFirstNameEn          string     `json:"created_user_first_name_en"`
 	CreatedUserLastNameEn           string     `json:"created_user_last_name_en"`
@@ -60,7 +61,7 @@ type TestAndExerciseRecoveryActionPlanListDTO struct {
 type TestAndExerciseRecoveryActionPlanDetailDTO struct {
 	ID                 uint                              `json:"id"`
 	TestAndExerciseID  uint                              `json:"test_and_exercise_id"`
-	BcpPhaseID         uint                              `json:"bcp_phase_id"`
+	BcpPhaseID         *uint                             `json:"bcp_phase_id"`
 	BcpPhase           BcpPhaseDTO                       `json:"bcp_phase"`
 	ProcessID          uint                              `json:"process_id"`
 	Process            organizationDTOs.ProcessDetailDTO `json:"process"`
@@ -75,6 +76,7 @@ type TestAndExerciseRecoveryActionPlanDetailDTO struct {
 	ActionPlanStatusID *uint                             `json:"action_plan_status_id"`
 	ActionPlanStatus   masterDTOs.ActionPlanStatusDTO    `json:"action_plan_status"`
 	IsRecovery         bool                              `json:"is_recovery"`
+	Percentage         *int                              `json:"percentage"`
 	CreatedBYID        uint                              `json:"created_by_id"`
 	CreatedByUser      organizationDTOs.UserMinimalDTO   `json:"created_by_user"`
 	CreatedAt          time.Time                         `json:"created_at"`
@@ -85,12 +87,13 @@ type TestAndExerciseRecoveryActionPlanDetailDTO struct {
 
 type TestAndExerciseRecoveryActionPlanFormDTO struct {
 	Title             string `json:"title"`
-	BcpPhaseID        uint   `json:"bcp_phase_id" binding:"required"`
+	BcpPhaseID        *uint  `json:"bcp_phase_id"`
 	ProcessID         uint   `json:"process_id" binding:"required"`
 	SeverityLevelID   *uint  `json:"severity_level_id"`
 	ResponsibleUserID uint   `json:"responsible_user_id" binding:"required"`
 	TargetDate        string `json:"target_date" binding:"required"`
 	IsRecovery        bool   `json:"is_recovery"`
+	Percentage        *int   `json:"percentage"`
 }
 
 type TestAndExerciseRecoveryActionPlanQueryParamsDTO struct {

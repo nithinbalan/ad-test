@@ -233,7 +233,7 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 				ProcessID:          bcpRecoveryPlan.BcpProcess.Process.ID,
 				Title:              bcpRecoveryPlan.Title,
 				SeverityLevelID:    &bcpRecoveryPlan.SeverityLevel.ID,
-				BcpPhaseID:         bcpRecoveryPlan.BcpPhaseID,
+				BcpPhaseID:         &bcpRecoveryPlan.BcpPhaseID,
 				ResponsibleUserID:  bcpRecoveryPlan.ResponsibleUserID,
 				ResponsibleUnitID:  bcpRecoveryPlan.ResponsibleUnitID,
 				TargetDate:         &targetDate,
