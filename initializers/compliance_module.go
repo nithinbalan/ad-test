@@ -182,7 +182,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	slaAssociatedItemController := controllers.NewSLAAssociatedItemController(slaAssociatedItemSvc)
 
 	compilanceClauseRepo := repositories.NewComplianceClauseRepository(db)
-	compilanceClauseSvc := services.NewComplianceClauseService(compilanceClauseRepo)
+	compilanceClauseSvc := services.NewComplianceClauseService(compilanceClauseRepo, sharedModule.ActivityLogService)
 	compilanceClauseController := controllers.NewComplianceClauseController(compilanceClauseSvc)
 
 	return &ComplianceModule{

@@ -4,7 +4,9 @@ import (
 	"fmt"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
+	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -19,11 +21,18 @@ type ComplianceClauseServiceInterface interface {
 }
 
 type ComplianceClauseService struct {
-	repo repositories.ComplianceClauseRepositoryInterface
+	repo           repositories.ComplianceClauseRepositoryInterface
+	activityLogSvc logServices.ActivityLogServiceInterface
 }
 
-func NewComplianceClauseService(repo repositories.ComplianceClauseRepositoryInterface) *ComplianceClauseService {
-	return &ComplianceClauseService{repo: repo}
+func NewComplianceClauseService(
+	repo repositories.ComplianceClauseRepositoryInterface,
+	activityLogSvc logServices.ActivityLogServiceInterface,
+) *ComplianceClauseService {
+	return &ComplianceClauseService{
+		repo:           repo,
+		activityLogSvc: activityLogSvc,
+	}
 }
 
 func (ccs *ComplianceClauseService) GetAll(complianceID uint) ([]*complianceDTOs.ComplianceClauseListDTO, error) {
@@ -174,6 +183,28 @@ func (ccs *ComplianceClauseService) Create(complianceID uint, currentUserID uint
 	}
 
 	tx.Commit()
+
+	go func() {
+		err := ccs.activityLogSvc.LogActivity(
+			models.CreateAction,
+			models.ComplianceClause{}.TableName(),
+			id,
+			formDTO,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.CreateAction,
+				"tableName": models.ComplianceClause{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log control activity", fields)
+		}
+	}()
 	return id, nil
 }
 
