@@ -9,12 +9,14 @@ import (
 	settingsRepositories "jethur/grc/settings/repositories"
 	"jethur/utility"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type OrganizationUnitServiceInterface interface {
 	GetAll(params *settingsDTOs.OrganizationUnitListQueryParamsDTO) ([]*settingsDTOs.OrganizationUnitListDTO, error)
 	GetByID(id uint) (*models.OrganizationUnit, error)
+	GetFullDetailsByID(id uint) (*settingsDTOs.OrganizationUnitDTO, error)
 	Create(currentUserID uint, orgUnitFormDTO *settingsDTOs.OrganizationUnitFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, orgUnit *settingsDTOs.OrganizationUnitFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -53,6 +55,28 @@ func (ous OrganizationUnitService) GetByID(id uint) (*models.OrganizationUnit, e
 		return nil, err
 	}
 	return orgUnit, nil
+}
+
+func (ous OrganizationUnitService) GetFullDetailsByID(unitId uint) (*settingsDTOs.OrganizationUnitDTO, error) {
+	// Initialize your DTO
+	var unitDTO settingsDTOs.OrganizationUnitDTO
+
+	unit, err := ous.repo.GetFullDetailsByID(unitId)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, unitId)
+		}
+		return nil, err
+	}
+
+	// Map the result to your DTO
+	err = mapstructure.Decode(unit, &unitDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return &unitDTO, nil
 }
 
 func (ous *OrganizationUnitService) Create(currentUserID uint, orgUnitFormDTO *settingsDTOs.OrganizationUnitFormDTO) (uint, error) {

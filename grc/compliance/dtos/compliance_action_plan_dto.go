@@ -6,6 +6,7 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
 )
 
 type ComplianceActionPlanListDTO struct {
@@ -116,8 +117,12 @@ type ComplianceActionPlanDetailDTO struct {
 	Description             string                                 `json:"description"`
 	SeverityLevel           *masterDTOs.SeverityLevelDTO           `json:"severity_level"`
 	ResponsibleUserID       uint                                   `json:"responsible_user_id" binding:"required" gorm:"not null"`
-	ResponsibleUser         organizationDTOs.UserDetailsDTO        `json:"responsible_user"`
-	ReviewUser              *organizationDTOs.UserDetailsDTO       `json:"review_user"`
+	ResponsibleUser         organizationDTOs.UserMinimalDTO        `json:"responsible_user"`
+	ResponsibleUserUnitID   *uint                                  `json:"responsible_user_unit_id"`
+	ResponsibleUserUnit     settingsDTOs.OrganizationUnitDTO       `json:"responsible_user_unit"`
+	ReviewUser              *organizationDTOs.UserMinimalDTO       `json:"review_user"`
+	ReviewUserUnitID        *uint                                  `json:"review_user_unit_id"`
+	ReviewUserUnit          settingsDTOs.OrganizationUnitDTO       `json:"review_user_unit"`
 	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO         `json:"action_plan_status"`
 	Percentage              *uint                                  `json:"percentage"`
 	Comments                *string                                `json:"comments"`
