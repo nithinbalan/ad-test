@@ -278,6 +278,8 @@ type RiskRegisterFormDTO struct {
 	DocumentIds              []*uint                       `json:"document_ids"`
 	AssetIds                 []*uint                       `json:"asset_ids"`
 	ThreatIds                []*uint                       `json:"threat_ids"`
+	RiskMatrixLikelihoodID   *uint                         `json:"risk_matrix_likelihood_id"`
+	RiskMatrixImpactID       *uint                         `json:"risk_matrix_impact_id"`
 }
 
 type RiskRegisterParsedDates struct {
