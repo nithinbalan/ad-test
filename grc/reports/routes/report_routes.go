@@ -18,6 +18,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskReportController := app.ReportsModule.RiskReportController
 	auditReportController := app.ReportsModule.AuditReportController
 	incidentReportController := app.ReportsModule.IncidentReportController
+	meetingReportController := app.ReportsModule.MeetingReportController
 
 	//Compliance
 	reportsRoutes.GET("/reports/compliance-registers", complianceReportController.GetAllComplianceRegisters)
@@ -158,5 +159,25 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/incident-action-plan-by-status", incidentReportController.GetIncidentActionPlanByStatus)
 	reportsRoutes.GET("/reports/incident-action-plan-by-responsible-user", incidentReportController.GetIncidentActionPlanByResponsibleUser)
 	reportsRoutes.GET("/reports/incident-action-plan-by-responsible-unit", incidentReportController.GetIncidentActionPlanByResponsibleUnit)
+
+	//Meetings
+	// reportsRoutes.GET("/reports/meetings", meetingReportController.GetAllMeetings)
+	// reportsRoutes.GET("/reports/meetings/export", meetingReportController.GetMeetingExport)
+	reportsRoutes.GET("/reports/meeting-by-type", meetingReportController.GetMeetingByType)
+	reportsRoutes.GET("/reports/meeting-by-status", meetingReportController.GetMeetingByStatus)
+	reportsRoutes.GET("/reports/meeting-by-responsible-unit", meetingReportController.GetMeetingByResponsibleUnit)
+	reportsRoutes.GET("/reports/meeting-by-organizer", meetingReportController.GetMeetingByOrganizer)
+	reportsRoutes.GET("/reports/meeting-minutes-by-status", meetingReportController.GetMeetingMinutesByStatus)
+
+	reportsRoutes.GET("/reports/meeting-action-plan-by-status", meetingReportController.GetMeetingActionPlanByStatus)
+	reportsRoutes.GET("/reports/meeting-action-plan-by-responsible-unit", meetingReportController.GetMeetingActionPlanByResponsibleUnit)
+	reportsRoutes.GET("/reports/meeting-action-plan-by-responsible-user", meetingReportController.GetMeetingActionPlanByResponsibleUser)
+	reportsRoutes.GET("/reports/meeting-action-plan-by-open-vs-closed", meetingReportController.GetMeetingActionPlanByOpenVsClosed)
+	reportsRoutes.GET("/reports/meeting-mom-count", meetingReportController.GetMeetingMOMCount)
+	reportsRoutes.GET("/reports/meeting-with-mom", meetingReportController.GetMeetingsWithMOM)
+	reportsRoutes.GET("/reports/meeting-with-open-action-plan", meetingReportController.GetMeetingsWithOpenActionPlans)
+	reportsRoutes.GET("/reports/meeting-with-overdue-action-plan", meetingReportController.GetMeetingsWithOverdueActionPlans)
+	reportsRoutes.GET("/reports/meeting-by-year", meetingReportController.GetMeetingCountByYear)
+	reportsRoutes.GET("/reports/meeting-by-user", meetingReportController.GetMeetingCountByUser)
 
 }
