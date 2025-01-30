@@ -71,14 +71,14 @@ type ComplianceClauseFormDTO struct {
 type ComplianceClauseDetailDTO struct {
 	ID                   uint    `json:"id"`
 	ComplianceRegisterID uint    `json:"compliance_register_id"`
-	ParentClauseID       *uint   `json:"parent_clause_id,omitempty"`
+	ParentClauseID       *uint   `json:"parent_clause_id"`
 	ClauseNo             string  `json:"clause_no"`
 	TitleEn              string  `json:"title_en"`
-	TitleAr              *string `json:"title_ar,omitempty"`
-	DescriptionEn        *string `json:"description_en,omitempty"`
-	DescriptionAr        *string `json:"description_ar,omitempty"`
-	ScopeEn              *string `json:"scope_en,omitempty"`
-	ScopeAr              *string `json:"scope_ar,omitempty"`
-	ObjectiveEn          *string `json:"objective_en,omitempty"`
-	ObjectiveAr          *string `json:"objective_ar,omitempty"`
+	TitleAr              *string `json:"title_ar"`
+	DescriptionEn        *string `json:"description_en"`
+	DescriptionAr        *string `json:"description_ar"`
+	ScopeEn              *string `json:"scope_en"`
+	ScopeAr              *string `json:"scope_ar"`
+	ObjectiveEn          *string `json:"objective_en"`
+	ObjectiveAr          *string `json:"objective_ar"`
 }
