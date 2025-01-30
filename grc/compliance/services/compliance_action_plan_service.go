@@ -47,6 +47,7 @@ type ComplianceActionPlanService struct {
 	userSvc                  organizationServices.UserServiceInterface
 	notificationSvc          commonServices.NotificationServiceInterface
 	userSettingSvc           organizationServices.UserSettingServiceInterface
+	organizationUnitSvc      settingService.OrganizationUnitServiceInterface
 }
 
 func NewComplianceActionPlanService(
@@ -61,6 +62,7 @@ func NewComplianceActionPlanService(
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	organizationUnitSvc settingService.OrganizationUnitServiceInterface,
 ) ComplianceActionPlanServiceInterface {
 	return &ComplianceActionPlanService{
 		repo:                     repo,
@@ -74,6 +76,7 @@ func NewComplianceActionPlanService(
 		userSvc:                  userSvc,
 		notificationSvc:          notificationSvc,
 		userSettingSvc:           userSettingSvc,
+		organizationUnitSvc:      organizationUnitSvc,
 	}
 }
 
@@ -127,6 +130,30 @@ func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id
 		targetDate := complianceActionPlan.TargetDate.Format("2006-01-02")
 		complianceActionPlanDTO.TargetDateString = &targetDate
 	}
+
+	responsibleUnitID, err := caps.userSvc.GetUserPrimaryUnitID(complianceActionPlan.ResponsibleUserID)
+	if err != nil {
+		return nil, nil
+	}
+
+	responsibleUnit, err := caps.organizationUnitSvc.GetFullDetailsByID(responsibleUnitID)
+	if err != nil {
+		return nil, nil
+	}
+	complianceActionPlanDTO.ResponsibleUserUnitID = &responsibleUnitID
+	complianceActionPlanDTO.ResponsibleUserUnit = *responsibleUnit
+
+	reviewUserUnitID, err := caps.userSvc.GetUserPrimaryUnitID(*complianceActionPlan.ReviewUserID)
+	if err != nil {
+		return nil, nil
+	}
+
+	reviewUserUnit, err := caps.organizationUnitSvc.GetFullDetailsByID(reviewUserUnitID)
+	if err != nil {
+		return nil, nil
+	}
+	complianceActionPlanDTO.ReviewUserUnitID = &reviewUserUnitID
+	complianceActionPlanDTO.ReviewUserUnit = *reviewUserUnit
 
 	complianceActionPlanDTO.CreatedAt = complianceActionPlan.CreatedAt
 	complianceActionPlanDTO.UpdatedAt = complianceActionPlan.UpdatedAt
@@ -386,8 +413,8 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 			"title":              oldComplianceActionPlan.Title,
 			"description":        oldComplianceActionPlan.Description,
 			"severity_level":     oldComplianceActionPlan.SeverityLevel.TitleEn,
-			"responsible_user":   fmt.Sprintf("%s %s", oldComplianceActionPlan.ResponsibleUser.FirstNameEn, oldComplianceActionPlan.ResponsibleUser.LastNameEn),
-			"review_user":        fmt.Sprintf("%s %s", oldComplianceActionPlan.ReviewUser.FirstNameEn, oldComplianceActionPlan.ReviewUser.LastNameEn),
+			"responsible_user":   fmt.Sprintf("%s %s", oldComplianceActionPlan.ResponsibleUser.FirstNameEN, oldComplianceActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        fmt.Sprintf("%s %s", oldComplianceActionPlan.ReviewUser.FirstNameEN, oldComplianceActionPlan.ReviewUser.LastNameEN),
 			"target_date":        oldComplianceActionPlan.TargetDateString,
 			"percentage":         oldComplianceActionPlan.Percentage,
 			"comment":            oldComplianceActionPlan.Comments,
@@ -398,8 +425,8 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 			"title":              existingActionPlan.Title,
 			"description":        existingActionPlan.Description,
 			"severity_level":     existingActionPlan.SeverityLevel.TitleEn,
-			"responsible_user":   fmt.Sprintf("%s %s", existingActionPlan.ResponsibleUser.FirstNameEn, existingActionPlan.ResponsibleUser.LastNameEn),
-			"review_user":        fmt.Sprintf("%s %s", existingActionPlan.ReviewUser.FirstNameEn, existingActionPlan.ReviewUser.LastNameEn),
+			"responsible_user":   fmt.Sprintf("%s %s", existingActionPlan.ResponsibleUser.FirstNameEN, existingActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        fmt.Sprintf("%s %s", existingActionPlan.ReviewUser.FirstNameEN, existingActionPlan.ReviewUser.LastNameEN),
 			"target_date":        existingActionPlan.TargetDateString,
 			"percentage":         existingActionPlan.Percentage,
 			"comment":            existingActionPlan.Comments,
