@@ -1294,7 +1294,7 @@ func (srs *ComplianceRequirementService) ExportComplianceRequirements(data []*co
 			rows[i] = []interface{}{
 				i + 1,
 				item.ComplianceClauseNo,
-				item.ComplianceClauseTitle,
+				item.ComplianceClauseTitleAr,
 				item.TitleAr,
 				item.ComplianceRequirementCategoryTitleAr,
 				item.SeverityLevelTitleAr,
@@ -1306,7 +1306,7 @@ func (srs *ComplianceRequirementService) ExportComplianceRequirements(data []*co
 			rows[i] = []interface{}{
 				i + 1,
 				item.ComplianceClauseNo,
-				item.ComplianceClauseTitle,
+				item.ComplianceClauseTitleEn,
 				item.TitleEn,
 				item.ComplianceRequirementCategoryTitleEn,
 				item.SeverityLevelTitleEn,
