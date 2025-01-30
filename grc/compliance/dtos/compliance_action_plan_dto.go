@@ -11,7 +11,8 @@ import (
 type ComplianceActionPlanListDTO struct {
 	ID                              uint    `json:"id"`
 	ComplianceClauseNo              string  `json:"compliance_clause_no"`
-	ComplianceClauseTitle           string  `json:"compliance_clause_title"`
+	ComplianceClauseTitleEn         string  `json:"compliance_clause_title_en"`
+	ComplianceClauseTitleAr         string  `json:"compliance_clause_title_ar"`
 	ComplianceRequirementTitleEn    string  `json:"compliance_requirement_title_en"`
 	ComplianceRequirementTitleAr    string  `json:"compliance_requirement_title_ar"`
 	Title                           string  `json:"title"`
