@@ -121,18 +121,6 @@ func (repo *OrganizationUnitRepository) GetFullDetailsByID(id uint, tx ...utilit
 	var organizationUnit *models.OrganizationUnit
 
 	result := db.
-		Preload("ComplianceCategory").
-		Preload("ComplianceStatus").
-		Preload("ResponsibleUnit").
-		Preload("ResponsibleUser").
-		Preload("ResponsibleUser.OrganizationUnit1").
-		Preload("ReviewFrequency").
-		Preload("ReviewResponsibleUser").
-		Preload("SeverityLevel").
-		Preload("LifecycleStatus").
-		Preload("Documents").
-		Preload("CreatedByUser").
-		Preload("UpdatedByUser").
 		First(&organizationUnit, id)
 
 	if result.Error != nil {
