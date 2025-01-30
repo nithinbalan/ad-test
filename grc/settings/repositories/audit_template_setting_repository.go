@@ -12,8 +12,8 @@ type AuditTemplateSettingRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *settingsDTOs.AuditTemplateSettingListQueryParamsDTO) ([]*settingsDTOs.AuditTemplateSettingListDTO, error)
 	GetByID(id uint) (*models.AuditTemplateSetting, error)
+	GetFirst() (*models.AuditTemplateSetting, error)
 	Update(auditInvestigation *models.AuditTemplateSetting, tx ...utility.DatabaseTransaction) error
-	
 }
 
 type AuditTemplateSettingRepository struct {
@@ -109,6 +109,17 @@ func (repo *AuditTemplateSettingRepository) GetByID(id uint) (*models.AuditTempl
 	}
 
 	return auditTemplateSetting, nil
+}
+
+func (repo *AuditTemplateSettingRepository) GetFirst() (*models.AuditTemplateSetting, error) {
+	var auditTemplateSetting models.AuditTemplateSetting
+	result := repo.db.First(&auditTemplateSetting) // No id required here
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &auditTemplateSetting, nil
 }
 
 func (repo *AuditTemplateSettingRepository) Update(auditTemplateSetting *models.AuditTemplateSetting, tx ...utility.DatabaseTransaction) error {

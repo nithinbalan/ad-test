@@ -22,6 +22,7 @@ type TestAndExerciseRepositoryInterface interface {
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber() (string, error)
 
+	GetTestAndExerciseProcessByID(id uint) (*models.TestAndExerciseProcess, error)
 	CreateTestAndExerciseProcesses(bcpProcesses []*models.TestAndExerciseProcess, tx ...utility.DatabaseTransaction) error
 	DeleteTestAndExerciseProcesses(bcpProcessIds []*uint, tx ...utility.DatabaseTransaction) error
 
@@ -196,9 +197,11 @@ func (repo *TestAndExerciseRepository) GetFullDetailsByID(id uint, tx ...utility
 		Preload("TestAndExerciseProcesses.ActualRtoUnit").
 		Preload("TestAndExerciseProcesses.ActualMtpdUnit").
 		Preload("TestAndExerciseProcesses.ActualRpoUnit").
+		Preload("TestAndExerciseProcesses.Timeliness").
 		Preload("TestAndExerciseRecoveryActionPlans").
 		Preload("TestAndExerciseCommunicationActionPlans").
 		Preload("TestAndExerciseStatus").
+		Preload("TestAndExerciseTestResult").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&TestAndExercise, id)
@@ -348,5 +351,17 @@ func (repo *TestAndExerciseRepository) GenerateReferenceNumber() (string, error)
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "BCM-TEST", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
+
+}
+
+func (repo *TestAndExerciseRepository) GetTestAndExerciseProcessByID(id uint) (*models.TestAndExerciseProcess, error) {
+	var TestAndExerciseProcess *models.TestAndExerciseProcess
+
+	result := repo.db.First(&TestAndExerciseProcess, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return TestAndExerciseProcess, nil
 
 }

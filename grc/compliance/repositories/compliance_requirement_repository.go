@@ -63,7 +63,8 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 			compliance_requirements.*,
 			CONVERT(VARCHAR, compliance_requirements.deadline, 23) AS deadline,
 			compliance_clauses.clause_no AS compliance_clause_no,
-			compliance_clauses.title AS compliance_clause_title,
+			compliance_clauses.title_en AS compliance_clause_title_en,
+			compliance_clauses.title_ar AS compliance_clause_title_ar,
 			compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
 			compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
 			severity_levels.title_en AS severity_level_title_en,
@@ -222,7 +223,8 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 		Select(`
 			compliance_clauses.id AS clause_id,
 			compliance_clauses.clause_no AS compliance_clause_no,
-			compliance_clauses.title AS compliance_clause_title,
+			compliance_clauses.title_en AS compliance_clause_title_en,
+			compliance_clauses.title_ar AS compliance_clause_title_ar,
 			compliance_requirements.*,
 			CONVERT(VARCHAR, compliance_requirements.deadline, 23) AS deadline,
 			compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
@@ -350,9 +352,10 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 
 		if _, ok := clauseRequirements[complianceReq.ClauseID]; !ok {
 			clauseRequirements[complianceReq.ClauseID] = &complianceDTOs.ComplianceRequirementByComplianceIDListDTO{
-				ClauseID:    complianceReq.ClauseID,
-				ClauseNo:    complianceReq.ComplianceClauseNo,
-				ClauseTitle: complianceReq.ComplianceClauseTitle,
+				ClauseID:      complianceReq.ClauseID,
+				ClauseNo:      complianceReq.ComplianceClauseNo,
+				ClauseTitleEn: complianceReq.ComplianceClauseTitleEn,
+				ClauseTitleAr: complianceReq.ComplianceClauseTitleAr,
 			}
 		}
 
@@ -493,7 +496,7 @@ func (repo *ComplianceRequirementRepository) GetOrCreateComplianceClause(complia
 	}
 	var existingClause models.ComplianceClause
 
-	err := db.Where("clause_no = ? AND title = ? AND compliance_register_id = ?", complianceClause.ClauseNo, complianceClause.Title, complianceClause.ComplianceRegisterID).First(&existingClause).Error
+	err := db.Where("clause_no = ? AND title = ? AND compliance_register_id = ?", complianceClause.ClauseNo, complianceClause.TitleEn, complianceClause.ComplianceRegisterID).First(&existingClause).Error
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

@@ -140,6 +140,7 @@ type ProcessDetailDTO struct {
 	RpoUnit               masterDTOs.TimeUnitDTO            `json:"rpo_unit"`
 	RiskLevelId           *uint                             `json:"risk_level_id"`
 	LastAssessedAt        *time.Time                        `json:"last_assessed_at"`
+	LastAssessedByID      *uint                             `json:"last_assessed_by_id"`
 	LastAssessedByUser    *UserMinimalDTO                   `json:"last_assessed_by"`
 	IsBiaPerformed        bool                              `json:"is_bia_performed"`
 	CreatedAt             time.Time                         `json:"created_at"`

@@ -27,6 +27,7 @@ type BusinessContinuityModule struct {
 	TimelinessController                             *controllers.TimelinessController
 	FeedbackOptionController                         *controllers.FeedbackOptionController
 	TestResultOptionController                       *controllers.TestResultOptionController
+	TestAndExerciseTestResultController              *controllers.TestAndExerciseTestResultController
 
 	BusinessFunctionSvc                  services.BusinessFunctionServiceInterface
 	BcpTeamSvc                           services.BcpTeamServiceInterface
@@ -49,11 +50,12 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	businessFunctionSvc := services.NewBusinessFunctionService(businessFunctionRepo,
 		sharedModule.ActivityLogService,
 		organizationModule.UserSvc,
+		organizationModule.UserSettingSvc,
 	)
 	businessFunctionController := controllers.NewBusinessFunctionController(businessFunctionSvc)
 
 	businessImpactAssessmentRepo := repositories.NewBusinessImpactAssessmentRepository(db)
-	businessImpactAssessmentSvc := services.NewBusinessImpactAssessmentService(businessImpactAssessmentRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, masterModule.ImpactCategorySvc, organizationModule.ProcessSvc, assetModule.AssetRegisterSvc, documentModule.DocumentSvc, riskModule.RiskLevelSvc)
+	businessImpactAssessmentSvc := services.NewBusinessImpactAssessmentService(businessImpactAssessmentRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, masterModule.ImpactCategorySvc, organizationModule.ProcessSvc, assetModule.AssetRegisterSvc, documentModule.DocumentSvc, riskModule.RiskLevelSvc, organizationModule.UserSettingSvc)
 	businessImpactAssessmentController := controllers.NewBusinessImpactAssessmentController(businessImpactAssessmentSvc, organizationModule.ProcessAssociatedItemSvc, organizationModule.ProcessSvc)
 
 	bcpStatusRepo := repositories.NewBcpStatusRepository(db)
@@ -97,7 +99,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	communicationActionPlanStatusController := controllers.NewCommunicationActionPlanStatusController(communicationActionPlanStatusSvc)
 
 	testAndExerciseRepo := repositories.NewTestAndExerciseRepository(db)
-	testAndExerciseSvc := services.NewTestAndExerciseService(testAndExerciseRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, bcpTestAndExerciseSvc, businessContinuityPlanSvc, testAndExerciseStatusSvc, communicationActionPlanStatusSvc)
+	testAndExerciseSvc := services.NewTestAndExerciseService(testAndExerciseRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, bcpTestAndExerciseSvc, businessContinuityPlanSvc, testAndExerciseStatusSvc, communicationActionPlanStatusSvc, masterModule.ActionPlanStatusSvc, organizationModule.UserSettingSvc)
 	testAndExerciseController := controllers.NewTestAndExerciseController(testAndExerciseSvc)
 
 	testAndExerciseCommunicationActionPlanRepo := repositories.NewTestAndExerciseCommunicationActionPlanRepository(db)
@@ -120,6 +122,10 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	testResultOptionSvc := services.NewTestResultOptionService(testResultOptionRepo)
 	testResultOptionController := controllers.NewTestResultOptionController(testResultOptionSvc)
 
+	testAndExerciseTestResultRepo := repositories.NewTestAndExerciseTestResultRepository(db)
+	testAndExerciseTestResultSvc := services.NewTestAndExerciseTestResultService(testAndExerciseTestResultRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, testAndExerciseSvc)
+	testAndExerciseTestResultController := controllers.NewTestAndExerciseTestResultController(testAndExerciseTestResultSvc)
+
 	return &BusinessContinuityModule{
 		BusinessFunctionController:                       businessFunctionController,
 		BusinessImpactAssessmentController:               businessImpactAssessmentController,
@@ -139,6 +145,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		TimelinessController:                             timelinessController,
 		FeedbackOptionController:                         feedbackOptionController,
 		TestResultOptionController:                       testResultOptionController,
+		TestAndExerciseTestResultController:              testAndExerciseTestResultController,
 
 		BusinessFunctionSvc:                  businessFunctionSvc,
 		BcpTeamSvc:                           bcpTeamSvc,

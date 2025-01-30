@@ -166,7 +166,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	complianceClause := &models.ComplianceClause{
 		ComplianceRegisterID: complianceID,
 		ClauseNo:             complianceRequirementFormDTO.ComplianceClauseNo,
-		Title:                complianceRequirementFormDTO.ComplianceClauseTitle,
+		TitleEn:              complianceRequirementFormDTO.ComplianceClauseTitle,
 	}
 
 	clause, err := crs.repo.GetOrCreateComplianceClause(complianceClause, tx)
@@ -187,7 +187,8 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		ComplianceStatusID:              complianceRequirementFormDTO.ComplianceStatusID,
 		ResponsibleUserID:               complianceRequirementFormDTO.ResponsibleUserID,
 		SeverityLevelID:                 complianceRequirementFormDTO.SeverityLevelID,
-		Title:                           complianceRequirementFormDTO.Title,
+		TitleEn:                         complianceRequirementFormDTO.TitleEn,
+		TitleAr:                         complianceRequirementFormDTO.TitleAr,
 		Deadline:                        dates.Deadline,
 		CreatedByID:                     currentUserID,
 		ComplianceClauseID:              clause.ID,
@@ -326,8 +327,8 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Requirement Responsiblity Assigned",
 			HeadingAr:            "تم تعيين مسؤولية متطلبات الامتثال",
-			TitleEn:              complianceRequirementFormDTO.Title,
-			TitleAr:              complianceRequirementFormDTO.Title,
+			TitleEn:              complianceRequirementFormDTO.TitleEn,
+			TitleAr:              complianceRequirementFormDTO.TitleAr,
 			ReferenceNumber:      compliance.ReferenceNumber,
 			Entity:               &entity,
 			Action:               &action,
@@ -358,7 +359,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		}
 
 		emailTo := []string{responsibleUser.Email}
-		subject := fmt.Sprintf("Compliance Requirement/%s: Responsibility Assigned", complianceRequirementFormDTO.Title)
+		subject := fmt.Sprintf("Compliance Requirement/%s: Responsibility Assigned", complianceRequirementFormDTO.TitleEn)
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
 			"FirstNameEn":                   responsibleUser.FirstNameEn,
@@ -366,7 +367,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 			"ComplianceReferenceNumber":     compliance.ReferenceNumber,
 			"ComplianceTitleEn":             compliance.TitleEn,
 			"ComplianceRequirementCategory": complianceRequirementCategory.TitleEn,
-			"RequirementTitleEn":            complianceRequirementFormDTO.Title,
+			"RequirementTitleEn":            complianceRequirementFormDTO.TitleEn,
 			"ComplianceClauseTitle":         complianceRequirementFormDTO.ComplianceClauseTitle,
 			"Deadline":                      dates.Deadline.Format("2006-01-02"),
 			"AssignedByFirstNameEn":         assignedBy.FirstNameEn,
@@ -427,7 +428,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	complianceClause := &models.ComplianceClause{
 		ComplianceRegisterID: complianceID,
 		ClauseNo:             complianceRequirementFormDTO.ComplianceClauseNo,
-		Title:                complianceRequirementFormDTO.ComplianceClauseTitle,
+		TitleEn:              complianceRequirementFormDTO.ComplianceClauseTitle,
 	}
 
 	clause, err := crs.repo.GetOrCreateComplianceClause(complianceClause, tx)
@@ -447,7 +448,8 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	existingComplianceRequirement.ComplianceStatusID = complianceRequirementFormDTO.ComplianceStatusID
 	existingComplianceRequirement.ResponsibleUserID = complianceRequirementFormDTO.ResponsibleUserID
 	existingComplianceRequirement.SeverityLevelID = complianceRequirementFormDTO.SeverityLevelID
-	existingComplianceRequirement.Title = complianceRequirementFormDTO.Title
+	existingComplianceRequirement.TitleEn = complianceRequirementFormDTO.TitleEn
+	existingComplianceRequirement.TitleAr = complianceRequirementFormDTO.TitleAr
 	existingComplianceRequirement.Deadline = dates.Deadline
 	existingComplianceRequirement.Score = score
 	existingComplianceRequirement.UpdatedByID = &currentUserID
@@ -716,7 +718,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 			"compliance_status":               oldComplianceRequirement.ComplianceStatus.TitleEn,
 			"responsible_user":                fmt.Sprintf("%s %s", oldComplianceRequirement.ResponsibleUser.FirstNameEN, oldComplianceRequirement.ResponsibleUser.LastNameEN),
 			"severity_level":                  oldComplianceRequirement.SeverityLevel.TitleEn,
-			"title":                           oldComplianceRequirement.Title,
+			"title":                           oldComplianceRequirement.TitleEn,
 			"dead_line":                       oldComplianceRequirement.DeadlineString,
 			"compliance_clause":               oldComplianceRequirement.ComplianceClause.Title,
 		}
@@ -726,7 +728,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 			"compliance_status":               existingRequirement.ComplianceStatus.TitleEn,
 			"responsible_user":                fmt.Sprintf("%s %s", existingRequirement.ResponsibleUser.FirstNameEN, existingRequirement.ResponsibleUser.LastNameEN),
 			"severity_level":                  existingRequirement.SeverityLevel.TitleEn,
-			"title":                           existingRequirement.Title,
+			"title":                           existingRequirement.TitleEn,
 			"dead_line":                       existingRequirement.DeadlineString,
 			"compliance_clause":               existingRequirement.ComplianceClause.Title,
 		}
@@ -771,9 +773,9 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Compliance Requirement Responsibility Removed",
 				HeadingAr:            "تمت إزالة مسؤولية متطلبات الامتثال",
-				TitleEn:              existingComplianceRequirement.Title,
+				TitleEn:              existingComplianceRequirement.TitleEn,
 				ReferenceNumber:      compliance.ReferenceNumber,
-				TitleAr:              existingComplianceRequirement.Title,
+				TitleAr:              existingComplianceRequirement.TitleEn,
 				Entity:               &entity,
 				Action:               &oldResponsibleUserAction,
 				URLParam:             urlParam,
@@ -790,8 +792,8 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Compliance Requirement Responsibility Assigned",
 				HeadingAr:            "تم تعيين المسؤولية لمتطلبات الامتثال",
-				TitleEn:              existingComplianceRequirement.Title,
-				TitleAr:              existingComplianceRequirement.Title,
+				TitleEn:              existingComplianceRequirement.TitleEn,
+				TitleAr:              existingComplianceRequirement.TitleEn,
 				ReferenceNumber:      compliance.ReferenceNumber,
 				Entity:               &entity,
 				Action:               &newResponsibleUserAction,
@@ -836,15 +838,15 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 
 			// Email notification for the old responsible user
 			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
-			oldResponsibleUserSubject := fmt.Sprintf("Compliance Requirement/%s: Responsibility Removed", existingComplianceRequirement.Title)
+			oldResponsibleUserSubject := fmt.Sprintf("Compliance Requirement/%s: Responsibility Removed", existingComplianceRequirement.TitleEn)
 			oldResponsibleUserEmailData := map[string]interface{}{
 				"FirstNameEn":                   oldResponsibleUser.FirstNameEn,
 				"LastNameEn":                    oldResponsibleUser.LastNameEn,
 				"ComplianceReferenceNumber":     compliance.ReferenceNumber,
 				"ComplianceTitle":               compliance.TitleEn,
 				"ComplianceRequirementCategory": complianceRequirementCategory.TitleEn,
-				"RequirementTitleEn":            existingComplianceRequirement.Title,
-				"ComplianceClauseTitle":         complianceClause.Title,
+				"RequirementTitleEn":            existingComplianceRequirement.TitleEn,
+				"ComplianceClauseTitle":         complianceClause.TitleEn,
 				"Deadline":                      dates.Deadline.Format("2006-01-02"),
 				"UpdatedByFirstNameEn":          updatedByUser.FirstNameEn,
 				"UpdatedByLastNameEn":           updatedByUser.LastNameEn,
@@ -861,15 +863,15 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 
 			// Email notification for the new responsible user
 			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
-			newResponsibleUserSubject := fmt.Sprintf("Compliance Requirement/%s: Responsibility Assigned", existingComplianceRequirement.Title)
+			newResponsibleUserSubject := fmt.Sprintf("Compliance Requirement/%s: Responsibility Assigned", existingComplianceRequirement.TitleEn)
 			newResponsibleUserEmailData := map[string]interface{}{
 				"FirstNameEn":                   newResponsibleUser.FirstNameEn,
 				"LastNameEn":                    newResponsibleUser.LastNameEn,
 				"ComplianceReferenceNumber":     compliance.ReferenceNumber,
 				"ComplianceTitle":               compliance.TitleEn,
 				"ComplianceRequirementCategory": complianceRequirementCategory.TitleEn,
-				"RequirementTitleEn":            existingComplianceRequirement.Title,
-				"ComplianceClauseTitle":         complianceClause.Title,
+				"RequirementTitleEn":            existingComplianceRequirement.TitleEn,
+				"ComplianceClauseTitle":         complianceClause.TitleEn,
 				"Deadline":                      dates.Deadline.Format("2006-01-02"),
 				"UpdatedByFirstNameEn":          updatedByUser.FirstNameEn,
 				"UpdatedByLastNameEn":           updatedByUser.LastNameEn,
@@ -944,7 +946,7 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 		}{
 			OwnerID:          &requirement.ResponsibleUserID,
 			Title:            compliance.TitleEn,
-			RequirementTitle: requirement.Title,
+			RequirementTitle: requirement.TitleEn,
 			ReferenceNumber:  compliance.ReferenceNumber,
 		})
 
@@ -1011,7 +1013,7 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 		deletedComplianceRequirement = append(deletedComplianceRequirement, map[string]interface{}{
 			"id":                     id,
 			"compliance_register_id": complianceID,
-			"title":                  requirement.Title,
+			"title":                  requirement.TitleEn,
 		})
 
 	}
@@ -1279,8 +1281,8 @@ func (srs *ComplianceRequirementService) ExportComplianceRequirements(data []*co
 			rows[i] = []interface{}{
 				i + 1,
 				item.ComplianceClauseNo,
-				item.ComplianceClauseTitle,
-				item.Title,
+				item.ComplianceClauseTitleAr,
+				item.TitleAr,
 				item.ComplianceRequirementCategoryTitleAr,
 				item.SeverityLevelTitleAr,
 				item.ResponsibleUserFirstNameAr + " " + item.ResponsibleUserLastNameAr,
@@ -1291,8 +1293,8 @@ func (srs *ComplianceRequirementService) ExportComplianceRequirements(data []*co
 			rows[i] = []interface{}{
 				i + 1,
 				item.ComplianceClauseNo,
-				item.ComplianceClauseTitle,
-				item.Title,
+				item.ComplianceClauseTitleEn,
+				item.TitleEn,
 				item.ComplianceRequirementCategoryTitleEn,
 				item.SeverityLevelTitleEn,
 				item.ResponsibleUserFirstNameEn + " " + item.ResponsibleUserLastNameEn,

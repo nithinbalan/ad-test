@@ -6,9 +6,13 @@ import (
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	TestAndExerciseRepositories "jethur/grc/business-continuity/repositories"
 	logServices "jethur/grc/logs/services"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"os"
+	"strconv"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -21,6 +25,9 @@ type TestAndExerciseServiceInterface interface {
 	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.TestAndExerciseFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, TestAndExercise *businessContinuityDTOs.TestAndExerciseFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	GetTestAndExerciseProcessByID(id uint) (*models.TestAndExerciseProcess, error)
+	ExportTestAndExercise(data []*businessContinuityDTOs.TestAndExerciseListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -32,6 +39,8 @@ type TestAndExerciseService struct {
 	businessContinuityPlanSvc        BusinessContinuityPlanServiceInterface
 	testAndExerciseStatusSvc         TestAndExerciseStatusServiceInterface
 	communicationActionPlanStatusSvc CommunicationActionPlanStatusServiceInterface
+	actionPlanSvc                    masterServices.ActionPlanStatusServiceInterface
+	userSettingSvc                   organizationServices.UserSettingServiceInterface
 }
 
 func NewTestAndExerciseService(
@@ -42,6 +51,8 @@ func NewTestAndExerciseService(
 	businessContinuityPlanSvc BusinessContinuityPlanServiceInterface,
 	testAndExerciseStatusSvc TestAndExerciseStatusServiceInterface,
 	communicationActionPlanStatusSvc CommunicationActionPlanStatusServiceInterface,
+	actionPlanSvc masterServices.ActionPlanStatusServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) TestAndExerciseServiceInterface {
 	return &TestAndExerciseService{
 		repo:                             repo,
@@ -51,6 +62,8 @@ func NewTestAndExerciseService(
 		businessContinuityPlanSvc:        businessContinuityPlanSvc,
 		testAndExerciseStatusSvc:         testAndExerciseStatusSvc,
 		communicationActionPlanStatusSvc: communicationActionPlanStatusSvc,
+		actionPlanSvc:                    actionPlanSvc,
+		userSettingSvc:                   userSettingSvc,
 	}
 }
 
@@ -183,17 +196,50 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 		var testAndExerciseRecoveryActionPlan []*models.TestAndExerciseRecoveryActionPlan
 
 		for _, bcpRecoveryPlan := range businessContinuityPlan.BcpRecoveryPlans {
+			testingDate, err := utility.ParseDate(testAndExerciseFormDTO.TestingDate) //time.Parse("2006-01-02", testAndExerciseFormDTO.TestingDate)
+			if err != nil {
+				// Handle parsing error
+				continue
+			}
+
+			// Convert TargetCompletion to an integer
+			targetCompletion, err := strconv.Atoi(*bcpRecoveryPlan.TargetCompletion)
+			if err != nil {
+				// Handle parsing error for TargetCompletion
+				continue
+			}
+
+			var targetDate time.Time
+			switch bcpRecoveryPlan.TargetCompletionUnit.TitleEn {
+			case "Minutes":
+				targetDate = testingDate.Add(time.Duration(targetCompletion) * time.Minute)
+			case "Hours":
+				targetDate = testingDate.Add(time.Duration(targetCompletion) * time.Hour)
+			case "Days":
+				targetDate = testingDate.AddDate(0, 0, targetCompletion)
+			case "Weeks":
+				targetDate = testingDate.AddDate(0, 0, targetCompletion*7)
+			default:
+				// Handle unsupported unit
+				continue
+			}
+
+			actionPlanStatus, err := tes.actionPlanSvc.GetByType("new")
+			if err != nil {
+				return 0, err
+			}
 			process := &models.TestAndExerciseRecoveryActionPlan{
-				TestAndExerciseID:      id,
-				ProcessID:              bcpRecoveryPlan.BcpProcess.Process.ID,
-				Title:                  bcpRecoveryPlan.Title,
-				SeverityLevelID:        &bcpRecoveryPlan.SeverityLevel.ID,
-				BcpPhaseID:             bcpRecoveryPlan.BcpPhaseID,
-				ResponsibleUserID:      bcpRecoveryPlan.ResponsibleUserID,
-				ResponsibleUnitID:      bcpRecoveryPlan.ResponsibleUnitID,
-				TargetCompletion:       bcpRecoveryPlan.TargetCompletion,
-				TargetCompletionUnitId: bcpRecoveryPlan.TargetCompletionUnitID,
-				CreatedBYID:            currentUserID,
+				TestAndExerciseID:  id,
+				ProcessID:          bcpRecoveryPlan.BcpProcess.Process.ID,
+				Title:              bcpRecoveryPlan.Title,
+				SeverityLevelID:    &bcpRecoveryPlan.SeverityLevel.ID,
+				BcpPhaseID:         &bcpRecoveryPlan.BcpPhaseID,
+				ResponsibleUserID:  bcpRecoveryPlan.ResponsibleUserID,
+				ResponsibleUnitID:  bcpRecoveryPlan.ResponsibleUnitID,
+				TargetDate:         &targetDate,
+				ActionPlanStatusId: &actionPlanStatus.ID,
+				IsRecovery:         true,
+				CreatedBYID:        currentUserID,
 			}
 			testAndExerciseRecoveryActionPlan = append(testAndExerciseRecoveryActionPlan, process)
 		}
@@ -531,7 +577,7 @@ func (tes *TestAndExerciseService) Delete(ids []uint, currentUserID uint) ([]uin
 	return failedIds, nil
 }
 
-func (bfs *TestAndExerciseService) parseTestAndExerciseDates(dto *businessContinuityDTOs.TestAndExerciseFormDTO) (*businessContinuityDTOs.TestAndExerciseParsedDates, error) {
+func (tes *TestAndExerciseService) parseTestAndExerciseDates(dto *businessContinuityDTOs.TestAndExerciseFormDTO) (*businessContinuityDTOs.TestAndExerciseParsedDates, error) {
 	parsed := &businessContinuityDTOs.TestAndExerciseParsedDates{}
 
 	var err error
@@ -544,4 +590,66 @@ func (bfs *TestAndExerciseService) parseTestAndExerciseDates(dto *businessContin
 	}
 
 	return parsed, nil
+}
+
+func (tes TestAndExerciseService) GetTestAndExerciseProcessByID(id uint) (*models.TestAndExerciseProcess, error) {
+	TestAndExerciseProcess, err := tes.repo.GetTestAndExerciseProcessByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	return TestAndExerciseProcess, nil
+}
+
+func (tes *TestAndExerciseService) ExportTestAndExercise(data []*businessContinuityDTOs.TestAndExerciseListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := tes.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"Business Function",
+			"Testing Date",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"Business Function",
+			"Testing Date",
+		}
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, testAndExercise := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				testAndExercise.ReferenceNumber,
+				testAndExercise.BcpTestAndExerciseTitle,
+				testAndExercise.BusinessFunctionTitle,
+				testAndExercise.TestingDate,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				testAndExercise.ReferenceNumber,
+				testAndExercise.BcpTestAndExerciseTitle,
+				testAndExercise.BusinessFunctionTitle,
+				testAndExercise.TestingDate,
+			}
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }

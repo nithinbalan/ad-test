@@ -17,10 +17,12 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	riskDTOs "jethur/grc/risk/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
+	settingsServices "jethur/grc/settings/services"
 	"jethur/utility"
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -37,6 +39,7 @@ type AuditFinalReportServiceInterface interface {
 	GetAuditFinalReportLastEditSummary(auditID uint) (*auditDTOs.AuditFinalReportLastEditSummaryDTO, error)
 
 	CreateAuditReportEditHistory(auditReportEditSummaryDTO *auditDTOs.AuditReportEditHistoryDTO, currentUserId uint, tx ...utility.DatabaseTransaction) error
+	ExportAuditFinalReportToPDF(auditID uint, currentUserID uint) (string, error)
 	Publish(auditID uint, currentUserID uint, auditFinalReportPublishFormDTO *auditDTOs.AuditFinalReportPublishFormDTO) error
 }
 
@@ -52,6 +55,7 @@ type AuditFinalReportService struct {
 	auditFinalReportStatusSvc AuditFinalReportStatusServiceInterface
 	auditFindingSvc           AuditFindingServiceInterface
 	auditReportWorkflowSvc    AuditReportWorkflowServiceInterface
+	settingSvc                settingsServices.AuditTemplateSettingServiceInterface
 	notificationSvc           commonServices.NotificationServiceInterface
 }
 
@@ -66,6 +70,7 @@ func NewAuditFinalReportService(
 	userSvc organizationServices.UserServiceInterface,
 	auditFinalReportStatusSvc AuditFinalReportStatusServiceInterface,
 	auditFindingSvc AuditFindingServiceInterface,
+	settingSvc settingsServices.AuditTemplateSettingServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 ) AuditFinalReportServiceInterface {
 	return &AuditFinalReportService{
@@ -79,6 +84,7 @@ func NewAuditFinalReportService(
 		userSvc:                   userSvc,
 		auditFinalReportStatusSvc: auditFinalReportStatusSvc,
 		auditFindingSvc:           auditFindingSvc,
+		settingSvc:                settingSvc,
 		notificationSvc:           notificationSvc,
 	}
 }
@@ -156,6 +162,38 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 		if section.AuditFinalReportSectionID == nil {
 			// Main section
 			mainSectionDTO := mapSectionToDTO(section)
+
+			if section.Type == "finding-summary" {
+				// Finding summary: category-wise count
+				categoryWiseCounts := map[int]int{}
+				for _, finding := range auditFinalReport.Audit.AuditFindings {
+					if finding.AuditFindingCategoryID != 0 {
+						categoryWiseCounts[int(finding.AuditFindingCategoryID)]++
+					}
+				}
+
+				// Convert the map to a DTO structure
+				findingCategoryCounts := []*auditDTOs.FindingCategorySummaryDTO{}
+				for categoryID, count := range categoryWiseCounts {
+					category := findCategoryByID(auditFinalReport.Audit.AuditFindings, uint(categoryID))
+					if category != nil {
+						findingCategoryCounts = append(findingCategoryCounts, &auditDTOs.FindingCategorySummaryDTO{
+							Category: &auditDTOs.AuditFindingCategoryDTO{
+								ID:            int(category.ID),
+								TitleEn:       category.TitleEn,
+								TitleAr:       category.TitleAr,
+								ColorCode:     category.ColorCode,
+								DescriptionEn: safeStringPointer(category.DescriptionEn),
+								DescriptionAr: safeStringPointer(category.DescriptionAr),
+							},
+							Count: count,
+						})
+					}
+				}
+
+				// Assign category-wise counts to the section DTO
+				mainSectionDTO.FindingCategorySummary = findingCategoryCounts
+			}
 
 			// If this section is for findings, map the findings directly to it
 			if section.Type == "findings" {
@@ -291,7 +329,8 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 							}
 							if finding.AuditableItem.ComplianceRequirement != nil {
 								findingDTO.AuditableItem.ComplianceRequirement = &complianceDTOs.ComplianceRequirementDetailDTO{
-									Title: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.Title),
+									TitleEn: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.TitleEn),
+									TitleAr: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.TitleAr),
 								}
 							}
 							if finding.AuditableItem.IncidentRegister != nil {
@@ -446,7 +485,8 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 						}
 						if finding.AuditableItem.ComplianceRequirement != nil {
 							findingDTO.AuditableItem.ComplianceRequirement = &complianceDTOs.ComplianceRequirementDetailDTO{
-								Title: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.Title),
+								TitleEn: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.TitleEn),
+								TitleAr: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.TitleAr),
 							}
 						}
 						if finding.AuditableItem.IncidentRegister != nil {
@@ -548,7 +588,6 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 			})
 		}
 	}
-
 	// Return the DTO
 	return auditReportDTO, nil
 }
@@ -757,8 +796,8 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 					titleAr = auditableItem.AuditableItem.IncidentRegister.Title
 
 				case "compliance_requirement":
-					titleEn = auditableItem.AuditableItem.ComplianceRequirement.Title
-					titleAr = auditableItem.AuditableItem.ComplianceRequirement.Title
+					titleEn = auditableItem.AuditableItem.ComplianceRequirement.TitleEn
+					titleAr = auditableItem.AuditableItem.ComplianceRequirement.TitleAr
 
 				case "risk":
 					titleEn = auditableItem.AuditableItem.RiskRegister.Title
@@ -1259,6 +1298,56 @@ func (afrs *AuditFinalReportService) CreateAuditReportEditHistory(auditReportEdi
 	return nil
 }
 
+func (afrs *AuditFinalReportService) ExportAuditFinalReportToPDF(auditID uint, currentUserID uint) (string, error) {
+	// Fetch the audit report details
+	auditFinalReport, err := afrs.GetFullDetailsByID(auditID, currentUserID, "")
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch audit report details: %w", err)
+	}
+	auditTemplateSetting, err := afrs.settingSvc.GetFirst()
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch audit template details: %w", err)
+	}
+	logoImagePath, err := afrs.settingSvc.GetImagePath(auditTemplateSetting.ID, "logo")
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch audit template logo Image Path: %w", err)
+	}
+	finalReportCoverPageBGImagePath, err := afrs.settingSvc.GetImagePath(auditTemplateSetting.ID, "final_report")
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch audit template cover bg Image Path: %w", err)
+	}
+	// Define template paths
+	templatePaths := []string{
+		"audit/templates/pdf/audit_final_report.html", // Content-specific template
+	}
+	// Ensure paths are properly formatted for use in wkhtmltopdf
+	logoImagePath = "file:///" + strings.ReplaceAll(logoImagePath, "\\", "/")
+	finalReportCoverPageBGImagePath = "file:///" + strings.ReplaceAll(finalReportCoverPageBGImagePath, "\\", "/")
+
+	// Encode spaces in paths to make them URL-compatible
+	logoImagePath = strings.ReplaceAll(logoImagePath, " ", "%20")
+	finalReportCoverPageBGImagePath = strings.ReplaceAll(finalReportCoverPageBGImagePath, " ", "%20")
+
+	// Debugging: Print the paths to verify
+	fmt.Println("Logo Image Path:", logoImagePath)
+	fmt.Println("Final Report Cover Page BG Image Path:", finalReportCoverPageBGImagePath)
+
+	// Generate the HTML content
+	htmlContent, err := utility.GeneratePDFContent(auditFinalReport, templatePaths, logoImagePath, finalReportCoverPageBGImagePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate HTML content: %w", err)
+	}
+	// Define the output PDF file name
+	pdfFileName := fmt.Sprintf("AuditFinalReport_%d.pdf", auditID)
+
+	// Convert HTML content to a PDF file
+	if err := utility.ConvertHTMLContentToPDF(htmlContent, pdfFileName); err != nil {
+		return "", fmt.Errorf("failed to generate PDF: %w", err)
+	}
+
+	return pdfFileName, nil
+}
+
 // Helper function to return a pointer to a float64 value
 func float64Ptr(val float64) *float64 {
 	return &val
@@ -1451,5 +1540,14 @@ func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, a
 		}
 	}()
 
+	return nil
+}
+
+func findCategoryByID(findings []*models.AuditFinding, categoryID uint) *models.AuditFindingCategory {
+	for _, finding := range findings {
+		if finding.AuditFindingCategory != nil && finding.AuditFindingCategory.ID == categoryID {
+			return finding.AuditFindingCategory
+		}
+	}
 	return nil
 }

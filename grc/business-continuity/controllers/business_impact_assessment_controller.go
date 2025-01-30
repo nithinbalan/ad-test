@@ -38,6 +38,12 @@ func (biac *BusinessImpactAssessmentController) GetAllProcesses(c *gin.Context) 
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, "Invalid export parameter")
+		return
+	}
+
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"process_group_ids",
@@ -95,6 +101,7 @@ func (biac *BusinessImpactAssessmentController) GetAllProcesses(c *gin.Context) 
 		QuickFilter: quickFilter,
 		DateFrom:    dateFrom,
 		DateTo:      dateTo,
+		Export:      export,
 	}
 
 	processes, err := biac.processSvc.GetAll(&queryParams)
@@ -102,6 +109,30 @@ func (biac *BusinessImpactAssessmentController) GetAllProcesses(c *gin.Context) 
 		utility.SendInternalErrResp(biac.db, c, err.Error())
 		return
 	}
+
+	if export {
+
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(biac.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := biac.processSvc.ExportProcesses(processes.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(biac.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Processes.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+
 	c.JSON(http.StatusOK, processes)
 }
 
@@ -474,10 +505,41 @@ func (biac *BusinessImpactAssessmentController) UpdateRecoveryObjective(c *gin.C
 	c.Status(http.StatusOK)
 }
 
+func (biac *BusinessImpactAssessmentController) DeleteBusinessImpactAssessments(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := biac.service.Delete(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
 func (biac *BusinessImpactAssessmentController) GetBIAMatrix(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "business_function_title")
 	keyword := c.Query("keyword")
+
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, "Invalid export parameter")
+		return
+	}
 
 	validSortFields := map[string]string{
 		"business_function_title": "business_functions.title",
@@ -513,6 +575,7 @@ func (biac *BusinessImpactAssessmentController) GetBIAMatrix(c *gin.Context) {
 		SortBy:  sortField,
 		Keyword: keyword,
 		Filters: filters,
+		Export:  export,
 	}
 
 	matrix, err := biac.service.GetBIAMatrix(&queryParams)
@@ -530,5 +593,39 @@ func (biac *BusinessImpactAssessmentController) GetBIAMatrix(c *gin.Context) {
 		}
 	}
 
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(biac.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := biac.service.ExportBiaMatrix(matrix, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(biac.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="BiaMatrix.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+
 	c.JSON(http.StatusOK, matrix)
+}
+
+func (biac *BusinessImpactAssessmentController) GetBiaMatrixExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	biac.GetBIAMatrix(c)
+}
+
+func (biac *BusinessImpactAssessmentController) GetAllProcessesExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	biac.GetAllProcesses(c)
 }

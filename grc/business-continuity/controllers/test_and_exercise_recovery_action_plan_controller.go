@@ -37,6 +37,7 @@ func (terapc *TestAndExerciseRecoveryActionPlanController) GetAllTestAndExercise
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
 
 	allowedParams := []string{
 		"bcp_phase_ids",
@@ -66,18 +67,6 @@ func (terapc *TestAndExerciseRecoveryActionPlanController) GetAllTestAndExercise
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
-	page, err := utility.ParseQueryParamToInt(c, "page", 1)
-	if err != nil {
-		utility.SendInternalErrResp(terapc.db, c, "Invalid page parameter")
-		return
-	}
-
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
-	if err != nil {
-		utility.SendInternalErrResp(terapc.db, c, "Invalid page_size parameter")
-		return
-	}
-
 	sortField, valid := validSortFields[sortBy]
 	if !valid {
 		err := errors.New("invalid 'sort_by' parameter")
@@ -86,12 +75,11 @@ func (terapc *TestAndExerciseRecoveryActionPlanController) GetAllTestAndExercise
 	}
 
 	queryParams := businessContinuityDTOs.TestAndExerciseRecoveryActionPlanQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortField,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
-		Filters:  filters,
+		Sort:        sort,
+		SortBy:      sortField,
+		Keyword:     keyword,
+		Filters:     filters,
+		QuickFilter: quickFilter,
 	}
 
 	actionPlans, err := terapc.service.GetAll(uint(testAndExerciseID), &queryParams)
@@ -110,6 +98,7 @@ func (terapc *TestAndExerciseRecoveryActionPlanController) GetByID(c *gin.Contex
 		utility.SendNotFoundErrResp(c)
 		return
 	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {

@@ -12,8 +12,10 @@ type ComplianceRequirementListDTO struct {
 	ID                                   uint    `json:"id"`
 	ClauseID                             uint    `json:"clause_id"`
 	ComplianceClauseNo                   string  `json:"compliance_clause_no"`
-	ComplianceClauseTitle                string  `json:"compliance_clause_title"`
-	Title                                string  `json:"title"`
+	ComplianceClauseTitleEn              string  `json:"compliance_clause_title_en"`
+	ComplianceClauseTitleAr              string  `json:"compliance_clause_title_ar"`
+	TitleEn                              string  `json:"title_en"`
+	TitleAr                              string  `json:"title_ar"`
 	ComplianceRequirementCategoryTitleEn string  `json:"compliance_requirement_category_title_en"`
 	ComplianceRequirementCategoryTitleAr string  `json:"compliance_requirement_category_title_ar"`
 	SeverityLevelTitleEn                 string  `json:"severity_level_title_en"`
@@ -76,10 +78,11 @@ type ComplianceRequirementListResponseDTO struct {
 }
 
 type ComplianceRequirementByComplianceIDListDTO struct {
-	ClauseID     uint                            `json:"clause_id"`
-	ClauseNo     string                          `json:"clause_no"`
-	ClauseTitle  string                          `json:"clause_title"`
-	Requirements []*ComplianceRequirementListDTO `json:"requirements"`
+	ClauseID      uint                            `json:"clause_id"`
+	ClauseNo      string                          `json:"clause_no"`
+	ClauseTitleEn string                          `json:"clause_title_en"`
+	ClauseTitleAr string                          `json:"clause_title_er"`
+	Requirements  []*ComplianceRequirementListDTO `json:"requirements"`
 }
 
 type ComplianceRequirementByComplianceIDListResponseDTO struct {
@@ -90,7 +93,8 @@ type ComplianceRequirementByComplianceIDListResponseDTO struct {
 type ComplianceRequirementFormDTO struct {
 	ComplianceClauseNo              string  `json:"compliance_clause_no" binding:"required"`
 	ComplianceClauseTitle           string  `json:"compliance_clause_title" binding:"required"`
-	Title                           string  `json:"title" binding:"required"`
+	TitleEn                         string  `json:"title_en" binding:"required"`
+	TitleAr                         string  `json:"title_ar" binding:"required"`
 	ComplianceRequirementCategoryID uint    `json:"compliance_requirement_category_id" binding:"required"`
 	SeverityLevelID                 uint    `json:"severity_level_id" binding:"required"`
 	ResponsibleUserID               uint    `json:"responsible_user_id" binding:"required"`
@@ -108,7 +112,8 @@ type ComplianceRequirementParsedDates struct {
 type ComplianceRequirementDetailDTO struct {
 	ID                            int                                           `json:"id"`
 	ComplianceClause              ComplianceClauseDTO                           `json:"compliance_clause"`
-	Title                         string                                        `json:"title"`
+	TitleEn                       string                                        `json:"title_en"`
+	TitleAr                       string                                        `json:"title_ar"`
 	ResponsibleUserID             uint                                          `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	ComplianceRequirementCategory ComplianceRequirementCategoryDTO              `json:"compliance_requirement_category"`
 	SeverityLevel                 *masterDTOs.SeverityLevelDTO                  `json:"severity_level"`

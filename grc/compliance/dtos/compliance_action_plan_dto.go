@@ -6,13 +6,16 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
 )
 
 type ComplianceActionPlanListDTO struct {
 	ID                              uint    `json:"id"`
 	ComplianceClauseNo              string  `json:"compliance_clause_no"`
-	ComplianceClauseTitle           string  `json:"compliance_clause_title"`
-	ComplianceRequirementTitle      string  `json:"compliance_requirement_title"`
+	ComplianceClauseTitleEn         string  `json:"compliance_clause_title_en"`
+	ComplianceClauseTitleAr         string  `json:"compliance_clause_title_ar"`
+	ComplianceRequirementTitleEn    string  `json:"compliance_requirement_title_en"`
+	ComplianceRequirementTitleAr    string  `json:"compliance_requirement_title_ar"`
 	Title                           string  `json:"title"`
 	Description                     string  `json:"description"`
 	SeverityLevelTitleEn            string  `json:"severity_level_title_en"`
@@ -103,7 +106,8 @@ type ComplianceActionPlanParsedDates struct {
 type ComplianceRequirementMinimalDTO struct {
 	ID               int                 `json:"id"`
 	ComplianceClause ComplianceClauseDTO `json:"compliance_clause"`
-	Title            string              `json:"title"`
+	TitleEn          string              `json:"title_en"`
+	TitleAr          string              `json:"title_ar"`
 }
 
 type ComplianceActionPlanDetailDTO struct {
@@ -115,7 +119,11 @@ type ComplianceActionPlanDetailDTO struct {
 	SeverityLevel           *masterDTOs.SeverityLevelDTO           `json:"severity_level"`
 	ResponsibleUserID       uint                                   `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	ResponsibleUser         organizationDTOs.UserMinimalDTO        `json:"responsible_user"`
+	ResponsibleUserUnitID   *uint                                  `json:"responsible_user_unit_id"`
+	ResponsibleUserUnit     settingsDTOs.OrganizationUnitDTO       `json:"responsible_user_unit"`
 	ReviewUser              *organizationDTOs.UserMinimalDTO       `json:"review_user"`
+	ReviewUserUnitID        *uint                                  `json:"review_user_unit_id"`
+	ReviewUserUnit          settingsDTOs.OrganizationUnitDTO       `json:"review_user_unit"`
 	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO         `json:"action_plan_status"`
 	Percentage              *uint                                  `json:"percentage"`
 	Comments                *string                                `json:"comments"`

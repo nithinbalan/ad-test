@@ -9,6 +9,7 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"os"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -23,6 +24,7 @@ type BusinessFunctionServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	UpdateBusinessFunction(businessFunction *models.BusinessFunction, tx utility.DatabaseTransaction) error
+	ExportBusinessFunction(data []*businessContinuityDTOs.BusinessFunctionListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -30,17 +32,20 @@ type BusinessFunctionService struct {
 	repo           businessFunctionRepositories.BusinessFunctionRepositoryInterface
 	activityLogSvc logServices.ActivityLogServiceInterface
 	userSvc        organizationServices.UserServiceInterface
+	userSettingSvc organizationServices.UserSettingServiceInterface
 }
 
 func NewBusinessFunctionService(
 	repo businessFunctionRepositories.BusinessFunctionRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) BusinessFunctionServiceInterface {
 	return &BusinessFunctionService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
 		userSvc:        userSvc,
+		userSettingSvc: userSettingSvc,
 	}
 }
 
@@ -454,4 +459,53 @@ func (bfs *BusinessFunctionService) parseBusinessFunctionDates(dto *businessCont
 	}
 
 	return parsed, nil
+}
+
+func (bfs *BusinessFunctionService) ExportBusinessFunction(data []*businessContinuityDTOs.BusinessFunctionListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := bfs.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"Severity Level",
+			"Responsible User",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"Severity Level",
+			"Responsible User",
+		}
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, businessFunction := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				businessFunction.ReferenceNumber,
+				businessFunction.Title,
+				businessFunction.SeverityLevelTitleAr,
+				fmt.Sprintf("%s %s", businessFunction.ResponsibleUserFirstNameAr, businessFunction.ResponsibleUserLastNameAr),
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				businessFunction.ReferenceNumber,
+				businessFunction.Title,
+				businessFunction.SeverityLevelTitleEn,
+				fmt.Sprintf("%s %s", businessFunction.ResponsibleUserFirstNameEn, businessFunction.ResponsibleUserLastNameEn),
+			}
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }

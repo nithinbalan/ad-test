@@ -363,7 +363,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 				}
 				if finding.AuditableItem.ComplianceRequirement != nil {
 					findingDTO.AuditableItem.ComplianceRequirement = &complianceDTOs.ComplianceRequirementDetailDTO{
-						Title: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.Title),
+						TitleEn: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.TitleEn),
+						TitleAr: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.TitleAr),
 					}
 				}
 				if finding.AuditableItem.IncidentRegister != nil {
@@ -567,7 +568,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 				}
 				if finding.AuditableItem.ComplianceRequirement != nil {
 					findingDTO.AuditableItem.ComplianceRequirement = &complianceDTOs.ComplianceRequirementDetailDTO{
-						Title: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.Title),
+						TitleEn: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.TitleEn),
+						TitleAr: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.TitleAr),
 					}
 				}
 				if finding.AuditableItem.IncidentRegister != nil {
@@ -1083,7 +1085,7 @@ func (adrs *AuditDraftReportService) Complete(auditID uint, id uint, currentUser
 		tx.Rollback()
 		return utility.NewForbiddenError("The audit draft report has not been in department review.")
 	}
-	auditDraftFindings, err := adrs.auditDraftFindingSvc.GetAllFindingsByAuditID(existingAuditDraftReport.AuditID,tx)
+	auditDraftFindings, err := adrs.auditDraftFindingSvc.GetAllFindingsByAuditID(existingAuditDraftReport.AuditID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err

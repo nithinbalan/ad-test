@@ -2,7 +2,6 @@ package repositories
 
 import (
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
-	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -11,7 +10,7 @@ import (
 
 type TestAndExerciseRecoveryActionPlanRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(testAndExerciseID uint, params *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanQueryParamsDTO) (*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListResponseDTO, error)
+	GetAll(testAndExerciseID uint, params *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanQueryParamsDTO) ([]*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListDTO, error)
 	GetByID(id uint) (*models.TestAndExerciseRecoveryActionPlan, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.TestAndExerciseRecoveryActionPlan, error)
 	Create(actionPlan *models.TestAndExerciseRecoveryActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
@@ -33,9 +32,8 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) BeginTransaction() util
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseID uint, params *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanQueryParamsDTO) (*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListResponseDTO, error) {
+func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseID uint, params *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanQueryParamsDTO) ([]*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListDTO, error) {
 	var testAndExerciseRecoveryActionPlans []*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListDTO
-	var totalCount int64
 
 	query := repo.db.Table("test_and_exercise_recovery_action_plans").
 		Select(`
@@ -43,6 +41,7 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
             test_and_exercise_recovery_action_plans.test_and_exercise_id,
             test_and_exercise_recovery_action_plans.bcp_phase_id,
             test_and_exercise_recovery_action_plans.process_id,
+			test_and_exercise_recovery_action_plans.percentage,
 			bcp_phases.title_en AS bcp_phase_title_en,
 			bcp_phases.title_ar AS bcp_phase_title_ar,
             processes.title_en AS process_title_en, 
@@ -50,6 +49,7 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
             test_and_exercise_recovery_action_plans.severity_level_id,
             severity_levels.title_en AS severity_level_title_en, 
             severity_levels.title_ar AS severity_level_title_ar, 
+			severity_levels.color_code AS severity_level_color_code,
             test_and_exercise_recovery_action_plans.title,
             test_and_exercise_recovery_action_plans.responsible_user_id,
             test_and_exercise_recovery_action_plans.responsible_unit_id,
@@ -63,10 +63,7 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
             responsible_user.email AS responsible_user_email, 
             responsible_user.color AS responsible_user_color, 
             responsible_user.profile_image_path AS responsible_user_profile_image_path, 
-            test_and_exercise_recovery_action_plans.target_completion,
-            test_and_exercise_recovery_action_plans.target_completion_unit_id,
-            time_units.title_en AS target_completion_unit_en,
-            time_units.title_ar AS target_completion_unit_ar,
+            CONVERT(VARCHAR, test_and_exercise_recovery_action_plans.target_date, 23) AS target_date,
             test_and_exercise_recovery_action_plans.action_plan_status_id,
             action_plan_statuses.title_en AS action_plan_status_title_en, 
             action_plan_statuses.title_ar AS action_plan_status_title_ar, 
@@ -96,7 +93,6 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
 		Joins(`LEFT JOIN severity_levels ON severity_levels.id = test_and_exercise_recovery_action_plans.severity_level_id`).
 		Joins(`LEFT JOIN users AS responsible_user ON responsible_user.id = test_and_exercise_recovery_action_plans.responsible_user_id`).
 		Joins(`LEFT JOIN organization_units ON organization_units.id = test_and_exercise_recovery_action_plans.responsible_unit_id`).
-		Joins(`LEFT JOIN time_units ON time_units.id = test_and_exercise_recovery_action_plans.target_completion_unit_id`).
 		Joins(`LEFT JOIN action_plan_statuses ON action_plan_statuses.id = test_and_exercise_recovery_action_plans.action_plan_status_id`).
 		Joins(`LEFT JOIN users AS created_user ON created_user.id = test_and_exercise_recovery_action_plans.created_by_id`).
 		Joins(`LEFT JOIN users AS updated_user ON updated_user.id = test_and_exercise_recovery_action_plans.updated_by_id`).
@@ -107,11 +103,15 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
 			query = query.Where(columnName+" IN (?)", values)
 		}
 	}
-
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "is_recovery":
+			query = query.Where("test_and_exercise_recovery_action_plans.is_recovery = ?", true)
+		case "is_not_recovery":
+			query = query.Where("test_and_exercise_recovery_action_plans.is_recovery = ?", false)
+		}
 	}
-
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
@@ -129,8 +129,6 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
 			action_plan_statuses.title_en LIKE ? OR
 			action_plan_statuses.title_ar LIKE ? OR
 			test_and_exercise_recovery_action_plans.title LIKE ? OR
-			time_units.title_en LIKE ? OR
-			time_units.title_ar LIKE ? OR
 			created_user.first_name_en LIKE ? OR
 			created_user.last_name_en LIKE ? OR
 			created_user.first_name_ar LIKE ? OR
@@ -144,37 +142,19 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword,
 		)
 	}
 
-	if err := query.Count(&totalCount).Error; err != nil {
+	if params.SortBy != "" && params.Sort != "" {
+		query = query.Order(params.SortBy + " " + params.Sort)
+	}
+
+	if err := query.Find(&testAndExerciseRecoveryActionPlans).Error; err != nil {
 		return nil, err
 	}
 
-	query = query.Order(params.SortBy + " " + params.Sort)
-
-	offset := (params.Page - 1) * params.PageSize
-	query = query.Offset(offset).Limit(params.PageSize)
-
-	err := query.Find(&testAndExerciseRecoveryActionPlans).Error
-	if err != nil {
-		return nil, err
-	}
-
-	totalPages := 1
-	totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
-	response := &businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListResponseDTO{
-		Items: testAndExerciseRecoveryActionPlans,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
-	}
-	return response, nil
+	return testAndExerciseRecoveryActionPlans, nil
 }
 
 func (repo *TestAndExerciseRecoveryActionPlanRepository) GetByID(id uint) (*models.TestAndExerciseRecoveryActionPlan, error) {
@@ -197,7 +177,6 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetFullDetailsByID(id u
 		Preload("BcpPhase").
 		Preload("Process").
 		Preload("SeverityLevel").
-		Preload("TargetCompletionUnit").
 		Preload("ActionPlanStatus").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUnit").

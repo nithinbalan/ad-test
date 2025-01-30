@@ -59,6 +59,7 @@ type TestAndExerciseListQueryParamsDTO struct {
 	PageSize    int
 	Filters     map[string][]string
 	QuickFilter []string
+	Export      bool
 }
 
 type TestAndExerciseListResponseDTO struct {
@@ -90,6 +91,7 @@ type TestAndExerciseDetailDTO struct {
 	Description                             *string                                      `json:"description"`
 	TestAndExerciseStatusID                 uint                                         `json:"test_and_exercise_status_id"`
 	TestAndExerciseStatus                   TestAndExerciseStatusDTO                     `json:"test_and_exercise_status"`
+	TestAndExerciseTestResult               *TestAndExerciseTestResultDetailDTO          `json:"test_and_exercise_test_result"`
 	CreatedAt                               time.Time                                    `json:"created_at"`
 	UpdatedAt                               *time.Time                                   `json:"updated_at"`
 	CreatedByUser                           organizationDTOs.UserMinimalDTO              `json:"created_by_user"`
@@ -119,23 +121,24 @@ type TestAndExerciseProcessDTO struct {
 	ActualRpo         *int                              `json:"actual_rpo"`
 	ActualRpoUnitId   *uint                             `json:"actual_rpo_unit_id"`
 	ActualRpoUnit     *masterDTOs.TimeUnitDTO           `json:"actual_rpo_unit"`
+	TimelinessID      *uint                             `json:"timeliness_id"`
+	Timeliness        TimelinessDTO                     `json:"timeliness"`
+	IsRecovered       bool                              `json:"is_recovered"`
 }
 
 type TestAndExerciseRecoveryActionPlanDTO struct {
-	ID                     *uint                             `json:"id"`
-	TestAndExerciseID      uint                              `json:"test_and_exercise_id"`
-	ProcessID              uint                              `json:"process_id"`
-	Process                organizationDTOs.ProcessDetailDTO `json:"process"`
-	BcpPhaseID             uint                              `json:"bcp_phase_id"`
-	BcpPhase               BcpPhaseDTO                       `json:"bcp_phase"`
-	SeverityLevel          *masterDTOs.SeverityLevelDTO      `json:"severity_level"`
-	ResponsibleUserID      uint                              `json:"responsible_user_id" binding:"required" gorm:"not null"`
-	ResponsibleUser        organizationDTOs.UserMinimalDTO   `json:"responsible_user"`
-	ResponsibleUnitID      uint                              `json:"responsible_unit_id"`
-	ResponsibleUnit        settingsDTOs.OrganizationUnitDTO  `json:"responsible_unit"`
-	TargetCompletion       *string                           `json:"target_completion"`
-	TargetCompletionUnitID *uint                             `json:"target_completion_time_unit_id"`
-	TargetCompletionUnit   *masterDTOs.TimeUnitDTO           `json:"target_completion_time_unit"`
+	ID                *uint                             `json:"id"`
+	TestAndExerciseID uint                              `json:"test_and_exercise_id"`
+	ProcessID         uint                              `json:"process_id"`
+	Process           organizationDTOs.ProcessDetailDTO `json:"process"`
+	BcpPhaseID        uint                              `json:"bcp_phase_id"`
+	BcpPhase          BcpPhaseDTO                       `json:"bcp_phase"`
+	SeverityLevel     *masterDTOs.SeverityLevelDTO      `json:"severity_level"`
+	ResponsibleUserID uint                              `json:"responsible_user_id" binding:"required" gorm:"not null"`
+	ResponsibleUser   organizationDTOs.UserMinimalDTO   `json:"responsible_user"`
+	ResponsibleUnitID uint                              `json:"responsible_unit_id"`
+	ResponsibleUnit   settingsDTOs.OrganizationUnitDTO  `json:"responsible_unit"`
+	TargetDateString  *string                           `json:"target_date"`
 }
 
 type TestAndExerciseCommunicationActionPlanDTO struct {

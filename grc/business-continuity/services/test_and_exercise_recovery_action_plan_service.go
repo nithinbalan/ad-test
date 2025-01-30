@@ -17,7 +17,7 @@ import (
 )
 
 type TestAndExerciseRecoveryActionPlanServiceInterface interface {
-	GetAll(testAndExerciseId uint, params *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanQueryParamsDTO) (*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListResponseDTO, error)
+	GetAll(testAndExerciseId uint, params *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanQueryParamsDTO) ([]*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListDTO, error)
 	GetByID(testAndExerciseID uint, id uint) (*models.TestAndExerciseRecoveryActionPlan, error)
 	GetFullDetailsByID(testAndExerciseID uint, id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanDetailDTO, error)
 	Create(testAndExerciseID uint, currentUserID uint, dto *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanFormDTO) (uint, error)
@@ -49,7 +49,7 @@ func NewTestAndExerciseRecoveryActionPlanService(
 	}
 }
 
-func (teraps *TestAndExerciseRecoveryActionPlanService) GetAll(testAndExerciseId uint, params *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanQueryParamsDTO) (*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListResponseDTO, error) {
+func (teraps *TestAndExerciseRecoveryActionPlanService) GetAll(testAndExerciseId uint, params *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanQueryParamsDTO) ([]*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListDTO, error) {
 	if _, err := teraps.testAndExerciseSvc.GetByID(testAndExerciseId); err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) GetFullDetailsByID(testA
 	if _, err := teraps.testAndExerciseSvc.GetByID(testAndExerciseID); err != nil {
 		return nil, err
 	}
-	var detailDTO businessContinuityDTOs.TestAndExerciseRecoveryActionPlanDetailDTO
+	var recoveryActionPlan businessContinuityDTOs.TestAndExerciseRecoveryActionPlanDetailDTO
 
 	actionPlan, err := teraps.repo.GetFullDetailsByID(id, tx...)
 	if err != nil {
@@ -81,46 +81,57 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) GetFullDetailsByID(testA
 		return nil, err
 	}
 
-	err = mapstructure.Decode(actionPlan, &detailDTO)
+	err = mapstructure.Decode(actionPlan, &recoveryActionPlan)
 	if err != nil {
 		return nil, err
 	}
 
-	detailDTO.CreatedAt = actionPlan.CreatedAt
-	detailDTO.UpdatedAt = actionPlan.UpdatedAt
+	if actionPlan.TargetDate != nil {
+		targetDate := actionPlan.TargetDate.Format("2006-01-02")
+		recoveryActionPlan.TargetDateString = &targetDate
+	}
 
-	return &detailDTO, nil
+	recoveryActionPlan.CreatedAt = actionPlan.CreatedAt
+	recoveryActionPlan.UpdatedAt = actionPlan.UpdatedAt
+
+	return &recoveryActionPlan, nil
 }
 
-func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID uint, currentUserID uint, formDto *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanFormDTO) (uint, error) {
+func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID uint, currentUserID uint, recoveryActionPlanFormDTO *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanFormDTO) (uint, error) {
 	tx := teraps.repo.BeginTransaction()
 
 	if _, err := teraps.testAndExerciseSvc.GetByID(testAndExerciseID); err != nil {
 		return 0, err
 	}
 
-	responsibleUnitID, err := teraps.userSvc.GetUserPrimaryUnitID(formDto.ResponsibleUserID)
+	responsibleUnitID, err := teraps.userSvc.GetUserPrimaryUnitID(recoveryActionPlanFormDTO.ResponsibleUserID)
 	if err != nil {
 		return 0, utility.NewValidationError(errors.New("organization unit not set for responsible user"), "not_exist", "responsible unit")
 	}
 
-	ActionPlanStatus, err := teraps.ActionPlanStatusSvc.GetByType("new")
+	actionPlanStatus, err := teraps.ActionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
+	dates, err := teraps.parseTestAndExerciseRecoveryActionPlanDates(recoveryActionPlanFormDTO)
 	if err != nil {
 		return 0, err
 	}
 
 	actionPlan := &models.TestAndExerciseRecoveryActionPlan{
-		TestAndExerciseID:      testAndExerciseID,
-		BcpPhaseID:             formDto.BcpPhaseID,
-		ProcessID:              formDto.ProcessID,
-		SeverityLevelID:        formDto.SeverityID,
-		Title:                  formDto.Title,
-		ResponsibleUserID:      formDto.ResponsibleUserID,
-		ResponsibleUnitID:      responsibleUnitID,
-		TargetCompletionUnitId: formDto.TargetCompletionUnitID,
-		TargetCompletion:       &formDto.TargetDate,
-		ActionPlanStatusId:     &ActionPlanStatus.ID,
-		CreatedBYID:            currentUserID,
+		TestAndExerciseID:  testAndExerciseID,
+		BcpPhaseID:         recoveryActionPlanFormDTO.BcpPhaseID,
+		ProcessID:          recoveryActionPlanFormDTO.ProcessID,
+		SeverityLevelID:    recoveryActionPlanFormDTO.SeverityLevelID,
+		Title:              recoveryActionPlanFormDTO.Title,
+		ResponsibleUserID:  recoveryActionPlanFormDTO.ResponsibleUserID,
+		ResponsibleUnitID:  responsibleUnitID,
+		TargetDate:         dates.TargetDate,
+		ActionPlanStatusId: &actionPlanStatus.ID,
+		IsRecovery:         recoveryActionPlanFormDTO.IsRecovery,
+		Percentage:         recoveryActionPlanFormDTO.Percentage,
+		CreatedBYID:        currentUserID,
 	}
 
 	id, err := teraps.repo.Create(actionPlan, tx)
@@ -162,7 +173,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID
 	return id, nil
 }
 
-func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID uint, id uint, currentUserID uint, formDto *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanFormDTO) error {
+func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID uint, id uint, currentUserID uint, recoveryActionPlanFormDTO *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanFormDTO) error {
 	tx := teraps.repo.BeginTransaction()
 
 	existingRecoveryPlan, err := teraps.repo.GetByID(id)
@@ -176,7 +187,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 		return err
 	}
 
-	if existingRecoveryPlan.ResponsibleUserID != formDto.ResponsibleUserID {
+	if existingRecoveryPlan.ResponsibleUserID != recoveryActionPlanFormDTO.ResponsibleUserID {
 		responsibleUnitID, err := teraps.userSvc.GetUserPrimaryUnitID(existingRecoveryPlan.ResponsibleUserID)
 		if err != nil {
 			return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "risk responsible unit")
@@ -184,13 +195,19 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 		existingRecoveryPlan.ResponsibleUnitID = responsibleUnitID
 	}
 
-	existingRecoveryPlan.BcpPhaseID = formDto.BcpPhaseID
-	existingRecoveryPlan.ProcessID = formDto.ProcessID
-	existingRecoveryPlan.SeverityLevelID = formDto.SeverityID
-	existingRecoveryPlan.Title = formDto.Title
-	existingRecoveryPlan.ResponsibleUserID = formDto.ResponsibleUserID
-	existingRecoveryPlan.TargetCompletion = &formDto.TargetDate
-	existingRecoveryPlan.TargetCompletionUnitId = formDto.TargetCompletionUnitID
+	dates, err := teraps.parseTestAndExerciseRecoveryActionPlanDates(recoveryActionPlanFormDTO)
+	if err != nil {
+		return err
+	}
+
+	existingRecoveryPlan.BcpPhaseID = recoveryActionPlanFormDTO.BcpPhaseID
+	existingRecoveryPlan.ProcessID = recoveryActionPlanFormDTO.ProcessID
+	existingRecoveryPlan.SeverityLevelID = recoveryActionPlanFormDTO.SeverityLevelID
+	existingRecoveryPlan.Title = recoveryActionPlanFormDTO.Title
+	existingRecoveryPlan.ResponsibleUserID = recoveryActionPlanFormDTO.ResponsibleUserID
+	existingRecoveryPlan.TargetDate = dates.TargetDate
+	existingRecoveryPlan.IsRecovery = recoveryActionPlanFormDTO.IsRecovery
+	existingRecoveryPlan.Percentage = recoveryActionPlanFormDTO.Percentage
 	existingRecoveryPlan.UpdatedBYID = &currentUserID
 
 	err = teraps.repo.Update(existingRecoveryPlan, tx)
@@ -210,23 +227,19 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 
 		// log changes
 		oldData := map[string]interface{}{
-			"responsible_user":     fmt.Sprintf("%s %s", oldRecoveryActionPlan.ResponsibleUser.FirstNameEN, oldRecoveryActionPlan.ResponsibleUser.LastNameEN),
-			"bcp_phase":            oldRecoveryActionPlan.BcpPhase.TitleEn,
-			"process":              oldRecoveryActionPlan.Process.TitleEn,
-			"ActionPlanStatus":     oldRecoveryActionPlan.ActionPlanStatus.TitleEn,
-			"ResponsibleUnit":      oldRecoveryActionPlan.ResponsibleUnit.TitleEn,
-			"SeverityLevel":        oldRecoveryActionPlan.SeverityLevel.TitleEn,
-			"TargetCompletionUnit": oldRecoveryActionPlan.TargetCompletionUnit.TitleEn,
+			"responsible_user": fmt.Sprintf("%s %s", oldRecoveryActionPlan.ResponsibleUser.FirstNameEN, oldRecoveryActionPlan.ResponsibleUser.LastNameEN),
+			"bcp_phase":        oldRecoveryActionPlan.BcpPhase.TitleEn,
+			"process":          oldRecoveryActionPlan.Process.TitleEn,
+			"severity_level":   oldRecoveryActionPlan.SeverityLevel.TitleEn,
+			"target_date":      oldRecoveryActionPlan.TargetDateString,
 		}
 
 		newData := map[string]interface{}{
-			"responsible_user":     fmt.Sprintf("%s %s", existingActionPlan.ResponsibleUser.FirstNameEN, existingActionPlan.ResponsibleUser.LastNameEN),
-			"bcp_phase":            existingActionPlan.BcpPhase.TitleEn,
-			"process":              existingActionPlan.Process.TitleEn,
-			"ActionPlanStatus":     existingActionPlan.ActionPlanStatus.TitleEn,
-			"ResponsibleUnit":      existingActionPlan.ResponsibleUnit.TitleEn,
-			"SeverityLevel":        existingActionPlan.SeverityLevel.TitleEn,
-			"TargetCompletionUnit": existingActionPlan.TargetCompletionUnit.TitleEn,
+			"responsible_user": fmt.Sprintf("%s %s", existingActionPlan.ResponsibleUser.FirstNameEN, existingActionPlan.ResponsibleUser.LastNameEN),
+			"bcp_phase":        existingActionPlan.BcpPhase.TitleEn,
+			"process":          existingActionPlan.Process.TitleEn,
+			"severity_level":   existingActionPlan.SeverityLevel.TitleEn,
+			"target_date":      existingActionPlan.TargetDateString,
 		}
 
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)
@@ -313,4 +326,19 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Delete(testAndExerciseID
 	}
 
 	return failedIDs, nil
+}
+
+func (teraps *TestAndExerciseRecoveryActionPlanService) parseTestAndExerciseRecoveryActionPlanDates(dto *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanFormDTO) (*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanParsedDates, error) {
+	parsed := &businessContinuityDTOs.TestAndExerciseRecoveryActionPlanParsedDates{}
+
+	var err error
+
+	if &dto.TargetDate != nil {
+		parsed.TargetDate, err = utility.ParseDate(dto.TargetDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid target date"), "invalid_date", "target date")
+		}
+	}
+
+	return parsed, nil
 }

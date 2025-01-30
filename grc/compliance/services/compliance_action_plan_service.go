@@ -47,6 +47,7 @@ type ComplianceActionPlanService struct {
 	userSvc                  organizationServices.UserServiceInterface
 	notificationSvc          commonServices.NotificationServiceInterface
 	userSettingSvc           organizationServices.UserSettingServiceInterface
+	organizationUnitSvc      settingService.OrganizationUnitServiceInterface
 }
 
 func NewComplianceActionPlanService(
@@ -61,6 +62,7 @@ func NewComplianceActionPlanService(
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	organizationUnitSvc settingService.OrganizationUnitServiceInterface,
 ) ComplianceActionPlanServiceInterface {
 	return &ComplianceActionPlanService{
 		repo:                     repo,
@@ -74,6 +76,7 @@ func NewComplianceActionPlanService(
 		userSvc:                  userSvc,
 		notificationSvc:          notificationSvc,
 		userSettingSvc:           userSettingSvc,
+		organizationUnitSvc:      organizationUnitSvc,
 	}
 }
 
@@ -127,6 +130,30 @@ func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id
 		targetDate := complianceActionPlan.TargetDate.Format("2006-01-02")
 		complianceActionPlanDTO.TargetDateString = &targetDate
 	}
+
+	responsibleUnitID, err := caps.userSvc.GetUserPrimaryUnitID(complianceActionPlan.ResponsibleUserID)
+	if err != nil {
+		return nil, nil
+	}
+
+	responsibleUnit, err := caps.organizationUnitSvc.GetFullDetailsByID(responsibleUnitID)
+	if err != nil {
+		return nil, nil
+	}
+	complianceActionPlanDTO.ResponsibleUserUnitID = &responsibleUnitID
+	complianceActionPlanDTO.ResponsibleUserUnit = *responsibleUnit
+
+	reviewUserUnitID, err := caps.userSvc.GetUserPrimaryUnitID(*complianceActionPlan.ReviewUserID)
+	if err != nil {
+		return nil, nil
+	}
+
+	reviewUserUnit, err := caps.organizationUnitSvc.GetFullDetailsByID(reviewUserUnitID)
+	if err != nil {
+		return nil, nil
+	}
+	complianceActionPlanDTO.ReviewUserUnitID = &reviewUserUnitID
+	complianceActionPlanDTO.ReviewUserUnit = *reviewUserUnit
 
 	complianceActionPlanDTO.CreatedAt = complianceActionPlan.CreatedAt
 	complianceActionPlanDTO.UpdatedAt = complianceActionPlan.UpdatedAt
@@ -771,6 +798,12 @@ func (caps *ComplianceActionPlanService) validateComplianceActionPlanFormDTO(com
 
 	if _, err := caps.actionPlanStatusSvc.GetByID(ComplianceActionPlanFormDTO.ActionPlanStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
+	}
+
+	if ComplianceActionPlanFormDTO.ReviewUserID != nil {
+		if ComplianceActionPlanFormDTO.ResponsibleUserID == *ComplianceActionPlanFormDTO.ReviewUserID {
+			return utility.NewValidationError(fmt.Errorf("review user and responsible user must be distinct"), "distinct_review_user", "compliance action plan distinct review user")
+		}
 	}
 
 	if ComplianceActionPlanFormDTO.Percentage == nil {
