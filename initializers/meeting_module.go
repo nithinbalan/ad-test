@@ -25,6 +25,7 @@ type MeetingModule struct {
 	MeetingTypeSvc         services.MeetingTypeServiceInterface
 	MeetingSvc             services.MeetingServiceInterface
 	MeetingMinuteStatusSvc services.MeetingMinuteStatusServiceInterface
+	MeetingActionPlanSvc   services.MeetingActionPlanServiceInterface
 }
 
 func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule, commonModule *CommonModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, taskModule *TaskModule) *MeetingModule {
@@ -98,5 +99,6 @@ func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		MeetingTypeSvc:         meetingTypeSvc,
 		MeetingSvc:             meetingSvc,
 		MeetingMinuteStatusSvc: meetingMinuteStatusSvc,
+		MeetingActionPlanSvc:   meetingActionPlanSvc,
 	}
 }

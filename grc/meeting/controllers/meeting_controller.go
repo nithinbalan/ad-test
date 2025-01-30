@@ -43,6 +43,7 @@ func (mc *MeetingController) GetAllMeetings(c *gin.Context) {
 		"meeting_frequency_ids",
 		"organizer_ids",
 		"meeting_status_ids",
+		"responsible_unit_ids",
 	}
 
 	validSortFields := map[string]string{

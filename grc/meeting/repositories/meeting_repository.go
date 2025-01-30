@@ -115,17 +115,28 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
             LEFT JOIN users AS created_user ON created_user.id = meetings.created_by_id
             LEFT JOIN users AS updated_user ON updated_user.id = meetings.updated_by_id
         `)
-    // Apply filters based on user role(if super admin list all meetings else based on follwing condition)
-    if !isSuperAdmin {
-        query = query.Where("(meetings.is_public = ? OR meetings.organizer_id = ? OR meetings.id IN (SELECT meeting_id FROM meeting_participants WHERE user_id = ?))", true, currentUserID, currentUserID)
-    }
+	// Apply filters based on user role(if super admin list all meetings else based on follwing condition)
+	if !isSuperAdmin {
+		query = query.Where("(meetings.is_public = ? OR meetings.organizer_id = ? OR meetings.id IN (SELECT meeting_id FROM meeting_participants WHERE user_id = ?))", true, currentUserID, currentUserID)
+	}
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			if len(params.Filters["responsible_unit_id"]) > 0 {
+				query = query.Joins(`JOIN organization_units ON organization_units.id = users.organization_unit_1_id OR 
+				organization_units.id = users.organization_unit_2_id OR 
+				organization_units.id = users.organization_unit_3_id OR 
+				organization_units.id = users.organization_unit_4_id OR 
+				organization_units.id = users.organization_unit_5_id`).
+					Where("organization_units.id IN (?)", values)
+			} else {
+				query = query.Where(columnName+" IN (?)", values)
+			}
 		}
 	}
-
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("meetings.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {

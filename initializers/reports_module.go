@@ -62,7 +62,8 @@ func NewReportsModule(db *gorm.DB,
 	meetingReportRepo := repositories.NewMeetingReportRepository(db)
 	meetingReportSvc := services.NewMeetingReportService(meetingReportRepo, settingsModule.OrganizationLevelSvc)
 	meetingReportController := controllers.NewMeetingReportController(meetingReportSvc,
-		meetingModule.MeetingSvc)
+		meetingModule.MeetingSvc,
+		meetingModule.MeetingActionPlanSvc)
 
 	return &ReportsModule{
 		ComplianceReportController:   complianceReportController,

@@ -161,8 +161,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/incident-action-plan-by-responsible-unit", incidentReportController.GetIncidentActionPlanByResponsibleUnit)
 
 	//Meetings
-	// reportsRoutes.GET("/reports/meetings", meetingReportController.GetAllMeetings)
-	// reportsRoutes.GET("/reports/meetings/export", meetingReportController.GetMeetingExport)
+	reportsRoutes.GET("/reports/meetings", meetingReportController.GetAllMeetings)
+	reportsRoutes.GET("/reports/meetings/export", meetingReportController.GetMeetingExport)
 	reportsRoutes.GET("/reports/meeting-by-type", meetingReportController.GetMeetingByType)
 	reportsRoutes.GET("/reports/meeting-by-status", meetingReportController.GetMeetingByStatus)
 	reportsRoutes.GET("/reports/meeting-by-responsible-unit", meetingReportController.GetMeetingByResponsibleUnit)
@@ -179,5 +179,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/meeting-with-overdue-action-plan", meetingReportController.GetMeetingsWithOverdueActionPlans)
 	reportsRoutes.GET("/reports/meeting-by-year", meetingReportController.GetMeetingCountByYear)
 	reportsRoutes.GET("/reports/meeting-by-user", meetingReportController.GetMeetingCountByUser)
+
+	reportsRoutes.GET("/reports/meeting-action-plans", meetingReportController.GetAllMeetingActionPlans)
+	reportsRoutes.GET("/reports/meeting-action-plans/export", meetingReportController.GetMeetingActionPlanExport)
 
 }
