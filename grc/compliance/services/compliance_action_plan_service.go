@@ -141,19 +141,21 @@ func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id
 		return nil, nil
 	}
 	complianceActionPlanDTO.ResponsibleUserUnitID = &responsibleUnitID
-	complianceActionPlanDTO.ResponsibleUserUnit = *responsibleUnit
+	complianceActionPlanDTO.ResponsibleUserUnit = responsibleUnit
 
-	reviewUserUnitID, err := caps.userSvc.GetUserPrimaryUnitID(*complianceActionPlan.ReviewUserID)
-	if err != nil {
-		return nil, nil
-	}
+	if complianceActionPlanDTO.ReviewUserUnitID != nil {
+		reviewUserUnitID, err := caps.userSvc.GetUserPrimaryUnitID(*complianceActionPlan.ReviewUserID)
+		if err != nil {
+			return nil, nil
+		}
 
-	reviewUserUnit, err := caps.organizationUnitSvc.GetFullDetailsByID(reviewUserUnitID)
-	if err != nil {
-		return nil, nil
+		reviewUserUnit, err := caps.organizationUnitSvc.GetFullDetailsByID(reviewUserUnitID)
+		if err != nil {
+			return nil, nil
+		}
+		complianceActionPlanDTO.ReviewUserUnitID = &reviewUserUnitID
+		complianceActionPlanDTO.ReviewUserUnit = reviewUserUnit
 	}
-	complianceActionPlanDTO.ReviewUserUnitID = &reviewUserUnitID
-	complianceActionPlanDTO.ReviewUserUnit = *reviewUserUnit
 
 	complianceActionPlanDTO.CreatedAt = complianceActionPlan.CreatedAt
 	complianceActionPlanDTO.UpdatedAt = complianceActionPlan.UpdatedAt

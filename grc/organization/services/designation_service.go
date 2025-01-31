@@ -3,11 +3,14 @@ package services
 import (
 	"errors"
 	"fmt"
+	"io"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/organization/repositories"
 	"jethur/utility"
 	"log"
+	"os"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -20,6 +23,11 @@ type DesignationServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
+
+	GenerateDesignationTemplate() (*os.File, error)
+	ValidateDesignationTemplate(file io.Reader) ([]map[string]interface{}, error)
+	ValidateImportDesignation(input []map[string]interface{}) ([]map[string]interface{}, error)
+	ImportDesignations(input []map[string]interface{}, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
@@ -222,4 +230,198 @@ func (ds *DesignationService) Deactivate(ids []uint, currentUserID uint) error {
 	}
 
 	return err
+}
+
+func (ds *DesignationService) GenerateDesignationTemplate() (*os.File, error) {
+	// Headers for the first sheet (Template)
+	templateHeaders := []string{
+		"TitleEn", "TitleAr",
+	}
+	templateData := [][]interface{}{} // Empty template data
+
+	file, err := utility.GenerateExcelFileWithSheets(map[string][][]interface{}{
+		"Template": append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
+}
+
+func (ds *DesignationService) ValidateDesignationTemplate(file io.Reader) ([]map[string]interface{}, error) {
+	// Read Excel file
+	rows, err := utility.ReadExcelFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers in the input format and map them to snake case
+	inputHeaders := []string{"TitleEn", "TitleAr"}
+	snakeCaseHeaders := []string{"title_en", "title_ar"}
+
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("empty Excel file")
+	}
+
+	// Validate headers
+	if !utility.ValidateHeaders(inputHeaders, rows[0]) {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid headers in the Excel file"), "invalid_header", "Designation Template")
+	}
+
+	// Convert rows to input format
+	var input []map[string]interface{}
+	for _, row := range rows[1:] { // Skip header row
+		record := make(map[string]interface{})
+		for i, header := range snakeCaseHeaders {
+			if i < len(row) {
+				record[header] = row[i]
+			} else {
+				record[header] = "" // Pad missing columns
+			}
+		}
+		input = append(input, record)
+	}
+
+	validatedData, err := ds.validateDesignations(input)
+	if err != nil {
+		return nil, err
+	}
+
+	return validatedData, nil
+}
+
+func (ds *DesignationService) ValidateImportDesignation(input []map[string]interface{}) ([]map[string]interface{}, error) {
+
+	validatedData, err := ds.validateDesignations(input)
+	if err != nil {
+		return nil, err
+	}
+
+	return validatedData, nil
+}
+
+func (ds *DesignationService) ImportDesignations(input []map[string]interface{}, currentUserID uint) ([]uint, error) {
+	validatedData, err := ds.validateDesignations(input)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, record := range validatedData {
+		if errors, ok := record["errors"].(map[string]interface{}); ok && len(errors) > 0 {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid data in the import file"), "invalid_data", "Invalid Data")
+		}
+	}
+
+	var createdDesignationIDs []uint
+	for _, record := range validatedData {
+		designationFormDTO := &models.Designation{
+			TitleEn: record["title_en"].(string),
+			TitleAr: record["title_ar"].(string),
+			Status:  "active",
+		}
+
+		designation, err := ds.Create(currentUserID, designationFormDTO)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create designation for record: %+v, error: %v", record, err)
+		}
+
+		createdDesignationIDs = append(createdDesignationIDs, designation.ID)
+	}
+
+	return createdDesignationIDs, nil
+}
+
+func (ds *DesignationService) validateDesignations(input []map[string]interface{}) ([]map[string]interface{}, error) {
+	headers := []string{"title_en", "title_ar"}
+
+	// Fetch existing designations for validation
+	designations, err := ds.repo.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching designations: %v", err)
+	}
+
+	// Create maps of existing designation titles for validation
+	designationTitlesEn := make(map[string]bool)
+	designationTitlesAr := make(map[string]bool)
+	for _, designation := range designations {
+		designationTitlesEn[strings.TrimSpace(designation.TitleEn)] = true
+		designationTitlesAr[strings.TrimSpace(designation.TitleAr)] = true
+	}
+
+	// Create maps to track duplicates within the input sheet
+	inputTitlesEn := make(map[string]bool)
+	inputTitlesAr := make(map[string]bool)
+	var validatedData []map[string]interface{}
+
+	for _, record := range input {
+		rowErrors := make(map[string]interface{})
+		processedRecord := make(map[string]interface{})
+
+		// Copy original data to processed record
+		for key, value := range record {
+			processedRecord[key] = value
+		}
+
+		// Validate fields
+		for _, header := range headers {
+			value, ok := record[header].(string)
+			trimmedValue := strings.TrimSpace(value)
+
+			// Required field check
+			if !ok || trimmedValue == "" {
+				rowErrors[header] = "Field is required"
+				continue
+			}
+
+			switch header {
+			case "title_en":
+				// Check for duplicates within the input sheet
+				if inputTitlesEn[trimmedValue] {
+					rowErrors["title_en"] = "Duplicate designation title in sheet"
+					continue
+				}
+
+				// Check for duplicates in the database
+				if designationTitlesEn[trimmedValue] {
+					rowErrors["title_en"] = "Duplicate designation title in database"
+					continue
+				}
+
+				// Mark the title as seen in the input sheet
+				inputTitlesEn[trimmedValue] = true
+
+			case "title_ar":
+				// Check for duplicates within the input sheet
+				if inputTitlesAr[trimmedValue] {
+					rowErrors["title_ar"] = "Duplicate designation title in sheet"
+					continue
+				}
+
+				// Check for duplicates in the database
+				if designationTitlesAr[trimmedValue] {
+					rowErrors["title_ar"] = "Duplicate designation title in database"
+					continue
+				}
+
+				// Mark the title as seen in the input sheet
+				inputTitlesAr[trimmedValue] = true
+			}
+		}
+
+		// Add errors or success record
+		if len(rowErrors) == 0 {
+			processedRecord["errors"] = nil
+		} else {
+			for _, header := range headers {
+				if _, exists := rowErrors[header]; !exists {
+					rowErrors[header] = "" // Empty string for other fields
+				}
+			}
+			processedRecord["errors"] = rowErrors
+		}
+		validatedData = append(validatedData, processedRecord)
+	}
+
+	return validatedData, nil
 }
