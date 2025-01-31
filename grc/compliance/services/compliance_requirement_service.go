@@ -199,7 +199,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		TitleAr:                         complianceRequirementFormDTO.TitleAr,
 		Deadline:                        dates.Deadline,
 		CreatedByID:                     currentUserID,
-		ComplianceClauseID:              complianceRequirementFormDTO.ComplianceClauseID,
+		ParantClauseID:                  complianceRequirementFormDTO.ComplianceClauseID,
 		Score:                           score,
 	}
 
@@ -466,7 +466,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	existingComplianceRequirement.Deadline = dates.Deadline
 	existingComplianceRequirement.Score = score
 	existingComplianceRequirement.UpdatedByID = &currentUserID
-	existingComplianceRequirement.ComplianceClauseID = complianceRequirementFormDTO.ComplianceClauseID
+	existingComplianceRequirement.ParantClauseID = complianceRequirementFormDTO.ComplianceClauseID
 
 	err = crs.repo.Update(existingComplianceRequirement, tx)
 	if err != nil {
