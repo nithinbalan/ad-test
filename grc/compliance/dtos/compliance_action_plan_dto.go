@@ -104,10 +104,10 @@ type ComplianceActionPlanParsedDates struct {
 }
 
 type ComplianceRequirementMinimalDTO struct {
-	ID               int                 `json:"id"`
-	ComplianceClause ComplianceClauseDTO `json:"compliance_clause"`
-	TitleEn          string              `json:"title_en"`
-	TitleAr          string              `json:"title_ar"`
+	ID               int                       `json:"id"`
+	ComplianceClause ComplianceClauseDetailDTO `json:"compliance_clause"`
+	TitleEn          string                    `json:"title_en"`
+	TitleAr          string                    `json:"title_ar"`
 }
 
 type ComplianceActionPlanDetailDTO struct {

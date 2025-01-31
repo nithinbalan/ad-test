@@ -66,6 +66,10 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	)
 	complianceRegisterController := controllers.NewComplianceRegisterController(complianceRegisterSvc)
 
+	compilanceClauseRepo := repositories.NewComplianceClauseRepository(db)
+	compilanceClauseSvc := services.NewComplianceClauseService(compilanceClauseRepo, sharedModule.ActivityLogService)
+	compilanceClauseController := controllers.NewComplianceClauseController(compilanceClauseSvc)
+
 	complianceAssociatedItemRepo := repositories.NewComplianceAssociatedItemRepository(db)
 	complianceAssociatedItemSvc := services.NewComplianceAssociatedItemService(complianceAssociatedItemRepo, complianceRegisterSvc)
 	complianceAssociatedItemController := controllers.NewComplianceAssociatedItemController(complianceAssociatedItemSvc)
@@ -86,6 +90,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		organizationModule.StrategicObjectiveSvc,
 		organizationModule.UserSvc, commonModule.NotificationService,
 		organizationModule.UserSettingSvc,
+		compilanceClauseSvc,
 	)
 	complianceRequirementController := controllers.NewComplianceRequirementController(complianceRequirementSvc)
 
@@ -181,10 +186,6 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	slaAssociatedItemRepo := repositories.NewSLAAssociatedItemRepository(db)
 	slaAssociatedItemSvc := services.NewSLAAssociatedItemService(slaAssociatedItemRepo, slaRegisterSvc)
 	slaAssociatedItemController := controllers.NewSLAAssociatedItemController(slaAssociatedItemSvc)
-
-	compilanceClauseRepo := repositories.NewComplianceClauseRepository(db)
-	compilanceClauseSvc := services.NewComplianceClauseService(compilanceClauseRepo, sharedModule.ActivityLogService)
-	compilanceClauseController := controllers.NewComplianceClauseController(compilanceClauseSvc)
 
 	return &ComplianceModule{
 		ComplianceCategoryController:                  complianceCategoryController,

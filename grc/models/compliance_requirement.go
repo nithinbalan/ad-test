@@ -6,7 +6,7 @@ import (
 
 type ComplianceRequirement struct {
 	ID                              uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	ComplianceClauseID              uint       `json:"compliance_clause_id" binding:"required" gorm:"not null"`
+	ParantClauseID                  uint       `json:"compliance_clause_id" binding:"required" gorm:"column:compliance_clause_id;not null"`
 	TitleEn                         string     `json:"title_en" binding:"required,max=255" gorm:"type:varchar(255);not null"`
 	TitleAr                         string     `json:"title_ar" binding:"required,max=255" gorm:"type:varchar(255);not null"`
 	ComplianceRequirementCategoryID uint       `json:"compliance_requirement_category_id" binding:"required" gorm:"not null"`
@@ -22,7 +22,7 @@ type ComplianceRequirement struct {
 	Score                           int        `json:"score" gorm:"default:0"`
 
 	// Relationships
-	ComplianceClause              *ComplianceClause                          `gorm:"foreignKey:ComplianceClauseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceClause              *ComplianceClause                          `gorm:"foreignKey:ParantClauseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceStatus              *ComplianceStatus                          `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceRequirementCategory *ComplianceRequirementCategory             `gorm:"foreignKey:ComplianceRequirementCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SeverityLevel                 *SeverityLevel                             `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

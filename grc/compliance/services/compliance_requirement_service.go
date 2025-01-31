@@ -47,6 +47,7 @@ type ComplianceRequirementService struct {
 	userSvc                          organizationServices.UserServiceInterface
 	notificationSvc                  commonServices.NotificationServiceInterface
 	userSettingSvc                   organizationServices.UserSettingServiceInterface
+	complianceClauseSvc              ComplianceClauseServiceInterface
 }
 
 func NewComplianceRequirementService(
@@ -61,6 +62,7 @@ func NewComplianceRequirementService(
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	complianceClauseSvc ComplianceClauseServiceInterface,
 ) ComplianceRequirementServiceInterface {
 	return &ComplianceRequirementService{
 		repo:                             repo,
@@ -74,6 +76,7 @@ func NewComplianceRequirementService(
 		userSvc:                          userSvc,
 		notificationSvc:                  notificationSvc,
 		userSettingSvc:                   userSettingSvc,
+		complianceClauseSvc:              complianceClauseSvc,
 	}
 }
 
@@ -153,6 +156,11 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		return 0, err
 	}
 
+	clause, err := crs.complianceClauseSvc.GetByID(complianceRequirementFormDTO.ComplianceClauseID)
+	if err != nil {
+		return 0, err
+	}
+
 	if err := crs.validateComplianceRequirementFormDTO(complianceRequirementFormDTO); err != nil {
 		return 0, err
 	}
@@ -163,17 +171,17 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	}
 
 	// Create or retrieve the compliance clause
-	complianceClause := &models.ComplianceClause{
-		ComplianceRegisterID: complianceID,
-		ClauseNo:             complianceRequirementFormDTO.ComplianceClauseNo,
-		TitleEn:              complianceRequirementFormDTO.ComplianceClauseTitle,
-	}
+	// complianceClause := &models.ComplianceClause{
+	// 	ComplianceRegisterID: complianceID,
+	// 	ClauseNo:             complianceRequirementFormDTO.ComplianceClauseNo,
+	// 	TitleEn:              complianceRequirementFormDTO.ComplianceClauseTitle,
+	// }
 
-	clause, err := crs.repo.GetOrCreateComplianceClause(complianceClause, tx)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
+	// clause, err := crs.repo.GetOrCreateComplianceClause(complianceClause, tx)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
 
 	// Calculate the score
 	score, err := crs.calculateComplianceRequirementScore(complianceRequirementFormDTO.ComplianceStatusID, complianceRequirementFormDTO.SeverityLevelID)
@@ -191,7 +199,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		TitleAr:                         complianceRequirementFormDTO.TitleAr,
 		Deadline:                        dates.Deadline,
 		CreatedByID:                     currentUserID,
-		ComplianceClauseID:              clause.ID,
+		ParantClauseID:                  complianceRequirementFormDTO.ComplianceClauseID,
 		Score:                           score,
 	}
 
@@ -368,7 +376,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 			"ComplianceTitleEn":             compliance.TitleEn,
 			"ComplianceRequirementCategory": complianceRequirementCategory.TitleEn,
 			"RequirementTitleEn":            complianceRequirementFormDTO.TitleEn,
-			"ComplianceClauseTitle":         complianceRequirementFormDTO.ComplianceClauseTitle,
+			"ComplianceClauseTitle":         clause.TitleEn,
 			"Deadline":                      dates.Deadline.Format("2006-01-02"),
 			"AssignedByFirstNameEn":         assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":          assignedBy.LastNameEn,
@@ -403,6 +411,11 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		return err
 	}
 
+	clause, err := crs.complianceClauseSvc.GetByID(complianceRequirementFormDTO.ComplianceClauseID)
+	if err != nil {
+		return err
+	}
+
 	existingComplianceRequirement, err := crs.GetByID(complianceID, id, tx)
 	if err != nil {
 		return err
@@ -425,17 +438,17 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		return err
 	}
 
-	complianceClause := &models.ComplianceClause{
-		ComplianceRegisterID: complianceID,
-		ClauseNo:             complianceRequirementFormDTO.ComplianceClauseNo,
-		TitleEn:              complianceRequirementFormDTO.ComplianceClauseTitle,
-	}
+	// complianceClause := &models.ComplianceClause{
+	// 	ComplianceRegisterID: complianceID,
+	// 	ClauseNo:             complianceRequirementFormDTO.ComplianceClauseNo,
+	// 	TitleEn:              complianceRequirementFormDTO.ComplianceClauseTitle,
+	// }
 
-	clause, err := crs.repo.GetOrCreateComplianceClause(complianceClause, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+	// clause, err := crs.repo.GetOrCreateComplianceClause(complianceClause, tx)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return err
+	// }
 
 	score, err := crs.calculateComplianceRequirementScore(complianceRequirementFormDTO.ComplianceStatusID, complianceRequirementFormDTO.SeverityLevelID)
 	if err != nil {
@@ -453,7 +466,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	existingComplianceRequirement.Deadline = dates.Deadline
 	existingComplianceRequirement.Score = score
 	existingComplianceRequirement.UpdatedByID = &currentUserID
-	existingComplianceRequirement.ComplianceClauseID = clause.ID
+	existingComplianceRequirement.ParantClauseID = complianceRequirementFormDTO.ComplianceClauseID
 
 	err = crs.repo.Update(existingComplianceRequirement, tx)
 	if err != nil {
@@ -720,7 +733,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 			"severity_level":                  oldComplianceRequirement.SeverityLevel.TitleEn,
 			"title":                           oldComplianceRequirement.TitleEn,
 			"dead_line":                       oldComplianceRequirement.DeadlineString,
-			"compliance_clause":               oldComplianceRequirement.ComplianceClause.Title,
+			"compliance_clause":               oldComplianceRequirement.ComplianceClause.TitleEn,
 		}
 
 		newData := map[string]interface{}{
@@ -730,7 +743,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 			"severity_level":                  existingRequirement.SeverityLevel.TitleEn,
 			"title":                           existingRequirement.TitleEn,
 			"dead_line":                       existingRequirement.DeadlineString,
-			"compliance_clause":               existingRequirement.ComplianceClause.Title,
+			"compliance_clause":               existingRequirement.ComplianceClause.TitleEn,
 		}
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)
@@ -846,7 +859,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 				"ComplianceTitle":               compliance.TitleEn,
 				"ComplianceRequirementCategory": complianceRequirementCategory.TitleEn,
 				"RequirementTitleEn":            existingComplianceRequirement.TitleEn,
-				"ComplianceClauseTitle":         complianceClause.TitleEn,
+				"ComplianceClauseTitle":         clause.TitleEn,
 				"Deadline":                      dates.Deadline.Format("2006-01-02"),
 				"UpdatedByFirstNameEn":          updatedByUser.FirstNameEn,
 				"UpdatedByLastNameEn":           updatedByUser.LastNameEn,
@@ -871,7 +884,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 				"ComplianceTitle":               compliance.TitleEn,
 				"ComplianceRequirementCategory": complianceRequirementCategory.TitleEn,
 				"RequirementTitleEn":            existingComplianceRequirement.TitleEn,
-				"ComplianceClauseTitle":         complianceClause.TitleEn,
+				"ComplianceClauseTitle":         clause.TitleEn,
 				"Deadline":                      dates.Deadline.Format("2006-01-02"),
 				"UpdatedByFirstNameEn":          updatedByUser.FirstNameEn,
 				"UpdatedByLastNameEn":           updatedByUser.LastNameEn,
