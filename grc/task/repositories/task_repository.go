@@ -354,11 +354,11 @@ func (repo *TaskRepository) UpdateAuditDraftReportTaskStatus(auditDraftReportID 
 	return &task, nil
 }
 
-func (repo *TaskRepository) UpdateComplianceActionPlanTaskStatus(auditDraftReportID uint, userID uint, status uint) (*models.Task, error) {
+func (repo *TaskRepository) UpdateComplianceActionPlanTaskStatus(compliaceActionPlanID uint, userID uint, status uint) (*models.Task, error) {
 	var task models.Task
 
-	// Find the task by audit_final_report_id and user ID
-	if err := repo.db.Where("compliance_action_plan_id = ? AND responsible_user_id = ?", auditDraftReportID, userID).First(&task).Error; err != nil {
+	// Find the task by compliance_action_plan_id and user ID
+	if err := repo.db.Where("compliance_action_plan_id = ? AND responsible_user_id = ?", compliaceActionPlanID, userID).First(&task).Error; err != nil {
 		return nil, err
 	}
 
