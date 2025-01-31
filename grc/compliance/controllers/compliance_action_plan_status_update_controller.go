@@ -293,3 +293,83 @@ func (casuc *ComplianceActionPlanStatusUpdateController) DownloadComplianceActio
 	// Serve the file
 	c.File(complianceActionPlanStatusUpdateDocumentPath)
 }
+
+func (casuc *ComplianceActionPlanStatusUpdateController) ApproveComplianceActionPlan(c *gin.Context) {
+	complianceID, err := strconv.Atoi(c.Param("complianceId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	complianceActionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(casuc.db, c, err.Error())
+		return
+	}
+
+	err = casuc.service.Approve(uint(complianceID), uint(complianceActionPlanID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(casuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (casuc *ComplianceActionPlanStatusUpdateController) RevertComplianceActionPlan(c *gin.Context) {
+	complianceID, err := strconv.Atoi(c.Param("complianceId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	complianceActionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(casuc.db, c, err.Error())
+		return
+	}
+
+	err = casuc.service.Revert(uint(complianceID), uint(complianceActionPlanID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(casuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}

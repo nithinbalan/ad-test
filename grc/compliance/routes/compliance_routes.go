@@ -169,6 +169,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/compliances/:complianceId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceActionPlanStatusUpdateController.CreateComplianceActionPlanStatusUpdate)
 	complianceRoutes.PUT("/compliances/:complianceId/action-plans/:actionPlanId/status-updates/:id", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceActionPlanStatusUpdateController.UpdateComplianceActionPlanStatusUpdate)
 	complianceRoutes.GET("/compliances/:complianceId/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceActionPlanStatusUpdateController.GetLatestComplianceActionPlanStatusUpdate)
+	complianceRoutes.PUT("/compliances/:complianceId/action-plans/:actionPlanId/approve", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceActionPlanStatusUpdateController.ApproveComplianceActionPlan)
+	complianceRoutes.PUT("/compliances/:complianceId/action-plans/:actionPlanId/revert", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceActionPlanStatusUpdateController.RevertComplianceActionPlan)
 
 	//Compliance Review
 	complianceRoutes.GET("/compliances/:complianceId/reviews", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceReviewController.GetAllComplianceReviews)

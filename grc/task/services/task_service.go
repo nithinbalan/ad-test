@@ -30,6 +30,7 @@ type TaskServiceInterface interface {
 	UpdateAuditReportTaskStatus(auditFinalReportID uint, userID uint, auditReportWorkflowID uint) (*models.Task, error)
 	UpdateAuditDraftReportTaskStatus(auditDraftReportID uint, userID uint, auditReportWorkflowID uint) (*models.Task, error)
 	AuditDocumentRequestTaskUpdate(auditDocumentRequestID uint, userID uint, taskStatusType string, tx ...utility.DatabaseTransaction) (*models.Task, error)
+	UpdateComplianceActionPlanTaskStatus(complianceActionPlanID uint, userID uint) (*models.Task, error)
 }
 
 type TaskService struct {
@@ -292,6 +293,19 @@ func (ts *TaskService) AuditDocumentRequestTaskUpdate(auditDocumentRequestID uin
 
 	// Save the updated task
 	if err := ts.repo.Update(task, tx...); err != nil {
+		return nil, err
+	}
+
+	return task, nil
+}
+
+func (ts *TaskService) UpdateComplianceActionPlanTaskStatus(compliaceActionPlanID uint, userID uint) (*models.Task, error) {
+	taskStatus, err := ts.taskStatusSvc.GetByType("closed")
+	if err != nil {
+		return nil, err
+	}
+	task, err := ts.repo.UpdateComplianceActionPlanTaskStatus(compliaceActionPlanID, userID, taskStatus.ID)
+	if err != nil {
 		return nil, err
 	}
 

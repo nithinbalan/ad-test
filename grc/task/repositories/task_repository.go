@@ -27,6 +27,7 @@ type TaskRepositoryInteface interface {
 	UpdateDocumentChangeRequestTaskStatus(documentCRID uint, userID uint, documentCRWorkflowID uint, status uint) (*models.Task, error)
 	UpdateAuditReportTaskStatus(auditFinalReportID uint, userID uint, auditReportWorkflowID uint, status uint) (*models.Task, error)
 	UpdateAuditDraftReportTaskStatus(auditDraftReportID uint, userID uint, auditReportWorkflowID uint, status uint) (*models.Task, error)
+	UpdateComplianceActionPlanTaskStatus(compliaceActionPlanID uint, userID uint, status uint) (*models.Task, error)
 }
 
 type TaskRepository struct {
@@ -340,6 +341,24 @@ func (repo *TaskRepository) UpdateAuditDraftReportTaskStatus(auditDraftReportID 
 
 	// Find the task by audit_final_report_id and user ID
 	if err := repo.db.Where("audit_draft_report_id = ? AND responsible_user_id = ? AND audit_report_workflow_id = ?", auditDraftReportID, userID, auditReportWorkflowID).First(&task).Error; err != nil {
+		return nil, err
+	}
+
+	// Update the task status
+	task.TaskStatusID = status
+	task.UpdatedByID = userID
+	if err := repo.db.Save(&task).Error; err != nil {
+		return nil, err
+	}
+
+	return &task, nil
+}
+
+func (repo *TaskRepository) UpdateComplianceActionPlanTaskStatus(auditDraftReportID uint, userID uint, status uint) (*models.Task, error) {
+	var task models.Task
+
+	// Find the task by audit_final_report_id and user ID
+	if err := repo.db.Where("compliance_action_plan_id = ? AND responsible_user_id = ?", auditDraftReportID, userID).First(&task).Error; err != nil {
 		return nil, err
 	}
 

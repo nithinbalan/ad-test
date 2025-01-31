@@ -21,6 +21,7 @@ type ComplianceActionPlanStatusUpdateRepositoryInterface interface {
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetLatestComplianceActionPlanStatusUpdate(complianceActionPlanID uint) (*complianceDTOs.ComplianceActionPlanStatusUpdateListDTO, error)
+	ComplianceActionPlanUpdateStatus(complianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceActionPlanStatusUpdateRepository struct {
@@ -217,4 +218,15 @@ func (repo *ComplianceActionPlanStatusUpdateRepository) GetLatestComplianceActio
 
 	return complianceActionPlanUpdate, nil
 
+}
+
+func (repo *ComplianceActionPlanStatusUpdateRepository) ComplianceActionPlanUpdateStatus(ComplianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(ComplianceActionPlan).Error; err != nil {
+		return err
+	}
+	return nil
 }
