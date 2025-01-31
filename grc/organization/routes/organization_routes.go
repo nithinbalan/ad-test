@@ -40,6 +40,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	userProfileController := app.OrganizationModule.UserProfileController
 
 	//Designation
+	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
+	organizationRoutes.POST("/designations/template/validate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.ValidateDesignationTemplate)
+	organizationRoutes.POST("/designations/import/validate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.ValidateImportDesignation)
+	organizationRoutes.POST("/designations/import", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.ImportDesignations)
 	organizationRoutes.GET("/designations", designationController.GetAllDesignations)
 	organizationRoutes.GET("/designations/:id", designationController.GetDesignationDetails)
 	organizationRoutes.POST("/designations", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.CreateDesignation)
