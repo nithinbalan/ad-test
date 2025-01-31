@@ -135,8 +135,10 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			if len(params.Filters["incident_category_id"]) > 0 {
-				query = query.Where("incident_register.incident_category_id IN (?)", params.Filters["incident_category_id"])
+			if columnName == "incident_category_id" {
+				query = query.Where("incident_register.incident_category_id IN (?)", values)
+			} else if columnName == "reported_user_id" {
+				query = query.Where("incident_register.reported_by IN (?)", values)
 			} else {
 				query = query.Where(columnName+" IN (?)", values)
 			}
