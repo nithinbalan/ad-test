@@ -41,3 +41,7 @@ type ComplianceActionPlanStatusUpdateFormDTO struct {
 	Percentage         *int                          `json:"percentage" binding:"required"`
 	Documents          []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
 }
+
+type ComplianceActionPlanReviewUserStatusUpdateFormDTO struct {
+	Comment string `json:"comment"`
+}

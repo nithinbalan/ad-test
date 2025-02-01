@@ -29,8 +29,8 @@ type ComplianceActionPlanStatusUpdateServiceInterface interface {
 	GetLatestComplianceActionPlanStatusUpdate(complianceID uint, actionPlanID uint) (*complianceDTOs.ComplianceActionPlanStatusUpdateListDTO, error)
 	GetDocumentPath(complianceID uint, actionPlanID uint, id uint, token string) (string, error)
 
-	Approve(ComplianceID uint, ComplianceActionPlanID uint, currentUserID uint) error
-	Revert(ComplianceID uint, ComplianceActionPlanID uint, currentUserID uint) error
+	Approve(ComplianceID uint, ComplianceActionPlanID uint, currentUserID uint, complianceActionPlanReviewUserStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanReviewUserStatusUpdateFormDTO) error
+	Revert(ComplianceID uint, ComplianceActionPlanID uint, currentUserID uint, complianceActionPlanReviewUserStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanReviewUserStatusUpdateFormDTO) error
 }
 
 type ComplianceActionPlanStatusUpdateService struct {
@@ -524,7 +524,7 @@ func (capsus *ComplianceActionPlanStatusUpdateService) GetDocumentPath(Complianc
 	return fullPath, nil
 }
 
-func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint, compliaceActionPlanID uint, currentUserID uint) error {
+func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint, compliaceActionPlanID uint, currentUserID uint, complianceActionPlanReviewUserStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanReviewUserStatusUpdateFormDTO) error {
 	compliance, err := capus.complianceRegisterSvc.GetByID(complianceID)
 	if err != nil {
 		return err
@@ -566,6 +566,7 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 		ComplianceActionPlanID: compliaceActionPlanID,
 		ActionPlanStatusID:     complianceActionPlanClosedStatus.ID,
 		Percentage:             nil,
+		Comment:                complianceActionPlanReviewUserStatusUpdateFormDTO.Comment,
 		CreatedByID:            currentUserID,
 	}
 
@@ -691,7 +692,7 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 	return nil
 }
 
-func (capus *ComplianceActionPlanStatusUpdateService) Revert(complianceID uint, compliaceActionPlanID uint, currentUserID uint) error {
+func (capus *ComplianceActionPlanStatusUpdateService) Revert(complianceID uint, compliaceActionPlanID uint, currentUserID uint, complianceActionPlanReviewUserStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanReviewUserStatusUpdateFormDTO) error {
 	compliance, err := capus.complianceRegisterSvc.GetByID(complianceID)
 	if err != nil {
 		return err
@@ -732,6 +733,7 @@ func (capus *ComplianceActionPlanStatusUpdateService) Revert(complianceID uint, 
 	complianceActionPlanUpdate := &models.ComplianceActionPlanStatusUpdate{
 		ComplianceActionPlanID: compliaceActionPlanID,
 		ActionPlanStatusID:     complianceActionPlanReopenStatus.ID,
+		Comment:                complianceActionPlanReviewUserStatusUpdateFormDTO.Comment,
 		CreatedByID:            currentUserID,
 	}
 
