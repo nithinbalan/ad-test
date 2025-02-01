@@ -60,14 +60,14 @@ func (repo *ComplianceActionPlanCommentRepository) GetAll(actionPlanID uint) ([]
 }
 
 func (repo *ComplianceActionPlanCommentRepository) GetByID(id uint) (*models.ComplianceActionPlanComment, error) {
-	var complianceActionPlan *models.ComplianceActionPlanComment
-	result := repo.db.First(&complianceActionPlan, id)
+	var complianceActionPlanComment *models.ComplianceActionPlanComment
+	result := repo.db.First(&complianceActionPlanComment, id)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return complianceActionPlan, nil
+	return complianceActionPlanComment, nil
 }
 
 func (repo *ComplianceActionPlanCommentRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceActionPlanComment, error) {
