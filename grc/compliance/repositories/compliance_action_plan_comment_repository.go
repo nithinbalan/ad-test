@@ -1,8 +1,6 @@
 package repositories
 
 import (
-	"errors"
-
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -13,7 +11,7 @@ import (
 type ComplianceActionPlanCommentRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(actionPlanID uint) ([]*complianceDTOs.ComplianceActionPlanCommentListDTO, error)
-	GetByID(actionPlanID uint, id uint) (*complianceDTOs.ComplianceActionPlanCommentDetailDTO, error)
+	GetByID(id uint) (*models.ComplianceActionPlanComment, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceActionPlanComment, error)
 	Create(comment *models.ComplianceActionPlanComment) (uint, error)
 	Update(comment *models.ComplianceActionPlanComment, tx ...utility.DatabaseTransaction) error
@@ -61,18 +59,15 @@ func (repo *ComplianceActionPlanCommentRepository) GetAll(actionPlanID uint) ([]
 	return comments, nil
 }
 
-func (repo *ComplianceActionPlanCommentRepository) GetByID(actionPlanID uint, id uint) (*complianceDTOs.ComplianceActionPlanCommentDetailDTO, error) {
-	var comment complianceDTOs.ComplianceActionPlanCommentDetailDTO
-	query := repo.db.Table("compliance_action_plan_comments").
-		Select("id, comment, compliance_action_plan_id, created_at, created_by_id").
-		Where("id = ? AND compliance_action_plan_id = ?", id, actionPlanID)
-	if err := query.First(&comment).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
-		}
-		return nil, err
+func (repo *ComplianceActionPlanCommentRepository) GetByID(id uint) (*models.ComplianceActionPlanComment, error) {
+	var complianceActionPlan *models.ComplianceActionPlanComment
+	result := repo.db.First(&complianceActionPlan, id)
+
+	if result.Error != nil {
+		return nil, result.Error
 	}
-	return &comment, nil
+
+	return complianceActionPlan, nil
 }
 
 func (repo *ComplianceActionPlanCommentRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceActionPlanComment, error) {

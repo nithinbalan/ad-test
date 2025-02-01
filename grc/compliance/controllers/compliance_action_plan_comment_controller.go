@@ -25,6 +25,12 @@ func NewComplianceActionPlanCommentController(service services.ComplianceActionP
 }
 
 func (capc *ComplianceActionPlanCommentController) GetAllComments(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 	actionPlanIDStr := c.Param("actionPlanId")
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
 	if err != nil {
@@ -32,16 +38,28 @@ func (capc *ComplianceActionPlanCommentController) GetAllComments(c *gin.Context
 		return
 	}
 
-	comments, err := capc.service.GetAll(uint(actionPlanID))
+	comments, err := capc.service.GetAll(uint(complianceID), uint(actionPlanID))
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(capc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, comments)
 }
 
 func (capc *ComplianceActionPlanCommentController) GetCommentDetails(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 	actionPlanIDStr := c.Param("actionPlanId")
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
 	if err != nil {
@@ -56,16 +74,28 @@ func (capc *ComplianceActionPlanCommentController) GetCommentDetails(c *gin.Cont
 		return
 	}
 
-	comment, err := capc.service.GetByID(uint(actionPlanID), uint(commentID))
+	comment, err := capc.service.GetByID(uint(complianceID), uint(actionPlanID), uint(commentID))
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(capc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, comment)
 }
 
 func (capc *ComplianceActionPlanCommentController) CreateComment(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 	actionPlanIDStr := c.Param("actionPlanId")
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
 	if err != nil {
@@ -85,16 +115,28 @@ func (capc *ComplianceActionPlanCommentController) CreateComment(c *gin.Context)
 		return
 	}
 
-	id, err := capc.service.Create(uint(actionPlanID), currentUserID, &formDTO)
+	id, err := capc.service.Create(uint(complianceID), uint(actionPlanID), currentUserID, &formDTO)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(capc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
 func (capc *ComplianceActionPlanCommentController) UpdateComment(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 	actionPlanIDStr := c.Param("actionPlanId")
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
 	if err != nil {
@@ -121,16 +163,28 @@ func (capc *ComplianceActionPlanCommentController) UpdateComment(c *gin.Context)
 		return
 	}
 
-	err = capc.service.Update(uint(actionPlanID), uint(commentID), currentUserID, &formDTO)
+	err = capc.service.Update(uint(complianceID), uint(actionPlanID), uint(commentID), currentUserID, &formDTO)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(capc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.Status(http.StatusOK)
 }
 
 func (capc *ComplianceActionPlanCommentController) DeleteComment(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 	actionPlanIDStr := c.Param("actionPlanId")
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
 	if err != nil {
@@ -153,10 +207,19 @@ func (capc *ComplianceActionPlanCommentController) DeleteComment(c *gin.Context)
 		return
 	}
 
-	failedIDs, err := capc.service.Delete(uint(actionPlanID), request.IDs, currentUserID)
+	failedIDs, err := capc.service.Delete(uint(complianceID), uint(actionPlanID), request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(capc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})

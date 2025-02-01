@@ -15,35 +15,46 @@ import (
 )
 
 type ComplianceActionPlanCommentServiceInterface interface {
-	GetAll(actionPlanID uint) ([]*complianceDTOs.ComplianceActionPlanCommentListDTO, error)
-	GetByID(actionPlanID uint, id uint) (*models.ComplianceActionPlanComment, error)
+	GetAll(complianceID uint, actionPlanID uint) ([]*complianceDTOs.ComplianceActionPlanCommentListDTO, error)
+	GetByID(complianceID uint, actionPlanID uint, id uint) (*models.ComplianceActionPlanComment, error)
 	GetFullDetailsByID(id uint) (*models.ComplianceActionPlanComment, error)
-	Create(actionPlanID uint, currentUserID uint, dto *complianceDTOs.ComplianceActionPlanCommentFormDTO) (uint, error)
-	Update(actionPlanID uint, id uint, currentUserID uint, dto *complianceDTOs.ComplianceActionPlanCommentFormDTO) error
-	Delete(actionPlanID uint, ids []uint, currentUserID uint) ([]uint, error)
+	Create(complianceID uint, actionPlanID uint, currentUserID uint, dto *complianceDTOs.ComplianceActionPlanCommentFormDTO) (uint, error)
+	Update(complianceID uint, actionPlanID uint, id uint, currentUserID uint, dto *complianceDTOs.ComplianceActionPlanCommentFormDTO) error
+	Delete(complianceID uint, actionPlanID uint, ids []uint, currentUserID uint) ([]uint, error)
 }
 
 type ComplianceActionPlanCommentService struct {
-	repo           repositories.ComplianceActionPlanCommentRepositoryInterface
-	userSvc        organizationServices.UserServiceInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
+	repo                    repositories.ComplianceActionPlanCommentRepositoryInterface
+	userSvc                 organizationServices.UserServiceInterface
+	activityLogSvc          logServices.ActivityLogServiceInterface
+	complianceActionPlanSvc ComplianceActionPlanServiceInterface
 }
 
 func NewComplianceActionPlanCommentService(repo repositories.ComplianceActionPlanCommentRepositoryInterface, userSvc organizationServices.UserServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
+	complianceActionPlanSvc ComplianceActionPlanServiceInterface,
 ) ComplianceActionPlanCommentServiceInterface {
 	return &ComplianceActionPlanCommentService{
-		repo:           repo,
-		userSvc:        userSvc,
-		activityLogSvc: activityLogSvc,
+		repo:                    repo,
+		userSvc:                 userSvc,
+		activityLogSvc:          activityLogSvc,
+		complianceActionPlanSvc: complianceActionPlanSvc,
 	}
 }
 
-func (caps *ComplianceActionPlanCommentService) GetAll(actionPlanID uint) ([]*complianceDTOs.ComplianceActionPlanCommentListDTO, error) {
+func (caps *ComplianceActionPlanCommentService) GetAll(complianceID uint, actionPlanID uint) ([]*complianceDTOs.ComplianceActionPlanCommentListDTO, error) {
+	if _, err := caps.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
+		return nil, err
+	}
+
 	return caps.repo.GetAll(actionPlanID)
 }
 
-func (caps *ComplianceActionPlanCommentService) GetByID(actionPlanID uint, id uint) (*models.ComplianceActionPlanComment, error) {
+func (caps *ComplianceActionPlanCommentService) GetByID(complianceID uint, actionPlanID uint, id uint) (*models.ComplianceActionPlanComment, error) {
+	if _, err := caps.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
+		return nil, err
+	}
+
 	comment, err := caps.repo.GetFullDetailsByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -58,12 +69,16 @@ func (caps *ComplianceActionPlanCommentService) GetFullDetailsByID(id uint) (*mo
 	return caps.repo.GetFullDetailsByID(id)
 }
 
-func (caps *ComplianceActionPlanCommentService) Create(actionPlanID uint, currentUserID uint, dto *complianceDTOs.ComplianceActionPlanCommentFormDTO) (uint, error) {
+func (caps *ComplianceActionPlanCommentService) Create(complianceID uint, actionPlanID uint, currentUserID uint, complianceActionPlanCommentFormDTO *complianceDTOs.ComplianceActionPlanCommentFormDTO) (uint, error) {
 	tx := caps.repo.BeginTransaction()
+
+	if _, err := caps.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
+		return 0, err
+	}
 
 	comment := &models.ComplianceActionPlanComment{
 		ComplianceActionPlanID: actionPlanID,
-		Comment:                dto.Comment,
+		Comment:                complianceActionPlanCommentFormDTO.Comment,
 		CreatedBYID:            currentUserID,
 	}
 
@@ -105,8 +120,12 @@ func (caps *ComplianceActionPlanCommentService) Create(actionPlanID uint, curren
 	return id, nil
 }
 
-func (caps *ComplianceActionPlanCommentService) Update(actionPlanID uint, id uint, currentUserID uint, dto *complianceDTOs.ComplianceActionPlanCommentFormDTO) error {
+func (caps *ComplianceActionPlanCommentService) Update(complianceID uint, actionPlanID uint, id uint, currentUserID uint, complianceActionPlanCommentFormDTO *complianceDTOs.ComplianceActionPlanCommentFormDTO) error {
 	tx := caps.repo.BeginTransaction()
+
+	if _, err := caps.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
+		return err
+	}
 
 	existingComment, err := caps.repo.GetFullDetailsByID(id)
 	if err != nil {
@@ -119,7 +138,7 @@ func (caps *ComplianceActionPlanCommentService) Update(actionPlanID uint, id uin
 		return err
 	}
 
-	existingComment.Comment = dto.Comment
+	existingComment.Comment = complianceActionPlanCommentFormDTO.Comment
 	err = caps.repo.Update(existingComment, tx)
 	if err != nil {
 		tx.Rollback()
@@ -152,7 +171,7 @@ func (caps *ComplianceActionPlanCommentService) Update(actionPlanID uint, id uin
 		if len(changedData) > 0 {
 			err := caps.activityLogSvc.LogActivity(
 				models.UpdateAction,
-				models.TestAndExerciseRecoveryActionPlan{}.TableName(),
+				models.ComplianceActionPlanComment{}.TableName(),
 				id,
 				changedData,
 				currentUserID,
@@ -161,7 +180,7 @@ func (caps *ComplianceActionPlanCommentService) Update(actionPlanID uint, id uin
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
-					"tableName": models.TestAndExerciseRecoveryActionPlan{}.TableName(),
+					"tableName": models.ComplianceActionPlanComment{}.TableName(),
 					"recordID":  id,
 					"userID":    currentUserID,
 					"error":     err.Error(),
@@ -174,8 +193,11 @@ func (caps *ComplianceActionPlanCommentService) Update(actionPlanID uint, id uin
 	return nil
 }
 
-func (caps *ComplianceActionPlanCommentService) Delete(actionPlanID uint, ids []uint, currentUserID uint) ([]uint, error) {
+func (caps *ComplianceActionPlanCommentService) Delete(complianceID uint, actionPlanID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := caps.repo.BeginTransaction()
+	if _, err := caps.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
+		return nil, err
+	}
 
 	var failedIDs []uint
 	var successfulIDs []uint
@@ -207,7 +229,7 @@ func (caps *ComplianceActionPlanCommentService) Delete(actionPlanID uint, ids []
 		go func() {
 			err := caps.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
-				models.TestAndExerciseRecoveryActionPlan{}.TableName(),
+				models.ComplianceActionPlanComment{}.TableName(),
 				successfulIDs,
 				deletedComments,
 				currentUserID,
