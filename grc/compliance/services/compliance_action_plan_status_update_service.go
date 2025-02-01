@@ -42,6 +42,7 @@ type ComplianceActionPlanStatusUpdateService struct {
 	userSvc                 organizationServices.UserServiceInterface
 	notificationSvc         commonServices.NotificationServiceInterface
 	taskSvc                 taskServices.TaskServiceInterface
+	taskStatusSvc           taskServices.TaskStatusServiceInterface
 }
 
 func NewComplianceActionPlanStatusUpdateService(
@@ -53,6 +54,7 @@ func NewComplianceActionPlanStatusUpdateService(
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	taskSvc taskServices.TaskServiceInterface,
+	taskStatusSvc taskServices.TaskStatusServiceInterface,
 ) ComplianceActionPlanStatusUpdateServiceInterface {
 	return &ComplianceActionPlanStatusUpdateService{
 		repo:                    repo,
@@ -63,6 +65,7 @@ func NewComplianceActionPlanStatusUpdateService(
 		userSvc:                 userSvc,
 		notificationSvc:         notificationSvc,
 		taskSvc:                 taskSvc,
+		taskStatusSvc:           taskStatusSvc,
 	}
 }
 
@@ -544,7 +547,7 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 	if err != nil {
 		return err
 	}
-	//begin transaction
+
 	tx := capus.repo.BeginTransaction()
 
 	if existingComplianceActionPlan.ActionPlanStatusID != complianceActionPlanStatusResolved.ID {
@@ -552,20 +555,17 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 		return utility.NewForbiddenError("The compliance action plan status must be resolved.")
 	}
 
-	// Update the action plan status to closed
 	existingComplianceActionPlan.ActionPlanStatusID = complianceActionPlanClosedStatus.ID
 
-	// Save the updated action plan
 	if err := capus.repo.ComplianceActionPlanUpdateStatus(existingComplianceActionPlan); err != nil {
 		tx.Rollback()
 		return err
 	}
-	percentage := int(100)
-	//add status update history
+
 	complianceActionPlanUpdate := &models.ComplianceActionPlanStatusUpdate{
 		ComplianceActionPlanID: compliaceActionPlanID,
 		ActionPlanStatusID:     complianceActionPlanClosedStatus.ID,
-		Percentage:             &percentage,
+		Percentage:             nil,
 		CreatedByID:            currentUserID,
 	}
 
@@ -575,13 +575,20 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 		return err
 	}
 
-	_, err = capus.taskSvc.UpdateComplianceActionPlanTaskStatus(compliaceActionPlanID, *existingComplianceActionPlan.ReviewUserID)
+	taskStatus, err := capus.taskStatusSvc.GetByType("closed")
 	if err != nil {
 		return err
 	}
 
-	_, err = capus.taskSvc.UpdateComplianceActionPlanTaskStatus(compliaceActionPlanID, existingComplianceActionPlan.ResponsibleUserID)
+	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, *existingComplianceActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
 	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, existingComplianceActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx)
+	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -589,7 +596,6 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 
 	go func() {
 
-		// prepare notification
 		urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, compliaceActionPlanID)
 		queryParam := ""
 		entity := "compliance-action-plan"
@@ -649,7 +655,6 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 			EmailData:            emailData,
 		}
 
-		// send notification and mail
 		err = capus.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
 		if err != nil {
 			utility.LogError("Failed to send notifications", map[string]interface{}{
@@ -662,7 +667,6 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 			return
 		}
 
-		// Log activity
 		err = capus.activityLogSvc.LogActivity(
 			models.ApproveAction,
 			models.ComplianceActionPlanStatusUpdate{}.TableName(),
@@ -710,7 +714,7 @@ func (capus *ComplianceActionPlanStatusUpdateService) Revert(complianceID uint, 
 	if err != nil {
 		return err
 	}
-	//begin transaction
+
 	tx := capus.repo.BeginTransaction()
 
 	if existingComplianceActionPlan.ActionPlanStatusID != complianceActionPlanStatusResolved.ID {
@@ -718,15 +722,13 @@ func (capus *ComplianceActionPlanStatusUpdateService) Revert(complianceID uint, 
 		return utility.NewForbiddenError("The compliance action plan status must be resolved.")
 	}
 
-	// Update the action plan status to reopen
 	existingComplianceActionPlan.ActionPlanStatusID = complianceActionPlanReopenStatus.ID
 
-	// Save the updated action plan
 	if err := capus.repo.ComplianceActionPlanUpdateStatus(existingComplianceActionPlan); err != nil {
 		tx.Rollback()
 		return err
 	}
-	//add status update history
+
 	complianceActionPlanUpdate := &models.ComplianceActionPlanStatusUpdate{
 		ComplianceActionPlanID: compliaceActionPlanID,
 		ActionPlanStatusID:     complianceActionPlanReopenStatus.ID,
@@ -739,8 +741,14 @@ func (capus *ComplianceActionPlanStatusUpdateService) Revert(complianceID uint, 
 		return err
 	}
 
-	_, err = capus.taskSvc.UpdateComplianceActionPlanTaskStatus(compliaceActionPlanID, *existingComplianceActionPlan.ReviewUserID)
+	taskStatus, err := capus.taskStatusSvc.GetByType("closed")
 	if err != nil {
+		return err
+	}
+
+	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, *existingComplianceActionPlan.ReviewUserID, uint(taskStatus.ID))
+	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -748,7 +756,6 @@ func (capus *ComplianceActionPlanStatusUpdateService) Revert(complianceID uint, 
 
 	go func() {
 
-		// prepare notification
 		urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, compliaceActionPlanID)
 		queryParam := ""
 		entity := "compliance-action-plan"
@@ -808,7 +815,6 @@ func (capus *ComplianceActionPlanStatusUpdateService) Revert(complianceID uint, 
 			EmailData:            emailData,
 		}
 
-		// send notification and mail
 		err = capus.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
 		if err != nil {
 			utility.LogError("Failed to send notifications", map[string]interface{}{
@@ -821,7 +827,6 @@ func (capus *ComplianceActionPlanStatusUpdateService) Revert(complianceID uint, 
 			return
 		}
 
-		// Log activity
 		err = capus.activityLogSvc.LogActivity(
 			models.RejectAction,
 			models.ComplianceActionPlanStatusUpdate{}.TableName(),
