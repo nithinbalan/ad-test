@@ -118,7 +118,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceRequirementStatusUpdateController := controllers.NewComplianceRequirementStatusUpdateController(complianceRequirementStatusUpdateSvc)
 
 	complianceActionPlanStatusUpdateRepo := repositories.NewComplianceActionPlanStatusUpdateRepository(db)
-	complianceActionPlanStatusUpdateSvc := services.NewComplianceActionPlanStatusUpdateService(complianceActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, complianceActionPlanSvc, masterModule.ActionPlanStatusSvc)
+	complianceActionPlanStatusUpdateSvc := services.NewComplianceActionPlanStatusUpdateService(complianceActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, complianceRegisterSvc, complianceActionPlanSvc, masterModule.ActionPlanStatusSvc, organizationModule.UserSvc, commonModule.NotificationService, taskModule.TaskService, taskModule.TaskStatusService)
 	complianceActionPlanStatusUpdateController := controllers.NewComplianceActionPlanStatusUpdateController(complianceActionPlanStatusUpdateSvc)
 
 	complianceReviewRepo := repositories.NewComplianceReviewRepository(db)

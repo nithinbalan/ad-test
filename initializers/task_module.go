@@ -12,7 +12,8 @@ type TaskModule struct {
 	TaskStatusController *controllers.TaskStatusController
 	TaskController       *controllers.TaskController
 
-	TaskService services.TaskServiceInterface
+	TaskService       services.TaskServiceInterface
+	TaskStatusService services.TaskStatusServiceInterface
 }
 
 func NewTaskModule(db *gorm.DB, settingsModule *SettingsModule, masterModule *MasterModule) *TaskModule {
@@ -28,6 +29,7 @@ func NewTaskModule(db *gorm.DB, settingsModule *SettingsModule, masterModule *Ma
 		TaskStatusController: taskStatusController,
 		TaskController:       taskController,
 
-		TaskService: taskSvc,
+		TaskService:       taskSvc,
+		TaskStatusService: taskStatusSvc,
 	}
 }

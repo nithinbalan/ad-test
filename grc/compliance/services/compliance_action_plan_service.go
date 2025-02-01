@@ -143,13 +143,13 @@ func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id
 	complianceActionPlanDTO.ResponsibleUserUnitID = &responsibleUnitID
 	complianceActionPlanDTO.ResponsibleUserUnit = responsibleUnit
 
-	if complianceActionPlanDTO.ReviewUserUnitID != nil {
+	if complianceActionPlan.ReviewUserID != nil {
 		reviewUserUnitID, err := caps.userSvc.GetUserPrimaryUnitID(*complianceActionPlan.ReviewUserID)
 		if err != nil {
 			return nil, nil
 		}
 
-		reviewUserUnit, err := caps.organizationUnitSvc.GetFullDetailsByID(reviewUserUnitID)
+		reviewUserUnit, err := caps.organizationUnitSvc.GetFullDetailsByID(*complianceActionPlan.ReviewUserID)
 		if err != nil {
 			return nil, nil
 		}
@@ -416,7 +416,7 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 			"description":        oldComplianceActionPlan.Description,
 			"severity_level":     oldComplianceActionPlan.SeverityLevel.TitleEn,
 			"responsible_user":   fmt.Sprintf("%s %s", oldComplianceActionPlan.ResponsibleUser.FirstNameEN, oldComplianceActionPlan.ResponsibleUser.LastNameEN),
-			"review_user":        fmt.Sprintf("%s %s", oldComplianceActionPlan.ReviewUser.FirstNameEN, oldComplianceActionPlan.ReviewUser.LastNameEN),
+			"review_user":        utility.GetFieldValue(oldComplianceActionPlan.ReviewUser),
 			"target_date":        oldComplianceActionPlan.TargetDateString,
 			"percentage":         oldComplianceActionPlan.Percentage,
 			"comment":            oldComplianceActionPlan.Comments,
@@ -428,7 +428,7 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 			"description":        existingActionPlan.Description,
 			"severity_level":     existingActionPlan.SeverityLevel.TitleEn,
 			"responsible_user":   fmt.Sprintf("%s %s", existingActionPlan.ResponsibleUser.FirstNameEN, existingActionPlan.ResponsibleUser.LastNameEN),
-			"review_user":        fmt.Sprintf("%s %s", existingActionPlan.ReviewUser.FirstNameEN, existingActionPlan.ReviewUser.LastNameEN),
+			"review_user":        utility.GetFieldValue(existingActionPlan.ReviewUser),
 			"target_date":        existingActionPlan.TargetDateString,
 			"percentage":         existingActionPlan.Percentage,
 			"comment":            existingActionPlan.Comments,
@@ -809,7 +809,7 @@ func (caps *ComplianceActionPlanService) validateComplianceActionPlanFormDTO(com
 	}
 
 	if ComplianceActionPlanFormDTO.Percentage == nil {
-		defaultValue := uint(0)
+		defaultValue := int(0)
 		ComplianceActionPlanFormDTO.Percentage = &defaultValue
 	}
 
