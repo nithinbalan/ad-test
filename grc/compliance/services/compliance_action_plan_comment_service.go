@@ -11,13 +11,14 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type ComplianceActionPlanCommentServiceInterface interface {
 	GetAll(complianceID uint, actionPlanID uint) ([]*complianceDTOs.ComplianceActionPlanCommentListDTO, error)
 	GetByID(complianceID uint, actionPlanID uint, id uint) (*models.ComplianceActionPlanComment, error)
-	GetFullDetailsByID(id uint) (*models.ComplianceActionPlanComment, error)
+	GetFullDetailsByID(complianceID uint, actionPlanID uint, id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceActionPlanCommentDetailDTO, error)
 	Create(complianceID uint, actionPlanID uint, currentUserID uint, dto *complianceDTOs.ComplianceActionPlanCommentFormDTO) (uint, error)
 	Update(complianceID uint, actionPlanID uint, id uint, currentUserID uint, dto *complianceDTOs.ComplianceActionPlanCommentFormDTO) error
 	Delete(complianceID uint, actionPlanID uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -55,7 +56,7 @@ func (caps *ComplianceActionPlanCommentService) GetByID(complianceID uint, actio
 		return nil, err
 	}
 
-	comment, err := caps.repo.GetFullDetailsByID(id)
+	comment, err := caps.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -65,8 +66,30 @@ func (caps *ComplianceActionPlanCommentService) GetByID(complianceID uint, actio
 	return comment, nil
 }
 
-func (caps *ComplianceActionPlanCommentService) GetFullDetailsByID(id uint) (*models.ComplianceActionPlanComment, error) {
-	return caps.repo.GetFullDetailsByID(id)
+func (caps *ComplianceActionPlanCommentService) GetFullDetailsByID(complianceID uint, actionPlanID uint, id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceActionPlanCommentDetailDTO, error) {
+	if _, err := caps.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
+		fmt.Printf("ComplianceActionPlan not found for complianceID %d, actionPlanID %d\n", complianceID, actionPlanID)
+		return nil, err
+	}
+
+	var commentDetail complianceDTOs.ComplianceActionPlanCommentDetailDTO
+
+	comment, err := caps.repo.GetFullDetailsByID(id, tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(comment, &commentDetail)
+	if err != nil {
+		fmt.Printf("Error decoding comment: %v\n", err)
+		return nil, err
+	}
+
+	commentDetail.CreatedAt = comment.CreatedAt
+	return &commentDetail, nil
 }
 
 func (caps *ComplianceActionPlanCommentService) Create(complianceID uint, actionPlanID uint, currentUserID uint, complianceActionPlanCommentFormDTO *complianceDTOs.ComplianceActionPlanCommentFormDTO) (uint, error) {
@@ -84,14 +107,15 @@ func (caps *ComplianceActionPlanCommentService) Create(complianceID uint, action
 
 	id, err := caps.repo.Create(comment)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	tx.Commit()
 	go func() {
-		existingComment, err := caps.GetFullDetailsByID(id)
+		existingComment, err := caps.GetFullDetailsByID(complianceID, actionPlanID, id)
 		if err != nil {
-			utility.LogError("Failed to fetch test and exercise", map[string]interface{}{
+			utility.LogError("Failed to fetch compliance action plan comment", map[string]interface{}{
 				"error": err.Error(),
 			})
 			return
@@ -127,12 +151,12 @@ func (caps *ComplianceActionPlanCommentService) Update(complianceID uint, action
 		return err
 	}
 
-	existingComment, err := caps.repo.GetFullDetailsByID(id)
+	existingComment, err := caps.GetByID(complianceID, actionPlanID, id)
 	if err != nil {
-		return utility.NewResourceNotFoundError(err, id)
+		return err
 	}
 
-	oldComment, err := caps.GetFullDetailsByID(id)
+	oldComment, err := caps.GetFullDetailsByID(complianceID, actionPlanID, id)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -147,7 +171,7 @@ func (caps *ComplianceActionPlanCommentService) Update(complianceID uint, action
 
 	tx.Commit()
 	go func() {
-		existingComment, err := caps.GetFullDetailsByID(id)
+		existingComment, err := caps.GetFullDetailsByID(complianceID, actionPlanID, id)
 		if err != nil {
 			return
 		}

@@ -74,7 +74,7 @@ func (capc *ComplianceActionPlanCommentController) GetCommentDetails(c *gin.Cont
 		return
 	}
 
-	comment, err := capc.service.GetByID(uint(complianceID), uint(actionPlanID), uint(commentID))
+	comment, err := capc.service.GetFullDetailsByID(uint(complianceID), uint(actionPlanID), uint(commentID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

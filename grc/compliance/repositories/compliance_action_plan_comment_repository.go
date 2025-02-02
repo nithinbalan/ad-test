@@ -76,7 +76,7 @@ func (repo *ComplianceActionPlanCommentRepository) GetFullDetailsByID(id uint, t
 		db = tx[0].DB()
 	}
 
-	var comment *models.ComplianceActionPlanComment
+	var comment models.ComplianceActionPlanComment
 	result := db.
 		Preload("ComplianceActionPlan").
 		Preload("CreatedByUser").
@@ -87,7 +87,7 @@ func (repo *ComplianceActionPlanCommentRepository) GetFullDetailsByID(id uint, t
 		return nil, result.Error
 	}
 
-	return comment, nil
+	return &comment, nil
 }
 
 func (repo *ComplianceActionPlanCommentRepository) Create(comment *models.ComplianceActionPlanComment) (uint, error) {
