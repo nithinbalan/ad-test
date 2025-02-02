@@ -48,6 +48,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskResidualControlAnalysisController := app.RiskModule.RiskResidualControlAnalysisController
 	riskKriController := app.RiskModule.RiskKriController
 	riskTimelineController := app.RiskModule.RiskTimelineController
+	riskSettingsController := app.RiskModule.RiskSettingsController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -280,4 +281,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// Risk Timelines
 	riskRoutes.GET("/risks/:riskId/timelines", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskTimelineController.GetAllRiskTimelines)
+
+	// Risk Settings
+	riskRoutes.GET("/risk-settings", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskSettingsController.GetAllRiskSettings)
+	riskRoutes.PUT("/risk-settings", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskSettingsController.UpdateRiskSettings)
+
 }
