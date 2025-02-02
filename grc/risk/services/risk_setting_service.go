@@ -29,7 +29,6 @@ func NewRiskSettingsService(repo repositories.RiskSettingsRepositoryInterface, a
 	}
 }
 
-// GET: Fetch the Single Risk Setting
 func (rss *RiskSettingsService) Get() (*dtos.RiskSettingDTO, error) {
 	var riskSettingDTO dtos.RiskSettingDTO
 
@@ -38,7 +37,6 @@ func (rss *RiskSettingsService) Get() (*dtos.RiskSettingDTO, error) {
 		return nil, err
 	}
 
-	// Mapping model to DTO
 	err = mapstructure.Decode(riskSetting, &riskSettingDTO)
 	if err != nil {
 		return nil, err
@@ -47,7 +45,6 @@ func (rss *RiskSettingsService) Get() (*dtos.RiskSettingDTO, error) {
 	return &riskSettingDTO, nil
 }
 
-// UPDATE: Update the Single Risk Setting
 func (rss *RiskSettingsService) Update(currentUserID uint, updatedSetting *models.RiskSetting) (*models.RiskSetting, error) {
 	existingSetting, err := rss.repo.Get()
 	if err != nil {
@@ -59,16 +56,15 @@ func (rss *RiskSettingsService) Update(currentUserID uint, updatedSetting *model
 		return nil, err
 	}
 
-	// Compare fields for change tracking
 	fieldsToCompare := []string{"ReviewRoleID"}
 	changes, err := utility.CompareFields(existingSetting, updatedSetting, fieldsToCompare)
 	if err != nil {
-		log.Println("Comparison error:", err.Error())
+		log.Println("error :", err.Error())
 	}
 
 	changedDataJSON, err := utility.ChangesToJSON(changes)
 	if err != nil {
-		log.Println("JSON conversion error:", err.Error())
+		log.Println("error :", err.Error())
 	}
 
 	// Log the update activity
