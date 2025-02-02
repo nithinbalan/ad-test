@@ -295,6 +295,8 @@ func (casuc *ComplianceActionPlanStatusUpdateController) DownloadComplianceActio
 }
 
 func (casuc *ComplianceActionPlanStatusUpdateController) ApproveComplianceActionPlan(c *gin.Context) {
+	var complianceStatusReviewUserUpdateFormDTO complianceDTOs.ComplianceActionPlanReviewUserStatusUpdateFormDTO
+
 	complianceID, err := strconv.Atoi(c.Param("complianceId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -307,13 +309,18 @@ func (casuc *ComplianceActionPlanStatusUpdateController) ApproveComplianceAction
 		return
 	}
 
+	if err := c.ShouldBindJSON(&complianceStatusReviewUserUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(casuc.db, c, err.Error())
 		return
 	}
 
-	err = casuc.service.Approve(uint(complianceID), uint(complianceActionPlanID), currentUserID)
+	err = casuc.service.Approve(uint(complianceID), uint(complianceActionPlanID), currentUserID, &complianceStatusReviewUserUpdateFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -335,6 +342,8 @@ func (casuc *ComplianceActionPlanStatusUpdateController) ApproveComplianceAction
 }
 
 func (casuc *ComplianceActionPlanStatusUpdateController) RevertComplianceActionPlan(c *gin.Context) {
+	var complianceStatusReviewUserUpdateFormDTO complianceDTOs.ComplianceActionPlanReviewUserStatusUpdateFormDTO
+
 	complianceID, err := strconv.Atoi(c.Param("complianceId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -347,13 +356,18 @@ func (casuc *ComplianceActionPlanStatusUpdateController) RevertComplianceActionP
 		return
 	}
 
+	if err := c.ShouldBindJSON(&complianceStatusReviewUserUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(casuc.db, c, err.Error())
 		return
 	}
 
-	err = casuc.service.Revert(uint(complianceID), uint(complianceActionPlanID), currentUserID)
+	err = casuc.service.Revert(uint(complianceID), uint(complianceActionPlanID), currentUserID, &complianceStatusReviewUserUpdateFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

@@ -10,6 +10,7 @@ type ComplianceActionPlanStatusUpdateListDTO struct {
 	ActionPlanStatusTitleEn     string                                         `json:"action_plan_status_title_en"`
 	ActionPlanStatusTitleAr     string                                         `json:"action_plan_status_title_ar"`
 	ActionPlanStatusColorCode   string                                         `json:"action_plan_status_color_code"`
+	ActionPlanStatusType        string                                         `json:"action_plan_status_type"`
 	Comment                     string                                         `json:"comment"`
 	Percentage                  string                                         `json:"percentage"`
 	CreatedAt                   string                                         `json:"created_at"`
@@ -40,4 +41,8 @@ type ComplianceActionPlanStatusUpdateFormDTO struct {
 	Comment            string                        `json:"comment" binding:"required"`
 	Percentage         *int                          `json:"percentage" binding:"required"`
 	Documents          []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
+}
+
+type ComplianceActionPlanReviewUserStatusUpdateFormDTO struct {
+	Comment string `json:"comment"`
 }
