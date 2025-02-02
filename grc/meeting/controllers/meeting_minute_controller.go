@@ -40,10 +40,13 @@ func (mmc *MeetingMinuteController) GetAllMeetingMinutes(c *gin.Context) {
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"meeting_ids",
+		"meeting_minute_status_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 	queryParams := meetingDTOs.MeetingMinuteListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
@@ -51,6 +54,8 @@ func (mmc *MeetingMinuteController) GetAllMeetingMinutes(c *gin.Context) {
 		Status:      status,
 		Filters:     filters,
 		QuickFilter: quickFilter,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)
