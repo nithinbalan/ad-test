@@ -16,6 +16,10 @@ type ComplianceActionPlanCommentRepositoryInterface interface {
 	Create(comment *models.ComplianceActionPlanComment) (uint, error)
 	Update(comment *models.ComplianceActionPlanComment, tx ...utility.DatabaseTransaction) error
 	Delete(actionPlanID uint, tx ...utility.DatabaseTransaction) error
+
+	CreateDocuments(docs []*models.ComplianceActionPlanCommentDocument, tx ...utility.DatabaseTransaction) error
+	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint) (*models.ComplianceActionPlanCommentDocument, error)
 }
 
 type ComplianceActionPlanCommentRepository struct {
@@ -56,12 +60,21 @@ func (repo *ComplianceActionPlanCommentRepository) GetAll(actionPlanID uint) ([]
 	if err := query.Find(&comments).Error; err != nil {
 		return nil, err
 	}
+
+	for _, comment := range comments {
+		var documents []*complianceDTOs.ComplianceActionPlanCommentDocumentDTO
+		repo.db.Model(&models.ComplianceActionPlanCommentDocument{}).
+			Where("compliance_action_plan_comment_id = ?", comment.ID).
+			Find(&documents)
+		comment.Documents = documents
+	}
+
 	return comments, nil
 }
 
 func (repo *ComplianceActionPlanCommentRepository) GetByID(id uint) (*models.ComplianceActionPlanComment, error) {
 	var complianceActionPlanComment *models.ComplianceActionPlanComment
-	result := repo.db.First(&complianceActionPlanComment, id)
+	result := repo.db.Preload("Documents").First(&complianceActionPlanComment, id)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -80,6 +93,7 @@ func (repo *ComplianceActionPlanCommentRepository) GetFullDetailsByID(id uint, t
 	result := db.
 		Preload("ComplianceActionPlan").
 		Preload("CreatedByUser").
+		Preload("Documents").
 		Where("id = ?", id).
 		First(&comment)
 
@@ -121,4 +135,37 @@ func (repo *ComplianceActionPlanCommentRepository) Delete(actionPlanID uint, tx 
 	}
 
 	return nil
+}
+
+func (repo *ComplianceActionPlanCommentRepository) CreateDocuments(docs []*models.ComplianceActionPlanCommentDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(&docs).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceActionPlanCommentRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", docIds).Delete(&models.ComplianceActionPlanCommentDocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ComplianceActionPlanCommentRepository) GetDocumentByID(id uint) (*models.ComplianceActionPlanCommentDocument, error) {
+	var document models.ComplianceActionPlanCommentDocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
 }

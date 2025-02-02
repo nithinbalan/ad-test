@@ -3,7 +3,11 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
 
+	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
@@ -22,6 +26,8 @@ type ComplianceActionPlanCommentServiceInterface interface {
 	Create(complianceID uint, actionPlanID uint, currentUserID uint, dto *complianceDTOs.ComplianceActionPlanCommentFormDTO) (uint, error)
 	Update(complianceID uint, actionPlanID uint, id uint, currentUserID uint, dto *complianceDTOs.ComplianceActionPlanCommentFormDTO) error
 	Delete(complianceID uint, actionPlanID uint, ids []uint, currentUserID uint) ([]uint, error)
+
+	GetDocumentPath(complianceID, actionPlanID, id uint, token string) (string, error)
 }
 
 type ComplianceActionPlanCommentService struct {
@@ -111,6 +117,58 @@ func (caps *ComplianceActionPlanCommentService) Create(complianceID uint, action
 		return 0, err
 	}
 
+	var documents []*models.ComplianceActionPlanCommentDocument
+
+	for _, doc := range complianceActionPlanCommentFormDTO.Documents {
+		dataToEncrypt := []byte(doc.FileName)
+		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		url := utility.GenerateDocumentURL(
+			"compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10),
+			"action-plans", strconv.FormatUint(uint64(actionPlanID), 10),
+			"comments", strconv.FormatUint(uint64(id), 10),
+			"documents",
+		)
+
+		document := &models.ComplianceActionPlanCommentDocument{
+			ComplianceActionPlanCommentID: id,
+			URL:                           url,
+			Name:                          doc.FileName,
+			Size:                          doc.Size,
+			Token:                         encryptedFilename,
+			OriginalName:                  doc.OriginalName,
+			Type:                          doc.Type,
+			CreatedBYID:                   currentUserID,
+		}
+
+		documents = append(documents, document)
+	}
+
+	if len(documents) > 0 {
+		if err := caps.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		for _, doc := range documents {
+			storagePath := filepath.Join(
+				"compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10),
+				"action-plans", strconv.FormatUint(uint64(actionPlanID), 10),
+				"comments", strconv.FormatUint(uint64(id), 10),
+				"documents",
+			)
+
+			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+	}
+
 	tx.Commit()
 	go func() {
 		existingComment, err := caps.GetFullDetailsByID(complianceID, actionPlanID, id)
@@ -169,6 +227,83 @@ func (caps *ComplianceActionPlanCommentService) Update(complianceID uint, action
 		return err
 	}
 
+	var newDocuments []*models.ComplianceActionPlanCommentDocument
+	var deleteDocumentIds []*uint
+	var documentsToDelete []*models.ComplianceActionPlanCommentDocument
+
+	for _, doc := range complianceActionPlanCommentFormDTO.Documents {
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+
+			dataToEncrypt := []byte(doc.FileName)
+			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+
+			document := &models.ComplianceActionPlanCommentDocument{
+				ComplianceActionPlanCommentID: id,
+				URL:                           url,
+				Name:                          doc.FileName,
+				Size:                          doc.Size,
+				Token:                         encryptedFileName,
+				OriginalName:                  doc.OriginalName,
+				Type:                          doc.Type,
+				CreatedBYID:                   currentUserID,
+			}
+
+			newDocuments = append(newDocuments, document)
+
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			if doc.ID != nil {
+				existingDocument, err := caps.repo.GetDocumentByID(*doc.ID)
+				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return utility.NewResourceNotFoundError(err, id)
+					}
+					return err
+				}
+
+				documentsToDelete = append(documentsToDelete, existingDocument)
+				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
+			}
+		}
+	}
+
+	if len(newDocuments) > 0 {
+		if err := caps.repo.CreateDocuments(newDocuments, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if len(deleteDocumentIds) > 0 {
+		if err := caps.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, doc := range newDocuments {
+		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, document := range documentsToDelete {
+		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+
+		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	tx.Commit()
 	go func() {
 		existingComment, err := caps.GetFullDetailsByID(complianceID, actionPlanID, id)
@@ -178,7 +313,6 @@ func (caps *ComplianceActionPlanCommentService) Update(complianceID uint, action
 
 		changedData := make(map[string]interface{})
 
-		// log changes
 		oldData := map[string]interface{}{
 			"comment": oldComment.Comment,
 		}
@@ -265,4 +399,37 @@ func (caps *ComplianceActionPlanCommentService) Delete(complianceID uint, action
 		}()
 	}
 	return failedIDs, nil
+}
+
+func (caps *ComplianceActionPlanCommentService) GetDocumentPath(complianceID, actionPlanID, id uint, token string) (string, error) {
+	existingComment, err := caps.GetByID(complianceID, actionPlanID, id)
+	if err != nil {
+		return "", err
+	}
+	if len(existingComment.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the compliance action plan comment")
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

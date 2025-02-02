@@ -12,8 +12,9 @@ type ComplianceActionPlanComment struct {
 	CreatedAt              time.Time `json:"created_at" gorm:"type:datetime;not null"`
 
 	// Relationships
-	ComplianceActionPlan *ComplianceActionPlan `gorm:"foreignKey:ComplianceActionPlanID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	CreatedByUser        *User                 `gorm:"foreignKey:CreatedBYID"`
+	ComplianceActionPlan *ComplianceActionPlan                  `gorm:"foreignKey:ComplianceActionPlanID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	CreatedByUser        *User                                  `gorm:"foreignKey:CreatedBYID"`
+	Documents            []*ComplianceActionPlanCommentDocument `gorm:"foreignKey:ComplianceActionPlanCommentID"`
 }
 
 func (ComplianceActionPlanComment) TableName() string {

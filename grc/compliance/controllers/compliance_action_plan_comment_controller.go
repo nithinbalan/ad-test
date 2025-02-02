@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	commonDTOs "jethur/grc/common/dtos"
@@ -223,4 +224,99 @@ func (capc *ComplianceActionPlanCommentController) DeleteComment(c *gin.Context)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (capc *ComplianceActionPlanCommentController) GetComplianceActionPlanCommentDocumentPreview(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanIDStr := c.Param("actionPlanId")
+
+	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	idStr := c.Param("commentId")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	complianceActionPlanCommentDocumentPath, err := capc.service.GetDocumentPath(uint(complianceID), uint(actionPlanID), uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(capc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(complianceActionPlanCommentDocumentPath)
+}
+
+func (capc *ComplianceActionPlanCommentController) DownloadComplianceActionPlanCommentDocument(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanIDStr := c.Param("actionPlanId")
+
+	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	idStr := c.Param("commentId")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	complianceActionPlanCommentDocumentPath, err := capc.service.GetDocumentPath(uint(complianceID), uint(actionPlanID), uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(capc.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(complianceActionPlanCommentDocumentPath)
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	c.File(complianceActionPlanCommentDocumentPath)
 }

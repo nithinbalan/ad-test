@@ -221,6 +221,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/slas/:slaId/associated-item-summary", middlewares.RolePermissionMiddleware(db, "sla_contracts", "view"), slaAssociatedItemController.GetAllAssociatedCounts)
 
 	// Compliance Action Plan Comments
+	unauthenticatedRoutes.GET("/compliances/:complianceId/action-plans/:actionPlanId/comments/:commentId/document-download", ComplianceActionPlanCommentController.DownloadComplianceActionPlanCommentDocument)
+	unauthenticatedRoutes.GET("/compliances/:complianceId/action-plans/:actionPlanId/comments/:commentId/document-preview", ComplianceActionPlanCommentController.GetComplianceActionPlanCommentDocumentPreview)
 	complianceRoutes.GET("/compliances/:complianceId/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), ComplianceActionPlanCommentController.GetAllComments)
 	complianceRoutes.GET("/compliances/:complianceId/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), ComplianceActionPlanCommentController.GetCommentDetails)
 	complianceRoutes.POST("/compliances/:complianceId/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), ComplianceActionPlanCommentController.CreateComment)
