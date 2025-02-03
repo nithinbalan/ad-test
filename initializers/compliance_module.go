@@ -32,6 +32,7 @@ type ComplianceModule struct {
 	SLAAssociatedItemController                   *controllers.SLAAssociatedItemController
 	CompliacneClauseController                    *controllers.ComplianceClauseController
 	ComplianceActionPlanCommentController         *controllers.ComplianceActionPlanCommentController
+	ComplianceAssessmentController                *controllers.ComplianceAssessmentController
 
 	ComplianceRegisterSvc          services.ComplianceRegisterServiceInterface
 	ComplianceRequirementSvc       services.ComplianceRequirementServiceInterface
@@ -193,6 +194,10 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceActionPlanCommentSvc := services.NewComplianceActionPlanCommentService(complianceActionPlanCommentRepository, organizationModule.UserSvc, sharedModule.ActivityLogService, complianceActionPlanSvc)
 	complianceActionPlanCommentController := controllers.NewComplianceActionPlanCommentController(complianceActionPlanCommentSvc)
 
+	complianceAssessmentRepo := repositories.NewComplianceAssessmentRepository(db)
+	complianceAssessmentSvc := services.NewComplianceAssessmentService(complianceAssessmentRepo, sharedModule.ActivityLogService, organizationModule.UserSvc)
+	complianceAssessmentController := controllers.NewComplianceAssessmentController(complianceAssessmentSvc)
+
 	return &ComplianceModule{
 		ComplianceCategoryController:                  complianceCategoryController,
 		ComplianceStatusController:                    complianceStatusController,
@@ -217,6 +222,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		SLAAssociatedItemController:                   slaAssociatedItemController,
 		CompliacneClauseController:                    compilanceClauseController,
 		ComplianceActionPlanCommentController:         complianceActionPlanCommentController,
+		ComplianceAssessmentController:                complianceAssessmentController,
 
 		ComplianceRequirementSvc:       complianceRequirementSvc,
 		ComplianceRegisterSvc:          complianceRegisterSvc,
