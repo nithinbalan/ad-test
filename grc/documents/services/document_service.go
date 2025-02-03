@@ -1838,7 +1838,7 @@ func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
 
 	// Calculate next review date based on review frequency
 	var nextReviewDate time.Time
-	if document.ReviewFrequency.ID != 0 {
+	if document.ReviewFrequency != nil && document.ReviewFrequency.ID != 0 {
 		reviewFrequency, err := ds.reviewFrequencySvc.GetByID(document.ReviewFrequency.ID)
 		if err != nil {
 			tx.Rollback()
