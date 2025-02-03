@@ -379,7 +379,7 @@ func (caps *ComplianceActionPlanCommentService) Delete(complianceID uint, action
 
 	if len(failedIDs) > 0 {
 		tx.Rollback()
-		return failedIDs, errors.New("some deletions failed")
+		return failedIDs, nil
 	}
 
 	tx.Commit()
