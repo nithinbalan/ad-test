@@ -13,7 +13,7 @@ type ComplianceActionPlanCommentRepositoryInterface interface {
 	GetAll(actionPlanID uint) ([]*complianceDTOs.ComplianceActionPlanCommentListDTO, error)
 	GetByID(id uint) (*models.ComplianceActionPlanComment, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceActionPlanComment, error)
-	Create(comment *models.ComplianceActionPlanComment) (uint, error)
+	Create(comment *models.ComplianceActionPlanComment, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(comment *models.ComplianceActionPlanComment, tx ...utility.DatabaseTransaction) error
 	Delete(actionPlanID uint, tx ...utility.DatabaseTransaction) error
 
@@ -104,10 +104,15 @@ func (repo *ComplianceActionPlanCommentRepository) GetFullDetailsByID(id uint, t
 	return &comment, nil
 }
 
-func (repo *ComplianceActionPlanCommentRepository) Create(comment *models.ComplianceActionPlanComment) (uint, error) {
-	if err := repo.db.Create(comment).Error; err != nil {
+func (repo *ComplianceActionPlanCommentRepository) Create(comment *models.ComplianceActionPlanComment, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(comment).Error; err != nil {
 		return 0, err
 	}
+
 	return comment.ID, nil
 }
 
