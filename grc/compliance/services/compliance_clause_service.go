@@ -18,6 +18,8 @@ type ComplianceClauseServiceInterface interface {
 	Create(complianceID uint, currentUserID uint, formDTO *complianceDTOs.ComplianceClauseFormDTO) (uint, error)
 	Update(complianceID uint, clauseID uint, currentUserID uint, formDTO *complianceDTOs.ComplianceClauseFormDTO) error
 	Delete(id uint) error
+
+	GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error)
 }
 
 type ComplianceClauseService struct {
@@ -252,4 +254,14 @@ func (ccs *ComplianceClauseService) Delete(clauseID uint) error {
 
 	tx.Commit()
 	return nil
+}
+
+func (ccs *ComplianceClauseService) GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error) {
+	// Fetch associated compliance requirements from repository
+	requirements, err := ccs.repo.GetAssociatedComplianceRequirements(complianceID, clauseID)
+	if err != nil {
+		return nil, err
+	}
+
+	return requirements, nil
 }
