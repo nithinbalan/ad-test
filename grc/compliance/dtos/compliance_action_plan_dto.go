@@ -93,7 +93,7 @@ type ComplianceActionPlanFormDTO struct {
 	SeverityLevelID         *uint   `json:"severity_level_id" binding:"omitempty"`
 	ResponsibleUserID       uint    `json:"responsible_user_id" binding:"required"`
 	TargetDate              *string `json:"target_date" binding:"omitempty,datetime=2006-01-02"`
-	Percentage              *uint   `json:"percentage" binding:"omitempty"`
+	Percentage              *int    `json:"percentage" binding:"omitempty"`
 	Comments                *string `json:"comments" binding:"omitempty"`
 	ReviewUserID            *uint   `json:"review_user_id"`
 	ActionPlanStatusID      uint    `json:"action_plan_status_id" binding:"required"`
@@ -125,7 +125,7 @@ type ComplianceActionPlanDetailDTO struct {
 	ReviewUserUnitID        *uint                                  `json:"review_user_unit_id"`
 	ReviewUserUnit          *settingsDTOs.OrganizationUnitDTO      `json:"review_user_unit"`
 	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO         `json:"action_plan_status"`
-	Percentage              *uint                                  `json:"percentage"`
+	Percentage              *int                                   `json:"percentage"`
 	Comments                *string                                `json:"comments"`
 	TargetDateString        *string                                `json:"target_date"`
 	CreatedAt               time.Time                              `json:"created_at"`
@@ -139,7 +139,7 @@ type ComplianceActionPlanStatusUpdateDTO struct {
 	ID               uint                                           `json:"id"`
 	ActionPlanStatus masterDTOs.ActionPlanStatusDTO                 `json:"action_plan_status"`
 	Comment          string                                         `json:"comment"`
-	Percentage       *uint                                          `json:"percentage"`
+	Percentage       *int                                           `json:"percentage"`
 	CreatedAt        time.Time                                      `json:"created_at"`
 	UpdatedAt        *time.Time                                     `json:"updated_at"`
 	CreatedByUser    organizationDTOs.UserMinimalDTO                `json:"created_by_user"`

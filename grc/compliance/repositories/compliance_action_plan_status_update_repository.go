@@ -21,6 +21,7 @@ type ComplianceActionPlanStatusUpdateRepositoryInterface interface {
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetLatestComplianceActionPlanStatusUpdate(complianceActionPlanID uint) (*complianceDTOs.ComplianceActionPlanStatusUpdateListDTO, error)
+	ComplianceActionPlanUpdateStatus(complianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceActionPlanStatusUpdateRepository struct {
@@ -49,6 +50,7 @@ func (repo *ComplianceActionPlanStatusUpdateRepository) GetAll(complianceActionP
             action_plan_statuses.title_en AS action_plan_status_title_en,
             action_plan_statuses.title_ar AS action_plan_status_title_ar,
             action_plan_statuses.color_code AS action_plan_status_color_code,
+			action_plan_statuses.type AS action_plan_status_type,
         	created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
@@ -182,6 +184,7 @@ func (repo *ComplianceActionPlanStatusUpdateRepository) GetLatestComplianceActio
             action_plan_statuses.title_en AS action_plan_status_title_en,
             action_plan_statuses.title_ar AS action_plan_status_title_ar,
             action_plan_statuses.color_code AS action_plan_status_color_code,
+			action_plan_statuses.type AS action_plan_status_type,
         	created_user.id AS created_user_id,
         		created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
@@ -217,4 +220,15 @@ func (repo *ComplianceActionPlanStatusUpdateRepository) GetLatestComplianceActio
 
 	return complianceActionPlanUpdate, nil
 
+}
+
+func (repo *ComplianceActionPlanStatusUpdateRepository) ComplianceActionPlanUpdateStatus(ComplianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(ComplianceActionPlan).Error; err != nil {
+		return err
+	}
+	return nil
 }

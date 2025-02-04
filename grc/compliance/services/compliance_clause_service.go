@@ -243,19 +243,8 @@ func (ccs *ComplianceClauseService) Update(complianceID uint, clauseID uint, cur
 func (ccs *ComplianceClauseService) Delete(clauseID uint) error {
 	tx := ccs.repo.BeginTransaction()
 
-	// Fetch the clause with its child clauses
-	clause, err := ccs.repo.GetClauseWithChildren(clauseID, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// Collect all clause IDs to be deleted (recursive delete)
-	var clauseIDsToDelete []uint
-	collectClauseIDs(clause, &clauseIDsToDelete)
-
-	// Delete all clauses in a single transaction
-	err = ccs.repo.Delete(clauseIDsToDelete, tx)
+	// Recursively delete the clause and its children
+	err := ccs.repo.Delete(clauseID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -263,12 +252,4 @@ func (ccs *ComplianceClauseService) Delete(clauseID uint) error {
 
 	tx.Commit()
 	return nil
-}
-
-// Recursive function to collect all clause IDs to be deleted
-func collectClauseIDs(clause *models.ComplianceClause, clauseIDs *[]uint) {
-	*clauseIDs = append(*clauseIDs, clause.ID)
-	for _, childClause := range clause.ChildClauses {
-		collectClauseIDs(childClause, clauseIDs)
-	}
 }

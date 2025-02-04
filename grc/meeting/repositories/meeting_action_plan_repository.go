@@ -122,7 +122,9 @@ func (repo *MeetingActionPlanRepository) GetAll(meetingID uint, params *meetingD
 	if params.TargetDateTo != "" {
 		query = query.Where("target_date <= ?", params.TargetDateTo)
 	}
-
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("meeting_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
@@ -303,7 +305,7 @@ func (repo *MeetingActionPlanRepository) GetMeetingActionPlanSummary(meetingID u
 	// Count open action plans
 	err = repo.db.Model(&models.MeetingActionPlan{}).
 		Joins("JOIN action_plan_statuses ON meeting_action_plans.action_plan_status_id = action_plan_statuses.id").
-		Where("meeting_action_plans.meeting_id = ? AND action_plan_statuses.type IN ?", meetingID, []string{"new", "in_progress", "on_hold","reopen"}).
+		Where("meeting_action_plans.meeting_id = ? AND action_plan_statuses.type IN ?", meetingID, []string{"new", "in_progress", "on_hold", "reopen"}).
 		Count(&open).Error
 	if err != nil {
 		return 0, 0, err

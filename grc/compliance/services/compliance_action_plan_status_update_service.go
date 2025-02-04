@@ -4,15 +4,20 @@ import (
 	"errors"
 	"fmt"
 	"jethur/config"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -23,26 +28,44 @@ type ComplianceActionPlanStatusUpdateServiceInterface interface {
 	Update(ComplianceID uint, ComplianceActionPlanID uint, id uint, currentUserID uint, complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO) error
 	GetLatestComplianceActionPlanStatusUpdate(complianceID uint, actionPlanID uint) (*complianceDTOs.ComplianceActionPlanStatusUpdateListDTO, error)
 	GetDocumentPath(complianceID uint, actionPlanID uint, id uint, token string) (string, error)
+
+	Approve(ComplianceID uint, ComplianceActionPlanID uint, currentUserID uint, complianceActionPlanReviewUserStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanReviewUserStatusUpdateFormDTO) error
+	Revert(ComplianceID uint, ComplianceActionPlanID uint, currentUserID uint, complianceActionPlanReviewUserStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanReviewUserStatusUpdateFormDTO) error
 }
 
 type ComplianceActionPlanStatusUpdateService struct {
 	repo                    repositories.ComplianceActionPlanStatusUpdateRepositoryInterface
 	activityLogSvc          logServices.ActivityLogServiceInterface
+	complianceRegisterSvc   ComplianceRegisterServiceInterface
 	complianceActionPlanSvc ComplianceActionPlanServiceInterface
 	actionPlanStatusSvc     masterServices.ActionPlanStatusServiceInterface
+	userSvc                 organizationServices.UserServiceInterface
+	notificationSvc         commonServices.NotificationServiceInterface
+	taskSvc                 taskServices.TaskServiceInterface
+	taskStatusSvc           taskServices.TaskStatusServiceInterface
 }
 
 func NewComplianceActionPlanStatusUpdateService(
 	repo repositories.ComplianceActionPlanStatusUpdateRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
+	complianceRegisterSvc ComplianceRegisterServiceInterface,
 	complianceActionPlanSvc ComplianceActionPlanServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
+	taskSvc taskServices.TaskServiceInterface,
+	taskStatusSvc taskServices.TaskStatusServiceInterface,
 ) ComplianceActionPlanStatusUpdateServiceInterface {
 	return &ComplianceActionPlanStatusUpdateService{
 		repo:                    repo,
 		activityLogSvc:          activityLogSvc,
+		complianceRegisterSvc:   complianceRegisterSvc,
 		complianceActionPlanSvc: complianceActionPlanSvc,
 		actionPlanStatusSvc:     actionPlanStatusSvc,
+		userSvc:                 userSvc,
+		notificationSvc:         notificationSvc,
+		taskSvc:                 taskSvc,
+		taskStatusSvc:           taskStatusSvc,
 	}
 }
 
@@ -145,6 +168,39 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 
 		}
 	}
+
+	compliance, err := casus.complianceRegisterSvc.GetByID(ComplianceID)
+	if err != nil {
+		return 0, err
+	}
+
+	complianceActionPlan, err := casus.complianceActionPlanSvc.GetByID(ComplianceID, ComplianceActionPlanID)
+	if err != nil {
+		return 0, err
+	}
+
+	actionPlanStatus, err := casus.actionPlanStatusSvc.GetByType("completed")
+	if err != nil {
+		return 0, err
+	}
+	if complianceActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && complianceActionPlan.ReviewUserID != nil {
+		urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, ComplianceID, ComplianceActionPlanID)
+		taskDTO := commonDTOs.TaskFormDTO{
+			ModuleIdentifier:       "compliance",
+			ComplianceActionPlanID: &ComplianceActionPlanID,
+			Title:                  complianceActionPlan.Title,
+			Description:            complianceActionPlan.Description,
+			URLParam:               &urlParam,
+			QueryParam:             nil,
+			SeverityLevelID:        complianceActionPlan.SeverityLevelID,
+			ResponsibleUserID:      *complianceActionPlan.ReviewUserID,
+		}
+
+		if _, err := casus.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
 	tx.Commit()
 
 	go func() {
@@ -167,6 +223,75 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 			}
 
 			utility.LogError("Failed to log activity", fields)
+		}
+		if complianceActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && complianceActionPlan.ReviewUserID != nil {
+			// prepare notification
+			urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, ComplianceID, ComplianceActionPlanID)
+			queryParam := ""
+			entity := "compliance-action-plan"
+			action := "review-user"
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               *complianceActionPlan.ReviewUserID,
+				ModuleIdentifier:     "compliance",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Compliance Action Plan Status Update",
+				HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+				TitleEn:              complianceActionPlan.Title,
+				TitleAr:              complianceActionPlan.Title,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			reviewUser, err := casus.userSvc.GetByID(*complianceActionPlan.ReviewUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch review user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+			resolvedBy, err := casus.userSvc.GetByID(complianceActionPlan.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch updated user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			emailTo := []string{reviewUser.Email}
+			subject := fmt.Sprintf("Compliance Action Plan %s: Resolved", complianceActionPlan.Title)
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn":               reviewUser.FirstNameEn,
+				"LastNameEn":                reviewUser.LastNameEn,
+				"ComplianceReferenceNumber": compliance.ReferenceNumber,
+				"ComplianceTitle":           compliance.TitleEn,
+				"ActionPlanTitle":           complianceActionPlan.Title,
+				"ActionPlanDescription":     complianceActionPlan.Description,
+				"ResolvedByFirstNameEn":     resolvedBy.FirstNameEn,
+				"ResolvedByLastNameEn":      resolvedBy.LastNameEn,
+				"ResolvedOn":                time.Now().Format("2006-01-02"),
+				"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, ComplianceID, id),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "compliance/templates/email/compliance_action_plan_review_user_mail.html",
+				EmailData:            emailData,
+			}
+
+			// send notification and mail
+			err = casus.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
 		}
 	}()
 
@@ -397,4 +522,333 @@ func (capsus *ComplianceActionPlanStatusUpdateService) GetDocumentPath(Complianc
 	}
 
 	return fullPath, nil
+}
+
+func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint, compliaceActionPlanID uint, currentUserID uint, complianceActionPlanReviewUserStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanReviewUserStatusUpdateFormDTO) error {
+	compliance, err := capus.complianceRegisterSvc.GetByID(complianceID)
+	if err != nil {
+		return err
+	}
+	existingComplianceActionPlan, err := capus.complianceActionPlanSvc.GetByID(complianceID, compliaceActionPlanID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, compliaceActionPlanID)
+	}
+
+	if currentUserID != *existingComplianceActionPlan.ReviewUserID {
+		return utility.NewForbiddenError("Permission denied.")
+	}
+
+	complianceActionPlanStatusResolved, err := capus.actionPlanStatusSvc.GetByType("completed")
+	if err != nil {
+		return err
+	}
+
+	complianceActionPlanClosedStatus, err := capus.actionPlanStatusSvc.GetByType("close")
+	if err != nil {
+		return err
+	}
+
+	tx := capus.repo.BeginTransaction()
+
+	if existingComplianceActionPlan.ActionPlanStatusID != complianceActionPlanStatusResolved.ID {
+		tx.Rollback()
+		return utility.NewForbiddenError("The compliance action plan status must be resolved.")
+	}
+
+	existingComplianceActionPlan.ActionPlanStatusID = complianceActionPlanClosedStatus.ID
+
+	if err := capus.repo.ComplianceActionPlanUpdateStatus(existingComplianceActionPlan); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	complianceActionPlanUpdate := &models.ComplianceActionPlanStatusUpdate{
+		ComplianceActionPlanID: compliaceActionPlanID,
+		ActionPlanStatusID:     complianceActionPlanClosedStatus.ID,
+		Percentage:             nil,
+		Comment:                complianceActionPlanReviewUserStatusUpdateFormDTO.Comment,
+		CreatedByID:            currentUserID,
+	}
+
+	id, err := capus.repo.Create(complianceActionPlanUpdate)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	taskStatus, err := capus.taskStatusSvc.GetByType("closed")
+	if err != nil {
+		return err
+	}
+
+	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, *existingComplianceActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, existingComplianceActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	go func() {
+
+		urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, compliaceActionPlanID)
+		queryParam := ""
+		entity := "compliance-action-plan"
+		action := "close-compliance-action-plan"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               existingComplianceActionPlan.ResponsibleUserID,
+			ModuleIdentifier:     "compliance",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Compliance Action Plan Status Update",
+			HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+			TitleEn:              existingComplianceActionPlan.Title,
+			TitleAr:              existingComplianceActionPlan.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			QueryParam:           queryParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := capus.userSvc.GetByID(existingComplianceActionPlan.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch review user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		resolvedBy, err := capus.userSvc.GetByID(*existingComplianceActionPlan.ReviewUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch updated user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Compliance Action Plan %s: Resolved", existingComplianceActionPlan.Title)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":               responsibleUser.FirstNameEn,
+			"LastNameEn":                responsibleUser.LastNameEn,
+			"ComplianceReferenceNumber": compliance.ReferenceNumber,
+			"ComplianceTitle":           compliance.TitleEn,
+			"ActionPlanTitle":           existingComplianceActionPlan.Title,
+			"ActionPlanDescription":     existingComplianceActionPlan.Description,
+			"ResolvedByFirstNameEn":     resolvedBy.FirstNameEn,
+			"ResolvedByLastNameEn":      resolvedBy.LastNameEn,
+			"ResolvedOn":                time.Now().Format("2006-01-02"),
+			"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "compliance/templates/email/compliance_action_plan_closed_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		err = capus.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+
+		existingComplianceActionPlan, err := capus.complianceActionPlanSvc.GetByID(complianceID, compliaceActionPlanID)
+		if err != nil {
+			return
+		}
+
+		err = capus.activityLogSvc.LogActivity(
+			models.ApproveAction,
+			models.ComplianceActionPlanStatusUpdate{}.TableName(),
+			id,
+			existingComplianceActionPlan,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.ApproveAction,
+				"tableName": models.ComplianceActionPlanStatusUpdate{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
+}
+
+func (capus *ComplianceActionPlanStatusUpdateService) Revert(complianceID uint, compliaceActionPlanID uint, currentUserID uint, complianceActionPlanReviewUserStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanReviewUserStatusUpdateFormDTO) error {
+	compliance, err := capus.complianceRegisterSvc.GetByID(complianceID)
+	if err != nil {
+		return err
+	}
+	existingComplianceActionPlan, err := capus.complianceActionPlanSvc.GetByID(complianceID, compliaceActionPlanID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, compliaceActionPlanID)
+	}
+
+	if currentUserID != *existingComplianceActionPlan.ReviewUserID {
+		return utility.NewForbiddenError("Permission denied.")
+	}
+
+	complianceActionPlanStatusResolved, err := capus.actionPlanStatusSvc.GetByType("completed")
+	if err != nil {
+		return err
+	}
+
+	complianceActionPlanReopenStatus, err := capus.actionPlanStatusSvc.GetByType("reopen")
+	if err != nil {
+		return err
+	}
+
+	tx := capus.repo.BeginTransaction()
+
+	if existingComplianceActionPlan.ActionPlanStatusID != complianceActionPlanStatusResolved.ID {
+		tx.Rollback()
+		return utility.NewForbiddenError("The compliance action plan status must be resolved.")
+	}
+
+	existingComplianceActionPlan.ActionPlanStatusID = complianceActionPlanReopenStatus.ID
+
+	if err := capus.repo.ComplianceActionPlanUpdateStatus(existingComplianceActionPlan); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	complianceActionPlanUpdate := &models.ComplianceActionPlanStatusUpdate{
+		ComplianceActionPlanID: compliaceActionPlanID,
+		ActionPlanStatusID:     complianceActionPlanReopenStatus.ID,
+		Comment:                complianceActionPlanReviewUserStatusUpdateFormDTO.Comment,
+		CreatedByID:            currentUserID,
+	}
+
+	id, err := capus.repo.Create(complianceActionPlanUpdate)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	taskStatus, err := capus.taskStatusSvc.GetByType("closed")
+	if err != nil {
+		return err
+	}
+
+	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, *existingComplianceActionPlan.ReviewUserID, uint(taskStatus.ID))
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	go func() {
+
+		urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, compliaceActionPlanID)
+		queryParam := ""
+		entity := "compliance-action-plan"
+		action := "reopen-compliance-action-plan"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               existingComplianceActionPlan.ResponsibleUserID,
+			ModuleIdentifier:     "compliance",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Compliance Action Plan Status Update",
+			HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+			TitleEn:              existingComplianceActionPlan.Title,
+			TitleAr:              existingComplianceActionPlan.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			QueryParam:           queryParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := capus.userSvc.GetByID(existingComplianceActionPlan.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch review user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		resolvedBy, err := capus.userSvc.GetByID(*existingComplianceActionPlan.ReviewUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch updated user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Compliance Action Plan %s: Reopened", existingComplianceActionPlan.Title)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":               responsibleUser.FirstNameEn,
+			"LastNameEn":                responsibleUser.LastNameEn,
+			"ComplianceReferenceNumber": compliance.ReferenceNumber,
+			"ComplianceTitle":           compliance.TitleEn,
+			"ActionPlanTitle":           existingComplianceActionPlan.Title,
+			"ActionPlanDescription":     existingComplianceActionPlan.Description,
+			"ResolvedByFirstNameEn":     resolvedBy.FirstNameEn,
+			"ResolvedByLastNameEn":      resolvedBy.LastNameEn,
+			"ResolvedOn":                time.Now().Format("2006-01-02"),
+			"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "compliance/templates/email/compliance_action_plan_reopen_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		err = capus.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+
+		existingComplianceActionPlan, err := capus.complianceActionPlanSvc.GetByID(complianceID, compliaceActionPlanID)
+		if err != nil {
+			return
+		}
+
+		err = capus.activityLogSvc.LogActivity(
+			models.RejectAction,
+			models.ComplianceActionPlanStatusUpdate{}.TableName(),
+			id,
+			existingComplianceActionPlan,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.ApproveAction,
+				"tableName": models.ComplianceActionPlanStatusUpdate{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
 }

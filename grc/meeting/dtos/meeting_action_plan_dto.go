@@ -76,6 +76,8 @@ type MeetingActionPlanListQueryParamsDTO struct {
 	TargetDateFrom string
 	TargetDateTo   string
 	Export         bool
+	DateFrom       string
+	DateTo         string
 }
 
 type MeetingActionPlanListResponseDTO struct {

@@ -31,11 +31,14 @@ type ComplianceModule struct {
 	SLAActionPlanStatusUpdateController           *controllers.SLAActionPlanStatusUpdateController
 	SLAAssociatedItemController                   *controllers.SLAAssociatedItemController
 	CompliacneClauseController                    *controllers.ComplianceClauseController
+	ComplianceActionPlanCommentController         *controllers.ComplianceActionPlanCommentController
+	ComplianceAssessmentController                *controllers.ComplianceAssessmentController
 
-	ComplianceRegisterSvc    services.ComplianceRegisterServiceInterface
-	ComplianceRequirementSvc services.ComplianceRequirementServiceInterface
-	ComplianceActionPlanSvc  services.ComplianceActionPlanServiceInterface
-	SlaRegisterSvc           services.SLARegisterServiceInterface
+	ComplianceRegisterSvc          services.ComplianceRegisterServiceInterface
+	ComplianceRequirementSvc       services.ComplianceRequirementServiceInterface
+	ComplianceActionPlanSvc        services.ComplianceActionPlanServiceInterface
+	SlaRegisterSvc                 services.SLARegisterServiceInterface
+	ComplianceActionPlanCommentSvc services.ComplianceActionPlanCommentServiceInterface
 }
 
 func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule, organizationModule *OrganizationModule, taskModule *TaskModule, settingsModule *SettingsModule, commonModule *CommonModule) *ComplianceModule {
@@ -118,7 +121,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceRequirementStatusUpdateController := controllers.NewComplianceRequirementStatusUpdateController(complianceRequirementStatusUpdateSvc)
 
 	complianceActionPlanStatusUpdateRepo := repositories.NewComplianceActionPlanStatusUpdateRepository(db)
-	complianceActionPlanStatusUpdateSvc := services.NewComplianceActionPlanStatusUpdateService(complianceActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, complianceActionPlanSvc, masterModule.ActionPlanStatusSvc)
+	complianceActionPlanStatusUpdateSvc := services.NewComplianceActionPlanStatusUpdateService(complianceActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, complianceRegisterSvc, complianceActionPlanSvc, masterModule.ActionPlanStatusSvc, organizationModule.UserSvc, commonModule.NotificationService, taskModule.TaskService, taskModule.TaskStatusService)
 	complianceActionPlanStatusUpdateController := controllers.NewComplianceActionPlanStatusUpdateController(complianceActionPlanStatusUpdateSvc)
 
 	complianceReviewRepo := repositories.NewComplianceReviewRepository(db)
@@ -187,6 +190,14 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	slaAssociatedItemSvc := services.NewSLAAssociatedItemService(slaAssociatedItemRepo, slaRegisterSvc)
 	slaAssociatedItemController := controllers.NewSLAAssociatedItemController(slaAssociatedItemSvc)
 
+	complianceActionPlanCommentRepository := repositories.NewComplianceActionPlanCommentRepository(db)
+	complianceActionPlanCommentSvc := services.NewComplianceActionPlanCommentService(complianceActionPlanCommentRepository, organizationModule.UserSvc, sharedModule.ActivityLogService, complianceActionPlanSvc)
+	complianceActionPlanCommentController := controllers.NewComplianceActionPlanCommentController(complianceActionPlanCommentSvc)
+
+	complianceAssessmentRepo := repositories.NewComplianceAssessmentRepository(db)
+	complianceAssessmentSvc := services.NewComplianceAssessmentService(complianceAssessmentRepo, sharedModule.ActivityLogService, organizationModule.UserSvc)
+	complianceAssessmentController := controllers.NewComplianceAssessmentController(complianceAssessmentSvc)
+
 	return &ComplianceModule{
 		ComplianceCategoryController:                  complianceCategoryController,
 		ComplianceStatusController:                    complianceStatusController,
@@ -210,10 +221,13 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		SLAActionPlanStatusUpdateController:           slaActionPlanStatusUpdateController,
 		SLAAssociatedItemController:                   slaAssociatedItemController,
 		CompliacneClauseController:                    compilanceClauseController,
+		ComplianceActionPlanCommentController:         complianceActionPlanCommentController,
+		ComplianceAssessmentController:                complianceAssessmentController,
 
-		ComplianceRequirementSvc: complianceRequirementSvc,
-		ComplianceRegisterSvc:    complianceRegisterSvc,
-		ComplianceActionPlanSvc:  complianceActionPlanSvc,
-		SlaRegisterSvc:           slaRegisterSvc,
+		ComplianceRequirementSvc:       complianceRequirementSvc,
+		ComplianceRegisterSvc:          complianceRegisterSvc,
+		ComplianceActionPlanSvc:        complianceActionPlanSvc,
+		SlaRegisterSvc:                 slaRegisterSvc,
+		ComplianceActionPlanCommentSvc: complianceActionPlanCommentSvc,
 	}
 }

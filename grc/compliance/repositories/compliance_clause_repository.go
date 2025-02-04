@@ -15,7 +15,7 @@ type ComplianceClauseRepositoryInterface interface {
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error)
 	Create(clause *models.ComplianceClause, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(clause *models.ComplianceClause, tx ...utility.DatabaseTransaction) error
-	Delete(clauseIDs []uint, tx ...utility.DatabaseTransaction) error
+	Delete(clauseID uint, tx ...utility.DatabaseTransaction) error
 
 	GetNextClauseSequence(parentClauseID uint, complianceRegisterID uint, tx ...utility.DatabaseTransaction) (int, error)
 	GetNextTopLevelClauseSequence(complianceRegisterID uint, tx ...utility.DatabaseTransaction) (int, error)
@@ -96,14 +96,32 @@ func (repo *ComplianceClauseRepository) Update(clause *models.ComplianceClause, 
 	return nil
 }
 
-func (repo *ComplianceClauseRepository) Delete(clauseIDs []uint, tx ...utility.DatabaseTransaction) error {
+func (repo *ComplianceClauseRepository) Delete(clauseID uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	// Delete all clauses with the collected IDs
-	if err := db.Where("id IN (?)", clauseIDs).Delete(&models.ComplianceClause{}).Error; err != nil {
+	// Use a CTE to find all descendant clauses, including the parent clause
+	query := `
+		WITH RecursiveClauses AS (
+			SELECT id
+			FROM compliance_clauses
+			WHERE id = ?
+
+			UNION ALL
+
+			SELECT c.id
+			FROM compliance_clauses c
+			INNER JOIN RecursiveClauses rc ON c.compliance_clause_id = rc.id
+		)
+		DELETE FROM compliance_clauses
+		WHERE id IN (SELECT id FROM RecursiveClauses)
+	`
+
+	// Execute the query
+	err := db.Exec(query, clauseID).Error
+	if err != nil {
 		return err
 	}
 
@@ -178,13 +196,11 @@ func (repo *ComplianceClauseRepository) GetClauseWithChildren(clauseID uint, tx 
 	}
 
 	var clause models.ComplianceClause
-
 	err := db.
 		Preload("ChildClauses", func(db *gorm.DB) *gorm.DB {
-			return db.Preload("ChildClauses") // Recursively preload child clauses
+			return db.Preload("ChildClauses") // Recursive preload
 		}).
-		Where("id = ?", clauseID).
-		First(&clause).Error
+		First(&clause, clauseID).Error
 
 	if err != nil {
 		return nil, err

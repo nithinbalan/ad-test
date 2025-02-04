@@ -1037,21 +1037,21 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 	}
 
 	// Delete clauses if all their requirements are deleted
-	for clauseID := range clauseIDsToDelete {
-		count, err := crs.repo.CountRequirementsByClauseID(clauseID, tx)
-		if err != nil {
-			failedIds = append(failedIds, clauseID)
-			fmt.Printf("Error counting requirements for clause %d: %v\n", clauseID, err)
-			continue
-		} else if count == 0 {
-			if err := crs.repo.DeleteClause(clauseID, tx); err != nil {
-				failedIds = append(failedIds, clauseID)
-				// Log error, but proceed with other deletions
-				fmt.Printf("Error deleting clause %d: %v\n", clauseID, err)
-				continue
-			}
-		}
-	}
+	// for clauseID := range clauseIDsToDelete {
+	// 	count, err := crs.repo.CountRequirementsByClauseID(clauseID, tx)
+	// 	if err != nil {
+	// 		failedIds = append(failedIds, clauseID)
+	// 		fmt.Printf("Error counting requirements for clause %d: %v\n", clauseID, err)
+	// 		continue
+	// 	} else if count == 0 {
+	// 		if err := crs.repo.DeleteClause(clauseID, tx); err != nil {
+	// 			failedIds = append(failedIds, clauseID)
+	// 			// Log error, but proceed with other deletions
+	// 			fmt.Printf("Error deleting clause %d: %v\n", clauseID, err)
+	// 			continue
+	// 		}
+	// 	}
+	// }
 
 	if len(failedIds) > 0 {
 		tx.Rollback()
