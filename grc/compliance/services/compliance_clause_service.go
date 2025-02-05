@@ -56,7 +56,7 @@ func (ccs *ComplianceClauseService) GetAll(complianceID uint) ([]*complianceDTOs
 		dto := &complianceDTOs.ComplianceClauseListDTO{
 			ID:             clause.ID,
 			ClauseNo:       clause.ClauseNo,
-			ParentClauseID: clause.ComplianceClauseID,
+			ParentClauseID: clause.ParantClauseID,
 			TitleEn:        clause.TitleEn,
 			TitleAr:        clause.TitleAr,
 			ScopeEn:        clause.ScopeEn,
@@ -70,8 +70,8 @@ func (ccs *ComplianceClauseService) GetAll(complianceID uint) ([]*complianceDTOs
 
 	// Build hierarchy by linking children to their parent
 	for _, clause := range clauses {
-		if clause.ComplianceClauseID != nil {
-			parent := clauseMap[*clause.ComplianceClauseID]
+		if clause.ParantClauseID != nil {
+			parent := clauseMap[*clause.ParantClauseID]
 			parent.ChildClauses = append(parent.ChildClauses, clauseMap[clause.ID])
 		} else {
 			rootClauses = append(rootClauses, clauseMap[clause.ID])
@@ -88,7 +88,7 @@ func mapChildClauses(childClauses []*models.ComplianceClause) []*complianceDTOs.
 		childDTOs = append(childDTOs, &complianceDTOs.ComplianceClauseListDTO{
 			ID:             child.ID,
 			ClauseNo:       child.ClauseNo,
-			ParentClauseID: child.ComplianceClauseID,
+			ParentClauseID: child.ParantClauseID,
 			TitleEn:        child.TitleEn,
 			TitleAr:        child.TitleAr,
 			ScopeEn:        child.ScopeEn,
@@ -162,7 +162,7 @@ func (ccs *ComplianceClauseService) Create(complianceID uint, currentUserID uint
 	// Create ComplianceClause model
 	complianceClause := &models.ComplianceClause{
 		ComplianceRegisterID: complianceID,
-		ComplianceClauseID:   formDTO.ParentClauseID,
+		ParantClauseID:       formDTO.ParentClauseID,
 		ClauseNo:             clauseNo,
 		TitleEn:              formDTO.TitleEn,
 		TitleAr:              formDTO.TitleAr,
