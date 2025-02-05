@@ -411,7 +411,7 @@ func (cc *ControlController) MarkControlAsNotApplicable(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (pc *ControlController) ImportProcesses(c *gin.Context) {
+func (cc *ControlController) DirectImportControls(c *gin.Context) {
 	// Retrieve the uploaded file
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -421,7 +421,7 @@ func (pc *ControlController) ImportProcesses(c *gin.Context) {
 
 	src, err := file.Open()
 	if err != nil {
-		utility.SendInternalErrResp(pc.db, c, "Failed to open file")
+		utility.SendInternalErrResp(cc.db, c, "Failed to open file")
 		return
 	}
 	defer src.Close()
@@ -429,13 +429,13 @@ func (pc *ControlController) ImportProcesses(c *gin.Context) {
 	// Pass the file to the service layer for processing
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(pc.db, c, err.Error())
+		utility.SendInternalErrResp(cc.db, c, err.Error())
 		return
 	}
 
-	failedRows, err := pc.service.ImportProcesses(src, currentUserID)
+	failedRows, err := cc.service.ImportProcesses(src, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(pc.db, c, err.Error())
+		utility.SendInternalErrResp(cc.db, c, err.Error())
 		return
 	}
 
@@ -449,4 +449,78 @@ func (pc *ControlController) ImportProcesses(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "All rows imported successfully"})
+}
+
+func (cc *ControlController) GenerateControlTemplate(c *gin.Context) {
+	file, err := cc.service.GenerateControlTemplate()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate template"})
+		return
+	}
+	defer file.Close()
+
+	c.Header("Content-Disposition", "attachment; filename=ControlTemplate.xlsx")
+	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.File(file.Name())
+}
+
+func (cc *ControlController) ValidateControlTemplate(c *gin.Context) {
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "File is required"})
+		return
+	}
+
+	openedFile, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open file"})
+		return
+	}
+	defer openedFile.Close()
+
+	validatedData, err := cc.service.ValidateControlTemplate(openedFile)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, validatedData)
+}
+
+func (cc *ControlController) ValidateImportControls(c *gin.Context) {
+	var input []map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	validatedData, err := cc.service.ValidateImportControls(input)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, validatedData)
+}
+
+func (cc *ControlController) ImportControls(c *gin.Context) {
+	var input []map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cc.db, c, err.Error())
+		return
+	}
+
+	importedIDs, err := cc.service.ImportControls(input, uint(currentUserID))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"imported_ids": importedIDs})
 }

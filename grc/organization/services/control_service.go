@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"os"
 	"time"
@@ -40,6 +41,11 @@ type ControlServiceInterface interface {
 	UpdateControlRiskRating(control *models.Control, tx utility.DatabaseTransaction) error
 	MarkControlAsApplicable(controlID uint, currentUserID uint, controlApplicableFormDTO *organizationDTOs.ControlApplicableFormDTO) error
 	MarkControlAsNotApplicable(controlID uint, currentUserID uint, controlApplicableFormDTO *organizationDTOs.ControlApplicableFormDTO) error
+
+	GenerateControlTemplate() (*os.File, error)
+	ValidateControlTemplate(file io.Reader) ([]map[string]interface{}, error)
+	ValidateImportControls(input []map[string]interface{}) ([]map[string]interface{}, error)
+	ImportControls(input []map[string]interface{}, currentUserID uint) ([]uint, error)
 }
 
 type ControlService struct {
@@ -1026,4 +1032,103 @@ func (ps *ControlService) ImportProcesses(file multipart.File, currentUserID uin
 	}
 
 	return failedRows, nil
+}
+
+func (cs *ControlService) GenerateControlTemplate() (*os.File, error) {
+	headers := []string{"Code", "ControlType", "ControlCategory", "Owner", "TitleEn", "TitleAr", "Description", "Implementation Status", "Efficiency Status", "Applicability", "Test Responsible User"}
+	templateData := [][]interface{}{}
+
+	file, err := utility.GenerateExcelFile(headers, templateData)
+	if err != nil {
+		return nil, err
+	}
+	return file, nil
+}
+
+func (cs *ControlService) ValidateControlTemplate(file io.Reader) ([]map[string]interface{}, error) {
+	rows, err := utility.ReadExcelFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	headers := []string{"ControlType", "ControlCategory", "OwnerUnit", "Owner", "TitleEn", "TitleAr", "Description"}
+	if len(rows) == 0 || !utility.ValidateHeaders(headers, rows[0]) {
+		return nil, fmt.Errorf("Invalid headers in the template")
+	}
+
+	input := []map[string]interface{}{}
+	for _, row := range rows[1:] {
+		record := make(map[string]interface{})
+		for i, header := range headers {
+			record[header] = row[i]
+		}
+		input = append(input, record)
+	}
+
+	return cs.validateControls(input)
+}
+
+func (cs *ControlService) ValidateImportControls(input []map[string]interface{}) ([]map[string]interface{}, error) {
+	return cs.validateControls(input)
+}
+
+func (cs *ControlService) ImportControls(input []map[string]interface{}, currentUserID uint) ([]uint, error) {
+	validatedData, err := cs.validateControls(input)
+	if err != nil {
+		return nil, err
+	}
+
+	var importedIDs []uint
+	for _, record := range validatedData {
+		if errors, ok := record["errors"].(map[string]interface{}); ok && len(errors) > 0 {
+			return nil, fmt.Errorf("Validation errors found in data")
+		}
+
+		control := &models.Control{
+			ControlTypeID: record["ControlTypeID"].(uint),
+			TitleEn:       record["TitleEn"].(string),
+			TitleAr:       record["TitleAr"].(string),
+			Description:   utility.GetOptionalStringValue(record["Description"]),
+			CreatedByID:   currentUserID,
+		}
+
+		controlID, err := cs.repo.Create(control)
+		if err != nil {
+			return nil, err
+		}
+
+		importedIDs = append(importedIDs, controlID)
+	}
+	return importedIDs, nil
+}
+
+func (cs *ControlService) validateControls(input []map[string]interface{}) ([]map[string]interface{}, error) {
+	var validatedData []map[string]interface{}
+	existingTitles := make(map[string]bool)
+
+	for _, record := range input {
+		errors := make(map[string]interface{})
+
+		titleEn, titleAr := record["TitleEn"].(string), record["TitleAr"].(string)
+		if titleEn == "" {
+			errors["TitleEn"] = "TitleEn is required"
+		}
+		if titleAr == "" {
+			errors["TitleAr"] = "TitleAr is required"
+		}
+
+		// Check for duplicates
+		if existingTitles[titleEn] {
+			errors["TitleEn"] = "Duplicate TitleEn in the sheet"
+		}
+		if existingTitles[titleAr] {
+			errors["TitleAr"] = "Duplicate TitleAr in the sheet"
+		}
+		existingTitles[titleEn], existingTitles[titleAr] = true, true
+
+		record["errors"] = errors
+		validatedData = append(validatedData, record)
+	}
+
+	return validatedData, nil
 }
