@@ -6,7 +6,7 @@ import "time"
 type ComplianceClause struct {
 	ID                   uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	ComplianceRegisterID uint       `json:"compliance_register_id" binding:"required" gorm:"not null"`
-	ParantClauseID       *uint      `json:"compliance_clause_id" gorm:"index;default:null;column:compliance_clause_id"`
+	ParentClauseID       *uint      `json:"compliance_clause_id" gorm:"index;default:null;column:compliance_clause_id"`
 	ClauseNo             string     `json:"clause_no" binding:"required,max=45" gorm:"type:varchar(45);not null"`
 	TitleEn              string     `json:"title_en" binding:"required" gorm:"type:nvarchar(max);not null"`
 	TitleAr              *string    `json:"title_ar" gorm:"type:nvarchar(max);default:null"`
@@ -23,8 +23,8 @@ type ComplianceClause struct {
 
 	// Relationships
 	ComplianceRegister *ComplianceRegister `gorm:"foreignKey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ParentClause       *ComplianceClause   `gorm:"foreignKey:ParantClauseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"` // Self-referencing relationship
-	ChildClauses       []*ComplianceClause `gorm:"foreignKey:ParantClauseID"`                                               // Recursive relationship
+	ParentClause       *ComplianceClause   `gorm:"foreignKey:ParentClauseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"` // Self-referencing relationship
+	ChildClauses       []*ComplianceClause `gorm:"foreignKey:ParentClauseID"`                                               // Recursive relationship
 	CreatedByUser      *User               `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser      *User               `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
