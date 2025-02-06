@@ -207,7 +207,10 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
-
+		case "open":
+			query = query.Where("risk_statuses.type = ? ", "open")
+		case "identified":
+			query = query.Where("risk_statuses.type = ? ", "identified")
 		case "critical_risk":
 			// Fetch the highest available risk rating dynamically
 			var highestRating string

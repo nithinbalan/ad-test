@@ -199,7 +199,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		TitleAr:                         complianceRequirementFormDTO.TitleAr,
 		Deadline:                        dates.Deadline,
 		CreatedByID:                     currentUserID,
-		ParantClauseID:                  complianceRequirementFormDTO.ComplianceClauseID,
+		ComplianceClauseID:              complianceRequirementFormDTO.ComplianceClauseID,
 		Score:                           score,
 	}
 
@@ -457,6 +457,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	}
 
 	// Update Compliance Requirement
+	existingComplianceRequirement.ComplianceClauseID = clause.ID
 	existingComplianceRequirement.ComplianceRequirementCategoryID = complianceRequirementFormDTO.ComplianceRequirementCategoryID
 	existingComplianceRequirement.ComplianceStatusID = complianceRequirementFormDTO.ComplianceStatusID
 	existingComplianceRequirement.ResponsibleUserID = complianceRequirementFormDTO.ResponsibleUserID
@@ -466,8 +467,8 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	existingComplianceRequirement.Deadline = dates.Deadline
 	existingComplianceRequirement.Score = score
 	existingComplianceRequirement.UpdatedByID = &currentUserID
-	existingComplianceRequirement.ParantClauseID = complianceRequirementFormDTO.ComplianceClauseID
 
+	existingComplianceRequirement.ComplianceClause = nil // Reset preloaded association
 	err = crs.repo.Update(existingComplianceRequirement, tx)
 	if err != nil {
 		tx.Rollback()
