@@ -103,7 +103,7 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 
 	for _, organizationUnitID := range complianceAssessmentFormDTO.OrganizationUnitIDs {
 
-		err := cras.validateComplianceAssessmentOrganizationUnit(*organizationUnitID, complianceAssessmentFormDTO.ComplianceRegisterID)
+		err := cras.validateComplianceAssessmentOrganizationUnit(*organizationUnitID, complianceAssessmentFormDTO.ComplianceRegisterID, nil)
 		if err != nil {
 			continue
 		}
@@ -179,7 +179,7 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, complianceAssessmentUpdateFormDTO *complianceDTOs.ComplianceAssessmentUpdateFormDTO) error {
 	tx := cras.repo.BeginTransaction()
 
-	if err := cras.validateComplianceAssessmentOrganizationUnit(complianceAssessmentUpdateFormDTO.OrganizationUnitID, complianceAssessmentUpdateFormDTO.ComplianceRegisterID); err != nil {
+	if err := cras.validateComplianceAssessmentOrganizationUnit(complianceAssessmentUpdateFormDTO.OrganizationUnitID, complianceAssessmentUpdateFormDTO.ComplianceRegisterID, &id); err != nil {
 		return err
 	}
 
@@ -330,15 +330,26 @@ func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(com
 	return nil
 }
 
-func (cras *ComplianceAssessmentService) validateComplianceAssessmentOrganizationUnit(organizationUnitID uint, complianceRegisterID uint) error {
+func (cras *ComplianceAssessmentService) validateComplianceAssessmentOrganizationUnit(organizationUnitID uint, complianceRegisterID uint, id *uint) error {
 
-	exists, err := cras.repo.ExistsByOrganizationUnitID(organizationUnitID, complianceRegisterID)
-	if err != nil {
-		return fmt.Errorf("failed to validate organization unit ID %d: %w", organizationUnitID, err)
-	}
+	if id == nil {
+		exists, err := cras.repo.IsAssessmentExists(organizationUnitID, complianceRegisterID)
+		if err != nil {
+			return fmt.Errorf("failed to validate organization unit ID %d: %w", organizationUnitID, err)
+		}
 
-	if exists {
-		return utility.NewValidationError(fmt.Errorf("a assessment already exists for this department"), "assessment_exists", "Organization Unit")
+		if exists {
+			return utility.NewValidationError(fmt.Errorf("a assessment already exists for this organization unit"), "unique", "organization unit")
+		}
+	} else {
+		exists, err := cras.repo.IsAssessmentExistExcludingID(*id, organizationUnitID, complianceRegisterID)
+		if err != nil {
+			return fmt.Errorf("failed to validate organization unit ID %d: %w", organizationUnitID, err)
+		}
+
+		if exists {
+			return utility.NewValidationError(fmt.Errorf("a assessment already exists for this organization unit"), "unique", "organization unit")
+		}
 	}
 
 	return nil

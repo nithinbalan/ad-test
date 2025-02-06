@@ -10,7 +10,8 @@ type ComplianceStatus struct {
 	Type          string `json:"type" binding:"required,max=25,oneof=not-implemented in_progress partially_compliant compliant exempt not_applicable" gorm:"type:varchar(25);not null"`
 	Status        string `json:"status" binding:"required,max=10,oneof=active inactive" gorm:"type:varchar(10);not null"`
 	BaseScore     int    `json:"base_score" gorm:"not null;default:0"`
-
+	ScoreFrom     *int   `json:"score_from"`
+	ScoreTo       *int   `json:"score_to"`
 }
 
 // TableName overrides the table name used by ComplianceStatus to `compliance_statuses`

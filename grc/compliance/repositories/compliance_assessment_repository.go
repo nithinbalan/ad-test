@@ -18,7 +18,8 @@ type ComplianceAssessmentRepositoryInterface interface {
 	Update(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 
-	ExistsByOrganizationUnitID(organizationUnitID uint, compliancRegisterID uint) (bool, error)
+	IsAssessmentExists(organizationUnitID uint, compliancRegisterID uint) (bool, error)
+	IsAssessmentExistExcludingID(id uint, organizationUnitID uint, compliancRegisterID uint) (bool, error)
 
 	GetByComplianceAssessmentRequirementID(id uint) (*models.ComplianceAssessmentRequirement, error)
 	CreateComplianceAssessmentRequirement(requirements []*models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) error
@@ -225,12 +226,28 @@ func (repo *ComplianceAssessmentRepository) Delete(id uint, tx ...utility.Databa
 
 	return nil
 }
-func (repo *ComplianceAssessmentRepository) ExistsByOrganizationUnitID(organizationUnitID uint, complianceRegisterID uint) (bool, error) {
+func (repo *ComplianceAssessmentRepository) IsAssessmentExists(organizationUnitID uint, complianceRegisterID uint) (bool, error) {
 	db := repo.db
 
 	var count int64
 	query := db.Table("compliance_assessments").
 		Where("compliance_register_id = ?", complianceRegisterID)
+
+	if organizationUnitID > 0 {
+		query = query.Where("organization_unit_id = ?", organizationUnitID)
+	}
+
+	err := query.Count(&count).Error
+
+	return count > 0, err
+}
+
+func (repo *ComplianceAssessmentRepository) IsAssessmentExistExcludingID(id uint, organizationUnitID uint, complianceRegisterID uint) (bool, error) {
+	db := repo.db
+
+	var count int64
+	query := db.Table("compliance_assessments").
+		Where("id <> ? AND compliance_register_id = ?", id, complianceRegisterID)
 
 	if organizationUnitID > 0 {
 		query = query.Where("organization_unit_id = ?", organizationUnitID)

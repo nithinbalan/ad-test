@@ -6,4 +6,6 @@ type ComplianceStatusDTO struct {
 	TitleAr   string `json:"title_ar"`
 	ColorCode string `json:"color_code"`
 	Status    string `json:"status"`
+	ScoreFrom *int   `json:"score_from"`
+	ScoreTo   *int   `json:"score_to"`
 }
