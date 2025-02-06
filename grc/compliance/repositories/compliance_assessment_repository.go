@@ -17,6 +17,12 @@ type ComplianceAssessmentRepositoryInterface interface {
 	Create(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+
+	IsAssessmentExists(organizationUnitID uint, compliancRegisterID uint) (bool, error)
+	IsAssessmentExistExcludingID(id uint, organizationUnitID uint, compliancRegisterID uint) (bool, error)
+
+	CreateComplianceAssessmentRequirement(requirements []*models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceAssessmentRequirements(ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceAssessmentRepository struct {
@@ -89,11 +95,6 @@ func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.Compli
 		}
 	}
 
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -120,7 +121,7 @@ func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.Compli
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
-
+	// Calculate total count for pagination
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	if !params.Export {
@@ -172,6 +173,9 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByID(id uint, tx ...ut
 	result := db.
 		Preload("ComplianceRegister").
 		Preload("OrganizationUnit").
+		Preload("AssessmentRequirements").
+		Preload("AssessmentRequirements.ComplianceRequirement").
+		Preload("AssessmentRequirements.ComplianceRequirement.ComplianceStatus").
 		Preload("ReviewUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
@@ -215,6 +219,61 @@ func (repo *ComplianceAssessmentRepository) Delete(id uint, tx ...utility.Databa
 	}
 	// Delete the Compliance  Assessment
 	if err := db.Delete(&models.ComplianceAssessment{}, id).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+func (repo *ComplianceAssessmentRepository) IsAssessmentExists(organizationUnitID uint, complianceRegisterID uint) (bool, error) {
+	db := repo.db
+
+	var count int64
+	query := db.Table("compliance_assessments").
+		Where("compliance_register_id = ?", complianceRegisterID)
+
+	if organizationUnitID > 0 {
+		query = query.Where("organization_unit_id = ?", organizationUnitID)
+	}
+
+	err := query.Count(&count).Error
+
+	return count > 0, err
+}
+
+func (repo *ComplianceAssessmentRepository) IsAssessmentExistExcludingID(id uint, organizationUnitID uint, complianceRegisterID uint) (bool, error) {
+	db := repo.db
+
+	var count int64
+	query := db.Table("compliance_assessments").
+		Where("id <> ? AND compliance_register_id = ?", id, complianceRegisterID)
+
+	if organizationUnitID > 0 {
+		query = query.Where("organization_unit_id = ?", organizationUnitID)
+	}
+
+	err := query.Count(&count).Error
+
+	return count > 0, err
+}
+
+func (repo *ComplianceAssessmentRepository) CreateComplianceAssessmentRequirement(requirements []*models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&requirements).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceAssessmentRepository) DeleteComplianceAssessmentRequirements(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.ComplianceAssessmentRequirement{}).Error; err != nil {
 		return err
 	}
 

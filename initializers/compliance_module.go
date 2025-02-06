@@ -33,6 +33,7 @@ type ComplianceModule struct {
 	CompliacneClauseController                    *controllers.ComplianceClauseController
 	ComplianceActionPlanCommentController         *controllers.ComplianceActionPlanCommentController
 	ComplianceAssessmentController                *controllers.ComplianceAssessmentController
+	ComplianceAssessmentRequirementController     *controllers.ComplianceAssessmentRequirementController
 
 	ComplianceRegisterSvc          services.ComplianceRegisterServiceInterface
 	ComplianceRequirementSvc       services.ComplianceRequirementServiceInterface
@@ -195,8 +196,12 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceActionPlanCommentController := controllers.NewComplianceActionPlanCommentController(complianceActionPlanCommentSvc)
 
 	complianceAssessmentRepo := repositories.NewComplianceAssessmentRepository(db)
-	complianceAssessmentSvc := services.NewComplianceAssessmentService(complianceAssessmentRepo, sharedModule.ActivityLogService, organizationModule.UserSvc)
+	complianceAssessmentSvc := services.NewComplianceAssessmentService(complianceAssessmentRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, complianceRegisterSvc)
 	complianceAssessmentController := controllers.NewComplianceAssessmentController(complianceAssessmentSvc)
+
+	complianceAssessmentRequirementRepo := repositories.NewComplianceAssessmentRequirementRepository(db)
+	complianceAssessmentRequirementSvc := services.NewComplianceAssessmentRequirementService(complianceAssessmentRequirementRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, complianceRegisterSvc)
+	complianceAssessmentRequirementController := controllers.NewComplianceAssessmentRequirementController(complianceAssessmentRequirementSvc)
 
 	return &ComplianceModule{
 		ComplianceCategoryController:                  complianceCategoryController,
@@ -223,6 +228,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		CompliacneClauseController:                    compilanceClauseController,
 		ComplianceActionPlanCommentController:         complianceActionPlanCommentController,
 		ComplianceAssessmentController:                complianceAssessmentController,
+		ComplianceAssessmentRequirementController:     complianceAssessmentRequirementController,
 
 		ComplianceRequirementSvc:       complianceRequirementSvc,
 		ComplianceRegisterSvc:          complianceRegisterSvc,

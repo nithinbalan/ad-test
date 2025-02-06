@@ -37,14 +37,14 @@ type ComplianceAssessmentListDTO struct {
 	CreatedUserEmail            string     `json:"created_user_email"`
 	CreatedUserProfileImagePath string     `json:"created_user_profile_image_path"`
 	UpdatedUserID               *uint      `json:"updated_user_id"`
-	UpdatedUserFirstNameEn      string     `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr      string     `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn       string     `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr       string     `json:"updated_user_last_name_ar"`
-	UpdatedUserInitial          string     `json:"updated_user_initial"`
-	UpdatedUserColor            string     `json:"updated_user_color"`
-	UpdatedUserEmail            string     `json:"updated_user_email"`
-	UpdatedUserProfileImagePath string     `json:"updated_user_profile_image_path"`
+	UpdatedUserFirstNameEn      *string    `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr      *string    `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn       *string    `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr       *string    `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial          *string    `json:"updated_user_initial"`
+	UpdatedUserColor            *string    `json:"updated_user_color"`
+	UpdatedUserEmail            *string    `json:"updated_user_email"`
+	UpdatedUserProfileImagePath *string    `json:"updated_user_profile_image_path"`
 }
 
 type ComplianceAssessmentListQueryParamsDTO struct {
@@ -73,21 +73,29 @@ type ComplianceAssessmentFormDTO struct {
 
 type ComplianceAssessmentUpdateFormDTO struct {
 	ComplianceRegisterID uint    `json:"compliance_register_id" binding:"required"`
-	OrganizationUnitID   uint    `json:"organization_unit_id" binding:"required"`
+	OrganizationUnitIDs  uint    `json:"organization_unit_ids" binding:"required"`
 	ReviewUserID         uint    `json:"review_user_id" binding:"required"`
 	Description          *string `json:"description"`
 }
 
 type ComplianceAssessmentDetailDTO struct {
-	ID                 int                               `json:"id"`
-	ComplianceRegister *ComplianceRegisterDetailDTO      `json:"compliance_register"`
-	OrganizationUnitID uint                              `json:"organization_unit_id"`
-	ReviewuserID       uint                              `json:"review_user_id"`
-	OrganizationUnit   *settingsDTOs.OrganizationUnitDTO `json:"organization_unit"`
-	ReviewUser         *organizationDTOs.UserMinimalDTO  `json:"review_user"`
-	Description        *string                           `json:"description"`
-	CreatedAt          time.Time                         `json:"created_at"`
-	UpdatedAt          *time.Time                        `json:"updated_at"`
-	CreatedByUser      organizationDTOs.UserMinimalDTO   `json:"created_by_user"`
-	UpdatedByUser      *organizationDTOs.UserMinimalDTO  `json:"updated_by_user"`
+	ID                     int                                   `json:"id"`
+	ComplianceRegister     *ComplianceRegisterDetailDTO          `json:"compliance_register"`
+	OrganizationUnitID     uint                                  `json:"organization_unit_id"`
+	ReviewuserID           uint                                  `json:"review_user_id"`
+	OrganizationUnit       settingsDTOs.OrganizationUnitDTO      `json:"organization_unit"`
+	ReviewUser             *organizationDTOs.UserMinimalDTO      `json:"review_user"`
+	Description            *string                               `json:"description"`
+	CreatedAt              time.Time                             `json:"created_at"`
+	UpdatedAt              *time.Time                            `json:"updated_at"`
+	CreatedByUser          organizationDTOs.UserMinimalDTO       `json:"created_by_user"`
+	UpdatedByUser          *organizationDTOs.UserMinimalDTO      `json:"updated_by_user"`
+	AssessmentRequirements []*ComplianceAssessmentRequirementDTO `json:"compliance_requirements"`
+}
+
+type ComplianceAssessmentRequirementDTO struct {
+	ID                      *uint                          `json:"id"`
+	ComplianceAssessmentID  uint                           `json:"compliance_assessment_id"`
+	ComplianceRequirementID uint                           `json:"compliance_requirement_id"`
+	ComplianceRequirement   ComplianceRequirementDetailDTO `json:"compliance_requirement"`
 }
