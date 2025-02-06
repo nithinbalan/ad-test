@@ -27,7 +27,7 @@ type ComplianceClause struct {
 	ChildClauses           []*ComplianceClause      `gorm:"foreignKey:ParentClauseID"`                                               // Recursive relationship
 	CreatedByUser          *User                    `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser          *User                    `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ComplianceRequirements []*ComplianceRequirement `gorm:"foreignKey:ParantClauseID"`
+	ComplianceRequirements []*ComplianceRequirement `gorm:"foreignKey:ComplianceClauseID"`
 }
 
 // TableName overrides the table name used by ComplianceClause to `compliance_clauses`
