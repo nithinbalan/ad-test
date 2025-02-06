@@ -22,11 +22,12 @@ type ComplianceClause struct {
 	UpdatedBYID          *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	ComplianceRegister *ComplianceRegister `gorm:"foreignKey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ParentClause       *ComplianceClause   `gorm:"foreignKey:ParentClauseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"` // Self-referencing relationship
-	ChildClauses       []*ComplianceClause `gorm:"foreignKey:ParentClauseID"`                                               // Recursive relationship
-	CreatedByUser      *User               `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	UpdatedByUser      *User               `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceRegister     *ComplianceRegister      `gorm:"foreignKey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ParentClause           *ComplianceClause        `gorm:"foreignKey:ParentClauseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"` // Self-referencing relationship
+	ChildClauses           []*ComplianceClause      `gorm:"foreignKey:ParentClauseID"`                                               // Recursive relationship
+	CreatedByUser          *User                    `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	UpdatedByUser          *User                    `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceRequirements []*ComplianceRequirement `gorm:"foreignKey:ParantClauseID"`
 }
 
 // TableName overrides the table name used by ComplianceClause to `compliance_clauses`

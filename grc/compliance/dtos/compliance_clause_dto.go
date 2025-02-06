@@ -69,16 +69,17 @@ type ComplianceClauseFormDTO struct {
 
 // ComplianceClauseDetailDTO represents detailed information for a compliance clause.
 type ComplianceClauseDetailDTO struct {
-	ID                   uint    `json:"id"`
-	ComplianceRegisterID uint    `json:"compliance_register_id"`
-	ParentClauseID       *uint   `json:"parent_clause_id"`
-	ClauseNo             string  `json:"clause_no"`
-	TitleEn              string  `json:"title_en"`
-	TitleAr              *string `json:"title_ar"`
-	DescriptionEn        *string `json:"description_en"`
-	DescriptionAr        *string `json:"description_ar"`
-	ScopeEn              *string `json:"scope_en"`
-	ScopeAr              *string `json:"scope_ar"`
-	ObjectiveEn          *string `json:"objective_en"`
-	ObjectiveAr          *string `json:"objective_ar"`
+	ID                     uint                              `json:"id"`
+	ComplianceRegisterID   uint                              `json:"compliance_register_id"`
+	ParentClauseID         *uint                             `json:"parent_clause_id"`
+	ClauseNo               string                            `json:"clause_no"`
+	TitleEn                string                            `json:"title_en"`
+	TitleAr                *string                           `json:"title_ar"`
+	DescriptionEn          *string                           `json:"description_en"`
+	DescriptionAr          *string                           `json:"description_ar"`
+	ScopeEn                *string                           `json:"scope_en"`
+	ScopeAr                *string                           `json:"scope_ar"`
+	ObjectiveEn            *string                           `json:"objective_en"`
+	ObjectiveAr            *string                           `json:"objective_ar"`
+	ComplianceRequirements []*ComplianceRequirementDetailDTO `json:"compliance_requirements"`
 }

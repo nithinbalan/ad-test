@@ -17,6 +17,13 @@ type ComplianceAssessmentRepositoryInterface interface {
 	Create(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+
+	ExistsByOrganizationUnitID(organizationUnitID uint, compliancRegisterID uint) (bool, error)
+
+	GetByComplianceAssessmentRequirementID(id uint) (*models.ComplianceAssessmentRequirement, error)
+	CreateComplianceAssessmentRequirement(requirements []*models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) error
+	GetComplianceAssessmentRequirementDetailsByID(assessmentId uint, requirement uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessmentRequirement, error)
+	UpdateComplianceAssessmentRequirement(complianceAssessmentRequirement *models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceAssessmentRepository struct {
@@ -89,11 +96,6 @@ func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.Compli
 		}
 	}
 
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -120,7 +122,7 @@ func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.Compli
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
-
+	// Calculate total count for pagination
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	if !params.Export {
@@ -172,6 +174,9 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByID(id uint, tx ...ut
 	result := db.
 		Preload("ComplianceRegister").
 		Preload("OrganizationUnit").
+		Preload("AssessmentRequirements").
+		Preload("AssessmentRequirements.ComplianceRequirement").
+		Preload("AssessmentRequirements.ComplianceRequirement.ComplianceStatus").
 		Preload("ReviewUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
@@ -215,6 +220,81 @@ func (repo *ComplianceAssessmentRepository) Delete(id uint, tx ...utility.Databa
 	}
 	// Delete the Compliance  Assessment
 	if err := db.Delete(&models.ComplianceAssessment{}, id).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+func (repo *ComplianceAssessmentRepository) ExistsByOrganizationUnitID(organizationUnitID uint, complianceRegisterID uint) (bool, error) {
+	db := repo.db
+
+	var count int64
+	query := db.Table("compliance_assessments").
+		Where("compliance_register_id = ?", complianceRegisterID)
+
+	if organizationUnitID > 0 {
+		query = query.Where("organization_unit_id = ?", organizationUnitID)
+	}
+
+	err := query.Count(&count).Error
+
+	return count > 0, err
+}
+
+func (repo *ComplianceAssessmentRepository) CreateComplianceAssessmentRequirement(requirements []*models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&requirements).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceAssessmentRepository) GetComplianceAssessmentRequirementDetailsByID(complianceId uint, requirementId uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessmentRequirement, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var complianceAssessmentRequirement *models.ComplianceAssessmentRequirement
+
+	result := db.
+		Preload("ComplianceAssessment").
+		Preload("ComplianceRequirement").
+		Preload("ComplianceRequirement.ComplianceStatus").
+		Preload("ComplianceRequirement.ComplianceClause").
+		Preload("ComplianceRequirement.SeverityLevel").
+		Preload("ComplianceStatus").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&complianceAssessmentRequirement, requirementId)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return complianceAssessmentRequirement, nil
+}
+
+func (repo *ComplianceAssessmentRepository) GetByComplianceAssessmentRequirementID(id uint) (*models.ComplianceAssessmentRequirement, error) {
+	var complianceAssessmentRequirement *models.ComplianceAssessmentRequirement
+
+	result := repo.db.First(&complianceAssessmentRequirement, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return complianceAssessmentRequirement, nil
+
+}
+
+func (repo *ComplianceAssessmentRepository) UpdateComplianceAssessmentRequirement(complianceAssessmentRequirement *models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(complianceAssessmentRequirement).Error; err != nil {
 		return err
 	}
 
