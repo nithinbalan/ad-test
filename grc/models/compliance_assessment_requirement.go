@@ -19,7 +19,7 @@ type ComplianceAssessmentRequirement struct {
 
 	ComplianceAssessment  *ComplianceAssessment  `gorm:"foreignKey:ComplianceAssessmentID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceRequirement *ComplianceRequirement `gorm:"foreignKey:ComplianceRequirementID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ComplianceStatus      *ComplianceStatus      `gorm:"foreignKey:ComplianceStatus;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceStatus      *ComplianceStatus      `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser         *User                  `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser         *User                  `gorm:"foreignKey:UpdatedBYID"`
 }
