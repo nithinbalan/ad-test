@@ -165,3 +165,31 @@ func (ccc *ComplianceClauseController) DeleteComplianceClause(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Compliance Clause deleted successfully"})
 }
+
+func (ccc *ComplianceClauseController) GetAssociatedComplianceRequirement(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+	clauseIDStr := c.Param("clauseId")
+
+	// Convert compliance ID to uint
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Convert clause ID to uint
+	clauseID, err := strconv.ParseUint(clauseIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Fetch associated compliance requirements
+	requirements, err := ccc.service.GetAssociatedComplianceRequirements(uint(complianceID), uint(clauseID))
+	if err != nil {
+		utility.SendInternalErrResp(ccc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, requirements)
+}
