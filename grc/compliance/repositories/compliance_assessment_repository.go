@@ -261,6 +261,7 @@ func (repo *ComplianceAssessmentRepository) GetComplianceAssessmentRequirementDe
 
 	result := db.
 		Preload("ComplianceAssessment").
+		Preload("ComplianceAssessment.OrganizationUnit").
 		Preload("ComplianceRequirement").
 		Preload("ComplianceRequirement.ComplianceStatus").
 		Preload("ComplianceRequirement.ComplianceClause").

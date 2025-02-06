@@ -79,6 +79,7 @@ func (cras ComplianceAssessmentService) GetFullDetailsByID(id uint, tx ...utilit
 		return nil, err
 	}
 
+	complianceAssessmentDTO.OrganizationUnitID = complianceAssessment.PrimaryUnitID
 	complianceAssessmentDTO.CreatedAt = complianceAssessment.CreatedAt
 	complianceAssessmentDTO.UpdatedAt = complianceAssessment.UpdatedAt
 	// todo :- also add extra fields which required in details screen
@@ -110,7 +111,7 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 		complianceAssessment := &models.ComplianceAssessment{
 			ComplianceRegisterID: complianceAssessmentFormDTO.ComplianceRegisterID,
 			ReviewUserID:         complianceAssessmentFormDTO.ReviewUserID,
-			OrganizationUnitID:   *organizationUnitID,
+			PrimaryUnitID:        *organizationUnitID,
 			Description:          complianceAssessmentFormDTO.Description,
 			CreatedBYID:          currentUserID,
 		}
@@ -195,7 +196,7 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 
 	existingComplianceAssessment.ComplianceRegisterID = complianceAssessmentUpdateFormDTO.ComplianceRegisterID
 	existingComplianceAssessment.ReviewUserID = complianceAssessmentUpdateFormDTO.ReviewUserID
-	existingComplianceAssessment.OrganizationUnitID = complianceAssessmentUpdateFormDTO.OrganizationUnitID
+	existingComplianceAssessment.PrimaryUnitID = complianceAssessmentUpdateFormDTO.OrganizationUnitID
 	existingComplianceAssessment.Description = complianceAssessmentUpdateFormDTO.Description
 	existingComplianceAssessment.UpdatedBYID = &currentUserID
 
