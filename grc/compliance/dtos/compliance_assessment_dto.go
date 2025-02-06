@@ -73,7 +73,7 @@ type ComplianceAssessmentFormDTO struct {
 
 type ComplianceAssessmentUpdateFormDTO struct {
 	ComplianceRegisterID uint    `json:"compliance_register_id" binding:"required"`
-	OrganizationUnitID   uint    `json:"organization_unit_id" binding:"required"`
+	OrganizationUnitIDs  uint    `json:"organization_unit_ids" binding:"required"`
 	ReviewUserID         uint    `json:"review_user_id" binding:"required"`
 	Description          *string `json:"description"`
 }
@@ -98,25 +98,4 @@ type ComplianceAssessmentRequirementDTO struct {
 	ComplianceAssessmentID  uint                           `json:"compliance_assessment_id"`
 	ComplianceRequirementID uint                           `json:"compliance_requirement_id"`
 	ComplianceRequirement   ComplianceRequirementDetailDTO `json:"compliance_requirement"`
-}
-
-type ComplianceAssessmentRequirementDetailDTO struct {
-	ID                    int                              `json:"id"`
-	ComplianceAssessment  *ComplianceAssessmentDetailDTO   `json:"compliance_assessment"`
-	ComplianceRequirement ComplianceRequirementDetailDTO   `json:"compliance_requirement"`
-	IsCompleted           bool                             `json:"is_completed"`
-	Score                 *int                             `json:"score"`
-	Comments              *string                          `json:"comments"`
-	ComplianceStatusID    *uint                            `json:"compliance_status_id"`
-	ComplianceStatus      *ComplianceStatusDTO             `json:"compliance_status"`
-	CreatedAt             time.Time                        `json:"created_at"`
-	UpdatedAt             *time.Time                       `json:"updated_at"`
-	CreatedByUser         organizationDTOs.UserMinimalDTO  `json:"created_by_user"`
-	UpdatedByUser         *organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
-}
-
-type ComplianceAssessmentRequirementUpdateFormDTO struct {
-	Score              int     `json:"score" binding:"required"`
-	ComplianceStatusID uint    `json:"compliance_status_id" binding:"required"`
-	Comments           *string `json:"comments"`
 }

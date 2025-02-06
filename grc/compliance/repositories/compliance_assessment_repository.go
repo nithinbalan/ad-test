@@ -21,10 +21,8 @@ type ComplianceAssessmentRepositoryInterface interface {
 	IsAssessmentExists(organizationUnitID uint, compliancRegisterID uint) (bool, error)
 	IsAssessmentExistExcludingID(id uint, organizationUnitID uint, compliancRegisterID uint) (bool, error)
 
-	GetByComplianceAssessmentRequirementID(id uint) (*models.ComplianceAssessmentRequirement, error)
 	CreateComplianceAssessmentRequirement(requirements []*models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) error
-	GetComplianceAssessmentRequirementDetailsByID(assessmentId uint, requirement uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessmentRequirement, error)
-	UpdateComplianceAssessmentRequirement(complianceAssessmentRequirement *models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceAssessmentRequirements(ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceAssessmentRepository struct {
@@ -269,50 +267,13 @@ func (repo *ComplianceAssessmentRepository) CreateComplianceAssessmentRequiremen
 	return nil
 }
 
-func (repo *ComplianceAssessmentRepository) GetComplianceAssessmentRequirementDetailsByID(complianceId uint, requirementId uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessmentRequirement, error) {
+func (repo *ComplianceAssessmentRepository) DeleteComplianceAssessmentRequirements(ids []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	var complianceAssessmentRequirement *models.ComplianceAssessmentRequirement
 
-	result := db.
-		Preload("ComplianceAssessment").
-		Preload("ComplianceAssessment.OrganizationUnit").
-		Preload("ComplianceRequirement").
-		Preload("ComplianceRequirement.ComplianceStatus").
-		Preload("ComplianceRequirement.ComplianceClause").
-		Preload("ComplianceRequirement.SeverityLevel").
-		Preload("ComplianceStatus").
-		Preload("CreatedByUser").
-		Preload("UpdatedByUser").
-		First(&complianceAssessmentRequirement, requirementId)
-
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	return complianceAssessmentRequirement, nil
-}
-
-func (repo *ComplianceAssessmentRepository) GetByComplianceAssessmentRequirementID(id uint) (*models.ComplianceAssessmentRequirement, error) {
-	var complianceAssessmentRequirement *models.ComplianceAssessmentRequirement
-
-	result := repo.db.First(&complianceAssessmentRequirement, id)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	return complianceAssessmentRequirement, nil
-
-}
-
-func (repo *ComplianceAssessmentRepository) UpdateComplianceAssessmentRequirement(complianceAssessmentRequirement *models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Save(complianceAssessmentRequirement).Error; err != nil {
+	if err := db.Where("id IN (?)", ids).Delete(&models.ComplianceAssessmentRequirement{}).Error; err != nil {
 		return err
 	}
 
