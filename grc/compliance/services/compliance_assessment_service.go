@@ -100,11 +100,10 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 
 	for _, organizationUnitID := range complianceAssessmentFormDTO.OrganizationUnitIDs {
 
-		err := cras.validateComplianceAssessmentOrganizationUnit(*organizationUnitID, complianceAssessmentFormDTO.ComplianceRegisterID, nil)
-		if err != nil {
-			continue
-		}
-
+		// err := cras.validateComplianceAssessmentOrganizationUnit(*organizationUnitID, complianceAssessmentFormDTO.ComplianceRegisterID, nil)
+		// if err != nil {
+		// 	continue
+		// }
 		complianceAssessment := &models.ComplianceAssessment{
 			ComplianceRegisterID: complianceAssessmentFormDTO.ComplianceRegisterID,
 			ReviewUserID:         complianceAssessmentFormDTO.ReviewUserID,
