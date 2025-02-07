@@ -291,6 +291,23 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		}
 	}
 
+	var complianceRequirementRequiredDocumentTitle []*models.ComplianceRequirementRequiredDocumentTitle
+	for _, requiredDocumentTitleID := range complianceRequirementFormDTO.RequiredDocumentTitleIDs {
+		crrDocumentTitle := &models.ComplianceRequirementRequiredDocumentTitle{
+			ComplianceRequirementID: id,
+			RequiredDocumentTitleID: *requiredDocumentTitleID,
+			CreatedBYID:             currentUserID,
+		}
+		complianceRequirementRequiredDocumentTitle = append(complianceRequirementRequiredDocumentTitle, crrDocumentTitle)
+	}
+
+	if len(complianceRequirementRequiredDocumentTitle) > 0 {
+		if err := crs.repo.CreateComplianceRequirmentRequiredDocumentTitles(complianceRequirementRequiredDocumentTitle, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -650,6 +667,57 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		}
 	}
 
+	// Update Required Document Titles
+	existingDocumentTitleIDs := make(map[uint]bool)
+	for _, doc := range oldComplianceRequirement.RequiredDocumentTitles {
+		existingDocumentTitleIDs[doc.RequiredDocumentTitleID] = true
+	}
+
+	// Collect new required document title IDs
+	newDocumentTitleIDs := make(map[uint]bool)
+	for _, docID := range complianceRequirementFormDTO.RequiredDocumentTitleIDs {
+		newDocumentTitleIDs[*docID] = true
+	}
+
+	// Add new required document titles
+	var requiredDocumentsToAdd []*models.ComplianceRequirementRequiredDocumentTitle
+	for _, newDocumentTitleID := range complianceRequirementFormDTO.RequiredDocumentTitleIDs {
+		if _, exists := existingDocumentTitleIDs[*newDocumentTitleID]; !exists {
+			// Create a new compliance requirement document record
+			requiredDocument := &models.ComplianceRequirementRequiredDocumentTitle{
+				ComplianceRequirementID: id,
+				RequiredDocumentTitleID: *newDocumentTitleID,
+				CreatedBYID:             currentUserID,
+			}
+			requiredDocumentsToAdd = append(requiredDocumentsToAdd, requiredDocument)
+		}
+	}
+
+	// Save the new required documents
+	if len(requiredDocumentsToAdd) > 0 {
+		if err := crs.repo.CreateComplianceRequirmentRequiredDocumentTitles(requiredDocumentsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove required document titles not in the new list
+	var deleteDocumentTitleIDs []*uint
+	for _, existingDocument := range oldComplianceRequirement.RequiredDocumentTitles {
+		if _, exists := newDocumentTitleIDs[existingDocument.RequiredDocumentTitleID]; !exists {
+			// Append document to delete list
+			deleteDocumentTitleIDs = append(deleteDocumentTitleIDs, existingDocument.ID)
+		}
+	}
+
+	// Delete required document titles not in the new list
+	if len(deleteDocumentTitleIDs) > 0 {
+		if err := crs.repo.DeleteComplianceRequirmentRequiredDocumentTitles(deleteDocumentTitleIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -971,6 +1039,18 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 				deleteControlIds = append(deleteControlIds, ctrl.ID)
 			}
 			if err := crs.repo.DeleteComplianceRequirementControls(deleteControlIds, tx); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
+
+		// Check if requiredDocumentTitile exist
+		if len(requirement.RequiredDocumentTitles) > 0 {
+			var deleteRequiredDocumentTitleIds []*uint
+			for _, rdTitle := range requirement.RequiredDocumentTitles {
+				deleteRequiredDocumentTitleIds = append(deleteRequiredDocumentTitleIds, rdTitle.ID)
+			}
+			if err := crs.repo.DeleteComplianceRequirmentRequiredDocumentTitles(deleteRequiredDocumentTitleIds, tx); err != nil {
 				failedIds = append(failedIds, id)
 				continue
 			}
