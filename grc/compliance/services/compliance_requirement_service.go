@@ -199,7 +199,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		TitleAr:                         complianceRequirementFormDTO.TitleAr,
 		Deadline:                        dates.Deadline,
 		CreatedByID:                     currentUserID,
-		ParantClauseID:                  complianceRequirementFormDTO.ComplianceClauseID,
+		ComplianceClauseID:              complianceRequirementFormDTO.ComplianceClauseID,
 		Score:                           score,
 	}
 
@@ -457,6 +457,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	}
 
 	// Update Compliance Requirement
+	existingComplianceRequirement.ComplianceClauseID = clause.ID
 	existingComplianceRequirement.ComplianceRequirementCategoryID = complianceRequirementFormDTO.ComplianceRequirementCategoryID
 	existingComplianceRequirement.ComplianceStatusID = complianceRequirementFormDTO.ComplianceStatusID
 	existingComplianceRequirement.ResponsibleUserID = complianceRequirementFormDTO.ResponsibleUserID
@@ -466,8 +467,8 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	existingComplianceRequirement.Deadline = dates.Deadline
 	existingComplianceRequirement.Score = score
 	existingComplianceRequirement.UpdatedByID = &currentUserID
-	existingComplianceRequirement.ParantClauseID = complianceRequirementFormDTO.ComplianceClauseID
 
+	existingComplianceRequirement.ComplianceClause = nil // Reset preloaded association
 	err = crs.repo.Update(existingComplianceRequirement, tx)
 	if err != nil {
 		tx.Rollback()
@@ -1037,21 +1038,21 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 	}
 
 	// Delete clauses if all their requirements are deleted
-	for clauseID := range clauseIDsToDelete {
-		count, err := crs.repo.CountRequirementsByClauseID(clauseID, tx)
-		if err != nil {
-			failedIds = append(failedIds, clauseID)
-			fmt.Printf("Error counting requirements for clause %d: %v\n", clauseID, err)
-			continue
-		} else if count == 0 {
-			if err := crs.repo.DeleteClause(clauseID, tx); err != nil {
-				failedIds = append(failedIds, clauseID)
-				// Log error, but proceed with other deletions
-				fmt.Printf("Error deleting clause %d: %v\n", clauseID, err)
-				continue
-			}
-		}
-	}
+	// for clauseID := range clauseIDsToDelete {
+	// 	count, err := crs.repo.CountRequirementsByClauseID(clauseID, tx)
+	// 	if err != nil {
+	// 		failedIds = append(failedIds, clauseID)
+	// 		fmt.Printf("Error counting requirements for clause %d: %v\n", clauseID, err)
+	// 		continue
+	// 	} else if count == 0 {
+	// 		if err := crs.repo.DeleteClause(clauseID, tx); err != nil {
+	// 			failedIds = append(failedIds, clauseID)
+	// 			// Log error, but proceed with other deletions
+	// 			fmt.Printf("Error deleting clause %d: %v\n", clauseID, err)
+	// 			continue
+	// 		}
+	// 	}
+	// }
 
 	if len(failedIds) > 0 {
 		tx.Rollback()

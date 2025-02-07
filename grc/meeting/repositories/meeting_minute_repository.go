@@ -80,7 +80,9 @@ func (repo *MeetingMinuteRepository) GetAll(meetingID uint, currentUserID uint, 
 			query = query.Where(columnName+" IN (?)", values)
 		}
 	}
-
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("meeting_minutes.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
@@ -95,7 +97,7 @@ func (repo *MeetingMinuteRepository) GetAll(meetingID uint, currentUserID uint, 
 			(meeting_minute_statuses.title_en LIKE ? OR
 			(meeting_minute_statuses.title_ar LIKE ? OR
 			meeting_agendas.title LIKE ?)`,
-			keyword,keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order

@@ -196,6 +196,7 @@ type ComplianceRegisterDetailDTO struct {
 	DocumentAr              *ComplianceDocumentDTO             `json:"document_ar"`
 	Controls                []*ComplianceControlDTO            `json:"controls"`
 	ComplianceStatusUpdates []*ComplianceStatusUpdateDetailDTO `json:"compliance_status_updates"`
+	ComplianceClauses       []*ComplianceClauseDetailDTO       `json:"compliance_clauses"`
 }
 
 type ComplianceControlDTO struct {

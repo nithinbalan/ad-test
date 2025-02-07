@@ -29,6 +29,7 @@ type MasterModule struct {
 	ImpactCategoryController      *controllers.ImpactCategoryController
 	TimeUnitController            *controllers.TimeUnitController
 	ReviewStatusController        *controllers.ReviewStatusController
+	ApplicabilityStatusController *controllers.ApplicabilityStatusController
 
 	ReviewFrequencySvc     services.ReviewFrequencyServiceInterface
 	SeverityLevelSvc       services.SeverityLevelServiceInterface
@@ -50,6 +51,7 @@ type MasterModule struct {
 	ImpactCategorySvc      services.ImpactCategoryServiceInterface
 	TimeUnitSvc            services.TimeUnitServiceInterface
 	ReviewStatusSvc        services.ReviewStatusServiceInterface
+	ApplicabilitySvc       services.ApplicabilityStatusServiceInterface
 }
 
 func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
@@ -150,6 +152,11 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	reviewStatusSvc := services.NewReviewStatusService(reviewStatusRepo)
 	reviewStatusController := controllers.NewReviewStatusController(reviewStatusSvc)
 
+	// Applicability Status
+	applicabilityStatusRepo := repositories.NewApplicabilityStatusRepository(db)
+	applicabilityStatusSvc := services.NewApplicabilityStatusService(applicabilityStatusRepo)
+	applicabilityStatusController := controllers.NewApplicabilityStatusController(applicabilityStatusSvc)
+
 	return &MasterModule{
 		ReviewFrequencyController:     reviewFrequencyController,
 		SeverityLevelController:       severityLevelController,
@@ -171,6 +178,7 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		ImpactCategoryController:      impactCategoryController,
 		TimeUnitController:            timeUnitController,
 		ReviewStatusController:        reviewStatusController,
+		ApplicabilityStatusController: applicabilityStatusController,
 
 		ReviewFrequencySvc:     reviewFrequencySvc,
 		SeverityLevelSvc:       severityLevelSvc,
@@ -192,5 +200,6 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		ImpactCategorySvc:      impactCategorySvc,
 		TimeUnitSvc:            timeUnitSvc,
 		ReviewStatusSvc:        reviewStatusSvc,
+		ApplicabilitySvc:       applicabilityStatusSvc,
 	}
 }

@@ -18,6 +18,8 @@ type ComplianceClauseServiceInterface interface {
 	Create(complianceID uint, currentUserID uint, formDTO *complianceDTOs.ComplianceClauseFormDTO) (uint, error)
 	Update(complianceID uint, clauseID uint, currentUserID uint, formDTO *complianceDTOs.ComplianceClauseFormDTO) error
 	Delete(id uint) error
+
+	GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error)
 }
 
 type ComplianceClauseService struct {
@@ -56,7 +58,7 @@ func (ccs *ComplianceClauseService) GetAll(complianceID uint) ([]*complianceDTOs
 		dto := &complianceDTOs.ComplianceClauseListDTO{
 			ID:             clause.ID,
 			ClauseNo:       clause.ClauseNo,
-			ParentClauseID: clause.ComplianceClauseID,
+			ParentClauseID: clause.ParentClauseID,
 			TitleEn:        clause.TitleEn,
 			TitleAr:        clause.TitleAr,
 			ScopeEn:        clause.ScopeEn,
@@ -70,8 +72,8 @@ func (ccs *ComplianceClauseService) GetAll(complianceID uint) ([]*complianceDTOs
 
 	// Build hierarchy by linking children to their parent
 	for _, clause := range clauses {
-		if clause.ComplianceClauseID != nil {
-			parent := clauseMap[*clause.ComplianceClauseID]
+		if clause.ParentClauseID != nil {
+			parent := clauseMap[*clause.ParentClauseID]
 			parent.ChildClauses = append(parent.ChildClauses, clauseMap[clause.ID])
 		} else {
 			rootClauses = append(rootClauses, clauseMap[clause.ID])
@@ -88,7 +90,7 @@ func mapChildClauses(childClauses []*models.ComplianceClause) []*complianceDTOs.
 		childDTOs = append(childDTOs, &complianceDTOs.ComplianceClauseListDTO{
 			ID:             child.ID,
 			ClauseNo:       child.ClauseNo,
-			ParentClauseID: child.ComplianceClauseID,
+			ParentClauseID: child.ParentClauseID,
 			TitleEn:        child.TitleEn,
 			TitleAr:        child.TitleAr,
 			ScopeEn:        child.ScopeEn,
@@ -162,7 +164,7 @@ func (ccs *ComplianceClauseService) Create(complianceID uint, currentUserID uint
 	// Create ComplianceClause model
 	complianceClause := &models.ComplianceClause{
 		ComplianceRegisterID: complianceID,
-		ComplianceClauseID:   formDTO.ParentClauseID,
+		ParentClauseID:       formDTO.ParentClauseID,
 		ClauseNo:             clauseNo,
 		TitleEn:              formDTO.TitleEn,
 		TitleAr:              formDTO.TitleAr,
@@ -243,19 +245,8 @@ func (ccs *ComplianceClauseService) Update(complianceID uint, clauseID uint, cur
 func (ccs *ComplianceClauseService) Delete(clauseID uint) error {
 	tx := ccs.repo.BeginTransaction()
 
-	// Fetch the clause with its child clauses
-	clause, err := ccs.repo.GetClauseWithChildren(clauseID, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// Collect all clause IDs to be deleted (recursive delete)
-	var clauseIDsToDelete []uint
-	collectClauseIDs(clause, &clauseIDsToDelete)
-
-	// Delete all clauses in a single transaction
-	err = ccs.repo.Delete(clauseIDsToDelete, tx)
+	// Recursively delete the clause and its children
+	err := ccs.repo.Delete(clauseID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -265,10 +256,12 @@ func (ccs *ComplianceClauseService) Delete(clauseID uint) error {
 	return nil
 }
 
-// Recursive function to collect all clause IDs to be deleted
-func collectClauseIDs(clause *models.ComplianceClause, clauseIDs *[]uint) {
-	*clauseIDs = append(*clauseIDs, clause.ID)
-	for _, childClause := range clause.ChildClauses {
-		collectClauseIDs(childClause, clauseIDs)
+func (ccs *ComplianceClauseService) GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error) {
+	// Fetch associated compliance requirements from repository
+	requirements, err := ccs.repo.GetAssociatedComplianceRequirements(complianceID, clauseID)
+	if err != nil {
+		return nil, err
 	}
+
+	return requirements, nil
 }

@@ -52,6 +52,7 @@ type ComplianceRegister struct {
 	UpdatedByUser           *User                     `gorm:"foreignKey:UpdatedByID"`
 	Controls                []*ComplianceControl      `gorm:"foreignKey:ComplianceRegisterID"`
 	ComplianceStatusUpdates []*ComplianceStatusUpdate `gorm:"foreignKey:ComplianceRegisterID"`
+	ComplianceClauses       []*ComplianceClause       `gorm:"foreignKey:ComplianceRegisterID"`
 }
 
 // TableName overrides the table name used by ComplianceRegister to `compliance_register`

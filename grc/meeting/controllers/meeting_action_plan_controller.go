@@ -79,6 +79,8 @@ func (mapc *MeetingActionPlanController) GetAllMeetingActionPlans(c *gin.Context
 	targetDateFrom := c.Query("target_date_from")
 	targetDateTo := c.Query("target_date_to")
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(mapc.db, c, "Invalid page parameter")
@@ -110,6 +112,8 @@ func (mapc *MeetingActionPlanController) GetAllMeetingActionPlans(c *gin.Context
 		TargetDateFrom: targetDateFrom,
 		TargetDateTo:   targetDateTo,
 		Export:         export,
+		DateFrom:       dateFrom,
+		DateTo:         dateTo,
 	}
 	meetingActionPlans, err := mapc.service.GetAll(uint(meetingID), &queryParams)
 
