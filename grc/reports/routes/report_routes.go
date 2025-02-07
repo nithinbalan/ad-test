@@ -18,6 +18,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskReportController := app.ReportsModule.RiskReportController
 	auditReportController := app.ReportsModule.AuditReportController
 	incidentReportController := app.ReportsModule.IncidentReportController
+	auditInsightReportController := app.ReportsModule.AuditInsightReportController
 
 	//Compliance
 	reportsRoutes.GET("/reports/compliance-registers", complianceReportController.GetAllComplianceRegisters)
@@ -158,5 +159,26 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/incident-action-plan-by-status", incidentReportController.GetIncidentActionPlanByStatus)
 	reportsRoutes.GET("/reports/incident-action-plan-by-responsible-user", incidentReportController.GetIncidentActionPlanByResponsibleUser)
 	reportsRoutes.GET("/reports/incident-action-plan-by-responsible-unit", incidentReportController.GetIncidentActionPlanByResponsibleUnit)
+
+	reportsRoutes.GET("/reports/audit-insight-audit-by-status", auditInsightReportController.GetAuditByStatus)
+	reportsRoutes.GET("/reports/audit-insight-audit-by-year", auditInsightReportController.GetAuditByYear)
+	reportsRoutes.GET("/reports/audit-insight-audit-by-month", auditInsightReportController.GetAuditByMonth)
+	reportsRoutes.GET("/reports/audit-insight-audit-plan-by-month", auditInsightReportController.GetAuditByMonth)
+
+	reportsRoutes.GET("/reports/audit-insight-audit-plan-by-category", auditInsightReportController.GetAuditPlanByCategory)
+	reportsRoutes.GET("/reports/audit-insight-audit-plan-by-team-lead", auditInsightReportController.GetAuditPlanByTeamLead)
+	reportsRoutes.GET("/reports/audit-insight-audit-plan-by-auditableitem", auditInsightReportController.GetAuditPlanByAuditableItem)
+
+	reportsRoutes.GET("/reports/audit-insight-finding-by-category", auditInsightReportController.GetAuditFindingByCategory)
+	reportsRoutes.GET("/reports/audit-insight-finding-by-status", auditInsightReportController.GetAuditFindingByStatus)
+	reportsRoutes.GET("/reports/audit-insight-finding-by-severity-level", auditInsightReportController.GetAuditFindingBySeverityLevel)
+	reportsRoutes.GET("/reports/audit-insight-finding-by-month", auditInsightReportController.GetAuditFindingByMonth)
+	reportsRoutes.GET("/reports/audit-insight-finding-by-year", auditInsightReportController.GetAuditFindingByYear)
+
+	reportsRoutes.GET("/reports/audit-insight-action-plan-by-status", auditInsightReportController.GetAuditActionPlanByStatus)
+	reportsRoutes.GET("/reports/audit-insight-action-plan-by-responsible-user", auditInsightReportController.GetAuditActionPlanByResponsibleUser)
+
+	reportsRoutes.GET("/reports/audit-insight-draft-report-by-status", auditInsightReportController.GetAuditDraftReportByStatus)
+	reportsRoutes.GET("/reports/audit-insight-final-report-by-status", auditInsightReportController.GetAuditFinalReportByStatus)
 
 }
