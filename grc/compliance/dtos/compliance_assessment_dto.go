@@ -98,4 +98,9 @@ type ComplianceAssessmentRequirementDTO struct {
 	ComplianceAssessmentID  uint                           `json:"compliance_assessment_id"`
 	ComplianceRequirementID uint                           `json:"compliance_requirement_id"`
 	ComplianceRequirement   ComplianceRequirementDetailDTO `json:"compliance_requirement"`
+	IsCompleted             bool                           `json:"is_completed"`
+	Score                   *int                           `json:"score"`
+	Comments                *string                        `json:"comments"`
+	ComplianceStatusID      *uint                          `json:"compliance_status_id"`
+	ComplianceStatus        *ComplianceStatusDTO           `json:"compliance_status"`
 }
