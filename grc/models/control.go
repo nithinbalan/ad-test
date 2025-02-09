@@ -7,7 +7,7 @@ import (
 type Control struct {
 	ID                            uint       `json:"id" gorm:"primaryKey;autoIncrement" binding:"-"`
 	ControlTypeID                 uint       `json:"control_type_id" gorm:"not null" binding:"required"`
-	ControlCategoryID             *uint      `json:"control_category_id" gorm:"not null"`
+	ControlCategoryID             *uint      `json:"control_category_id" gorm:"null"`
 	OwnerUnitID                   uint       `json:"owner_unit_id" gorm:"not null" binding:"required"`
 	OwnerID                       uint       `json:"owner_id" gorm:"not null" binding:"required"`
 	ControlImplementationStatusID *uint      `json:"control_implementation_status_id" gorm:"default:null"`
