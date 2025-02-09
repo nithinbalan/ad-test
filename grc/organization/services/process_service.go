@@ -1212,7 +1212,7 @@ func (ps *ProcessService) UpdateProcessRiskRating(process *models.Process, tx ut
 func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
 	// Headers for the first sheet (Template)
 	templateHeaders := []string{
-		"ProcessGroupTitle", "Owner", "TitleEn", "TitleAr", "Description", "Controls",
+		"ProcessGroup", "Owner", "TitleEn", "TitleAr", "Description", "Controls",
 	}
 	templateData := [][]interface{}{} // Empty template data
 
@@ -1283,8 +1283,8 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 	}
 
 	// Define headers in the input format and map them to snake case
-	inputHeaders := []string{"ProcessGroupTitle", "Owner", "TitleEn", "TitleAr", "Description", "Controls"}
-	snakeCaseHeaders := []string{"process_group_title", "owner", "title_en", "title_ar", "description", "controls"}
+	inputHeaders := []string{"ProcessGroup", "Owner", "TitleEn", "TitleAr", "Description", "Controls"}
+	snakeCaseHeaders := []string{"process_group", "owner", "title_en", "title_ar", "description", "controls"}
 
 	if len(rows) == 0 {
 		return nil, fmt.Errorf("empty Excel file")
@@ -1333,8 +1333,6 @@ func (ps *ProcessService) ImportProcesses(input []map[string]interface{}, curren
 		return nil, err
 	}
 
-	fmt.Println(validatedData)
-
 	for _, record := range validatedData {
 		if errors, ok := record["errors"].(map[string]interface{}); ok && len(errors) > 0 {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid data in the import file"), "invalid_data", "Invalid Data")
@@ -1374,7 +1372,7 @@ func (ps *ProcessService) ImportProcesses(input []map[string]interface{}, curren
 }
 
 func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]map[string]interface{}, error) {
-	headers := []string{"process_group_title", "owner", "title_en", "title_ar", "description", "controls"}
+	headers := []string{"process_group", "owner", "title_en", "title_ar", "description", "controls"}
 
 	// Fetch process group titles and map to IDs
 	processGroups, err := ps.processGroupSvc.GetAll("", "", "", "active")
@@ -1423,11 +1421,11 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 		for _, header := range headers {
 			value, ok := record[header].(string)
 			switch header {
-			case "process_group_title":
+			case "process_group":
 				if !ok || value == "" {
-					rowErrors["process_group_title"] = "Field is required"
+					rowErrors["process_group"] = "Field is required"
 				} else if id, exists := processGroupTitles[strings.TrimSpace(value)]; !exists {
-					rowErrors["process_group_title"] = fmt.Sprintf("Invalid process group title: %s", value)
+					rowErrors["process_group"] = fmt.Sprintf("Invalid process group title: %s", value)
 				} else {
 					processedRecord["process_group_id"] = id // Add the ID
 				}
