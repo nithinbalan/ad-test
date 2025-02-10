@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -10,6 +11,7 @@ import (
 type ComplianceAssessmentRequirementRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 
+	GetAll(assessmentID uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO) ([]*complianceDTOs.ComplianceAssessmentRequirementListDTO, error)
 	GetByID(id uint) (*models.ComplianceAssessmentRequirement, error)
 	GetFullDetailsByID(requirementId uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessmentRequirement, error)
 	Update(complianceAssessmentRequirement *models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) error
@@ -28,6 +30,81 @@ func NewComplianceAssessmentRequirementRepository(db *gorm.DB) *ComplianceAssess
 // BeginTransaction starts a new transaction.
 func (repo *ComplianceAssessmentRequirementRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
+}
+
+func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO) ([]*complianceDTOs.ComplianceAssessmentRequirementListDTO, error) {
+	var complianceRequirements []*complianceDTOs.ComplianceAssessmentRequirementListDTO
+
+	query := repo.db.Table("compliance_assessment_requirements").
+		Select(`
+			compliance_assessment_requirements.id,
+			compliance_clauses.id AS clause_id,
+			compliance_clauses.clause_no AS compliance_clause_no,
+			compliance_clauses.title_en AS compliance_clause_title_en,
+			compliance_clauses.title_ar AS compliance_clause_title_ar,
+			compliance_requirements.title_en AS compliance_requirement_title_en,
+			compliance_requirements.title_ar AS compliance_requirement_title_ar,
+			compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
+			compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
+			compliance_statuses.title_en AS compliance_status_title_en,
+			compliance_statuses.title_ar AS compliance_status_title_ar,
+			compliance_statuses.color_code AS compliance_status_color_code,
+			DATE_FORMAT(compliance_assessment_requirements.created_at, '%Y-%m-%d') AS created_at,
+			DATE_FORMAT(compliance_assessment_requirements.updated_at, '%Y-%m-%d') AS updated_at
+		`).
+		Joins(`
+			LEFT JOIN compliance_requirements ON compliance_requirements.id = compliance_assessment_requirements.compliance_requirement_id
+			LEFT JOIN compliance_requirement_categories ON compliance_requirement_categories.id = compliance_requirements.compliance_requirement_category_id
+			LEFT JOIN severity_levels ON severity_levels.id = compliance_requirements.severity_level_id
+			LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
+			LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_assessment_requirements.compliance_status_id
+		`).
+		Where("compliance_assessment_requirements.compliance_assessment_id = ?", assessmentID)
+
+	// Apply dynamic filters if provided
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
+	// Apply keyword-based search
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(compliance_clauses.clause_no LIKE ? OR
+			compliance_clauses.title_en LIKE ? OR
+			compliance_clauses.title_ar LIKE ? OR
+			compliance_requirements.title_en LIKE ? OR
+			compliance_requirements.title_ar LIKE ? OR
+			compliance_requirement_categories.title_en LIKE ? OR
+			compliance_requirement_categories.title_ar LIKE ? OR
+			severity_levels.title_en LIKE ? OR
+			severity_levels.title_ar LIKE ? OR
+			compliance_statuses.title_en LIKE ? OR
+			compliance_statuses.title_ar LIKE ?)
+		`, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	// Apply sorting (default is by clause number)
+	if params.SortBy == "" {
+		params.SortBy = "compliance_clauses.clause_no"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	// Execute the query
+	err := query.Find(&complianceRequirements).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return complianceRequirements, nil
 }
 
 func (repo *ComplianceAssessmentRequirementRepository) GetByID(id uint) (*models.ComplianceAssessmentRequirement, error) {
