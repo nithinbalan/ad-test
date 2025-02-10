@@ -37,7 +37,7 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 
 	query := repo.db.Table("compliance_assessment_requirements").
 		Select(`
-			compliance_assessment_requirements.id,
+			compliance_assessment_requirements.*,
 			compliance_clauses.id AS clause_id,
 			compliance_clauses.clause_no AS compliance_clause_no,
 			compliance_clauses.title_en AS compliance_clause_title_en,
@@ -48,12 +48,7 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 			compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,
-			severity_levels.color_code AS severity_level_color_code,
-			compliance_statuses.title_en AS compliance_status_title_en,
-			compliance_statuses.title_ar AS compliance_status_title_ar,
-			compliance_statuses.color_code AS compliance_status_color_code,
-			DATE_FORMAT(compliance_assessment_requirements.created_at, '%Y-%m-%d') AS created_at,
-			DATE_FORMAT(compliance_assessment_requirements.updated_at, '%Y-%m-%d') AS updated_at
+			severity_levels.color_code AS severity_level_color_code
 		`).
 		Joins(`
 			LEFT JOIN compliance_requirements ON compliance_requirements.id = compliance_assessment_requirements.compliance_requirement_id
@@ -61,13 +56,28 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 			LEFT JOIN severity_levels ON severity_levels.id = compliance_requirements.severity_level_id
 			LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
 			LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_assessment_requirements.compliance_status_id
+
 		`).
 		Where("compliance_assessment_requirements.compliance_assessment_id = ?", assessmentID)
 
 	// Apply dynamic filters if provided
 	for columnName, values := range params.Filters {
-		if len(values) > 0 {
+		if columnName == "compliance_status_ids" {
+			query = query.Where("compliance_assessment_requirements.compliance_status_id IN (?)", values)
+		} else if columnName == "compliance_clause_ids" {
+			query = query.Where("compliance_clauses.id IN (?)", values)
+		} else if len(values) > 0 {
 			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "completed":
+			query = query.Where("compliance_assessment_requirements.is_completed = ?", true)
+		case "not_completed":
+			query = query.Where("compliance_assessment_requirements.is_completed = ?", false)
 		}
 	}
 
@@ -83,19 +93,10 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 			compliance_requirement_categories.title_en LIKE ? OR
 			compliance_requirement_categories.title_ar LIKE ? OR
 			severity_levels.title_en LIKE ? OR
-			severity_levels.title_ar LIKE ? OR
-			compliance_statuses.title_en LIKE ? OR
-			compliance_statuses.title_ar LIKE ?)
-		`, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			severity_levels.title_ar LIKE ? )
+		`, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
-	// Apply sorting (default is by clause number)
-	if params.SortBy == "" {
-		params.SortBy = "compliance_clauses.clause_no"
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc"
-	}
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	// Execute the query

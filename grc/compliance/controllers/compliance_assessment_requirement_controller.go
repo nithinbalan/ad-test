@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/services"
 	"jethur/utility"
@@ -31,37 +32,44 @@ func (carc *ComplianceAssessmentRequirementController) GetComplianceAssessmentRe
 		return
 	}
 
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "compliance_clause_no")
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
+
+	validSortFields := map[string]string{
+		"compliance_clause_no":                     "compliance_clauses.clause_no",
+		"compliance_clause_title_en":               "compliance_clauses.title_en",
+		"compliance_clause_title_ar":               "compliance_clauses.title_ar",
+		"compliance_requirement_title_en":          "compliance_requirements.title_en",
+		"compliance_requirement_title_ar":          "compliance_requirements.title_ar",
+		"compliance_requirement_category_title_en": "compliance_requirement_categories.title_en",
+		"compliance_requirement_category_title_ar": "compliance_requirement_categories.title_ar",
+		"assessment_completed":                     "compliance_assessment_requirements.is_completed",
+		"severity_level_en":                        "severity_levels.title_en",
+		"severity_level_ar":                        "severity_levels.title_ar",
+	}
+
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"compliance_requirement_ids",
 		"compliance_status_ids",
+		"compliance_clause_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
-	page, err := utility.ParseQueryParamToInt(c, "page", 1)
-	if err != nil {
-		utility.SendInternalErrResp(carc.db, c, "Invalid page parameter")
-		return
-	}
-
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
-	if err != nil {
-		utility.SendInternalErrResp(carc.db, c, "Invalid page_size parameter")
-		return
-	}
-
 	queryParams := complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      sortBy,
+		SortBy:      sortField,
 		Keyword:     keyword,
-		Page:        page,
-		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
 	}
