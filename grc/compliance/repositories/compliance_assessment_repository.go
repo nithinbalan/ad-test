@@ -337,7 +337,7 @@ func (repo *ComplianceAssessmentRepository) GetComplianceStatusSummary(assessmen
 	var totalRequirements int
 	var pendingCount int
 
-	// Get total requirements
+	// Get the total count of requirements
 	if err := repo.db.Raw(`
 		SELECT COUNT(*) 
 		FROM compliance_assessment_requirements 
@@ -345,13 +345,13 @@ func (repo *ComplianceAssessmentRepository) GetComplianceStatusSummary(assessmen
 		return nil, err
 	}
 
-	// Get counts for each compliance status
+	// Get counts for each compliance status type
 	rows, err := repo.db.Raw(`
-    SELECT COALESCE(cs.title_en, 'Unknown') AS title, COUNT(csr.id) AS count 
-    FROM compliance_assessment_requirements csr
-    LEFT JOIN compliance_statuses cs ON csr.compliance_status_id = cs.id
-    WHERE csr.compliance_assessment_id = ?
-    GROUP BY cs.title_en`, assessmentID).Rows()
+		SELECT cs.type AS status_type, COUNT(csr.id) AS count 
+		FROM compliance_assessment_requirements csr
+		INNER JOIN compliance_statuses cs ON csr.compliance_status_id = cs.id
+		WHERE csr.compliance_assessment_id = ?
+		GROUP BY cs.type`, assessmentID).Rows()
 
 	if err != nil {
 		return nil, err
@@ -359,15 +359,15 @@ func (repo *ComplianceAssessmentRepository) GetComplianceStatusSummary(assessmen
 	defer rows.Close()
 
 	for rows.Next() {
-		var title string
+		var statusType string
 		var count int
-		if err := rows.Scan(&title, &count); err != nil {
+		if err := rows.Scan(&statusType, &count); err != nil {
 			return nil, err
 		}
-		result.StatusCounts[title] = count
+		result.StatusCounts[statusType] = count
 	}
 
-	// Get pending count (where compliance_status_id is NULL)
+	// Get count of pending requirements (compliance_status_id IS NULL)
 	if err := repo.db.Raw(`
 		SELECT COUNT(*) 
 		FROM compliance_assessment_requirements 
