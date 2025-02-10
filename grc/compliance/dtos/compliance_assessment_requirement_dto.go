@@ -6,6 +6,24 @@ import (
 	"time"
 )
 
+type ComplianceAssessmentRequirementListDTO struct {
+	ID                                   uint    `json:"id"`
+	ClauseID                             uint    `json:"clause_id"`
+	IsCompleted                          bool    `json:"is_completed"`
+	ComplianceClauseNo                   string  `json:"compliance_clause_no"`
+	ComplianceClauseTitleEn              string  `json:"compliance_clause_title_en"`
+	ComplianceClauseTitleAr              string  `json:"compliance_clause_title_ar"`
+	ComplianceRequirementTitleEn         string  `json:"compliance_requirement_title_en"`
+	ComplianceRequirementTitleAr         string  `json:"compliance_requirement_title_ar"`
+	ComplianceRequirementCategoryTitleEn string  `json:"compliance_requirement_category_title_en"`
+	ComplianceRequirementCategoryTitleAr string  `json:"compliance_requirement_category_title_ar"`
+	SeverityLevelTitleEn                 string  `json:"severity_level_title_en"`
+	SeverityLevelTitleAr                 string  `json:"severity_level_title_ar"`
+	SeverityLevelColorCode               string  `json:"severity_level_color_code"`
+	CreatedAt                            string  `json:"created_at"`
+	UpdatedAt                            *string `json:"updated_at"`
+}
+
 type ComplianceAssessmentRequirementDetailDTO struct {
 	ID                     int                                                `json:"id"`
 	ComplianceAssessment   *ComplianceAssessmentDetailDTO                     `json:"compliance_assessment"`
@@ -43,4 +61,12 @@ type ComplianceAssessmentRequirementDocumentFormDTO struct {
 	Token        string `json:"token"`
 	OriginalName string `json:"original_name"`
 	Type         string `json:"type"`
+}
+
+type ComplianceAssessmentRequirementListQueryParamsDTO struct {
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Filters     map[string][]string
+	QuickFilter []string
 }

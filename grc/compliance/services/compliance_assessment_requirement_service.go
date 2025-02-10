@@ -14,16 +14,18 @@ import (
 )
 
 type ComplianceAssessmentRequirementServiceInterface interface {
+	GetAll(assessmentID uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO) ([]*complianceDTOs.ComplianceAssessmentRequirementListDTO, error)
 	GetFullDetailsByID(assessmentId uint, requirementId uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentRequirementDetailDTO, error)
 	Update(complianceAssessmentId uint, requirementId uint, currentUserID uint, complianceRequirement *complianceDTOs.ComplianceAssessmentRequirementUpdateFormDTO) error
 }
 
 // Service and implementations
 type ComplianceAssessmentRequirementService struct {
-	repo                  complianceRepositories.ComplianceAssessmentRequirementRepositoryInterface
-	activityLogSvc        logServices.ActivityLogServiceInterface
-	userSvc               organizationServices.UserServiceInterface
-	complianceRegisterSvc ComplianceRegisterServiceInterface
+	repo                    complianceRepositories.ComplianceAssessmentRequirementRepositoryInterface
+	activityLogSvc          logServices.ActivityLogServiceInterface
+	userSvc                 organizationServices.UserServiceInterface
+	complianceRegisterSvc   ComplianceRegisterServiceInterface
+	complianceAssessmentSvc ComplianceAssessmentServiceInterface
 }
 
 func NewComplianceAssessmentRequirementService(
@@ -31,13 +33,24 @@ func NewComplianceAssessmentRequirementService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	complianceRegisterSvc ComplianceRegisterServiceInterface,
+	complianceAssessmentSvc ComplianceAssessmentServiceInterface,
 ) ComplianceAssessmentRequirementServiceInterface {
 	return &ComplianceAssessmentRequirementService{
-		repo:                  repo,
-		activityLogSvc:        activityLogSvc,
-		userSvc:               userSvc,
-		complianceRegisterSvc: complianceRegisterSvc,
+		repo:                    repo,
+		activityLogSvc:          activityLogSvc,
+		userSvc:                 userSvc,
+		complianceRegisterSvc:   complianceRegisterSvc,
+		complianceAssessmentSvc: complianceAssessmentSvc,
 	}
+}
+
+func (cras *ComplianceAssessmentRequirementService) GetAll(assessmentID uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO) ([]*complianceDTOs.ComplianceAssessmentRequirementListDTO, error) {
+
+	if _, err := cras.complianceAssessmentSvc.GetByID(assessmentID); err != nil {
+		return nil, err
+	}
+
+	return cras.repo.GetAll(assessmentID, params)
 }
 
 func (cras ComplianceAssessmentRequirementService) GetByID(id uint) (*models.ComplianceAssessmentRequirement, error) {

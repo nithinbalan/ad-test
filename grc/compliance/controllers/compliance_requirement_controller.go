@@ -41,7 +41,7 @@ func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.
 	}
 
 	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "title")
+	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
