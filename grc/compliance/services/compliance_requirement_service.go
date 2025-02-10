@@ -48,6 +48,7 @@ type ComplianceRequirementService struct {
 	notificationSvc                  commonServices.NotificationServiceInterface
 	userSettingSvc                   organizationServices.UserSettingServiceInterface
 	complianceClauseSvc              ComplianceClauseServiceInterface
+	requiredDocumentTitleSvc         masterServices.RequiredDocumentTitleServiceInterface
 }
 
 func NewComplianceRequirementService(
@@ -63,6 +64,7 @@ func NewComplianceRequirementService(
 	notificationSvc commonServices.NotificationServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	complianceClauseSvc ComplianceClauseServiceInterface,
+	requiredDocumentTitleSvc masterServices.RequiredDocumentTitleServiceInterface,
 ) ComplianceRequirementServiceInterface {
 	return &ComplianceRequirementService{
 		repo:                             repo,
@@ -77,6 +79,7 @@ func NewComplianceRequirementService(
 		notificationSvc:                  notificationSvc,
 		userSettingSvc:                   userSettingSvc,
 		complianceClauseSvc:              complianceClauseSvc,
+		requiredDocumentTitleSvc:         requiredDocumentTitleSvc,
 	}
 }
 
@@ -169,19 +172,6 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	if err != nil {
 		return 0, err
 	}
-
-	// Create or retrieve the compliance clause
-	// complianceClause := &models.ComplianceClause{
-	// 	ComplianceRegisterID: complianceID,
-	// 	ClauseNo:             complianceRequirementFormDTO.ComplianceClauseNo,
-	// 	TitleEn:              complianceRequirementFormDTO.ComplianceClauseTitle,
-	// }
-
-	// clause, err := crs.repo.GetOrCreateComplianceClause(complianceClause, tx)
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	return 0, err
-	// }
 
 	// Calculate the score
 	score, err := crs.calculateComplianceRequirementScore(complianceRequirementFormDTO.ComplianceStatusID, complianceRequirementFormDTO.SeverityLevelID)
@@ -428,11 +418,6 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		return err
 	}
 
-	clause, err := crs.complianceClauseSvc.GetByID(complianceRequirementFormDTO.ComplianceClauseID)
-	if err != nil {
-		return err
-	}
-
 	existingComplianceRequirement, err := crs.GetByID(complianceID, id, tx)
 	if err != nil {
 		return err
@@ -455,17 +440,10 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		return err
 	}
 
-	// complianceClause := &models.ComplianceClause{
-	// 	ComplianceRegisterID: complianceID,
-	// 	ClauseNo:             complianceRequirementFormDTO.ComplianceClauseNo,
-	// 	TitleEn:              complianceRequirementFormDTO.ComplianceClauseTitle,
-	// }
-
-	// clause, err := crs.repo.GetOrCreateComplianceClause(complianceClause, tx)
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	return err
-	// }
+	clause, err := crs.complianceClauseSvc.GetByID(complianceRequirementFormDTO.ComplianceClauseID)
+	if err != nil {
+		return err
+	}
 
 	score, err := crs.calculateComplianceRequirementScore(complianceRequirementFormDTO.ComplianceStatusID, complianceRequirementFormDTO.SeverityLevelID)
 	if err != nil {
@@ -1285,6 +1263,10 @@ func (crs *ComplianceRequirementService) validateComplianceRequirementFormDTO(Co
 		return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 	}
 
+	if _, err := crs.complianceClauseSvc.GetByID(ComplianceRequirementFormDTO.ComplianceClauseID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("compliance clause does not exist"), "not_exist", "compliance clause")
+	}
+
 	controlIds := ComplianceRequirementFormDTO.ControlIDs
 
 	controlIDs := make(map[uint]bool)
@@ -1315,6 +1297,21 @@ func (crs *ComplianceRequirementService) validateComplianceRequirementFormDTO(Co
 		}
 
 		strategicObjectiveIDs[*strategicObjectiveId] = true
+	}
+
+	requiredDocumentTitleIds := ComplianceRequirementFormDTO.RequiredDocumentTitleIDs
+	requiredDocumentTitleIDs := make(map[uint]bool)
+
+	for _, requiredDocumentTitleId := range requiredDocumentTitleIds {
+		if requiredDocumentTitleIDs[*requiredDocumentTitleId] {
+			return utility.NewValidationError(fmt.Errorf("duplicate required document ID: %d", requiredDocumentTitleId), "duplicate", "required document")
+		}
+
+		if _, err := crs.requiredDocumentTitleSvc.GetByID(*requiredDocumentTitleId); err != nil {
+			return utility.NewValidationError(fmt.Errorf("required document does not exist for ID: %d", requiredDocumentTitleId), "not_exist", "required document")
+		}
+
+		requiredDocumentTitleIDs[*requiredDocumentTitleId] = true
 	}
 
 	return nil
