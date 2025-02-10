@@ -149,7 +149,7 @@ func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id
 			return nil, err
 		}
 
-		reviewUserUnit, err := caps.organizationUnitSvc.GetFullDetailsByID(*complianceActionPlan.ReviewUserID)
+		reviewUserUnit, err := caps.organizationUnitSvc.GetFullDetailsByID(reviewUserUnitID)
 		if err != nil {
 			return nil, err
 		}
