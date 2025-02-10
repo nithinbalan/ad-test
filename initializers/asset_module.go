@@ -48,7 +48,7 @@ func NewAssetModule(db *gorm.DB,
 	assetTypeController := controllers.NewAssetTypeController(assetTypeSvc)
 
 	assetCategoryRepo := repositories.NewAssetCategoryRepository(db)
-	assetCategorySvc := services.NewAssetCategoryService(assetCategoryRepo, assetTypeSvc, sharedModule.ActivityLogService)
+	assetCategorySvc := services.NewAssetCategoryService(assetCategoryRepo, sharedModule.ActivityLogService)
 	assetCategoryController := controllers.NewAssetCategoryController(assetCategorySvc)
 
 	assetSubCategoryRepo := repositories.NewAssetSubCategoryRepository(db)
