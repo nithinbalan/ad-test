@@ -200,3 +200,39 @@ func (cac *ComplianceAssessmentController) DeleteComplianceAssessments(c *gin.Co
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (cac *ComplianceAssessmentController) GetComplianceAssessmentSummary(c *gin.Context) {
+	idStr := c.Param("assessmentId")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	assessmentCompletionSummary, err := cac.service.AssessmentCompletionSummary(uint(id))
+	if err != nil {
+		utility.SendInternalErrResp(cac.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, assessmentCompletionSummary)
+}
+
+func (cac *ComplianceAssessmentController) GetComplianceStatusSummary(c *gin.Context) {
+	idStr := c.Param("assessmentId")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	statusCounts, err := cac.service.GetComplianceStatusSummary(uint(id))
+	if err != nil {
+		utility.SendInternalErrResp(cac.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, statusCounts)
+}
