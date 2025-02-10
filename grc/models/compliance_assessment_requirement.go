@@ -17,11 +17,12 @@ type ComplianceAssessmentRequirement struct {
 
 	// Relationships
 
-	ComplianceAssessment  *ComplianceAssessment  `gorm:"foreignKey:ComplianceAssessmentID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ComplianceRequirement *ComplianceRequirement `gorm:"foreignKey:ComplianceRequirementID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ComplianceStatus      *ComplianceStatus      `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser         *User                  `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser         *User                  `gorm:"foreignKey:UpdatedBYID"`
+	ComplianceAssessment   *ComplianceAssessment                           `gorm:"foreignKey:ComplianceAssessmentID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceRequirement  *ComplianceRequirement                          `gorm:"foreignKey:ComplianceRequirementID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceStatus       *ComplianceStatus                               `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser          *User                                           `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser          *User                                           `gorm:"foreignKey:UpdatedBYID"`
+	RequiredDocumentTitles []*ComplianceAssessmentRequirementDocumentTitle `gorm:"foreignKey:ComplianceAssessmentRequirementID"`
 }
 
 // TableName overrides the table name used by Compliance Assessment Requirement to `compliance_assessment_requirements`

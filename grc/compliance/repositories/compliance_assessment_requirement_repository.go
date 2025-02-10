@@ -56,6 +56,8 @@ func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requir
 		Preload("ComplianceRequirement.ComplianceStatus").
 		Preload("ComplianceRequirement.ComplianceClause").
 		Preload("ComplianceRequirement.SeverityLevel").
+		Preload("RequiredDocumentTitles").
+		Preload("RequiredDocumentTitles.RequiredDocumentTitle").
 		Preload("ComplianceStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
