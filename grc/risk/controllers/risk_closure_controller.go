@@ -160,10 +160,14 @@ func (rcc *RiskClosureController) DeleteRiskClosure(c *gin.Context) {
 	}
 
 	failedID, err := rcc.service.Delete(uint(riskID), uint(id), currentUserID)
+
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
 			return
 		default:
 			utility.SendInternalErrResp(rcc.db, c, e.Error())
