@@ -159,16 +159,16 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		return 0, err
 	}
 
-	clause, err := crs.complianceClauseSvc.GetByID(complianceRequirementFormDTO.ComplianceClauseID)
-	if err != nil {
-		return 0, err
-	}
-
 	if err := crs.validateComplianceRequirementFormDTO(complianceRequirementFormDTO); err != nil {
 		return 0, err
 	}
 
 	dates, err := crs.parseComplianceRequirementDates(complianceRequirementFormDTO)
+	if err != nil {
+		return 0, err
+	}
+
+	clause, err := crs.complianceClauseSvc.GetByID(complianceRequirementFormDTO.ComplianceClauseID)
 	if err != nil {
 		return 0, err
 	}
