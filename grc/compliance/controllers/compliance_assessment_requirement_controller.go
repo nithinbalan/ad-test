@@ -6,6 +6,7 @@ import (
 	"jethur/grc/compliance/services"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -161,4 +162,197 @@ func (cac *ComplianceAssessmentRequirementController) UpdateComplianceAssessment
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (cac *ComplianceAssessmentRequirementController) CreateDocuments(c *gin.Context) {
+
+	var documents []complianceDTOs.ComplianceAssessmentRequirementDocumentFormDTO
+	if err := c.ShouldBindJSON(&documents); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+	complianceAssessmentID, err := strconv.Atoi(c.Param("assessmentId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	requirementIDStr := c.Param("requirementId")
+
+	complianceRequirementID, err := strconv.ParseUint(requirementIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentIDStr := c.Param("documentId")
+
+	documentID, err := strconv.ParseUint(documentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cac.db, c, err.Error())
+		return
+	}
+
+	err = cac.service.CreateDocument(uint(complianceAssessmentID), uint(complianceRequirementID), uint(documentID), currentUserID, documents)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(cac.db, c, e.Error())
+			return
+		}
+	}
+}
+
+func (cac *ComplianceAssessmentRequirementController) DeleteDocuments(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	complianceAssessmentID, err := strconv.Atoi(c.Param("assessmentId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	requirementIDStr := c.Param("requirementId")
+
+	complianceRequirementID, err := strconv.ParseUint(requirementIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentIDStr := c.Param("documentId")
+
+	documentID, err := strconv.ParseUint(documentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cac.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := cac.service.DeleteDocuments(uint(complianceAssessmentID), uint(complianceRequirementID), uint(documentID), request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(cac.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (cac *ComplianceAssessmentRequirementController) GetComplianceAssessmentRequirementDocumentPreview(c *gin.Context) {
+	assessmentIDStr := c.Param("assessmentId")
+
+	assessmentID, err := strconv.ParseUint(assessmentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	requirementIDStr := c.Param("requirementId")
+
+	requirementID, err := strconv.ParseUint(requirementIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	idStr := c.Param("documentId")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	complianceAssessmentRequirementDocumentPath, err := cac.service.GetDocumentPath(uint(assessmentID), uint(requirementID), uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(cac.db, c, err.Error())
+		}
+		return
+	}
+	c.File(complianceAssessmentRequirementDocumentPath)
+}
+
+func (cac *ComplianceAssessmentRequirementController) DownloadComplianceAssessmentRequirementDocument(c *gin.Context) {
+	assessmentIDStr := c.Param("assessmentId")
+
+	assessmentID, err := strconv.ParseUint(assessmentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	requirementIDStr := c.Param("requirementId")
+
+	requirementID, err := strconv.ParseUint(requirementIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	idStr := c.Param("documentId")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	complianceAssessmentRequirementDocumentPath, err := cac.service.GetDocumentPath(uint(assessmentID), uint(requirementID), uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(cac.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(complianceAssessmentRequirementDocumentPath)
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	c.File(complianceAssessmentRequirementDocumentPath)
 }

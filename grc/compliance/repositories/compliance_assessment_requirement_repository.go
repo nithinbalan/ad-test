@@ -16,6 +16,9 @@ type ComplianceAssessmentRequirementRepositoryInterface interface {
 	GetByID(id uint) (*models.ComplianceAssessmentRequirement, error)
 	GetFullDetailsByID(requirementId uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessmentRequirement, error)
 	Update(complianceAssessmentRequirement *models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) error
+
+	CreateDocuments(documents []*models.ComplianceAssessmentRequirementRequiredDocument, tx ...utility.DatabaseTransaction) error
+	DeleteDocuments(documentId uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceAssessmentRequirementRepository struct {
@@ -137,6 +140,7 @@ func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requir
 		Preload("ComplianceRequirement.SeverityLevel").
 		Preload("RequiredDocumentTitles").
 		Preload("RequiredDocumentTitles.RequiredDocumentTitle").
+		Preload("RequiredDocumentTitles.Documents").
 		Preload("ComplianceStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
@@ -155,6 +159,32 @@ func (repo *ComplianceAssessmentRequirementRepository) Update(complianceAssessme
 		db = tx[0].DB()
 	}
 	if err := db.Save(complianceAssessmentRequirement).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ComplianceAssessmentRequirementRepository) CreateDocuments(docs []*models.ComplianceAssessmentRequirementRequiredDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	// Save all documents in a single transaction
+	if err := db.Create(&docs).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceAssessmentRequirementRepository) DeleteDocuments(docIds uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete documents by IDs
+	if err := db.Where("id IN (?)", docIds).Delete(&models.ComplianceAssessmentRequirementRequiredDocument{}).Error; err != nil {
 		return err
 	}
 
