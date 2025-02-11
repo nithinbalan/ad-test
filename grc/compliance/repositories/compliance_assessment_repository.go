@@ -25,6 +25,9 @@ type ComplianceAssessmentRepositoryInterface interface {
 	DeleteComplianceAssessmentRequirements(ids []*uint, tx ...utility.DatabaseTransaction) error
 	CreateComplianceAssessmentRequirementDocumentTitle(requirementDocuments []*models.ComplianceAssessmentRequirementDocumentTitle, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceAssessmentRequirementDocumentTitles(ids []*uint, tx ...utility.DatabaseTransaction) error
+
+	AssessmentCompletionSummary(assessmentID uint) (*complianceDTOs.AssessmentCompletionSummaryDTO, error)
+	GetComplianceStatusSummary(assessmentID uint) (*complianceDTOs.ComplianceStatusSummaryDTO, error)
 }
 
 type ComplianceAssessmentRepository struct {
@@ -307,4 +310,74 @@ func (repo *ComplianceAssessmentRepository) DeleteComplianceAssessmentRequiremen
 	}
 
 	return nil
+}
+
+func (repo *ComplianceAssessmentRepository) AssessmentCompletionSummary(assessmentID uint) (*complianceDTOs.AssessmentCompletionSummaryDTO, error) {
+	var result complianceDTOs.AssessmentCompletionSummaryDTO
+
+	query := `
+		SELECT 
+			COUNT(*) AS total,
+			SUM(CASE WHEN is_completed = 1 THEN 1 ELSE 0 END) AS completed,
+			SUM(CASE WHEN is_completed = 0 THEN 1 ELSE 0 END) AS not_completed
+		FROM compliance_assessment_requirements
+		WHERE compliance_assessment_id = ?
+	`
+
+	if err := repo.db.Raw(query, assessmentID).Scan(&result).Error; err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func (repo *ComplianceAssessmentRepository) GetComplianceStatusSummary(assessmentID uint) (*complianceDTOs.ComplianceStatusSummaryDTO, error) {
+	var result complianceDTOs.ComplianceStatusSummaryDTO
+	result.StatusCounts = make(map[string]int)
+	var totalRequirements int
+	var pendingCount int
+
+	// Get the total count of requirements
+	if err := repo.db.Raw(`
+		SELECT COUNT(*) 
+		FROM compliance_assessment_requirements 
+		WHERE compliance_assessment_id = ?`, assessmentID).Scan(&totalRequirements).Error; err != nil {
+		return nil, err
+	}
+
+	// Get counts for each compliance status type
+	rows, err := repo.db.Raw(`
+		SELECT cs.type AS status_type, COUNT(csr.id) AS count 
+		FROM compliance_assessment_requirements csr
+		INNER JOIN compliance_statuses cs ON csr.compliance_status_id = cs.id
+		WHERE csr.compliance_assessment_id = ?
+		GROUP BY cs.type`, assessmentID).Rows()
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var statusType string
+		var count int
+		if err := rows.Scan(&statusType, &count); err != nil {
+			return nil, err
+		}
+		result.StatusCounts[statusType] = count
+	}
+
+	// Get count of pending requirements (compliance_status_id IS NULL)
+	if err := repo.db.Raw(`
+		SELECT COUNT(*) 
+		FROM compliance_assessment_requirements 
+		WHERE compliance_assessment_id = ? AND compliance_status_id IS NULL`, assessmentID).Scan(&pendingCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Set the result
+	result.TotalRequirements = totalRequirements
+	result.PendingCount = pendingCount
+
+	return &result, nil
 }

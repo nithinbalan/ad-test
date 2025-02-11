@@ -22,6 +22,9 @@ type ComplianceAssessmentServiceInterface interface {
 	Create(currentUserID uint, complianceAssessmentFormDTO *complianceDTOs.ComplianceAssessmentFormDTO) error
 	Update(id uint, currentUserID uint, compliance *complianceDTOs.ComplianceAssessmentUpdateFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	AssessmentCompletionSummary(assessmentID uint) (*complianceDTOs.AssessmentCompletionSummaryDTO, error)
+	GetComplianceStatusSummary(assessmentID uint) (*complianceDTOs.ComplianceStatusSummaryDTO, error)
 }
 
 // Service and implementations
@@ -411,4 +414,23 @@ func (cras *ComplianceAssessmentService) validateComplianceAssessmentOrganizatio
 	}
 
 	return nil
+}
+
+func (cras *ComplianceAssessmentService) AssessmentCompletionSummary(assessmentID uint) (*complianceDTOs.AssessmentCompletionSummaryDTO, error) {
+	if _, err := cras.GetByID(assessmentID); err != nil {
+		return nil, err
+	}
+	response, err := cras.repo.AssessmentCompletionSummary(assessmentID)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (cras *ComplianceAssessmentService) GetComplianceStatusSummary(assessmentID uint) (*complianceDTOs.ComplianceStatusSummaryDTO, error) {
+	if _, err := cras.GetByID(assessmentID); err != nil {
+		return nil, err
+	}
+	return cras.repo.GetComplianceStatusSummary(assessmentID)
 }
