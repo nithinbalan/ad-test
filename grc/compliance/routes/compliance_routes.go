@@ -256,6 +256,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliance-assessments/:assessmentId/requirements", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentRequirementController.GetComplianceAssessmentRequirements)
 	complianceRoutes.GET("/compliance-assessments/:assessmentId/requirements/:requirementId", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentRequirementController.GetComplianceAssessmentRequirementDetails)
 	complianceRoutes.PUT("/compliance-assessments/:assessmentId/requirements/:requirementId", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementController.UpdateComplianceAssessmentRequirement)
+	complianceRoutes.PUT("/compliance-assessments/:assessmentId/requirements/:requirementId/mark-as-completed", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementController.MarkAsCompleted)
+	complianceRoutes.PUT("/compliance-assessments/:assessmentId/requirements/:requirementId/mark-as-open", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementController.MarkAsOpen)
 
 	// Compliance Requirement Assessment Documents
 	unauthenticatedRoutes.GET("/compliance-assessments/:assessmentId/requirements/:requirementId/required-documents/:documentId/document-download", complianceAssessmentRequirementController.DownloadComplianceAssessmentRequirementDocument)
