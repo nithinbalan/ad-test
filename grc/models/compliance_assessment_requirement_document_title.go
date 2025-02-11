@@ -14,9 +14,10 @@ type ComplianceAssessmentRequirementDocumentTitle struct {
 	CreatedAt                         time.Time `json:"created_at" gorm:"type:datetime;not null"`
 
 	// Relationships
-	ComplianceAssessmentRequirement *ComplianceAssessmentRequirement `gorm:"foreignKey:ComplianceAssessmentRequirementID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
-	RequiredDocumentTitle           *RequiredDocumentTitle           `gorm:"foreignKey:RequiredDocumentTitleID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
-	CreatedByUser                   *User                            `gorm:"foreignKey:CreatedBYID"`
+	ComplianceAssessmentRequirement *ComplianceAssessmentRequirement                   `gorm:"foreignKey:ComplianceAssessmentRequirementID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
+	RequiredDocumentTitle           *RequiredDocumentTitle                             `gorm:"foreignKey:RequiredDocumentTitleID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
+	Documents                       *[]ComplianceAssessmentRequirementRequiredDocument `gorm:"foreignKey:ComplianceAssessmentRequirementDocumentTitleID"`
+	CreatedByUser                   *User                                              `gorm:"foreignKey:CreatedBYID"`
 }
 
 // TableName overrides the default table name

@@ -7,6 +7,7 @@ import (
 type ComplianceAssessmentRequirementRequiredDocument struct {
 	ID                                             uint      `json:"id" gorm:"primary_key;auto_increment"`
 	ComplianceAssessmentRequirementDocumentTitleID uint      `json:"compliance_requirement_document_title_id"`
+	Language                                       string    `json:"language"`
 	URL                                            string    `json:"url"`
 	Name                                           string    `json:"name" binding:"required"`
 	Size                                           int       `json:"size"`
