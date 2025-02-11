@@ -25,6 +25,7 @@ type ComplianceAssessmentServiceInterface interface {
 
 	AssessmentCompletionSummary(assessmentID uint) (*complianceDTOs.AssessmentCompletionSummaryDTO, error)
 	GetComplianceStatusSummary(assessmentID uint) (*complianceDTOs.ComplianceStatusSummaryDTO, error)
+	GetComplianceScoreSummary(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error)
 }
 
 // Service and implementations
@@ -433,4 +434,11 @@ func (cras *ComplianceAssessmentService) GetComplianceStatusSummary(assessmentID
 		return nil, err
 	}
 	return cras.repo.GetComplianceStatusSummary(assessmentID)
+}
+
+func (cras *ComplianceAssessmentService) GetComplianceScoreSummary(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error) {
+	if _, err := cras.GetByID(assessmentID); err != nil {
+		return nil, err
+	}
+	return cras.repo.GetComplianceScoreSummary(assessmentID)
 }

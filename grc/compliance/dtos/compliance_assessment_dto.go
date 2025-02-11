@@ -117,3 +117,8 @@ type ComplianceStatusSummaryDTO struct {
 	StatusCounts      map[string]int `json:"status_counts"`
 	PendingCount      int            `json:"pending_count"`
 }
+
+type ComplianceScoreSummaryDTO struct {
+	TotalRequirements int     `json:"total_requirements_assessed"`
+	AverageScore      float64 `json:"average_score"`
+}
