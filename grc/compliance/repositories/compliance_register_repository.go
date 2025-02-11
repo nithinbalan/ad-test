@@ -289,6 +289,7 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("ComplianceStatus").
 		Preload("ComplianceClauses").
 		Preload("ComplianceClauses.ComplianceRequirements").
+		Preload("ComplianceClauses.ComplianceRequirements.RequiredDocumentTitles").
 		Preload("ResponsibleUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
