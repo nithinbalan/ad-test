@@ -72,6 +72,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		organizationModule.ControlSvc,
 		organizationModule.UserSettingSvc,
 		organizationModule.UserSvc, commonModule.NotificationService,
+		complianceFolderSvc,
 	)
 	complianceRegisterController := controllers.NewComplianceRegisterController(complianceRegisterSvc)
 

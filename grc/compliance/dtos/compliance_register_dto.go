@@ -130,6 +130,7 @@ type ComplianceRegisterFormDTO struct {
 	DocumentEn               ComplianceDocumentFormDTO `json:"document_en" binding:"required"`
 	DocumentAr               ComplianceDocumentFormDTO `json:"document_ar" binding:"required"`
 	ControlIDs               []*uint                   `json:"control_ids"`
+	ComplianceFolderID       *uint                     `json:"compliance_folder_id"`
 }
 
 type ComplianceDocumentFormDTO struct {
