@@ -53,7 +53,7 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
 			documents.title_en AS document_title_en,
 			documents.title_ar AS document_title_ar,
 			incident_register.title AS incident_register_title,
-			compliance_requirements.title AS compliance_requirement_title,
+			compliance_requirements.title_en AS compliance_requirement_title,
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
 			responsible_user.first_name_en AS responsible_user_first_name_en,
@@ -138,7 +138,7 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
 		case "published":
 			query = query.Where("audit_statuses.type = ?", "published")
 		}
-		
+
 	}
 
 	// Calculate total count for pagination
