@@ -18,7 +18,7 @@ jobs:
           password: ${{ secrets.ZEPTO_PASSWORD }}
           subject: "Pipeline Started"
           body: |
-            GitHub Actions QA-CLIENT deployment has started.
+            GitHub Actions QA-API deployment has started.
 
             Triggered by: ${{ github.actor }}
           to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
