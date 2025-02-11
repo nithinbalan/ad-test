@@ -57,6 +57,7 @@ type ComplianceRegisterService struct {
 	userSettingSvc        organizationServices.UserSettingServiceInterface
 	userSvc               organizationServices.UserServiceInterface
 	notificationSvc       commonServices.NotificationServiceInterface
+	complianceFolderSvc   ComplianceFolderServiceInterface
 }
 
 func NewComplianceRegisterService(
@@ -71,6 +72,7 @@ func NewComplianceRegisterService(
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	complianceFolderSvc ComplianceFolderServiceInterface,
 ) ComplianceRegisterServiceInterface {
 	return &ComplianceRegisterService{
 		repo:                  repo,
@@ -84,6 +86,7 @@ func NewComplianceRegisterService(
 		userSettingSvc:        userSettingSvc,
 		userSvc:               userSvc,
 		notificationSvc:       notificationSvc,
+		complianceFolderSvc:   complianceFolderSvc,
 	}
 }
 
@@ -202,6 +205,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		ComplianceReviewStatusID: complianceRegisterFormDTO.ComplianceReviewStatusID,
 		CreatedByID:              currentUserID,
 		LifecycleStatusID:        lifecycleStatus.ID,
+		ComplianceFolderID:       complianceRegisterFormDTO.ComplianceFolderID,
 	}
 
 	id, err := crs.repo.Create(complianceRegister, tx)
@@ -422,6 +426,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	existingComplianceRegister.ComplianceReviewStatusID = complianceRegisterFormDTO.ComplianceReviewStatusID
 	existingComplianceRegister.LastReviewNote = complianceRegisterFormDTO.LastReviewNote
 	existingComplianceRegister.UpdatedByID = &currentUserID
+	existingComplianceRegister.ComplianceFolderID = complianceRegisterFormDTO.ComplianceFolderID
 
 	err = crs.repo.Update(existingComplianceRegister, tx)
 	if err != nil {
@@ -1069,6 +1074,12 @@ func (crs *ComplianceRegisterService) ReviewStatusUpdate(complianceRegister *mod
 }
 
 func (crs *ComplianceRegisterService) validateComplianceRegisterFormDTO(complianceRegisterFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error {
+	if complianceRegisterFormDTO.ComplianceFolderID != nil {
+		if _, err := crs.complianceFolderSvc.GetByID(*complianceRegisterFormDTO.ComplianceFolderID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("compliance folder does not exist"), "not_exist", "compliance folder")
+		}
+	}
+
 	if _, err := crs.complianceCategorySvc.GetByID(complianceRegisterFormDTO.ComplianceCategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("compliance category does not exist"), "not_exist", "compliance category")
 	}

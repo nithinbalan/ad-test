@@ -34,6 +34,7 @@ type ComplianceModule struct {
 	ComplianceActionPlanCommentController         *controllers.ComplianceActionPlanCommentController
 	ComplianceAssessmentController                *controllers.ComplianceAssessmentController
 	ComplianceAssessmentRequirementController     *controllers.ComplianceAssessmentRequirementController
+	ComplianceFolderController                    *controllers.ComplianceFolderController
 
 	ComplianceRegisterSvc          services.ComplianceRegisterServiceInterface
 	ComplianceRequirementSvc       services.ComplianceRequirementServiceInterface
@@ -55,6 +56,10 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceReviewStatusSvc := services.NewComplianceReviewStatusService(complianceReviewStatusRepo)
 	complianceReviewStatusController := controllers.NewComplianceReviewStatusController(complianceReviewStatusSvc)
 
+	complianceFolderRepo := repositories.NewComplianceFolderRepository(db)
+	complianceFolderSvc := services.NewComplianceFolderService(complianceFolderRepo, sharedModule.ActivityLogService)
+	complianceFolderController := controllers.NewComplianceFolderController(complianceFolderSvc)
+
 	complianceRegisterRepo := repositories.NewComplianceRegisterRepository(db)
 	complianceRegisterSvc := services.NewComplianceRegisterService(
 		complianceRegisterRepo,
@@ -67,6 +72,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		organizationModule.ControlSvc,
 		organizationModule.UserSettingSvc,
 		organizationModule.UserSvc, commonModule.NotificationService,
+		complianceFolderSvc,
 	)
 	complianceRegisterController := controllers.NewComplianceRegisterController(complianceRegisterSvc)
 
@@ -230,6 +236,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceActionPlanCommentController:         complianceActionPlanCommentController,
 		ComplianceAssessmentController:                complianceAssessmentController,
 		ComplianceAssessmentRequirementController:     complianceAssessmentRequirementController,
+		ComplianceFolderController:                    complianceFolderController,
 
 		ComplianceRequirementSvc:       complianceRequirementSvc,
 		ComplianceRegisterSvc:          complianceRegisterSvc,

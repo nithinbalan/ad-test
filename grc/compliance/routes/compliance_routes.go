@@ -41,6 +41,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	ComplianceActionPlanCommentController := app.ComplianceModule.ComplianceActionPlanCommentController
 	complianceAssessmentController := app.ComplianceModule.ComplianceAssessmentController
 	complianceAssessmentRequirementController := app.ComplianceModule.ComplianceAssessmentRequirementController
+	complianceFolderController := app.ComplianceModule.ComplianceFolderController
 
 	// Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
@@ -76,6 +77,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Compliance Review Statuses
 	complianceRoutes.GET("/compliance-review-statuses", complianceReviewStatusController.GetAllComplianceReviewStatuses)
 	complianceRoutes.GET("/compliance-review-statuses/:id", complianceReviewStatusController.GetComplianceReviewStatusDetails)
+
+	//compliance folder
+	complianceRoutes.GET("/compliance-folders", complianceFolderController.GetAllComplianceFolders)
+	complianceRoutes.GET("/compliance-folders/:id", complianceFolderController.GetComplianceFolderDetails)
+	complianceRoutes.POST("/compliance-folders", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceFolderController.CreateComplianceFolder)
+	complianceRoutes.PUT("/compliance-folders/:id", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceFolderController.UpdateComplianceFolder)
+	complianceRoutes.POST("/compliance-folders/delete", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceFolderController.DeleteComplianceFolders)
+	complianceRoutes.PUT("/compliance-folders/activate", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceFolderController.ActivateComplianceFolders)
+	complianceRoutes.PUT("/compliance-folders/deactivate", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceFolderController.DeactivateComplianceFolders)
 
 	// Compliance Register
 	unauthenticatedRoutes.GET("/compliance-register/:id/document-preview", complianceRegisterController.GetComplianceRegisterDocumentPreview)
