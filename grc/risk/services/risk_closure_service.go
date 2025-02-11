@@ -325,6 +325,11 @@ func (rcs *RiskClosureService) Delete(riskID uint, id uint, currentUserID uint) 
 		storagePath := filepath.Join("risk", "risk-register", strconv.FormatUint(uint64(riskID), 10), "closure", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 		}
+
+		destinationPath := filepath.Join("risk", "risk-register", strconv.FormatUint(uint64(riskID), 10), "closure", strconv.FormatUint(uint64(id), 10))
+		if err := utility.RemoveFolder(destinationPath); err != nil {
+			tx.Rollback()
+		}
 	}
 
 	tx.Commit()
