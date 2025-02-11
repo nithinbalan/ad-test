@@ -6,6 +6,7 @@ import (
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
@@ -29,6 +30,7 @@ type ComplianceAssessmentService struct {
 	activityLogSvc        logServices.ActivityLogServiceInterface
 	userSvc               organizationServices.UserServiceInterface
 	complianceRegisterSvc ComplianceRegisterServiceInterface
+	applicablityStatusSvc masterServices.ApplicabilityStatusServiceInterface
 }
 
 func NewComplianceAssessmentService(
@@ -36,12 +38,14 @@ func NewComplianceAssessmentService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	complianceRegisterSvc ComplianceRegisterServiceInterface,
+	applicablityStatusSvc masterServices.ApplicabilityStatusServiceInterface,
 ) ComplianceAssessmentServiceInterface {
 	return &ComplianceAssessmentService{
 		repo:                  repo,
 		activityLogSvc:        activityLogSvc,
 		userSvc:               userSvc,
 		complianceRegisterSvc: complianceRegisterSvc,
+		applicablityStatusSvc: applicablityStatusSvc,
 	}
 }
 
@@ -100,10 +104,6 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 
 	for _, organizationUnitID := range complianceAssessmentFormDTO.OrganizationUnitIDs {
 
-		// err := cras.validateComplianceAssessmentOrganizationUnit(*organizationUnitID, complianceAssessmentFormDTO.ComplianceRegisterID, nil)
-		// if err != nil {
-		// 	continue
-		// }
 		complianceAssessment := &models.ComplianceAssessment{
 			ComplianceRegisterID: complianceAssessmentFormDTO.ComplianceRegisterID,
 			ReviewUserID:         complianceAssessmentFormDTO.ReviewUserID,
@@ -117,7 +117,6 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 			return err
 		}
 
-		var assessmentRequirements []*models.ComplianceAssessmentRequirement
 		for _, clause := range compliance.ComplianceClauses {
 			for _, complianceRequirement := range clause.ComplianceRequirements {
 				requirement := &models.ComplianceAssessmentRequirement{
@@ -126,13 +125,43 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 					ComplianceStatusID:      nil,
 					CreatedBYID:             currentUserID,
 				}
-				assessmentRequirements = append(assessmentRequirements, requirement)
-			}
-		}
-		if len(assessmentRequirements) > 0 {
-			if err := cras.repo.CreateComplianceAssessmentRequirement(assessmentRequirements, tx); err != nil {
-				tx.Rollback()
-				return err
+				requirementId, err := cras.repo.CreateComplianceAssessmentRequirement(requirement, tx)
+				if err != nil {
+					tx.Rollback()
+					return err
+				}
+
+				var requirementDocumentTitles []*models.ComplianceAssessmentRequirementDocumentTitle
+				applicabilityStatus, err := cras.applicablityStatusSvc.GetByType("applicable")
+				if err != nil {
+					return err
+				}
+
+				for _, documentTitle := range complianceRequirement.RequiredDocumentTitles {
+					document := &models.ComplianceAssessmentRequirementDocumentTitle{
+						ComplianceAssessmentRequirementID: requirementId,
+						RequiredDocumentTitleID:           &documentTitle.RequiredDocumentTitleID,
+						ApplicabilityStatusID:             applicabilityStatus.ID,
+						CreatedBYID:                       currentUserID,
+					}
+					requirementDocumentTitles = append(requirementDocumentTitles, document)
+				}
+
+				document := &models.ComplianceAssessmentRequirementDocumentTitle{
+					ComplianceAssessmentRequirementID: requirementId,
+					RequiredDocumentTitleID:           nil,
+					ApplicabilityStatusID:             applicabilityStatus.ID,
+					CreatedBYID:                       currentUserID,
+				}
+				requirementDocumentTitles = append(requirementDocumentTitles, document)
+
+				if len(requirementDocumentTitles) > 0 {
+					if err := cras.repo.CreateComplianceAssessmentRequirementDocumentTitle(requirementDocumentTitles, tx); err != nil {
+						tx.Rollback()
+						return err
+					}
+				}
+
 			}
 		}
 
@@ -147,25 +176,26 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 	tx.Commit()
 
 	go func() {
+		if len(createdIds) > 0 {
+			err := cras.activityLogSvc.LogBulkActivities(
+				models.CreateAction,
+				models.ComplianceAssessment{}.TableName(),
+				createdIds,
+				addedComplianceAssessments,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.CreateAction,
+					"tableName": models.ComplianceAssessment{}.TableName(),
+					"recordID":  createdIds,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
 
-		err := cras.activityLogSvc.LogBulkActivities(
-			models.CreateAction,
-			models.ComplianceAssessment{}.TableName(),
-			createdIds,
-			addedComplianceAssessments,
-			currentUserID,
-			nil,
-		)
-		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.CreateAction,
-				"tableName": models.ComplianceAssessment{}.TableName(),
-				"recordID":  createdIds,
-				"userID":    currentUserID,
-				"error":     err.Error(),
+				utility.LogError("Failed to log activity", fields)
 			}
-
-			utility.LogError("Failed to log activity", fields)
 		}
 	}()
 
@@ -275,6 +305,14 @@ func (cras *ComplianceAssessmentService) Delete(ids []uint, currentUserID uint) 
 			var deleteRequirementIds []*uint
 			for _, update := range complianceAssessment.AssessmentRequirements {
 				deleteRequirementIds = append(deleteRequirementIds, update.ID)
+				var deletedDocumentTitleIds []*uint
+				for _, documentTitle := range update.RequiredDocumentTitles {
+					deletedDocumentTitleIds = append(deletedDocumentTitleIds, documentTitle.ID)
+				}
+				if err := cras.repo.DeleteComplianceAssessmentRequirementDocumentTitles(deletedDocumentTitleIds); err != nil {
+					failedIds = append(failedIds, id)
+					continue
+				}
 			}
 			if err := cras.repo.DeleteComplianceAssessmentRequirements(deleteRequirementIds); err != nil {
 				failedIds = append(failedIds, id)
@@ -332,6 +370,19 @@ func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(com
 
 	if _, err := cras.userSvc.GetByID(complianceAssessmentFormDTO.ReviewUserID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("review user does not exist"), "not_exist", "review user")
+	}
+
+	if complianceAssessmentFormDTO.OrganizationUnitIDs != nil {
+		for _, organizationUnitID := range complianceAssessmentFormDTO.OrganizationUnitIDs {
+			exists, err := cras.repo.IsAssessmentExists(*organizationUnitID, complianceAssessmentFormDTO.ComplianceRegisterID)
+			if err != nil {
+				return fmt.Errorf("failed to validate organization unit ID %d: %w", organizationUnitID, err)
+			}
+
+			if exists {
+				return utility.NewValidationError(fmt.Errorf("a assessment already exists for this organization unit"), "unique", "organization unit")
+			}
+		}
 	}
 
 	return nil

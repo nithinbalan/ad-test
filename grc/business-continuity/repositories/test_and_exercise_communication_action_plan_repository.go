@@ -10,7 +10,7 @@ import (
 
 type TestAndExerciseCommunicationActionPlanRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListQueryParamsDTO) ([]*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListDTO, error)
+	GetAll(testAndExerciseID uint, params *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListQueryParamsDTO) ([]*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListDTO, error)
 	GetByID(id uint) (*models.TestAndExerciseCommunicationActionPlan, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.TestAndExerciseCommunicationActionPlan, error)
 	Create(TestAndExerciseCommunicationActionPlan *models.TestAndExerciseCommunicationActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
@@ -33,7 +33,7 @@ func (repo *TestAndExerciseCommunicationActionPlanRepository) BeginTransaction()
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *TestAndExerciseCommunicationActionPlanRepository) GetAll(params *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListQueryParamsDTO) ([]*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListDTO, error) {
+func (repo *TestAndExerciseCommunicationActionPlanRepository) GetAll(testAndExerciseID uint, params *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListQueryParamsDTO) ([]*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListDTO, error) {
 	var testAndExerciseCommunicationActionPlans []*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListDTO
 	var totalCount int64
 
@@ -82,7 +82,7 @@ func (repo *TestAndExerciseCommunicationActionPlanRepository) GetAll(params *bus
 			LEFT JOIN communication_action_plan_statuses ON communication_action_plan_statuses.id = test_and_exercise_communication_action_plans.communication_action_plan_status_id
 			LEFT JOIN users AS created_user ON created_user.id = test_and_exercise_communication_action_plans.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = test_and_exercise_communication_action_plans.updated_by_id
-        `)
+        `).Where("test_and_exercise_communication_action_plans.test_and_exercise_id = ?", testAndExerciseID)
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {

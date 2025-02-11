@@ -11,6 +11,7 @@ import (
 type AssetModule struct {
 	AssetTypeController                           *controllers.AssetTypeController
 	AssetCategoryController                       *controllers.AssetCategoryController
+	AssetSubCategoryController                    *controllers.AssetSubCategoryController
 	AssetStatusController                         *controllers.AssetStatusController
 	AssetRegisterController                       *controllers.AssetRegisterController
 	AssetCriticalityMatrixController              *controllers.AssetCriticalityMatrixController
@@ -49,6 +50,10 @@ func NewAssetModule(db *gorm.DB,
 	assetCategoryRepo := repositories.NewAssetCategoryRepository(db)
 	assetCategorySvc := services.NewAssetCategoryService(assetCategoryRepo, assetTypeSvc, sharedModule.ActivityLogService)
 	assetCategoryController := controllers.NewAssetCategoryController(assetCategorySvc)
+
+	assetSubCategoryRepo := repositories.NewAssetSubCategoryRepository(db)
+	assetSubCategorySvc := services.NewAssetSubCategoryService(assetSubCategoryRepo, assetCategorySvc, sharedModule.ActivityLogService)
+	assetSubCategoryController := controllers.NewAssetSubCategoryController(assetSubCategorySvc)
 
 	assetStatusRepo := repositories.NewAssetStatusRepository(db)
 	assetStatusSvc := services.NewAssetStatusService(assetStatusRepo)
@@ -170,6 +175,7 @@ func NewAssetModule(db *gorm.DB,
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
 		AssetCategoryController:                       assetCategoryController,
+		AssetSubCategoryController:                    assetSubCategoryController,
 		AssetStatusController:                         assetStatusController,
 		AssetRegisterController:                       assetRegisterController,
 		AssetCriticalityMatrixController:              assetCriticalityMatrixController,

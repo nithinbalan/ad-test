@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -62,10 +63,10 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 
 	// Apply dynamic filters if provided
 	for columnName, values := range params.Filters {
-		if columnName == "compliance_status_ids" {
-			query = query.Where("compliance_assessment_requirements.compliance_status_id IN (?)", values)
-		} else if columnName == "compliance_clause_ids" {
-			query = query.Where("compliance_clauses.id IN (?)", values)
+		if columnName == "compliance_status_id" {
+			query = query.Where(fmt.Sprintf("compliance_assessment_requirements.%s IN (?)", columnName), values)
+		} else if columnName == "compliance_clause_id" {
+			query = query.Where(fmt.Sprintf("compliance_requirements.%s IN (?)", columnName), values)
 		} else if len(values) > 0 {
 			query = query.Where(columnName+" IN (?)", values)
 		}
@@ -134,6 +135,8 @@ func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requir
 		Preload("ComplianceRequirement.ComplianceStatus").
 		Preload("ComplianceRequirement.ComplianceClause").
 		Preload("ComplianceRequirement.SeverityLevel").
+		Preload("RequiredDocumentTitles").
+		Preload("RequiredDocumentTitles.RequiredDocumentTitle").
 		Preload("ComplianceStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").

@@ -46,7 +46,7 @@ func NewTestAndExerciseCommunicationActionPlanService(
 }
 
 func (tecaps *TestAndExerciseCommunicationActionPlanService) GetAll(testAndExerciseId uint, params *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListQueryParamsDTO) ([]*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListDTO, error) {
-	return tecaps.repo.GetAll(params)
+	return tecaps.repo.GetAll(testAndExerciseId, params)
 }
 
 func (tecaps TestAndExerciseCommunicationActionPlanService) GetByID(testAndExerciseId uint, id uint) (*models.TestAndExerciseCommunicationActionPlan, error) {
