@@ -44,6 +44,9 @@ func (capc *ComplianceAssessmentRequirementCommentController) GetAllComments(c *
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
 		default:
 			utility.SendInternalErrResp(capc.db, c, e.Error())
 			return
@@ -79,6 +82,9 @@ func (capc *ComplianceAssessmentRequirementCommentController) GetCommentDetails(
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
 			return
 		default:
 			utility.SendInternalErrResp(capc.db, c, e.Error())
@@ -120,6 +126,9 @@ func (capc *ComplianceAssessmentRequirementCommentController) CreateComment(c *g
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
 			return
 		default:
 			utility.SendInternalErrResp(capc.db, c, e.Error())
@@ -168,6 +177,9 @@ func (capc *ComplianceAssessmentRequirementCommentController) UpdateComment(c *g
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
 			return
 		default:
 			utility.SendInternalErrResp(capc.db, c, e.Error())
