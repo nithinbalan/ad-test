@@ -17,7 +17,10 @@ jobs:
           username: ${{ secrets.ZEPTO_USERNAME }}
           password: ${{ secrets.ZEPTO_PASSWORD }}
           subject: "Pipeline Started"
-          body: "GitHub Actions DEMO-API deployment has started."
+          body: |
+            GitHub Actions DEMO-API deployment has started.
+
+            Triggered by: ${{ github.actor }}
           to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
           from: "Jethur Notifications <info@jethur.com>"
           
