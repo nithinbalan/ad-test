@@ -34,6 +34,7 @@ type ComplianceModule struct {
 	ComplianceActionPlanCommentController         *controllers.ComplianceActionPlanCommentController
 	ComplianceAssessmentController                *controllers.ComplianceAssessmentController
 	ComplianceAssessmentRequirementController     *controllers.ComplianceAssessmentRequirementController
+	ComplianceFolderController                    *controllers.ComplianceFolderController
 
 	ComplianceRegisterSvc          services.ComplianceRegisterServiceInterface
 	ComplianceRequirementSvc       services.ComplianceRequirementServiceInterface
@@ -54,6 +55,10 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceReviewStatusRepo := repositories.NewComplianceReviewStatusRepository(db)
 	complianceReviewStatusSvc := services.NewComplianceReviewStatusService(complianceReviewStatusRepo)
 	complianceReviewStatusController := controllers.NewComplianceReviewStatusController(complianceReviewStatusSvc)
+
+	complianceFolderRepo := repositories.NewComplianceFolderRepository(db)
+	complianceFolderSvc := services.NewComplianceFolderService(complianceFolderRepo, sharedModule.ActivityLogService)
+	complianceFolderController := controllers.NewComplianceFolderController(complianceFolderSvc)
 
 	complianceRegisterRepo := repositories.NewComplianceRegisterRepository(db)
 	complianceRegisterSvc := services.NewComplianceRegisterService(
@@ -230,6 +235,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceActionPlanCommentController:         complianceActionPlanCommentController,
 		ComplianceAssessmentController:                complianceAssessmentController,
 		ComplianceAssessmentRequirementController:     complianceAssessmentRequirementController,
+		ComplianceFolderController:                    complianceFolderController,
 
 		ComplianceRequirementSvc:       complianceRequirementSvc,
 		ComplianceRegisterSvc:          complianceRegisterSvc,
