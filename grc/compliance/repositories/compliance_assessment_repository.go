@@ -28,6 +28,7 @@ type ComplianceAssessmentRepositoryInterface interface {
 
 	AssessmentCompletionSummary(assessmentID uint) (*complianceDTOs.AssessmentCompletionSummaryDTO, error)
 	GetComplianceStatusSummary(assessmentID uint) (*complianceDTOs.ComplianceStatusSummaryDTO, error)
+	GetComplianceScoreSummary(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error)
 }
 
 type ComplianceAssessmentRepository struct {
@@ -378,6 +379,24 @@ func (repo *ComplianceAssessmentRepository) GetComplianceStatusSummary(assessmen
 	// Set the result
 	result.TotalRequirements = totalRequirements
 	result.PendingCount = pendingCount
+
+	return &result, nil
+}
+
+func (repo *ComplianceAssessmentRepository) GetComplianceScoreSummary(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error) {
+	var result complianceDTOs.ComplianceScoreSummaryDTO
+
+	query := `
+		SELECT 
+			COUNT(*) AS total_requirements, 
+			COALESCE(AVG(CAST(score AS FLOAT)), 0) AS average_score
+		FROM compliance_assessment_requirements 
+		WHERE compliance_assessment_id = ? AND score IS NOT NULL
+	`
+
+	if err := repo.db.Raw(query, assessmentID).Scan(&result).Error; err != nil {
+		return nil, err
+	}
 
 	return &result, nil
 }

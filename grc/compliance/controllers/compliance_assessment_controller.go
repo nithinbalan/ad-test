@@ -236,3 +236,21 @@ func (cac *ComplianceAssessmentController) GetComplianceStatusSummary(c *gin.Con
 
 	c.JSON(http.StatusOK, statusCounts)
 }
+
+func (cac *ComplianceAssessmentController) GetComplianceScoreSummary(c *gin.Context) {
+	idStr := c.Param("assessmentId")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	statusCounts, err := cac.service.GetComplianceScoreSummary(uint(id))
+	if err != nil {
+		utility.SendInternalErrResp(cac.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, statusCounts)
+}
