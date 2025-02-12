@@ -519,7 +519,10 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	}
 
 	if complianceRegisterFormDTO.DocumentAr.IsNewFile != nil && *complianceRegisterFormDTO.DocumentAr.IsNewFile {
-		existingComplianceDocumentArFileName := existingComplianceDocumentAr.Name
+		var existingComplianceDocumentArFileName string
+		if existingComplianceDocumentAr != nil {
+			existingComplianceDocumentArFileName = existingComplianceDocumentAr.Name
+		}
 
 		if err := crs.handleDocument(currentUserID, id, &complianceRegisterFormDTO.DocumentAr, tx); err != nil {
 			tx.Rollback()
