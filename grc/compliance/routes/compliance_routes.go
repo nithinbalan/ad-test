@@ -42,6 +42,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceAssessmentController := app.ComplianceModule.ComplianceAssessmentController
 	complianceAssessmentRequirementController := app.ComplianceModule.ComplianceAssessmentRequirementController
 	complianceFolderController := app.ComplianceModule.ComplianceFolderController
+	complianceAssessmentStatusController := app.ComplianceModule.ComplianceAssessmentStatusController
+	complianceAssessmentRequirementStatusController := app.ComplianceModule.ComplianceAssessmentRequirementStatusController
 
 	// Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
@@ -264,4 +266,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/compliance-assessments/:assessmentId/requirements/:requirementId/required-documents/:documentId/document-preview", complianceAssessmentRequirementController.GetComplianceAssessmentRequirementDocumentPreview)
 	complianceRoutes.POST("/compliance-assessments/:assessmentId/requirements/:requirementId/required-documents/:documentId", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementController.CreateDocuments)
 	complianceRoutes.POST("/compliance-assessments/:assessmentId/requirements/:requirementId/required-documents/:documentId/delete", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementController.DeleteDocuments)
+
+	complianceRoutes.GET("/compliance-assessment-statuses", complianceAssessmentStatusController.GetAllComplianceAssessmentStatuses)
+	complianceRoutes.GET("/compliance-assessment-statuses/:id", complianceAssessmentStatusController.GetComplianceAssessmentStatusDetails)
+
+	complianceRoutes.GET("/compliance-assessment-requirement-statuses", complianceAssessmentRequirementStatusController.GetAllComplianceAssessmentRequirementStatuses)
+	complianceRoutes.GET("/compliance-assessment-requirement-statuses/:id", complianceAssessmentRequirementStatusController.GetComplianceAssessmentRequirementStatusDetails)
+
 }
