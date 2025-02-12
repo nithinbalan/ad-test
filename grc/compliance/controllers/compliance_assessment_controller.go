@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/services"
 	"jethur/utility"
@@ -253,4 +254,38 @@ func (cac *ComplianceAssessmentController) GetComplianceScoreSummary(c *gin.Cont
 	}
 
 	c.JSON(http.StatusOK, statusCounts)
+}
+
+func (cac *ComplianceAssessmentController) ComplianceAssessmentSubmit(c *gin.Context) {
+	assessmentIDStr := c.Param("assessmentId")
+	assessmentID, err := strconv.ParseUint(assessmentIDStr, 10, 32)
+	if err != nil {
+		utility.SendInvalidErrResp(c, fmt.Errorf("invalid assessment ID"))
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cac.db, c, err.Error())
+		return
+	}
+
+	err = cac.service.SubmitComplianceAssessment(uint(assessmentID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(cac.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
 }
