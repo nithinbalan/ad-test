@@ -63,6 +63,8 @@ func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryP
 			asset_types.title_ar AS asset_type_title_ar,
 			asset_categories.title_en AS asset_category_title_en,
 			asset_categories.title_ar AS asset_category_title_ar,
+			asset_sub_categories.title_en AS asset_sub_category_title_en,
+			asset_sub_categories.title_ar AS asset_sub_category_title_ar,
 			asset_statuses.title_en AS asset_status_title_en,
 			asset_statuses.title_ar AS asset_status_title_ar,
 			asset_statuses.color_code AS asset_status_color_code,
@@ -102,6 +104,7 @@ func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryP
 		`).
 		Joins("LEFT JOIN asset_types ON asset_types.id = asset_register.asset_type_id").
 		Joins("LEFT JOIN asset_categories ON asset_categories.id = asset_register.asset_category_id").
+		Joins("LEFT JOIN asset_sub_categories ON asset_sub_categories.id = asset_register.asset_sub_category_id").
 		Joins("LEFT JOIN asset_statuses ON asset_statuses.id = asset_register.asset_status_id").
 		Joins("LEFT JOIN asset_criticality_matrix_rating_scales ON asset_criticality_matrix_rating_scales.id = asset_register.asset_criticality_matrix_rating_scale_id").
 		Joins("LEFT JOIN organization_units ON organization_units.id = asset_register.responsible_unit_id").
@@ -200,6 +203,7 @@ func (repo *AssetRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.D
 	result := db.
 		Preload("AssetType").
 		Preload("AssetCategory").
+		Preload("AssetSubCategory").
 		Preload("AssetStatus").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").

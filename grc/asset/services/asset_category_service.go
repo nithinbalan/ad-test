@@ -26,14 +26,12 @@ type AssetCategoryServiceInterface interface {
 // Service and implementations
 type AssetCategoryService struct {
 	repo           repositories.AssetCategoryRepositoryInterface
-	assetTypeSvc   AssetTypeServiceInterface
 	activityLogSvc activityLogServices.ActivityLogServiceInterface
 }
 
-func NewAssetCategoryService(repo repositories.AssetCategoryRepositoryInterface, assetTypeSvc AssetTypeServiceInterface, activityLogSvc activityLogServices.ActivityLogServiceInterface) AssetCategoryServiceInterface {
+func NewAssetCategoryService(repo repositories.AssetCategoryRepositoryInterface, activityLogSvc activityLogServices.ActivityLogServiceInterface) AssetCategoryServiceInterface {
 	return &AssetCategoryService{
 		repo:           repo,
-		assetTypeSvc:   assetTypeSvc,
 		activityLogSvc: activityLogSvc,
 	}
 }
@@ -59,10 +57,9 @@ func (acs *AssetCategoryService) Create(currentUserID uint, assetCategoryFormDTO
 	}
 
 	assetCategory := &models.AssetCategory{
-		AssetTypeID: assetCategoryFormDTO.AssetTypeID,
-		TitleEn:     assetCategoryFormDTO.TitleEn,
-		TitleAr:     assetCategoryFormDTO.TitleAr,
-		Status:      assetCategoryFormDTO.Status,
+		TitleEn: assetCategoryFormDTO.TitleEn,
+		TitleAr: assetCategoryFormDTO.TitleAr,
+		Status:  assetCategoryFormDTO.Status,
 	}
 
 	id, err := acs.repo.Create(assetCategory)
@@ -117,7 +114,6 @@ func (acs *AssetCategoryService) Update(id uint, currentUserID uint, assetCatego
 		return err
 	}
 
-	existingAssetCategory.AssetTypeID = assetCategoryFormDTO.AssetTypeID
 	existingAssetCategory.TitleEn = assetCategoryFormDTO.TitleEn
 	existingAssetCategory.TitleAr = assetCategoryFormDTO.TitleAr
 	existingAssetCategory.Status = assetCategoryFormDTO.Status
@@ -245,12 +241,6 @@ func (acs *AssetCategoryService) Deactivate(ids []uint, currentUserID uint) erro
 }
 
 func (acs *AssetCategoryService) validateAssetCategoryFormDTO(assetCategoryFormDTO *assetDTOs.AssetCategoryFormDTO, id *uint) error {
-	if assetCategoryFormDTO.AssetTypeID != nil {
-		if _, err := acs.assetTypeSvc.GetByID(*assetCategoryFormDTO.AssetTypeID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("asset type does not exist"), "not_exist", "asset type")
-		}
-	}
-
 	if id == nil {
 		if exists, err := acs.repo.ExistsByTitle(assetCategoryFormDTO.TitleEn, assetCategoryFormDTO.TitleAr); err != nil {
 			return err
