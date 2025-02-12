@@ -32,6 +32,8 @@ type ComplianceModule struct {
 	SLAAssociatedItemController                         *controllers.SLAAssociatedItemController
 	CompliacneClauseController                          *controllers.ComplianceClauseController
 	ComplianceActionPlanCommentController               *controllers.ComplianceActionPlanCommentController
+	ComplianceAssessmentStatusController                *controllers.ComplianceAssessmentStatusController
+	ComplianceAssessmentRequirementStatusController     *controllers.ComplianceAssessmentRequirementStatusController
 	ComplianceAssessmentController                      *controllers.ComplianceAssessmentController
 	ComplianceAssessmentRequirementController           *controllers.ComplianceAssessmentRequirementController
 	ComplianceFolderController                          *controllers.ComplianceFolderController
@@ -204,6 +206,14 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceActionPlanCommentSvc := services.NewComplianceActionPlanCommentService(complianceActionPlanCommentRepository, organizationModule.UserSvc, sharedModule.ActivityLogService, complianceActionPlanSvc)
 	complianceActionPlanCommentController := controllers.NewComplianceActionPlanCommentController(complianceActionPlanCommentSvc)
 
+	complianceAssessmentStatusRepo := repositories.NewComplianceAssessmentStatusRepository(db)
+	complianceAssessmentStatusSvc := services.NewComplianceAssessmentStatusService(complianceAssessmentStatusRepo)
+	complianceAssessmentStatusController := controllers.NewComplianceAssessmentStatusController(complianceAssessmentStatusSvc)
+
+	complianceAssessmentRequirementStatusRepo := repositories.NewComplianceAssessmentRequirementStatusRepository(db)
+	complianceAssessmentRequirementStatusSvc := services.NewComplianceAssessmentRequirementStatusService(complianceAssessmentRequirementStatusRepo)
+	complianceAssessmentRequirementStatusController := controllers.NewComplianceAssessmentRequirementStatusController(complianceAssessmentRequirementStatusSvc)
+
 	complianceAssessmentRepo := repositories.NewComplianceAssessmentRepository(db)
 	complianceAssessmentSvc := services.NewComplianceAssessmentService(complianceAssessmentRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, complianceRegisterSvc, masterModule.ApplicabilitySvc)
 	complianceAssessmentController := controllers.NewComplianceAssessmentController(complianceAssessmentSvc)
@@ -254,6 +264,8 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceAssessmentController:                      complianceAssessmentController,
 		ComplianceAssessmentRequirementController:           complianceAssessmentRequirementController,
 		ComplianceFolderController:                          complianceFolderController,
+		ComplianceAssessmentStatusController:                complianceAssessmentStatusController,
+		ComplianceAssessmentRequirementStatusController:     complianceAssessmentRequirementStatusController,
 		ComplianceAssessmentRequirementCommentController:    complianceAssessmentRequirementCommentController,
 		ComplianceAssessmentRequirementActionPlanController: complianceAssessmentRequirementActionPlanController,
 

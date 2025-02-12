@@ -42,6 +42,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceAssessmentController := app.ComplianceModule.ComplianceAssessmentController
 	complianceAssessmentRequirementController := app.ComplianceModule.ComplianceAssessmentRequirementController
 	complianceFolderController := app.ComplianceModule.ComplianceFolderController
+	complianceAssessmentStatusController := app.ComplianceModule.ComplianceAssessmentStatusController
+	complianceAssessmentRequirementStatusController := app.ComplianceModule.ComplianceAssessmentRequirementStatusController
 	complianceAssessmentRequirementCommentController := app.ComplianceModule.ComplianceAssessmentRequirementCommentController
 	complianceAssessmentRequirementActionPlanController := app.ComplianceModule.ComplianceAssessmentRequirementActionPlanController
 
@@ -280,4 +282,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/compliance-assessments/:assessmentId/requirements/:requirementId/action-plans", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementActionPlanController.CreateComplianceAssessmentRequirementActionPlan)
 	complianceRoutes.PUT("/compliance-assessments/:assessmentId/requirements/:requirementId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementActionPlanController.UpdateComplianceAssessmentRequirementActionPlan)
 	complianceRoutes.POST("/compliance-assessments/:assessmentId/requirements/:requirementId/action-plans/delete", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementActionPlanController.DeleteComplianceAssessmentRequirementActionPlans)
+
+	complianceRoutes.GET("/compliance-assessment-statuses", complianceAssessmentStatusController.GetAllComplianceAssessmentStatuses)
+	complianceRoutes.GET("/compliance-assessment-statuses/:id", complianceAssessmentStatusController.GetComplianceAssessmentStatusDetails)
+
+	complianceRoutes.GET("/compliance-assessment-requirement-statuses", complianceAssessmentRequirementStatusController.GetAllComplianceAssessmentRequirementStatuses)
+	complianceRoutes.GET("/compliance-assessment-requirement-statuses/:id", complianceAssessmentRequirementStatusController.GetComplianceAssessmentRequirementStatusDetails)
+
 }
