@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 ALTER TABLE compliance_assessments
-ADD compliance_assessment_status_id INT NOT NULL DEFAULT 1,
+ADD compliance_assessment_status_id INT NULL,
     submitted_by INT NULL,
     submitted_at DATETIME NULL,
     reviewed_by INT NULL;
