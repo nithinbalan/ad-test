@@ -498,7 +498,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	}
 
 	existingComplianceDocumentAr, err := crs.repo.GetLatestDocumentByComplianceID(id, "ar")
-	if err != nil {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
 	}
 
@@ -519,17 +519,22 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	}
 
 	if complianceRegisterFormDTO.DocumentAr.IsNewFile != nil && *complianceRegisterFormDTO.DocumentAr.IsNewFile {
-		existingComplianceDocumentArFileName := existingComplianceDocumentAr.Name
+		var existingComplianceDocumentArFileName string
+		if existingComplianceDocumentAr != nil {
+			existingComplianceDocumentArFileName = existingComplianceDocumentAr.Name
+		}
 
 		if err := crs.handleDocument(currentUserID, id, &complianceRegisterFormDTO.DocumentAr, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
 
-		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
-		if err := utility.RemoveFile(existingComplianceDocumentArFileName, storagePath); err != nil {
-			tx.Rollback()
-			return err
+		if existingComplianceDocumentAr != nil {
+			storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
+			if err := utility.RemoveFile(existingComplianceDocumentArFileName, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
 		}
 	}
 

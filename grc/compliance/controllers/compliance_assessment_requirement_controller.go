@@ -356,3 +356,83 @@ func (cac *ComplianceAssessmentRequirementController) DownloadComplianceAssessme
 
 	c.File(complianceAssessmentRequirementDocumentPath)
 }
+
+func (cac *ComplianceAssessmentRequirementController) MarkAsCompleted(c *gin.Context) {
+
+	complianceAssessmentID, err := strconv.Atoi(c.Param("assessmentId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	requirementIDStr := c.Param("requirementId")
+
+	complianceRequirementID, err := strconv.ParseUint(requirementIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cac.db, c, err.Error())
+		return
+	}
+
+	err = cac.service.MarkAsCompleted(uint(complianceAssessmentID), uint(complianceRequirementID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(cac.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (cac *ComplianceAssessmentRequirementController) MarkAsOpen(c *gin.Context) {
+
+	complianceAssessmentID, err := strconv.Atoi(c.Param("assessmentId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	requirementIDStr := c.Param("requirementId")
+
+	complianceRequirementID, err := strconv.ParseUint(requirementIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cac.db, c, err.Error())
+		return
+	}
+
+	err = cac.service.MarkAsOpen(uint(complianceAssessmentID), uint(complianceRequirementID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(cac.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
