@@ -20,7 +20,7 @@ type AssetRegisterRepositoryInterface interface {
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AssetRegister, error)
 	Create(assetRegister *models.AssetRegister, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(assetRegister *models.AssetRegister, tx ...utility.DatabaseTransaction) error
-	Delete(id uint) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
 
 	GenerateReferenceNumber() (string, error)
 
@@ -28,6 +28,9 @@ type AssetRegisterRepositoryInterface interface {
 	DeleteAssetControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetControlSummary(assetID uint) ([]models.AssetControl, error)
+	CreateAssetDocuments(documents []*models.AssetDocument, tx ...utility.DatabaseTransaction) error
+	DeleteAssetDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint) (*models.AssetDocument, error)
 }
 
 // Implementation
@@ -59,6 +62,11 @@ func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryP
 			asset_register.location,
 			asset_register.description,
 			CONVERT(VARCHAR, asset_register.acquisition_date, 23) AS acquisition_date,
+			CONVERT(VARCHAR, asset_register.assignment_date, 23) AS assignment_date,
+			CONVERT(VARCHAR, asset_register.warranty_expiry_date, 23) AS warranty_expiry_date,
+			asset_register.manufacturer,
+			asset_register.model,
+			asset_register.serial_number,
 			asset_types.title_en AS asset_type_title_en,
 			asset_types.title_ar AS asset_type_title_ar,
 			asset_categories.title_en AS asset_category_title_en,
@@ -136,12 +144,16 @@ func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryP
 			asset_register.description LIKE ? OR
 			asset_types.title_en LIKE ? OR
 			asset_types.title_ar LIKE ? OR
+			asset_register.manufacturer LIKE ? OR
+			asset_register.model LIKE ? OR
+			asset_register.serial_number LIKE ? OR
 			asset_categories.title_en LIKE ? OR
 			asset_categories.title_ar LIKE ? OR
 			asset_statuses.title_en LIKE ? OR
 			asset_statuses.title_ar LIKE ?)`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
@@ -211,6 +223,7 @@ func (repo *AssetRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.D
 		Preload("Controls").
 		Preload("AssetCriticalityMatrixRatingScale").
 		Preload("AssetCriticalityMatrix").
+		Preload("Documents").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&asset, id)
@@ -236,12 +249,16 @@ func (repo *AssetRegisterRepository) Update(assetRegister *models.AssetRegister,
 	return nil
 }
 
-func (repo *AssetRegisterRepository) Delete(id uint) error {
+func (repo *AssetRegisterRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var assetRegister *models.AssetRegister
-	if err := repo.db.First(&assetRegister, id).Error; err != nil {
+	if err := db.First(&assetRegister, id).Error; err != nil {
 		return err
 	}
-	return repo.db.Delete(&models.AssetRegister{}, id).Error
+	return db.Delete(&models.AssetRegister{}, id).Error
 }
 
 func (repo *AssetRegisterRepository) GenerateReferenceNumber() (string, error) {
@@ -311,4 +328,36 @@ func (repo *AssetRegisterRepository) GetControlSummary(assetID uint) ([]models.A
 	}
 
 	return assetControls, nil
+}
+
+func (repo *AssetRegisterRepository) CreateAssetDocuments(documents []*models.AssetDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&documents).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AssetRegisterRepository) DeleteAssetDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", documentIds).Delete(&models.AssetDocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AssetRegisterRepository) GetDocumentByID(id uint) (*models.AssetDocument, error) {
+	var document models.AssetDocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
 }

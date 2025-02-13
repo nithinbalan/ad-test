@@ -18,6 +18,11 @@ type AssetRegister struct {
 	Location                            *string    `json:"location,omitempty" gorm:"type:nvarchar(255);default:null"`
 	Description                         *string    `json:"description,omitempty" gorm:"type:nvarchar(MAX);default:null"`
 	AcquisitionDate                     *time.Time `json:"acquisition_date,omitempty" gorm:"type:date;default:null"`
+	AssignmentDate                      *time.Time `json:"assignment_date,omitempty" gorm:"type:date;default:null"`
+	WarrantyExpiryDate                  *time.Time `json:"warranty_expiry_date,omitempty" gorm:"type:date;default:null"`
+	Manufacturer                        *string    `json:"manufacturer,omitempty" gorm:"type:nvarchar(255);default:null"`
+	Model                               *string    `json:"model,omitempty" gorm:"type:nvarchar(255);default:null"`
+	SerialNumber                        *string    `json:"serial_number,omitempty" gorm:"type:nvarchar(255);default:null"`
 	AssetCriticalityMatrixID            uint       `json:"asset_criticality_matrix_id"`
 	AssetCriticalityMatrixRatingScaleID *uint      `json:"asset_criticality_matrix_rating_scale_id,omitempty" gorm:"default:null"`
 	TotalScore                          *float64   `json:"total_score,omitempty" gorm:"default:null"`
@@ -42,6 +47,7 @@ type AssetRegister struct {
 	AssetCriticalityMatrixRatingScale *AssetCriticalityMatrixRatingScale `gorm:"foreignKey:AssetCriticalityMatrixRatingScaleID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Controls                          []*AssetControl                    `gorm:"foreignKey:AssetRegisterID"`
 	Contributions                     []*AssetCriticalityContribution    `gorm:"foreignKey:AssetRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Documents                         *[]AssetDocument                   `gorm:"foreignKey:AssetRegisterID"`
 
 	CreatedByUser *User `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser *User `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
