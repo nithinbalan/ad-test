@@ -13,7 +13,7 @@ import (
 
 type ComplianceActionPlanRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error)
+	GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO, complianceAssessmentRequirementID uint) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceActionPlan, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceActionPlan, error)
 	Create(complianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
@@ -39,7 +39,7 @@ func (repo *ComplianceActionPlanRepository) BeginTransaction() utility.DatabaseT
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error) {
+func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO, complianceAssessmentRequirementID uint) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error) {
 
 	var complianceActionPlans []*complianceDTOs.ComplianceActionPlanListDTO
 	var totalCount int64
@@ -111,6 +111,11 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
 	// Conditionally apply compliance ID filter
 	if complianceID != 0 {
 		query = query.Where("compliance_action_plans.compliance_register_id = ?", complianceID)
+	}
+
+	// Conditionally apply compliance ID filter
+	if complianceAssessmentRequirementID != 0 {
+		query = query.Where("compliance_action_plans.compliance_assessment_requirement_id = ?", complianceAssessmentRequirementID)
 	}
 
 	// Apply dynamic filters to the query
@@ -227,6 +232,7 @@ func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint, tx ...ut
 	// Load the compliance action plan with all related data
 	result := db.
 		Preload("ComplianceRequirement.ComplianceClause").
+		Preload("ComplianceAssessmentRequirement").
 		Preload("ComplianceRegister").
 		Preload("SeverityLevel").
 		Preload("ResponsibleUser").
