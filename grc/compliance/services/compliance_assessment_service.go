@@ -29,6 +29,7 @@ type ComplianceAssessmentServiceInterface interface {
 	GetComplianceScoreSummary(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error)
 
 	SubmitComplianceAssessment(assessmentID uint, currentUserID uint) error
+	ApproveComplianceAssessment(assessmentID uint, currentUserID uint) error
 }
 
 // Service and implementations
@@ -470,7 +471,7 @@ func (cras *ComplianceAssessmentService) SubmitComplianceAssessment(assessmentID
 
 	// Validate if the assessment is already submitted
 	if assessment.ComplianceAssessmentStatusID != complianceAssessmentdraftStatus.ID {
-		return err
+		return utility.NewForbiddenError("Assessment not in draft")
 	}
 
 	// Validate if the user's primary unit matches the assessment's primary unit
@@ -507,6 +508,66 @@ func (cras *ComplianceAssessmentService) SubmitComplianceAssessment(assessmentID
 				"status":       "submitted",
 				"submitted_by": currentUserID,
 				"submitted_at": submittedAt,
+			},
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.ComplianceAssessment{}.TableName(),
+				"recordID":  assessmentID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
+		}
+	}()
+
+	return nil
+}
+
+func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentID uint, currentUserID uint) error {
+
+	complianceAssessmentInReviewStatus, err := cras.complianceAssessmentStatusSvc.GetByType("in_review")
+	if err != nil {
+		return err
+	}
+
+	assessment, err := cras.GetByID(assessmentID)
+	if err != nil {
+		return err
+	}
+
+	// Validate if the assessment is in draft
+	if assessment.ComplianceAssessmentStatusID != complianceAssessmentInReviewStatus.ID {
+		return utility.NewForbiddenError("Assessment is still in draft")
+	}
+
+	if currentUserID != assessment.ReviewUserID {
+		return utility.NewForbiddenError("User is not authorized to submit this assessment")
+	}
+
+	complianceAssessmentApprovedStatus, err := cras.complianceAssessmentStatusSvc.GetByType("approved")
+	if err != nil {
+		return err
+	}
+
+	assessment.ComplianceAssessmentStatusID = complianceAssessmentApprovedStatus.ID
+	assessment.UpdatedBYID = &currentUserID
+
+	err = cras.repo.Update(assessment)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		err := cras.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.ComplianceAssessment{}.TableName(),
+			assessmentID,
+			map[string]interface{}{
+				"status":      "approved",
+				"approved_by": currentUserID,
 			},
 			currentUserID,
 			nil,
