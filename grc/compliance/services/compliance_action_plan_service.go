@@ -86,7 +86,7 @@ func (caps *ComplianceActionPlanService) GetAll(complianceID uint, params *compl
 			return nil, err
 		}
 	}
-	return caps.repo.GetAll(complianceID, params)
+	return caps.repo.GetAll(complianceID, params, uint(0))
 }
 
 func (caps ComplianceActionPlanService) GetByID(complianceID uint, id uint) (*models.ComplianceActionPlan, error) {
@@ -183,7 +183,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 	}
 
 	complianceActionPlan := &models.ComplianceActionPlan{
-		ComplianceRegisterID:    complianceID,
+		ComplianceRegisterID:    &complianceID,
 		ComplianceRequirementID: ComplianceActionPlanFormDTO.ComplianceRequirementID,
 		Title:                   ComplianceActionPlanFormDTO.Title,
 		Description:             ComplianceActionPlanFormDTO.Description,

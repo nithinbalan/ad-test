@@ -78,7 +78,7 @@ func (carapc *ComplianceAssessmentRequirementActionPlanController) GetAllComplia
 		return
 	}
 
-	queryParams := complianceDTOs.ComplianceAssessmentRequirementActionPlanListQueryParamsDTO{
+	queryParams := complianceDTOs.ComplianceActionPlanListQueryParamsDTO{
 		Sort:           sort,
 		SortBy:         sortBy,
 		Keyword:        keyword,
@@ -147,7 +147,7 @@ func (carapc *ComplianceAssessmentRequirementActionPlanController) GetCompliance
 }
 
 func (carapc *ComplianceAssessmentRequirementActionPlanController) CreateComplianceAssessmentRequirementActionPlan(c *gin.Context) {
-	var ComplianceAssessmentRequirementActionPlanFormDTO complianceDTOs.ComplianceAssessmentRequirementActionPlanFormDTO
+	var ComplianceActionPlanFormDTO complianceDTOs.ComplianceActionPlanFormDTO
 
 	assessmentIDStr := c.Param("assessmentId")
 	assessmentID, err := strconv.ParseUint(assessmentIDStr, 10, 32)
@@ -162,7 +162,7 @@ func (carapc *ComplianceAssessmentRequirementActionPlanController) CreateComplia
 		return
 	}
 
-	if err := c.ShouldBindJSON(&ComplianceAssessmentRequirementActionPlanFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&ComplianceActionPlanFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -173,7 +173,7 @@ func (carapc *ComplianceAssessmentRequirementActionPlanController) CreateComplia
 		return
 	}
 
-	id, err := carapc.service.Create(uint(assessmentID), uint(assessmentRequirementID), currentUserID, &ComplianceAssessmentRequirementActionPlanFormDTO)
+	id, err := carapc.service.Create(uint(assessmentID), uint(assessmentRequirementID), currentUserID, &ComplianceActionPlanFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -193,7 +193,7 @@ func (carapc *ComplianceAssessmentRequirementActionPlanController) CreateComplia
 }
 
 func (carapc *ComplianceAssessmentRequirementActionPlanController) UpdateComplianceAssessmentRequirementActionPlan(c *gin.Context) {
-	var ComplianceAssessmentRequirementActionPlanFormDTO complianceDTOs.ComplianceAssessmentRequirementActionPlanFormDTO
+	var ComplianceActionPlanFormDTO complianceDTOs.ComplianceActionPlanFormDTO
 
 	assessmentIDStr := c.Param("assessmentId")
 	assessmentID, err := strconv.ParseUint(assessmentIDStr, 10, 32)
@@ -216,7 +216,7 @@ func (carapc *ComplianceAssessmentRequirementActionPlanController) UpdateComplia
 		return
 	}
 
-	if err := c.ShouldBindJSON(&ComplianceAssessmentRequirementActionPlanFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&ComplianceActionPlanFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -227,7 +227,7 @@ func (carapc *ComplianceAssessmentRequirementActionPlanController) UpdateComplia
 		return
 	}
 
-	err = carapc.service.Update(uint(assessmentID), uint(assessmentRequirementID), uint(id), currentUserID, &ComplianceAssessmentRequirementActionPlanFormDTO)
+	err = carapc.service.Update(uint(assessmentID), uint(assessmentRequirementID), uint(id), currentUserID, &ComplianceActionPlanFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
