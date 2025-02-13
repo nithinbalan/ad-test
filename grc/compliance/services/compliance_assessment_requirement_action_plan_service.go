@@ -20,7 +20,7 @@ import (
 type ComplianceAssessmentRequirementActionPlanServiceInterface interface {
 	GetAll(complianceAssessmentID uint, requirementID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error)
 	GetByID(complianceAssessmentID uint, requirementID uint, id uint) (*models.ComplianceActionPlan, error)
-	GetFullDetailsByID(complianceAssessmentID uint, requirementID uint, id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentRequirementActionPlanDetailDTO, error)
+	GetFullDetailsByID(complianceAssessmentID uint, requirementID uint, id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceActionPlanDetailDTO, error)
 	Create(complianceAssessmentID uint, requirementID uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) (uint, error)
 	Update(complianceAssessmentID uint, requirementID uint, id uint, currentUserID uint, compliance *complianceDTOs.ComplianceActionPlanFormDTO) error
 	Delete(complianceAssessmentID uint, requirementID uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -78,8 +78,8 @@ func (caraps ComplianceAssessmentRequirementActionPlanService) GetByID(complianc
 	return complianceAssessmentRequirementActionPlan, nil
 }
 
-func (caraps ComplianceAssessmentRequirementActionPlanService) GetFullDetailsByID(complianceAssessmentID uint, requirementID uint, id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentRequirementActionPlanDetailDTO, error) {
-	var complianceAssessmentRequirementActionPlanDTO complianceDTOs.ComplianceAssessmentRequirementActionPlanDetailDTO
+func (caraps ComplianceAssessmentRequirementActionPlanService) GetFullDetailsByID(complianceAssessmentID uint, requirementID uint, id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceActionPlanDetailDTO, error) {
+	var complianceAssessmentRequirementActionPlanDTO complianceDTOs.ComplianceActionPlanDetailDTO
 
 	// Check if the compliance register exists
 	if _, err := caraps.complianceAssessmentRequirementSvc.GetByID(requirementID); err != nil {
@@ -345,8 +345,8 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) validateComplian
 	return nil
 }
 
-func (caraps *ComplianceAssessmentRequirementActionPlanService) parseComplianceAssessmentRequirementActionPlanDates(dto *complianceDTOs.ComplianceActionPlanFormDTO) (*complianceDTOs.ComplianceAssessmentRequirementActionPlanParsedDates, error) {
-	parsed := &complianceDTOs.ComplianceAssessmentRequirementActionPlanParsedDates{}
+func (caraps *ComplianceAssessmentRequirementActionPlanService) parseComplianceAssessmentRequirementActionPlanDates(dto *complianceDTOs.ComplianceActionPlanFormDTO) (*complianceDTOs.ComplianceActionPlanParsedDates, error) {
+	parsed := &complianceDTOs.ComplianceActionPlanParsedDates{}
 
 	var err error
 	if *dto.TargetDate != "" {
