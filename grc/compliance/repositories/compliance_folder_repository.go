@@ -2,15 +2,17 @@ package repositories
 
 import (
 	"errors"
+	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
+	"strings"
 
 	"gorm.io/gorm"
 )
 
 // Interfaces
 type ComplianceFolderRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceFolder, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*complianceDTOs.ComplianceFolderListDTO, error)
 	GetByID(id uint) (*models.ComplianceFolder, error)
 	Create(folder *models.ComplianceFolder) (*models.ComplianceFolder, error)
 	Update(id uint, folder *models.ComplianceFolder) (*models.ComplianceFolder, error)
@@ -32,29 +34,54 @@ func NewComplianceFolderRepository(db *gorm.DB) *ComplianceFolderRepository {
 	}
 }
 
-func (repo *ComplianceFolderRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceFolder, error) {
-	var folders []*models.ComplianceFolder
+func (repo *ComplianceFolderRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*complianceDTOs.ComplianceFolderListDTO, error) {
+	var folders []*complianceDTOs.ComplianceFolderListDTO
 
-	query := repo.db
+	query := `
+		SELECT 
+			cf.id, 
+			cf.title_en, 
+			cf.title_ar, 
+			cf.status, 
+			COUNT(cr.id) AS compliance_register_count
+		FROM compliance_folders cf
+		LEFT JOIN compliance_register cr ON cr.compliance_folder_id = cf.id
+	`
+
+	// Apply filters dynamically
+	whereClauses := []string{}
+	args := []interface{}{}
 
 	if keyword != "" {
-		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
+		whereClauses = append(whereClauses, "(cf.title_en LIKE ? OR cf.title_ar LIKE ?)")
+		args = append(args, "%"+keyword+"%", "%"+keyword+"%")
 	}
+
+	if status == "active" || status == "inactive" {
+		whereClauses = append(whereClauses, "cf.status = ?")
+		args = append(args, status)
+	}
+
+	// Construct WHERE clause
+	if len(whereClauses) > 0 {
+		query += " WHERE " + strings.Join(whereClauses, " AND ")
+	}
+
+	query += " GROUP BY cf.id, cf.title_en, cf.title_ar, cf.status"
+
+	// Apply sorting
 	if sortBy == "" {
-		sortBy = "title_en"
+		sortBy = "cf.title_en"
 	}
 	if sort != "asc" && sort != "desc" {
 		sort = "asc"
 	}
+	query += " ORDER BY " + sortBy + " " + sort
 
-	if status == "active" || status == "inactive" {
-		query = query.Where("status = ?", status)
-	}
+	// Execute query
+	err := repo.db.Raw(query, args...).Scan(&folders).Error
 
-	query = query.Order(sortBy + " " + sort)
-	result := query.Find(&folders)
-
-	return folders, result.Error
+	return folders, err
 }
 
 func (repo *ComplianceFolderRepository) GetByID(id uint) (*models.ComplianceFolder, error) {

@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
@@ -10,7 +11,7 @@ import (
 )
 
 type ComplianceFolderServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceFolder, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*complianceDTOs.ComplianceFolderListDTO, error)
 	GetByID(id uint) (*models.ComplianceFolder, error)
 	Create(currentUserID uint, folder *models.ComplianceFolder) (*models.ComplianceFolder, error)
 	Update(id uint, currentUserID uint, folder *models.ComplianceFolder) (*models.ComplianceFolder, error)
@@ -32,7 +33,7 @@ func NewComplianceFolderService(repo repositories.ComplianceFolderRepositoryInte
 	}
 }
 
-func (cfs *ComplianceFolderService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceFolder, error) {
+func (cfs *ComplianceFolderService) GetAll(sort string, sortBy string, keyword string, status string) ([]*complianceDTOs.ComplianceFolderListDTO, error) {
 	return cfs.repo.GetAll(sort, sortBy, keyword, status)
 }
 

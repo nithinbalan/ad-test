@@ -299,6 +299,7 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("ReviewResponsibleUser").
 		Preload("SeverityLevel").
 		Preload("LifecycleStatus").
+		Preload("ComplianceFolder").
 		Preload("DocumentEn", func(db *gorm.DB) *gorm.DB {
 			return db.Where("language = ?", "en")
 		}).
