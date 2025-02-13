@@ -10,6 +10,7 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -26,15 +27,19 @@ type ComplianceAssessmentServiceInterface interface {
 	AssessmentCompletionSummary(assessmentID uint) (*complianceDTOs.AssessmentCompletionSummaryDTO, error)
 	GetComplianceStatusSummary(assessmentID uint) (*complianceDTOs.ComplianceStatusSummaryDTO, error)
 	GetComplianceScoreSummary(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error)
+
+	SubmitComplianceAssessment(assessmentID uint, currentUserID uint) error
+	ApproveComplianceAssessment(assessmentID uint, currentUserID uint) error
 }
 
 // Service and implementations
 type ComplianceAssessmentService struct {
-	repo                  complianceRepositories.ComplianceAssessmentRepositoryInterface
-	activityLogSvc        logServices.ActivityLogServiceInterface
-	userSvc               organizationServices.UserServiceInterface
-	complianceRegisterSvc ComplianceRegisterServiceInterface
-	applicablityStatusSvc masterServices.ApplicabilityStatusServiceInterface
+	repo                          complianceRepositories.ComplianceAssessmentRepositoryInterface
+	activityLogSvc                logServices.ActivityLogServiceInterface
+	userSvc                       organizationServices.UserServiceInterface
+	complianceRegisterSvc         ComplianceRegisterServiceInterface
+	applicablityStatusSvc         masterServices.ApplicabilityStatusServiceInterface
+	complianceAssessmentStatusSvc ComplianceAssessmentStatusServiceInterface
 }
 
 func NewComplianceAssessmentService(
@@ -43,13 +48,16 @@ func NewComplianceAssessmentService(
 	userSvc organizationServices.UserServiceInterface,
 	complianceRegisterSvc ComplianceRegisterServiceInterface,
 	applicablityStatusSvc masterServices.ApplicabilityStatusServiceInterface,
+	complianceAssessmentStatusSvc ComplianceAssessmentStatusServiceInterface,
+
 ) ComplianceAssessmentServiceInterface {
 	return &ComplianceAssessmentService{
-		repo:                  repo,
-		activityLogSvc:        activityLogSvc,
-		userSvc:               userSvc,
-		complianceRegisterSvc: complianceRegisterSvc,
-		applicablityStatusSvc: applicablityStatusSvc,
+		repo:                          repo,
+		activityLogSvc:                activityLogSvc,
+		userSvc:                       userSvc,
+		complianceRegisterSvc:         complianceRegisterSvc,
+		applicablityStatusSvc:         applicablityStatusSvc,
+		complianceAssessmentStatusSvc: complianceAssessmentStatusSvc,
 	}
 }
 
@@ -58,14 +66,14 @@ func (cras *ComplianceAssessmentService) GetAll(params *complianceDTOs.Complianc
 }
 
 func (cras ComplianceAssessmentService) GetByID(id uint) (*models.ComplianceAssessment, error) {
-	compliance, err := cras.repo.GetByID(id)
+	assessment, err := cras.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
 		}
 		return nil, err
 	}
-	return compliance, nil
+	return assessment, nil
 }
 
 func (cras ComplianceAssessmentService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentDetailDTO, error) {
@@ -106,14 +114,20 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 		return err
 	}
 
+	complianceAssessmentStatus, err := cras.complianceAssessmentStatusSvc.GetByType("draft")
+	if err != nil {
+		return err
+	}
+
 	for _, organizationUnitID := range complianceAssessmentFormDTO.OrganizationUnitIDs {
 
 		complianceAssessment := &models.ComplianceAssessment{
-			ComplianceRegisterID: complianceAssessmentFormDTO.ComplianceRegisterID,
-			ReviewUserID:         complianceAssessmentFormDTO.ReviewUserID,
-			PrimaryUnitID:        *organizationUnitID,
-			Description:          complianceAssessmentFormDTO.Description,
-			CreatedBYID:          currentUserID,
+			ComplianceRegisterID:         complianceAssessmentFormDTO.ComplianceRegisterID,
+			ReviewUserID:                 complianceAssessmentFormDTO.ReviewUserID,
+			PrimaryUnitID:                *organizationUnitID,
+			Description:                  complianceAssessmentFormDTO.Description,
+			CreatedBYID:                  currentUserID,
+			ComplianceAssessmentStatusID: complianceAssessmentStatus.ID,
 		}
 		id, err := cras.repo.Create(complianceAssessment, tx)
 		if err != nil {
@@ -441,4 +455,133 @@ func (cras *ComplianceAssessmentService) GetComplianceScoreSummary(assessmentID 
 		return nil, err
 	}
 	return cras.repo.GetComplianceScoreSummary(assessmentID)
+}
+
+func (cras *ComplianceAssessmentService) SubmitComplianceAssessment(assessmentID uint, currentUserID uint) error {
+
+	complianceAssessmentdraftStatus, err := cras.complianceAssessmentStatusSvc.GetByType("draft")
+	if err != nil {
+		return err
+	}
+
+	assessment, err := cras.GetByID(assessmentID)
+	if err != nil {
+		return err
+	}
+
+	// Validate if the assessment is already submitted
+	if assessment.ComplianceAssessmentStatusID != complianceAssessmentdraftStatus.ID {
+		return utility.NewForbiddenError("Assessment not in draft")
+	}
+
+	// Validate if the user's primary unit matches the assessment's primary unit
+	userPrimaryUnitID, err := cras.userSvc.GetUserPrimaryUnitID(currentUserID)
+	if err != nil {
+		return fmt.Errorf("failed to get user primary unit: %w", err)
+	}
+
+	if userPrimaryUnitID != assessment.PrimaryUnitID {
+		return utility.NewForbiddenError("User is not authorized to submit this assessment")
+	}
+
+	complianceAssessmentInreviewStatus, err := cras.complianceAssessmentStatusSvc.GetByType("in_review")
+	if err != nil {
+		return err
+	}
+
+	submittedAt := time.Now()
+	assessment.ComplianceAssessmentStatusID = complianceAssessmentInreviewStatus.ID
+	assessment.SubmittedBy = &currentUserID
+	assessment.SubmittedAt = &submittedAt
+
+	err = cras.repo.Update(assessment)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		err := cras.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.ComplianceAssessment{}.TableName(),
+			assessmentID,
+			map[string]interface{}{
+				"status":       "submitted",
+				"submitted_by": currentUserID,
+				"submitted_at": submittedAt,
+			},
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.ComplianceAssessment{}.TableName(),
+				"recordID":  assessmentID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
+		}
+	}()
+
+	return nil
+}
+
+func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentID uint, currentUserID uint) error {
+
+	complianceAssessmentInReviewStatus, err := cras.complianceAssessmentStatusSvc.GetByType("in_review")
+	if err != nil {
+		return err
+	}
+
+	assessment, err := cras.GetByID(assessmentID)
+	if err != nil {
+		return err
+	}
+
+	// Validate if the assessment is in draft
+	if assessment.ComplianceAssessmentStatusID != complianceAssessmentInReviewStatus.ID {
+		return utility.NewForbiddenError("Assessment is still in draft")
+	}
+
+	if currentUserID != assessment.ReviewUserID {
+		return utility.NewForbiddenError("User is not authorized to submit this assessment")
+	}
+
+	complianceAssessmentApprovedStatus, err := cras.complianceAssessmentStatusSvc.GetByType("approved")
+	if err != nil {
+		return err
+	}
+
+	assessment.ComplianceAssessmentStatusID = complianceAssessmentApprovedStatus.ID
+	assessment.UpdatedBYID = &currentUserID
+
+	err = cras.repo.Update(assessment)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		err := cras.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.ComplianceAssessment{}.TableName(),
+			assessmentID,
+			map[string]interface{}{
+				"status":      "approved",
+				"approved_by": currentUserID,
+			},
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.ComplianceAssessment{}.TableName(),
+				"recordID":  assessmentID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
+		}
+	}()
+
+	return nil
 }
