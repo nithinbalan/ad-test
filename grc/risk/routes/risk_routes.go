@@ -49,6 +49,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskKriController := app.RiskModule.RiskKriController
 	riskTimelineController := app.RiskModule.RiskTimelineController
 	riskSettingsController := app.RiskModule.RiskSettingsController
+	riskClosureController := app.RiskModule.RiskClosureController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -285,5 +286,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Risk Settings
 	riskRoutes.GET("/risk-settings", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskSettingsController.GetAllRiskSettings)
 	riskRoutes.PUT("/risk-settings", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskSettingsController.UpdateRiskSettings)
+
+	riskRoutes.GET("risks/:riskId/closure", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskClosureController.GetRiskClosure)
+	riskRoutes.POST("risks/:riskId/closure", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskClosureController.CreateRiskClosure)
+	riskRoutes.PUT("risks/:riskId/closure/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskClosureController.UpdateRiskClosure)
+	riskRoutes.DELETE("risks/:riskId/closure/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskClosureController.DeleteRiskClosure)
 
 }

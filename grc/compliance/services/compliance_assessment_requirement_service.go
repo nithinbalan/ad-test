@@ -2,12 +2,17 @@ package services
 
 import (
 	"errors"
+	"fmt"
+	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"os"
+	"path/filepath"
+	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -15,8 +20,17 @@ import (
 
 type ComplianceAssessmentRequirementServiceInterface interface {
 	GetAll(assessmentID uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO) ([]*complianceDTOs.ComplianceAssessmentRequirementListDTO, error)
+	GetByID(requirementId uint) (*models.ComplianceAssessmentRequirement, error)
 	GetFullDetailsByID(assessmentId uint, requirementId uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentRequirementDetailDTO, error)
 	Update(complianceAssessmentId uint, requirementId uint, currentUserID uint, complianceRequirement *complianceDTOs.ComplianceAssessmentRequirementUpdateFormDTO) error
+
+	MarkAsCompleted(complianceAssessmentId uint, requirementId uint, currentUserID uint) error
+	MarkAsOpen(complianceAssessmentId uint, requirementId uint, currentUserID uint) error
+
+	CreateDocument(complianceAssessmentID uint, requirementID uint, requiredDocumentID uint, currentUserID uint, documents []complianceDTOs.ComplianceAssessmentRequirementDocumentFormDTO) error
+	DeleteDocuments(complianceAssessmentID uint, requirementID uint, requiredDocumentID uint, ids []uint, currentUserID uint) ([]uint, error)
+
+	GetDocumentPath(complianceAssessmentID, requirementID, id uint, token string) (string, error)
 }
 
 // Service and implementations
@@ -132,6 +146,289 @@ func (cras ComplianceAssessmentRequirementService) Update(complianceAssessmentId
 			"score":             existingAssessmentRequirement.Score,
 			"comments":          existingAssessmentRequirement.Comments,
 			"compliance_status": utility.GetFieldValue(existingAssessmentRequirement.ComplianceStatus),
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			// Log the update activity
+			err := cras.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.ComplianceAssessmentRequirement{}.TableName(),
+				requirementId,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.ComplianceAssessmentRequirement{}.TableName(),
+					"recordID":  requirementId,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				})
+			}
+		}
+
+	}()
+
+	return nil
+}
+func (cras *ComplianceAssessmentRequirementService) CreateDocument(complianceAssessmentID uint, requirementID uint, requiredDocumentID uint, currentUserID uint, requiredDocuments []complianceDTOs.ComplianceAssessmentRequirementDocumentFormDTO) error {
+	tx := cras.repo.BeginTransaction()
+	var documents []*models.ComplianceAssessmentRequirementRequiredDocument
+	for _, doc := range requiredDocuments {
+		dataToEncrypt := []byte(doc.FileName)
+		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		url := utility.GenerateDocumentURL("compliance", "compliance-assessment", strconv.FormatUint(uint64(complianceAssessmentID), 10), "requirements", strconv.FormatUint(uint64(requirementID), 10), "required-documents", strconv.FormatUint(uint64(requiredDocumentID), 10), "documents")
+
+		document := &models.ComplianceAssessmentRequirementRequiredDocument{
+			ComplianceAssessmentRequirementDocumentTitleID: requiredDocumentID,
+			Language:     doc.Language,
+			URL:          url,
+			Name:         doc.FileName,
+			Size:         doc.Size,
+			Token:        encryptedFilename,
+			OriginalName: doc.OriginalName,
+			Type:         doc.Type,
+			CreatedByID:  currentUserID,
+		}
+
+		documents = append(documents, document)
+
+	}
+
+	if len(documents) > 0 {
+		if err := cras.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+		//move file to storage
+		for _, doc := range documents {
+			storagePath := filepath.Join("compliance", "compliance-assessment", strconv.FormatUint(uint64(complianceAssessmentID), 10), "requirements", strconv.FormatUint(uint64(requirementID), 10), "required-documents", strconv.FormatUint(uint64(requiredDocumentID), 10), "documents")
+			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+		}
+	}
+	tx.Commit()
+
+	return nil
+}
+func (cras *ComplianceAssessmentRequirementService) DeleteDocuments(complianceAssessmentID uint, requirementID uint, requiredDocumentID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	tx := cras.repo.BeginTransaction()
+	var failedIds []uint
+	var successfulIds []uint
+	var deletedDocument []map[string]interface{}
+
+	documentsToDelete := make(map[uint][]*complianceDTOs.ComplianceAssessmentRequirementDocumentDTO)
+	complianceAssessmentRequirement, err := cras.GetFullDetailsByID(complianceAssessmentID, requirementID)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, id := range ids {
+
+		for _, requiredDocumentTitle := range complianceAssessmentRequirement.RequiredDocumentTitles {
+			for _, doc := range requiredDocumentTitle.Documents {
+				if doc != nil && *doc.ID == id {
+					documentsToDelete[id] = append(documentsToDelete[id], doc)
+				}
+			}
+		}
+
+		err = cras.repo.DeleteDocuments(id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+		} else {
+			successfulIds = append(successfulIds, id)
+		}
+
+		deletedDocument = append(deletedDocument, map[string]interface{}{
+			"id":                                id,
+			"compliance_assessment_requirement": complianceAssessmentRequirement.ComplianceRequirement.TitleEn,
+		})
+	}
+
+	if len(successfulIds) > 0 {
+
+		for _, documents := range documentsToDelete {
+			for _, doc := range documents {
+				storagePath := filepath.Join("compliance", "compliance-assessment", strconv.FormatUint(uint64(complianceAssessmentID), 10), "requirements", strconv.FormatUint(uint64(requirementID), 10), "required-documents", strconv.FormatUint(uint64(requiredDocumentID), 10), "documents")
+				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+					tx.Rollback()
+					fmt.Printf("Failed to delete file at URL %s: %v\n", doc.URL, err)
+				}
+			}
+		}
+
+		go func() {
+			err := cras.activityLogSvc.LogBulkActivities(
+				models.DeleteAction, // Make sure this action constant is defined appropriately
+				models.ComplianceAssessmentRequirementRequiredDocument{}.TableName(),
+				successfulIds,
+				deletedDocument,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				// @todo - save to log file
+				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			}
+		}()
+	}
+
+	return failedIds, nil
+}
+
+func (cras *ComplianceAssessmentRequirementService) GetDocumentPath(complianceAssessmentID, requirementID, id uint, token string) (string, error) {
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("compliance", "compliance-assessment", strconv.FormatUint(uint64(complianceAssessmentID), 10), "requirements", strconv.FormatUint(uint64(requirementID), 10), "required-documents", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
+}
+
+func (cras ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAssessmentId uint, requirementId uint, currentUserID uint) error {
+	tx := cras.repo.BeginTransaction()
+
+	existingComplianceAssessmentRequirement, err := cras.GetByID(requirementId)
+	if err != nil {
+		return err
+	}
+
+	oldComplianceAssessmentRequirement, err := cras.GetFullDetailsByID(complianceAssessmentId, requirementId)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingComplianceAssessmentRequirement.IsCompleted = true
+	existingComplianceAssessmentRequirement.UpdatedBYID = &currentUserID
+
+	err = cras.repo.Update(existingComplianceAssessmentRequirement, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	go func() {
+		existingAssessmentRequirement, err := cras.GetFullDetailsByID(complianceAssessmentId, requirementId)
+		if err != nil {
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"is_completed": oldComplianceAssessmentRequirement.IsCompleted,
+		}
+
+		newData := map[string]interface{}{
+			"is_completed": existingAssessmentRequirement.IsCompleted,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			// Log the update activity
+			err := cras.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.ComplianceAssessmentRequirement{}.TableName(),
+				requirementId,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.ComplianceAssessmentRequirement{}.TableName(),
+					"recordID":  requirementId,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				})
+			}
+		}
+
+	}()
+
+	return nil
+}
+
+func (cras ComplianceAssessmentRequirementService) MarkAsOpen(complianceAssessmentId uint, requirementId uint, currentUserID uint) error {
+	tx := cras.repo.BeginTransaction()
+
+	existingComplianceAssessmentRequirement, err := cras.GetByID(requirementId)
+	if err != nil {
+		return err
+	}
+
+	oldComplianceAssessmentRequirement, err := cras.GetFullDetailsByID(complianceAssessmentId, requirementId)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingComplianceAssessmentRequirement.IsCompleted = false
+	existingComplianceAssessmentRequirement.UpdatedBYID = &currentUserID
+
+	err = cras.repo.Update(existingComplianceAssessmentRequirement, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	go func() {
+		existingAssessmentRequirement, err := cras.GetFullDetailsByID(complianceAssessmentId, requirementId)
+		if err != nil {
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"is_completed": oldComplianceAssessmentRequirement.IsCompleted,
+		}
+
+		newData := map[string]interface{}{
+			"is_completed": existingAssessmentRequirement.IsCompleted,
 		}
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)

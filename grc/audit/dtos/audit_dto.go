@@ -120,7 +120,8 @@ type AuditAuditableItemListDTO struct {
 	DocumentTitleEn                 string `json:"document_title_en"`
 	DocumentTitleAr                 string `json:"document_title_ar"`
 	IncidentRegisterTitle           string `json:"incident_register_title"`
-	ComplianceRequirementTitle      string `json:"compliance_requirement_title"`
+	ComplianceRequirementTitleEn    string `json:"compliance_requirement_title_en"`
+	ComplianceRequirementTitleAr    string `json:"compliance_requirement_title_ar"`
 	ResponsibleUnitTitleEn          string `json:"responsible_unit_title_en"`
 	ResponsibleUnitTitleAr          string `json:"responsible_unit_title_ar"`
 	ResponsibleUserID               uint   `json:"responsible_user_id"`

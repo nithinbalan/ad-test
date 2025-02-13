@@ -105,3 +105,20 @@ type ComplianceAssessmentRequirementDTO struct {
 	ComplianceStatus        *ComplianceStatusDTO                               `json:"compliance_status"`
 	RequiredDocumentTitles  []*ComplianceAssessmentRequirementDocumentTitleDTO `json:"required_document_titles"`
 }
+
+type AssessmentCompletionSummaryDTO struct {
+	Total        int `json:"total"`
+	Completed    int `json:"completed"`
+	NotCompleted int `json:"not_completed"`
+}
+
+type ComplianceStatusSummaryDTO struct {
+	TotalRequirements int            `json:"total_requirements"`
+	StatusCounts      map[string]int `json:"status_counts"`
+	PendingCount      int            `json:"pending_count"`
+}
+
+type ComplianceScoreSummaryDTO struct {
+	TotalRequirements int     `json:"total_requirements_assessed"`
+	AverageScore      float64 `json:"average_score"`
+}

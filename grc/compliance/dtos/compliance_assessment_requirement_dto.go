@@ -41,26 +41,37 @@ type ComplianceAssessmentRequirementDetailDTO struct {
 }
 
 type ComplianceAssessmentRequirementUpdateFormDTO struct {
-	Score              int     `json:"score" binding:"required"`
+	Score              int     `json:"score" binding:"omitempty,min=0"`
 	ComplianceStatusID uint    `json:"compliance_status_id" binding:"required"`
 	Comments           *string `json:"comments"`
 }
 
 type ComplianceAssessmentRequirementDocumentTitleDTO struct {
-	ID                                *uint                               `json:"id"`
-	ComplianceAssessmentRequirementID uint                                `json:"compliance_assessment_requirement_id"`
-	RequiredDocumentTitleID           *uint                               `json:"required_document_title_id"`
-	RequiredDocumentTitle             masterDTOs.RequiredDocumentTitleDTO `json:"required_document_title"`
+	ID                                *uint                                         `json:"id"`
+	ComplianceAssessmentRequirementID uint                                          `json:"compliance_assessment_requirement_id"`
+	RequiredDocumentTitleID           *uint                                         `json:"required_document_title_id"`
+	RequiredDocumentTitle             masterDTOs.RequiredDocumentTitleDTO           `json:"required_document_title"`
+	Documents                         []*ComplianceAssessmentRequirementDocumentDTO `json:"documents" gorm:"-"`
 }
 
 type ComplianceAssessmentRequirementDocumentFormDTO struct {
-	ID           uint   `json:"id"`
+	ID           *uint  `json:"id"`
+	Language     string `json:"language"`
+	FileName     string `json:"file_name"`
+	OriginalName string `json:"original_name"`
+	Type         string `json:"type"`
+	Size         int    `json:"size"`
+}
+
+type ComplianceAssessmentRequirementDocumentDTO struct {
+	ID           *uint  `json:"id,omitempty"`
+	Language     string `json:"language"`
 	URL          string `json:"url"`
 	Name         string `json:"name"`
-	Size         int    `json:"size"`
 	Token        string `json:"token"`
 	OriginalName string `json:"original_name"`
 	Type         string `json:"type"`
+	Size         int    `json:"size"`
 }
 
 type ComplianceAssessmentRequirementListQueryParamsDTO struct {
