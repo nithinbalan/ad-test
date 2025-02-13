@@ -40,6 +40,7 @@ type AssetRegister struct {
 	// Relationships
 	AssetType                         *AssetType                         `gorm:"foreignKey:AssetTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	AssetCategory                     *AssetCategory                     `gorm:"foreignKey:AssetCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	AssetSubCategory                  *AssetSubCategory                  `gorm:"foreignKey:AssetSubCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	AssetStatus                       *AssetStatus                       `gorm:"foreignKey:AssetStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUser                   *User                              `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUnit                   *OrganizationUnit                  `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
