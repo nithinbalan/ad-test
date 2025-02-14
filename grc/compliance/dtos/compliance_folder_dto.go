@@ -5,6 +5,7 @@ type ComplianceFolderListDTO struct {
 	TitleEn                 string `json:"title_en"`
 	TitleAr                 string `json:"title_ar"`
 	Status                  string `json:"status"`
+	CreatedAt               string `json:"created_at"`
 	ComplianceRegisterCount int    `json:"compliance_register_count"`
 }
 
