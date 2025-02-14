@@ -48,6 +48,9 @@ func (cfs *ComplianceFolderService) Create(currentUserID uint, folder *models.Co
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
+	// Set the CreatedByID field
+	folder.CreatedBYID = currentUserID
+
 	createdFolder, err := cfs.repo.Create(folder)
 	if err != nil {
 		return nil, err
@@ -86,6 +89,8 @@ func (cfs *ComplianceFolderService) Update(id uint, currentUserID uint, updatedF
 			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
 	}
+
+	updatedFolder.UpdatedBYID = &currentUserID
 
 	result, err := cfs.repo.Update(id, updatedFolder)
 
