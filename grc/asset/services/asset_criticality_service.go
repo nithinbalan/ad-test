@@ -97,6 +97,7 @@ func (acs *AssetCriticalityService) Create(assetID uint, assetCriticalityFormDTO
 			AssetRegisterID:                      assetID,
 			AssetCriticalityMatrixFactorID:       dto.AssetCriticalityMatrixFactorID,
 			AssetCriticalityMatrixFactorRatingID: dto.AssetCriticalityMatrixFactorRatingID,
+			Comments:                             dto.Comments,
 			Score:                                calculatedScore,
 			CreatedByID:                          currentUserID,
 		}
@@ -187,6 +188,7 @@ func (acs *AssetCriticalityService) Update(assetID uint, id uint, dto assetDTOs.
 	contribution.AssetCriticalityMatrixFactorID = dto.AssetCriticalityMatrixFactorID
 	contribution.AssetCriticalityMatrixFactorRatingID = dto.AssetCriticalityMatrixFactorRatingID
 	contribution.Score = calculatedScore
+	contribution.Comments = dto.Comments
 	contribution.UpdatedByID = &userID
 
 	err = acs.repo.Update(contribution, tx)
@@ -218,12 +220,14 @@ func (acs *AssetCriticalityService) Update(assetID uint, id uint, dto assetDTOs.
 			"asset_criticality_matrix_factor":        oldContribution.AssetCriticalityMatrixFactor.TitleEn,
 			"asset_criticality_matrix_factor_rating": oldContribution.AssetCriticalityMatrixFactorRating.TitleEn,
 			"score":                                  oldContribution.Score,
+			"comments":                               oldContribution.Comments,
 		}
 
 		newData := map[string]interface{}{
 			"asset_criticality_matrix_factor":        existingContribution.AssetCriticalityMatrixFactor.TitleEn,
 			"asset_criticality_matrix_factor_rating": existingContribution.AssetCriticalityMatrixFactorRating.TitleEn,
 			"score":                                  existingContribution.Score,
+			"comments":                               existingContribution.Comments,
 		}
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)
