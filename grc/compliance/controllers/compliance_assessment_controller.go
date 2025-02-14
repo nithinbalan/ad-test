@@ -256,7 +256,7 @@ func (cac *ComplianceAssessmentController) GetComplianceScoreSummary(c *gin.Cont
 	c.JSON(http.StatusOK, statusCounts)
 }
 
-func (cac *ComplianceAssessmentController) ComplianceAssessmentSubmit(c *gin.Context) {
+func (cac *ComplianceAssessmentController) SubmitComplianceAssessment(c *gin.Context) {
 	assessmentIDStr := c.Param("assessmentId")
 	assessmentID, err := strconv.ParseUint(assessmentIDStr, 10, 32)
 	if err != nil {
@@ -290,7 +290,7 @@ func (cac *ComplianceAssessmentController) ComplianceAssessmentSubmit(c *gin.Con
 	c.Status(http.StatusOK)
 }
 
-func (cac *ComplianceAssessmentController) ComplianceAssessmentApprove(c *gin.Context) {
+func (cac *ComplianceAssessmentController) ApproveComplianceAssessment(c *gin.Context) {
 	assessmentIDStr := c.Param("assessmentId")
 	assessmentID, err := strconv.ParseUint(assessmentIDStr, 10, 32)
 	if err != nil {
