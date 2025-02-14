@@ -146,6 +146,9 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		TargetDate:                        dates.TargetDate,
 		Percentage:                        ComplianceActionPlanFormDTO.Percentage,
 		ActionPlanStatusID:                ComplianceActionPlanFormDTO.ActionPlanStatusID,
+		SeverityLevelID:                   ComplianceActionPlanFormDTO.SeverityLevelID,
+		ReviewUserID:                      ComplianceActionPlanFormDTO.ReviewUserID,
+		Comments:                          ComplianceActionPlanFormDTO.Comments,
 		CreatedByID:                       currentUserID,
 	}
 
@@ -321,9 +324,31 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 	existingComplianceAssessmentRequirementActionPlan.TargetDate = dates.TargetDate
 	existingComplianceAssessmentRequirementActionPlan.Percentage = ComplianceActionPlanFormDTO.Percentage
 	existingComplianceAssessmentRequirementActionPlan.ActionPlanStatusID = ComplianceActionPlanFormDTO.ActionPlanStatusID
+	existingComplianceAssessmentRequirementActionPlan.SeverityLevelID = ComplianceActionPlanFormDTO.SeverityLevelID
+	existingComplianceAssessmentRequirementActionPlan.Comments = ComplianceActionPlanFormDTO.Comments
+	existingComplianceAssessmentRequirementActionPlan.ReviewUserID = ComplianceActionPlanFormDTO.ReviewUserID
+
 	existingComplianceAssessmentRequirementActionPlan.UpdatedByID = &currentUserID
 
 	err = caraps.repo.Update(existingComplianceAssessmentRequirementActionPlan, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// //update task
+	urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d, "action_plan_id":%d}`, complianceAssessmentID, requirementID, id)
+
+	taskUpdateDTO := commonDTOs.TaskFormDTO{
+		Title:             ComplianceActionPlanFormDTO.Title,
+		Description:       ComplianceActionPlanFormDTO.Description,
+		TargetDate:        dates.TargetDate,
+		URLParam:          &urlParam,
+		SeverityLevelID:   ComplianceActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID: ComplianceActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	err = caraps.taskSvc.Update(currentUserID, taskUpdateDTO, "compliance_action_plan_id", id, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
