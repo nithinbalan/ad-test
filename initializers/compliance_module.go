@@ -204,7 +204,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	slaAssociatedItemController := controllers.NewSLAAssociatedItemController(slaAssociatedItemSvc)
 
 	complianceActionPlanCommentRepository := repositories.NewComplianceActionPlanCommentRepository(db)
-	complianceActionPlanCommentSvc := services.NewComplianceActionPlanCommentService(complianceActionPlanCommentRepository, organizationModule.UserSvc, sharedModule.ActivityLogService, complianceActionPlanSvc)
+	complianceActionPlanCommentSvc := services.NewComplianceActionPlanCommentService(complianceActionPlanCommentRepository, organizationModule.UserSvc, sharedModule.ActivityLogService, complianceActionPlanSvc, commonModule.NotificationService)
 	complianceActionPlanCommentController := controllers.NewComplianceActionPlanCommentController(complianceActionPlanCommentSvc)
 
 	complianceAssessmentStatusRepo := repositories.NewComplianceAssessmentStatusRepository(db)
