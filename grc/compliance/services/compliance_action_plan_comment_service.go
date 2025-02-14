@@ -6,8 +6,11 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"jethur/config"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
@@ -35,17 +38,20 @@ type ComplianceActionPlanCommentService struct {
 	userSvc                 organizationServices.UserServiceInterface
 	activityLogSvc          logServices.ActivityLogServiceInterface
 	complianceActionPlanSvc ComplianceActionPlanServiceInterface
+	notificationSvc         commonServices.NotificationServiceInterface
 }
 
 func NewComplianceActionPlanCommentService(repo repositories.ComplianceActionPlanCommentRepositoryInterface, userSvc organizationServices.UserServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	complianceActionPlanSvc ComplianceActionPlanServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) ComplianceActionPlanCommentServiceInterface {
 	return &ComplianceActionPlanCommentService{
 		repo:                    repo,
 		userSvc:                 userSvc,
 		activityLogSvc:          activityLogSvc,
 		complianceActionPlanSvc: complianceActionPlanSvc,
+		notificationSvc:         notificationSvc,
 	}
 }
 
@@ -102,6 +108,11 @@ func (caps *ComplianceActionPlanCommentService) Create(complianceID uint, action
 	tx := caps.repo.BeginTransaction()
 
 	if _, err := caps.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
+		return 0, err
+	}
+
+	complianceActionPlan, err := caps.complianceActionPlanSvc.GetFullDetailsByID(complianceID, actionPlanID)
+	if err != nil {
 		return 0, err
 	}
 
@@ -198,6 +209,354 @@ func (caps *ComplianceActionPlanCommentService) Create(complianceID uint, action
 
 			utility.LogError("Failed to log activity", fields)
 		}
+
+		if complianceActionPlan.ResponsibleUserID == currentUserID {
+			// if responsible user added the comment, notification for review user
+			if complianceActionPlan.ReviewUserID != nil {
+				// prepare notification
+				urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, id)
+				queryParam := ""
+				entity := "compliance-action-plan"
+				action := "comment-added"
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               *complianceActionPlan.ReviewUserID,
+					ModuleIdentifier:     "compliance",
+					NotificationType:     string(commonDTOs.AssignmentType),
+					HeadingEn:            "Comment Added For Compliance Action Plan",
+					HeadingAr:            "تمت إضافة التعليق لخطة عمل الامتثال",
+					TitleEn:              complianceActionPlan.Title,
+					TitleAr:              complianceActionPlan.Title,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					QueryParam:           queryParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				reviewUser, err := caps.userSvc.GetByID(*complianceActionPlan.ReviewUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch review user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+				assignedBy, err := caps.userSvc.GetByID(currentUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch commented user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+
+				emailTo := []string{reviewUser.Email}
+				subject := fmt.Sprintf("Comment Added for Compliance Action Plan:%s", complianceActionPlan.Title)
+				appURL := utility.GetAppURL()
+				emailData := map[string]interface{}{
+					"FirstNameEn":               reviewUser.FirstNameEn,
+					"LastNameEn":                reviewUser.LastNameEn,
+					"ComplianceReferenceNumber": complianceActionPlan.ComplianceRegister.ReferenceNumber,
+					"ComplianceTitle":           complianceActionPlan.ComplianceRegister.TitleEn,
+					"ActionPlanTitle":           complianceActionPlan.Title,
+					"ActionPlanDescription":     complianceActionPlan.Description,
+					"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
+					"CommentedByLastNameEn":     assignedBy.LastNameEn,
+					"CommentedOn":               time.Now().Format("2006-01-02"),
+					"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              emailTo,
+					Subject:              subject,
+					TemplateRelativePath: "compliance/templates/email/compliance_action_plan_comment.html",
+					EmailData:            emailData,
+				}
+
+				// send notification and mail
+				err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
+				if err != nil {
+					utility.LogError("Failed to send notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+			}
+		} else if complianceActionPlan.ReviewUserID == &currentUserID {
+			// if review user added the comment, notification for responsible user
+			// prepare notification
+			urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, id)
+			queryParam := ""
+			entity := "compliance-action-plan"
+			action := "comment-added"
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               complianceActionPlan.ResponsibleUserID,
+				ModuleIdentifier:     "compliance",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Comment Added For Compliance Action Plan",
+				HeadingAr:            "تمت إضافة التعليق لخطة عمل الامتثال",
+				TitleEn:              complianceActionPlan.Title,
+				TitleAr:              complianceActionPlan.Title,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			responsibleUser, err := caps.userSvc.GetByID(complianceActionPlan.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+			assignedBy, err := caps.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch commented user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			emailTo := []string{responsibleUser.Email}
+			subject := fmt.Sprintf("Comment Added for Compliance Action Plan:%s", complianceActionPlan.Title)
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn":               responsibleUser.FirstNameEn,
+				"LastNameEn":                responsibleUser.LastNameEn,
+				"ComplianceReferenceNumber": complianceActionPlan.ComplianceRegister.ReferenceNumber,
+				"ComplianceTitle":           complianceActionPlan.ComplianceRegister.TitleEn,
+				"ActionPlanTitle":           complianceActionPlan.Title,
+				"ActionPlanDescription":     complianceActionPlan.Description,
+				"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
+				"CommentedByLastNameEn":     assignedBy.LastNameEn,
+				"AssignedOn":                time.Now().Format("2006-01-02"),
+				"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "compliance/templates/email/compliance_action_plan_comment.html",
+				EmailData:            emailData,
+			}
+
+			// send notification and mail
+			err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		} else {
+			// if other user added the comment, notification for review user and responsible user
+			// prepare notification
+			urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, id)
+			queryParam := ""
+			entity := "compliance-action-plan"
+			action := "comment-added"
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               complianceActionPlan.ResponsibleUserID,
+				ModuleIdentifier:     "compliance",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Comment Added For Compliance Action Plan",
+				HeadingAr:            "تمت إضافة التعليق لخطة عمل الامتثال",
+				TitleEn:              complianceActionPlan.Title,
+				TitleAr:              complianceActionPlan.Title,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			responsibleUser, err := caps.userSvc.GetByID(complianceActionPlan.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+			assignedBy, err := caps.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch commented user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			emailTo := []string{responsibleUser.Email}
+			subject := fmt.Sprintf("Comment Added for Compliance Action Plan:%s", complianceActionPlan.Title)
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn":               responsibleUser.FirstNameEn,
+				"LastNameEn":                responsibleUser.LastNameEn,
+				"ComplianceReferenceNumber": complianceActionPlan.ComplianceRegister.ReferenceNumber,
+				"ComplianceTitle":           complianceActionPlan.ComplianceRegister.TitleEn,
+				"ActionPlanTitle":           complianceActionPlan.Title,
+				"ActionPlanDescription":     complianceActionPlan.Description,
+				"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
+				"CommentedByLastNameEn":     assignedBy.LastNameEn,
+				"AssignedOn":                time.Now().Format("2006-01-02"),
+				"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "compliance/templates/email/compliance_action_plan_comment.html",
+				EmailData:            emailData,
+			}
+
+			// send notification and mail
+			err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+			if complianceActionPlan.ReviewUserID != nil {
+				// prepare notification
+				urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, id)
+				queryParam := ""
+				entity := "compliance-action-plan"
+				action := "comment-added"
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               *complianceActionPlan.ReviewUserID,
+					ModuleIdentifier:     "compliance",
+					NotificationType:     string(commonDTOs.AssignmentType),
+					HeadingEn:            "Comment Added For Compliance Action Plan",
+					HeadingAr:            "تمت إضافة التعليق لخطة عمل الامتثال",
+					TitleEn:              complianceActionPlan.Title,
+					TitleAr:              complianceActionPlan.Title,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					QueryParam:           queryParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				responsibleUser, err := caps.userSvc.GetByID(*complianceActionPlan.ReviewUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch review user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+				assignedBy, err := caps.userSvc.GetByID(currentUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch commented user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+
+				emailTo := []string{responsibleUser.Email}
+				subject := fmt.Sprintf("Comment Added for Compliance Action Plan:%s", complianceActionPlan.Title)
+				appURL := utility.GetAppURL()
+				emailData := map[string]interface{}{
+					"FirstNameEn":               responsibleUser.FirstNameEn,
+					"LastNameEn":                responsibleUser.LastNameEn,
+					"ComplianceReferenceNumber": complianceActionPlan.ComplianceRegister.ReferenceNumber,
+					"ComplianceTitle":           complianceActionPlan.ComplianceRegister.TitleEn,
+					"ActionPlanTitle":           complianceActionPlan.Title,
+					"ActionPlanDescription":     complianceActionPlan.Description,
+					"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
+					"CommentedByLastNameEn":     assignedBy.LastNameEn,
+					"AssignedOn":                time.Now().Format("2006-01-02"),
+					"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              emailTo,
+					Subject:              subject,
+					TemplateRelativePath: "compliance/templates/email/compliance_action_plan_comment.html",
+					EmailData:            emailData,
+				}
+
+				// send notification and mail
+				err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
+				if err != nil {
+					utility.LogError("Failed to send notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+			}
+		}
+		// // prepare notification
+		// urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, id)
+		// queryParam := ""
+		// entity := "compliance-action-plan"
+		// action := "responsible-user-assign"
+
+		// dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+		// 	UserID:               ComplianceActionPlanFormDTO.ResponsibleUserID,
+		// 	ModuleIdentifier:     "compliance",
+		// 	NotificationType:     string(commonDTOs.AssignmentType),
+		// 	HeadingEn:            "Compliance Action Plan Responsibility Assigned",
+		// 	HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+		// 	TitleEn:              ComplianceActionPlanFormDTO.Title,
+		// 	TitleAr:              ComplianceActionPlanFormDTO.Title,
+		// 	Entity:               &entity,
+		// 	Action:               &action,
+		// 	URLParam:             urlParam,
+		// 	QueryParam:           queryParam,
+		// 	IsSystemNotification: false,
+		// 	CreatedByID:          &currentUserID,
+		// }
+
+		// responsibleUser, err := caps.userSvc.GetByID(ComplianceActionPlanFormDTO.ResponsibleUserID)
+		// if err != nil {
+		// 	utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+		// 		"error": err.Error(),
+		// 	})
+		// 	return
+		// }
+		// assignedBy, err := caps.userSvc.GetByID(currentUserID)
+		// if err != nil {
+		// 	utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+		// 		"error": err.Error(),
+		// 	})
+		// 	return
+		// }
+
+		// emailTo := []string{responsibleUser.Email}
+		// subject := fmt.Sprintf("compliance Action Plan/%s: Responsibility Assigned", ComplianceActionPlanFormDTO.Title)
+		// appURL := utility.GetAppURL()
+		// emailData := map[string]interface{}{
+		// 	"FirstNameEn":               responsibleUser.FirstNameEn,
+		// 	"LastNameEn":                responsibleUser.LastNameEn,
+		// 	"ComplianceReferenceNumber": compliance.ReferenceNumber,
+		// 	"ComplianceTitle":           compliance.TitleEn,
+		// 	"ActionPlanTitle":           ComplianceActionPlanFormDTO.Title,
+		// 	"ActionPlanDescription":     ComplianceActionPlanFormDTO.Description,
+		// 	"TargetDate":                dates.TargetDate.Format("2006-01-02"),
+		// 	"AssignedByFirstNameEn":     assignedBy.FirstNameEn,
+		// 	"AssignedByLastNameEn":      assignedBy.LastNameEn,
+		// 	"AssignedOn":                time.Now().Format("2006-01-02"),
+		// 	"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+		// }
+
+		// emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+		// 	EmailTo:              emailTo,
+		// 	Subject:              subject,
+		// 	TemplateRelativePath: "compliance/templates/email/compliance_action_plan_create_responsible_user_mail.html",
+		// 	EmailData:            emailData,
+		// }
+
+		// // send notification and mail
+		// err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
+		// if err != nil {
+		// 	utility.LogError("Failed to send notifications", map[string]interface{}{
+		// 		"error": err.Error(),
+		// 	})
+		// }
 	}()
 	return id, nil
 }

@@ -208,7 +208,7 @@ func (repo *TaskRepository) GetByFieldID(field string, value interface{}) (*mode
 func (repo *TaskRepository) GetByResponsibleUserID(field string, value interface{}, responsibleUserID uint) (*models.Task, error) {
 	var task models.Task
 
-	result := repo.db.Where(field+" = ? AND responsible_user_id = ?", value, responsibleUserID).First(&task)
+	result := repo.db.Where(field+" = ? AND responsible_user_id = ?", value, responsibleUserID).Last(&task)
 	if result.Error != nil {
 		return nil, result.Error
 	}

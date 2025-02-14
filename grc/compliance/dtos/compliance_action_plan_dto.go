@@ -123,6 +123,7 @@ type ComplianceActionPlanDetailDTO struct {
 	ResponsibleUser                 organizationDTOs.UserMinimalDTO           `json:"responsible_user"`
 	ResponsibleUserUnitID           *uint                                     `json:"responsible_user_unit_id"`
 	ResponsibleUserUnit             *settingsDTOs.OrganizationUnitDTO         `json:"responsible_user_unit"`
+	ReviewUserID                    *uint                                     `json:"review_user_id"`
 	ReviewUser                      *organizationDTOs.UserMinimalDTO          `json:"review_user"`
 	ReviewUserUnitID                *uint                                     `json:"review_user_unit_id"`
 	ReviewUserUnit                  *settingsDTOs.OrganizationUnitDTO         `json:"review_user_unit"`
