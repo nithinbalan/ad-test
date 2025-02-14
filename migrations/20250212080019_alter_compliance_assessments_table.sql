@@ -18,14 +18,16 @@ ALTER TABLE compliance_assessments
 DROP CONSTRAINT FK_compliance_assessments_status;
 
 ALTER TABLE compliance_assessments
-DROP CONSTRAINT FK_compliance_assessments_submitted_by;
+DROP CONSTRAINT FK_compliance_assessments_users_4;
 
 ALTER TABLE compliance_assessments
-DROP CONSTRAINT FK_compliance_assessments_reviewed_by;
+DROP CONSTRAINT FK_compliance_assessments_users_5;
 
-ALTER TABLE compliance_assessments
-DROP COLUMN compliance_assessment_status_id,
-    DROP COLUMN submitted_by,
-    DROP COLUMN submitted_at,
-    DROP COLUMN reviewed_by;
+ALTER TABLE compliance_assessments DROP COLUMN compliance_assessment_status_id;
+
+ALTER TABLE compliance_assessments DROP COLUMN submitted_by;
+
+ALTER TABLE compliance_assessments DROP COLUMN submitted_at;
+
+ALTER TABLE compliance_assessments DROP COLUMN reviewed_by;
 -- +goose StatementEnd
