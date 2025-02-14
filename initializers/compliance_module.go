@@ -231,6 +231,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceAssessmentRequirementActionPlanSvc := services.NewComplianceAssessmentRequirementActionPlanService(
 		complianceAssessmentRequirementActionPlanRepo,
 		sharedModule.ActivityLogService,
+		complianceAssessmentSvc,
 		complianceAssessmentRequirementSvc,
 		masterModule.ActionPlanStatusSvc,
 		organizationModule.UserSvc,
@@ -241,7 +242,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceAssessmentRequirementActionPlanController := controllers.NewComplianceAssessmentRequirementActionPlanController(complianceAssessmentRequirementActionPlanSvc)
 
 	complianceAssessmentRequirementActionPlanStatusUpdateRepo := repositories.NewComplianceActionPlanStatusUpdateRepository(db)
-	complianceAssessmentRequirementActionPlanStatusUpdateSvc := services.NewComplianceAssessmentRequirementActionPlanStatusUpdateService(complianceAssessmentRequirementActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, complianceAssessmentRequirementActionPlanSvc, masterModule.ActionPlanStatusSvc, organizationModule.UserSvc, commonModule.NotificationService, taskModule.TaskService, taskModule.TaskStatusService)
+	complianceAssessmentRequirementActionPlanStatusUpdateSvc := services.NewComplianceAssessmentRequirementActionPlanStatusUpdateService(complianceAssessmentRequirementActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, complianceAssessmentSvc, complianceAssessmentRequirementActionPlanSvc, masterModule.ActionPlanStatusSvc, organizationModule.UserSvc, commonModule.NotificationService, taskModule.TaskService, taskModule.TaskStatusService)
 	complianceAssessmentRequirementActionPlanStatusUpdateController := controllers.NewComplianceAssessmentRequirementActionPlanStatusUpdateController(complianceAssessmentRequirementActionPlanStatusUpdateSvc)
 
 	return &ComplianceModule{

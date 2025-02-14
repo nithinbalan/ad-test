@@ -36,6 +36,7 @@ type ComplianceAssessmentRequirementActionPlanServiceInterface interface {
 type ComplianceAssessmentRequirementActionPlanService struct {
 	repo                               complianceRepositories.ComplianceActionPlanRepositoryInterface
 	activityLogSvc                     logServices.ActivityLogServiceInterface
+	complianceAssessmentSvc            ComplianceAssessmentServiceInterface
 	complianceAssessmentRequirementSvc ComplianceAssessmentRequirementServiceInterface
 	actionPlanStatusSvc                masterServices.ActionPlanStatusServiceInterface
 	userSvc                            organizationServices.UserServiceInterface
@@ -47,6 +48,7 @@ type ComplianceAssessmentRequirementActionPlanService struct {
 func NewComplianceAssessmentRequirementActionPlanService(
 	repo complianceRepositories.ComplianceActionPlanRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
+	complianceAssessmentSvc ComplianceAssessmentServiceInterface,
 	complianceAssessmentRequirementSvc ComplianceAssessmentRequirementServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
@@ -57,6 +59,7 @@ func NewComplianceAssessmentRequirementActionPlanService(
 	return &ComplianceAssessmentRequirementActionPlanService{
 		repo:                               repo,
 		activityLogSvc:                     activityLogSvc,
+		complianceAssessmentSvc:            complianceAssessmentSvc,
 		complianceAssessmentRequirementSvc: complianceAssessmentRequirementSvc,
 		actionPlanStatusSvc:                actionPlanStatusSvc,
 		userSvc:                            userSvc,
@@ -133,6 +136,11 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 	}
 
 	dates, err := caraps.parseComplianceAssessmentRequirementActionPlanDates(ComplianceActionPlanFormDTO)
+	if err != nil {
+		return 0, err
+	}
+
+	complianceAssessment, err := caraps.complianceAssessmentSvc.GetFullDetailsByID(complianceAssessmentID)
 	if err != nil {
 		return 0, err
 	}
@@ -259,24 +267,25 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		}
 
 		emailTo := []string{responsibleUser.Email}
-		subject := fmt.Sprintf("compliance Action Plan/%s: Responsibility Assigned", ComplianceActionPlanFormDTO.Title)
+		subject := fmt.Sprintf("Compliance Assessment Requirement Action Plan%s: Responsibility Assigned", ComplianceActionPlanFormDTO.Title)
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
 			"FirstNameEn":           responsibleUser.FirstNameEn,
 			"LastNameEn":            responsibleUser.LastNameEn,
+			"ComplianceAssessment":  complianceAssessment.ComplianceRegister.TitleEn,
 			"ActionPlanTitle":       ComplianceActionPlanFormDTO.Title,
 			"ActionPlanDescription": ComplianceActionPlanFormDTO.Description,
 			"TargetDate":            dates.TargetDate.Format("2006-01-02"),
 			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":  assignedBy.LastNameEn,
 			"AssignedOn":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%scompliance/assessment/%d/action-plans?action_plan_id=%d", appURL, complianceAssessmentID, id),
+			"RedirectURL":           fmt.Sprintf("%scompliance/assessments/%d/overview", appURL, complianceAssessmentID),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
 			Subject:              subject,
-			TemplateRelativePath: "compliance/templates/email/compliance_action_plan_create_responsible_user_mail.html",
+			TemplateRelativePath: "compliance/templates/email/compliance_assessment_action_plan_create_responsible_user_mail.html",
 			EmailData:            emailData,
 		}
 
@@ -303,6 +312,11 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 	oldComplianceAssessmentRequirementActionPlan, err := caraps.GetFullDetailsByID(complianceAssessmentID, requirementID, id)
 	if err != nil {
 		tx.Rollback()
+		return err
+	}
+
+	complianceAssessment, err := caraps.complianceAssessmentSvc.GetFullDetailsByID(complianceAssessmentID)
+	if err != nil {
 		return err
 	}
 
@@ -475,14 +489,14 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 			appURL := utility.GetAppURL()
 
 			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
-			oldResponsibleUserSubject := fmt.Sprintf("Compliance Action Plan/%s: Responsibility Removed", existingComplianceAssessmentRequirementActionPlan.Title)
-			oldResponsibleUserTemplateRelativePath := "compliance/templates/email/compliance_action_plan_remove_responsible_user_mail.html"
+			oldResponsibleUserSubject := fmt.Sprintf("Compliance Assessment Requirement Action Plan%s: Responsibility Removed", existingComplianceAssessmentRequirementActionPlan.Title)
+			oldResponsibleUserTemplateRelativePath := "compliance/templates/email/compliance_assessment_action_plan_remove_responsible_user_mail.html"
 			oldResponsibleUserEmailData := map[string]interface{}{
 				"FirstNameEn":           oldResponsibleUser.FirstNameEn,
 				"LastNameEn":            oldResponsibleUser.LastNameEn,
 				"ActionPlanTitle":       existingComplianceAssessmentRequirementActionPlan.Title,
 				"ActionPlanDescription": existingComplianceAssessmentRequirementActionPlan.Description,
-				"RedirectURL":           fmt.Sprintf("%scompliance/assessment/%d/action-plans?action_plan_id=%d", appURL, complianceAssessmentID, id),
+				"RedirectURL":           fmt.Sprintf("%scompliance/assessments/%d/overview", appURL, complianceAssessmentID),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -493,18 +507,19 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 			}
 
 			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
-			newResponsibleUserSubject := fmt.Sprintf("Compliance Action Plan/%s: Responsibility Assigned", existingComplianceAssessmentRequirementActionPlan.Title)
-			newResponsibleUserTemplateRelativePath := "compliance/templates/email/compliance_action_plan_change_responsible_user_mail.html"
+			newResponsibleUserSubject := fmt.Sprintf("Compliance Assessment Requirement Action Plan%s: Responsibility Assigned", existingComplianceAssessmentRequirementActionPlan.Title)
+			newResponsibleUserTemplateRelativePath := "compliance/templates/email/compliance_assessment_action_plan_change_responsible_user_mail.html"
 			newResponsibleUserEmailData := map[string]interface{}{
 				"FirstNameEn":           newResponsibleUser.FirstNameEn,
 				"LastNameEn":            newResponsibleUser.LastNameEn,
+				"ComplianceAssessment":  complianceAssessment.ComplianceRegister.TitleEn,
 				"ActionPlanTitle":       existingComplianceAssessmentRequirementActionPlan.Title,
 				"ActionPlanDescription": existingComplianceAssessmentRequirementActionPlan.Description,
 				"TargetDate":            existingComplianceAssessmentRequirementActionPlan.TargetDate.Format("2006-01-02"),
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%scompliance/assessment/%d/action-plans?action_plan_id=%d", appURL, complianceAssessmentID, id),
+				"RedirectURL":           fmt.Sprintf("%scompliance/assessments/%d/overview", appURL, complianceAssessmentID),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{

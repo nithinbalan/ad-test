@@ -36,6 +36,7 @@ type ComplianceAssessmentRequirementActionPlanStatusUpdateServiceInterface inter
 type ComplianceAssessmentRequirementActionPlanStatusUpdateService struct {
 	repo                    repositories.ComplianceActionPlanStatusUpdateRepositoryInterface
 	activityLogSvc          logServices.ActivityLogServiceInterface
+	complianceAssessmentSvc ComplianceAssessmentServiceInterface
 	complianceActionPlanSvc ComplianceAssessmentRequirementActionPlanServiceInterface
 	actionPlanStatusSvc     masterServices.ActionPlanStatusServiceInterface
 	userSvc                 organizationServices.UserServiceInterface
@@ -47,6 +48,7 @@ type ComplianceAssessmentRequirementActionPlanStatusUpdateService struct {
 func NewComplianceAssessmentRequirementActionPlanStatusUpdateService(
 	repo repositories.ComplianceActionPlanStatusUpdateRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
+	complianceAssessmentSvc ComplianceAssessmentServiceInterface,
 	complianceActionPlanSvc ComplianceAssessmentRequirementActionPlanServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
@@ -57,6 +59,7 @@ func NewComplianceAssessmentRequirementActionPlanStatusUpdateService(
 	return &ComplianceAssessmentRequirementActionPlanStatusUpdateService{
 		repo:                    repo,
 		activityLogSvc:          activityLogSvc,
+		complianceAssessmentSvc: complianceAssessmentSvc,
 		complianceActionPlanSvc: complianceActionPlanSvc,
 		actionPlanStatusSvc:     actionPlanStatusSvc,
 		userSvc:                 userSvc,
@@ -91,7 +94,6 @@ func (carasus ComplianceAssessmentRequirementActionPlanStatusUpdateService) GetB
 }
 
 func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Create(AssessmentID uint, RequirementID uint, ComplianceActionPlanID uint, currentUserID uint, complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO) (uint, error) {
-	fmt.Println("as")
 	tx := carasus.repo.BeginTransaction()
 
 	if _, err := carasus.complianceActionPlanSvc.GetByID(AssessmentID, RequirementID, ComplianceActionPlanID); err != nil {
@@ -165,6 +167,11 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Cre
 			}
 
 		}
+	}
+
+	complianceAssessment, err := carasus.complianceAssessmentSvc.GetFullDetailsByID(AssessmentID)
+	if err != nil {
+		return 0, err
 	}
 
 	complianceActionPlan, err := carasus.complianceActionPlanSvc.GetByID(AssessmentID, RequirementID, ComplianceActionPlanID)
@@ -256,11 +263,12 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Cre
 			}
 
 			emailTo := []string{reviewUser.Email}
-			subject := fmt.Sprintf("Compliance Action Plan %s: Resolved", complianceActionPlan.Title)
+			subject := fmt.Sprintf("Compliance Assessment Requirement Action Plan %s: Resolved", complianceActionPlan.Title)
 			appURL := utility.GetAppURL()
 			emailData := map[string]interface{}{
 				"FirstNameEn":           reviewUser.FirstNameEn,
 				"LastNameEn":            reviewUser.LastNameEn,
+				"ComplianceAssessment":  complianceAssessment.ComplianceRegister.TitleEn,
 				"ActionPlanTitle":       complianceActionPlan.Title,
 				"ActionPlanDescription": complianceActionPlan.Description,
 				"ResolvedByFirstNameEn": resolvedBy.FirstNameEn,
@@ -272,7 +280,7 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Cre
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 				EmailTo:              emailTo,
 				Subject:              subject,
-				TemplateRelativePath: "compliance/templates/email/compliance_action_plan_review_user_mail.html",
+				TemplateRelativePath: "compliance/templates/email/compliance_assessment_action_plan_review_user_mail.html",
 				EmailData:            emailData,
 			}
 
@@ -535,6 +543,11 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) App
 		return err
 	}
 
+	complianceAssessment, err := carasus.complianceAssessmentSvc.GetFullDetailsByID(assessmentID)
+	if err != nil {
+		return err
+	}
+
 	tx := carasus.repo.BeginTransaction()
 
 	if existingComplianceActionPlan.ActionPlanStatusID != complianceActionPlanStatusResolved.ID {
@@ -628,11 +641,12 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) App
 		}
 
 		emailTo := []string{responsibleUser.Email}
-		subject := fmt.Sprintf("Compliance Action Plan %s: Resolved", existingComplianceActionPlan.Title)
+		subject := fmt.Sprintf("Compliance Assessment Requirement Action Plan %s: Closed", existingComplianceActionPlan.Title)
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
 			"FirstNameEn":           responsibleUser.FirstNameEn,
 			"LastNameEn":            responsibleUser.LastNameEn,
+			"ComplianceAssessment":  complianceAssessment.ComplianceRegister.TitleEn,
 			"ActionPlanTitle":       existingComplianceActionPlan.Title,
 			"ActionPlanDescription": existingComplianceActionPlan.Description,
 			"ResolvedByFirstNameEn": resolvedBy.FirstNameEn,
@@ -644,7 +658,7 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) App
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
 			Subject:              subject,
-			TemplateRelativePath: "compliance/templates/email/compliance_action_plan_closed_responsible_user_mail.html",
+			TemplateRelativePath: "compliance/templates/email/compliance_assessment_action_plan_closed_responsible_user_mail.html",
 			EmailData:            emailData,
 		}
 
@@ -700,6 +714,11 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Rev
 	}
 
 	complianceActionPlanReopenStatus, err := carasus.actionPlanStatusSvc.GetByType("reopen")
+	if err != nil {
+		return err
+	}
+
+	complianceAssessment, err := carasus.complianceAssessmentSvc.GetFullDetailsByID(assessmentID)
 	if err != nil {
 		return err
 	}
@@ -784,11 +803,12 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Rev
 		}
 
 		emailTo := []string{responsibleUser.Email}
-		subject := fmt.Sprintf("Compliance Action Plan %s: Reopened", existingComplianceActionPlan.Title)
+		subject := fmt.Sprintf("Compliance Assessment Requirement Action Plan %s: Reopened", existingComplianceActionPlan.Title)
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
 			"FirstNameEn":           responsibleUser.FirstNameEn,
 			"LastNameEn":            responsibleUser.LastNameEn,
+			"ComplianceAssessment":  complianceAssessment.ComplianceRegister.TitleEn,
 			"ActionPlanTitle":       existingComplianceActionPlan.Title,
 			"ActionPlanDescription": existingComplianceActionPlan.Description,
 			"ResolvedByFirstNameEn": resolvedBy.FirstNameEn,
@@ -800,7 +820,7 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Rev
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
 			Subject:              subject,
-			TemplateRelativePath: "compliance/templates/email/compliance_action_plan_reopen_responsible_user_mail.html",
+			TemplateRelativePath: "compliance/templates/email/compliance_assessment_action_plan_reopen_responsible_user_mail.html",
 			EmailData:            emailData,
 		}
 
