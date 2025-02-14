@@ -38,6 +38,8 @@ type ComplianceAssessmentRequirementDetailDTO struct {
 	CreatedByUser          organizationDTOs.UserMinimalDTO                    `json:"created_by_user"`
 	UpdatedByUser          *organizationDTOs.UserMinimalDTO                   `json:"updated_by_user"`
 	RequiredDocumentTitles []*ComplianceAssessmentRequirementDocumentTitleDTO `json:"required_document_titles"`
+	ActionPlans            []*ComplianceActionPlanDetailDTO                   `json:"action_plans"`
+	RequirementComments    []*ComplianceAssessmentRequirementCommentDetailDTO `json:"requirement_comments"`
 }
 
 type ComplianceAssessmentRequirementUpdateFormDTO struct {
