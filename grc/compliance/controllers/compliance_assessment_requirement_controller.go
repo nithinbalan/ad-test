@@ -90,7 +90,7 @@ func (carc *ComplianceAssessmentRequirementController) GetComplianceAssessmentRe
 	c.JSON(http.StatusOK, requirements)
 }
 
-func (cac *ComplianceAssessmentRequirementController) GetComplianceAssessmentRequirementDetails(c *gin.Context) {
+func (carc *ComplianceAssessmentRequirementController) GetComplianceAssessmentRequirementDetails(c *gin.Context) {
 	assessmentIDStr := c.Param("assessmentId")
 	assessmentID, err := strconv.ParseUint(assessmentIDStr, 10, 64)
 	if err != nil {
@@ -104,21 +104,21 @@ func (cac *ComplianceAssessmentRequirementController) GetComplianceAssessmentReq
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-	complianceAssessment, err := cac.service.GetFullDetailsByID(uint(assessmentID), uint(complianceRequirementID))
+	complianceAssessment, err := carc.service.GetFullDetailsByID(uint(assessmentID), uint(complianceRequirementID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(cac.db, c, e.Error())
+			utility.SendInternalErrResp(carc.db, c, e.Error())
 			return
 		}
 	}
 	c.JSON(http.StatusOK, complianceAssessment)
 }
 
-func (cac *ComplianceAssessmentRequirementController) UpdateComplianceAssessmentRequirement(c *gin.Context) {
+func (carc *ComplianceAssessmentRequirementController) UpdateComplianceAssessmentRequirement(c *gin.Context) {
 	var complianceAssessmentRequirementUpdateFormDTO complianceDTOs.ComplianceAssessmentRequirementUpdateFormDTO
 
 	complianceAssessmentID, err := strconv.Atoi(c.Param("assessmentId"))
@@ -142,11 +142,11 @@ func (cac *ComplianceAssessmentRequirementController) UpdateComplianceAssessment
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(cac.db, c, err.Error())
+		utility.SendInternalErrResp(carc.db, c, err.Error())
 		return
 	}
 
-	err = cac.service.Update(uint(complianceAssessmentID), uint(complianceRequirementID), currentUserID, &complianceAssessmentRequirementUpdateFormDTO)
+	err = carc.service.Update(uint(complianceAssessmentID), uint(complianceRequirementID), currentUserID, &complianceAssessmentRequirementUpdateFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -156,7 +156,7 @@ func (cac *ComplianceAssessmentRequirementController) UpdateComplianceAssessment
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(cac.db, c, e.Error())
+			utility.SendInternalErrResp(carc.db, c, e.Error())
 			return
 		}
 	}
@@ -164,7 +164,7 @@ func (cac *ComplianceAssessmentRequirementController) UpdateComplianceAssessment
 	c.Status(http.StatusOK)
 }
 
-func (cac *ComplianceAssessmentRequirementController) CreateDocuments(c *gin.Context) {
+func (carc *ComplianceAssessmentRequirementController) CreateDocuments(c *gin.Context) {
 
 	var documents []complianceDTOs.ComplianceAssessmentRequirementDocumentFormDTO
 	if err := c.ShouldBindJSON(&documents); err != nil {
@@ -195,11 +195,11 @@ func (cac *ComplianceAssessmentRequirementController) CreateDocuments(c *gin.Con
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(cac.db, c, err.Error())
+		utility.SendInternalErrResp(carc.db, c, err.Error())
 		return
 	}
 
-	err = cac.service.CreateDocument(uint(complianceAssessmentID), uint(complianceRequirementID), uint(documentID), currentUserID, documents)
+	err = carc.service.CreateDocument(uint(complianceAssessmentID), uint(complianceRequirementID), uint(documentID), currentUserID, documents)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -209,13 +209,13 @@ func (cac *ComplianceAssessmentRequirementController) CreateDocuments(c *gin.Con
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(cac.db, c, e.Error())
+			utility.SendInternalErrResp(carc.db, c, e.Error())
 			return
 		}
 	}
 }
 
-func (cac *ComplianceAssessmentRequirementController) DeleteDocuments(c *gin.Context) {
+func (carc *ComplianceAssessmentRequirementController) DeleteDocuments(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -249,20 +249,20 @@ func (cac *ComplianceAssessmentRequirementController) DeleteDocuments(c *gin.Con
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(cac.db, c, err.Error())
+		utility.SendInternalErrResp(carc.db, c, err.Error())
 		return
 	}
 
-	failedIDs, err := cac.service.DeleteDocuments(uint(complianceAssessmentID), uint(complianceRequirementID), uint(documentID), request.IDs, currentUserID)
+	failedIDs, err := carc.service.DeleteDocuments(uint(complianceAssessmentID), uint(complianceRequirementID), uint(documentID), request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(cac.db, c, err.Error())
+		utility.SendInternalErrResp(carc.db, c, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (cac *ComplianceAssessmentRequirementController) GetComplianceAssessmentRequirementDocumentPreview(c *gin.Context) {
+func (carc *ComplianceAssessmentRequirementController) GetComplianceAssessmentRequirementDocumentPreview(c *gin.Context) {
 	assessmentIDStr := c.Param("assessmentId")
 
 	assessmentID, err := strconv.ParseUint(assessmentIDStr, 10, 64)
@@ -292,20 +292,20 @@ func (cac *ComplianceAssessmentRequirementController) GetComplianceAssessmentReq
 		return
 	}
 
-	complianceAssessmentRequirementDocumentPath, err := cac.service.GetDocumentPath(uint(assessmentID), uint(requirementID), uint(id), token)
+	complianceAssessmentRequirementDocumentPath, err := carc.service.GetDocumentPath(uint(assessmentID), uint(requirementID), uint(id), token)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 		default:
-			utility.SendInternalErrResp(cac.db, c, err.Error())
+			utility.SendInternalErrResp(carc.db, c, err.Error())
 		}
 		return
 	}
 	c.File(complianceAssessmentRequirementDocumentPath)
 }
 
-func (cac *ComplianceAssessmentRequirementController) DownloadComplianceAssessmentRequirementDocument(c *gin.Context) {
+func (carc *ComplianceAssessmentRequirementController) DownloadComplianceAssessmentRequirementDocument(c *gin.Context) {
 	assessmentIDStr := c.Param("assessmentId")
 
 	assessmentID, err := strconv.ParseUint(assessmentIDStr, 10, 64)
@@ -334,13 +334,13 @@ func (cac *ComplianceAssessmentRequirementController) DownloadComplianceAssessme
 		return
 	}
 
-	complianceAssessmentRequirementDocumentPath, err := cac.service.GetDocumentPath(uint(assessmentID), uint(requirementID), uint(id), token)
+	complianceAssessmentRequirementDocumentPath, err := carc.service.GetDocumentPath(uint(assessmentID), uint(requirementID), uint(id), token)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 		default:
-			utility.SendInternalErrResp(cac.db, c, err.Error())
+			utility.SendInternalErrResp(carc.db, c, err.Error())
 		}
 		return
 	}
@@ -357,7 +357,7 @@ func (cac *ComplianceAssessmentRequirementController) DownloadComplianceAssessme
 	c.File(complianceAssessmentRequirementDocumentPath)
 }
 
-func (cac *ComplianceAssessmentRequirementController) MarkAsCompleted(c *gin.Context) {
+func (carc *ComplianceAssessmentRequirementController) MarkAsCompleted(c *gin.Context) {
 
 	complianceAssessmentID, err := strconv.Atoi(c.Param("assessmentId"))
 	if err != nil {
@@ -375,11 +375,11 @@ func (cac *ComplianceAssessmentRequirementController) MarkAsCompleted(c *gin.Con
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(cac.db, c, err.Error())
+		utility.SendInternalErrResp(carc.db, c, err.Error())
 		return
 	}
 
-	err = cac.service.MarkAsCompleted(uint(complianceAssessmentID), uint(complianceRequirementID), currentUserID)
+	err = carc.service.MarkAsCompleted(uint(complianceAssessmentID), uint(complianceRequirementID), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -389,7 +389,7 @@ func (cac *ComplianceAssessmentRequirementController) MarkAsCompleted(c *gin.Con
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(cac.db, c, e.Error())
+			utility.SendInternalErrResp(carc.db, c, e.Error())
 			return
 		}
 	}
@@ -397,7 +397,7 @@ func (cac *ComplianceAssessmentRequirementController) MarkAsCompleted(c *gin.Con
 	c.Status(http.StatusOK)
 }
 
-func (cac *ComplianceAssessmentRequirementController) MarkAsOpen(c *gin.Context) {
+func (carc *ComplianceAssessmentRequirementController) MarkAsOpen(c *gin.Context) {
 
 	complianceAssessmentID, err := strconv.Atoi(c.Param("assessmentId"))
 	if err != nil {
@@ -415,11 +415,151 @@ func (cac *ComplianceAssessmentRequirementController) MarkAsOpen(c *gin.Context)
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(cac.db, c, err.Error())
+		utility.SendInternalErrResp(carc.db, c, err.Error())
 		return
 	}
 
-	err = cac.service.MarkAsOpen(uint(complianceAssessmentID), uint(complianceRequirementID), currentUserID)
+	err = carc.service.MarkAsOpen(uint(complianceAssessmentID), uint(complianceRequirementID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(carc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+func (carc *ComplianceAssessmentRequirementController) ApproveComplianceAssessmentRequirement(c *gin.Context) {
+	var commentFormDTO complianceDTOs.ComplianceAssessmentRequirementCommentFormDTO
+
+	complianceAssessmentID, err := strconv.Atoi(c.Param("assessmentId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	requirementIDStr := c.Param("requirementId")
+	complianceRequirementID, err := strconv.ParseUint(requirementIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&commentFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(carc.db, c, err.Error())
+		return
+	}
+
+	err = carc.service.ApproveComplianceRequirement(uint(complianceAssessmentID), uint(complianceRequirementID), currentUserID, &commentFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(carc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (carc *ComplianceAssessmentRequirementController) RevertComplianceAssessmentRequirement(c *gin.Context) {
+	var commentFormDTO complianceDTOs.ComplianceAssessmentRequirementCommentFormDTO
+
+	complianceAssessmentID, err := strconv.Atoi(c.Param("assessmentId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	requirementIDStr := c.Param("requirementId")
+	complianceRequirementID, err := strconv.ParseUint(requirementIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&commentFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(carc.db, c, err.Error())
+		return
+	}
+
+	err = carc.service.RevertComplianceRequirement(uint(complianceAssessmentID), uint(complianceRequirementID), currentUserID, &commentFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(carc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (carc *ComplianceAssessmentRequirementController) ResubmitComplianceAssessmentRequirement(c *gin.Context) {
+	var commentFormDTO complianceDTOs.ComplianceAssessmentRequirementCommentFormDTO
+
+	complianceAssessmentID, err := strconv.Atoi(c.Param("assessmentId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	requirementIDStr := c.Param("requirementId")
+	complianceRequirementID, err := strconv.ParseUint(requirementIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&commentFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(carc.db, c, err.Error())
+		return
+	}
+
+	err = carc.service.ResubmitComplianceRequirement(uint(complianceAssessmentID), uint(complianceRequirementID), currentUserID, &commentFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -429,7 +569,7 @@ func (cac *ComplianceAssessmentRequirementController) MarkAsOpen(c *gin.Context)
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(cac.db, c, e.Error())
+			utility.SendInternalErrResp(carc.db, c, e.Error())
 			return
 		}
 	}

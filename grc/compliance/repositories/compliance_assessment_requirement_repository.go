@@ -19,6 +19,8 @@ type ComplianceAssessmentRequirementRepositoryInterface interface {
 
 	CreateDocuments(documents []*models.ComplianceAssessmentRequirementRequiredDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocuments(documentId uint, tx ...utility.DatabaseTransaction) error
+
+	CreateComment(comment *models.ComplianceAssessmentRequirementComment, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceAssessmentRequirementRepository struct {
@@ -141,6 +143,12 @@ func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requir
 		Preload("RequiredDocumentTitles").
 		Preload("RequiredDocumentTitles.RequiredDocumentTitle").
 		Preload("RequiredDocumentTitles.Documents").
+		Preload("ActionPlans").
+		Preload("ActionPlans.ResponsibleUser").
+		Preload("ActionPlans.ReviewUser").
+		Preload("ActionPlans.ActionPlanStatus").
+		Preload("RequirementComments").
+		Preload("RequirementComments.CreatedByUser").
 		Preload("ComplianceStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
@@ -189,4 +197,13 @@ func (repo *ComplianceAssessmentRequirementRepository) DeleteDocuments(docIds ui
 	}
 
 	return nil
+}
+
+func (repo *ComplianceAssessmentRequirementRepository) CreateComment(comment *models.ComplianceAssessmentRequirementComment, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	result := db.Create(comment)
+	return result.Error
 }

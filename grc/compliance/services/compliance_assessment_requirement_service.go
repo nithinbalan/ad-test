@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -31,15 +32,20 @@ type ComplianceAssessmentRequirementServiceInterface interface {
 	DeleteDocuments(complianceAssessmentID uint, requirementID uint, requiredDocumentID uint, ids []uint, currentUserID uint) ([]uint, error)
 
 	GetDocumentPath(complianceAssessmentID, requirementID, id uint, token string) (string, error)
+
+	ApproveComplianceRequirement(assessmentID uint, requirementID uint, currentUserID uint, commentForm *complianceDTOs.ComplianceAssessmentRequirementCommentFormDTO) error
+	RevertComplianceRequirement(assessmentID uint, requirementID uint, currentUserID uint, commentForm *complianceDTOs.ComplianceAssessmentRequirementCommentFormDTO) error
+	ResubmitComplianceRequirement(assessmentID uint, requirementID uint, currentUserID uint, commentForm *complianceDTOs.ComplianceAssessmentRequirementCommentFormDTO) error
 }
 
 // Service and implementations
 type ComplianceAssessmentRequirementService struct {
-	repo                    complianceRepositories.ComplianceAssessmentRequirementRepositoryInterface
-	activityLogSvc          logServices.ActivityLogServiceInterface
-	userSvc                 organizationServices.UserServiceInterface
-	complianceRegisterSvc   ComplianceRegisterServiceInterface
-	complianceAssessmentSvc ComplianceAssessmentServiceInterface
+	repo                                     complianceRepositories.ComplianceAssessmentRequirementRepositoryInterface
+	activityLogSvc                           logServices.ActivityLogServiceInterface
+	userSvc                                  organizationServices.UserServiceInterface
+	complianceRegisterSvc                    ComplianceRegisterServiceInterface
+	complianceAssessmentSvc                  ComplianceAssessmentServiceInterface
+	complianceAssessmentRequirementStatusSvc ComplianceAssessmentRequirementStatusServiceInterface
 }
 
 func NewComplianceAssessmentRequirementService(
@@ -48,13 +54,15 @@ func NewComplianceAssessmentRequirementService(
 	userSvc organizationServices.UserServiceInterface,
 	complianceRegisterSvc ComplianceRegisterServiceInterface,
 	complianceAssessmentSvc ComplianceAssessmentServiceInterface,
+	complianceAssessmentRequirementStatusSvc ComplianceAssessmentRequirementStatusServiceInterface,
 ) ComplianceAssessmentRequirementServiceInterface {
 	return &ComplianceAssessmentRequirementService{
-		repo:                    repo,
-		activityLogSvc:          activityLogSvc,
-		userSvc:                 userSvc,
-		complianceRegisterSvc:   complianceRegisterSvc,
-		complianceAssessmentSvc: complianceAssessmentSvc,
+		repo:                                     repo,
+		activityLogSvc:                           activityLogSvc,
+		userSvc:                                  userSvc,
+		complianceRegisterSvc:                    complianceRegisterSvc,
+		complianceAssessmentSvc:                  complianceAssessmentSvc,
+		complianceAssessmentRequirementStatusSvc: complianceAssessmentRequirementStatusSvc,
 	}
 }
 
@@ -457,6 +465,265 @@ func (cras ComplianceAssessmentRequirementService) MarkAsOpen(complianceAssessme
 			}
 		}
 
+	}()
+
+	return nil
+}
+
+func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement(assessmentID uint, requirementID uint, currentUserID uint, commentForm *complianceDTOs.ComplianceAssessmentRequirementCommentFormDTO) error {
+	tx := cars.repo.BeginTransaction()
+
+	approvedStatus, err := cars.complianceAssessmentRequirementStatusSvc.GetByType("approved")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	requirement, err := cars.GetByID(requirementID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Validate if the current status allows approval
+	if requirement.ComplianceAssessmentRequirementStatusID == &approvedStatus.ID {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("requirement is already approved"), "invalid_state", "requirement")
+	}
+
+	assessment, err := cars.complianceAssessmentSvc.GetByID(assessmentID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if currentUserID != assessment.ReviewUserID {
+		return utility.NewForbiddenError("User is not authorized to approve this assessment")
+	}
+
+	comment := &models.ComplianceAssessmentRequirementComment{
+		ComplianceAssessmentRequirementID:       requirementID,
+		Comment:                                 commentForm.Comment,
+		CreatedBYID:                             currentUserID,
+		ComplianceAssessmentRequirementStatusID: &approvedStatus.ID,
+	}
+
+	err = cars.repo.CreateComment(comment, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Update requirement status to "approved"
+	requirement.ComplianceAssessmentRequirementStatusID = &approvedStatus.ID
+	requirement.UpdatedBYID = &currentUserID
+
+	err = cars.repo.Update(requirement, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	// Log the action
+	go func() {
+		err := cars.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.ComplianceAssessmentRequirement{}.TableName(),
+			requirementID,
+			map[string]interface{}{
+				"status":  "approved",
+				"comment": commentForm.Comment,
+				"user":    currentUserID,
+			},
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.ComplianceAssessmentRequirement{}.TableName(),
+				"recordID":  requirementID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
+		}
+	}()
+
+	return nil
+}
+
+func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(assessmentID uint, requirementID uint, currentUserID uint, commentForm *complianceDTOs.ComplianceAssessmentRequirementCommentFormDTO) error {
+	tx := cars.repo.BeginTransaction()
+
+	revertedStatus, err := cars.complianceAssessmentRequirementStatusSvc.GetByType("reverted")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	requirement, err := cars.repo.GetByID(requirementID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Validate if the current status allows reverting
+	if requirement.ComplianceAssessmentRequirementStatusID == &revertedStatus.ID {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("requirement is already reverted"), "invalid_state", "requirement")
+	}
+
+	assessment, err := cars.complianceAssessmentSvc.GetByID(assessmentID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if currentUserID != assessment.ReviewUserID {
+		return utility.NewForbiddenError("User is not authorized to revert this assessment")
+	}
+
+	// Add a comment to `compliance_assessment_requirement_comments`
+	comment := &models.ComplianceAssessmentRequirementComment{
+		ComplianceAssessmentRequirementID:       requirementID,
+		Comment:                                 commentForm.Comment,
+		CreatedBYID:                             currentUserID,
+		CreatedAt:                               time.Now(),
+		ComplianceAssessmentRequirementStatusID: &revertedStatus.ID,
+	}
+
+	err = cars.repo.CreateComment(comment, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Update requirement status to "reverted"
+	requirement.ComplianceAssessmentRequirementStatusID = &revertedStatus.ID
+	requirement.UpdatedBYID = &currentUserID
+
+	err = cars.repo.Update(requirement, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	// Log the action
+	go func() {
+		err := cars.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.ComplianceAssessmentRequirement{}.TableName(),
+			requirementID,
+			map[string]interface{}{
+				"status":  "reverted",
+				"comment": commentForm.Comment,
+				"user":    currentUserID,
+			},
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.ComplianceAssessmentRequirement{}.TableName(),
+				"recordID":  requirementID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
+		}
+	}()
+
+	return nil
+}
+
+func (cars *ComplianceAssessmentRequirementService) ResubmitComplianceRequirement(assessmentID uint, requirementID uint, currentUserID uint, commentForm *complianceDTOs.ComplianceAssessmentRequirementCommentFormDTO) error {
+	tx := cars.repo.BeginTransaction()
+
+	resubmittedStatus, err := cars.complianceAssessmentRequirementStatusSvc.GetByType("resubmitted")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	requirement, err := cars.repo.GetByID(requirementID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Validate if the current status allows resubmission
+	if requirement.ComplianceAssessmentRequirementStatusID == &resubmittedStatus.ID {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("requirement is already resubmitted"), "invalid_state", "requirement")
+	}
+
+	userPrimaryUnitID, err := cars.userSvc.GetUserPrimaryUnitID(currentUserID)
+	if err != nil {
+		return fmt.Errorf("failed to get user primary unit: %w", err)
+	}
+
+	assessment, err := cars.complianceAssessmentSvc.GetByID(assessmentID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if userPrimaryUnitID != assessment.PrimaryUnitID {
+		return utility.NewForbiddenError("User is not authorized to resubmit this assessment")
+	}
+
+	comment := &models.ComplianceAssessmentRequirementComment{
+		ComplianceAssessmentRequirementID:       requirementID,
+		Comment:                                 commentForm.Comment,
+		CreatedBYID:                             currentUserID,
+		ComplianceAssessmentRequirementStatusID: &resubmittedStatus.ID,
+	}
+
+	err = cars.repo.CreateComment(comment, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Update requirement status to "resubmitted"
+	requirement.ComplianceAssessmentRequirementStatusID = &resubmittedStatus.ID
+	requirement.UpdatedBYID = &currentUserID
+
+	err = cars.repo.Update(requirement, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	// Log the action
+	go func() {
+		err := cars.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.ComplianceAssessmentRequirement{}.TableName(),
+			requirementID,
+			map[string]interface{}{
+				"status":  "resubmitted",
+				"comment": commentForm.Comment,
+				"user":    currentUserID,
+			},
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.ComplianceAssessmentRequirement{}.TableName(),
+				"recordID":  requirementID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
+		}
 	}()
 
 	return nil
