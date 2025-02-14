@@ -275,7 +275,6 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 			"ComplianceAssessment":  complianceAssessment.ComplianceRegister.TitleEn,
 			"ActionPlanTitle":       ComplianceActionPlanFormDTO.Title,
 			"ActionPlanDescription": ComplianceActionPlanFormDTO.Description,
-			"TargetDate":            dates.TargetDate.Format("2006-01-02"),
 			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":  assignedBy.LastNameEn,
 			"AssignedOn":            time.Now().Format("2006-01-02"),
@@ -356,7 +355,6 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 	taskUpdateDTO := commonDTOs.TaskFormDTO{
 		Title:             ComplianceActionPlanFormDTO.Title,
 		Description:       ComplianceActionPlanFormDTO.Description,
-		TargetDate:        dates.TargetDate,
 		URLParam:          &urlParam,
 		SeverityLevelID:   ComplianceActionPlanFormDTO.SeverityLevelID,
 		ResponsibleUserID: ComplianceActionPlanFormDTO.ResponsibleUserID,
@@ -515,7 +513,6 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 				"ComplianceAssessment":  complianceAssessment.ComplianceRegister.TitleEn,
 				"ActionPlanTitle":       existingComplianceAssessmentRequirementActionPlan.Title,
 				"ActionPlanDescription": existingComplianceAssessmentRequirementActionPlan.Description,
-				"TargetDate":            existingComplianceAssessmentRequirementActionPlan.TargetDate.Format("2006-01-02"),
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
