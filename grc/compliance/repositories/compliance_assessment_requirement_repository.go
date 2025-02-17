@@ -54,7 +54,11 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 			compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,
-			severity_levels.color_code AS severity_level_color_code
+			severity_levels.color_code AS severity_level_color_code,
+			compliance_assessment_requirement_statuses.title_en AS compliance_assessment_requirement_status_title_en,
+			compliance_assessment_requirement_statuses.title_ar AS compliance_assessment_requirement_status_title_ar,
+			compliance_assessment_requirement_statuses.color_code AS compliance_assessment_requirement_status_color_code,
+			compliance_assessment_requirement_statuses.type AS compliance_assessment_requirement_status_type
 		`).
 		Joins(`
 			LEFT JOIN compliance_requirements ON compliance_requirements.id = compliance_assessment_requirements.compliance_requirement_id
@@ -62,6 +66,7 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 			LEFT JOIN severity_levels ON severity_levels.id = compliance_requirements.severity_level_id
 			LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
 			LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_assessment_requirements.compliance_status_id
+			LEFT JOIN compliance_assessment_requirement_statuses ON compliance_assessment_requirement_statuses.id = compliance_assessment_requirements.compliance_assessment_requirement_status_id
 
 		`).
 		Where("compliance_assessment_requirements.compliance_assessment_id = ?", assessmentID)
@@ -150,6 +155,7 @@ func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requir
 		Preload("RequirementComments").
 		Preload("RequirementComments.CreatedByUser").
 		Preload("ComplianceStatus").
+		Preload("ComplianceAssessmentRequirementStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&complianceAssessmentRequirement, requirementId)

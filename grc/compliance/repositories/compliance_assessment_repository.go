@@ -18,8 +18,8 @@ type ComplianceAssessmentRepositoryInterface interface {
 	Update(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 
-	IsAssessmentExists(organizationUnitID uint, compliancRegisterID uint) (bool, error)
-	IsAssessmentExistExcludingID(id uint, organizationUnitID uint, compliancRegisterID uint) (bool, error)
+	IsAssessmentExists(organizationUnitID uint, compliancRegisterID uint, ids []uint) (bool, error)
+	IsAssessmentExistExcludingID(id uint, organizationUnitID uint, compliancRegisterID uint, ids []uint) (bool, error)
 
 	CreateComplianceAssessmentRequirement(requirements *models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteComplianceAssessmentRequirements(ids []*uint, tx ...utility.DatabaseTransaction) error
@@ -67,6 +67,10 @@ func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.Compli
             review_user.color AS review_user_color,
             review_user.email AS review_user_email,
             review_user.profile_image_path AS review_user_profile_image_path,
+			compliance_assessment_statuses.title_en AS compliance_assessment_status_title_en,
+			compliance_assessment_statuses.title_ar AS compliance_assessment_status_title_ar,
+			compliance_assessment_statuses.color_code AS compliance_assessment_status_color_code,
+			compliance_assessment_statuses.type AS compliance_assessment_status_type,
         	created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
@@ -90,6 +94,7 @@ func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.Compli
 		    LEFT JOIN compliance_register ON compliance_register.id = compliance_assessments.compliance_register_id
 		    LEFT JOIN organization_units ON organization_units.id = compliance_assessments.organization_unit_id
 		    LEFT JOIN users AS review_user ON review_user.id = compliance_assessments.review_user_id
+			LEFT JOIN compliance_assessment_statuses ON compliance_assessment_statuses.id = compliance_assessments.compliance_assessment_status_id
 			LEFT JOIN users AS created_user ON created_user.id = compliance_assessments.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_assessments.updated_by_id
 		`)
@@ -186,6 +191,9 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByID(id uint, tx ...ut
 		Preload("AssessmentRequirements.ComplianceRequirement.ComplianceClause").
 		Preload("AssessmentRequirements.RequiredDocumentTitles").
 		Preload("ReviewUser").
+		Preload("ComplianceAssessmentStatus").
+		Preload("SubmittedByUser").
+		Preload("ReviewedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&complianceAssessment, id)
@@ -233,12 +241,13 @@ func (repo *ComplianceAssessmentRepository) Delete(id uint, tx ...utility.Databa
 
 	return nil
 }
-func (repo *ComplianceAssessmentRepository) IsAssessmentExists(organizationUnitID uint, complianceRegisterID uint) (bool, error) {
+func (repo *ComplianceAssessmentRepository) IsAssessmentExists(organizationUnitID uint, complianceRegisterID uint, ids []uint) (bool, error) {
 	db := repo.db
 
 	var count int64
 	query := db.Table("compliance_assessments").
-		Where("compliance_register_id = ?", complianceRegisterID)
+		Where("compliance_register_id = ?", complianceRegisterID).
+		Where("compliance_assessment_status_id IN ?", ids)
 
 	if organizationUnitID > 0 {
 		query = query.Where("organization_unit_id = ?", organizationUnitID)
@@ -249,12 +258,13 @@ func (repo *ComplianceAssessmentRepository) IsAssessmentExists(organizationUnitI
 	return count > 0, err
 }
 
-func (repo *ComplianceAssessmentRepository) IsAssessmentExistExcludingID(id uint, organizationUnitID uint, complianceRegisterID uint) (bool, error) {
+func (repo *ComplianceAssessmentRepository) IsAssessmentExistExcludingID(id uint, organizationUnitID uint, complianceRegisterID uint, ids []uint) (bool, error) {
 	db := repo.db
 
 	var count int64
 	query := db.Table("compliance_assessments").
-		Where("id <> ? AND compliance_register_id = ?", id, complianceRegisterID)
+		Where("id <> ? AND compliance_register_id = ?", id, complianceRegisterID).
+		Where("compliance_assessment_status_id IN ?", ids)
 
 	if organizationUnitID > 0 {
 		query = query.Where("organization_unit_id = ?", organizationUnitID)
