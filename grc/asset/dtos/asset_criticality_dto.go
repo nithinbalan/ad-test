@@ -20,7 +20,6 @@ type AssetCriticalityContributionListDTO struct {
 	AssetCriticalityMatrixFactorRatingType    string     `json:"asset_criticality_matrix_factor_rating_type"`
 	AssetCriticalityMatrixFactorRatingColor   string     `json:"asset_criticality_matrix_factor_rating_color"`
 	Score                                     float64    `json:"score"`
-	Comments                                  *string    `json:"comments"`
 	CreatedByID                               uint       `json:"created_by_id"`
 	CreatedByFirstNameEn                      string     `json:"created_by_first_name_en"`
 	CreatedByFirstNameAr                      string     `json:"created_by_first_name_ar"`
@@ -44,9 +43,8 @@ type AssetCriticalityContributionListDTO struct {
 }
 
 type AssetCriticalityFormDTO struct {
-	AssetCriticalityMatrixFactorID       uint    `json:"asset_criticality_matrix_factor_id" binding:"required"`
-	AssetCriticalityMatrixFactorRatingID uint    `json:"asset_criticality_matrix_factor_rating_id" binding:"required"`
-	Comments                             *string `json:"comments,omitempty"`
+	AssetCriticalityMatrixFactorID       uint `json:"asset_criticality_matrix_factor_id" binding:"required"`
+	AssetCriticalityMatrixFactorRatingID uint `json:"asset_criticality_matrix_factor_rating_id" binding:"required"`
 }
 
 type AssetCriticalityContributionListQueryParamsDTO struct {

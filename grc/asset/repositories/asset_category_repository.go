@@ -37,7 +37,10 @@ func (repo *AssetCategoryRepository) GetAll(params *assetDTOs.AssetCategoryListQ
 
 	query := repo.db.Table("asset_categories").
 		Select(`
-            asset_categories.*, asset_types.title_en as asset_type_title_en, asset_types.title_ar as asset_type_title_ar`)
+            asset_categories.*, asset_types.title_en as asset_type_title_en, asset_types.title_ar as asset_type_title_ar`).
+		Joins(`
+		    LEFT JOIN asset_types ON asset_types.id = asset_categories.asset_type_id
+		`)
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
@@ -67,7 +70,7 @@ func (repo *AssetCategoryRepository) GetAll(params *assetDTOs.AssetCategoryListQ
 
 func (repo *AssetCategoryRepository) GetByID(id uint) (*models.AssetCategory, error) {
 	var category *models.AssetCategory
-	result := repo.db.First(&category, id)
+	result := repo.db.Preload("AssetType").First(&category, id)
 
 	if result.Error != nil {
 		return nil, result.Error
