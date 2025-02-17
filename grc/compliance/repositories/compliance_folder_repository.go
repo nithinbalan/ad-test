@@ -83,6 +83,11 @@ func (repo *ComplianceFolderRepository) GetAll(sort string, sortBy string, keywo
 	// Execute query
 	err := repo.db.Raw(query, args...).Scan(&folders).Error
 
+	// Ensure folders is never nil
+	if folders == nil {
+		folders = []*complianceDTOs.ComplianceFolderListDTO{}
+	}
+
 	return folders, err
 }
 
