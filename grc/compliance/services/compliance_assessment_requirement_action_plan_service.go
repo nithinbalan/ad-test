@@ -3,7 +3,10 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
 
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
@@ -11,6 +14,7 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	settingService "jethur/grc/settings/services"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -18,52 +22,63 @@ import (
 )
 
 type ComplianceAssessmentRequirementActionPlanServiceInterface interface {
-	GetAll(complianceAssessmentID uint, requirementID uint, params *complianceDTOs.ComplianceAssessmentRequirementActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentRequirementActionPlanListResponseDTO, error)
-	GetByID(complianceAssessmentID uint, requirementID uint, id uint) (*models.ComplianceAssessmentRequirementActionPlan, error)
-	GetFullDetailsByID(complianceAssessmentID uint, requirementID uint, id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentRequirementActionPlanDetailDTO, error)
-	Create(complianceAssessmentID uint, requirementID uint, currentUserID uint, ComplianceAssessmentRequirementActionPlanFormDTO *complianceDTOs.ComplianceAssessmentRequirementActionPlanFormDTO) (uint, error)
-	Update(complianceAssessmentID uint, requirementID uint, id uint, currentUserID uint, compliance *complianceDTOs.ComplianceAssessmentRequirementActionPlanFormDTO) error
+	GetAll(complianceAssessmentID uint, requirementID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error)
+	GetByID(complianceAssessmentID uint, requirementID uint, id uint) (*models.ComplianceActionPlan, error)
+	GetFullDetailsByID(complianceAssessmentID uint, requirementID uint, id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceActionPlanDetailDTO, error)
+	Create(complianceAssessmentID uint, requirementID uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) (uint, error)
+	Update(complianceAssessmentID uint, requirementID uint, id uint, currentUserID uint, compliance *complianceDTOs.ComplianceActionPlanFormDTO) error
 	Delete(complianceAssessmentID uint, requirementID uint, ids []uint, currentUserID uint) ([]uint, error)
+
+	StatusUpdate(complianceAssessmentID uint, requirementID uint, id uint, currentUserID uint, complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
 type ComplianceAssessmentRequirementActionPlanService struct {
-	repo                               complianceRepositories.ComplianceAssessmentRequirementActionPlanRepositoryInterface
+	repo                               complianceRepositories.ComplianceActionPlanRepositoryInterface
 	activityLogSvc                     logServices.ActivityLogServiceInterface
+	complianceAssessmentSvc            ComplianceAssessmentServiceInterface
 	complianceAssessmentRequirementSvc ComplianceAssessmentRequirementServiceInterface
 	actionPlanStatusSvc                masterServices.ActionPlanStatusServiceInterface
 	userSvc                            organizationServices.UserServiceInterface
 	organizationUnitSvc                settingService.OrganizationUnitServiceInterface
+	taskSvc                            taskServices.TaskServiceInterface
+	notificationSvc                    commonServices.NotificationServiceInterface
 }
 
 func NewComplianceAssessmentRequirementActionPlanService(
-	repo complianceRepositories.ComplianceAssessmentRequirementActionPlanRepositoryInterface,
+	repo complianceRepositories.ComplianceActionPlanRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
+	complianceAssessmentSvc ComplianceAssessmentServiceInterface,
 	complianceAssessmentRequirementSvc ComplianceAssessmentRequirementServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	organizationUnitSvc settingService.OrganizationUnitServiceInterface,
+	taskSvc taskServices.TaskServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) ComplianceAssessmentRequirementActionPlanServiceInterface {
 	return &ComplianceAssessmentRequirementActionPlanService{
 		repo:                               repo,
 		activityLogSvc:                     activityLogSvc,
+		complianceAssessmentSvc:            complianceAssessmentSvc,
 		complianceAssessmentRequirementSvc: complianceAssessmentRequirementSvc,
 		actionPlanStatusSvc:                actionPlanStatusSvc,
 		userSvc:                            userSvc,
 		organizationUnitSvc:                organizationUnitSvc,
+		taskSvc:                            taskSvc,
+		notificationSvc:                    notificationSvc,
 	}
 }
 
-func (caraps *ComplianceAssessmentRequirementActionPlanService) GetAll(complianceAssessmentID uint, requirementID uint, params *complianceDTOs.ComplianceAssessmentRequirementActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentRequirementActionPlanListResponseDTO, error) {
+func (caraps *ComplianceAssessmentRequirementActionPlanService) GetAll(complianceAssessmentID uint, requirementID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error) {
 	if requirementID != 0 {
 		if _, err := caraps.complianceAssessmentRequirementSvc.GetByID(requirementID); err != nil {
 			return nil, err
 		}
 	}
-	return caraps.repo.GetAll(requirementID, params)
+	return caraps.repo.GetAll(uint(0), params, requirementID)
 }
 
-func (caraps ComplianceAssessmentRequirementActionPlanService) GetByID(complianceAssessmentID uint, requirementID uint, id uint) (*models.ComplianceAssessmentRequirementActionPlan, error) {
+func (caraps ComplianceAssessmentRequirementActionPlanService) GetByID(complianceAssessmentID uint, requirementID uint, id uint) (*models.ComplianceActionPlan, error) {
 	if _, err := caraps.complianceAssessmentRequirementSvc.GetByID(requirementID); err != nil {
 		return nil, err
 	}
@@ -78,8 +93,8 @@ func (caraps ComplianceAssessmentRequirementActionPlanService) GetByID(complianc
 	return complianceAssessmentRequirementActionPlan, nil
 }
 
-func (caraps ComplianceAssessmentRequirementActionPlanService) GetFullDetailsByID(complianceAssessmentID uint, requirementID uint, id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentRequirementActionPlanDetailDTO, error) {
-	var complianceAssessmentRequirementActionPlanDTO complianceDTOs.ComplianceAssessmentRequirementActionPlanDetailDTO
+func (caraps ComplianceAssessmentRequirementActionPlanService) GetFullDetailsByID(complianceAssessmentID uint, requirementID uint, id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceActionPlanDetailDTO, error) {
+	var complianceAssessmentRequirementActionPlanDTO complianceDTOs.ComplianceActionPlanDetailDTO
 
 	// Check if the compliance register exists
 	if _, err := caraps.complianceAssessmentRequirementSvc.GetByID(requirementID); err != nil {
@@ -113,32 +128,35 @@ func (caraps ComplianceAssessmentRequirementActionPlanService) GetFullDetailsByI
 	return &complianceAssessmentRequirementActionPlanDTO, nil
 }
 
-func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianceAssessmentID uint, requirementID uint, currentUserID uint, ComplianceAssessmentRequirementActionPlanFormDTO *complianceDTOs.ComplianceAssessmentRequirementActionPlanFormDTO) (uint, error) {
+func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianceAssessmentID uint, requirementID uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) (uint, error) {
 	tx := caraps.repo.BeginTransaction()
 
-	if err := caraps.validateComplianceAssessmentRequirementActionPlanFormDTO(ComplianceAssessmentRequirementActionPlanFormDTO); err != nil {
+	if err := caraps.validateComplianceActionPlanFormDTO(ComplianceActionPlanFormDTO); err != nil {
 		return 0, err
 	}
 
-	dates, err := caraps.parseComplianceAssessmentRequirementActionPlanDates(ComplianceAssessmentRequirementActionPlanFormDTO)
+	dates, err := caraps.parseComplianceAssessmentRequirementActionPlanDates(ComplianceActionPlanFormDTO)
 	if err != nil {
 		return 0, err
 	}
 
-	responsibleUnitID, err := caraps.userSvc.GetUserPrimaryUnitID(ComplianceAssessmentRequirementActionPlanFormDTO.ResponsibleUserID)
+	complianceAssessment, err := caraps.complianceAssessmentSvc.GetFullDetailsByID(complianceAssessmentID)
 	if err != nil {
-		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "test and exercise responsible unit")
+		return 0, err
 	}
 
-	complianceAssessmentRequirementActionPlan := &models.ComplianceAssessmentRequirementActionPlan{
+	complianceAssessmentRequirementActionPlan := &models.ComplianceActionPlan{
+		ComplianceRegisterID:              nil,
 		ComplianceAssessmentRequirementID: &requirementID,
-		Title:                             ComplianceAssessmentRequirementActionPlanFormDTO.Title,
-		Description:                       ComplianceAssessmentRequirementActionPlanFormDTO.Description,
-		ResponsibleUserID:                 ComplianceAssessmentRequirementActionPlanFormDTO.ResponsibleUserID,
-		ResponsibleUnitID:                 responsibleUnitID,
+		Title:                             ComplianceActionPlanFormDTO.Title,
+		Description:                       ComplianceActionPlanFormDTO.Description,
+		ResponsibleUserID:                 ComplianceActionPlanFormDTO.ResponsibleUserID,
 		TargetDate:                        dates.TargetDate,
-		Percentage:                        ComplianceAssessmentRequirementActionPlanFormDTO.Percentage,
-		ActionPlanStatusID:                ComplianceAssessmentRequirementActionPlanFormDTO.ActionPlanStatusID,
+		Percentage:                        ComplianceActionPlanFormDTO.Percentage,
+		ActionPlanStatusID:                ComplianceActionPlanFormDTO.ActionPlanStatusID,
+		SeverityLevelID:                   ComplianceActionPlanFormDTO.SeverityLevelID,
+		ReviewUserID:                      ComplianceActionPlanFormDTO.ReviewUserID,
+		Comments:                          ComplianceActionPlanFormDTO.Comments,
 		CreatedByID:                       currentUserID,
 	}
 
@@ -147,6 +165,39 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		tx.Rollback()
 		return 0, err
 	}
+
+	actionPlanStatusID := ComplianceActionPlanFormDTO.ActionPlanStatusID
+	complianceActionPlanUpdate := &models.ComplianceActionPlanStatusUpdate{
+		ComplianceActionPlanID: id,
+		ActionPlanStatusID:     actionPlanStatusID,
+		Percentage:             ComplianceActionPlanFormDTO.Percentage,
+		Comment:                "Initial action plan status",
+		CreatedByID:            currentUserID,
+	}
+
+	_, err = caraps.repo.CreateInitialComplianceActionPlanStatusUpdate(complianceActionPlanUpdate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirementt_id":%d, "action_plan_id":%d}`, complianceAssessmentID, requirementID, id)
+	taskDTO := commonDTOs.TaskFormDTO{
+		ModuleIdentifier:       "compliance",
+		ComplianceActionPlanID: &id,
+		Title:                  ComplianceActionPlanFormDTO.Title,
+		Description:            ComplianceActionPlanFormDTO.Description,
+		TargetDate:             dates.TargetDate,
+		URLParam:               &urlParam,
+		QueryParam:             nil,
+		SeverityLevelID:        ComplianceActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID:      ComplianceActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	if _, err := caraps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -160,7 +211,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 
 		err = caraps.activityLogSvc.LogActivity(
 			models.CreateAction,
-			models.ComplianceAssessmentRequirementActionPlan{}.TableName(),
+			models.ComplianceActionPlan{}.TableName(),
 			id,
 			existingComplianceAssessmentRequirementActionPlan,
 			currentUserID,
@@ -169,7 +220,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
-				"tableName": models.ComplianceAssessmentRequirementActionPlan{}.TableName(),
+				"tableName": models.ComplianceActionPlan{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),
@@ -177,12 +228,79 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 
 			utility.LogError("Failed to log activity", fields)
 		}
+
+		// prepare notification
+		urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d, "action_plan_id":%d}`, complianceAssessmentID, requirementID, id)
+		queryParam := ""
+		entity := "compliance-action-plan"
+		action := "responsible-user-assign"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               ComplianceActionPlanFormDTO.ResponsibleUserID,
+			ModuleIdentifier:     "compliance",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Compliance Action Plan Responsibility Assigned",
+			HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+			TitleEn:              ComplianceActionPlanFormDTO.Title,
+			TitleAr:              ComplianceActionPlanFormDTO.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			QueryParam:           queryParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := caraps.userSvc.GetByID(ComplianceActionPlanFormDTO.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		assignedBy, err := caraps.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Compliance Assessment Requirement Action Plan%s: Responsibility Assigned", ComplianceActionPlanFormDTO.Title)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":           responsibleUser.FirstNameEn,
+			"LastNameEn":            responsibleUser.LastNameEn,
+			"ComplianceAssessment":  complianceAssessment.ComplianceRegister.TitleEn,
+			"ActionPlanTitle":       ComplianceActionPlanFormDTO.Title,
+			"ActionPlanDescription": ComplianceActionPlanFormDTO.Description,
+			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+			"AssignedByLastNameEn":  assignedBy.LastNameEn,
+			"AssignedOn":            time.Now().Format("2006-01-02"),
+			"RedirectURL":           fmt.Sprintf("%scompliance/assessments/%d/overview", appURL, complianceAssessmentID),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "compliance/templates/email/compliance_assessment_action_plan_create_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		// send notification and mail
+		err = caraps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}()
 
 	return id, nil
 }
 
-func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianceAssessmentID uint, requirementID uint, id uint, currentUserID uint, ComplianceAssessmentRequirementActionPlanFormDTO *complianceDTOs.ComplianceAssessmentRequirementActionPlanFormDTO) error {
+func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianceAssessmentID uint, requirementID uint, id uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) error {
 	tx := caraps.repo.BeginTransaction()
 
 	existingComplianceAssessmentRequirementActionPlan, err := caraps.GetByID(complianceAssessmentID, requirementID, id)
@@ -196,33 +314,53 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 		return err
 	}
 
-	if err := caraps.validateComplianceAssessmentRequirementActionPlanFormDTO(ComplianceAssessmentRequirementActionPlanFormDTO); err != nil {
-		return err
-	}
-
-	dates, err := caraps.parseComplianceAssessmentRequirementActionPlanDates(ComplianceAssessmentRequirementActionPlanFormDTO)
+	complianceAssessment, err := caraps.complianceAssessmentSvc.GetFullDetailsByID(complianceAssessmentID)
 	if err != nil {
 		return err
 	}
 
-	if existingComplianceAssessmentRequirementActionPlan.ResponsibleUserID != ComplianceAssessmentRequirementActionPlanFormDTO.ResponsibleUserID {
-		responsibleUnitID, err := caraps.userSvc.GetUserPrimaryUnitID(existingComplianceAssessmentRequirementActionPlan.ResponsibleUserID)
-		if err != nil {
-			return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "risk responsible unit")
-		}
-		existingComplianceAssessmentRequirementActionPlan.ResponsibleUnitID = responsibleUnitID
+	oldResponsibleUserID := existingComplianceAssessmentRequirementActionPlan.ResponsibleUserID
+
+	if err := caraps.validateComplianceActionPlanFormDTO(ComplianceActionPlanFormDTO); err != nil {
+		return err
+	}
+
+	dates, err := caraps.parseComplianceAssessmentRequirementActionPlanDates(ComplianceActionPlanFormDTO)
+	if err != nil {
+		return err
 	}
 
 	// Update Compliance ActionPlan
-	existingComplianceAssessmentRequirementActionPlan.Title = ComplianceAssessmentRequirementActionPlanFormDTO.Title
-	existingComplianceAssessmentRequirementActionPlan.Description = ComplianceAssessmentRequirementActionPlanFormDTO.Description
-	existingComplianceAssessmentRequirementActionPlan.ResponsibleUserID = ComplianceAssessmentRequirementActionPlanFormDTO.ResponsibleUserID
+	existingComplianceAssessmentRequirementActionPlan.Title = ComplianceActionPlanFormDTO.Title
+	existingComplianceAssessmentRequirementActionPlan.Description = ComplianceActionPlanFormDTO.Description
+	existingComplianceAssessmentRequirementActionPlan.ResponsibleUserID = ComplianceActionPlanFormDTO.ResponsibleUserID
 	existingComplianceAssessmentRequirementActionPlan.TargetDate = dates.TargetDate
-	existingComplianceAssessmentRequirementActionPlan.Percentage = ComplianceAssessmentRequirementActionPlanFormDTO.Percentage
-	existingComplianceAssessmentRequirementActionPlan.ActionPlanStatusID = ComplianceAssessmentRequirementActionPlanFormDTO.ActionPlanStatusID
+	existingComplianceAssessmentRequirementActionPlan.Percentage = ComplianceActionPlanFormDTO.Percentage
+	existingComplianceAssessmentRequirementActionPlan.ActionPlanStatusID = ComplianceActionPlanFormDTO.ActionPlanStatusID
+	existingComplianceAssessmentRequirementActionPlan.SeverityLevelID = ComplianceActionPlanFormDTO.SeverityLevelID
+	existingComplianceAssessmentRequirementActionPlan.Comments = ComplianceActionPlanFormDTO.Comments
+	existingComplianceAssessmentRequirementActionPlan.ReviewUserID = ComplianceActionPlanFormDTO.ReviewUserID
+
 	existingComplianceAssessmentRequirementActionPlan.UpdatedByID = &currentUserID
 
 	err = caraps.repo.Update(existingComplianceAssessmentRequirementActionPlan, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// //update task
+	urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d, "action_plan_id":%d}`, complianceAssessmentID, requirementID, id)
+
+	taskUpdateDTO := commonDTOs.TaskFormDTO{
+		Title:             ComplianceActionPlanFormDTO.Title,
+		Description:       ComplianceActionPlanFormDTO.Description,
+		URLParam:          &urlParam,
+		SeverityLevelID:   ComplianceActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID: ComplianceActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	err = caraps.taskSvc.Update(currentUserID, taskUpdateDTO, "compliance_action_plan_id", id, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -263,7 +401,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 		if len(changedData) > 0 {
 			err := caraps.activityLogSvc.LogActivity(
 				models.UpdateAction,
-				models.ComplianceAssessmentRequirementActionPlan{}.TableName(),
+				models.ComplianceActionPlan{}.TableName(),
 				id,
 				changedData,
 				currentUserID,
@@ -273,13 +411,137 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
-					"tableName": models.ComplianceAssessmentRequirementActionPlan{}.TableName(),
+					"tableName": models.ComplianceActionPlan{}.TableName(),
 					"recordID":  id,
 					"userID":    currentUserID,
 					"error":     err.Error(),
 				}
 
 				utility.LogError("Failed to log activity", fields)
+			}
+		}
+		// sends notification if responsible user has changed
+		if oldResponsibleUserID != existingComplianceAssessmentRequirementActionPlan.ResponsibleUserID {
+			urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d, "action_plan_id":%d}`, complianceAssessmentID, requirementID, id)
+			queryParam := ""
+			entity := "compliance-action-plan"
+
+			oldResponsibleUserAction := "responsible-user-remove"
+			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               oldResponsibleUserID,
+				ModuleIdentifier:     "compliance",
+				NotificationType:     string(commonDTOs.InformationType),
+				HeadingEn:            "Compliance Action Plan Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية خطة عمل الامتثال",
+				TitleEn:              existingComplianceAssessmentRequirementActionPlan.Title,
+				TitleAr:              existingComplianceAssessmentRequirementActionPlan.Title,
+				Entity:               &entity,
+				Action:               &oldResponsibleUserAction,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			newResponsibleUserAction := "responsible-user-assign"
+			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               ComplianceActionPlanFormDTO.ResponsibleUserID,
+				ModuleIdentifier:     "compliance",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Compliance Action Plan Responsibility Assigned",
+				HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+				TitleEn:              existingComplianceAssessmentRequirementActionPlan.Title,
+				TitleAr:              existingComplianceAssessmentRequirementActionPlan.Title,
+				Entity:               &entity,
+				Action:               &newResponsibleUserAction,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			oldResponsibleUser, err := caraps.userSvc.GetByID(oldResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			newResponsibleUser, err := caraps.userSvc.GetByID(ComplianceActionPlanFormDTO.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			assignedBy, err := caraps.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			appURL := utility.GetAppURL()
+
+			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+			oldResponsibleUserSubject := fmt.Sprintf("Compliance Assessment Requirement Action Plan%s: Responsibility Removed", existingComplianceAssessmentRequirementActionPlan.Title)
+			oldResponsibleUserTemplateRelativePath := "compliance/templates/email/compliance_assessment_action_plan_remove_responsible_user_mail.html"
+			oldResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":           oldResponsibleUser.FirstNameEn,
+				"LastNameEn":            oldResponsibleUser.LastNameEn,
+				"ActionPlanTitle":       existingComplianceAssessmentRequirementActionPlan.Title,
+				"ActionPlanDescription": existingComplianceAssessmentRequirementActionPlan.Description,
+				"RedirectURL":           fmt.Sprintf("%scompliance/assessments/%d/overview", appURL, complianceAssessmentID),
+			}
+
+			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldResponsibleUserEmailTo,
+				Subject:              oldResponsibleUserSubject,
+				TemplateRelativePath: oldResponsibleUserTemplateRelativePath,
+				EmailData:            oldResponsibleUserEmailData,
+			}
+
+			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+			newResponsibleUserSubject := fmt.Sprintf("Compliance Assessment Requirement Action Plan%s: Responsibility Assigned", existingComplianceAssessmentRequirementActionPlan.Title)
+			newResponsibleUserTemplateRelativePath := "compliance/templates/email/compliance_assessment_action_plan_change_responsible_user_mail.html"
+			newResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":           newResponsibleUser.FirstNameEn,
+				"LastNameEn":            newResponsibleUser.LastNameEn,
+				"ComplianceAssessment":  complianceAssessment.ComplianceRegister.TitleEn,
+				"ActionPlanTitle":       existingComplianceAssessmentRequirementActionPlan.Title,
+				"ActionPlanDescription": existingComplianceAssessmentRequirementActionPlan.Description,
+				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+				"AssignedByLastNameEn":  assignedBy.LastNameEn,
+				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           fmt.Sprintf("%scompliance/assessments/%d/overview", appURL, complianceAssessmentID),
+			}
+
+			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              newResponsibleUserEmailTo,
+				Subject:              newResponsibleUserSubject,
+				TemplateRelativePath: newResponsibleUserTemplateRelativePath,
+				EmailData:            newResponsibleUserEmailData,
+			}
+
+			err = caraps.notificationSvc.SendNotification(
+				newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "compliance_action_plan",
+			)
+			if err != nil {
+				utility.LogError("Failed to send new responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+			err = caraps.notificationSvc.SendNotification(
+				oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "compliance_action_plan",
+			)
+			if err != nil {
+				utility.LogError("Failed to send old responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
 			}
 		}
 
@@ -327,7 +589,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Delete(complianc
 		go func() {
 			err := caraps.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
-				models.ComplianceAssessmentRequirementActionPlan{}.TableName(),
+				models.ComplianceActionPlan{}.TableName(),
 				successfulIds,
 				deletedComplianceAssessmentRequirementActionPlan,
 				currentUserID,
@@ -344,22 +606,53 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Delete(complianc
 	return failedIds, nil
 }
 
-func (caraps *ComplianceAssessmentRequirementActionPlanService) validateComplianceAssessmentRequirementActionPlanFormDTO(ComplianceAssessmentRequirementActionPlanFormDTO *complianceDTOs.ComplianceAssessmentRequirementActionPlanFormDTO) error {
-
-	if _, err := caraps.actionPlanStatusSvc.GetByID(ComplianceAssessmentRequirementActionPlanFormDTO.ActionPlanStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
+func (caraps *ComplianceAssessmentRequirementActionPlanService) StatusUpdate(assessmentID uint, requirementID uint, id uint, currentUserID uint, complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error {
+	existingComplianceActionPlan, err := caraps.GetByID(assessmentID, requirementID, id)
+	if err != nil {
+		return err
 	}
 
-	if ComplianceAssessmentRequirementActionPlanFormDTO.Percentage == nil {
-		defaultValue := int(0)
-		ComplianceAssessmentRequirementActionPlanFormDTO.Percentage = &defaultValue
+	existingComplianceActionPlan.ActionPlanStatusID = complianceActionPlanStatusUpdateFormDTO.ActionPlanStatusID
+	existingComplianceActionPlan.Comments = &complianceActionPlanStatusUpdateFormDTO.Comment
+	existingComplianceActionPlan.Percentage = complianceActionPlanStatusUpdateFormDTO.Percentage
+	existingComplianceActionPlan.UpdatedByID = &currentUserID
+
+	err = caraps.repo.Update(existingComplianceActionPlan, tx)
+	if err != nil {
+		return err
+	}
+
+	isReviewUserNull := existingComplianceActionPlan.ReviewUserID == nil
+
+	// Fetch the corresponding task and update its status
+	existingTask, err := caraps.taskSvc.GetByFieldID("compliance_action_plan_id", id)
+	if err != nil {
+		return err
+	}
+	err = caraps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, complianceActionPlanStatusUpdateFormDTO.ActionPlanStatusID, isReviewUserNull, tx)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (caraps *ComplianceAssessmentRequirementActionPlanService) parseComplianceAssessmentRequirementActionPlanDates(dto *complianceDTOs.ComplianceAssessmentRequirementActionPlanFormDTO) (*complianceDTOs.ComplianceAssessmentRequirementActionPlanParsedDates, error) {
-	parsed := &complianceDTOs.ComplianceAssessmentRequirementActionPlanParsedDates{}
+func (caraps *ComplianceAssessmentRequirementActionPlanService) validateComplianceActionPlanFormDTO(ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) error {
+
+	if _, err := caraps.actionPlanStatusSvc.GetByID(ComplianceActionPlanFormDTO.ActionPlanStatusID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
+	}
+
+	if ComplianceActionPlanFormDTO.Percentage == nil {
+		defaultValue := int(0)
+		ComplianceActionPlanFormDTO.Percentage = &defaultValue
+	}
+
+	return nil
+}
+
+func (caraps *ComplianceAssessmentRequirementActionPlanService) parseComplianceAssessmentRequirementActionPlanDates(dto *complianceDTOs.ComplianceActionPlanFormDTO) (*complianceDTOs.ComplianceActionPlanParsedDates, error) {
+	parsed := &complianceDTOs.ComplianceActionPlanParsedDates{}
 
 	var err error
 	if *dto.TargetDate != "" {

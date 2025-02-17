@@ -47,7 +47,7 @@ func (repo *ComplianceClauseRepository) GetAll(complianceID uint) ([]*models.Com
 			return db.Preload("ChildClauses") // Recursive preload
 		}).
 		Where("compliance_register_id = ?", complianceID).
-		Order("clause_no").
+		Order("TRY_CAST(clause_no AS INT)").
 		Find(&clauses).Error
 
 	if err != nil {

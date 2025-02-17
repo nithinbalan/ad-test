@@ -11,7 +11,6 @@ type AssetRegister struct {
 	TitleAr                             string     `json:"title_ar" gorm:"type:nvarchar(500);not null" binding:"required"`
 	AssetTypeID                         uint       `json:"asset_type_id" gorm:"not null" binding:"required"`
 	AssetCategoryID                     uint       `json:"asset_category_id" gorm:"not null" binding:"required"`
-	AssetSubCategoryID                  uint       `json:"asset_sub_category_id" gorm:"not null" binding:"required"`
 	AssetStatusID                       uint       `json:"asset_status_id" gorm:"not null" binding:"required"`
 	ResponsibleUserID                   uint       `json:"responsible_user_id" gorm:"not null" binding:"required"`
 	ResponsibleUnitID                   uint       `json:"responsible_unit_id" gorm:"not null" binding:"required"`

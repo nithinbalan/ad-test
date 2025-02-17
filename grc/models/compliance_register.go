@@ -54,6 +54,7 @@ type ComplianceRegister struct {
 	Controls                []*ComplianceControl      `gorm:"foreignKey:ComplianceRegisterID"`
 	ComplianceStatusUpdates []*ComplianceStatusUpdate `gorm:"foreignKey:ComplianceRegisterID"`
 	ComplianceClauses       []*ComplianceClause       `gorm:"foreignKey:ComplianceRegisterID"`
+	ComplianceFolder        *ComplianceFolder         `gorm:"foreignKey:ComplianceFolderID"`
 }
 
 // TableName overrides the table name used by ComplianceRegister to `compliance_register`
