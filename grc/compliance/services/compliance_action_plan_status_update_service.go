@@ -578,6 +578,7 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 
 	taskStatus, err := capus.taskStatusSvc.GetByType("closed")
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -587,13 +588,19 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 		return err
 	}
 
-	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, existingComplianceActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx)
-	if err != nil {
-		tx.Rollback()
+	if err := tx.Commit(); err != nil {
 		return err
 	}
 
-	tx.Commit()
+	// Start a new transaction for the second update
+	tx2 := capus.repo.BeginTransaction()
+	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, existingComplianceActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx2)
+	if err != nil {
+		tx2.Rollback()
+		return err
+	}
+
+	tx2.Commit()
 
 	go func() {
 
@@ -745,10 +752,11 @@ func (capus *ComplianceActionPlanStatusUpdateService) Revert(complianceID uint, 
 
 	taskStatus, err := capus.taskStatusSvc.GetByType("closed")
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
-	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, *existingComplianceActionPlan.ReviewUserID, uint(taskStatus.ID))
+	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, *existingComplianceActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
 	if err != nil {
 		tx.Rollback()
 		return err

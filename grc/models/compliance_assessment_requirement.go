@@ -24,6 +24,8 @@ type ComplianceAssessmentRequirement struct {
 	CreatedByUser                         *User                                           `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser                         *User                                           `gorm:"foreignKey:UpdatedBYID"`
 	RequiredDocumentTitles                []*ComplianceAssessmentRequirementDocumentTitle `gorm:"foreignKey:ComplianceAssessmentRequirementID"`
+	ActionPlans                           []*ComplianceActionPlan                         `gorm:"foreignKey:ComplianceAssessmentRequirementID"`
+	RequirementComments                   []*ComplianceAssessmentRequirementComment       `gorm:"foreignKey:ComplianceAssessmentRequirementID"`
 }
 
 // TableName overrides the table name used by Compliance Assessment Requirement to `compliance_assessment_requirements`

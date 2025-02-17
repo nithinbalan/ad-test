@@ -93,7 +93,7 @@ type ComplianceActionPlanFormDTO struct {
 	Description             *string `json:"description" binding:"omitempty"`
 	SeverityLevelID         *uint   `json:"severity_level_id" binding:"omitempty"`
 	ResponsibleUserID       uint    `json:"responsible_user_id" binding:"required"`
-	TargetDate              *string `json:"target_date" binding:"omitempty,datetime=2006-01-02"`
+	TargetDate              *string `json:"target_date"`
 	Percentage              *int    `json:"percentage" binding:"omitempty"`
 	Comments                *string `json:"comments" binding:"omitempty"`
 	ReviewUserID            *uint   `json:"review_user_id"`
@@ -123,6 +123,7 @@ type ComplianceActionPlanDetailDTO struct {
 	ResponsibleUser                 organizationDTOs.UserMinimalDTO           `json:"responsible_user"`
 	ResponsibleUserUnitID           *uint                                     `json:"responsible_user_unit_id"`
 	ResponsibleUserUnit             *settingsDTOs.OrganizationUnitDTO         `json:"responsible_user_unit"`
+	ReviewUserID                    *uint                                     `json:"review_user_id"`
 	ReviewUser                      *organizationDTOs.UserMinimalDTO          `json:"review_user"`
 	ReviewUserUnitID                *uint                                     `json:"review_user_unit_id"`
 	ReviewUserUnit                  *settingsDTOs.OrganizationUnitDTO         `json:"review_user_unit"`

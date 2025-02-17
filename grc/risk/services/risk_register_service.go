@@ -29,7 +29,7 @@ import (
 type RiskRegisterServiceInterface interface {
 	GetAll(params *riskDTOs.RiskRegisterListQueryParamsDTO) (*riskDTOs.RiskRegisterListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*riskDTOs.RiskRegisterDetailDTO, error)
-	GetByID(id uint) (*models.RiskRegister, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskRegister, error)
 	Create(currentUserID uint, riskRegisterFormDTO *riskDTOs.RiskRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, risk *riskDTOs.RiskRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -42,27 +42,30 @@ type RiskRegisterServiceInterface interface {
 	GetDocumentPath(id uint, token string) (string, error)
 
 	ExportRiskRegister(data []*riskDTOs.RiskRegisterListDTO, currentUserID uint) (*os.File, error)
+
+	SetRiskInherentEvaluationService(evaluationSvc RiskInherentEvaluationServiceInterface)
 }
 
 // Service and implementations
 type RiskRegisterService struct {
-	repo                     riskRepositories.RiskRegisterRepositoryInterface
-	activityLogSvc           logServices.ActivityLogServiceInterface
-	riskCategorySvc          RiskCategoryServiceInterface
-	riskSourceSvc            RiskSourceServiceInterface
-	userSvc                  organizationServices.UserServiceInterface
-	riskStatusSvc            RiskStatusServiceInterface
-	reviewFrequencySvc       masterServices.ReviewFrequencyServiceInterface
-	controlSvc               organizationServices.ControlServiceInterface
-	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface
-	processSvc               organizationServices.ProcessServiceInterface
-	strategicObjectiveSvc    organizationServices.StrategicObjectiveServiceInterface
-	slaRegisterSvc           complianceServices.SLARegisterServiceInterface
-	riskMatrixSvc            RiskMatrixServiceInterface
-	riskTimelineSvc          RiskTimelineServiceInterface
-	userSettingSvc           organizationServices.UserSettingServiceInterface
-	notificationSvc          commonServices.NotificationServiceInterface
-	assetRegisterSvc         assetServices.AssetRegisterServiceInterface
+	repo                      riskRepositories.RiskRegisterRepositoryInterface
+	activityLogSvc            logServices.ActivityLogServiceInterface
+	riskCategorySvc           RiskCategoryServiceInterface
+	riskSourceSvc             RiskSourceServiceInterface
+	userSvc                   organizationServices.UserServiceInterface
+	riskStatusSvc             RiskStatusServiceInterface
+	reviewFrequencySvc        masterServices.ReviewFrequencyServiceInterface
+	controlSvc                organizationServices.ControlServiceInterface
+	complianceRequirementSvc  complianceServices.ComplianceRequirementServiceInterface
+	processSvc                organizationServices.ProcessServiceInterface
+	strategicObjectiveSvc     organizationServices.StrategicObjectiveServiceInterface
+	slaRegisterSvc            complianceServices.SLARegisterServiceInterface
+	riskMatrixSvc             RiskMatrixServiceInterface
+	riskTimelineSvc           RiskTimelineServiceInterface
+	userSettingSvc            organizationServices.UserSettingServiceInterface
+	notificationSvc           commonServices.NotificationServiceInterface
+	assetRegisterSvc          assetServices.AssetRegisterServiceInterface
+	riskInherentEvaluationSvc RiskInherentEvaluationServiceInterface
 }
 
 func NewRiskRegisterService(
@@ -83,25 +86,27 @@ func NewRiskRegisterService(
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	assetRegisterSvc assetServices.AssetRegisterServiceInterface,
+	riskInherentEvaluationSvc RiskInherentEvaluationServiceInterface,
 ) RiskRegisterServiceInterface {
 	return &RiskRegisterService{
-		repo:                     repo,
-		activityLogSvc:           activityLogSvc,
-		riskCategorySvc:          riskCategorySvc,
-		riskSourceSvc:            riskSourceSvc,
-		userSvc:                  userSvc,
-		riskStatusSvc:            riskStatusSvc,
-		reviewFrequencySvc:       reviewFrequencySvc,
-		controlSvc:               controlSvc,
-		complianceRequirementSvc: complianceRequirementSvc,
-		processSvc:               processSvc,
-		strategicObjectiveSvc:    strategicObjectiveSvc,
-		slaRegisterSvc:           slaRegisterSvc,
-		riskMatrixSvc:            riskMatrixSvc,
-		riskTimelineSvc:          riskTimelineSvc,
-		userSettingSvc:           userSettingSvc,
-		notificationSvc:          notificationSvc,
-		assetRegisterSvc:         assetRegisterSvc,
+		repo:                      repo,
+		activityLogSvc:            activityLogSvc,
+		riskCategorySvc:           riskCategorySvc,
+		riskSourceSvc:             riskSourceSvc,
+		userSvc:                   userSvc,
+		riskStatusSvc:             riskStatusSvc,
+		reviewFrequencySvc:        reviewFrequencySvc,
+		controlSvc:                controlSvc,
+		complianceRequirementSvc:  complianceRequirementSvc,
+		processSvc:                processSvc,
+		strategicObjectiveSvc:     strategicObjectiveSvc,
+		slaRegisterSvc:            slaRegisterSvc,
+		riskMatrixSvc:             riskMatrixSvc,
+		riskTimelineSvc:           riskTimelineSvc,
+		userSettingSvc:            userSettingSvc,
+		notificationSvc:           notificationSvc,
+		assetRegisterSvc:          assetRegisterSvc,
+		riskInherentEvaluationSvc: riskInherentEvaluationSvc,
 	}
 }
 
@@ -109,8 +114,8 @@ func (rrs *RiskRegisterService) GetAll(params *riskDTOs.RiskRegisterListQueryPar
 	return rrs.repo.GetAll(params)
 }
 
-func (rrs RiskRegisterService) GetByID(id uint) (*models.RiskRegister, error) {
-	risk, err := rrs.repo.GetByID(id)
+func (rrs RiskRegisterService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskRegister, error) {
+	risk, err := rrs.repo.GetByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -191,7 +196,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		return 0, err
 	}
 
-	riskStatus, err := rrs.riskStatusSvc.GetByType("open")
+	riskStatus, err := rrs.riskStatusSvc.GetByType("identified")
 	if err != nil {
 		return 0, err
 	}
@@ -460,6 +465,19 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 				tx.Rollback()
 				return 0, err
 			}
+		}
+	}
+
+	if riskRegisterFormDTO.RiskMatrixLikelihoodID != nil && riskRegisterFormDTO.RiskMatrixImpactID != nil {
+		inherentEvaluationFormDTO := &riskDTOs.RiskInherentEvaluationFormDTO{
+			RiskMatrixLikelihoodID: *riskRegisterFormDTO.RiskMatrixLikelihoodID,
+			RiskMatrixImpactID:     *riskRegisterFormDTO.RiskMatrixImpactID,
+		}
+
+		_, err := rrs.riskInherentEvaluationSvc.Create(id, currentUserID, inherentEvaluationFormDTO, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
 		}
 	}
 
@@ -1803,7 +1821,7 @@ func (rrs *RiskRegisterService) getControlScoreByType(riskID uint, controlType s
 }
 
 func (rrs *RiskRegisterService) UpdateRiskRating(riskID uint, currentUserID uint, riskEvaluationDetails *models.RiskEvaluation, tx utility.DatabaseTransaction, evaluationType string) error {
-	existingRisk, err := rrs.GetByID(riskID)
+	existingRisk, err := rrs.GetByID(riskID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -2301,9 +2319,6 @@ func (cs *RiskRegisterService) ExportRiskRegister(data []*riskDTOs.RiskRegisterL
 	return utility.GenerateExcelFile(headers, rows)
 }
 
-// func getStringValue(pointer *string) string {
-// 	if pointer != nil {
-// 		return *pointer
-// 	}
-// 	return ""
-// }
+func (rrs *RiskRegisterService) SetRiskInherentEvaluationService(evaluationSvc RiskInherentEvaluationServiceInterface) {
+	rrs.riskInherentEvaluationSvc = evaluationSvc
+}
