@@ -13,7 +13,7 @@ import (
 type RiskTimelineServiceInterface interface {
 	GetAll(riskID uint, params *riskDTOs.RiskTimelineListQueryParamsDTO) (*riskDTOs.RiskTimelineListResponseDTO, error)
 	GetAllTypes() ([]models.RiskTimelineType, error)
-	GetByID(riskID uint, timelineTypeID uint) (*models.RiskTimeline, error)
+	GetByID(riskID uint, timelineTypeID uint, tx ...utility.DatabaseTransaction) (*models.RiskTimeline, error)
 	GetByType(timelineType string) (*models.RiskTimelineType, error)
 	GetByStatusType(status string) (*models.TimelineStatus, error)
 	Create(timelineFormDTOs []*riskDTOs.RiskTimelineFormDTO, tx ...utility.DatabaseTransaction) error
@@ -45,8 +45,8 @@ func (rts *RiskTimelineService) GetAllTypes() ([]models.RiskTimelineType, error)
 	return rts.repo.GetAllTypes()
 }
 
-func (rts *RiskTimelineService) GetByID(riskID uint, timelineTypeID uint) (*models.RiskTimeline, error) {
-	riskTimeline, err := rts.repo.GetByID(riskID, timelineTypeID)
+func (rts *RiskTimelineService) GetByID(riskID uint, timelineTypeID uint, tx ...utility.DatabaseTransaction) (*models.RiskTimeline, error) {
+	riskTimeline, err := rts.repo.GetByID(riskID, timelineTypeID, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, riskID)
@@ -96,7 +96,7 @@ func (rts *RiskTimelineService) Create(timelineFormDTOs []*riskDTOs.RiskTimeline
 }
 
 func (rts *RiskTimelineService) Update(riskID uint, riskTimelineFormDTO *riskDTOs.RiskTimelineFormDTO, timelineTypeID uint, tx ...utility.DatabaseTransaction) error {
-	existingTimeline, err := rts.GetByID(riskID, timelineTypeID)
+	existingTimeline, err := rts.GetByID(riskID, timelineTypeID, tx...)
 	if err != nil {
 		return err
 	}

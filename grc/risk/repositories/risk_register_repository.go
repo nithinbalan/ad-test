@@ -463,6 +463,7 @@ func (repo *RiskRegisterRepository) GenerateReferenceNumber() (string, error) {
 	err := repo.db.Model(&models.RiskRegister{}).
 		Select("reference_number").
 		Order("reference_number desc").
+		Where("reference_number LIKE ?", "IR-%").
 		Limit(1).
 		Pluck("reference_number", &lastReferenceNumber).
 		Error
@@ -481,7 +482,7 @@ func (repo *RiskRegisterRepository) GenerateReferenceNumber() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "RR", currentYear, lastReferenceID+1)
+	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "IR", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
 }
