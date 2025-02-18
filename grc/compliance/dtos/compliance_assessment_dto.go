@@ -120,10 +120,16 @@ type AssessmentCompletionSummaryDTO struct {
 	NotCompleted int `json:"not_completed"`
 }
 
-type ComplianceStatusSummaryDTO struct {
-	TotalRequirements int            `json:"total_requirements"`
-	StatusCounts      map[string]int `json:"status_counts"`
-	PendingCount      int            `json:"pending_count"`
+// type ComplianceStatusSummaryDTO struct {
+// 	TotalRequirements int            `json:"total_requirements"`
+// 	StatusCounts      map[string]int `json:"status_counts"`
+// 	PendingCount      int            `json:"pending_count"`
+// }
+
+type ComplianceStatusCountDTO struct {
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+	Count   int    `json:"count"`
 }
 
 type ComplianceScoreSummaryDTO struct {

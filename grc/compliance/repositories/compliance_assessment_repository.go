@@ -27,7 +27,7 @@ type ComplianceAssessmentRepositoryInterface interface {
 	DeleteComplianceAssessmentRequirementDocumentTitles(ids []*uint, tx ...utility.DatabaseTransaction) error
 
 	AssessmentCompletionSummary(assessmentID uint) (*complianceDTOs.AssessmentCompletionSummaryDTO, error)
-	GetComplianceStatusSummary(assessmentID uint) (*complianceDTOs.ComplianceStatusSummaryDTO, error)
+	GetComplianceStatusSummary(assessmentID uint) ([]complianceDTOs.ComplianceStatusCountDTO, error)
 	GetComplianceScoreSummary(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error)
 }
 
@@ -342,55 +342,32 @@ func (repo *ComplianceAssessmentRepository) AssessmentCompletionSummary(assessme
 	return &result, nil
 }
 
-func (repo *ComplianceAssessmentRepository) GetComplianceStatusSummary(assessmentID uint) (*complianceDTOs.ComplianceStatusSummaryDTO, error) {
-	var result complianceDTOs.ComplianceStatusSummaryDTO
-	result.StatusCounts = make(map[string]int)
-	var totalRequirements int
-	var pendingCount int
+func (repo *ComplianceAssessmentRepository) GetComplianceStatusSummary(assessmentID uint) ([]complianceDTOs.ComplianceStatusCountDTO, error) {
+	var results []complianceDTOs.ComplianceStatusCountDTO
 
-	// Get the total count of requirements
-	if err := repo.db.Raw(`
-		SELECT COUNT(*) 
-		FROM compliance_assessment_requirements 
-		WHERE compliance_assessment_id = ?`, assessmentID).Scan(&totalRequirements).Error; err != nil {
-		return nil, err
-	}
-
-	// Get counts for each compliance status type
+	// Get counts for each compliance status with their English & Arabic titles
 	rows, err := repo.db.Raw(`
-		SELECT cs.type AS status_type, COUNT(csr.id) AS count 
+		SELECT cs.title_en, cs.title_ar, COUNT(csr.id) AS count 
 		FROM compliance_assessment_requirements csr
 		INNER JOIN compliance_statuses cs ON csr.compliance_status_id = cs.id
 		WHERE csr.compliance_assessment_id = ?
-		GROUP BY cs.type`, assessmentID).Rows()
+		GROUP BY cs.title_en, cs.title_ar`, assessmentID).Rows()
 
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
+	// Process query results
 	for rows.Next() {
-		var statusType string
-		var count int
-		if err := rows.Scan(&statusType, &count); err != nil {
+		var item complianceDTOs.ComplianceStatusCountDTO
+		if err := rows.Scan(&item.TitleEn, &item.TitleAr, &item.Count); err != nil {
 			return nil, err
 		}
-		result.StatusCounts[statusType] = count
+		results = append(results, item)
 	}
 
-	// Get count of pending requirements (compliance_status_id IS NULL)
-	if err := repo.db.Raw(`
-		SELECT COUNT(*) 
-		FROM compliance_assessment_requirements 
-		WHERE compliance_assessment_id = ? AND compliance_status_id IS NULL`, assessmentID).Scan(&pendingCount).Error; err != nil {
-		return nil, err
-	}
-
-	// Set the result
-	result.TotalRequirements = totalRequirements
-	result.PendingCount = pendingCount
-
-	return &result, nil
+	return results, nil
 }
 
 func (repo *ComplianceAssessmentRepository) GetComplianceScoreSummary(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error) {
