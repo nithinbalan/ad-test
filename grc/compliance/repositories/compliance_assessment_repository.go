@@ -27,7 +27,7 @@ type ComplianceAssessmentRepositoryInterface interface {
 	DeleteComplianceAssessmentRequirementDocumentTitles(ids []*uint, tx ...utility.DatabaseTransaction) error
 
 	AssessmentCompletionSummary(assessmentID uint) (*complianceDTOs.AssessmentCompletionSummaryDTO, error)
-	GetComplianceStatusSummary(assessmentID uint) ([]complianceDTOs.ComplianceStatusCountDTO, error)
+	GetComplianceStatusSummary(assessmentID uint) ([]*complianceDTOs.ComplianceStatusCountDTO, error)
 	GetComplianceScoreSummary(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error)
 }
 
@@ -342,16 +342,16 @@ func (repo *ComplianceAssessmentRepository) AssessmentCompletionSummary(assessme
 	return &result, nil
 }
 
-func (repo *ComplianceAssessmentRepository) GetComplianceStatusSummary(assessmentID uint) ([]complianceDTOs.ComplianceStatusCountDTO, error) {
-	var results []complianceDTOs.ComplianceStatusCountDTO
+func (repo *ComplianceAssessmentRepository) GetComplianceStatusSummary(assessmentID uint) ([]*complianceDTOs.ComplianceStatusCountDTO, error) {
+	results := []*complianceDTOs.ComplianceStatusCountDTO{}
 
 	// Get counts for each compliance status with their English & Arabic titles
 	rows, err := repo.db.Raw(`
-		SELECT cs.title_en, cs.title_ar, COUNT(csr.id) AS count 
+		SELECT cs.title_en, cs.title_ar, cs.color_code, COUNT(csr.id) AS count 
 		FROM compliance_assessment_requirements csr
 		INNER JOIN compliance_statuses cs ON csr.compliance_status_id = cs.id
 		WHERE csr.compliance_assessment_id = ?
-		GROUP BY cs.title_en, cs.title_ar`, assessmentID).Rows()
+		GROUP BY cs.title_en, cs.title_ar, cs.color_code`, assessmentID).Rows()
 
 	if err != nil {
 		return nil, err
@@ -360,8 +360,8 @@ func (repo *ComplianceAssessmentRepository) GetComplianceStatusSummary(assessmen
 
 	// Process query results
 	for rows.Next() {
-		var item complianceDTOs.ComplianceStatusCountDTO
-		if err := rows.Scan(&item.TitleEn, &item.TitleAr, &item.Count); err != nil {
+		item := &complianceDTOs.ComplianceStatusCountDTO{}
+		if err := rows.Scan(&item.TitleEn, &item.TitleAr, &item.ColorCode, &item.Count); err != nil {
 			return nil, err
 		}
 		results = append(results, item)
