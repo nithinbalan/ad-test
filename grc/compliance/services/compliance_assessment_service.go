@@ -428,7 +428,6 @@ func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(com
 }
 
 func (cras *ComplianceAssessmentService) validateComplianceAssessmentOrganizationUnit(organizationUnitID uint, complianceRegisterID uint, id *uint) error {
-
 	statusIds := []uint{}
 
 	complianceAssessmentDraftStatus, err := cras.complianceAssessmentStatusSvc.GetByType("draft")
@@ -613,8 +612,7 @@ func (cras *ComplianceAssessmentService) SubmitComplianceAssessment(assessmentID
 		emailData := map[string]interface{}{
 			"ReviewerFirstName": reviewUser.FirstNameEn,
 			"ReviewerLastName":  reviewUser.LastNameEn,
-			"AssessmentID":      assessmentID,
-			"PrimaryUnitId":     assessment.PrimaryUnitID,
+			"PrimaryUnit":       assessmentDetails.OrganizationUnit.TitleEn,
 			"ReferenceNumber":   assessmentDetails.ComplianceRegister.ReferenceNumber,
 			"TitleEn":           assessmentDetails.ComplianceRegister.TitleEn,
 			"TitleAr":           assessmentDetails.ComplianceRegister.TitleAr,
