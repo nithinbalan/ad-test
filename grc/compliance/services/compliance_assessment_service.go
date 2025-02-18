@@ -592,7 +592,7 @@ func (cras *ComplianceAssessmentService) SubmitComplianceAssessment(assessmentID
 		}
 
 		// Send Notification
-		err = cras.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
+		err = cras.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_assessment")
 		if err != nil {
 			fmt.Println("Failed to send notifications:", err)
 		}
