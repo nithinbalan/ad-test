@@ -574,12 +574,14 @@ func (cras *ComplianceAssessmentService) SubmitComplianceAssessment(assessmentID
 			"ReviewerFirstName": reviewUser.FirstNameEn,
 			"ReviewerLastName":  reviewUser.LastNameEn,
 			"AssessmentID":      assessmentID,
+			"PrimaryUnitId":     assessment.PrimaryUnitID,
 			"ReferenceNumber":   assessmentDetails.ComplianceRegister.ReferenceNumber,
 			"TitleEn":           assessmentDetails.ComplianceRegister.TitleEn,
 			"TitleAr":           assessmentDetails.ComplianceRegister.TitleAr,
+			"Description":       assessment.Description,
 			"CreatedBy":         fmt.Sprintf("%s %s", createdUser.FirstNameEn, createdUser.LastNameEn),
 			"SubmittedAt":       submittedAt.Format("2006-01-02"),
-			"RedirectURL":       fmt.Sprintf("%s/compliance/assessments/%d/review", appURL, assessmentID),
+			"RedirectURL":       fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, assessmentID),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
