@@ -520,6 +520,13 @@ func (cras *ComplianceAssessmentService) SubmitComplianceAssessment(assessmentID
 			nil,
 		)
 		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.ComplianceAssessment{}.TableName(),
+				"recordID":  assessmentID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
 			fmt.Println("Failed to log activity:", err)
 			return
 		}
