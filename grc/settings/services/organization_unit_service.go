@@ -175,21 +175,29 @@ func (ous *OrganizationUnitService) Delete(ids []uint, currentUserID uint) ([]ui
 	var successfulIds []uint
 
 	for _, id := range ids {
-		_, err := ous.GetByID(id)
+		// Recursively fetch all descendants
+		childUnitIDs := ous.repo.GetAllDescendantUnitIDs(id)
+		if len(childUnitIDs) > 0 {
+			childFailedIds, err := ous.Delete(childUnitIDs, currentUserID)
+			if err != nil || len(childFailedIds) > 0 {
+				failedIds = append(failedIds, childFailedIds...)
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
+
+		// Delete the current unit
+		err := ous.repo.Delete(id)
 		if err != nil {
+			fmt.Printf("Failed to delete unit %d: %v\n", id, err)
 			failedIds = append(failedIds, id)
 			continue
 		}
-		// Delete the organization unit
-		err = ous.repo.Delete(id)
-		if err != nil {
-			failedIds = append(failedIds, id)
-			continue
-		}
+
 		successfulIds = append(successfulIds, id)
 	}
 
-	// Log the delete activity for successful deletions
+	// Log successful deletions
 	go func() {
 		err := ous.activityLogSvc.LogBulkActivities(
 			models.DeleteAction,

@@ -43,6 +43,7 @@ func (repo *ComplianceFolderRepository) GetAll(sort string, sortBy string, keywo
 			cf.title_en, 
 			cf.title_ar, 
 			cf.status, 
+			COALESCE(cf.created_at, '1900-01-01 00:00:00') AS created_at, 
 			COUNT(cr.id) AS compliance_register_count
 		FROM compliance_folders cf
 		LEFT JOIN compliance_register cr ON cr.compliance_folder_id = cf.id
@@ -67,11 +68,12 @@ func (repo *ComplianceFolderRepository) GetAll(sort string, sortBy string, keywo
 		query += " WHERE " + strings.Join(whereClauses, " AND ")
 	}
 
-	query += " GROUP BY cf.id, cf.title_en, cf.title_ar, cf.status"
+	// Add created_at to GROUP BY to resolve the error
+	query += " GROUP BY cf.id, cf.title_en, cf.title_ar, cf.status, cf.created_at"
 
 	// Apply sorting
 	if sortBy == "" {
-		sortBy = "cf.title_en"
+		sortBy = "cf.created_at"
 	}
 	if sort != "asc" && sort != "desc" {
 		sort = "asc"
@@ -80,6 +82,11 @@ func (repo *ComplianceFolderRepository) GetAll(sort string, sortBy string, keywo
 
 	// Execute query
 	err := repo.db.Raw(query, args...).Scan(&folders).Error
+
+	// Ensure folders is never nil
+	if folders == nil {
+		folders = []*complianceDTOs.ComplianceFolderListDTO{}
+	}
 
 	return folders, err
 }
