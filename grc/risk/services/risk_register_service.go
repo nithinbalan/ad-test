@@ -66,6 +66,7 @@ type RiskRegisterService struct {
 	notificationSvc           commonServices.NotificationServiceInterface
 	assetRegisterSvc          assetServices.AssetRegisterServiceInterface
 	riskInherentEvaluationSvc RiskInherentEvaluationServiceInterface
+	riskSettingsSvc           RiskSettingsServiceInterface
 }
 
 func NewRiskRegisterService(
@@ -87,6 +88,7 @@ func NewRiskRegisterService(
 	notificationSvc commonServices.NotificationServiceInterface,
 	assetRegisterSvc assetServices.AssetRegisterServiceInterface,
 	riskInherentEvaluationSvc RiskInherentEvaluationServiceInterface,
+	riskSettingsSvc RiskSettingsServiceInterface,
 ) RiskRegisterServiceInterface {
 	return &RiskRegisterService{
 		repo:                      repo,
@@ -107,6 +109,7 @@ func NewRiskRegisterService(
 		notificationSvc:           notificationSvc,
 		assetRegisterSvc:          assetRegisterSvc,
 		riskInherentEvaluationSvc: riskInherentEvaluationSvc,
+		riskSettingsSvc:           riskSettingsSvc,
 	}
 }
 
@@ -570,6 +573,77 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			utility.LogError("Failed to send notifications", map[string]interface{}{
 				"error": err.Error(),
 			})
+		}
+
+		// review notification
+		riskSetting, err := rrs.riskSettingsSvc.Get()
+		if err != nil {
+			utility.LogError("Failed to fetch risk setting", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		reviewRoleID := riskSetting.ReviewRoleID
+
+		reviewUserIDs, err := rrs.userSvc.GetUserIdsByRole(reviewRoleID)
+		if err != nil {
+			utility.LogError("Failed to fetch reviewUser IDs", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		for _, userID := range reviewUserIDs {
+			user, err := rrs.userSvc.GetByID(userID)
+			if err != nil {
+				utility.LogError("Failed to fetch review user details", map[string]interface{}{
+					"error": err.Error(),
+				})
+				continue
+			}
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               userID,
+				ModuleIdentifier:     "risk",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Risk Register Review Assigned",
+				HeadingAr:            "تم تعيين مراجعة سجل المخاطر",
+				TitleEn:              riskRegisterFormDTO.Title,
+				TitleAr:              riskRegisterFormDTO.Title,
+				ReferenceNumber:      referenceNumber,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			emailTo := []string{user.Email}
+			subject := fmt.Sprintf("Risk Register/%s: Review Assigned", riskRegister.Title)
+			emailData := map[string]interface{}{
+				"FirstNameEn":          user.FirstNameEn,
+				"LastNameEn":           user.LastNameEn,
+				"RiskReferenceNumber":  existingRiskRegister.ReferenceNumber,
+				"RiskTitle":            existingRiskRegister.Title,
+				"RiskDescription":      existingRiskRegister.Description,
+				"CreatedByFirstNameEn": createdBy.FirstNameEn,
+				"CreatedByLastNameEn":  createdBy.LastNameEn,
+				"AssignedOn":           time.Now().Format("2006-01-02"),
+				"RedirectURL":          fmt.Sprintf("%srisk/risk-register/%d/overview", appURL, id),
+			}
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "risk/templates/email/risk_register_review_user_mail.html",
+				EmailData:            emailData,
+			}
+
+			err = rrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "risk")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
 		}
 	}()
 
