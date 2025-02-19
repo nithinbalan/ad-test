@@ -321,7 +321,6 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 	existingControlActionPlan.ReviewUserID = ControlActionPlanFormDTO.ReviewUserID
 	existingControlActionPlan.TargetDate = dates.TargetDate
 	existingControlActionPlan.Percentage = *ControlActionPlanFormDTO.Percentage
-	existingControlActionPlan.ActionPlanStatusID = ControlActionPlanFormDTO.ActionPlanStatusID
 	existingControlActionPlan.UpdatedByID = &currentUserID
 
 	err = caps.repo.Update(existingControlActionPlan, tx)

@@ -312,7 +312,6 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 	existingActionPlan.TargetDate = dates.TargetDate
 	existingActionPlan.Percentage = formDTO.Percentage
 	existingActionPlan.Comments = formDTO.Comments
-	existingActionPlan.ActionPlanStatusID = formDTO.ActionPlanStatusID
 	existingActionPlan.UpdatedByID = &currentUserID
 
 	err = taps.repo.Update(existingActionPlan, tx)

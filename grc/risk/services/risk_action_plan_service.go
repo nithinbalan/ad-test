@@ -341,7 +341,6 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	existingRiskActionPlan.TargetDate = dates.TargetDate
 	existingRiskActionPlan.Percentage = RiskActionPlanFormDTO.Percentage
 	existingRiskActionPlan.Comments = RiskActionPlanFormDTO.Comments
-	existingRiskActionPlan.ActionPlanStatusID = RiskActionPlanFormDTO.ActionPlanStatusID
 	existingRiskActionPlan.UpdatedBYID = &currentUserID
 
 	err = raps.repo.Update(existingRiskActionPlan, tx)

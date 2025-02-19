@@ -354,7 +354,6 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	existingMeetingActionPlan.ReviewUserID = MeetingActionPlanFormDTO.ReviewUserID
 	existingMeetingActionPlan.TargetDate = dates.TargetDate
 	existingMeetingActionPlan.Percentage = MeetingActionPlanFormDTO.Percentage
-	existingMeetingActionPlan.ActionPlanStatusID = MeetingActionPlanFormDTO.ActionPlanStatusID
 	existingMeetingActionPlan.MeetingMinuteID = MeetingActionPlanFormDTO.MeetingMinuteID
 	existingMeetingActionPlan.UpdatedByID = &currentUserID
 

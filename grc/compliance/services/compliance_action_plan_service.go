@@ -382,7 +382,6 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 	existingComplianceActionPlan.TargetDate = dates.TargetDate
 	existingComplianceActionPlan.Percentage = ComplianceActionPlanFormDTO.Percentage
 	existingComplianceActionPlan.Comments = ComplianceActionPlanFormDTO.Comments
-	existingComplianceActionPlan.ActionPlanStatusID = ComplianceActionPlanFormDTO.ActionPlanStatusID
 	existingComplianceActionPlan.UpdatedByID = &currentUserID
 
 	err = caps.repo.Update(existingComplianceActionPlan, tx)

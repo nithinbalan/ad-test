@@ -338,7 +338,6 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 	existingSLAActionPlan.TargetDate = dates.TargetDate
 	existingSLAActionPlan.Percentage = slaActionPlanFormDTO.Percentage
 	existingSLAActionPlan.Comments = slaActionPlanFormDTO.Comments
-	existingSLAActionPlan.ActionPlanStatusID = slaActionPlanFormDTO.ActionPlanStatusID
 	existingSLAActionPlan.UpdatedByID = &currentUserID
 
 	err = saps.repo.Update(existingSLAActionPlan, tx)

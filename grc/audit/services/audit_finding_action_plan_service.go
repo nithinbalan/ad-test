@@ -346,7 +346,6 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	existingAuditFindingActionPlan.TargetDate = dates.TargetDate
 	existingAuditFindingActionPlan.Percentage = AuditFindingActionPlanFormDTO.Percentage
 	existingAuditFindingActionPlan.Comments = AuditFindingActionPlanFormDTO.Comments
-	existingAuditFindingActionPlan.ActionPlanStatusID = AuditFindingActionPlanFormDTO.ActionPlanStatusID
 	existingAuditFindingActionPlan.UpdatedBYID = &currentUserID
 
 	err = afaps.repo.Update(existingAuditFindingActionPlan, tx)

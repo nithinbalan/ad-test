@@ -375,7 +375,6 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	existingIncidentActionPlan.TargetDate = dates.TargetDate
 	existingIncidentActionPlan.Percentage = IncidentActionPlanFormDTO.Percentage
 	existingIncidentActionPlan.Comments = IncidentActionPlanFormDTO.Comments
-	existingIncidentActionPlan.ActionPlanStatusID = IncidentActionPlanFormDTO.ActionPlanStatusID
 	existingIncidentActionPlan.UpdatedBYID = &currentUserID
 
 	err = iaps.repo.Update(existingIncidentActionPlan, tx)
