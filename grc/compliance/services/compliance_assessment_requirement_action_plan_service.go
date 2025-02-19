@@ -145,6 +145,11 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		return 0, err
 	}
 
+	actionPlanStatus, err := caraps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
 	complianceAssessmentRequirementActionPlan := &models.ComplianceActionPlan{
 		ComplianceRegisterID:              nil,
 		ComplianceAssessmentRequirementID: &requirementID,
@@ -153,7 +158,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		ResponsibleUserID:                 ComplianceActionPlanFormDTO.ResponsibleUserID,
 		TargetDate:                        dates.TargetDate,
 		Percentage:                        ComplianceActionPlanFormDTO.Percentage,
-		ActionPlanStatusID:                ComplianceActionPlanFormDTO.ActionPlanStatusID,
+		ActionPlanStatusID:                actionPlanStatus.ID,
 		SeverityLevelID:                   ComplianceActionPlanFormDTO.SeverityLevelID,
 		ReviewUserID:                      ComplianceActionPlanFormDTO.ReviewUserID,
 		Comments:                          ComplianceActionPlanFormDTO.Comments,
@@ -166,7 +171,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		return 0, err
 	}
 
-	actionPlanStatusID := ComplianceActionPlanFormDTO.ActionPlanStatusID
+	actionPlanStatusID := actionPlanStatus.ID
 	complianceActionPlanUpdate := &models.ComplianceActionPlanStatusUpdate{
 		ComplianceActionPlanID: id,
 		ActionPlanStatusID:     actionPlanStatusID,
@@ -638,10 +643,6 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) StatusUpdate(ass
 }
 
 func (caraps *ComplianceAssessmentRequirementActionPlanService) validateComplianceActionPlanFormDTO(ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) error {
-
-	if _, err := caraps.actionPlanStatusSvc.GetByID(ComplianceActionPlanFormDTO.ActionPlanStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
-	}
 
 	if ComplianceActionPlanFormDTO.Percentage == nil {
 		defaultValue := int(0)
