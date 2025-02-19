@@ -120,6 +120,32 @@ func (caraps ComplianceAssessmentRequirementActionPlanService) GetFullDetailsByI
 		complianceAssessmentRequirementActionPlanDTO.TargetDateString = &targetDate
 	}
 
+	responsibleUnitID, err := caraps.userSvc.GetUserPrimaryUnitID(complianceAssessmentRequirementActionPlan.ResponsibleUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	responsibleUnit, err := caraps.organizationUnitSvc.GetFullDetailsByID(responsibleUnitID)
+	if err != nil {
+		return nil, err
+	}
+	complianceAssessmentRequirementActionPlanDTO.ResponsibleUserUnitID = &responsibleUnitID
+	complianceAssessmentRequirementActionPlanDTO.ResponsibleUserUnit = responsibleUnit
+
+	if complianceAssessmentRequirementActionPlan.ReviewUserID != nil {
+		reviewUserUnitID, err := caraps.userSvc.GetUserPrimaryUnitID(*complianceAssessmentRequirementActionPlan.ReviewUserID)
+		if err != nil {
+			return nil, err
+		}
+
+		reviewUserUnit, err := caraps.organizationUnitSvc.GetFullDetailsByID(reviewUserUnitID)
+		if err != nil {
+			return nil, err
+		}
+		complianceAssessmentRequirementActionPlanDTO.ReviewUserUnitID = &reviewUserUnitID
+		complianceAssessmentRequirementActionPlanDTO.ReviewUserUnit = reviewUserUnit
+	}
+
 	complianceAssessmentRequirementActionPlanDTO.CreatedAt = complianceAssessmentRequirementActionPlan.CreatedAt
 	complianceAssessmentRequirementActionPlanDTO.UpdatedAt = complianceAssessmentRequirementActionPlan.UpdatedAt
 
@@ -145,6 +171,11 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		return 0, err
 	}
 
+	actionPlanStatus, err := caraps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
 	complianceAssessmentRequirementActionPlan := &models.ComplianceActionPlan{
 		ComplianceRegisterID:              nil,
 		ComplianceAssessmentRequirementID: &requirementID,
@@ -153,7 +184,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		ResponsibleUserID:                 ComplianceActionPlanFormDTO.ResponsibleUserID,
 		TargetDate:                        dates.TargetDate,
 		Percentage:                        ComplianceActionPlanFormDTO.Percentage,
-		ActionPlanStatusID:                ComplianceActionPlanFormDTO.ActionPlanStatusID,
+		ActionPlanStatusID:                actionPlanStatus.ID,
 		SeverityLevelID:                   ComplianceActionPlanFormDTO.SeverityLevelID,
 		ReviewUserID:                      ComplianceActionPlanFormDTO.ReviewUserID,
 		Comments:                          ComplianceActionPlanFormDTO.Comments,
@@ -166,7 +197,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		return 0, err
 	}
 
-	actionPlanStatusID := ComplianceActionPlanFormDTO.ActionPlanStatusID
+	actionPlanStatusID := actionPlanStatus.ID
 	complianceActionPlanUpdate := &models.ComplianceActionPlanStatusUpdate{
 		ComplianceActionPlanID: id,
 		ActionPlanStatusID:     actionPlanStatusID,
@@ -638,10 +669,6 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) StatusUpdate(ass
 }
 
 func (caraps *ComplianceAssessmentRequirementActionPlanService) validateComplianceActionPlanFormDTO(ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) error {
-
-	if _, err := caraps.actionPlanStatusSvc.GetByID(ComplianceActionPlanFormDTO.ActionPlanStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
-	}
 
 	if ComplianceActionPlanFormDTO.Percentage == nil {
 		defaultValue := int(0)
