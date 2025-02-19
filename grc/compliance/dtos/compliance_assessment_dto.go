@@ -127,9 +127,10 @@ type AssessmentCompletionSummaryDTO struct {
 // }
 
 type ComplianceStatusCountDTO struct {
-	TitleEn string `json:"title_en"`
-	TitleAr string `json:"title_ar"`
-	Count   int    `json:"count"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	Count     int    `json:"count"`
+	ColorCode string `json:"color_code"`
 }
 
 type ComplianceScoreSummaryDTO struct {
