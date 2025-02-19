@@ -55,16 +55,17 @@ type ComplianceClauseListResponseDTO struct {
 
 // ComplianceClauseFormDTO represents the request body for creating or updating a compliance clause.
 type ComplianceClauseFormDTO struct {
-	ParentClauseID *uint   `json:"parent_clause_id,omitempty"`
-	ClauseNo       string  `json:"clause_no,omitempty"` // Auto-generated if not provided
-	TitleEn        string  `json:"title_en" binding:"required"`
-	TitleAr        *string `json:"title_ar,omitempty"`
-	DescriptionEn  *string `json:"description_en,omitempty"`
-	DescriptionAr  *string `json:"description_ar,omitempty"`
-	ScopeEn        *string `json:"scope_en,omitempty"`
-	ScopeAr        *string `json:"scope_ar,omitempty"`
-	ObjectiveEn    *string `json:"objective_en,omitempty"`
-	ObjectiveAr    *string `json:"objective_ar,omitempty"`
+	ParentClauseID   *uint   `json:"parent_clause_id,omitempty"`
+	PreviousClauseID *uint   `json:"previous_clause_id,omitempty"`
+	ClauseNo         string  `json:"clause_no,omitempty"` // Auto-generated if not provided
+	TitleEn          string  `json:"title_en" binding:"required"`
+	TitleAr          *string `json:"title_ar,omitempty"`
+	DescriptionEn    *string `json:"description_en,omitempty"`
+	DescriptionAr    *string `json:"description_ar,omitempty"`
+	ScopeEn          *string `json:"scope_en,omitempty"`
+	ScopeAr          *string `json:"scope_ar,omitempty"`
+	ObjectiveEn      *string `json:"objective_en,omitempty"`
+	ObjectiveAr      *string `json:"objective_ar,omitempty"`
 }
 
 // ComplianceClauseDetailDTO represents detailed information for a compliance clause.

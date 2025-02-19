@@ -74,8 +74,20 @@ func (ccc *ComplianceClauseController) CreateComplianceClause(c *gin.Context) {
 
 	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
 	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, err.Error())
+			return
+		default:
+			utility.SendInternalErrResp(ccc.db, c, e.Error())
+			return
+		}
 	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)

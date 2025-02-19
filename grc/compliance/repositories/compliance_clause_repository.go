@@ -5,6 +5,9 @@ import (
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
+	"sort"
+	"strconv"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -41,17 +44,26 @@ func (repo *ComplianceClauseRepository) BeginTransaction() utility.DatabaseTrans
 func (repo *ComplianceClauseRepository) GetAll(complianceID uint) ([]*models.ComplianceClause, error) {
 	var clauses []*models.ComplianceClause
 
-	// Fetch all clauses with preloaded child clauses
+	// Fetch all clauses with preloaded child clauses (recursive loading)
 	err := repo.db.
 		Preload("ChildClauses", func(db *gorm.DB) *gorm.DB {
 			return db.Preload("ChildClauses") // Recursive preload
 		}).
 		Where("compliance_register_id = ?", complianceID).
-		Order("TRY_CAST(clause_no AS INT)").
 		Find(&clauses).Error
 
 	if err != nil {
 		return nil, err
+	}
+
+	// Sort clauses correctly using numeric sorting
+	sort.SliceStable(clauses, func(i, j int) bool {
+		return compareClauseNumbers(clauses[i].ClauseNo, clauses[j].ClauseNo)
+	})
+
+	// Recursively sort child clauses
+	for _, clause := range clauses {
+		sortChildClauses(clause)
 	}
 
 	return clauses, nil
@@ -276,4 +288,35 @@ func (repo *ComplianceClauseRepository) GetAssociatedComplianceRequirements(comp
 
 	err := repo.db.Raw(query, clauseID, complianceID).Scan(&requirements).Error
 	return requirements, err
+}
+
+func compareClauseNumbers(a, b string) bool {
+	aParts := strings.Split(a, ".")
+	bParts := strings.Split(b, ".")
+
+	for i := 0; i < len(aParts) && i < len(bParts); i++ {
+		aNum, _ := strconv.Atoi(aParts[i])
+		bNum, _ := strconv.Atoi(bParts[i])
+
+		if aNum != bNum {
+			return aNum < bNum
+		}
+	}
+
+	return len(aParts) < len(bParts)
+}
+
+func sortChildClauses(clause *models.ComplianceClause) {
+	if len(clause.ChildClauses) == 0 {
+		return
+	}
+
+	sort.SliceStable(clause.ChildClauses, func(i, j int) bool {
+		return compareClauseNumbers(clause.ChildClauses[i].ClauseNo, clause.ChildClauses[j].ClauseNo)
+	})
+
+	// Recursively sort nested child clauses
+	for _, child := range clause.ChildClauses {
+		sortChildClauses(child)
+	}
 }
