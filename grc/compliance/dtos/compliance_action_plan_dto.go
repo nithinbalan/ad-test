@@ -97,7 +97,7 @@ type ComplianceActionPlanFormDTO struct {
 	Percentage              *int    `json:"percentage" binding:"omitempty"`
 	Comments                *string `json:"comments" binding:"omitempty"`
 	ReviewUserID            *uint   `json:"review_user_id"`
-	ActionPlanStatusID      uint    `json:"action_plan_status_id"`
+	ActionPlanStatusID      uint    `json:"action_plan_status_id" binding:"required"`
 }
 
 type ComplianceActionPlanParsedDates struct {
