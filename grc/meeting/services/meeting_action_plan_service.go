@@ -147,6 +147,11 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		return 0, err
 	}
 
+	actionPlanStatus, err := maps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
 	meetingActionPlan := &models.MeetingActionPlan{
 		MeetingID:          meetingID,
 		Title:              MeetingActionPlanFormDTO.Title,
@@ -157,7 +162,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		MeetingMinuteID:    MeetingActionPlanFormDTO.MeetingMinuteID,
 		TargetDate:         dates.TargetDate,
 		Percentage:         MeetingActionPlanFormDTO.Percentage,
-		ActionPlanStatusID: MeetingActionPlanFormDTO.ActionPlanStatusID,
+		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedByID:        currentUserID,
 	}
 
@@ -175,7 +180,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		return 0, err
 	}
 
-	actionPlanStatusID := MeetingActionPlanFormDTO.ActionPlanStatusID
+	actionPlanStatusID := actionPlanStatus.ID
 	meetingActionPlanUpdate := &models.MeetingActionPlanStatusUpdate{
 		MeetingActionPlanID: id,
 		ActionPlanStatusID:  actionPlanStatusID,
@@ -773,9 +778,6 @@ func (maps *MeetingActionPlanService) validateMeetingActionPlanFormDTO(meetingAc
 		return utility.NewValidationError(fmt.Errorf("responsible user does not exist"), "not_exist", "responsible user")
 	}
 
-	if _, err := maps.actionPlanStatusSvc.GetByID(meetingActionPlanFormDTO.ActionPlanStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
-	}
 	if _, err := maps.meetingMinuteSvc.GetByID(*meetingActionPlanFormDTO.MeetingMinuteID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("meeting minute does not exist"), "not_exist", "meeting minute")
 	}

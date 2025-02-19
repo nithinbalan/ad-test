@@ -136,6 +136,11 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 		return 0, err
 	}
 
+	actionPlanStatus, err := taps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
 	actionPlan := &models.ThreatActionPlan{
 		ThreatID:           threatID,
 		Title:              formDTO.Title,
@@ -146,7 +151,7 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 		TargetDate:         dates.TargetDate,
 		Percentage:         formDTO.Percentage,
 		Comments:           formDTO.Comments,
-		ActionPlanStatusID: formDTO.ActionPlanStatusID,
+		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedByID:        currentUserID,
 	}
 
@@ -157,7 +162,7 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 
 	actionPlanUpdate := &models.ThreatActionPlanStatusUpdate{
 		ThreatActionPlanID: id,
-		ActionPlanStatusID: formDTO.ActionPlanStatusID,
+		ActionPlanStatusID: actionPlanStatus.ID,
 		Percentage:         formDTO.Percentage,
 		Comment:            "Initial action plan status",
 		CreatedByID:        currentUserID,
@@ -676,10 +681,6 @@ func (taps *ThreatActionPlanService) validateActionPlanFormDTO(formDTO *assetDTO
 		if _, err := taps.severityLevelSvc.GetByID(*formDTO.SeverityLevelID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 		}
-	}
-
-	if _, err := taps.actionPlanStatusSvc.GetByID(formDTO.ActionPlanStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
 
 	return nil

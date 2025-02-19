@@ -135,6 +135,11 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		return 0, err
 	}
 
+	actionPlanStatus, err := saps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
 	slaActionPlan := &models.SLAActionPlan{
 		SLARegisterID:      slaID,
 		SLACheckQuestionID: slaActionPlanFormDTO.SLACheckQuestionID,
@@ -146,7 +151,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		TargetDate:         dates.TargetDate,
 		Percentage:         slaActionPlanFormDTO.Percentage,
 		Comments:           slaActionPlanFormDTO.Comments,
-		ActionPlanStatusID: slaActionPlanFormDTO.ActionPlanStatusID,
+		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedByID:        currentUserID,
 	}
 
@@ -156,7 +161,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		return 0, err
 	}
 
-	actionPlanStatusID := slaActionPlanFormDTO.ActionPlanStatusID
+	actionPlanStatusID := actionPlanStatus.ID
 	slaActionPlanUpdate := &models.SLAActionPlanStatusUpdate{
 		SLAActionPlanID:    id,
 		ActionPlanStatusID: actionPlanStatusID,
@@ -760,10 +765,6 @@ func (saps *SLAActionPlanService) validateSLAActionPlanFormDTO(slaID uint, slaAc
 		if _, err := saps.slaCheckQuestionSvc.GetQuestionByID(slaID, *slaActionPlanFormDTO.SLACheckQuestionID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("SLA requirement does not exist"), "not_exist", "SLA requirement")
 		}
-	}
-
-	if _, err := saps.actionPlanStatusSvc.GetByID(slaActionPlanFormDTO.ActionPlanStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
 
 	return nil

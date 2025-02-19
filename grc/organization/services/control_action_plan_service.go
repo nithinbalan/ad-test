@@ -134,6 +134,11 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		return 0, err
 	}
 
+	actionPlanStatus, err := caps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
 	controlActionPlan := &models.ControlActionPlan{
 		ControlID:          controlID,
 		Title:              ControlActionPlanFormDTO.Title,
@@ -143,7 +148,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		ReviewUserID:       ControlActionPlanFormDTO.ReviewUserID,
 		TargetDate:         dates.TargetDate,
 		Percentage:         *ControlActionPlanFormDTO.Percentage,
-		ActionPlanStatusID: ControlActionPlanFormDTO.ActionPlanStatusID,
+		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedByID:        currentUserID,
 	}
 
@@ -153,7 +158,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		return 0, err
 	}
 
-	actionPlanStatusID := ControlActionPlanFormDTO.ActionPlanStatusID
+	actionPlanStatusID := actionPlanStatus.ID
 	controlActionPlanUpdate := &models.ControlActionPlanStatusUpdate{
 		ControlActionPlanID: id,
 		ActionPlanStatusID:  actionPlanStatusID,
@@ -670,10 +675,6 @@ func (caps *ControlActionPlanService) validateControlActionPlanFormDTO(ControlAc
 
 	if _, err := caps.userSvc.GetByID(uint(ControlActionPlanFormDTO.ResponsibleUserID)); err != nil {
 		return utility.NewValidationError(fmt.Errorf("responsible user does not exist"), "not_exist", "responsible user")
-	}
-
-	if _, err := caps.actionPlanStatusSvc.GetByID(ControlActionPlanFormDTO.ActionPlanStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
 
 	if ControlActionPlanFormDTO.Percentage == nil {

@@ -144,6 +144,11 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		return 0, err
 	}
 
+	actionPlanStatus, err := afaps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
 	auditFindingActionPlan := &models.AuditFindingActionPlan{
 		AuditFindingID:     findingID,
 		Title:              AuditFindingActionPlanFormDTO.Title,
@@ -154,7 +159,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		TargetDate:         dates.TargetDate,
 		Percentage:         AuditFindingActionPlanFormDTO.Percentage,
 		Comments:           AuditFindingActionPlanFormDTO.Comments,
-		ActionPlanStatusID: AuditFindingActionPlanFormDTO.ActionPlanStatusID,
+		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedBYID:        currentUserID,
 	}
 
@@ -164,7 +169,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		return 0, err
 	}
 
-	actionPlanStatusID := AuditFindingActionPlanFormDTO.ActionPlanStatusID
+	actionPlanStatusID := actionPlanStatus.ID
 	auditFindingActionPlanUpdate := &models.AuditFindingActionPlanStatusUpdate{
 		AuditFindingActionPlanID: id,
 		ActionPlanStatusID:       actionPlanStatusID,
@@ -756,10 +761,6 @@ func (afaps *AuditFindingActionPlanService) validateAuditFindingActionPlanFormDT
 		if _, err := afaps.severityLevelSvc.GetByID(*AuditFindingActionPlanFormDTO.SeverityLevelID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 		}
-	}
-
-	if _, err := afaps.actionPlanStatusSvc.GetByID(AuditFindingActionPlanFormDTO.ActionPlanStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
 
 	return nil
