@@ -182,6 +182,11 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		return 0, err
 	}
 
+	actionPlanStatus, err := caps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
 	complianceActionPlan := &models.ComplianceActionPlan{
 		ComplianceRegisterID:    &complianceID,
 		ComplianceRequirementID: ComplianceActionPlanFormDTO.ComplianceRequirementID,
@@ -193,7 +198,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		TargetDate:              dates.TargetDate,
 		Percentage:              ComplianceActionPlanFormDTO.Percentage,
 		Comments:                ComplianceActionPlanFormDTO.Comments,
-		ActionPlanStatusID:      ComplianceActionPlanFormDTO.ActionPlanStatusID,
+		ActionPlanStatusID:      actionPlanStatus.ID,
 		CreatedByID:             currentUserID,
 	}
 
@@ -203,7 +208,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		return 0, err
 	}
 
-	actionPlanStatusID := ComplianceActionPlanFormDTO.ActionPlanStatusID
+	actionPlanStatusID := actionPlanStatus.ID
 	complianceActionPlanUpdate := &models.ComplianceActionPlanStatusUpdate{
 		ComplianceActionPlanID: id,
 		ActionPlanStatusID:     actionPlanStatusID,
@@ -377,7 +382,6 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 	existingComplianceActionPlan.TargetDate = dates.TargetDate
 	existingComplianceActionPlan.Percentage = ComplianceActionPlanFormDTO.Percentage
 	existingComplianceActionPlan.Comments = ComplianceActionPlanFormDTO.Comments
-	existingComplianceActionPlan.ActionPlanStatusID = ComplianceActionPlanFormDTO.ActionPlanStatusID
 	existingComplianceActionPlan.UpdatedByID = &currentUserID
 
 	err = caps.repo.Update(existingComplianceActionPlan, tx)
@@ -796,10 +800,6 @@ func (caps *ComplianceActionPlanService) validateComplianceActionPlanFormDTO(com
 		if _, err := caps.complianceRequirementSvc.GetByID(complianceID, *ComplianceActionPlanFormDTO.ComplianceRequirementID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("compliance requirement does not exist"), "not_exist", "compliance requirement")
 		}
-	}
-
-	if _, err := caps.actionPlanStatusSvc.GetByID(ComplianceActionPlanFormDTO.ActionPlanStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
 
 	if ComplianceActionPlanFormDTO.ReviewUserID != nil {

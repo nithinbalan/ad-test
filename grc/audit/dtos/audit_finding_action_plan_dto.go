@@ -95,7 +95,7 @@ type AuditFindingActionPlanFormDTO struct {
 	TargetDate         *string `json:"target_date" binding:"omitempty,datetime=2006-01-02"`
 	Percentage         *uint   `json:"percentage" binding:"omitempty"`
 	Comments           *string `json:"comments" binding:"omitempty"`
-	ActionPlanStatusID uint    `json:"action_plan_status_id" binding:"required"`
+	ActionPlanStatusID uint    `json:"action_plan_status_id"`
 }
 
 type AuditFindingActionPlanParsedDates struct {

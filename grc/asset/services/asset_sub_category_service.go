@@ -116,7 +116,6 @@ func (ascs *AssetSubCategoryService) Update(id uint, currentUserID uint, assetSu
 	if err := ascs.validateAssetSubCategoryFormDTO(assetSubCategoryFormDTO, &id); err != nil {
 		return err
 	}
-
 	existingAssetSubCategory.AssetCategoryID = assetSubCategoryFormDTO.AssetCategoryID
 	existingAssetSubCategory.TitleEn = assetSubCategoryFormDTO.TitleEn
 	existingAssetSubCategory.TitleAr = assetSubCategoryFormDTO.TitleAr
@@ -126,7 +125,6 @@ func (ascs *AssetSubCategoryService) Update(id uint, currentUserID uint, assetSu
 	if err != nil {
 		return err
 	}
-
 	fieldsToCompare := []string{"AssetCategoryID", "TitleEn", "TitleAr", "Status"}
 	changes, err := utility.CompareFields(oldAssetSubCategory, existingAssetSubCategory, fieldsToCompare)
 
@@ -245,10 +243,8 @@ func (ascs *AssetSubCategoryService) Deactivate(ids []uint, currentUserID uint) 
 }
 
 func (ascs *AssetSubCategoryService) validateAssetSubCategoryFormDTO(assetSubCategoryFormDTO *assetDTOs.AssetSubCategoryFormDTO, id *uint) error {
-	if assetSubCategoryFormDTO.AssetCategoryID != nil {
-		if _, err := ascs.assetCategorySvc.GetByID(*assetSubCategoryFormDTO.AssetCategoryID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("asset type does not exist"), "not_exist", "asset type")
-		}
+	if _, err := ascs.assetCategorySvc.GetByID(assetSubCategoryFormDTO.AssetCategoryID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("asset category does not exist"), "not_exist", "asset category")
 	}
 
 	if id == nil {

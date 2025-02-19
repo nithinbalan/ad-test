@@ -13,7 +13,7 @@ type AssetSubCategoryRepositoryInterface interface {
 	GetAll(params *assetDTOs.AssetSubCategoryListQueryParamsDTO) ([]*assetDTOs.AssetSubCategoryDTO, error)
 	GetByID(id uint) (*models.AssetSubCategory, error)
 	Create(category *models.AssetSubCategory) (uint, error)
-	Update(category *models.AssetSubCategory) error
+	Update(updatedSubCategory *models.AssetSubCategory) error
 	Delete(id uint) error
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
@@ -87,8 +87,11 @@ func (repo *AssetSubCategoryRepository) Create(category *models.AssetSubCategory
 	return category.ID, nil
 }
 
-func (repo *AssetSubCategoryRepository) Update(updatedCategory *models.AssetSubCategory) error {
-	if err := repo.db.Save(updatedCategory).Error; err != nil {
+func (repo *AssetSubCategoryRepository) Update(updatedSubCategory *models.AssetSubCategory) error {
+	if err := repo.db.Model(&models.AssetSubCategory{}).
+		Where("id = ?", updatedSubCategory.ID).
+		Select("AssetCategoryID", "TitleEn", "TitleAr", "Status"). // ✅ Explicitly select AssetCategoryID
+		Updates(updatedSubCategory).Error; err != nil {
 		return err
 	}
 

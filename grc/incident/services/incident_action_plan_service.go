@@ -147,6 +147,11 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		return 0, err
 	}
 
+	actionPlanStatus, err := iaps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
 	incidentActionPlan := &models.IncidentActionPlan{
 		IncidentRegisterID: incidentID,
 		Title:              IncidentActionPlanFormDTO.Title,
@@ -157,7 +162,7 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		TargetDate:         dates.TargetDate,
 		Percentage:         IncidentActionPlanFormDTO.Percentage,
 		Comments:           IncidentActionPlanFormDTO.Comments,
-		ActionPlanStatusID: IncidentActionPlanFormDTO.ActionPlanStatusID,
+		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedBYID:        currentUserID,
 	}
 
@@ -166,7 +171,7 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		tx.Rollback()
 		return 0, err
 	}
-	actionPlanStatusID := IncidentActionPlanFormDTO.ActionPlanStatusID
+	actionPlanStatusID := actionPlanStatus.ID
 	incidentActionPlanUpdate := &models.IncidentActionPlanStatusUpdate{
 		IncidentActionPlanID: id,
 		ActionPlanStatusID:   actionPlanStatusID,
@@ -370,7 +375,6 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	existingIncidentActionPlan.TargetDate = dates.TargetDate
 	existingIncidentActionPlan.Percentage = IncidentActionPlanFormDTO.Percentage
 	existingIncidentActionPlan.Comments = IncidentActionPlanFormDTO.Comments
-	existingIncidentActionPlan.ActionPlanStatusID = IncidentActionPlanFormDTO.ActionPlanStatusID
 	existingIncidentActionPlan.UpdatedBYID = &currentUserID
 
 	err = iaps.repo.Update(existingIncidentActionPlan, tx)
@@ -807,10 +811,6 @@ func (iaps *IncidentActionPlanService) validateIncidentActionPlanFormDTO(Inciden
 		if _, err := iaps.severityLevelSvc.GetByID(*IncidentActionPlanFormDTO.SeverityLevelID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 		}
-	}
-
-	if _, err := iaps.actionPlanStatusSvc.GetByID(IncidentActionPlanFormDTO.ActionPlanStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
 
 	return nil
