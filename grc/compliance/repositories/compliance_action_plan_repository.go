@@ -233,6 +233,7 @@ func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint, tx ...ut
 	result := db.
 		Preload("ComplianceRequirement.ComplianceClause").
 		Preload("ComplianceAssessmentRequirement").
+		Preload("ComplianceAssessmentRequirement.ComplianceRequirement").
 		Preload("ComplianceRegister").
 		Preload("SeverityLevel").
 		Preload("ResponsibleUser").
