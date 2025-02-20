@@ -110,6 +110,13 @@ func (cras ComplianceAssessmentRequirementService) GetFullDetailsByID(assessment
 		}
 	}
 
+	// Created At comment list
+	if len(complianceAssessment.RequirementComments) > 0 {
+		for i, comment := range complianceAssessment.RequirementComments {
+			complianceAssessmentRequirementDTO.RequirementComments[i].CreatedAt = comment.CreatedAt
+		}
+	}
+
 	complianceAssessmentRequirementDTO.CreatedAt = complianceAssessment.CreatedAt
 	complianceAssessmentRequirementDTO.UpdatedAt = complianceAssessment.UpdatedAt
 	// todo :- also add extra fields which required in details screen
