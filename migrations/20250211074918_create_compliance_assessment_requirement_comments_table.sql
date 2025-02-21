@@ -14,5 +14,5 @@ CREATE TABLE compliance_assessment_requirement_comments
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE compliance_action_plan_comments;
+DROP TABLE compliance_assessment_requirement_comments;
 -- +goose StatementEnd
