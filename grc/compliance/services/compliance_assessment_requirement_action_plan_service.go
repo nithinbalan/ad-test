@@ -595,6 +595,55 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Delete(complianc
 			continue
 		}
 
+		if len(complianceAssessmentRequirementActionPlan.ActionPlanStatusUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			var deleteDocumentIds []*uint
+			for _, update := range complianceAssessmentRequirementActionPlan.ActionPlanStatusUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+				for _, document := range update.Documents {
+					deleteDocumentIds = append(deleteDocumentIds, &document.ID)
+				}
+			}
+			if err := caraps.repo.DeleteComplianceActionPlanStatusUpdateDocuments(deleteDocumentIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+			if err := caraps.repo.DeleteComplianceActionPlanStatusUpdates(deleteStatusUpdateIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
+
+		if len(complianceAssessmentRequirementActionPlan.ActionPlanComments) > 0 {
+			var deleteCommentIds []*uint
+			var deleteCommentDocumentIds []*uint
+			for _, update := range complianceAssessmentRequirementActionPlan.ActionPlanComments {
+				deleteCommentIds = append(deleteCommentIds, &update.ID)
+				for _, document := range update.Documents {
+					deleteCommentDocumentIds = append(deleteCommentDocumentIds, &document.ID)
+				}
+			}
+			if err := caraps.repo.DeleteComplianceActionPlanCommentDocuments(deleteCommentDocumentIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+			if err := caraps.repo.DeleteComplianceActionPlanComments(deleteCommentIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
+
+		existingTask, err := caraps.taskSvc.GetByFieldID("compliance_action_plan_id", id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		taskID, err := caraps.taskSvc.Delete(existingTask.ID, currentUserID)
+		if err != nil {
+			failedIds = append(failedIds, taskID)
+		}
+
 		err = caraps.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)

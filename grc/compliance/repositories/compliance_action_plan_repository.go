@@ -22,6 +22,9 @@ type ComplianceActionPlanRepositoryInterface interface {
 
 	CreateInitialComplianceActionPlanStatusUpdate(complianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteComplianceActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceActionPlanComments(ids []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceActionPlanCommentDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceActionPlanStatusUpdateDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceActionPlanRepository struct {
@@ -304,6 +307,45 @@ func (repo *ComplianceActionPlanRepository) DeleteComplianceActionPlanStatusUpda
 	}
 
 	if err := db.Where("id IN (?)", ids).Delete(&models.ComplianceActionPlanStatusUpdate{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ComplianceActionPlanRepository) DeleteComplianceActionPlanComments(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.ComplianceActionPlanComment{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ComplianceActionPlanRepository) DeleteComplianceActionPlanCommentDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", docIds).Delete(&models.ComplianceActionPlanCommentDocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ComplianceActionPlanRepository) DeleteComplianceActionPlanStatusUpdateDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", docIds).Delete(&models.ComplianceActionPlanStatusUpdateDocument{}).Error; err != nil {
 		return err
 	}
 
