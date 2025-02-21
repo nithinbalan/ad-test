@@ -142,6 +142,10 @@
 {
   "id": "distinct_review_user",
   "translation": "يجب أن يكون المستخدم المسؤول ومستخدم المراجعة مختلفين."
+},
+{
+  "id": "invalid",
+  "translation": "{{.Field}} غير صالح"
 }
 
 

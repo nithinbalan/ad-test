@@ -75,14 +75,18 @@ func (repo *ComplianceClauseRepository) GetByID(id uint, tx ...utility.DatabaseT
 		db = tx[0].DB()
 	}
 
-	var complianceClause *models.ComplianceClause
+	var complianceClause models.ComplianceClause
 	result := db.First(&complianceClause, id)
 
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			// Return an error instead of nil to indicate record not found
+			return nil, errors.New("compliance clause not found")
+		}
 		return nil, result.Error
 	}
 
-	return complianceClause, nil
+	return &complianceClause, nil
 }
 
 func (repo *ComplianceClauseRepository) Create(clause *models.ComplianceClause, tx ...utility.DatabaseTransaction) (uint, error) {
