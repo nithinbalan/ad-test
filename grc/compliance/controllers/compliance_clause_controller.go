@@ -179,18 +179,13 @@ func (ccc *ComplianceClauseController) DeleteComplianceClause(c *gin.Context) {
 }
 
 func (ccc *ComplianceClauseController) GetAssociatedComplianceRequirement(c *gin.Context) {
-	complianceIDStr := c.Param("complianceId")
-	clauseIDStr := c.Param("clauseId")
-
-	// Convert compliance ID to uint
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	complianceID, err := strconv.Atoi(c.Param("complianceId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	// Convert clause ID to uint
-	clauseID, err := strconv.ParseUint(clauseIDStr, 10, 64)
+	clauseID, err := strconv.Atoi(c.Param("clauseId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -204,4 +199,27 @@ func (ccc *ComplianceClauseController) GetAssociatedComplianceRequirement(c *gin
 	}
 
 	c.JSON(http.StatusOK, requirements)
+}
+
+func (cc *ComplianceClauseController) GetAssociatedControls(c *gin.Context) {
+	complianceID, err := strconv.Atoi(c.Param("complianceId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	clauseID, err := strconv.Atoi(c.Param("clauseId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Get associated controls
+	controls, err := cc.service.GetAssociatedControls(uint(complianceID), uint(clauseID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, controls)
 }

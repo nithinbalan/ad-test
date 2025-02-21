@@ -6,6 +6,7 @@ import (
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
 	"strconv"
 	"strings"
@@ -22,6 +23,7 @@ type ComplianceClauseServiceInterface interface {
 	Delete(id uint) error
 
 	GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error)
+	GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlMinimalListDTO, error)
 }
 
 type ComplianceClauseService struct {
@@ -343,4 +345,14 @@ func (ccs *ComplianceClauseService) GetAssociatedComplianceRequirements(complian
 	}
 
 	return requirements, nil
+}
+
+func (ccs *ComplianceClauseService) GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlMinimalListDTO, error) {
+	// Fetch associated controls through requirements from repository
+	controls, err := ccs.repo.GetAssociatedControls(complianceID, clauseID)
+	if err != nil {
+		return nil, err
+	}
+
+	return controls, nil
 }
