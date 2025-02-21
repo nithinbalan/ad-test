@@ -747,14 +747,20 @@ func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTO
 		}
 	}
 
-	if _, err := cs.userSvc.GetByID(uint(controlFormDTO.TestResponsibleUserID)); err != nil {
-		return utility.NewValidationError(fmt.Errorf("control test responsible user does not exist"), "not_exist", "test responsible user")
+	if controlFormDTO.TestResponsibleUserID != nil {
+		if _, err := cs.userSvc.GetByID(uint(*controlFormDTO.TestResponsibleUserID)); err != nil {
+			return utility.NewValidationError(fmt.Errorf("control test responsible user does not exist"), "not_exist", "test responsible user")
+		}
 	}
 
 	if controlFormDTO.TestFrequencyID != nil {
 		if _, err := cs.reviewFrequencySvc.GetByID(uint(*controlFormDTO.TestFrequencyID)); err != nil {
 			return utility.NewValidationError(fmt.Errorf("review test frequiency does not exist"), "not_exist", "test frequiency")
 		}
+	}
+
+	if controlFormDTO.TestFrequencyID != nil && controlFormDTO.TestResponsibleUserID == nil {
+		return utility.NewValidationError(fmt.Errorf("test responsible user is required when test frequency is selected"), "required", "test responsible user")
 	}
 
 	if controlFormDTO.IsApplicable {
@@ -1021,7 +1027,7 @@ func (ps *ControlService) ImportProcesses(file multipart.File, currentUserID uin
 			OwnerID:               utility.ParseUint(row["OwnerID"]),
 			TitleEn:               row["TitleEn"],
 			TitleAr:               row["TitleAr"],
-			TestResponsibleUserID: utility.ParseUint(row["TestResponsibleUserID"]),
+			TestResponsibleUserID: utility.ParseOptionalUint(row["TestResponsibleUserID"]),
 		}
 
 		// Validate and create the process
@@ -1212,7 +1218,7 @@ func (cs *ControlService) ImportControls(input []map[string]interface{}, current
 			Description:                   utility.GetOptionalStringValue(record["description"]),
 			ControlImplementationStatusID: utility.GetOptionalUintValue(record["implementation_status_id"]),
 			ControlEfficiencyStatusID:     utility.GetOptionalUintValue(record["efficiency_status_id"]),
-			TestResponsibleUserID:         record["test_responsible_user_id"].(uint),
+			TestResponsibleUserID:         utility.GetOptionalUintValue(record["test_responsible_user_id"]),
 			IsApplicable:                  true,
 		}
 
