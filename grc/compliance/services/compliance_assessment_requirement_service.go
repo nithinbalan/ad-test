@@ -105,8 +105,10 @@ func (cras ComplianceAssessmentRequirementService) GetFullDetailsByID(assessment
 	// Add TargetDate to action plan list
 	if len(complianceAssessment.ActionPlans) > 0 {
 		for i, actionPlan := range complianceAssessment.ActionPlans {
-			targetDate := actionPlan.TargetDate.Format("2006-01-02")
-			complianceAssessmentRequirementDTO.ActionPlans[i].TargetDateString = &targetDate
+			if actionPlan.TargetDate != nil {
+				targetDate := actionPlan.TargetDate.Format("2006-01-02")
+				complianceAssessmentRequirementDTO.ActionPlans[i].TargetDateString = &targetDate
+			}
 		}
 	}
 
