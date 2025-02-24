@@ -321,7 +321,7 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 			appURL := utility.GetAppURL()
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               userID,
+				UserIDs:              []uint{userID},
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.InformationType),
 				ReferenceNumber:      auditPlan.ReferenceNumber,
@@ -418,7 +418,7 @@ func (as *AuditService) Update(id uint, currentUserID uint, auditFormDTO *auditD
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"audit_plan": oldAudit.AuditPlan.Title,
 			"start_date": oldAudit.StartDate,

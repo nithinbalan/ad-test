@@ -393,7 +393,7 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 			}
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               *participantID,
+				UserIDs:              []uint{*participantID},
 				ModuleIdentifier:     "meeting",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				ReferenceNumber:      referenceNumber,
@@ -951,7 +951,7 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title":             oldMeeting.Title,
 			"description":       oldMeeting.Description,
@@ -1063,7 +1063,7 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 			}
 
 			removedUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               removedUserID,
+				UserIDs:              []uint{removedUserID},
 				ModuleIdentifier:     "meeting",
 				NotificationType:     string(commonDTOs.InformationType),
 				ReferenceNumber:      existingMeeting.ReferenceNumber,
@@ -1119,7 +1119,7 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 			}
 
 			newUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               newUserID,
+				UserIDs:              []uint{newUserID},
 				ModuleIdentifier:     "meeting",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				ReferenceNumber:      existingMeeting.ReferenceNumber,
@@ -1193,7 +1193,7 @@ func (ms *MeetingService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 			for _, participant := range meeting.Participants {
 				// Create system notification
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               participant.UserID,
+					UserIDs:              []uint{participant.UserID},
 					ModuleIdentifier:     "meeting",
 					NotificationType:     string(commonDTOs.InformationType),
 					ReferenceNumber:      meeting.ReferenceNumber,

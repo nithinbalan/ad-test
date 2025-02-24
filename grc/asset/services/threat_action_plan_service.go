@@ -220,7 +220,7 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 
 		// Prepare DB Notification
 		dbNotification := &commonDTOs.DBNotificationDTO{
-			UserID:               formDTO.ResponsibleUserID,
+			UserIDs:              []uint{formDTO.ResponsibleUserID},
 			ModuleIdentifier:     "threat",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Threat Action Plan Responsibility Assigned",
@@ -326,7 +326,7 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 		// Prepare log data
 		changedData := make(map[string]interface{})
 
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title":              oldActionPlan.Title,
 			"description":        oldActionPlan.Description,
@@ -365,7 +365,6 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -387,7 +386,7 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "threat",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Threat Action Plan Responsibility Removed",
@@ -404,7 +403,7 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               formDTO.ResponsibleUserID,
+				UserIDs:              []uint{formDTO.ResponsibleUserID},
 				ModuleIdentifier:     "threat",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Threat Action Plan Responsibility Assigned",
@@ -596,7 +595,7 @@ func (taps *ThreatActionPlanService) Delete(threatID uint, ids []uint, currentUs
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               notification.UserID,
+					UserIDs:              []uint{notification.UserID},
 					ModuleIdentifier:     "threat",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Threat Action Plan Deleted",

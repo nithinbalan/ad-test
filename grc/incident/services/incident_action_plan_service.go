@@ -229,7 +229,6 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 	tx.Commit()
 
 	go func() {
-
 		existingIncidentActionPlan, err := iaps.GetFullDetailsByID(incidentID, id)
 		if err != nil {
 			utility.LogError("Failed to fetch incident action plan", map[string]interface{}{
@@ -265,7 +264,7 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               IncidentActionPlanFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{IncidentActionPlanFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "incident",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Incident Action Plan Responsibility Assigned",
@@ -402,7 +401,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"title":              oldIncidentActionPlan.Title,
@@ -442,7 +441,6 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -463,7 +461,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "incident",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Incident Action Plan Responsibility Removed",
@@ -480,7 +478,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               IncidentActionPlanFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{IncidentActionPlanFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "incident",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Incident Action Plan Responsibility Assigned",
@@ -715,7 +713,7 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "incident",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Incident Action Plan Deleted",

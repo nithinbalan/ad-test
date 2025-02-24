@@ -521,7 +521,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		entity := "risk-register"
 		action := "responsible-user-assign"
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               riskRegisterFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{riskRegisterFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "risk",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Risk Register Responsibility Assigned",
@@ -543,7 +543,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		}
 		createdBy, err := rrs.userSvc.GetByID(currentUserID)
 		if err != nil {
-			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+			utility.LogError("Failed to fetch created by user", map[string]interface{}{
 				"error": err.Error(),
 			})
 			return
@@ -575,7 +575,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			})
 		}
 
-		// review notification
+		// Fetch risk settings
 		riskSetting, err := rrs.riskSettingsSvc.Get()
 		if err != nil {
 			utility.LogError("Failed to fetch risk setting", map[string]interface{}{
@@ -583,65 +583,88 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			})
 			return
 		}
-		reviewRoleID := riskSetting.ReviewRoleID
 
-		reviewUserIDs, err := rrs.userSvc.GetUserIdsByRole(reviewRoleID)
+		// Get Review User IDs
+		reviewUserIDs, err := rrs.userSvc.GetUserIdsByRole(riskSetting.ReviewRoleID)
 		if err != nil {
-			utility.LogError("Failed to fetch reviewUser IDs", map[string]interface{}{
+			utility.LogError("Failed to fetch review user IDs", map[string]interface{}{
 				"error": err.Error(),
 			})
 			return
 		}
 
-		for _, userID := range reviewUserIDs {
+		// Ensure we have valid reviewers
+		if len(reviewUserIDs) == 0 {
+			fmt.Println("No review users found, skipping notifications")
+			return
+		}
+
+		// Prepare Review User Emails & Names
+		reviewEmailTo := make([]string, len(reviewUserIDs))
+		reviewers := make(map[uint]string) // Map of userID -> full name
+
+		for i, userID := range reviewUserIDs {
 			user, err := rrs.userSvc.GetByID(userID)
 			if err != nil {
-				utility.LogError("Failed to fetch review user details", map[string]interface{}{
-					"error": err.Error(),
+				utility.LogError("Failed to fetch reviewer details", map[string]interface{}{
+					"error":  err.Error(),
+					"userID": userID,
 				})
 				continue
 			}
+			reviewEmailTo[i] = user.Email
+			reviewers[userID] = user.FirstNameEn + " " + user.LastNameEn 
+		}
 
-			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               userID,
-				ModuleIdentifier:     "risk",
-				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Risk Register Review Assigned",
-				HeadingAr:            "تم تعيين مراجعة سجل المخاطر",
-				TitleEn:              riskRegisterFormDTO.Title,
-				TitleAr:              riskRegisterFormDTO.Title,
-				ReferenceNumber:      referenceNumber,
-				Entity:               &entity,
-				Action:               &action,
-				URLParam:             urlParam,
-				IsSystemNotification: false,
-				CreatedByID:          &currentUserID,
-			}
+	
+		dbNotificationReview := &commonDTOs.DBNotificationDTO{
+			UserIDs:              reviewUserIDs, // Single DB notification for all reviewers
+			ModuleIdentifier:     "risk",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Risk Register Review Assigned",
+			HeadingAr:            "تم تعيين مراجعة سجل المخاطر",
+			TitleEn:              riskRegister.Title,
+			TitleAr:              riskRegister.Title,
+			ReferenceNumber:      existingRiskRegister.ReferenceNumber,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
 
-			emailTo := []string{user.Email}
-			subject := fmt.Sprintf("Risk Register/%s: Review Assigned", riskRegister.Title)
-			emailData := map[string]interface{}{
-				"FirstNameEn":          user.FirstNameEn,
-				"LastNameEn":           user.LastNameEn,
-				"RiskReferenceNumber":  existingRiskRegister.ReferenceNumber,
-				"RiskTitle":            existingRiskRegister.Title,
-				"RiskDescription":      existingRiskRegister.Description,
-				"CreatedByFirstNameEn": createdBy.FirstNameEn,
-				"CreatedByLastNameEn":  createdBy.LastNameEn,
-				"AssignedOn":           time.Now().Format("2006-01-02"),
-				"RedirectURL":          fmt.Sprintf("%srisk/risk-register/%d/overview", appURL, id),
-			}
-			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-				EmailTo:              emailTo,
-				Subject:              subject,
+		// **Send DB Notification only once**
+		err = rrs.notificationSvc.SendNotification(dbNotificationReview, nil, "risk")
+		if err != nil {
+			utility.LogError("Failed to send DB notification", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+
+		// **Send Personalized Emails inside the loop**
+		for userID, fullName := range reviewers {
+			emailNotificationReview := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              reviewEmailTo, // All reviewers receive the same email
+				Subject:              fmt.Sprintf("Risk Register/%s: Review Assigned", riskRegister.Title),
 				TemplateRelativePath: "risk/templates/email/risk_register_review_user_mail.html",
-				EmailData:            emailData,
+				EmailData: map[string]interface{}{
+					"FirstNameEn":          fullName, 
+					"RiskReferenceNumber":  existingRiskRegister.ReferenceNumber,
+					"RiskTitle":            existingRiskRegister.Title,
+					"RiskDescription":      existingRiskRegister.Description,
+					"CreatedByFirstNameEn": createdBy.FirstNameEn,
+					"CreatedByLastNameEn":  createdBy.LastNameEn,
+					"AssignedOn":           time.Now().Format("2006-01-02"),
+					"RedirectURL":          fmt.Sprintf("%srisk/risk-register/%d/overview", utility.GetAppURL(), riskRegister.ID),
+				},
 			}
 
-			err = rrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "risk")
+			// **Send only email notification here**
+			err = rrs.notificationSvc.SendNotification(nil, emailNotificationReview, "risk")
 			if err != nil {
-				utility.LogError("Failed to send notifications", map[string]interface{}{
-					"error": err.Error(),
+				utility.LogError("Failed to send review user email", map[string]interface{}{
+					"error":  err.Error(),
+					"userID": userID,
 				})
 			}
 		}
@@ -1375,7 +1398,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			// Old responsible user notification (Removal)
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "risk",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Risk Register Responsibility Removed",
@@ -1392,7 +1415,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			// New responsible user notification (Assignment)
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               riskRegisterFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{riskRegisterFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "risk",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Risk Register Responsibility Assigned",
@@ -1704,7 +1727,7 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 
 				// Prepare DB notification
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "risk",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Risk Register Deleted",

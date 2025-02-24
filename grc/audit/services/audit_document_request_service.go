@@ -492,7 +492,7 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 		appURL := utility.GetAppURL()
 
 		dbNotification := &commonDTOs.DBNotificationDTO{
-			UserID:               uint(responsibleUserID),
+			UserIDs:              []uint{responsibleUserID},
 			ModuleIdentifier:     "audit",
 			NotificationType:     string(commonDTOs.InformationType),
 			ReferenceNumber:      documentRequestFullDetails.Audit.AuditPlan.ReferenceNumber,

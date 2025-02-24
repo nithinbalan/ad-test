@@ -283,7 +283,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               slaRegisterFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{slaRegisterFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Sla RegisterResponsibility Assigned",
@@ -551,7 +551,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"sla_category":      oldSlaRegister.SLACategory.TitleEn,
 			"responsible_user":  fmt.Sprintf("%s %s", oldSlaRegister.ResponsibleUser.FirstNameEN, oldSlaRegister.ResponsibleUser.LastNameEN),
@@ -609,7 +609,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Sla Register Responsibility Removed",
@@ -627,7 +627,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 			// New responsible user notification (Assignment)
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               slaRegisterFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{slaRegisterFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Sla Register Responsibility Assigned",
@@ -868,7 +868,7 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 
 				// Prepare DB notification
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Sla Register Deleted",

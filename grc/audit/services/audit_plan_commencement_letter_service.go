@@ -4,6 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"strings"
+	"time"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	commonDTOs "jethur/grc/common/dtos"
@@ -12,8 +15,6 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"strings"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -112,9 +113,7 @@ func (aps *AuditPlanCommencementLetterService) Create(auditPlanId uint, currentU
 	// Group Auditable Items by ResponsibleUnitID
 	unitToItemsMap := make(map[uint][]*auditDTOs.AuditPlanAuditableItemDTO)
 	for _, item := range auditPlanDetails.AuditableItems {
-
 		unitToItemsMap[item.AuditableItem.ResponsibleUnitID] = append(unitToItemsMap[item.AuditableItem.ResponsibleUnitID], item)
-
 	}
 
 	auditPlanCommencementLetterStatus, err := aps.auditPlanCommencementLetterStatusSvc.GetByType("draft")
@@ -214,7 +213,7 @@ func (aps *AuditPlanCommencementLetterService) Update(auditPlanID uint, letterID
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"subject_en": oldCommencementLetter.SubjectEn,
 			"subject_ar": oldCommencementLetter.SubjectAr,
@@ -407,7 +406,7 @@ func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID u
 		urlParam := fmt.Sprintf(`{"id":%d}`, auditPlanID)
 		action := "send-commencement-letter"
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               commencementLetterSendFormDTO.ToUserID,
+			UserIDs:              []uint{commencementLetterSendFormDTO.ToUserID},
 			ModuleIdentifier:     "audit",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Audit Commencement Letter Sent",

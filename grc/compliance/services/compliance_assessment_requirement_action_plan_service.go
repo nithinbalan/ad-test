@@ -267,7 +267,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               ComplianceActionPlanFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{ComplianceActionPlanFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Action Plan Responsibility Assigned",
@@ -404,7 +404,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"title":              oldComplianceAssessmentRequirementActionPlan.Title,
@@ -438,7 +438,6 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -459,7 +458,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Compliance Action Plan Responsibility Removed",
@@ -476,7 +475,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               ComplianceActionPlanFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{ComplianceActionPlanFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Compliance Action Plan Responsibility Assigned",
@@ -575,7 +574,6 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 				})
 			}
 		}
-
 	}()
 
 	return nil
@@ -630,7 +628,6 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Delete(complianc
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
-
 		}()
 	}
 
@@ -669,7 +666,6 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) StatusUpdate(ass
 }
 
 func (caraps *ComplianceAssessmentRequirementActionPlanService) validateComplianceActionPlanFormDTO(ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) error {
-
 	if ComplianceActionPlanFormDTO.Percentage == nil {
 		defaultValue := int(0)
 		ComplianceActionPlanFormDTO.Percentage = &defaultValue

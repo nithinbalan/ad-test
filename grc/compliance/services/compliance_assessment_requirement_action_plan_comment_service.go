@@ -220,7 +220,7 @@ func (carapcs *ComplianceAssessmentRequirementActionPlanCommentService) Create(a
 				action := "comment-added"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *complianceActionPlan.ReviewUserID,
+					UserIDs:              []uint{*complianceActionPlan.ReviewUserID},
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.AssignmentType),
 					HeadingEn:            "Comment Added For Compliance Assessment Requirement Action Plan",
@@ -289,7 +289,7 @@ func (carapcs *ComplianceAssessmentRequirementActionPlanCommentService) Create(a
 			action := "comment-added"
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               complianceActionPlan.ResponsibleUserID,
+				UserIDs:              []uint{complianceActionPlan.ResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Comment Added For Compliance Assessment Requirement Action Plan",
@@ -357,7 +357,7 @@ func (carapcs *ComplianceAssessmentRequirementActionPlanCommentService) Create(a
 			action := "comment-added"
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               complianceActionPlan.ResponsibleUserID,
+				UserIDs:              []uint{complianceActionPlan.ResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Comment Added For Compliance Assessment Requirement Action Plan",
@@ -424,7 +424,7 @@ func (carapcs *ComplianceAssessmentRequirementActionPlanCommentService) Create(a
 				action := "comment-added"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *complianceActionPlan.ReviewUserID,
+					UserIDs:              []uint{*complianceActionPlan.ReviewUserID},
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.AssignmentType),
 					HeadingEn:            "Comment Added For Compliance Assessment Requirement Action Plan",
