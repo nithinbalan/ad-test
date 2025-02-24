@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strconv"
 	"time"
 
 	commonDTOs "jethur/grc/common/dtos"
@@ -185,6 +187,37 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 	if err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+
+	// Save Documents
+	if len(meetingFormDTO.Documents) > 0 {
+		var documents []*models.MeetingDocument
+		for _, doc := range meetingFormDTO.Documents {
+			dataToEncrypt := []byte(doc.FileName)
+			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+
+			url := utility.GenerateDocumentURL("meeting", "meetings", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+			document := &models.MeetingDocument{
+				MeetingID:    id,
+				URL:          url,
+				Name:         doc.FileName,
+				Size:         doc.Size,
+				Token:        encryptedFileName,
+				OriginalName: &doc.OriginalName,
+				Type:         doc.Type,
+				CreatedAt:    time.Now(),
+			}
+			documents = append(documents, document)
+		}
+
+		if err := ms.repo.CreateMeetingDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	// Save ComplianceRequirements
@@ -533,6 +566,65 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 		return err
 	}
 
+	// Handle documents
+	var documents []*models.MeetingDocument
+	var deleteDocumentIDs []*uint
+	var documentsToDelete []*models.MeetingDocument
+
+	for _, doc := range meetingFormDTO.Documents {
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			// Handle new documents
+			dataToEncrypt := []byte(doc.FileName)
+			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			url := utility.GenerateDocumentURL("meeting", "meetings", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+			document := &models.MeetingDocument{
+				MeetingID:    id,
+				URL:          url,
+				Name:         doc.FileName,
+				Size:         doc.Size,
+				Token:        encryptedFileName,
+				OriginalName: &doc.OriginalName,
+				Type:         doc.Type,
+				CreatedAt:    time.Now(),
+			}
+			documents = append(documents, document)
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			// Handle documents to be deleted
+			if doc.ID != nil {
+				existingDocument, err := ms.repo.GetDocumentByID(*doc.ID)
+				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return utility.NewResourceNotFoundError(err, id)
+					}
+					return err
+				}
+				documentsToDelete = append(documentsToDelete, existingDocument)
+				deleteDocumentIDs = append(deleteDocumentIDs, &existingDocument.ID)
+			}
+		}
+	}
+
+	// Create new documents
+	if len(documents) > 0 {
+		if err := ms.repo.CreateMeetingDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Delete marked documents
+	if len(deleteDocumentIDs) > 0 {
+		if err := ms.repo.DeleteMeetingDocuments(deleteDocumentIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	// Update Control IDs
 	existingControlIDs := make(map[uint]bool)
 	for _, ctrl := range existingMeeting.Controls {
@@ -817,6 +909,13 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 	}
 
 	tx.Commit()
+
+	for _, doc := range documentsToDelete {
+		storagePath := filepath.Join("document", "meetings", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+			fmt.Printf("Failed to delete file %s: %v\n", doc.Name, err)
+		}
+	}
 
 	go func() {
 		existingReviewMeeting, err := ms.GetFullDetailsByID(id)
