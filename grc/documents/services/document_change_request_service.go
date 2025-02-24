@@ -4,6 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
 	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
@@ -16,12 +23,6 @@ import (
 	settingsSvc "jethur/grc/settings/services"
 	taskServices "jethur/grc/task/services"
 	"jethur/utility"
-	"log"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -286,7 +287,6 @@ func (dcrs *DocumentChangeRequestService) Create(currentUserID uint, formDTO *do
 				log.Printf("Failed to convert document to PDF: %v", err)
 			}
 		}
-
 	}()
 
 	return id, nil
@@ -861,7 +861,6 @@ func (dcrs *DocumentChangeRequestService) Delete(ids []uint, currentUserID uint)
 						fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
 					}
 				}
-
 			}
 			destinationPath := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(documentCRID), 10), "document-history")
 			if err := utility.RemoveFolder(destinationPath); err != nil {
@@ -976,7 +975,7 @@ func (dcrs *DocumentChangeRequestService) CheckoutDocument(id uint, currentUserI
 		return "", fmt.Errorf("error retrieving document path: %w", err)
 	}
 
-	//document cr history
+	// document cr history
 	documentCREditHistory := &documentDTOs.DocumentCREditHistoryDTO{
 		DocumentChangeRequestID: id,
 		ActionType:              "check-out",
@@ -1083,7 +1082,7 @@ func (dcrs *DocumentChangeRequestService) CheckinDocument(id uint, currentUserID
 		return err
 	}
 
-	//add document cr history
+	// add document cr history
 	documentCREditHistory := &documentDTOs.DocumentCREditHistoryDTO{
 		DocumentChangeRequestID: id,
 		ActionType:              "check-in",
@@ -1142,7 +1141,7 @@ func (dcrs *DocumentChangeRequestService) RevertDocumentCheckout(id uint, curren
 		return err
 	}
 
-	//add document history
+	// add document history
 	// documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 	// 	DocumentID:        id,
 	// 	DocumentVersionID: document.LatestDocumentVersion.ID,
@@ -1263,7 +1262,7 @@ func (dcrs *DocumentChangeRequestService) SubmitDocumentChangeRequest(id uint, c
 			ModuleIdentifier:                "document",
 			DocumentChangeRequestID:         &id,
 			DocumentChangeRequestWorkflowID: &docCRWorkflowLevel.ID,
-			//Title:                           documentCRFullDetails.Document.TitleEn,
+			// Title:                           documentCRFullDetails.Document.TitleEn,
 			// Description:                     existingDocument.DescriptionEn,
 			URLParam:          &urlParam,
 			QueryParam:        nil,
@@ -1300,7 +1299,7 @@ func (dcrs *DocumentChangeRequestService) SubmitDocumentChangeRequest(id uint, c
 	// to do
 	// activity log
 
-	//Prepare notification
+	// Prepare notification
 	go func() {
 		urlParam = fmt.Sprintf(`{"id":%d}`, id)
 		entity := "document-change_request"
@@ -1308,7 +1307,7 @@ func (dcrs *DocumentChangeRequestService) SubmitDocumentChangeRequest(id uint, c
 
 		for _, participant := range docCRWorkflowLevel.DocumentChangeRequestWorkflowParticipants {
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               participant.User.ID,
+				UserIDs:              []uint{participant.User.ID},
 				ModuleIdentifier:     "document",
 				NotificationType:     string(commonDTOs.ReviewType),
 				ReferenceNumber:      existingCRDocument.ReferenceNumber,
@@ -1635,7 +1634,7 @@ func (dcrs *DocumentChangeRequestService) PublishDocumentChangeRequest(id uint, 
 			return err
 		}
 
-		//generate token
+		// generate token
 		dataToEncrypt := []byte(documentCRFullDetails.ChangeRequestDocument.Name)
 		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
@@ -1671,14 +1670,14 @@ func (dcrs *DocumentChangeRequestService) PublishDocumentChangeRequest(id uint, 
 		sourceDir := filepath.Join("document", "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
 		destinationDir := filepath.Join("document", "published", strconv.FormatUint(uint64(documentCRFullDetails.Document.ID), 10), "documents")
 
-		//copy docx file
+		// copy docx file
 		err = utility.CopyFileFromPaths(sourceDir, destinationDir, fileName)
 		if err != nil {
 			tx.Rollback()
 			return fmt.Errorf("error copying .docx file: %w", err)
 		}
 
-		//copy pdf file
+		// copy pdf file
 		pdfFileName := baseFileName + ".pdf"
 		err = utility.CopyFileFromPaths(sourceDir, destinationDir, pdfFileName)
 		if err != nil {
@@ -1692,8 +1691,8 @@ func (dcrs *DocumentChangeRequestService) PublishDocumentChangeRequest(id uint, 
 
 	dcrs.notifyUsersOnPublish(documentCRFullDetails, id, currentUserID)
 
-	//to do
-	//activity log
+	// to do
+	// activity log
 
 	return nil
 }
@@ -1811,7 +1810,7 @@ func (dcrs *DocumentChangeRequestService) notifyUsersOnPublish(documentChangeReq
 			uniqueUsers[uint(user.ID)] = true
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               uint(user.ID),
+				UserIDs:              []uint{uint(user.ID)},
 				ModuleIdentifier:     "document",
 				NotificationType:     string(commonDTOs.PublishType),
 				HeadingEn:            "Document Change Request Published",

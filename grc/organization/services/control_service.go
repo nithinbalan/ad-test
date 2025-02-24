@@ -223,7 +223,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 
 		// Send notification to new owner
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               controlFormDTO.OwnerID,
+			UserIDs:              []uint{controlFormDTO.OwnerID},
 			ModuleIdentifier:     "organization",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			ReferenceNumber:      referenceNumber,
@@ -375,7 +375,7 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 
 			// Notify the old owner
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.InformationType),
 				ReferenceNumber:      existingControl.ReferenceNumber,
@@ -392,7 +392,7 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 
 			// Notify the new owner
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               controlFormDTO.OwnerID,
+				UserIDs:              []uint{controlFormDTO.OwnerID},
 				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				ReferenceNumber:      existingControl.ReferenceNumber,
@@ -564,7 +564,7 @@ func (cs *ControlService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "organization",
 					NotificationType:     string(commonDTOs.DeletionType),
 					ReferenceNumber:      notification.ReferenceNumber,

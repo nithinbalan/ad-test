@@ -301,7 +301,6 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	tx.Commit()
 
 	go func() {
-
 		existingComplianceRequirement, err := crs.GetFullDetailsByID(complianceID, id)
 		if err != nil {
 			utility.LogError("Failed to fetch compliance register", map[string]interface{}{
@@ -337,7 +336,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               complianceRequirementFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{complianceRequirementFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Requirement Responsiblity Assigned",
@@ -772,7 +771,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"compliance_requirement_category": oldComplianceRequirement.ComplianceRequirementCategory.TitleEn,
 			"compliance_status":               oldComplianceRequirement.ComplianceStatus.TitleEn,
@@ -828,7 +827,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 			// Old responsible user notification (Removal)
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Compliance Requirement Responsibility Removed",
@@ -847,7 +846,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 			// New responsible user notification (Assignment)
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               complianceRequirementFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{complianceRequirementFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Compliance Requirement Responsibility Assigned",
@@ -1140,7 +1139,7 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 
 				// Prepare DB notification
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Compliance Requirement Deleted",

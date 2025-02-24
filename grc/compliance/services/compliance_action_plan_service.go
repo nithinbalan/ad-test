@@ -277,7 +277,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               ComplianceActionPlanFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{ComplianceActionPlanFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Action Plan Responsibility Assigned",
@@ -413,7 +413,7 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"title":              oldComplianceActionPlan.Title,
@@ -453,7 +453,6 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -474,7 +473,7 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Compliance Action Plan Responsibility Removed",
@@ -491,7 +490,7 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               ComplianceActionPlanFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{ComplianceActionPlanFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Compliance Action Plan Responsibility Assigned",
@@ -701,7 +700,7 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Compliance Action Plan Deleted",

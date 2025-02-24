@@ -232,7 +232,7 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 			appURL := utility.GetAppURL()
 
 			dbNotification := &commonDTOs.DBNotificationDTO{
-				UserID:               uint(audit.RequestedByUser.ID),
+				UserIDs:              []uint{uint(audit.RequestedByUser.ID)},
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.InformationType),
 				ReferenceNumber:      audit.Audit.AuditPlan.ReferenceNumber,
@@ -298,7 +298,7 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 			appURL := utility.GetAppURL()
 
 			dbNotification := &commonDTOs.DBNotificationDTO{
-				UserID:               documentRequest.ResponsibleUserID,
+				UserIDs:              []uint{documentRequest.ResponsibleUserID},
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.InformationType),
 				ReferenceNumber:      audit.Audit.AuditPlan.ReferenceNumber,

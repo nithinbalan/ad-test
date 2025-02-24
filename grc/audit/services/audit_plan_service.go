@@ -426,7 +426,7 @@ func (aps *AuditPlanService) Update(id uint, currentUserID uint, auditPlanFormDT
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"audit_category": oldAuditPlan.AuditCategory.TitleEn,
 			"audit_team":     oldAuditPlan.AuditTeam.TitleEn,
@@ -696,7 +696,7 @@ func (aps *AuditPlanService) Publish(id uint, currentUserID uint) error {
 
 			// DB Notification
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               userID,
+				UserIDs:              []uint{userID},
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.InformationType),
 				ReferenceNumber:      existingAuditPlan.ReferenceNumber,

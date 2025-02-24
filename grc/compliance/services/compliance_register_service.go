@@ -294,7 +294,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               complianceRegisterFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{complianceRegisterFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Register Responsibility Assigned",
@@ -571,7 +571,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"compliance_category":      oldComplianceRegister.ComplianceCategory.TitleEn,
 			"compliance_status":        oldComplianceRegister.ComplianceStatus.TitleEn,
@@ -650,7 +650,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 			// Old responsible user notification (Removal)
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Compliance Register Responsibility Removed",
@@ -668,7 +668,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 			// New responsible user notification (Assignment)
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               complianceRegisterFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{complianceRegisterFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Compliance Register Responsibility Assigned",
@@ -922,7 +922,7 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 
 				// Prepare DB notification
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Compliance Register Deleted",

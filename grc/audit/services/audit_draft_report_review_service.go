@@ -2,6 +2,8 @@ package services
 
 import (
 	"fmt"
+	"time"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	commonDTOs "jethur/grc/common/dtos"
@@ -12,7 +14,6 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	taskServices "jethur/grc/task/services"
 	"jethur/utility"
-	"time"
 )
 
 type AuditDraftReportReviewServiceInterface interface {
@@ -58,6 +59,7 @@ func NewAuditDraftReportReviewService(
 		taskSvc:                   taskSvc,
 	}
 }
+
 func (adrcs *AuditDraftReportReviewService) GetAll(auditID uint, auditDraftReportID uint, params *auditDTOs.AuditReportReviewListQueryParamsDTO) ([]*auditDTOs.AuditReportReviewListDTO, error) {
 	if _, err := adrcs.auditSvc.GetByID(auditID); err != nil {
 		return nil, err
@@ -128,7 +130,7 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 		}
 	}
 
-	//add review for history
+	// add review for history
 	auditReportReview := &models.AuditReportReview{
 		AuditDraftReportID:    &auditDraftReportID,
 		AuditReportWorkflowID: auditReportWorkflowID,
@@ -142,7 +144,7 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 		tx.Rollback()
 		return err
 	}
-	//update status & AuditeeReviewSubmitted user details on draft report
+	// update status & AuditeeReviewSubmitted user details on draft report
 	auditDraftReportInReviewStatus, err := adrrs.auditDraftReportStatusSvc.GetByType("in-review")
 	if err != nil {
 		tx.Rollback()
@@ -182,7 +184,7 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 
 		for _, participant := range auditReportWorkflowFormDTO.UserIDs {
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               *participant,
+				UserIDs:              []uint{*participant},
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.ReviewType),
 				HeadingEn:            "Audit Draft Report Review",
@@ -249,7 +251,6 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.SubmitAction,
@@ -282,7 +283,7 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 	if err != nil {
 		return err
 	}
-	//begin transaction
+	// begin transaction
 	tx := adrrs.repo.BeginTransaction()
 
 	// Get Existing Audit Report Workflow
@@ -307,7 +308,7 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 		return utility.NewForbiddenError("The current user is not authorized to perform this action.")
 	}
 
-	//check level is 1
+	// check level is 1
 	if existingAuditDraftReport.NextReviewLevel != 1 {
 		tx.Rollback()
 		return utility.NewForbiddenError("The audit draft report is not at the required review level for this action.")
@@ -326,7 +327,7 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 		tx.Rollback()
 		return err
 	}
-	//add review for history
+	// add review for history
 	auditReportReview := &models.AuditReportReview{
 		AuditDraftReportID:    &auditDraftReportID,
 		AuditReportWorkflowID: existingAuditReportWorkflow.ID,
@@ -340,7 +341,7 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 		tx.Rollback()
 		return err
 	}
-	//update status & AuditeeReviewSubmitted user details on draft report
+	// update status & AuditeeReviewSubmitted user details on draft report
 	auditDraftReportApprovedStatus, err := adrrs.auditDraftReportStatusSvc.GetByType("approved")
 	if err != nil {
 		tx.Rollback()
@@ -409,7 +410,7 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 				"FirstNameEn":           responsibleUser.FirstNameEn,
 				"LastNameEn":            responsibleUser.LastNameEn,
 				"AuditTitle":            existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
-				"ReferenceNumber":      existingAuditDraftReportFullDetails.Audit.AuditPlan.ReferenceNumber,
+				"ReferenceNumber":       existingAuditDraftReportFullDetails.Audit.AuditPlan.ReferenceNumber,
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
@@ -424,7 +425,7 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 			}
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               userID,
+				UserIDs:              []uint{userID},
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.ReviewType),
 				HeadingEn:            "Approve Audit Draft Report",
@@ -456,7 +457,6 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.ApproveAction,
@@ -504,7 +504,7 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 		return utility.NewForbiddenError("The current user is not authorized to perform this action.")
 	}
 
-	//check level is = 1
+	// check level is = 1
 	if existingAuditDraftReport.NextReviewLevel != 1 {
 		tx.Rollback()
 		return utility.NewForbiddenError("The audit draft report is not at the required review level for this action.")
@@ -531,7 +531,7 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 		tx.Rollback()
 		return err
 	}
-	//add review for history
+	// add review for history
 	auditReportReview := &models.AuditReportReview{
 		AuditDraftReportID:    &auditDraftReportID,
 		AuditReportWorkflowID: existingAuditReportWorkflow.ID,
@@ -546,7 +546,7 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 		return err
 	}
 
-	//update status & AuditeeReviewSubmitted user details on draft report
+	// update status & AuditeeReviewSubmitted user details on draft report
 	auditDraftReportDraftStatus, err := adrrs.auditDraftReportStatusSvc.GetByType("revert")
 	if err != nil {
 		tx.Rollback()
@@ -591,7 +591,7 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 
 		for userID := range recipientsMap {
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               userID,
+				UserIDs:              []uint{userID},
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.ReviewType),
 				HeadingEn:            "Revert Audit Draft Report",
@@ -628,7 +628,7 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 				"FirstNameEn":           responsibleUser.FirstNameEn,
 				"LastNameEn":            responsibleUser.LastNameEn,
 				"AuditTitle":            existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
-				"ReferenceNumber":      existingAuditDraftReportFullDetails.Audit.AuditPlan.ReferenceNumber,
+				"ReferenceNumber":       existingAuditDraftReportFullDetails.Audit.AuditPlan.ReferenceNumber,
 				"RevertedByFirstNameEn": assignedBy.FirstNameEn,
 				"RevertedByLastNameEn":  assignedBy.LastNameEn,
 				"RevertedOn":            time.Now().Format("2006-01-02"),
@@ -658,7 +658,6 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.RejectAction,
@@ -768,7 +767,7 @@ func (adrrs *AuditDraftReportReviewService) ReSubmit(auditID uint, auditDraftRep
 		}
 	}
 
-	//add review for history
+	// add review for history
 	auditReportReview := &models.AuditReportReview{
 		AuditDraftReportID:    &auditDraftReportID,
 		AuditReportWorkflowID: auditReportWorkflowID,
@@ -782,7 +781,7 @@ func (adrrs *AuditDraftReportReviewService) ReSubmit(auditID uint, auditDraftRep
 		tx.Rollback()
 		return err
 	}
-	//update status & AuditeeReviewSubmitted user details on draft report
+	// update status & AuditeeReviewSubmitted user details on draft report
 	auditDraftReportInReviewStatus, err := adrrs.auditDraftReportStatusSvc.GetByType("in-review")
 	if err != nil {
 		return err
@@ -822,7 +821,7 @@ func (adrrs *AuditDraftReportReviewService) ReSubmit(auditID uint, auditDraftRep
 
 		for _, participant := range auditReportWorkflowFormDTO.UserIDs {
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               *participant,
+				UserIDs:              []uint{*participant},
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.ReviewType),
 				HeadingEn:            "Audit Draft Report Review",
@@ -859,7 +858,7 @@ func (adrrs *AuditDraftReportReviewService) ReSubmit(auditID uint, auditDraftRep
 				"FirstNameEn":           responsibleUser.FirstNameEn,
 				"LastNameEn":            responsibleUser.LastNameEn,
 				"AuditTitle":            existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
-				"ReferenceNumber":      existingAuditDraftReportFullDetails.Audit.AuditPlan.ReferenceNumber,
+				"ReferenceNumber":       existingAuditDraftReportFullDetails.Audit.AuditPlan.ReferenceNumber,
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
@@ -889,7 +888,6 @@ func (adrrs *AuditDraftReportReviewService) ReSubmit(auditID uint, auditDraftRep
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.SubmitAction,
