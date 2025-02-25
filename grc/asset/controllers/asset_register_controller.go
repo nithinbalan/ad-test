@@ -6,6 +6,7 @@ import (
 	"jethur/grc/asset/services"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -48,22 +49,29 @@ func (arc *AssetRegisterController) GetAllAssets(c *gin.Context) {
 	}
 
 	validSortFields := map[string]string{
-		"reference_number":    "asset_register.reference_number",
-		"title_en":            "asset_register.title_en",
-		"title_ar":            "asset_register.title_ar",
-		"description":         "asset_register.description",
-		"location":            "asset_register.location",
-		"asset_category_en":   "asset_categories.title_en",
-		"asset_category_ar":   "asset_categories.title_ar",
-		"asset_type_en":       "asset_types.title_en",
-		"asset_type_ar":       "asset_types.title_ar",
-		"responsible_user_en": "responsible_user.first_name_en",
-		"responsible_user_ar": "responsible_user.first_name_ar",
-		"responsible_unit_en": "organization_units.title_en",
-		"responsible_unit_ar": "organization_units.title_ar",
-		"acquisition_date":    "asset_register.acquisition_date",
-		"status_en":           "asset_statuses.title_en",
-		"status_ar":           "asset_statuses.title_ar",
+		"reference_number":      "asset_register.reference_number",
+		"title_en":              "asset_register.title_en",
+		"title_ar":              "asset_register.title_ar",
+		"description":           "asset_register.description",
+		"location":              "asset_register.location",
+		"asset_category_en":     "asset_categories.title_en",
+		"asset_category_ar":     "asset_categories.title_ar",
+		"asset_sub_category_en": "asset_sub_categories.title_en",
+		"asset_sub_category_ar": "asset_sub_categories.title_ar",
+		"asset_type_en":         "asset_types.title_en",
+		"asset_type_ar":         "asset_types.title_ar",
+		"responsible_user_en":   "responsible_user.first_name_en",
+		"responsible_user_ar":   "responsible_user.first_name_ar",
+		"responsible_unit_en":   "organization_units.title_en",
+		"responsible_unit_ar":   "organization_units.title_ar",
+		"acquisition_date":      "asset_register.acquisition_date",
+		"assignment_date":       "asset_register.assignment_date",
+		"warranty_expiry_date":  "asset_register.warranty_expiry_date",
+		"manufacturer":          "asset_register.manufacturer",
+		"model":                 "asset_register.model",
+		"serial_number":         "asset_register.serial_number",
+		"status_en":             "asset_statuses.title_en",
+		"status_ar":             "asset_statuses.title_ar",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -253,4 +261,43 @@ func (arc *AssetRegisterController) GetControlSummary(c *gin.Context) {
 func (arc *AssetRegisterController) GetAssetsExport(c *gin.Context) {
 	c.Request.URL.RawQuery += "&export=true"
 	arc.GetAllAssets(c)
+}
+
+func (arc *AssetRegisterController) DownloadAssetDocument(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	assetDocumentPath, err := arc.service.GetDocumentPath(uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(arc.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(assetDocumentPath)
+
+	// Set the content type and disposition headers for the file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	// Serve the file
+	c.File(assetDocumentPath)
 }

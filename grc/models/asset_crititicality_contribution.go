@@ -10,6 +10,7 @@ type AssetCriticalityContribution struct {
 	AssetCriticalityMatrixFactorID       uint       `json:"asset_criticality_matrix_factor_id" gorm:"not null" binding:"required"`
 	AssetCriticalityMatrixFactorRatingID uint       `json:"asset_criticality_matrix_factor_rating_id" gorm:"not null" binding:"required"`
 	Score                                float64    `json:"score" gorm:"not null"`
+	Comments                             *string    `json:"comments,omitempty" gorm:"type:nvarchar(MAX);default:null"`
 	CreatedByID                          uint       `json:"created_by_id" gorm:"not null" binding:"required"`
 	CreatedAt                            time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedByID                          *uint      `json:"updated_by_id" gorm:"default:null"`
