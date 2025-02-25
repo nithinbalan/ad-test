@@ -562,11 +562,13 @@ func (carc *ComplianceAssessmentRequirementController) ResubmitComplianceAssessm
 	err = carc.service.ResubmitComplianceRequirement(uint(complianceAssessmentID), uint(complianceRequirementID), currentUserID, &commentFormDTO)
 	if err != nil {
 		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
 			return
 		default:
 			utility.SendInternalErrResp(carc.db, c, e.Error())
