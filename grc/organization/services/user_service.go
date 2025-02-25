@@ -753,41 +753,31 @@ func (us *UserService) GetCurrentUserDetails(id uint) (*userDTOs.CurrentUserDeta
 		return nil, err
 	}
 
-	userID, err := us.repo.GetByID(id)
-	if err != nil {
-		return nil, err
-	}
-
 	primaryLevel, err := us.organizationLevelSvc.GetPrimaryLevel()
 	if err != nil {
 		return nil, err
 	}
 
-	var primaryOrgUnitField *uint
+	var primaryOrgUnitID *uint
 
 	switch primaryLevel.Level {
 	case 1:
-		primaryOrgUnitField = &userID.OrganizationUnit1ID
+		primaryOrgUnitID = &user.OrganizationUnit1ID
 	case 2:
-		primaryOrgUnitField = userID.OrganizationUnit2ID
+		primaryOrgUnitID = user.OrganizationUnit2ID
 	case 3:
-		primaryOrgUnitField = userID.OrganizationUnit3ID
+		primaryOrgUnitID = user.OrganizationUnit3ID
 	case 4:
-		primaryOrgUnitField = userID.OrganizationUnit4ID
+		primaryOrgUnitID = user.OrganizationUnit4ID
 	case 5:
-		primaryOrgUnitField = userID.OrganizationUnit5ID
+		primaryOrgUnitID = user.OrganizationUnit5ID
 	default:
-		return nil, fmt.Errorf("unsupported primary level")
+		return nil, fmt.Errorf("invalid primary level: %d", primaryLevel.Level)
 	}
 
-	if primaryOrgUnitField != nil {
+	if primaryOrgUnitID != nil {
 
-		primaryUnitID, err := us.GetUserPrimaryUnitID(id)
-		if err != nil {
-			return nil, err
-		}
-
-		userDetailsDTO.PrimaryUnitID = &primaryUnitID
+		userDetailsDTO.PrimaryUnitID = primaryOrgUnitID
 	}
 
 	roles := make([]settingDTOs.RoleDTO, 0, len(*user.UserRoles))
