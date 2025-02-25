@@ -41,7 +41,6 @@ func (arc *AssetRegisterController) GetAllAssets(c *gin.Context) {
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
-		"asset_type_ids",
 		"asset_category_ids",
 		"responsible_unit_ids",
 		"responsible_user_ids",

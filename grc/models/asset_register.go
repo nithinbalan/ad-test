@@ -9,7 +9,6 @@ type AssetRegister struct {
 	ReferenceNumber                     string     `json:"reference_number" gorm:"type:varchar(45);not null;unique" binding:"required"`
 	TitleEn                             string     `json:"title_en" gorm:"type:nvarchar(500);not null" binding:"required"`
 	TitleAr                             string     `json:"title_ar" gorm:"type:nvarchar(500);not null" binding:"required"`
-	AssetTypeID                         uint       `json:"asset_type_id" gorm:"not null" binding:"required"`
 	AssetCategoryID                     uint       `json:"asset_category_id" gorm:"not null" binding:"required"`
 	AssetSubCategoryID                  uint       `json:"asset_sub_category_id" gorm:"not null" binding:"required"`
 	AssetStatusID                       uint       `json:"asset_status_id" gorm:"not null" binding:"required"`
@@ -38,7 +37,6 @@ type AssetRegister struct {
 	UpdatedAt                           *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
 
 	// Relationships
-	AssetType                         *AssetType                         `gorm:"foreignKey:AssetTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	AssetCategory                     *AssetCategory                     `gorm:"foreignKey:AssetCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	AssetSubCategory                  *AssetSubCategory                  `gorm:"foreignKey:AssetSubCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	AssetStatus                       *AssetStatus                       `gorm:"foreignKey:AssetStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

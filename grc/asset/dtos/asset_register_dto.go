@@ -12,8 +12,6 @@ type AssetRegisterListDTO struct {
 	ReferenceNumber                            string     `json:"reference_number"`
 	TitleEn                                    string     `json:"title_en"`
 	TitleAr                                    string     `json:"title_ar"`
-	AssetTypeTitleEn                           *string    `json:"asset_type_title_en"`
-	AssetTypeTitleAr                           *string    `json:"asset_type_title_ar"`
 	AssetCategoryTitleEn                       *string    `json:"asset_category_title_en"`
 	AssetCategoryTitleAr                       *string    `json:"asset_category_title_ar"`
 	AssetSubCategoryTitleEn                    *string    `json:"asset_sub_category_title_en"`
@@ -88,7 +86,6 @@ type AssetRegisterListResponseDTO struct {
 type AssetRegisterFormDTO struct {
 	TitleEn            string                        `json:"title_en" binding:"required"`
 	TitleAr            string                        `json:"title_ar" binding:"required"`
-	AssetTypeID        uint                          `json:"asset_type_id" binding:"required"`
 	AssetCategoryID    uint                          `json:"asset_category_id" binding:"required"`
 	AssetSubCategoryID uint                          `json:"asset_sub_category_id" binding:"required"`
 	AssetStatusID      uint                          `json:"asset_status_id" binding:"required"`
@@ -116,7 +113,6 @@ type AssetRegisterDetailDTO struct {
 	ReferenceNumber                   string                                `json:"reference_number"`
 	TitleEn                           string                                `json:"title_en"`
 	TitleAr                           string                                `json:"title_ar"`
-	AssetType                         *AssetTypeDTO                         `json:"asset_type"`
 	AssetCategory                     *AssetCategoryDTO                     `json:"asset_category"`
 	AssetSubCategory                  *AssetSubCategoryDTO                  `json:"asset_sub_category"`
 	AssetStatus                       AssetStatusDTO                        `json:"asset_status"`

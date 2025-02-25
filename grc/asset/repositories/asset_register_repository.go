@@ -67,8 +67,6 @@ func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryP
 			asset_register.manufacturer,
 			asset_register.model,
 			asset_register.serial_number,
-			asset_types.title_en AS asset_type_title_en,
-			asset_types.title_ar AS asset_type_title_ar,
 			asset_categories.title_en AS asset_category_title_en,
 			asset_categories.title_ar AS asset_category_title_ar,
 			asset_sub_categories.title_en AS asset_sub_category_title_en,
@@ -110,7 +108,6 @@ func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryP
 			updated_user.email AS updated_user_email,
 			updated_user.profile_image_path AS updated_user_profile_image_path
 		`).
-		Joins("LEFT JOIN asset_types ON asset_types.id = asset_register.asset_type_id").
 		Joins("LEFT JOIN asset_categories ON asset_categories.id = asset_register.asset_category_id").
 		Joins("LEFT JOIN asset_sub_categories ON asset_sub_categories.id = asset_register.asset_sub_category_id").
 		Joins("LEFT JOIN asset_statuses ON asset_statuses.id = asset_register.asset_status_id").
@@ -142,8 +139,8 @@ func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryP
 			asset_register.title_ar LIKE ? OR
 			asset_register.reference_number LIKE ? OR
 			asset_register.description LIKE ? OR
-			asset_types.title_en LIKE ? OR
-			asset_types.title_ar LIKE ? OR
+			asset_sub_categories.title_en LIKE ? OR
+			asset_sub_categories.title_ar LIKE ? OR
 			asset_register.manufacturer LIKE ? OR
 			asset_register.model LIKE ? OR
 			asset_register.serial_number LIKE ? OR
@@ -213,7 +210,6 @@ func (repo *AssetRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.D
 	var asset *models.AssetRegister
 
 	result := db.
-		Preload("AssetType").
 		Preload("AssetCategory").
 		Preload("AssetSubCategory").
 		Preload("AssetStatus").

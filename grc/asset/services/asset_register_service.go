@@ -149,7 +149,6 @@ func (ars *AssetRegisterService) Create(assetRegisterFormDTO *dtos.AssetRegister
 		ReferenceNumber:          referenceNumber,
 		TitleEn:                  assetRegisterFormDTO.TitleEn,
 		TitleAr:                  assetRegisterFormDTO.TitleAr,
-		AssetTypeID:              assetRegisterFormDTO.AssetTypeID,
 		AssetCategoryID:          assetRegisterFormDTO.AssetCategoryID,
 		AssetSubCategoryID:       assetRegisterFormDTO.AssetSubCategoryID,
 		AssetStatusID:            assetRegisterFormDTO.AssetStatusID,
@@ -305,7 +304,6 @@ func (ars *AssetRegisterService) Update(id uint, assetRegisterFormDTO *dtos.Asse
 	// Update fields
 	existingAsset.TitleEn = assetRegisterFormDTO.TitleEn
 	existingAsset.TitleAr = assetRegisterFormDTO.TitleAr
-	existingAsset.AssetTypeID = assetRegisterFormDTO.AssetTypeID
 	existingAsset.AssetCategoryID = assetRegisterFormDTO.AssetCategoryID
 	existingAsset.AssetSubCategoryID = assetRegisterFormDTO.AssetSubCategoryID
 	existingAsset.AssetStatusID = assetRegisterFormDTO.AssetStatusID
@@ -498,7 +496,6 @@ func (ars *AssetRegisterService) Update(id uint, assetRegisterFormDTO *dtos.Asse
 		oldData := map[string]interface{}{
 			"asset_category":     oldAssetRegister.AssetCategory.TitleEn,
 			"asset_sub_category": oldAssetRegister.AssetSubCategory.TitleEn,
-			"asset_type":         oldAssetRegister.AssetType.TitleEn,
 			"responsible_user":   fmt.Sprintf("%s %s", oldAssetRegister.ResponsibleUser.FirstNameEN, oldAssetRegister.ResponsibleUser.LastNameEN),
 			"title_en":           oldAssetRegister.TitleEn,
 			"title_ar":           oldAssetRegister.TitleAr,
@@ -511,7 +508,6 @@ func (ars *AssetRegisterService) Update(id uint, assetRegisterFormDTO *dtos.Asse
 		newData := map[string]interface{}{
 			"asset_category":     existingAsset.AssetCategory.TitleEn,
 			"asset_sub_category": existingAsset.AssetSubCategory.TitleEn,
-			"asset_type":         existingAsset.AssetType.TitleEn,
 			"responsible_user":   fmt.Sprintf("%s %s", existingAsset.ResponsibleUser.FirstNameEN, existingAsset.ResponsibleUser.LastNameEN),
 			"title_en":           existingAsset.TitleEn,
 			"title_ar":           existingAsset.TitleAr,
@@ -672,9 +668,6 @@ func (ars *AssetRegisterService) UpdateTotalScore(assetID uint, totalScore float
 }
 
 func (ars *AssetRegisterService) validateAssetRegisterFormDTO(assetRegisterFormDTO *dtos.AssetRegisterFormDTO) error {
-	if _, err := ars.assetTypeSvc.GetByID(uint(assetRegisterFormDTO.AssetTypeID)); err != nil {
-		return utility.NewValidationError(fmt.Errorf("asset type does not exist"), "not_exist", "asset type")
-	}
 
 	if _, err := ars.assetCategorySvc.GetByID(uint(assetRegisterFormDTO.AssetCategoryID)); err != nil {
 		return utility.NewValidationError(fmt.Errorf("asset category does not exist"), "not_exist", "asset category")
