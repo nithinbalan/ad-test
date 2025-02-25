@@ -214,17 +214,17 @@ func (carapcs *ComplianceAssessmentRequirementActionPlanCommentService) Create(a
 			// if responsible user added the comment, notification for review user
 			if complianceActionPlan.ReviewUserID != nil {
 				// prepare notification
-				urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, assessmentID, id)
+				urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d, "action_plan_id":%d}`, assessmentID, requirementID, id)
 				queryParam := ""
-				entity := "compliance-action-plan"
+				entity := "compliance-assessment-requirement-action-plan"
 				action := "comment-added"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *complianceActionPlan.ReviewUserID,
+					UserIDs:              []uint{*complianceActionPlan.ReviewUserID},
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.AssignmentType),
-					HeadingEn:            "Comment Added For Compliance Action Plan",
-					HeadingAr:            "تمت إضافة التعليق لخطة عمل الامتثال",
+					HeadingEn:            "Comment Added For Compliance Assessment Requirement Action Plan",
+					HeadingAr:            "تمت إضافة التعليق لخطة عمل متطلبات تقييم الامتثال",
 					TitleEn:              complianceActionPlan.Title,
 					TitleAr:              complianceActionPlan.Title,
 					Entity:               &entity,
@@ -251,30 +251,30 @@ func (carapcs *ComplianceAssessmentRequirementActionPlanCommentService) Create(a
 				}
 
 				emailTo := []string{reviewUser.Email}
-				subject := fmt.Sprintf("Comment Added for Compliance Action Plan:%s", complianceActionPlan.Title)
+				subject := fmt.Sprintf("Comment Added for Compliance Assessment Requirement Action Plan:%s", complianceActionPlan.Title)
 				appURL := utility.GetAppURL()
 				emailData := map[string]interface{}{
-					"FirstNameEn":               reviewUser.FirstNameEn,
-					"LastNameEn":                reviewUser.LastNameEn,
-					"ComplianceReferenceNumber": complianceActionPlan.ComplianceRegister.ReferenceNumber,
-					"ComplianceTitle":           complianceActionPlan.ComplianceRegister.TitleEn,
-					"ActionPlanTitle":           complianceActionPlan.Title,
-					"ActionPlanDescription":     complianceActionPlan.Description,
-					"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
-					"CommentedByLastNameEn":     assignedBy.LastNameEn,
-					"CommentedOn":               time.Now().Format("2006-01-02"),
-					"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, assessmentID, id),
+					"FirstNameEn":            reviewUser.FirstNameEn,
+					"LastNameEn":             reviewUser.LastNameEn,
+					"Requirement":            complianceActionPlan.ComplianceAssessmentRequirement.ComplianceRequirement.TitleEn,
+					"ActionPlanTitle":        complianceActionPlan.Title,
+					"ActionPlanDescription":  complianceActionPlan.Description,
+					"Comment":                complianceActionPlanCommentFormDTO.Comment,
+					"CommentedByFirstNameEn": assignedBy.FirstNameEn,
+					"CommentedByLastNameEn":  assignedBy.LastNameEn,
+					"CommentedOn":            time.Now().Format("2006-01-02"),
+					"RedirectURL":            fmt.Sprintf("%scompliance/assessments/%d/overview?action_plan_id=%d", appURL, assessmentID, actionPlanID),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 					EmailTo:              emailTo,
 					Subject:              subject,
-					TemplateRelativePath: "compliance/templates/email/compliance_action_plan_comment.html",
+					TemplateRelativePath: "compliance/templates/email/compliance_assessment_requirement_action_plan_comment.html",
 					EmailData:            emailData,
 				}
 
 				// send notification and mail
-				err = carapcs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
+				err = carapcs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_assessment_requirement")
 				if err != nil {
 					utility.LogError("Failed to send notifications", map[string]interface{}{
 						"error": err.Error(),
@@ -284,17 +284,17 @@ func (carapcs *ComplianceAssessmentRequirementActionPlanCommentService) Create(a
 		} else if complianceActionPlan.ReviewUserID == &currentUserID {
 			// if review user added the comment, notification for responsible user
 			// prepare notification
-			urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, assessmentID, id)
+			urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d, "action_plan_id":%d}`, assessmentID, requirementID, id)
 			queryParam := ""
-			entity := "compliance-action-plan"
+			entity := "compliance-assessment-requirement-action-plan"
 			action := "comment-added"
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               complianceActionPlan.ResponsibleUserID,
+				UserIDs:              []uint{complianceActionPlan.ResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Comment Added For Compliance Action Plan",
-				HeadingAr:            "تمت إضافة التعليق لخطة عمل الامتثال",
+				HeadingEn:            "Comment Added For Compliance Assessment Requirement Action Plan",
+				HeadingAr:            "تمت إضافة التعليق لخطة عمل متطلبات تقييم الامتثال",
 				TitleEn:              complianceActionPlan.Title,
 				TitleAr:              complianceActionPlan.Title,
 				Entity:               &entity,
@@ -321,30 +321,30 @@ func (carapcs *ComplianceAssessmentRequirementActionPlanCommentService) Create(a
 			}
 
 			emailTo := []string{responsibleUser.Email}
-			subject := fmt.Sprintf("Comment Added for Compliance Action Plan:%s", complianceActionPlan.Title)
+			subject := fmt.Sprintf("Comment Added for Compliance Assessment Requirement Action Plan:%s", complianceActionPlan.Title)
 			appURL := utility.GetAppURL()
 			emailData := map[string]interface{}{
-				"FirstNameEn":               responsibleUser.FirstNameEn,
-				"LastNameEn":                responsibleUser.LastNameEn,
-				"ComplianceReferenceNumber": complianceActionPlan.ComplianceRegister.ReferenceNumber,
-				"ComplianceTitle":           complianceActionPlan.ComplianceRegister.TitleEn,
-				"ActionPlanTitle":           complianceActionPlan.Title,
-				"ActionPlanDescription":     complianceActionPlan.Description,
-				"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
-				"CommentedByLastNameEn":     assignedBy.LastNameEn,
-				"AssignedOn":                time.Now().Format("2006-01-02"),
-				"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, assessmentID, id),
+				"FirstNameEn":            responsibleUser.FirstNameEn,
+				"LastNameEn":             responsibleUser.LastNameEn,
+				"Requirement":            complianceActionPlan.ComplianceAssessmentRequirement.ComplianceRequirement.TitleEn,
+				"ActionPlanTitle":        complianceActionPlan.Title,
+				"ActionPlanDescription":  complianceActionPlan.Description,
+				"Comment":                complianceActionPlanCommentFormDTO.Comment,
+				"CommentedByFirstNameEn": assignedBy.FirstNameEn,
+				"CommentedByLastNameEn":  assignedBy.LastNameEn,
+				"AssignedOn":             time.Now().Format("2006-01-02"),
+				"RedirectURL":            fmt.Sprintf("%scompliance/assessments/%d/overview?action_plan_id=%d", appURL, assessmentID, actionPlanID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 				EmailTo:              emailTo,
 				Subject:              subject,
-				TemplateRelativePath: "compliance/templates/email/compliance_action_plan_comment.html",
+				TemplateRelativePath: "compliance/templates/email/compliance_assessment_requirement_action_plan_comment.html",
 				EmailData:            emailData,
 			}
 
 			// send notification and mail
-			err = carapcs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
+			err = carapcs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_assessment_requirement")
 			if err != nil {
 				utility.LogError("Failed to send notifications", map[string]interface{}{
 					"error": err.Error(),
@@ -353,17 +353,17 @@ func (carapcs *ComplianceAssessmentRequirementActionPlanCommentService) Create(a
 		} else {
 			// if other user added the comment, notification for review user and responsible user
 			// prepare notification
-			urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, assessmentID, id)
+			urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d, "action_plan_id":%d}`, assessmentID, requirementID, id)
 			queryParam := ""
-			entity := "compliance-action-plan"
+			entity := "compliance-assessment-requirement-action-plan"
 			action := "comment-added"
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               complianceActionPlan.ResponsibleUserID,
+				UserIDs:              []uint{complianceActionPlan.ResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Comment Added For Compliance Action Plan",
-				HeadingAr:            "تمت إضافة التعليق لخطة عمل الامتثال",
+				HeadingEn:            "Comment Added For Compliance Assessment Requirement Action Plan",
+				HeadingAr:            "تمت إضافة التعليق لخطة عمل متطلبات تقييم الامتثال",
 				TitleEn:              complianceActionPlan.Title,
 				TitleAr:              complianceActionPlan.Title,
 				Entity:               &entity,
@@ -390,30 +390,30 @@ func (carapcs *ComplianceAssessmentRequirementActionPlanCommentService) Create(a
 			}
 
 			emailTo := []string{responsibleUser.Email}
-			subject := fmt.Sprintf("Comment Added for Compliance Action Plan:%s", complianceActionPlan.Title)
+			subject := fmt.Sprintf("Comment Added for Compliance Assessment Requirement Action Plan:%s", complianceActionPlan.Title)
 			appURL := utility.GetAppURL()
 			emailData := map[string]interface{}{
-				"FirstNameEn":               responsibleUser.FirstNameEn,
-				"LastNameEn":                responsibleUser.LastNameEn,
-				"ComplianceReferenceNumber": complianceActionPlan.ComplianceRegister.ReferenceNumber,
-				"ComplianceTitle":           complianceActionPlan.ComplianceRegister.TitleEn,
-				"ActionPlanTitle":           complianceActionPlan.Title,
-				"ActionPlanDescription":     complianceActionPlan.Description,
-				"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
-				"CommentedByLastNameEn":     assignedBy.LastNameEn,
-				"AssignedOn":                time.Now().Format("2006-01-02"),
-				"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, assessmentID, id),
+				"FirstNameEn":            responsibleUser.FirstNameEn,
+				"LastNameEn":             responsibleUser.LastNameEn,
+				"Requirement":            complianceActionPlan.ComplianceAssessmentRequirement.ComplianceRequirement.TitleEn,
+				"ActionPlanTitle":        complianceActionPlan.Title,
+				"ActionPlanDescription":  complianceActionPlan.Description,
+				"Comment":                complianceActionPlanCommentFormDTO.Comment,
+				"CommentedByFirstNameEn": assignedBy.FirstNameEn,
+				"CommentedByLastNameEn":  assignedBy.LastNameEn,
+				"AssignedOn":             time.Now().Format("2006-01-02"),
+				"RedirectURL":            fmt.Sprintf("%scompliance/assessments/%d/overview?action_plan_id=%d", appURL, assessmentID, actionPlanID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 				EmailTo:              emailTo,
 				Subject:              subject,
-				TemplateRelativePath: "compliance/templates/email/compliance_action_plan_comment.html",
+				TemplateRelativePath: "compliance/templates/email/compliance_assessment_requirement_action_plan_comment.html",
 				EmailData:            emailData,
 			}
 
 			// send notification and mail
-			err = carapcs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
+			err = carapcs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_assessment_requirement")
 			if err != nil {
 				utility.LogError("Failed to send notifications", map[string]interface{}{
 					"error": err.Error(),
@@ -421,17 +421,17 @@ func (carapcs *ComplianceAssessmentRequirementActionPlanCommentService) Create(a
 			}
 			if complianceActionPlan.ReviewUserID != nil {
 				// prepare notification
-				urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, assessmentID, id)
+				urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d, "action_plan_id":%d}`, assessmentID, requirementID, id)
 				queryParam := ""
-				entity := "compliance-action-plan"
+				entity := "compliance-assessment-requirement-action-plan"
 				action := "comment-added"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *complianceActionPlan.ReviewUserID,
+					UserIDs:              []uint{*complianceActionPlan.ReviewUserID},
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.AssignmentType),
-					HeadingEn:            "Comment Added For Compliance Action Plan",
-					HeadingAr:            "تمت إضافة التعليق لخطة عمل الامتثال",
+					HeadingEn:            "Comment Added For Compliance Assessment Requirement Action Plan",
+					HeadingAr:            "تمت إضافة التعليق لخطة عمل متطلبات تقييم الامتثال",
 					TitleEn:              complianceActionPlan.Title,
 					TitleAr:              complianceActionPlan.Title,
 					Entity:               &entity,
@@ -458,30 +458,30 @@ func (carapcs *ComplianceAssessmentRequirementActionPlanCommentService) Create(a
 				}
 
 				emailTo := []string{responsibleUser.Email}
-				subject := fmt.Sprintf("Comment Added for Compliance Action Plan:%s", complianceActionPlan.Title)
+				subject := fmt.Sprintf("Comment Added for Compliance Assessment Requirement Action Plan:%s", complianceActionPlan.Title)
 				appURL := utility.GetAppURL()
 				emailData := map[string]interface{}{
-					"FirstNameEn":               responsibleUser.FirstNameEn,
-					"LastNameEn":                responsibleUser.LastNameEn,
-					"ComplianceReferenceNumber": complianceActionPlan.ComplianceRegister.ReferenceNumber,
-					"ComplianceTitle":           complianceActionPlan.ComplianceRegister.TitleEn,
-					"ActionPlanTitle":           complianceActionPlan.Title,
-					"ActionPlanDescription":     complianceActionPlan.Description,
-					"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
-					"CommentedByLastNameEn":     assignedBy.LastNameEn,
-					"AssignedOn":                time.Now().Format("2006-01-02"),
-					"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, assessmentID, id),
+					"FirstNameEn":            responsibleUser.FirstNameEn,
+					"LastNameEn":             responsibleUser.LastNameEn,
+					"Requirement":            complianceActionPlan.ComplianceAssessmentRequirement.ComplianceRequirement.TitleEn,
+					"ActionPlanTitle":        complianceActionPlan.Title,
+					"ActionPlanDescription":  complianceActionPlan.Description,
+					"Comment":                complianceActionPlanCommentFormDTO.Comment,
+					"CommentedByFirstNameEn": assignedBy.FirstNameEn,
+					"CommentedByLastNameEn":  assignedBy.LastNameEn,
+					"AssignedOn":             time.Now().Format("2006-01-02"),
+					"RedirectURL":            fmt.Sprintf("%scompliance/assessments/%d/overview?action_plan_id=%d", appURL, assessmentID, actionPlanID),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 					EmailTo:              emailTo,
 					Subject:              subject,
-					TemplateRelativePath: "compliance/templates/email/compliance_action_plan_comment.html",
+					TemplateRelativePath: "compliance/templates/email/compliance_assessment_requirement_action_plan_comment.html",
 					EmailData:            emailData,
 				}
 
 				// send notification and mail
-				err = carapcs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
+				err = carapcs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_assessment_requirement")
 				if err != nil {
 					utility.LogError("Failed to send notifications", map[string]interface{}{
 						"error": err.Error(),
@@ -489,74 +489,6 @@ func (carapcs *ComplianceAssessmentRequirementActionPlanCommentService) Create(a
 				}
 			}
 		}
-		// // prepare notification
-		// urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, assessmentID, id)
-		// queryParam := ""
-		// entity := "compliance-action-plan"
-		// action := "responsible-user-assign"
-
-		// dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-		// 	UserID:               ComplianceActionPlanFormDTO.ResponsibleUserID,
-		// 	ModuleIdentifier:     "compliance",
-		// 	NotificationType:     string(commonDTOs.AssignmentType),
-		// 	HeadingEn:            "Compliance Action Plan Responsibility Assigned",
-		// 	HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
-		// 	TitleEn:              ComplianceActionPlanFormDTO.Title,
-		// 	TitleAr:              ComplianceActionPlanFormDTO.Title,
-		// 	Entity:               &entity,
-		// 	Action:               &action,
-		// 	URLParam:             urlParam,
-		// 	QueryParam:           queryParam,
-		// 	IsSystemNotification: false,
-		// 	CreatedByID:          &currentUserID,
-		// }
-
-		// responsibleUser, err := carapcs.userSvc.GetByID(ComplianceActionPlanFormDTO.ResponsibleUserID)
-		// if err != nil {
-		// 	utility.LogError("Failed to fetch responsible user", map[string]interface{}{
-		// 		"error": err.Error(),
-		// 	})
-		// 	return
-		// }
-		// assignedBy, err := carapcs.userSvc.GetByID(currentUserID)
-		// if err != nil {
-		// 	utility.LogError("Failed to fetch assigning user", map[string]interface{}{
-		// 		"error": err.Error(),
-		// 	})
-		// 	return
-		// }
-
-		// emailTo := []string{responsibleUser.Email}
-		// subject := fmt.Sprintf("compliance Action Plan/%s: Responsibility Assigned", ComplianceActionPlanFormDTO.Title)
-		// appURL := utility.GetAppURL()
-		// emailData := map[string]interface{}{
-		// 	"FirstNameEn":               responsibleUser.FirstNameEn,
-		// 	"LastNameEn":                responsibleUser.LastNameEn,
-		// 	"ComplianceReferenceNumber": compliance.ReferenceNumber,
-		// 	"ComplianceTitle":           compliance.TitleEn,
-		// 	"ActionPlanTitle":           ComplianceActionPlanFormDTO.Title,
-		// 	"ActionPlanDescription":     ComplianceActionPlanFormDTO.Description,
-		// 	"TargetDate":                dates.TargetDate.Format("2006-01-02"),
-		// 	"AssignedByFirstNameEn":     assignedBy.FirstNameEn,
-		// 	"AssignedByLastNameEn":      assignedBy.LastNameEn,
-		// 	"AssignedOn":                time.Now().Format("2006-01-02"),
-		// 	"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, assessmentID, id),
-		// }
-
-		// emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-		// 	EmailTo:              emailTo,
-		// 	Subject:              subject,
-		// 	TemplateRelativePath: "compliance/templates/email/compliance_action_plan_create_responsible_user_mail.html",
-		// 	EmailData:            emailData,
-		// }
-
-		// // send notification and mail
-		// err = carapcs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
-		// if err != nil {
-		// 	utility.LogError("Failed to send notifications", map[string]interface{}{
-		// 		"error": err.Error(),
-		// 	})
-		// }
 	}()
 	return id, nil
 }

@@ -4,7 +4,11 @@ import (
 	"errors"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
+	"sort"
+	"strconv"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -24,6 +28,7 @@ type ComplianceClauseRepositoryInterface interface {
 	GetClauseWithChildren(clauseID uint, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error)
 
 	GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error)
+	GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlMinimalListDTO, error)
 }
 
 type ComplianceClauseRepository struct {
@@ -41,17 +46,26 @@ func (repo *ComplianceClauseRepository) BeginTransaction() utility.DatabaseTrans
 func (repo *ComplianceClauseRepository) GetAll(complianceID uint) ([]*models.ComplianceClause, error) {
 	var clauses []*models.ComplianceClause
 
-	// Fetch all clauses with preloaded child clauses
+	// Fetch all clauses with preloaded child clauses (recursive loading)
 	err := repo.db.
 		Preload("ChildClauses", func(db *gorm.DB) *gorm.DB {
 			return db.Preload("ChildClauses") // Recursive preload
 		}).
 		Where("compliance_register_id = ?", complianceID).
-		Order("TRY_CAST(clause_no AS INT)").
 		Find(&clauses).Error
 
 	if err != nil {
 		return nil, err
+	}
+
+	// Sort clauses correctly using numeric sorting
+	sort.SliceStable(clauses, func(i, j int) bool {
+		return compareClauseNumbers(clauses[i].ClauseNo, clauses[j].ClauseNo)
+	})
+
+	// Recursively sort child clauses
+	for _, clause := range clauses {
+		sortChildClauses(clause)
 	}
 
 	return clauses, nil
@@ -63,14 +77,18 @@ func (repo *ComplianceClauseRepository) GetByID(id uint, tx ...utility.DatabaseT
 		db = tx[0].DB()
 	}
 
-	var complianceClause *models.ComplianceClause
+	var complianceClause models.ComplianceClause
 	result := db.First(&complianceClause, id)
 
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			// Return an error instead of nil to indicate record not found
+			return nil, errors.New("compliance clause not found")
+		}
 		return nil, result.Error
 	}
 
-	return complianceClause, nil
+	return &complianceClause, nil
 }
 
 func (repo *ComplianceClauseRepository) Create(clause *models.ComplianceClause, tx ...utility.DatabaseTransaction) (uint, error) {
@@ -276,4 +294,53 @@ func (repo *ComplianceClauseRepository) GetAssociatedComplianceRequirements(comp
 
 	err := repo.db.Raw(query, clauseID, complianceID).Scan(&requirements).Error
 	return requirements, err
+}
+
+func (r *ComplianceClauseRepository) GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlMinimalListDTO, error) {
+	controls := make([]organizationDTOs.ControlMinimalListDTO, 0)
+
+	err := r.db.Table("compliance_controls cc").
+		Select("DISTINCT c.id, c.reference_number, c.title_en, c.title_ar, c.description").
+		Joins("JOIN controls c ON c.id = cc.control_id").
+		Joins("JOIN compliance_requirements cr ON cr.id = cc.compliance_requirement_id").
+		Joins("JOIN compliance_clauses cl ON cl.id = cr.compliance_clause_id").
+		Where("cc.compliance_register_id = ? AND cl.id = ?", complianceID, clauseID).
+		Scan(&controls).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return controls, nil
+}
+
+func compareClauseNumbers(a, b string) bool {
+	aParts := strings.Split(a, ".")
+	bParts := strings.Split(b, ".")
+
+	for i := 0; i < len(aParts) && i < len(bParts); i++ {
+		aNum, _ := strconv.Atoi(aParts[i])
+		bNum, _ := strconv.Atoi(bParts[i])
+
+		if aNum != bNum {
+			return aNum < bNum
+		}
+	}
+
+	return len(aParts) < len(bParts)
+}
+
+func sortChildClauses(clause *models.ComplianceClause) {
+	if len(clause.ChildClauses) == 0 {
+		return
+	}
+
+	sort.SliceStable(clause.ChildClauses, func(i, j int) bool {
+		return compareClauseNumbers(clause.ChildClauses[i].ClauseNo, clause.ChildClauses[j].ClauseNo)
+	})
+
+	// Recursively sort nested child clauses
+	for _, child := range clause.ChildClauses {
+		sortChildClauses(child)
+	}
 }

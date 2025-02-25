@@ -142,6 +142,11 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 		return 0, err
 	}
 
+	actionPlanStatus, err := raps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
 	riskActionPlan := &models.RiskActionPlan{
 		RiskRegisterID:     riskID,
 		Title:              RiskActionPlanFormDTO.Title,
@@ -152,7 +157,7 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 		TargetDate:         dates.TargetDate,
 		Percentage:         RiskActionPlanFormDTO.Percentage,
 		Comments:           RiskActionPlanFormDTO.Comments,
-		ActionPlanStatusID: RiskActionPlanFormDTO.ActionPlanStatusID,
+		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedBYID:        currentUserID,
 	}
 
@@ -161,7 +166,7 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 		return 0, err
 	}
 
-	actionPlanStatusID := RiskActionPlanFormDTO.ActionPlanStatusID
+	actionPlanStatusID := actionPlanStatus.ID
 	riskActionPlanUpdate := &models.RiskActionPlanStatusUpdate{
 		RiskActionPlanID:   id,
 		ActionPlanStatusID: actionPlanStatusID,
@@ -196,7 +201,6 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 	tx.Commit()
 
 	go func() {
-
 		existingRiskActionPlan, err := raps.GetFullDetailsByID(riskActionPlan.RiskRegisterID, riskActionPlan.ID)
 		if err != nil {
 			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
@@ -231,7 +235,7 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               RiskActionPlanFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{RiskActionPlanFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "risk",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Risk Action Plan Responsibility Assigned",
@@ -336,7 +340,6 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	existingRiskActionPlan.TargetDate = dates.TargetDate
 	existingRiskActionPlan.Percentage = RiskActionPlanFormDTO.Percentage
 	existingRiskActionPlan.Comments = RiskActionPlanFormDTO.Comments
-	existingRiskActionPlan.ActionPlanStatusID = RiskActionPlanFormDTO.ActionPlanStatusID
 	existingRiskActionPlan.UpdatedBYID = &currentUserID
 
 	err = raps.repo.Update(existingRiskActionPlan, tx)
@@ -373,7 +376,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 		// Prepare log data
 		changedData := make(map[string]interface{})
 
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title":              oldRiskActionPlan.Title,
 			"description":        oldRiskActionPlan.Description,
@@ -431,7 +434,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "risk",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Risk Action Plan Responsibility Removed",
@@ -448,7 +451,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               RiskActionPlanFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{RiskActionPlanFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "risk",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Risk Action Plan Responsibility Assigned",
@@ -655,7 +658,7 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "risk",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Risk Action Plan Deleted",
@@ -747,10 +750,6 @@ func (raps *RiskActionPlanService) validateRiskActionPlanFormDTO(RiskActionPlanF
 		if _, err := raps.severityLevelSvc.GetByID(*RiskActionPlanFormDTO.SeverityLevelID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 		}
-	}
-
-	if _, err := raps.actionPlanStatusSvc.GetByID(RiskActionPlanFormDTO.ActionPlanStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
 
 	return nil

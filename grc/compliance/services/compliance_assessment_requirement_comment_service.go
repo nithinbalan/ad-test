@@ -3,7 +3,10 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
 
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
@@ -29,17 +32,26 @@ type ComplianceAssessmentRequirementCommentService struct {
 	userSvc                            organizationServices.UserServiceInterface
 	activityLogSvc                     logServices.ActivityLogServiceInterface
 	complianceAssessmentRequirementSvc ComplianceAssessmentRequirementServiceInterface
+	complianceAssessmentSvc            ComplianceAssessmentServiceInterface
+	notificationSvc                    commonServices.NotificationServiceInterface
+	complianceAssessmentStatusSvc      ComplianceAssessmentStatusServiceInterface
 }
 
 func NewComplianceAssessmentRequirementCommentService(repo repositories.ComplianceAssessmentRequirementCommentRepositoryInterface, userSvc organizationServices.UserServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	complianceAssessmentRequirementSvc ComplianceAssessmentRequirementServiceInterface,
+	complianceAssessmentSvc ComplianceAssessmentServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
+	complianceAssessmentStatusSvc ComplianceAssessmentStatusServiceInterface,
 ) ComplianceAssessmentRequirementCommentServiceInterface {
 	return &ComplianceAssessmentRequirementCommentService{
 		repo:                               repo,
 		userSvc:                            userSvc,
 		activityLogSvc:                     activityLogSvc,
 		complianceAssessmentRequirementSvc: complianceAssessmentRequirementSvc,
+		complianceAssessmentSvc:            complianceAssessmentSvc,
+		notificationSvc:                    notificationSvc,
+		complianceAssessmentStatusSvc:      complianceAssessmentStatusSvc,
 	}
 }
 
@@ -99,6 +111,21 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 		return 0, err
 	}
 
+	complianceAssessmentRequirement, err := caps.complianceAssessmentRequirementSvc.GetFullDetailsByID(complianceAssessmentID, assessmentRequirementID)
+	if err != nil {
+		return 0, nil
+	}
+
+	complianceAssessment, err := caps.complianceAssessmentSvc.GetFullDetailsByID(complianceAssessmentID)
+	if err != nil {
+		return 0, nil
+	}
+
+	complianceAssessmentStatus, err := caps.complianceAssessmentStatusSvc.GetByType("in_review")
+	if err != nil {
+		return 0, err
+	}
+
 	comment := &models.ComplianceAssessmentRequirementComment{
 		ComplianceAssessmentRequirementID: assessmentRequirementID,
 		Comment:                           complianceAssessmentRequirementCommentFormDTO.Comment,
@@ -139,6 +166,286 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 			}
 
 			utility.LogError("Failed to log activity", fields)
+		}
+
+		if complianceAssessment.ComplianceAssessmentStatus.ID == complianceAssessmentStatus.ID {
+			if complianceAssessment.ReviewuserID == currentUserID {
+				// if review user added the comment, notification for submitted user
+				// prepare notification
+				urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d}`, complianceAssessmentID, assessmentRequirementID)
+				queryParam := ""
+				entity := "compliance-assessment-requirement"
+				action := "comment-added"
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserIDs:              []uint{complianceAssessment.ReviewuserID},
+					ModuleIdentifier:     "compliance",
+					NotificationType:     string(commonDTOs.AssignmentType),
+					HeadingEn:            "Comment Added For Compliance Requirement",
+					HeadingAr:            "تمت إضافة التعليق لمتطلبات الامتثال",
+					TitleEn:              complianceAssessment.ComplianceRegister.TitleEn,
+					TitleAr:              complianceAssessment.ComplianceRegister.TitleAr,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					QueryParam:           queryParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				submittedUser, err := caps.userSvc.GetByID(uint(complianceAssessment.SubmittedByUser.ID))
+				if err != nil {
+					utility.LogError("Failed to fetch submitted user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+				commentedBy, err := caps.userSvc.GetByID(currentUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch commented user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+
+				emailTo := []string{submittedUser.Email}
+				subject := fmt.Sprintf("Comment Added for Compliance Requirement :%s", complianceAssessmentRequirement.ComplianceRequirement.TitleEn)
+				appURL := utility.GetAppURL()
+				emailData := map[string]interface{}{
+					"FirstNameEn":            submittedUser.FirstNameEn,
+					"LastNameEn":             submittedUser.LastNameEn,
+					"ComplianceAssessment":   complianceAssessment.ComplianceRegister.TitleEn,
+					"RequirementTitle":       complianceAssessmentRequirement.ComplianceRequirement.TitleEn,
+					"Comment":                complianceAssessmentRequirementCommentFormDTO.Comment,
+					"CommentedByFirstNameEn": commentedBy.FirstNameEn,
+					"CommentedByLastNameEn":  commentedBy.LastNameEn,
+					"CommentedOn":            time.Now().Format("2006-01-02"),
+					"RedirectURL":            fmt.Sprintf("%scompliance/assessments/%d/overview", appURL, complianceAssessmentID),
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              emailTo,
+					Subject:              subject,
+					TemplateRelativePath: "compliance/templates/email/compliance_assessment_requirement_comment.html",
+					EmailData:            emailData,
+				}
+
+				// send notification and mail
+				err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_assessment_requirement")
+				if err != nil {
+					utility.LogError("Failed to send notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+			} else if complianceAssessment.SubmittedByUser.ID == int(currentUserID) {
+				// if submitted user added the comment, notification for review user
+
+				// prepare notification
+				urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d}`, complianceAssessmentID, assessmentRequirementID)
+				queryParam := ""
+				entity := "compliance-assessment-requirement"
+				action := "comment-added"
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserIDs:              []uint{complianceAssessment.ReviewuserID},
+					ModuleIdentifier:     "compliance",
+					NotificationType:     string(commonDTOs.AssignmentType),
+					HeadingEn:            "Comment Added For Compliance Requirement",
+					HeadingAr:            "تمت إضافة التعليق لمتطلبات الامتثال",
+					TitleEn:              complianceAssessment.ComplianceRegister.TitleEn,
+					TitleAr:              complianceAssessment.ComplianceRegister.TitleAr,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					QueryParam:           queryParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				reviewUser, err := caps.userSvc.GetByID(uint(complianceAssessment.ReviewuserID))
+				if err != nil {
+					utility.LogError("Failed to fetch submitted user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+				commentedBy, err := caps.userSvc.GetByID(currentUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch commented user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+
+				emailTo := []string{reviewUser.Email}
+				subject := fmt.Sprintf("Comment Added for Compliance Requirement :%s", complianceAssessmentRequirement.ComplianceRequirement.TitleEn)
+				appURL := utility.GetAppURL()
+				emailData := map[string]interface{}{
+					"FirstNameEn":            reviewUser.FirstNameEn,
+					"LastNameEn":             reviewUser.LastNameEn,
+					"ComplianceAssessment":   complianceAssessment.ComplianceRegister.TitleEn,
+					"RequirementTitle":       complianceAssessmentRequirement.ComplianceRequirement.TitleEn,
+					"Comment":                complianceAssessmentRequirementCommentFormDTO.Comment,
+					"CommentedByFirstNameEn": commentedBy.FirstNameEn,
+					"CommentedByLastNameEn":  commentedBy.LastNameEn,
+					"CommentedOn":            time.Now().Format("2006-01-02"),
+					"RedirectURL":            fmt.Sprintf("%scompliance/assessments/%d/overview", appURL, complianceAssessmentID),
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              emailTo,
+					Subject:              subject,
+					TemplateRelativePath: "compliance/templates/email/compliance_assessment_requirement_comment.html",
+					EmailData:            emailData,
+				}
+
+				// send notification and mail
+				err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_assessment_requirement")
+				if err != nil {
+					utility.LogError("Failed to send notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+
+			} else {
+				// if other user added the comment, notification for submitted user and review user
+				if complianceAssessment.SubmittedByUser != nil {
+					// prepare notification
+					urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d}`, complianceAssessmentID, assessmentRequirementID)
+					queryParam := ""
+					entity := "compliance-assessment-requirement"
+					action := "comment-added"
+
+					dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+						UserIDs:              []uint{complianceAssessment.ReviewuserID},
+						ModuleIdentifier:     "compliance",
+						NotificationType:     string(commonDTOs.AssignmentType),
+						HeadingEn:            "Comment Added For Compliance Requirement",
+						HeadingAr:            "تمت إضافة التعليق لمتطلبات الامتثال",
+						TitleEn:              complianceAssessment.ComplianceRegister.TitleEn,
+						TitleAr:              complianceAssessment.ComplianceRegister.TitleAr,
+						Entity:               &entity,
+						Action:               &action,
+						URLParam:             urlParam,
+						QueryParam:           queryParam,
+						IsSystemNotification: false,
+						CreatedByID:          &currentUserID,
+					}
+
+					submittedUser, err := caps.userSvc.GetByID(uint(complianceAssessment.SubmittedByUser.ID))
+					if err != nil {
+						utility.LogError("Failed to fetch submitted user", map[string]interface{}{
+							"error": err.Error(),
+						})
+						return
+					}
+					commentedBy, err := caps.userSvc.GetByID(currentUserID)
+					if err != nil {
+						utility.LogError("Failed to fetch commented user", map[string]interface{}{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					emailTo := []string{submittedUser.Email}
+					subject := fmt.Sprintf("Comment Added for Compliance Requirement :%s", complianceAssessmentRequirement.ComplianceRequirement.TitleEn)
+					appURL := utility.GetAppURL()
+					emailData := map[string]interface{}{
+						"FirstNameEn":            submittedUser.FirstNameEn,
+						"LastNameEn":             submittedUser.LastNameEn,
+						"ComplianceAssessment":   complianceAssessment.ComplianceRegister.TitleEn,
+						"RequirementTitle":       complianceAssessmentRequirement.ComplianceRequirement.TitleEn,
+						"Comment":                complianceAssessmentRequirementCommentFormDTO.Comment,
+						"CommentedByFirstNameEn": commentedBy.FirstNameEn,
+						"CommentedByLastNameEn":  commentedBy.LastNameEn,
+						"CommentedOn":            time.Now().Format("2006-01-02"),
+						"RedirectURL":            fmt.Sprintf("%scompliance/assessments/%d/overview", appURL, complianceAssessmentID),
+					}
+
+					emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+						EmailTo:              emailTo,
+						Subject:              subject,
+						TemplateRelativePath: "compliance/templates/email/compliance_assessment_requirement_comment.html",
+						EmailData:            emailData,
+					}
+
+					// send notification and mail
+					err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_assessment_requirement")
+					if err != nil {
+						utility.LogError("Failed to send notifications", map[string]interface{}{
+							"error": err.Error(),
+						})
+					}
+				}
+
+				// prepare notification
+				urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d}`, complianceAssessmentID, assessmentRequirementID)
+				queryParam := ""
+				entity := "compliance-assessment-requirement"
+				action := "comment-added"
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserIDs:              []uint{complianceAssessment.ReviewuserID},
+					ModuleIdentifier:     "compliance",
+					NotificationType:     string(commonDTOs.AssignmentType),
+					HeadingEn:            "Comment Added For Compliance Requirement",
+					HeadingAr:            "تمت إضافة التعليق لمتطلبات الامتثال",
+					TitleEn:              complianceAssessment.ComplianceRegister.TitleEn,
+					TitleAr:              complianceAssessment.ComplianceRegister.TitleAr,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					QueryParam:           queryParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				reviewUser, err := caps.userSvc.GetByID(uint(complianceAssessment.ReviewuserID))
+				if err != nil {
+					utility.LogError("Failed to fetch submitted user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+				commentedBy, err := caps.userSvc.GetByID(currentUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch commented user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+
+				emailTo := []string{reviewUser.Email}
+				subject := fmt.Sprintf("Comment Added for Compliance Requirement :%s", complianceAssessmentRequirement.ComplianceRequirement.TitleEn)
+				appURL := utility.GetAppURL()
+				emailData := map[string]interface{}{
+					"FirstNameEn":            reviewUser.FirstNameEn,
+					"LastNameEn":             reviewUser.LastNameEn,
+					"ComplianceAssessment":   complianceAssessment.ComplianceRegister.TitleEn,
+					"RequirementTitle":       complianceAssessmentRequirement.ComplianceRequirement.TitleEn,
+					"Comment":                complianceAssessmentRequirementCommentFormDTO.Comment,
+					"CommentedByFirstNameEn": commentedBy.FirstNameEn,
+					"CommentedByLastNameEn":  commentedBy.LastNameEn,
+					"CommentedOn":            time.Now().Format("2006-01-02"),
+					"RedirectURL":            fmt.Sprintf("%scompliance/assessments/%d/overview", appURL, complianceAssessmentID),
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              emailTo,
+					Subject:              subject,
+					TemplateRelativePath: "compliance/templates/email/compliance_assessment_requirement_comment.html",
+					EmailData:            emailData,
+				}
+
+				// send notification and mail
+				err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_assessment_requirement")
+				if err != nil {
+					utility.LogError("Failed to send notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+
+			}
 		}
 	}()
 	return id, nil

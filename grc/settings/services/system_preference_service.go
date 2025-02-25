@@ -73,6 +73,7 @@ func (sps *SystemPreferenceService) Update(id uint, currentUserID uint, systemPr
 	existingSystemPreference.LogoUploadSize = systemPreferenceFormDTO.LogoUploadSize
 	existingSystemPreference.IdleTimeout = systemPreferenceFormDTO.IdleTimeout
 	existingSystemPreference.IsMaintenanceModeOn = systemPreferenceFormDTO.IsMaintenanceModeOn
+	existingSystemPreference.LicenseKey = systemPreferenceFormDTO.LicenseKey
 	existingSystemPreference.UpdatedByID = &currentUserID
 
 	// Update system preference in the repository

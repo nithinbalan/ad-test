@@ -37,7 +37,7 @@ type ComplianceAssessmentRequirementDetailDTO struct {
 	Comments                              *string                                            `json:"comments"`
 	ComplianceStatusID                    *uint                                              `json:"compliance_status_id"`
 	ComplianceStatus                      *ComplianceStatusDTO                               `json:"compliance_status"`
-	ComplianceAssessmentRequirementStatus ComplianceAssessmentRequirementStatusDTO           `json:"compliance_assessment_requirement_status"`
+	ComplianceAssessmentRequirementStatus *ComplianceAssessmentRequirementStatusDTO          `json:"compliance_assessment_requirement_status"`
 	CreatedAt                             time.Time                                          `json:"created_at"`
 	UpdatedAt                             *time.Time                                         `json:"updated_at"`
 	CreatedByUser                         organizationDTOs.UserMinimalDTO                    `json:"created_by_user"`

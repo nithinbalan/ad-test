@@ -590,7 +590,7 @@ func (cras *ComplianceAssessmentService) SubmitComplianceAssessment(assessmentID
 		action := "review-user-assignment"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               assessment.ReviewUserID,
+			UserIDs:              []uint{assessment.ReviewUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "New Compliance Assessment Submitted",

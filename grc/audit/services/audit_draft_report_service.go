@@ -3,6 +3,9 @@ package services
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"time"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	commonDTOs "jethur/grc/common/dtos"
@@ -18,8 +21,6 @@ import (
 	riskDTOs "jethur/grc/risk/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
-	"strings"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -27,7 +28,7 @@ import (
 type AuditDraftReportServiceInterface interface {
 	GetFullDetailsByID(auditID uint, currentUserID uint, source string, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDraftReportDetailDTO, error)
 	GetByID(id uint) (*models.AuditDraftReport, error)
-	GetByAuditID(auditID uint) (*models.AuditDraftReport, error) //used in auditInsights
+	GetByAuditID(auditID uint) (*models.AuditDraftReport, error) // used in auditInsights
 	Create(auditID uint, currentUserID uint, auditDraftReportFormDTO *auditDTOs.AuditDraftReportFormDTO) (uint, error)
 	Update(auditID uint, id uint, currentUserID uint, auditDraftReportFormDTO *auditDTOs.AuditDraftReportFormDTO) error
 	Submit(auditID uint, id uint, currentUserID uint) error
@@ -713,7 +714,6 @@ func (adrs *AuditDraftReportService) Create(auditID uint, currentUserID uint, au
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -766,7 +766,7 @@ func (adrs *AuditDraftReportService) Update(auditID uint, id uint, currentUserID
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"executive_summary": oldAuditDraftReport.ExecutiveSummary,
 			"conclusion":        oldAuditDraftReport.Conclusion,
@@ -791,7 +791,6 @@ func (adrs *AuditDraftReportService) Update(auditID uint, id uint, currentUserID
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -842,7 +841,6 @@ func (adrs *AuditDraftReportService) Delete(auditID uint, currentUserID uint) er
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.DeleteAction,
@@ -887,7 +885,7 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 	existingAuditDraftReport.UpdatedBYID = &currentUserID
 	existingAuditDraftReport.UpdatedAt = &now
 
-	//tx begin
+	// tx begin
 	tx := adrs.repo.BeginTransaction()
 
 	err = adrs.repo.Update(existingAuditDraftReport, tx)
@@ -920,7 +918,7 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 				}
 				responsibleUser := item.AuditableItem.ResponsibleUser
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               responsibleUser.ID,
+					UserIDs:              []uint{responsibleUser.ID},
 					ModuleIdentifier:     "audit_insight_draft_reports",
 					NotificationType:     string(commonDTOs.ReviewType),
 					HeadingEn:            "Audit Draft Report Department Review",
@@ -981,7 +979,6 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
@@ -1020,7 +1017,6 @@ func (adrs *AuditDraftReportService) StatusUpdate(id uint, currentUserID uint, a
 	existingAuditDraftReport.UpdatedBYID = &currentUserID
 
 	err = adrs.repo.Update(existingAuditDraftReport, tx)
-
 	if err != nil {
 		return err
 	}
@@ -1113,7 +1109,7 @@ func (adrs *AuditDraftReportService) Complete(auditID uint, id uint, currentUser
 		return err
 	}
 
-	//todo - notification to auditable item responsible user where findings captured.
+	// todo - notification to auditable item responsible user where findings captured.
 
 	tx.Commit()
 
@@ -1126,7 +1122,6 @@ func (adrs *AuditDraftReportService) Complete(auditID uint, id uint, currentUser
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,

@@ -102,6 +102,23 @@ func (cras ComplianceAssessmentRequirementService) GetFullDetailsByID(assessment
 		return nil, err
 	}
 
+	// Add TargetDate to action plan list
+	if len(complianceAssessment.ActionPlans) > 0 {
+		for i, actionPlan := range complianceAssessment.ActionPlans {
+			if actionPlan.TargetDate != nil {
+				targetDate := actionPlan.TargetDate.Format("2006-01-02")
+				complianceAssessmentRequirementDTO.ActionPlans[i].TargetDateString = &targetDate
+			}
+		}
+	}
+
+	// Created At comment list
+	if len(complianceAssessment.RequirementComments) > 0 {
+		for i, comment := range complianceAssessment.RequirementComments {
+			complianceAssessmentRequirementDTO.RequirementComments[i].CreatedAt = comment.CreatedAt
+		}
+	}
+
 	complianceAssessmentRequirementDTO.CreatedAt = complianceAssessment.CreatedAt
 	complianceAssessmentRequirementDTO.UpdatedAt = complianceAssessment.UpdatedAt
 	// todo :- also add extra fields which required in details screen

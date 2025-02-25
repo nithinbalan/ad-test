@@ -142,6 +142,10 @@
   {
     "id": "distinct_review_user",
     "translation": "Responsible User and Review User must be distinct."
+  },
+  {
+    "id": "invalid",
+    "translation": "The {{.Field}} is invalid"
   }
 
   

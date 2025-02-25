@@ -267,7 +267,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               ComplianceActionPlanFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{ComplianceActionPlanFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Action Plan Responsibility Assigned",
@@ -367,7 +367,6 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 	existingComplianceAssessmentRequirementActionPlan.ResponsibleUserID = ComplianceActionPlanFormDTO.ResponsibleUserID
 	existingComplianceAssessmentRequirementActionPlan.TargetDate = dates.TargetDate
 	existingComplianceAssessmentRequirementActionPlan.Percentage = ComplianceActionPlanFormDTO.Percentage
-	existingComplianceAssessmentRequirementActionPlan.ActionPlanStatusID = ComplianceActionPlanFormDTO.ActionPlanStatusID
 	existingComplianceAssessmentRequirementActionPlan.SeverityLevelID = ComplianceActionPlanFormDTO.SeverityLevelID
 	existingComplianceAssessmentRequirementActionPlan.Comments = ComplianceActionPlanFormDTO.Comments
 	existingComplianceAssessmentRequirementActionPlan.ReviewUserID = ComplianceActionPlanFormDTO.ReviewUserID
@@ -404,7 +403,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"title":              oldComplianceAssessmentRequirementActionPlan.Title,
@@ -438,7 +437,6 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -459,7 +457,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Compliance Action Plan Responsibility Removed",
@@ -476,7 +474,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               ComplianceActionPlanFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{ComplianceActionPlanFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Compliance Action Plan Responsibility Assigned",
@@ -575,7 +573,6 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 				})
 			}
 		}
-
 	}()
 
 	return nil
@@ -594,6 +591,55 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Delete(complianc
 		complianceAssessmentRequirementActionPlan, err := caraps.GetFullDetailsByID(complianceAssessmentID, requirementID, id)
 		if err != nil {
 			continue
+		}
+
+		if len(complianceAssessmentRequirementActionPlan.ActionPlanStatusUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			var deleteDocumentIds []*uint
+			for _, update := range complianceAssessmentRequirementActionPlan.ActionPlanStatusUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+				for _, document := range update.Documents {
+					deleteDocumentIds = append(deleteDocumentIds, &document.ID)
+				}
+			}
+			if err := caraps.repo.DeleteComplianceActionPlanStatusUpdateDocuments(deleteDocumentIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+			if err := caraps.repo.DeleteComplianceActionPlanStatusUpdates(deleteStatusUpdateIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
+
+		if len(complianceAssessmentRequirementActionPlan.ActionPlanComments) > 0 {
+			var deleteCommentIds []*uint
+			var deleteCommentDocumentIds []*uint
+			for _, update := range complianceAssessmentRequirementActionPlan.ActionPlanComments {
+				deleteCommentIds = append(deleteCommentIds, &update.ID)
+				for _, document := range update.Documents {
+					deleteCommentDocumentIds = append(deleteCommentDocumentIds, &document.ID)
+				}
+			}
+			if err := caraps.repo.DeleteComplianceActionPlanCommentDocuments(deleteCommentDocumentIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+			if err := caraps.repo.DeleteComplianceActionPlanComments(deleteCommentIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
+
+		existingTask, err := caraps.taskSvc.GetByFieldID("compliance_action_plan_id", id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		taskID, err := caraps.taskSvc.Delete(existingTask.ID, currentUserID)
+		if err != nil {
+			failedIds = append(failedIds, taskID)
 		}
 
 		err = caraps.repo.Delete(id)
@@ -630,7 +676,6 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Delete(complianc
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
-
 		}()
 	}
 
@@ -669,7 +714,6 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) StatusUpdate(ass
 }
 
 func (caraps *ComplianceAssessmentRequirementActionPlanService) validateComplianceActionPlanFormDTO(ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) error {
-
 	if ComplianceActionPlanFormDTO.Percentage == nil {
 		defaultValue := int(0)
 		ComplianceActionPlanFormDTO.Percentage = &defaultValue

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
+
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	documentDTOs "jethur/grc/documents/dtos"
@@ -13,7 +15,6 @@ import (
 	organizationSvc "jethur/grc/organization/services"
 	taskServices "jethur/grc/task/services"
 	"jethur/utility"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -45,7 +46,8 @@ func NewDocumentReviewService(
 	documentStatusSvc DocumentStatusServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
-	taskSvc taskServices.TaskServiceInterface) DocumentReviewServiceInterface {
+	taskSvc taskServices.TaskServiceInterface,
+) DocumentReviewServiceInterface {
 	return &DocumentReviewService{
 		repo:                      repo,
 		logService:                logService,
@@ -555,7 +557,7 @@ func (drs *DocumentReviewService) sendApprovalNotification(id uint, currentUserI
 
 		// Create the database notification DTO
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               uint(document.ResponsibleUser.ID),
+			UserIDs:              []uint{uint(document.ResponsibleUser.ID)},
 			ModuleIdentifier:     "document",
 			NotificationType:     string(commonDTOs.ApprovalType),
 			HeadingEn:            "Document Approval",
@@ -632,7 +634,7 @@ func (drs *DocumentReviewService) notifyNextLevelUsers(id uint, nextDocWorkflowL
 			createdByID := uint(document.ResponsibleUser.ID)
 			// Prepare database notification DTO
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               participant.UserID,
+				UserIDs:              []uint{participant.UserID},
 				ModuleIdentifier:     "document",
 				NotificationType:     string(commonDTOs.ReviewType),
 				HeadingEn:            "Document Review",
@@ -738,7 +740,7 @@ func (drs *DocumentReviewService) sendRejectedNotification(id uint, currentUserI
 
 		// Create the database notification DTO
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               uint(document.ResponsibleUser.ID),
+			UserIDs:              []uint{uint(document.ResponsibleUser.ID)},
 			ModuleIdentifier:     "document",
 			NotificationType:     string(commonDTOs.RejectType),
 			HeadingEn:            "Document Rejected",
@@ -806,7 +808,7 @@ func (drs *DocumentReviewService) sendRevertedNotification(id uint, currentUserI
 
 		// Create the database notification DTO
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               uint(document.ResponsibleUser.ID),
+			UserIDs:              []uint{uint(document.ResponsibleUser.ID)},
 			ModuleIdentifier:     "document",
 			NotificationType:     string(commonDTOs.RevertType),
 			HeadingEn:            "Document Reverted",
@@ -874,7 +876,7 @@ func (drs *DocumentReviewService) sendCommentNotification(id uint, currentUserID
 
 		// Create the database notification DTO
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               uint(document.ResponsibleUser.ID),
+			UserIDs:              []uint{uint(document.ResponsibleUser.ID)},
 			ModuleIdentifier:     "document",
 			NotificationType:     string(commonDTOs.CommentType),
 			HeadingEn:            "New Document Comment",

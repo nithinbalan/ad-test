@@ -136,6 +136,7 @@ type ComplianceActionPlanDetailDTO struct {
 	CreatedByUser                   organizationDTOs.UserMinimalDTO           `json:"created_by_user"`
 	UpdatedByUser                   *organizationDTOs.UserMinimalDTO          `json:"updated_by_user"`
 	ActionPlanStatusUpdates         []*ComplianceActionPlanStatusUpdateDTO    `json:"action_plan_status_updates"`
+	ActionPlanComments              []*ComplianceActionPlanCommentDetailDTO   `json:"action_plan_comments"`
 }
 
 type ComplianceActionPlanStatusUpdateDTO struct {
