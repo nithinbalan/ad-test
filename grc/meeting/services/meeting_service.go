@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	complianceServices "jethur/grc/compliance/services"
@@ -36,6 +37,7 @@ type MeetingServiceInterface interface {
 	GetMeetingEffectiveness(meetingID uint) (float64, error)
 
 	ExportMeeting(data []*meetingDTOs.MeetingListDTO, currentUserID uint) (*os.File, error)
+	GetDocumentPath(id uint, token string, tx ...utility.DatabaseTransaction) (string, error)
 }
 
 type MeetingService struct {
@@ -1773,4 +1775,35 @@ func (ms *MeetingService) ExportMeeting(data []*meetingDTOs.MeetingListDTO, curr
 
 	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (ms *MeetingService) GetDocumentPath(id uint, token string, tx ...utility.DatabaseTransaction) (string, error) {
+	existingMeeting, err := ms.GetFullDetailsByID(id, tx...)
+	if err != nil {
+		return "", err
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("meeting", "meetings", strconv.FormatUint(uint64(existingMeeting.ID), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

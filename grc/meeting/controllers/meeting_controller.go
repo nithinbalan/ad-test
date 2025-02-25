@@ -7,6 +7,7 @@ import (
 	"jethur/grc/meeting/services"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -300,4 +301,43 @@ func (mc *MeetingController) GetMeetingExport(c *gin.Context) {
 	c.Request.URL.RawQuery += "&export=true"
 
 	mc.GetAllMeetings(c)
+}
+
+func (mc *MeetingController) DownloadMeetingDocument(c *gin.Context) {
+	idStr := c.Param("id")
+	meetingID, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := mc.service.GetDocumentPath(uint(meetingID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(mc.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(documentPath)
+
+	// Set the content type and disposition headers for the file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	// Serve the file
+	c.File(documentPath)
 }
