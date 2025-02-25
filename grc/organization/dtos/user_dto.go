@@ -195,6 +195,7 @@ type CurrentUserDetailsDTO struct {
 	Color            string         `json:"color"`
 	LastLoginAt      *time.Time     `json:"last_login_at"`
 	UserSetting      UserSettingDTO `json:"user_setting"`
+	PrimaryUnitID    *uint          `json:"primary_unit_id"`
 
 	// Relationship DTOs
 	OrganizationUnit1 *settingDTOs.OrganizationUnitDTO `json:"organization_unit_1"`
