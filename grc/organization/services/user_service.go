@@ -753,6 +753,33 @@ func (us *UserService) GetCurrentUserDetails(id uint) (*userDTOs.CurrentUserDeta
 		return nil, err
 	}
 
+	primaryLevel, err := us.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return nil, err
+	}
+
+	var primaryOrgUnitID *uint
+
+	switch primaryLevel.Level {
+	case 1:
+		primaryOrgUnitID = &user.OrganizationUnit1ID
+	case 2:
+		primaryOrgUnitID = user.OrganizationUnit2ID
+	case 3:
+		primaryOrgUnitID = user.OrganizationUnit3ID
+	case 4:
+		primaryOrgUnitID = user.OrganizationUnit4ID
+	case 5:
+		primaryOrgUnitID = user.OrganizationUnit5ID
+	default:
+		return nil, fmt.Errorf("invalid primary level: %d", primaryLevel.Level)
+	}
+
+	if primaryOrgUnitID != nil {
+
+		userDetailsDTO.PrimaryUnitID = primaryOrgUnitID
+	}
+
 	roles := make([]settingDTOs.RoleDTO, 0, len(*user.UserRoles))
 	for _, userRole := range *user.UserRoles {
 		roles = append(roles, settingDTOs.RoleDTO{

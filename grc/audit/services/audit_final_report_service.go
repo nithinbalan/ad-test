@@ -3,6 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	commonDTOs "jethur/grc/common/dtos"
@@ -19,11 +25,6 @@ import (
 	settingsDTOs "jethur/grc/settings/dtos"
 	settingsServices "jethur/grc/settings/services"
 	"jethur/utility"
-	"path/filepath"
-	"sort"
-	"strconv"
-	"strings"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -88,6 +89,7 @@ func NewAuditFinalReportService(
 		notificationSvc:           notificationSvc,
 	}
 }
+
 func (afrs *AuditFinalReportService) SetAuditReportWorkflowService(svc AuditReportWorkflowServiceInterface) {
 	afrs.auditReportWorkflowSvc = svc
 }
@@ -540,7 +542,6 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 					}
 					appendicesDTOs = append(appendicesDTOs, appendixDTO)
 				}
-
 			}
 			// Add appendices to the section DTO
 			mainSectionDTO.Appendices = appendicesDTOs
@@ -937,7 +938,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 					TargetDate:        draftActionPlan.TargetDate,
 					CreatedBYID:       currentUserID,
 					// SeverityLevelID:    draftActionPlan.SeverityLevelID,
-					ActionPlanStatusID: 1, //todo -- add ActionPlanStatusID
+					ActionPlanStatusID: 1, // todo -- add ActionPlanStatusID
 				}
 				// Attach action plan to its respective AuditFinding
 				actionPlans = append(actionPlans, actionPlan)
@@ -960,7 +961,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 			return 0, err
 		}
 	}
-	//Bulk insert AuditFinalReportSection
+	// Bulk insert AuditFinalReportSection
 	if len(reportSubSections) > 0 {
 		if err := afrs.repo.CreateAuditFinalReportSections(reportSubSections, tx); err != nil {
 			tx.Rollback()
@@ -968,13 +969,13 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 		}
 	}
 
-	//Add workflow
+	// Add workflow
 	err = afrs.auditReportWorkflowSvc.CreateAuditReportWorkflow(id, "final-report", currentUserID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
-	//add audit report edit history
+	// add audit report edit history
 	auditReportEditHistory := &auditDTOs.AuditReportEditHistoryDTO{
 		AuditID:            auditID,
 		AuditFinalReportID: id,
@@ -1002,7 +1003,6 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -1033,7 +1033,7 @@ func (afrs *AuditFinalReportService) Update(auditFinalReport *models.AuditFinalR
 		return err
 	}
 
-	//update using submit so edit history no need
+	// update using submit so edit history no need
 
 	// Commit if this function started the transaction
 	if len(tx) == 0 {
@@ -1131,7 +1131,7 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 		}
 	}
 
-	//delete workflow
+	// delete workflow
 	var deleteAuditReportWorkflowIds []*uint
 	var deleteAuditReportWorkflowParticipantIds []*uint
 	var deleteAuditReportWorkflowReviewIds []*uint
@@ -1210,7 +1210,6 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.DeleteAction,
@@ -1352,6 +1351,7 @@ func (afrs *AuditFinalReportService) ExportAuditFinalReportToPDF(auditID uint, c
 func float64Ptr(val float64) *float64 {
 	return &val
 }
+
 func mapSectionToDTO(section *models.AuditFinalReportSection) *auditDTOs.AuditFinalReportSectionDTO {
 	return &auditDTOs.AuditFinalReportSectionDTO{
 		ID:                        section.ID,
@@ -1432,7 +1432,7 @@ func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, a
 		}
 	}
 
-	//update status & Publishedby user details on final report
+	// update status & Publishedby user details on final report
 	currentDateStr := time.Now()
 	auditFinalReport.AuditFinalReportStatusID = auditFinalReportStatusPublished.ID
 	auditFinalReport.PublishedBYID = &currentUserID
@@ -1457,7 +1457,7 @@ func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, a
 
 		for _, recipient := range auditFinalReportRecipients {
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               recipient.UserID,
+				UserIDs:              []uint{recipient.UserID},
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.ReviewType),
 				ReferenceNumber:      existingAuditFinalReport.ReferenceNumber,

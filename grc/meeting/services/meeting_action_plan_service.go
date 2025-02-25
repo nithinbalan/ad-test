@@ -250,7 +250,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               MeetingActionPlanFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{MeetingActionPlanFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "meeting",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Meeting Action Plan Responsibility Assigned",
@@ -385,7 +385,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"title":              oldMeetingActionPlan.Title,
@@ -448,7 +448,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "meeting",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Meeting Action Plan Responsibility Removed",
@@ -465,7 +465,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               MeetingActionPlanFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{MeetingActionPlanFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "meeting",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Meeting Action Plan Responsibility Assigned",
@@ -675,7 +675,7 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "meeting",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Meeting Action Plan Deleted",

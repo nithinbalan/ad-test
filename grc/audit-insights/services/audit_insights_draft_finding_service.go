@@ -2,6 +2,8 @@ package services
 
 import (
 	"fmt"
+	"time"
+
 	"jethur/grc/audit-insights/dtos"
 	"jethur/grc/audit-insights/repositories"
 	auditDTOs "jethur/grc/audit/dtos"
@@ -12,7 +14,6 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"time"
 )
 
 type AuditInsightsDraftFindingServiceInterface interface {
@@ -206,7 +207,7 @@ func (aidfs *AuditInsightsDraftFindingService) Accept(auditDraftFindingID uint, 
 			}
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               userID,
+				UserIDs:              []uint{userID},
 				ModuleIdentifier:     "audit_insights",
 				NotificationType:     string(commonDTOs.ReviewType),
 				HeadingEn:            "Approve Audit Draft Report Finding",
@@ -236,7 +237,6 @@ func (aidfs *AuditInsightsDraftFindingService) Accept(auditDraftFindingID uint, 
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -389,7 +389,7 @@ func (aidfs *AuditInsightsDraftFindingService) Challenge(auditDraftFindingID uin
 			}
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               userID,
+				UserIDs:              []uint{userID},
 				ModuleIdentifier:     "audit_insights",
 				NotificationType:     string(commonDTOs.ReviewType),
 				HeadingEn:            "Challenge Audit Draft Report Finding",
@@ -419,7 +419,6 @@ func (aidfs *AuditInsightsDraftFindingService) Challenge(auditDraftFindingID uin
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,

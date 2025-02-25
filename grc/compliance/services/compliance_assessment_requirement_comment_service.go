@@ -178,7 +178,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 				action := "comment-added"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               complianceAssessment.ReviewuserID,
+					UserIDs:              []uint{complianceAssessment.ReviewuserID},
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.AssignmentType),
 					HeadingEn:            "Comment Added For Compliance Requirement",
@@ -247,7 +247,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 				action := "comment-added"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               complianceAssessment.ReviewuserID,
+					UserIDs:              []uint{complianceAssessment.ReviewuserID},
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.AssignmentType),
 					HeadingEn:            "Comment Added For Compliance Requirement",
@@ -317,7 +317,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 					action := "comment-added"
 
 					dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-						UserID:               complianceAssessment.ReviewuserID,
+						UserIDs:              []uint{complianceAssessment.ReviewuserID},
 						ModuleIdentifier:     "compliance",
 						NotificationType:     string(commonDTOs.AssignmentType),
 						HeadingEn:            "Comment Added For Compliance Requirement",
@@ -385,7 +385,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 				action := "comment-added"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               complianceAssessment.ReviewuserID,
+					UserIDs:              []uint{complianceAssessment.ReviewuserID},
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.AssignmentType),
 					HeadingEn:            "Comment Added For Compliance Requirement",

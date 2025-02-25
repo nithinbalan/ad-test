@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"errors"
+
 	"jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -11,7 +12,7 @@ import (
 
 type NotificationRepositoryInteface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	Create(notification *models.UserNotification, tx ...utility.DatabaseTransaction) error
+	Create(notifications []*models.UserNotification, tx ...utility.DatabaseTransaction) error
 	GetNotificationMasterByIdentifier(identifier string) (*models.NotificationMaster, error)
 	GetUserNotificationSetting(userID uint, notificationMasterID uint) (*models.UserNotificationSetting, error)
 	CreateEmailLog(emailLog *models.EmailLog, tx ...utility.DatabaseTransaction) error
@@ -33,13 +34,13 @@ func (repo *NotificationRepository) BeginTransaction() utility.DatabaseTransacti
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *NotificationRepository) Create(notification *models.UserNotification, tx ...utility.DatabaseTransaction) error {
+func (repo *NotificationRepository) Create(notifications []*models.UserNotification, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	return db.Create(&notification).Error
+	return db.Create(&notifications).Error
 }
 
 func (repo *NotificationRepository) GetNotificationMasterByIdentifier(identifier string) (*models.NotificationMaster, error) {
