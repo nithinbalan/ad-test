@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/mitchellh/mapstructure"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -641,6 +642,41 @@ func (us *UserService) validateUserFormDTO(id *uint, userFormDTO *userDTOs.UserF
 		}
 	}
 
+	// **Validate Max Allowed Users from License Key**
+
+	activeStatus, err := us.userStatusSvc.GetByType("active")
+	if err != nil {
+		return err
+	}
+
+	licenseKey, err := us.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return err
+	}
+
+	if *licenseKey.LicenseKey != "" {
+		maxAllowedUsers, err := us.DecodeMaxUsersFromLicense(*licenseKey.LicenseKey)
+		if err != nil {
+			return err
+		}
+
+		currentActiveUsers, err := us.repo.CountActiveUsers(activeStatus.ID)
+		if err != nil {
+			return err
+		}
+
+		// If adding a new user (id == nil) or activating an existing one, check against max allowed users
+		if id == nil || (id != nil && userFormDTO.UserStatusID == activeStatus.ID) {
+			if currentActiveUsers >= int64(maxAllowedUsers) {
+				return utility.NewValidationError(
+					fmt.Errorf("maximum allowed users limit reached (%d users)", int64(maxAllowedUsers)),
+					"user_exceed",
+					"user",
+				)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -959,4 +995,28 @@ func (us *UserService) GetUserPermissions(userID uint, params *settingDTOs.Modul
 	}
 
 	return &moduleList, nil
+}
+
+func (us *UserService) DecodeMaxUsersFromLicense(licenseKey string) (float64, error) {
+	// Parse JWT token
+	token, err := jwt.Parse(licenseKey, func(token *jwt.Token) (interface{}, error) {
+		return []byte("f0a3e3b61e7082367820944efeb9d81c7e242ec4d22dc6fa941aaf76d333f158"), nil
+	})
+
+	if err != nil || !token.Valid {
+		return 0, fmt.Errorf("invalid license key")
+	}
+
+	// Extract claims
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return 0, fmt.Errorf("invalid token claims")
+	}
+	// Extract max_users
+	maxUsers, ok := claims["max_users"].(float64) // JWT numbers are float64
+	if !ok {
+		return 0, fmt.Errorf("max_users field missing in license key")
+	}
+
+	return maxUsers, nil
 }
