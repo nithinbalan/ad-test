@@ -87,6 +87,14 @@ jobs:
           .\script.bat seed
           if ($LASTEXITCODE -ne 0) { exit 1 }
 
+          # Tail the last 5 lines of the migration log file
+          Write-Host "===== Last 5 lines of Migrations Log ====="
+          Get-Content migrations/output.log | Select-Object -Last 5
+    
+          # Tail the last 5 lines of the seed log file
+          Write-Host "===== Last 5 lines of Seed Log ====="
+          Get-Content seed/output.log | Select-Object -Last 5
+
       # Step: Switch Back to Main Branch and Build API
       - name: Switch Back to Main Branch
         run: git checkout main
