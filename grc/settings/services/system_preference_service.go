@@ -12,14 +12,13 @@ import (
 
 	"jethur/utility"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/mitchellh/mapstructure"
 )
 
 type SystemPreferenceServiceInterface interface {
 	GetSystemPreference() (*dtos.SystemPreferenceDTO, error)
 	Update(id uint, currentUserID uint, systemPreferenceFormDTO *dtos.SystemPreferenceFormDTO) error
-	UpdateLicenseKey(id uint, systemPreferenceFormDTO *dtos.LicenseKeyUpdateFormDTO) error
+	UpdateLicenseKey(systemPreferenceFormDTO *dtos.LicenseKeyUpdateFormDTO) error
 
 	GetOrganizationPreference(params *dtos.IntegrationListQueryParamsDTO) (*dtos.OrganizationPreferenceResponseDTO, error)
 }
@@ -53,6 +52,11 @@ func (sps SystemPreferenceService) GetSystemPreference() (*dtos.SystemPreference
 	err = mapstructure.Decode(systemPreference, &systemPreferenceDetailDTO)
 	if err != nil {
 		return nil, err
+	}
+
+	if systemPreference.LicenseKeyExpiryDate != nil {
+		expiryDate := systemPreference.LicenseKeyExpiryDate.Format("2006-01-02")
+		systemPreferenceDetailDTO.LicenseKeyExpiryDateString = &expiryDate
 	}
 
 	return &systemPreferenceDetailDTO, nil
@@ -147,18 +151,56 @@ func (sps SystemPreferenceService) GetOrganizationPreference(params *dtos.Integr
 	return &combinedResponse, nil
 }
 
-func (sps *SystemPreferenceService) UpdateLicenseKey(id uint, systemPreferenceFormDTO *dtos.LicenseKeyUpdateFormDTO) error {
+func (sps *SystemPreferenceService) UpdateLicenseKey(systemPreferenceFormDTO *dtos.LicenseKeyUpdateFormDTO) error {
 	// Retrieve existing system preference by ID
 	existingSystemPreference, err := sps.repo.GetSystemPreference()
 	if err != nil {
 		return err
 	}
+
 	if err := sps.validateLicenseKey(*systemPreferenceFormDTO.LicenseKey); err != nil {
 		return err
 	}
 
+	claims, err := utility.DecryptJWTToken(*systemPreferenceFormDTO.LicenseKey)
+	if err != nil {
+		return err
+	}
+
+	// Extract expiry_date from claims
+	expiryDateStr, ok := claims["expiry_date"].(string) // Check if it's a string
+	if !ok {
+		return errors.New("expiry_date missing or invalid in license key")
+	}
+
+	// Convert expiryDateStr to time.Time
+	expiryDate, err := time.Parse("2006-01-02", expiryDateStr)
+	if err != nil {
+		return errors.New("invalid expiry date format, expected YYYY-MM-DD")
+	}
+
+	// Get max_users from JWT claims
+	maxUsersFloat, ok := claims["max_users"].(float64) // JWT stores numbers as float64
+	if !ok {
+		return errors.New("max_users missing or invalid in license key")
+	}
+	maxUsers := int(maxUsersFloat)
+
+	activeUsersCount, err := sps.repo.GetActiveUserCount()
+	if err != nil {
+		return err
+	}
+
+	balanceLicensedUserCount := maxUsers - int(activeUsersCount)
+	if balanceLicensedUserCount < 0 {
+		balanceLicensedUserCount = 0
+	}
+
 	// Update fields with values from DTO
 	existingSystemPreference.LicenseKey = systemPreferenceFormDTO.LicenseKey
+	existingSystemPreference.LicenseKeyExpiryDate = &expiryDate
+	existingSystemPreference.BalanceLicensedUserCount = &balanceLicensedUserCount
+	existingSystemPreference.TotalLicensedUserCount = &maxUsers
 
 	// Update system preference in the repository
 	err = sps.repo.Update(existingSystemPreference)
@@ -170,7 +212,7 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(id uint, systemPreferenceFo
 		err := sps.activityLogSvc.LogActivity(
 			models.UpdateAction,
 			models.SystemPreference{}.TableName(),
-			id,
+			existingSystemPreference.ID,
 			systemPreferenceFormDTO,
 			1,
 			nil,
@@ -180,7 +222,7 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(id uint, systemPreferenceFo
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
 				"tableName": models.SystemPreference{}.TableName(),
-				"recordID":  id,
+				"recordID":  existingSystemPreference.ID,
 				"userID":    1,
 				"error":     err.Error(),
 			}
@@ -193,45 +235,36 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(id uint, systemPreferenceFo
 }
 
 func (sps *SystemPreferenceService) validateLicenseKey(licenseKey string) error {
-	// Parse the JWT token
-	token, err := jwt.Parse(licenseKey, func(token *jwt.Token) (interface{}, error) {
-		return []byte("f0a3e3b61e7082367820944efeb9d81c7e242ec4d22dc6fa941aaf76d333f158"), nil
-	})
-
+	claims, err := utility.DecryptJWTToken(licenseKey)
 	if err != nil {
-		return errors.New("invalid license key")
+		return err
 	}
 
-	// Validate token claims
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		// Validate Expiry Date (expiry_date)
-		expiryDateStr, ok := claims["expiry_date"].(string)
-		if !ok || expiryDateStr == "" {
-			return errors.New("missing expiry date in license key")
-		}
-
-		// Convert expiry_date string to time.Time format
-		expiryDate, err := time.Parse("2006-01-02", expiryDateStr) // Ensure format matches the stored format
-		if err != nil {
-			return errors.New("invalid expiry date format, expected YYYY-MM-DD")
-		}
-
-		// Check if expiry_date is in the future
-		if expiryDate.Before(time.Now()) {
-			return errors.New("license key has expired")
-		}
-
-		// Validate API URL (if needed)
-
-		if apiURL, ok := claims["api_url"].(string); ok {
-			systemAPIURL := utility.GetApiURL() // Change this to your actual API URL
-			if apiURL != systemAPIURL {
-				return errors.New("license key does not match system API URL")
-			}
-		}
-
-		return nil
+	// Validate Expiry Date (expiry_date)
+	expiryDateStr, ok := claims["expiry_date"].(string)
+	if !ok || expiryDateStr == "" {
+		return errors.New("missing expiry date in license key")
 	}
 
-	return errors.New("invalid license key format")
+	// Convert expiry_date string to time.Time format
+	expiryDate, err := time.Parse("2006-01-02", expiryDateStr) // Ensure format matches the stored format
+	if err != nil {
+		return errors.New("invalid expiry date format, expected YYYY-MM-DD")
+	}
+
+	// Check if expiry_date is in the future
+	if expiryDate.Before(time.Now()) {
+		return errors.New("license key is invalid")
+	}
+
+	// Validate API URL (if needed)
+
+	if apiURL, ok := claims["api_url"].(string); ok {
+		systemAPIURL := utility.GetApiURL() // Change this to your actual API URL
+		if apiURL != systemAPIURL {
+			return errors.New("license key does not match system API URL")
+		}
+	}
+
+	return nil
 }

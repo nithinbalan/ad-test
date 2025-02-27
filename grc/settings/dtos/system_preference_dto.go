@@ -16,20 +16,23 @@ type LicenseKeyUpdateFormDTO struct {
 }
 
 type SystemPreferenceDTO struct {
-	ID                  int         `json:"id"`
-	CurrencyID          uint        `json:"currency_id"`
-	TimezoneID          uint        `json:"timezone_id"`
-	DateFormat          string      `json:"date_format"`
-	TimeFormat          string      `json:"time_format"`
-	DocUploadSize       int         `json:"doc_upload_size"`
-	LogoUploadSize      int         `json:"logo_upload_size"`
-	IdleTimeout         int         `json:"idle_timeout"`
-	IsMaintenanceModeOn *bool       `json:"is_maintenance_mode_on"`
-	LicenseKey          *string     `json:"license_key"`
-	CreatedByID         uint        `json:"created_by_id"`
-	UpdatedByID         *uint       `json:"updated_by_id"`
-	Timezone            TimezoneDTO `json:"timezone"`
-	Currency            CurrencyDTO `json:"currency"`
+	ID                         int         `json:"id"`
+	CurrencyID                 uint        `json:"currency_id"`
+	TimezoneID                 uint        `json:"timezone_id"`
+	DateFormat                 string      `json:"date_format"`
+	TimeFormat                 string      `json:"time_format"`
+	DocUploadSize              int         `json:"doc_upload_size"`
+	LogoUploadSize             int         `json:"logo_upload_size"`
+	IdleTimeout                int         `json:"idle_timeout"`
+	IsMaintenanceModeOn        *bool       `json:"is_maintenance_mode_on"`
+	LicenseKey                 *string     `json:"license_key"`
+	LicenseKeyExpiryDateString *string     `json:"license_key_expiry_date"`
+	BalanceLicensedUserCount   *int        `json:"balance_licensed_user_count"`
+	TotalLicensedUserCount     *int        `json:"total_licensed_user_count"`
+	CreatedByID                uint        `json:"created_by_id"`
+	UpdatedByID                *uint       `json:"updated_by_id"`
+	Timezone                   TimezoneDTO `json:"timezone"`
+	Currency                   CurrencyDTO `json:"currency"`
 }
 
 type TimezoneDTO struct {

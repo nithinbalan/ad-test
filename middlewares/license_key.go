@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"gorm.io/gorm"
 )
 
@@ -25,33 +24,17 @@ func GetLicenseToken(db *gorm.DB) (string, error) {
 // LicenseMiddleware checks if the license key is expired
 func LicenseMiddleware(db *gorm.DB) gin.HandlerFunc {
 
-	var JWTSecret = []byte("f0a3e3b61e7082367820944efeb9d81c7e242ec4d22dc6fa941aaf76d333f158")
-
 	return func(c *gin.Context) {
 		// Retrieve the stored license key from DB
 		tokenString, err := GetLicenseToken(db)
 		if err != nil || tokenString == "" {
-			// c.JSON(http.StatusForbidden, gin.H{"error": "License key not found"})
-			// c.Abort()
 			c.Next()
 			return
 		}
 
-		// Parse and validate the token
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			return JWTSecret, nil // Use the same secret key from service package
-		})
-
-		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired license key"})
-			c.Abort()
-			return
-		}
-
-		// Extract claims
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid license claims"})
+		claims, err := utility.DecryptJWTToken(tokenString)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "License is invalid"})
 			c.Abort()
 			return
 		}

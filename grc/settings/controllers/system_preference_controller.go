@@ -85,11 +85,6 @@ func (spc *SystemPreferenceController) GetOrganizationPreference(c *gin.Context)
 }
 
 func (spc *SystemPreferenceController) UpdateLicenseKey(c *gin.Context) {
-	systemPreferenceID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
 
 	var systemPreferenceFormDTO settingDTOs.LicenseKeyUpdateFormDTO
 	if err := c.ShouldBindJSON(&systemPreferenceFormDTO); err != nil {
@@ -97,7 +92,7 @@ func (spc *SystemPreferenceController) UpdateLicenseKey(c *gin.Context) {
 		return
 	}
 
-	err = spc.service.UpdateLicenseKey(uint(systemPreferenceID), &systemPreferenceFormDTO)
+	err := spc.service.UpdateLicenseKey(&systemPreferenceFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
