@@ -1,21 +1,25 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/repositories"
+	"time"
 
 	"jethur/utility"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/mitchellh/mapstructure"
 )
 
 type SystemPreferenceServiceInterface interface {
 	GetSystemPreference() (*dtos.SystemPreferenceDTO, error)
 	Update(id uint, currentUserID uint, systemPreferenceFormDTO *dtos.SystemPreferenceFormDTO) error
+	UpdateLicenseKey(id uint, systemPreferenceFormDTO *dtos.LicenseKeyUpdateFormDTO) error
 
 	GetOrganizationPreference(params *dtos.IntegrationListQueryParamsDTO) (*dtos.OrganizationPreferenceResponseDTO, error)
 }
@@ -73,7 +77,6 @@ func (sps *SystemPreferenceService) Update(id uint, currentUserID uint, systemPr
 	existingSystemPreference.LogoUploadSize = systemPreferenceFormDTO.LogoUploadSize
 	existingSystemPreference.IdleTimeout = systemPreferenceFormDTO.IdleTimeout
 	existingSystemPreference.IsMaintenanceModeOn = systemPreferenceFormDTO.IsMaintenanceModeOn
-	existingSystemPreference.LicenseKey = systemPreferenceFormDTO.LicenseKey
 	existingSystemPreference.UpdatedByID = &currentUserID
 
 	// Update system preference in the repository
@@ -142,4 +145,93 @@ func (sps SystemPreferenceService) GetOrganizationPreference(params *dtos.Integr
 	}
 
 	return &combinedResponse, nil
+}
+
+func (sps *SystemPreferenceService) UpdateLicenseKey(id uint, systemPreferenceFormDTO *dtos.LicenseKeyUpdateFormDTO) error {
+	// Retrieve existing system preference by ID
+	existingSystemPreference, err := sps.repo.GetSystemPreference()
+	if err != nil {
+		return err
+	}
+	if err := sps.validateLicenseKey(*systemPreferenceFormDTO.LicenseKey); err != nil {
+		return err
+	}
+
+	// Update fields with values from DTO
+	existingSystemPreference.LicenseKey = systemPreferenceFormDTO.LicenseKey
+
+	// Update system preference in the repository
+	err = sps.repo.Update(existingSystemPreference)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		err := sps.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.SystemPreference{}.TableName(),
+			id,
+			systemPreferenceFormDTO,
+			1,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.SystemPreference{}.TableName(),
+				"recordID":  id,
+				"userID":    1,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
+}
+
+func (sps *SystemPreferenceService) validateLicenseKey(licenseKey string) error {
+	// Parse the JWT token
+	token, err := jwt.Parse(licenseKey, func(token *jwt.Token) (interface{}, error) {
+		return []byte("f0a3e3b61e7082367820944efeb9d81c7e242ec4d22dc6fa941aaf76d333f158"), nil
+	})
+
+	if err != nil {
+		return errors.New("invalid license key")
+	}
+
+	// Validate token claims
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		// Validate Expiry Date (expiry_date)
+		expiryDateStr, ok := claims["expiry_date"].(string)
+		if !ok || expiryDateStr == "" {
+			return errors.New("missing expiry date in license key")
+		}
+
+		// Convert expiry_date string to time.Time format
+		expiryDate, err := time.Parse("2006-01-02", expiryDateStr) // Ensure format matches the stored format
+		if err != nil {
+			return errors.New("invalid expiry date format, expected YYYY-MM-DD")
+		}
+
+		// Check if expiry_date is in the future
+		if expiryDate.Before(time.Now()) {
+			return errors.New("license key has expired")
+		}
+
+		// Validate API URL (if needed)
+
+		if apiURL, ok := claims["api_url"].(string); ok {
+			systemAPIURL := utility.GetApiURL() // Change this to your actual API URL
+			if apiURL != systemAPIURL {
+				return errors.New("license key does not match system API URL")
+			}
+		}
+
+		return nil
+	}
+
+	return errors.New("invalid license key format")
 }

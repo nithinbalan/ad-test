@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"jethur/utility"
 	"net/http"
 	"strings"
 	"time"
@@ -78,23 +79,21 @@ func LicenseMiddleware(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Validate Organization URL
-		orgURL, exists := claims["organization_url"].(string)
-		if !exists || orgURL == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Organization URL missing in license key"})
+		// Validate api URL
+		apiURL, exists := claims["api_url"].(string)
+		if !exists || apiURL == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "API URL missing in license key"})
 			c.Abort()
 			return
 		}
 
 		// Get the current app URL from request
-		appURL := c.Request.Host               // Extracts host from request (e.g., "example.com:8080")
-		appURL = strings.Split(appURL, ":")[0] // Remove port if present (e.g., "example.com")
-
-		// Compare organization URL with app URL
-		if !strings.Contains(appURL, orgURL) {
+		appURL := utility.GetApiURL() // Extracts host from request (e.g., "example.com:8080")
+		// Compare api URL with app URL
+		if !strings.Contains(appURL, apiURL) {
 			c.JSON(http.StatusForbidden, gin.H{
-				"error":            "Organization URL mismatch",
-				"expected_org_url": orgURL,
+				"error":            "API URL mismatch",
+				"expected_api_url": apiURL,
 				"received_app_url": appURL,
 			})
 			c.Abort()
