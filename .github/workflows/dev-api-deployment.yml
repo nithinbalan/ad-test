@@ -83,8 +83,10 @@ jobs:
       - name: Run Migrations and Seed
         run: |
           .\script.bat migrateup
+          if ($LASTEXITCODE -ne 0) { exit 1 }
           .\script.bat seed
-        shell: powershell
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
 
       # Step: Switch Back to Main Branch and Build API
       - name: Switch Back to Main Branch
