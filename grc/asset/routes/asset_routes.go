@@ -78,6 +78,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.PUT("/asset-register/:id", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetRegisterController.UpdateAsset)
 	assetRoutes.POST("/asset-register/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetRegisterController.DeleteAssets)
 	assetRoutes.GET("/asset-register/:id/control-summary", middlewares.RolePermissionMiddleware(db, "process", "view"), assetRegisterController.GetControlSummary)
+	unauthenticatedRoutes.GET("/asset-register/:id/document-download", assetRegisterController.DownloadAssetDocument)
 
 	//Asset Matrix
 	assetRoutes.GET("/asset-criticality-matrices", middlewares.RolePermissionMiddleware(db, "asset_criticality_matrix", "view"), assetCriticalityMatrixController.GetAllMatrices)

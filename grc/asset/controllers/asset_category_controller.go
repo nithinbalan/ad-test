@@ -27,9 +27,7 @@ func (acc *AssetCategoryController) GetAllAssetCategories(c *gin.Context) {
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
-	allowedParams := []string{
-		"asset_type_ids",
-	}
+	allowedParams := []string{}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
