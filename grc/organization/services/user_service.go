@@ -224,12 +224,14 @@ func (us *UserService) GetByEmail(email string) (*models.User, error) {
 func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserFormDTO) (uint, error) {
 
 	tx := us.repo.BeginTransaction()
-	licenseKey, err := us.systemPreferenceSvc.GetSystemPreference()
+
+	systemPreference, err := us.systemPreferenceSvc.GetSystemPreference()
 	if err != nil {
 		return 0, err
 	}
-	if *licenseKey.LicenseKey != "" {
-		if err := us.validateLicenseKey(*licenseKey.LicenseKey); err != nil {
+
+	if *systemPreference.LicenseKey != "" {
+		if err := us.validateLicenseKey(*systemPreference.LicenseKey); err != nil {
 			return 0, err
 		}
 	}
