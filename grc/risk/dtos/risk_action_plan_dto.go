@@ -97,6 +97,7 @@ type RiskActionPlanFormDTO struct {
 }
 
 type ControlFormDTO struct {
+	ID            *uint  `json:"id"`
 	ControlTypeID uint   `json:"control_type_id" binding:"required"`
 	OwnerID       uint   `json:"owner_id" binding:"required"`
 	TitleEn       string `json:"title_en" binding:"required"`

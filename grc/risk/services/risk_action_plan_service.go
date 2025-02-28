@@ -422,6 +422,83 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 		return err
 	}
 
+	existingControlIDs := make(map[uint]bool)
+	for _, ctrl := range oldRiskActionPlan.Controls {
+		existingControlIDs[ctrl.ControlID] = true
+	}
+
+	newControlIDs := make(map[uint]bool)
+	for _, ctrl := range RiskActionPlanFormDTO.Controls {
+		if ctrl.ID != nil {
+			newControlIDs[*ctrl.ID] = true
+		}
+	}
+
+	var deleteControlIDs []*uint
+	for _, existingActionPlan := range oldRiskActionPlan.Controls {
+		if _, exists := newControlIDs[existingActionPlan.ControlID]; !exists {
+			deleteControlIDs = append(deleteControlIDs, existingActionPlan.ID)
+		}
+	}
+
+	if len(deleteControlIDs) > 0 {
+		if err := raps.repo.DeleteRiskActionPlanControl(deleteControlIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, control := range RiskActionPlanFormDTO.Controls {
+
+		if control.ID == nil {
+			referenceNumber, err := raps.repo.GenerateControlReferenceNumber(tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			lifecycleStatus, err := raps.lifecycleStatusSvc.GetByType("active")
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			organizationUnitID, err := raps.userSvc.GetUserPrimaryUnitID(control.OwnerID)
+			if err != nil {
+				tx.Rollback()
+				return utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
+			}
+			actionPlanControl := &models.Control{
+				ReferenceNumber:       referenceNumber,
+				ControlTypeID:         control.ControlTypeID,
+				OwnerID:               control.OwnerID,
+				OwnerUnitID:           organizationUnitID,
+				TitleEn:               control.TitleEn,
+				TitleAr:               control.TitleAr,
+				LifecycleStatusID:     lifecycleStatus.ID,
+				TestResponsibleUserID: nil,
+				CreatedByID:           currentUserID,
+			}
+
+			controlId, err := raps.repo.CreateControl(actionPlanControl, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			riskActionPlanControl := &models.RiskActionPlanControl{
+				RiskActionPlanID: id,
+				ControlID:        controlId,
+				CreatedByID:      currentUserID,
+			}
+
+			if err := raps.repo.CreateRiskActionPlanControl(riskActionPlanControl, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
 	tx.Commit()
 
 	go func() {

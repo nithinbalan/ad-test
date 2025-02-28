@@ -24,8 +24,9 @@ type RiskActionPlanRepositoryInterface interface {
 	CreateInitialRiskActionPlanStatusUpdate(riskActionPlanStatusUpdate *models.RiskActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteRiskActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 	CreateControl(control *models.Control, tx ...utility.DatabaseTransaction) (uint, error)
-	// CreateControls(control []*models.Control, tx ...utility.DatabaseTransaction) ([]*uint, error)
+
 	CreateRiskActionPlanControl(riskActionPlanControl *models.RiskActionPlanControl, tx ...utility.DatabaseTransaction) error
+	DeleteRiskActionPlanControl(riskActionPlanControlIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GenerateControlReferenceNumber(tx utility.DatabaseTransaction) (string, error)
 }
@@ -336,24 +337,6 @@ func (repo *RiskActionPlanRepository) CreateControl(control *models.Control, tx 
 	return control.ID, nil
 }
 
-// func (repo *RiskActionPlanRepository) CreateControls(controls []*models.Control, tx ...utility.DatabaseTransaction) ([]*uint, error) {
-// 	db := repo.db
-// 	if len(tx) > 0 && tx[0] != nil {
-// 		db = tx[0].DB()
-// 	}
-// 	if err := db.Create(controls).Error; err != nil {
-// 		return nil, err
-// 	}
-
-// 	// Extract generated IDs
-// 	var controlIDs []*uint
-// 	for _, control := range controls {
-// 		controlIDs = append(controlIDs, &control.ID)
-// 	}
-
-// 	return controlIDs, nil
-// }
-
 func (repo *RiskActionPlanRepository) CreateRiskActionPlanControl(riskActionPlanControl *models.RiskActionPlanControl, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -362,6 +345,20 @@ func (repo *RiskActionPlanRepository) CreateRiskActionPlanControl(riskActionPlan
 	if err := db.Create(&riskActionPlanControl).Error; err != nil {
 		return err
 	}
+	return nil
+}
+
+func (repo *RiskActionPlanRepository) DeleteRiskActionPlanControl(riskActionPlanControlIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete controls by IDs
+	if err := db.Where("id IN (?)", riskActionPlanControlIds).Delete(&models.RiskActionPlanControl{}).Error; err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -397,31 +394,3 @@ func (repo *RiskActionPlanRepository) GenerateControlReferenceNumber(tx utility.
 
 	return newReferenceNumber, nil
 }
-
-// func (repo *RiskActionPlanRepository) GenerateControlReferenceNumber() (string, error) {
-// 	var lastReferenceNumber string
-// 	err := repo.db.Model(&models.Control{}).
-// 		Select("reference_number").
-// 		Order("reference_number desc").
-// 		Limit(1).
-// 		Pluck("reference_number", &lastReferenceNumber).
-// 		Error
-
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	lastDigits := "0000"
-// 	if lastReferenceNumber != "" && len(lastReferenceNumber) >= 4 {
-// 		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-4:]
-// 	}
-
-// 	currentYear := time.Now().Year()
-// 	lastReferenceID, err := strconv.ParseUint(lastDigits, 10, 64)
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "CTRL", currentYear, lastReferenceID+1)
-
-// 	return newReferenceNumber, nil
-// }
