@@ -87,7 +87,7 @@ func (rcs *RiskCommentService) Create(riskID uint, currentUserID uint, riskComme
 	comment := &models.RiskComment{
 		RiskRegisterID: riskID,
 		Comments:       riskCommentFormDTO.Comment,
-		CreatedByID:    currentUserID,
+		CreatedBYID:    currentUserID,
 	}
 
 	id, err := rcs.repo.Create(comment)
@@ -298,8 +298,8 @@ func (rcs *RiskCommentService) RevertRisk(riskID uint, currentUserID uint, comme
 		RiskRegisterID:     riskID,
 		RiskTimelineTypeID: commentForm.RiskTimelineTypeID,
 		Comments:           commentForm.Comment,
-		RiskStatusID:       revertedStatus.ID,
-		CreatedByID:        currentUserID,
+		RiskStatusID:       &revertedStatus.ID,
+		CreatedBYID:        currentUserID,
 	}
 
 	_, err = rcs.repo.Create(comment, tx)
@@ -365,8 +365,8 @@ func (rcs *RiskCommentService) RejectRisk(riskID uint, currentUserID uint, comme
 		RiskRegisterID:     riskID,
 		RiskTimelineTypeID: commentForm.RiskTimelineTypeID,
 		Comments:           commentForm.Comment,
-		RiskStatusID:       rejectedStatus.ID,
-		CreatedByID:        currentUserID,
+		RiskStatusID:       &rejectedStatus.ID,
+		CreatedBYID:        currentUserID,
 	}
 
 	_, err = rcs.repo.Create(comment, tx)
@@ -438,8 +438,8 @@ func (rcs *RiskCommentService) ApproveRisk(riskID uint, currentUserID uint, comm
 		RiskRegisterID:     riskID,
 		RiskTimelineTypeID: commentForm.RiskTimelineTypeID,
 		Comments:           commentForm.Comment,
-		RiskStatusID:       approvedStatus.ID,
-		CreatedByID:        currentUserID,
+		RiskStatusID:       &approvedStatus.ID,
+		CreatedBYID:        currentUserID,
 	}
 
 	_, err = rcs.repo.Create(comment, tx)
@@ -511,8 +511,8 @@ func (rcs *RiskCommentService) ResubmitRisk(riskID uint, currentUserID uint, com
 		RiskRegisterID:     riskID,
 		RiskTimelineTypeID: commentForm.RiskTimelineTypeID,
 		Comments:           commentForm.Comment,
-		RiskStatusID:       resubmittedStatus.ID,
-		CreatedByID:        currentUserID,
+		RiskStatusID:       &resubmittedStatus.ID,
+		CreatedBYID:        currentUserID,
 	}
 
 	_, err = rcs.repo.Create(comment, tx)

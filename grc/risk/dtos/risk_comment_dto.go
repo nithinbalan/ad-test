@@ -4,7 +4,7 @@ import "time"
 
 type RiskCommentListDTO struct {
 	ID                      uint      `json:"id"`
-	Comment                 string    `json:"comment"`
+	Comments                string    `json:"comment"`
 	RiskRegisterID          uint      `json:"risk_register_id"`
 	CreatedAt               time.Time `json:"created_at"`
 	CreatedByID             uint      `json:"created_by_id"`
@@ -35,6 +35,6 @@ type RiskCommentDetailDTO struct {
 }
 
 type RiskCommentFormDTO struct {
-	RiskTimelineTypeID uint   `json:"risk_timeline_type_id"`
+	RiskTimelineTypeID *uint  `json:"risk_timeline_type_id"`
 	Comment            string `json:"comment" binding:"required"`
 }
