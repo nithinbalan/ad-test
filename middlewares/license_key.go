@@ -25,6 +25,19 @@ func GetLicenseToken(db *gorm.DB) (string, error) {
 func LicenseMiddleware(db *gorm.DB) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
+
+		// Define routes to bypass
+		bypassRoutes := map[string]bool{
+			"/update-license-key": true,
+			"/license-key":        true,
+		}
+
+		// Skip middleware for bypassed routes
+		if _, exists := bypassRoutes[c.FullPath()]; exists {
+			c.Next()
+			return
+		}
+
 		// Retrieve the stored license key from DB
 		tokenString, err := GetLicenseToken(db)
 		if err != nil || tokenString == "" {
