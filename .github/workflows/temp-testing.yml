@@ -8,6 +8,17 @@ jobs:
     runs-on: jethur-dev
     steps:
 
+      - name: Force Cleanup Build Directory
+        run: |
+          Write-Host "Before Cleanup:"
+          Get-ChildItem -Force
+          $BuildDir = "${{ github.workspace }}"
+    
+          if (Test-Path $BuildDir) {
+          Write-Host "Removing directory: $BuildDir"
+          Remove-Item -Recurse -Force $BuildDir -ErrorAction Continue
+          Start-Sleep -s 5  # Wait to ensure deletion
+          }
           
       # Step: Checkout Code
       - name: Checkout Code
@@ -28,17 +39,6 @@ jobs:
           git fetch origin migration_new # Fetch the specific branch from the remote
           git checkout migration_new
 
-      - name: Force Cleanup Build Directory
-        run: |
-          Write-Host "Before Cleanup:"
-          Get-ChildItem -Force
-          $BuildDir = "${{ github.workspace }}"
-    
-          if (Test-Path $BuildDir) {
-          Write-Host "Removing directory: $BuildDir"
-          Remove-Item -Recurse -Force $BuildDir -ErrorAction Continue
-          Start-Sleep -s 5  # Wait to ensure deletion
-          }
     
           Write-Host "After Cleanup:"
           Get-ChildItem -Force
