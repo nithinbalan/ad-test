@@ -1,0 +1,34 @@
+name: dev-api-deployment(devi-api.jethur.com)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: jethur-dev
+    steps:
+
+          
+      # Step: Checkout Code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Step: Set Go Path
+      - name: Set Go Path
+        run: |
+          $env:PATH = "C:\Program Files\Go\bin;$env:PATH"
+        shell: powershell
+
+      # Step: Verify Go Version
+      - name: Verify Go Version
+        run: go version
+
+
+      # Step: Cleanup build folder
+      - name: Cleanup build
+        run: |
+          Get-ChildItem -Force
+          Remove-Item -Recurse -Force * -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force .??* -ErrorAction SilentlyContinue
+          Get-ChildItem -Force
+        shell: powershell
