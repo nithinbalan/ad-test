@@ -196,7 +196,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 		EfficiencyScore:               controlFormDTO.EfficiencyScore,
 		ReviewFrequencyID:             controlFormDTO.ReviewFrequencyID,
 		LastReviewDate:                dates.LastReviewDate,
-		TestResponsibleUserID:         controlFormDTO.TestResponsibleUserID,
+		TestResponsibleUserID:         &controlFormDTO.TestResponsibleUserID,
 		NextReviewDate:                dates.NextReviewDate,
 		LastReviewNote:                controlFormDTO.LastReviewNote,
 		TestFrequencyID:               controlFormDTO.TestFrequencyID,
@@ -347,7 +347,7 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 	existingControl.Objective = controlFormDTO.Objective
 	existingControl.ReviewFrequencyID = controlFormDTO.ReviewFrequencyID
 	existingControl.LastReviewDate = dates.LastReviewDate
-	existingControl.TestResponsibleUserID = controlFormDTO.TestResponsibleUserID
+	existingControl.TestResponsibleUserID = &controlFormDTO.TestResponsibleUserID
 	existingControl.NextReviewDate = dates.NextReviewDate
 	existingControl.LastReviewNote = controlFormDTO.LastReviewNote
 	existingControl.TestFrequencyID = controlFormDTO.TestFrequencyID

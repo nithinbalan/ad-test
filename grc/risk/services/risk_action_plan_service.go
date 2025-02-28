@@ -45,6 +45,7 @@ type RiskActionPlanService struct {
 	userSvc             organizationServices.UserServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
 	taskSvc             taskServices.TaskServiceInterface
+	lifecycleStatusSvc  masterServices.LifecycleStatusServiceInterface
 }
 
 func NewRiskActionPlanService(
@@ -57,6 +58,7 @@ func NewRiskActionPlanService(
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	taskSvc taskServices.TaskServiceInterface,
+	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
 ) RiskActionPlanServiceInterface {
 	return &RiskActionPlanService{
 		repo:                repo,
@@ -68,6 +70,7 @@ func NewRiskActionPlanService(
 		userSvc:             userSvc,
 		notificationSvc:     notificationSvc,
 		taskSvc:             taskSvc,
+		lifecycleStatusSvc:  lifecycleStatusSvc,
 	}
 }
 
@@ -130,20 +133,24 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 
 	risk, err := raps.riskRegisterSvc.GetByID(riskID)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	if err := raps.validateRiskActionPlanFormDTO(RiskActionPlanFormDTO); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	dates, err := raps.parseRiskActionPlanDates(RiskActionPlanFormDTO)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	actionPlanStatus, err := raps.actionPlanStatusSvc.GetByType("new")
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -163,6 +170,7 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 
 	id, err := raps.repo.Create(riskActionPlan)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -196,6 +204,55 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 	if _, err := raps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+
+	for _, control := range RiskActionPlanFormDTO.Controls {
+		referenceNumber, err := raps.repo.GenerateControlReferenceNumber(tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		lifecycleStatus, err := raps.lifecycleStatusSvc.GetByType("active")
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		organizationUnitID, err := raps.userSvc.GetUserPrimaryUnitID(control.OwnerID)
+		if err != nil {
+			tx.Rollback()
+			return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
+		}
+		actionPlanControl := &models.Control{
+			ReferenceNumber:       referenceNumber,
+			ControlTypeID:         control.ControlTypeID,
+			OwnerID:               control.OwnerID,
+			OwnerUnitID:           organizationUnitID,
+			TitleEn:               control.TitleEn,
+			TitleAr:               control.TitleAr,
+			LifecycleStatusID:     lifecycleStatus.ID,
+			TestResponsibleUserID: nil,
+			CreatedByID:           currentUserID,
+		}
+
+		controlId, err := raps.repo.CreateControl(actionPlanControl, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		riskActionPlanControl := &models.RiskActionPlanControl{
+			RiskActionPlanID: id,
+			ControlID:        controlId,
+			CreatedByID:      currentUserID,
+		}
+
+		if err := raps.repo.CreateRiskActionPlanControl(riskActionPlanControl, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
 	}
 
 	tx.Commit()
