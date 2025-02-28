@@ -22,7 +22,11 @@ jobs:
       # Step: Verify Go Version
       - name: Verify Go Version
         run: go version
-
+      # Step: switch   
+      - name: Switch to migration_new Branch
+        run: |
+          git fetch origin migration_new # Fetch the specific branch from the remote
+          git checkout migration_new
 
       # Step: Cleanup build folder
       - name: Cleanup build
