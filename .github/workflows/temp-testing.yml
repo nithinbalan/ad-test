@@ -8,17 +8,14 @@ jobs:
     runs-on: jethur-dev
     steps:
 
-      - name: Force Cleanup Build Directory
+      # Step: Cleanup build folder
+      - name: Cleanup build
         run: |
-          Write-Host "Before Cleanup:"
           Get-ChildItem -Force
-          $BuildDir = "${{ github.workspace }}"
-    
-          if (Test-Path $BuildDir) {
-          Write-Host "Removing directory: $BuildDir"
-          Remove-Item -Recurse -Force $BuildDir -ErrorAction Continue
-          Start-Sleep -s 5  # Wait to ensure deletion
-          }
+          Remove-Item -Recurse -Force * -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force .??* -ErrorAction SilentlyContinue
+          Get-ChildItem -Force
+        shell: powershell
           
       # Step: Checkout Code
       - name: Checkout Code
