@@ -28,16 +28,18 @@ jobs:
           git fetch origin migration_new # Fetch the specific branch from the remote
           git checkout migration_new
 
-      - name: Cleanup build
+      - name: Force Cleanup Build Directory
         run: |
           Write-Host "Before Cleanup:"
           Get-ChildItem -Force
-          # Dynamically get the build directory
           $BuildDir = "${{ github.workspace }}"
+    
           if (Test-Path $BuildDir) {
-          Remove-Item -Recurse -Force $BuildDir -ErrorAction SilentlyContinue
+          Write-Host "Removing directory: $BuildDir"
+          Remove-Item -Recurse -Force $BuildDir -ErrorAction Continue
+          Start-Sleep -s 5  # Wait to ensure deletion
           }
-          # Final check
+    
           Write-Host "After Cleanup:"
           Get-ChildItem -Force
         shell: powershell
