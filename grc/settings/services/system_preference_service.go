@@ -169,19 +169,19 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(systemPreferenceFormDTO *dt
 	// Extract expiry_date from claims
 	expiryDateStr, ok := claims["expiry_date"].(string) // Check if it's a string
 	if !ok {
-		return utility.NewForbiddenError("expiry_date missing or invalid in license key.")
+		return utility.NewValidationError(fmt.Errorf("invalid token"), "invalid", "expiry date")
 	}
 
 	// Convert expiryDateStr to time.Time
 	expiryDate, err := time.Parse("2006-01-02", expiryDateStr)
 	if err != nil {
-		return utility.NewForbiddenError("invalid expiry date format, expected YYYY-MM-DD.")
+		return utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid_date", "expiry date")
 	}
 
 	// Get max_users from JWT claims
 	maxUsersFloat, ok := claims["max_users"].(float64) // JWT stores numbers as float64
 	if !ok {
-		return utility.NewForbiddenError("max_users missing or invalid in license key.")
+		return utility.NewValidationError(fmt.Errorf("invalid token"), "invalid", "max users")
 	}
 	maxUsers := int(maxUsersFloat)
 
@@ -242,18 +242,18 @@ func (sps *SystemPreferenceService) validateLicenseKey(licenseKey string) error 
 	// Validate Expiry Date (expiry_date)
 	expiryDateStr, ok := claims["expiry_date"].(string)
 	if !ok || expiryDateStr == "" {
-		return utility.NewForbiddenError("missing expiry date in license key.")
+		return utility.NewValidationError(fmt.Errorf("invalid token"), "not_exist", "expiry date")
 	}
 
 	// Convert expiry_date string to time.Time format
 	expiryDate, err := time.Parse("2006-01-02", expiryDateStr) // Ensure format matches the stored format
 	if err != nil {
-		return utility.NewForbiddenError("invalid expiry date format, expected YYYY-MM-DD.")
+		return utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid_date", "expiry date")
 	}
 
 	// Check if expiry_date is in the future
 	if expiryDate.Before(time.Now()) {
-		return utility.NewForbiddenError("license key is invalid.")
+		return utility.NewValidationError(fmt.Errorf("invalid token"), "invalid", "license key")
 	}
 
 	// Validate API URL (if needed)
@@ -261,7 +261,7 @@ func (sps *SystemPreferenceService) validateLicenseKey(licenseKey string) error 
 	if apiURL, ok := claims["api_url"].(string); ok {
 		systemAPIURL := utility.GetApiURL() // Change this to your actual API URL
 		if apiURL != systemAPIURL {
-			return utility.NewForbiddenError("license key does not match system API URL.")
+			return utility.NewValidationError(fmt.Errorf("invalid token"), "invalid", "api key")
 		}
 	}
 

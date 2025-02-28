@@ -14,13 +14,13 @@ func DecryptJWTToken(tokenString string) (jwt.MapClaims, error) {
 	})
 
 	if err != nil {
-		return nil, NewValidationError(fmt.Errorf("invalid token"), "not_exist", "license key")
+		return nil, NewValidationError(fmt.Errorf("invalid token"), "invalid", "license key")
 	}
 
 	// Extract claims
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
-		return nil, NewValidationError(fmt.Errorf("invalid token claims"), "not_exist", "token claims")
+		return nil, NewValidationError(fmt.Errorf("invalid token claims"), "invalid", "token claims")
 	}
 
 	return claims, nil
