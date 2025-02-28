@@ -40,4 +40,4 @@ jobs:
           # Final check
           Write-Host "After Cleanup:"
           Get-ChildItem -Force
-          shell: powershell
+        shell: powershell
