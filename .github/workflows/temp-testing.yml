@@ -1,4 +1,4 @@
-name: dev-api-deployment(devi-api.jethur.com)
+name: temp-test
 
 on:
   workflow_dispatch:
