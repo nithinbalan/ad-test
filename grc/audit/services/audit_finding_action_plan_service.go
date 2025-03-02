@@ -85,7 +85,6 @@ func (afaps AuditFindingActionPlanService) GetByID(findingID uint, id uint) (*mo
 	}
 
 	auditFindingActionPlan, err := afaps.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -103,7 +102,6 @@ func (afaps AuditFindingActionPlanService) GetFullDetailsByID(findingID uint, id
 	}
 
 	auditFindingActionPlan, err := afaps.repo.GetFullDetailsByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -220,7 +218,6 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -240,7 +237,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               AuditFindingActionPlanFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{AuditFindingActionPlanFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "audit",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Audit Finding Action Plan Responsiblity Assigned",
@@ -321,7 +318,6 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	}
 
 	existingAuditFindingActionPlan, err := afaps.GetByID(findingID, id)
-
 	if err != nil {
 		return err
 	}
@@ -349,7 +345,6 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	existingAuditFindingActionPlan.UpdatedBYID = &currentUserID
 
 	err = afaps.repo.Update(existingAuditFindingActionPlan, tx)
-
 	if err != nil {
 		return err
 	}
@@ -381,7 +376,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title":              oldAuditFindingActionPlan.Title,
 			"description":        oldAuditFindingActionPlan.Description,
@@ -420,7 +415,6 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -441,7 +435,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Audit Finding Action Plan Responsibility Removed",
@@ -458,7 +452,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               AuditFindingActionPlanFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{AuditFindingActionPlanFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Audit Finding Action Plan Responsibility Assigned",
@@ -584,7 +578,6 @@ func (afaps *AuditFindingActionPlanService) Delete(ids []uint, currentUserID uin
 	for _, id := range ids {
 
 		auditFindingActionPlan, err := afaps.repo.GetFullDetailsByID(id)
-
 		if err != nil {
 			continue
 		}
@@ -644,7 +637,6 @@ func (afaps *AuditFindingActionPlanService) Delete(ids []uint, currentUserID uin
 	tx.Commit()
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := afaps.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
@@ -665,7 +657,7 @@ func (afaps *AuditFindingActionPlanService) Delete(ids []uint, currentUserID uin
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "audit",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Audit Finding Action Plan Deleted",
@@ -723,9 +715,7 @@ func (afaps *AuditFindingActionPlanService) Delete(ids []uint, currentUserID uin
 }
 
 func (afaps *AuditFindingActionPlanService) StatusUpdate(findingID uint, id uint, currentUserID uint, auditFindingActionPlanStatusUpdateFormDTO *auditFindingDTOs.AuditFindingActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error {
-
 	existingAuditFindingActionPlan, err := afaps.GetByID(findingID, id)
-
 	if err != nil {
 		return err
 	}
@@ -735,7 +725,6 @@ func (afaps *AuditFindingActionPlanService) StatusUpdate(findingID uint, id uint
 	existingAuditFindingActionPlan.UpdatedBYID = &currentUserID
 
 	err = afaps.repo.Update(existingAuditFindingActionPlan, tx)
-
 	if err != nil {
 		return err
 	}

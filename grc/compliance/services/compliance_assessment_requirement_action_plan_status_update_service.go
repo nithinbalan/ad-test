@@ -3,6 +3,11 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
@@ -14,10 +19,6 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	taskServices "jethur/grc/task/services"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -83,7 +84,6 @@ func (carasus ComplianceAssessmentRequirementActionPlanStatusUpdateService) GetB
 	}
 
 	complianceActionPlanStatusUpdate, err := carasus.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -158,7 +158,7 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Cre
 			tx.Rollback()
 			return 0, err
 		}
-		//move file to storage
+		// move file to storage
 		for _, doc := range documents {
 			storagePath := filepath.Join("compliance", "compliance-assessment", strconv.FormatUint(uint64(AssessmentID), 10), "requirement", strconv.FormatUint(uint64(RequirementID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
@@ -212,7 +212,6 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Cre
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -232,7 +231,7 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Cre
 			action := "review-user"
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               *complianceActionPlan.ReviewUserID,
+				UserIDs:              []uint{*complianceActionPlan.ReviewUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Compliance Action Plan Status Update",
@@ -305,13 +304,11 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Upd
 	}
 
 	oldComplianceActionPlanStatusUpdate, err := carasus.GetByID(AssessmentID, RequirementID, ComplianceActionPlanID, id)
-
 	if err != nil {
 		return err
 	}
 
 	existingComplianceActionPlanStatusUpdate, err := carasus.GetByID(AssessmentID, RequirementID, ComplianceActionPlanID, id)
-
 	if err != nil {
 		return err
 	}
@@ -344,18 +341,16 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Upd
 	var documentsToDelete []*models.ComplianceActionPlanStatusUpdateDocument
 
 	for _, doc := range complianceActionPlanStatusUpdateFormDTO.Documents {
-
 		if doc.IsNewFile != nil && *doc.IsNewFile {
 			// Encrypt the filename
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
 
-			//genereate URL
+			// genereate URL
 			url := utility.GenerateDocumentURL("compliance", "compliance-assessment", strconv.FormatUint(uint64(AssessmentID), 10), "requirement", strconv.FormatUint(uint64(RequirementID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
 			// Create a new Control test Document instance
@@ -427,7 +422,7 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Upd
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"comment":    oldComplianceActionPlanStatusUpdate.Comment,
@@ -453,7 +448,6 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Upd
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -472,7 +466,6 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Upd
 }
 
 func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) validateComplianceActionPlanStatusUpdateFormDTO(complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO) error {
-
 	if _, err := carasus.actionPlanStatusSvc.GetByID(complianceActionPlanStatusUpdateFormDTO.ActionPlanStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
@@ -489,7 +482,6 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Get
 }
 
 func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) GetDocumentPath(AssessmentID, RequirementID, ActionPlanID, id uint, token string) (string, error) {
-
 	existingComplianceActionplanStatusUpdate, err := carasus.GetByID(AssessmentID, RequirementID, ActionPlanID, id)
 	if err != nil {
 		return "", err
@@ -603,14 +595,13 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) App
 	tx2.Commit()
 
 	go func() {
-
 		urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d, "action_plan_id":%d}`, assessmentID, requirementID, compliaceActionPlanID)
 		queryParam := ""
 		entity := "compliance-action-plan"
 		action := "close-compliance-action-plan"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               existingComplianceActionPlan.ResponsibleUserID,
+			UserIDs:              []uint{existingComplianceActionPlan.ResponsibleUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Action Plan Status Update",
@@ -682,7 +673,6 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) App
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.ApproveAction,
@@ -765,14 +755,13 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Rev
 	tx.Commit()
 
 	go func() {
-
 		urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d, "action_plan_id":%d}`, assessmentID, requirementID, compliaceActionPlanID)
 		queryParam := ""
 		entity := "compliance-action-plan"
 		action := "reopen-compliance-action-plan"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               existingComplianceActionPlan.ResponsibleUserID,
+			UserIDs:              []uint{existingComplianceActionPlan.ResponsibleUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Action Plan Status Update",
@@ -844,7 +833,6 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Rev
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.ApproveAction,

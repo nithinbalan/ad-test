@@ -4,6 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
 	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
@@ -17,12 +24,6 @@ import (
 	settinsSvc "jethur/grc/settings/services"
 	taskServices "jethur/grc/task/services"
 	"jethur/utility"
-	"log"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -137,7 +138,6 @@ func (ds *DocumentService) GetAll(params *documentDTOs.DocumentListQueryParamsDT
 
 func (ds DocumentService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error) {
 	document, err := ds.repo.GetByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -274,7 +274,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			return 0, err
 		}
 
-		//generate token
+		// generate token
 		dataToEncrypt := []byte(documentTemplate.Document.Name)
 		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
@@ -311,7 +311,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			return 0, fmt.Errorf("failed to copy file: %w", err)
 		}
 
-		//add document history
+		// add document history
 		documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 			DocumentID:        id,
 			DocumentVersionID: docVersionId,
@@ -365,7 +365,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		// 	return 0, err
 		// }
 
-		//add document history
+		// add document history
 		documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 			DocumentID:        id,
 			DocumentVersionID: docVersionId,
@@ -400,7 +400,6 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 	}(fileNameCopy)
 
 	go func() {
-
 		existingDocument, err := ds.GetFullDetailsByID(id, &currentUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch document", map[string]interface{}{
@@ -417,7 +416,6 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -519,7 +517,6 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 	existingDocVersion.Version = documentFormDTO.DocumentVersion
 
 	err = ds.repo.UpdateDocumentVersion(existingDocVersion, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -587,7 +584,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			for userID := range existingUserIDs {
 				if !newUserIDs[userID] {
 					// User is in existing list but not in the new list, so mark for deletion
-					//userIDCopy := userID // Create a copy of userID to avoid pointer reuse issues
+					// userIDCopy := userID // Create a copy of userID to avoid pointer reuse issues
 					userIDsToDelete = append(userIDsToDelete, userID)
 				} else {
 					// User is still valid, remove from newUserIDs to avoid re-adding
@@ -735,7 +732,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		existingDocumentFileName := documentFullDetails.LatestDocumentVersion.Name
 		baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
 
-		//generate token
+		// generate token
 		dataToEncrypt := []byte(documentTemplate.Document.Name)
 		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
@@ -759,7 +756,6 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		existingDocVersion.UpdatedBYID = &currentUserID
 
 		err = ds.repo.UpdateDocumentVersion(existingDocVersion, tx)
-
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -784,7 +780,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			return fmt.Errorf("failed to copy file: %w", err)
 		}
 
-		//add document history
+		// add document history
 		documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 			DocumentID:        id,
 			DocumentVersionID: existingDocVersion.ID,
@@ -830,7 +826,6 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			existingDocVersion.UpdatedBYID = &currentUserID
 
 			err = ds.repo.UpdateDocumentVersion(existingDocVersion, tx)
-
 			if err != nil {
 				tx.Rollback()
 				return err
@@ -853,7 +848,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 				return err
 			}
 
-			//add document history
+			// add document history
 			documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 				DocumentID:        id,
 				DocumentVersionID: existingDocVersion.ID,
@@ -942,7 +937,6 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 
 	fileNameCopy := fileName
 	go func(fileName string) {
-
 		existingDoc, err := ds.repo.GetFullDetailsByID(id, nil)
 		if err != nil {
 			return
@@ -955,7 +949,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"document_type":        oldDocument.DocumentType.TitleEn,
 			"title_en":             oldDocument.TitleEn,
@@ -997,7 +991,6 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -1163,7 +1156,6 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 						fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
 					}
 				}
-
 			}
 			destinationPath := filepath.Join("document", "draft", strconv.FormatUint(uint64(documentID), 10), "document-history")
 			if err := utility.RemoveFolder(destinationPath); err != nil {
@@ -1367,7 +1359,7 @@ func (ds *DocumentService) CheckoutDocument(id uint, currentUserID uint, token s
 		return "", err
 	}
 
-	//add document history
+	// add document history
 	documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 		DocumentID:        id,
 		DocumentVersionID: document.LatestDocumentVersion.ID,
@@ -1479,7 +1471,7 @@ func (ds *DocumentService) CheckinDocument(id uint, currentUserID uint, document
 		return err
 	}
 
-	//add document history
+	// add document history
 	documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 		DocumentID:        id,
 		DocumentVersionID: document.LatestDocumentVersion.ID,
@@ -1534,7 +1526,7 @@ func (ds *DocumentService) RevertDocumentCheckout(id uint, currentUserID uint) e
 		return err
 	}
 
-	//add document history
+	// add document history
 	documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 		DocumentID:        id,
 		DocumentVersionID: document.LatestDocumentVersion.ID,
@@ -1729,8 +1721,8 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 		}
 	}
 
-	//to do
-	//activity log
+	// to do
+	// activity log
 
 	// Prepare notification
 	go func() {
@@ -1740,7 +1732,7 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 
 		for _, participant := range docWorkflowLevel.DocumentWorkflowParticipants {
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               participant.User.ID,
+				UserIDs:              []uint{participant.User.ID},
 				ModuleIdentifier:     "document",
 				NotificationType:     string(commonDTOs.ReviewType),
 				ReferenceNumber:      existingDocument.ReferenceNumber,
@@ -1885,14 +1877,14 @@ func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
 	sourceDir := filepath.Join("document", "draft", strconv.FormatUint(uint64(document.ID), 10), "documents")
 	destinationDir := filepath.Join("document", "published", strconv.FormatUint(uint64(document.ID), 10), "documents")
 
-	//copy docx file
+	// copy docx file
 	err = utility.CopyFileFromPaths(sourceDir, destinationDir, fileName)
 	if err != nil {
 		tx.Rollback()
 		return fmt.Errorf("error copying .docx file: %w", err)
 	}
 
-	//copy pdf file
+	// copy pdf file
 	pdfFileName := baseFileName + ".pdf"
 	err = utility.CopyFileFromPaths(sourceDir, destinationDir, pdfFileName)
 	if err != nil {
@@ -1904,8 +1896,8 @@ func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
 
 	ds.notifyUsersOnPublish(document, id, currentUserID)
 
-	//to do
-	//activity log
+	// to do
+	// activity log
 
 	return nil
 }
@@ -2231,7 +2223,7 @@ func (ds *DocumentService) notifyUsersOnPublish(document *documentDTOs.DocumentD
 			uniqueUsers[uint(user.ID)] = true
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               uint(user.ID),
+				UserIDs:              []uint{uint(user.ID)},
 				ModuleIdentifier:     "document",
 				NotificationType:     string(commonDTOs.PublishType),
 				HeadingEn:            "Document Published",
@@ -2279,7 +2271,6 @@ func (ds *DocumentService) notifyUsersOnPublish(document *documentDTOs.DocumentD
 }
 
 func (ds *DocumentService) UpdateDocumentRecoveryObjective(document *models.Document, tx utility.DatabaseTransaction) error {
-
 	err := ds.repo.Update(document, tx)
 	if err != nil {
 		tx.Rollback()

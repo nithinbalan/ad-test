@@ -83,3 +83,29 @@ func (spc *SystemPreferenceController) GetOrganizationPreference(c *gin.Context)
 
 	c.JSON(http.StatusOK, organizationPreference)
 }
+
+func (spc *SystemPreferenceController) UpdateLicenseKey(c *gin.Context) {
+
+	var systemPreferenceFormDTO settingDTOs.LicenseKeyUpdateFormDTO
+	if err := c.ShouldBindJSON(&systemPreferenceFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	err := spc.service.UpdateLicenseKey(&systemPreferenceFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(spc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}

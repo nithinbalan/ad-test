@@ -3,12 +3,13 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"time"
+
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/common/repositories"
 	"jethur/grc/models"
 	"jethur/grc/settings/services"
 	"jethur/utility"
-	"time"
 )
 
 type NotificationServiceInterface interface {
@@ -36,80 +37,94 @@ func NewNotificationService(repo repositories.NotificationRepositoryInteface,
 }
 
 func (ns *NotificationService) SendNotification(notificationDTO *commonDTOs.DBNotificationDTO, emailNotificationDTO *commonDTOs.EmailNotificationDTO, notificationMasterIdentifier string, tx ...utility.DatabaseTransaction) error {
-	// Check if notification is enabled for the user
-	isEnabled, err := ns.IsNotificationEnabled(notificationDTO.UserID, notificationMasterIdentifier)
-	if err != nil {
-		return err
+	// **Ensure at least one of the parameters is provided**
+	if notificationDTO == nil && emailNotificationDTO == nil {
+		return fmt.Errorf("both notificationDTO and emailNotificationDTO are nil, cannot send notification")
 	}
 
-	if !isEnabled {
-		return nil
+	var notifications []*models.UserNotification
+
+	// **Process DB Notification if provided**
+	if notificationDTO != nil {
+		if len(notificationDTO.UserIDs) == 0 {
+			return fmt.Errorf("no user IDs provided for notification")
+		}
+
+		for _, userID := range notificationDTO.UserIDs {
+			// **Check if notification is enabled for the user**
+			isEnabled, err := ns.IsNotificationEnabled(userID, notificationMasterIdentifier)
+			if err != nil {
+				return err
+			}
+
+			if !isEnabled {
+				continue
+			}
+
+			moduleID, err := ns.moduleSvc.GetModuleIDByIdentifier(notificationDTO.ModuleIdentifier)
+			if err != nil {
+				return err
+			}
+
+			notifications = append(notifications, &models.UserNotification{
+				UserID:               userID,
+				ModuleID:             moduleID,
+				NotificationType:     notificationDTO.NotificationType,
+				ReferenceNumber:      notificationDTO.ReferenceNumber,
+				HeadingEn:            notificationDTO.HeadingEn,
+				HeadingAr:            notificationDTO.HeadingAr,
+				TitleEn:              notificationDTO.TitleEn,
+				TitleAr:              notificationDTO.TitleAr,
+				Entity:               notificationDTO.Entity,
+				Action:               notificationDTO.Action,
+				URLParam:             notificationDTO.URLParam,
+				QueryParam:           notificationDTO.QueryParam,
+				IsSystemNotification: notificationDTO.IsSystemNotification,
+				CreatedByID:          notificationDTO.CreatedByID,
+			})
+		}
+
+		if len(notifications) > 0 {
+			if err := ns.repo.Create(notifications); err != nil {
+				utility.LogError("Failed to create bulk DB notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return err
+			}
+		}
 	}
 
-	emailTemplateSettings, err := ns.emailTemplateSettingsSvc.GetEmailTemplateSettings()
-	if err != nil {
-		fmt.Printf("failed to get email template settings: %w", err)
-		return err
-	}
+	// **Process Email Notification if provided**
+	if emailNotificationDTO != nil {
+		emailTemplateSettings, err := ns.emailTemplateSettingsSvc.GetEmailTemplateSettings()
+		if err != nil {
+			fmt.Printf("failed to get email template settings: %v", err)
+			return err
+		}
 
-	// socialLinks, err := ns.GetSocialMediaLinks()
-	// if err != nil {
-	// 	return err
-	// }
+		emailTemplateAndSocialDTO := &commonDTOs.EmailTemplateAndSocialDTO{
+			HeaderImageURL: emailTemplateSettings.HeaderImageURL,
+			SupportText:    emailTemplateSettings.SupportText,
+			ClosingText:    emailTemplateSettings.ClosingText,
+			FooterLogoURL:  emailTemplateSettings.FooterLogoURL,
+			FooterAddress:  emailTemplateSettings.FooterAddress,
+			FooterEmail:    emailTemplateSettings.FooterEmail,
+		}
 
-	emailTemplateAndSocialDTO := &commonDTOs.EmailTemplateAndSocialDTO{
-		HeaderImageURL: emailTemplateSettings.HeaderImageURL,
-		SupportText:    emailTemplateSettings.SupportText,
-		ClosingText:    emailTemplateSettings.ClosingText,
-		FooterLogoURL:  emailTemplateSettings.FooterLogoURL,
-		FooterAddress:  emailTemplateSettings.FooterAddress,
-		FooterEmail:    emailTemplateSettings.FooterEmail,
-		// Linkedin:       &socialLinks.Linkedin,
-		// X:              &socialLinks.X,
-		// Facebook:       &socialLinks.Facebook,
-	}
-
-	err = utility.SendTemplatedEmail(
-		emailNotificationDTO.EmailTo,
-		emailNotificationDTO.Subject,
-		emailNotificationDTO.TemplateRelativePath,
-		emailNotificationDTO.EmailData,
-		emailTemplateAndSocialDTO,
-		nil,
-		emailNotificationDTO.CC,
-	)
-	if err != nil {
-		utility.LogError("Failed to send email", map[string]interface{}{
-			"error": err.Error(),
-		})
-	}
-
-	moduleID, err := ns.moduleSvc.GetModuleIDByIdentifier(notificationDTO.ModuleIdentifier)
-	if err != nil {
-		return err
-	}
-
-	userNotification := &models.UserNotification{
-		UserID:               notificationDTO.UserID,
-		ModuleID:             moduleID,
-		NotificationType:     notificationDTO.NotificationType,
-		ReferenceNumber:      notificationDTO.ReferenceNumber,
-		HeadingEn:            notificationDTO.HeadingEn,
-		HeadingAr:            notificationDTO.HeadingAr,
-		TitleEn:              notificationDTO.TitleEn,
-		TitleAr:              notificationDTO.TitleAr,
-		Entity:               notificationDTO.Entity,
-		Action:               notificationDTO.Action,
-		URLParam:             notificationDTO.URLParam,
-		QueryParam:           notificationDTO.QueryParam,
-		IsSystemNotification: notificationDTO.IsSystemNotification,
-		CreatedByID:          notificationDTO.CreatedByID,
-	}
-
-	if err := ns.repo.Create(userNotification); err != nil {
-		utility.LogError("Failed to create DB notification", map[string]interface{}{
-			"error": err.Error(),
-		})
+		err = utility.SendTemplatedEmail(
+			emailNotificationDTO.EmailTo,
+			emailNotificationDTO.Subject,
+			emailNotificationDTO.TemplateRelativePath,
+			emailNotificationDTO.EmailData,
+			emailTemplateAndSocialDTO,
+			nil,
+			emailNotificationDTO.CC,
+		)
+		if err != nil {
+			utility.LogError("Failed to send email", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}
 
 	return nil

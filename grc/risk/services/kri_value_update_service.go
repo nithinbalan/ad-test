@@ -3,6 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
@@ -13,11 +19,6 @@ import (
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
-	"log"
-	"os"
-	"path/filepath"
-	"strconv"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -184,7 +185,6 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -215,7 +215,7 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 				entity := "kri-value-update"
 				action := "value-update-high"
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               existingRisk.ResponsibleUserID,
+					UserIDs:              []uint{existingRisk.ResponsibleUserID},
 					ModuleIdentifier:     "risk",
 					NotificationType:     string(commonDTOs.AssignmentType),
 					HeadingEn:            "Kri Value Update",
@@ -274,7 +274,6 @@ func (kvus KRIValueUpdateService) GetFullDetailsByID(id uint) (*riskDTOs.KRIValu
 	var valueUpdate riskDTOs.KRIValueUpdateDetailsDTO
 
 	existingKRIUpdate, err := kvus.repo.GetFullDetailsByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -331,7 +330,6 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 	existingKRIUpdate.Remarks = kriValueUpdateFormDTO.Remarks
 
 	err = kvus.repo.Update(existingKRIUpdate, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -428,7 +426,7 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 			return
 		}
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"review_date": oldKriValueUpdate.ReviewedDateString,
 			"value":       oldKriValueUpdate.Value,
@@ -455,7 +453,6 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -486,7 +483,7 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 				entity := "kri-value-update"
 				action := "value-update-high"
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               existingRisk.ResponsibleUserID,
+					UserIDs:              []uint{existingRisk.ResponsibleUserID},
 					ModuleIdentifier:     "risk",
 					NotificationType:     string(commonDTOs.AssignmentType),
 					HeadingEn:            "Kri Value Update",
@@ -667,7 +664,7 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 
 					// Prepare DB notification
 					dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-						UserID:               *notification.OwnerID,
+						UserIDs:              []uint{*notification.OwnerID},
 						ModuleIdentifier:     "risk",
 						NotificationType:     string(commonDTOs.DeletionType),
 						HeadingEn:            "KRi Value Update Deleted",
@@ -767,7 +764,7 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 
 					// Prepare DB notification
 					dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-						UserID:               *notification.OwnerID,
+						UserIDs:              []uint{*notification.OwnerID},
 						ModuleIdentifier:     "risk",
 						NotificationType:     string(commonDTOs.DeletionType),
 						HeadingEn:            "KRi Value Update Deleted",

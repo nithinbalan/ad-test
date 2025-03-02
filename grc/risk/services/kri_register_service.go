@@ -77,7 +77,6 @@ func (krs *KRIRegisterService) GetAll(params *riskDTOs.KRIRegisterListQueryParam
 
 func (krs KRIRegisterService) GetByID(id uint) (*models.KRIRegister, error) {
 	kriRegister, err := krs.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -91,7 +90,6 @@ func (krs KRIRegisterService) GetFullDetailsByID(id uint) (*riskDTOs.KRIRegister
 	var kriRegisterDTO riskDTOs.KRIRegisterDetailsDTO
 
 	kriRegister, err := krs.repo.GetFullDetailsByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -115,7 +113,7 @@ func (krs KRIRegisterService) GetFullDetailsByID(id uint) (*riskDTOs.KRIRegister
 	kriRegisterDTO.CreatedAt = kriRegister.CreatedAt
 	kriRegisterDTO.UpdatedAt = kriRegister.UpdatedAt
 
-	//todo :- also add extra fields which required in details screen
+	// todo :- also add extra fields which required in details screen
 
 	return &kriRegisterDTO, nil
 }
@@ -210,7 +208,6 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -229,7 +226,7 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               kriRegisterFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{kriRegisterFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "risk",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "KRI Register Responsibililty Assigned",
@@ -300,7 +297,6 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 	}
 
 	existingKRIRegister, err := krs.GetByID(id)
-
 	if err != nil {
 		return err
 	}
@@ -352,7 +348,7 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 
 	go func() {
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title":            oldKriRegister.Title,
 			"description":      oldKriRegister.Description,
@@ -420,7 +416,7 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 			// Old responsible user notification (Removal)
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "risk",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Kri Register Responsibility Removed",
@@ -437,7 +433,7 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 			// New responsible user notification (Assignment)
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               kriRegisterFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{kriRegisterFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "risk",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Kri Register Responsibility Assigned",
@@ -568,7 +564,6 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 	for _, id := range ids {
 
 		_, err := krs.repo.GetByID(id)
-
 		if err != nil {
 			continue
 		}
@@ -616,7 +611,6 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := krs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -639,7 +633,7 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 
 				// Prepare DB notification
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "risk",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "KRI Register Deleted",
@@ -720,7 +714,6 @@ func (krs *KRIRegisterService) validateKRIRegisterFormDTO(kriRegisterFormDTO *ri
 		} else if exists {
 			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
-
 	} else {
 		if exists, err := krs.repo.ExistsByTitleExcludingID(*id, kriRegisterFormDTO.Title, kriRegisterFormDTO.KRICategoryID); err != nil {
 			return err

@@ -4,6 +4,7 @@ import (
 	"errors"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
 	"sort"
 	"strconv"
@@ -27,6 +28,7 @@ type ComplianceClauseRepositoryInterface interface {
 	GetClauseWithChildren(clauseID uint, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error)
 
 	GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error)
+	GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlMinimalListDTO, error)
 }
 
 type ComplianceClauseRepository struct {
@@ -75,14 +77,18 @@ func (repo *ComplianceClauseRepository) GetByID(id uint, tx ...utility.DatabaseT
 		db = tx[0].DB()
 	}
 
-	var complianceClause *models.ComplianceClause
+	var complianceClause models.ComplianceClause
 	result := db.First(&complianceClause, id)
 
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			// Return an error instead of nil to indicate record not found
+			return nil, errors.New("compliance clause not found")
+		}
 		return nil, result.Error
 	}
 
-	return complianceClause, nil
+	return &complianceClause, nil
 }
 
 func (repo *ComplianceClauseRepository) Create(clause *models.ComplianceClause, tx ...utility.DatabaseTransaction) (uint, error) {
@@ -288,6 +294,24 @@ func (repo *ComplianceClauseRepository) GetAssociatedComplianceRequirements(comp
 
 	err := repo.db.Raw(query, clauseID, complianceID).Scan(&requirements).Error
 	return requirements, err
+}
+
+func (r *ComplianceClauseRepository) GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlMinimalListDTO, error) {
+	controls := make([]organizationDTOs.ControlMinimalListDTO, 0)
+
+	err := r.db.Table("compliance_controls cc").
+		Select("DISTINCT c.id, c.reference_number, c.title_en, c.title_ar, c.description").
+		Joins("JOIN controls c ON c.id = cc.control_id").
+		Joins("JOIN compliance_requirements cr ON cr.id = cc.compliance_requirement_id").
+		Joins("JOIN compliance_clauses cl ON cl.id = cr.compliance_clause_id").
+		Where("cc.compliance_register_id = ? AND cl.id = ?", complianceID, clauseID).
+		Scan(&controls).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return controls, nil
 }
 
 func compareClauseNumbers(a, b string) bool {

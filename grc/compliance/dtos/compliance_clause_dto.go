@@ -57,6 +57,7 @@ type ComplianceClauseListResponseDTO struct {
 type ComplianceClauseFormDTO struct {
 	ParentClauseID   *uint   `json:"parent_clause_id,omitempty"`
 	PreviousClauseID *uint   `json:"previous_clause_id,omitempty"`
+	AddAsFirst       *bool   `json:"add_as_first,omitempty"`
 	ClauseNo         string  `json:"clause_no,omitempty"` // Auto-generated if not provided
 	TitleEn          string  `json:"title_en" binding:"required"`
 	TitleAr          *string `json:"title_ar,omitempty"`
