@@ -68,12 +68,20 @@ func LicenseMiddleware(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Compare expiry date with current time
-		if time.Now().After(expiryDate) {
+		today := time.Now().UTC().Truncate(24 * time.Hour)
+
+		if today.Equal(expiryDate) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "License key expired"})
 			c.Abort()
 			return
 		}
+
+		// Compare expiry date with current time
+		// if time.Now().After(expiryDate) {
+		// 	c.JSON(http.StatusForbidden, gin.H{"error": "License key expired"})
+		// 	c.Abort()
+		// 	return
+		// }
 
 		// Validate api URL
 		apiURL, exists := claims["api_url"].(string)
