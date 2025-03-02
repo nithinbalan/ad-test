@@ -44,6 +44,8 @@ func (rapc *RiskActionPlanController) GetAllRiskActionPlans(c *gin.Context) {
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 
 	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
 	if err != nil {
@@ -109,6 +111,8 @@ func (rapc *RiskActionPlanController) GetAllRiskActionPlans(c *gin.Context) {
 		TargetDateFrom: targetDateFrom,
 		TargetDateTo:   targetDateTo,
 		Export:         export,
+		DateFrom:       dateFrom,
+		DateTo:         dateTo,
 	}
 	riskActionPlans, err := rapc.service.GetAll(uint(riskID), &queryParams)
 

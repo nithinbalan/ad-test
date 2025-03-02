@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	commonDTOs "jethur/grc/common/dtos"
@@ -30,6 +31,7 @@ type ComplianceActionPlanServiceInterface interface {
 	Update(complianceID uint, id uint, currentUserID uint, compliance *complianceDTOs.ComplianceActionPlanFormDTO) error
 	Delete(complianceID uint, ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(complianceID uint, id uint, currentUserID uint, complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
+	ExportComplianceActionPlans(data []*complianceDTOs.ComplianceActionPlanListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -44,6 +46,8 @@ type ComplianceActionPlanService struct {
 	moduleSvc                settingService.ModuleServiceInterface
 	userSvc                  organizationServices.UserServiceInterface
 	notificationSvc          commonServices.NotificationServiceInterface
+	userSettingSvc           organizationServices.UserSettingServiceInterface
+	organizationUnitSvc      settingService.OrganizationUnitServiceInterface
 }
 
 func NewComplianceActionPlanService(
@@ -57,6 +61,8 @@ func NewComplianceActionPlanService(
 	moduleSvc settingService.ModuleServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
+	organizationUnitSvc settingService.OrganizationUnitServiceInterface,
 ) ComplianceActionPlanServiceInterface {
 	return &ComplianceActionPlanService{
 		repo:                     repo,
@@ -69,6 +75,8 @@ func NewComplianceActionPlanService(
 		moduleSvc:                moduleSvc,
 		userSvc:                  userSvc,
 		notificationSvc:          notificationSvc,
+		userSettingSvc:           userSettingSvc,
+		organizationUnitSvc:      organizationUnitSvc,
 	}
 }
 
@@ -78,7 +86,7 @@ func (caps *ComplianceActionPlanService) GetAll(complianceID uint, params *compl
 			return nil, err
 		}
 	}
-	return caps.repo.GetAll(complianceID, params)
+	return caps.repo.GetAll(complianceID, params, uint(0))
 }
 
 func (caps ComplianceActionPlanService) GetByID(complianceID uint, id uint) (*models.ComplianceActionPlan, error) {
@@ -123,6 +131,32 @@ func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id
 		complianceActionPlanDTO.TargetDateString = &targetDate
 	}
 
+	responsibleUnitID, err := caps.userSvc.GetUserPrimaryUnitID(complianceActionPlan.ResponsibleUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	responsibleUnit, err := caps.organizationUnitSvc.GetFullDetailsByID(responsibleUnitID)
+	if err != nil {
+		return nil, err
+	}
+	complianceActionPlanDTO.ResponsibleUserUnitID = &responsibleUnitID
+	complianceActionPlanDTO.ResponsibleUserUnit = responsibleUnit
+
+	if complianceActionPlan.ReviewUserID != nil {
+		reviewUserUnitID, err := caps.userSvc.GetUserPrimaryUnitID(*complianceActionPlan.ReviewUserID)
+		if err != nil {
+			return nil, err
+		}
+
+		reviewUserUnit, err := caps.organizationUnitSvc.GetFullDetailsByID(reviewUserUnitID)
+		if err != nil {
+			return nil, err
+		}
+		complianceActionPlanDTO.ReviewUserUnitID = &reviewUserUnitID
+		complianceActionPlanDTO.ReviewUserUnit = reviewUserUnit
+	}
+
 	complianceActionPlanDTO.CreatedAt = complianceActionPlan.CreatedAt
 	complianceActionPlanDTO.UpdatedAt = complianceActionPlan.UpdatedAt
 
@@ -148,8 +182,13 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		return 0, err
 	}
 
+	actionPlanStatus, err := caps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
 	complianceActionPlan := &models.ComplianceActionPlan{
-		ComplianceRegisterID:    complianceID,
+		ComplianceRegisterID:    &complianceID,
 		ComplianceRequirementID: ComplianceActionPlanFormDTO.ComplianceRequirementID,
 		Title:                   ComplianceActionPlanFormDTO.Title,
 		Description:             ComplianceActionPlanFormDTO.Description,
@@ -159,7 +198,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		TargetDate:              dates.TargetDate,
 		Percentage:              ComplianceActionPlanFormDTO.Percentage,
 		Comments:                ComplianceActionPlanFormDTO.Comments,
-		ActionPlanStatusID:      ComplianceActionPlanFormDTO.ActionPlanStatusID,
+		ActionPlanStatusID:      actionPlanStatus.ID,
 		CreatedByID:             currentUserID,
 	}
 
@@ -169,7 +208,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		return 0, err
 	}
 
-	actionPlanStatusID := ComplianceActionPlanFormDTO.ActionPlanStatusID
+	actionPlanStatusID := actionPlanStatus.ID
 	complianceActionPlanUpdate := &models.ComplianceActionPlanStatusUpdate{
 		ComplianceActionPlanID: id,
 		ActionPlanStatusID:     actionPlanStatusID,
@@ -238,7 +277,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               ComplianceActionPlanFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{ComplianceActionPlanFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Action Plan Responsibility Assigned",
@@ -343,7 +382,6 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 	existingComplianceActionPlan.TargetDate = dates.TargetDate
 	existingComplianceActionPlan.Percentage = ComplianceActionPlanFormDTO.Percentage
 	existingComplianceActionPlan.Comments = ComplianceActionPlanFormDTO.Comments
-	existingComplianceActionPlan.ActionPlanStatusID = ComplianceActionPlanFormDTO.ActionPlanStatusID
 	existingComplianceActionPlan.UpdatedByID = &currentUserID
 
 	err = caps.repo.Update(existingComplianceActionPlan, tx)
@@ -375,14 +413,14 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"title":              oldComplianceActionPlan.Title,
 			"description":        oldComplianceActionPlan.Description,
 			"severity_level":     oldComplianceActionPlan.SeverityLevel.TitleEn,
 			"responsible_user":   fmt.Sprintf("%s %s", oldComplianceActionPlan.ResponsibleUser.FirstNameEN, oldComplianceActionPlan.ResponsibleUser.LastNameEN),
-			"review_user":        fmt.Sprintf("%s %s", oldComplianceActionPlan.ReviewUser.FirstNameEN, oldComplianceActionPlan.ReviewUser.LastNameEN),
+			"review_user":        utility.GetFieldValue(oldComplianceActionPlan.ReviewUser),
 			"target_date":        oldComplianceActionPlan.TargetDateString,
 			"percentage":         oldComplianceActionPlan.Percentage,
 			"comment":            oldComplianceActionPlan.Comments,
@@ -394,7 +432,7 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 			"description":        existingActionPlan.Description,
 			"severity_level":     existingActionPlan.SeverityLevel.TitleEn,
 			"responsible_user":   fmt.Sprintf("%s %s", existingActionPlan.ResponsibleUser.FirstNameEN, existingActionPlan.ResponsibleUser.LastNameEN),
-			"review_user":        fmt.Sprintf("%s %s", existingActionPlan.ReviewUser.FirstNameEN, existingActionPlan.ReviewUser.LastNameEN),
+			"review_user":        utility.GetFieldValue(existingActionPlan.ReviewUser),
 			"target_date":        existingActionPlan.TargetDateString,
 			"percentage":         existingActionPlan.Percentage,
 			"comment":            existingActionPlan.Comments,
@@ -415,7 +453,6 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -436,7 +473,7 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Compliance Action Plan Responsibility Removed",
@@ -453,7 +490,7 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               ComplianceActionPlanFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{ComplianceActionPlanFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Compliance Action Plan Responsibility Assigned",
@@ -663,7 +700,7 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Compliance Action Plan Deleted",
@@ -764,12 +801,14 @@ func (caps *ComplianceActionPlanService) validateComplianceActionPlanFormDTO(com
 		}
 	}
 
-	if _, err := caps.actionPlanStatusSvc.GetByID(ComplianceActionPlanFormDTO.ActionPlanStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
+	if ComplianceActionPlanFormDTO.ReviewUserID != nil {
+		if ComplianceActionPlanFormDTO.ResponsibleUserID == *ComplianceActionPlanFormDTO.ReviewUserID {
+			return utility.NewValidationError(fmt.Errorf("review user and responsible user must be distinct"), "distinct_review_user", "compliance action plan distinct review user")
+		}
 	}
 
 	if ComplianceActionPlanFormDTO.Percentage == nil {
-		defaultValue := uint(0)
+		defaultValue := int(0)
 		ComplianceActionPlanFormDTO.Percentage = &defaultValue
 	}
 
@@ -788,4 +827,76 @@ func (caps *ComplianceActionPlanService) parseComplianceActionPlanDates(dto *com
 	}
 
 	return parsed, nil
+}
+
+func (capc *ComplianceActionPlanService) ExportComplianceActionPlans(data []*complianceDTOs.ComplianceActionPlanListDTO, currentUserID uint) (*os.File, error) {
+	// Retrieve user settings for language preference
+	userSetting, err := capc.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	// Define headers based on the user's language setting
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Title",
+			"Description",
+			"Severity Level (AR)",
+			"Responsible User (AR)",
+			"Review User (AR)",
+			"Target Date",
+			"Percentage",
+			"Comments",
+			"ActionPlan Status (AR)",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Title",
+			"Description",
+			"Severity Level (EN)",
+			"Responsible User (EN)",
+			"Review User (EN)",
+			"Target Date",
+			"Percentage",
+			"Comments",
+			"ActionPlan Status (EN)",
+		}
+	}
+
+	// Convert data to [][]interface{} based on language preference
+	rows := make([][]interface{}, len(data))
+	for i, item := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				item.Title,
+				utility.GetStringValue(item.Description),
+				item.SeverityLevelTitleAr,
+				item.ResponsibleUserFirstNameAr + " " + item.ResponsibleUserLastNameAr,
+				utility.GetStringValue(item.ReviewUserFirstNameEn) + " " + utility.GetStringValue(item.ReviewUserLastNameEn),
+				item.TargetDate,
+				item.Percentage,
+				utility.GetStringValue(item.Comments),
+				item.ActionPlanStatusTitleAr,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				item.Title,
+				utility.GetStringValue(item.Description),
+				item.SeverityLevelTitleEn,
+				item.ResponsibleUserFirstNameEn + " " + item.ResponsibleUserLastNameEn,
+				utility.GetStringValue(item.ReviewUserFirstNameEn) + " " + utility.GetStringValue(item.ReviewUserLastNameEn),
+				item.TargetDate,
+				item.Percentage,
+				utility.GetStringValue(item.Comments),
+				item.ActionPlanStatusTitleEn,
+			}
+		}
+	}
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }

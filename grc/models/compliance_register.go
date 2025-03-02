@@ -34,6 +34,7 @@ type ComplianceRegister struct {
 	LifecycleStatusID        uint       `json:"lifecycle_status_id" gorm:"not null"`
 	ComplianceReviewStatusID *uint      `json:"compliance_review_status_id" gorm:"default:null"`
 	TotalScore               int        `json:"total_score" gorm:"default:0"`
+	ComplianceFolderID       *uint      `json:"compliance_folder_id" binding:"omitempty" gorm:"default:null"`
 
 	// Relationships
 	ComplianceCategory      *ComplianceCategory       `gorm:"foreignKey:ComplianceCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -46,11 +47,14 @@ type ComplianceRegister struct {
 	LifecycleStatus         *LifecycleStatus          `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	LastReviewedUser        *User                     `gorm:"foreignKey:LastReviewedUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceReviewStatus  *ComplianceReviewStatus   `gorm:"foreignKey:ComplianceReviewStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Documents               []ComplianceDocument      `gorm:"foreignKey:ComplianceRegisterID"`
+	DocumentEn              *ComplianceDocument       `gorm:"foreignKey:ComplianceRegisterID"`
+	DocumentAr              *ComplianceDocument       `gorm:"foreignKey:ComplianceRegisterID"`
 	CreatedByUser           *User                     `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser           *User                     `gorm:"foreignKey:UpdatedByID"`
 	Controls                []*ComplianceControl      `gorm:"foreignKey:ComplianceRegisterID"`
 	ComplianceStatusUpdates []*ComplianceStatusUpdate `gorm:"foreignKey:ComplianceRegisterID"`
+	ComplianceClauses       []*ComplianceClause       `gorm:"foreignKey:ComplianceRegisterID"`
+	ComplianceFolder        *ComplianceFolder         `gorm:"foreignKey:ComplianceFolderID"`
 }
 
 // TableName overrides the table name used by ComplianceRegister to `compliance_register`

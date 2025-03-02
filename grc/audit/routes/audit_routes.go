@@ -65,6 +65,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditFinalReportSectionController := app.AuditModule.AuditFinalReportSectionController
 	auditReportWorkflowController := app.AuditModule.AuditReportWorkflowController
 	auditReportReviewController := app.AuditModule.AuditReportReviewController
+	auditFinalReportAppendixController := app.AuditModule.AuditFinalReportAppendixController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -103,6 +104,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//AuditPlan
 	auditRoutes.GET("/audit-plans", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanController.GetAllAuditPlans)
+	auditRoutes.GET("/audit-plans/export", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanController.GetAuditPlanExport)
 	auditRoutes.GET("/audit-plans/:planId", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanController.GetAuditPlanDetails)
 	auditRoutes.POST("/audit-plans", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanController.CreateAuditPlan)
 	auditRoutes.PUT("/audit-plans/:planId", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanController.UpdateAuditPlan)
@@ -174,6 +176,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Audit
 	auditRoutes.GET("/audits", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditController.GetAllAudits)
+	auditRoutes.GET("/audits/export", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditController.GetAuditsExport)
 	auditRoutes.GET("/audits/:auditId", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditController.GetAuditDetails)
 	auditRoutes.POST("/audits", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditController.CreateAudit)
 	auditRoutes.PUT("/audits/:auditId", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditController.UpdateAudit)
@@ -212,6 +215,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/audit-findings/:findingId/document-preview", auditFindingController.GetAuditFindingDocumentPreview)
 	unauthenticatedRoutes.GET("/audit-findings/:findingId/document-download", auditFindingController.DownloadAuditFindingDocument)
 	auditRoutes.GET("/audit-findings", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingController.GetAllAuditFindings)
+	auditRoutes.GET("/audit-findings/export", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingController.GetAuditFindingExport)
 	auditRoutes.GET("/audit-findings/:findingId", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingController.GetAuditFindingDetails)
 	auditRoutes.POST("/audit-findings", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingController.CreateAuditFinding)
 	auditRoutes.PUT("/audit-findings/:findingId", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingController.UpdateAuditFinding)
@@ -242,6 +246,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// Audit Finding Action Plan
 	auditRoutes.GET("/audit-findings/:findingId/action-plans", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingActionPlanController.GetAllAuditFindingActionPlans)
+	auditRoutes.GET("/audit-findings/:findingId/action-plans/export", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingActionPlanController.GetAuditFindingActionPlanExport)
 	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingActionPlanController.GetAuditFindingActionPlanDetails)
 	auditRoutes.POST("/audit-findings/:findingId/action-plans", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingActionPlanController.CreateAuditFindingActionPlan)
 	auditRoutes.PUT("/audit-findings/:findingId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingActionPlanController.UpdateAuditFindingActionPlan)
@@ -264,6 +269,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.PUT("/audits/:auditId/checklists/:id/answer", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditChecklistController.AuditChecklistAnswer)
 	auditRoutes.POST("audits/:auditId/checklists/delete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditChecklistController.DeleteAuditChecklists)
 	auditRoutes.POST("/audits/:auditId/checklists/delete-answer", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditChecklistController.DeleteAuditChecklistAnswer)
+	unauthenticatedRoutes.GET("/audits/:auditId/checklists/:id/document-download", auditChecklistController.DownloadAuditChecklistDocument)
 
 	//Audit Schedule
 	auditRoutes.GET("/audits/:auditId/schedules", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditScheduleController.GetAllAuditSchedules)
@@ -365,6 +371,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.GET("/audits/:auditId/final-reports", auditFinalReportController.GetAuditFinalReportDetails)
 	auditRoutes.POST("/audits/:auditId/final-reports", auditFinalReportController.CreateAuditFinalReport)
 	auditRoutes.POST("/audits/:auditId/final-reports/delete", auditFinalReportController.DeleteAuditFinalReport)
+	auditRoutes.GET("/audits/:auditId/final-reports/last-edit-summary", auditFinalReportController.GetLastEditSummary)
+	auditRoutes.GET("/audits/:auditId/final-reports/export-pdf", auditFinalReportController.ExportAuditFinalReportPDF)
+	auditRoutes.POST("/audits/:auditId/final-reports/publish", auditFinalReportController.PublishAuditFinalReport)
 
 	//Audit Final Report Section
 	auditRoutes.GET("/audits/:auditId/final-report-sections/:id", auditFinalReportSectionController.GetAuditFinalReportSectionDetails)
@@ -373,9 +382,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//workflow
 	auditRoutes.GET("/audits/:auditId/final-reports/workflow-list", auditReportWorkflowController.GetWorkflowList)
-	
+
 	auditRoutes.POST("/audits/:auditId/final-reports/submit", auditReportReviewController.SubmitAuditFinalReport)
 	auditRoutes.GET("/audits/:auditId/final-reports/comments", auditReportReviewController.GetComments)
 	auditRoutes.POST("/audits/:auditId/final-reports/comments", auditReportReviewController.AddComment)
+
+	auditRoutes.GET("/audits/:auditId/final-reports/:finalReportId/appendices/:id", auditFinalReportAppendixController.GetAuditFinalReportAppendixDetails)
+	auditRoutes.POST("/audits/:auditId/final-reports/:finalReportId/appendices", auditFinalReportAppendixController.CreateAuditFinalReportAppendix)
+	auditRoutes.DELETE("/audits/:auditId/final-reports/:finalReportId/appendices/:id", auditFinalReportAppendixController.DeleteAuditFinalReportAppendix)
+	unauthenticatedRoutes.GET("/audits/:auditId/final-reports/:finalReportId/appendices/:id/document-download", auditFinalReportAppendixController.DownloadFinalReportAppendixDocument)
 
 }

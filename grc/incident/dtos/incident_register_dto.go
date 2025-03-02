@@ -135,6 +135,8 @@ type IncidentRegisterListQueryParamsDTO struct {
 	IncidentAt  string
 	ReportedAt  string
 	Export      bool
+	DateFrom    string
+	DateTo      string
 }
 
 type IncidentRegisterListResponseDTO struct {

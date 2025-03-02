@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"jethur/config"
 	assetRoutes "jethur/grc/asset/routes"
 	auditInsightsRoutes "jethur/grc/audit-insights/routes"
@@ -31,7 +32,17 @@ import (
 
 func main() {
 
-	config.LoadEnv()
+	config.LoadEnv() // Load environment variables first
+
+	// Define command-line flags
+	checkPDF := flag.Bool("check-pdf", false, "Check if PDF conversion is working")
+	flag.Parse()
+
+	// Handle the `--check-pdf` flag
+	if *checkPDF {
+		utility.RunPDFConversionCheck()
+		return
+	}
 
 	time.Local = time.UTC
 
@@ -52,6 +63,7 @@ func main() {
 	r.Use(middlewares.LocalizerMiddleware(bundle))
 	r.Use(middlewares.RecoveryWithDatabaseLog(db))
 	r.Use(middlewares.ThrottleMiddleware(10, 20))
+	r.Use(middlewares.LicenseMiddleware(db))
 
 	masterRoutes.RegisterRoutes(app, r)
 	logRoutes.RegisterRoutes(app, r)

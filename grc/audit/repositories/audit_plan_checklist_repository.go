@@ -61,7 +61,8 @@ func (repo *AuditPlanChecklistRepository) GetAll(auditPlanId uint, params *audit
 			documents.title_en AS document_title_en,
 			documents.title_ar AS document_title_ar,
 			incident_register.title AS incident_register_title,
-			compliance_requirements.title AS compliance_requirement_title,
+			compliance_requirements.title_en AS compliance_requirement_title_en,
+			compliance_requirements.title_ar AS compliance_requirement_title_ar,
 			risk_register.title AS risk_register_title,
 			users.id AS user_id,
 			users.first_name_en AS user_first_name_en,
@@ -119,14 +120,6 @@ func (repo *AuditPlanChecklistRepository) GetAll(auditPlanId uint, params *audit
 			auditable_items.title_en LIKE ? OR
 			auditable_items.title_ar LIKE ?)`,
 			keyword, keyword, keyword)
-	}
-
-	// Sort by the specified column and order
-	if params.SortBy == "" {
-		params.SortBy = "created_at" // Default sort by created_at if no sortBy is specified
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)

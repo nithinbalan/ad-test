@@ -4,8 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strconv"
 	"time"
 
+	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	complianceServices "jethur/grc/compliance/services"
@@ -31,8 +34,10 @@ type MeetingServiceInterface interface {
 	Update(id uint, currentUserID uint, meetingFormDTO *meetingDTOs.MeetingFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GetAllCounts(meetingID uint) (*meetingDTOs.MeetingsCountResponseDTO, error)
+	GetMeetingEffectiveness(meetingID uint) (float64, error)
 
 	ExportMeeting(data []*meetingDTOs.MeetingListDTO, currentUserID uint) (*os.File, error)
+	GetDocumentPath(id uint, token string, tx ...utility.DatabaseTransaction) (string, error)
 }
 
 type MeetingService struct {
@@ -84,7 +89,25 @@ func NewMeetingService(
 }
 
 func (ms *MeetingService) GetAll(currentUserID uint, params *meetingDTOs.MeetingListQueryParamsDTO) (*meetingDTOs.MeetingListResponseDTO, error) {
-	return ms.repo.GetAll(currentUserID, params)
+	// Retrieve user details to check for super admin role
+	userDetails, err := ms.userSvc.GetCurrentUserDetails(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Determine if the user is a super admin
+	isSuperAdmin := false
+	if userDetails.Roles != nil {
+		for _, role := range *userDetails.Roles {
+			if role.IsSuperAdmin {
+				isSuperAdmin = true
+				break
+			}
+		}
+	}
+
+	// Pass the isSuperAdmin flag to the repository method
+	return ms.repo.GetAll(currentUserID, params, isSuperAdmin)
 }
 
 func (ms MeetingService) GetByID(id uint) (*models.Meeting, error) {
@@ -166,6 +189,37 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 	if err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+
+	// Save Documents
+	if len(meetingFormDTO.Documents) > 0 {
+		var documents []*models.MeetingDocument
+		for _, doc := range meetingFormDTO.Documents {
+			dataToEncrypt := []byte(doc.FileName)
+			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+
+			url := utility.GenerateDocumentURL("meeting", "meetings", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+			document := &models.MeetingDocument{
+				MeetingID:    id,
+				URL:          url,
+				Name:         doc.FileName,
+				Size:         doc.Size,
+				Token:        encryptedFileName,
+				OriginalName: &doc.OriginalName,
+				Type:         doc.Type,
+				CreatedAt:    time.Now(),
+			}
+			documents = append(documents, document)
+		}
+
+		if err := ms.repo.CreateMeetingDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	// Save ComplianceRequirements
@@ -374,7 +428,7 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 			}
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               *participantID,
+				UserIDs:              []uint{*participantID},
 				ModuleIdentifier:     "meeting",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				ReferenceNumber:      referenceNumber,
@@ -512,6 +566,65 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	// Handle documents
+	var documents []*models.MeetingDocument
+	var deleteDocumentIDs []*uint
+	var documentsToDelete []*models.MeetingDocument
+
+	for _, doc := range meetingFormDTO.Documents {
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			// Handle new documents
+			dataToEncrypt := []byte(doc.FileName)
+			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			url := utility.GenerateDocumentURL("meeting", "meetings", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+			document := &models.MeetingDocument{
+				MeetingID:    id,
+				URL:          url,
+				Name:         doc.FileName,
+				Size:         doc.Size,
+				Token:        encryptedFileName,
+				OriginalName: &doc.OriginalName,
+				Type:         doc.Type,
+				CreatedAt:    time.Now(),
+			}
+			documents = append(documents, document)
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			// Handle documents to be deleted
+			if doc.ID != nil {
+				existingDocument, err := ms.repo.GetDocumentByID(*doc.ID)
+				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return utility.NewResourceNotFoundError(err, id)
+					}
+					return err
+				}
+				documentsToDelete = append(documentsToDelete, existingDocument)
+				deleteDocumentIDs = append(deleteDocumentIDs, &existingDocument.ID)
+			}
+		}
+	}
+
+	// Create new documents
+	if len(documents) > 0 {
+		if err := ms.repo.CreateMeetingDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Delete marked documents
+	if len(deleteDocumentIDs) > 0 {
+		if err := ms.repo.DeleteMeetingDocuments(deleteDocumentIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	// Update Control IDs
@@ -799,6 +912,13 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 
 	tx.Commit()
 
+	for _, doc := range documentsToDelete {
+		storagePath := filepath.Join("document", "meetings", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+			fmt.Printf("Failed to delete file %s: %v\n", doc.Name, err)
+		}
+	}
+
 	go func() {
 		existingReviewMeeting, err := ms.GetFullDetailsByID(id)
 		if err != nil {
@@ -932,7 +1052,7 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title":             oldMeeting.Title,
 			"description":       oldMeeting.Description,
@@ -1044,7 +1164,7 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 			}
 
 			removedUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               removedUserID,
+				UserIDs:              []uint{removedUserID},
 				ModuleIdentifier:     "meeting",
 				NotificationType:     string(commonDTOs.InformationType),
 				ReferenceNumber:      existingMeeting.ReferenceNumber,
@@ -1100,7 +1220,7 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 			}
 
 			newUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               newUserID,
+				UserIDs:              []uint{newUserID},
 				ModuleIdentifier:     "meeting",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				ReferenceNumber:      existingMeeting.ReferenceNumber,
@@ -1174,7 +1294,7 @@ func (ms *MeetingService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 			for _, participant := range meeting.Participants {
 				// Create system notification
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               participant.UserID,
+					UserIDs:              []uint{participant.UserID},
 					ModuleIdentifier:     "meeting",
 					NotificationType:     string(commonDTOs.InformationType),
 					ReferenceNumber:      meeting.ReferenceNumber,
@@ -1577,6 +1697,18 @@ func (ms *MeetingService) GetAllCounts(meetingID uint) (*meetingDTOs.MeetingsCou
 	return response, nil
 }
 
+func (ms *MeetingService) GetMeetingEffectiveness(meetingID uint) (float64, error) {
+	if _, err := ms.GetByID(meetingID); err != nil {
+		return 0, err
+	}
+	response, err := ms.repo.GetMeetingEffectiveness(meetingID)
+	if err != nil {
+		return 0, err
+	}
+
+	return response, nil
+}
+
 func (ms *MeetingService) ExportMeeting(data []*meetingDTOs.MeetingListDTO, currentUserID uint) (*os.File, error) {
 	// Fetch user setting for language preference
 	userSetting, err := ms.userSettingSvc.GetUserSettingsByUserID(currentUserID)
@@ -1643,4 +1775,35 @@ func (ms *MeetingService) ExportMeeting(data []*meetingDTOs.MeetingListDTO, curr
 
 	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (ms *MeetingService) GetDocumentPath(id uint, token string, tx ...utility.DatabaseTransaction) (string, error) {
+	existingMeeting, err := ms.GetFullDetailsByID(id, tx...)
+	if err != nil {
+		return "", err
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("meeting", "meetings", strconv.FormatUint(uint64(existingMeeting.ID), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

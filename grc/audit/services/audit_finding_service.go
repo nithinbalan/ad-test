@@ -14,6 +14,7 @@ import (
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -24,12 +25,13 @@ type AuditFindingServiceInterface interface {
 	GetAll(params *auditDTOs.AuditFindingListQueryParamsDTO) (*auditDTOs.AuditFindingListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFindingDetailDTO, error)
 	GetByID(id uint) (*models.AuditFinding, error)
-	Create(currentUserID uint, auditFindingFormDTO *auditDTOs.AuditFindingFormDTO) (uint, error)
+	Create(currentUserID uint, auditFindingFormDTO *auditDTOs.AuditFindingFormDTO, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(id uint, currentUserID uint, auditFindingFormDTO *auditDTOs.AuditFindingFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	GetAuditFindingCountByCategory(auditId uint) ([]auditDTOs.AuditFindingCategoryCountResponseDTO, error)
 	GetDocumentPath(id uint, token string) (string, error)
+	ExportAuditFindings(data []*auditDTOs.AuditFindingListDTO, currentUserID uint) (*os.File, error)
 }
 
 type AuditFindingService struct {
@@ -41,6 +43,7 @@ type AuditFindingService struct {
 	auditableItemSvc      AuditableItemServiceInterface
 	auditFindingCategory  AuditFindingCategoryServiceInterface
 	severityLevelSvc      masterServices.SeverityLevelServiceInterface
+	userSettingSvc        organizationServices.UserSettingServiceInterface
 }
 
 func NewAuditFindingService(
@@ -52,6 +55,7 @@ func NewAuditFindingService(
 	auditableItemSvc AuditableItemServiceInterface,
 	auditFindingCategory AuditFindingCategoryServiceInterface,
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) AuditFindingServiceInterface {
 	return &AuditFindingService{
 		repo:                  repo,
@@ -62,6 +66,7 @@ func NewAuditFindingService(
 		auditableItemSvc:      auditableItemSvc,
 		auditFindingCategory:  auditFindingCategory,
 		severityLevelSvc:      severityLevelSvc,
+		userSettingSvc:        userSettingSvc,
 	}
 }
 
@@ -103,11 +108,16 @@ func (afs *AuditFindingService) GetFullDetailsByID(id uint, tx ...utility.Databa
 	return &auditFindingDTO, nil
 }
 
-func (afs *AuditFindingService) Create(currentUserID uint, auditFindingFormDTO *auditDTOs.AuditFindingFormDTO) (uint, error) {
-	tx := afs.repo.BeginTransaction()
+func (afs *AuditFindingService) Create(currentUserID uint, auditFindingFormDTO *auditDTOs.AuditFindingFormDTO, tx ...utility.DatabaseTransaction) (uint, error) {
+	var transaction utility.DatabaseTransaction
 
+	if len(tx) > 0 && tx[0] != nil {
+		transaction = tx[0]
+	} else {
+		transaction = afs.repo.BeginTransaction()
+		defer transaction.Rollback() // Ensure rollback if transaction was started here and not committed
+	}
 	if err := afs.validateAuditFindingFormDTO(auditFindingFormDTO); err != nil {
-		tx.Rollback()
 		return 0, err
 	}
 
@@ -116,7 +126,7 @@ func (afs *AuditFindingService) Create(currentUserID uint, auditFindingFormDTO *
 		return 0, err
 	}
 
-	referenceNumber, err := afs.repo.GenerateReferenceNumber()
+	referenceNumber, err := afs.repo.GenerateReferenceNumber(transaction)
 	if err != nil {
 		return 0, err
 	}
@@ -138,9 +148,8 @@ func (afs *AuditFindingService) Create(currentUserID uint, auditFindingFormDTO *
 		CreatedBYID:            currentUserID,
 	}
 
-	id, err := afs.repo.Create(auditFinding, tx)
+	id, err := afs.repo.Create(auditFinding, transaction)
 	if err != nil {
-		tx.Rollback()
 		return 0, err
 	}
 
@@ -153,7 +162,6 @@ func (afs *AuditFindingService) Create(currentUserID uint, auditFindingFormDTO *
 		dataToEncrypt := []byte(doc.FileName)
 		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
-			tx.Rollback()
 			return 0, err
 		}
 
@@ -175,29 +183,38 @@ func (afs *AuditFindingService) Create(currentUserID uint, auditFindingFormDTO *
 		// Append the document to the slice
 		documents = append(documents, document)
 	}
+
 	if len(documents) > 0 {
 		// Save the IncidentDocument
-		if err := afs.repo.CreateDocuments(documents, tx); err != nil {
-			tx.Rollback()
+		if err := afs.repo.CreateDocuments(documents, transaction); err != nil {
 			return 0, err
 		}
 		for _, doc := range documents {
 			storagePath := filepath.Join("audit", "audit-findings", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
-				tx.Rollback()
 				return 0, err
 			}
 		}
 	}
 
-	tx.Commit()
+	// Commit if this function started the transaction
+	if len(tx) == 0 {
+		transaction.Commit()
+	}
 
 	go func() {
-		err := afs.activityLogSvc.LogActivity(
+		existingAuditFinding, err := afs.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit finding", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = afs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditFinding{}.TableName(),
 			id,
-			auditFindingFormDTO,
+			existingAuditFinding,
 			currentUserID,
 			nil,
 		)
@@ -222,6 +239,12 @@ func (afs *AuditFindingService) Update(id uint, currentUserID uint, auditFinding
 	tx := afs.repo.BeginTransaction()
 
 	existingAuditFinding, err := afs.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
+
+	oldAuditFinding, err := afs.repo.GetFullDetailsByID(id)
 	if err != nil {
 		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
@@ -323,25 +346,54 @@ func (afs *AuditFindingService) Update(id uint, currentUserID uint, auditFinding
 	tx.Commit()
 
 	go func() {
-		err := afs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.AuditFinding{}.TableName(),
-			id,
-			auditFindingFormDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingAuditFinding, err := afs.repo.GetFullDetailsByID(id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.AuditFinding{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"auditable_item":         oldAuditFinding.AuditableItem.TitleEn,
+			"audit_finding_category": oldAuditFinding.AuditFindingCategory.TitleEn,
+			"severity_level":         oldAuditFinding.SeverityLevel.TitleEn,
+			"recommendations":        oldAuditFinding.Recommendations,
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		newData := map[string]interface{}{
+			"auditable_item":         existingAuditFinding.AuditableItem.TitleEn,
+			"audit_finding_category": existingAuditFinding.AuditFindingCategory.TitleEn,
+			"severity_level":         existingAuditFinding.SeverityLevel.TitleEn,
+			"recommendations":        existingAuditFinding.Recommendations,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+
+			err := afs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditFinding{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditFinding{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -353,6 +405,7 @@ func (afs *AuditFindingService) Delete(ids []uint, currentUserID uint) ([]uint, 
 	tx := afs.repo.BeginTransaction()
 	var failedIDs []uint
 	var successfulIDs []uint
+	var deletedAuditFinding []map[string]interface{}
 	documentsToDelete := make(map[uint][]*auditDTOs.AuditFindingDocumentDTO)
 
 	for _, id := range ids {
@@ -388,6 +441,10 @@ func (afs *AuditFindingService) Delete(ids []uint, currentUserID uint) ([]uint, 
 		}
 
 		successfulIDs = append(successfulIDs, id)
+		deletedAuditFinding = append(deletedAuditFinding, map[string]interface{}{
+			"id":       id,
+			"audit_id": auditFinding.AuditID,
+		})
 	}
 
 	if len(successfulIDs) > 0 {
@@ -412,7 +469,7 @@ func (afs *AuditFindingService) Delete(ids []uint, currentUserID uint) ([]uint, 
 					models.DeleteAction,
 					models.AuditFinding{}.TableName(),
 					id,
-					nil,
+					deletedAuditFinding,
 					currentUserID,
 					nil,
 				)
@@ -504,4 +561,97 @@ func (afs *AuditFindingService) GetDocumentPath(id uint, token string) (string, 
 	}
 
 	return fullPath, nil
+}
+
+func (afs *AuditFindingService) ExportAuditFindings(data []*auditDTOs.AuditFindingListDTO, currentUserID uint) (*os.File, error) {
+	// Retrieve user settings for language preference
+	userSetting, err := afs.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	// Define headers based on the user's language setting
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Audit Title",
+			"Finding Title",
+			"Description (AR)",
+			"Recommendations (AR)",
+			"Auditable Item (AR)",
+			"Category (AR)",
+			"Severity Level (AR)",
+			"Severity Color",
+			"Status (AR)",
+			"Status Color",
+			"Created At",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Audit Title",
+			"Finding Title",
+			"Description (EN)",
+			"Recommendations (EN)",
+			"Auditable Item (EN)",
+			"Category (EN)",
+			"Severity Level (EN)",
+			"Severity Color",
+			"Status (EN)",
+			"Status Color",
+			"Created At",
+		}
+	}
+
+	// Convert data to [][]interface{} based on language preference
+	rows := make([][]interface{}, len(data))
+	for i, item := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				item.ReferenceNumber,
+				item.AuditTitle,
+				item.Title,
+				safeString(item.Description),
+				safeString(item.Recommendations),
+				item.AuditableItemTitleAr,
+				item.AuditFindingCategoryTitleAr,
+				item.SeverityLevelTitleAr,
+				item.SeverityLevelColorCode,
+				item.AuditFindingStatusTitleAr,
+				item.AuditFindingStatusColorCode,
+				item.CreatedAt,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				item.ReferenceNumber,
+				item.AuditTitle,
+				item.Title,
+				safeString(item.Description),
+				safeString(item.Recommendations),
+				item.AuditableItemTitleEn,
+				item.AuditFindingCategoryTitleEn,
+				item.SeverityLevelTitleEn,
+				item.SeverityLevelColorCode,
+				item.AuditFindingStatusTitleEn,
+				item.AuditFindingStatusColorCode,
+				item.CreatedAt,
+			}
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
+}
+
+// Helper function to handle nullable strings
+func safeString(input *string) string {
+	if input == nil {
+		return ""
+	}
+	return *input
 }

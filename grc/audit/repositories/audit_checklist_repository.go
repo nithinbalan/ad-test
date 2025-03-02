@@ -84,7 +84,8 @@ func (repo *AuditChecklistRepository) GetAll(auditId uint, params *auditDTOs.Aud
 			documents.title_en AS document_title_en,
 			documents.title_ar AS document_title_ar,
 			incident_register.title AS incident_register_title,
-			compliance_requirements.title AS compliance_requirement_title,
+			compliance_requirements.title_en AS compliance_requirement_title_en,
+			compliance_requirements.title_ar AS compliance_requirement_title_ar,
 			risk_register.title AS risk_register_title,
 			users.id AS user_id,
 			users.first_name_en AS user_first_name_en,
@@ -187,7 +188,16 @@ func (repo *AuditChecklistRepository) GetAll(auditId uint, params *auditDTOs.Aud
 	if err != nil {
 		return nil, err
 	}
+	// Fetching related documents for each conversation
+	for _, auditChecklist := range auditChecklists {
+		var documents []*auditDTOs.AuditChecklistDocumentDTO
 
+		repo.db.Model(&models.AuditChecklistDocument{}).
+			Where("audit_checklist_id = ?", auditChecklist.ID).
+			Find(&documents)
+
+		auditChecklist.Documents = documents
+	}
 	return auditChecklists, nil
 }
 
@@ -300,7 +310,6 @@ func (repo *AuditChecklistRepository) Delete(id uint, tx ...utility.DatabaseTran
 
 	return nil
 }
-
 
 func (repo *AuditChecklistRepository) CreateDocuments(docs []*models.AuditChecklistDocument, tx ...utility.DatabaseTransaction) error {
 	db := repo.db

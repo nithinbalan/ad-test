@@ -40,6 +40,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	userProfileController := app.OrganizationModule.UserProfileController
 
 	//Designation
+	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
+	organizationRoutes.POST("/designations/template/validate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.ValidateDesignationTemplate)
+	organizationRoutes.POST("/designations/import/validate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.ValidateImportDesignation)
+	organizationRoutes.POST("/designations/import", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.ImportDesignations)
 	organizationRoutes.GET("/designations", designationController.GetAllDesignations)
 	organizationRoutes.GET("/designations/:id", designationController.GetDesignationDetails)
 	organizationRoutes.POST("/designations", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.CreateDesignation)
@@ -165,6 +169,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/controls/:controlId/reviews/:id", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlReviewController.UpdateControlReview)
 
 	//Control
+	organizationRoutes.POST("/controls/direct-import", middlewares.RolePermissionMiddleware(db, "control", "modify"), controlController.DirectImportControls)
+	organizationRoutes.GET("/controls/template", middlewares.RolePermissionMiddleware(db, "control", "modify"), controlController.GenerateControlTemplate)
+	organizationRoutes.POST("/controls/template/validate", middlewares.RolePermissionMiddleware(db, "control", "modify"), controlController.ValidateControlTemplate)
+	organizationRoutes.POST("/controls/import/validate", middlewares.RolePermissionMiddleware(db, "control", "modify"), controlController.ValidateImportControls)
+	organizationRoutes.POST("/controls/import", middlewares.RolePermissionMiddleware(db, "control", "modify"), controlController.ImportControls)
+
 	organizationRoutes.GET("/controls/export", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlController.GetControlsExport)
 	organizationRoutes.GET("/controls", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlController.GetAllControls)
 	organizationRoutes.GET("/controls/:controlId", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlController.GetControlDetails)
@@ -217,6 +227,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/controls/:controlId/action-plans/:controlActionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlActionPlanStatusUpdateController.GetLatestControlActionPlanStatusUpdate)
 
 	//process
+	organizationRoutes.GET("/processes/template", middlewares.RolePermissionMiddleware(db, "process", "modify"), processController.GetProcessesTemplate)
+	organizationRoutes.POST("/processes/template/validate", middlewares.RolePermissionMiddleware(db, "process", "modify"), processController.ValidateProcessTemplate)
+	organizationRoutes.POST("/processes/import/validate", middlewares.RolePermissionMiddleware(db, "process", "modify"), processController.ValidateImportProcess)
+	organizationRoutes.POST("/processes/import", middlewares.RolePermissionMiddleware(db, "process", "modify"), processController.ImportProcesses)
 	organizationRoutes.GET("/processes/export", middlewares.RolePermissionMiddleware(db, "process", "view"), processController.GetProcessesExport)
 	organizationRoutes.GET("/processes", middlewares.RolePermissionMiddleware(db, "process", "view"), processController.GetAllProcesses)
 	organizationRoutes.GET("/processes/:processId", middlewares.RolePermissionMiddleware(db, "process", "view"), processController.GetProcessDetails)
@@ -230,6 +244,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/processes/:processId/controls", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllProcessControls)
 	organizationRoutes.GET("/processes/:processId/risks", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllProcessRisks)
 	organizationRoutes.GET("/processes/:processId/incidents", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllProcessIncidents)
+	organizationRoutes.GET("/processes/:processId/assets", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllProcessAssets)
 	organizationRoutes.GET("/processes/:processId/documents", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllProcessDocuments)
 	organizationRoutes.GET("/processes/:processId/associated-item-summary", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllAssociatedCounts)
 

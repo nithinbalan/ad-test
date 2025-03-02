@@ -33,6 +33,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	workflowStatusController := app.MasterModule.WorkflowStatusController
 	integrationCategoryController := app.MasterModule.IntegrationCategoryController
 	impactCategoryController := app.MasterModule.ImpactCategoryController
+	timeUnitController := app.MasterModule.TimeUnitController
+	reviewStatusController := app.MasterModule.ReviewStatusController
+	applicabilityStatusController := app.MasterModule.ApplicabilityStatusController
+	requiredDocumentTitleController := app.MasterModule.RequiredDocumentTitleController
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
@@ -120,4 +124,22 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	masterRoutes.POST("/impact-categories/delete", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), impactCategoryController.DeleteImpactCategories)
 	masterRoutes.PUT("/impact-categories/activate", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), impactCategoryController.ActivateImpactCategories)
 	masterRoutes.PUT("/impact-categories/deactivate", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), impactCategoryController.DeactivateImpactCategories)
+
+	masterRoutes.GET("/time-units", timeUnitController.GetAllTimeUnits)
+	masterRoutes.GET("/time-units/:id", timeUnitController.GetTimeUnitDetails)
+
+	masterRoutes.GET("/review-statuses", reviewStatusController.GetAllReviewStatuses)
+	masterRoutes.GET("/review-statuses/:id", reviewStatusController.GetReviewStatusDetails)
+
+	masterRoutes.GET("/applicability-statuses", applicabilityStatusController.GetAllApplicabilityStatuses)
+	masterRoutes.GET("/applicability-statuses/:id", applicabilityStatusController.GetApplicabilityStatusDetails)
+
+	masterRoutes.GET("/required-document-titles", requiredDocumentTitleController.GetAllRequiredDocumentTitles)
+	masterRoutes.POST("/required-document-titles", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), requiredDocumentTitleController.CreateRequiredDocumentTitle)
+	masterRoutes.GET("/required-document-titles/:id", requiredDocumentTitleController.GetRequiredDocumentTitleDetails)
+	masterRoutes.PUT("/required-document-titles/:id", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), requiredDocumentTitleController.UpdateRequiredDocumentTitle)
+	masterRoutes.POST("/required-document-titles/delete", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), requiredDocumentTitleController.DeleteRequiredDocumentTitles)
+	masterRoutes.PUT("/required-document-titles/activate", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), requiredDocumentTitleController.ActivateRequiredDocumentTitles)
+	masterRoutes.PUT("/required-document-titles/deactivate", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), requiredDocumentTitleController.DeactivateRequiredDocumentTitles)
+
 }

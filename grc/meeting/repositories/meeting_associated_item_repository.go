@@ -206,10 +206,10 @@ func (repo *MeetingAssociatedItemRepository) GetAllProcesses(meetingID uint, par
 			owner.first_name_ar AS owner_first_name_ar,
 			owner.last_name_en AS owner_last_name_en,
 			owner.last_name_ar AS owner_last_name_ar,
-			owner.initial AS control_owner_initial,
-            owner.color AS control_owner_color,
-            owner.email AS control_owner_email,
-            owner.profile_image_path AS control_owner_profile_image_path,
+			owner.initial AS owner_initial,
+            owner.color AS owner_color,
+            owner.email AS owner_email,
+            owner.profile_image_path AS owner_profile_image_path,
 			lifecycle_statuses.title_en AS lifecycle_status_title_en,
 			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
 			lifecycle_statuses.color_code AS lifecycle_status_color_code
@@ -241,11 +241,12 @@ func (repo *MeetingAssociatedItemRepository) GetAllProcesses(meetingID uint, par
 			owner.first_name_ar LIKE ? OR
 			owner.last_name_en LIKE ? OR
 			owner.last_name_ar LIKE ? OR
+			owner.owner_email LIKE ? OR
 			lifecycle_statuses.title_en LIKE ? OR
 			lifecycle_statuses.title_ar LIKE ? OR
 			lifecycle_statuses.color_code LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	if params.SortBy == "" {

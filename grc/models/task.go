@@ -5,34 +5,37 @@ import (
 )
 
 type Task struct {
-	ID                       uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	ReferenceNumber          string     `json:"reference_number" binding:"required,max=45" gorm:"type:varchar(45);not null;unique"`
-	ModuleID                 uint       `json:"module_id" binding:"required"`
-	ComplianceActionPlanID   *uint      `json:"compliance_action_plan_id"`
-	SLAActionPlanID          *uint      `json:"sla_action_plan_id"`
-	IncidentActionPlanID     *uint      `json:"incident_action_plan_id"`
-	ControlActionPlanID      *uint      `json:"control_action_plan_id"`
-	RiskActionPlanID         *uint      `json:"risk_action_plan_id"`
-	MeetingActionPlanID      *uint      `json:"meeting_action_plan_id"`
-	AuditFindingActionPlanID *uint      `json:"audit_finding_action_plan_id"`
-	DocumentID               *uint      `json:"document_id"`
-	DocumentWorkflowID       *uint      `json:"document_workflow_id"`
-	AuditFinalReportID       *uint      `json:"audit_final_report_id"`
-	AuditDraftReportID       *uint      `json:"audit_draft_report_id"`
-	AuditReportWorkflowID    *uint      `json:"audit_report_workflow_id"`
-	RelatedTaskIDs           *string    `json:"related_task_ids" gorm:"type:json"`
-	Title                    string     `json:"title" binding:"required,max=255"`
-	Description              *string    `json:"description" gorm:"type:nvarchar(max)"`
-	TargetDate               *time.Time `json:"target_date" gorm:"type:date;default:null"`
-	URLParam                 *string    `json:"url_param" gorm:"type:nvarchar(max)"`
-	QueryParam               *string    `json:"query_param" gorm:"type:nvarchar(max)"`
-	SeverityLevelID          *uint      `json:"severity_level_id"`
-	ResponsibleUserID        uint       `json:"responsible_user_id"`
-	TaskStatusID             uint       `json:"task_status_id" binding:"required"`
-	CreatedAt                time.Time  `json:"created_at" gorm:"type:datetime;not null"`
-	UpdatedAt                *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedByID              uint       `json:"created_by_id" gorm:"not null"`
-	UpdatedByID              uint       `json:"updated_by_id" gorm:"default:null"`
+	ID                              uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	ReferenceNumber                 string     `json:"reference_number" binding:"required,max=45" gorm:"type:varchar(45);not null;unique"`
+	ModuleID                        uint       `json:"module_id" binding:"required"`
+	ComplianceActionPlanID          *uint      `json:"compliance_action_plan_id"`
+	SLAActionPlanID                 *uint      `json:"sla_action_plan_id"`
+	IncidentActionPlanID            *uint      `json:"incident_action_plan_id"`
+	ControlActionPlanID             *uint      `json:"control_action_plan_id"`
+	RiskActionPlanID                *uint      `json:"risk_action_plan_id"`
+	MeetingActionPlanID             *uint      `json:"meeting_action_plan_id"`
+	AuditFindingActionPlanID        *uint      `json:"audit_finding_action_plan_id"`
+	DocumentID                      *uint      `json:"document_id"`
+	DocumentWorkflowID              *uint      `json:"document_workflow_id"`
+	DocumentChangeRequestID         *uint      `json:"document_change_request_id"`
+	DocumentChangeRequestWorkflowID *uint      `json:"document_Change_request_workflow_id"`
+	AuditFinalReportID              *uint      `json:"audit_final_report_id"`
+	AuditDraftReportID              *uint      `json:"audit_draft_report_id"`
+	AuditReportWorkflowID           *uint      `json:"audit_report_workflow_id"`
+	AuditDocumentRequestID          *uint      `json:"audit_document_request_id"`
+	RelatedTaskIDs                  *string    `json:"related_task_ids" gorm:"type:json"`
+	Title                           string     `json:"title" binding:"required,max=255"`
+	Description                     *string    `json:"description" gorm:"type:nvarchar(max)"`
+	TargetDate                      *time.Time `json:"target_date" gorm:"type:date;default:null"`
+	URLParam                        *string    `json:"url_param" gorm:"type:nvarchar(max)"`
+	QueryParam                      *string    `json:"query_param" gorm:"type:nvarchar(max)"`
+	SeverityLevelID                 *uint      `json:"severity_level_id"`
+	ResponsibleUserID               uint       `json:"responsible_user_id"`
+	TaskStatusID                    uint       `json:"task_status_id" binding:"required"`
+	CreatedAt                       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
+	UpdatedAt                       *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
+	CreatedByID                     uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedByID                     uint       `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
 	Module                 *Module                 `gorm:"foreignKey:ModuleID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`

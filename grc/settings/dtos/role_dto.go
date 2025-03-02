@@ -1,10 +1,11 @@
 package dtos
 
 type RoleDTO struct {
-	ID      uint   `json:"id"`
-	TitleEn string `json:"title_en"`
-	TitleAr string `json:"title_ar"`
-	Status  string `json:"status"`
+	ID           uint   `json:"id"`
+	TitleEn      string `json:"title_en"`
+	TitleAr      string `json:"title_ar"`
+	Status       string `json:"status"`
+	IsSuperAdmin bool   `json:"is_super_admin"`
 }
 
 type RolePermissionFormDTO struct {

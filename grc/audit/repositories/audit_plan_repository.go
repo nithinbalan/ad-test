@@ -128,6 +128,9 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
 	if params.TargetDate != "" {
 		query = query.Where("target_date <= ?", params.TargetDate)
 	}
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("audit_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
@@ -170,26 +173,22 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
-	// Sort by the specified column and order
-	if params.SortBy == "" {
-		params.SortBy = "title" // Default sort by title if no sortBy is specified
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
-	}
-
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
 
-	// Execute the query
-	err := query.Offset(offset).Limit(params.PageSize).Find(&auditPlans).Error
+	err := query.Find(&auditPlans).Error
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
 	response := &auditDTOs.AuditPlanListResponseDTO{
 		Items: auditPlans,
 		Pagination: commonDTOs.PaginationInfoDTO{

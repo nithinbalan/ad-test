@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"jethur/config"
@@ -56,6 +57,7 @@ type ComplianceRegisterService struct {
 	userSettingSvc        organizationServices.UserSettingServiceInterface
 	userSvc               organizationServices.UserServiceInterface
 	notificationSvc       commonServices.NotificationServiceInterface
+	complianceFolderSvc   ComplianceFolderServiceInterface
 }
 
 func NewComplianceRegisterService(
@@ -70,6 +72,7 @@ func NewComplianceRegisterService(
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	complianceFolderSvc ComplianceFolderServiceInterface,
 ) ComplianceRegisterServiceInterface {
 	return &ComplianceRegisterService{
 		repo:                  repo,
@@ -83,6 +86,7 @@ func NewComplianceRegisterService(
 		userSettingSvc:        userSettingSvc,
 		userSvc:               userSvc,
 		notificationSvc:       notificationSvc,
+		complianceFolderSvc:   complianceFolderSvc,
 	}
 }
 
@@ -168,7 +172,11 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		return 0, err
 	}
 
-	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.Document); err != nil {
+	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.DocumentEn); err != nil {
+		return 0, err
+	}
+
+	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.DocumentAr); err != nil {
 		return 0, err
 	}
 
@@ -197,6 +205,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		ComplianceReviewStatusID: complianceRegisterFormDTO.ComplianceReviewStatusID,
 		CreatedByID:              currentUserID,
 		LifecycleStatusID:        lifecycleStatus.ID,
+		ComplianceFolderID:       complianceRegisterFormDTO.ComplianceFolderID,
 	}
 
 	id, err := crs.repo.Create(complianceRegister, tx)
@@ -238,37 +247,12 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		}
 	}
 
-	// generate token
-	dataToEncrypt := []byte(complianceRegisterFormDTO.Document.FileName)
-	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
-	if err != nil {
-		return 0, err
-	}
-
-	// genereate URL
-	url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
-
-	complianceDocument := &models.ComplianceDocument{
-		ComplianceRegisterID: id,
-		Language:             complianceRegisterFormDTO.Document.Language,
-		URL:                  url,
-		Name:                 complianceRegisterFormDTO.Document.FileName,
-		Size:                 complianceRegisterFormDTO.Document.Size,
-		Token:                encryptedFilename,
-		OriginalName:         complianceRegisterFormDTO.Document.OriginalName,
-		Type:                 complianceRegisterFormDTO.Document.Type,
-		CreatedByID:          currentUserID,
-	}
-
-	// Save Compliance document
-	if err := crs.repo.CreateDocument(complianceDocument, tx); err != nil {
+	if err := crs.handleDocument(currentUserID, id, &complianceRegisterFormDTO.DocumentEn, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
-	// Store Compliance Document File using utility.StoreFile
-	storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
 
-	if err := utility.StoreFile(complianceRegisterFormDTO.Document.FileName, storagePath); err != nil {
+	if err := crs.handleDocument(currentUserID, id, &complianceRegisterFormDTO.DocumentAr, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -310,7 +294,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               complianceRegisterFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{complianceRegisterFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Register Responsibility Assigned",
@@ -406,7 +390,11 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		return err
 	}
 
-	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.Document); err != nil {
+	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.DocumentEn); err != nil {
+		return err
+	}
+
+	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.DocumentEn); err != nil {
 		return err
 	}
 
@@ -438,6 +426,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	existingComplianceRegister.ComplianceReviewStatusID = complianceRegisterFormDTO.ComplianceReviewStatusID
 	existingComplianceRegister.LastReviewNote = complianceRegisterFormDTO.LastReviewNote
 	existingComplianceRegister.UpdatedByID = &currentUserID
+	existingComplianceRegister.ComplianceFolderID = complianceRegisterFormDTO.ComplianceFolderID
 
 	err = crs.repo.Update(existingComplianceRegister, tx)
 	if err != nil {
@@ -503,50 +492,50 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		}
 	}
 
-	existingComplianceDocument, err := crs.repo.GetLatestDocumentByComplianceID(id)
+	existingComplianceDocumentEn, err := crs.repo.GetLatestDocumentByComplianceID(id, "en")
 	if err != nil {
 		return err
 	}
 
-	if complianceRegisterFormDTO.Document.IsNewFile != nil && *complianceRegisterFormDTO.Document.IsNewFile {
-		existingComplianceDocumentFileName := existingComplianceDocument.Name
+	existingComplianceDocumentAr, err := crs.repo.GetLatestDocumentByComplianceID(id, "ar")
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
 
-		// generate token
-		dataToEncrypt := []byte(complianceRegisterFormDTO.Document.FileName)
-		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
+	if complianceRegisterFormDTO.DocumentEn.IsNewFile != nil && *complianceRegisterFormDTO.DocumentEn.IsNewFile {
+		existingComplianceDocumentEnFileName := existingComplianceDocumentEn.Name
 
-		// genereate URL
-		url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
-
-		existingComplianceDocument.Language = complianceRegisterFormDTO.Document.Language
-		existingComplianceDocument.URL = url
-		existingComplianceDocument.Name = complianceRegisterFormDTO.Document.FileName
-		existingComplianceDocument.Size = complianceRegisterFormDTO.Document.Size
-		existingComplianceDocument.Token = encryptedFilename
-		existingComplianceDocument.OriginalName = complianceRegisterFormDTO.Document.OriginalName
-		existingComplianceDocument.Type = complianceRegisterFormDTO.Document.Type
-		existingComplianceDocument.UpdatedByID = currentUserID
-
-		if err := crs.repo.CreateDocument(existingComplianceDocument, tx); err != nil {
+		if err := crs.handleDocument(currentUserID, id, &complianceRegisterFormDTO.DocumentEn, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
 
 		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
-		if err := utility.RemoveFile(existingComplianceDocumentFileName, storagePath); err != nil {
+		if err := utility.RemoveFile(existingComplianceDocumentEnFileName, storagePath); err != nil {
 			tx.Rollback()
 			return err
 		}
 
-		if err := utility.StoreFile(complianceRegisterFormDTO.Document.FileName, storagePath); err != nil {
+	}
+
+	if complianceRegisterFormDTO.DocumentAr.IsNewFile != nil && *complianceRegisterFormDTO.DocumentAr.IsNewFile {
+		var existingComplianceDocumentArFileName string
+		if existingComplianceDocumentAr != nil {
+			existingComplianceDocumentArFileName = existingComplianceDocumentAr.Name
+		}
+
+		if err := crs.handleDocument(currentUserID, id, &complianceRegisterFormDTO.DocumentAr, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
 
+		if existingComplianceDocumentAr != nil {
+			storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
+			if err := utility.RemoveFile(existingComplianceDocumentArFileName, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
 	}
 
 	tx.Commit()
@@ -582,7 +571,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"compliance_category":      oldComplianceRegister.ComplianceCategory.TitleEn,
 			"compliance_status":        oldComplianceRegister.ComplianceStatus.TitleEn,
@@ -661,7 +650,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 			// Old responsible user notification (Removal)
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Compliance Register Responsibility Removed",
@@ -679,7 +668,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 			// New responsible user notification (Assignment)
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               complianceRegisterFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{complianceRegisterFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Compliance Register Responsibility Assigned",
@@ -850,13 +839,21 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 		}
 
 		// Delete each Compliance document if documents exist
-		if len(complianceRegister.Documents) > 0 {
-			var deleteDocumentIds []*uint
-			for _, doc := range complianceRegister.Documents {
-				documentsToDelete[id] = append(documentsToDelete[id], &doc)
-				deleteDocumentIds = append(deleteDocumentIds, doc.ID)
-			}
-			if err := crs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+		var docIdsToDelete []*uint
+
+		if complianceRegister.DocumentEn != nil {
+			documentsToDelete[id] = append(documentsToDelete[id], complianceRegister.DocumentEn)
+			docIdsToDelete = append(docIdsToDelete, complianceRegister.DocumentEn.ID)
+		}
+
+		if complianceRegister.DocumentAr != nil {
+			documentsToDelete[id] = append(documentsToDelete[id], complianceRegister.DocumentAr)
+			docIdsToDelete = append(docIdsToDelete, complianceRegister.DocumentAr.ID)
+		}
+
+		// Delete all collected documents in bulk
+		if len(docIdsToDelete) > 0 {
+			if err := crs.repo.DeleteDocuments(docIdsToDelete, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
@@ -925,7 +922,7 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 
 				// Prepare DB notification
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Compliance Register Deleted",
@@ -1082,6 +1079,12 @@ func (crs *ComplianceRegisterService) ReviewStatusUpdate(complianceRegister *mod
 }
 
 func (crs *ComplianceRegisterService) validateComplianceRegisterFormDTO(complianceRegisterFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error {
+	if complianceRegisterFormDTO.ComplianceFolderID != nil {
+		if _, err := crs.complianceFolderSvc.GetByID(*complianceRegisterFormDTO.ComplianceFolderID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("compliance folder does not exist"), "not_exist", "compliance folder")
+		}
+	}
+
 	if _, err := crs.complianceCategorySvc.GetByID(complianceRegisterFormDTO.ComplianceCategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("compliance category does not exist"), "not_exist", "compliance category")
 	}
@@ -1173,8 +1176,11 @@ func (crs *ComplianceRegisterService) validateComplianceDocumentFormDTO(document
 	if document == nil {
 		return utility.NewValidationError(fmt.Errorf("document is required"), "required", "document")
 	}
+	// Normalize the file type to lowercase for case-insensitive comparison
+	fileType := strings.ToLower(document.Type)
+
 	// Validate file type (PDF)
-	if document.Type != ".pdf" {
+	if fileType != ".pdf" {
 		return utility.NewValidationError(fmt.Errorf("only PDF files are allowed"), "invalid_file_type", "type")
 	}
 
@@ -1189,14 +1195,14 @@ func (crs *ComplianceRegisterService) validateComplianceDocumentFormDTO(document
 }
 
 func (crs *ComplianceRegisterService) GetDocumentPath(id uint, token string) (string, error) {
-	existingComplianceRegister, err := crs.GetFullDetailsByID(id)
-	if err != nil {
-		return "", err
-	}
+	// existingComplianceRegister, err := crs.GetFullDetailsByID(id)
+	// if err != nil {
+	// 	return "", err
+	// }
 
-	if len(existingComplianceRegister.Documents) == 0 {
-		return "", fmt.Errorf("no documents found for the compliance register")
-	}
+	// if len(existingComplianceRegister.Documents) == 0 {
+	// 	return "", fmt.Errorf("no documents found for the compliance register")
+	// }
 
 	decryptedFilenameBytes, err := utility.DecryptData(token)
 	if err != nil {
@@ -1317,4 +1323,45 @@ func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complian
 	}
 	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (crs *ComplianceRegisterService) handleDocument(currentUserID uint, complianceRegisterID uint, documentDTO *complianceDTOs.ComplianceDocumentFormDTO, tx ...utility.DatabaseTransaction) error {
+	if documentDTO == nil {
+		return nil // Skip if no document is provided
+	}
+
+	// Generate encrypted token for the file name
+	encryptedFilename, err := utility.EncryptData([]byte(documentDTO.FileName))
+	if err != nil {
+		return fmt.Errorf("failed to encrypt document filename: %w", err)
+	}
+
+	// Generate the document URL
+	url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(complianceRegisterID), 10), "documents")
+
+	// Create a new ComplianceDocument instance
+	complianceDocument := &models.ComplianceDocument{
+		ComplianceRegisterID: complianceRegisterID,
+		Language:             documentDTO.Language,
+		URL:                  url,
+		Name:                 documentDTO.FileName,
+		Size:                 documentDTO.Size,
+		Token:                encryptedFilename,
+		OriginalName:         documentDTO.OriginalName,
+		Type:                 documentDTO.Type,
+		CreatedByID:          currentUserID,
+	}
+
+	// Save the document record in the database
+	if err := crs.repo.CreateDocument(complianceDocument, tx...); err != nil {
+		return fmt.Errorf("failed to save document record: %w", err)
+	}
+
+	// Store the document file in the storage
+	storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceRegisterID), 10), "documents")
+	if err := utility.StoreFile(documentDTO.FileName, storagePath); err != nil {
+		return fmt.Errorf("failed to store document file: %w", err)
+	}
+
+	return nil
 }

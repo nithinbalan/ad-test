@@ -43,6 +43,18 @@ func (repo *DocumentChangeRequestInitiateTypeRepository) GetAll(sort string, sor
 		query = query.Where("status = ?", status)
 	}
 
+	// Define the custom order
+	customOrder := `
+		CASE 
+			WHEN type = 'modify' THEN 1
+			WHEN type = 'archive' THEN 2
+			WHEN type = 'restore' THEN 3
+			ELSE 4
+		END
+	`
+
+	query = query.Order(customOrder)
+
 	query = query.Order(sortBy + " " + sort)
 	result := query.Find(&documentChangeRequestInitiateTypes)
 

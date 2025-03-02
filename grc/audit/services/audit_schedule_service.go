@@ -180,11 +180,19 @@ func (ass *AuditScheduleService) Create(auditID uint, currentUserID uint, auditS
 	tx.Commit()
 
 	go func() {
-		err := ass.activityLogSvc.LogActivity(
+		existingAuditSchedule, err := ass.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit schedule", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = ass.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditSchedule{}.TableName(),
 			id,
-			auditScheduleFormDTO,
+			existingAuditSchedule,
 			currentUserID,
 			nil,
 		)
@@ -209,6 +217,12 @@ func (ass *AuditScheduleService) Update(id uint, auditID uint, currentUserID uin
 	tx := ass.repo.BeginTransaction()
 	if _, err := ass.auditSvc.GetByID(auditID); err != nil {
 		return err
+	}
+
+	oldAuditSchedule, err := ass.repo.GetFullDetailsByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
 	}
 
 	dates, err := ass.parseAuditScheduleDates(auditScheduleFormDTO)
@@ -301,25 +315,83 @@ func (ass *AuditScheduleService) Update(id uint, auditID uint, currentUserID uin
 	tx.Commit()
 
 	go func() {
-		err := ass.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.AuditSchedule{}.TableName(),
-			id,
-			auditScheduleFormDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingAuditSchedule, err := ass.repo.GetFullDetailsByID(id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.AuditSchedule{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		auditableItemsAdded := []uint{}
+		auditableItemsRemoved := []uint{}
+		for id := range newAuditableItemIDs {
+			if !existingAuditableItemIDs[id] {
+				auditableItemsAdded = append(auditableItemsAdded, id)
+			}
+		}
+		for id := range existingAuditableItemIDs {
+			if !newAuditableItemIDs[id] {
+				auditableItemsRemoved = append(auditableItemsRemoved, id)
+			}
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
+
+		if len(auditableItemsAdded) > 0 || len(auditableItemsRemoved) > 0 {
+			associatedItems["auditable_items_ids"] = map[string]interface{}{
+				"added":   auditableItemsAdded,
+				"removed": auditableItemsRemoved,
+			}
+		}
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+		//log changes
+		oldData := map[string]interface{}{
+			"audit_activity_type":   oldAuditSchedule.AuditActivityType.TitleEn,
+			"title":                 oldAuditSchedule.Title,
+			"description":           oldAuditSchedule.Description,
+			"start_date":            oldAuditSchedule.StartDate,
+			"target_date":           oldAuditSchedule.TargetDate,
+			"responsible_user":      fmt.Sprintf("%s %s", oldAuditSchedule.ResponsibleUser.FirstNameEn, oldAuditSchedule.ResponsibleUser.LastNameEn),
+			"audit_schedule_status": oldAuditSchedule.AuditScheduleStatus.TitleEn,
+		}
+
+		newData := map[string]interface{}{
+			"audit_activity_type":   existingAuditSchedule.AuditActivityType.TitleEn,
+			"title":                 existingAuditSchedule.Title,
+			"description":           existingAuditSchedule.Description,
+			"start_date":            existingAuditSchedule.StartDate,
+			"target_date":           existingAuditSchedule.TargetDate,
+			"responsible_user":      fmt.Sprintf("%s %s", existingAuditSchedule.ResponsibleUser.FirstNameEn, existingAuditSchedule.ResponsibleUser.LastNameEn),
+			"audit_schedule_status": existingAuditSchedule.AuditScheduleStatus.TitleEn,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := ass.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditSchedule{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditSchedule{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -330,7 +402,7 @@ func (ass *AuditScheduleService) Delete(ids []uint, currentUserID uint) ([]uint,
 	tx := ass.repo.BeginTransaction()
 	var failedIDs []uint
 	var successfulIDs []uint
-
+	var deletedAuditSchedule []map[string]interface{}
 	for _, id := range ids {
 		auditScheduleDetail, err := ass.repo.GetFullDetailsByID(id, tx)
 		if err != nil {
@@ -359,6 +431,11 @@ func (ass *AuditScheduleService) Delete(ids []uint, currentUserID uint) ([]uint,
 		}
 
 		successfulIDs = append(successfulIDs, id)
+		deletedAuditSchedule = append(deletedAuditSchedule, map[string]interface{}{
+			"id":       id,
+			"audit_id": auditScheduleDetail.AuditID,
+			"title":    auditScheduleDetail.Title,
+		})
 	}
 
 	if len(successfulIDs) > 0 {
@@ -370,7 +447,7 @@ func (ass *AuditScheduleService) Delete(ids []uint, currentUserID uint) ([]uint,
 					models.DeleteAction,
 					models.AuditSchedule{}.TableName(),
 					id,
-					nil,
+					deletedAuditSchedule,
 					currentUserID,
 					nil,
 				)

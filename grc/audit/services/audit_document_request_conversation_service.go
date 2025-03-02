@@ -16,6 +16,7 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 )
 
@@ -33,6 +34,7 @@ type AuditDocumentRequestConversationService struct {
 	auditDocumentRequestStatusSvc AuditDocumentRequestStatusServiceInterface
 	userSvc                       organizationServices.UserServiceInterface
 	notificationSvc               commonServices.NotificationServiceInterface
+	taskSvc                       taskServices.TaskServiceInterface
 }
 
 func NewAuditDocumentRequestConversationService(
@@ -43,6 +45,7 @@ func NewAuditDocumentRequestConversationService(
 	auditDocumentRequestStatusSvc AuditDocumentRequestStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	taskSvc taskServices.TaskServiceInterface,
 ) AuditDocumentRequestConversationServiceInterface {
 	return &AuditDocumentRequestConversationService{
 		repo:                          repo,
@@ -52,6 +55,7 @@ func NewAuditDocumentRequestConversationService(
 		auditDocumentRequestStatusSvc: auditDocumentRequestStatusSvc,
 		userSvc:                       userSvc,
 		notificationSvc:               notificationSvc,
+		taskSvc:                       taskSvc,
 	}
 }
 
@@ -155,6 +159,12 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 				return 0, err
 			}
 		}
+
+		_, err := adrcs.taskSvc.AuditDocumentRequestTaskUpdate(auditDocumentRequestID, currentUserID, "closed", tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	} else {
 		// Reopen the status when a new comment is added, if the status is closed
 		if documentRequest.AuditDocumentRequestStatusID == uint(auditDocumentRequestClosedStatus.ID) {
@@ -162,6 +172,8 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 			if err != nil {
 				return 0, err
 			}
+
+			// Update the document request status to "open"
 			if documentRequest.AuditDocumentRequestStatusID != uint(auditDocumentRequestOpenStatus.ID) {
 				documentRequest.AuditDocumentRequestStatusID = uint(auditDocumentRequestOpenStatus.ID)
 				documentRequest.UpdatedAt = &now
@@ -174,6 +186,12 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 				}
 			}
 
+			// Update the task status to "open"
+			_, err = adrcs.taskSvc.AuditDocumentRequestTaskUpdate(auditDocumentRequestID, currentUserID, "open", tx)
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
 		}
 	}
 
@@ -214,7 +232,7 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 			appURL := utility.GetAppURL()
 
 			dbNotification := &commonDTOs.DBNotificationDTO{
-				UserID:               uint(audit.RequestedByUser.ID),
+				UserIDs:              []uint{uint(audit.RequestedByUser.ID)},
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.InformationType),
 				ReferenceNumber:      audit.Audit.AuditPlan.ReferenceNumber,
@@ -280,7 +298,7 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 			appURL := utility.GetAppURL()
 
 			dbNotification := &commonDTOs.DBNotificationDTO{
-				UserID:               documentRequest.ResponsibleUserID,
+				UserIDs:              []uint{documentRequest.ResponsibleUserID},
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.InformationType),
 				ReferenceNumber:      audit.Audit.AuditPlan.ReferenceNumber,

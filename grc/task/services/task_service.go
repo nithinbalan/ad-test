@@ -18,6 +18,7 @@ type TaskServiceInterface interface {
 	GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error)
 	GetByID(id uint) (*models.Task, error)
 	GetByFieldID(field string, value interface{}) (*models.Task, error)
+	GetByResponsibleUserID(field string, value interface{}, responsibleUserID uint) (*models.Task, error)
 	Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(currentUserID uint, taskDTO commonDTOs.TaskFormDTO, fieldName string, id uint, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, currentUserID uint) (uint, error)
@@ -26,8 +27,11 @@ type TaskServiceInterface interface {
 	UpdateStatus(currentUserID uint, taskID uint, actionPlanStatusID uint, isReviewUserNull bool, tx ...utility.DatabaseTransaction) error
 	UpdateTaskWithRelatedIDs(taskID uint, relatedTaskIDsJSON string, tx ...utility.DatabaseTransaction) error
 	UpdateDocumentTaskStatus(documentID uint, userID uint, documentWorkflowID uint) (*models.Task, error)
+	UpdateDocumentChangeRequestTaskStatus(documentChangeRequestID uint, userID uint, documentCRWorkflowID uint) (*models.Task, error)
 	UpdateAuditReportTaskStatus(auditFinalReportID uint, userID uint, auditReportWorkflowID uint) (*models.Task, error)
 	UpdateAuditDraftReportTaskStatus(auditDraftReportID uint, userID uint, auditReportWorkflowID uint) (*models.Task, error)
+	AuditDocumentRequestTaskUpdate(auditDocumentRequestID uint, userID uint, taskStatusType string, tx ...utility.DatabaseTransaction) (*models.Task, error)
+	UpdateActionPlanTaskStatus(field string, value interface{}, userID uint, taskStatusID uint, tx ...utility.DatabaseTransaction) (*models.Task, error)
 }
 
 type TaskService struct {
@@ -76,6 +80,17 @@ func (ts TaskService) GetByFieldID(field string, value interface{}) (*models.Tas
 	return task, nil
 }
 
+func (ts TaskService) GetByResponsibleUserID(field string, value interface{}, responsibleuserID uint) (*models.Task, error) {
+	task, err := ts.repo.GetByResponsibleUserID(field, value, responsibleuserID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, value)
+		}
+		return nil, err
+	}
+	return task, nil
+}
+
 func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint, tx ...utility.DatabaseTransaction) (uint, error) {
 	taskStatus, err := ts.taskStatusSvc.GetByType("open")
 	if err != nil {
@@ -90,28 +105,32 @@ func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint
 		return 0, err
 	}
 	task := &models.Task{
-		ReferenceNumber:          referenceNumber,
-		ModuleID:                 moduleID,
-		ComplianceActionPlanID:   taskDTO.ComplianceActionPlanID,
-		SLAActionPlanID:          taskDTO.SLAActionPlanID,
-		IncidentActionPlanID:     taskDTO.IncidentActionPlanID,
-		ControlActionPlanID:      taskDTO.ControlActionPlanID,
-		RiskActionPlanID:         taskDTO.RiskActionPlanID,
-		MeetingActionPlanID:      taskDTO.MeetingActionPlanID,
-		AuditFindingActionPlanID: taskDTO.AuditFindingActionPlanID,
-		DocumentID:               taskDTO.DocumentID,
-		DocumentWorkflowID:       taskDTO.DocumentWorkflowID,
-		AuditFinalReportID:       taskDTO.AuditFinalReportID,
-		AuditReportWorkflowID:    taskDTO.AuditReportWorkflowID,
-		Title:                    taskDTO.Title,
-		Description:              taskDTO.Description,
-		TargetDate:               taskDTO.TargetDate,
-		URLParam:                 taskDTO.URLParam,
-		QueryParam:               taskDTO.QueryParam,
-		SeverityLevelID:          taskDTO.SeverityLevelID,
-		ResponsibleUserID:        taskDTO.ResponsibleUserID,
-		TaskStatusID:             taskStatus.ID,
-		CreatedByID:              currentUserID,
+		ReferenceNumber:                 referenceNumber,
+		ModuleID:                        moduleID,
+		ComplianceActionPlanID:          taskDTO.ComplianceActionPlanID,
+		SLAActionPlanID:                 taskDTO.SLAActionPlanID,
+		IncidentActionPlanID:            taskDTO.IncidentActionPlanID,
+		ControlActionPlanID:             taskDTO.ControlActionPlanID,
+		RiskActionPlanID:                taskDTO.RiskActionPlanID,
+		MeetingActionPlanID:             taskDTO.MeetingActionPlanID,
+		AuditFindingActionPlanID:        taskDTO.AuditFindingActionPlanID,
+		DocumentID:                      taskDTO.DocumentID,
+		DocumentWorkflowID:              taskDTO.DocumentWorkflowID,
+		DocumentChangeRequestID:         taskDTO.DocumentChangeRequestID,
+		DocumentChangeRequestWorkflowID: taskDTO.DocumentChangeRequestWorkflowID,
+		AuditDocumentRequestID:          taskDTO.AuditDocumentRequestID,
+		AuditFinalReportID:              taskDTO.AuditFinalReportID,
+		AuditDraftReportID:              taskDTO.AuditDraftReportID,
+		AuditReportWorkflowID:           taskDTO.AuditReportWorkflowID,
+		Title:                           taskDTO.Title,
+		Description:                     taskDTO.Description,
+		TargetDate:                      taskDTO.TargetDate,
+		URLParam:                        taskDTO.URLParam,
+		QueryParam:                      taskDTO.QueryParam,
+		SeverityLevelID:                 taskDTO.SeverityLevelID,
+		ResponsibleUserID:               taskDTO.ResponsibleUserID,
+		TaskStatusID:                    taskStatus.ID,
+		CreatedByID:                     currentUserID,
 	}
 	id, err := ts.repo.Create(task, tx...)
 	if err != nil {
@@ -225,6 +244,19 @@ func (ts *TaskService) UpdateDocumentTaskStatus(documentID uint, userID uint, do
 	return task, nil
 }
 
+func (ts *TaskService) UpdateDocumentChangeRequestTaskStatus(documentCRID uint, userID uint, documentCRWorkflowID uint) (*models.Task, error) {
+	taskStatus, err := ts.taskStatusSvc.GetByType("closed")
+	if err != nil {
+		return nil, err
+	}
+	task, err := ts.repo.UpdateDocumentChangeRequestTaskStatus(documentCRID, userID, documentCRWorkflowID, taskStatus.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return task, nil
+}
+
 func (ts *TaskService) UpdateAuditReportTaskStatus(auditFinalReportID uint, userID uint, auditReportWorkflowID uint) (*models.Task, error) {
 	taskStatus, err := ts.taskStatusSvc.GetByType("closed")
 	if err != nil {
@@ -245,6 +277,53 @@ func (ts *TaskService) UpdateAuditDraftReportTaskStatus(auditDraftReportID uint,
 	}
 	task, err := ts.repo.UpdateAuditDraftReportTaskStatus(auditDraftReportID, userID, auditReportWorkflowID, taskStatus.ID)
 	if err != nil {
+		return nil, err
+	}
+
+	return task, nil
+}
+
+func (ts *TaskService) AuditDocumentRequestTaskUpdate(auditDocumentRequestID uint, userID uint, taskStatusType string, tx ...utility.DatabaseTransaction) (*models.Task, error) {
+	// Fetch the task status by type (e.g., "closed")
+	taskStatus, err := ts.taskStatusSvc.GetByType(taskStatusType)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch the task associated with the audit document request ID
+	task, err := ts.repo.GetByFieldID("audit_document_request_id", auditDocumentRequestID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, auditDocumentRequestID)
+		}
+		return nil, err
+	}
+
+	// Update the task's status
+	task.TaskStatusID = taskStatus.ID
+	task.UpdatedByID = userID
+
+	// Save the updated task
+	if err := ts.repo.Update(task, tx...); err != nil {
+		return nil, err
+	}
+
+	return task, nil
+}
+
+func (ts *TaskService) UpdateActionPlanTaskStatus(field string, value interface{}, userID uint, taskStatusID uint, tx ...utility.DatabaseTransaction) (*models.Task, error) {
+	task, err := ts.GetByResponsibleUserID(field, value, userID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, userID)
+		}
+		return nil, err
+	}
+
+	task.TaskStatusID = taskStatusID
+	task.UpdatedByID = userID
+
+	if err := ts.repo.Update(task, tx...); err != nil {
 		return nil, err
 	}
 

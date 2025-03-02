@@ -9,12 +9,14 @@ import (
 	settingsRepositories "jethur/grc/settings/repositories"
 	"jethur/utility"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type OrganizationUnitServiceInterface interface {
 	GetAll(params *settingsDTOs.OrganizationUnitListQueryParamsDTO) ([]*settingsDTOs.OrganizationUnitListDTO, error)
 	GetByID(id uint) (*models.OrganizationUnit, error)
+	GetFullDetailsByID(id uint) (*settingsDTOs.OrganizationUnitDTO, error)
 	Create(currentUserID uint, orgUnitFormDTO *settingsDTOs.OrganizationUnitFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, orgUnit *settingsDTOs.OrganizationUnitFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -53,6 +55,28 @@ func (ous OrganizationUnitService) GetByID(id uint) (*models.OrganizationUnit, e
 		return nil, err
 	}
 	return orgUnit, nil
+}
+
+func (ous OrganizationUnitService) GetFullDetailsByID(unitId uint) (*settingsDTOs.OrganizationUnitDTO, error) {
+	// Initialize your DTO
+	var unitDTO settingsDTOs.OrganizationUnitDTO
+
+	unit, err := ous.repo.GetFullDetailsByID(unitId)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, unitId)
+		}
+		return nil, err
+	}
+
+	// Map the result to your DTO
+	err = mapstructure.Decode(unit, &unitDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return &unitDTO, nil
 }
 
 func (ous *OrganizationUnitService) Create(currentUserID uint, orgUnitFormDTO *settingsDTOs.OrganizationUnitFormDTO) (uint, error) {
@@ -151,21 +175,29 @@ func (ous *OrganizationUnitService) Delete(ids []uint, currentUserID uint) ([]ui
 	var successfulIds []uint
 
 	for _, id := range ids {
-		_, err := ous.GetByID(id)
+		// Recursively fetch all descendants
+		childUnitIDs := ous.repo.GetAllDescendantUnitIDs(id)
+		if len(childUnitIDs) > 0 {
+			childFailedIds, err := ous.Delete(childUnitIDs, currentUserID)
+			if err != nil || len(childFailedIds) > 0 {
+				failedIds = append(failedIds, childFailedIds...)
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
+
+		// Delete the current unit
+		err := ous.repo.Delete(id)
 		if err != nil {
+			fmt.Printf("Failed to delete unit %d: %v\n", id, err)
 			failedIds = append(failedIds, id)
 			continue
 		}
-		// Delete the organization unit
-		err = ous.repo.Delete(id)
-		if err != nil {
-			failedIds = append(failedIds, id)
-			continue
-		}
+
 		successfulIds = append(successfulIds, id)
 	}
 
-	// Log the delete activity for successful deletions
+	// Log successful deletions
 	go func() {
 		err := ous.activityLogSvc.LogBulkActivities(
 			models.DeleteAction,

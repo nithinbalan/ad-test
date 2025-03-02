@@ -20,6 +20,7 @@ import (
 	masterServices "jethur/grc/masters/services"
 	organizationServices "jethur/grc/organization/services"
 	riskServices "jethur/grc/risk/services"
+	settingServices "jethur/grc/settings/services"
 
 	"jethur/grc/models"
 	"jethur/utility"
@@ -58,6 +59,7 @@ type IncidentRegisterService struct {
 	userSettingSvc           organizationServices.UserSettingServiceInterface
 	notificationSvc          commonServices.NotificationServiceInterface
 	assetRegisterSvc         assetServices.AssetRegisterServiceInterface
+	systemPreferenceSvc      settingServices.SystemPreferenceServiceInterface
 }
 
 func NewIncidentRegisterService(
@@ -77,6 +79,7 @@ func NewIncidentRegisterService(
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	assetRegisterSvc assetServices.AssetRegisterServiceInterface,
+	systemPreferenceSvc settingServices.SystemPreferenceServiceInterface,
 ) IncidentRegisterServiceInterface {
 	return &IncidentRegisterService{
 		repo:                     repo,
@@ -95,6 +98,7 @@ func NewIncidentRegisterService(
 		userSettingSvc:           userSettingSvc,
 		notificationSvc:          notificationSvc,
 		assetRegisterSvc:         assetRegisterSvc,
+		systemPreferenceSvc:      systemPreferenceSvc,
 	}
 }
 
@@ -104,7 +108,6 @@ func (irs *IncidentRegisterService) GetAll(params *incidentDTOs.IncidentRegister
 
 func (irs IncidentRegisterService) GetByID(id uint) (*models.IncidentRegister, error) {
 	incident, err := irs.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -119,7 +122,6 @@ func (irs IncidentRegisterService) GetFullDetailsByID(id uint, tx ...utility.Dat
 	var incidentDTO incidentDTOs.IncidentRegisterDetailDTO
 
 	incident, err := irs.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -145,7 +147,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		return 0, err
 	}
 
-	dates, err := irs.parseIncidentRegisterDates(incidentRegisterFormDTO)
+	dates, err := irs.parseIncidentRegisterDates(incidentRegisterFormDTO, currentUserID)
 	if err != nil {
 		return 0, err
 	}
@@ -158,7 +160,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	if err := irs.validateIncidentDocumentFormDTO(incidentRegisterFormDTO.Documents); err != nil {
 		return 0, err
 	}
-	//update incident status as open
+	// update incident status as open
 	incidentStatus, err := irs.incidentStatusSvc.GetByType("open")
 	if err != nil {
 		return 0, err
@@ -317,8 +319,8 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 			return 0, err
 		}
 	}
-	//Add timeline
-	//todo
+	// Add timeline
+	// todo
 	timelineTypes, err := irs.incidentTimelineSvc.GetAllTypes()
 	if err != nil {
 		tx.Rollback()
@@ -414,19 +416,18 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 				return 0, err
 			}
 			// Convert DOCX to PDF if the document is a DOCX file
-			if filepath.Ext(doc.Name) == ".docx" {
-				if err := utility.ConvertDocxToPDF(storagePath, doc.Name, storagePath); err != nil {
-					tx.Rollback()
-					return 0, err
-				}
-			}
+			// if filepath.Ext(doc.Name) == ".docx" {
+			// 	if err := utility.ConvertDocxToPDF(storagePath, doc.Name, storagePath); err != nil {
+			// 		tx.Rollback()
+			// 		return 0, err
+			// 	}
+			// }
 		}
 	}
 
 	tx.Commit()
 
 	go func() {
-
 		existingIncident, err := irs.GetFullDetailsByID(incidentRegister.ID)
 		if err != nil {
 			utility.LogError("Failed to fetch incident register", map[string]interface{}{
@@ -443,7 +444,6 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -461,7 +461,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		entity := "incident-register"
 		action := "responsible-user-assign"
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               incidentRegisterFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{incidentRegisterFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "incident",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Incident Register Responsibility Assigned",
@@ -541,7 +541,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		return err
 	}
 
-	dates, err := irs.parseIncidentRegisterDates(incidentRegisterFormDTO)
+	dates, err := irs.parseIncidentRegisterDates(incidentRegisterFormDTO, currentUserID)
 	if err != nil {
 		return err
 	}
@@ -569,7 +569,6 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 	existingIncidentRegister.UpdatedByID = &currentUserID
 
 	err = irs.repo.Update(existingIncidentRegister, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -935,8 +934,8 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 			return err
 		}
 	}
-	//Update timeline
-	//todo
+	// Update timeline
+	// todo
 	timelineType, err := irs.incidentTimelineSvc.GetByType("reporting")
 	if err != nil {
 		tx.Rollback()
@@ -957,7 +956,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		tx.Rollback()
 		return err
 	}
-	//documents update
+	// documents update
 	var documents []*models.IncidentDocument
 	var deleteDocumentIds []*uint
 	var documentsToDelete []*models.IncidentDocument
@@ -1179,7 +1178,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"incident_category": oldIncidentRegister.IncidentCategory.TitleEn,
 			"incident_type":     oldIncidentRegister.IncidentType.TitleEn,
@@ -1220,7 +1219,6 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -1243,7 +1241,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 			// Old responsible user notification (Removal)
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "incident",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Incident Register Responsibility Removed",
@@ -1261,7 +1259,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 			// New responsible user notification (Assignment)
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               incidentRegisterFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{incidentRegisterFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "incident",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Incident Register Responsibility Assigned",
@@ -1489,8 +1487,8 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 			}
 		}
 
-		//Delete timeline
-		//todo
+		// Delete timeline
+		// todo
 		if err := irs.incidentTimelineSvc.Delete(id, tx); err != nil {
 			tx.Rollback()
 			return nil, err
@@ -1565,7 +1563,7 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 
 				// Prepare DB notification
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "incident",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Incident Register Deleted",
@@ -1626,7 +1624,6 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 
 func (irs *IncidentRegisterService) StatusUpdate(id uint, currentUserID uint, incidentStatusID uint, tx utility.DatabaseTransaction) error {
 	existingIncident, err := irs.GetByID(id)
-
 	if err != nil {
 		return err
 	}
@@ -1635,7 +1632,6 @@ func (irs *IncidentRegisterService) StatusUpdate(id uint, currentUserID uint, in
 	existingIncident.UpdatedByID = &currentUserID
 
 	err = irs.repo.Update(existingIncident, tx)
-
 	if err != nil {
 		return err
 	}
@@ -1661,7 +1657,7 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 	if _, err := irs.userSvc.GetByID(uint(incidentRegisterFormDTO.ResponsibleUserID)); err != nil {
 		return utility.NewValidationError(fmt.Errorf("responsible user does not exist"), "not_exist", "responsible user")
 	}
-	//Controls exist
+	// Controls exist
 	controls := incidentRegisterFormDTO.ControlIds
 
 	// Create a map to store control IDs
@@ -1683,7 +1679,7 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 		// Add the control ID to the map
 		controlIDs[*control] = true
 	}
-	//Compliance Requirements Exist
+	// Compliance Requirements Exist
 	requirements := incidentRegisterFormDTO.ComplianceRequirementIds
 
 	// Create a map to store requirement IDs
@@ -1705,7 +1701,7 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 		// Add the requirement ID to the map
 		requirementIDs[*requirement] = true
 	}
-	//Risks exist
+	// Risks exist
 	risks := incidentRegisterFormDTO.RiskIds
 	// Create a map to store risk IDs
 	riskIDs := make(map[uint]bool)
@@ -1758,7 +1754,7 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 
 		slaRegisterIDs[*slaRegisterId] = true
 	}
-	//Assets exist
+	// Assets exist
 	assets := incidentRegisterFormDTO.AssetIds
 	// Create a map to store asset IDs
 	assetIDs := make(map[uint]bool)
@@ -1783,26 +1779,55 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 	return nil
 }
 
-func (irs *IncidentRegisterService) parseIncidentRegisterDates(dto *incidentDTOs.IncidentRegisterFormDTO) (*incidentDTOs.IncidentRegisterParsedDates, error) {
+func (irs *IncidentRegisterService) parseIncidentRegisterDates(dto *incidentDTOs.IncidentRegisterFormDTO, currentUserID uint) (*incidentDTOs.IncidentRegisterParsedDates, error) {
 	parsed := &incidentDTOs.IncidentRegisterParsedDates{}
 
-	var err error
+	userPreference, err := irs.userSvc.GetCurrentUserDetails(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	timezoneName := userPreference.UserSetting.Timezone.Name
+
+	fmt.Println(timezoneName)
+
 	if dto.ReportedAt != "" {
-		parsed.ReportedAt, err = utility.ParseDateTime(dto.ReportedAt)
+		parsed.ReportedAt, err = utility.ConvertToUTC(dto.ReportedAt, timezoneName)
 		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid reported date"), "invalid_date", "reported at")
+			return nil, utility.NewValidationError(fmt.Errorf("invalid reported date: %w", err), "invalid_date", "reported_at")
 		}
 	}
 
 	if dto.IncidentAt != "" {
-		parsed.IncidentAt, err = utility.ParseDateTime(dto.IncidentAt)
+		parsed.IncidentAt, err = utility.ConvertToUTC(dto.IncidentAt, timezoneName)
 		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid incident date"), "invalid_date", "incident at")
+			return nil, utility.NewValidationError(fmt.Errorf("invalid incident date: %w", err), "invalid_date", "incident_at")
 		}
 	}
 
 	return parsed, nil
 }
+
+// func (irs *IncidentRegisterService) parseIncidentRegisterDates(dto *incidentDTOs.IncidentRegisterFormDTO) (*incidentDTOs.IncidentRegisterParsedDates, error) {
+// 	parsed := &incidentDTOs.IncidentRegisterParsedDates{}
+
+// 	var err error
+// 	if dto.ReportedAt != "" {
+// 		parsed.ReportedAt, err = utility.ParseDateTime(dto.ReportedAt)
+// 		if err != nil {
+// 			return nil, utility.NewValidationError(fmt.Errorf("invalid reported date"), "invalid_date", "reported at")
+// 		}
+// 	}
+
+// 	if dto.IncidentAt != "" {
+// 		parsed.IncidentAt, err = utility.ParseDateTime(dto.IncidentAt)
+// 		if err != nil {
+// 			return nil, utility.NewValidationError(fmt.Errorf("invalid incident date"), "invalid_date", "incident at")
+// 		}
+// 	}
+
+// 	return parsed, nil
+// }
 
 func (irs *IncidentRegisterService) validateIncidentDocumentFormDTO(documents []*incidentDTOs.IncidentDocumentFormDTO) error {
 	// Check if documents array is empty

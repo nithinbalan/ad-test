@@ -2,7 +2,9 @@
 <table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="margin-top: 20px; background-color: #fff; font-family: Arial, sans-serif;">
     <tr>
         <td style="padding: 20px 0; text-align: center; border-top: 1px solid #D9D9D9;">
+            {{ if footerLogoURL }}
             <img src="{{ footerLogoURL }}" width="50" alt="Jethur GRC" style="margin-bottom: 10px;">
+            {{ end }}
             <p style="font-size: 12px; color: #787878; margin-bottom: 5px;">
                 {{ footerAddress }}<br>
                 Email us at <a href="mailto:{{ footerEmail }}" style="color: #165D31; text-decoration: none;">{{ footerEmail }}</a>

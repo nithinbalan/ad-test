@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	"jethur/grc/models"
 	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
@@ -18,6 +19,8 @@ type OrganizationUnitRepositoryInterface interface {
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
+
+	GetAllDescendantUnitIDs(parentID uint) []uint
 }
 
 type OrganizationUnitRepository struct {
@@ -121,18 +124,6 @@ func (repo *OrganizationUnitRepository) GetFullDetailsByID(id uint, tx ...utilit
 	var organizationUnit *models.OrganizationUnit
 
 	result := db.
-		Preload("ComplianceCategory").
-		Preload("ComplianceStatus").
-		Preload("ResponsibleUnit").
-		Preload("ResponsibleUser").
-		Preload("ResponsibleUser.OrganizationUnit1").
-		Preload("ReviewFrequency").
-		Preload("ReviewResponsibleUser").
-		Preload("SeverityLevel").
-		Preload("LifecycleStatus").
-		Preload("Documents").
-		Preload("CreatedByUser").
-		Preload("UpdatedByUser").
 		First(&organizationUnit, id)
 
 	if result.Error != nil {
@@ -225,4 +216,30 @@ func (repo *OrganizationUnitRepository) Deactivate(ids []uint) ([]uint, error) {
 	// Return the IDs of the records that were activated
 	return idsToUpdate, nil
 
+}
+
+func (repo *OrganizationUnitRepository) GetAllDescendantUnitIDs(parentID uint) []uint {
+	var allDescendantIDs []uint
+	var queue []uint
+
+	queue = append(queue, parentID)
+
+	for len(queue) > 0 {
+		currentID := queue[0]
+		queue = queue[1:]
+
+		var childUnits []models.OrganizationUnit
+		err := repo.db.Where("organization_unit_id = ?", currentID).Find(&childUnits).Error
+		if err != nil {
+			fmt.Printf("Error fetching child units for ID %d: %v\n", currentID, err)
+			continue
+		}
+
+		for _, child := range childUnits {
+			allDescendantIDs = append(allDescendantIDs, child.ID)
+			queue = append(queue, child.ID)
+		}
+	}
+
+	return allDescendantIDs
 }

@@ -14,7 +14,7 @@ import (
 
 type ComplianceRequirementRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
+	GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
 	GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error)
@@ -38,6 +38,9 @@ type ComplianceRequirementRepositoryInterface interface {
 	DeleteComplianceRequirementDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	CalculateAverageScore(complianceRegisterID uint, tx ...utility.DatabaseTransaction) (float64, error)
+
+	CreateComplianceRequirmentRequiredDocumentTitles(requiredDocumentTitle []*models.ComplianceRequirementRequiredDocumentTitle, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceRequirmentRequiredDocumentTitles(requiredDocumentTitleIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceRequirementRepository struct {
@@ -54,7 +57,7 @@ func (repo *ComplianceRequirementRepository) BeginTransaction() utility.Database
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *ComplianceRequirementRepository) GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error) {
+func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error) {
 	var complianceRequirements []*complianceDTOs.ComplianceRequirementListDTO
 	var totalCount int64
 
@@ -63,7 +66,8 @@ func (repo *ComplianceRequirementRepository) GetAll(params *complianceDTOs.Compl
 			compliance_requirements.*,
 			CONVERT(VARCHAR, compliance_requirements.deadline, 23) AS deadline,
 			compliance_clauses.clause_no AS compliance_clause_no,
-			compliance_clauses.title AS compliance_clause_title,
+			compliance_clauses.title_en AS compliance_clause_title_en,
+			compliance_clauses.title_ar AS compliance_clause_title_ar,
 			compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
 			compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
 			severity_levels.title_en AS severity_level_title_en,
@@ -109,6 +113,10 @@ func (repo *ComplianceRequirementRepository) GetAll(params *complianceDTOs.Compl
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by_id
 			LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
 		`)
+
+	if complianceID != 0 {
+		query = query.Where("compliance_clauses.compliance_register_id = ?", complianceID)
+	}
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
@@ -149,8 +157,10 @@ func (repo *ComplianceRequirementRepository) GetAll(params *complianceDTOs.Compl
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
 			(compliance_clauses.clause_no LIKE ? OR
-			compliance_clauses.title LIKE ? OR
-			compliance_requirements.title LIKE ? OR
+			compliance_clauses.title_en LIKE ? OR
+			compliance_clauses.title_ar LIKE ? OR
+			compliance_requirements.title_en LIKE ? OR
+			compliance_requirements.title_ar LIKE ? OR
 			compliance_requirement_categories.title_en LIKE ? OR
 			compliance_requirement_categories.title_ar LIKE ? OR
 			severity_levels.title_en LIKE ? OR
@@ -171,28 +181,33 @@ func (repo *ComplianceRequirementRepository) GetAll(params *complianceDTOs.Compl
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword,
+			keyword)
 	}
 
-	// Sort by the specified column and order
 	if params.SortBy == "" {
-		params.SortBy = "title" // Default sort by title if no sortBy is specified
+		params.SortBy = "compliance_clauses.clause_no"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
+		params.Sort = "asc"
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
 
-	// Execute the query
-	err := query.Offset(offset).Limit(params.PageSize).Find(&complianceRequirements).Error
+	err := query.Find(&complianceRequirements).Error
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
 
 	response := &complianceDTOs.ComplianceRequirementListResponseDTO{
 		Items: complianceRequirements,
@@ -214,7 +229,8 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 		Select(`
 			compliance_clauses.id AS clause_id,
 			compliance_clauses.clause_no AS compliance_clause_no,
-			compliance_clauses.title AS compliance_clause_title,
+			compliance_clauses.title_en AS compliance_clause_title_en,
+			compliance_clauses.title_ar AS compliance_clause_title_ar,
 			compliance_requirements.*,
 			CONVERT(VARCHAR, compliance_requirements.deadline, 23) AS deadline,
 			compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
@@ -342,9 +358,10 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 
 		if _, ok := clauseRequirements[complianceReq.ClauseID]; !ok {
 			clauseRequirements[complianceReq.ClauseID] = &complianceDTOs.ComplianceRequirementByComplianceIDListDTO{
-				ClauseID:    complianceReq.ClauseID,
-				ClauseNo:    complianceReq.ComplianceClauseNo,
-				ClauseTitle: complianceReq.ComplianceClauseTitle,
+				ClauseID:      complianceReq.ClauseID,
+				ClauseNo:      complianceReq.ComplianceClauseNo,
+				ClauseTitleEn: complianceReq.ComplianceClauseTitleEn,
+				ClauseTitleAr: complianceReq.ComplianceClauseTitleAr,
 			}
 		}
 
@@ -417,6 +434,8 @@ func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("Documents").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("RequiredDocumentTitles").
+		Preload("RequiredDocumentTitles.RequiredDocumentTitle").
 		First(&complianceRequirement, id)
 
 	if result.Error != nil {
@@ -485,7 +504,7 @@ func (repo *ComplianceRequirementRepository) GetOrCreateComplianceClause(complia
 	}
 	var existingClause models.ComplianceClause
 
-	err := db.Where("clause_no = ? AND title = ? AND compliance_register_id = ?", complianceClause.ClauseNo, complianceClause.Title, complianceClause.ComplianceRegisterID).First(&existingClause).Error
+	err := db.Where("clause_no = ? AND title = ? AND compliance_register_id = ?", complianceClause.ClauseNo, complianceClause.TitleEn, complianceClause.ComplianceRegisterID).First(&existingClause).Error
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -667,4 +686,28 @@ func (repo *ComplianceRequirementRepository) CalculateAverageScore(complianceReg
 	roundedScore := math.Round(averageScore*100) / 100
 
 	return roundedScore, nil
+}
+
+func (repo *ComplianceRequirementRepository) CreateComplianceRequirmentRequiredDocumentTitles(requiredDocumentTitle []*models.ComplianceRequirementRequiredDocumentTitle, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&requiredDocumentTitle).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceRequirementRepository) DeleteComplianceRequirmentRequiredDocumentTitles(requiredDocumentTitleIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", requiredDocumentTitleIds).Delete(&models.ComplianceRequirementRequiredDocumentTitle{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

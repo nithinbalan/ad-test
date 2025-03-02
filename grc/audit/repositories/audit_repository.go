@@ -24,7 +24,7 @@ type AuditRepositoryInterface interface {
 	CreateAuditChecklists(auditChecklists []*models.AuditChecklist, tx ...utility.DatabaseTransaction) error
 
 	GetAllAuditableItems(auditID uint, params *auditDTOs.AuditAuditableItemListQueryParamsDTO) (*auditDTOs.AuditAuditableItemListResponseDTO, error)
-	GetAuditByAuditPlanID(auditPlanID uint) (*models.Audit, error) 
+	GetAuditByAuditPlanID(auditPlanID uint) (*models.Audit, error)
 }
 
 type AuditRepository struct {
@@ -119,6 +119,9 @@ func (repo *AuditRepository) GetAll(params *auditDTOs.AuditListQueryParamsDTO) (
 	if params.EndDate != "" {
 		query = query.Where("audits.end_date <= ?", params.EndDate)
 	}
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("audits.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
@@ -129,7 +132,7 @@ func (repo *AuditRepository) GetAll(params *auditDTOs.AuditListQueryParamsDTO) (
 		case "completed":
 			query = query.Where("audit_statuses.type = ?", "completed")
 		case "in_review":
-			query = query.Where("audit_statuses.type = ?", " in-review")
+			query = query.Where("audit_statuses.type = ?", "in-review")
 		case "in_progress":
 			query = query.Where("audit_statuses.type = ?", "in-progress")
 		}
@@ -165,26 +168,22 @@ func (repo *AuditRepository) GetAll(params *auditDTOs.AuditListQueryParamsDTO) (
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
-	// Sort by the specified column and order
-	if params.SortBy == "" {
-		params.SortBy = "audits.start_date" // Default sort by start_date if no sortBy is specified
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
-	}
-
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
 
-	// Execute the query
-	err := query.Offset(offset).Limit(params.PageSize).Find(&audits).Error
+	err := query.Find(&audits).Error
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
 	response := &auditDTOs.AuditListResponseDTO{
 		Items: audits,
 		Pagination: commonDTOs.PaginationInfoDTO{
@@ -353,7 +352,8 @@ func (repo *AuditRepository) GetAllAuditableItems(auditID uint, params *auditDTO
 			documents.title_en AS document_title_en,
 			documents.title_ar AS document_title_ar,
 			incident_register.title AS incident_register_title,
-			compliance_requirements.title AS compliance_requirement_title,
+			compliance_requirements.title_en AS compliance_requirement_title_en,
+			compliance_requirements.title_ar AS compliance_requirement_title_ar,
 			organization_units.id AS responsible_unit_id,
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,

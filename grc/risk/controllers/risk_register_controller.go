@@ -48,9 +48,12 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 		"responsible_user_ids",
 		"risk_status_ids",
 		"review_frequency_ids",
+		"inherent_risk_rating_ids",
+		"residual_risk_rating_ids",
 		"current_likelihood_ids",
 		"current_impact_ids",
 		"current_risk_rating_ids",
+		"risk_response_strategy_ids",
 	}
 
 	validSortFields := map[string]string{
@@ -89,10 +92,24 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
-	reportedAtFrom := c.Query("reported_at")
-	reportedAtTo := c.Query("reported_at")
+	reportedAtFrom := c.Query("reported_at_from")
+	reportedAtTo := c.Query("reported_at_to")
 	nextReviewDateFrom := c.Query("next_review_date_from")
 	nextReviewDateTo := c.Query("next_review_date_to")
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	// Retrieve RiskAppetiteToleranceLevelID from query
+	riskAppetiteToleranceLevelIDStr := c.Query("risk_appetite_tolerance_level_id")
+	var riskAppetiteToleranceLevelID uint
+	if riskAppetiteToleranceLevelIDStr != "" {
+		parsedID, err := strconv.ParseUint(riskAppetiteToleranceLevelIDStr, 10, 32)
+		if err != nil {
+			utility.SendInternalErrResp(rrc.db, c, "Invalid RiskAppetiteToleranceLevelID parameter")
+			return
+		}
+		riskAppetiteToleranceLevelID = uint(parsedID) // Explicit casting from uint64 to uint
+	}
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -123,21 +140,25 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 	}
 
 	queryParams := riskDTOs.RiskRegisterListQueryParamsDTO{
-		Sort:               sort,
-		SortBy:             dbField,
-		Keyword:            keyword,
-		Status:             status,
-		Page:               page,
-		PageSize:           pageSize,
-		Value:              value,
-		Filters:            filters,
-		QuickFilter:        quickFilter,
-		ReportedAtFrom:     reportedAtFrom,
-		ReportedAtTo:       reportedAtTo,
-		NextReviewDateFrom: nextReviewDateFrom,
-		NextReviewDateTo:   nextReviewDateTo,
-		Export:             export,
+		Sort:                         sort,
+		SortBy:                       dbField,
+		Keyword:                      keyword,
+		Status:                       status,
+		Page:                         page,
+		PageSize:                     pageSize,
+		Value:                        value,
+		Filters:                      filters,
+		QuickFilter:                  quickFilter,
+		ReportedAtFrom:               reportedAtFrom,
+		ReportedAtTo:                 reportedAtTo,
+		NextReviewDateFrom:           nextReviewDateFrom,
+		NextReviewDateTo:             nextReviewDateTo,
+		Export:                       export,
+		DateFrom:                     dateFrom,
+		DateTo:                       dateTo,
+		RiskAppetiteToleranceLevelID: riskAppetiteToleranceLevelID,
 	}
+
 	risks, err := rrc.service.GetAll(&queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(rrc.db, c, err.Error())

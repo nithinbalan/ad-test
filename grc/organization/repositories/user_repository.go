@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	userDTOs "jethur/grc/organization/dtos"
@@ -13,6 +14,7 @@ import (
 type UserRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error)
+	GetAllUsers(primaryOrgUnitField string) ([]*userDTOs.UserPrimaryDetailsDTO, error)
 	GetByID(id uint) (*models.User, error)
 	GetFullDetailsByID(id uint) (*models.User, error)
 	GetByEmail(email string) (*models.User, error)
@@ -47,6 +49,7 @@ type UserRepositoryInterface interface {
 
 	GetPermissionsForModule(roleID, moduleID uint) (map[string]bool, error)
 	GetUserRoles(userID uint) ([]models.UserRole, error)
+	GetActiveUserCount() (int64, error)
 }
 
 type UserRepository struct {
@@ -97,8 +100,7 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 		Joins("LEFT JOIN organization_units org5 ON org5.id = users.organization_unit_5_id").
 		Joins("LEFT JOIN designations ON designations.id = users.designation_id").
 		Joins("LEFT JOIN user_statuses ON user_statuses.id = users.user_status_id").
-		Joins("LEFT JOIN (SELECT user_roles.user_id, STRING_AGG(roles.title_en, ', ') AS roles_en, STRING_AGG(roles.title_ar, ', ') AS roles_ar FROM user_roles JOIN roles ON roles.id = user_roles.role_id GROUP BY user_roles.user_id) roles_agg ON roles_agg.user_id = users.id").
-		Joins("LEFT JOIN user_roles ON user_roles.user_id = users.id")
+		Joins("LEFT JOIN (SELECT user_roles.user_id, STRING_AGG(roles.title_en, ', ') AS roles_en, STRING_AGG(roles.title_ar, ', ') AS roles_ar FROM user_roles JOIN roles ON roles.id = user_roles.role_id GROUP BY user_roles.user_id) roles_agg ON roles_agg.user_id = users.id")
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -112,7 +114,7 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 	}
 
 	if len(params.RoleIDs) > 0 {
-		query = query.Where("user_roles.role_id IN (?)", params.RoleIDs)
+		query = query.Where("EXISTS (SELECT 1 FROM user_roles WHERE user_roles.user_id = users.id AND user_roles.role_id IN (?))", params.RoleIDs)
 	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -198,6 +200,32 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 	return response, nil
 }
 
+func (repo *UserRepository) GetAllUsers(primaryOrgUnitField string) ([]*userDTOs.UserPrimaryDetailsDTO, error) {
+	var users []*userDTOs.UserPrimaryDetailsDTO
+
+	// Perform the query
+	err := repo.db.
+		Table("users").
+		Select(`
+			users.id,
+			users.first_name_en,
+			users.last_name_en,
+			users.email,
+			designations.title_en AS designation,
+			primary_unit.title_en AS primary_unit,
+			users.mobile_number,
+			users.profile_image_path`).
+		Joins("LEFT JOIN designations ON designations.id = users.designation_id").
+		Joins(fmt.Sprintf("LEFT JOIN organization_units AS primary_unit ON primary_unit.id = users.%s", primaryOrgUnitField)).
+		Where("users.user_status_id = ?", 1).
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
 func (repo *UserRepository) GetByID(id uint) (*models.User, error) {
 	var user *models.User
 
@@ -226,6 +254,7 @@ func (repo *UserRepository) GetFullDetailsByID(id uint) (*models.User, error) {
 		Preload("Designation").
 		Preload("UserRoles").
 		Preload("UserSetting").
+		Preload("UserSetting.Timezone").
 		Preload("UserRoles.Role").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
@@ -739,4 +768,17 @@ func (repo *UserRepository) GetUserRoles(userID uint) ([]models.UserRole, error)
 		return nil, err
 	}
 	return userRoles, nil
+}
+
+func (repo *UserRepository) GetActiveUserCount() (int64, error) {
+	var count int64
+	err := repo.db.Model(&models.User{}).
+		Joins("JOIN user_statuses ON user_statuses.id = users.user_status_id").
+		Where("user_statuses.is_active = ?", true).
+		Count(&count).
+		Error
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }

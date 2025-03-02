@@ -3,6 +3,9 @@ package services
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"time"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	commonDTOs "jethur/grc/common/dtos"
@@ -18,7 +21,6 @@ import (
 	riskDTOs "jethur/grc/risk/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -26,7 +28,7 @@ import (
 type AuditDraftReportServiceInterface interface {
 	GetFullDetailsByID(auditID uint, currentUserID uint, source string, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDraftReportDetailDTO, error)
 	GetByID(id uint) (*models.AuditDraftReport, error)
-	GetByAuditID(auditID uint) (*models.AuditDraftReport, error) //used in auditInsights
+	GetByAuditID(auditID uint) (*models.AuditDraftReport, error) // used in auditInsights
 	Create(auditID uint, currentUserID uint, auditDraftReportFormDTO *auditDTOs.AuditDraftReportFormDTO) (uint, error)
 	Update(auditID uint, id uint, currentUserID uint, auditDraftReportFormDTO *auditDTOs.AuditDraftReportFormDTO) error
 	Submit(auditID uint, id uint, currentUserID uint) error
@@ -52,7 +54,7 @@ func NewAuditDraftReportService(
 	auditDraftReportStatusSvc AuditDraftReportStatusServiceInterface,
 	auditDraftFindingSvc AuditDraftFindingServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
-	notificationSvc           commonServices.NotificationServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) AuditDraftReportServiceInterface {
 	return &AuditDraftReportService{
 		repo:                      repo,
@@ -61,7 +63,7 @@ func NewAuditDraftReportService(
 		auditDraftReportStatusSvc: auditDraftReportStatusSvc,
 		auditDraftFindingSvc:      auditDraftFindingSvc,
 		userSvc:                   userSvc,
-		notificationSvc:                   notificationSvc,
+		notificationSvc:           notificationSvc,
 	}
 }
 
@@ -107,6 +109,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 	var submittedAt *string
 	var auditeeReviewAubmittedByUser *organizationDTOs.UserMinimalDTO
 	var auditeeReviewAubmittedAt *string
+	var completedByUser *organizationDTOs.UserMinimalDTO
+	var completedAt *string
 
 	// Check if SubmittedByUser and SubmittedAt are present before accessing them
 	if auditDraftReport.InternalReviewSubmittedByUser != nil {
@@ -118,7 +122,7 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 		updatedByUser = &updatedByUserDTO
 	}
 	if auditDraftReport.InternalReviewSubmittedAt != nil {
-		formattedSubmittedAt := auditDraftReport.InternalReviewSubmittedAt.Format("2006-01-02")
+		formattedSubmittedAt := auditDraftReport.InternalReviewSubmittedAt.UTC().Format("2006-01-02T15:04:05.000Z")
 		submittedAt = &formattedSubmittedAt
 	}
 	if auditDraftReport.AuditeeReviewSubmittedByUser != nil {
@@ -126,8 +130,16 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 		auditeeReviewAubmittedByUser = &auditeeSubmittedByUserDTO
 	}
 	if auditDraftReport.AuditeeReviewSubmittedAt != nil {
-		auditeeFormattedSubmittedAt := auditDraftReport.AuditeeReviewSubmittedAt.Format("2006-01-02")
+		auditeeFormattedSubmittedAt := auditDraftReport.AuditeeReviewSubmittedAt.UTC().Format("2006-01-02T15:04:05.000Z")
 		auditeeReviewAubmittedAt = &auditeeFormattedSubmittedAt
+	}
+	if auditDraftReport.CompletedByUser != nil {
+		completedByUserDTO := mapUserToUserMinimalDTO(auditDraftReport.CompletedByUser)
+		completedByUser = &completedByUserDTO
+	}
+	if auditDraftReport.CompletedAt != nil {
+		formattedCompletedAt := auditDraftReport.CompletedAt.UTC().Format("2006-01-02T15:04:05.000Z")
+		completedAt = &formattedCompletedAt
 	}
 	// Map the AuditDraftReportStatus
 	auditDraftReportStatusDTO := auditDTOs.AuditDraftReportStatusDTO{
@@ -137,40 +149,54 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 		Type:      auditDraftReport.AuditDraftReportStatus.Type,
 		ColorCode: auditDraftReport.AuditDraftReportStatus.ColorCode,
 	}
-	// Declare variables to hold the counts for resolved/unresolved comments
-	var executiveSummaryResolvedCount, executiveSummaryOpenCount int
-	var conclusionResolvedCount, conclusionOpenCount int
 	// Map to store the count of resolved and unresolved comments by type
 	commentCountByType := make(map[string]map[string]int)
 
+	// Iterate over comments
 	for _, comment := range auditDraftReport.AuditDraftReportComments {
-		// Initialize the inner map for a new type
-		if _, exists := commentCountByType[comment.Type]; !exists {
-			commentCountByType[comment.Type] = map[string]int{
+		// Normalize the comment type
+		commentType := strings.TrimSpace(strings.ToLower(comment.Type))
+
+		// Initialize the inner map if not exists
+		if _, exists := commentCountByType[commentType]; !exists {
+			commentCountByType[commentType] = map[string]int{
 				"resolved":   0,
 				"unresolved": 0,
 			}
 		}
 
-		// Increment the count based on whether the comment is resolved or not
+		// Increment the count based on resolution status
 		if comment.IsResolved {
-			commentCountByType[comment.Type]["resolved"]++
+			commentCountByType[commentType]["resolved"]++
 		} else {
-			commentCountByType[comment.Type]["unresolved"]++
+			commentCountByType[commentType]["unresolved"]++
 		}
 	}
 
-	// Assigning the counts for "executive-summary"
+	// Assign counts for "executive-summary"
+	executiveSummaryResolvedCount := 0
+	executiveSummaryOpenCount := 0
 	if count, exists := commentCountByType["executive-summary"]; exists {
 		executiveSummaryResolvedCount = count["resolved"]
 		executiveSummaryOpenCount = count["unresolved"]
 	}
 
-	// Assigning the counts for "conclusion"
+	// Assign counts for "conclusion"
+	conclusionResolvedCount := 0
+	conclusionOpenCount := 0
 	if count, exists := commentCountByType["conclusion"]; exists {
 		conclusionResolvedCount = count["resolved"]
 		conclusionOpenCount = count["unresolved"]
 	}
+
+	// Assign counts for "finding"
+	findingResolvedCount := 0
+	findingOpenCount := 0
+	if count, exists := commentCountByType["finding"]; exists {
+		findingResolvedCount = count["resolved"]
+		findingOpenCount = count["unresolved"]
+	}
+
 	// Map the data to the DTO
 	auditReportDTO := &auditDTOs.AuditDraftReportDetailDTO{
 		ID:                            auditDraftReport.ID,
@@ -179,11 +205,13 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 		ReferenceNumber:               auditDraftReport.Audit.AuditPlan.ReferenceNumber,
 		ReportDateString:              auditDraftReport.ReportDate.Format("2006-01-02"),
 		PreparedBy:                    mapUserToUserMinimalDTO(auditDraftReport.Audit.CreatedByUser),
-		PreparedAt:                    auditDraftReport.CreatedAt.Format("2006-01-02"),
+		PreparedAt:                    auditDraftReport.CreatedAt.UTC().Format("2006-01-02T15:04:05.000Z"),
 		InternalReviewSubmittedByUser: submittedByUser,
 		InternalReviewSubmittedAt:     submittedAt,
 		AuditeeReviewSubmittedByUser:  auditeeReviewAubmittedByUser,
 		AuditeeReviewSubmittedAt:      auditeeReviewAubmittedAt,
+		CompletedByUser:               completedByUser,
+		CompletedAt:                   completedAt,
 		ExecutiveSummary:              *auditDraftReport.ExecutiveSummary,
 		TeamLead:                      mapUserToUserMinimalDTO(auditDraftReport.Audit.AuditPlan.TeamLead),
 		Conclusion:                    *auditDraftReport.Conclusion,
@@ -197,6 +225,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 		ExecutiveSummaryOpenCount:     executiveSummaryOpenCount,
 		ConclusionResolvedCount:       conclusionResolvedCount,
 		ConclusionOpenCount:           conclusionOpenCount,
+		FindingResolvedCount:          findingResolvedCount,
+		FindingOpenCount:              findingOpenCount,
 	}
 
 	// Map auditors
@@ -225,6 +255,35 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 			return nil, err
 		}
 		for _, finding := range auditDraftReport.Audit.AuditDraftFindings {
+			commentCountByType := make(map[string]map[string]int)
+
+			// Iterate over comments
+			for _, comment := range finding.AuditDraftReportCommentsByFindings {
+				// Normalize the comment type
+				commentType := strings.TrimSpace(strings.ToLower("finding"))
+
+				// Initialize the inner map if not exists
+				if _, exists := commentCountByType[commentType]; !exists {
+					commentCountByType[commentType] = map[string]int{
+						"resolved":   0,
+						"unresolved": 0,
+					}
+				}
+
+				// Increment the count based on resolution status
+				if comment.IsResolved {
+					commentCountByType[commentType]["resolved"]++
+				} else {
+					commentCountByType[commentType]["unresolved"]++
+				}
+			}
+			// Assign counts for "finding"
+			draftFindingResolvedCount := 0
+			draftFindingOpenCount := 0
+			if count, exists := commentCountByType["finding"]; exists {
+				draftFindingResolvedCount = count["resolved"]
+				draftFindingOpenCount = count["unresolved"]
+			}
 			if finding.AuditableItem != nil && finding.AuditableItem.ResponsibleUnit != nil && finding.AuditableItem.ResponsibleUnit.ID == orgUnitID {
 				var acceptedByUser *organizationDTOs.UserMinimalDTO = nil
 				var challengedByUser *organizationDTOs.UserMinimalDTO = nil
@@ -255,6 +314,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 					AcceptedAt:                     finding.AcceptedAt,
 					ChallengedByUser:               challengedByUser,
 					ChallengedAt:                   finding.ChallengedAt,
+					FindingResolvedCount:           draftFindingResolvedCount,
+					FindingOpenCount:               draftFindingOpenCount,
 				}
 				if finding.AuditDraftFindingStatus != nil {
 					// Map AuditDraftFindingStatus to DTO
@@ -303,7 +364,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 				}
 				if finding.AuditableItem.ComplianceRequirement != nil {
 					findingDTO.AuditableItem.ComplianceRequirement = &complianceDTOs.ComplianceRequirementDetailDTO{
-						Title: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.Title),
+						TitleEn: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.TitleEn),
+						TitleAr: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.TitleAr),
 					}
 				}
 				if finding.AuditableItem.IncidentRegister != nil {
@@ -408,6 +470,35 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 				challengedByUserDTO := mapUserToUserMinimalDTO(finding.ChallengedByUser)
 				challengedByUser = &challengedByUserDTO
 			}
+			commentCountByType := make(map[string]map[string]int)
+
+			// Iterate over comments
+			for _, comment := range finding.AuditDraftReportCommentsByFindings {
+				// Normalize the comment type
+				commentType := strings.TrimSpace(strings.ToLower("finding"))
+
+				// Initialize the inner map if not exists
+				if _, exists := commentCountByType[commentType]; !exists {
+					commentCountByType[commentType] = map[string]int{
+						"resolved":   0,
+						"unresolved": 0,
+					}
+				}
+
+				// Increment the count based on resolution status
+				if comment.IsResolved {
+					commentCountByType[commentType]["resolved"]++
+				} else {
+					commentCountByType[commentType]["unresolved"]++
+				}
+			}
+			// Assign counts for "finding"
+			draftFindingResolvedCount := 0
+			draftFindingOpenCount := 0
+			if count, exists := commentCountByType["finding"]; exists {
+				draftFindingResolvedCount = count["resolved"]
+				draftFindingOpenCount = count["unresolved"]
+			}
 			findingDTO := auditDTOs.AuditDraftFindingReportDetailDTO{
 				ID:                             finding.ID,
 				Title:                          finding.Title,
@@ -427,6 +518,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 				AcceptedAt:                     finding.AcceptedAt,
 				ChallengedByUser:               challengedByUser,
 				ChallengedAt:                   finding.ChallengedAt,
+				FindingResolvedCount:           draftFindingResolvedCount,
+				FindingOpenCount:               draftFindingOpenCount,
 			}
 			if finding.AuditDraftFindingStatus != nil {
 				// Map AuditDraftFindingStatus to DTO
@@ -476,7 +569,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, currentUse
 				}
 				if finding.AuditableItem.ComplianceRequirement != nil {
 					findingDTO.AuditableItem.ComplianceRequirement = &complianceDTOs.ComplianceRequirementDetailDTO{
-						Title: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.Title),
+						TitleEn: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.TitleEn),
+						TitleAr: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.TitleAr),
 					}
 				}
 				if finding.AuditableItem.IncidentRegister != nil {
@@ -607,15 +701,19 @@ func (adrs *AuditDraftReportService) Create(auditID uint, currentUserID uint, au
 	tx.Commit()
 
 	go func() {
-		err := adrs.activityLogSvc.LogActivity(
+		existingAuditDraftReport, err := adrs.repo.GetFullDetailsByID(auditID)
+		if err != nil {
+			return
+		}
+
+		err = adrs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditDraftReport{}.TableName(),
 			id,
-			auditDraftReportFormDTO,
+			existingAuditDraftReport,
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -637,6 +735,12 @@ func (adrs *AuditDraftReportService) Update(auditID uint, id uint, currentUserID
 	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
 		return err
 	}
+	oldAuditDraftReport, err := adrs.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	existingAuditDraftReport, err := adrs.repo.GetByID(id)
 	if err != nil {
 		tx.Rollback()
@@ -656,25 +760,48 @@ func (adrs *AuditDraftReportService) Update(auditID uint, id uint, currentUserID
 	tx.Commit()
 
 	go func() {
-		err := adrs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.AuditDraftReport{}.TableName(),
-			id,
-			auditDraftReportFormDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingAuditDraftReport, err := adrs.repo.GetByID(id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.AuditDraftReport{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		// log changes
+		oldData := map[string]interface{}{
+			"executive_summary": oldAuditDraftReport.ExecutiveSummary,
+			"conclusion":        oldAuditDraftReport.Conclusion,
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		newData := map[string]interface{}{
+			"executive_summary": existingAuditDraftReport.ExecutiveSummary,
+			"conclusion":        existingAuditDraftReport.Conclusion,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := adrs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditDraftReport{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditDraftReport{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -683,6 +810,9 @@ func (adrs *AuditDraftReportService) Update(auditID uint, id uint, currentUserID
 
 func (adrs *AuditDraftReportService) Delete(auditID uint, currentUserID uint) error {
 	tx := adrs.repo.BeginTransaction()
+
+	var deletedAuditDraftReport []map[string]interface{}
+
 	auditDraftReport, err := adrs.repo.GetFullDetailsByID(auditID, tx)
 	if err != nil {
 		tx.Rollback()
@@ -693,6 +823,13 @@ func (adrs *AuditDraftReportService) Delete(auditID uint, currentUserID uint) er
 		tx.Rollback()
 		return err
 	}
+
+	deletedAuditDraftReport = append(deletedAuditDraftReport, map[string]interface{}{
+		"id":         auditDraftReport.ID,
+		"audit_plan": auditDraftReport.Audit.AuditPlan.Title,
+		"audit_id":   auditDraftReport.AuditID,
+	})
+
 	tx.Commit()
 
 	go func() {
@@ -700,11 +837,10 @@ func (adrs *AuditDraftReportService) Delete(auditID uint, currentUserID uint) er
 			models.DeleteAction,
 			models.AuditDraftReport{}.TableName(),
 			auditDraftReport.ID,
-			nil,
+			deletedAuditDraftReport,
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.DeleteAction,
@@ -722,13 +858,11 @@ func (adrs *AuditDraftReportService) Delete(auditID uint, currentUserID uint) er
 }
 
 func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID uint) error {
-	tx := adrs.repo.BeginTransaction()
 	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
 		return err
 	}
 	existingAuditDraftReport, err := adrs.repo.GetByID(id)
 	if err != nil {
-		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
 	}
 
@@ -737,7 +871,6 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 		return err
 	}
 	if existingAuditDraftReport.AuditDraftReportStatusID != auditDraftReportStatusApproved.ID {
-		tx.Rollback()
 		return utility.NewForbiddenError("The audit draft report has not been approved.")
 	}
 
@@ -752,13 +885,14 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 	existingAuditDraftReport.UpdatedBYID = &currentUserID
 	existingAuditDraftReport.UpdatedAt = &now
 
+	// tx begin
+	tx := adrs.repo.BeginTransaction()
+
 	err = adrs.repo.Update(existingAuditDraftReport, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-
-	//todo - notification to auditable item responsible user where findings captured.
 
 	tx.Commit()
 
@@ -766,7 +900,7 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
 		entity := "audit-draft-report"
 		action := "review-user-assign"
-		
+
 		existingAuditDraftReportFullDetails, err := adrs.repo.GetByAuditID(auditID)
 		if err != nil {
 			utility.LogError("Failed to fetch review user", map[string]interface{}{
@@ -774,9 +908,9 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 			})
 			return
 		}
-		if existingAuditDraftReportFullDetails.Audit.AuditPlan.AuditableItems != nil{
+		if existingAuditDraftReportFullDetails.Audit.AuditPlan.AuditableItems != nil {
 			for _, item := range existingAuditDraftReportFullDetails.Audit.AuditPlan.AuditableItems {
-				if item.AuditableItem.ResponsibleUser == nil{
+				if item.AuditableItem.ResponsibleUser == nil {
 					utility.LogError("Failed to fetch assigning user", map[string]interface{}{
 						"error": err.Error(),
 					})
@@ -784,20 +918,20 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 				}
 				responsibleUser := item.AuditableItem.ResponsibleUser
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               responsibleUser.ID,
-					ModuleIdentifier:     "audit",
+					UserIDs:              []uint{responsibleUser.ID},
+					ModuleIdentifier:     "audit_insight_draft_reports",
 					NotificationType:     string(commonDTOs.ReviewType),
 					HeadingEn:            "Audit Draft Report Department Review",
 					HeadingAr:            "مراجعة قسم تقرير مسودة التدقيق",
-					TitleEn:              existingAuditDraftReport.Audit.AuditPlan.Title,
-					TitleAr:              existingAuditDraftReport.Audit.AuditPlan.Title,
+					TitleEn:              existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
+					TitleAr:              existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
 					Entity:               &entity,
 					Action:               &action,
 					URLParam:             urlParam,
 					IsSystemNotification: false,
 					CreatedByID:          &currentUserID,
 				}
-	
+
 				assignedBy, err := adrs.userSvc.GetByID(currentUserID)
 				if err != nil {
 					utility.LogError("Failed to fetch assigning user", map[string]interface{}{
@@ -805,30 +939,30 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 					})
 					return
 				}
-	
+
 				emailTo := []string{responsibleUser.Email}
-				subject := fmt.Sprintf("Audit Draft Report /%s: Department Review Assigned", existingAuditDraftReport.Audit.AuditPlan.Title)
+				subject := fmt.Sprintf("Audit Draft Report /%s: Department Review Assigned", existingAuditDraftReportFullDetails.Audit.AuditPlan.Title)
 				appURL := utility.GetAppURL()
 				emailData := map[string]interface{}{
 					"FirstNameEn":           responsibleUser.FirstNameEn,
 					"LastNameEn":            responsibleUser.LastNameEn,
-					"AuditTitle":            existingAuditDraftReport.Audit.AuditPlan.Title,
-					"Reference Number":      existingAuditDraftReport.Audit.AuditPlan.ReferenceNumber,
+					"AuditTitle":            existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
+					"ReferenceNumber":       existingAuditDraftReportFullDetails.Audit.AuditPlan.ReferenceNumber,
 					"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 					"AssignedByLastNameEn":  assignedBy.LastNameEn,
 					"AssignedOn":            time.Now().Format("2006-01-02"),
 					"RedirectURL":           fmt.Sprintf("%s/audit-insight/draft-report/%d/details", appURL, id),
 				}
-	
+
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 					EmailTo:              emailTo,
 					Subject:              subject,
 					TemplateRelativePath: "audit/templates/email/audit_draft_report_department_review_user_mail.html",
 					EmailData:            emailData,
 				}
-	
+
 				// Send Notification and Email
-				err = adrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
+				err = adrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit_insight_draft_reports")
 				if err != nil {
 					utility.LogError("Failed to send notifications", map[string]interface{}{
 						"error": err.Error(),
@@ -836,7 +970,7 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 				}
 			}
 		}
-		
+
 		err = adrs.activityLogSvc.LogActivity(
 			models.UpdateAction,
 			models.AuditDraftReport{}.TableName(),
@@ -845,7 +979,6 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
@@ -870,15 +1003,20 @@ func (adrs *AuditDraftReportService) StatusUpdate(id uint, currentUserID uint, a
 	}
 
 	now := time.Now()
+	auditDraftReportStatus, err := adrs.auditDraftReportStatusSvc.GetByType("in-review")
+	if err != nil {
+		return err
+	}
+	if auditDraftReportStatus.ID == auditDraftReportStatusID {
+		existingAuditDraftReport.InternalReviewSubmittedAt = &now
+		existingAuditDraftReport.InternalReviewSubmittedBYID = &currentUserID
+	}
 
-	existingAuditDraftReport.InternalReviewSubmittedAt = &now
 	existingAuditDraftReport.AuditDraftReportStatusID = auditDraftReportStatusID
-	existingAuditDraftReport.InternalReviewSubmittedBYID = &currentUserID
 	existingAuditDraftReport.NextReviewLevel = nextReviewLevel
 	existingAuditDraftReport.UpdatedBYID = &currentUserID
 
 	err = adrs.repo.Update(existingAuditDraftReport, tx)
-
 	if err != nil {
 		return err
 	}
@@ -925,15 +1063,14 @@ func safeStringPointer(s *string) string {
 }
 
 func (adrs *AuditDraftReportService) Complete(auditID uint, id uint, currentUserID uint) error {
-	tx := adrs.repo.BeginTransaction()
 	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
 		return err
 	}
 	existingAuditDraftReport, err := adrs.repo.GetByID(id)
 	if err != nil {
-		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
 	}
+	tx := adrs.repo.BeginTransaction()
 
 	auditDraftReportStatus, err := adrs.auditDraftReportStatusSvc.GetByType("in-department-review")
 	if err != nil {
@@ -944,8 +1081,9 @@ func (adrs *AuditDraftReportService) Complete(auditID uint, id uint, currentUser
 		tx.Rollback()
 		return utility.NewForbiddenError("The audit draft report has not been in department review.")
 	}
-	auditDraftFindings, err := adrs.auditDraftFindingSvc.GetAllFindingsByAuditID(existingAuditDraftReport.AuditID)
+	auditDraftFindings, err := adrs.auditDraftFindingSvc.GetAllFindingsByAuditID(existingAuditDraftReport.AuditID, tx)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	// Check if all findings are finalized
@@ -962,8 +1100,8 @@ func (adrs *AuditDraftReportService) Complete(auditID uint, id uint, currentUser
 	}
 	now := time.Now()
 	existingAuditDraftReport.AuditDraftReportStatusID = auditDraftReportStatusCompleted.ID
-	existingAuditDraftReport.UpdatedBYID = &currentUserID
-	existingAuditDraftReport.UpdatedAt = &now
+	existingAuditDraftReport.CompletedBYID = &currentUserID
+	existingAuditDraftReport.CompletedAt = &now
 
 	err = adrs.repo.Update(existingAuditDraftReport, tx)
 	if err != nil {
@@ -971,7 +1109,7 @@ func (adrs *AuditDraftReportService) Complete(auditID uint, id uint, currentUser
 		return err
 	}
 
-	//todo - notification to auditable item responsible user where findings captured.
+	// todo - notification to auditable item responsible user where findings captured.
 
 	tx.Commit()
 
@@ -984,7 +1122,6 @@ func (adrs *AuditDraftReportService) Complete(auditID uint, id uint, currentUser
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,

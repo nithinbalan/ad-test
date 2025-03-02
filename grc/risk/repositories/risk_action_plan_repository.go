@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
@@ -105,27 +106,60 @@ func (repo *RiskActionPlanRepository) GetAll(riskID uint, params *riskDTOs.RiskA
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			query = query.Where(fmt.Sprintf("risk_action_plans.%s IN (?)", columnName), values)
 		}
 	}
 
-	// Apply target_date filters
 	if params.TargetDateFrom != "" {
-		query = query.Where("target_date >= ?", params.TargetDateFrom)
+		query = query.Where("risk_action_plans.target_date >= ?", params.TargetDateFrom)
 	}
 	if params.TargetDateTo != "" {
-		query = query.Where("target_date <= ?", params.TargetDateTo)
+		query = query.Where("risk_action_plans.target_date <= ?", params.TargetDateTo)
 	}
 
-	// Apply quick filters
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
 	for _, filter := range params.QuickFilter {
 		switch filter {
+		case "critical":
+			var highestRating string
+			err := repo.db.Table("risk_matrix_risk_ratings").
+				Select("type").
+				Where("status = ?", "active").
+				Order("CASE type WHEN 'very_high' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 WHEN 'very_low' THEN 5 END").
+				Limit(1).Pluck("type", &highestRating).Error
+			if err != nil || highestRating == "" {
+				return nil, fmt.Errorf("failed to fetch highest risk rating: %v", err)
+			}
+
+			query = query.Joins(`
+				JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id
+			`).Where("risk_matrix_risk_ratings.type = ?", highestRating)
+
 		case "overdue":
-			query = query.Where("target_date < ?", time.Now())
-		case "completed":
-			query = query.Where("action_plan_statuses.type = ?", "completed")
-		case "in_progress":
-			query = query.Where("action_plan_statuses.type = ?", "in_progress")
+			query = query.Where("risk_action_plans.target_date < ?", time.Now())
+		case "pending":
+			query = query.Where("action_plan_statuses.type IN (?)", []string{"in_progress", "new"})
+		case "upcoming_deadlines":
+			query = query.Where("risk_action_plans.target_date BETWEEN ? AND ?", time.Now(), time.Now().AddDate(0, 0, 7))
+		case "closed":
+			query = query.Where("action_plan_statuses.type = ?", "close")
+		case "strategic_mitigations":
+			query = query.Joins(`
+				LEFT JOIN (
+					SELECT DISTINCT risk_action_plans.id AS action_plan_id
+					FROM risk_action_plans
+					JOIN risk_register ON risk_register.id = risk_action_plans.risk_register_id
+					JOIN risk_strategic_objectives ON risk_strategic_objectives.risk_register_id = risk_register.id
+				) AS strategic_action_plans ON strategic_action_plans.action_plan_id = risk_action_plans.id
+			`).Where("strategic_action_plans.action_plan_id IS NOT NULL")
+
+		case "financial_impact":
+			query = query.Joins(`
+				JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
+			`).Where("risk_categories.title_en = ?", "Financial Risk")
 		}
 	}
 

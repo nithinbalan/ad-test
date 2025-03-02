@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"database/sql"
+	"fmt"
 	kpiDTOs "jethur/grc/kpi/dtos"
 	"jethur/grc/models"
 	"math"
@@ -131,10 +132,22 @@ func (repo *GRCDashboardRepository) GetGRCRiskSummary(params *kpiDTOs.GRCDashboa
 		summary.RiskClosureRate = math.Round(float64(closedRisks) / float64(totalRisks) * 100)
 	}
 
+	// Determine the highest available risk rating dynamically
+	var highestRating string
+	err = repo.db.Table("risk_matrix_risk_ratings").
+		Select("type").
+		Where("status = ?", "active").
+		Order("CASE type WHEN 'very_high' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 WHEN 'very_low' THEN 5 END").
+		Limit(1).
+		Pluck("type", &highestRating).Error
+	if err != nil || highestRating == "" {
+		return nil, fmt.Errorf("failed to fetch highest risk rating: %v", err)
+	}
+
 	highRiskQuery := repo.db.Model(&models.RiskRegister{}).
 		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id").
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
-		Where("risk_matrix_risk_ratings.type = ?", "very_high").
+		Where("risk_matrix_risk_ratings.type = ?", highestRating).
 		Where("risk_statuses.type = ?", "open")
 	if params.DateFrom != "" && params.DateTo != "" {
 		highRiskQuery = highRiskQuery.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")

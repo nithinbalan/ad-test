@@ -74,6 +74,8 @@ type IncidentActionPlanListQueryParamsDTO struct {
 	TargetDateFrom string
 	TargetDateTo   string
 	Export         bool
+	DateFrom       string
+	DateTo         string
 }
 
 type IncidentActionPlanListResponseDTO struct {
@@ -90,7 +92,7 @@ type IncidentActionPlanFormDTO struct {
 	Percentage         *uint   `json:"percentage" binding:"omitempty"`
 	Comments           *string `json:"comments" binding:"omitempty"`
 	ReviewUserID       *uint   `json:"review_user_id"`
-	ActionPlanStatusID uint    `json:"action_plan_status_id" binding:"required"`
+	ActionPlanStatusID uint    `json:"action_plan_status_id"`
 }
 
 type IncidentActionPlanParsedDates struct {

@@ -94,7 +94,7 @@ func (acs *AuditCategoryService) Update(id uint, currentUserID uint, updatedCate
 		return nil, err
 	}
 
-	fieldsToCompare := []string{"TitleEn", "TitleAr","DescriptionEn","DescriptionAr", "Status"}
+	fieldsToCompare := []string{"TitleEn", "TitleAr", "DescriptionEn", "DescriptionAr", "Status"}
 	changes, err := utility.CompareFields(existingCategory, updatedCategory, fieldsToCompare)
 
 	if err != nil {
@@ -126,9 +126,10 @@ func (acs *AuditCategoryService) Update(id uint, currentUserID uint, updatedCate
 func (acs *AuditCategoryService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedAuditCategory []map[string]interface{}
 	for _, id := range ids {
 
-		_, err := acs.repo.GetByID(id)
+		auditCategory, err := acs.repo.GetByID(id)
 
 		if err != nil {
 			fmt.Print(err)
@@ -141,6 +142,12 @@ func (acs *AuditCategoryService) Delete(ids []uint, currentUserID uint) ([]uint,
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedAuditCategory = append(deletedAuditCategory, map[string]interface{}{
+			"id":       id,
+			"title_en": auditCategory.TitleEn,
+			"title_ar": auditCategory.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -150,7 +157,7 @@ func (acs *AuditCategoryService) Delete(ids []uint, currentUserID uint) ([]uint,
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.AuditCategory{}.TableName(),
 				successfulIds,
-				nil,
+				deletedAuditCategory,
 				currentUserID,
 				nil,
 			)

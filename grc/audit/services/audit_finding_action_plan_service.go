@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	auditFindingDTOs "jethur/grc/audit/dtos"
@@ -27,10 +28,11 @@ type AuditFindingActionPlanServiceInterface interface {
 	GetFullDetailsByID(findingID uint, id uint) (*auditFindingDTOs.AuditFindingActionPlanDetailDTO, error)
 	Create(findingID uint, currentUserID uint, AuditFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) (uint, error)
 	Update(findingID uint, id uint, currentUserID uint, auditFinding *auditFindingDTOs.AuditFindingActionPlanFormDTO) error
-	Delete(findingID uint, ids []uint, currentUserID uint) ([]uint, error)
+	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(findingID uint, id uint, currentUserID uint, auditFindingActionPlanStatusUpdateFormDTO *auditFindingDTOs.AuditFindingActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
 
 	GetAuditFindingActionPlanCountByStatus(findingId uint) ([]auditFindingDTOs.AuditFindingActionPlanStatusCountResponseDTO, error)
+	ExportAuditFindingActionPlans(data []*auditFindingDTOs.AuditFindingActionPlanListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -44,6 +46,7 @@ type AuditFindingActionPlanService struct {
 	taskSvc             taskServices.TaskServiceInterface
 	userSvc             organizationServices.UserServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
+	userSettingSvc      organizationServices.UserSettingServiceInterface
 }
 
 func NewAuditFindingActionPlanService(
@@ -56,6 +59,7 @@ func NewAuditFindingActionPlanService(
 	taskSvc taskServices.TaskServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) AuditFindingActionPlanServiceInterface {
 	return &AuditFindingActionPlanService{
 		repo:                repo,
@@ -67,6 +71,7 @@ func NewAuditFindingActionPlanService(
 		taskSvc:             taskSvc,
 		userSvc:             userSvc,
 		notificationSvc:     notificationSvc,
+		userSettingSvc:      userSettingSvc,
 	}
 }
 
@@ -80,7 +85,6 @@ func (afaps AuditFindingActionPlanService) GetByID(findingID uint, id uint) (*mo
 	}
 
 	auditFindingActionPlan, err := afaps.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -98,7 +102,6 @@ func (afaps AuditFindingActionPlanService) GetFullDetailsByID(findingID uint, id
 	}
 
 	auditFindingActionPlan, err := afaps.repo.GetFullDetailsByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -139,6 +142,11 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		return 0, err
 	}
 
+	actionPlanStatus, err := afaps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
 	auditFindingActionPlan := &models.AuditFindingActionPlan{
 		AuditFindingID:     findingID,
 		Title:              AuditFindingActionPlanFormDTO.Title,
@@ -149,7 +157,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		TargetDate:         dates.TargetDate,
 		Percentage:         AuditFindingActionPlanFormDTO.Percentage,
 		Comments:           AuditFindingActionPlanFormDTO.Comments,
-		ActionPlanStatusID: AuditFindingActionPlanFormDTO.ActionPlanStatusID,
+		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedBYID:        currentUserID,
 	}
 
@@ -159,7 +167,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		return 0, err
 	}
 
-	actionPlanStatusID := AuditFindingActionPlanFormDTO.ActionPlanStatusID
+	actionPlanStatusID := actionPlanStatus.ID
 	auditFindingActionPlanUpdate := &models.AuditFindingActionPlanStatusUpdate{
 		AuditFindingActionPlanID: id,
 		ActionPlanStatusID:       actionPlanStatusID,
@@ -195,15 +203,21 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 	tx.Commit()
 
 	go func() {
-		err := afaps.activityLogSvc.LogActivity(
+		existingAuditFindingActionPlan, err := afaps.GetFullDetailsByID(findingID, id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit finding action plan", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = afaps.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditFindingActionPlan{}.TableName(),
 			id,
-			AuditFindingActionPlanFormDTO,
+			existingAuditFindingActionPlan,
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -223,7 +237,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               AuditFindingActionPlanFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{AuditFindingActionPlanFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "audit",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Audit Finding Action Plan Responsiblity Assigned",
@@ -297,8 +311,13 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 		return err
 	}
 
-	existingAuditFindingActionPlan, err := afaps.GetByID(findingID, id)
+	oldAuditFindingActionPlan, err := afaps.repo.GetFullDetailsByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
 
+	existingAuditFindingActionPlan, err := afaps.GetByID(findingID, id)
 	if err != nil {
 		return err
 	}
@@ -323,11 +342,9 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	existingAuditFindingActionPlan.TargetDate = dates.TargetDate
 	existingAuditFindingActionPlan.Percentage = AuditFindingActionPlanFormDTO.Percentage
 	existingAuditFindingActionPlan.Comments = AuditFindingActionPlanFormDTO.Comments
-	existingAuditFindingActionPlan.ActionPlanStatusID = AuditFindingActionPlanFormDTO.ActionPlanStatusID
 	existingAuditFindingActionPlan.UpdatedBYID = &currentUserID
 
 	err = afaps.repo.Update(existingAuditFindingActionPlan, tx)
-
 	if err != nil {
 		return err
 	}
@@ -353,6 +370,63 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	tx.Commit()
 
 	go func() {
+		existingFindingActionPlan, err := afaps.repo.GetFullDetailsByID(id)
+		if err != nil {
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		// log changes
+		oldData := map[string]interface{}{
+			"title":              oldAuditFindingActionPlan.Title,
+			"description":        oldAuditFindingActionPlan.Description,
+			"severity_level":     oldAuditFindingActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", oldAuditFindingActionPlan.ResponsibleUser.FirstNameEn, oldAuditFindingActionPlan.ResponsibleUser.LastNameEn),
+			"review_user":        utility.GetFieldValue(oldAuditFindingActionPlan.ReviewUser),
+			"target_date":        oldAuditFindingActionPlan.TargetDate,
+			"percentage":         oldAuditFindingActionPlan.Percentage,
+			"comments":           oldAuditFindingActionPlan.Comments,
+			"action_plan_status": oldAuditFindingActionPlan.ActionPlanStatus.TitleEn,
+		}
+
+		newData := map[string]interface{}{
+			"title":              existingFindingActionPlan.Title,
+			"description":        existingFindingActionPlan.Description,
+			"severity_level":     existingFindingActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", existingFindingActionPlan.ResponsibleUser.FirstNameEn, existingFindingActionPlan.ResponsibleUser.LastNameEn),
+			"review_user":        utility.GetFieldValue(existingFindingActionPlan.ReviewUser),
+			"target_date":        existingFindingActionPlan.TargetDate,
+			"percentage":         existingFindingActionPlan.Percentage,
+			"comments":           existingFindingActionPlan.Comments,
+			"action_plan_status": existingFindingActionPlan.ActionPlanStatus.TitleEn,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := afaps.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditFindingActionPlan{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditFindingActionPlan{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingAuditFindingActionPlan.ResponsibleUserID {
 			urlParam := fmt.Sprintf(`{"audit_id":%d,"audit_finding_id":%d, "action_plan_id":%d}`, audit.AuditID, findingID, id)
@@ -361,7 +435,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Audit Finding Action Plan Responsibility Removed",
@@ -378,7 +452,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               AuditFindingActionPlanFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{AuditFindingActionPlanFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Audit Finding Action Plan Responsibility Assigned",
@@ -487,15 +561,12 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	return nil
 }
 
-func (afaps *AuditFindingActionPlanService) Delete(findingID uint, ids []uint, currentUserID uint) ([]uint, error) {
+func (afaps *AuditFindingActionPlanService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	tx := afaps.repo.BeginTransaction()
-
-	if _, err := afaps.auditFindingSvc.GetByID(findingID); err != nil {
-		return nil, err
-	}
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedAuditFindingActionPlan []map[string]interface{}
 	var notifications []struct {
 		OwnerID           *uint
 		TitleEn           string
@@ -507,7 +578,6 @@ func (afaps *AuditFindingActionPlanService) Delete(findingID uint, ids []uint, c
 	for _, id := range ids {
 
 		auditFindingActionPlan, err := afaps.repo.GetFullDetailsByID(id)
-
 		if err != nil {
 			continue
 		}
@@ -557,17 +627,22 @@ func (afaps *AuditFindingActionPlanService) Delete(findingID uint, ids []uint, c
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedAuditFindingActionPlan = append(deletedAuditFindingActionPlan, map[string]interface{}{
+			"id":            id,
+			"title":         auditFindingActionPlan.Title,
+			"audit_finding": auditFindingActionPlan.AuditFinding.Title,
+		})
 	}
 	tx.Commit()
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := afaps.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
 				models.AuditFinding{}.TableName(),
 				successfulIds,
-				nil,
+				deletedAuditFindingActionPlan,
 				currentUserID,
 				nil,
 			)
@@ -582,7 +657,7 @@ func (afaps *AuditFindingActionPlanService) Delete(findingID uint, ids []uint, c
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "audit",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Audit Finding Action Plan Deleted",
@@ -640,9 +715,7 @@ func (afaps *AuditFindingActionPlanService) Delete(findingID uint, ids []uint, c
 }
 
 func (afaps *AuditFindingActionPlanService) StatusUpdate(findingID uint, id uint, currentUserID uint, auditFindingActionPlanStatusUpdateFormDTO *auditFindingDTOs.AuditFindingActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error {
-
 	existingAuditFindingActionPlan, err := afaps.GetByID(findingID, id)
-
 	if err != nil {
 		return err
 	}
@@ -652,7 +725,6 @@ func (afaps *AuditFindingActionPlanService) StatusUpdate(findingID uint, id uint
 	existingAuditFindingActionPlan.UpdatedBYID = &currentUserID
 
 	err = afaps.repo.Update(existingAuditFindingActionPlan, tx)
-
 	if err != nil {
 		return err
 	}
@@ -677,10 +749,6 @@ func (afaps *AuditFindingActionPlanService) validateAuditFindingActionPlanFormDT
 		if _, err := afaps.severityLevelSvc.GetByID(*AuditFindingActionPlanFormDTO.SeverityLevelID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 		}
-	}
-
-	if _, err := afaps.actionPlanStatusSvc.GetByID(AuditFindingActionPlanFormDTO.ActionPlanStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
 
 	return nil
@@ -711,4 +779,97 @@ func (afaps *AuditFindingActionPlanService) GetAuditFindingActionPlanCountByStat
 	}
 
 	return response, nil
+}
+
+func (afs *AuditFindingActionPlanService) ExportAuditFindingActionPlans(data []*auditFindingDTOs.AuditFindingActionPlanListDTO, currentUserID uint) (*os.File, error) {
+	// Retrieve user settings for language preference
+	userSetting, err := afs.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	// Define headers based on the user's language setting
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Finding Title (AR)",
+			"Finding Description (AR)",
+			"Action Plan Title (AR)",
+			"Action Plan Description (AR)",
+			"Severity Level (AR)",
+			"Severity Color",
+			"Responsible User (AR)",
+			"Review User (AR)",
+			"Target Date",
+			"Percentage",
+			"Status (AR)",
+			"Status Color",
+			"Created At",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Finding Title (EN)",
+			"Finding Description (EN)",
+			"Action Plan Title (EN)",
+			"Action Plan Description (EN)",
+			"Severity Level (EN)",
+			"Severity Color",
+			"Responsible User (EN)",
+			"Review User (EN)",
+			"Target Date",
+			"Percentage",
+			"Status (EN)",
+			"Status Color",
+			"Created At",
+		}
+	}
+
+	// Convert data to [][]interface{} based on language preference
+	rows := make([][]interface{}, len(data))
+	for i, item := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				item.AuditFindingReferenceNumber,
+				item.AuditFindingTitle,
+				safeString(&item.AuditFindingDescription),
+				item.Title,
+				item.Description,
+				item.SeverityLevelTitleAr,
+				item.SeverityLevelColorCode,
+				item.ResponsibleUserFirstNameAr + " " + item.ResponsibleUserLastNameAr,
+				safeString(item.ReviewUserFirstNameAr) + " " + safeString(item.ReviewUserLastNameAr),
+				item.TargetDate,
+				item.Percentage,
+				item.ActionPlanStatusTitleAr,
+				item.ActionPlanStatusColorCode,
+				item.CreatedAt,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				item.AuditFindingReferenceNumber,
+				item.AuditFindingTitle,
+				safeString(&item.AuditFindingDescription),
+				item.Title,
+				item.Description,
+				item.SeverityLevelTitleEn,
+				item.SeverityLevelColorCode,
+				item.ResponsibleUserFirstNameEn + " " + item.ResponsibleUserLastNameEn,
+				safeString(&item.ReviewUserFirstNameEn) + " " + safeString(item.ReviewUserLastNameEn),
+				item.TargetDate,
+				item.Percentage,
+				item.ActionPlanStatusTitleEn,
+				item.ActionPlanStatusColorCode,
+				item.CreatedAt,
+			}
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }

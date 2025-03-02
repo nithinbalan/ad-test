@@ -1,0 +1,242 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+</head>
+
+<style>
+    .keep-together {
+        page-break-inside: avoid;
+    }
+
+    .break-before {
+        page-break-before: always;
+    }
+
+    .break-after {
+        page-break-after: always;
+    }
+
+    .clearfix::after {
+        display: block;
+        clear: both;
+        content: "";
+    }
+
+    table {
+        border-collapse: collapse;
+    }
+</style>
+
+<body
+    style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; background-color: #f8fafc; color: #000; height: 100%; hyphens: auto; line-height: 1.4; margin: 0; -moz-hyphens: auto; -ms-word-break: break-all; width: 100% !important; -webkit-hyphens: auto; -webkit-text-size-adjust: none; word-break: break-word;">
+
+
+    <div style="width: 1000px; margin: 20px auto; background: #fff;">
+        <div
+            style="min-height: 900px; background: url({{.CoverBGImagePath}}) 0 0 no-repeat; background-size: 100% 100%; padding: 20px;">
+            <div>
+                <img src="{{.LogoImagePath}}"
+                    style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; width: 130px; padding: 5px;">
+            </div>
+            <div style="padding-top: 60px;">
+                <p
+                    style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 30px; line-height: 2.5em; margin-top: 0px; text-align: left; margin-bottom: 4px;">
+                    <span style="color: #fff; margin: 40px 0; font-size: 50px; font-weight: bold; background: #DB8016;
+                background: linear-gradient(to right, #DB8016 0%, #DB9216 50%, #DBAC16 98%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;">{{.Data.Title}}<br> {{.Data.PreparedAt}}</span>
+                </p>
+                <div style="width: 40%; margin-top: 30px;">
+                    <p
+                        style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 18px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 5px;">
+                        {{.Data.Description}}
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div style="padding: 20px;">
+            <div class="keep-together">
+                {{range .Data.MainSections}}
+                <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #000;">{{.Order}}. {{.TitleEn}}</h4>
+                {{if .DescriptionEn}}<p style="margin: 0 0 20px 0; color: #000;">{{.DescriptionEn}}</p>{{end}}
+                {{if eq .Type "finding-summary"}}
+                {{if .FindingCategorySummary}}
+                <table
+                    style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; background: #fff; text-align: center; width: 100%; margin: 0 auto; margin-bottom: 15px;">
+                    <tbody>
+                        <tr style="border: 1px solid #ccc;">
+                            {{range .FindingCategorySummary}}
+                            <th
+                                style="text-align: left; font-size: 14px; font-weight: bold; border: 1px solid #ccc; padding: 8px;">
+                                {{if .Category}} {{.Category.TitleEn}} {{end}}
+                            </th>
+                            {{end}}
+                        </tr>
+                        <tr style="border: 1px solid #ccc;">
+                            {{range .FindingCategorySummary}}
+                            <td style="padding: 10px; text-align: left;">{{if .Count}} {{.Count}} {{end}}</td>
+                            {{end}}
+                        </tr>
+                    </tbody>
+                </table>
+                {{end}}
+                {{end}}
+
+                {{if eq .Type "findings"}}
+                {{if .Findings}}
+                {{range .Findings}}
+                <h5 style="margin: 0 0 10px 0;font-size: 16px; color: #000;">{{.Title}}</h5>
+
+                <table
+                    style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; background: #fff; padding: 0; text-align: center; width: 100%; margin: 0 auto; margin-bottom: 15px;">
+                    <tbody>
+                        <tr style="border: 1px solid #ccc; ">
+                            <th
+                                style="text-align: left; width: 60%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.3em; font-weight: bold; border: 1px solid #ccc; padding: 8px 10px;">
+                                Auditable Item</th>
+                            <th
+                                style="text-align: left; width: 20%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.3em; font-weight: bold; border: 1px solid #ccc; padding: 8px 10px;">
+                                Category</th>
+                            <th
+                                style="text-align: left; width: 20%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.3em; font-weight: bold; border: 1px solid #ccc; padding: 8px 10px;">
+                                Priority</th>
+                        </tr>
+                        <tr style="border: 1px solid #ccc;">
+                            <td
+                                style="text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.3em; border: 1px solid #ccc; padding: 10px 10px;">
+                                {{if eq .AuditableItem.Type "control"}}
+                                    {{.AuditableItem.Control.TitleEn}}
+                                {{else if eq .AuditableItem.Type "process"}}
+                                    {{.AuditableItem.Process.TitleEn}}
+                                {{else if eq .AuditableItem.Type "risk"}}
+                                    {{.AuditableItem.RiskRegister.Title}}
+                                {{else if eq .AuditableItem.Type "compliance_requirement"}}
+                                    {{.AuditableItem.ComplianceRequirement.Title}}
+                                {{else if eq .AuditableItem.Type "compliance_register"}}
+                                    {{.AuditableItem.ComplianceRegister.Title}}
+                                {{else if eq .AuditableItem.Type "incident"}}
+                                    {{.AuditableItem.IncidentRegister.Title}}
+                                {{else if eq .AuditableItem.Type "user"}}
+                                    {{.AuditableItem.User.FirstNameEn}} {{.AuditableItem.User.LastNameEn}}
+                                {{else if eq .AuditableItem.Type "document"}}
+                                    {{.AuditableItem.Document.DocumentTitleEn}}
+                                {{else}}
+                                    {{.AuditableItem.TitleEn}}
+                                {{end}}
+                            </td>
+                            <td
+                                style="text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.3em; border: 1px solid #ccc; padding: 10px 10px;">
+                                {{if .AuditFindingCategory}}
+                                    {{.AuditFindingCategory.TitleEn}}
+                                {{end}}
+                            </td>
+                            <td
+                                style="text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.3em; border: 1px solid #ccc; padding: 10px 10px;">
+                                {{if .SeverityLevel}}
+                                    {{.SeverityLevel.TitleEn}}
+                                {{end}}
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+                </table>
+                <h6 style="margin: 0 0 10px 0;font-weight: bold; font-size: 14px;">Description:</h6>
+                <p style="margin: 0 0 20px 0; color: #000;">{{.Description}}</p>
+                <h6 style="margin: 0 0 10px 0;font-weight: bold; font-size: 14px;">Recommendations:</h6>
+
+                <ol style=" padding: 0 0 0 20px;">
+                    <li>{{.Recommendations}}</li>
+
+                </ol>
+                <h6 style="margin: 0 0 10px 0;font-weight: bold; font-size: 14px; ">Department Response:</h6>
+                <p style="margin: 0 0 20px 0; color: #000;margin-bottom: 5px;">(Auditor):</p>
+                <p style="margin: 0 0 20px 0; color: #000;"> </p>
+                
+                {{if .ActionPlans}}
+                <h6 style="margin: 0 0 10px 0;font-weight: bold; font-size: 14px; ">Action Plan:</h6>
+                <table
+                    style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; background: #fff; padding: 0; text-align: center; width: 100%; margin: 0 auto; margin-bottom: 15px;">
+                    <tbody>
+                        <tr style="border: 1px solid #ccc; ">
+                            <th
+                                style="text-align: left; width: 60%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.3em; font-weight: bold; border: 1px solid #ccc; padding: 8px 10px;">
+                                Improvement</th>
+                            <th
+                                style="text-align: left; width: 20%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.3em; font-weight: bold; border: 1px solid #ccc; padding: 8px 10px;">
+                                Target Date</th>
+                            <th
+                                style="text-align: left; width: 20%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.3em; font-weight: bold; border: 1px solid #ccc; padding: 8px 10px;">
+                                Responsible User</th>
+                        </tr>
+                        {{range .ActionPlans}}
+                            <tr style="border: 1px solid #ccc;">
+                                <td
+                                    style="text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.3em; border: 1px solid #ccc; padding: 10px 10px;">
+                                    {{.Title}}</td>
+                                <td
+                                    style="text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.3em; border: 1px solid #ccc; padding: 10px 10px;">
+                                    {{.TargetDate}}</td>
+                                <td
+                                    style="text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.3em; border: 1px solid #ccc; padding: 10px 10px;">
+                                    {{if .ResponsibleUser}}
+                                        {{.ResponsibleUser.FirstNameEN}}&nbsp; {{.ResponsibleUser.LastNameEN}}
+                                    {{end}}
+                                </td>
+
+                            </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+                {{end}}
+               
+                {{end}}
+                {{end}}
+                {{end}}
+
+                {{if .SubSections}}
+                {{range .SubSections}}
+
+                <h5 style=" margin: 0 0 10px 0;font-size: 16px; color: #000;">{{.Order}}. {{.TitleEn}}</h5>
+
+                {{if and (eq .Type "overview") (eq .TitleEn "Scope of the Audit")}}
+                    {{safeHTML .DescriptionEn}}
+                {{else}}
+                    {{if .DescriptionEn}}<p style="margin: 0 0 20px 0; color: #000;">{{safeHTML .DescriptionEn}}</p>{{end}}
+                {{end}}
+
+                {{end}}
+                {{end}}
+
+                {{if eq .Type "appendix"}}
+                    {{if .Appendices}}
+                   <ol style=" padding: 0 0 0 20px;">
+                    {{range .Appendices}}
+                    <li>{{.OriginalName}}</li>
+                    {{end}}
+
+                   </ol>
+                {{end}}
+                {{end}}
+                {{end}}
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+
+
+
+</body>
+
+</html>

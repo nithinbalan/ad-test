@@ -75,6 +75,9 @@ type AuditFindingActionPlanListQueryParamsDTO struct {
 	QuickFilter    []string
 	TargetDateFrom string
 	TargetDateTo   string
+	Export         bool
+	DateFrom       string
+	DateTo         string
 }
 
 type AuditFindingActionPlanListResponseDTO struct {
@@ -83,6 +86,7 @@ type AuditFindingActionPlanListResponseDTO struct {
 }
 
 type AuditFindingActionPlanFormDTO struct {
+	FindingID          *uint   `json:"finding_id" binding:"omitempty"`
 	Title              string  `json:"title" binding:"required"`
 	Description        *string `json:"description" binding:"omitempty"`
 	SeverityLevelID    *uint   `json:"severity_level_id" binding:"omitempty"`
@@ -91,7 +95,7 @@ type AuditFindingActionPlanFormDTO struct {
 	TargetDate         *string `json:"target_date" binding:"omitempty,datetime=2006-01-02"`
 	Percentage         *uint   `json:"percentage" binding:"omitempty"`
 	Comments           *string `json:"comments" binding:"omitempty"`
-	ActionPlanStatusID uint    `json:"action_plan_status_id" binding:"required"`
+	ActionPlanStatusID uint    `json:"action_plan_status_id"`
 }
 
 type AuditFindingActionPlanParsedDates struct {

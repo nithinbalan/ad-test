@@ -1,0 +1,19 @@
+{{ define "content" }}
+<p>Dear {{ .FirstNameEn }} {{ .LastNameEn }},</p>
+<p>
+    {{ .CommentedByFirstNameEn }} {{ .CommentedByLastNameEn }} has added a new comment on the action plan <strong>{{ .ActionPlanTitle }}</strong>. Below is the comment:
+</p>
+
+<blockquote style="background-color: #F6F6F6; padding: 10px; border-left: 4px solid #165D31; font-style: italic;">
+    "{{ .Comment }}"
+</blockquote>
+
+<p>Please review the action plan for more details.</p>
+
+<div style="text-align: center;">
+    <a href="{{.RedirectURL}}" style="background-color: #165D31; color: #ffffff; padding: 10px 20px; text-align: center; text-decoration: none; border-radius: 4px; display: inline-block; margin-top: 30px;">View Action Plan</a>
+</div>
+
+<p>Thank you for your prompt attention to this matter. Your efforts in managing action plans are crucial to maintaining compliance effectiveness.</p>
+
+{{ end }}

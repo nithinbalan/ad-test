@@ -47,6 +47,9 @@ func (irc *IncidentRegisterController) GetAllIncidentRegisters(c *gin.Context) {
 		"incident_status_ids",
 		"reported_user_ids",
 		"incident_type_ids",
+		"severity_level_ids",
+		"responsible_unit_ids",
+		"responsible_user_ids",
 	}
 	validSortFields := map[string]string{
 		"incident_at":                    "incident_register.incident_at",
@@ -63,25 +66,30 @@ func (irc *IncidentRegisterController) GetAllIncidentRegisters(c *gin.Context) {
 		"severity_level_en":              "severity_levels.title_en",
 		"severity_level_ar":              "severity_levels.title_ar",
 		"severity_level_color_code":      "severity_levels.color_code",
-		"responsible_unit_en":            "organization_units.title_en",
-		"responsible_unit_ar":            "organization_units.title_ar",
+		"responsible_unit_title_en":      "organization_units.title_en",
+		"responsible_unit_title_ar":      "organization_units.title_ar",
 		"responsible_user_first_name_en": "responsible_user.first_name_en",
 		"responsible_user_first_name_ar": "responsible_user.first_name_ar",
 		"responsible_user_last_name_en":  "responsible_user.last_name_en",
 		"responsible_user_last_name_ar":  "responsible_user.last_name_ar",
 		"responsible_user_email":         "responsible_user.email",
 		"responsible_user_initial":       "responsible_user.initial",
-		"reported_by_first_name_en":      "reported_user.first_name_en",
-		"reported_by_first_name_ar":      "reported_user.first_name_ar",
-		"reported_by_last_name_en":       "reported_user.last_name_en",
-		"reported_by_last_name_ar":       "reported_user.last_name_ar",
+		"reported_user_first_name_en":    "reported_user.first_name_en",
+		"reported_user_first_name_ar":    "reported_user.first_name_ar",
+		"reported_user_last_name_en":     "reported_user.last_name_en",
+		"reported_user_last_name_ar":     "reported_user.last_name_ar",
+		"location":                       "incident_register.location",
+		"quick_action":                   "incident_register.quick_action",
+		"investigation_initiated_at":     "incident_investigations.initiated_at",
+		"investigation_description":      "incident_investigations.description",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	incidentAt := c.Query("incident_at")
 	reportedAt := c.Query("reported")
-
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(irc.db, c, "Invalid page parameter")
@@ -111,6 +119,8 @@ func (irc *IncidentRegisterController) GetAllIncidentRegisters(c *gin.Context) {
 		IncidentAt:  incidentAt,
 		ReportedAt:  reportedAt,
 		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 	incidents, err := irc.service.GetAll(&queryParams)
 

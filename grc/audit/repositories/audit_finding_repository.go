@@ -20,7 +20,7 @@ type AuditFindingRepositoryInterface interface {
 	Create(auditFinding *models.AuditFinding, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(auditFinding *models.AuditFinding, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
-	GenerateReferenceNumber() (string, error)
+	GenerateReferenceNumber(tx ...utility.DatabaseTransaction) (string, error)
 
 	CreateDocuments(docs []*models.AuditFindingDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
@@ -99,7 +99,26 @@ func (repo *AuditFindingRepository) GetAll(params *auditDTOs.AuditFindingListQue
 			query = query.Where(columnName+" IN (?)", values)
 		}
 	}
-
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("audit_findings.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "new":
+			query = query.Where("audit_finding_statuses.type = ?", "new")
+		case "resolved":
+			query = query.Where("audit_finding_statuses.type = ?", "resolved")
+		case "reopened":
+			query = query.Where("audit_finding_statuses.type = ?", "reopened")
+		case "closed":
+			query = query.Where("audit_finding_statuses.type = ?", "closed")
+		case "deferred":
+			query = query.Where("audit_finding_statuses.type = ?", "deferred")
+		case "in_progress":
+			query = query.Where("audit_finding_statuses.type = ?", "in-progress")
+		}
+	}
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
@@ -118,26 +137,22 @@ func (repo *AuditFindingRepository) GetAll(params *auditDTOs.AuditFindingListQue
 			keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
-	// Sort by the specified column and order
-	if params.SortBy == "" {
-		params.SortBy = "audit_findings.created_at" // Default sort by created_at if no sortBy is specified
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
-	}
-
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
 
-	// Execute the query
-	err := query.Offset(offset).Limit(params.PageSize).Find(&auditFindings).Error
+	err := query.Find(&auditFindings).Error
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
 	response := &auditDTOs.AuditFindingListResponseDTO{
 		Items: auditFindings,
 		Pagination: commonDTOs.PaginationInfoDTO{
@@ -170,6 +185,15 @@ func (repo *AuditFindingRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 
 	result := db.
 		Preload("AuditableItem").
+		Preload("AuditableItem.Process").
+		Preload("AuditableItem.Control").
+		Preload("AuditableItem.Document").
+		Preload("AuditableItem.IncidentRegister").
+		Preload("AuditableItem.ComplianceRequirement").
+		Preload("AuditableItem.RiskRegister").
+		Preload("AuditableItem.User").
+		Preload("AuditableItem.ResponsibleUnit").
+		Preload("AuditableItem.ResponsibleUser").
 		Preload("AuditFindingCategory").
 		Preload("SeverityLevel").
 		Preload("AuditFindingStatus").
@@ -222,9 +246,13 @@ func (repo *AuditFindingRepository) Delete(id uint, tx ...utility.DatabaseTransa
 	return nil
 }
 
-func (repo *AuditFindingRepository) GenerateReferenceNumber() (string, error) {
+func (repo *AuditFindingRepository) GenerateReferenceNumber(tx ...utility.DatabaseTransaction) (string, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var lastReferenceNumber string
-	err := repo.db.Model(&models.AuditFinding{}).
+	err := db.Model(&models.AuditFinding{}).
 		Select("reference_number").
 		Order("reference_number desc").
 		Limit(1).

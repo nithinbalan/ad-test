@@ -41,9 +41,15 @@ type RiskModule struct {
 	RiskResidualControlAnalysisController *controllers.RiskResidualControlAnalysisController
 	RiskKriController                     *controllers.RiskKriController
 	RiskTimelineController                *controllers.RiskTimelineController
+	RiskSettingsController                *controllers.RiskSettingsController
+	RiskClosureController                 *controllers.RiskClosureController
+	RiskCommentController                 *controllers.RiskCommentController
 
-	RiskRegisterSvc services.RiskRegisterServiceInterface
-	RiskHeatMapSvc  services.RiskHeatmapServiceInterface
+	RiskRegisterSvc   services.RiskRegisterServiceInterface
+	RiskHeatMapSvc    services.RiskHeatmapServiceInterface
+	KriRegisterSvc    services.KRIRegisterServiceInterface
+	RiskActionPlanSvc services.RiskActionPlanServiceInterface
+	RiskLevelSvc      services.RiskLevelServiceInterface
 }
 
 func NewRiskModule(db *gorm.DB,
@@ -165,6 +171,10 @@ func NewRiskModule(db *gorm.DB,
 	riskTimelineSvc := services.NewRiskTimelineService(riskTimelineRepo, riskRegisterRepo)
 	riskTimelineController := controllers.NewRiskTimelineController(riskTimelineSvc)
 
+	riskSettingsRepo := repositories.NewRiskSettingsRepository(db)
+	riskSettingsSvc := services.NewRiskSettingsService(riskSettingsRepo, sharedModule.ActivityLogService)
+	riskSettingsController := controllers.NewRiskSettingsController(riskSettingsSvc)
+
 	riskRegisterSvc := services.NewRiskRegisterService(
 		riskRegisterRepo,
 		sharedModule.ActivityLogService,
@@ -182,7 +192,8 @@ func NewRiskModule(db *gorm.DB,
 		riskTimelineSvc,
 		organizationModule.UserSettingSvc,
 		commonModule.NotificationService,
-		assetModule.AssetRegisterSvc)
+		assetModule.AssetRegisterSvc,
+		nil, riskSettingsSvc)
 	riskRegisterController := controllers.NewRiskRegisterController(riskRegisterSvc)
 
 	potentialRiskRepo := repositories.NewPotentialRiskRepository(db)
@@ -216,6 +227,8 @@ func NewRiskModule(db *gorm.DB,
 	riskInherentEvaluationRepo := repositories.NewRiskInherentEvaluationRepository(db)
 	riskInherentEvaluationSvc := services.NewRiskInherentEvaluationService(riskInherentEvaluationRepo, sharedModule.ActivityLogService, riskRegisterSvc, riskMatrixSvc, riskMatrixRiskRatingValueSvc, riskMatrixImpactSvc, riskMatrixLikelihoodSvc, riskImpactCategorySvc, riskMatrixImpactGuidelineSvc, riskAppetiteStatementSvc, riskTimelineSvc)
 	riskInherentEvaluationController := controllers.NewRiskInherentEvaluationController(riskInherentEvaluationSvc)
+
+	riskRegisterSvc.SetRiskInherentEvaluationService(riskInherentEvaluationSvc)
 
 	riskActionPlanRepo := repositories.NewRiskActionPlanRepository(db)
 	riskActionPlanSvc := services.NewRiskActionPlanService(
@@ -276,6 +289,14 @@ func NewRiskModule(db *gorm.DB,
 	)
 	riskKriController := controllers.NewRiskKriController(riskKriSvc)
 
+	riskClosureRepo := repositories.NewRiskClosureRepository(db)
+	riskClosureSvc := services.NewRiskClosureService(riskClosureRepo, sharedModule.ActivityLogService, riskRegisterSvc)
+	riskClosureController := controllers.NewRiskClosureController(riskClosureSvc)
+
+	riskCommentRepo := repositories.NewRiskCommentRepository(db)
+	riskCommentSvc := services.NewRiskCommentService(riskCommentRepo, riskRegisterSvc, riskStatusSvc, sharedModule.ActivityLogService)
+	riskCommentController := controllers.NewRiskCommentController(riskCommentSvc)
+
 	return &RiskModule{
 		RiskCategoryController:                riskCategoryController,
 		PotentialRiskStatusController:         potentialRiskStatusController,
@@ -309,8 +330,14 @@ func NewRiskModule(db *gorm.DB,
 		RiskResidualControlAnalysisController: riskResidualControlAnalysisController,
 		RiskKriController:                     riskKriController,
 		RiskTimelineController:                riskTimelineController,
+		RiskSettingsController:                riskSettingsController,
+		RiskClosureController:                 riskClosureController,
+		RiskCommentController:                 riskCommentController,
 
-		RiskRegisterSvc: riskRegisterSvc,
-		RiskHeatMapSvc:  riskHeatmapSvc,
+		RiskRegisterSvc:   riskRegisterSvc,
+		RiskHeatMapSvc:    riskHeatmapSvc,
+		KriRegisterSvc:    kriRegisterSvc,
+		RiskActionPlanSvc: riskActionPlanSvc,
+		RiskLevelSvc:      riskLevelSvc,
 	}
 }

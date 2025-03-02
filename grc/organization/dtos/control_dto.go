@@ -58,6 +58,7 @@ type ControlListDTO struct {
 	ImplementedAt                        *time.Time `json:"implemented_at"`
 	IsApplicable                         bool       `json:"is_applicable"`
 	Justification                        *string    `json:"justification"`
+	ImplementationGuideline              *string    `json:"implementation_guideline"`
 	ApplicabilityChangeDate              *string    `json:"applicability_change_date"`
 	LifecycleStatusTitleEn               string     `json:"lifecycle_status_title_en"`
 	LifecycleStatusTitleAr               string     `json:"lifecycle_status_title_ar"`
@@ -129,7 +130,7 @@ type ControlListResponseDTO struct {
 
 type ControlFormDTO struct {
 	ControlTypeID                 uint    `json:"control_type_id" binding:"required"`
-	ControlCategoryID             uint    `json:"control_category_id" binding:"required"`
+	ControlCategoryID             *uint   `json:"control_category_id" `
 	OwnerID                       uint    `json:"owner_id" binding:"required"`
 	ControlImplementationStatusID *uint   `json:"control_implementation_status_id" binding:"omitempty"`
 	ControlEfficiencyStatusID     *uint   `json:"control_efficiency_status_id" binding:"omitempty"`
@@ -151,6 +152,7 @@ type ControlFormDTO struct {
 	IsApplicable                  bool    `json:"is_applicable"`
 	Justification                 *string `json:"justification" binding:"omitempty"`
 	ApplicabilityChangeDate       *string `json:"applicability_change_date" binding:"omitempty,datetime=2006-01-02"`
+	ImplementationGuideline       *string `json:"implementation_guideline" binding:"omitempty"`
 }
 
 type ControlParsedDates struct {
@@ -201,6 +203,7 @@ type ControlDetailDTO struct {
 	RiskMatrixRatingValue         *RiskMatrixRiskRatingValueDTO    `json:"risk_matrix_rating_value"`
 	IsApplicable                  bool                             `json:"is_applicable"`
 	Justification                 *string                          `json:"justification"`
+	ImplementationGuideline       *string                          `json:"implementation_guideline"`
 	ApplicabilityChangeDateString *string                          `json:"applicability_change_date"`
 }
 

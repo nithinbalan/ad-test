@@ -1,0 +1,346 @@
+package repositories
+
+import (
+	"errors"
+	complianceDTOs "jethur/grc/compliance/dtos"
+	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
+	"jethur/utility"
+	"sort"
+	"strconv"
+	"strings"
+
+	"gorm.io/gorm"
+)
+
+// ComplianceClauseRepositoryInterface defines the methods for compliance clause repository
+type ComplianceClauseRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
+	GetAll(complianceID uint) ([]*models.ComplianceClause, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error)
+	Create(clause *models.ComplianceClause, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(clause *models.ComplianceClause, tx ...utility.DatabaseTransaction) error
+	Delete(clauseID uint, tx ...utility.DatabaseTransaction) error
+
+	GetNextClauseSequence(parentClauseID uint, complianceRegisterID uint, tx ...utility.DatabaseTransaction) (int, error)
+	GetNextTopLevelClauseSequence(complianceRegisterID uint, tx ...utility.DatabaseTransaction) (int, error)
+	GetByClauseNo(clauseNo string, complianceRegisterID uint, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error)
+	GetClauseWithChildren(clauseID uint, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error)
+
+	GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error)
+	GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlMinimalListDTO, error)
+}
+
+type ComplianceClauseRepository struct {
+	db *gorm.DB
+}
+
+func NewComplianceClauseRepository(db *gorm.DB) *ComplianceClauseRepository {
+	return &ComplianceClauseRepository{db: db}
+}
+
+func (repo *ComplianceClauseRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
+}
+
+func (repo *ComplianceClauseRepository) GetAll(complianceID uint) ([]*models.ComplianceClause, error) {
+	var clauses []*models.ComplianceClause
+
+	// Fetch all clauses with preloaded child clauses (recursive loading)
+	err := repo.db.
+		Preload("ChildClauses", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("ChildClauses") // Recursive preload
+		}).
+		Where("compliance_register_id = ?", complianceID).
+		Find(&clauses).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Sort clauses correctly using numeric sorting
+	sort.SliceStable(clauses, func(i, j int) bool {
+		return compareClauseNumbers(clauses[i].ClauseNo, clauses[j].ClauseNo)
+	})
+
+	// Recursively sort child clauses
+	for _, clause := range clauses {
+		sortChildClauses(clause)
+	}
+
+	return clauses, nil
+}
+
+func (repo *ComplianceClauseRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var complianceClause models.ComplianceClause
+	result := db.First(&complianceClause, id)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			// Return an error instead of nil to indicate record not found
+			return nil, errors.New("compliance clause not found")
+		}
+		return nil, result.Error
+	}
+
+	return &complianceClause, nil
+}
+
+func (repo *ComplianceClauseRepository) Create(clause *models.ComplianceClause, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(clause).Error; err != nil {
+		return 0, err
+	}
+
+	return clause.ID, nil
+}
+
+func (repo *ComplianceClauseRepository) Update(clause *models.ComplianceClause, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Perform update
+	if err := db.Save(clause).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ComplianceClauseRepository) Delete(clauseID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Use a CTE to find all descendant clauses, including the parent clause
+	query := `
+		WITH RecursiveClauses AS (
+			SELECT id
+			FROM compliance_clauses
+			WHERE id = ?
+
+			UNION ALL
+
+			SELECT c.id
+			FROM compliance_clauses c
+			INNER JOIN RecursiveClauses rc ON c.compliance_clause_id = rc.id
+		)
+		DELETE FROM compliance_clauses
+		WHERE id IN (SELECT id FROM RecursiveClauses)
+	`
+
+	// Execute the query
+	err := db.Exec(query, clauseID).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ComplianceClauseRepository) GetNextClauseSequence(parentClauseID uint, complianceRegisterID uint, tx ...utility.DatabaseTransaction) (int, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var maxSequence int
+
+	// Use TRY_CAST to safely extract and convert the last part of the clause number
+	query := `
+		SELECT COALESCE(MAX(TRY_CAST(RIGHT(clause_no, CHARINDEX('.', REVERSE(clause_no)) - 1) AS INT)), 0) 
+		FROM compliance_clauses 
+		WHERE compliance_clause_id = ? AND compliance_register_id = ?`
+
+	err := db.Raw(query, parentClauseID, complianceRegisterID).Row().Scan(&maxSequence)
+	if err != nil {
+		return 0, err
+	}
+
+	return maxSequence + 1, nil
+}
+
+func (repo *ComplianceClauseRepository) GetNextTopLevelClauseSequence(complianceRegisterID uint, tx ...utility.DatabaseTransaction) (int, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var maxSequence int
+
+	query := `
+		SELECT COALESCE(MAX(TRY_CAST(clause_no AS INT)), 0) 
+		FROM compliance_clauses 
+		WHERE compliance_clause_id IS NULL AND compliance_register_id = ?`
+
+	err := db.Raw(query, complianceRegisterID).Row().Scan(&maxSequence)
+	if err != nil {
+		return 0, err
+	}
+
+	return maxSequence + 1, nil
+}
+
+func (repo *ComplianceClauseRepository) GetByClauseNo(clauseNo string, complianceRegisterID uint, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var clause models.ComplianceClause
+	err := db.Where("clause_no = ? AND compliance_register_id = ?", clauseNo, complianceRegisterID).First(&clause).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &clause, nil
+}
+
+func (repo *ComplianceClauseRepository) GetClauseWithChildren(clauseID uint, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var clause models.ComplianceClause
+	err := db.
+		Preload("ChildClauses", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("ChildClauses") // Recursive preload
+		}).
+		First(&clause, clauseID).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &clause, nil
+}
+
+func (repo *ComplianceClauseRepository) GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error) {
+	var requirements []complianceDTOs.ComplianceRequirementListDTO
+
+	query := `
+	SELECT 
+		cr.id, 
+		cr.compliance_clause_id AS clause_id,
+		cc.clause_no AS compliance_clause_no,
+		cc.title_en AS compliance_clause_title_en,
+		cc.title_ar AS compliance_clause_title_ar,
+		cr.title_en,
+		cr.title_ar,
+		crc.title_en AS compliance_requirement_category_title_en,
+		crc.title_ar AS compliance_requirement_category_title_ar,
+		sl.title_en AS severity_level_title_en,
+		sl.title_ar AS severity_level_title_ar,
+		sl.color_code AS severity_level_color_code,
+		u.id AS responsible_user_id,
+		u.first_name_en AS responsible_user_first_name_en,
+		u.first_name_ar AS responsible_user_first_name_ar,
+		u.last_name_en AS responsible_user_last_name_en,
+		u.last_name_ar AS responsible_user_last_name_ar,
+		u.initial AS responsible_user_initial,
+		u.color AS responsible_user_color,
+		u.email AS responsible_user_email,
+		u.profile_image_path AS responsible_user_profile_image_path,
+		FORMAT(cr.deadline, 'yyyy-MM-dd') AS deadline,
+		cs.title_en AS compliance_status_title_en,
+		cs.title_ar AS compliance_status_title_ar,
+		cs.color_code AS compliance_status_color_code,
+		FORMAT(cr.created_at, 'yyyy-MM-dd HH:mm:ss') AS created_at,
+		FORMAT(cr.updated_at, 'yyyy-MM-dd HH:mm:ss') AS updated_at,
+		uc.id AS created_user_id,
+		uc.first_name_en AS created_user_first_name_en,
+		uc.first_name_ar AS created_user_first_name_ar,
+		uc.last_name_en AS created_user_last_name_en,
+		uc.last_name_ar AS created_user_last_name_ar,
+		uc.initial AS created_user_initial,
+		uc.color AS created_user_color,
+		uc.email AS created_user_email,
+		uc.profile_image_path AS created_user_profile_image_path,
+		uu.id AS updated_user_id,
+		uu.first_name_en AS updated_user_first_name_en,
+		uu.first_name_ar AS updated_user_first_name_ar,
+		uu.last_name_en AS updated_user_last_name_en,
+		uu.last_name_ar AS updated_user_last_name_ar,
+		uu.initial AS updated_user_initial,
+		uu.color AS updated_user_color,
+		uu.email AS updated_user_email,
+		uu.profile_image_path AS updated_user_profile_image_path
+	FROM compliance_requirements cr
+	JOIN compliance_clauses cc ON cr.compliance_clause_id = cc.id
+	JOIN compliance_requirement_categories crc ON cr.compliance_requirement_category_id = crc.id
+	JOIN severity_levels sl ON cr.severity_level_id = sl.id
+	JOIN compliance_statuses cs ON cr.compliance_status_id = cs.id
+	LEFT JOIN users u ON cr.responsible_user_id = u.id
+	LEFT JOIN users uc ON cr.created_by_id = uc.id
+	LEFT JOIN users uu ON cr.updated_by_id = uu.id
+	WHERE cr.compliance_clause_id = ? AND cc.compliance_register_id = ?
+	ORDER BY cr.created_at DESC
+`
+
+	err := repo.db.Raw(query, clauseID, complianceID).Scan(&requirements).Error
+	return requirements, err
+}
+
+func (r *ComplianceClauseRepository) GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlMinimalListDTO, error) {
+	controls := make([]organizationDTOs.ControlMinimalListDTO, 0)
+
+	err := r.db.Table("compliance_controls cc").
+		Select("DISTINCT c.id, c.reference_number, c.title_en, c.title_ar, c.description").
+		Joins("JOIN controls c ON c.id = cc.control_id").
+		Joins("JOIN compliance_requirements cr ON cr.id = cc.compliance_requirement_id").
+		Joins("JOIN compliance_clauses cl ON cl.id = cr.compliance_clause_id").
+		Where("cc.compliance_register_id = ? AND cl.id = ?", complianceID, clauseID).
+		Scan(&controls).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return controls, nil
+}
+
+func compareClauseNumbers(a, b string) bool {
+	aParts := strings.Split(a, ".")
+	bParts := strings.Split(b, ".")
+
+	for i := 0; i < len(aParts) && i < len(bParts); i++ {
+		aNum, _ := strconv.Atoi(aParts[i])
+		bNum, _ := strconv.Atoi(bParts[i])
+
+		if aNum != bNum {
+			return aNum < bNum
+		}
+	}
+
+	return len(aParts) < len(bParts)
+}
+
+func sortChildClauses(clause *models.ComplianceClause) {
+	if len(clause.ChildClauses) == 0 {
+		return
+	}
+
+	sort.SliceStable(clause.ChildClauses, func(i, j int) bool {
+		return compareClauseNumbers(clause.ChildClauses[i].ClauseNo, clause.ChildClauses[j].ClauseNo)
+	})
+
+	// Recursively sort nested child clauses
+	for _, child := range clause.ChildClauses {
+		sortChildClauses(child)
+	}
+}

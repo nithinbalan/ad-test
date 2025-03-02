@@ -30,7 +30,6 @@ func (bfc *BusinessFunctionController) GetAllBusinessFunctions(c *gin.Context) {
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
-	// Convert the export parameter to a boolean
 	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
 	if err != nil {
 		utility.SendInternalErrResp(bfc.db, c, "Invalid export parameter")
@@ -88,6 +87,29 @@ func (bfc *BusinessFunctionController) GetAllBusinessFunctions(c *gin.Context) {
 
 	if err != nil {
 		utility.SendInternalErrResp(bfc.db, c, err.Error())
+		return
+	}
+
+	if export {
+
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(bfc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := bfc.service.ExportBusinessFunction(businessFunctions.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(bfc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="BusinessFunction.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
 		return
 	}
 
@@ -211,4 +233,10 @@ func (bfc *BusinessFunctionController) DeleteBusinessFunctions(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (bfc *BusinessFunctionController) GetAllBusinessFunctionExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	bfc.GetAllBusinessFunctions(c)
 }

@@ -65,7 +65,7 @@
   },
   {
     "id": "password_complexity",
-    "translation": "password does not meet the requirements."
+    "translation": "password does not meet the requirements, it should contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character"
   },
   {
     "id": "password_mismatch",
@@ -126,5 +126,31 @@
   {
     "id": "conflict",
     "translation": "Conflict"
+  },
+  {
+    "id": "invalid_header",
+    "translation": "Invalid headers in the Excel file : '{{.Field}}'"
+  },
+  {
+    "id": "invalid_data",
+    "translation": "The provided import data contains errors. Please review and correct the data before trying again."
+  },
+  {
+    "id": "edit_not_allowed",
+    "translation": "Editing is not allowed for the current item because it does not meet the required conditions"
+  },
+  {
+    "id": "distinct_review_user",
+    "translation": "Responsible User and Review User must be distinct."
+  },
+  {
+    "id": "invalid",
+    "translation": "The {{.Field}} is invalid"
+  },
+  {
+    "id": "user_exceed",
+    "translation": "The number of users exceeded."
   }
+  
+  
 ]

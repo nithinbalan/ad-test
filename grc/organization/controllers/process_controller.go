@@ -293,3 +293,101 @@ func (pc *ProcessController) GetProcessesExport(c *gin.Context) {
 
 	pc.GetAllProcesses(c)
 }
+
+func (pc *ProcessController) GetProcessesTemplate(c *gin.Context) {
+
+	file, err := pc.service.GenerateProcessTemplate()
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, "Failed to generate template")
+		return
+	}
+	defer file.Close()
+
+	// Set file download response
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Disposition", `attachment; filename="ProcessTemplate.xlsx"`)
+	c.Header("Content-Type", "application/octet-stream")
+	c.File(file.Name())
+}
+
+func (pc *ProcessController) ValidateProcessTemplate(c *gin.Context) {
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, "Failed to read uploaded file")
+		return
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, "Failed to open file")
+		return
+	}
+	defer file.Close()
+
+	validationResult, err := pc.service.ValidateProcessTemplate(file)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(pc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, validationResult)
+}
+
+func (pc *ProcessController) ValidateImportProcess(c *gin.Context) {
+	var input []map[string]interface{}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	validationResult, err := pc.service.ValidateImportProcess(input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(pc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, validationResult)
+
+}
+
+func (pc *ProcessController) ImportProcesses(c *gin.Context) {
+	var input []map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, err.Error())
+		return
+	}
+
+	createdIDs, err := pc.service.ImportProcesses(input, currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(pc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, map[string]interface{}{
+		"created_ids": createdIDs})
+}

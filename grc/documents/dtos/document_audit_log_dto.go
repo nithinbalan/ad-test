@@ -24,7 +24,7 @@ type DocumentAuditLogListDTO struct {
 	DocumentToken                 string    `json:"document_token"`
 	DocumentOriginalName          string    `json:"document_original_name"`
 	DocumentType                  string    `json:"document_type"`
-	DocumentVersion               string    `json:"document_version"`
+	DocumentVersion               float64   `json:"document_version"`
 	UserFirstNameEn               string    `json:"user_first_name_en"`
 	UserFirstNameAr               string    `json:"user_first_name_ar"`
 	UserLastNameEn                string    `json:"user_last_name_en"`

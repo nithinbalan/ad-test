@@ -107,6 +107,18 @@ type MeetingDetailDTO struct {
 	Risks                  []*MeetingRiskDTO                  `json:"risks"`
 	Processes              []*MeetingProcessDTO               `json:"processes"`
 	Incidents              []*MeetingIncidentDTO              `json:"incidents"`
+	Documents              []*MeetingDocumentDTO              `json:"documents"`
+}
+
+type MeetingDocumentDTO struct {
+	ID           *uint   `json:"id"`
+	MeetingID    uint    `json:"meeting_id"`
+	URL          string  `json:"url"`
+	Name         string  `json:"name"`
+	Size         int     `json:"size"`
+	Token        string  `json:"token"`
+	OriginalName *string `json:"original_name"`
+	Type         string  `json:"type"`
 }
 
 type MeetingParticipantDTO struct {
@@ -137,7 +149,8 @@ type MeetingFormDTO struct {
 	IncidentIds              []*uint `json:"incident_ids"`
 	// Agendas                  []*MeetingAgendasFormDTO    `json:"agendas" binding:"required"`
 	// MeetingMinutes           []*MeetingMinuteFormDTO     `json:"meeting_minutes"`
-	ActionPlans []*MeetingActionPlanFormDTO `json:"action_plans"`
+	ActionPlans []*MeetingActionPlanFormDTO   `json:"action_plans"`
+	Documents   []*commonDTOs.DocumentFormDTO `json:"documents"`
 }
 
 type MeetingParsedDates struct {
@@ -174,10 +187,10 @@ type MeetingRiskDTO struct {
 }
 
 type MeetingProcessDTO struct {
-	ID         *uint                             `json:"id"`
-	MeetingID  uint                              `json:"meeting_id"`
-	ProocessID uint                              `json:"process_id"`
-	Process    organizationDTOs.ProcessDetailDTO `json:"process"`
+	ID        *uint                             `json:"id"`
+	MeetingID uint                              `json:"meeting_id"`
+	ProcessID uint                              `json:"process_id"`
+	Process   organizationDTOs.ProcessDetailDTO `json:"process"`
 }
 
 type MeetingIncidentDTO struct {

@@ -26,7 +26,8 @@ type IncidentModule struct {
 	IncidentAssociatedItemController          *controllers.IncidentAssociatedItemController
 	IncidentTimelineController                *controllers.IncidentTimelineController
 
-	IncidentRegisterSvc services.IncidentRegisterServiceInterface
+	IncidentRegisterSvc   services.IncidentRegisterServiceInterface
+	IncidentActionPlanSvc services.IncidentActionPlanServiceInterface
 }
 
 func NewIncidentModule(db *gorm.DB,
@@ -78,6 +79,7 @@ func NewIncidentModule(db *gorm.DB,
 		organizationModule.UserSettingSvc,
 		commonModule.NotificationService,
 		assetModule.AssetRegisterSvc,
+		settingsModule.SystemPreferenceSvc,
 	)
 	incidentRegisterController := controllers.NewIncidentRegisterController(incidentRegisterSvc)
 
@@ -118,7 +120,7 @@ func NewIncidentModule(db *gorm.DB,
 	incidentRootCauseAnalysisController := controllers.NewIncidentRootCauseAnalysisController(incidentRootCauseAnalysisSvc)
 
 	incidentCommunicationLogRepo := repositories.NewIncidentCommunicationLogRepository(db)
-	incidentCommunicationLogSvc := services.NewIncidentCommunicationLogService(incidentCommunicationLogRepo, sharedModule.ActivityLogService, incidentRegisterSvc, incidentTimelineSvc)
+	incidentCommunicationLogSvc := services.NewIncidentCommunicationLogService(incidentCommunicationLogRepo, sharedModule.ActivityLogService, incidentRegisterSvc, incidentTimelineSvc, organizationModule.UserSvc)
 	incidentCommunicationLogController := controllers.NewIncidentCommunicationLogController(incidentCommunicationLogSvc)
 
 	incidentClosureRepo := repositories.NewIncidentClosureRepository(db)
@@ -162,6 +164,7 @@ func NewIncidentModule(db *gorm.DB,
 		IncidentAssociatedItemController:          incidentAssociatedItemController,
 		IncidentTimelineController:                incidentTimelineController,
 
-		IncidentRegisterSvc: incidentRegisterSvc,
+		IncidentRegisterSvc:   incidentRegisterSvc,
+		IncidentActionPlanSvc: incidentActionPlanSvc,
 	}
 }

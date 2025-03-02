@@ -46,6 +46,8 @@ type MeetingMinuteListQueryParamsDTO struct {
 	Status      string
 	Filters     map[string][]string
 	QuickFilter []string
+	DateFrom    string
+	DateTo      string
 }
 
 type MeetingMinuteDetailDTO struct {
@@ -63,6 +65,6 @@ type MeetingMinuteDetailDTO struct {
 }
 
 type MeetingMinuteFormDTO struct {
-	Minutes               string `json:"minutes"  binding:"required"`
-	MeetingAgendaID       *uint  `json:"meeting_agenda_id"`
+	Minutes         string `json:"minutes"  binding:"required"`
+	MeetingAgendaID *uint  `json:"meeting_agenda_id"`
 }

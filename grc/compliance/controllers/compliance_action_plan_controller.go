@@ -26,10 +26,18 @@ func NewComplianceActionPlanController(service services.ComplianceActionPlanServ
 func (capc *ComplianceActionPlanController) GetAllComplianceActionPlans(c *gin.Context) {
 	complianceIDStr := c.Param("complianceId")
 
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	var complianceID uint64
+	var err error
+
+	// Check if complianceID is provided in the URL
+	if complianceIDStr != "" {
+		complianceID, err = strconv.ParseUint(complianceIDStr, 10, 64)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		complianceID = 0
 	}
 
 	sort := c.Query("sort_order")
@@ -37,6 +45,12 @@ func (capc *ComplianceActionPlanController) GetAllComplianceActionPlans(c *gin.C
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(capc.db, c, "Invalid export parameter")
+		return
+	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -80,9 +94,10 @@ func (capc *ComplianceActionPlanController) GetAllComplianceActionPlans(c *gin.C
 		TargetDateTo:   targetDateTo,
 		DateFrom:       dateFrom,
 		DateTo:         dateTo,
+		Export:         export,
 	}
-	complianceActionPlans, err := capc.service.GetAll(uint(complianceID), &queryParams)
 
+	complianceActionPlans, err := capc.service.GetAll(uint(complianceID), &queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -92,6 +107,28 @@ func (capc *ComplianceActionPlanController) GetAllComplianceActionPlans(c *gin.C
 			utility.SendInternalErrResp(capc.db, c, e.Error())
 			return
 		}
+	}
+
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(capc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := capc.service.ExportComplianceActionPlans(complianceActionPlans.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(capc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Compliance Action Plans.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
 	}
 	c.JSON(http.StatusOK, complianceActionPlans)
 }
@@ -257,4 +294,10 @@ func (capc *ComplianceActionPlanController) DeleteComplianceActionPlans(c *gin.C
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (capc *ComplianceActionPlanController) GetComplianceActionPlanExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	capc.GetAllComplianceActionPlans(c)
 }

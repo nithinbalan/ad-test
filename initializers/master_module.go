@@ -9,43 +9,51 @@ import (
 )
 
 type MasterModule struct {
-	ReviewFrequencyController     *controllers.ReviewFrequencyController
-	SeverityLevelController       *controllers.SeverityLevelController
-	LifecycleStatusController     *controllers.LifecycleStatusController
-	QuestionGroupController       *controllers.QuestionGroupController
-	ChecklistController           *controllers.ChecklistController
-	ChecklistQuestionController   *controllers.ChecklistQuestionController
-	AtionPlanStatusController     *controllers.ActionPlanStatusController
-	CurrencyController            *controllers.CurrencyController
-	TimezoneController            *controllers.TimezoneController
-	UnitController                *controllers.UnitController
-	ToolTypeController            *controllers.ToolTypeController
-	ExpenseCategoryController     *controllers.ExpenseCategoryController
-	SourceController              *controllers.SourceController
-	StatusController              *controllers.StatusController
-	ConformanceController         *controllers.ConformanceController
-	WorkflowStatusController      *controllers.WorkflowStatusController
-	IntegrationCategoryController *controllers.IntegrationCategoryController
-	ImpactCategoryController      *controllers.ImpactCategoryController
+	ReviewFrequencyController       *controllers.ReviewFrequencyController
+	SeverityLevelController         *controllers.SeverityLevelController
+	LifecycleStatusController       *controllers.LifecycleStatusController
+	QuestionGroupController         *controllers.QuestionGroupController
+	ChecklistController             *controllers.ChecklistController
+	ChecklistQuestionController     *controllers.ChecklistQuestionController
+	AtionPlanStatusController       *controllers.ActionPlanStatusController
+	CurrencyController              *controllers.CurrencyController
+	TimezoneController              *controllers.TimezoneController
+	UnitController                  *controllers.UnitController
+	ToolTypeController              *controllers.ToolTypeController
+	ExpenseCategoryController       *controllers.ExpenseCategoryController
+	SourceController                *controllers.SourceController
+	StatusController                *controllers.StatusController
+	ConformanceController           *controllers.ConformanceController
+	WorkflowStatusController        *controllers.WorkflowStatusController
+	IntegrationCategoryController   *controllers.IntegrationCategoryController
+	ImpactCategoryController        *controllers.ImpactCategoryController
+	TimeUnitController              *controllers.TimeUnitController
+	ReviewStatusController          *controllers.ReviewStatusController
+	ApplicabilityStatusController   *controllers.ApplicabilityStatusController
+	RequiredDocumentTitleController *controllers.RequiredDocumentTitleController
 
-	ReviewFrequencySvc     services.ReviewFrequencyServiceInterface
-	SeverityLevelSvc       services.SeverityLevelServiceInterface
-	LifecycleStatusSvc     services.LifecycleStatusServiceInterface
-	QuestionGroupService   services.QuestionGroupServiceInterface
-	ChecklistSvc           services.ChecklistServiceInterface
-	ChecklistQuestionSvc   services.ChecklistQuestionServiceInterface
-	ActionPlanStatusSvc    services.ActionPlanStatusServiceInterface
-	CurrencySvc            services.CurrencyServiceInterface
-	TimezoneSvc            services.TimezoneServiceInterface
-	UnitSvc                services.UnitServiceInterface
-	ToolTypeSvc            services.ToolTypeServiceInterface
-	ExpenseCategorySvc     services.ExpenseCategoryServiceInterface
-	SourceSvc              services.SourceServiceInterface
-	StatusSvc              services.StatusServiceInterface
-	ConformanceSvc         services.ConformanceServiceInterface
-	WorkflowStatusSvc      services.WorkflowStatusServiceInterface
-	IntegrationCategorySvc services.IntegrationCategoryServiceInterface
-	ImpactCategorySvc      services.ImpactCategoryServiceInterface
+	ReviewFrequencySvc       services.ReviewFrequencyServiceInterface
+	SeverityLevelSvc         services.SeverityLevelServiceInterface
+	LifecycleStatusSvc       services.LifecycleStatusServiceInterface
+	QuestionGroupService     services.QuestionGroupServiceInterface
+	ChecklistSvc             services.ChecklistServiceInterface
+	ChecklistQuestionSvc     services.ChecklistQuestionServiceInterface
+	ActionPlanStatusSvc      services.ActionPlanStatusServiceInterface
+	CurrencySvc              services.CurrencyServiceInterface
+	TimezoneSvc              services.TimezoneServiceInterface
+	UnitSvc                  services.UnitServiceInterface
+	ToolTypeSvc              services.ToolTypeServiceInterface
+	ExpenseCategorySvc       services.ExpenseCategoryServiceInterface
+	SourceSvc                services.SourceServiceInterface
+	StatusSvc                services.StatusServiceInterface
+	ConformanceSvc           services.ConformanceServiceInterface
+	WorkflowStatusSvc        services.WorkflowStatusServiceInterface
+	IntegrationCategorySvc   services.IntegrationCategoryServiceInterface
+	ImpactCategorySvc        services.ImpactCategoryServiceInterface
+	TimeUnitSvc              services.TimeUnitServiceInterface
+	ReviewStatusSvc          services.ReviewStatusServiceInterface
+	ApplicabilitySvc         services.ApplicabilityStatusServiceInterface
+	RequiredDocumentTitleSvc services.RequiredDocumentTitleServiceInterface
 }
 
 func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
@@ -136,43 +144,70 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	impactCategorySvc := services.NewImpactCategoryService(impactCategoryRepo, sharedModule.ActivityLogService)
 	impactCategoryController := controllers.NewImpactCategoryController(impactCategorySvc)
 
-	return &MasterModule{
-		ReviewFrequencyController:     reviewFrequencyController,
-		SeverityLevelController:       severityLevelController,
-		LifecycleStatusController:     lifecycleStatusController,
-		QuestionGroupController:       questionGroupController,
-		ChecklistController:           checklistController,
-		ChecklistQuestionController:   checklistQuestionController,
-		AtionPlanStatusController:     actionPlanStatusController,
-		CurrencyController:            currencyController,
-		TimezoneController:            timezoneController,
-		UnitController:                unitController,
-		ToolTypeController:            toolTypeController,
-		ExpenseCategoryController:     expenseCategoryController,
-		SourceController:              sourceController,
-		StatusController:              statusController,
-		ConformanceController:         conformanceController,
-		WorkflowStatusController:      workflowStatusController,
-		IntegrationCategoryController: integrationCategoryController,
-		ImpactCategoryController:      impactCategoryController,
+	// Impact category
+	timeUnitRepo := repositories.NewTimeUnitRepository(db)
+	timeUnitSvc := services.NewTimeUnitService(timeUnitRepo)
+	timeUnitController := controllers.NewTimeUnitController(timeUnitSvc)
 
-		ReviewFrequencySvc:     reviewFrequencySvc,
-		SeverityLevelSvc:       severityLevelSvc,
-		LifecycleStatusSvc:     lifecycleStatusSvc,
-		QuestionGroupService:   questionGroupSvc,
-		ChecklistSvc:           checklistSvc,
-		ChecklistQuestionSvc:   checklistQuestionSvc,
-		ActionPlanStatusSvc:    actionPlanStatusSvc,
-		CurrencySvc:            currencySvc,
-		TimezoneSvc:            timezoneSvc,
-		UnitSvc:                unitSvc,
-		ToolTypeSvc:            toolTypeSvc,
-		ExpenseCategorySvc:     expenseCategorySvc,
-		SourceSvc:              sourceSvc,
-		StatusSvc:              statusSvc,
-		ConformanceSvc:         conformanceSvc,
-		WorkflowStatusSvc:      workflowStatusSvc,
-		IntegrationCategorySvc: integrationCategorySvc,
-		ImpactCategorySvc:      impactCategorySvc,
+	//review status
+	reviewStatusRepo := repositories.NewReviewStatusRepository(db)
+	reviewStatusSvc := services.NewReviewStatusService(reviewStatusRepo)
+	reviewStatusController := controllers.NewReviewStatusController(reviewStatusSvc)
+
+	// Applicability Status
+	applicabilityStatusRepo := repositories.NewApplicabilityStatusRepository(db)
+	applicabilityStatusSvc := services.NewApplicabilityStatusService(applicabilityStatusRepo)
+	applicabilityStatusController := controllers.NewApplicabilityStatusController(applicabilityStatusSvc)
+
+	requiredDocumentTitleRepo := repositories.NewRequiredDocumentTitleRepository(db)
+	requiredDocumentTitleSvc := services.NewRequiredDocumentTitleService(requiredDocumentTitleRepo, sharedModule.ActivityLogService)
+	requiredDocumentTitleController := controllers.NewRequiredDocumentTitleController(requiredDocumentTitleSvc)
+
+	return &MasterModule{
+		ReviewFrequencyController:       reviewFrequencyController,
+		SeverityLevelController:         severityLevelController,
+		LifecycleStatusController:       lifecycleStatusController,
+		QuestionGroupController:         questionGroupController,
+		ChecklistController:             checklistController,
+		ChecklistQuestionController:     checklistQuestionController,
+		AtionPlanStatusController:       actionPlanStatusController,
+		CurrencyController:              currencyController,
+		TimezoneController:              timezoneController,
+		UnitController:                  unitController,
+		ToolTypeController:              toolTypeController,
+		ExpenseCategoryController:       expenseCategoryController,
+		SourceController:                sourceController,
+		StatusController:                statusController,
+		ConformanceController:           conformanceController,
+		WorkflowStatusController:        workflowStatusController,
+		IntegrationCategoryController:   integrationCategoryController,
+		ImpactCategoryController:        impactCategoryController,
+		TimeUnitController:              timeUnitController,
+		ReviewStatusController:          reviewStatusController,
+		ApplicabilityStatusController:   applicabilityStatusController,
+		RequiredDocumentTitleController: requiredDocumentTitleController,
+
+		ReviewFrequencySvc:       reviewFrequencySvc,
+		SeverityLevelSvc:         severityLevelSvc,
+		LifecycleStatusSvc:       lifecycleStatusSvc,
+		QuestionGroupService:     questionGroupSvc,
+		ChecklistSvc:             checklistSvc,
+		ChecklistQuestionSvc:     checklistQuestionSvc,
+		ActionPlanStatusSvc:      actionPlanStatusSvc,
+		CurrencySvc:              currencySvc,
+		TimezoneSvc:              timezoneSvc,
+		UnitSvc:                  unitSvc,
+		ToolTypeSvc:              toolTypeSvc,
+		ExpenseCategorySvc:       expenseCategorySvc,
+		SourceSvc:                sourceSvc,
+		StatusSvc:                statusSvc,
+		ConformanceSvc:           conformanceSvc,
+		WorkflowStatusSvc:        workflowStatusSvc,
+		IntegrationCategorySvc:   integrationCategorySvc,
+		ImpactCategorySvc:        impactCategorySvc,
+		TimeUnitSvc:              timeUnitSvc,
+		ReviewStatusSvc:          reviewStatusSvc,
+		ApplicabilitySvc:         applicabilityStatusSvc,
+		RequiredDocumentTitleSvc: requiredDocumentTitleSvc,
 	}
 }

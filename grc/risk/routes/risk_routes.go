@@ -48,6 +48,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskResidualControlAnalysisController := app.RiskModule.RiskResidualControlAnalysisController
 	riskKriController := app.RiskModule.RiskKriController
 	riskTimelineController := app.RiskModule.RiskTimelineController
+	riskSettingsController := app.RiskModule.RiskSettingsController
+	riskClosureController := app.RiskModule.RiskClosureController
+	riskCommentController := app.RiskModule.RiskCommentController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -239,6 +242,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("risks/heatmap-by-risk-category", middlewares.RolePermissionMiddleware(db, "risk_heatmap", "view"), riskHeatmapController.GetRiskHeatmapByRiskCategory)
 	riskRoutes.GET("risks/heatmap-by-risk-source", middlewares.RolePermissionMiddleware(db, "risk_heatmap", "view"), riskHeatmapController.GetRiskHeatmapByRiskSource)
 	riskRoutes.GET("risks/heatmap-by-risk-matrix", middlewares.RolePermissionMiddleware(db, "risk_heatmap", "view"), riskHeatmapController.GetRiskHeatmapByRiskMatrix)
+	riskRoutes.GET("risks/heatmap-by-risk-response-strategy", middlewares.RolePermissionMiddleware(db, "risk_heatmap", "view"), riskHeatmapController.GetRiskHeatmapByResponseStrategy)
+	riskRoutes.GET("risks/heatmap-by-risk-status", middlewares.RolePermissionMiddleware(db, "risk_heatmap", "view"), riskHeatmapController.GetRiskHeatmapByRiskStatus)
+	riskRoutes.GET("risks/heatmap-by-review-frequency", middlewares.RolePermissionMiddleware(db, "risk_heatmap", "view"), riskHeatmapController.GetRiskHeatmapByReviewFrequency)
 
 	riskRoutes.GET("processes/:processId/risk-heatmap", middlewares.RolePermissionMiddleware(db, "process", "view"), riskHeatmapController.GetProcessRiskHeatmap)
 	riskRoutes.GET("controls/:controlId/risk-heatmap", middlewares.RolePermissionMiddleware(db, "controls", "view"), riskHeatmapController.GetControlRiskHeatmap)
@@ -277,4 +283,26 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// Risk Timelines
 	riskRoutes.GET("/risks/:riskId/timelines", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskTimelineController.GetAllRiskTimelines)
+
+	// Risk Settings
+	riskRoutes.GET("/risk-settings", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskSettingsController.GetAllRiskSettings)
+	riskRoutes.PUT("/risk-settings", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskSettingsController.UpdateRiskSettings)
+
+	riskRoutes.GET("risks/:riskId/closure", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskClosureController.GetRiskClosure)
+	riskRoutes.POST("risks/:riskId/closure", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskClosureController.CreateRiskClosure)
+	riskRoutes.PUT("risks/:riskId/closure/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskClosureController.UpdateRiskClosure)
+	riskRoutes.DELETE("risks/:riskId/closure/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskClosureController.DeleteRiskClosure)
+
+	riskRoutes.GET("/risks/:riskId/comments", middlewares.RolePermissionMiddleware(db, "risk", "view"), riskCommentController.GetAllComments)
+	riskRoutes.GET("/risks/:riskId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk", "view"), riskCommentController.GetCommentDetails)
+	riskRoutes.POST("/risks/:riskId/comments", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskCommentController.CreateComment)
+	riskRoutes.PUT("/risks/:riskId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskCommentController.UpdateComment)
+	riskRoutes.POST("/risks/:riskId/comments/delete", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskCommentController.DeleteComment)
+
+	riskRoutes.PUT("/risks/:riskId/submit", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.SubmitRisk)
+	riskRoutes.PUT("/risks/:riskId/revert", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.RevertRisk)
+	riskRoutes.PUT("/risks/:riskId/reject", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.RejectRisk)
+	riskRoutes.PUT("/risks/:riskId/approve", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.ApproveRisk)
+	riskRoutes.PUT("/risks/:riskId/resubmit", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.ResubmitRisk)
+
 }

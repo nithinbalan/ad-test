@@ -30,6 +30,7 @@ type DocumentVersion struct {
 	SubmittedByUser *User     `gorm:"foreignKey:SubmittedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser   *User     `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser   *User     `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	PublishedByUser *User     `gorm:"foreignKey:PublishedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 
 	DocumentEditHistory []*DocumentEditHistory `gorm:"foreignKey:DocumentVersionID"`
 	DocumentWorkflows   []*DocumentWorkflow    `gorm:"foreignKey:DocumentVersionID"`

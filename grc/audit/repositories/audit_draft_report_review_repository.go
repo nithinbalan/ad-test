@@ -15,7 +15,7 @@ type AuditDraftReportReviewRepositoryInterface interface {
 	UpdateAuditReportWorkflow(auditReportWorkflow *models.AuditReportWorkflow, tx ...utility.DatabaseTransaction) error
 	Create(auditReportReview *models.AuditReportReview, tx ...utility.DatabaseTransaction) (uint, error)
 	CreateAuditReportWorkflowParticipants(participants []*models.AuditReportWorkflowParticipant, tx ...utility.DatabaseTransaction) error
-	DeleteAuditReportWorkflowParticipants(participants []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteAuditReportWorkflowParticipants(workflowID uint, participantIDs []*uint, tx ...utility.DatabaseTransaction) error
 	GetAuditReportWorkflowByDraftReportID(auditDraftReportID uint, tx ...utility.DatabaseTransaction) (*models.AuditReportWorkflow, error)
 }
 
@@ -142,13 +142,14 @@ func (repo *AuditDraftReportReviewRepository) CreateAuditReportWorkflowParticipa
 	return nil
 }
 
-func (repo *AuditDraftReportReviewRepository) DeleteAuditReportWorkflowParticipants(participants []*uint, tx ...utility.DatabaseTransaction) error {
+func (repo *AuditDraftReportReviewRepository) DeleteAuditReportWorkflowParticipants(workflowID uint, participantIDs []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	if err := db.Where("id IN (?)", participants).Delete(&models.AuditReportWorkflowParticipant{}).Error; err != nil {
+	if err := db.Where("audit_report_workflow_id = ? AND user_id IN (?)", workflowID, participantIDs).
+		Delete(&models.AuditReportWorkflowParticipant{}).Error; err != nil {
 		return err
 	}
 

@@ -1,14 +1,14 @@
 package dtos
 
 import (
+	"time"
+
 	assetDTOs "jethur/grc/asset/dtos"
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
-
-	"time"
 )
 
 type RiskRegisterListDTO struct {
@@ -90,20 +90,23 @@ type RiskRegisterListDTO struct {
 }
 
 type RiskRegisterListQueryParamsDTO struct {
-	Sort               string
-	SortBy             string
-	Keyword            string
-	Status             string
-	Page               int
-	PageSize           int
-	Value              int
-	Filters            map[string][]string
-	QuickFilter        []string
-	ReportedAtFrom     string
-	ReportedAtTo       string
-	NextReviewDateFrom string
-	NextReviewDateTo   string
-	Export             bool
+	Sort                         string
+	SortBy                       string
+	Keyword                      string
+	Status                       string
+	Page                         int
+	PageSize                     int
+	Value                        int
+	Filters                      map[string][]string
+	QuickFilter                  []string
+	ReportedAtFrom               string
+	ReportedAtTo                 string
+	NextReviewDateFrom           string
+	NextReviewDateTo             string
+	Export                       bool
+	DateFrom                     string
+	DateTo                       string
+	RiskAppetiteToleranceLevelID uint
 }
 
 type RiskRegisterListResponseDTO struct {
@@ -275,6 +278,8 @@ type RiskRegisterFormDTO struct {
 	DocumentIds              []*uint                       `json:"document_ids"`
 	AssetIds                 []*uint                       `json:"asset_ids"`
 	ThreatIds                []*uint                       `json:"threat_ids"`
+	RiskMatrixLikelihoodID   *uint                         `json:"risk_matrix_likelihood_id"`
+	RiskMatrixImpactID       *uint                         `json:"risk_matrix_impact_id"`
 }
 
 type RiskRegisterParsedDates struct {

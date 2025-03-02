@@ -65,7 +65,7 @@
   },
   {
     "id": "password_complexity",
-    "translation": "كلمة المرور لا تلبي المتطلبات"
+    "translation": "كلمة المرور لا تلبي المتطلبات، يجب أن تحتوي على حرف كبير واحد على الأقل، وحرف صغير واحد على الأقل، ورقم واحد، وحرف خاص واحد"
   },
   {
     "id": "password_mismatch",
@@ -126,6 +126,32 @@
 {
   "id": "conflict",
   "translation": "تعارض "
+},
+{
+  "id": "invalid_header",
+  "translation": "رؤوس غير صالحة في ملف Excel: '{{.Field}}'"
+},
+{
+  "id": "invalid_data",
+  "translation": "البيانات المستوردة المقدمة تحتوي على أخطاء. يرجى مراجعة البيانات وتصحيحها قبل المحاولة مرة أخرى."
+},
+{
+  "id": "edit_not_allowed",
+  "translation": "التعديل غير مسموح للعنصر الحالي لأنه لا يفي بالشروط المطلوبة"
+},
+{
+  "id": "distinct_review_user",
+  "translation": "يجب أن يكون المستخدم المسؤول ومستخدم المراجعة مختلفين."
+},
+{
+  "id": "invalid",
+  "translation": "{{.Field}} غير صالح"
+},
+{
+  "id": "user_exceed",
+  "translation": "تجاوز عدد المستخدمين."
 }
+
+
 
 ]

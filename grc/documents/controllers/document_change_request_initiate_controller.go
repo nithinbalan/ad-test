@@ -7,6 +7,7 @@ import (
 	"jethur/grc/documents/services"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -216,4 +217,111 @@ func (dcrc *DocumentChangeRequestInitiateController) DeleteDocumentChangeRequest
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (dcrc *DocumentChangeRequestInitiateController) ApproveDocumentChangeRequestInitiate(c *gin.Context) {
+	idStr := c.Param("icrId")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(dcrc.db, c, err.Error())
+		return
+	}
+
+	err = dcrc.service.Approve(uint(id), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(dcrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (dcrc *DocumentChangeRequestInitiateController) RejectDocumentChangeRequestInitiate(c *gin.Context) {
+	idStr := c.Param("icrId")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(dcrc.db, c, err.Error())
+		return
+	}
+
+	err = dcrc.service.Reject(uint(id), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(dcrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (dcrc *DocumentChangeRequestInitiateController) DownloadChangeRequestInitiateDocument(c *gin.Context) {
+	idStr := c.Param("icrId")
+	crInitiateid, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := dcrc.service.GetDocumentPath(uint(crInitiateid), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(dcrc.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(documentPath)
+	// currentUserID, err := utility.GetCurrentUserID(c)
+	// if err != nil {
+	// 	utility.SendInternalErrResp(dc.db, c, err.Error())
+	// 	return
+	// }
+	// // Add audit log for the document
+	// if err := dc.service.DirectDocumentAuditLog(uint(id), uint(currentUserID), "downloaded"); err != nil {
+	// 	utility.SendInternalErrResp(dc.db, c, err.Error())
+	// 	return
+	// }
+
+	// Set the content type and disposition headers for the file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	// Serve the file
+	c.File(documentPath)
 }

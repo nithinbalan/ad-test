@@ -3,8 +3,16 @@ package services
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	documentDTOs "jethur/grc/documents/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
@@ -15,11 +23,8 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	riskDTOs "jethur/grc/risk/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
+	settingsServices "jethur/grc/settings/services"
 	"jethur/utility"
-	"path/filepath"
-	"sort"
-	"strconv"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -27,16 +32,22 @@ import (
 type AuditFinalReportServiceInterface interface {
 	SetAuditReportWorkflowService(svc AuditReportWorkflowServiceInterface)
 	GetByID(id uint) (*models.AuditFinalReport, error)
-	GetFullDetailsByID(auditID uint, currentUserID uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFinalReportDetailDTO, error)
+	GetFullDetailsByID(auditID uint, currentUserID uint, source string, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFinalReportDetailDTO, error)
 	Create(auditID uint, currentUserID uint) (uint, error)
-	Update(auditFinalReport *models.AuditFinalReport) error
+	Update(auditFinalReport *models.AuditFinalReport, tx ...utility.DatabaseTransaction) error
 	GetByAuditID(auditID uint) (*models.AuditFinalReport, error)
 	Delete(auditID uint, currentUserID uint) error
+	GetAuditFinalReportLastEditSummary(auditID uint) (*auditDTOs.AuditFinalReportLastEditSummaryDTO, error)
+
+	CreateAuditReportEditHistory(auditReportEditSummaryDTO *auditDTOs.AuditReportEditHistoryDTO, currentUserId uint, tx ...utility.DatabaseTransaction) error
+	ExportAuditFinalReportToPDF(auditID uint, currentUserID uint) (string, error)
+	Publish(auditID uint, currentUserID uint, auditFinalReportPublishFormDTO *auditDTOs.AuditFinalReportPublishFormDTO) error
 }
 
 type AuditFinalReportService struct {
 	repo                      repositories.AuditFinalReportRepositoryInterface
 	activityLogSvc            logServices.ActivityLogServiceInterface
+	auditStatusSvc            AuditStatusServiceInterface
 	auditSvc                  AuditServiceInterface
 	auditDraftReportStatusSvc AuditDraftReportStatusServiceInterface
 	auditDraftReportSvc       AuditDraftReportServiceInterface
@@ -45,11 +56,14 @@ type AuditFinalReportService struct {
 	auditFinalReportStatusSvc AuditFinalReportStatusServiceInterface
 	auditFindingSvc           AuditFindingServiceInterface
 	auditReportWorkflowSvc    AuditReportWorkflowServiceInterface
+	settingSvc                settingsServices.AuditTemplateSettingServiceInterface
+	notificationSvc           commonServices.NotificationServiceInterface
 }
 
 func NewAuditFinalReportService(
 	repo repositories.AuditFinalReportRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
+	auditStatusSvc AuditStatusServiceInterface,
 	auditSvc AuditServiceInterface,
 	auditDraftReportStatusSvc AuditDraftReportStatusServiceInterface,
 	auditDraftReportSvc AuditDraftReportServiceInterface,
@@ -57,19 +71,25 @@ func NewAuditFinalReportService(
 	userSvc organizationServices.UserServiceInterface,
 	auditFinalReportStatusSvc AuditFinalReportStatusServiceInterface,
 	auditFindingSvc AuditFindingServiceInterface,
+	settingSvc settingsServices.AuditTemplateSettingServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) AuditFinalReportServiceInterface {
 	return &AuditFinalReportService{
 		repo:                      repo,
 		activityLogSvc:            activityLogSvc,
 		auditSvc:                  auditSvc,
+		auditStatusSvc:            auditStatusSvc,
 		auditDraftReportStatusSvc: auditDraftReportStatusSvc,
 		auditDraftReportSvc:       auditDraftReportSvc,
 		auditDraftFindingSvc:      auditDraftFindingSvc,
 		userSvc:                   userSvc,
 		auditFinalReportStatusSvc: auditFinalReportStatusSvc,
 		auditFindingSvc:           auditFindingSvc,
+		settingSvc:                settingSvc,
+		notificationSvc:           notificationSvc,
 	}
 }
+
 func (afrs *AuditFinalReportService) SetAuditReportWorkflowService(svc AuditReportWorkflowServiceInterface) {
 	afrs.auditReportWorkflowSvc = svc
 }
@@ -85,7 +105,7 @@ func (afrs *AuditFinalReportService) GetByID(id uint) (*models.AuditFinalReport,
 	return auditFinalReport, nil
 }
 
-func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUserID uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFinalReportDetailDTO, error) {
+func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUserID uint, source string, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFinalReportDetailDTO, error) {
 	// Check if the audit exists
 	if _, err := afrs.auditSvc.GetByID(auditID); err != nil {
 		return nil, err
@@ -106,6 +126,17 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 	if auditFinalReport.UpdatedByUser != nil {
 		updatedByUserDTO := mapUserToUserMinimalDTO(auditFinalReport.UpdatedByUser)
 		updatedByUser = &updatedByUserDTO
+	}
+	var publishedByUser *organizationDTOs.UserMinimalDTO
+	var publishedAt *string
+
+	if auditFinalReport.PublishedByUser != nil {
+		publishedByUserDTO := mapUserToUserMinimalDTO(auditFinalReport.PublishedByUser)
+		publishedByUser = &publishedByUserDTO
+	}
+	if auditFinalReport.PublishedAt != nil {
+		formattedPublishedAt := auditFinalReport.PublishedAt.UTC().Format("2006-01-02T15:04:05.000Z")
+		publishedAt = &formattedPublishedAt
 	}
 	// Map the AuditDraftReportStatus
 	auditFinalReportStatusDTO := auditDTOs.AuditFinalReportStatusDTO{
@@ -134,165 +165,386 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 			// Main section
 			mainSectionDTO := mapSectionToDTO(section)
 
+			if section.Type == "finding-summary" {
+				// Finding summary: category-wise count
+				categoryWiseCounts := map[int]int{}
+				for _, finding := range auditFinalReport.Audit.AuditFindings {
+					if finding.AuditFindingCategoryID != 0 {
+						categoryWiseCounts[int(finding.AuditFindingCategoryID)]++
+					}
+				}
+
+				// Convert the map to a DTO structure
+				findingCategoryCounts := []*auditDTOs.FindingCategorySummaryDTO{}
+				for categoryID, count := range categoryWiseCounts {
+					category := findCategoryByID(auditFinalReport.Audit.AuditFindings, uint(categoryID))
+					if category != nil {
+						findingCategoryCounts = append(findingCategoryCounts, &auditDTOs.FindingCategorySummaryDTO{
+							Category: &auditDTOs.AuditFindingCategoryDTO{
+								ID:            int(category.ID),
+								TitleEn:       category.TitleEn,
+								TitleAr:       category.TitleAr,
+								ColorCode:     category.ColorCode,
+								DescriptionEn: safeStringPointer(category.DescriptionEn),
+								DescriptionAr: safeStringPointer(category.DescriptionAr),
+							},
+							Count: count,
+						})
+					}
+				}
+
+				// Assign category-wise counts to the section DTO
+				mainSectionDTO.FindingCategorySummary = findingCategoryCounts
+			}
+
 			// If this section is for findings, map the findings directly to it
 			if section.Type == "findings" {
 				findingsDTOs := []*auditDTOs.AuditFinalReportFindingDTO{}
-				for _, finding := range auditFinalReport.Audit.AuditFindings {
-					// Map action plans for the finding
-					actionPlansDTOs := []*auditDTOs.AuditFindingActionPlanDTO{}
-					for _, actionPlan := range finding.AuditFindingActionPlans {
-						var description *string
-						if actionPlan.Description != nil {
-							description = actionPlan.Description
-						}
-						// Map the ResponsibleUser
-						responsibleUserDTO := mapUserToUserMinimalDTO(actionPlan.ResponsibleUser)
+				if source == "audit-insight" {
+					orgUnitID, err := afrs.userSvc.GetUserPrimaryUnitID(currentUserID)
+					if err != nil {
+						return nil, err
+					}
+					for _, finding := range auditFinalReport.Audit.AuditFindings {
+						if finding.AuditableItem != nil && finding.AuditableItem.ResponsibleUnit != nil && finding.AuditableItem.ResponsibleUnit.ID == orgUnitID {
 
-						// Map the ActionPlanStatus
-						actionPlanStatusDTO := auditDTOs.AuditFindingActionPlanStatusDTO{
-							ID:        actionPlan.ActionPlanStatus.ID,
-							TitleEn:   actionPlan.ActionPlanStatus.TitleEn,
-							TitleAr:   actionPlan.ActionPlanStatus.TitleAr,
-							ColorCode: actionPlan.ActionPlanStatus.ColorCode,
-							Type:      actionPlan.ActionPlanStatus.Type,
-						}
-						actionPlanDTO := auditDTOs.AuditFindingActionPlanDTO{
-							ID:                 actionPlan.ID,
-							Title:              actionPlan.Title,
-							Description:        description,
-							ResponsibleUserID:  actionPlan.ResponsibleUserID,
-							ResponsibleUser:    responsibleUserDTO,
-							TargetDate:         actionPlan.TargetDate.Format("2006-01-02"),
-							ActionPlanStatusID: actionPlan.ActionPlanStatusID,
-							ActionPlanStatus:   actionPlanStatusDTO,
-							CreatedByUser:      mapUserToUserMinimalDTO(actionPlan.CreatedByUser),
-							CreatedAt:          actionPlan.CreatedAt.Format("2006-01-02"),
-						}
-						actionPlansDTOs = append(actionPlansDTOs, &actionPlanDTO)
-					}
-					var findingDescription *string
-					var recommendation *string
-					if finding.Description != nil {
-						findingDescription = finding.Description
-					}
-					if finding.Recommendations != nil {
-						recommendation = finding.Recommendations
-					}
-					var departmentResponsibleUserDTO *organizationDTOs.UserMinimalDTO
-					if finding.DepartmentResponseByUser != nil {
-						mappedUser := mapUserToUserMinimalDTO(finding.DepartmentResponseByUser)
-						departmentResponsibleUserDTO = &mappedUser
-					}
-					var departmentResponseAt *string
-					if finding.DepartmentResponseAt != nil {
-						formattedDepartmentResponseAt := finding.DepartmentResponseAt.Format("2006-01-02")
-						departmentResponseAt = &formattedDepartmentResponseAt
-					}
-					// Map the finding DTO
-					findingDTO := auditDTOs.AuditFinalReportFindingDTO{
-						ID:                       finding.ID,
-						Title:                    finding.Title,
-						Description:              findingDescription,
-						SeverityLevelID:          finding.SeverityLevelID,
-						DepartmentResponse:       finding.DepartmentResponse,
-						DepartmentResponseByID:   finding.DepartmentResponseBYID,
-						DepartmentResponseByUser: departmentResponsibleUserDTO,
-						DepartmentResponseAt:     departmentResponseAt,
-						AuditFindingCategoryID:   finding.AuditFindingCategoryID,
-						Recommendations:          recommendation,
-						ActionPlans:              actionPlansDTOs,
-						CreatedByUser:            mapUserToUserMinimalDTO(finding.CreatedByUser),
-						CreatedAt:                finding.CreatedAt.Format("2006-01-02"),
-					}
-					// Map AuditableItem to DTO
-					findingDTO.AuditableItem = auditDTOs.AuditableItemDetailDTO{
-						ID:                      finding.AuditableItem.ID,
-						Type:                    finding.AuditableItem.Type,
-						TitleEn:                 finding.AuditableItem.TitleEn,
-						TitleAr:                 finding.AuditableItem.TitleAr,
-						Comment:                 &finding.AuditableItem.Comment,
-						ProcessID:               finding.AuditableItem.ProcessID,
-						ControlID:               finding.AuditableItem.ControlID,
-						DocumentID:              finding.AuditableItem.DocumentID,
-						IncidentRegisterID:      finding.AuditableItem.IncidentRegisterID,
-						ComplianceRequirementID: finding.AuditableItem.ComplianceRequirementID,
-						RiskRegisterID:          finding.AuditableItem.RiskRegisterID,
-					}
-					// Map AuditFindingCategory to DTO
-					if finding.AuditFindingCategory != nil {
-						findingDTO.AuditFindingCategory = auditDTOs.AuditFindingCategoryDTO{
-							ID:            int(finding.AuditFindingCategory.ID),
-							TitleEn:       finding.AuditFindingCategory.TitleEn,
-							TitleAr:       finding.AuditFindingCategory.TitleAr,
-							ColorCode:     finding.AuditFindingCategory.ColorCode,
-							DescriptionEn: *finding.AuditFindingCategory.DescriptionEn,
-							DescriptionAr: *finding.AuditFindingCategory.DescriptionAr,
-						}
-					}
+							// Map action plans for the finding
+							actionPlansDTOs := []*auditDTOs.AuditFindingActionPlanDTO{}
+							for _, actionPlan := range finding.AuditFindingActionPlans {
+								var description *string
+								if actionPlan.Description != nil {
+									description = actionPlan.Description
+								}
+								// Map the ResponsibleUser
+								responsibleUserDTO := mapUserToUserMinimalDTO(actionPlan.ResponsibleUser)
 
-					// Map SeverityLevel to DTO
-					if finding.SeverityLevel != nil {
-						findingDTO.SeverityLevel = masterDTOs.SeverityLevelDTO{
-							ID:        finding.SeverityLevel.ID,
-							TitleEn:   finding.SeverityLevel.TitleEn,
-							TitleAr:   finding.SeverityLevel.TitleAr,
-							ColorCode: finding.SeverityLevel.ColorCode,
-							Status:    finding.SeverityLevel.Status,
+								// Map the ActionPlanStatus
+								actionPlanStatusDTO := auditDTOs.AuditFindingActionPlanStatusDTO{
+									ID:        actionPlan.ActionPlanStatus.ID,
+									TitleEn:   actionPlan.ActionPlanStatus.TitleEn,
+									TitleAr:   actionPlan.ActionPlanStatus.TitleAr,
+									ColorCode: actionPlan.ActionPlanStatus.ColorCode,
+									Type:      actionPlan.ActionPlanStatus.Type,
+								}
+								actionPlanDTO := auditDTOs.AuditFindingActionPlanDTO{
+									ID:                 actionPlan.ID,
+									Title:              actionPlan.Title,
+									Description:        description,
+									ResponsibleUserID:  actionPlan.ResponsibleUserID,
+									ResponsibleUser:    responsibleUserDTO,
+									TargetDate:         actionPlan.TargetDate.Format("2006-01-02"),
+									ActionPlanStatusID: actionPlan.ActionPlanStatusID,
+									ActionPlanStatus:   actionPlanStatusDTO,
+									CreatedByUser:      mapUserToUserMinimalDTO(actionPlan.CreatedByUser),
+									CreatedAt:          actionPlan.CreatedAt.Format("2006-01-02"),
+								}
+								actionPlansDTOs = append(actionPlansDTOs, &actionPlanDTO)
+							}
+							var findingDescription *string
+							var recommendation *string
+							if finding.Description != nil {
+								findingDescription = finding.Description
+							}
+							if finding.Recommendations != nil {
+								recommendation = finding.Recommendations
+							}
+							var departmentResponsibleUserDTO *organizationDTOs.UserMinimalDTO
+							if finding.DepartmentResponseByUser != nil {
+								mappedUser := mapUserToUserMinimalDTO(finding.DepartmentResponseByUser)
+								departmentResponsibleUserDTO = &mappedUser
+							}
+							var departmentResponseAt *string
+							if finding.DepartmentResponseAt != nil {
+								formattedDepartmentResponseAt := finding.DepartmentResponseAt.Format("2006-01-02")
+								departmentResponseAt = &formattedDepartmentResponseAt
+							}
+							// Map the finding DTO
+							findingDTO := auditDTOs.AuditFinalReportFindingDTO{
+								ID:                       finding.ID,
+								Title:                    finding.Title,
+								Description:              findingDescription,
+								SeverityLevelID:          finding.SeverityLevelID,
+								DepartmentResponse:       finding.DepartmentResponse,
+								DepartmentResponseByID:   finding.DepartmentResponseBYID,
+								DepartmentResponseByUser: departmentResponsibleUserDTO,
+								DepartmentResponseAt:     departmentResponseAt,
+								AuditFindingCategoryID:   finding.AuditFindingCategoryID,
+								Recommendations:          recommendation,
+								ActionPlans:              actionPlansDTOs,
+								CreatedByUser:            mapUserToUserMinimalDTO(finding.CreatedByUser),
+								CreatedAt:                finding.CreatedAt.Format("2006-01-02"),
+							}
+							// Map AuditableItem to DTO
+							findingDTO.AuditableItem = auditDTOs.AuditableItemDetailDTO{
+								ID:                      finding.AuditableItem.ID,
+								Type:                    finding.AuditableItem.Type,
+								TitleEn:                 finding.AuditableItem.TitleEn,
+								TitleAr:                 finding.AuditableItem.TitleAr,
+								Comment:                 &finding.AuditableItem.Comment,
+								ProcessID:               finding.AuditableItem.ProcessID,
+								ControlID:               finding.AuditableItem.ControlID,
+								DocumentID:              finding.AuditableItem.DocumentID,
+								IncidentRegisterID:      finding.AuditableItem.IncidentRegisterID,
+								ComplianceRequirementID: finding.AuditableItem.ComplianceRequirementID,
+								RiskRegisterID:          finding.AuditableItem.RiskRegisterID,
+							}
+							// Map AuditFindingCategory to DTO
+							if finding.AuditFindingCategory != nil {
+								findingDTO.AuditFindingCategory = auditDTOs.AuditFindingCategoryDTO{
+									ID:            int(finding.AuditFindingCategory.ID),
+									TitleEn:       finding.AuditFindingCategory.TitleEn,
+									TitleAr:       finding.AuditFindingCategory.TitleAr,
+									ColorCode:     finding.AuditFindingCategory.ColorCode,
+									DescriptionEn: *finding.AuditFindingCategory.DescriptionEn,
+									DescriptionAr: *finding.AuditFindingCategory.DescriptionAr,
+								}
+							}
+
+							// Map SeverityLevel to DTO
+							if finding.SeverityLevel != nil {
+								findingDTO.SeverityLevel = masterDTOs.SeverityLevelDTO{
+									ID:        finding.SeverityLevel.ID,
+									TitleEn:   finding.SeverityLevel.TitleEn,
+									TitleAr:   finding.SeverityLevel.TitleAr,
+									ColorCode: finding.SeverityLevel.ColorCode,
+									Status:    finding.SeverityLevel.Status,
+								}
+							}
+							// Map additional related entities if they exist
+							if finding.AuditableItem.Process != nil {
+								findingDTO.AuditableItem.Process = &organizationDTOs.ProcessDetailDTO{
+									TitleEn: safeStringPointer(&finding.AuditableItem.Process.TitleEn),
+									TitleAr: safeStringPointer(&finding.AuditableItem.Process.TitleAr),
+								}
+							}
+							if finding.AuditableItem.Control != nil {
+								findingDTO.AuditableItem.Control = &organizationDTOs.ControlDetailDTO{
+									TitleEn: safeStringPointer(&finding.AuditableItem.Control.TitleEn),
+									TitleAr: safeStringPointer(&finding.AuditableItem.Control.TitleAr),
+								}
+							}
+							if finding.AuditableItem.Document != nil {
+								findingDTO.AuditableItem.Document = &documentDTOs.DocumentDetailsDTO{
+									TitleEn: safeStringPointer(&finding.AuditableItem.Document.TitleEn),
+									TitleAr: safeStringPointer(&finding.AuditableItem.Document.TitleAr),
+								}
+							}
+							if finding.AuditableItem.ComplianceRequirement != nil {
+								findingDTO.AuditableItem.ComplianceRequirement = &complianceDTOs.ComplianceRequirementDetailDTO{
+									TitleEn: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.TitleEn),
+									TitleAr: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.TitleAr),
+								}
+							}
+							if finding.AuditableItem.IncidentRegister != nil {
+								findingDTO.AuditableItem.IncidentRegister = &incidentDTOs.IncidentRegisterDetailDTO{
+									Title: safeStringPointer(&finding.AuditableItem.IncidentRegister.Title),
+								}
+							}
+							if finding.AuditableItem.RiskRegister != nil {
+								findingDTO.AuditableItem.RiskRegister = &riskDTOs.RiskRegisterDetailDTO{
+									Title: safeStringPointer(&finding.AuditableItem.RiskRegister.Title),
+								}
+							}
+							if finding.AuditableItem.User != nil {
+								userDTO := mapUserToUserMinimalDTO(finding.AuditableItem.User)
+								findingDTO.AuditableItem.User = &userDTO
+							}
+							if finding.AuditableItem.ResponsibleUnit != nil {
+								findingDTO.AuditableItem.ResponsibleUnit = settingsDTOs.OrganizationUnitDTO{
+									ID:        int(finding.AuditableItem.ResponsibleUnit.ID),
+									TitleEn:   finding.AuditableItem.ResponsibleUnit.TitleEn,
+									TitleAr:   finding.AuditableItem.ResponsibleUnit.TitleAr,
+									ColorCode: finding.AuditableItem.ResponsibleUnit.ColorCode,
+									Status:    finding.AuditableItem.ResponsibleUnit.Status,
+								}
+							}
+							findingsDTOs = append(findingsDTOs, &findingDTO)
+
 						}
 					}
-					// Map additional related entities if they exist
-					if finding.AuditableItem.Process != nil {
-						findingDTO.AuditableItem.Process = &organizationDTOs.ProcessDetailDTO{
-							TitleEn: safeStringPointer(&finding.AuditableItem.Process.TitleEn),
-							TitleAr: safeStringPointer(&finding.AuditableItem.Process.TitleAr),
+				} else {
+					for _, finding := range auditFinalReport.Audit.AuditFindings {
+						// Map action plans for the finding
+						actionPlansDTOs := []*auditDTOs.AuditFindingActionPlanDTO{}
+						for _, actionPlan := range finding.AuditFindingActionPlans {
+							var description *string
+							if actionPlan.Description != nil {
+								description = actionPlan.Description
+							}
+							// Map the ResponsibleUser
+							responsibleUserDTO := mapUserToUserMinimalDTO(actionPlan.ResponsibleUser)
+
+							// Map the ActionPlanStatus
+							actionPlanStatusDTO := auditDTOs.AuditFindingActionPlanStatusDTO{
+								ID:        actionPlan.ActionPlanStatus.ID,
+								TitleEn:   actionPlan.ActionPlanStatus.TitleEn,
+								TitleAr:   actionPlan.ActionPlanStatus.TitleAr,
+								ColorCode: actionPlan.ActionPlanStatus.ColorCode,
+								Type:      actionPlan.ActionPlanStatus.Type,
+							}
+							actionPlanDTO := auditDTOs.AuditFindingActionPlanDTO{
+								ID:                 actionPlan.ID,
+								Title:              actionPlan.Title,
+								Description:        description,
+								ResponsibleUserID:  actionPlan.ResponsibleUserID,
+								ResponsibleUser:    responsibleUserDTO,
+								TargetDate:         actionPlan.TargetDate.Format("2006-01-02"),
+								ActionPlanStatusID: actionPlan.ActionPlanStatusID,
+								ActionPlanStatus:   actionPlanStatusDTO,
+								CreatedByUser:      mapUserToUserMinimalDTO(actionPlan.CreatedByUser),
+								CreatedAt:          actionPlan.CreatedAt.Format("2006-01-02"),
+							}
+							actionPlansDTOs = append(actionPlansDTOs, &actionPlanDTO)
 						}
-					}
-					if finding.AuditableItem.Control != nil {
-						findingDTO.AuditableItem.Control = &organizationDTOs.ControlDetailDTO{
-							TitleEn: safeStringPointer(&finding.AuditableItem.Control.TitleEn),
-							TitleAr: safeStringPointer(&finding.AuditableItem.Control.TitleAr),
+						var findingDescription *string
+						var recommendation *string
+						if finding.Description != nil {
+							findingDescription = finding.Description
 						}
-					}
-					if finding.AuditableItem.Document != nil {
-						findingDTO.AuditableItem.Document = &documentDTOs.DocumentDetailsDTO{
-							TitleEn: safeStringPointer(&finding.AuditableItem.Document.TitleEn),
-							TitleAr: safeStringPointer(&finding.AuditableItem.Document.TitleAr),
+						if finding.Recommendations != nil {
+							recommendation = finding.Recommendations
 						}
-					}
-					if finding.AuditableItem.ComplianceRequirement != nil {
-						findingDTO.AuditableItem.ComplianceRequirement = &complianceDTOs.ComplianceRequirementDetailDTO{
-							Title: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.Title),
+						var departmentResponsibleUserDTO *organizationDTOs.UserMinimalDTO
+						if finding.DepartmentResponseByUser != nil {
+							mappedUser := mapUserToUserMinimalDTO(finding.DepartmentResponseByUser)
+							departmentResponsibleUserDTO = &mappedUser
 						}
-					}
-					if finding.AuditableItem.IncidentRegister != nil {
-						findingDTO.AuditableItem.IncidentRegister = &incidentDTOs.IncidentRegisterDetailDTO{
-							Title: safeStringPointer(&finding.AuditableItem.IncidentRegister.Title),
+						var departmentResponseAt *string
+						if finding.DepartmentResponseAt != nil {
+							formattedDepartmentResponseAt := finding.DepartmentResponseAt.Format("2006-01-02")
+							departmentResponseAt = &formattedDepartmentResponseAt
 						}
-					}
-					if finding.AuditableItem.RiskRegister != nil {
-						findingDTO.AuditableItem.RiskRegister = &riskDTOs.RiskRegisterDetailDTO{
-							Title: safeStringPointer(&finding.AuditableItem.RiskRegister.Title),
+						// Map the finding DTO
+						findingDTO := auditDTOs.AuditFinalReportFindingDTO{
+							ID:                       finding.ID,
+							Title:                    finding.Title,
+							Description:              findingDescription,
+							SeverityLevelID:          finding.SeverityLevelID,
+							DepartmentResponse:       finding.DepartmentResponse,
+							DepartmentResponseByID:   finding.DepartmentResponseBYID,
+							DepartmentResponseByUser: departmentResponsibleUserDTO,
+							DepartmentResponseAt:     departmentResponseAt,
+							AuditFindingCategoryID:   finding.AuditFindingCategoryID,
+							Recommendations:          recommendation,
+							ActionPlans:              actionPlansDTOs,
+							CreatedByUser:            mapUserToUserMinimalDTO(finding.CreatedByUser),
+							CreatedAt:                finding.CreatedAt.Format("2006-01-02"),
 						}
-					}
-					if finding.AuditableItem.User != nil {
-						userDTO := mapUserToUserMinimalDTO(finding.AuditableItem.User)
-						findingDTO.AuditableItem.User = &userDTO
-					}
-					if finding.AuditableItem.ResponsibleUnit != nil {
-						findingDTO.AuditableItem.ResponsibleUnit = settingsDTOs.OrganizationUnitDTO{
-							ID:        int(finding.AuditableItem.ResponsibleUnit.ID),
-							TitleEn:   finding.AuditableItem.ResponsibleUnit.TitleEn,
-							TitleAr:   finding.AuditableItem.ResponsibleUnit.TitleAr,
-							ColorCode: finding.AuditableItem.ResponsibleUnit.ColorCode,
-							Status:    finding.AuditableItem.ResponsibleUnit.Status,
+						// Map AuditableItem to DTO
+						findingDTO.AuditableItem = auditDTOs.AuditableItemDetailDTO{
+							ID:                      finding.AuditableItem.ID,
+							Type:                    finding.AuditableItem.Type,
+							TitleEn:                 finding.AuditableItem.TitleEn,
+							TitleAr:                 finding.AuditableItem.TitleAr,
+							Comment:                 &finding.AuditableItem.Comment,
+							ProcessID:               finding.AuditableItem.ProcessID,
+							ControlID:               finding.AuditableItem.ControlID,
+							DocumentID:              finding.AuditableItem.DocumentID,
+							IncidentRegisterID:      finding.AuditableItem.IncidentRegisterID,
+							ComplianceRequirementID: finding.AuditableItem.ComplianceRequirementID,
+							RiskRegisterID:          finding.AuditableItem.RiskRegisterID,
 						}
+						// Map AuditFindingCategory to DTO
+						if finding.AuditFindingCategory != nil {
+							findingDTO.AuditFindingCategory = auditDTOs.AuditFindingCategoryDTO{
+								ID:            int(finding.AuditFindingCategory.ID),
+								TitleEn:       finding.AuditFindingCategory.TitleEn,
+								TitleAr:       finding.AuditFindingCategory.TitleAr,
+								ColorCode:     finding.AuditFindingCategory.ColorCode,
+								DescriptionEn: *finding.AuditFindingCategory.DescriptionEn,
+								DescriptionAr: *finding.AuditFindingCategory.DescriptionAr,
+							}
+						}
+
+						// Map SeverityLevel to DTO
+						if finding.SeverityLevel != nil {
+							findingDTO.SeverityLevel = masterDTOs.SeverityLevelDTO{
+								ID:        finding.SeverityLevel.ID,
+								TitleEn:   finding.SeverityLevel.TitleEn,
+								TitleAr:   finding.SeverityLevel.TitleAr,
+								ColorCode: finding.SeverityLevel.ColorCode,
+								Status:    finding.SeverityLevel.Status,
+							}
+						}
+						// Map additional related entities if they exist
+						if finding.AuditableItem.Process != nil {
+							findingDTO.AuditableItem.Process = &organizationDTOs.ProcessDetailDTO{
+								TitleEn: safeStringPointer(&finding.AuditableItem.Process.TitleEn),
+								TitleAr: safeStringPointer(&finding.AuditableItem.Process.TitleAr),
+							}
+						}
+						if finding.AuditableItem.Control != nil {
+							findingDTO.AuditableItem.Control = &organizationDTOs.ControlDetailDTO{
+								TitleEn: safeStringPointer(&finding.AuditableItem.Control.TitleEn),
+								TitleAr: safeStringPointer(&finding.AuditableItem.Control.TitleAr),
+							}
+						}
+						if finding.AuditableItem.Document != nil {
+							findingDTO.AuditableItem.Document = &documentDTOs.DocumentDetailsDTO{
+								TitleEn: safeStringPointer(&finding.AuditableItem.Document.TitleEn),
+								TitleAr: safeStringPointer(&finding.AuditableItem.Document.TitleAr),
+							}
+						}
+						if finding.AuditableItem.ComplianceRequirement != nil {
+							findingDTO.AuditableItem.ComplianceRequirement = &complianceDTOs.ComplianceRequirementDetailDTO{
+								TitleEn: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.TitleEn),
+								TitleAr: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.TitleAr),
+							}
+						}
+						if finding.AuditableItem.IncidentRegister != nil {
+							findingDTO.AuditableItem.IncidentRegister = &incidentDTOs.IncidentRegisterDetailDTO{
+								Title: safeStringPointer(&finding.AuditableItem.IncidentRegister.Title),
+							}
+						}
+						if finding.AuditableItem.RiskRegister != nil {
+							findingDTO.AuditableItem.RiskRegister = &riskDTOs.RiskRegisterDetailDTO{
+								Title: safeStringPointer(&finding.AuditableItem.RiskRegister.Title),
+							}
+						}
+						if finding.AuditableItem.User != nil {
+							userDTO := mapUserToUserMinimalDTO(finding.AuditableItem.User)
+							findingDTO.AuditableItem.User = &userDTO
+						}
+						if finding.AuditableItem.ResponsibleUnit != nil {
+							findingDTO.AuditableItem.ResponsibleUnit = settingsDTOs.OrganizationUnitDTO{
+								ID:        int(finding.AuditableItem.ResponsibleUnit.ID),
+								TitleEn:   finding.AuditableItem.ResponsibleUnit.TitleEn,
+								TitleAr:   finding.AuditableItem.ResponsibleUnit.TitleAr,
+								ColorCode: finding.AuditableItem.ResponsibleUnit.ColorCode,
+								Status:    finding.AuditableItem.ResponsibleUnit.Status,
+							}
+						}
+
+						findingsDTOs = append(findingsDTOs, &findingDTO)
 					}
-					findingsDTOs = append(findingsDTOs, &findingDTO)
 				}
 				// Assign findings to the main section DTO
 				mainSectionDTO.Findings = findingsDTOs
 			}
-
+			appendicesDTOs := []*auditDTOs.AuditFinalReportAppendixDetailDTO{}
+			if section.Type == "appendix" {
+				// Fetch and map appendices for this section
+				for _, appendix := range auditFinalReport.Appendices {
+					// Map the appendix to the DTO
+					appendixDTO := &auditDTOs.AuditFinalReportAppendixDetailDTO{
+						ID:                 appendix.ID,
+						AuditFinalReportID: appendix.AuditFinalReportID,
+						URL:                appendix.URL,
+						Name:               appendix.Name,
+						Size:               appendix.Size,
+						Token:              appendix.Token,
+						OriginalName:       appendix.OriginalName,
+						Type:               appendix.Type,
+						CreatedBYID:        appendix.CreatedBYID,
+						UpdatedBYID:        appendix.UpdatedBYID,
+						CreatedByUser:      mapUserToUserMinimalDTO(appendix.CreatedByUser),
+						CreatedAt:          appendix.CreatedAt.UTC().Format("2006-01-02T15:04:05.000Z"),
+					}
+					appendicesDTOs = append(appendicesDTOs, appendixDTO)
+				}
+			}
+			// Add appendices to the section DTO
+			mainSectionDTO.Appendices = appendicesDTOs
 			// Add subsections (if any)
 			subSections := []*auditDTOs.AuditFinalReportSectionDTO{}
 			for _, subSection := range auditFinalReport.AuditFinalReportSections {
@@ -307,21 +559,36 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 		}
 	}
 
-	// Map other fields and create the DTO
+	// Map other fielafrs and create the DTO
 	auditReportDTO := &auditDTOs.AuditFinalReportDetailDTO{
-		ID:                     auditFinalReport.ID,
-		AuditID:                auditFinalReport.AuditID,
-		NextReviewLevel:        auditFinalReport.NextReviewLevel,
-		Title:                  auditFinalReport.Audit.AuditPlan.Title,
-		Description:            auditFinalReport.Audit.AuditPlan.Description,
-		ReferenceNumber:        auditFinalReport.Audit.AuditPlan.ReferenceNumber,
-		MainSections:           mainSections,
-		AuditFinalReportStatus: &auditFinalReportStatusDTO,
-		PreparedBy:             createdByUser,
-		UpdatedByUser:          updatedByUser,
-		PreparedAt:             auditFinalReport.CreatedAt.Format("2006-01-02"),
+		ID:                         auditFinalReport.ID,
+		AuditID:                    auditFinalReport.AuditID,
+		NextReviewLevel:            auditFinalReport.NextReviewLevel,
+		Title:                      auditFinalReport.Audit.AuditPlan.Title,
+		Description:                auditFinalReport.Audit.AuditPlan.Description,
+		ReferenceNumber:            auditFinalReport.Audit.AuditPlan.ReferenceNumber,
+		MainSections:               mainSections,
+		AuditFinalReportStatus:     &auditFinalReportStatusDTO,
+		AuditFinalReportRecipients: []*auditDTOs.AuditFinalReportRecipientDTO{},
+		PreparedBy:                 createdByUser,
+		PublishedByUser:            publishedByUser,
+		PublishedAt:                publishedAt,
+		Comments:                   auditFinalReport.Comments,
+		UpdatedByUser:              updatedByUser,
+		PreparedAt:                 auditFinalReport.CreatedAt.UTC().Format("2006-01-02T15:04:05.000Z"),
 	}
-
+	// Check if AuditFinalReportRecipients exists and map them
+	if len(auditFinalReport.AuditFinalReportRecipients) > 0 {
+		for _, recipient := range auditFinalReport.AuditFinalReportRecipients {
+			auditReportDTO.AuditFinalReportRecipients = append(auditReportDTO.AuditFinalReportRecipients, &auditDTOs.AuditFinalReportRecipientDTO{
+				ID:                 &recipient.ID,
+				AuditFinalReportID: recipient.AuditFinalReportID,
+				Type:               recipient.Type,
+				UserID:             recipient.UserID,
+				User:               mapUserToUserMinimalDTO(recipient.User),
+			})
+		}
+	}
 	// Return the DTO
 	return auditReportDTO, nil
 }
@@ -338,11 +605,6 @@ func (afrs *AuditFinalReportService) GetByAuditID(auditID uint) (*models.AuditFi
 }
 
 func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (uint, error) {
-	tx := afrs.repo.BeginTransaction()
-	if _, err := afrs.auditSvc.GetByID(auditID); err != nil {
-		tx.Rollback()
-		return 0, err
-	}
 	// Check if a final report already exists for this audit
 	// existingReport, err := afrs.repo.GetByAuditID(auditID)
 	// if err != nil {
@@ -357,20 +619,20 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	// }
 	auditDraftReport, err := afrs.auditDraftReportSvc.GetByAuditID(auditID)
 	if err != nil {
-		tx.Rollback()
 		return 0, err
 	}
 	// Check if AuditDraftReportStatus is 'completed'
 	completedStatus, err := afrs.auditDraftReportStatusSvc.GetByType("completed")
 	if err != nil {
-		tx.Rollback()
 		return 0, err
 	}
 	if auditDraftReport.AuditDraftReportStatusID != completedStatus.ID {
-		tx.Rollback()
 		return 0, utility.NewForbiddenError("Action not allowed: Only audit draft reports with an 'Completed' status can be accepted.")
 	}
-	audit, err := afrs.auditSvc.GetFullDetailsByID(auditID)
+
+	tx := afrs.repo.BeginTransaction()
+
+	audit, err := afrs.auditSvc.GetFullDetailsByID(auditID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -426,7 +688,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 		{"Audit Findings", "finding-summary"},
 		{"Findings", "findings"},
 		{"Conclusions", "conclusion"},
-		{"Appendix", "custom"},
+		{"Appendix", "appendix"},
 	}
 
 	var reportSections []*models.AuditFinalReportSection
@@ -457,7 +719,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	var reportSubSections []*models.AuditFinalReportSection
 
 	for _, section := range reportSections {
-		mainSection, err := afrs.repo.GetSectionByType(section.Type, tx)
+		mainSection, err := afrs.repo.GetSectionByType(section.Type, id, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -535,8 +797,8 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 					titleAr = auditableItem.AuditableItem.IncidentRegister.Title
 
 				case "compliance_requirement":
-					titleEn = auditableItem.AuditableItem.ComplianceRequirement.Title
-					titleAr = auditableItem.AuditableItem.ComplianceRequirement.Title
+					titleEn = auditableItem.AuditableItem.ComplianceRequirement.TitleEn
+					titleAr = auditableItem.AuditableItem.ComplianceRequirement.TitleAr
 
 				case "risk":
 					titleEn = auditableItem.AuditableItem.RiskRegister.Title
@@ -592,15 +854,18 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 			})
 		}
 	}
+
 	// findings only copying from draft findings to AuditFinding, not saving in to AuditFinalReportSection
-	auditDraftFindings, err := afrs.auditDraftFindingSvc.GetAllFindingsByAuditID(auditID)
+	auditDraftFindings, err := afrs.auditDraftFindingSvc.GetAllFindingsByAuditID(auditID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
+
 	// Initialize slices for findings and action plans
 	var actionPlans []*models.AuditFindingActionPlan
 	var auditFindingDocuments []*models.AuditFindingDocument
+
 	for _, draftFinding := range auditDraftFindings {
 		if draftFinding.AuditDraftFindingStatus != nil && draftFinding.AuditDraftFindingStatus.IsFinalized {
 			var latestComment *string
@@ -627,30 +892,31 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 				DepartmentResponseBYID: latestCreatedByID,
 				DepartmentResponseAt:   latestCreatedAt,
 			}
-			findingID, err := afrs.auditFindingSvc.Create(currentUserID, findingDTO)
+
+			findingID, err := afrs.auditFindingSvc.Create(currentUserID, findingDTO, tx)
 			if err != nil {
 				tx.Rollback()
 				return 0, err
 			}
+
 			for _, draftDoc := range draftFinding.Documents {
 				finalDocument := &models.AuditFindingDocument{
-					AuditFindingID:  findingID, // ID of the final AuditFinding
-					URL:             draftDoc.URL,
-					Name:            draftDoc.Name,
-					Size:            draftDoc.Size,
-					Token:           draftDoc.Token,
-					OriginalName:    draftDoc.OriginalName,
-					Type:            draftDoc.Type,
-					CreatedByID:     currentUserID,
-					CreatedAt:       time.Now(),
-					UpdatedAt:       time.Now(),
+					AuditFindingID: findingID, // ID of the final AuditFinding
+					URL:            draftDoc.URL,
+					Name:           draftDoc.Name,
+					Size:           draftDoc.Size,
+					Token:          draftDoc.Token,
+					OriginalName:   draftDoc.OriginalName,
+					Type:           draftDoc.Type,
+					CreatedByID:    currentUserID,
+					CreatedAt:      time.Now(),
+					UpdatedAt:      time.Now(),
 				}
 				// Append the final document to the slice
 				auditFindingDocuments = append(auditFindingDocuments, finalDocument)
 				// Define draft and final storage directories
 				draftDir := filepath.Join("audit", "audits", strconv.FormatUint(uint64(draftFinding.AuditID), 10), "draft-findings", strconv.FormatUint(uint64(draftFinding.ID), 10), "documents")
-				finalDir := filepath.Join("audit", "audits","audit-findings", strconv.FormatUint(uint64(findingID), 10), "documents")
-
+				finalDir := filepath.Join("audit", "audits", "audit-findings", strconv.FormatUint(uint64(findingID), 10), "documents")
 				// Use CopyFileFromPaths to copy each document
 				err = utility.CopyFileFromPaths(draftDir, finalDir, draftDoc.Name)
 				if err != nil {
@@ -659,6 +925,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 					tx.Rollback()
 					return 0, err
 				}
+
 			}
 
 			// Copy action plans from draft findings to final findings
@@ -666,18 +933,20 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 				actionPlan := &models.AuditFindingActionPlan{
 					Title:             draftActionPlan.Title,
 					AuditFindingID:    findingID,
-					Description:       &draftActionPlan.Description,
+					Description:       draftActionPlan.Description,
 					ResponsibleUserID: *draftActionPlan.ResponsibleUserID,
 					TargetDate:        draftActionPlan.TargetDate,
 					CreatedBYID:       currentUserID,
 					// SeverityLevelID:    draftActionPlan.SeverityLevelID,
-					ActionPlanStatusID: 1, //todo -- add ActionPlanStatusID
+					ActionPlanStatusID: 1, // todo -- add ActionPlanStatusID
 				}
 				// Attach action plan to its respective AuditFinding
 				actionPlans = append(actionPlans, actionPlan)
 			}
+
 		}
 	}
+
 	if len(auditFindingDocuments) > 0 {
 		if err := afrs.repo.CreateAuditFindingDocuments(auditFindingDocuments, tx); err != nil {
 			tx.Rollback()
@@ -692,15 +961,28 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 			return 0, err
 		}
 	}
-	//Bulk insert AuditFinalReportSection
+	// Bulk insert AuditFinalReportSection
 	if len(reportSubSections) > 0 {
 		if err := afrs.repo.CreateAuditFinalReportSections(reportSubSections, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
 	}
-	//Add workflow
+
+	// Add workflow
 	err = afrs.auditReportWorkflowSvc.CreateAuditReportWorkflow(id, "final-report", currentUserID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	// add audit report edit history
+	auditReportEditHistory := &auditDTOs.AuditReportEditHistoryDTO{
+		AuditID:            auditID,
+		AuditFinalReportID: id,
+		ActionType:         "create",
+	}
+
+	err = afrs.CreateAuditReportEditHistory(auditReportEditHistory, currentUserID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -708,15 +990,19 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	tx.Commit()
 
 	go func() {
-		err := afrs.activityLogSvc.LogActivity(
+		existingAuditFinalReport, err := afrs.repo.GetFullDetailsByID(auditID)
+		if err != nil {
+			return
+		}
+
+		err = afrs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditFinalReport{}.TableName(),
 			id,
-			nil,
+			existingAuditFinalReport,
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -733,17 +1019,32 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	return id, nil
 }
 
-func (afrs *AuditFinalReportService) Update(auditFinalReport *models.AuditFinalReport) error {
-	err := afrs.repo.Update(auditFinalReport)
+func (afrs *AuditFinalReportService) Update(auditFinalReport *models.AuditFinalReport, tx ...utility.DatabaseTransaction) error {
+	var transaction utility.DatabaseTransaction
+
+	if len(tx) > 0 && tx[0] != nil {
+		transaction = tx[0]
+	} else {
+		transaction = afrs.repo.BeginTransaction()
+		defer transaction.Rollback() // Ensure rollback if transaction was started here and not committed
+	}
+	err := afrs.repo.Update(auditFinalReport, transaction)
 	if err != nil {
 		return err
 	}
 
+	// update using submit so edit history no need
+
+	// Commit if this function started the transaction
+	if len(tx) == 0 {
+		transaction.Commit()
+	}
 	return nil
 }
 
 func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) error {
 	tx := afrs.repo.BeginTransaction()
+	var deletedAuditFinalReport []map[string]interface{}
 	auditFinalReport, err := afrs.repo.GetFullDetailsByID(auditID, tx)
 	if err != nil {
 		tx.Rollback()
@@ -830,7 +1131,7 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 		}
 	}
 
-	//delete workflow
+	// delete workflow
 	var deleteAuditReportWorkflowIds []*uint
 	var deleteAuditReportWorkflowParticipantIds []*uint
 	var deleteAuditReportWorkflowReviewIds []*uint
@@ -860,15 +1161,44 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 		tx.Rollback()
 		return err
 	}
-
+	if err := afrs.repo.DeleteAuditReportEditHistories(auditFinalReport.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
 	if err := afrs.auditReportWorkflowSvc.DeleteAuditReportWorkflows(deleteAuditReportWorkflowIds, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
+	// Delete appendices
+	if len(auditFinalReport.Appendices) > 0 {
+		var deleteAppendixIDs []*uint
+		for _, appendix := range auditFinalReport.Appendices {
+			deleteAppendixIDs = append(deleteAppendixIDs, &appendix.ID)
+
+			// Delete appendix files
+			storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "final-report", "appendix")
+			if err := utility.RemoveFile(appendix.Name, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+
+		// Delete appendix entries from the database
+		if err := afrs.repo.DeleteAuditFinalReportAppendices(deleteAppendixIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	if err := afrs.repo.Delete(auditFinalReport.ID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
+	deletedAuditFinalReport = append(deletedAuditFinalReport, map[string]interface{}{
+		"id":         auditFinalReport.ID,
+		"audit_plan": auditFinalReport.Audit.AuditPlan.Title,
+		"audit_id":   auditFinalReport.AuditID,
+	})
 	tx.Commit()
 
 	go func() {
@@ -876,11 +1206,10 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 			models.DeleteAction,
 			models.AuditFinalReport{}.TableName(),
 			auditFinalReport.ID,
-			nil,
+			deletedAuditFinalReport,
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.DeleteAction,
@@ -897,10 +1226,132 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 	return nil
 }
 
+func (afrs *AuditFinalReportService) GetAuditFinalReportLastEditSummary(auditID uint) (*auditDTOs.AuditFinalReportLastEditSummaryDTO, error) {
+	auditFinalReport, err := afrs.repo.GetFullDetailsByID(auditID)
+	if err != nil {
+		return nil, err
+	}
+
+	activity, err := afrs.repo.GetAuditFinalReportLatestEditHistory(auditFinalReport.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	userDTO := mapUserToUserMinimalDTO(activity.CreatedByUser)
+
+	latestActivityDTO := auditDTOs.ActivityDTO{
+		Activity:  activity.ActionType,
+		By:        &userDTO,
+		Comment:   activity.Comment,
+		Timestamp: activity.CreatedAt,
+	}
+	// Initialize variables for the current document workflow
+	var currentAuditReportWorkflowLevel *models.AuditReportWorkflow
+	var participants []*organizationDTOs.UserMinimalDTO
+	totalComments := 0
+
+	// Check if there is a next review level and fetch the corresponding workflow
+	currentAuditReportWorkflowLevel, err = afrs.auditReportWorkflowSvc.GetAuditReportWorkflowByLevel(auditFinalReport.ID, auditFinalReport.NextReviewLevel)
+	if err != nil {
+		return nil, err
+	}
+
+	// Process workflow participants and count comments
+	if currentAuditReportWorkflowLevel != nil {
+		for _, participant := range currentAuditReportWorkflowLevel.AuditReportWorkflowParticipants {
+			userDTO := mapUserToUserMinimalDTO(participant.User)
+			participants = append(participants, &userDTO)
+		}
+
+		for _, review := range currentAuditReportWorkflowLevel.AuditReportReviews {
+			if review.Comment != nil {
+				totalComments++
+			}
+		}
+	}
+
+	// Prepare the response DTO
+	responseDTO := &auditDTOs.AuditFinalReportLastEditSummaryDTO{
+		LatestActivity: latestActivityDTO,
+		CurrentLevel:   &auditFinalReport.NextReviewLevel,
+		Participants:   participants,
+		TotalComments:  &totalComments,
+	}
+
+	return responseDTO, nil
+}
+
+func (afrs *AuditFinalReportService) CreateAuditReportEditHistory(auditReportEditSummaryDTO *auditDTOs.AuditReportEditHistoryDTO, currentUserId uint, tx ...utility.DatabaseTransaction) error {
+	auditReportEditHistory := &models.AuditReportEditHistory{
+		AuditID:            auditReportEditSummaryDTO.AuditID,
+		AuditFinalReportID: &auditReportEditSummaryDTO.AuditFinalReportID,
+		ActionType:         auditReportEditSummaryDTO.ActionType,
+		Comment:            auditReportEditSummaryDTO.Comment,
+		CreatedBYID:        currentUserId,
+	}
+
+	err := afrs.repo.CreateAuditReportEditHistory(auditReportEditHistory, tx...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (afrs *AuditFinalReportService) ExportAuditFinalReportToPDF(auditID uint, currentUserID uint) (string, error) {
+	// Fetch the audit report details
+	auditFinalReport, err := afrs.GetFullDetailsByID(auditID, currentUserID, "")
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch audit report details: %w", err)
+	}
+	auditTemplateSetting, err := afrs.settingSvc.GetFirst()
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch audit template details: %w", err)
+	}
+	logoImagePath, err := afrs.settingSvc.GetImagePath(auditTemplateSetting.ID, "logo")
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch audit template logo Image Path: %w", err)
+	}
+	finalReportCoverPageBGImagePath, err := afrs.settingSvc.GetImagePath(auditTemplateSetting.ID, "final_report")
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch audit template cover bg Image Path: %w", err)
+	}
+	// Define template paths
+	templatePaths := []string{
+		"audit/templates/pdf/audit_final_report.html", // Content-specific template
+	}
+	// Ensure paths are properly formatted for use in wkhtmltopdf
+	logoImagePath = "file:///" + strings.ReplaceAll(logoImagePath, "\\", "/")
+	finalReportCoverPageBGImagePath = "file:///" + strings.ReplaceAll(finalReportCoverPageBGImagePath, "\\", "/")
+
+	// Encode spaces in paths to make them URL-compatible
+	logoImagePath = strings.ReplaceAll(logoImagePath, " ", "%20")
+	finalReportCoverPageBGImagePath = strings.ReplaceAll(finalReportCoverPageBGImagePath, " ", "%20")
+
+	// Debugging: Print the paths to verify
+	fmt.Println("Logo Image Path:", logoImagePath)
+	fmt.Println("Final Report Cover Page BG Image Path:", finalReportCoverPageBGImagePath)
+
+	// Generate the HTML content
+	htmlContent, err := utility.GeneratePDFContent(auditFinalReport, templatePaths, logoImagePath, finalReportCoverPageBGImagePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate HTML content: %w", err)
+	}
+	// Define the output PDF file name
+	pdfFileName := fmt.Sprintf("AuditFinalReport_%d.pdf", auditID)
+
+	// Convert HTML content to a PDF file
+	if err := utility.ConvertHTMLContentToPDF(htmlContent, pdfFileName); err != nil {
+		return "", fmt.Errorf("failed to generate PDF: %w", err)
+	}
+
+	return pdfFileName, nil
+}
+
 // Helper function to return a pointer to a float64 value
 func float64Ptr(val float64) *float64 {
 	return &val
 }
+
 func mapSectionToDTO(section *models.AuditFinalReportSection) *auditDTOs.AuditFinalReportSectionDTO {
 	return &auditDTOs.AuditFinalReportSectionDTO{
 		ID:                        section.ID,
@@ -916,4 +1367,187 @@ func mapSectionToDTO(section *models.AuditFinalReportSection) *auditDTOs.AuditFi
 		CreatedAt: section.CreatedAt.Format("2006-01-02"),
 		// UpdatedAt: section.UpdatedAt.Format("2006-01-02"),
 	}
+}
+
+func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, auditFinalReportPublishFormDTO *auditDTOs.AuditFinalReportPublishFormDTO) error {
+	if _, err := afrs.auditSvc.GetByID(auditID); err != nil {
+		return err
+	}
+	existingAuditFinalReport, err := afrs.GetByAuditID(auditID)
+	if err != nil {
+		return err
+	}
+	auditFinalReport, err := afrs.GetByID(existingAuditFinalReport.ID)
+	if err != nil {
+		return err
+	}
+	auditFinalReportStatusPublished, err := afrs.auditFinalReportStatusSvc.GetByType("published")
+	if err != nil {
+		return err
+	}
+	if existingAuditFinalReport.AuditFinalReportStatusID == auditFinalReportStatusPublished.ID {
+		return utility.NewForbiddenError("The audit final report has already been published.")
+	}
+	auditFinalReportStatus, err := afrs.auditFinalReportStatusSvc.GetByType("approve")
+	if err != nil {
+		return err
+	}
+	auditCompleteStatus, err := afrs.auditStatusSvc.GetByType("completed")
+	if err != nil {
+		return err
+	}
+	if existingAuditFinalReport.AuditFinalReportStatusID != auditFinalReportStatus.ID {
+		return utility.NewForbiddenError("The audit final report has not been approved.")
+	}
+
+	tx := afrs.repo.BeginTransaction()
+
+	var auditFinalReportRecipients []*models.AuditFinalReportRecipient
+
+	// Add CC users
+	for _, userID := range auditFinalReportPublishFormDTO.CCUserIDs {
+		auditFinalReportRecipient := &models.AuditFinalReportRecipient{
+			AuditFinalReportID: existingAuditFinalReport.ID,
+			UserID:             userID,
+			Type:               "cc",
+			CreatedBYID:        currentUserID,
+		}
+		auditFinalReportRecipients = append(auditFinalReportRecipients, auditFinalReportRecipient)
+	}
+
+	// Add To user
+	toRecipient := &models.AuditFinalReportRecipient{
+		AuditFinalReportID: existingAuditFinalReport.ID,
+		UserID:             auditFinalReportPublishFormDTO.ToUserID,
+		Type:               "to",
+		CreatedBYID:        currentUserID,
+	}
+	auditFinalReportRecipients = append(auditFinalReportRecipients, toRecipient)
+
+	// Save recipients to the database
+	if len(auditFinalReportRecipients) > 0 {
+		if err := afrs.repo.CreateAuditFinalReportRecipients(auditFinalReportRecipients, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// update status & Publishedby user details on final report
+	currentDateStr := time.Now()
+	auditFinalReport.AuditFinalReportStatusID = auditFinalReportStatusPublished.ID
+	auditFinalReport.PublishedBYID = &currentUserID
+	auditFinalReport.PublishedAt = &currentDateStr
+	auditFinalReport.Comments = auditFinalReportPublishFormDTO.Comments
+
+	err = afrs.repo.Update(auditFinalReport, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	err = afrs.auditSvc.StatusUpdate(auditID, currentUserID, uint(auditCompleteStatus.ID), tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+	go func() {
+		urlParam := fmt.Sprintf(`{"id":%d}`, auditID)
+		entity := "audit-final-report"
+		action := "publish"
+
+		for _, recipient := range auditFinalReportRecipients {
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{recipient.UserID},
+				ModuleIdentifier:     "audit",
+				NotificationType:     string(commonDTOs.ReviewType),
+				ReferenceNumber:      existingAuditFinalReport.ReferenceNumber,
+				HeadingEn:            "Publish Audit Final Report",
+				HeadingAr:            "نشر التقرير النهائي للتدقيق",
+				TitleEn:              existingAuditFinalReport.Audit.AuditPlan.Title,
+				TitleAr:              existingAuditFinalReport.Audit.AuditPlan.Title,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			responsibleUser, err := afrs.userSvc.GetByID(recipient.UserID)
+			if err != nil {
+				utility.LogError("Failed to fetch review user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			assignedBy, err := afrs.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			emailTo := []string{responsibleUser.Email}
+			subject := fmt.Sprintf("Audit Final Report /%s: Published", existingAuditFinalReport.Audit.AuditPlan.Title)
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn":            responsibleUser.FirstNameEn,
+				"LastNameEn":             responsibleUser.LastNameEn,
+				"AuditTitle":             existingAuditFinalReport.Audit.AuditPlan.Title,
+				"ReferenceNumber":        existingAuditFinalReport.Audit.AuditPlan.ReferenceNumber,
+				"Comments":               auditFinalReportPublishFormDTO.Comments,
+				"PublishedByFirstNameEn": assignedBy.FirstNameEn,
+				"PublishedByLastNameEn":  assignedBy.LastNameEn,
+				"PublishedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":            fmt.Sprintf("%s/audits/%d", appURL, auditID),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "audit/templates/email/audit_final_report_publish_mail.html",
+				EmailData:            emailData,
+			}
+
+			// Send Notification and Email
+			err = afrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+		err := afrs.activityLogSvc.LogActivity(
+			models.SubmitAction,
+			models.AuditFinalReport{}.TableName(),
+			existingAuditFinalReport.ID,
+			auditFinalReportPublishFormDTO,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.SubmitAction,
+				"tableName": models.AuditFinalReport{}.TableName(),
+				"recordID":  existingAuditFinalReport.ID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
+}
+
+func findCategoryByID(findings []*models.AuditFinding, categoryID uint) *models.AuditFindingCategory {
+	for _, finding := range findings {
+		if finding.AuditFindingCategory != nil && finding.AuditFindingCategory.ID == categoryID {
+			return finding.AuditFindingCategory
+		}
+	}
+	return nil
 }

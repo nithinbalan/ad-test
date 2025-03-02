@@ -3,6 +3,11 @@ package services
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"strings"
+	"time"
+
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
@@ -11,8 +16,6 @@ import (
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/utility"
-	"os"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -32,8 +35,13 @@ type ProcessServiceInterface interface {
 	GetControlSummary(id uint) (map[string]interface{}, error)
 
 	ExportProcesses(data []*organizationDTOs.ProcessListDTO, currentUserID uint) (*os.File, error)
+	GenerateProcessTemplate() (*os.File, error)
+	ValidateProcessTemplate(file io.Reader) ([]map[string]interface{}, error)
+	ValidateImportProcess(input []map[string]interface{}) ([]map[string]interface{}, error)
+	ImportProcesses(input []map[string]interface{}, currentUserID uint) ([]uint, error)
 
 	UpdateProcessRiskRating(process *models.Process, tx utility.DatabaseTransaction) error
+	UpdateProcessRecoveryObjective(process *models.Process, tx utility.DatabaseTransaction) error
 }
 
 type ProcessService struct {
@@ -55,7 +63,8 @@ func NewProcessService(
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
 	controlSvc ControlServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
-	userSettingSvc UserSettingServiceInterface) ProcessServiceInterface {
+	userSettingSvc UserSettingServiceInterface,
+) ProcessServiceInterface {
 	return &ProcessService{
 		repo:               repo,
 		activityLogSvc:     activityLogSvc,
@@ -74,7 +83,6 @@ func (ps *ProcessService) GetAll(params *organizationDTOs.ProcessListQueryParams
 
 func (ps *ProcessService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error) {
 	process, err := ps.repo.GetByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -88,7 +96,6 @@ func (ps *ProcessService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTran
 	var processDetailDTO organizationDTOs.ProcessDetailDTO
 
 	process, err := ps.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -115,7 +122,7 @@ func (ps *ProcessService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTran
 		processDetailDTO.AuditableItem.CreatedAt = latestAuditableItem.CreatedAt
 		processDetailDTO.AuditableItem.UpdatedAt = latestAuditableItem.UpdatedAt
 	}
-	
+
 	return &processDetailDTO, nil
 }
 
@@ -175,6 +182,23 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 		}
 	}
 
+	var assetRegister []*models.ProcessAsset
+	for _, assetRegisterID := range processFormDTO.AssetRegisterIds {
+		asset := &models.ProcessAsset{
+			ProcessID:       id,
+			AssetRegisterID: *assetRegisterID,
+			CreatedByID:     currentUserID,
+		}
+		assetRegister = append(assetRegister, asset)
+	}
+
+	if len(assetRegister) > 0 {
+		if err := ps.repo.CreateProcessAssetRegister(assetRegister, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	var documents []*models.ProcessAssociatedDocument
 	for _, documentID := range processFormDTO.DocumentIds {
 		document := &models.ProcessAssociatedDocument{
@@ -203,7 +227,7 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 			return
 		}
 
-		//log
+		// log
 		err = ps.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.Process{}.TableName(),
@@ -212,7 +236,6 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
 				"action":    models.CreateAction,
@@ -223,13 +246,13 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 			})
 		}
 
-		//notification
+		// notification
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
 		entity := "process"
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               processFormDTO.OwnerID,
+			UserIDs:              []uint{processFormDTO.OwnerID},
 			ModuleIdentifier:     "organization",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			ReferenceNumber:      process.ReferenceNumber,
@@ -264,7 +287,7 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 			"AssignedByFirstNameEn":  existingProcess.CreatedByUser.FirstNameEN,
 			"AssignedByLastNameEn":   existingProcess.CreatedByUser.LastNameEN,
 			"AssignedOn":             existingProcess.CreatedAt.Format("2006-01-02"),
-			"RedirectURL":            fmt.Sprintf("%s/process/%d", appURL, id),
+			"RedirectURL":            fmt.Sprintf("%sorganization/process/%d/overview", appURL, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -419,6 +442,49 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		}
 	}
 
+	existingAssetRegisterIDs := make(map[uint]bool)
+	for _, ctrl := range existingProcess.Assets {
+		existingAssetRegisterIDs[ctrl.AssetRegisterID] = true
+	}
+
+	newAssetRegisterIDs := make(map[uint]bool)
+	for _, ctrl := range processFormDTO.AssetRegisterIds {
+		newAssetRegisterIDs[*ctrl] = true
+	}
+
+	var assetRegisterToAdd []*models.ProcessAsset
+	for _, newAssetRegisterID := range processFormDTO.AssetRegisterIds {
+		if _, exists := existingAssetRegisterIDs[*newAssetRegisterID]; !exists {
+			assetRegister := &models.ProcessAsset{
+				ProcessID:       id,
+				AssetRegisterID: *newAssetRegisterID,
+				CreatedByID:     currentUserID,
+			}
+			assetRegisterToAdd = append(assetRegisterToAdd, assetRegister)
+		}
+	}
+
+	if len(assetRegisterToAdd) > 0 {
+		if err := ps.repo.CreateProcessAssetRegister(assetRegisterToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteAssetRegisterIDs []*uint
+	for _, existingAssetRegister := range existingProcess.Assets {
+		if _, exists := newAssetRegisterIDs[existingAssetRegister.AssetRegisterID]; !exists {
+			deleteAssetRegisterIDs = append(deleteAssetRegisterIDs, existingAssetRegister.ID)
+		}
+	}
+
+	if len(deleteAssetRegisterIDs) > 0 {
+		if err := ps.repo.DeleteProcessAssetRegister(deleteAssetRegisterIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	existingDocumentIDs := make(map[uint]bool)
 	for _, doc := range existingProcess.Documents {
 		existingDocumentIDs[doc.DocumentID] = true
@@ -479,6 +545,20 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 			}
 		}
 
+		// Determine asset register and document changes
+		assetRegisterAdded := []uint{}
+		assetRegisterRemoved := []uint{}
+		for id := range newAssetRegisterIDs {
+			if !existingAssetRegisterIDs[id] {
+				assetRegisterAdded = append(assetRegisterAdded, id)
+			}
+		}
+		for id := range existingAssetRegisterIDs {
+			if !newAssetRegisterIDs[id] {
+				assetRegisterRemoved = append(assetRegisterRemoved, id)
+			}
+		}
+
 		documentsAdded := []uint{}
 		documentsRemoved := []uint{}
 		for id := range newDocumentIDs {
@@ -502,6 +582,12 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 				"removed": controlsRemoved,
 			}
 		}
+		if len(assetRegisterAdded) > 0 || len(assetRegisterRemoved) > 0 {
+			associatedItems["asset_register_ids"] = map[string]interface{}{
+				"added":   assetRegisterAdded,
+				"removed": assetRegisterRemoved,
+			}
+		}
 		if len(documentsAdded) > 0 || len(documentsRemoved) > 0 {
 			associatedItems["document_ids"] = map[string]interface{}{
 				"added":   documentsAdded,
@@ -512,7 +598,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"process_group":    oldProcess.ProcessGroup.TitleEn,
 			"owner_unit":       oldProcess.OwnerUnit.TitleEn,
@@ -557,7 +643,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 			}
 		}
 
-		//notification
+		// notification
 		if oldOwnerID != processFormDTO.OwnerID {
 			urlParam := fmt.Sprintf(`{"id":%d}`, id)
 			queryParam := ""
@@ -565,7 +651,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 			action := "responsible-user-remove"
 
 			oldOwnerNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldOwnerID,
+				UserIDs:              []uint{oldOwnerID},
 				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.InformationType),
 				ReferenceNumber:      process.ReferenceNumber,
@@ -610,11 +696,11 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 				EmailData:            oldOwnerEmailData,
 			}
 
-			//new owner notification
+			// new owner notification
 			newOwnerAction := "responsible-user-assign"
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               processFormDTO.OwnerID,
+				UserIDs:              []uint{processFormDTO.OwnerID},
 				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				ReferenceNumber:      process.ReferenceNumber,
@@ -653,7 +739,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 				"AssignedByFirstNameEn":  existingProcess.CreatedByUser.FirstNameEN,
 				"AssignedByLastNameEn":   existingProcess.CreatedByUser.LastNameEN,
 				"AssignedOn":             existingProcess.CreatedAt.Format("2006-01-02"),
-				"RedirectURL":            fmt.Sprintf("%s/process/%d", appURL, id),
+				"RedirectURL":            fmt.Sprintf("%sorganization/process/%d/overview", appURL, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -677,10 +763,8 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 				utility.LogError("Failed to send old owner notifications", map[string]interface{}{
 					"error": err.Error(),
 				})
-
 			}
 		}
-
 	}()
 
 	return nil
@@ -739,6 +823,17 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 			}
 		}
 
+		if len(process.Assets) > 0 {
+			var deleteAssetRegisterIds []*uint
+			for _, ctrl := range process.Assets {
+				deleteAssetRegisterIds = append(deleteAssetRegisterIds, ctrl.ID)
+			}
+			if err := ps.repo.DeleteProcessAssetRegister(deleteAssetRegisterIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
 		if len(process.Documents) > 0 {
 			var deleteDocumentIds []*uint
 			for _, document := range process.Documents {
@@ -788,7 +883,7 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "organization",
 					NotificationType:     string(commonDTOs.DeletionType),
 					ReferenceNumber:      notification.ReferenceNumber,
@@ -857,7 +952,6 @@ func (ps *ProcessService) Archive(ids []uint, currentUserID uint) ([]uint, error
 	}
 
 	successfulIds, err := ps.repo.UpdateLifecycleStatusForIDs(idsToUpdate, lifecycleStatus.ID)
-
 	if err != nil {
 		return nil, err
 	}
@@ -894,7 +988,6 @@ func (ps *ProcessService) Restore(ids []uint, currentUserID uint) ([]uint, error
 	}
 
 	successfulIds, err := ps.repo.UpdateLifecycleStatusForIDs(idsToUpdate, lifecycleStatus.ID)
-
 	if err != nil {
 		return nil, err
 	}
@@ -1101,7 +1194,293 @@ func (ps *ProcessService) ExportProcesses(data []*organizationDTOs.ProcessListDT
 }
 
 func (ps *ProcessService) UpdateProcessRiskRating(process *models.Process, tx utility.DatabaseTransaction) error {
+	err := ps.repo.Update(process, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
+	return nil
+}
+
+func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
+	// Headers for the first sheet (Template)
+	templateHeaders := []string{
+		"ProcessGroup", "Owner", "TitleEn", "TitleAr", "Description", "Controls",
+	}
+	templateData := [][]interface{}{} // Empty template data
+
+	// Fetch process groups for the second sheet
+	processGroups, err := ps.processGroupSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, err
+	}
+
+	// Headers and data for the second sheet (ProcessGroup)
+	processGroupHeaders := []string{"ProcessGroupTitleEn", "ProcessGroupTitleAr"}
+	processGroupData := [][]interface{}{}
+	for _, group := range processGroups {
+		processGroupData = append(processGroupData, []interface{}{group.TitleEn, group.TitleAr})
+	}
+
+	// Headers and data for the third sheet (Owner)
+	// Fetch user details
+	users, err := ps.userSvc.GetAllUsers()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch owners: %v", err)
+	}
+
+	// Prepare data for Owner sheet
+	ownerHeaders := []string{"OwnerName", "Email", "Designation", "PrimaryDepartment"}
+	ownerData := [][]interface{}{}
+	for _, user := range users {
+		ownerData = append(ownerData, []interface{}{
+			fmt.Sprintf("%s %s", user.FirstNameEN, user.LastNameEN),
+			user.Email,
+			user.Designation,
+			user.PrimaryUnit,
+		})
+	}
+
+	// Fetch controls for the fourth sheet
+	controls, err := ps.controlSvc.GetAllControls()
+	if err != nil {
+		return nil, err
+	}
+
+	// Headers and data for the fourth sheet (Controls)
+	controlHeaders := []string{"Controls"}
+	controlData := [][]interface{}{}
+	for _, control := range controls {
+		controlData = append(controlData, []interface{}{control.TitleEn})
+	}
+
+	// Generate the Excel file with "Template," "ProcessGroup," "Owner," and "Controls" sheets
+	file, err := utility.GenerateExcelFileWithSheets(map[string][][]interface{}{
+		"Template":     append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
+		"ProcessGroup": append([][]interface{}{utility.ConvertToInterfaceSlice(processGroupHeaders)}, processGroupData...),
+		"Owner":        append([][]interface{}{utility.ConvertToInterfaceSlice(ownerHeaders)}, ownerData...),
+		"Controls":     append([][]interface{}{utility.ConvertToInterfaceSlice(controlHeaders)}, controlData...),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
+}
+
+func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]interface{}, error) {
+	// Read Excel file
+	rows, err := utility.ReadExcelFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers in the input format and map them to snake case
+	inputHeaders := []string{"ProcessGroup", "Owner", "TitleEn", "TitleAr", "Description", "Controls"}
+	snakeCaseHeaders := []string{"process_group", "owner", "title_en", "title_ar", "description", "controls"}
+
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("empty Excel file")
+	}
+
+	// Validate headers
+	if !utility.ValidateHeaders(inputHeaders, rows[0]) {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid headers in the Excel file"), "invalid_header", "Process Template")
+	}
+
+	// Convert rows to input format
+	var input []map[string]interface{}
+	for _, row := range rows[1:] { // Skip header row
+		record := make(map[string]interface{})
+		for i, header := range snakeCaseHeaders {
+			if i < len(row) {
+				record[header] = row[i]
+			} else {
+				record[header] = "" // Pad missing columns
+			}
+		}
+		input = append(input, record)
+	}
+
+	validatedData, err := ps.validateProcesses(input)
+	if err != nil {
+		return nil, err
+	}
+
+	return validatedData, nil
+}
+
+func (ps *ProcessService) ValidateImportProcess(input []map[string]interface{}) ([]map[string]interface{}, error) {
+	validatedData, err := ps.validateProcesses(input)
+	if err != nil {
+		return nil, err
+	}
+
+	return validatedData, nil
+}
+
+func (ps *ProcessService) ImportProcesses(input []map[string]interface{}, currentUserID uint) ([]uint, error) {
+	validatedData, err := ps.validateProcesses(input)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, record := range validatedData {
+		if errors, ok := record["errors"].(map[string]interface{}); ok && len(errors) > 0 {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid data in the import file"), "invalid_data", "Invalid Data")
+		}
+	}
+
+	var createdProcessIDs []uint
+	for _, record := range validatedData {
+		processFormDTO := &organizationDTOs.ProcessFormDTO{
+			ProcessGroupID: record["process_group_id"].(uint),
+			OwnerID:        record["owner_id"].(uint),
+			TitleEn:        record["title_en"].(string),
+			TitleAr:        record["title_ar"].(string),
+			Description:    utility.GetOptionalStringValue(record["description"]),
+		}
+
+		if controls, ok := record["control_ids"].([]uint); ok {
+			var controlIDs []*uint
+			for _, id := range controls {
+				controlID := id
+				controlIDs = append(controlIDs, &controlID)
+			}
+			processFormDTO.ControlIds = controlIDs
+		} else {
+			processFormDTO.ControlIds = nil
+		}
+
+		processID, err := ps.Create(currentUserID, processFormDTO)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create process for record: %+v, error: %v", record, err)
+		}
+
+		createdProcessIDs = append(createdProcessIDs, processID)
+	}
+
+	return createdProcessIDs, nil
+}
+
+func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]map[string]interface{}, error) {
+	headers := []string{"process_group", "owner", "title_en", "title_ar", "description", "controls"}
+
+	// Fetch process group titles and map to IDs
+	processGroups, err := ps.processGroupSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching process groups: %v", err)
+	}
+	processGroupTitles := make(map[string]uint)
+	for _, group := range processGroups {
+		processGroupTitles[strings.TrimSpace(group.TitleEn)] = group.ID
+	}
+
+	// Fetch user full names and map to IDs
+	users, err := ps.userSvc.GetAllUsers()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching users: %v", err)
+	}
+	userFullNames := make(map[string]uint)
+	for _, user := range users {
+		fullName := strings.TrimSpace(user.FirstNameEN + " " + user.LastNameEN)
+		userFullNames[fullName] = uint(user.ID)
+	}
+
+	// Fetch control titles and map to IDs
+	controls, err := ps.controlSvc.GetAllControls()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching controls: %v", err)
+	}
+	controlTitles := make(map[string]uint)
+	for _, control := range controls {
+		controlTitles[strings.TrimSpace(control.TitleEn)] = control.ID
+	}
+
+	// Perform validation
+	var validatedData []map[string]interface{}
+
+	for _, record := range input {
+		rowErrors := make(map[string]interface{})
+		processedRecord := make(map[string]interface{})
+
+		// Copy the original record for the response
+		for key, value := range record {
+			processedRecord[key] = value
+		}
+
+		// Validate fields and map IDs
+		for _, header := range headers {
+			value, ok := record[header].(string)
+			switch header {
+			case "process_group":
+				if !ok || value == "" {
+					rowErrors["process_group"] = "Field is required"
+				} else if id, exists := processGroupTitles[strings.TrimSpace(value)]; !exists {
+					rowErrors["process_group"] = fmt.Sprintf("Invalid process group title: %s", value)
+				} else {
+					processedRecord["process_group_id"] = id // Add the ID
+				}
+
+			case "owner":
+				if !ok || value == "" {
+					rowErrors["owner"] = "Field is required"
+				} else if id, exists := userFullNames[strings.TrimSpace(value)]; !exists {
+					rowErrors["owner"] = fmt.Sprintf("Invalid owner name: %s", value)
+				} else {
+					processedRecord["owner_id"] = id // Add the ID
+				}
+
+			case "controls":
+				if ok && value != "" { // Validate only if controls field is provided
+					controlList := utility.ParseCommaSeparatedValues(value)
+					var controlIDs []uint
+					invalidControls := []string{}
+					for _, control := range controlList {
+						trimmedControl := strings.TrimSpace(control)
+						if id, exists := controlTitles[trimmedControl]; exists {
+							controlIDs = append(controlIDs, id)
+						} else {
+							invalidControls = append(invalidControls, fmt.Sprintf("Invalid control: %s", trimmedControl))
+						}
+					}
+					if len(invalidControls) > 0 {
+						rowErrors["controls"] = strings.Join(invalidControls, "; ") // Combine errors into a single string
+					} else {
+						processedRecord["control_ids"] = controlIDs // Add the IDs as []uint
+					}
+				}
+
+			case "title_en", "title_ar":
+				if !ok || value == "" {
+					rowErrors[header] = "Field is required"
+				}
+
+			case "description":
+				// Optional field, no validation needed
+			}
+		}
+
+		// Add errors or success record
+		if len(rowErrors) == 0 {
+			processedRecord["errors"] = nil
+		} else {
+			// Ensure all keys are present in the `errors` map
+			for _, header := range headers {
+				if _, exists := rowErrors[header]; !exists {
+					rowErrors[header] = "" // Empty string for other fields
+				}
+			}
+			processedRecord["errors"] = rowErrors
+		}
+		validatedData = append(validatedData, processedRecord)
+	}
+
+	return validatedData, nil
+}
+
+func (ps *ProcessService) UpdateProcessRecoveryObjective(process *models.Process, tx utility.DatabaseTransaction) error {
 	err := ps.repo.Update(process, tx)
 	if err != nil {
 		tx.Rollback()

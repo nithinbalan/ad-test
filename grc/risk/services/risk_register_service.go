@@ -29,7 +29,7 @@ import (
 type RiskRegisterServiceInterface interface {
 	GetAll(params *riskDTOs.RiskRegisterListQueryParamsDTO) (*riskDTOs.RiskRegisterListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*riskDTOs.RiskRegisterDetailDTO, error)
-	GetByID(id uint) (*models.RiskRegister, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskRegister, error)
 	Create(currentUserID uint, riskRegisterFormDTO *riskDTOs.RiskRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, risk *riskDTOs.RiskRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -42,27 +42,31 @@ type RiskRegisterServiceInterface interface {
 	GetDocumentPath(id uint, token string) (string, error)
 
 	ExportRiskRegister(data []*riskDTOs.RiskRegisterListDTO, currentUserID uint) (*os.File, error)
+
+	SetRiskInherentEvaluationService(evaluationSvc RiskInherentEvaluationServiceInterface)
 }
 
 // Service and implementations
 type RiskRegisterService struct {
-	repo                     riskRepositories.RiskRegisterRepositoryInterface
-	activityLogSvc           logServices.ActivityLogServiceInterface
-	riskCategorySvc          RiskCategoryServiceInterface
-	riskSourceSvc            RiskSourceServiceInterface
-	userSvc                  organizationServices.UserServiceInterface
-	riskStatusSvc            RiskStatusServiceInterface
-	reviewFrequencySvc       masterServices.ReviewFrequencyServiceInterface
-	controlSvc               organizationServices.ControlServiceInterface
-	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface
-	processSvc               organizationServices.ProcessServiceInterface
-	strategicObjectiveSvc    organizationServices.StrategicObjectiveServiceInterface
-	slaRegisterSvc           complianceServices.SLARegisterServiceInterface
-	riskMatrixSvc            RiskMatrixServiceInterface
-	riskTimelineSvc          RiskTimelineServiceInterface
-	userSettingSvc           organizationServices.UserSettingServiceInterface
-	notificationSvc          commonServices.NotificationServiceInterface
-	assetRegisterSvc         assetServices.AssetRegisterServiceInterface
+	repo                      riskRepositories.RiskRegisterRepositoryInterface
+	activityLogSvc            logServices.ActivityLogServiceInterface
+	riskCategorySvc           RiskCategoryServiceInterface
+	riskSourceSvc             RiskSourceServiceInterface
+	userSvc                   organizationServices.UserServiceInterface
+	riskStatusSvc             RiskStatusServiceInterface
+	reviewFrequencySvc        masterServices.ReviewFrequencyServiceInterface
+	controlSvc                organizationServices.ControlServiceInterface
+	complianceRequirementSvc  complianceServices.ComplianceRequirementServiceInterface
+	processSvc                organizationServices.ProcessServiceInterface
+	strategicObjectiveSvc     organizationServices.StrategicObjectiveServiceInterface
+	slaRegisterSvc            complianceServices.SLARegisterServiceInterface
+	riskMatrixSvc             RiskMatrixServiceInterface
+	riskTimelineSvc           RiskTimelineServiceInterface
+	userSettingSvc            organizationServices.UserSettingServiceInterface
+	notificationSvc           commonServices.NotificationServiceInterface
+	assetRegisterSvc          assetServices.AssetRegisterServiceInterface
+	riskInherentEvaluationSvc RiskInherentEvaluationServiceInterface
+	riskSettingsSvc           RiskSettingsServiceInterface
 }
 
 func NewRiskRegisterService(
@@ -83,25 +87,29 @@ func NewRiskRegisterService(
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	assetRegisterSvc assetServices.AssetRegisterServiceInterface,
+	riskInherentEvaluationSvc RiskInherentEvaluationServiceInterface,
+	riskSettingsSvc RiskSettingsServiceInterface,
 ) RiskRegisterServiceInterface {
 	return &RiskRegisterService{
-		repo:                     repo,
-		activityLogSvc:           activityLogSvc,
-		riskCategorySvc:          riskCategorySvc,
-		riskSourceSvc:            riskSourceSvc,
-		userSvc:                  userSvc,
-		riskStatusSvc:            riskStatusSvc,
-		reviewFrequencySvc:       reviewFrequencySvc,
-		controlSvc:               controlSvc,
-		complianceRequirementSvc: complianceRequirementSvc,
-		processSvc:               processSvc,
-		strategicObjectiveSvc:    strategicObjectiveSvc,
-		slaRegisterSvc:           slaRegisterSvc,
-		riskMatrixSvc:            riskMatrixSvc,
-		riskTimelineSvc:          riskTimelineSvc,
-		userSettingSvc:           userSettingSvc,
-		notificationSvc:          notificationSvc,
-		assetRegisterSvc:         assetRegisterSvc,
+		repo:                      repo,
+		activityLogSvc:            activityLogSvc,
+		riskCategorySvc:           riskCategorySvc,
+		riskSourceSvc:             riskSourceSvc,
+		userSvc:                   userSvc,
+		riskStatusSvc:             riskStatusSvc,
+		reviewFrequencySvc:        reviewFrequencySvc,
+		controlSvc:                controlSvc,
+		complianceRequirementSvc:  complianceRequirementSvc,
+		processSvc:                processSvc,
+		strategicObjectiveSvc:     strategicObjectiveSvc,
+		slaRegisterSvc:            slaRegisterSvc,
+		riskMatrixSvc:             riskMatrixSvc,
+		riskTimelineSvc:           riskTimelineSvc,
+		userSettingSvc:            userSettingSvc,
+		notificationSvc:           notificationSvc,
+		assetRegisterSvc:          assetRegisterSvc,
+		riskInherentEvaluationSvc: riskInherentEvaluationSvc,
+		riskSettingsSvc:           riskSettingsSvc,
 	}
 }
 
@@ -109,8 +117,8 @@ func (rrs *RiskRegisterService) GetAll(params *riskDTOs.RiskRegisterListQueryPar
 	return rrs.repo.GetAll(params)
 }
 
-func (rrs RiskRegisterService) GetByID(id uint) (*models.RiskRegister, error) {
-	risk, err := rrs.repo.GetByID(id)
+func (rrs RiskRegisterService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskRegister, error) {
+	risk, err := rrs.repo.GetByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -191,7 +199,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		return 0, err
 	}
 
-	riskStatus, err := rrs.riskStatusSvc.GetByType("open")
+	riskStatus, err := rrs.riskStatusSvc.GetByType("identified")
 	if err != nil {
 		return 0, err
 	}
@@ -463,6 +471,19 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		}
 	}
 
+	if riskRegisterFormDTO.RiskMatrixLikelihoodID != nil && riskRegisterFormDTO.RiskMatrixImpactID != nil {
+		inherentEvaluationFormDTO := &riskDTOs.RiskInherentEvaluationFormDTO{
+			RiskMatrixLikelihoodID: *riskRegisterFormDTO.RiskMatrixLikelihoodID,
+			RiskMatrixImpactID:     *riskRegisterFormDTO.RiskMatrixImpactID,
+		}
+
+		_, err := rrs.riskInherentEvaluationSvc.Create(id, currentUserID, inherentEvaluationFormDTO, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -500,7 +521,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		entity := "risk-register"
 		action := "responsible-user-assign"
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               riskRegisterFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{riskRegisterFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "risk",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Risk Register Responsibility Assigned",
@@ -522,7 +543,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		}
 		createdBy, err := rrs.userSvc.GetByID(currentUserID)
 		if err != nil {
-			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+			utility.LogError("Failed to fetch created by user", map[string]interface{}{
 				"error": err.Error(),
 			})
 			return
@@ -552,6 +573,100 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			utility.LogError("Failed to send notifications", map[string]interface{}{
 				"error": err.Error(),
 			})
+		}
+
+		// Fetch risk settings
+		riskSetting, err := rrs.riskSettingsSvc.Get()
+		if err != nil {
+			utility.LogError("Failed to fetch risk setting", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Get Review User IDs
+		reviewUserIDs, err := rrs.userSvc.GetUserIdsByRole(riskSetting.ReviewRoleID)
+		if err != nil {
+			utility.LogError("Failed to fetch review user IDs", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Ensure we have valid reviewers
+		if len(reviewUserIDs) == 0 {
+			fmt.Println("No review users found, skipping notifications")
+			return
+		}
+
+		// Prepare Review User Emails & Names
+		reviewEmailTo := make([]string, len(reviewUserIDs))
+		reviewers := make(map[uint]string) // Map of userID -> full name
+
+		for i, userID := range reviewUserIDs {
+			user, err := rrs.userSvc.GetByID(userID)
+			if err != nil {
+				utility.LogError("Failed to fetch reviewer details", map[string]interface{}{
+					"error":  err.Error(),
+					"userID": userID,
+				})
+				continue
+			}
+			reviewEmailTo[i] = user.Email
+			reviewers[userID] = user.FirstNameEn + " " + user.LastNameEn 
+		}
+
+	
+		dbNotificationReview := &commonDTOs.DBNotificationDTO{
+			UserIDs:              reviewUserIDs, // Single DB notification for all reviewers
+			ModuleIdentifier:     "risk",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Risk Register Review Assigned",
+			HeadingAr:            "تم تعيين مراجعة سجل المخاطر",
+			TitleEn:              riskRegister.Title,
+			TitleAr:              riskRegister.Title,
+			ReferenceNumber:      existingRiskRegister.ReferenceNumber,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		// **Send DB Notification only once**
+		err = rrs.notificationSvc.SendNotification(dbNotificationReview, nil, "risk")
+		if err != nil {
+			utility.LogError("Failed to send DB notification", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+
+		// **Send Personalized Emails inside the loop**
+		for userID, fullName := range reviewers {
+			emailNotificationReview := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              reviewEmailTo, // All reviewers receive the same email
+				Subject:              fmt.Sprintf("Risk Register/%s: Review Assigned", riskRegister.Title),
+				TemplateRelativePath: "risk/templates/email/risk_register_review_user_mail.html",
+				EmailData: map[string]interface{}{
+					"FirstNameEn":          fullName, 
+					"RiskReferenceNumber":  existingRiskRegister.ReferenceNumber,
+					"RiskTitle":            existingRiskRegister.Title,
+					"RiskDescription":      existingRiskRegister.Description,
+					"CreatedByFirstNameEn": createdBy.FirstNameEn,
+					"CreatedByLastNameEn":  createdBy.LastNameEn,
+					"AssignedOn":           time.Now().Format("2006-01-02"),
+					"RedirectURL":          fmt.Sprintf("%srisk/risk-register/%d/overview", utility.GetAppURL(), riskRegister.ID),
+				},
+			}
+
+			// **Send only email notification here**
+			err = rrs.notificationSvc.SendNotification(nil, emailNotificationReview, "risk")
+			if err != nil {
+				utility.LogError("Failed to send review user email", map[string]interface{}{
+					"error":  err.Error(),
+					"userID": userID,
+				})
+			}
 		}
 	}()
 
@@ -1229,7 +1344,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title":            oldRiskRegister.Title,
 			"description":      oldRiskRegister.Description,
@@ -1283,7 +1398,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			// Old responsible user notification (Removal)
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "risk",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Risk Register Responsibility Removed",
@@ -1300,7 +1415,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			// New responsible user notification (Assignment)
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               riskRegisterFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{riskRegisterFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "risk",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Risk Register Responsibility Assigned",
@@ -1612,7 +1727,7 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 
 				// Prepare DB notification
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "risk",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Risk Register Deleted",
@@ -1803,7 +1918,7 @@ func (rrs *RiskRegisterService) getControlScoreByType(riskID uint, controlType s
 }
 
 func (rrs *RiskRegisterService) UpdateRiskRating(riskID uint, currentUserID uint, riskEvaluationDetails *models.RiskEvaluation, tx utility.DatabaseTransaction, evaluationType string) error {
-	existingRisk, err := rrs.GetByID(riskID)
+	existingRisk, err := rrs.GetByID(riskID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -2301,9 +2416,6 @@ func (cs *RiskRegisterService) ExportRiskRegister(data []*riskDTOs.RiskRegisterL
 	return utility.GenerateExcelFile(headers, rows)
 }
 
-// func getStringValue(pointer *string) string {
-// 	if pointer != nil {
-// 		return *pointer
-// 	}
-// 	return ""
-// }
+func (rrs *RiskRegisterService) SetRiskInherentEvaluationService(evaluationSvc RiskInherentEvaluationServiceInterface) {
+	rrs.riskInherentEvaluationSvc = evaluationSvc
+}

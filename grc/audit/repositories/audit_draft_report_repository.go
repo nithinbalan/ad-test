@@ -49,6 +49,9 @@ func (repo *AuditDraftReportRepository) GetByAuditID(auditID uint) (*models.Audi
 	result := repo.db.Where("audit_id = ?", auditID).
 	Preload("Audit").
 	Preload("Audit.AuditPlan").
+	Preload("Audit.AuditPlan.TeamLead").
+	Preload("Audit.AuditPlan.Members").
+	Preload("Audit.AuditPlan.Members.User").
 	Preload("Audit.AuditPlan.AuditableItems").
 	Preload("Audit.AuditPlan.AuditableItems.AuditableItem").
 	Preload("Audit.AuditPlan.AuditableItems.AuditableItem.ResponsibleUser").
@@ -100,6 +103,7 @@ func (repo *AuditDraftReportRepository) GetFullDetailsByID(auditID uint, tx ...u
 		Preload("Audit.AuditDraftFindings.AuditDraftFindingActionPlans.UpdatedByUser").
 		Preload("Audit.AuditDraftFindings.AcceptedByUser").
 		Preload("Audit.AuditDraftFindings.ChallengedByUser").
+		Preload("Audit.AuditDraftFindings.AuditDraftReportCommentsByFindings").
 		Preload("Audit.AuditPlan").
 		Preload("Audit.AuditPlan.AuditCategory").
 		Preload("Audit.AuditPlan.AuditStatus").
@@ -114,6 +118,8 @@ func (repo *AuditDraftReportRepository) GetFullDetailsByID(auditID uint, tx ...u
 		Preload("AuditReportWorkflows.AuditReportWorkflowParticipants.User").
 		Preload("InternalReviewSubmittedByUser").
 		Preload("AuditeeReviewSubmittedByUser").
+		Preload("CompletedByUser").
+		Preload("AuditDraftReportComments").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&auditDraftReport)

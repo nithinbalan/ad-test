@@ -21,9 +21,10 @@ type AuditInsightsModule struct {
 	AuditInsightsFindingRootCauseAnalysisController      *controllers.AuditInsightsFindingRootCauseAnalysisController
 	AuditInsightsFindingActionPlanController             *controllers.AuditInsightsFindingActionPlanController
 	AuditInsightsFindingActionPlanStatusUpdateController *controllers.AuditInsightsFindingActionPlanStatusUpdateController
+	AuditInsightsFinalReportController                   *controllers.AuditInsightsFinalReportController
 }
 
-func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, auditModule *AuditModule) *AuditInsightsModule {
+func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, auditModule *AuditModule, commonModule *CommonModule) *AuditInsightsModule {
 	auditInsightsAuditPlanRepo := repositories.NewAuditInsightsAuditPlanRepository(db)
 	auditInsightsAuditPlanSvc := services.NewAuditInsightsAuditPlanService(
 		auditInsightsAuditPlanRepo,
@@ -80,6 +81,7 @@ func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizatio
 		auditModule.AuditDraftFindingStatusSvc,
 		auditModule.AuditDraftFindingConversationSvc,
 		auditModule.AuditDraftFindingActionPlanSvc,
+		commonModule.NotificationService,
 	)
 	auditInsightsDraftFindingController := controllers.NewAuditInsightsDraftFindingController(auditInsightsDraftFindingSvc)
 
@@ -125,6 +127,7 @@ func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizatio
 		auditInsightsFindingActionPlanRepo,
 		sharedModule.ActivityLogService,
 		organizationModule.UserSvc,
+		auditModule.AuditFindingSvc,
 		auditModule.AuditFindingActionPlanSvc,
 	)
 	auditInsightsFindingActionPlanController := controllers.NewAuditInsightsFindingActionPlanController(auditInsightsFindingActionPlanSvc)
@@ -134,6 +137,15 @@ func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizatio
 		auditModule.AuditFindingActionPlanStatusUpdateSvc,
 	)
 	auditInsightsFindingActionPlanStatusUpdateController := controllers.NewAuditInsightsFindingActionPlanStatusUpdateController(auditInsightsFindingActionPlanStatusUpdateSvc)
+
+	auditInsightsFinalReportRepo := repositories.NewAuditInsightsFinalReportRepository(db)
+	auditInsightsFinalReportSvc := services.NewAuditInsightsFinalReportService(
+		auditInsightsFinalReportRepo,
+		organizationModule.UserSvc,
+		auditModule.AuditSvc,
+		auditModule.AuditFinalReportSvc,
+	)
+	auditInsightsFinalReportController := controllers.NewAuditInsightsFinalReportController(auditInsightsFinalReportSvc)
 
 	return &AuditInsightsModule{
 		AuditInsightsAuditPlanController:                     auditInsightsAuditPlanController,
@@ -148,5 +160,6 @@ func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizatio
 		AuditInsightsFindingRootCauseAnalysisController:      auditInsightsFindingRootCauseAnalysisController,
 		AuditInsightsFindingActionPlanController:             auditInsightsFindingActionPlanController,
 		AuditInsightsFindingActionPlanStatusUpdateController: auditInsightsFindingActionPlanStatusUpdateController,
+		AuditInsightsFinalReportController:                   auditInsightsFinalReportController,
 	}
 }

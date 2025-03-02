@@ -132,6 +132,8 @@ type AuditDraftReportDetailDTO struct {
 	InternalReviewSubmittedAt     *string                              `json:"internal_review_submitted_at"`
 	AuditeeReviewSubmittedByUser  *organizationDTOs.UserMinimalDTO     `json:"auditee_review_submitted_by"`
 	AuditeeReviewSubmittedAt      *string                              `json:"auditee_review_submitted_at"`
+	CompletedByUser               *organizationDTOs.UserMinimalDTO     `json:"completed_by"`
+	CompletedAt                   *string                              `json:"completed_at"`
 	AuditDraftReportStatus        *AuditDraftReportStatusDTO           `json:"audit_draft_report_status"`
 	CreatedByUser                 organizationDTOs.UserMinimalDTO      `json:"created_by"`
 	UpdatedByUser                 *organizationDTOs.UserMinimalDTO     `json:"updated_by"`
@@ -139,6 +141,8 @@ type AuditDraftReportDetailDTO struct {
 	ExecutiveSummaryOpenCount     int                                  `json:"executive_summary_open_count"`
 	ConclusionResolvedCount       int                                  `json:"conclusion_resolved_count"`
 	ConclusionOpenCount           int                                  `json:"conclusion_open_count"`
+	FindingResolvedCount          int                                  `json:"finding_resolved_count"`
+	FindingOpenCount              int                                  `json:"finding_open_count"`
 }
 type AuditDraftReportParsedDates struct {
 	ReportDate *time.Time
@@ -169,4 +173,6 @@ type AuditDraftFindingReportDetailDTO struct {
 	AcceptedAt                     *time.Time                                `json:"accepted_at"`
 	ChallengedByUser               *organizationDTOs.UserMinimalDTO          `json:"challenged_by"`
 	ChallengedAt                   *time.Time                                `json:"challenged_at"`
+	FindingResolvedCount           int                                       `json:"finding_resolved_count"`
+	FindingOpenCount               int                                       `json:"finding_open_count"`
 }

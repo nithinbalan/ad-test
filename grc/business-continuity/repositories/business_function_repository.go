@@ -51,6 +51,8 @@ func (repo *BusinessFunctionRepository) GetAll(params *businessContinuityDTOs.Bu
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,
 			severity_levels.color_code AS severity_level_color_code,
+			review_frequencies.title_en AS review_frequency_title_en,
+			review_frequencies.title_ar AS review_frequency_title_ar,
 			responsible_user.id AS responsible_user_id,
 			responsible_user.first_name_en AS responsible_user_first_name_en,
             responsible_user.first_name_ar AS responsible_user_first_name_ar,
@@ -81,6 +83,7 @@ func (repo *BusinessFunctionRepository) GetAll(params *businessContinuityDTOs.Bu
         `).
 		Joins(`
 		    LEFT JOIN severity_levels ON severity_levels.id = business_functions.severity_level_id
+			LEFT JOIN review_frequencies ON review_frequencies.id = business_functions.review_frequency_id
 		    LEFT JOIN users AS responsible_user ON responsible_user.id = business_functions.responsible_user_id
 			LEFT JOIN users AS created_user ON created_user.id = business_functions.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = business_functions.updated_by_id
@@ -95,6 +98,13 @@ func (repo *BusinessFunctionRepository) GetAll(params *businessContinuityDTOs.Bu
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "is_not_bcp":
+			query = query.Where("business_functions.bcp_status = ?", false)
+		}
+	}
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -104,6 +114,8 @@ func (repo *BusinessFunctionRepository) GetAll(params *businessContinuityDTOs.Bu
 			business_functions.reference_number LIKE ? OR
 			severity_levels.title_en LIKE ? OR
 			severity_levels.title_ar LIKE ? OR
+			review_frequencies.title_en LIKE ? OR
+			review_frequencies.title_ar LIKE ? OR
 			responsible_user.first_name_en LIKE ? OR
 			responsible_user.first_name_ar LIKE ? OR
 			responsible_user.last_name_en LIKE ? OR
@@ -122,7 +134,7 @@ func (repo *BusinessFunctionRepository) GetAll(params *businessContinuityDTOs.Bu
 			updated_user.last_name_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
@@ -131,20 +143,12 @@ func (repo *BusinessFunctionRepository) GetAll(params *businessContinuityDTOs.Bu
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	if !params.Export {
-		offset := (params.Page - 1) * params.PageSize
-		query = query.Offset(offset).Limit(params.PageSize)
-	}
-
 	err := query.Find(&businessFunctions).Error
 	if err != nil {
 		return nil, err
 	}
 
 	totalPages := 1
-	if !params.Export {
-		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-	}
 
 	response := &businessContinuityDTOs.BusinessFunctionListResponseDTO{
 		Items: businessFunctions,
@@ -180,8 +184,10 @@ func (repo *BusinessFunctionRepository) GetFullDetailsByID(id uint, tx ...utilit
 	result := db.
 		Preload("SeverityLevel").
 		Preload("Processes").
+		Preload("Processes.Process").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
+		Preload("ReviewFrequency").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&businessFunction, id)

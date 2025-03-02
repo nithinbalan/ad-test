@@ -111,11 +111,20 @@ func (apts *AuditPlanToolService) Create(auditPlanID uint, currentUserID uint, a
 	tx.Commit()
 
 	go func() {
-		err := apts.activityLogSvc.LogActivity(
+
+		existingAuditPlanTool, err := apts.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch audit plan tool", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = apts.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditPlanTool{}.TableName(),
 			id,
-			auditPlanToolFormDTO,
+			existingAuditPlanTool,
 			currentUserID,
 			nil,
 		)
@@ -141,6 +150,12 @@ func (apts *AuditPlanToolService) Update(id uint, auditPlanID uint, currentUserI
 	if _, err := apts.auditPlanSvc.GetByID(auditPlanID); err != nil {
 		return err
 	}
+
+	oldAuditPlanTool, err := apts.GetFullDetailsByID(id)
+	if err != nil {
+		return err
+	}
+
 	if err := apts.validateAuditPlanToolFormDTO(auditPlanToolFormDTO); err != nil {
 		tx.Rollback()
 		return err
@@ -166,25 +181,52 @@ func (apts *AuditPlanToolService) Update(id uint, auditPlanID uint, currentUserI
 	tx.Commit()
 
 	go func() {
-		err := apts.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.AuditPlanTool{}.TableName(),
-			id,
-			auditPlanToolFormDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingPlanTool, err := apts.GetFullDetailsByID(id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.AuditPlanTool{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"tool_type":  oldAuditPlanTool.ToolType.TitleEn,
+			"title":      oldAuditPlanTool.Title,
+			"objectives": oldAuditPlanTool.Purpose,
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		newData := map[string]interface{}{
+			"tool_type":  existingPlanTool.ToolType.TitleEn,
+			"title":      existingPlanTool.Title,
+			"objectives": existingPlanTool.Purpose,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+
+			err := apts.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditPlanTool{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditPlanTool{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -195,7 +237,7 @@ func (apts *AuditPlanToolService) Delete(ids []uint, currentUserID uint) ([]uint
 	tx := apts.repo.BeginTransaction()
 	var failedIDs []uint
 	var successfulIDs []uint
-
+	var deletedAuditPlanTool []map[string]interface{}
 	for _, id := range ids {
 		_, err := apts.repo.GetByID(id)
 		if err != nil {
@@ -207,12 +249,23 @@ func (apts *AuditPlanToolService) Delete(ids []uint, currentUserID uint) ([]uint
 			return nil, err
 		}
 
+		auditPlanTool, err := apts.GetFullDetailsByID(id)
+		if err != nil {
+			return nil, err
+		}
+
 		if err := apts.repo.Delete(id, tx); err != nil {
 			failedIDs = append(failedIDs, id)
 			continue
 		}
 
 		successfulIDs = append(successfulIDs, id)
+
+		deletedAuditPlanTool = append(deletedAuditPlanTool, map[string]interface{}{
+			"id":         id,
+			"audit_plan": auditPlanTool.AuditPlan.Title,
+			"title":      auditPlanTool.Title,
+		})
 	}
 
 	if len(successfulIDs) > 0 {
@@ -224,7 +277,7 @@ func (apts *AuditPlanToolService) Delete(ids []uint, currentUserID uint) ([]uint
 					models.DeleteAction,
 					models.AuditPlanTool{}.TableName(),
 					id,
-					nil,
+					deletedAuditPlanTool,
 					currentUserID,
 					nil,
 				)

@@ -10,6 +10,8 @@ import (
 type SystemPreferenceRepositoryInterface interface {
 	GetSystemPreference() (*models.SystemPreference, error)
 	Update(systemPreference *models.SystemPreference) error
+
+	GetActiveUserCount() (int64, error)
 }
 
 // implementation
@@ -25,7 +27,10 @@ func NewSystemPreferenceRepository(db *gorm.DB) *SystemPreferenceRepository {
 
 func (repo *SystemPreferenceRepository) GetSystemPreference() (*models.SystemPreference, error) {
 	var systemPreference *models.SystemPreference
-	result := repo.db.First(&systemPreference)
+	result := repo.db.
+		Preload("Timezone").
+		Preload("Currency").
+		First(&systemPreference)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -40,4 +45,17 @@ func (repo *SystemPreferenceRepository) Update(systemPreference *models.SystemPr
 	}
 
 	return nil
+}
+
+func (repo *SystemPreferenceRepository) GetActiveUserCount() (int64, error) {
+	var count int64
+	err := repo.db.Model(&models.User{}).
+		Joins("JOIN user_statuses ON user_statuses.id = users.user_status_id").
+		Where("user_statuses.is_active = ?", true).
+		Count(&count).
+		Error
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }

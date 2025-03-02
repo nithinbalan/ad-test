@@ -19,6 +19,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	assetTypeController := app.AssetModule.AssetTypeController
 	assetCategoryController := app.AssetModule.AssetCategoryController
+	assetSubCategoryController := app.AssetModule.AssetSubCategoryController
 	assetStatusController := app.AssetModule.AssetStatusController
 	assetRegisterController := app.AssetModule.AssetRegisterController
 	assetCriticalityMatrixController := app.AssetModule.AssetCriticalityMatrixController
@@ -57,6 +58,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.PUT("/asset-categories/activate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetCategoryController.ActivateAssetCategories)
 	assetRoutes.PUT("/asset-categories/deactivate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetCategoryController.DeactivateAssetCategories)
 
+	//Asset Sub category
+	assetRoutes.GET("/asset-sub-categories", assetSubCategoryController.GetAllAssetSubCategories)
+	assetRoutes.GET("/asset-sub-categories/:id", assetSubCategoryController.GetAssetSubCategoryDetails)
+	assetRoutes.POST("/asset-sub-categories", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetSubCategoryController.CreateAssetSubCategory)
+	assetRoutes.PUT("/asset-sub-categories/:id", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetSubCategoryController.UpdateAssetSubCategory)
+	assetRoutes.POST("/asset-sub-categories/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetSubCategoryController.DeleteAssetSubCategories)
+	assetRoutes.PUT("/asset-sub-categories/activate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetSubCategoryController.ActivateAssetSubCategories)
+	assetRoutes.PUT("/asset-sub-categories/deactivate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetSubCategoryController.DeactivateAssetSubCategories)
+
 	//asset status
 	assetRoutes.GET("/asset-statuses", assetStatusController.GetAllAssetStatuses)
 	assetRoutes.GET("/asset-statuses/:id", assetStatusController.GetAssetStatusDetails)
@@ -68,6 +78,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.PUT("/asset-register/:id", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetRegisterController.UpdateAsset)
 	assetRoutes.POST("/asset-register/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetRegisterController.DeleteAssets)
 	assetRoutes.GET("/asset-register/:id/control-summary", middlewares.RolePermissionMiddleware(db, "process", "view"), assetRegisterController.GetControlSummary)
+	unauthenticatedRoutes.GET("/asset-register/:id/document-download", assetRegisterController.DownloadAssetDocument)
 
 	//Asset Matrix
 	assetRoutes.GET("/asset-criticality-matrices", middlewares.RolePermissionMiddleware(db, "asset_criticality_matrix", "view"), assetCriticalityMatrixController.GetAllMatrices)
