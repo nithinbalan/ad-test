@@ -5,6 +5,7 @@ import (
 	"fmt"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
 	"jethur/utility"
@@ -33,16 +34,23 @@ type RiskCommentService struct {
 	riskRegisterSvc RiskRegisterServiceInterface
 	riskStatusSvc   RiskStatusServiceInterface
 	activityLogSvc  logServices.ActivityLogServiceInterface
+	userSvc         organizationServices.UserServiceInterface
+	riskSettingsSvc RiskSettingsServiceInterface
 }
 
 func NewRiskCommentService(repo repositories.RiskCommentRepositoryInterface,
 	riskRegisterSvc RiskRegisterServiceInterface,
 	riskStatusSvc RiskStatusServiceInterface,
-	activityLogSvc logServices.ActivityLogServiceInterface) *RiskCommentService {
+	activityLogSvc logServices.ActivityLogServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+	riskSettingsSvc RiskSettingsServiceInterface,
+) *RiskCommentService {
 	return &RiskCommentService{repo: repo,
 		riskRegisterSvc: riskRegisterSvc,
 		riskStatusSvc:   riskStatusSvc,
 		activityLogSvc:  activityLogSvc,
+		userSvc:         userSvc,
+		riskSettingsSvc: riskSettingsSvc,
 	}
 }
 
@@ -242,6 +250,12 @@ func (rcs *RiskCommentService) SubmitRisk(riskID uint, currentUserID uint) error
 		return err
 	}
 
+	// Ensure only the responsible user can submit
+	if risk.ResponsibleUserID != currentUserID {
+		tx.Rollback()
+		return utility.NewForbiddenError("Only the responsible user can submit this risk.")
+	}
+
 	// Update risk status to "submitted"
 	risk.RiskStatusID = submittedStatus.ID
 	err = rcs.repo.UpdateRiskStatus(risk, tx)
@@ -292,6 +306,23 @@ func (rcs *RiskCommentService) RevertRisk(riskID uint, currentUserID uint, comme
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	riskSetting, err := rcs.riskSettingsSvc.Get()
+	if err != nil {
+
+		return err
+	}
+
+	// Get Review User IDs
+	reviewUserIDs, err := rcs.userSvc.GetUserIdsByRole(riskSetting.ReviewRoleID)
+	if err != nil {
+
+		return err
+	}
+
+	if !contains(reviewUserIDs, currentUserID) {
+		return utility.NewForbiddenError("Only the review user can revert this risk.")
 	}
 
 	comment := &models.RiskComment{
@@ -501,6 +532,12 @@ func (rcs *RiskCommentService) ResubmitRisk(riskID uint, currentUserID uint, com
 		return err
 	}
 
+	// Ensure only the responsible user can submit
+	if risk.ResponsibleUserID != currentUserID {
+		tx.Rollback()
+		return utility.NewForbiddenError("Only the responsible user can re-submit this risk.")
+	}
+
 	// Validate if the current status allows resubmission
 	if risk.RiskStatusID == resubmittedStatus.ID {
 		tx.Rollback()
@@ -557,4 +594,13 @@ func (rcs *RiskCommentService) ResubmitRisk(riskID uint, currentUserID uint, com
 	}()
 
 	return nil
+}
+
+func contains(slice []uint, value uint) bool {
+	for _, v := range slice {
+		if v == value {
+			return true
+		}
+	}
+	return false
 }
