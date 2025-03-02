@@ -68,7 +68,7 @@ func LicenseMiddleware(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		today := time.Now().UTC().Truncate(24 * time.Hour)
+		today := time.Date(2025, 3, 3, 0, 0, 0, 0, time.UTC)
 
 		if today.Equal(expiryDate) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "License key expired"})
