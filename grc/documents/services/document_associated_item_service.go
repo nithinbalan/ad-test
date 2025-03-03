@@ -66,11 +66,12 @@ func (dais *DocumentAssociatedItemService) GetAllComplianceRequirements(document
 		if item.ComplianceRequirementID != 0 {
 			requirement := &organizationDTOs.ComplianceRequirementMinimalDTO{
 				ComplianceRequirementID:              item.ComplianceRequirementID,
-				ComplianceClauseTitle:                item.ComplianceClauseTitle,
+				ComplianceClauseTitleEn:              item.ComplianceClauseTitleEn,
+				ComplianceClauseTitleAr:              item.ComplianceClauseTitleAr,
 				ComplianceClauseNo:                   item.ComplianceClauseNo,
 				ComplianceRequirementCategoryTitleEn: item.ComplianceRequirementCategoryTitleEn,
 				ComplianceRequirementCategoryTitleAr: item.ComplianceRequirementCategoryTitleAr,
-				ComplianceRequirementTitle:           item.ComplianceRequirementTitle,
+				ComplianceRequirementTitleEn:         item.ComplianceRequirementTitleEn,
 				ComplianceStatusTitleEn:              item.ComplianceStatusTitleEn,
 				ComplianceStatusTitleAr:              item.ComplianceStatusTitleAr,
 				ComplianceStatusColorCode:            item.ComplianceStatusColorCode,
