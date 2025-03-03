@@ -242,6 +242,7 @@ func (repo *RiskActionPlanRepository) GetFullDetailsByID(id uint) (*models.RiskA
 
 	result := repo.db.
 		Preload("RiskRegister").
+		Preload("RiskRegister.Controls").
 		Preload("SeverityLevel").
 		Preload("ResponsibleUser").
 		Preload("SeverityLevel").

@@ -444,6 +444,22 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 		}
 	}
 
+	var deletRiskControlIDs []*uint
+	for _, existingRiskControl := range oldRiskActionPlan.RiskRegister.Controls {
+		if _, exists := existingControlIDs[existingRiskControl.ControlID]; exists {
+			if _, exists := newControlIDs[existingRiskControl.ControlID]; !exists {
+				deletRiskControlIDs = append(deletRiskControlIDs, existingRiskControl.ID)
+			}
+		}
+	}
+
+	if len(deletRiskControlIDs) > 0 {
+		if err := raps.repo.DeleteRiskControls(deletRiskControlIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	for _, control := range RiskActionPlanFormDTO.Controls {
 
 		if control.ID == nil {
