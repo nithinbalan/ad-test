@@ -28,6 +28,7 @@ type RiskActionPlan struct {
 	ReviewUser              *User                         `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"` // New foreign key relationship
 	ActionPlanStatus        *ActionPlanStatus             `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatusUpdates []*RiskActionPlanStatusUpdate `gorm:"foreignKey:RiskActionPlanID"`
+	Controls                []*RiskActionPlanControl      `gorm:"foreignKey:RiskActionPlanID"`
 	CreatedByUser           *User                         `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser           *User                         `gorm:"foreignKey:UpdatedBYID"`
 }

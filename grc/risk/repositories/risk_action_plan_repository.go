@@ -22,6 +22,12 @@ type RiskActionPlanRepositoryInterface interface {
 
 	CreateInitialRiskActionPlanStatusUpdate(riskActionPlanStatusUpdate *models.RiskActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteRiskActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
+
+	CreateRiskActionPlanControl(riskActionPlanControl *models.RiskActionPlanControl, tx ...utility.DatabaseTransaction) error
+	DeleteRiskActionPlanControl(riskActionPlanControlIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	CreateRiskControls(controls *models.RiskControl, tx ...utility.DatabaseTransaction) error
+	DeleteRiskControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskActionPlanRepository struct {
@@ -236,11 +242,17 @@ func (repo *RiskActionPlanRepository) GetFullDetailsByID(id uint) (*models.RiskA
 
 	result := repo.db.
 		Preload("RiskRegister").
+		Preload("RiskRegister.Controls").
 		Preload("SeverityLevel").
 		Preload("ResponsibleUser").
 		Preload("SeverityLevel").
 		Preload("ActionPlanStatus").
 		Preload("ActionPlanStatusUpdates").
+		Preload("Controls").
+		Preload("Controls.Control").
+		Preload("Controls.Control.ControlType").
+		Preload("Controls.Control.Owner").
+		Preload("Controls.Control.OwnerUnit").
 		Preload("ReviewUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
@@ -311,6 +323,55 @@ func (repo *RiskActionPlanRepository) DeleteRiskActionPlanStatusUpdates(ids []*u
 	}
 
 	if err := db.Where("id IN (?)", ids).Delete(&models.RiskActionPlanStatusUpdate{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *RiskActionPlanRepository) CreateRiskActionPlanControl(riskActionPlanControl *models.RiskActionPlanControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&riskActionPlanControl).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *RiskActionPlanRepository) DeleteRiskActionPlanControl(riskActionPlanControlIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete controls by IDs
+	if err := db.Where("id IN (?)", riskActionPlanControlIds).Delete(&models.RiskActionPlanControl{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *RiskActionPlanRepository) CreateRiskControls(controls *models.RiskControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&controls).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *RiskActionPlanRepository) DeleteRiskControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", controlIds).Delete(&models.RiskControl{}).Error; err != nil {
 		return err
 	}
 

@@ -12,6 +12,7 @@ import (
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
@@ -45,6 +46,8 @@ type RiskActionPlanService struct {
 	userSvc             organizationServices.UserServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
 	taskSvc             taskServices.TaskServiceInterface
+	lifecycleStatusSvc  masterServices.LifecycleStatusServiceInterface
+	controlSvc          organizationServices.ControlServiceInterface
 }
 
 func NewRiskActionPlanService(
@@ -57,6 +60,8 @@ func NewRiskActionPlanService(
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	taskSvc taskServices.TaskServiceInterface,
+	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
+	controlSvc organizationServices.ControlServiceInterface,
 ) RiskActionPlanServiceInterface {
 	return &RiskActionPlanService{
 		repo:                repo,
@@ -68,6 +73,8 @@ func NewRiskActionPlanService(
 		userSvc:             userSvc,
 		notificationSvc:     notificationSvc,
 		taskSvc:             taskSvc,
+		lifecycleStatusSvc:  lifecycleStatusSvc,
+		controlSvc:          controlSvc,
 	}
 }
 
@@ -130,20 +137,24 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 
 	risk, err := raps.riskRegisterSvc.GetByID(riskID)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	if err := raps.validateRiskActionPlanFormDTO(RiskActionPlanFormDTO); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	dates, err := raps.parseRiskActionPlanDates(RiskActionPlanFormDTO)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	actionPlanStatus, err := raps.actionPlanStatusSvc.GetByType("new")
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -163,6 +174,7 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 
 	id, err := raps.repo.Create(riskActionPlan)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -196,6 +208,47 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 	if _, err := raps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+
+	for _, control := range RiskActionPlanFormDTO.Controls {
+
+		// Create Control
+		controlDTO := &organizationDTOs.ControlFormDTO{
+			ControlTypeID: control.ControlTypeID, // Ensure the Code field exists and is of type *string in DocumentControl model
+			TitleEn:       control.TitleEn,
+			TitleAr:       control.TitleAr,
+			OwnerID:       control.OwnerID,
+		}
+
+		controlId, err := raps.controlSvc.Create(currentUserID, controlDTO)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		riskActionPlanControl := &models.RiskActionPlanControl{
+			RiskActionPlanID: id,
+			ControlID:        controlId,
+			CreatedByID:      currentUserID,
+		}
+
+		if err := raps.repo.CreateRiskActionPlanControl(riskActionPlanControl, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		// Save risk control
+		riskControl := &models.RiskControl{
+			RiskRegisterID: riskID,
+			ControlID:      controlId,
+			CreatedByID:    currentUserID,
+		}
+
+		if err := raps.repo.CreateRiskControls(riskControl, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
 	}
 
 	tx.Commit()
@@ -363,6 +416,90 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	existingControlIDs := make(map[uint]bool)
+	for _, ctrl := range oldRiskActionPlan.Controls {
+		existingControlIDs[ctrl.ControlID] = true
+	}
+
+	newControlIDs := make(map[uint]bool)
+	for _, ctrl := range RiskActionPlanFormDTO.Controls {
+		if ctrl.ID != nil {
+			newControlIDs[*ctrl.ID] = true
+		}
+	}
+
+	var deleteControlIDs []*uint
+	for _, existingActionPlan := range oldRiskActionPlan.Controls {
+		if _, exists := newControlIDs[existingActionPlan.ControlID]; !exists {
+			deleteControlIDs = append(deleteControlIDs, existingActionPlan.ID)
+		}
+	}
+
+	if len(deleteControlIDs) > 0 {
+		if err := raps.repo.DeleteRiskActionPlanControl(deleteControlIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deletRiskControlIDs []*uint
+	for _, existingRiskControl := range oldRiskActionPlan.RiskRegister.Controls {
+		if _, exists := existingControlIDs[existingRiskControl.ControlID]; exists {
+			if _, exists := newControlIDs[existingRiskControl.ControlID]; !exists {
+				deletRiskControlIDs = append(deletRiskControlIDs, existingRiskControl.ID)
+			}
+		}
+	}
+
+	if len(deletRiskControlIDs) > 0 {
+		if err := raps.repo.DeleteRiskControls(deletRiskControlIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, control := range RiskActionPlanFormDTO.Controls {
+
+		if control.ID == nil {
+			// Create Control
+			controlDTO := &organizationDTOs.ControlFormDTO{
+				ControlTypeID: control.ControlTypeID, // Ensure the Code field exists and is of type *string in DocumentControl model
+				TitleEn:       control.TitleEn,
+				TitleAr:       control.TitleAr,
+				OwnerID:       control.OwnerID,
+			}
+
+			controlId, err := raps.controlSvc.Create(currentUserID, controlDTO)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			riskActionPlanControl := &models.RiskActionPlanControl{
+				RiskActionPlanID: id,
+				ControlID:        controlId,
+				CreatedByID:      currentUserID,
+			}
+
+			if err := raps.repo.CreateRiskActionPlanControl(riskActionPlanControl, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			// Save risk control
+			riskControl := &models.RiskControl{
+				RiskRegisterID: riskID,
+				ControlID:      controlId,
+				CreatedByID:    currentUserID,
+			}
+
+			if err := raps.repo.CreateRiskControls(riskControl, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
 	}
 
 	tx.Commit()
