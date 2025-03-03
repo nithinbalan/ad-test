@@ -144,7 +144,7 @@ type ControlFormDTO struct {
 	LastReviewDate                *string `json:"last_review_date" binding:"omitempty,datetime=2006-01-02"`
 	NextReviewDate                *string `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
 	LastReviewNote                *string `json:"last_review_note" binding:"omitempty"`
-	TestResponsibleUserID         uint    `json:"test_responsible_user_id" binding:"required"`
+	TestResponsibleUserID         *uint   `json:"test_responsible_user_id"`
 	TestFrequencyID               *uint   `json:"test_frequency_id,omitempty"`
 	LastTestDate                  *string `json:"last_test_date" binding:"omitempty,datetime=2006-01-02"`
 	NextTestDate                  *string `json:"next_test_date" binding:"omitempty,datetime=2006-01-02"`
