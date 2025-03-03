@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
@@ -12,10 +13,12 @@ import (
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
+	"gorm.io/gorm"
 )
 
 type SystemPreferenceServiceInterface interface {
 	GetSystemPreference() (*dtos.SystemPreferenceDTO, error)
+	GetByID(id uint) (*models.SystemPreference, error)
 	Update(id uint, currentUserID uint, systemPreferenceFormDTO *dtos.SystemPreferenceFormDTO) error
 	UpdateLicenseKey(systemPreferenceFormDTO *dtos.LicenseKeyUpdateFormDTO) error
 
@@ -59,6 +62,19 @@ func (sps SystemPreferenceService) GetSystemPreference() (*dtos.SystemPreference
 	}
 
 	return &systemPreferenceDetailDTO, nil
+}
+
+func (sps SystemPreferenceService) GetByID(id uint) (*models.SystemPreference, error) {
+	systemPreference, err := sps.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	return systemPreference, nil
 }
 
 func (sps *SystemPreferenceService) Update(id uint, currentUserID uint, systemPreferenceFormDTO *dtos.SystemPreferenceFormDTO) error {
