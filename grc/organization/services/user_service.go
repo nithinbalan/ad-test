@@ -306,7 +306,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 	if preference.BalanceLicensedUserCount != nil {
 		newBalance := *preference.BalanceLicensedUserCount - 1
 		preference.BalanceLicensedUserCount = &newBalance
-		err = us.repo.UpdateSystemPreference(preference, tx)
+		err = us.systemPreferenceSvc.UpdateBalanceUserCount(preference, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err

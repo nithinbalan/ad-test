@@ -50,7 +50,6 @@ type UserRepositoryInterface interface {
 	GetPermissionsForModule(roleID, moduleID uint) (map[string]bool, error)
 	GetUserRoles(userID uint) ([]models.UserRole, error)
 	GetActiveUserCount() (int64, error)
-	UpdateSystemPreference(systemPreference *models.SystemPreference, tx ...utility.DatabaseTransaction) error
 }
 
 type UserRepository struct {
@@ -782,12 +781,4 @@ func (repo *UserRepository) GetActiveUserCount() (int64, error) {
 		return 0, err
 	}
 	return count, nil
-}
-
-func (repo *UserRepository) UpdateSystemPreference(systemPreference *models.SystemPreference, tx ...utility.DatabaseTransaction) error {
-	if err := repo.db.Save(systemPreference).Error; err != nil {
-		return err
-	}
-
-	return nil
 }

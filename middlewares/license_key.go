@@ -12,13 +12,19 @@ import (
 
 // GetLicenseToken fetches the license key from the system_preferences table
 func GetLicenseToken(db *gorm.DB) (string, error) {
-	var licenseKey string
+	var licenseKey *string
 
 	err := db.Raw("select license_key from system_preferences").Scan(&licenseKey).Error
 	if err != nil {
 		return "", err
 	}
-	return licenseKey, nil
+
+	// If licenseKey is NULL, return an empty string
+	if licenseKey == nil {
+		return "", nil
+	}
+
+	return *licenseKey, nil
 }
 
 // LicenseMiddleware checks if the license key is expired
