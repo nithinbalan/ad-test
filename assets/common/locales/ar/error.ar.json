@@ -150,14 +150,6 @@
 {
   "id": "user_exceed",
   "translation": "تجاوز عدد المستخدمين."
-},
-{
-  "id": "invalid_expiry_date",
-  "translation": "تاريخ انتهاء الصلاحية غير صالح."
-},
-{
-  "id": "invalid_api_url",
-  "translation": "عنوان URL لواجهة برمجة التطبيقات غير صالح."
 }
 
 

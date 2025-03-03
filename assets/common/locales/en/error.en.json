@@ -150,14 +150,6 @@
   {
     "id": "user_exceed",
     "translation": "The number of users exceeded."
-  },
-  {
-    "id": "invalid_expiry_date",
-    "translation": "The expiry date is invalid."
-  },
-  {
-    "id": "invalid_api_url",
-    "translation": "The api url is invalid."
   }
   
   
