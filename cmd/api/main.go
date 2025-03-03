@@ -63,6 +63,7 @@ func main() {
 	r.Use(middlewares.LocalizerMiddleware(bundle))
 	r.Use(middlewares.RecoveryWithDatabaseLog(db))
 	r.Use(middlewares.ThrottleMiddleware(10, 20))
+	r.Use(middlewares.LicenseMiddleware(db))
 
 	masterRoutes.RegisterRoutes(app, r)
 	logRoutes.RegisterRoutes(app, r)

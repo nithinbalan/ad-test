@@ -38,6 +38,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//System Preference
 	settingRoutes.GET("/system-preferences", systemPreferenceController.GetSystemPreference)
 	settingRoutes.PUT("/system-preferences/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), systemPreferenceController.UpdateSystemPreference)
+	unauthenticatedRoutes.PUT("/update-license-key", systemPreferenceController.UpdateLicenseKey)
+	unauthenticatedRoutes.GET("/license-key", systemPreferenceController.GetSystemPreference)
 
 	//Email template settings
 	settingRoutes.GET("/email-template-settings", emailTemplateSettingsController.GetEmailTemplateSettings)

@@ -225,6 +225,17 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 
 	tx := us.repo.BeginTransaction()
 
+	systemPreference, err := us.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return 0, err
+	}
+
+	if *systemPreference.LicenseKey != "" {
+		if err := us.validateLicenseKey(*systemPreference.LicenseKey); err != nil {
+			return 0, err
+		}
+	}
+
 	if err := us.validateUserFormDTO(nil, userFormDTO); err != nil {
 		return 0, err
 	}
@@ -959,4 +970,46 @@ func (us *UserService) GetUserPermissions(userID uint, params *settingDTOs.Modul
 	}
 
 	return &moduleList, nil
+}
+
+func (us *UserService) DecodeMaxUsersFromLicense(licenseKey string) (float64, error) {
+	claims, err := utility.DecryptJWTToken(licenseKey)
+	if err != nil {
+		return 0, err
+	}
+	// Extract max_users
+	maxUsers, ok := claims["max_users"].(float64) // JWT numbers are float64
+	if !ok {
+		return 0, fmt.Errorf("max_users field missing in license key")
+	}
+
+	return maxUsers, nil
+}
+
+func (us *UserService) validateLicenseKey(licenseKey string) error {
+
+	claims, err := utility.DecryptJWTToken(licenseKey)
+	if err != nil {
+		return err
+	}
+	// Extract max_users
+	maxUsers, ok := claims["max_users"].(float64) // JWT numbers are float64
+	if !ok {
+		return fmt.Errorf("max_users field missing in license key")
+	}
+
+	activeUsers, err := us.repo.GetActiveUserCount()
+	if err != nil {
+		return err
+	}
+
+	if activeUsers >= int64(maxUsers) {
+		return utility.NewValidationError(
+			fmt.Errorf("maximum allowed users limit reached (%d users)", int64(maxUsers)),
+			"user_exceed",
+			"user",
+		)
+	}
+
+	return nil
 }

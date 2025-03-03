@@ -293,10 +293,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("risks/:riskId/closure/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskClosureController.UpdateRiskClosure)
 	riskRoutes.DELETE("risks/:riskId/closure/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskClosureController.DeleteRiskClosure)
 
-	riskRoutes.PUT("/risk-register/:id/submit", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.SubmitRisk)
-	riskRoutes.PUT("/risk-register/:id/revert", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.RevertRisk)
-	riskRoutes.PUT("/risk-register/:id/reject", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.RejectRisk)
-	riskRoutes.PUT("/risk-register/:id/approve", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.ApproveRisk)
-	riskRoutes.PUT("/risk-register/:id/resubmit", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.ResubmitRisk)
+	riskRoutes.GET("/risks/:riskId/comments", middlewares.RolePermissionMiddleware(db, "risk", "view"), riskCommentController.GetAllComments)
+	riskRoutes.GET("/risks/:riskId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk", "view"), riskCommentController.GetCommentDetails)
+	riskRoutes.POST("/risks/:riskId/comments", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskCommentController.CreateComment)
+	riskRoutes.PUT("/risks/:riskId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskCommentController.UpdateComment)
+	riskRoutes.POST("/risks/:riskId/comments/delete", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskCommentController.DeleteComment)
+
+	riskRoutes.PUT("/risks/:riskId/submit", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.SubmitRisk)
+	riskRoutes.PUT("/risks/:riskId/revert", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.RevertRisk)
+	riskRoutes.PUT("/risks/:riskId/reject", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.RejectRisk)
+	riskRoutes.PUT("/risks/:riskId/approve", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.ApproveRisk)
+	riskRoutes.PUT("/risks/:riskId/resubmit", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.ResubmitRisk)
 
 }

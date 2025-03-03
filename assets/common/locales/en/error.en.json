@@ -146,7 +146,11 @@
   {
     "id": "invalid",
     "translation": "The {{.Field}} is invalid"
+  },
+  {
+    "id": "user_exceed",
+    "translation": "The number of users exceeded."
   }
-
+  
   
 ]
