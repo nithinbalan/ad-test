@@ -192,30 +192,30 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 	}
 
 	// Save Documents
-	if len(meetingFormDTO.Documents) > 0 {
-		var documents []*models.MeetingDocument
-		for _, doc := range meetingFormDTO.Documents {
-			dataToEncrypt := []byte(doc.FileName)
-			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-			if err != nil {
-				tx.Rollback()
-				return 0, err
-			}
-
-			url := utility.GenerateDocumentURL("meeting", "meetings", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
-			document := &models.MeetingDocument{
-				MeetingID:    id,
-				URL:          url,
-				Name:         doc.FileName,
-				Size:         doc.Size,
-				Token:        encryptedFileName,
-				OriginalName: &doc.OriginalName,
-				Type:         doc.Type,
-				CreatedAt:    time.Now(),
-			}
-			documents = append(documents, document)
+	var documents []*models.MeetingDocument
+	for _, doc := range meetingFormDTO.Documents {
+		dataToEncrypt := []byte(doc.FileName)
+		encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
 		}
 
+		url := utility.GenerateDocumentURL("meeting", "meetings", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+		document := &models.MeetingDocument{
+			MeetingID:    id,
+			URL:          url,
+			Name:         doc.FileName,
+			Size:         doc.Size,
+			Token:        encryptedFileName,
+			OriginalName: &doc.OriginalName,
+			Type:         doc.Type,
+			CreatedAt:    time.Now(),
+		}
+		documents = append(documents, document)
+	}
+
+	if len(documents) > 0 {
 		if err := ms.repo.CreateMeetingDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return 0, err
@@ -383,6 +383,13 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 	}
 
 	tx.Commit()
+
+	for _, doc := range documents {
+		storagePath := filepath.Join("meeting", "meetings", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			return 0, err
+		}
+	}
 
 	go func() {
 		existingMeeting, err := ms.GetFullDetailsByID(meeting.ID)
@@ -912,8 +919,15 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 
 	tx.Commit()
 
+	for _, doc := range documents {
+		storagePath := filepath.Join("meeting", "meetings", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			fmt.Printf("Failed to store file %s: %v\n", doc.Name, err)
+		}
+	}
+
 	for _, doc := range documentsToDelete {
-		storagePath := filepath.Join("document", "meetings", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("meeting", "meetings", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 			fmt.Printf("Failed to delete file %s: %v\n", doc.Name, err)
 		}
