@@ -236,6 +236,12 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		}
 	}
 
+	// Check if user creation is allowed based on available licenses
+	if systemPreference.BalanceLicensedUserCount != nil && *systemPreference.BalanceLicensedUserCount <= 0 {
+		tx.Rollback()
+		return 0, utility.NewValidationError(fmt.Errorf("invalid balance user"), "invalid", "balance users")
+	}
+
 	if err := us.validateUserFormDTO(nil, userFormDTO); err != nil {
 		return 0, err
 	}
@@ -290,6 +296,21 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 	if err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+
+	// Decrease the balance licensed user count
+	preference, err := us.systemPreferenceSvc.GetByID(uint(systemPreference.ID))
+	if err != nil {
+		return 0, err
+	}
+	if preference.BalanceLicensedUserCount != nil {
+		newBalance := *preference.BalanceLicensedUserCount - 1
+		preference.BalanceLicensedUserCount = &newBalance
+		err = us.systemPreferenceSvc.UpdateBalanceUserCount(preference, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	userSecurityDTO := &userDTOs.UserSecurityFormDTO{

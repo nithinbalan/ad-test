@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
@@ -12,12 +13,15 @@ import (
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
+	"gorm.io/gorm"
 )
 
 type SystemPreferenceServiceInterface interface {
 	GetSystemPreference() (*dtos.SystemPreferenceDTO, error)
+	GetByID(id uint) (*models.SystemPreference, error)
 	Update(id uint, currentUserID uint, systemPreferenceFormDTO *dtos.SystemPreferenceFormDTO) error
 	UpdateLicenseKey(systemPreferenceFormDTO *dtos.LicenseKeyUpdateFormDTO) error
+	UpdateBalanceUserCount(systemPreference *models.SystemPreference, tx utility.DatabaseTransaction) error
 
 	GetOrganizationPreference(params *dtos.IntegrationListQueryParamsDTO) (*dtos.OrganizationPreferenceResponseDTO, error)
 }
@@ -59,6 +63,19 @@ func (sps SystemPreferenceService) GetSystemPreference() (*dtos.SystemPreference
 	}
 
 	return &systemPreferenceDetailDTO, nil
+}
+
+func (sps SystemPreferenceService) GetByID(id uint) (*models.SystemPreference, error) {
+	systemPreference, err := sps.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	return systemPreference, nil
 }
 
 func (sps *SystemPreferenceService) Update(id uint, currentUserID uint, systemPreferenceFormDTO *dtos.SystemPreferenceFormDTO) error {
@@ -233,6 +250,17 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(systemPreferenceFormDTO *dt
 	return nil
 }
 
+func (sps *SystemPreferenceService) UpdateBalanceUserCount(systemPreference *models.SystemPreference, tx utility.DatabaseTransaction) error {
+
+	err := sps.repo.Update(systemPreference)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return nil
+}
+
 func (sps *SystemPreferenceService) validateLicenseKey(licenseKey string) error {
 	claims, err := utility.DecryptJWTToken(licenseKey)
 	if err != nil {
@@ -248,12 +276,12 @@ func (sps *SystemPreferenceService) validateLicenseKey(licenseKey string) error 
 	// Convert expiry_date string to time.Time format
 	expiryDate, err := time.Parse("2006-01-02", expiryDateStr) // Ensure format matches the stored format
 	if err != nil {
-		return utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid_date", "expiry date")
+		return utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid_expiry_date", "expiry date")
 	}
 
 	// Check if expiry_date is in the future
 	if expiryDate.Before(time.Now()) {
-		return utility.NewValidationError(fmt.Errorf("invalid token"), "invalid", "license key")
+		return utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid_expiry_date", "license key")
 	}
 
 	// Validate API URL (if needed)
@@ -261,7 +289,7 @@ func (sps *SystemPreferenceService) validateLicenseKey(licenseKey string) error 
 	if apiURL, ok := claims["api_url"].(string); ok {
 		systemAPIURL := utility.GetApiURL() // Change this to your actual API URL
 		if apiURL != systemAPIURL {
-			return utility.NewValidationError(fmt.Errorf("invalid token"), "invalid", "api key")
+			return utility.NewValidationError(fmt.Errorf("invalid api key"), "invalid_api_url", "api url")
 		}
 	}
 

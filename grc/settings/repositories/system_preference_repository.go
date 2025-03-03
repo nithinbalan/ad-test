@@ -9,6 +9,7 @@ import (
 // Interfaces
 type SystemPreferenceRepositoryInterface interface {
 	GetSystemPreference() (*models.SystemPreference, error)
+	GetByID(id uint) (*models.SystemPreference, error)
 	Update(systemPreference *models.SystemPreference) error
 
 	GetActiveUserCount() (int64, error)
@@ -32,6 +33,17 @@ func (repo *SystemPreferenceRepository) GetSystemPreference() (*models.SystemPre
 		Preload("Currency").
 		First(&systemPreference)
 
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return systemPreference, nil
+}
+
+func (repo *SystemPreferenceRepository) GetByID(id uint) (*models.SystemPreference, error) {
+	var systemPreference *models.SystemPreference
+
+	result := repo.db.First(&systemPreference, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
