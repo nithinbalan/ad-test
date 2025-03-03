@@ -44,11 +44,13 @@ type MeetingComplianceRequirementListDTO struct {
 	ComplianceRegisterTitleEn            string `json:"compliance_register_title_en"`
 	ComplianceRegisterTitleAr            string `json:"compliance_register_title_ar"`
 	ComplianceRequirementID              uint   `json:"compliance_requirement_id"`
-	ComplianceClauseTitle                string `json:"compliance_clause_title"`
+	ComplianceClauseTitleEn              string `json:"compliance_clause_title_en"`
+	ComplianceClauseTitleAr              string `json:"compliance_clause_title_ar"`
 	ComplianceClauseNo                   string `json:"compliance_clause_no"`
 	ComplianceRequirementCategoryTitleEn string `json:"compliance_requirement_category_title_en"`
 	ComplianceRequirementCategoryTitleAr string `json:"compliance_requirement_category_title_ar"`
-	ComplianceRequirementTitle           string `json:"compliance_requirement_title"`
+	ComplianceRequirementTitleEn         string `json:"compliance_requirement_title_en"`
+	ComplianceRequirementTitleAr         string `json:"compliance_requirement_title_ar"`
 	ComplianceStatusTitleEn              string `json:"compliance_status_title_en"`
 	ComplianceStatusTitleAr              string `json:"compliance_status_title_ar"`
 	ComplianceStatusColorCode            string `json:"compliance_status_color_code"`

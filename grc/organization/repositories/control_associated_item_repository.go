@@ -130,11 +130,13 @@ func (repo *ControlAssociatedItemRepository) GetAllComplianceRequirements(contro
 			compliance_register.title_en AS compliance_register_title_en,
 			compliance_register.title_ar AS compliance_register_title_ar,
 			compliance_controls.compliance_requirement_id AS compliance_requirement_id,
-			compliance_clauses.title AS compliance_clause_title,
+			compliance_clauses.title_en AS compliance_clause_title_en,
+			compliance_clauses.title_ar AS compliance_clause_title_ar,
 			compliance_clauses.clause_no AS compliance_clause_no,
 			compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
 			compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
-			compliance_requirements.title AS compliance_requirement_title,
+			compliance_requirements.title_en AS compliance_requirement_title_en,
+			compliance_requirements.title_ar AS compliance_requirement_title_ar,
 			compliance_statuses.title_en AS compliance_status_title_en,
 			compliance_statuses.title_ar AS compliance_status_title_ar,
 			compliance_statuses.color_code AS compliance_status_color_code
@@ -153,17 +155,19 @@ func (repo *ControlAssociatedItemRepository) GetAllComplianceRequirements(contro
 			(compliance_register.title_en LIKE ? OR
 			compliance_register.title_ar LIKE ? OR
 			compliance_register.description_en LIKE ? OR
-			compliance_requirements.title LIKE ? OR
+			compliance_requirements.title_en LIKE ? OR
+			compliance_requirements.title_ar LIKE ? OR
 			compliance_requirement_categories.title_en LIKE ? OR
 			compliance_requirement_categories.title_ar LIKE ? OR
 			compliance_clauses.clause_no LIKE ? OR
-			compliance_clauses.title LIKE ? OR
+			compliance_clauses.title_en LIKE ? OR
+			compliance_clauses.title_ar LIKE ? OR
 			compliance_statuses.title_en LIKE ? OR
 			compliance_statuses.title_ar LIKE ?)`,
 
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	if params.SortBy == "" {
