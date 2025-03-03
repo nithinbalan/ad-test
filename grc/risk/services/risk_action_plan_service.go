@@ -12,6 +12,7 @@ import (
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
@@ -46,6 +47,7 @@ type RiskActionPlanService struct {
 	notificationSvc     commonServices.NotificationServiceInterface
 	taskSvc             taskServices.TaskServiceInterface
 	lifecycleStatusSvc  masterServices.LifecycleStatusServiceInterface
+	controlSvc          organizationServices.ControlServiceInterface
 }
 
 func NewRiskActionPlanService(
@@ -59,6 +61,7 @@ func NewRiskActionPlanService(
 	notificationSvc commonServices.NotificationServiceInterface,
 	taskSvc taskServices.TaskServiceInterface,
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
+	controlSvc organizationServices.ControlServiceInterface,
 ) RiskActionPlanServiceInterface {
 	return &RiskActionPlanService{
 		repo:                repo,
@@ -71,6 +74,7 @@ func NewRiskActionPlanService(
 		notificationSvc:     notificationSvc,
 		taskSvc:             taskSvc,
 		lifecycleStatusSvc:  lifecycleStatusSvc,
+		controlSvc:          controlSvc,
 	}
 }
 
@@ -207,36 +211,16 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 	}
 
 	for _, control := range RiskActionPlanFormDTO.Controls {
-		referenceNumber, err := raps.repo.GenerateControlReferenceNumber(tx)
-		if err != nil {
-			tx.Rollback()
-			return 0, err
+
+		// Create Control
+		controlDTO := &organizationDTOs.ControlFormDTO{
+			ControlTypeID: control.ControlTypeID, // Ensure the Code field exists and is of type *string in DocumentControl model
+			TitleEn:       control.TitleEn,
+			TitleAr:       control.TitleAr,
+			OwnerID:       control.OwnerID,
 		}
 
-		lifecycleStatus, err := raps.lifecycleStatusSvc.GetByType("active")
-		if err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-
-		organizationUnitID, err := raps.userSvc.GetUserPrimaryUnitID(control.OwnerID)
-		if err != nil {
-			tx.Rollback()
-			return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
-		}
-		actionPlanControl := &models.Control{
-			ReferenceNumber:       referenceNumber,
-			ControlTypeID:         control.ControlTypeID,
-			OwnerID:               control.OwnerID,
-			OwnerUnitID:           organizationUnitID,
-			TitleEn:               control.TitleEn,
-			TitleAr:               control.TitleAr,
-			LifecycleStatusID:     lifecycleStatus.ID,
-			TestResponsibleUserID: nil,
-			CreatedByID:           currentUserID,
-		}
-
-		controlId, err := raps.repo.CreateControl(actionPlanControl, tx)
+		controlId, err := raps.controlSvc.Create(currentUserID, controlDTO)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -249,6 +233,18 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 		}
 
 		if err := raps.repo.CreateRiskActionPlanControl(riskActionPlanControl, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		// Save risk control
+		riskControl := &models.RiskControl{
+			RiskRegisterID: riskID,
+			ControlID:      controlId,
+			CreatedByID:    currentUserID,
+		}
+
+		if err := raps.repo.CreateRiskControls(riskControl, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -451,36 +447,15 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	for _, control := range RiskActionPlanFormDTO.Controls {
 
 		if control.ID == nil {
-			referenceNumber, err := raps.repo.GenerateControlReferenceNumber(tx)
-			if err != nil {
-				tx.Rollback()
-				return err
+			// Create Control
+			controlDTO := &organizationDTOs.ControlFormDTO{
+				ControlTypeID: control.ControlTypeID, // Ensure the Code field exists and is of type *string in DocumentControl model
+				TitleEn:       control.TitleEn,
+				TitleAr:       control.TitleAr,
+				OwnerID:       control.OwnerID,
 			}
 
-			lifecycleStatus, err := raps.lifecycleStatusSvc.GetByType("active")
-			if err != nil {
-				tx.Rollback()
-				return err
-			}
-
-			organizationUnitID, err := raps.userSvc.GetUserPrimaryUnitID(control.OwnerID)
-			if err != nil {
-				tx.Rollback()
-				return utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
-			}
-			actionPlanControl := &models.Control{
-				ReferenceNumber:       referenceNumber,
-				ControlTypeID:         control.ControlTypeID,
-				OwnerID:               control.OwnerID,
-				OwnerUnitID:           organizationUnitID,
-				TitleEn:               control.TitleEn,
-				TitleAr:               control.TitleAr,
-				LifecycleStatusID:     lifecycleStatus.ID,
-				TestResponsibleUserID: nil,
-				CreatedByID:           currentUserID,
-			}
-
-			controlId, err := raps.repo.CreateControl(actionPlanControl, tx)
+			controlId, err := raps.controlSvc.Create(currentUserID, controlDTO)
 			if err != nil {
 				tx.Rollback()
 				return err
@@ -493,6 +468,18 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 			}
 
 			if err := raps.repo.CreateRiskActionPlanControl(riskActionPlanControl, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			// Save risk control
+			riskControl := &models.RiskControl{
+				RiskRegisterID: riskID,
+				ControlID:      controlId,
+				CreatedByID:    currentUserID,
+			}
+
+			if err := raps.repo.CreateRiskControls(riskControl, tx); err != nil {
 				tx.Rollback()
 				return err
 			}

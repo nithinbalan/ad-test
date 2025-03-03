@@ -6,7 +6,6 @@ import (
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/utility"
-	"strconv"
 	"time"
 
 	"gorm.io/gorm"
@@ -23,12 +22,12 @@ type RiskActionPlanRepositoryInterface interface {
 
 	CreateInitialRiskActionPlanStatusUpdate(riskActionPlanStatusUpdate *models.RiskActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteRiskActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
-	CreateControl(control *models.Control, tx ...utility.DatabaseTransaction) (uint, error)
 
 	CreateRiskActionPlanControl(riskActionPlanControl *models.RiskActionPlanControl, tx ...utility.DatabaseTransaction) error
 	DeleteRiskActionPlanControl(riskActionPlanControlIds []*uint, tx ...utility.DatabaseTransaction) error
 
-	GenerateControlReferenceNumber(tx utility.DatabaseTransaction) (string, error)
+	CreateRiskControls(controls *models.RiskControl, tx ...utility.DatabaseTransaction) error
+	DeleteRiskControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskActionPlanRepository struct {
@@ -329,14 +328,6 @@ func (repo *RiskActionPlanRepository) DeleteRiskActionPlanStatusUpdates(ids []*u
 	return nil
 }
 
-func (repo *RiskActionPlanRepository) CreateControl(control *models.Control, tx ...utility.DatabaseTransaction) (uint, error) {
-	if err := repo.db.Create(control).Error; err != nil {
-		return 0, err
-	}
-
-	return control.ID, nil
-}
-
 func (repo *RiskActionPlanRepository) CreateRiskActionPlanControl(riskActionPlanControl *models.RiskActionPlanControl, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -362,35 +353,26 @@ func (repo *RiskActionPlanRepository) DeleteRiskActionPlanControl(riskActionPlan
 	return nil
 }
 
-func (repo *RiskActionPlanRepository) GenerateControlReferenceNumber(tx utility.DatabaseTransaction) (string, error) {
-	db := tx.DB()
-	var lastReferenceNumber string
+func (repo *RiskActionPlanRepository) CreateRiskControls(controls *models.RiskControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&controls).Error; err != nil {
+		return err
+	}
+	return nil
+}
 
-	// Use SELECT ... FOR UPDATE to lock the last row and prevent race conditions
-	err := db.Raw(`
-		SELECT TOP 1 reference_number 
-		FROM controls 
-		ORDER BY reference_number DESC
-	`).Scan(&lastReferenceNumber).Error
-
-	if err != nil && err != gorm.ErrRecordNotFound {
-		return "", err
+func (repo *RiskActionPlanRepository) DeleteRiskControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
 	}
 
-	// Extract last digits and increment
-	lastDigits := "0000"
-	if lastReferenceNumber != "" && len(lastReferenceNumber) >= 4 {
-		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-4:]
+	if err := db.Where("id IN (?)", controlIds).Delete(&models.RiskControl{}).Error; err != nil {
+		return err
 	}
 
-	lastReferenceID, err := strconv.ParseUint(lastDigits, 10, 64)
-	if err != nil {
-		return "", err
-	}
-
-	// Generate new reference number
-	currentYear := time.Now().Year()
-	newReferenceNumber := fmt.Sprintf("CTRL-%d-%04d", currentYear, lastReferenceID+1)
-
-	return newReferenceNumber, nil
+	return nil
 }
