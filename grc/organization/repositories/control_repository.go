@@ -18,10 +18,10 @@ type ControlRepositoryInterface interface {
 	GetAllControls() ([]*models.Control, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error)
-	Create(control *models.Control) (uint, error)
+	Create(control *models.Control, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(complianceRegister *models.Control, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
-	GenerateReferenceNumber() (string, error)
+	GenerateReferenceNumber(tx ...utility.DatabaseTransaction) (string, error)
 
 	//lifecycle status
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
@@ -361,8 +361,12 @@ func (repo *ControlRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 	return control, nil
 }
 
-func (repo *ControlRepository) Create(control *models.Control) (uint, error) {
-	if err := repo.db.Create(control).Error; err != nil {
+func (repo *ControlRepository) Create(control *models.Control, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(control).Error; err != nil {
 		return 0, err
 	}
 
@@ -413,9 +417,15 @@ func (repo *ControlRepository) UpdateLifecycleStatusForIDs(ids []uint, statusId 
 	return ids, nil
 }
 
-func (repo *ControlRepository) GenerateReferenceNumber() (string, error) {
+func (repo *ControlRepository) GenerateReferenceNumber(tx ...utility.DatabaseTransaction) (string, error) {
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var lastReferenceNumber string
-	err := repo.db.Model(&models.Control{}).
+	err := db.Model(&models.Control{}).
 		Select("reference_number").
 		Order("reference_number desc").
 		Limit(1).
