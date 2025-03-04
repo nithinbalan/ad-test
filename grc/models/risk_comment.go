@@ -11,8 +11,11 @@ type RiskComment struct {
 	CreatedBYID        uint      `json:"created_by_id" gorm:"not null;index"`
 	CreatedAt          time.Time `json:"created_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
 
-	RiskRegister  *RiskRegister `gorm:"foreignKey:RiskRegisterID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	CreatedByUser *User         `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskRegister     *RiskRegister     `gorm:"foreignKey:RiskRegisterID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskTimelineType *RiskTimelineType `gorm:"foreignKey:RiskTimelineTypeID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskStatus       *RiskStatus       `gorm:"foreignKey:RiskStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+
+	CreatedByUser *User `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 func (RiskComment) TableName() string {
