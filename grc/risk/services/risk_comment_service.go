@@ -9,6 +9,7 @@ import (
 	"jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
 	"jethur/utility"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -258,6 +259,9 @@ func (rcs *RiskCommentService) SubmitRisk(riskID uint, currentUserID uint) error
 
 	// Update risk status to "submitted"
 	risk.RiskStatusID = submittedStatus.ID
+	risk.SubmittedBy = &currentUserID
+	now := time.Now()
+	risk.SubmittedAt = &now
 	err = rcs.repo.UpdateRiskStatus(risk, tx)
 	if err != nil {
 		tx.Rollback()
@@ -339,6 +343,7 @@ func (rcs *RiskCommentService) RevertRisk(riskID uint, currentUserID uint, comme
 
 	// Update risk status to "reverted"
 	risk.RiskStatusID = revertedStatus.ID
+	risk.ReviewedBy = &currentUserID
 	err = rcs.repo.UpdateRiskStatus(risk, tx)
 	if err != nil {
 		tx.Rollback()
@@ -421,6 +426,7 @@ func (rcs *RiskCommentService) RejectRisk(riskID uint, currentUserID uint, comme
 
 	// Update risk status to "rejected"
 	risk.RiskStatusID = rejectedStatus.ID
+	risk.ReviewedBy = &currentUserID
 	err = rcs.repo.UpdateRiskStatus(risk, tx)
 	if err != nil {
 		tx.Rollback()
@@ -509,6 +515,7 @@ func (rcs *RiskCommentService) ApproveRisk(riskID uint, currentUserID uint, comm
 
 	// Update risk status to "approved"
 	risk.RiskStatusID = approvedStatus.ID
+	risk.ReviewedBy = &currentUserID
 	err = rcs.repo.UpdateRiskStatus(risk, tx)
 	if err != nil {
 		tx.Rollback()

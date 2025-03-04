@@ -157,6 +157,9 @@ type RiskRegisterDetailDTO struct {
 	UpdatedAt               *time.Time                         `json:"updated_at"`
 	CreatedByUser           organizationDTOs.UserMinimalDTO    `json:"created_by"`
 	UpdatedByUser           organizationDTOs.UserMinimalDTO    `json:"updated_by"`
+	SubmittedByUser         *organizationDTOs.UserMinimalDTO   `json:"submitted_by"`
+	SubmittedAtString       *string                            `json:"submitted_at"`
+	ReviewedByUser          *organizationDTOs.UserMinimalDTO   `json:"reviewed_by"`
 	Controls                []*RiskControlDTO                  `json:"controls"`
 	ComplianceRequirements  []*RiskComplianceRequirementDTO    `json:"compliance_requirements"`
 	Processes               []*RiskProcessDTO                  `json:"processes"`
@@ -169,6 +172,7 @@ type RiskRegisterDetailDTO struct {
 	MarkedAsAuditableItem   bool                               `json:"marked_as_auditable_item"`
 	AuditableItem           *AuditableItemMinimalRiskDetailDTO `json:"auditable_item"`
 }
+
 type AuditableItemMinimalRiskDetailDTO struct {
 	ID                  uint                             `json:"id"`
 	Type                string                           `json:"type"`
