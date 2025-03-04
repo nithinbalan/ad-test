@@ -146,6 +146,10 @@
 {
   "id": "invalid",
   "translation": "{{.Field}} غير صالح"
+},
+{
+  "id": "user_exceed",
+  "translation": "تجاوز عدد المستخدمين."
 }
 
 
