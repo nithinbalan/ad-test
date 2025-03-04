@@ -51,9 +51,18 @@ func (repo *RiskCommentRepository) GetAll(riskID uint) ([]*dtos.RiskCommentListD
 			users.initial AS created_user_initial,
 			users.color AS created_user_color,
 			users.email AS created_user_email,
-			users.profile_image_path AS created_user_profile_image_path
+			users.profile_image_path AS created_user_profile_image_path,
+			risk_statuses.title_en AS risk_status_title_en,
+			risk_statuses.title_ar AS risk_status_title_ar,
+			risk_statuses.color_code AS risk_status_color_code,
+			risk_timeline_types.title_en AS risk_timeline_title_en,
+			risk_timeline_types.title_ar AS risk_timeline_title_ar,
+			risk_timeline_types.color_code AS risk_timeline_color_code,
+			risk_timeline_types.type AS risk_timeline_type
 		`).
 		Joins("LEFT JOIN users ON users.id = risk_comments.created_by_id").
+		Joins("LEFT JOIN risk_statuses ON risk_statuses.id = risk_comments.risk_status_id").
+		Joins("LEFT JOIN risk_timeline_types ON risk_timeline_types.id = risk_comments.risk_timeline_type_id").
 		Where("risk_comments.risk_register_id = ?", riskID)
 
 	if err := query.Find(&comments).Error; err != nil {
