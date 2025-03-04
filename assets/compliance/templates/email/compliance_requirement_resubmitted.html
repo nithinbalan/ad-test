@@ -1,0 +1,49 @@
+{{ define "content" }}
+<p>Dear {{ .FirstNameEn }} {{ .LastNameEn }},</p>
+
+<p>
+    This is to notify you that a <strong>Compliance Requirement</strong> has been <strong>resubmitted</strong> for your review. Please find the details below:
+</p>
+
+<table style="width: 100%; background-color: #fff; border-collapse: collapse; margin: 20px 20px;">
+    <tbody>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; width: 30%; padding: 8px; background-color: #F6F6F6;">Reference Number</th>
+            <td style="text-align: center; padding: 8px;">{{ .ReferenceNumber }}</td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; padding: 8px; background-color: #F6F6F6;">Title (EN)</th>
+            <td style="text-align: center; padding: 8px;">{{ .TitleEn }}</td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; padding: 8px; background-color: #F6F6F6;">Title (AR)</th>
+            <td style="text-align: center; padding: 8px;">{{ .TitleAr }}</td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; padding: 8px; background-color: #F6F6F6;">Resubmitted By</th>
+            <td style="text-align: center; padding: 8px;">{{ .ResubmittedByFirstName }} {{ .ResubmittedByLastName }}</td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; padding: 8px; background-color: #F6F6F6;">Resubmission Date</th>
+            <td style="text-align: center; padding: 8px;">{{ .ResubmissionDate }}</td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; padding: 8px; background-color: #F6F6F6;">Resubmission Comment</th>
+            <td style="text-align: center; padding: 8px;">{{ .Comment }}</td>
+        </tr>
+    </tbody>
+</table>
+
+<p>
+    Please log in to the system to review the resubmitted requirement and proceed with the necessary actions.
+</p>
+
+<div style="text-align: center;">
+    <a href="{{ .RedirectURL }}" style="background-color: #0275d8; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 30px;">
+        Review Requirement
+    </a>
+</div>
+
+<p>Thank you for your attention and timely response.</p>
+
+{{ end }}
