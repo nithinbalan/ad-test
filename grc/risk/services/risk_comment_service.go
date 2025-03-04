@@ -296,6 +296,21 @@ func (rcs *RiskCommentService) SubmitRisk(riskID uint, currentUserID uint) error
 func (rcs *RiskCommentService) RevertRisk(riskID uint, currentUserID uint, commentForm *dtos.RiskCommentFormDTO) error {
 	tx := rcs.repo.BeginTransaction()
 
+	riskSetting, err := rcs.riskSettingsSvc.Get()
+	if err != nil {
+		return err
+	}
+
+	// Get Review User IDs
+	reviewUserIDs, err := rcs.userSvc.GetUserIdsByRole(riskSetting.ReviewRoleID)
+	if err != nil {
+		return err
+	}
+
+	if !contains(reviewUserIDs, currentUserID) {
+		return utility.NewForbiddenError("Only the review user can revert this risk.")
+	}
+
 	revertedStatus, err := rcs.riskStatusSvc.GetByType("reverted")
 	if err != nil {
 		tx.Rollback()
@@ -306,23 +321,6 @@ func (rcs *RiskCommentService) RevertRisk(riskID uint, currentUserID uint, comme
 	if err != nil {
 		tx.Rollback()
 		return err
-	}
-
-	riskSetting, err := rcs.riskSettingsSvc.Get()
-	if err != nil {
-
-		return err
-	}
-
-	// Get Review User IDs
-	reviewUserIDs, err := rcs.userSvc.GetUserIdsByRole(riskSetting.ReviewRoleID)
-	if err != nil {
-
-		return err
-	}
-
-	if !contains(reviewUserIDs, currentUserID) {
-		return utility.NewForbiddenError("Only the review user can revert this risk.")
 	}
 
 	comment := &models.RiskComment{
@@ -379,6 +377,21 @@ func (rcs *RiskCommentService) RevertRisk(riskID uint, currentUserID uint, comme
 
 func (rcs *RiskCommentService) RejectRisk(riskID uint, currentUserID uint, commentForm *dtos.RiskCommentFormDTO) error {
 	tx := rcs.repo.BeginTransaction()
+
+	riskSetting, err := rcs.riskSettingsSvc.Get()
+	if err != nil {
+		return err
+	}
+
+	// Get Review User IDs
+	reviewUserIDs, err := rcs.userSvc.GetUserIdsByRole(riskSetting.ReviewRoleID)
+	if err != nil {
+		return err
+	}
+
+	if !contains(reviewUserIDs, currentUserID) {
+		return utility.NewForbiddenError("Only the review user can reject this risk.")
+	}
 
 	rejectedStatus, err := rcs.riskStatusSvc.GetByType("rejected")
 	if err != nil {
@@ -446,6 +459,21 @@ func (rcs *RiskCommentService) RejectRisk(riskID uint, currentUserID uint, comme
 
 func (rcs *RiskCommentService) ApproveRisk(riskID uint, currentUserID uint, commentForm *dtos.RiskCommentFormDTO) error {
 	tx := rcs.repo.BeginTransaction()
+
+	riskSetting, err := rcs.riskSettingsSvc.Get()
+	if err != nil {
+		return err
+	}
+
+	// Get Review User IDs
+	reviewUserIDs, err := rcs.userSvc.GetUserIdsByRole(riskSetting.ReviewRoleID)
+	if err != nil {
+		return err
+	}
+
+	if !contains(reviewUserIDs, currentUserID) {
+		return utility.NewForbiddenError("Only the review user can approve this risk.")
+	}
 
 	approvedStatus, err := rcs.riskStatusSvc.GetByType("approved")
 	if err != nil {
