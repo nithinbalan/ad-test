@@ -138,7 +138,7 @@ func (repo *RiskCommentRepository) UpdateRiskStatus(risk *models.RiskRegister, t
 		db = tx[0].DB()
 	}
 
-	if err := db.Model(risk).Update("risk_status_id", risk.RiskStatusID).Error; err != nil {
+	if err := db.Model(&models.RiskRegister{}).Where("id = ?", risk.ID).Updates(risk).Error; err != nil {
 		return err
 	}
 

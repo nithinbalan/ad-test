@@ -143,6 +143,7 @@ func (rrs RiskRegisterService) GetFullDetailsByID(id uint, tx ...utility.Databas
 	if err != nil {
 		return nil, err
 	}
+
 	// Map the latest auditable item
 	if len(risk.AuditableItems) > 0 {
 		latestAuditableItem := risk.AuditableItems[0]
@@ -156,6 +157,7 @@ func (rrs RiskRegisterService) GetFullDetailsByID(id uint, tx ...utility.Databas
 		riskDTO.AuditableItem.UpdatedAt = latestAuditableItem.UpdatedAt
 	}
 
+	// Format date fields
 	if risk.ReportedAt != nil {
 		reportedAt := risk.ReportedAt.Format("2006-01-02")
 		riskDTO.ReportedAtString = &reportedAt
@@ -164,6 +166,11 @@ func (rrs RiskRegisterService) GetFullDetailsByID(id uint, tx ...utility.Databas
 	if risk.NextReviewDate != nil {
 		nextReviewDate := risk.NextReviewDate.Format("2006-01-02")
 		riskDTO.NextReviewDateString = &nextReviewDate
+	}
+
+	if risk.SubmittedAt != nil {
+		submittedAt := risk.SubmittedAt.Format("2006-01-02")
+		riskDTO.SubmittedAtString = &submittedAt
 	}
 
 	riskDTO.CreatedAt = risk.CreatedAt
@@ -613,10 +620,9 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 				continue
 			}
 			reviewEmailTo[i] = user.Email
-			reviewers[userID] = user.FirstNameEn + " " + user.LastNameEn 
+			reviewers[userID] = user.FirstNameEn + " " + user.LastNameEn
 		}
 
-	
 		dbNotificationReview := &commonDTOs.DBNotificationDTO{
 			UserIDs:              reviewUserIDs, // Single DB notification for all reviewers
 			ModuleIdentifier:     "risk",
@@ -648,7 +654,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 				Subject:              fmt.Sprintf("Risk Register/%s: Review Assigned", riskRegister.Title),
 				TemplateRelativePath: "risk/templates/email/risk_register_review_user_mail.html",
 				EmailData: map[string]interface{}{
-					"FirstNameEn":          fullName, 
+					"FirstNameEn":          fullName,
 					"RiskReferenceNumber":  existingRiskRegister.ReferenceNumber,
 					"RiskTitle":            existingRiskRegister.Title,
 					"RiskDescription":      existingRiskRegister.Description,
