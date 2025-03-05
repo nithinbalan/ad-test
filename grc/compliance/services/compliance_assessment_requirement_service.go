@@ -576,7 +576,7 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 			})
 		}
 
-		responsibleUser, err := cars.userSvc.GetByID(assessmentDetails.ReviewuserID)
+		responsibleUser, err := cars.userSvc.GetByID(uint(assessmentDetails.SubmittedByUser.ID))
 		if err != nil {
 			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 				"error": err.Error(),
@@ -601,8 +601,8 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 			UserIDs:              []uint{responsibleUser.ID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Compliance Register Responsibility Assigned",
-			HeadingAr:            "تم تعيين مسؤولية سجل الامتثال",
+			HeadingEn:            "Compliance Requirement Approved",
+			HeadingAr:            "تم الموافقة على متطلبات الامتثال",
 			TitleEn:              assessmentDetails.ComplianceRegister.TitleEn,
 			TitleAr:              assessmentDetails.ComplianceRegister.TitleAr,
 			ReferenceNumber:      assessmentDetails.ComplianceRegister.ReferenceNumber,
@@ -665,6 +665,12 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 	}
 
 	assessment, err := cars.complianceAssessmentSvc.GetByID(assessmentID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	assessmentDetails, err := cars.complianceAssessmentSvc.GetFullDetailsByID(assessmentID)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -752,9 +758,9 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Requirement Reverted",
 			HeadingAr:            "تم إرجاع متطلب الامتثال",
-			TitleEn:              assessment.ComplianceRegister.TitleEn,
-			TitleAr:              assessment.ComplianceRegister.TitleAr,
-			ReferenceNumber:      assessment.ComplianceRegister.ReferenceNumber,
+			TitleEn:              assessmentDetails.ComplianceRegister.TitleEn,
+			TitleAr:              assessmentDetails.ComplianceRegister.TitleAr,
+			ReferenceNumber:      assessmentDetails.ComplianceRegister.ReferenceNumber,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
@@ -769,9 +775,9 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 			EmailData: map[string]interface{}{
 				"FirstNameEn":         responsibleUser.FirstNameEn,
 				"LastNameEn":          responsibleUser.LastNameEn,
-				"TitleEn":             requirement.ComplianceAssessment.ComplianceRegister.TitleEn,
-				"TitleAr":             requirement.ComplianceAssessment.ComplianceRegister.TitleAr,
-				"ReferenceNumber":     requirement.ComplianceAssessment.ComplianceRegister.ReferenceNumber,
+				"TitleEn":             assessmentDetails.ComplianceRegister.TitleEn,
+				"TitleAr":             assessmentDetails.ComplianceRegister.TitleAr,
+				"ReferenceNumber":     assessmentDetails.ComplianceRegister.ReferenceNumber,
 				"Comment":             commentForm.Comment,
 				"RevertedByFirstName": createdBy.FirstNameEn,
 				"RevertedByLastName":  createdBy.LastNameEn,
@@ -781,7 +787,7 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 		}
 
 		// **Send Both Notifications at ONCE**
-		err = cars.notificationSvc.SendNotification(dbNotification, emailNotification, "compliance")
+		err = cars.notificationSvc.SendNotification(dbNotification, emailNotification, "compliance_assessment")
 		if err != nil {
 			utility.LogError("Failed to send notifications", map[string]interface{}{
 				"error": err.Error(),
@@ -819,6 +825,12 @@ func (cars *ComplianceAssessmentRequirementService) ResubmitComplianceRequiremen
 	}
 
 	assessment, err := cars.complianceAssessmentSvc.GetByID(assessmentID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	assessmentDetails, err := cars.complianceAssessmentSvc.GetFullDetailsByID(assessmentID)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -877,7 +889,7 @@ func (cars *ComplianceAssessmentRequirementService) ResubmitComplianceRequiremen
 			})
 		}
 
-		responsibleUser, err := cars.userSvc.GetByID(assessment.SubmittedByUser.ID)
+		responsibleUser, err := cars.userSvc.GetByID(assessment.ReviewUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 				"error": err.Error(),
@@ -904,9 +916,9 @@ func (cars *ComplianceAssessmentRequirementService) ResubmitComplianceRequiremen
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Requirement Resubmitted",
 			HeadingAr:            "إعادة تقديم متطلب الامتثال",
-			TitleEn:              assessment.ComplianceRegister.TitleEn,
-			TitleAr:              assessment.ComplianceRegister.TitleAr,
-			ReferenceNumber:      assessment.ComplianceRegister.ReferenceNumber,
+			TitleEn:              assessmentDetails.ComplianceRegister.TitleEn,
+			TitleAr:              assessmentDetails.ComplianceRegister.TitleAr,
+			ReferenceNumber:      assessmentDetails.ComplianceRegister.ReferenceNumber,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
@@ -921,19 +933,19 @@ func (cars *ComplianceAssessmentRequirementService) ResubmitComplianceRequiremen
 			EmailData: map[string]interface{}{
 				"FirstNameEn":         responsibleUser.FirstNameEn,
 				"LastNameEn":          responsibleUser.LastNameEn,
-				"TitleEn":             requirement.ComplianceAssessment.ComplianceRegister.TitleEn,
-				"TitleAr":             requirement.ComplianceAssessment.ComplianceRegister.TitleAr,
-				"ReferenceNumber":     requirement.ComplianceAssessment.ComplianceRegister.ReferenceNumber,
+				"TitleEn":             assessmentDetails.ComplianceRegister.TitleEn,
+				"TitleAr":             assessmentDetails.ComplianceRegister.TitleAr,
+				"ReferenceNumber":     assessmentDetails.ComplianceRegister.ReferenceNumber,
 				"Comment":             commentForm.Comment,
-				"RevertedByFirstName": createdBy.FirstNameEn,
-				"RevertedByLastName":  createdBy.LastNameEn,
-				"ReversionDate":       time.Now().Format("2006-01-02"),
+				"ResubmittedByFirstName": createdBy.FirstNameEn,
+				"ResubmittedByLastName":  createdBy.LastNameEn,
+				"ResubmissionDate":       time.Now().Format("2006-01-02"),
 				"RedirectURL":         fmt.Sprintf("%scompliance/assessment/%d/requirements", utility.GetAppURL(), assessmentID),
 			},
 		}
 
 		// **Send Both Notifications at ONCE**
-		err = cars.notificationSvc.SendNotification(dbNotification, emailNotification, "compliance")
+		err = cars.notificationSvc.SendNotification(dbNotification, emailNotification, "compliance_assessment")
 		if err != nil {
 			utility.LogError("Failed to send notifications", map[string]interface{}{
 				"error": err.Error(),
