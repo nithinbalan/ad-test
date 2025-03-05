@@ -230,7 +230,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		return 0, err
 	}
 
-	if *systemPreference.LicenseKey != "" {
+	if systemPreference != nil && systemPreference.LicenseKey != nil && *systemPreference.LicenseKey != "" {
 		if err := us.validateLicenseKey(*systemPreference.LicenseKey); err != nil {
 			return 0, err
 		}
