@@ -471,7 +471,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 				OwnerID:       control.OwnerID,
 			}
 
-			controlId, err := raps.controlSvc.Create(currentUserID, controlDTO)
+			controlId, err := raps.controlSvc.Create(currentUserID, controlDTO, tx)
 			if err != nil {
 				tx.Rollback()
 				return err
