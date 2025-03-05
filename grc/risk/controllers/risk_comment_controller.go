@@ -206,7 +206,7 @@ func (rcc *RiskCommentController) DeleteComment(c *gin.Context) {
 
 func (rcc *RiskCommentController) SubmitRisk(c *gin.Context) {
 
-	riskID, err := strconv.Atoi(c.Param("id"))
+	riskID, err := strconv.Atoi(c.Param("riskId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -241,7 +241,7 @@ func (rcc *RiskCommentController) SubmitRisk(c *gin.Context) {
 func (rcc *RiskCommentController) RevertRisk(c *gin.Context) {
 	var commentForm dtos.RiskCommentFormDTO
 
-	riskID, err := strconv.Atoi(c.Param("id"))
+	riskID, err := strconv.Atoi(c.Param("riskId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -281,7 +281,7 @@ func (rcc *RiskCommentController) RevertRisk(c *gin.Context) {
 func (rcc *RiskCommentController) RejectRisk(c *gin.Context) {
 	var commentForm dtos.RiskCommentFormDTO
 
-	riskID, err := strconv.Atoi(c.Param("id"))
+	riskID, err := strconv.Atoi(c.Param("riskId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -321,7 +321,7 @@ func (rcc *RiskCommentController) RejectRisk(c *gin.Context) {
 func (rcc *RiskCommentController) ApproveRisk(c *gin.Context) {
 	var commentForm dtos.RiskCommentFormDTO
 
-	riskID, err := strconv.Atoi(c.Param("id"))
+	riskID, err := strconv.Atoi(c.Param("riskId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -361,7 +361,7 @@ func (rcc *RiskCommentController) ApproveRisk(c *gin.Context) {
 func (rcc *RiskCommentController) ResubmitRisk(c *gin.Context) {
 	var commentForm dtos.RiskCommentFormDTO
 
-	riskID, err := strconv.Atoi(c.Param("id"))
+	riskID, err := strconv.Atoi(c.Param("riskId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return

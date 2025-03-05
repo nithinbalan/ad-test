@@ -135,7 +135,7 @@ func (raps RiskActionPlanService) GetFullDetailsByID(riskID uint, id uint) (*ris
 func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskActionPlanFormDTO *riskDTOs.RiskActionPlanFormDTO) (uint, error) {
 	tx := raps.repo.BeginTransaction()
 
-	risk, err := raps.riskRegisterSvc.GetByID(riskID)
+	risk, err := raps.riskRegisterSvc.GetByID(riskID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -172,7 +172,7 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 		CreatedBYID:        currentUserID,
 	}
 
-	id, err := raps.repo.Create(riskActionPlan)
+	id, err := raps.repo.Create(riskActionPlan, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -214,13 +214,13 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 
 		// Create Control
 		controlDTO := &organizationDTOs.ControlFormDTO{
-			ControlTypeID: control.ControlTypeID, // Ensure the Code field exists and is of type *string in DocumentControl model
+			ControlTypeID: control.ControlTypeID,
 			TitleEn:       control.TitleEn,
 			TitleAr:       control.TitleAr,
 			OwnerID:       control.OwnerID,
 		}
 
-		controlId, err := raps.controlSvc.Create(currentUserID, controlDTO)
+		controlId, err := raps.controlSvc.Create(currentUserID, controlDTO, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -471,7 +471,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 				OwnerID:       control.OwnerID,
 			}
 
-			controlId, err := raps.controlSvc.Create(currentUserID, controlDTO)
+			controlId, err := raps.controlSvc.Create(currentUserID, controlDTO, tx)
 			if err != nil {
 				tx.Rollback()
 				return err
@@ -888,7 +888,10 @@ func (raps *RiskActionPlanService) validateRiskActionPlanFormDTO(RiskActionPlanF
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 		}
 	}
-
+	if RiskActionPlanFormDTO.Percentage == nil {
+		defaultValue := uint(0)
+		RiskActionPlanFormDTO.Percentage = &defaultValue
+	}
 	return nil
 }
 

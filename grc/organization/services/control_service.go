@@ -27,7 +27,7 @@ type ControlServiceInterface interface {
 	GetAllControls() ([]*models.Control, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationDTOs.ControlDetailDTO, error)
-	Create(currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) (uint, error)
+	Create(currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(id uint, currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
@@ -156,7 +156,17 @@ func (cs *ControlService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTran
 	return &controlDetailDTO, nil
 }
 
-func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) (uint, error) {
+func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO, tx ...utility.DatabaseTransaction) (uint, error) {
+
+	var transaction utility.DatabaseTransaction
+
+	if len(tx) > 0 && tx[0] != nil {
+		transaction = tx[0]
+	} else {
+		transaction = cs.repo.BeginTransaction()
+		defer transaction.Rollback() // Ensure rollback if transaction was started here and not committed
+	}
+
 	if err := cs.validateControlFormDTO(controlFormDTO); err != nil {
 		return 0, err
 	}
@@ -166,7 +176,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 		return 0, err
 	}
 
-	referenceNumber, err := cs.repo.GenerateReferenceNumber()
+	referenceNumber, err := cs.repo.GenerateReferenceNumber(transaction)
 	if err != nil {
 		return 0, err
 	}
@@ -211,9 +221,13 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 		ImplementationGuideline:       controlFormDTO.ImplementationGuideline,
 	}
 
-	id, err := cs.repo.Create(control)
+	id, err := cs.repo.Create(control, transaction)
 	if err != nil {
 		return 0, err
+	}
+
+	if len(tx) == 0 {
+		transaction.Commit()
 	}
 
 	go func() {

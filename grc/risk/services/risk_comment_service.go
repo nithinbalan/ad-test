@@ -5,9 +5,11 @@ import (
 	"fmt"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
 	"jethur/utility"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -33,16 +35,23 @@ type RiskCommentService struct {
 	riskRegisterSvc RiskRegisterServiceInterface
 	riskStatusSvc   RiskStatusServiceInterface
 	activityLogSvc  logServices.ActivityLogServiceInterface
+	userSvc         organizationServices.UserServiceInterface
+	riskSettingsSvc RiskSettingsServiceInterface
 }
 
 func NewRiskCommentService(repo repositories.RiskCommentRepositoryInterface,
 	riskRegisterSvc RiskRegisterServiceInterface,
 	riskStatusSvc RiskStatusServiceInterface,
-	activityLogSvc logServices.ActivityLogServiceInterface) *RiskCommentService {
+	activityLogSvc logServices.ActivityLogServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+	riskSettingsSvc RiskSettingsServiceInterface,
+) *RiskCommentService {
 	return &RiskCommentService{repo: repo,
 		riskRegisterSvc: riskRegisterSvc,
 		riskStatusSvc:   riskStatusSvc,
 		activityLogSvc:  activityLogSvc,
+		userSvc:         userSvc,
+		riskSettingsSvc: riskSettingsSvc,
 	}
 }
 
@@ -85,9 +94,10 @@ func (rcs *RiskCommentService) Create(riskID uint, currentUserID uint, riskComme
 	tx := rcs.repo.BeginTransaction()
 
 	comment := &models.RiskComment{
-		RiskRegisterID: riskID,
-		Comments:       riskCommentFormDTO.Comment,
-		CreatedBYID:    currentUserID,
+		RiskRegisterID:     riskID,
+		RiskTimelineTypeID: riskCommentFormDTO.RiskTimelineTypeID,
+		Comments:           riskCommentFormDTO.Comment,
+		CreatedBYID:        currentUserID,
 	}
 
 	id, err := rcs.repo.Create(comment)
@@ -139,6 +149,7 @@ func (rcs *RiskCommentService) Update(riskID uint, id uint, currentUserID uint, 
 	}
 
 	existingComment.Comments = riskCommentFormDTO.Comment
+	existingComment.RiskTimelineTypeID = riskCommentFormDTO.RiskTimelineTypeID
 	err = rcs.repo.Update(existingComment, tx)
 	if err != nil {
 		tx.Rollback()
@@ -242,8 +253,17 @@ func (rcs *RiskCommentService) SubmitRisk(riskID uint, currentUserID uint) error
 		return err
 	}
 
+	// Ensure only the responsible user can submit
+	if risk.ResponsibleUserID != currentUserID {
+		tx.Rollback()
+		return utility.NewForbiddenError("Only the responsible user can submit this risk.")
+	}
+
 	// Update risk status to "submitted"
 	risk.RiskStatusID = submittedStatus.ID
+	risk.SubmittedBy = &currentUserID
+	now := time.Now()
+	risk.SubmittedAt = &now
 	err = rcs.repo.UpdateRiskStatus(risk, tx)
 	if err != nil {
 		tx.Rollback()
@@ -282,6 +302,21 @@ func (rcs *RiskCommentService) SubmitRisk(riskID uint, currentUserID uint) error
 func (rcs *RiskCommentService) RevertRisk(riskID uint, currentUserID uint, commentForm *dtos.RiskCommentFormDTO) error {
 	tx := rcs.repo.BeginTransaction()
 
+	riskSetting, err := rcs.riskSettingsSvc.Get()
+	if err != nil {
+		return err
+	}
+
+	// Get Review User IDs
+	reviewUserIDs, err := rcs.userSvc.GetUserIdsByRole(riskSetting.ReviewRoleID)
+	if err != nil {
+		return err
+	}
+
+	if !contains(reviewUserIDs, currentUserID) {
+		return utility.NewForbiddenError("Only the review user can revert this risk.")
+	}
+
 	revertedStatus, err := rcs.riskStatusSvc.GetByType("reverted")
 	if err != nil {
 		tx.Rollback()
@@ -310,6 +345,7 @@ func (rcs *RiskCommentService) RevertRisk(riskID uint, currentUserID uint, comme
 
 	// Update risk status to "reverted"
 	risk.RiskStatusID = revertedStatus.ID
+	risk.ReviewedBy = &currentUserID
 	err = rcs.repo.UpdateRiskStatus(risk, tx)
 	if err != nil {
 		tx.Rollback()
@@ -349,6 +385,21 @@ func (rcs *RiskCommentService) RevertRisk(riskID uint, currentUserID uint, comme
 func (rcs *RiskCommentService) RejectRisk(riskID uint, currentUserID uint, commentForm *dtos.RiskCommentFormDTO) error {
 	tx := rcs.repo.BeginTransaction()
 
+	riskSetting, err := rcs.riskSettingsSvc.Get()
+	if err != nil {
+		return err
+	}
+
+	// Get Review User IDs
+	reviewUserIDs, err := rcs.userSvc.GetUserIdsByRole(riskSetting.ReviewRoleID)
+	if err != nil {
+		return err
+	}
+
+	if !contains(reviewUserIDs, currentUserID) {
+		return utility.NewForbiddenError("Only the review user can reject this risk.")
+	}
+
 	rejectedStatus, err := rcs.riskStatusSvc.GetByType("rejected")
 	if err != nil {
 		tx.Rollback()
@@ -377,6 +428,7 @@ func (rcs *RiskCommentService) RejectRisk(riskID uint, currentUserID uint, comme
 
 	// Update risk status to "rejected"
 	risk.RiskStatusID = rejectedStatus.ID
+	risk.ReviewedBy = &currentUserID
 	err = rcs.repo.UpdateRiskStatus(risk, tx)
 	if err != nil {
 		tx.Rollback()
@@ -416,6 +468,21 @@ func (rcs *RiskCommentService) RejectRisk(riskID uint, currentUserID uint, comme
 func (rcs *RiskCommentService) ApproveRisk(riskID uint, currentUserID uint, commentForm *dtos.RiskCommentFormDTO) error {
 	tx := rcs.repo.BeginTransaction()
 
+	riskSetting, err := rcs.riskSettingsSvc.Get()
+	if err != nil {
+		return err
+	}
+
+	// Get Review User IDs
+	reviewUserIDs, err := rcs.userSvc.GetUserIdsByRole(riskSetting.ReviewRoleID)
+	if err != nil {
+		return err
+	}
+
+	if !contains(reviewUserIDs, currentUserID) {
+		return utility.NewForbiddenError("Only the review user can approve this risk.")
+	}
+
 	approvedStatus, err := rcs.riskStatusSvc.GetByType("approved")
 	if err != nil {
 		tx.Rollback()
@@ -450,6 +517,7 @@ func (rcs *RiskCommentService) ApproveRisk(riskID uint, currentUserID uint, comm
 
 	// Update risk status to "approved"
 	risk.RiskStatusID = approvedStatus.ID
+	risk.ReviewedBy = &currentUserID
 	err = rcs.repo.UpdateRiskStatus(risk, tx)
 	if err != nil {
 		tx.Rollback()
@@ -499,6 +567,12 @@ func (rcs *RiskCommentService) ResubmitRisk(riskID uint, currentUserID uint, com
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	// Ensure only the responsible user can submit
+	if risk.ResponsibleUserID != currentUserID {
+		tx.Rollback()
+		return utility.NewForbiddenError("Only the responsible user can re-submit this risk.")
 	}
 
 	// Validate if the current status allows resubmission
@@ -557,4 +631,13 @@ func (rcs *RiskCommentService) ResubmitRisk(riskID uint, currentUserID uint, com
 	}()
 
 	return nil
+}
+
+func contains(slice []uint, value uint) bool {
+	for _, v := range slice {
+		if v == value {
+			return true
+		}
+	}
+	return false
 }

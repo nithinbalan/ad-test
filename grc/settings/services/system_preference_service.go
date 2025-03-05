@@ -276,12 +276,12 @@ func (sps *SystemPreferenceService) validateLicenseKey(licenseKey string) error 
 	// Convert expiry_date string to time.Time format
 	expiryDate, err := time.Parse("2006-01-02", expiryDateStr) // Ensure format matches the stored format
 	if err != nil {
-		return utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid_expiry_date", "expiry date")
+		return utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid_date", "expiry date")
 	}
 
 	// Check if expiry_date is in the future
 	if expiryDate.Before(time.Now()) {
-		return utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid_expiry_date", "license key")
+		return utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid", "expiry date")
 	}
 
 	// Validate API URL (if needed)
@@ -289,7 +289,7 @@ func (sps *SystemPreferenceService) validateLicenseKey(licenseKey string) error 
 	if apiURL, ok := claims["api_url"].(string); ok {
 		systemAPIURL := utility.GetApiURL() // Change this to your actual API URL
 		if apiURL != systemAPIURL {
-			return utility.NewValidationError(fmt.Errorf("invalid api key"), "invalid_api_url", "api url")
+			return utility.NewValidationError(fmt.Errorf("invalid api key"), "invalid", "api url")
 		}
 	}
 
