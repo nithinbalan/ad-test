@@ -888,7 +888,10 @@ func (raps *RiskActionPlanService) validateRiskActionPlanFormDTO(RiskActionPlanF
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 		}
 	}
-
+	if RiskActionPlanFormDTO.Percentage == nil {
+		defaultValue := uint(0)
+		RiskActionPlanFormDTO.Percentage = &defaultValue
+	}
 	return nil
 }
 
