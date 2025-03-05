@@ -517,6 +517,12 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 		return err
 	}
 
+	assessmentDetails, err := cars.complianceAssessmentSvc.GetFullDetailsByID(assessmentID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	if currentUserID != assessment.ReviewUserID {
 		return utility.NewForbiddenError("User is not authorized to approve this assessment")
 	}
@@ -570,7 +576,7 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 			})
 		}
 
-		responsibleUser, err := cars.userSvc.GetByID(assessment.SubmittedByUser.ID)
+		responsibleUser, err := cars.userSvc.GetByID(assessmentDetails.ReviewuserID)
 		if err != nil {
 			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 				"error": err.Error(),
@@ -591,15 +597,15 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 		entity := "compliance-register"
 		action := "responsible-user-assign"
 
-		dbNotification := &commonDTOs.DBNotificationDTO{
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{responsibleUser.ID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Register Responsibility Assigned",
 			HeadingAr:            "تم تعيين مسؤولية سجل الامتثال",
-			TitleEn:              assessment.ComplianceRegister.TitleEn,
-			TitleAr:              assessment.ComplianceRegister.TitleAr,
-			ReferenceNumber:      assessment.ComplianceRegister.ReferenceNumber,
+			TitleEn:              assessmentDetails.ComplianceRegister.TitleEn,
+			TitleAr:              assessmentDetails.ComplianceRegister.TitleAr,
+			ReferenceNumber:      assessmentDetails.ComplianceRegister.ReferenceNumber,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
@@ -614,8 +620,9 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 			EmailData: map[string]interface{}{
 				"FirstNameEn":         responsibleUser.FirstNameEn,
 				"LastNameEn":          responsibleUser.LastNameEn,
-				"RequirementID":       requirementID,
-				"AssessmentID":        assessmentID,
+				"TitleEn":             assessmentDetails.ComplianceRegister.TitleEn,
+				"TitleAr":             assessmentDetails.ComplianceRegister.TitleAr,
+				"ReferenceNumber":     assessmentDetails.ComplianceRegister.ReferenceNumber,
 				"Comment":             commentForm.Comment,
 				"ApprovedByFirstName": createdBy.FirstNameEn,
 				"ApprovedByLastName":  createdBy.LastNameEn,
@@ -625,7 +632,7 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 		}
 
 		// **Send Both Notifications at ONCE**
-		err = cars.notificationSvc.SendNotification(dbNotification, emailNotification, "compliance")
+		err = cars.notificationSvc.SendNotification(dbNotificationDTO, emailNotification, "compliance_assessment")
 		if err != nil {
 			utility.LogError("Failed to send notifications", map[string]interface{}{
 				"error": err.Error(),
