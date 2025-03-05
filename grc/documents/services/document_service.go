@@ -133,7 +133,47 @@ func (ds *DocumentService) SetDocumentAccessService(svc DocumentAccessServiceInt
 }
 
 func (ds *DocumentService) GetAll(params *documentDTOs.DocumentListQueryParamsDTO, currentUserID uint) (*documentDTOs.DocumentListResponseDTO, error) {
-	return ds.repo.GetAll(params, currentUserID)
+	// Get user details to check for super admin role
+	user, err := ds.userSvc.GetFullDetailsByID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if user has super admin role
+	isUserSuperAdmin := false
+	if user.Roles != nil {
+		for _, role := range *user.Roles {
+			if role.IsSuperAdmin {
+				isUserSuperAdmin = true
+				break
+			}
+		}
+	}
+
+	// Get primary organization unit field
+	primaryLevel, err := ds.orgLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return nil, err
+	}
+
+	// Determine the field name based on the primary level
+	var primaryOrgUnitField string
+	switch primaryLevel.Level {
+	case 1:
+		primaryOrgUnitField = "organization_unit_1_id"
+	case 2:
+		primaryOrgUnitField = "organization_unit_2_id"
+	case 3:
+		primaryOrgUnitField = "organization_unit_3_id"
+	case 4:
+		primaryOrgUnitField = "organization_unit_4_id"
+	case 5:
+		primaryOrgUnitField = "organization_unit_5_id"
+	default:
+		return nil, fmt.Errorf("unsupported primary level")
+	}
+
+	return ds.repo.GetAll(params, currentUserID, isUserSuperAdmin, primaryOrgUnitField)
 }
 
 func (ds DocumentService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error) {

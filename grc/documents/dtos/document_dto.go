@@ -71,6 +71,7 @@ type DocumentListDTO struct {
 	PublishedUserEmail              string     `json:"published_user_email"`
 	PublishedUserProfileImagePath   string     `json:"published_user_profile_image_path"`
 	PublishedAt                     *time.Time `json:"published_at"`
+	UserAccessTypes                 *string    `json:"user_access_types"`
 }
 
 type DocumentListQueryParamsDTO struct {
