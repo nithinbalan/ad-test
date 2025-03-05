@@ -471,7 +471,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 				OwnerID:       control.OwnerID,
 			}
 
-			controlId, err := raps.controlSvc.Create(currentUserID, controlDTO)
+			controlId, err := raps.controlSvc.Create(currentUserID, controlDTO, tx)
 			if err != nil {
 				tx.Rollback()
 				return err
@@ -888,7 +888,10 @@ func (raps *RiskActionPlanService) validateRiskActionPlanFormDTO(RiskActionPlanF
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 		}
 	}
-
+	if RiskActionPlanFormDTO.Percentage == nil {
+		defaultValue := uint(0)
+		RiskActionPlanFormDTO.Percentage = &defaultValue
+	}
 	return nil
 }
 
