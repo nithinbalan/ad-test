@@ -16,6 +16,7 @@ import (
 )
 
 type RiskClosureServiceInterface interface {
+	GetAll(riskID uint) ([]*riskDTOs.RiskClosureListDTO, error)
 	GetFullDetailsByID(riskID uint) (*riskDTOs.RiskClosureDetailsDTO, error)
 	Create(riskID uint, currentUserID uint, closureFormDTO *riskDTOs.RiskClosureFormDTO) (uint, error)
 	Update(riskID uint, id uint, currentUserID uint, closureFormDTO *riskDTOs.RiskClosureFormDTO) error
@@ -38,6 +39,10 @@ func NewRiskClosureService(
 		activityLogSvc:  activityLogSvc,
 		riskRegisterSvc: riskRegisterSvc,
 	}
+}
+
+func (rcs *RiskClosureService) GetAll(riskID uint) ([]*riskDTOs.RiskClosureListDTO, error) {
+	return rcs.repo.GetAll(riskID)
 }
 
 func (rcs *RiskClosureService) GetFullDetailsByID(riskID uint) (*riskDTOs.RiskClosureDetailsDTO, error) {
