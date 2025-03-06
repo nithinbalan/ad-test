@@ -171,7 +171,7 @@ func (repo *ControlAssociatedItemRepository) GetAllComplianceRequirements(contro
 	}
 
 	if params.SortBy == "" {
-		params.SortBy = "compliance_requirements.title"
+		params.SortBy = "compliance_requirements.title_en"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
