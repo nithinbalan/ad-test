@@ -285,7 +285,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("/risks/:riskId/timelines", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskTimelineController.GetAllRiskTimelines)
 
 	// Risk Settings
-	riskRoutes.GET("/risk-settings", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskSettingsController.GetAllRiskSettings)
+	riskRoutes.GET("/risk-settings", riskSettingsController.GetAllRiskSettings)
 	riskRoutes.PUT("/risk-settings", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskSettingsController.UpdateRiskSettings)
 
 	riskRoutes.GET("risks/:riskId/closures", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskClosureController.GetAllRiskClosures)
