@@ -731,7 +731,7 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 			})
 		}
 
-		responsibleUser, err := cars.userSvc.GetByID(assessment.SubmittedByUser.ID)
+		responsibleUser, err := cars.userSvc.GetByID(uint(assessmentDetails.SubmittedByUser.ID))
 		if err != nil {
 			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 				"error": err.Error(),
@@ -931,16 +931,16 @@ func (cars *ComplianceAssessmentRequirementService) ResubmitComplianceRequiremen
 			Subject:              fmt.Sprintf("Compliance Requirement #%d Resubmitted", requirementID),
 			TemplateRelativePath: "compliance/templates/email/compliance_requirement_resubmitted.html",
 			EmailData: map[string]interface{}{
-				"FirstNameEn":         responsibleUser.FirstNameEn,
-				"LastNameEn":          responsibleUser.LastNameEn,
-				"TitleEn":             assessmentDetails.ComplianceRegister.TitleEn,
-				"TitleAr":             assessmentDetails.ComplianceRegister.TitleAr,
-				"ReferenceNumber":     assessmentDetails.ComplianceRegister.ReferenceNumber,
-				"Comment":             commentForm.Comment,
+				"FirstNameEn":            responsibleUser.FirstNameEn,
+				"LastNameEn":             responsibleUser.LastNameEn,
+				"TitleEn":                assessmentDetails.ComplianceRegister.TitleEn,
+				"TitleAr":                assessmentDetails.ComplianceRegister.TitleAr,
+				"ReferenceNumber":        assessmentDetails.ComplianceRegister.ReferenceNumber,
+				"Comment":                commentForm.Comment,
 				"ResubmittedByFirstName": createdBy.FirstNameEn,
 				"ResubmittedByLastName":  createdBy.LastNameEn,
 				"ResubmissionDate":       time.Now().Format("2006-01-02"),
-				"RedirectURL":         fmt.Sprintf("%scompliance/assessment/%d/requirements", utility.GetAppURL(), assessmentID),
+				"RedirectURL":            fmt.Sprintf("%scompliance/assessment/%d/requirements", utility.GetAppURL(), assessmentID),
 			},
 		}
 
