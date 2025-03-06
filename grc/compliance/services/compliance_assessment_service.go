@@ -586,7 +586,7 @@ func (cras *ComplianceAssessmentService) SubmitComplianceAssessment(assessmentID
 
 		// Prepare DB Notification
 		urlParam := fmt.Sprintf(`{"id":%d}`, assessmentID)
-		entity := "compliance-register"
+		entity := "compliance-assessment"
 		action := "review-user-assignment"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
