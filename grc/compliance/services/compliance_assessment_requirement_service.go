@@ -3,17 +3,20 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"jethur/config"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -46,6 +49,7 @@ type ComplianceAssessmentRequirementService struct {
 	complianceRegisterSvc                    ComplianceRegisterServiceInterface
 	complianceAssessmentSvc                  ComplianceAssessmentServiceInterface
 	complianceAssessmentRequirementStatusSvc ComplianceAssessmentRequirementStatusServiceInterface
+	notificationSvc                          commonServices.NotificationServiceInterface
 }
 
 func NewComplianceAssessmentRequirementService(
@@ -55,6 +59,7 @@ func NewComplianceAssessmentRequirementService(
 	complianceRegisterSvc ComplianceRegisterServiceInterface,
 	complianceAssessmentSvc ComplianceAssessmentServiceInterface,
 	complianceAssessmentRequirementStatusSvc ComplianceAssessmentRequirementStatusServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) ComplianceAssessmentRequirementServiceInterface {
 	return &ComplianceAssessmentRequirementService{
 		repo:                                     repo,
@@ -63,11 +68,11 @@ func NewComplianceAssessmentRequirementService(
 		complianceRegisterSvc:                    complianceRegisterSvc,
 		complianceAssessmentSvc:                  complianceAssessmentSvc,
 		complianceAssessmentRequirementStatusSvc: complianceAssessmentRequirementStatusSvc,
+		notificationSvc:                          notificationSvc,
 	}
 }
 
 func (cras *ComplianceAssessmentRequirementService) GetAll(assessmentID uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO) ([]*complianceDTOs.ComplianceAssessmentRequirementListDTO, error) {
-
 	if _, err := cras.complianceAssessmentSvc.GetByID(assessmentID); err != nil {
 		return nil, err
 	}
@@ -160,7 +165,7 @@ func (cras ComplianceAssessmentRequirementService) Update(complianceAssessmentId
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"score":             oldComplianceAssessmentRequirement.Score,
 			"comments":          oldComplianceAssessmentRequirement.Comments,
@@ -198,11 +203,11 @@ func (cras ComplianceAssessmentRequirementService) Update(complianceAssessmentId
 				})
 			}
 		}
-
 	}()
 
 	return nil
 }
+
 func (cras *ComplianceAssessmentRequirementService) CreateDocument(complianceAssessmentID uint, requirementID uint, requiredDocumentID uint, currentUserID uint, requiredDocuments []complianceDTOs.ComplianceAssessmentRequirementDocumentFormDTO) error {
 	tx := cras.repo.BeginTransaction()
 	var documents []*models.ComplianceAssessmentRequirementRequiredDocument
@@ -237,7 +242,7 @@ func (cras *ComplianceAssessmentRequirementService) CreateDocument(complianceAss
 			tx.Rollback()
 			return err
 		}
-		//move file to storage
+		// move file to storage
 		for _, doc := range documents {
 			storagePath := filepath.Join("compliance", "compliance-assessment", strconv.FormatUint(uint64(complianceAssessmentID), 10), "requirements", strconv.FormatUint(uint64(requirementID), 10), "required-documents", strconv.FormatUint(uint64(requiredDocumentID), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
@@ -251,6 +256,7 @@ func (cras *ComplianceAssessmentRequirementService) CreateDocument(complianceAss
 
 	return nil
 }
+
 func (cras *ComplianceAssessmentRequirementService) DeleteDocuments(complianceAssessmentID uint, requirementID uint, requiredDocumentID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := cras.repo.BeginTransaction()
 	var failedIds []uint
@@ -318,7 +324,6 @@ func (cras *ComplianceAssessmentRequirementService) DeleteDocuments(complianceAs
 }
 
 func (cras *ComplianceAssessmentRequirementService) GetDocumentPath(complianceAssessmentID, requirementID, id uint, token string) (string, error) {
-
 	decryptedFilenameBytes, err := utility.DecryptData(token)
 	if err != nil {
 		return "", fmt.Errorf("resource not found")
@@ -375,7 +380,7 @@ func (cras ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAss
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"is_completed": oldComplianceAssessmentRequirement.IsCompleted,
 		}
@@ -409,7 +414,6 @@ func (cras ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAss
 				})
 			}
 		}
-
 	}()
 
 	return nil
@@ -447,7 +451,7 @@ func (cras ComplianceAssessmentRequirementService) MarkAsOpen(complianceAssessme
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"is_completed": oldComplianceAssessmentRequirement.IsCompleted,
 		}
@@ -481,7 +485,6 @@ func (cras ComplianceAssessmentRequirementService) MarkAsOpen(complianceAssessme
 				})
 			}
 		}
-
 	}()
 
 	return nil
@@ -509,6 +512,12 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 	}
 
 	assessment, err := cars.complianceAssessmentSvc.GetByID(assessmentID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	assessmentDetails, err := cars.complianceAssessmentSvc.GetFullDetailsByID(assessmentID)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -566,6 +575,69 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 				"error":     err.Error(),
 			})
 		}
+
+		responsibleUser, err := cars.userSvc.GetByID(uint(assessmentDetails.SubmittedByUser.ID))
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		createdBy, err := cars.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Prepare notification and email
+		urlParam := fmt.Sprintf(`{"assessmentID":%d, "requirementID":%d}`, assessmentID, requirementID)
+		entity := "compliance-register"
+		action := "responsible-user-assign"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{responsibleUser.ID},
+			ModuleIdentifier:     "compliance",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Compliance Requirement Approved",
+			HeadingAr:            "تم الموافقة على متطلبات الامتثال",
+			TitleEn:              assessmentDetails.ComplianceRegister.TitleEn,
+			TitleAr:              assessmentDetails.ComplianceRegister.TitleAr,
+			ReferenceNumber:      assessmentDetails.ComplianceRegister.ReferenceNumber,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		emailNotification := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              []string{responsibleUser.Email},
+			Subject:              fmt.Sprintf("Compliance Requirement #%d Approved", requirementID),
+			TemplateRelativePath: "compliance/templates/email/compliance_requirement_approved.html",
+			EmailData: map[string]interface{}{
+				"FirstNameEn":         responsibleUser.FirstNameEn,
+				"LastNameEn":          responsibleUser.LastNameEn,
+				"TitleEn":             assessmentDetails.ComplianceRegister.TitleEn,
+				"TitleAr":             assessmentDetails.ComplianceRegister.TitleAr,
+				"ReferenceNumber":     assessmentDetails.ComplianceRegister.ReferenceNumber,
+				"Comment":             commentForm.Comment,
+				"ApprovedByFirstName": createdBy.FirstNameEn,
+				"ApprovedByLastName":  createdBy.LastNameEn,
+				"ApprovalDate":        time.Now().Format("2006-01-02"),
+				"RedirectURL":         fmt.Sprintf("%scompliance/assessment/%d/requirements", utility.GetAppURL(), assessmentID),
+			},
+		}
+
+		// **Send Both Notifications at ONCE**
+		err = cars.notificationSvc.SendNotification(dbNotificationDTO, emailNotification, "compliance_assessment")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}()
 
 	return nil
@@ -593,6 +665,12 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 	}
 
 	assessment, err := cars.complianceAssessmentSvc.GetByID(assessmentID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	assessmentDetails, err := cars.complianceAssessmentSvc.GetFullDetailsByID(assessmentID)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -652,6 +730,69 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 				"error":     err.Error(),
 			})
 		}
+
+		responsibleUser, err := cars.userSvc.GetByID(uint(assessmentDetails.SubmittedByUser.ID))
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		createdBy, err := cars.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Prepare notification and email
+		urlParam := fmt.Sprintf(`{"assessmentID":%d, "requirementID":%d}`, assessmentID, requirementID)
+		entity := "compliance-register"
+		action := "responsible-user-assign"
+
+		dbNotification := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{responsibleUser.ID},
+			ModuleIdentifier:     "compliance",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Compliance Requirement Reverted",
+			HeadingAr:            "تم إرجاع متطلب الامتثال",
+			TitleEn:              assessmentDetails.ComplianceRegister.TitleEn,
+			TitleAr:              assessmentDetails.ComplianceRegister.TitleAr,
+			ReferenceNumber:      assessmentDetails.ComplianceRegister.ReferenceNumber,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		emailNotification := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              []string{responsibleUser.Email},
+			Subject:              fmt.Sprintf("Compliance Requirement #%d Reverted", requirementID),
+			TemplateRelativePath: "compliance/templates/email/compliance_requirement_reverted.html",
+			EmailData: map[string]interface{}{
+				"FirstNameEn":         responsibleUser.FirstNameEn,
+				"LastNameEn":          responsibleUser.LastNameEn,
+				"TitleEn":             assessmentDetails.ComplianceRegister.TitleEn,
+				"TitleAr":             assessmentDetails.ComplianceRegister.TitleAr,
+				"ReferenceNumber":     assessmentDetails.ComplianceRegister.ReferenceNumber,
+				"Comment":             commentForm.Comment,
+				"RevertedByFirstName": createdBy.FirstNameEn,
+				"RevertedByLastName":  createdBy.LastNameEn,
+				"ReversionDate":       time.Now().Format("2006-01-02"),
+				"RedirectURL":         fmt.Sprintf("%scompliance/assessment/%d/requirements", utility.GetAppURL(), assessmentID),
+			},
+		}
+
+		// **Send Both Notifications at ONCE**
+		err = cars.notificationSvc.SendNotification(dbNotification, emailNotification, "compliance_assessment")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}()
 
 	return nil
@@ -684,6 +825,12 @@ func (cars *ComplianceAssessmentRequirementService) ResubmitComplianceRequiremen
 	}
 
 	assessment, err := cars.complianceAssessmentSvc.GetByID(assessmentID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	assessmentDetails, err := cars.complianceAssessmentSvc.GetFullDetailsByID(assessmentID)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -739,6 +886,69 @@ func (cars *ComplianceAssessmentRequirementService) ResubmitComplianceRequiremen
 				"recordID":  requirementID,
 				"userID":    currentUserID,
 				"error":     err.Error(),
+			})
+		}
+
+		responsibleUser, err := cars.userSvc.GetByID(assessment.ReviewUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		createdBy, err := cars.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Prepare notification and email
+		urlParam := fmt.Sprintf(`{"assessmentID":%d, "requirementID":%d}`, assessmentID, requirementID)
+		entity := "compliance-register"
+		action := "responsible-user-assign"
+
+		dbNotification := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{responsibleUser.ID},
+			ModuleIdentifier:     "compliance",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Compliance Requirement Resubmitted",
+			HeadingAr:            "إعادة تقديم متطلب الامتثال",
+			TitleEn:              assessmentDetails.ComplianceRegister.TitleEn,
+			TitleAr:              assessmentDetails.ComplianceRegister.TitleAr,
+			ReferenceNumber:      assessmentDetails.ComplianceRegister.ReferenceNumber,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		emailNotification := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              []string{responsibleUser.Email},
+			Subject:              fmt.Sprintf("Compliance Requirement #%d Resubmitted", requirementID),
+			TemplateRelativePath: "compliance/templates/email/compliance_requirement_resubmitted.html",
+			EmailData: map[string]interface{}{
+				"FirstNameEn":            responsibleUser.FirstNameEn,
+				"LastNameEn":             responsibleUser.LastNameEn,
+				"TitleEn":                assessmentDetails.ComplianceRegister.TitleEn,
+				"TitleAr":                assessmentDetails.ComplianceRegister.TitleAr,
+				"ReferenceNumber":        assessmentDetails.ComplianceRegister.ReferenceNumber,
+				"Comment":                commentForm.Comment,
+				"ResubmittedByFirstName": createdBy.FirstNameEn,
+				"ResubmittedByLastName":  createdBy.LastNameEn,
+				"ResubmissionDate":       time.Now().Format("2006-01-02"),
+				"RedirectURL":            fmt.Sprintf("%scompliance/assessment/%d/requirements", utility.GetAppURL(), assessmentID),
+			},
+		}
+
+		// **Send Both Notifications at ONCE**
+		err = cars.notificationSvc.SendNotification(dbNotification, emailNotification, "compliance_assessment")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
 			})
 		}
 	}()
