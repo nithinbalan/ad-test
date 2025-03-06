@@ -634,8 +634,6 @@ func (repo *IncidentAssociatedItemRepository) GetAllAssets(incidentID uint, para
 		asset_register.location,
 		asset_register.description,
 		CONVERT(VARCHAR, asset_register.acquisition_date, 23) AS acquisition_date,
-		asset_types.title_en AS asset_type_title_en,
-		asset_types.title_ar AS asset_type_title_ar,
 		asset_categories.title_en AS asset_category_title_en,
 		asset_categories.title_ar AS asset_category_title_ar,
 		asset_statuses.title_en AS asset_status_title_en,
@@ -672,7 +670,6 @@ func (repo *IncidentAssociatedItemRepository) GetAllAssets(incidentID uint, para
 		updated_user.profile_image_path AS updated_user_profile_image_path
 	`).
 		Joins("LEFT JOIN asset_register ON asset_register.id = incident_assets.asset_register_id").
-		Joins("LEFT JOIN asset_types ON asset_types.id = asset_register.asset_type_id").
 		Joins("LEFT JOIN asset_categories ON asset_categories.id = asset_register.asset_category_id").
 		Joins("LEFT JOIN asset_statuses ON asset_statuses.id = asset_register.asset_status_id").
 		Joins("LEFT JOIN organization_units ON organization_units.id = asset_register.responsible_unit_id").
@@ -693,15 +690,12 @@ func (repo *IncidentAssociatedItemRepository) GetAllAssets(incidentID uint, para
 			asset_register.title_ar LIKE ? OR
 			asset_register.reference_number LIKE ? OR
 			asset_register.description LIKE ? OR
-			asset_types.title_en LIKE ? OR
-			asset_types.title_ar LIKE ? OR
 			asset_categories.title_en LIKE ? OR
 			asset_categories.title_ar LIKE ? OR
 			asset_statuses.title_en LIKE ? OR
 			asset_statuses.title_ar LIKE ?)`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	if params.SortBy == "" {

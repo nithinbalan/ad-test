@@ -755,6 +755,42 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 			failedIds = append(failedIds, taskID)
 		}
 
+		existingRiskActionPlan, err := raps.GetFullDetailsByID(riskID, id)
+		if err != nil {
+			continue
+		}
+
+		newControlIDs := make(map[uint]bool)
+		for _, ctrl := range existingRiskActionPlan.Controls {
+			if ctrl.ID != nil {
+				newControlIDs[ctrl.ControlID] = true
+			}
+		}
+
+		if len(existingRiskActionPlan.Controls) > 0 {
+			var deleteControlIds []*uint
+			for _, control := range existingRiskActionPlan.Controls {
+				deleteControlIds = append(deleteControlIds, control.ID)
+			}
+			if err := raps.repo.DeleteRiskActionPlanControl(deleteControlIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
+
+		if len(existingRiskActionPlan.RiskRegister.Controls) > 0 {
+			var deleteRiskControlIds []*uint
+			for _, control := range existingRiskActionPlan.RiskRegister.Controls {
+				if _, exists := newControlIDs[control.ControlID]; exists {
+					deleteRiskControlIds = append(deleteRiskControlIds, control.ID)
+				}
+			}
+			if err := raps.repo.DeleteRiskControls(deleteRiskControlIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
+
 		if len(riskActionPlan.ActionPlanStatusUpdates) > 0 {
 			var deleteStatusUpdateIds []*uint
 			for _, update := range riskActionPlan.ActionPlanStatusUpdates {
