@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-INSERT INTO swot_questions (title_en, title_ar, "order", swot_question_group_id, status) VALUES
+INSERT INTO swot_pestel_questions (title_en, title_ar, "order", swot_pestel_question_group_id, status) VALUES
     -- Strengths: Resources & Capabilities
     ('What unique skills, assets, or resources do we have?', 'ما هي المهارات أو الأصول أو الموارد الفريدة التي لدينا؟', 1, 1, 'active'),
     ('What do we do better than our competitors?', 'ما الذي نقوم به بشكل أفضل من منافسينا؟', 2, 1, 'active'),
@@ -64,5 +64,5 @@ INSERT INTO swot_questions (title_en, title_ar, "order", swot_question_group_id,
 
 -- +goose Down
 -- +goose StatementBegin
-TRUNCATE TABLE swot_questions;
+TRUNCATE TABLE swot_pestel_questions;
 -- +goose StatementEnd

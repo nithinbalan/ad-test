@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-INSERT INTO swot_question_groups (title_en, title_ar, "order", status) VALUES
+INSERT INTO swot_pestel_question_groups (title_en, title_ar, "order", status) VALUES
     ('Resources & Capabilities', 'الموارد والقدرات', 1, 'active'),
     ('Competitive Advantage', 'الميزة التنافسية', 2, 'active'),
     ('Customer Perception & Reputation', 'تصور العملاء والسمعة', 3, 'active'),
@@ -21,5 +21,5 @@ INSERT INTO swot_question_groups (title_en, title_ar, "order", status) VALUES
 
 -- +goose Down
 -- +goose StatementBegin
-TRUNCATE TABLE swot_question_groups;
+TRUNCATE TABLE swot_pestel_question_groups;
 -- +goose StatementEnd
