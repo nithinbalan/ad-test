@@ -9,8 +9,8 @@ import (
 )
 
 type StrategyModule struct {
-	SwotQuestionGroupController *controllers.SwotQuestionGroupController
-	SwotQuestionController      *controllers.SwotQuestionController
+	SwotPestelQuestionGroupController *controllers.SwotPestelQuestionGroupController
+	SwotPestelQuestionController      *controllers.SwotPestelQuestionController
 }
 
 func NewStrategyModule(db *gorm.DB,
@@ -19,16 +19,16 @@ func NewStrategyModule(db *gorm.DB,
 	masterModule *MasterModule,
 
 ) *StrategyModule {
-	swotQuestionGroupRepo := repositories.NewSwotQuestionGroupRepository(db)
-	swotQuestionGroupSvc := services.NewSwotQuestionGroupService(swotQuestionGroupRepo, sharedModule.ActivityLogService)
-	swotQuestionGroupController := controllers.NewSwotQuestionGroupController(swotQuestionGroupSvc)
+	swotQuestionGroupRepo := repositories.NewSwotPestelQuestionGroupRepository(db)
+	swotQuestionGroupSvc := services.NewSwotPestelQuestionGroupService(swotQuestionGroupRepo, sharedModule.ActivityLogService)
+	swotQuestionGroupController := controllers.NewSwotPestelQuestionGroupController(swotQuestionGroupSvc)
 
-	swotQuestionRepo := repositories.NewSwotQuestionRepository(db)
-	swotQuestionSvc := services.NewSwotQuestionService(swotQuestionRepo, sharedModule.ActivityLogService)
-	swotQuestionController := controllers.NewSwotQuestionController(swotQuestionSvc)
+	swotQuestionRepo := repositories.NewSwotPestelQuestionRepository(db)
+	swotQuestionSvc := services.NewSwotPestelQuestionService(swotQuestionRepo, sharedModule.ActivityLogService)
+	swotQuestionController := controllers.NewSwotPestelQuestionController(swotQuestionSvc)
 
 	return &StrategyModule{
-		SwotQuestionGroupController: swotQuestionGroupController,
-		SwotQuestionController:      swotQuestionController,
+		SwotPestelQuestionGroupController: swotQuestionGroupController,
+		SwotPestelQuestionController:      swotQuestionController,
 	}
 }

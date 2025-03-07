@@ -11,33 +11,34 @@ import (
 	"gorm.io/gorm"
 )
 
-type SwotQuestionGroupController struct {
-	service services.SwotQuestionGroupServiceInterface
+type SwotPestelQuestionGroupController struct {
+	service services.SwotPestelQuestionGroupServiceInterface
 	db      *gorm.DB
 }
 
-func NewSwotQuestionGroupController(service services.SwotQuestionGroupServiceInterface) *SwotQuestionGroupController {
-	return &SwotQuestionGroupController{
+func NewSwotPestelQuestionGroupController(service services.SwotPestelQuestionGroupServiceInterface) *SwotPestelQuestionGroupController {
+	return &SwotPestelQuestionGroupController{
 		service: service,
 	}
 }
 
-func (sqgc *SwotQuestionGroupController) GetAllSwotQuestionGroups(c *gin.Context) {
+func (sqgc *SwotPestelQuestionGroupController) GetAllSwotPestelQuestionGroups(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	isSwot := c.Query("is_swot")
 
-	swotQuestionGroups, err := sqgc.service.GetAll(sort, sortBy, keyword, status)
+	swotPestelQuestionGroups, err := sqgc.service.GetAll(sort, sortBy, keyword, status, isSwot)
 
 	if err != nil {
 		utility.SendInternalErrResp(sqgc.db, c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, swotQuestionGroups)
+	c.JSON(http.StatusOK, swotPestelQuestionGroups)
 }
 
-func (sqgc *SwotQuestionGroupController) GetSwotQuestionGroupDetails(c *gin.Context) {
+func (sqgc *SwotPestelQuestionGroupController) GetSwotPestelQuestionGroupDetails(c *gin.Context) {
 	idStr := c.Param("id")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -46,19 +47,19 @@ func (sqgc *SwotQuestionGroupController) GetSwotQuestionGroupDetails(c *gin.Cont
 		return
 	}
 
-	swotQuestionGroup, err := sqgc.service.GetByID(uint(id))
+	swotPestelQuestionGroup, err := sqgc.service.GetByID(uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	c.JSON(http.StatusOK, swotQuestionGroup)
+	c.JSON(http.StatusOK, swotPestelQuestionGroup)
 }
 
-func (sqgc *SwotQuestionGroupController) CreateSwotQuestionGroup(c *gin.Context) {
-	var swotQuestionGroup *models.SwotQuestionGroup
+func (sqgc *SwotPestelQuestionGroupController) CreateSwotPestelQuestionGroup(c *gin.Context) {
+	var swotPestelQuestionGroup *models.SwotPestelQuestionGroup
 
-	if err := c.ShouldBindJSON(&swotQuestionGroup); err != nil {
+	if err := c.ShouldBindJSON(&swotPestelQuestionGroup); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -68,7 +69,7 @@ func (sqgc *SwotQuestionGroupController) CreateSwotQuestionGroup(c *gin.Context)
 		return
 	}
 
-	createdSwotQuestionGroup, err := sqgc.service.Create(currentUserID, swotQuestionGroup)
+	createdSwotPestelQuestionGroup, err := sqgc.service.Create(currentUserID, swotPestelQuestionGroup)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -80,18 +81,18 @@ func (sqgc *SwotQuestionGroupController) CreateSwotQuestionGroup(c *gin.Context)
 		}
 	}
 
-	c.JSON(http.StatusCreated, createdSwotQuestionGroup)
+	c.JSON(http.StatusCreated, createdSwotPestelQuestionGroup)
 }
 
-func (sqgc *SwotQuestionGroupController) UpdateSwotQuestionGroup(c *gin.Context) {
-	swotQuestionGroupID, err := strconv.Atoi(c.Param("id"))
+func (sqgc *SwotPestelQuestionGroupController) UpdateSwotPestelQuestionGroup(c *gin.Context) {
+	swotPestelQuestionGroupID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	var updatedSwotQuestionGroup *models.SwotQuestionGroup
-	if err := c.ShouldBindJSON(&updatedSwotQuestionGroup); err != nil {
+	var updatedSwotPestelQuestionGroup *models.SwotPestelQuestionGroup
+	if err := c.ShouldBindJSON(&updatedSwotPestelQuestionGroup); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -101,7 +102,7 @@ func (sqgc *SwotQuestionGroupController) UpdateSwotQuestionGroup(c *gin.Context)
 		return
 	}
 
-	updatedSwotQuestionGroup, err = sqgc.service.Update(uint(swotQuestionGroupID), currentUserID, updatedSwotQuestionGroup)
+	updatedSwotPestelQuestionGroup, err = sqgc.service.Update(uint(swotPestelQuestionGroupID), currentUserID, updatedSwotPestelQuestionGroup)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -116,10 +117,10 @@ func (sqgc *SwotQuestionGroupController) UpdateSwotQuestionGroup(c *gin.Context)
 		}
 	}
 
-	c.JSON(http.StatusOK, updatedSwotQuestionGroup)
+	c.JSON(http.StatusOK, updatedSwotPestelQuestionGroup)
 }
 
-func (sqgc *SwotQuestionGroupController) DeleteSwotQuestionGroups(c *gin.Context) {
+func (sqgc *SwotPestelQuestionGroupController) DeleteSwotPestelQuestionGroups(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -144,7 +145,7 @@ func (sqgc *SwotQuestionGroupController) DeleteSwotQuestionGroups(c *gin.Context
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (sqgc *SwotQuestionGroupController) ActivateSwotQuestionGroups(c *gin.Context) {
+func (sqgc *SwotPestelQuestionGroupController) ActivateSwotPestelQuestionGroups(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -169,7 +170,7 @@ func (sqgc *SwotQuestionGroupController) ActivateSwotQuestionGroups(c *gin.Conte
 	c.Status(http.StatusOK)
 }
 
-func (sqgc *SwotQuestionGroupController) DeactivateSwotQuestionGroups(c *gin.Context) {
+func (sqgc *SwotPestelQuestionGroupController) DeactivateSwotPestelQuestionGroups(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}

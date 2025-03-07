@@ -8,39 +8,40 @@ import (
 	"jethur/grc/strategy/repositories"
 	"jethur/utility"
 	"log"
+	"strconv"
 
 	"gorm.io/gorm"
 )
 
-type SwotQuestionGroupServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SwotQuestionGroup, error)
-	GetByID(id uint) (*models.SwotQuestionGroup, error)
-	Create(currentUserID uint, swotQuestionGroup *models.SwotQuestionGroup) (*models.SwotQuestionGroup, error)
-	Update(id uint, currentUserID uint, swotQuestionGroup *models.SwotQuestionGroup) (*models.SwotQuestionGroup, error)
+type SwotPestelQuestionGroupServiceInterface interface {
+	GetAll(sort string, sortBy string, keyword string, status string, isSwot string) ([]*models.SwotPestelQuestionGroup, error)
+	GetByID(id uint) (*models.SwotPestelQuestionGroup, error)
+	Create(currentUserID uint, swotPestelQuestionGroup *models.SwotPestelQuestionGroup) (*models.SwotPestelQuestionGroup, error)
+	Update(id uint, currentUserID uint, swotPestelQuestionGroup *models.SwotPestelQuestionGroup) (*models.SwotPestelQuestionGroup, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
 }
 
 // Service and implementations
-type SwotQuestionGroupService struct {
-	repo           repositories.SwotQuestionGroupRepositoryInterface
+type SwotPestelQuestionGroupService struct {
+	repo           repositories.SwotPestelQuestionGroupRepositoryInterface
 	activityLogSvc services.ActivityLogServiceInterface
 }
 
-func NewSwotQuestionGroupService(repo repositories.SwotQuestionGroupRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) SwotQuestionGroupServiceInterface {
-	return &SwotQuestionGroupService{
+func NewSwotPestelQuestionGroupService(repo repositories.SwotPestelQuestionGroupRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) SwotPestelQuestionGroupServiceInterface {
+	return &SwotPestelQuestionGroupService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
 	}
 }
 
-func (sqgs *SwotQuestionGroupService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SwotQuestionGroup, error) {
-	return sqgs.repo.GetAll(sort, sortBy, keyword, status)
+func (sqgs *SwotPestelQuestionGroupService) GetAll(sort string, sortBy string, keyword string, status string, isSwot string) ([]*models.SwotPestelQuestionGroup, error) {
+	return sqgs.repo.GetAll(sort, sortBy, keyword, status, isSwot)
 }
 
-func (sqgs SwotQuestionGroupService) GetByID(id uint) (*models.SwotQuestionGroup, error) {
-	swotQuestionGroup, err := sqgs.repo.GetByID(id)
+func (sqgs SwotPestelQuestionGroupService) GetByID(id uint) (*models.SwotPestelQuestionGroup, error) {
+	swotPestelQuestionGroup, err := sqgs.repo.GetByID(id)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -49,22 +50,22 @@ func (sqgs SwotQuestionGroupService) GetByID(id uint) (*models.SwotQuestionGroup
 		return nil, err
 	}
 
-	return swotQuestionGroup, nil
+	return swotPestelQuestionGroup, nil
 }
 
-func (sqgs *SwotQuestionGroupService) Create(currentUserID uint, swotQuestionGroup *models.SwotQuestionGroup) (*models.SwotQuestionGroup, error) {
-	if exists, err := sqgs.repo.ExistsByTitle(swotQuestionGroup.TitleEn, swotQuestionGroup.TitleAr); err != nil {
+func (sqgs *SwotPestelQuestionGroupService) Create(currentUserID uint, swotPestelQuestionGroup *models.SwotPestelQuestionGroup) (*models.SwotPestelQuestionGroup, error) {
+	if exists, err := sqgs.repo.ExistsByTitle(swotPestelQuestionGroup.TitleEn, swotPestelQuestionGroup.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
-	existingGroups, err := sqgs.repo.GetAll("ASC", "[order]", "", "active")
+	existingGroups, err := sqgs.repo.GetAll("ASC", "[order]", "", "active", strconv.FormatBool(swotPestelQuestionGroup.IsSwot))
 	if err != nil {
 		return nil, err
 	}
 
-	newOrder := swotQuestionGroup.Order
+	newOrder := swotPestelQuestionGroup.Order
 	for _, group := range existingGroups {
 		if group.Order >= newOrder {
 			group.Order++ // Increment order for existing records
@@ -74,7 +75,7 @@ func (sqgs *SwotQuestionGroupService) Create(currentUserID uint, swotQuestionGro
 		}
 	}
 
-	createdSwotQuestionGroup, err := sqgs.repo.Create(swotQuestionGroup)
+	createdSwotPestelQuestionGroup, err := sqgs.repo.Create(swotPestelQuestionGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -82,9 +83,9 @@ func (sqgs *SwotQuestionGroupService) Create(currentUserID uint, swotQuestionGro
 	go func() {
 		err := sqgs.activityLogSvc.LogActivity(
 			models.CreateAction,
-			models.SwotQuestionGroup{}.TableName(),
-			createdSwotQuestionGroup.ID,
-			createdSwotQuestionGroup,
+			models.SwotPestelQuestionGroup{}.TableName(),
+			createdSwotPestelQuestionGroup.ID,
+			createdSwotPestelQuestionGroup,
 			currentUserID,
 			nil,
 		)
@@ -94,18 +95,18 @@ func (sqgs *SwotQuestionGroupService) Create(currentUserID uint, swotQuestionGro
 		}
 	}()
 
-	return createdSwotQuestionGroup, nil
+	return createdSwotPestelQuestionGroup, nil
 }
 
-func (sqgs *SwotQuestionGroupService) Update(id uint, currentUserID uint, updatedSwotQuestionGroup *models.SwotQuestionGroup) (*models.SwotQuestionGroup, error) {
-	existingSwotQuestionGroup, err := sqgs.GetByID(id)
+func (sqgs *SwotPestelQuestionGroupService) Update(id uint, currentUserID uint, updatedSwotPestelQuestionGroup *models.SwotPestelQuestionGroup) (*models.SwotPestelQuestionGroup, error) {
+	existingSwotPestelQuestionGroup, err := sqgs.GetByID(id)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if updatedSwotQuestionGroup.TitleEn != existingSwotQuestionGroup.TitleEn || updatedSwotQuestionGroup.TitleAr != existingSwotQuestionGroup.TitleAr {
-		if exists, err := sqgs.repo.ExistsByTitleExcludingID(id, updatedSwotQuestionGroup.TitleEn, updatedSwotQuestionGroup.TitleAr); err != nil {
+	if updatedSwotPestelQuestionGroup.TitleEn != existingSwotPestelQuestionGroup.TitleEn || updatedSwotPestelQuestionGroup.TitleAr != existingSwotPestelQuestionGroup.TitleAr {
+		if exists, err := sqgs.repo.ExistsByTitleExcludingID(id, updatedSwotPestelQuestionGroup.TitleEn, updatedSwotPestelQuestionGroup.TitleAr); err != nil {
 			return nil, err
 		} else if exists {
 			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
@@ -113,41 +114,14 @@ func (sqgs *SwotQuestionGroupService) Update(id uint, currentUserID uint, update
 
 	}
 
-	swotGroups, err := sqgs.repo.GetAll("ASC", "[order]", "", "active")
-	if err != nil {
-		return nil, err
-	}
-
-	if updatedSwotQuestionGroup.Order != existingSwotQuestionGroup.Order {
-		updatedOrder := updatedSwotQuestionGroup.Order
-		oldOrder := existingSwotQuestionGroup.Order
-
-		for _, group := range swotGroups {
-			if group.ID == id {
-				continue
-			}
-			if oldOrder < updatedOrder && group.Order > oldOrder && group.Order <= updatedOrder {
-				group.Order--
-				_, err = sqgs.repo.Update(group.ID, group)
-			} else if oldOrder > updatedOrder && group.Order >= updatedOrder && group.Order < oldOrder {
-				group.Order++
-				_, err = sqgs.repo.Update(group.ID, group)
-			}
-
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	result, err := sqgs.repo.Update(id, updatedSwotQuestionGroup)
+	result, err := sqgs.repo.Update(id, updatedSwotPestelQuestionGroup)
 
 	if err != nil {
 		return nil, err
 	}
 
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "order", "Status"}
-	changes, err := utility.CompareFields(existingSwotQuestionGroup, updatedSwotQuestionGroup, fieldsToCompare)
+	changes, err := utility.CompareFields(existingSwotPestelQuestionGroup, updatedSwotPestelQuestionGroup, fieldsToCompare)
 
 	if err != nil {
 		log.Println("error :", err.Error())
@@ -161,7 +135,7 @@ func (sqgs *SwotQuestionGroupService) Update(id uint, currentUserID uint, update
 	go func() {
 		err := sqgs.activityLogSvc.LogActivity(
 			models.UpdateAction,
-			models.SwotQuestionGroup{}.TableName(),
+			models.SwotPestelQuestionGroup{}.TableName(),
 			result.ID,
 			changedDataJSON,
 			currentUserID,
@@ -175,24 +149,24 @@ func (sqgs *SwotQuestionGroupService) Update(id uint, currentUserID uint, update
 	return result, err
 }
 
-func (sqgs *SwotQuestionGroupService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (sqgs *SwotPestelQuestionGroupService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
-
-	// Fetch all records in order before deletion
-	swotGroups, err := sqgs.repo.GetAll("ASC", "[order]", "", "active")
-	if err != nil {
-		return nil, err
-	}
 
 	for _, id := range ids {
 
 		// Get existing record
-		swotQuestionGroup, err := sqgs.repo.GetByID(id)
+		swotPestelQuestionGroup, err := sqgs.repo.GetByID(id)
 		if err != nil {
 			fmt.Print(err)
 			failedIds = append(failedIds, id)
 			continue
+		}
+
+		// Fetch all records in order before deletion
+		swotGroups, err := sqgs.repo.GetAll("ASC", "[order]", "", "active", strconv.FormatBool(swotPestelQuestionGroup.IsSwot))
+		if err != nil {
+			return nil, err
 		}
 
 		err = sqgs.repo.Delete(id)
@@ -204,7 +178,7 @@ func (sqgs *SwotQuestionGroupService) Delete(ids []uint, currentUserID uint) ([]
 
 		// Adjust ordering for remaining records
 		for _, group := range swotGroups {
-			if group.ID != id && group.Order > swotQuestionGroup.Order {
+			if group.ID != id && group.Order > swotPestelQuestionGroup.Order {
 				group.Order--
 				_, err := sqgs.repo.Update(group.ID, group)
 				if err != nil {
@@ -220,7 +194,7 @@ func (sqgs *SwotQuestionGroupService) Delete(ids []uint, currentUserID uint) ([]
 		go func() {
 			err := sqgs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
-				models.SwotQuestionGroup{}.TableName(),
+				models.SwotPestelQuestionGroup{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -236,7 +210,7 @@ func (sqgs *SwotQuestionGroupService) Delete(ids []uint, currentUserID uint) ([]
 	return failedIds, nil
 }
 
-func (sqgs *SwotQuestionGroupService) Activate(ids []uint, currentUserID uint) error {
+func (sqgs *SwotPestelQuestionGroupService) Activate(ids []uint, currentUserID uint) error {
 	successfulIds, err := sqgs.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
@@ -244,7 +218,7 @@ func (sqgs *SwotQuestionGroupService) Activate(ids []uint, currentUserID uint) e
 		go func() {
 			err := sqgs.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
-				models.SwotQuestionGroup{}.TableName(),
+				models.SwotPestelQuestionGroup{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -260,7 +234,7 @@ func (sqgs *SwotQuestionGroupService) Activate(ids []uint, currentUserID uint) e
 	return err
 }
 
-func (sqgs *SwotQuestionGroupService) Deactivate(ids []uint, currentUserID uint) error {
+func (sqgs *SwotPestelQuestionGroupService) Deactivate(ids []uint, currentUserID uint) error {
 	successfulIds, err := sqgs.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
@@ -268,7 +242,7 @@ func (sqgs *SwotQuestionGroupService) Deactivate(ids []uint, currentUserID uint)
 		go func() {
 			err := sqgs.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,
-				models.SwotQuestionGroup{}.TableName(),
+				models.SwotPestelQuestionGroup{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
