@@ -8,21 +8,6 @@ jobs:
     runs-on: jethur-dev
     steps:
 
-      # Step: Start email notification
-      - name: Send Start Email
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.zeptomail.in # Replace with your SMTP host
-          server_port: 587   # Replace with your SMTP port
-          username: ${{ secrets.ZEPTO_USERNAME }}
-          password: ${{ secrets.ZEPTO_PASSWORD }}
-          subject: "Pipeline Started"
-          body: |
-            GitHub Actions DEV-API deployment has started.
-
-            Triggered by: ${{ github.actor }}
-          to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
-          from: "Jethur Notifications <info@jethur.com>"
 
       - name: Cleanup workspace if not empty
         run: |
@@ -165,16 +150,3 @@ jobs:
           Remove-Item -Recurse -Force .??* -ErrorAction SilentlyContinue
           Get-ChildItem -Force
         shell: powershell
-
-     # Step: Send Completion Email
-      - name: Send Completion Email
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.zeptomail.in
-          server_port: 587
-          username: ${{ secrets.ZEPTO_USERNAME }}
-          password: ${{ secrets.ZEPTO_PASSWORD }}
-          subject: "Pipeline Completed"
-          body: "GitHub Actions DEV-API deployment has completed successfully."
-          to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
-          from: "Jethur Notifications <info@jethur.com>"
