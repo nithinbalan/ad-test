@@ -1,6 +1,6 @@
 package dtos
 
-type SwotPestelGroupDTO struct {
+type SwotPestelQuestionDTO struct {
 	ID                        int    `json:"id"`
 	SwotPestelQuestionGroupID uint   `json:"swot_pestel_question_group_id"`
 	TitleEn                   string `json:"title_en"`

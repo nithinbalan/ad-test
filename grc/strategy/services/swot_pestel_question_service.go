@@ -13,7 +13,7 @@ import (
 )
 
 type SwotPestelQuestionServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string, isSwot string) ([]*models.SwotPestelQuestion, error)
+	GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*models.SwotPestelQuestion, error)
 	GetByID(id uint) (*models.SwotPestelQuestion, error)
 	Create(currentUserID uint, swotPestelQuestion *models.SwotPestelQuestion) (*models.SwotPestelQuestion, error)
 	Update(id uint, currentUserID uint, swotPestelQuestion *models.SwotPestelQuestion) (*models.SwotPestelQuestion, error)
@@ -35,8 +35,8 @@ func NewSwotPestelQuestionService(repo repositories.SwotPestelQuestionRepository
 	}
 }
 
-func (sqs *SwotPestelQuestionService) GetAll(sort string, sortBy string, keyword string, status string, isSwot string) ([]*models.SwotPestelQuestion, error) {
-	return sqs.repo.GetAll(sort, sortBy, keyword, status, isSwot)
+func (sqs *SwotPestelQuestionService) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*models.SwotPestelQuestion, error) {
+	return sqs.repo.GetAll(sort, sortBy, keyword, status, isSwot, isPestel)
 }
 
 func (sqs SwotPestelQuestionService) GetByID(id uint) (*models.SwotPestelQuestion, error) {

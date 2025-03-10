@@ -28,8 +28,9 @@ func (sqc *SwotPestelQuestionController) GetAllSwotPestelQuestions(c *gin.Contex
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	isSwot := c.Query("is_swot")
+	isPestel := c.Query("is_pestel")
 
-	swotPestelQuestions, err := sqc.service.GetAll(sort, sortBy, keyword, status, isSwot)
+	swotPestelQuestions, err := sqc.service.GetAll(sort, sortBy, keyword, status, isSwot, isPestel)
 
 	if err != nil {
 		utility.SendInternalErrResp(sqc.db, c, err.Error())

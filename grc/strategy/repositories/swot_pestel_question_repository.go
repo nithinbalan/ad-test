@@ -9,7 +9,7 @@ import (
 
 // Interfaces
 type SwotPestelQuestionRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string, isSwot string) ([]*models.SwotPestelQuestion, error)
+	GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*models.SwotPestelQuestion, error)
 	GetAllOrdered(swotPestelQuestionGroupId uint) ([]*models.SwotPestelQuestion, error)
 	GetByID(id uint) (*models.SwotPestelQuestion, error)
 	Create(swotPestelQuestion *models.SwotPestelQuestion) (*models.SwotPestelQuestion, error)
@@ -32,7 +32,7 @@ func NewSwotPestelQuestionRepository(db *gorm.DB) *SwotPestelQuestionRepository 
 	}
 }
 
-func (repo *SwotPestelQuestionRepository) GetAll(sort string, sortBy string, keyword string, status string, isSwot string) ([]*models.SwotPestelQuestion, error) {
+func (repo *SwotPestelQuestionRepository) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*models.SwotPestelQuestion, error) {
 	var swotPestelQuestions []*models.SwotPestelQuestion
 
 	query := repo.db
@@ -53,8 +53,10 @@ func (repo *SwotPestelQuestionRepository) GetAll(sort string, sortBy string, key
 
 	if isSwot == "true" {
 		query = query.Where("is_swot = ?", true)
-	} else if isSwot == "false" {
-		query = query.Where("is_swot = ?", false)
+	}
+
+	if isPestel == "true" {
+		query = query.Where("is_pestel = ?", true)
 	}
 
 	query = query.Order(sortBy + " " + sort)
@@ -67,7 +69,7 @@ func (repo *SwotPestelQuestionRepository) GetAllOrdered(swotPestelQuestionGroupI
 	var questions []*models.SwotPestelQuestion
 
 	err := repo.db.
-		Where("swot_question_group_id = ?", swotPestelQuestionGroupID).
+		Where("swot_pestel_question_group_id = ?", swotPestelQuestionGroupID).
 		Order("[order] ASC").
 		Find(&questions).Error
 
@@ -170,7 +172,7 @@ func (repo *SwotPestelQuestionRepository) ExistsByTitle(swotPestelQuestionGroupI
 	var count int64
 
 	err := repo.db.Model(&models.SwotPestelQuestion{}).
-		Where("(title_en = ? OR title_ar = ?) AND swot_question_group_id = ?", titleEn, titleAr, swotPestelQuestionGroupId).
+		Where("(title_en = ? OR title_ar = ?) AND swot_pestel_question_group_id = ?", titleEn, titleAr, swotPestelQuestionGroupId).
 		Count(&count).Error
 
 	if err != nil {
@@ -184,7 +186,7 @@ func (repo *SwotPestelQuestionRepository) ExistsByTitleExcludingID(swotPestelQue
 	var count int64
 
 	err := repo.db.Model(&models.SwotPestelQuestion{}).
-		Where("id <> ? AND swot_question_group_id = ? AND (title_en = ? OR title_ar = ?)", id, swotPestelQuestionGroupId, titleEn, titleAr).
+		Where("id <> ? AND swot_pestel_question_group_id = ? AND (title_en = ? OR title_ar = ?)", id, swotPestelQuestionGroupId, titleEn, titleAr).
 		Count(&count).Error
 
 	if err != nil {

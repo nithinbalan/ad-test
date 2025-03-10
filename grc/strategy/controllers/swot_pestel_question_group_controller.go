@@ -28,8 +28,9 @@ func (sqgc *SwotPestelQuestionGroupController) GetAllSwotPestelQuestionGroups(c 
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	isSwot := c.Query("is_swot")
+	isPestel := c.Query("is_pestel")
 
-	swotPestelQuestionGroups, err := sqgc.service.GetAll(sort, sortBy, keyword, status, isSwot)
+	swotPestelQuestionGroups, err := sqgc.service.GetAll(sort, sortBy, keyword, status, isSwot, isPestel)
 
 	if err != nil {
 		utility.SendInternalErrResp(sqgc.db, c, err.Error())

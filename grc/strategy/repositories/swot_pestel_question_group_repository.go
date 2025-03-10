@@ -9,7 +9,7 @@ import (
 
 // Interfaces
 type SwotPestelQuestionGroupRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string, isSwot string) ([]*models.SwotPestelQuestionGroup, error)
+	GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*models.SwotPestelQuestionGroup, error)
 	GetByID(id uint) (*models.SwotPestelQuestionGroup, error)
 	Create(swotPestelQuestionGroup *models.SwotPestelQuestionGroup) (*models.SwotPestelQuestionGroup, error)
 	Update(id uint, updatedSwotPestelQuestionGroup *models.SwotPestelQuestionGroup) (*models.SwotPestelQuestionGroup, error)
@@ -31,7 +31,7 @@ func NewSwotPestelQuestionGroupRepository(db *gorm.DB) *SwotPestelQuestionGroupR
 	}
 }
 
-func (repo *SwotPestelQuestionGroupRepository) GetAll(sort string, sortBy string, keyword string, status string, isSwot string) ([]*models.SwotPestelQuestionGroup, error) {
+func (repo *SwotPestelQuestionGroupRepository) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*models.SwotPestelQuestionGroup, error) {
 	var swotPestelQuestionGroups []*models.SwotPestelQuestionGroup
 
 	query := repo.db
@@ -52,8 +52,10 @@ func (repo *SwotPestelQuestionGroupRepository) GetAll(sort string, sortBy string
 
 	if isSwot == "true" {
 		query = query.Where("is_swot = ?", true)
-	} else if isSwot == "false" {
-		query = query.Where("is_swot = ?", false)
+	}
+
+	if isPestel == "true" {
+		query = query.Where("is_pestel = ?", true)
 	}
 
 	query = query.Order(sortBy + " " + sort)
