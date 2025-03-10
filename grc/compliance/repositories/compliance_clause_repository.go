@@ -301,13 +301,13 @@ func (r *ComplianceClauseRepository) GetAssociatedControls(complianceID uint, cl
 
 	err := r.db.Table("compliance_controls cc").
 		Select(`
-			c.id,
-			ct.title_en AS control_type_title_en,
-			ct.title_ar AS control_type_title_ar,
-			cc2.title_en AS control_category_title_en,
-			cc2.title_ar AS control_category_title_ar,
-			ou.title_en AS owner_unit_title_en,
-			ou.title_ar AS owner_unit_title_ar,
+			controls.*,
+			control_types.title_en AS control_type_title_en,
+			control_types.title_ar AS control_type_title_ar,
+			control_categories.title_en AS control_category_title_en,
+			control_categories.title_ar AS control_category_title_ar,
+			organization_units.title_en AS owner_unit_title_en,
+			organization_units.title_ar AS owner_unit_title_ar,
 			owner.id AS owner_id,
 			owner.first_name_en AS owner_first_name_en,
 			owner.first_name_ar AS owner_first_name_ar,
@@ -317,44 +317,28 @@ func (r *ComplianceClauseRepository) GetAssociatedControls(complianceID uint, cl
 			owner.color AS owner_color,
 			owner.email AS owner_email,
 			owner.profile_image_path AS owner_profile_image_path,
-			cis.title_en AS control_implementation_status_title_en,
-			cis.title_ar AS control_implementation_status_title_ar,
-			cis.color_code AS control_implementation_status_color_code,
-			ces.title_en AS control_efficiency_status_title_en,
-			ces.title_ar AS control_efficiency_status_title_ar,
-			ces.color_code AS control_efficiency_status_color_code,
-			c.reference_number,
-			c.code,
-			c.title_en,
-			c.title_ar,
-			c.description,
-			c.objective,
-			rf.title_en AS review_frequency_title_en,
-			rf.title_ar AS review_frequency_title_ar,
-			c.last_review_date,
-			c.next_review_date,
-			c.last_review_note,
-			test_resp.id AS test_responsible_user_id,
-			test_resp.first_name_en AS test_responsible_user_first_name_en,
-			test_resp.first_name_ar AS test_responsible_user_first_name_ar,
-			test_resp.last_name_en AS test_responsible_user_last_name_en,
-			test_resp.last_name_ar AS test_responsible_user_last_name_ar,
-			test_resp.initial AS test_responsible_user_initial,
-			test_resp.color AS test_responsible_user_color,
-			test_resp.email AS test_responsible_user_email,
-			test_resp.profile_image_path AS test_responsible_user_profile_image_path,
-			tf.title_en AS test_frequency_title_en,
-			tf.title_ar AS test_frequency_title_ar,
-			c.last_test_date,
-			c.next_test_date,
-			c.implemented_at,
-			c.is_applicable,
-			c.justification,
-			c.implementation_guideline,
-			c.applicability_change_date,
-			cls.title_en AS lifecycle_status_title_en,
-			cls.title_ar AS lifecycle_status_title_ar,
-			cls.color_code AS lifecycle_status_color_code,
+			review_frequencies.title_en AS review_frequency_title_en,
+			review_frequencies.title_ar AS review_frequency_title_ar,
+			test_responsible_user.id AS test_responsible_user_id,
+			test_responsible_user.first_name_en AS test_responsible_user_first_name_en,
+			test_responsible_user.first_name_ar AS test_responsible_user_first_name_ar,
+			test_responsible_user.last_name_en AS test_responsible_user_last_name_en,
+			test_responsible_user.last_name_ar AS test_responsible_user_last_name_ar,
+			test_responsible_user.initial AS test_responsible_user_initial,
+			test_responsible_user.color AS test_responsible_user_color,
+			test_responsible_user.email AS test_responsible_user_email,
+			test_responsible_user.profile_image_path AS test_responsible_user_profile_image_path,
+			test_frequencies.title_en AS test_frequency_title_en,
+			test_frequencies.title_ar AS test_frequency_title_ar,
+			lifecycle_statuses.title_en AS lifecycle_status_title_en,
+			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
+			lifecycle_statuses.color_code AS lifecycle_status_color_code,
+			control_implementation_statuses.title_en AS control_implementation_status_title_en,
+			control_implementation_statuses.title_ar AS control_implementation_status_title_ar,
+			control_implementation_statuses.color_code AS control_implementation_status_color_code,
+			control_efficiency_statuses.title_en AS control_efficiency_status_title_en,
+			control_efficiency_statuses.title_ar AS control_efficiency_status_title_ar,
+			control_efficiency_statuses.color_code AS control_efficiency_status_color_code,
 			created_user.id AS created_user_id,
 			created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
@@ -373,29 +357,28 @@ func (r *ComplianceClauseRepository) GetAssociatedControls(complianceID uint, cl
 			updated_user.color AS updated_user_color,
 			updated_user.email AS updated_user_email,
 			updated_user.profile_image_path AS updated_user_profile_image_path,
-			c.created_at,
-			c.updated_at,
-			rr.title_en AS risk_rating_title_en,
-			rr.title_ar AS risk_rating_title_ar,
-			rr.color_code AS risk_rating_color_code,
-			rr.value AS risk_rating_value
+			risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
+			risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
+			risk_matrix_risk_ratings.color_code AS risk_rating_color_code,
+			risk_matrix_risk_rating_values.value AS risk_rating_value
 		`).
-		Joins("JOIN controls c ON c.id = cc.control_id").
+		Joins("JOIN controls ON controls.id = cc.control_id").
 		Joins("JOIN compliance_requirements cr ON cr.id = cc.compliance_requirement_id").
 		Joins("JOIN compliance_clauses cl ON cl.id = cr.compliance_clause_id").
-		Joins("LEFT JOIN control_types ct ON ct.id = c.control_type_id").
-		Joins("LEFT JOIN control_categories cc2 ON cc2.id = c.control_category_id").
-		Joins("LEFT JOIN organization_units ou ON ou.id = c.owner_unit_id").
-		Joins("LEFT JOIN users owner ON owner.id = c.owner_id").
-		Joins("LEFT JOIN control_implementation_statuses cis ON cis.id = c.control_implementation_status_id").
-		Joins("LEFT JOIN control_efficiency_statuses ces ON ces.id = c.control_efficiency_status_id").
-		Joins("LEFT JOIN review_frequencies rf ON rf.id = c.review_frequency_id").
-		Joins("LEFT JOIN users test_resp ON test_resp.id = c.test_responsible_user_id").
-		Joins("LEFT JOIN test_frequencies tf ON tf.id = c.test_frequency_id").
-		Joins("LEFT JOIN control_lifecycle_statuses cls ON cls.id = c.lifecycle_status_id").
-		Joins("LEFT JOIN users created_user ON created_user.id = c.created_by_id").
-		Joins("LEFT JOIN users updated_user ON updated_user.id = c.updated_by_id").
-		Joins("LEFT JOIN risk_ratings rr ON rr.id = c.risk_rating_id").
+		Joins("LEFT JOIN control_types ON control_types.id = controls.control_type_id").
+		Joins("LEFT JOIN control_categories ON control_categories.id = controls.control_category_id").
+		Joins("LEFT JOIN organization_units ON organization_units.id = controls.owner_unit_id").
+		Joins("LEFT JOIN users AS owner ON owner.id = controls.owner_id").
+		Joins("LEFT JOIN control_implementation_statuses ON control_implementation_statuses.id = controls.control_implementation_status_id").
+		Joins("LEFT JOIN control_efficiency_statuses ON control_efficiency_statuses.id = controls.control_efficiency_status_id").
+		Joins("LEFT JOIN review_frequencies ON review_frequencies.id = controls.review_frequency_id").
+		Joins("LEFT JOIN users AS test_responsible_user ON test_responsible_user.id = controls.test_responsible_user_id").
+		Joins("LEFT JOIN review_frequencies AS test_frequencies ON test_frequencies.id = controls.test_frequency_id").
+		Joins("LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = controls.lifecycle_status_id").
+		Joins("LEFT JOIN users AS created_user ON created_user.id = controls.created_by_id").
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = controls.updated_by_id").
+		Joins("LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = controls.risk_matrix_risk_rating_id").
+		Joins("LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = controls.risk_matrix_risk_rating_value_id").
 		Where("cc.compliance_register_id = ? AND cl.id = ?", complianceID, clauseID).
 		Scan(&controls).Error
 

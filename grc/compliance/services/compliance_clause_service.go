@@ -23,7 +23,7 @@ type ComplianceClauseServiceInterface interface {
 	Delete(id uint) error
 
 	GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error)
-	GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlMinimalListDTO, error)
+	GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlListDTO, error)
 }
 
 type ComplianceClauseService struct {
@@ -347,7 +347,7 @@ func (ccs *ComplianceClauseService) GetAssociatedComplianceRequirements(complian
 	return requirements, nil
 }
 
-func (ccs *ComplianceClauseService) GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlMinimalListDTO, error) {
+func (ccs *ComplianceClauseService) GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlListDTO, error) {
 	// Fetch associated controls through requirements from repository
 	controls, err := ccs.repo.GetAssociatedControls(complianceID, clauseID)
 	if err != nil {
