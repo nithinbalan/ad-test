@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"jethur/grc/models"
+	"jethur/grc/risk/dtos"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -9,6 +10,7 @@ import (
 
 type RiskClosureRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
+	GetAll(riskID uint) ([]*dtos.RiskClosureListDTO, error)
 	GetFullDetailsByID(riskID uint, tx ...utility.DatabaseTransaction) (*models.RiskClosure, error)
 	GetByID(id uint) (*models.RiskClosure, error)
 	Create(riskClosure *models.RiskClosure, tx ...utility.DatabaseTransaction) (uint, error)
@@ -32,6 +34,43 @@ func NewRiskClosureRepository(db *gorm.DB) RiskClosureRepositoryInterface {
 
 func (repo *RiskClosureRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
+}
+
+func (repo *RiskClosureRepository) GetAll(riskID uint) ([]*dtos.RiskClosureListDTO, error) {
+	var closures []*dtos.RiskClosureListDTO
+	query := repo.db.Table("risk_closures").
+		Select(`
+			risk_closures.*,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+        	created_user.first_name_ar AS created_user_first_name_ar,
+        	created_user.last_name_en AS created_user_last_name_en,
+        	created_user.last_name_ar AS created_user_last_name_ar,   
+        	created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+        	updated_user.first_name_ar AS updated_user_first_name_ar,
+        	updated_user.last_name_en AS updated_user_last_name_en,
+        	updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path 
+		`).
+		Joins(`
+			LEFT JOIN users AS created_user ON created_user.id = risk_closures.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = risk_closures.updated_by_id
+		`).
+		Where("risk_closures.risk_register_id = ?", riskID)
+
+	if err := query.Find(&closures).Error; err != nil {
+		return nil, err
+	}
+
+	return closures, nil
 }
 
 func (repo *RiskClosureRepository) GetFullDetailsByID(riskID uint, tx ...utility.DatabaseTransaction) (*models.RiskClosure, error) {

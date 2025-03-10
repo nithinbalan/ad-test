@@ -285,13 +285,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("/risks/:riskId/timelines", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskTimelineController.GetAllRiskTimelines)
 
 	// Risk Settings
-	riskRoutes.GET("/risk-settings", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskSettingsController.GetAllRiskSettings)
+	riskRoutes.GET("/risk-settings", riskSettingsController.GetAllRiskSettings)
 	riskRoutes.PUT("/risk-settings", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskSettingsController.UpdateRiskSettings)
 
-	riskRoutes.GET("risks/:riskId/closure", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskClosureController.GetRiskClosure)
-	riskRoutes.POST("risks/:riskId/closure", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskClosureController.CreateRiskClosure)
-	riskRoutes.PUT("risks/:riskId/closure/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskClosureController.UpdateRiskClosure)
-	riskRoutes.DELETE("risks/:riskId/closure/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskClosureController.DeleteRiskClosure)
+	riskRoutes.GET("risks/:riskId/closures", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskClosureController.GetAllRiskClosures)
+	riskRoutes.GET("risks/:riskId/closures/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskClosureController.GetRiskClosureDetails)
+	riskRoutes.POST("risks/:riskId/closures", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskClosureController.CreateRiskClosure)
+	riskRoutes.PUT("risks/:riskId/closures/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskClosureController.UpdateRiskClosure)
+	riskRoutes.DELETE("risks/:riskId/closures/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskClosureController.DeleteRiskClosure)
 
 	riskRoutes.GET("/risks/:riskId/comments", middlewares.RolePermissionMiddleware(db, "risk", "view"), riskCommentController.GetAllComments)
 	riskRoutes.GET("/risks/:riskId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk", "view"), riskCommentController.GetCommentDetails)

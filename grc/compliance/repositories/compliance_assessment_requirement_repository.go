@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"fmt"
+
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -128,7 +129,6 @@ func (repo *ComplianceAssessmentRequirementRepository) GetByID(id uint) (*models
 	}
 
 	return complianceAssessmentRequirement, nil
-
 }
 
 func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requirementId uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessmentRequirement, error) {
@@ -140,6 +140,7 @@ func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requir
 
 	result := db.
 		Preload("ComplianceAssessment").
+		Preload("ComplianceAssessment.SubmittedByUser").
 		Preload("ComplianceAssessment.OrganizationUnit").
 		Preload("ComplianceRequirement").
 		Preload("ComplianceRequirement.ComplianceStatus").

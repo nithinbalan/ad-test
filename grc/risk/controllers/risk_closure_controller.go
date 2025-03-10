@@ -23,7 +23,33 @@ func NewRiskClosureController(service services.RiskClosureServiceInterface) *Ris
 	}
 }
 
-func (rcc *RiskClosureController) GetRiskClosure(c *gin.Context) {
+func (rcc *RiskClosureController) GetAllRiskClosures(c *gin.Context) {
+	riskIDStr := c.Param("riskId")
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	closures, err := rcc.service.GetAll(uint(riskID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rcc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, closures)
+}
+
+func (rcc *RiskClosureController) GetRiskClosureDetails(c *gin.Context) {
 	riskIDStr := c.Param("riskId")
 
 	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)
