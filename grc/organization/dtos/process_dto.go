@@ -45,8 +45,9 @@ type ProcessListDTO struct {
 	RpoUnitTitleEn                   *string    `json:"rpo_unit_title_en"`
 	RpoUnitTitleAr                   *string    `json:"rpo_unit_title_ar"`
 	RiskLevelId                      *uint      `json:"risk_level_id"`
-	RiskLevelTitleEn                 *uint      `json:"risk_level_title_en"`
-	RiskLevelTitleAr                 *uint      `json:"risk_level_title_ar"`
+	RiskLevelTitleEn                 *string    `json:"risk_level_title_en"`
+	RiskLevelTitleAr                 *string    `json:"risk_level_title_ar"`
+	RiskLevelColorCode               *string    `json:"risk_level_color_code"`
 	LastAssessedAt                   *time.Time `json:"last_assessed_at"`
 	LastAssessedUserID               *uint      `json:"last_assessed_user_id"`
 	LastAssessedUserFirstNameEn      *string    `json:"last_assessed_user_first_name_en"`
