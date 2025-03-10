@@ -3,20 +3,22 @@ package repositories
 import (
 	"jethur/grc/models"
 	"jethur/grc/risk/dtos"
+	"jethur/utility"
 	"time"
 
 	"gorm.io/gorm"
 )
 
 type RiskReportRepositoryInterface interface {
-	Create(riskReport *models.RiskReport, tx *gorm.DB) (uint, error)
-	CreateRiskIdentification(identification *models.RiskReportIdentification, tx *gorm.DB) error
-	GetRisksByDateRange(startDate, endDate time.Time, tx *gorm.DB) ([]dtos.RiskRegisterDTO, error)
-	CreateSection(section *models.RiskReportSection, tx *gorm.DB) error
+	BeginTransaction() utility.DatabaseTransaction
 
-	CreateRiskActionPlan(actionPlan *models.RiskReportActionPlan, tx *gorm.DB) error
-	GetActionPlansByRiskID(riskRegisterID uint, tx *gorm.DB) ([]dtos.RiskReportActionPlanDTO, error)
-	BeginTransaction() *gorm.DB
+	Create(riskReport *models.RiskReport, tx ...utility.DatabaseTransaction) (uint, error)
+	CreateRiskIdentification(identification *models.RiskReportIdentification, tx ...utility.DatabaseTransaction) error
+	GetRisksByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.RiskRegisterDTO, error)
+	CreateSection(section *models.RiskReportSection, tx ...utility.DatabaseTransaction) error
+
+	CreateRiskActionPlan(actionPlan *models.RiskReportActionPlan, tx ...utility.DatabaseTransaction) error
+	GetActionPlansByRiskID(riskRegisterID uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportActionPlanDTO, error)
 }
 
 type RiskReportRepository struct {
@@ -27,30 +29,37 @@ func NewRiskReportRepository(db *gorm.DB) RiskReportRepositoryInterface {
 	return &RiskReportRepository{db: db}
 }
 
-// func (repo *RiskRegisterRepository) BeginTransaction() utility.DatabaseTransaction {
-// 	return utility.NewGormDatabaseTransaction(repo.db)
-// }
-
-// BeginTransaction starts a new transaction
-func (r *RiskReportRepository) BeginTransaction() *gorm.DB {
-	return r.db.Begin()
+func (repo *RiskReportRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (r *RiskReportRepository) Create(riskReport *models.RiskReport, tx *gorm.DB) (uint, error) {
-	if err := tx.Create(riskReport).Error; err != nil {
+func (repo *RiskReportRepository) Create(riskReport *models.RiskReport, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(riskReport).Error; err != nil {
 		return 0, err
 	}
 	return riskReport.ID, nil
 }
 
-func (repo *RiskReportRepository) CreateRiskIdentification(identification *models.RiskReportIdentification, tx *gorm.DB) error {
-	return tx.Create(identification).Error
+func (repo *RiskReportRepository) CreateRiskIdentification(identification *models.RiskReportIdentification, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(identification).Error
 }
 
-func (repo *RiskReportRepository) GetRisksByDateRange(startDate, endDate time.Time, tx *gorm.DB) ([]dtos.RiskRegisterDTO, error) {
+func (repo *RiskReportRepository) GetRisksByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.RiskRegisterDTO, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var risks []dtos.RiskRegisterDTO
 
-	query := tx.Table("risk_register").
+	query := db.Table("risk_register").
 		Select(`
 			risk_register.id,
 			risk_register.reference_number,
@@ -102,16 +111,23 @@ func (repo *RiskReportRepository) GetRisksByDateRange(startDate, endDate time.Ti
 	return risks, nil
 }
 
-func (repo *RiskReportRepository) CreateSection(section *models.RiskReportSection, tx *gorm.DB) error {
-	if tx != nil {
-		return tx.Create(&section).Error
+func (repo *RiskReportRepository) CreateSection(section *models.RiskReportSection, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
 	}
-	return repo.db.Create(&section).Error
+
+	return db.Create(&section).Error
 }
-func (repo *RiskReportRepository) GetActionPlansByRiskID(riskRegisterID uint, tx *gorm.DB) ([]dtos.RiskReportActionPlanDTO, error) {
+func (repo *RiskReportRepository) GetActionPlansByRiskID(riskRegisterID uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportActionPlanDTO, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var actionPlans []dtos.RiskReportActionPlanDTO
 
-	query := tx.Table("risk_action_plans").
+	query := db.Table("risk_action_plans").
 		Select(`
 			risk_action_plans.id,
 			risk_action_plans.risk_register_id,
@@ -138,6 +154,11 @@ func (repo *RiskReportRepository) GetActionPlansByRiskID(riskRegisterID uint, tx
 	return actionPlans, nil
 }
 
-func (repo *RiskReportRepository) CreateRiskActionPlan(actionPlan *models.RiskReportActionPlan, tx *gorm.DB) error {
-	return tx.Create(actionPlan).Error
+func (repo *RiskReportRepository) CreateRiskActionPlan(actionPlan *models.RiskReportActionPlan, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(actionPlan).Error
 }
