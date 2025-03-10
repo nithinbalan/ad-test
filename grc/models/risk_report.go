@@ -1,0 +1,21 @@
+package models
+
+import "time"
+
+type RiskReport struct {
+	ID          uint      `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	Title       string    `json:"title" binding:"required,max=255"`
+	StartDate   time.Time `json:"start_date" binding:"required"`
+	EndDate     time.Time `json:"end_date" binding:"required"`
+	CreatedByID uint      `json:"created_by_id" binding:"required"`
+	CreatedAt   time.Time `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
+
+	// Relationships
+	CreatedByUser   *User                      `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	Identifications []RiskReportIdentification `gorm:"foreignKey:RiskReportID"`
+}
+
+// TableName overrides the table name used by RiskRegister to `risk_report`
+func (RiskReport) TableName() string {
+	return "risk_reports"
+}
