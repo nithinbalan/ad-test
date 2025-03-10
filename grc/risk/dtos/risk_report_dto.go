@@ -49,3 +49,19 @@ type RiskRegisterDTO struct {
 	RiskStatusTitleAr   *string `json:"risk_status_title_ar"`
 	RiskStatusColorCode *string `json:"risk_status_color_code"`
 }
+
+type RiskReportActionPlanDTO struct {
+	ID                         uint      `json:"id"`
+	RiskReportID               uint      `json:"risk_report_id"`
+	RiskReportIdentificationID uint      `json:"risk_report_identification_id"`
+	ActionPlanTitle            string    `json:"action_plan_title"`
+	ActionPlanDescription      *string   `json:"action_plan_description"`
+	SeverityLevelTitleEn       string    `json:"severity_level_title_en"`
+	SeverityLevelTitleAr       string    `json:"severity_level_title_ar"`
+	ResponsibleUserNameEn      string    `json:"responsible_user_name_en"`
+	ResponsibleUserNameAr      string    `json:"responsible_user_name_ar"`
+	TargetDate                 time.Time `json:"target_date"`
+	ActionPlanStatusTitleEn    string    `json:"action_plan_status_title_en"`
+	ActionPlanStatusTitleAr    string    `json:"action_plan_status_title_ar"`
+	ActionPlanStatusColorCode  string    `json:"action_plan_status_color_code"`
+}

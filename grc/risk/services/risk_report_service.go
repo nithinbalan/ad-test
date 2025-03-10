@@ -109,6 +109,35 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 			tx.Rollback()
 			return 0, fmt.Errorf("failed to create risk identification: %w", err)
 		}
+
+		actionPlans, err := rrs.repo.GetActionPlansByRiskID(risk.ID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to fetch action plans: %w", err)
+		}
+
+		for _, actionPlan := range actionPlans {
+			riskActionPlan := &models.RiskReportActionPlan{
+				RiskReportID:               riskReportID,
+				RiskReportIdentificationID: riskIdentification.ID,
+				ActionPlanTitle:            actionPlan.ActionPlanTitle,
+				ActionPlanDescription:      actionPlan.ActionPlanDescription,
+				SeverityLevelTitleEn:       actionPlan.SeverityLevelTitleEn,
+				SeverityLevelTitleAr:       actionPlan.SeverityLevelTitleAr,
+				ResponsibleUserNameEn:      actionPlan.ResponsibleUserNameEn,
+				ResponsibleUserNameAr:      actionPlan.ResponsibleUserNameAr,
+				TargetDate:                 actionPlan.TargetDate,
+				ActionPlanStatusTitleEn:    actionPlan.ActionPlanStatusTitleEn,
+				ActionPlanStatusTitleAr:    actionPlan.ActionPlanStatusTitleAr,
+				ActionPlanStatusColorCode:  actionPlan.ActionPlanStatusColorCode,
+			}
+
+			if err := rrs.repo.CreateRiskActionPlan(riskActionPlan, tx); err != nil {
+				tx.Rollback()
+				return 0, fmt.Errorf("failed to insert action plan: %w", err)
+			}
+		}
+
 	}
 
 	// Step 5: Commit Transaction

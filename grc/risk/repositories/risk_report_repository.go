@@ -13,6 +13,9 @@ type RiskReportRepositoryInterface interface {
 	CreateRiskIdentification(identification *models.RiskReportIdentification, tx *gorm.DB) error
 	GetRisksByDateRange(startDate, endDate time.Time, tx *gorm.DB) ([]dtos.RiskRegisterDTO, error)
 	CreateSection(section *models.RiskReportSection, tx *gorm.DB) error
+
+	CreateRiskActionPlan(actionPlan *models.RiskReportActionPlan, tx *gorm.DB) error
+	GetActionPlansByRiskID(riskRegisterID uint, tx *gorm.DB) ([]dtos.RiskReportActionPlanDTO, error)
 	BeginTransaction() *gorm.DB
 }
 
@@ -23,6 +26,10 @@ type RiskReportRepository struct {
 func NewRiskReportRepository(db *gorm.DB) RiskReportRepositoryInterface {
 	return &RiskReportRepository{db: db}
 }
+
+// func (repo *RiskRegisterRepository) BeginTransaction() utility.DatabaseTransaction {
+// 	return utility.NewGormDatabaseTransaction(repo.db)
+// }
 
 // BeginTransaction starts a new transaction
 func (r *RiskReportRepository) BeginTransaction() *gorm.DB {
@@ -100,4 +107,37 @@ func (repo *RiskReportRepository) CreateSection(section *models.RiskReportSectio
 		return tx.Create(&section).Error
 	}
 	return repo.db.Create(&section).Error
+}
+func (repo *RiskReportRepository) GetActionPlansByRiskID(riskRegisterID uint, tx *gorm.DB) ([]dtos.RiskReportActionPlanDTO, error) {
+	var actionPlans []dtos.RiskReportActionPlanDTO
+
+	query := tx.Table("risk_action_plans").
+		Select(`
+			risk_action_plans.id,
+			risk_action_plans.risk_register_id,
+			risk_action_plans.title AS action_plan_title,
+			risk_action_plans.description AS action_plan_description,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			(CONCAT(users.first_name_en, ' ', users.last_name_en)) AS responsible_user_name_en,
+			(CONCAT(users.first_name_ar, ' ', users.last_name_ar)) AS responsible_user_name_ar,
+			risk_action_plans.target_date,
+			action_plan_statuses.title_en AS action_plan_status_title_en,
+			action_plan_statuses.title_ar AS action_plan_status_title_ar,
+			action_plan_statuses.color_code AS action_plan_status_color_code
+		`).
+		Joins("LEFT JOIN severity_levels ON severity_levels.id = risk_action_plans.severity_level_id").
+		Joins("LEFT JOIN users ON users.id = risk_action_plans.responsible_user_id").
+		Joins("LEFT JOIN action_plan_statuses ON action_plan_statuses.id = risk_action_plans.action_plan_status_id").
+		Where("risk_action_plans.risk_register_id = ?", riskRegisterID)
+
+	if err := query.Find(&actionPlans).Error; err != nil {
+		return nil, err
+	}
+
+	return actionPlans, nil
+}
+
+func (repo *RiskReportRepository) CreateRiskActionPlan(actionPlan *models.RiskReportActionPlan, tx *gorm.DB) error {
+	return tx.Create(actionPlan).Error
 }
