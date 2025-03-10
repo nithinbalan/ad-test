@@ -12,17 +12,14 @@ type RiskReportServiceInterface interface {
 }
 
 type RiskReportService struct {
-	repo     repositories.RiskReportRepositoryInterface
-	riskRepo repositories.RiskRegisterRepositoryInterface
+	repo repositories.RiskReportRepositoryInterface
 }
 
 func NewRiskReportService(
 	repo repositories.RiskReportRepositoryInterface,
-	riskRepo repositories.RiskRegisterRepositoryInterface,
 ) RiskReportServiceInterface {
 	return &RiskReportService{
-		repo:     repo,
-		riskRepo: riskRepo,
+		repo: repo,
 	}
 }
 
@@ -41,6 +38,28 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 	if err != nil {
 		tx.Rollback()
 		return 0, fmt.Errorf("failed to create risk report: %w", err)
+	}
+
+	sectionTypes := []string{
+		"executive-summary", "context", "identification", "assessment",
+		"mitigation", "kri", "communication", "recommendation", "documents",
+	}
+
+	for i, sectionType := range sectionTypes {
+		titleEn, titleAr := formatTitle(sectionType)
+		section := models.RiskReportSection{
+			RiskReportID:  riskReportID,
+			Type:          sectionType,
+			TitleEn:       titleEn,
+			TitleAr:       titleAr,
+			DescriptionEn: "",
+			DescriptionAr: "",
+			OrderNum:      i + 1,
+		}
+		if err := rrs.repo.CreateSection(&section, tx); err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to create section (%s): %w", sectionType, err)
+		}
 	}
 
 	// Step 2: Fetch Risks in Date Range
@@ -95,4 +114,29 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 	// Step 5: Commit Transaction
 	tx.Commit()
 	return riskReportID, nil
+}
+
+func formatTitle(sectionType string) (string, string) {
+	switch sectionType {
+	case "executive-summary":
+		return "Executive Summary", "الملخص التنفيذي"
+	case "context":
+		return "Risk Governance & Context", "حوكمة المخاطر والسياق"
+	case "identification":
+		return "Risk Identification & Assessment", "تحديد وتقييم المخاطر"
+	case "assessment":
+		return "Risk Evaluation & Impact", "تقييم المخاطر وتأثيرها"
+	case "mitigation":
+		return "Risk Mitigation Strategies", "استراتيجيات التخفيف من المخاطر"
+	case "kri":
+		return "Key Risk Indicators (KRIs)", "مؤشرات المخاطر الرئيسية"
+	case "communication":
+		return "Risk Communication & Reporting", "الاتصال والإبلاغ عن المخاطر"
+	case "recommendation":
+		return "Recommendations & Action Plan", "التوصيات وخطة العمل"
+	case "documents":
+		return "Supporting Documents", "المستندات الداعمة"
+	default:
+		return sectionType, sectionType // Default to sectionType if not found
+	}
 }

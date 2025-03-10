@@ -299,7 +299,7 @@ func NewRiskModule(db *gorm.DB,
 	riskCommentController := controllers.NewRiskCommentController(riskCommentSvc)
 
 	riskReportRepo := repositories.NewRiskReportRepository(db)
-	riskReportSvc := services.NewRiskReportService(riskReportRepo, riskRegisterRepo)
+	riskReportSvc := services.NewRiskReportService(riskReportRepo)
 	riskReportController := controllers.NewRiskReportController(riskReportSvc)
 
 	return &RiskModule{

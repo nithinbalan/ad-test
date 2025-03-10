@@ -12,6 +12,7 @@ type RiskReportRepositoryInterface interface {
 	Create(riskReport *models.RiskReport, tx *gorm.DB) (uint, error)
 	CreateRiskIdentification(identification *models.RiskReportIdentification, tx *gorm.DB) error
 	GetRisksByDateRange(startDate, endDate time.Time, tx *gorm.DB) ([]dtos.RiskRegisterDTO, error)
+	CreateSection(section *models.RiskReportSection, tx *gorm.DB) error
 	BeginTransaction() *gorm.DB
 }
 
@@ -92,4 +93,11 @@ func (repo *RiskReportRepository) GetRisksByDateRange(startDate, endDate time.Ti
 	}
 
 	return risks, nil
+}
+
+func (repo *RiskReportRepository) CreateSection(section *models.RiskReportSection, tx *gorm.DB) error {
+	if tx != nil {
+		return tx.Create(&section).Error
+	}
+	return repo.db.Create(&section).Error
 }
