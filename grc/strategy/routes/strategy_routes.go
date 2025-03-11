@@ -16,6 +16,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	swotPestelQuestionGroupController := app.StrategyModule.SwotPestelQuestionGroupController
 	swotPestelQuestionController := app.StrategyModule.SwotPestelQuestionController
+	swotPestelCategoryController := app.StrategyModule.SwotPestelCategoryController
 
 	strategyRoutes.GET("/swot-question-groups", swotPestelQuestionGroupController.GetAllSwotPestelQuestionGroups)
 	strategyRoutes.GET("/swot-question-groups/:id", swotPestelQuestionGroupController.GetSwotPestelQuestionGroupDetails)
@@ -49,6 +50,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.PUT("/pestel-questions/activate", middlewares.RolePermissionMiddleware(db, "strategy_setting", "modify"), swotPestelQuestionController.ActivateSwotPestelQuestions)
 	strategyRoutes.PUT("/pestel-questions/deactivate", middlewares.RolePermissionMiddleware(db, "strategy_setting", "modify"), swotPestelQuestionController.DeactivateSwotPestelQuestions)
 
-	strategyRoutes.PUT("/swot-questions/:id/answer", middlewares.RolePermissionMiddleware(db, "swot", "modify"), swotPestelQuestionController.UpdateAnswer)
-	strategyRoutes.PUT("/swot-questions/:id/answer-invitees", middlewares.RolePermissionMiddleware(db, "swot", "modify"), swotPestelQuestionController.CreateInvitees)
+	//Swot Pestel Category
+	strategyRoutes.GET("/swot-pestel-categories", swotPestelCategoryController.GetAllSwotPestelCategories)
+	strategyRoutes.GET("/swot-pestel-categories/:id", swotPestelCategoryController.GetSwotPestelCategoryDetails)
 }

@@ -11,6 +11,7 @@ import (
 type StrategyModule struct {
 	SwotPestelQuestionGroupController *controllers.SwotPestelQuestionGroupController
 	SwotPestelQuestionController      *controllers.SwotPestelQuestionController
+	SwotPestelCategoryController      *controllers.SwotPestelCategoryController
 }
 
 func NewStrategyModule(db *gorm.DB,
@@ -27,8 +28,13 @@ func NewStrategyModule(db *gorm.DB,
 	swotQuestionSvc := services.NewSwotPestelQuestionService(swotQuestionRepo, sharedModule.ActivityLogService)
 	swotQuestionController := controllers.NewSwotPestelQuestionController(swotQuestionSvc)
 
+	swotPestelCategoryRepo := repositories.NewSwotPestelCategoryRepository(db)
+	swotPestelCategorySvc := services.NewSwotPestelCategoryService(swotPestelCategoryRepo)
+	swotPestelCategoryController := controllers.NewSwotPestelCategoryController(swotPestelCategorySvc)
+
 	return &StrategyModule{
 		SwotPestelQuestionGroupController: swotQuestionGroupController,
 		SwotPestelQuestionController:      swotQuestionController,
+		SwotPestelCategoryController:      swotPestelCategoryController,
 	}
 }
