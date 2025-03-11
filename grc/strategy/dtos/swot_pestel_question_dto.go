@@ -7,6 +7,8 @@ import (
 
 type SwotPestelQuestionListDTO struct {
 	ID                             int                             `json:"id"`
+	TitleEn                        string                          `json:"title_en"`
+	TitleAr                        string                          `json:"title_ar"`
 	SwotPestelQuestionGroupID      uint                            `json:"swot_pestel_question_group_id"`
 	SwotPestelQuestionGroupTitleEn string                          `json:"swot_pestel_question_group_title_en"`
 	SwotPestelQuestionGroupTitleAr string                          `json:"swot_pestel_question_group_title_ar"`
