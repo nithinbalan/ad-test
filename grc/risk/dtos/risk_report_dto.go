@@ -3,10 +3,10 @@ package dtos
 import "time"
 
 type RiskReportFormDTO struct {
-	Title              string    `json:"title" binding:"required"`
-	StartDate          time.Time `json:"start_date" binding:"required"`
-	EndDate            time.Time `json:"end_date" binding:"required"`
-	ResponsibleUnitIDs []*uint   `json:"responsible_unit_ids"`
+	Title               string    `json:"title" binding:"required"`
+	StartDate           time.Time `json:"start_date" binding:"required"`
+	EndDate             time.Time `json:"end_date" binding:"required"`
+	OrganizationUnitIDs []uint    `json:"organization_unit_ids"`
 }
 
 type RiskRegisterDTO struct {

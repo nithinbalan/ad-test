@@ -7,11 +7,11 @@ type RiskReport struct {
 	Title       string    `json:"title" binding:"required,max=255"`
 	StartDate   time.Time `json:"start_date" binding:"required"`
 	EndDate     time.Time `json:"end_date" binding:"required"`
-	CreatedByID uint      `json:"created_by_id" binding:"required"`
+	CreatedBYID uint      `json:"created_by_id" binding:"required"`
 	CreatedAt   time.Time `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
 
 	// Relationships
-	CreatedByUser   *User                      `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	CreatedByUser   *User                      `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	Identifications []RiskReportIdentification `gorm:"foreignKey:RiskReportID"`
 }
 

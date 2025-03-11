@@ -13,8 +13,9 @@ type RiskReportRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 
 	Create(riskReport *models.RiskReport, tx ...utility.DatabaseTransaction) (uint, error)
+	CreateRiskReportOrganizationUnit(orgUnit *models.RiskReportOrganizationUnit, tx ...utility.DatabaseTransaction) error
 	CreateRiskIdentification(identification *models.RiskReportIdentification, tx ...utility.DatabaseTransaction) error
-	GetRisksByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.RiskRegisterDTO, error)
+	GetRisksByDateRange(startDate, endDate time.Time, organizationUnitIDs []uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskRegisterDTO, error)
 	CreateSection(section *models.RiskReportSection, tx ...utility.DatabaseTransaction) error
 
 	CreateRiskActionPlan(actionPlan *models.RiskReportActionPlan, tx ...utility.DatabaseTransaction) error
@@ -55,7 +56,7 @@ func (repo *RiskReportRepository) CreateRiskIdentification(identification *model
 	return db.Create(identification).Error
 }
 
-func (repo *RiskReportRepository) GetRisksByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.RiskRegisterDTO, error) {
+func (repo *RiskReportRepository) GetRisksByDateRange(startDate, endDate time.Time, organizationUnitIDs []uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskRegisterDTO, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -89,7 +90,6 @@ func (repo *RiskReportRepository) GetRisksByDateRange(startDate, endDate time.Ti
 			residual_likelihood.title_ar AS residual_likelihood_title_ar,
 			residual_impact.title_en AS residual_impact_title_en,
 			residual_impact.title_ar AS residual_impact_title_ar,
-			
 			risk_statuses.title_en AS risk_status_title_en,
 			risk_statuses.title_ar AS risk_status_title_ar,
 			risk_statuses.color_code AS risk_status_color_code
@@ -105,6 +105,7 @@ func (repo *RiskReportRepository) GetRisksByDateRange(startDate, endDate time.Ti
 		Joins("LEFT JOIN risk_matrix_likelihoods AS residual_likelihood ON residual_likelihood.id = risk_register.residual_likelihood_id").
 		Joins("LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id").
 		Where("risk_register.reported_at BETWEEN ? AND ?", startDate, endDate).
+		Where("risk_register.responsible_unit_id IN (?)", organizationUnitIDs).
 		Order("risk_register.reported_at DESC")
 
 	if err := query.Find(&risks).Error; err != nil {
@@ -202,4 +203,12 @@ func (repo *RiskReportRepository) CreateRiskKRI(riskKRI *models.RiskReportKRI, t
 	}
 
 	return db.Create(riskKRI).Error
+}
+
+func (repo *RiskReportRepository) CreateRiskReportOrganizationUnit(orgUnit *models.RiskReportOrganizationUnit, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(orgUnit).Error
 }

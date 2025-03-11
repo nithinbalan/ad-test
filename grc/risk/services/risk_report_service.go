@@ -30,13 +30,26 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 		Title:       riskReportFormDTO.Title,
 		StartDate:   riskReportFormDTO.StartDate,
 		EndDate:     riskReportFormDTO.EndDate,
-		CreatedByID: currentUserID,
+		CreatedBYID: currentUserID,
 	}
 
 	riskReportID, err := rrs.repo.Create(riskReport, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+
+	for _, orgUnitID := range riskReportFormDTO.OrganizationUnitIDs {
+		orgUnit := &models.RiskReportOrganizationUnit{
+			RiskReportID:       riskReportID,
+			OrganizationUnitID: orgUnitID,
+			CreatedBYID:        currentUserID,
+		}
+
+		if err := rrs.repo.CreateRiskReportOrganizationUnit(orgUnit, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	sectionTypes := []string{
@@ -62,7 +75,7 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 	}
 
 	// Step 2: Fetch Risks in Date Range
-	risks, err := rrs.repo.GetRisksByDateRange(riskReportFormDTO.StartDate, riskReportFormDTO.EndDate, tx)
+	risks, err := rrs.repo.GetRisksByDateRange(riskReportFormDTO.StartDate, riskReportFormDTO.EndDate, riskReportFormDTO.OrganizationUnitIDs, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
