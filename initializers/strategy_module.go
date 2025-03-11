@@ -9,15 +9,17 @@ import (
 )
 
 type StrategyModule struct {
-	SwotPestelQuestionGroupController *controllers.SwotPestelQuestionGroupController
-	SwotPestelQuestionController      *controllers.SwotPestelQuestionController
-	SwotPestelCategoryController      *controllers.SwotPestelCategoryController
+	SwotPestelQuestionGroupController  *controllers.SwotPestelQuestionGroupController
+	SwotPestelQuestionController       *controllers.SwotPestelQuestionController
+	SwotPestelCategoryController       *controllers.SwotPestelCategoryController
+	SwotPestelQuestionFactorController *controllers.SwotPestelQuestionFactorController
 }
 
 func NewStrategyModule(db *gorm.DB,
 	sharedModule *SharedModule,
 	settingsModule *SettingsModule,
 	masterModule *MasterModule,
+	organizationModule *OrganizationModule,
 
 ) *StrategyModule {
 	swotQuestionGroupRepo := repositories.NewSwotPestelQuestionGroupRepository(db)
@@ -32,9 +34,14 @@ func NewStrategyModule(db *gorm.DB,
 	swotPestelCategorySvc := services.NewSwotPestelCategoryService(swotPestelCategoryRepo)
 	swotPestelCategoryController := controllers.NewSwotPestelCategoryController(swotPestelCategorySvc)
 
+	swotQuestionFactorRepo := repositories.NewSwotPestelQuestionFactorRepository(db)
+	swotQuestionFactorSvc := services.NewSwotPestelQuestionFactorService(swotQuestionFactorRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc)
+	swotQuestionFactorController := controllers.NewSwotPestelQuestionFactorController(swotQuestionFactorSvc)
+
 	return &StrategyModule{
-		SwotPestelQuestionGroupController: swotQuestionGroupController,
-		SwotPestelQuestionController:      swotQuestionController,
-		SwotPestelCategoryController:      swotPestelCategoryController,
+		SwotPestelQuestionGroupController:  swotQuestionGroupController,
+		SwotPestelQuestionController:       swotQuestionController,
+		SwotPestelCategoryController:       swotPestelCategoryController,
+		SwotPestelQuestionFactorController: swotQuestionFactorController,
 	}
 }

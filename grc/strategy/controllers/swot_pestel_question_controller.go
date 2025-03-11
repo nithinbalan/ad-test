@@ -41,7 +41,7 @@ func (sqc *SwotPestelQuestionController) GetAllSwotPestelQuestions(c *gin.Contex
 }
 
 func (sqc *SwotPestelQuestionController) GetSwotPestelQuestionDetails(c *gin.Context) {
-	idStr := c.Param("id")
+	idStr := c.Param("questionId")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -87,7 +87,7 @@ func (sqc *SwotPestelQuestionController) CreateSwotPestelQuestion(c *gin.Context
 }
 
 func (sqc *SwotPestelQuestionController) UpdateSwotPestelQuestion(c *gin.Context) {
-	swotPestelQuestionID, err := strconv.Atoi(c.Param("id"))
+	swotPestelQuestionID, err := strconv.Atoi(c.Param("questionId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -239,7 +239,7 @@ func (sqc *SwotPestelQuestionController) UpdateAnswer(c *gin.Context) {
 func (sqc *SwotPestelQuestionController) CreateInvitees(c *gin.Context) {
 	var SwotPestelQuestionInvitee *strategyDTOs.InviteeFormDTO
 
-	questionIDStr := c.Param("id")
+	questionIDStr := c.Param("questionId")
 
 	questionId, err := strconv.ParseUint(questionIDStr, 10, 64)
 	if err != nil {

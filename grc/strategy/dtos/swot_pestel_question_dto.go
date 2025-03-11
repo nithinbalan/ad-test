@@ -43,9 +43,10 @@ type SwotPestelQuestionDTO struct {
 	AnsweredByID              *uint      `json:"answered_by_id"`
 	AnsweredAt                *time.Time `json:"answered_at"`
 
-	AnsweredByUser             *organizationDTOs.UserMinimalDTO `json:"answered_by"`
-	SwotPestelQuestionGroup    *SwotPestelQuestionGroupDTO      `json:"swot_pestel_question_group"`
-	SwotPestelQuestionInvitees []*SwotPestelQuestionInviteeDTO  `json:"swot_pestel_question_invitees" gorm:"foreignKey:SwotPestelQuestionID;references:ID"`
+	AnsweredByUser             *organizationDTOs.UserMinimalDTO     `json:"answered_by"`
+	SwotPestelQuestionGroup    *SwotPestelQuestionGroupDTO          `json:"swot_pestel_question_group"`
+	SwotPestelQuestionInvitees []*SwotPestelQuestionInviteeDTO      `json:"swot_pestel_question_invitees" gorm:"foreignKey:SwotPestelQuestionID;references:ID"`
+	SwotPestelQuestionFactors  []*SwotPestelQuestionFactorDetailDTO `json:"swot_pestel_question_factors" gorm:"foreignKey:SwotPestelQuestionID;references:ID"`
 }
 
 type AnswerFormDTO struct {

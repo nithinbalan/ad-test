@@ -19,6 +19,7 @@ type SwotPestelQuestion struct {
 	SwotPestelQuestionGroup    *SwotPestelQuestionGroup     `gorm:"foreignKey:SwotPestelQuestionGroupID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	AnsweredByUser             *User                        `gorm:"foreignKey:AnsweredBYID"` // Nullable relationship
 	SwotPestelQuestionInvitees []*SwotPestelQuestionInvitee `gorm:"foreignKey:SwotPestelQuestionID"`
+	SwotPestelQuestionFactors  []*SwotPestelQuestionFactor  `gorm:"foreignKey:SwotPestelQuestionID"`
 }
 
 // TableName overrides the table name used by SwotQuestion to `swot_question_groups`

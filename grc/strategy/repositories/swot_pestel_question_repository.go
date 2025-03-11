@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	strategyDTOs "jethur/grc/strategy/dtos"
 	"jethur/utility"
 
@@ -101,10 +102,38 @@ func (repo *SwotPestelQuestionRepository) GetAll(sort string, sortBy string, key
 	}
 
 	for _, question := range swotPestelQuestions {
-		var invitees []*strategyDTOs.SwotPestelQuestionInviteeDTO
+		var invitees []*models.SwotPestelQuestionInvitee // Use actual DB model
 
-		repo.db.Model(&models.SwotPestelQuestionInvitee{}).Where("swot_pestel_question_id = ?", question.ID).Find(&invitees)
-		question.SwotPestelQuestionInvitees = invitees
+		err := repo.db.Preload("User").
+			Where("swot_pestel_question_id = ?", question.ID).
+			Find(&invitees).Error
+
+		if err != nil {
+			return nil, err
+		}
+
+		// Convert invitees from DB model to DTO
+		var inviteeDTOs []*strategyDTOs.SwotPestelQuestionInviteeDTO
+		for _, invitee := range invitees {
+			inviteeDTOs = append(inviteeDTOs, &strategyDTOs.SwotPestelQuestionInviteeDTO{
+				ID:                   invitee.ID,
+				SwotPestelQuestionID: invitee.SwotPestelQuestionID,
+				UserID:               invitee.UserID,
+				User: organizationDTOs.UserMinimalDTO{
+					ID:               int(invitee.User.ID),
+					FirstNameEN:      invitee.User.FirstNameEn,
+					LastNameEN:       invitee.User.LastNameEn,
+					FirstNameAR:      invitee.User.FirstNameAr,
+					LastNameAR:       invitee.User.LastNameAr,
+					ProfileImagePath: invitee.User.ProfileImagePath,
+					Email:            invitee.User.Email,
+					Initial:          invitee.User.Initial,
+					Color:            invitee.User.Color,
+					MobileNumber:     invitee.User.MobileNumber,
+				},
+			})
+		}
+		question.SwotPestelQuestionInvitees = inviteeDTOs
 	}
 
 	return swotPestelQuestions, nil
@@ -148,6 +177,8 @@ func (repo *SwotPestelQuestionRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("AnsweredByUser").
 		Preload("SwotPestelQuestionInvitees").
 		Preload("SwotPestelQuestionInvitees.User").
+		Preload("SwotPestelQuestionFactors").
+		Preload("SwotPestelQuestionFactors.SwotPestelCategory").
 		First(&swotPestelQuestion, id)
 
 	if result.Error != nil {
