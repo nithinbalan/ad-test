@@ -65,3 +65,13 @@ type RiskReportActionPlanDTO struct {
 	ActionPlanStatusTitleAr    string    `json:"action_plan_status_title_ar"`
 	ActionPlanStatusColorCode  string    `json:"action_plan_status_color_code"`
 }
+
+type KRIDTO struct {
+	Title           string  `json:"title"`
+	Description     *string `json:"description,omitempty"`
+	LowThreshold    int     `json:"low_threshold"`
+	MediumThreshold int     `json:"medium_threshold"`
+	UnitTitleEn     string  `json:"unit_title_en"`
+	UnitTitleAr     string  `json:"unit_title_ar"`
+	CurrentValue    int     `json:"current_value"`
+}

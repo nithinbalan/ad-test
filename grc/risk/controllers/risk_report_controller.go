@@ -39,8 +39,17 @@ func (rrc *RiskReportController) GenerateRiskReport(c *gin.Context) {
 
 	riskReportID, err := rrc.service.GenerateRiskReport(currentUserID, &request)
 	if err != nil {
-		utility.SendInternalErrResp(rrc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rrc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusCreated, gin.H{

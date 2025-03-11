@@ -19,6 +19,9 @@ type RiskReportRepositoryInterface interface {
 
 	CreateRiskActionPlan(actionPlan *models.RiskReportActionPlan, tx ...utility.DatabaseTransaction) error
 	GetActionPlansByRiskID(riskRegisterID uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportActionPlanDTO, error)
+
+	GetKRIsByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]dtos.KRIDTO, error)
+	CreateRiskKRI(riskKRI *models.RiskReportKRI, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskReportRepository struct {
@@ -161,4 +164,42 @@ func (repo *RiskReportRepository) CreateRiskActionPlan(actionPlan *models.RiskRe
 	}
 
 	return db.Create(actionPlan).Error
+}
+
+func (repo *RiskReportRepository) GetKRIsByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]dtos.KRIDTO, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var kris []dtos.KRIDTO
+
+	query := db.Table("risk_kris").
+		Select(`
+			kri_register.title,
+			kri_register.description,
+			kri_register.low_threshold,
+			kri_register.medium_threshold,
+			kri_register.current_value,
+			units.title_en AS unit_title_en,
+			units.title_ar AS unit_title_ar
+		`).
+		Joins("LEFT JOIN kri_register ON kri_register.id = risk_kris.kri_register_id").
+		Joins("LEFT JOIN units ON units.id = kri_register.unit_id").
+		Where("risk_kris.risk_register_id = ?", riskID)
+
+	if err := query.Find(&kris).Error; err != nil {
+		return nil, err
+	}
+
+	return kris, nil
+}
+
+func (repo *RiskReportRepository) CreateRiskKRI(riskKRI *models.RiskReportKRI, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(riskKRI).Error
 }

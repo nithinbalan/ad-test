@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"jethur/grc/models"
 	"jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
@@ -37,7 +36,7 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 	riskReportID, err := rrs.repo.Create(riskReport, tx)
 	if err != nil {
 		tx.Rollback()
-		return 0, fmt.Errorf("failed to create risk report: %w", err)
+		return 0, err
 	}
 
 	sectionTypes := []string{
@@ -58,7 +57,7 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 		}
 		if err := rrs.repo.CreateSection(&section, tx); err != nil {
 			tx.Rollback()
-			return 0, fmt.Errorf("failed to create section (%s): %w", sectionType, err)
+			return 0, err
 		}
 	}
 
@@ -66,7 +65,7 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 	risks, err := rrs.repo.GetRisksByDateRange(riskReportFormDTO.StartDate, riskReportFormDTO.EndDate, tx)
 	if err != nil {
 		tx.Rollback()
-		return 0, fmt.Errorf("failed to fetch risks: %w", err)
+		return 0, err
 	}
 
 	// Step 3: Populate Risk Report Identifications
@@ -107,13 +106,13 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 		// Step 4: Insert Risk Identification Entry
 		if err := rrs.repo.CreateRiskIdentification(riskIdentification, tx); err != nil {
 			tx.Rollback()
-			return 0, fmt.Errorf("failed to create risk identification: %w", err)
+			return 0, err
 		}
 
 		actionPlans, err := rrs.repo.GetActionPlansByRiskID(risk.ID, tx)
 		if err != nil {
 			tx.Rollback()
-			return 0, fmt.Errorf("failed to fetch action plans: %w", err)
+			return 0, err
 		}
 
 		for _, actionPlan := range actionPlans {
@@ -134,7 +133,33 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 
 			if err := rrs.repo.CreateRiskActionPlan(riskActionPlan, tx); err != nil {
 				tx.Rollback()
-				return 0, fmt.Errorf("failed to insert action plan: %w", err)
+				return 0, err
+			}
+		}
+
+		//Update KRI table
+		kris, err := rrs.repo.GetKRIsByRiskID(risk.ID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		for _, kri := range kris {
+			riskKRI := &models.RiskReportKRI{
+				RiskReportID:               riskReportID,
+				RiskReportIdentificationID: riskIdentification.ID,
+				Title:                      kri.Title,
+				Description:                kri.Description,
+				LowThreshold:               &kri.LowThreshold,
+				MediumThreshold:            &kri.MediumThreshold,
+				UnitTitleEn:                &kri.UnitTitleEn,
+				UnitTitleAr:                &kri.UnitTitleAr,
+				CurrentValue:               &kri.CurrentValue,
+			}
+
+			if err := rrs.repo.CreateRiskKRI(riskKRI, tx); err != nil {
+				tx.Rollback()
+				return 0, err
 			}
 		}
 
