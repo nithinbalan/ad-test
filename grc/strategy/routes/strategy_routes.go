@@ -48,4 +48,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.POST("/pestel-questions/delete", middlewares.RolePermissionMiddleware(db, "strategy_setting", "modify"), swotPestelQuestionController.DeleteSwotPestelQuestions)
 	strategyRoutes.PUT("/pestel-questions/activate", middlewares.RolePermissionMiddleware(db, "strategy_setting", "modify"), swotPestelQuestionController.ActivateSwotPestelQuestions)
 	strategyRoutes.PUT("/pestel-questions/deactivate", middlewares.RolePermissionMiddleware(db, "strategy_setting", "modify"), swotPestelQuestionController.DeactivateSwotPestelQuestions)
+
+	strategyRoutes.PUT("/swot-questions/:id/answer", middlewares.RolePermissionMiddleware(db, "swot", "modify"), swotPestelQuestionController.UpdateAnswer)
+	strategyRoutes.PUT("/swot-questions/:id/answer-invitees", middlewares.RolePermissionMiddleware(db, "swot", "modify"), swotPestelQuestionController.CreateInvitees)
 }

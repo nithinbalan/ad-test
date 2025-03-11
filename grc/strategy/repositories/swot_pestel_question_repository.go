@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"jethur/grc/models"
+	strategyDTOs "jethur/grc/strategy/dtos"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -9,9 +10,10 @@ import (
 
 // Interfaces
 type SwotPestelQuestionRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*models.SwotPestelQuestion, error)
+	GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*strategyDTOs.SwotPestelQuestionListDTO, error)
 	GetAllOrdered(swotPestelQuestionGroupId uint) ([]*models.SwotPestelQuestion, error)
 	GetByID(id uint) (*models.SwotPestelQuestion, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.SwotPestelQuestion, error)
 	Create(swotPestelQuestion *models.SwotPestelQuestion) (*models.SwotPestelQuestion, error)
 	Update(id uint, updatedSwotPestelQuestion *models.SwotPestelQuestion) (*models.SwotPestelQuestion, error)
 	Delete(id uint) error
@@ -19,6 +21,9 @@ type SwotPestelQuestionRepositoryInterface interface {
 	Deactivate(ids []uint) ([]uint, error)
 	ExistsByTitle(swotPestelQuestionGroupId uint, titleEn string, titleAr string) (bool, error)
 	ExistsByTitleExcludingID(swotPestelQuestionGroupId uint, id uint, titleEn, titleAr string) (bool, error)
+
+	CreateSwotPestelQuestionInvitees(invitees []*models.SwotPestelQuestionInvitee, tx ...utility.DatabaseTransaction) error
+	DeleteSwotPestelQuestionInvitees(swotPestelQuestionID uint, inviteeIDs []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 // implementation
@@ -32,37 +37,77 @@ func NewSwotPestelQuestionRepository(db *gorm.DB) *SwotPestelQuestionRepository 
 	}
 }
 
-func (repo *SwotPestelQuestionRepository) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*models.SwotPestelQuestion, error) {
-	var swotPestelQuestions []*models.SwotPestelQuestion
+func (repo *SwotPestelQuestionRepository) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*strategyDTOs.SwotPestelQuestionListDTO, error) {
+	var swotPestelQuestions []*strategyDTOs.SwotPestelQuestionListDTO
 
-	query := repo.db
+	query := repo.db.Table("swot_pestel_questions").
+		Select(`
+			swot_pestel_questions.*,
+			swot_pestel_question_groups.title_en AS swot_pestel_question_group_title_en,
+			swot_pestel_question_groups.title_ar AS swot_pestel_question_group_title_ar,
+			answered_user.id AS answered_by_id,
+			answered_user.first_name_en AS answered_user_first_name_en,
+			answered_user.first_name_ar AS answered_user_first_name_ar,
+			answered_user.last_name_en AS answered_user_last_name_en,
+			answered_user.last_name_ar AS answered_user_last_name_ar,
+			answered_user.initial AS answered_user_initial,
+			answered_user.color AS answered_user_color,
+			answered_user.email AS answered_user_email,
+			answered_user.profile_image_path AS answered_user_profile_image_path
+		`).
+		Joins("LEFT JOIN swot_pestel_question_groups ON swot_pestel_question_groups.id = swot_pestel_questions.swot_pestel_question_group_id").
+		Joins("LEFT JOIN users AS answered_user ON answered_user.id = swot_pestel_questions.answered_by_id")
 
+	// Apply search keyword if exists
 	if keyword != "" {
-		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
+		keyword := "%" + keyword + "%"
+		query = query.Where(`
+			(swot_pestel_questions.title_en LIKE ? OR
+			swot_pestel_questions.title_ar LIKE ? OR
+			swot_pestel_question_groups.title_en LIKE ? OR
+			swot_pestel_question_groups.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword)
 	}
+
+	// Apply status filter
+	if status == "active" || status == "inactive" {
+		query = query.Where("swot_pestel_questions.status = ?", status)
+	}
+
+	// Apply is_swot filter
+	if isSwot == "true" {
+		query = query.Where("swot_pestel_questions.is_swot = ?", true)
+	}
+
+	// Apply is_pestel filter
+	if isPestel == "true" {
+		query = query.Where("swot_pestel_questions.is_pestel = ?", true)
+	}
+
+	// Sort by the specified column and order
 	if sortBy == "" {
-		sortBy = "title_en"
+		sortBy = "title_en" // Default sorting
 	}
 	if sort != "asc" && sort != "desc" {
 		sort = "asc"
 	}
 
-	if status == "active" || status == "inactive" {
-		query = query.Where("status = ?", status)
-	}
-
-	if isSwot == "true" {
-		query = query.Where("is_swot = ?", true)
-	}
-
-	if isPestel == "true" {
-		query = query.Where("is_pestel = ?", true)
-	}
-
 	query = query.Order(sortBy + " " + sort)
-	result := query.Find(&swotPestelQuestions)
 
-	return swotPestelQuestions, result.Error
+	// Execute query
+	err := query.Find(&swotPestelQuestions).Error
+	if err != nil {
+		return nil, err
+	}
+
+	for _, question := range swotPestelQuestions {
+		var invitees []*strategyDTOs.SwotPestelQuestionInviteeDTO
+
+		repo.db.Model(&models.SwotPestelQuestionInvitee{}).Where("swot_pestel_question_id = ?", question.ID).Find(&invitees)
+		question.SwotPestelQuestionInvitees = invitees
+	}
+
+	return swotPestelQuestions, nil
 }
 
 func (repo *SwotPestelQuestionRepository) GetAllOrdered(swotPestelQuestionGroupID uint) ([]*models.SwotPestelQuestion, error) {
@@ -83,6 +128,27 @@ func (repo *SwotPestelQuestionRepository) GetAllOrdered(swotPestelQuestionGroupI
 func (repo *SwotPestelQuestionRepository) GetByID(id uint) (*models.SwotPestelQuestion, error) {
 	var swotPestelQuestion *models.SwotPestelQuestion
 	result := repo.db.First(&swotPestelQuestion, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return swotPestelQuestion, nil
+}
+
+func (repo *SwotPestelQuestionRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.SwotPestelQuestion, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var swotPestelQuestion *models.SwotPestelQuestion
+
+	result := db.
+		Preload("SwotPestelQuestionGroup").
+		Preload("AnsweredByUser").
+		Preload("SwotPestelQuestionInvitees").
+		Preload("SwotPestelQuestionInvitees.User").
+		First(&swotPestelQuestion, id)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -194,4 +260,31 @@ func (repo *SwotPestelQuestionRepository) ExistsByTitleExcludingID(swotPestelQue
 	}
 
 	return count > 0, nil
+}
+
+func (repo *SwotPestelQuestionRepository) CreateSwotPestelQuestionInvitees(invitees []*models.SwotPestelQuestionInvitee, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(&invitees).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *SwotPestelQuestionRepository) DeleteSwotPestelQuestionInvitees(swotPestelQuestionID uint, inviteeIDs []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("swot_pestel_question_id = ? AND user_id IN (?)", swotPestelQuestionID, inviteeIDs).
+		Delete(&models.SwotPestelQuestionInvitee{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
