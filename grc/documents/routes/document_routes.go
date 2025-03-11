@@ -46,6 +46,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentChangeRequestWorkflowController := app.DocumentModule.DocumentChangeRequestWorkflowController
 
 	documentPeriodicReviewController := app.DocumentModule.DocumentPeriodicReviewController
+	documentRequirementGroupController := app.DocumentModule.DocumentRequirementGroupController
+	documentRequirementController := app.DocumentModule.DocumentRequirementController
 
 	documentRoutes.GET("/document-categories", documentCategoryController.GetAllDocumentCategories)
 	documentRoutes.GET("/document-categories/:id", documentCategoryController.GetDocumentCategoryDetails)
@@ -184,4 +186,19 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/documents/:id/reviews/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentPeriodicReviewController.DeleteDocumentPeriodicReview)
 
 	unauthenticatedRoutes.GET("/documents/:id/reviews/:reviewId/document-download", documentPeriodicReviewController.DownloadDocumentPeriodicReviewDocument)
+
+	documentRoutes.GET("/documents/:id/requirement-groups", documentRequirementGroupController.GetAllDocumentRequirementGroups)
+	documentRoutes.GET("/documents/:id/requirement-groups/:requirementGroupId", documentRequirementGroupController.GetDocumentRequirementGroupDetails)
+	documentRoutes.POST("/documents/:id/requirement-groups", documentRequirementGroupController.CreateDocumentRequirementGroup)
+	documentRoutes.PUT("/documents/:id/requirement-groups/:requirementGroupId", documentRequirementGroupController.UpdateDocumentRequirementGroup)
+	documentRoutes.POST("/documents/:id/requirement-groups/delete", documentRequirementGroupController.DeleteDocumentRequirementGroups)
+	documentRoutes.PUT("/documents/:id/requirement-groups/activate", documentRequirementGroupController.ActivateDocumentRequirementGroups)
+	documentRoutes.PUT("/documents/:id/requirement-groups/deactivate", documentRequirementGroupController.DeactivateDocumentRequirementGroups)
+
+	documentRoutes.GET("/documents/:id/requirement-groups/:requirementGroupId/requirements", documentRequirementController.GetAllDocumentRequirements)
+	documentRoutes.GET("/documents/:id/requirement-groups/:requirementGroupId/requirements/:requirementId", documentRequirementController.GetDocumentRequirementDetails)
+	documentRoutes.POST("/documents/:id/requirement-groups/:requirementGroupId/requirements", documentRequirementController.CreateDocumentRequirement)
+	documentRoutes.PUT("/documents/:id/requirement-groups/:requirementGroupId/requirements/:requirementId", documentRequirementController.UpdateDocumentRequirement)
+	documentRoutes.POST("/documents/:id/requirement-groups/:requirementGroupId/requirements/delete", documentRequirementController.DeleteDocumentRequirements)
+
 }
