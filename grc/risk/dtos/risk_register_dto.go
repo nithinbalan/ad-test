@@ -266,7 +266,7 @@ type RiskThreatDTO struct {
 type RiskRegisterFormDTO struct {
 	RiskCategoryID           uint                          `json:"risk_category_id" binding:"required"`
 	RiskSourceID             *uint                         `json:"risk_source_id"`
-	ResponsibleUserID        uint                          `json:"responsible_user_id" binding:"required"`
+	ResponsibleUserID        uint                          `json:"responsible_user_id"`
 	Title                    string                        `json:"title" binding:"required,max=255"`
 	Description              *string                       `json:"description"`
 	ReportedAt               *string                       `json:"reported_at" binding:"required,datetime=2006-01-02"`
