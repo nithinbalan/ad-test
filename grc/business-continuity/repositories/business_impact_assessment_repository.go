@@ -353,7 +353,8 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
         time_units_rpo.title_ar AS process_rpo_unit_title_ar,
         processes.risk_level_id AS risk_level_id,
         risk_levels.title_en AS risk_level_title_en,
-        risk_levels.title_ar AS risk_level_title_ar
+        risk_levels.title_ar AS risk_level_title_ar,
+		risk_levels.color_code AS risk_level_color_code
     `).
 		Joins(`
         INNER JOIN business_functions ON business_functions.id = business_function_processes.business_function_id

@@ -71,6 +71,7 @@ type DocumentListDTO struct {
 	PublishedUserEmail              string     `json:"published_user_email"`
 	PublishedUserProfileImagePath   string     `json:"published_user_profile_image_path"`
 	PublishedAt                     *time.Time `json:"published_at"`
+	UserAccessTypes                 *string    `json:"user_access_types"`
 }
 
 type DocumentListQueryParamsDTO struct {
@@ -230,11 +231,16 @@ type DocumentWorkflowReviewListDTO struct {
 	CreatedByUser organizationDTOs.UserMinimalDTO `json:"created_by"`
 }
 
+type ParticipantDTO struct {
+	*organizationDTOs.UserMinimalDTO
+	IsApproved bool `json:"is_approved"`
+}
+
 type DocumentLastEditSummaryDTO struct {
-	LatestActivity ActivityDTO                        `json:"latest_activity"`
-	CurrentLevel   *int                               `json:"current_level"`
-	Participants   []*organizationDTOs.UserMinimalDTO `json:"participants"`
-	TotalComments  *int                               `json:"total_comments"`
+	LatestActivity ActivityDTO       `json:"latest_activity"`
+	CurrentLevel   *int              `json:"current_level"`
+	Participants   []*ParticipantDTO `json:"participants"`
+	TotalComments  *int              `json:"total_comments"`
 }
 
 type ActivityDTO struct {

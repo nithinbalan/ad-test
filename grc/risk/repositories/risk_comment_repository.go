@@ -54,6 +54,7 @@ func (repo *RiskCommentRepository) GetAll(riskID uint) ([]*dtos.RiskCommentListD
 			users.profile_image_path AS created_user_profile_image_path,
 			risk_statuses.title_en AS risk_status_title_en,
 			risk_statuses.title_ar AS risk_status_title_ar,
+			risk_statuses.type AS risk_status_type,
 			risk_statuses.color_code AS risk_status_color_code,
 			risk_timeline_types.title_en AS risk_timeline_title_en,
 			risk_timeline_types.title_ar AS risk_timeline_title_ar,

@@ -171,6 +171,7 @@ type BIAMatrixResponseDTO struct {
 	RiskLevelID            *uint   `json:"risk_level_id"`
 	RiskLevelTitleEn       *string `json:"risk_level_title_en"`
 	RiskLevelTitleAr       *string `json:"risk_level_title_ar"`
+	RiskLevelColorCode     *string `json:"risk_level_color_code"`
 }
 
 type BIAMatrixQueryParamsDTO struct {

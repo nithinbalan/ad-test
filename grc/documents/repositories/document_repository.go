@@ -15,7 +15,7 @@ import (
 // Interfaces
 type DocumentRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *documentDTOs.DocumentListQueryParamsDTO, currentUserID uint) (*documentDTOs.DocumentListResponseDTO, error)
+	GetAll(params *documentDTOs.DocumentListQueryParamsDTO, currentUserID uint, isUserSuperAdmin bool, primaryOrgUnitField string) (*documentDTOs.DocumentListResponseDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error)
 	GetFullDetailsByID(id uint, currentUserID *uint, tx ...utility.DatabaseTransaction) (*models.Document, error)
 	Create(document *models.Document, tx ...utility.DatabaseTransaction) (uint, error)
@@ -52,9 +52,10 @@ func (repo *DocumentRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryParamsDTO, currentUserID uint) (*documentDTOs.DocumentListResponseDTO, error) {
+func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryParamsDTO, currentUserID uint, isUserSuperAdmin bool, primaryOrgUnitField string) (*documentDTOs.DocumentListResponseDTO, error) {
 	var documents []*documentDTOs.DocumentListDTO
 	var totalCount int64
+
 	selectClause := `
 	documents.*,
 	document_categories.title_en AS document_category_title_en,
@@ -110,8 +111,45 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 	published_user.initial AS published_user_initial,
 	published_user.color AS published_user_color,
 	published_user.email AS published_user_email,
-	published_user.profile_image_path AS published_user_profile_image_path
-	
+	published_user.profile_image_path AS published_user_profile_image_path,
+	ISNULL(
+		(
+			SELECT STRING_AGG(access_type, ',')
+			FROM (
+				SELECT 'created user' as access_type WHERE documents.created_by_id = ?
+				UNION ALL
+				SELECT 'responsible' WHERE documents.responsible_user_id = ?
+				UNION ALL
+				SELECT 'review user' WHERE EXISTS (
+					SELECT 1 FROM document_shared_users 
+					WHERE document_shared_users.document_id = documents.id 
+					AND document_shared_users.user_id = ? 
+					AND document_shared_users.type = 'review-user'
+				)
+				UNION ALL
+				SELECT 'shared user' WHERE EXISTS (
+					SELECT 1 FROM document_shared_users 
+					WHERE document_shared_users.document_id = documents.id 
+					AND document_shared_users.user_id = ? 
+					AND document_shared_users.type = 'shared-user'
+				)
+				UNION ALL
+				SELECT 'shared unit user' WHERE EXISTS (
+					SELECT 1 FROM document_shared_units dsu
+					JOIN organization_units shared_unit ON shared_unit.id = dsu.organization_unit_id
+					JOIN users u ON u.id = ?
+					WHERE dsu.document_id = documents.id 
+					AND shared_unit.id = (
+						SELECT ou.id FROM organization_units ou 
+						WHERE ou.id = u.` + primaryOrgUnitField + `
+					)
+				)
+				UNION ALL
+				SELECT 'public' WHERE documents.document_access_type_id = (SELECT id FROM document_access_types WHERE type = 'public')
+			) AS access_types
+		),
+		''
+	) AS user_access_types
 `
 
 	joinAcknowledge := false
@@ -121,7 +159,18 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 		selectClause += `, CASE WHEN document_acknowledge_users.id IS NULL THEN 0 ELSE 1 END AS acknowledged`
 	}
 
-	query := repo.db.Table("documents").Select(selectClause).
+	query := repo.db.Table("documents").Select(selectClause,
+		currentUserID, // for creator check in array
+		currentUserID, // for responsible check in array
+		currentUserID, // for review-user check in array
+		currentUserID, // for shared-user check in array
+		currentUserID, // for unit access check in array
+		currentUserID, // for creator check in single
+		currentUserID, // for responsible check in single
+		currentUserID, // for review-user check in single
+		currentUserID, // for shared-user check in single
+		currentUserID, // for unit access check in single
+	).
 		Joins(`
 			LEFT JOIN document_categories ON document_categories.id = documents.document_category_id
 			LEFT JOIN document_types ON document_types.id = documents.document_type_id
@@ -178,6 +227,52 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 		}
 	}
 
+	// Apply access control restrictions if not super admin
+	if !isUserSuperAdmin {
+		query = query.Where(`
+			(documents.document_status_id = (SELECT id FROM document_statuses WHERE type = 'in-review') 
+				AND (documents.created_by_id = ? OR documents.responsible_user_id = ? 
+					OR EXISTS (
+						SELECT 1 FROM document_shared_users 
+						WHERE document_shared_users.document_id = documents.id 
+						AND document_shared_users.user_id = ? 
+						AND document_shared_users.type = 'review-user'
+					)
+				)
+			)
+			OR (documents.document_status_id = (SELECT id FROM document_statuses WHERE type = 'published') 
+				AND (
+					(documents.document_access_type_id = (SELECT id FROM document_access_types WHERE type = 'public'))
+					OR EXISTS (
+						SELECT 1 FROM document_shared_users 
+						WHERE document_shared_users.document_id = documents.id 
+						AND document_shared_users.user_id = ? 
+						AND document_shared_users.type IN ('shared-user', 'review-user')
+					)
+					OR EXISTS (
+						SELECT 1 FROM document_shared_units dsu
+						JOIN organization_units shared_unit ON shared_unit.id = dsu.organization_unit_id
+						JOIN users u ON u.id = ?
+						JOIN organization_units user_unit ON user_unit.id = u.organization_unit_2_id
+						WHERE dsu.document_id = documents.id 
+						AND shared_unit.id = (
+							SELECT ou.id FROM organization_units ou 
+							WHERE ou.id = u.`+primaryOrgUnitField+`
+						)
+					)
+				)
+			)
+			OR (
+				documents.document_status_id NOT IN (
+					SELECT id FROM document_statuses WHERE type IN ('in-review', 'published')
+				)
+				AND (documents.created_by_id = ? OR documents.responsible_user_id = ?)
+			)
+		`, currentUserID, currentUserID, currentUserID, // in-review access
+			currentUserID, currentUserID, // published access
+			currentUserID, currentUserID) // all other statuses access
+	}
+
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		query = query.Where(`
@@ -207,16 +302,16 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
-	// Sort by the specified column and order
-
-	query = query.Order(params.SortBy + " " + params.Sort)
-
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
+	// Apply sorting once
+	query = query.Order(params.SortBy + " " + params.Sort)
+
 	if !params.Export {
+		// Apply pagination without duplicate ordering
 		offset := (params.Page - 1) * params.PageSize
 		query = query.Offset(offset).Limit(params.PageSize)
 	}
@@ -243,7 +338,6 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 		},
 	}
 	return response, nil
-
 }
 
 func (repo *DocumentRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error) {
@@ -288,7 +382,9 @@ func (repo *DocumentRepository) GetFullDetailsByID(id uint, currentUserID *uint,
 		Preload("DocumentVersions.DocumentEditHistory").
 		Preload("DocumentVersions.DocumentWorkflows").
 		Preload("DocumentVersions.DocumentWorkflows.DocumentWorkflowParticipants").
+		Preload("DocumentVersions.DocumentWorkflows.DocumentWorkflowParticipants.User").
 		Preload("DocumentVersions.DocumentWorkflows.DocumentWorkflowReviews").
+		Preload("DocumentVersions.DocumentWorkflows.DocumentWorkflowReviews.DocumentWorkflowStatus").
 		Preload("DocumentAuditLogs").
 		Preload("DocumentSharedUsers").
 		Preload("DocumentSharedUsers.User").

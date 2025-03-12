@@ -94,9 +94,10 @@ func (rcs *RiskCommentService) Create(riskID uint, currentUserID uint, riskComme
 	tx := rcs.repo.BeginTransaction()
 
 	comment := &models.RiskComment{
-		RiskRegisterID: riskID,
-		Comments:       riskCommentFormDTO.Comment,
-		CreatedBYID:    currentUserID,
+		RiskRegisterID:     riskID,
+		RiskTimelineTypeID: riskCommentFormDTO.RiskTimelineTypeID,
+		Comments:           riskCommentFormDTO.Comment,
+		CreatedBYID:        currentUserID,
 	}
 
 	id, err := rcs.repo.Create(comment)
@@ -148,6 +149,7 @@ func (rcs *RiskCommentService) Update(riskID uint, id uint, currentUserID uint, 
 	}
 
 	existingComment.Comments = riskCommentFormDTO.Comment
+	existingComment.RiskTimelineTypeID = riskCommentFormDTO.RiskTimelineTypeID
 	err = rcs.repo.Update(existingComment, tx)
 	if err != nil {
 		tx.Rollback()

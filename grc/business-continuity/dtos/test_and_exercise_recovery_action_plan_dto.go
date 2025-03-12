@@ -40,6 +40,15 @@ type TestAndExerciseRecoveryActionPlanListDTO struct {
 	ActionPlanStatusTitleAr         *string    `json:"action_plan_status_title_ar"`
 	IsRecovery                      bool       `json:"is_recovery"`
 	Percentage                      *int       `json:"percentage"`
+	ReviewUserID                    *uint      `json:"review_user_id"`
+	ReviewUserFirstNameEn           *string    `json:"review_user_first_name_en"`
+	ReviewUserFirstNameAr           *string    `json:"review_user_first_name_ar"`
+	ReviewUserLastNameEn            *string    `json:"review_user_last_name_en"`
+	ReviewUserLastNameAr            *string    `json:"review_user_last_name_ar"`
+	ReviewUserInitial               *string    `json:"review_user_initial"`
+	ReviewUserColor                 *string    `json:"review_user_color"`
+	ReviewUserEmail                 *string    `json:"review_user_email"`
+	ReviewUserProfileImagePath      *string    `json:"review_user_profile_image_path"`
 	CreatedByID                     uint       `json:"created_by_id"`
 	CreatedUserFirstNameEn          string     `json:"created_user_first_name_en"`
 	CreatedUserLastNameEn           string     `json:"created_user_last_name_en"`
@@ -59,30 +68,44 @@ type TestAndExerciseRecoveryActionPlanListDTO struct {
 }
 
 type TestAndExerciseRecoveryActionPlanDetailDTO struct {
-	ID                 uint                              `json:"id"`
-	TestAndExerciseID  uint                              `json:"test_and_exercise_id"`
-	BcpPhaseID         *uint                             `json:"bcp_phase_id"`
-	BcpPhase           BcpPhaseDTO                       `json:"bcp_phase"`
-	ProcessID          uint                              `json:"process_id"`
-	Process            organizationDTOs.ProcessDetailDTO `json:"process"`
-	SeverityLevelID    *uint                             `json:"severity_level_id"`
-	SeverityLevel      *masterDTOs.SeverityLevelDTO      `json:"severity_level"`
-	Title              string                            `json:"title"`
-	ResponsibleUserID  uint                              `json:"responsible_user_id"`
-	ResponsibleUnitID  uint                              `json:"responsible_unit_id"`
-	ResponsibleUnit    settingsDTOs.OrganizationUnitDTO  `json:"responsible_unit"`
-	ResponsibleUser    organizationDTOs.UserMinimalDTO   `json:"responsible_user"`
-	TargetDateString   *string                           `json:"target_date"`
-	ActionPlanStatusID *uint                             `json:"action_plan_status_id"`
-	ActionPlanStatus   masterDTOs.ActionPlanStatusDTO    `json:"action_plan_status"`
-	IsRecovery         bool                              `json:"is_recovery"`
-	Percentage         *int                              `json:"percentage"`
-	CreatedBYID        uint                              `json:"created_by_id"`
-	CreatedByUser      organizationDTOs.UserMinimalDTO   `json:"created_by_user"`
-	CreatedAt          time.Time                         `json:"created_at"`
-	UpdatedBYID        *uint                             `json:"updated_by_id"`
-	UpdatedByUser      *organizationDTOs.UserMinimalDTO  `json:"updated_by_user"`
-	UpdatedAt          *time.Time                        `json:"updated_at"`
+	ID                      uint                                    `json:"id"`
+	TestAndExerciseID       uint                                    `json:"test_and_exercise_id"`
+	BcpPhaseID              *uint                                   `json:"bcp_phase_id"`
+	BcpPhase                BcpPhaseDTO                             `json:"bcp_phase"`
+	ProcessID               uint                                    `json:"process_id"`
+	Process                 organizationDTOs.ProcessDetailDTO       `json:"process"`
+	SeverityLevelID         *uint                                   `json:"severity_level_id"`
+	SeverityLevel           *masterDTOs.SeverityLevelDTO            `json:"severity_level"`
+	Title                   string                                  `json:"title"`
+	ResponsibleUserID       uint                                    `json:"responsible_user_id"`
+	ResponsibleUnitID       uint                                    `json:"responsible_unit_id"`
+	ResponsibleUnit         settingsDTOs.OrganizationUnitDTO        `json:"responsible_unit"`
+	ResponsibleUser         organizationDTOs.UserMinimalDTO         `json:"responsible_user"`
+	ReviewUser              organizationDTOs.UserMinimalDTO         `json:"review_user"`
+	TargetDateString        *string                                 `json:"target_date"`
+	ActionPlanStatusID      *uint                                   `json:"action_plan_status_id"`
+	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO          `json:"action_plan_status"`
+	IsRecovery              bool                                    `json:"is_recovery"`
+	Percentage              *int                                    `json:"percentage"`
+	CreatedBYID             uint                                    `json:"created_by_id"`
+	CreatedByUser           organizationDTOs.UserMinimalDTO         `json:"created_by_user"`
+	CreatedAt               time.Time                               `json:"created_at"`
+	UpdatedBYID             *uint                                   `json:"updated_by_id"`
+	UpdatedByUser           *organizationDTOs.UserMinimalDTO        `json:"updated_by_user"`
+	UpdatedAt               *time.Time                              `json:"updated_at"`
+	ActionPlanStatusUpdates []*TaeRecoveryActionPlanStatusUpdateDTO `json:"action_plan_status_updates"`
+}
+
+type TaeRecoveryActionPlanStatusUpdateDTO struct {
+	ID               uint                                            `json:"id"`
+	ActionPlanStatus masterDTOs.ActionPlanStatusDTO                  `json:"action_plan_status"`
+	Comment          string                                          `json:"comment"`
+	Percentage       *uint                                           `json:"percentage"`
+	CreatedAt        time.Time                                       `json:"created_at"`
+	UpdatedAt        *time.Time                                      `json:"updated_at"`
+	CreatedByUser    organizationDTOs.UserMinimalDTO                 `json:"created_by_user"`
+	UpdatedByUser    *organizationDTOs.UserMinimalDTO                `json:"updated_by_user"`
+	Documents        []*TaeRecoveryActionPlanStatusUpdateDocumentDTO `json:"documents"`
 }
 
 type TestAndExerciseRecoveryActionPlanFormDTO struct {
@@ -94,6 +117,7 @@ type TestAndExerciseRecoveryActionPlanFormDTO struct {
 	TargetDate        string `json:"target_date" binding:"required"`
 	IsRecovery        bool   `json:"is_recovery"`
 	Percentage        *int   `json:"percentage"`
+	ReviewUserID      *uint  `json:"review_user_id"`
 }
 
 type TestAndExerciseRecoveryActionPlanQueryParamsDTO struct {

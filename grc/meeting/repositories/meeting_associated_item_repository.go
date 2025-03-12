@@ -166,11 +166,11 @@ func (repo *MeetingAssociatedItemRepository) GetAllComplianceRequirements(meetin
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
-		query = query.Where(`(compliance_requirements.title LIKE ?)`, keyword)
+		query = query.Where(`(compliance_requirements.title_en LIKE ?)`, keyword)
 	}
 
 	if params.SortBy == "" {
-		params.SortBy = "compliance_requirements.title"
+		params.SortBy = "compliance_requirements.title_en"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"

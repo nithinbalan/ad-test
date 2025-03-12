@@ -196,7 +196,9 @@ func (repo *DocumentChangeRequestRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("DocumentChangeRequestWorkflows").
 		Preload("DocumentChangeRequestWorkflows.DocumentChangeRequestWorkflowStatus").
 		Preload("DocumentChangeRequestWorkflows.DocumentChangeRequestWorkflowParticipants").
+		Preload("DocumentChangeRequestWorkflows.DocumentChangeRequestWorkflowParticipants.User").
 		Preload("DocumentChangeRequestWorkflows.DocumentChangeRequestWorkflowReviews").
+		Preload("DocumentChangeRequestWorkflows.DocumentChangeRequestWorkflowReviews.DocumentChangeRequestWorkflowStatus").
 		First(&changeRequest, id)
 	if result.Error != nil {
 		return nil, result.Error
