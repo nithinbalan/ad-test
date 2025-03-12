@@ -114,7 +114,7 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Create(TaeRecoveryID uint
 			return 0, err
 		}
 
-		url := utility.GenerateDocumentURL("compliance", "sla-register", strconv.FormatUint(uint64(TaeRecoveryID), 10), "action-plans", strconv.FormatUint(uint64(TaeRecoveryActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+		url := utility.GenerateDocumentURL("business-continuity", "test-and-exercise", strconv.FormatUint(uint64(TaeRecoveryID), 10), "recovery-action-plans", strconv.FormatUint(uint64(TaeRecoveryActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
 		document := &models.TaeRecoveryActionPlanStatusUpdateDocument{
 			TaeRecoveryActionPlanStatusUpdateID: id,
@@ -137,7 +137,7 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Create(TaeRecoveryID uint
 		}
 		//move file to storage
 		for _, doc := range documents {
-			storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(TaeRecoveryID), 10), "action-plans", strconv.FormatUint(uint64(TaeRecoveryActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+			storagePath := filepath.Join("business-continuity", "test-and-exercise", strconv.FormatUint(uint64(TaeRecoveryID), 10), "recovery-action-plans", strconv.FormatUint(uint64(TaeRecoveryActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return 0, err
@@ -226,7 +226,7 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Update(TaeRecoveryID uint
 			}
 
 			//genereate URL
-			url := utility.GenerateDocumentURL("compliance", "sla-register", strconv.FormatUint(uint64(TaeRecoveryID), 10), "action-plans", strconv.FormatUint(uint64(TaeRecoveryActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+			url := utility.GenerateDocumentURL("business-continuity", "test-and-exercise", strconv.FormatUint(uint64(TaeRecoveryID), 10), "recovery-action-plans", strconv.FormatUint(uint64(TaeRecoveryActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			// Create a new Control test Document instance
 			document := &models.TaeRecoveryActionPlanStatusUpdateDocument{
 				TaeRecoveryActionPlanStatusUpdateID: id,
@@ -273,7 +273,7 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Update(TaeRecoveryID uint
 	}
 
 	for _, doc := range documents {
-		storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(TaeRecoveryID), 10), "action-plans", strconv.FormatUint(uint64(TaeRecoveryActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("business-continuity", "test-and-exercise", strconv.FormatUint(uint64(TaeRecoveryID), 10), "recovery-action-plans", strconv.FormatUint(uint64(TaeRecoveryActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			tx.Rollback()
@@ -282,7 +282,7 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Update(TaeRecoveryID uint
 	}
 
 	for _, document := range documentsToDelete {
-		storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(TaeRecoveryID), 10), "action-plans", strconv.FormatUint(uint64(TaeRecoveryActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("business-continuity", "test-and-exercise", strconv.FormatUint(uint64(TaeRecoveryID), 10), "recovery-action-plans", strconv.FormatUint(uint64(TaeRecoveryActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err
@@ -349,22 +349,22 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) validateTaeRecoveryAction
 	return nil
 }
 
-func (sasus TaeRecoveryActionPlanStatusUpdateService) GetLatestTaeRecoveryActionPlanStatusUpdate(slaID uint, actionPlanID uint) (*businessContinuityDTOs.TaeRecoveryActionPlanStatusUpdateListDTO, error) {
-	if _, err := sasus.testAndExerciseRecoveryActionPlanSvc.GetByID(slaID, actionPlanID); err != nil {
+func (sasus TaeRecoveryActionPlanStatusUpdateService) GetLatestTaeRecoveryActionPlanStatusUpdate(testAndExerciseID uint, actionPlanID uint) (*businessContinuityDTOs.TaeRecoveryActionPlanStatusUpdateListDTO, error) {
+	if _, err := sasus.testAndExerciseRecoveryActionPlanSvc.GetByID(testAndExerciseID, actionPlanID); err != nil {
 		return nil, err
 	}
 
 	return sasus.repo.GetLatestTaeRecoveryActionPlanStatusUpdate(actionPlanID)
 }
 
-func (sasus *TaeRecoveryActionPlanStatusUpdateService) GetDocumentPath(slaID, ActionPlanID, id uint, token string) (string, error) {
+func (sasus *TaeRecoveryActionPlanStatusUpdateService) GetDocumentPath(testAndExerciseID, ActionPlanID, id uint, token string) (string, error) {
 
-	existingTaeRecoveryActionplanStatusUpdate, err := sasus.GetByID(slaID, ActionPlanID, id)
+	existingTaeRecoveryActionplanStatusUpdate, err := sasus.GetByID(testAndExerciseID, ActionPlanID, id)
 	if err != nil {
 		return "", err
 	}
 	if len(existingTaeRecoveryActionplanStatusUpdate.Documents) == 0 {
-		return "", fmt.Errorf("no documents found for the sla action plan")
+		return "", fmt.Errorf("no documents found for the recovery action plan")
 	}
 
 	decryptedFilenameBytes, err := utility.DecryptData(token)
@@ -377,7 +377,7 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) GetDocumentPath(slaID, Ac
 		return "", fmt.Errorf("resource not found")
 	}
 
-	storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(slaID), 10), "action-plans", strconv.FormatUint(uint64(ActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+	storagePath := filepath.Join("business-continuity", "test-and-exercise", strconv.FormatUint(uint64(testAndExerciseID), 10), "recovery-action-plans", strconv.FormatUint(uint64(ActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
 	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
 	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
