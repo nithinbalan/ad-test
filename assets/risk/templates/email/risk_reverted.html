@@ -1,0 +1,47 @@
+{{ define "content" }}
+<p>Dear {{ .FirstNameEn }} {{ .LastNameEn }},</p>
+
+<p>
+    This is to notify you that <strong>{{ .TitleEn }}</strong> risk has been <strong>reverted</strong>. Please find the details below:
+</p>
+
+<table style="width: 100%; background-color: #fff; border-collapse: collapse; margin: 20px 20px;">
+    <tbody>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; width: 30%; padding: 8px; background-color: #F6F6F6;">Reference Number</th>
+            <td style="text-align: center; padding: 8px;">{{ .ReferenceNumber }}</td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; padding: 8px; background-color: #F6F6F6;">Risk Title (EN)</th>
+            <td style="text-align: center; padding: 8px;">{{ .TitleEn }}</td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; padding: 8px; background-color: #F6F6F6;">Risk Title (AR)</th>
+            <td style="text-align: center; padding: 8px;">{{ .TitleAr }}</td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; padding: 8px; background-color: #F6F6F6;">Reverted By</th>
+            <td style="text-align: center; padding: 8px;">{{ .RevertedByFirstName }} {{ .RevertedByLastName }}</td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; padding: 8px; background-color: #F6F6F6;">Reversion Date</th>
+            <td style="text-align: center; padding: 8px;">{{ .ReversionDate }}</td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; padding: 8px; background-color: #F6F6F6;">Reversion Comment</th>
+            <td style="text-align: center; padding: 8px;">{{ .Comment }}</td>
+        </tr>
+    </tbody>
+</table>
+
+<p>
+    Please log in to the system to review the reverted risk and take necessary actions.
+</p>
+
+<div style="text-align: center;">
+    <a href="{{ .RedirectURL }}" style="background-color: #165D31; color: #ffffff; padding: 10px 20px; text-align: center; text-decoration: none; border-radius: 4px; display: inline-block; margin-top: 30px;">View Risk</a>
+</div>
+
+<p>Thank you for your prompt attention.</p>
+
+{{ end }}
