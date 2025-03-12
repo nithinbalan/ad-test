@@ -288,6 +288,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("/risk-settings", riskSettingsController.GetAllRiskSettings)
 	riskRoutes.PUT("/risk-settings", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskSettingsController.UpdateRiskSettings)
 
+	unauthenticatedRoutes.GET("/risks/:riskId/closures/:id/document-preview", riskClosureController.GetRiskClosureDocumentPreview)
+	unauthenticatedRoutes.GET("/risks/:riskId/closures/:id/document-download", riskClosureController.DownloadRiskClosureDocument)
 	riskRoutes.GET("risks/:riskId/closures", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskClosureController.GetAllRiskClosures)
 	riskRoutes.GET("risks/:riskId/closures/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskClosureController.GetRiskClosureDetails)
 	riskRoutes.POST("risks/:riskId/closures", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskClosureController.CreateRiskClosure)
