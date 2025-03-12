@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 
 	"jethur/grc/risk/dtos"
 	"jethur/grc/risk/services"
@@ -22,7 +23,28 @@ func NewRiskReportController(service services.RiskReportServiceInterface) *RiskR
 	}
 }
 
-// GenerateRiskReport generates a new risk report for risks in a given date range
+func (rrc *RiskReportController) GetRiskReportDetails(c *gin.Context) {
+
+	riskReportID, err := strconv.Atoi(c.Param("riskReportId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	details, err := rrc.service.GetRiskReportDetails(uint(riskReportID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, details)
+}
+
 func (rrc *RiskReportController) GenerateRiskReport(c *gin.Context) {
 	var request dtos.RiskReportFormDTO
 

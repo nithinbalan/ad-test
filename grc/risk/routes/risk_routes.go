@@ -306,6 +306,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/risks/:riskId/approve", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.ApproveRisk)
 	riskRoutes.PUT("/risks/:riskId/resubmit", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.ResubmitRisk)
 
+	riskRoutes.GET("/risk-reports/:riskReportId", riskReportController.GetRiskReportDetails)
 	riskRoutes.POST("/risk-reports", riskReportController.GenerateRiskReport)
 
 }

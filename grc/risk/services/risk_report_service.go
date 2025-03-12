@@ -1,12 +1,15 @@
 package services
 
 import (
+	"fmt"
 	"jethur/grc/models"
 	"jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
+	"jethur/utility"
 )
 
 type RiskReportServiceInterface interface {
+	GetRiskReportDetails(riskReportID uint, tx ...utility.DatabaseTransaction) (*dtos.RiskReportDetailDTO, error)
 	GenerateRiskReport(currentUserID uint, riskReportFormDTO *dtos.RiskReportFormDTO) (uint, error)
 }
 
@@ -20,6 +23,91 @@ func NewRiskReportService(
 	return &RiskReportService{
 		repo: repo,
 	}
+}
+
+func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint, tx ...utility.DatabaseTransaction) (*dtos.RiskReportDetailDTO, error) {
+	// Fetch Risk Report Details
+	riskReport, err := rrs.repo.GetRiskReportByID(riskReportID, tx...)
+	if err != nil {
+		return nil, err
+	}
+
+	// Initialize DTO
+	riskReportDTO := &dtos.RiskReportDetailDTO{
+		ID:        riskReport.ID,
+		Title:     riskReport.Title,
+		StartDate: riskReport.StartDate,
+		EndDate:   riskReport.EndDate,
+		// CreatedBy: riskReport.CreatedByUser.FirstNameEn(),
+		CreatedAt: riskReport.CreatedAt,
+	}
+
+	// Fetch Sections
+	sections, err := rrs.repo.GetSectionsByRiskReportID(riskReportID, tx...)
+	if err != nil {
+		return nil, err
+	}
+	for _, section := range sections {
+		riskReportDTO.Sections = append(riskReportDTO.Sections, dtos.RiskReportSectionDTO{
+			Type:          section.Type,
+			TitleEn:       section.TitleEn,
+			TitleAr:       section.TitleAr,
+			DescriptionEn: section.DescriptionEn,
+			DescriptionAr: section.DescriptionAr,
+			OrderNum:      section.OrderNum,
+		})
+	}
+
+	// Fetch Identified Risks
+	identifications, err := rrs.repo.GetIdentificationsByRiskReportID(riskReportID, tx...)
+	if err != nil {
+		return nil, err
+	}
+	for _, identification := range identifications {
+		riskReportDTO.Identifications = append(riskReportDTO.Identifications, dtos.RiskIdentificationDTO{
+			ReferenceNumber: identification.ReferenceNumber,
+			Title:           identification.Title,
+			Description:     identification.Description,
+			RiskCategory:    identification.RiskCategoryTitleEn,
+			// RiskStatus:      identification.RiskStatusTitleEn,
+		})
+	}
+
+	// Fetch Action Plans
+	actionPlans, err := rrs.repo.GetActionPlansByRiskReportID(riskReportID, tx...)
+	if err != nil {
+		return nil, err
+	}
+	for _, actionPlan := range actionPlans {
+		riskReportDTO.ActionPlans = append(riskReportDTO.ActionPlans, dtos.RiskActionPlanDTO{
+			// ReferenceNumber: actionPlan.RiskReportIdentification.ReferenceNumber,
+			Title:           actionPlan.ActionPlanTitle,
+			Description:     actionPlan.ActionPlanDescription,
+			SeverityLevel:   actionPlan.SeverityLevelTitleEn,
+			ResponsibleUser: actionPlan.ResponsibleUserNameEn,
+			// OrganizationUnit: actionPlan.OrganizationUnitTitleEn,
+			TargetDate: actionPlan.TargetDate.Format("2006-01-02"),
+			Status:     actionPlan.ActionPlanStatusTitleEn,
+		})
+	}
+
+	// Fetch KRIs
+	kris, err := rrs.repo.GetKRIsByRiskReportID(riskReportID, tx...)
+	if err != nil {
+		return nil, err
+	}
+	for _, kri := range kris {
+		riskReportDTO.KRIs = append(riskReportDTO.KRIs, dtos.RiskReportKriDTO{
+			// ReferenceNumber: kri.RiskReportIdentification.ReferenceNumber,
+			Title:       kri.Title,
+			Description: kri.Description,
+			// Threshold:       fmt.Sprintf("Low: %v, Medium: %v, High: %v", kri.LowThreshold, kri.MediumThreshold, kri.HighThreshold),
+			CurrentValue: fmt.Sprintf("%v", kri.CurrentValue),
+			Status:       "Normal", // You can add logic to determine the status based on thresholds
+		})
+	}
+
+	return riskReportDTO, nil
 }
 
 func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportFormDTO *dtos.RiskReportFormDTO) (uint, error) {

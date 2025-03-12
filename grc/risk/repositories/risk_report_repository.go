@@ -12,6 +12,12 @@ import (
 type RiskReportRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 
+	GetRiskReportByID(riskReportID uint, tx ...utility.DatabaseTransaction) (*models.RiskReport, error)
+	GetSectionsByRiskReportID(riskReportID uint, tx ...utility.DatabaseTransaction) ([]models.RiskReportSection, error)
+	GetIdentificationsByRiskReportID(riskReportID uint, tx ...utility.DatabaseTransaction) ([]models.RiskReportIdentification, error)
+	GetActionPlansByRiskReportID(riskReportID uint, tx ...utility.DatabaseTransaction) ([]models.RiskReportActionPlan, error)
+	GetKRIsByRiskReportID(riskReportID uint, tx ...utility.DatabaseTransaction) ([]models.RiskReportKRI, error)
+
 	Create(riskReport *models.RiskReport, tx ...utility.DatabaseTransaction) (uint, error)
 	CreateRiskReportOrganizationUnit(orgUnit *models.RiskReportOrganizationUnit, tx ...utility.DatabaseTransaction) error
 	CreateRiskIdentification(identification *models.RiskReportIdentification, tx ...utility.DatabaseTransaction) error
@@ -19,7 +25,7 @@ type RiskReportRepositoryInterface interface {
 	CreateSection(section *models.RiskReportSection, tx ...utility.DatabaseTransaction) error
 
 	CreateRiskActionPlan(actionPlan *models.RiskReportActionPlan, tx ...utility.DatabaseTransaction) error
-	GetActionPlansByRiskID(riskRegisterID uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportActionPlanDTO, error)
+	GetActionPlansByRiskID(riskRegisterID uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportActionPlanFormDTO, error)
 
 	GetKRIsByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]dtos.KRIDTO, error)
 	CreateRiskKRI(riskKRI *models.RiskReportKRI, tx ...utility.DatabaseTransaction) error
@@ -35,6 +41,85 @@ func NewRiskReportRepository(db *gorm.DB) RiskReportRepositoryInterface {
 
 func (repo *RiskReportRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
+}
+
+func (repo *RiskReportRepository) GetRiskReportByID(riskReportID uint, tx ...utility.DatabaseTransaction) (*models.RiskReport, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var riskReport models.RiskReport
+	result := db.Where("id = ?", riskReportID).First(&riskReport)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &riskReport, nil
+}
+
+// Get Sections of the report
+func (repo *RiskReportRepository) GetSectionsByRiskReportID(riskReportID uint, tx ...utility.DatabaseTransaction) ([]models.RiskReportSection, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var sections []models.RiskReportSection
+	result := db.Where("risk_report_id = ?", riskReportID).Order("order_num ASC").Find(&sections)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return sections, nil
+}
+
+// Get Risk Identifications
+func (repo *RiskReportRepository) GetIdentificationsByRiskReportID(riskReportID uint, tx ...utility.DatabaseTransaction) ([]models.RiskReportIdentification, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var identifications []models.RiskReportIdentification
+	result := db.Where("risk_report_id = ?", riskReportID).Find(&identifications)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return identifications, nil
+}
+
+// Get Risk Action Plans
+func (repo *RiskReportRepository) GetActionPlansByRiskReportID(riskReportID uint, tx ...utility.DatabaseTransaction) ([]models.RiskReportActionPlan, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var actionPlans []models.RiskReportActionPlan
+	result := db.Where("risk_report_id = ?", riskReportID).Find(&actionPlans)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return actionPlans, nil
+}
+
+// Get KRIs
+func (repo *RiskReportRepository) GetKRIsByRiskReportID(riskReportID uint, tx ...utility.DatabaseTransaction) ([]models.RiskReportKRI, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var kris []models.RiskReportKRI
+	result := db.Where("risk_report_id = ?", riskReportID).Find(&kris)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return kris, nil
 }
 
 func (repo *RiskReportRepository) Create(riskReport *models.RiskReport, tx ...utility.DatabaseTransaction) (uint, error) {
@@ -123,13 +208,13 @@ func (repo *RiskReportRepository) CreateSection(section *models.RiskReportSectio
 
 	return db.Create(&section).Error
 }
-func (repo *RiskReportRepository) GetActionPlansByRiskID(riskRegisterID uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportActionPlanDTO, error) {
+func (repo *RiskReportRepository) GetActionPlansByRiskID(riskRegisterID uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportActionPlanFormDTO, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	var actionPlans []dtos.RiskReportActionPlanDTO
+	var actionPlans []dtos.RiskReportActionPlanFormDTO
 
 	query := db.Table("risk_action_plans").
 		Select(`
