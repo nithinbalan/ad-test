@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
-	organizationDTOs "jethur/grc/organization/dtos"
 	strategyDTOs "jethur/grc/strategy/dtos"
 	"jethur/grc/strategy/repositories"
 	"jethur/utility"
@@ -46,94 +45,7 @@ func NewSwotPestelQuestionService(repo repositories.SwotPestelQuestionRepository
 
 func (sqs *SwotPestelQuestionService) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*strategyDTOs.SwotPestelQuestionListDTO, error) {
 	// Fetch raw models from the repository
-	swotPestelQuestions, err := sqs.repo.GetAll(sort, sortBy, keyword, status, isSwot, isPestel)
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert models to DTOs
-	var questionDTOs []*strategyDTOs.SwotPestelQuestionListDTO
-	for _, question := range swotPestelQuestions {
-		fmt.Println(question.AnsweredBYID)
-		questionDTO := &strategyDTOs.SwotPestelQuestionListDTO{
-			ID:                             int(question.ID),
-			TitleEn:                        question.TitleEn,
-			TitleAr:                        question.TitleAr,
-			SwotPestelQuestionGroupTitleEn: question.SwotPestelQuestionGroup.TitleEn,
-			SwotPestelQuestionGroupTitleAr: question.SwotPestelQuestionGroup.TitleAr,
-			Order:                          question.Order,
-			IsSwot:                         question.IsSwot,
-			IsPestel:                       question.IsPestel,
-			Status:                         question.Status,
-			Answer:                         question.Answer,
-			AnsweredAt:                     question.AnsweredAt,
-			AnsweredByID:                   nil,
-			AnsweredUserFirstNameEn:        "",
-			AnsweredUserLastNameEn:         "",
-			AnsweredUserFirstNameAr:        "",
-			AnsweredUserLastNameAr:         "",
-			AnsweredUserInitial:            "",
-			AnsweredUserColor:              "",
-			AnsweredUserEmail:              "",
-			AnsweredUserProfileImagePath:   "",
-		}
-		if question.AnsweredBYID != nil {
-			questionDTO.AnsweredByID = question.AnsweredBYID
-		}
-		if question.AnsweredByUser != nil {
-			if question.AnsweredByUser.FirstNameEn != "" {
-				questionDTO.AnsweredUserFirstNameEn = question.AnsweredByUser.FirstNameEn
-			}
-			if question.AnsweredByUser.LastNameEn != "" {
-				questionDTO.AnsweredUserLastNameEn = question.AnsweredByUser.LastNameEn
-			}
-			if question.AnsweredByUser.FirstNameAr != "" {
-				questionDTO.AnsweredUserFirstNameAr = question.AnsweredByUser.FirstNameAr
-			}
-			if question.AnsweredByUser.LastNameAr != "" {
-				questionDTO.AnsweredUserLastNameAr = question.AnsweredByUser.LastNameAr
-			}
-			if question.AnsweredByUser.Initial != "" {
-				questionDTO.AnsweredUserInitial = question.AnsweredByUser.Initial
-			}
-			if question.AnsweredByUser.Color != "" {
-				questionDTO.AnsweredUserColor = question.AnsweredByUser.Color
-			}
-			if question.AnsweredByUser.Email != "" {
-				questionDTO.AnsweredUserEmail = question.AnsweredByUser.Email
-			}
-			if question.AnsweredByUser.ProfileImagePath != nil {
-				questionDTO.AnsweredUserProfileImagePath = *question.AnsweredByUser.ProfileImagePath
-			}
-		}
-
-		// Convert invitees from DB model to DTO
-		var inviteeDTOs []*strategyDTOs.SwotPestelQuestionInviteeDTO
-		for _, invitee := range question.SwotPestelQuestionInvitees {
-			inviteeDTOs = append(inviteeDTOs, &strategyDTOs.SwotPestelQuestionInviteeDTO{
-				ID:                   invitee.ID,
-				SwotPestelQuestionID: invitee.SwotPestelQuestionID,
-				UserID:               invitee.UserID,
-				User: organizationDTOs.UserMinimalDTO{
-					ID:               int(invitee.User.ID),
-					FirstNameEN:      invitee.User.FirstNameEn,
-					LastNameEN:       invitee.User.LastNameEn,
-					FirstNameAR:      invitee.User.FirstNameAr,
-					LastNameAR:       invitee.User.LastNameAr,
-					ProfileImagePath: invitee.User.ProfileImagePath,
-					Email:            invitee.User.Email,
-					Initial:          invitee.User.Initial,
-					Color:            invitee.User.Color,
-					MobileNumber:     invitee.User.MobileNumber,
-				},
-			})
-		}
-
-		questionDTO.SwotPestelQuestionInvitees = inviteeDTOs
-		questionDTOs = append(questionDTOs, questionDTO)
-	}
-
-	return questionDTOs, nil
+	return sqs.repo.GetAll(sort, sortBy, keyword, status, isSwot, isPestel)
 }
 
 func (sqs SwotPestelQuestionService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.SwotPestelQuestionDTO, error) {
