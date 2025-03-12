@@ -279,7 +279,7 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 			testAndExerciseCommunicationActionPlan = append(testAndExerciseCommunicationActionPlan, process)
 		}
 
-		if len(testAndExerciseProcesses) > 0 {
+		if len(testAndExerciseCommunicationActionPlan) > 0 {
 			if err := tes.repo.CreateTestAndExerciseCommunicationActionPlans(testAndExerciseCommunicationActionPlan, tx); err != nil {
 				tx.Rollback()
 				return 0, err
