@@ -96,3 +96,8 @@ type TestAndExerciseCommunicationActionPlanDetailDTO struct {
 	CreatedByUser                 organizationDTOs.UserMinimalDTO   `json:"created_by_user"`
 	UpdatedByUser                 *organizationDTOs.UserMinimalDTO  `json:"updated_by_user"`
 }
+
+type TaeCommunicationActionPlanStatusUpdateFormDTO struct {
+	CommunicationActionPlanStatusID uint    `json:"communication_action_plan_status_id" binding:"required"`
+	Comment                         *string `json:"comment"`
+}

@@ -16,6 +16,8 @@ type TestAndExerciseRecoveryActionPlanRepositoryInterface interface {
 	Create(actionPlan *models.TestAndExerciseRecoveryActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(actionPlan *models.TestAndExerciseRecoveryActionPlan, tx ...utility.DatabaseTransaction) error
 	Delete(actionPlanID uint, tx ...utility.DatabaseTransaction) error
+
+	CreateInitialSLAActionPlanStatusUpdate(recoveryActionPlanStatusUpdate *models.TaeRecoveryActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 }
 
 type TestAndExerciseRecoveryActionPlanRepository struct {
@@ -63,6 +65,15 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
             responsible_user.email AS responsible_user_email, 
             responsible_user.color AS responsible_user_color, 
             responsible_user.profile_image_path AS responsible_user_profile_image_path, 
+			review_user.id AS review_user_id,
+			review_user.first_name_en AS review_user_first_name_en,
+			review_user.first_name_ar AS review_user_first_name_ar,
+			review_user.last_name_en AS review_user_last_name_en,
+			review_user.last_name_ar AS review_user_last_name_ar,
+			review_user.initial AS review_user_initial,
+			review_user.color AS review_user_color,
+			review_user.email AS review_user_email,
+			review_user.profile_image_path AS review_user_profile_image_path,
             CONVERT(VARCHAR, test_and_exercise_recovery_action_plans.target_date, 23) AS target_date,
             test_and_exercise_recovery_action_plans.action_plan_status_id,
             action_plan_statuses.title_en AS action_plan_status_title_en, 
@@ -92,6 +103,7 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
 		Joins(`LEFT JOIN processes ON processes.id = test_and_exercise_recovery_action_plans.process_id`).
 		Joins(`LEFT JOIN severity_levels ON severity_levels.id = test_and_exercise_recovery_action_plans.severity_level_id`).
 		Joins(`LEFT JOIN users AS responsible_user ON responsible_user.id = test_and_exercise_recovery_action_plans.responsible_user_id`).
+		Joins("LEFT JOIN users AS review_user ON review_user.id = test_and_exercise_recovery_action_plans.review_user_id").
 		Joins(`LEFT JOIN organization_units ON organization_units.id = test_and_exercise_recovery_action_plans.responsible_unit_id`).
 		Joins(`LEFT JOIN action_plan_statuses ON action_plan_statuses.id = test_and_exercise_recovery_action_plans.action_plan_status_id`).
 		Joins(`LEFT JOIN users AS created_user ON created_user.id = test_and_exercise_recovery_action_plans.created_by_id`).
@@ -182,6 +194,8 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetFullDetailsByID(id u
 		Preload("ResponsibleUnit").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("ActionPlanStatusUpdates").
+		Preload("ReviewUser").
 		Where("id = ?", id).
 		First(&actionPlan)
 
@@ -229,4 +243,15 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) Delete(actionPlanID uin
 	}
 
 	return nil
+}
+
+func (repo *TestAndExerciseRecoveryActionPlanRepository) CreateInitialSLAActionPlanStatusUpdate(recoveryActionPlanStatusUpdate *models.TaeRecoveryActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(recoveryActionPlanStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return recoveryActionPlanStatusUpdate.ID, nil
 }
