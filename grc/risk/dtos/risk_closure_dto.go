@@ -34,6 +34,10 @@ type RiskClosureListDTO struct {
 	UpdatedUserColor            *string `json:"updated_user_color"`
 	UpdatedUserEmail            *string `json:"updated_user_email"`
 	UpdatedUserProfileImagePath *string `json:"updated_user_profile_image_path"`
+	CurrentRiskRatingID         *uint   `json:"current_risk_rating_id"`
+	CurrentRiskRatingTitleEn    *string `json:"current_risk_rating_title_en"`
+	CurrentRiskRatingTitleAr    *string `json:"current_risk_rating_title_ar"`
+	CurrentRiskRatingColorCode  *string `json:"current_risk_rating_color_code"`
 }
 
 type RiskClosureDetailsDTO struct {
@@ -48,6 +52,7 @@ type RiskClosureDetailsDTO struct {
 	CreatedByUser  organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedAt      *time.Time                       `json:"updated_at,omitempty"`
 	UpdatedByUser  *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	RiskRegister   RiskRegisterDetailDTO            `json:"risk_register"`
 	Documents      []*RiskClosureDocumentDTO        `json:"documents"`
 }
 

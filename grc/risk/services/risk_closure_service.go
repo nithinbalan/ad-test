@@ -17,7 +17,7 @@ import (
 
 type RiskClosureServiceInterface interface {
 	GetAll(riskID uint) ([]*riskDTOs.RiskClosureListDTO, error)
-	GetFullDetailsByID(riskID uint) (*riskDTOs.RiskClosureDetailsDTO, error)
+	GetFullDetailsByID(riskID uint, id uint, tx ...utility.DatabaseTransaction) (*riskDTOs.RiskClosureDetailsDTO, error)
 	Create(riskID uint, currentUserID uint, closureFormDTO *riskDTOs.RiskClosureFormDTO) (uint, error)
 	Update(riskID uint, id uint, currentUserID uint, closureFormDTO *riskDTOs.RiskClosureFormDTO) error
 	Delete(riskID uint, id uint, currentUserID uint) (uint, error)
@@ -45,12 +45,12 @@ func (rcs *RiskClosureService) GetAll(riskID uint) ([]*riskDTOs.RiskClosureListD
 	return rcs.repo.GetAll(riskID)
 }
 
-func (rcs *RiskClosureService) GetFullDetailsByID(riskID uint) (*riskDTOs.RiskClosureDetailsDTO, error) {
+func (rcs *RiskClosureService) GetFullDetailsByID(riskID uint, id uint, tx ...utility.DatabaseTransaction) (*riskDTOs.RiskClosureDetailsDTO, error) {
 	if _, err := rcs.riskRegisterSvc.GetByID(riskID); err != nil {
 		return nil, err
 	}
 
-	closureDetails, err := rcs.repo.GetFullDetailsByID(riskID)
+	closureDetails, err := rcs.repo.GetFullDetailsByID(riskID, id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, riskID)
@@ -63,6 +63,9 @@ func (rcs *RiskClosureService) GetFullDetailsByID(riskID uint) (*riskDTOs.RiskCl
 	if err != nil {
 		return nil, err
 	}
+
+	closureDetailsDTO.CreatedAt = closureDetails.CreatedAt
+	closureDetailsDTO.UpdatedAt = closureDetails.UpdatedAt
 
 	return &closureDetailsDTO, nil
 }
@@ -297,7 +300,7 @@ func (rcs *RiskClosureService) Delete(riskID uint, id uint, currentUserID uint) 
 		return 0, err
 	}
 
-	riskClosure, err := rcs.GetFullDetailsByID(riskID)
+	riskClosure, err := rcs.GetFullDetailsByID(riskID, id, tx)
 	if err != nil {
 		return 0, err
 	}
