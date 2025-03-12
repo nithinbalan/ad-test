@@ -64,6 +64,9 @@ func (rcs *RiskClosureService) GetFullDetailsByID(riskID uint) (*riskDTOs.RiskCl
 		return nil, err
 	}
 
+	closureDetailsDTO.CreatedAt = closureDetails.CreatedAt
+	closureDetailsDTO.UpdatedAt = closureDetails.UpdatedAt
+
 	return &closureDetailsDTO, nil
 }
 

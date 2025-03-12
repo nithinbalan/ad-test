@@ -41,6 +41,10 @@ func (repo *RiskClosureRepository) GetAll(riskID uint) ([]*dtos.RiskClosureListD
 	query := repo.db.Table("risk_closures").
 		Select(`
 			risk_closures.*,
+			risk_register.current_risk_rating_id,
+			risk_matrix_risk_ratings.title_en AS current_risk_rating_title_en,
+			risk_matrix_risk_ratings.title_ar AS current_risk_rating_title_ar,
+			risk_matrix_risk_ratings.color_code AS current_risk_rating_color_code,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
@@ -63,6 +67,8 @@ func (repo *RiskClosureRepository) GetAll(riskID uint) ([]*dtos.RiskClosureListD
 		Joins(`
 			LEFT JOIN users AS created_user ON created_user.id = risk_closures.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = risk_closures.updated_by_id
+			LEFT JOIN risk_register ON risk_register.id = risk_closures.risk_register_id
+			LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id
 		`).
 		Where("risk_closures.risk_register_id = ?", riskID)
 
@@ -81,7 +87,7 @@ func (repo *RiskClosureRepository) GetFullDetailsByID(riskID uint, tx ...utility
 
 	var riskClosure models.RiskClosure
 	result := db.
-		Preload("RiskRegister").
+		Preload("RiskRegister.CurrentRiskRating").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("Documents").
