@@ -39,6 +39,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetMaintenanceController := app.AssetModule.AssetMaintenanceController
 	assetAssociatedItemController := app.AssetModule.AssetAssociatedItemController
 	assetCriticalityController := app.AssetModule.AssetCriticalityController
+	assetPolicyController := app.AssetModule.AssetPolicyController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -205,4 +206,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.CreateAssetCriticality)
 	assetRoutes.PUT("assets/:id/criticality/:criticalityId", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.UpdateAssetCriticality)
 	assetRoutes.DELETE("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.DeleteAssetCriticality)
+
+	assetRoutes.GET("/assets/:id/policies", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetPolicyController.GetAllPolicies)
+	assetRoutes.GET("/assets/:id/policies/:policyId", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetPolicyController.GetPolicyDetails)
+	assetRoutes.POST("/assets/:id/policies", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyController.CreatePolicy)
+	assetRoutes.POST("/assets/:id/policies/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyController.DeletePolicies)
+
 }

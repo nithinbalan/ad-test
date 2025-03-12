@@ -1,0 +1,59 @@
+package dtos
+
+import (
+	commonDTOs "jethur/grc/common/dtos"
+	documentsDTOs "jethur/grc/documents/dtos"
+	organizationDTOs "jethur/grc/organization/dtos"
+	"time"
+)
+
+// AssetPolicyListDTO - Used for listing Asset Policies
+type AssetPolicyListDTO struct {
+	ID                      uint      `json:"id"`
+	AssetRegisterID         uint      `json:"asset_register_id"`
+	AssetRegisterTitleEn    string    `json:"asset_register_title_en"`
+	AssetRegisterTitleAr    string    `json:"asset_register_title_ar"`
+	AssetCategoryTitleEn    string    `json:"asset_category_title_en"`
+	AssetCategoryTitleAr    string    `json:"asset_category_title_ar"`
+	AssetSubCategoryTitleEn string    `json:"asset_sub_category_title_en"`
+	AssetSubCategoryTitleAr string    `json:"asset_sub_category_title_ar"`
+	DocumentTitleEn         string    `json:"document_title_en"`
+	DocumentTitleAr         string    `json:"document_title_ar"`
+	DocumentURL             string    `json:"document_url"`
+	DocumentName            string    `json:"document_name"`
+	DocumentSize            int       `json:"document_size"`
+	DocumentToken           string    `json:"document_token"`
+	DocumentOriginalName    *string   `json:"document_original_name"`
+	CreatedAt               time.Time `json:"created_at"`
+}
+
+// AssetPolicyFormDTO - Used for creating an Asset Policy
+type AssetPolicyFormDTO struct {
+	DocumentIDs []uint `json:"document_ids" binding:"required"`
+}
+
+// AssetPolicyListQueryParamsDTO - Used for filtering and sorting
+type AssetPolicyListQueryParamsDTO struct {
+	Sort     string
+	SortBy   string
+	Keyword  string
+	Page     int
+	PageSize int
+	Filters  map[string][]string
+}
+
+// AssetPolicyListResponseDTO - Response DTO for listing
+type AssetPolicyListResponseDTO struct {
+	Items      []*AssetPolicyListDTO        `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type AssetPolicyDetailDTO struct {
+	ID            uint                             `json:"id"`
+	AssetRegister AssetRegisterDetailDTO           `json:"asset_register"`
+	Document      documentsDTOs.DocumentDetailsDTO `json:"document"`
+	CreatedByUser organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser *organizationDTOs.UserMinimalDTO `json:"updated_by,omitempty"`
+	CreatedAt     time.Time                        `json:"created_at"`
+	UpdatedAt     *time.Time                       `json:"updated_at,omitempty"`
+}

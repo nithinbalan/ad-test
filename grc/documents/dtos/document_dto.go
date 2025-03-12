@@ -112,30 +112,31 @@ type DocumentFormDTO struct {
 }
 
 type DocumentDetailsDTO struct {
-	ID                    int                              `json:"id"`
-	ReferenceNumber       string                           `json:"reference_number"`
-	TitleEn               string                           `json:"title_en"`
-	TitleAr               string                           `json:"title_ar"`
-	DescriptionEn         *string                          `json:"description_en"`
-	DescriptionAr         *string                          `json:"description_ar"`
-	IsLocked              bool                             `json:"is_locked"`
-	DocumentType          DocumentTypeDTO                  `json:"document_type"`
-	DocumentCategory      DocumentCategoryDTO              `json:"document_category"`
-	DocumentAccessType    DocumentAccessTypeDTO            `json:"document_access_type"`
-	ResponsibleUnit       settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
-	ResponsibleUser       organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
-	LatestDocumentVersion DocumentVersionDTO               `json:"latest_document_version"`
-	DocumentVersions      []DocumentVersionDTO             `json:"document_versions"`
-	DocumentStatus        DocumentStatusDTO                `json:"document_status"`
-	DocumentSharedUsers   []*DocumentSharedUserDTO         `json:"document_shared_users"`
-	DocumentSharedUnits   []*DocumentSharedUnitDTO         `json:"document_shared_units"`
-	CreatedByUser         organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedByUser         *organizationDTOs.UserMinimalDTO `json:"updated_by"`
-	CreatedAt             time.Time                        `json:"created_at"`
-	UpdatedAt             *time.Time                       `json:"updated_at"`
-	Acknowledged          *bool                            `json:"acknowledged,omitempty"`
-	ReviewFrequency       *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
-	NextReviewDate        *time.Time                       `json:"next_review_date"`
+	ID                        int                              `json:"id"`
+	ReferenceNumber           string                           `json:"reference_number"`
+	TitleEn                   string                           `json:"title_en"`
+	TitleAr                   string                           `json:"title_ar"`
+	DescriptionEn             *string                          `json:"description_en"`
+	DescriptionAr             *string                          `json:"description_ar"`
+	IsLocked                  bool                             `json:"is_locked"`
+	DocumentType              DocumentTypeDTO                  `json:"document_type"`
+	DocumentCategory          DocumentCategoryDTO              `json:"document_category"`
+	DocumentAccessType        DocumentAccessTypeDTO            `json:"document_access_type"`
+	ResponsibleUnit           settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
+	ResponsibleUser           organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
+	LatestDocumentVersion     DocumentVersionDTO               `json:"latest_document_version"`
+	DocumentVersions          []DocumentVersionDTO             `json:"document_versions"`
+	DocumentStatus            DocumentStatusDTO                `json:"document_status"`
+	DocumentSharedUsers       []*DocumentSharedUserDTO         `json:"document_shared_users"`
+	DocumentSharedUnits       []*DocumentSharedUnitDTO         `json:"document_shared_units"`
+	DocumentRequirementGroups []*DocumentRequirementGroupDTO   `json:"document_requirement_groups"`
+	CreatedByUser             organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser             *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	CreatedAt                 time.Time                        `json:"created_at"`
+	UpdatedAt                 *time.Time                       `json:"updated_at"`
+	Acknowledged              *bool                            `json:"acknowledged,omitempty"`
+	ReviewFrequency           *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
+	NextReviewDate            *time.Time                       `json:"next_review_date"`
 }
 
 type DocumentVersionDTO struct {
