@@ -23,6 +23,7 @@ type TestAndExerciseRecoveryActionPlanServiceInterface interface {
 	Create(testAndExerciseID uint, currentUserID uint, dto *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanFormDTO) (uint, error)
 	Update(testAndExerciseID uint, id uint, currentUserID uint, dto *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanFormDTO) error
 	Delete(testAndExerciseID uint, ids []uint, currentUserID uint) ([]uint, error)
+	StatusUpdate(testAndExerciseId uint, id uint, currentUserID uint, testAndExerciseRecoveryActionPlanStatusUpdateFormDTO *businessContinuityDTOs.TaeRecoveryActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
 }
 
 type TestAndExerciseRecoveryActionPlanService struct {
@@ -127,6 +128,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID
 		Title:              recoveryActionPlanFormDTO.Title,
 		ResponsibleUserID:  recoveryActionPlanFormDTO.ResponsibleUserID,
 		ResponsibleUnitID:  responsibleUnitID,
+		ReviewUserID:       recoveryActionPlanFormDTO.ReviewUserID,
 		TargetDate:         dates.TargetDate,
 		ActionPlanStatusId: &actionPlanStatus.ID,
 		IsRecovery:         recoveryActionPlanFormDTO.IsRecovery,
@@ -135,6 +137,21 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID
 	}
 
 	id, err := teraps.repo.Create(actionPlan, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	actionPlanStatusID := actionPlanStatus.ID
+	recoveryActionPlanUpdate := &models.TaeRecoveryActionPlanStatusUpdate{
+		TestAndExerciseRecoveryActionPlanID: id,
+		ActionPlanStatusID:                  actionPlanStatusID,
+		Comment:                             "Initial action plan status",
+		Percentage:                          recoveryActionPlanFormDTO.Percentage,
+		CreatedByID:                         currentUserID,
+	}
+
+	_, err = teraps.repo.CreateInitialSLAActionPlanStatusUpdate(recoveryActionPlanUpdate, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -208,6 +225,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 	existingRecoveryPlan.TargetDate = dates.TargetDate
 	existingRecoveryPlan.IsRecovery = recoveryActionPlanFormDTO.IsRecovery
 	existingRecoveryPlan.Percentage = recoveryActionPlanFormDTO.Percentage
+	existingRecoveryPlan.ReviewUserID = recoveryActionPlanFormDTO.ReviewUserID
 	existingRecoveryPlan.UpdatedBYID = &currentUserID
 
 	err = teraps.repo.Update(existingRecoveryPlan, tx)
@@ -341,4 +359,22 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) parseTestAndExerciseReco
 	}
 
 	return parsed, nil
+}
+
+func (saps *TestAndExerciseRecoveryActionPlanService) StatusUpdate(slaID uint, id uint, currentUserID uint, testAndExerciseRecoveryActionPlanStatusUpdateFormDTO *businessContinuityDTOs.TaeRecoveryActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error {
+	existingTestAndExerciseRecoveryActionPlan, err := saps.GetByID(slaID, id)
+	if err != nil {
+		return err
+	}
+
+	existingTestAndExerciseRecoveryActionPlan.ActionPlanStatusId = &testAndExerciseRecoveryActionPlanStatusUpdateFormDTO.ActionPlanStatusID
+	existingTestAndExerciseRecoveryActionPlan.Percentage = testAndExerciseRecoveryActionPlanStatusUpdateFormDTO.Percentage
+	existingTestAndExerciseRecoveryActionPlan.UpdatedBYID = &currentUserID
+
+	err = saps.repo.Update(existingTestAndExerciseRecoveryActionPlan, tx)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
