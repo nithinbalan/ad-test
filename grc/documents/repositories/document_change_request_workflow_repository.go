@@ -101,6 +101,7 @@ func (repo *DocumentChangeRequestWorkflowRepository) GetDocumentCRWorkflowByLeve
 		Preload("WorkflowLevelType").
 		Preload("DocumentChangeRequestWorkflowParticipants").
 		Preload("DocumentChangeRequestWorkflowReviews").
+		Preload("DocumentChangeRequestWorkflowReviews.DocumentChangeRequestWorkflowStatus").
 		Preload("DocumentChangeRequestWorkflowParticipants.User").
 		Where("document_change_request_id = ? AND level = ?", changeRequestID, currentApprovalLevel).
 		Find(&documentCRWorkflow)

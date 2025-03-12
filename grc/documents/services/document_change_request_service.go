@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -930,7 +931,7 @@ func (dcrs *DocumentChangeRequestService) CheckoutDocument(id uint, currentUserI
 		return "", utility.NewForbiddenError("Checkout only allowed for documents in 'draft' or 'in-review' status.")
 	}
 
-	if documentChangeRequest.DocumentChangeRequestType.Type == "archive" || documentChangeRequest.DocumentChangeRequestType.Type != "restore" {
+	if documentChangeRequest.DocumentChangeRequestType.Type == "archive" || documentChangeRequest.DocumentChangeRequestType.Type == "restore" {
 		tx.Rollback()
 		return "", utility.NewForbiddenError("Checkout not allowed for document change request type archive and restore")
 	}
@@ -1009,7 +1010,7 @@ func (dcrs *DocumentChangeRequestService) CheckinDocument(id uint, currentUserID
 		return fmt.Errorf("checkin only allowed for documents in 'draft' or 'in-review' status")
 	}
 
-	if documentChangeRequest.DocumentChangeRequestType.Type == "archive" || documentChangeRequest.DocumentChangeRequestType.Type != "restore" {
+	if documentChangeRequest.DocumentChangeRequestType.Type == "archive" || documentChangeRequest.DocumentChangeRequestType.Type == "restore" {
 		tx.Rollback()
 		return utility.NewForbiddenError("Checkin not allowed for document change request type archive and restore")
 	}
@@ -1118,7 +1119,7 @@ func (dcrs *DocumentChangeRequestService) RevertDocumentCheckout(id uint, curren
 		return err
 	}
 
-	if documentCRFullDetails.DocumentChangeRequestType.Type == "archive" || documentCRFullDetails.DocumentChangeRequestType.Type != "restore" {
+	if documentCRFullDetails.DocumentChangeRequestType.Type == "archive" || documentCRFullDetails.DocumentChangeRequestType.Type == "restore" {
 		tx.Rollback()
 		return utility.NewForbiddenError("Checkout revert not allowed for document change request type archive and restore")
 	}
@@ -1497,7 +1498,7 @@ func (dcrs *DocumentChangeRequestService) GetDocumentCRLastEditSummary(id uint) 
 
 	// Initialize variables for the current document workflow
 	var currentDocumentCRWorkflow *models.DocumentChangeRequestWorkflow
-	var participants []*organizationDTOs.UserMinimalDTO
+	var participants []*documentDTOs.ParticipantDTO
 	totalComments := 0
 
 	// Check if there is a next review level and fetch the corresponding workflow
@@ -1510,16 +1511,54 @@ func (dcrs *DocumentChangeRequestService) GetDocumentCRLastEditSummary(id uint) 
 
 	// Process workflow participants and count comments
 	if currentDocumentCRWorkflow != nil {
-		for _, participant := range currentDocumentCRWorkflow.DocumentChangeRequestWorkflowParticipants {
-			userDTO := mapUserToDTO(participant.User)
-			if userDTO != nil {
-				participants = append(participants, userDTO)
+		approvalStatus := make(map[uint]bool)
+
+		// Sort reviews by CreatedAt to ensure chronological order
+		sort.Slice(currentDocumentCRWorkflow.DocumentChangeRequestWorkflowReviews, func(i, j int) bool {
+			return currentDocumentCRWorkflow.DocumentChangeRequestWorkflowReviews[i].CreatedAt.Before(
+				currentDocumentCRWorkflow.DocumentChangeRequestWorkflowReviews[j].CreatedAt)
+		})
+
+		// First find the latest resubmit
+		var latestResubmitTime time.Time
+		hasResubmit := false
+
+		// Process all reviews
+		for _, review := range currentDocumentCRWorkflow.DocumentChangeRequestWorkflowReviews {
+			if review.DocumentChangeRequestWorkflowStatus != nil {
+				// Check for resubmit
+				if review.DocumentChangeRequestWorkflowStatus.Type == "resubmit" {
+					latestResubmitTime = review.CreatedAt
+					hasResubmit = true
+					// Clear previous approvals as they are now invalid
+					approvalStatus = make(map[uint]bool)
+				}
+
+				// Process approvals
+				if review.DocumentChangeRequestWorkflowStatus.Type == "approve" {
+					if !hasResubmit || review.CreatedAt.After(latestResubmitTime) {
+						approvalStatus[review.CreatedBYID] = true
+					}
+				}
+			}
+
+			// Count all comments regardless of timing
+			if review.Comment != "" {
+				totalComments++
 			}
 		}
 
-		for _, review := range currentDocumentCRWorkflow.DocumentChangeRequestWorkflowReviews {
-			if review.Comment != "" {
-				totalComments++
+		// Process participants with their approval status
+		for _, participant := range currentDocumentCRWorkflow.DocumentChangeRequestWorkflowParticipants {
+			if participant.User != nil {
+				userDTO := mapUserToDTO(participant.User)
+				if userDTO != nil {
+					participantDTO := &documentDTOs.ParticipantDTO{
+						UserMinimalDTO: userDTO,
+						IsApproved:     approvalStatus[participant.UserID],
+					}
+					participants = append(participants, participantDTO)
+				}
 			}
 		}
 	}

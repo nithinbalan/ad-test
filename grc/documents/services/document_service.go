@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -1998,7 +1999,6 @@ func (ds *DocumentService) GetDocumentLastEditSummary(documentID uint) (*documen
 
 	// Handle case where activity is not found
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		// Populate default values when no activity is found
 		emptyString := ""
 		zeroTime := time.Time{}
 		latestActivityDTO = documentDTOs.ActivityDTO{
@@ -2008,10 +2008,8 @@ func (ds *DocumentService) GetDocumentLastEditSummary(documentID uint) (*documen
 			Timestamp: zeroTime,
 		}
 	} else if err != nil {
-		// Return other unexpected errors
 		return nil, err
 	} else {
-		// Map activity details to DTO
 		userDTO := mapUserToDTO(activity.CreatedByUser)
 		latestActivityDTO = documentDTOs.ActivityDTO{
 			Activity:  activity.ActionType,
@@ -2020,12 +2018,11 @@ func (ds *DocumentService) GetDocumentLastEditSummary(documentID uint) (*documen
 			Timestamp: activity.CreatedAt,
 		}
 	}
-	// Initialize variables for the current document workflow
+
 	var currentDocumentWorkflow *models.DocumentWorkflow
-	var participants []*organizationDTOs.UserMinimalDTO
+	var participants []*documentDTOs.ParticipantDTO
 	totalComments := 0
 
-	// Check if there is a next review level and fetch the corresponding workflow
 	if document.LatestDocumentVersion.NextReviewLevel != nil {
 		currentDocumentWorkflow, err = ds.documentWorkflowSvc.GetDocumentWorkflowByLevel(document.LatestDocumentVersion.ID, *document.LatestDocumentVersion.NextReviewLevel)
 		if err != nil {
@@ -2033,23 +2030,72 @@ func (ds *DocumentService) GetDocumentLastEditSummary(documentID uint) (*documen
 		}
 	}
 
-	// Process workflow participants and count comments
 	if currentDocumentWorkflow != nil {
-		for _, participant := range currentDocumentWorkflow.DocumentWorkflowParticipants {
-			userDTO := mapUserToDTO(participant.User)
-			if userDTO != nil {
-				participants = append(participants, userDTO)
-			}
-		}
+		approvalStatus := make(map[uint]bool)
+
+		fmt.Printf("\n=== Debug Workflow Info ===\n")
+		fmt.Printf("Total reviews: %d\n", len(currentDocumentWorkflow.DocumentWorkflowReviews))
+
+		// Sort reviews by CreatedAt to ensure chronological order
+		sort.Slice(currentDocumentWorkflow.DocumentWorkflowReviews, func(i, j int) bool {
+			return currentDocumentWorkflow.DocumentWorkflowReviews[i].CreatedAt.Before(
+				currentDocumentWorkflow.DocumentWorkflowReviews[j].CreatedAt)
+		})
+
+		// First find the latest resubmit
+		var latestResubmitTime time.Time
+		hasResubmit := false
 
 		for _, review := range currentDocumentWorkflow.DocumentWorkflowReviews {
+			if review.DocumentWorkflowStatus != nil &&
+				review.DocumentWorkflowStatus.Type == "resubmit" {
+				latestResubmitTime = review.CreatedAt
+				hasResubmit = true
+				fmt.Printf("Found resubmit at: %v\n", latestResubmitTime)
+				// Clear previous approvals as they are now invalid
+				approvalStatus = make(map[uint]bool)
+			}
+
+			// Process approvals
+			if review.DocumentWorkflowStatus != nil &&
+				review.DocumentWorkflowStatus.Type == "approve" {
+				if !hasResubmit || review.CreatedAt.After(latestResubmitTime) {
+					approvalStatus[review.CreatedBYID] = true
+					fmt.Printf("Valid approval from user %d at %v\n",
+						review.CreatedBYID, review.CreatedAt)
+				} else {
+					fmt.Printf("Skipping approval from user %d at %v (before resubmit)\n",
+						review.CreatedBYID, review.CreatedAt)
+				}
+			}
+
+			// Count all comments regardless of timing
 			if review.Comment != "" {
 				totalComments++
 			}
 		}
+
+		fmt.Printf("Final approval status map: %v\n", approvalStatus)
+
+		// Process participants
+		for _, participant := range currentDocumentWorkflow.DocumentWorkflowParticipants {
+			if participant.User != nil {
+				userDTO := mapUserToDTO(participant.User)
+				if userDTO != nil {
+					isApproved := approvalStatus[participant.UserID]
+					fmt.Printf("Participant %d (UserID: %d) approval status: %v\n",
+						participant.ID, participant.UserID, isApproved)
+
+					participantDTO := &documentDTOs.ParticipantDTO{
+						UserMinimalDTO: userDTO,
+						IsApproved:     isApproved,
+					}
+					participants = append(participants, participantDTO)
+				}
+			}
+		}
 	}
 
-	// Prepare the response DTO
 	responseDTO := &documentDTOs.DocumentLastEditSummaryDTO{
 		LatestActivity: latestActivityDTO,
 		CurrentLevel:   document.LatestDocumentVersion.NextReviewLevel,
@@ -2285,6 +2331,9 @@ func (ds *DocumentService) notifyUsersOnPublish(document *documentDTOs.DocumentD
 				"LastNameEn":             user.LastNameEN,
 				"DocumentTitle":          document.TitleEn,
 				"DocumentType":           document.DocumentType.TitleEn,
+				"DocumentCategory":       document.DocumentCategory.TitleEn,
+				"DocumentVersion":        document.LatestDocumentVersion.Version,
+				"DocumentResponsible":    document.ResponsibleUser.FirstNameEN + " " + document.ResponsibleUser.LastNameEN,
 				"PublishedByFirstNameEn": publishedUser.FirstNameEn,
 				"PublishedByFirstLastEn": publishedUser.LastNameEn,
 				"PublishedAt":            time.Now().Format("2006-01-02"),
