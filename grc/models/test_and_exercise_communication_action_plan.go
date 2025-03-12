@@ -17,6 +17,7 @@ type TestAndExerciseCommunicationActionPlan struct {
 	Channel                         *string    `json:"channel"`
 	Description                     *string    `json:"description"`
 	CommunicationActionPlanStatusID *uint      `json:"communication_action_plan_status_id"`
+	Comment                         *string    `json:"comment"`
 	CreatedBYID                     uint       `json:"created_by_id" binding:"required"`
 	UpdatedBYID                     *uint      `json:"updated_by_id"`
 	CreatedAt                       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
