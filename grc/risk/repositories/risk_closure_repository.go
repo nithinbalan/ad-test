@@ -11,7 +11,7 @@ import (
 type RiskClosureRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(riskID uint) ([]*dtos.RiskClosureListDTO, error)
-	GetFullDetailsByID(riskID uint, tx ...utility.DatabaseTransaction) (*models.RiskClosure, error)
+	GetFullDetailsByID(riskID uint, id uint, tx ...utility.DatabaseTransaction) (*models.RiskClosure, error)
 	GetByID(id uint) (*models.RiskClosure, error)
 	Create(riskClosure *models.RiskClosure, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskClosure *models.RiskClosure, tx ...utility.DatabaseTransaction) error
@@ -79,7 +79,7 @@ func (repo *RiskClosureRepository) GetAll(riskID uint) ([]*dtos.RiskClosureListD
 	return closures, nil
 }
 
-func (repo *RiskClosureRepository) GetFullDetailsByID(riskID uint, tx ...utility.DatabaseTransaction) (*models.RiskClosure, error) {
+func (repo *RiskClosureRepository) GetFullDetailsByID(riskID uint, id uint, tx ...utility.DatabaseTransaction) (*models.RiskClosure, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -91,7 +91,7 @@ func (repo *RiskClosureRepository) GetFullDetailsByID(riskID uint, tx ...utility
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("Documents").
-		Where("risk_register_id = ?", riskID).
+		Where("risk_register_id = ? AND id = ?", riskID, id).
 		First(&riskClosure)
 
 	if result.Error != nil {
