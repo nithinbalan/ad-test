@@ -271,3 +271,36 @@ func (sqc *SwotPestelQuestionController) CreateInvitees(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, questionId)
 }
+
+func (sqc *SwotPestelQuestionController) DeleteInvitees(c *gin.Context) {
+	var request struct {
+		IDs []*uint `json:"ids"`
+	}
+
+	questionIDStr := c.Param("questionId")
+
+	questionId, err := strconv.ParseUint(questionIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(sqc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := sqc.service.DeleteInvitees(uint(questionId), request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(sqc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}

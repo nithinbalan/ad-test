@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	strategyDTOs "jethur/grc/strategy/dtos"
 	"jethur/grc/strategy/repositories"
 	"jethur/utility"
@@ -27,6 +28,7 @@ type SwotPestelQuestionServiceInterface interface {
 
 	UpdateAnswer(id uint, currentUserID uint, answerFormDTO *strategyDTOs.AnswerFormDTO) error
 	CreateInvitees(id uint, currentUserID uint, inviteeFormDTO *strategyDTOs.InviteeFormDTO) error
+	DeleteInvitees(questionId uint, ids []*uint, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
@@ -43,7 +45,95 @@ func NewSwotPestelQuestionService(repo repositories.SwotPestelQuestionRepository
 }
 
 func (sqs *SwotPestelQuestionService) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*strategyDTOs.SwotPestelQuestionListDTO, error) {
-	return sqs.repo.GetAll(sort, sortBy, keyword, status, isSwot, isPestel)
+	// Fetch raw models from the repository
+	swotPestelQuestions, err := sqs.repo.GetAll(sort, sortBy, keyword, status, isSwot, isPestel)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert models to DTOs
+	var questionDTOs []*strategyDTOs.SwotPestelQuestionListDTO
+	for _, question := range swotPestelQuestions {
+		fmt.Println(question.AnsweredBYID)
+		questionDTO := &strategyDTOs.SwotPestelQuestionListDTO{
+			ID:                             int(question.ID),
+			TitleEn:                        question.TitleEn,
+			TitleAr:                        question.TitleAr,
+			SwotPestelQuestionGroupTitleEn: question.SwotPestelQuestionGroup.TitleEn,
+			SwotPestelQuestionGroupTitleAr: question.SwotPestelQuestionGroup.TitleAr,
+			Order:                          question.Order,
+			IsSwot:                         question.IsSwot,
+			IsPestel:                       question.IsPestel,
+			Status:                         question.Status,
+			Answer:                         question.Answer,
+			AnsweredAt:                     question.AnsweredAt,
+			AnsweredByID:                   nil,
+			AnsweredUserFirstNameEn:        "",
+			AnsweredUserLastNameEn:         "",
+			AnsweredUserFirstNameAr:        "",
+			AnsweredUserLastNameAr:         "",
+			AnsweredUserInitial:            "",
+			AnsweredUserColor:              "",
+			AnsweredUserEmail:              "",
+			AnsweredUserProfileImagePath:   "",
+		}
+		if question.AnsweredBYID != nil {
+			questionDTO.AnsweredByID = question.AnsweredBYID
+		}
+		if question.AnsweredByUser != nil {
+			if question.AnsweredByUser.FirstNameEn != "" {
+				questionDTO.AnsweredUserFirstNameEn = question.AnsweredByUser.FirstNameEn
+			}
+			if question.AnsweredByUser.LastNameEn != "" {
+				questionDTO.AnsweredUserLastNameEn = question.AnsweredByUser.LastNameEn
+			}
+			if question.AnsweredByUser.FirstNameAr != "" {
+				questionDTO.AnsweredUserFirstNameAr = question.AnsweredByUser.FirstNameAr
+			}
+			if question.AnsweredByUser.LastNameAr != "" {
+				questionDTO.AnsweredUserLastNameAr = question.AnsweredByUser.LastNameAr
+			}
+			if question.AnsweredByUser.Initial != "" {
+				questionDTO.AnsweredUserInitial = question.AnsweredByUser.Initial
+			}
+			if question.AnsweredByUser.Color != "" {
+				questionDTO.AnsweredUserColor = question.AnsweredByUser.Color
+			}
+			if question.AnsweredByUser.Email != "" {
+				questionDTO.AnsweredUserEmail = question.AnsweredByUser.Email
+			}
+			if question.AnsweredByUser.ProfileImagePath != nil {
+				questionDTO.AnsweredUserProfileImagePath = *question.AnsweredByUser.ProfileImagePath
+			}
+		}
+
+		// Convert invitees from DB model to DTO
+		var inviteeDTOs []*strategyDTOs.SwotPestelQuestionInviteeDTO
+		for _, invitee := range question.SwotPestelQuestionInvitees {
+			inviteeDTOs = append(inviteeDTOs, &strategyDTOs.SwotPestelQuestionInviteeDTO{
+				ID:                   invitee.ID,
+				SwotPestelQuestionID: invitee.SwotPestelQuestionID,
+				UserID:               invitee.UserID,
+				User: organizationDTOs.UserMinimalDTO{
+					ID:               int(invitee.User.ID),
+					FirstNameEN:      invitee.User.FirstNameEn,
+					LastNameEN:       invitee.User.LastNameEn,
+					FirstNameAR:      invitee.User.FirstNameAr,
+					LastNameAR:       invitee.User.LastNameAr,
+					ProfileImagePath: invitee.User.ProfileImagePath,
+					Email:            invitee.User.Email,
+					Initial:          invitee.User.Initial,
+					Color:            invitee.User.Color,
+					MobileNumber:     invitee.User.MobileNumber,
+				},
+			})
+		}
+
+		questionDTO.SwotPestelQuestionInvitees = inviteeDTOs
+		questionDTOs = append(questionDTOs, questionDTO)
+	}
+
+	return questionDTOs, nil
 }
 
 func (sqs SwotPestelQuestionService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.SwotPestelQuestionDTO, error) {
@@ -396,4 +486,53 @@ func (sqs *SwotPestelQuestionService) CreateInvitees(id uint, currentUserID uint
 
 	return nil
 
+}
+
+func (spqfs *SwotPestelQuestionService) DeleteInvitees(questionId uint, ids []*uint, currentUserID uint) ([]uint, error) {
+	tx := spqfs.repo.BeginTransaction()
+	var failedIds []uint
+	var successfulIds []uint
+	var deletedSwotPestelQuestionInvitee []map[string]interface{}
+
+	for _, id := range ids {
+
+		deletedSwotPestelQuestionInvitee = append(deletedSwotPestelQuestionInvitee, map[string]interface{}{
+			"id": id,
+		})
+
+		// Delete the business
+		if err := spqfs.repo.DeleteSwotPestelQuestionInvitees(questionId, ids); err != nil {
+			failedIds = append(failedIds, *id)
+			continue
+		} else {
+			successfulIds = append(successfulIds, *id)
+		}
+	}
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
+	tx.Commit()
+
+	// Log bulk delete activities for successful deletions
+	if len(successfulIds) > 0 {
+		go func() {
+			err := spqfs.activityLogSvc.LogBulkActivities(
+				models.DeleteAction, // Make sure this action constant is defined appropriately
+				models.SwotPestelQuestionInvitee{}.TableName(),
+				successfulIds,
+				deletedSwotPestelQuestionInvitee,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				// @todo - save to log file
+				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			}
+
+		}()
+	}
+
+	return failedIds, nil
 }

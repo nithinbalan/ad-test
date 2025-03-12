@@ -2,8 +2,6 @@ package repositories
 
 import (
 	"jethur/grc/models"
-	organizationDTOs "jethur/grc/organization/dtos"
-	strategyDTOs "jethur/grc/strategy/dtos"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -11,7 +9,8 @@ import (
 
 // Interfaces
 type SwotPestelQuestionRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*strategyDTOs.SwotPestelQuestionListDTO, error)
+	BeginTransaction() utility.DatabaseTransaction
+	GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*models.SwotPestelQuestion, error)
 	GetAllOrdered(swotPestelQuestionGroupId uint) ([]*models.SwotPestelQuestion, error)
 	GetByID(id uint) (*models.SwotPestelQuestion, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.SwotPestelQuestion, error)
@@ -38,10 +37,15 @@ func NewSwotPestelQuestionRepository(db *gorm.DB) *SwotPestelQuestionRepository 
 	}
 }
 
-func (repo *SwotPestelQuestionRepository) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*strategyDTOs.SwotPestelQuestionListDTO, error) {
-	var swotPestelQuestions []*strategyDTOs.SwotPestelQuestionListDTO
+// BeginTransaction starts a new transaction.
+func (repo *SwotPestelQuestionRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
+}
 
-	query := repo.db.Table("swot_pestel_questions").
+func (repo *SwotPestelQuestionRepository) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*models.SwotPestelQuestion, error) {
+	var swotPestelQuestions []*models.SwotPestelQuestion
+
+	query := repo.db.Preload("SwotPestelQuestionGroup").Preload("AnsweredByUser").Preload("SwotPestelQuestionInvitees.User").Table("swot_pestel_questions").
 		Select(`
 			swot_pestel_questions.*,
 			swot_pestel_question_groups.title_en AS swot_pestel_question_group_title_en,
@@ -99,41 +103,6 @@ func (repo *SwotPestelQuestionRepository) GetAll(sort string, sortBy string, key
 	err := query.Find(&swotPestelQuestions).Error
 	if err != nil {
 		return nil, err
-	}
-
-	for _, question := range swotPestelQuestions {
-		var invitees []*models.SwotPestelQuestionInvitee // Use actual DB model
-
-		err := repo.db.Preload("User").
-			Where("swot_pestel_question_id = ?", question.ID).
-			Find(&invitees).Error
-
-		if err != nil {
-			return nil, err
-		}
-
-		// Convert invitees from DB model to DTO
-		var inviteeDTOs []*strategyDTOs.SwotPestelQuestionInviteeDTO
-		for _, invitee := range invitees {
-			inviteeDTOs = append(inviteeDTOs, &strategyDTOs.SwotPestelQuestionInviteeDTO{
-				ID:                   invitee.ID,
-				SwotPestelQuestionID: invitee.SwotPestelQuestionID,
-				UserID:               invitee.UserID,
-				User: organizationDTOs.UserMinimalDTO{
-					ID:               int(invitee.User.ID),
-					FirstNameEN:      invitee.User.FirstNameEn,
-					LastNameEN:       invitee.User.LastNameEn,
-					FirstNameAR:      invitee.User.FirstNameAr,
-					LastNameAR:       invitee.User.LastNameAr,
-					ProfileImagePath: invitee.User.ProfileImagePath,
-					Email:            invitee.User.Email,
-					Initial:          invitee.User.Initial,
-					Color:            invitee.User.Color,
-					MobileNumber:     invitee.User.MobileNumber,
-				},
-			})
-		}
-		question.SwotPestelQuestionInvitees = inviteeDTOs
 	}
 
 	return swotPestelQuestions, nil

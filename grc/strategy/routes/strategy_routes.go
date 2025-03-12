@@ -53,6 +53,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	strategyRoutes.PUT("/swot-questions/:questionId/answer", middlewares.RolePermissionMiddleware(db, "swot", "modify"), swotPestelQuestionController.UpdateAnswer)
 	strategyRoutes.PUT("/swot-questions/:questionId/answer-invitees", middlewares.RolePermissionMiddleware(db, "swot", "modify"), swotPestelQuestionController.CreateInvitees)
+	strategyRoutes.PUT("/swot-questions/:questionId/answer-invitees/delete", middlewares.RolePermissionMiddleware(db, "swot", "modify"), swotPestelQuestionController.DeleteInvitees)
 
 	//Swot Pestel Category
 	strategyRoutes.GET("/swot-pestel-categories", swotPestelCategoryController.GetAllSwotPestelCategories)
