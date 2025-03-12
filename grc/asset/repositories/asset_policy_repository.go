@@ -92,7 +92,7 @@ func (repo *AssetPolicyRepository) GetAll(params *dtos.AssetPolicyListQueryParam
 
 func (repo *AssetPolicyRepository) GetByID(id uint) (*models.AssetPolicy, error) {
 	var assetPolicy *models.AssetPolicy
-	result := repo.db.Preload("Documents").First(&assetPolicy, id)
+	result := repo.db.First(&assetPolicy, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -110,6 +110,8 @@ func (repo *AssetPolicyRepository) GetFullDetailsByID(id uint, tx ...utility.Dat
 	result := db.
 		Preload("AssetRegister").
 		Preload("Document").
+		Preload("AssetPolicyChecklists").
+		Preload("AssetPolicyChecklists.DocumentRequirementGroup").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&assetPolicy, id)

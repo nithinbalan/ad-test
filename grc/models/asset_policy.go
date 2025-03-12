@@ -14,10 +14,11 @@ type AssetPolicy struct {
 	UpdatedAt       time.Time `json:"updated_at" gorm:"type:datetime;not null"`
 
 	// Relationships
-	AssetRegister *AssetRegister `gorm:"foreignKey:AssetRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Document      *Document      `gorm:"foreignKey:DocumentID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser *User          `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser *User          `gorm:"foreignKey:UpdatedBYID"`
+	AssetRegister         *AssetRegister          `gorm:"foreignKey:AssetRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Document              *Document               `gorm:"foreignKey:DocumentID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	AssetPolicyChecklists *[]AssetPolicyChecklist `gorm:"foreignKey:AssetPolicyID"`
+	CreatedByUser         *User                   `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser         *User                   `gorm:"foreignKey:UpdatedBYID"`
 }
 
 func (AssetPolicy) TableName() string {

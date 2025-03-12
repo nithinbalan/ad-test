@@ -49,11 +49,12 @@ type AssetPolicyListResponseDTO struct {
 }
 
 type AssetPolicyDetailDTO struct {
-	ID            uint                             `json:"id"`
-	AssetRegister AssetRegisterDetailDTO           `json:"asset_register"`
-	Document      documentsDTOs.DocumentDetailsDTO `json:"document"`
-	CreatedByUser organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedByUser *organizationDTOs.UserMinimalDTO `json:"updated_by,omitempty"`
-	CreatedAt     time.Time                        `json:"created_at"`
-	UpdatedAt     *time.Time                       `json:"updated_at,omitempty"`
+	ID                    uint                             `json:"id"`
+	AssetRegister         AssetRegisterDetailDTO           `json:"asset_register"`
+	AssetPolicyChecklists []*AssetPolicyChecklistDTO       `json:"asset_policy_checklists"`
+	Document              documentsDTOs.DocumentDetailsDTO `json:"document"`
+	CreatedByUser         organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser         *organizationDTOs.UserMinimalDTO `json:"updated_by,omitempty"`
+	CreatedAt             time.Time                        `json:"created_at"`
+	UpdatedAt             *time.Time                       `json:"updated_at,omitempty"`
 }
