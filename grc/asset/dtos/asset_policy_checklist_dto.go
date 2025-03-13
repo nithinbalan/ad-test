@@ -25,9 +25,16 @@ type AssetPolicyChecklistDTO struct {
 }
 
 // AssetPolicyChecklistFormDTO is used for creating or updating a checklist
+type AssetPolicyChecklistAnswerFormDTO struct {
+	Justification      *string `json:"justification,omitempty"`
+	ComplianceStatusID uint    `json:"compliance_status_id" binding:"required"`
+}
+
 type AssetPolicyChecklistFormDTO struct {
-	DocumentRequirementGroupID uint    `json:"document_requirement_group_id" binding:"required"`
-	QuestionTitle              string  `json:"question_title" binding:"required,max=500"`
-	Justification              *string `json:"justification,omitempty"`
-	ComplianceStatusID         *uint   `json:"compliance_status_id,omitempty"`
+	DocumentRequirementGroupID uint   `json:"document_requirement_group_id" binding:"required"`
+	QuestionTitle              string `json:"question_title" binding:"required,max=500"`
+}
+
+type AssetPolicyChecklistUpdateDTO struct {
+	QuestionTitle string `json:"question_title" binding:"required,max=500"`
 }
