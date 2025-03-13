@@ -50,7 +50,9 @@ func (repo *RiskReportRepository) GetRiskReportByID(riskReportID uint, tx ...uti
 	}
 
 	var riskReport models.RiskReport
-	result := db.Where("id = ?", riskReportID).First(&riskReport)
+	result := db.
+		Preload("CreatedByUser").
+		Where("id = ?", riskReportID).First(&riskReport)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -190,7 +192,7 @@ func (repo *RiskReportRepository) GetRisksByDateRange(startDate, endDate time.Ti
 		Joins("LEFT JOIN risk_matrix_likelihoods AS residual_likelihood ON residual_likelihood.id = risk_register.residual_likelihood_id").
 		Joins("LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id").
 		Where("risk_register.reported_at BETWEEN ? AND ?", startDate, endDate).
-		Where("risk_register.responsible_unit_id IN (?)", organizationUnitIDs).
+		// Where("risk_register.responsible_unit_id IN (?)", organizationUnitIDs).
 		Order("risk_register.reported_at DESC")
 
 	if err := query.Find(&risks).Error; err != nil {
