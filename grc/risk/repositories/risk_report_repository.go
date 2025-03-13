@@ -26,14 +26,15 @@ type RiskReportRepositoryInterface interface {
 
 	Create(riskReport *models.RiskReport, tx ...utility.DatabaseTransaction) (uint, error)
 	CreateRiskReportOrganizationUnit(orgUnit *models.RiskReportOrganizationUnit, tx ...utility.DatabaseTransaction) error
-	CreateRiskIdentification(identification *models.RiskReportIdentification, tx ...utility.DatabaseTransaction) error
+
 	GetRisksByDateRange(startDate, endDate time.Time, organizationUnitIDs []uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportIdentifiedRiskDTO, error)
-	CreateSection(section *models.RiskReportSection, tx ...utility.DatabaseTransaction) error
-
-	CreateRiskActionPlan(actionPlan *models.RiskReportActionPlan, tx ...utility.DatabaseTransaction) error
+	GetControlTitlesByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]string, error)
 	GetActionPlansByRiskID(riskRegisterID uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportActionPlanDTO, error)
-
 	GetKRIsByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportKRIDTO, error)
+
+	CreateSection(section *models.RiskReportSection, tx ...utility.DatabaseTransaction) error
+	CreateRiskIdentification(identification *models.RiskReportIdentification, tx ...utility.DatabaseTransaction) error
+	CreateRiskActionPlan(actionPlan *models.RiskReportActionPlan, tx ...utility.DatabaseTransaction) error
 	CreateRiskKRI(riskKRI *models.RiskReportKRI, tx ...utility.DatabaseTransaction) error
 }
 
@@ -310,6 +311,25 @@ func (repo *RiskReportRepository) GetRisksByDateRange(startDate, endDate time.Ti
 	return risks, nil
 }
 
+func (repo *RiskReportRepository) GetControlTitlesByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]string, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var controlTitles []string
+	err := db.Table("risk_controls").
+		Select("controls.title_en").
+		Joins("LEFT JOIN controls ON controls.id = risk_controls.control_id").
+		Where("risk_controls.risk_register_id = ?", riskID).
+		Pluck("controls.title_en", &controlTitles).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return controlTitles, nil
+}
+
 func (repo *RiskReportRepository) CreateSection(section *models.RiskReportSection, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -318,6 +338,7 @@ func (repo *RiskReportRepository) CreateSection(section *models.RiskReportSectio
 
 	return db.Create(&section).Error
 }
+
 func (repo *RiskReportRepository) GetActionPlansByRiskID(riskRegisterID uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportActionPlanDTO, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {

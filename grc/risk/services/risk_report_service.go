@@ -5,6 +5,7 @@ import (
 	"jethur/grc/models"
 	"jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
+	"strings"
 )
 
 type RiskReportServiceInterface interface {
@@ -248,6 +249,16 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 
 	// Step 3: Populate Risk Report Identifications
 	for _, risk := range risks {
+
+		controlTitles, err := rrs.repo.GetControlTitlesByRiskID(risk.ID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to fetch control titles for risk %d: %w", risk.ID, err)
+		}
+
+		// Join control titles into a comma-separated string
+		existingControls := strings.Join(controlTitles, ", ")
+
 		riskIdentification := &models.RiskReportIdentification{
 			RiskReportID:                riskReportID,
 			ReferenceNumber:             risk.ReferenceNumber,
@@ -274,7 +285,7 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 			ResidualLikelihoodTitleAr:   risk.ResidualLikelihoodTitleAr,
 			ResidualImpactTitleEn:       risk.ResidualImpactTitleEn,
 			ResidualImpactTitleAr:       risk.ResidualImpactTitleAr,
-			// ExistingControls:            risk.ExistingControls,
+			ExistingControls:            &existingControls,
 			// ProposedControls:            risk.ProposedControls,
 			RiskStatusTitleEn:   risk.RiskStatusTitleEn,
 			RiskStatusTitleAr:   risk.RiskStatusTitleAr,
