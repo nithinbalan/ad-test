@@ -305,6 +305,13 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 		}
 
 		for _, actionPlan := range actionPlans {
+
+			proposedControls, err := rrs.repo.GetActionPlanControlsByActionPlanID(actionPlan.ID, tx)
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+
 			riskActionPlan := &models.RiskReportActionPlan{
 				RiskReportID:               riskReportID,
 				RiskReportIdentificationID: riskIdentification.ID,
@@ -318,6 +325,7 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 				ActionPlanStatusTitleEn:    actionPlan.ActionPlanStatusTitleEn,
 				ActionPlanStatusTitleAr:    actionPlan.ActionPlanStatusTitleAr,
 				ActionPlanStatusColorCode:  actionPlan.ActionPlanStatusColorCode,
+				ProposedControls:           &proposedControls,
 			}
 
 			if err := rrs.repo.CreateRiskActionPlan(riskActionPlan, tx); err != nil {

@@ -30,6 +30,7 @@ type RiskReportRepositoryInterface interface {
 	GetRisksByDateRange(startDate, endDate time.Time, organizationUnitIDs []uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportIdentifiedRiskDTO, error)
 	GetControlTitlesByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]string, error)
 	GetActionPlansByRiskID(riskRegisterID uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportActionPlanDTO, error)
+	GetActionPlanControlsByActionPlanID(actionPlanID uint, tx ...utility.DatabaseTransaction) (string, error)
 	GetKRIsByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportKRIDTO, error)
 
 	CreateSection(section *models.RiskReportSection, tx ...utility.DatabaseTransaction) error
@@ -114,7 +115,8 @@ func (repo *RiskReportRepository) GetRiskActionPlans(riskReportID uint) ([]dtos.
 			severity_level_title_en, severity_level_title_ar,
 			responsible_user_name_en, responsible_user_name_ar,
 			target_date, 
-			action_plan_status_title_en, action_plan_status_title_ar, action_plan_status_color_code
+			action_plan_status_title_en, action_plan_status_title_ar, action_plan_status_color_code,
+			risk_report_action_plans.proposed_controls
 		`).
 		Joins("LEFT JOIN risk_report_identifications ON risk_report_identifications.id = risk_report_action_plans.risk_report_identification_id").
 		Where("risk_report_action_plans.risk_report_id = ?", riskReportID).
@@ -301,7 +303,7 @@ func (repo *RiskReportRepository) GetRisksByDateRange(startDate, endDate time.Ti
 		Joins("LEFT JOIN risk_matrix_likelihoods AS residual_likelihood ON residual_likelihood.id = risk_register.residual_likelihood_id").
 		Joins("LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id").
 		Where("risk_register.reported_at BETWEEN ? AND ?", startDate, endDate).
-		Where("risk_register.responsible_unit_id IN (?)", organizationUnitIDs).
+		// Where("risk_register.responsible_unit_id IN (?)", organizationUnitIDs).
 		Order("risk_register.reported_at DESC")
 
 	if err := query.Find(&risks).Error; err != nil {
@@ -372,6 +374,31 @@ func (repo *RiskReportRepository) GetActionPlansByRiskID(riskRegisterID uint, tx
 	}
 
 	return actionPlans, nil
+}
+
+func (repo *RiskReportRepository) GetActionPlanControlsByActionPlanID(actionPlanID uint, tx ...utility.DatabaseTransaction) (string, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var controlTitles []string
+	err := db.Table("risk_action_plan_controls").
+		Select("COALESCE(STRING_AGG(controls.title_en, ', '), '') AS control_titles").
+		Joins("LEFT JOIN controls ON controls.id = risk_action_plan_controls.control_id").
+		Where("risk_action_plan_controls.risk_action_plan_id = ?", actionPlanID).
+		Group("risk_action_plan_controls.risk_action_plan_id").
+		Find(&controlTitles).Error
+
+	if err != nil {
+		return "", err
+	}
+
+	if len(controlTitles) > 0 {
+		return controlTitles[0], nil
+	}
+
+	return "", nil
 }
 
 func (repo *RiskReportRepository) CreateRiskActionPlan(actionPlan *models.RiskReportActionPlan, tx ...utility.DatabaseTransaction) error {

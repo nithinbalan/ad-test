@@ -62,7 +62,6 @@ type RiskIdentificationResponseDTO struct {
 	ResidualImpactTitleAr *string `json:"residual_impact_title_ar"`
 
 	ExistingControls *string `json:"existing_controls"`
-	ProposedControls *string `json:"proposed_controls"`
 }
 
 type RiskReportActionPlanResponseDTO struct {
@@ -78,6 +77,7 @@ type RiskReportActionPlanResponseDTO struct {
 	ActionPlanStatusTitleEn   string     `json:"action_plan_status_title_en"`
 	ActionPlanStatusTitleAr   string     `json:"action_plan_status_title_ar"`
 	ActionPlanStatusColorCode string     `json:"action_plan_status_color_code"`
+	ProposedControls          *string    `json:"proposed_controls"`
 }
 
 type RiskReportKriResponseDTO struct {
@@ -223,6 +223,7 @@ type RiskReportActionPlanDTO struct {
 	ActionPlanStatusTitleEn    string    `json:"action_plan_status_title_en"`
 	ActionPlanStatusTitleAr    string    `json:"action_plan_status_title_ar"`
 	ActionPlanStatusColorCode  string    `json:"action_plan_status_color_code"`
+	ProposedControls           *string   `json:"proposed_controls"`
 }
 
 type RiskReportKRIDTO struct {
