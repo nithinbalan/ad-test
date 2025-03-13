@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE TABLE risk_reports (
     id INT PRIMARY KEY IDENTITY(1,1),
-    title VARCHAR(255) NOT NULL,
+    title NVARCHAR(255) NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     created_by_id INT NOT NULL,
