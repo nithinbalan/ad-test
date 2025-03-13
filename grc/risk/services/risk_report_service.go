@@ -8,8 +8,8 @@ import (
 )
 
 type RiskReportServiceInterface interface {
+	GetRiskReportDetails(riskReportID uint) (*dtos.RiskReportDetailResponseDTO, error)
 	// GetRiskReportDetails(riskReportID uint, tx ...utility.DatabaseTransaction) (*dtos.RiskReportDetailDTO, error)
-	GetRiskReportDetails(riskReportID uint) (*dtos.RiskReportDetailsDTO, error)
 	GenerateRiskReport(currentUserID uint, riskReportFormDTO *dtos.RiskReportFormDTO) (uint, error)
 }
 
@@ -25,7 +25,7 @@ func NewRiskReportService(
 	}
 }
 
-func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint) (*dtos.RiskReportDetailsDTO, error) {
+func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint) (*dtos.RiskReportDetailResponseDTO, error) {
 	riskReport, err := rrs.repo.GetRiskReportByID(riskReportID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch risk report: %w", err)
@@ -41,11 +41,6 @@ func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint) (*dtos.Ris
 		return nil, fmt.Errorf("failed to fetch risk identifications: %w", err)
 	}
 
-	riskAssessments, err := rrs.repo.GetRiskAssessments(riskReportID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch risk assessments: %w", err)
-	}
-
 	actionPlans, err := rrs.repo.GetRiskActionPlans(riskReportID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch action plans: %w", err)
@@ -57,16 +52,20 @@ func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint) (*dtos.Ris
 	}
 
 	// Construct Response DTO
-	response := &dtos.RiskReportDetailsDTO{
-		ID:          riskReport.ID,
-		Title:       riskReport.Title,
-		StartDate:   riskReport.StartDate,
-		EndDate:     riskReport.EndDate,
-		Sections:    sections,
-		Risks:       risks,
-		Assessments: riskAssessments,
-		ActionPlans: actionPlans,
-		KRIs:        kris,
+	response := &dtos.RiskReportDetailResponseDTO{
+		ID:                     riskReport.ID,
+		Title:                  riskReport.Title,
+		StartDate:              riskReport.StartDate,
+		EndDate:                riskReport.EndDate,
+		CreatedAt:              riskReport.CreatedAt,
+		CreatedUserFirstNameEn: riskReport.CreatedByUser.FirstNameEn,
+		CreatedUserFirstNameAr: riskReport.CreatedByUser.FirstNameAr,
+		CreatedUserLastNameEn:  riskReport.CreatedByUser.LastNameEn,
+		CreatedUserLastNameAr:  riskReport.CreatedByUser.LastNameAr,
+		Sections:               sections,
+		Risks:                  risks,
+		ActionPlans:            actionPlans,
+		KRIs:                   kris,
 	}
 
 	return response, nil
@@ -99,19 +98,19 @@ func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint) (*dtos.Ris
 // 	}
 
 // 	// Prepare sections with placeholder arrays
-// 	sectionMap := make(map[string]*dtos.RiskReportSectionDTO)
+// 	sectionMap := make(map[string]*dtos.RiskReportSectionResponseDTO)
 
 // 	for _, section := range sections {
-// 		sectionMap[section.Type] = &dtos.RiskReportSectionDTO{
+// 		sectionMap[section.Type] = &dtos.RiskReportSectionResponseDTO{
 // 			Type:            section.Type,
 // 			TitleEn:         section.TitleEn,
 // 			TitleAr:         section.TitleAr,
 // 			DescriptionEn:   section.DescriptionEn,
 // 			DescriptionAr:   section.DescriptionAr,
 // 			OrderNum:        section.OrderNum,
-// 			Identifications: []dtos.RiskIdentificationDTO{}, // Ensure empty array
+// 			Identifications: []dtos.RiskIdentificationResponseDTO{}, // Ensure empty array
 // 			ActionPlans:     []dtos.RiskActionPlanDTO{},     // Ensure empty array
-// 			KRIs:            []dtos.RiskReportKriDTO{},      // Ensure empty array
+// 			KRIs:            []dtos.RiskReportKriResponseDTO{},      // Ensure empty array
 // 		}
 // 	}
 
@@ -121,7 +120,7 @@ func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint) (*dtos.Ris
 // 		return nil, err
 // 	}
 // 	for _, identification := range identifications {
-// 		sectionMap["identification"].Identifications = append(sectionMap["identification"].Identifications, dtos.RiskIdentificationDTO{
+// 		sectionMap["identification"].Identifications = append(sectionMap["identification"].Identifications, dtos.RiskIdentificationResponseDTO{
 // 			ReferenceNumber:        identification.ReferenceNumber,
 // 			RiskCategoryTitleEn:    identification.RiskCategoryTitleEn,
 // 			RiskCategoryTitleAr:    identification.RiskCategoryTitleAr,
@@ -162,7 +161,7 @@ func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint) (*dtos.Ris
 // 		return nil, err
 // 	}
 // 	for _, kri := range kris {
-// 		sectionMap["kri"].KRIs = append(sectionMap["kri"].KRIs, dtos.RiskReportKriDTO{
+// 		sectionMap["kri"].KRIs = append(sectionMap["kri"].KRIs, dtos.RiskReportKriResponseDTO{
 // 			RiskReferenceNumber: kri.RiskReportIdentification.ReferenceNumber,
 // 			RiskTitle:           kri.RiskReportIdentification.Title,
 // 			Title:               kri.Title,
