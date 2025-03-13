@@ -98,12 +98,14 @@ func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint, tx ...util
 	}
 	for _, actionPlan := range actionPlans {
 		sectionMap["mitigation"].ActionPlans = append(sectionMap["mitigation"].ActionPlans, dtos.RiskActionPlanDTO{
-			Title: actionPlan.ActionPlanTitle,
-			// Description:     actionPlan.ActionPlanDescription,
-			SeverityLevel:   actionPlan.SeverityLevelTitleEn,
-			ResponsibleUser: actionPlan.ResponsibleUserNameEn,
-			TargetDate:      actionPlan.TargetDate.Format("2006-01-02"),
-			Status:          actionPlan.ActionPlanStatusTitleEn,
+			Title:                 actionPlan.ActionPlanTitle,
+			Description:           actionPlan.ActionPlanDescription,
+			SeverityLevelTitleEn:  actionPlan.SeverityLevelTitleEn,
+			SeverityLevelTitleAr:  actionPlan.SeverityLevelTitleAr,
+			ResponsibleUserNameEn: actionPlan.ResponsibleUserNameEn,
+			ResponsibleUserNameAr: actionPlan.ResponsibleUserNameAr,
+			TargetDate:            actionPlan.TargetDate,
+			Status:                actionPlan.ActionPlanStatusTitleEn,
 		})
 	}
 
@@ -251,11 +253,11 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 				RiskReportIdentificationID: riskIdentification.ID,
 				ActionPlanTitle:            actionPlan.ActionPlanTitle,
 				ActionPlanDescription:      actionPlan.ActionPlanDescription,
-				SeverityLevelTitleEn:       actionPlan.SeverityLevelTitleEn,
-				SeverityLevelTitleAr:       actionPlan.SeverityLevelTitleAr,
+				SeverityLevelTitleEn:       &actionPlan.SeverityLevelTitleEn,
+				SeverityLevelTitleAr:       &actionPlan.SeverityLevelTitleAr,
 				ResponsibleUserNameEn:      actionPlan.ResponsibleUserNameEn,
 				ResponsibleUserNameAr:      actionPlan.ResponsibleUserNameAr,
-				TargetDate:                 actionPlan.TargetDate,
+				TargetDate:                 &actionPlan.TargetDate,
 				ActionPlanStatusTitleEn:    actionPlan.ActionPlanStatusTitleEn,
 				ActionPlanStatusTitleAr:    actionPlan.ActionPlanStatusTitleAr,
 				ActionPlanStatusColorCode:  actionPlan.ActionPlanStatusColorCode,

@@ -48,12 +48,14 @@ type RiskIdentificationDTO struct {
 
 // RiskActionPlanDTO represents an action plan under mitigation
 type RiskActionPlanDTO struct {
-	Title           string `json:"title"`
-	Description     string `json:"description"`
-	SeverityLevel   string `json:"severity_level"`
-	ResponsibleUser string `json:"responsible_user"`
-	TargetDate      string `json:"target_date"`
-	Status          string `json:"status"`
+	Title                 string     `json:"title"`
+	Description           *string    `json:"description"`
+	SeverityLevelTitleEn  *string    `json:"severity_level_title_en"`
+	SeverityLevelTitleAr  *string    `json:"severity_level_title_ar"`
+	ResponsibleUserNameEn string     `json:"responsible_user_name_en"`
+	ResponsibleUserNameAr string     `json:"responsible_user_name_ar"`
+	TargetDate            *time.Time `json:"target_date"`
+	Status                string     `json:"status"`
 }
 
 // RiskReportKriDTO represents a Key Risk Indicator (KRI)
