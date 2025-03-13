@@ -1,15 +1,15 @@
 package services
 
 import (
+	"fmt"
 	"jethur/grc/models"
 	"jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
-	"jethur/utility"
-	"sort"
 )
 
 type RiskReportServiceInterface interface {
-	GetRiskReportDetails(riskReportID uint, tx ...utility.DatabaseTransaction) (*dtos.RiskReportDetailDTO, error)
+	// GetRiskReportDetails(riskReportID uint, tx ...utility.DatabaseTransaction) (*dtos.RiskReportDetailDTO, error)
+	GetRiskReportDetails(riskReportID uint) (*dtos.RiskReportDetailsDTO, error)
 	GenerateRiskReport(currentUserID uint, riskReportFormDTO *dtos.RiskReportFormDTO) (uint, error)
 }
 
@@ -25,121 +25,168 @@ func NewRiskReportService(
 	}
 }
 
-func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint, tx ...utility.DatabaseTransaction) (*dtos.RiskReportDetailDTO, error) {
-	// Fetch Risk Report Details
-	riskReport, err := rrs.repo.GetRiskReportByID(riskReportID, tx...)
+func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint) (*dtos.RiskReportDetailsDTO, error) {
+	riskReport, err := rrs.repo.GetRiskReportByID(riskReportID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch risk report: %w", err)
 	}
 
-	// Initialize DTO
-	riskReportDTO := &dtos.RiskReportDetailDTO{
-		ID:                     riskReport.ID,
-		Title:                  riskReport.Title,
-		StartDate:              riskReport.StartDate,
-		EndDate:                riskReport.EndDate,
-		CreatedUserFirstNameEn: riskReport.CreatedByUser.FirstNameEn,
-		CreatedUserFirstNameAr: riskReport.CreatedByUser.FirstNameAr,
-		CreatedUserLastNameEn:  riskReport.CreatedByUser.LastNameEn,
-		CreatedUserLastNameAr:  riskReport.CreatedByUser.LastNameAr,
-		CreatedAt:              riskReport.CreatedAt,
-	}
-
-	// Fetch Sections
-	sections, err := rrs.repo.GetSectionsByRiskReportID(riskReportID, tx...)
+	sections, err := rrs.repo.GetRiskReportSections(riskReportID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch sections: %w", err)
 	}
 
-	// Prepare sections with placeholder arrays
-	sectionMap := make(map[string]*dtos.RiskReportSectionDTO)
-
-	for _, section := range sections {
-		sectionMap[section.Type] = &dtos.RiskReportSectionDTO{
-			Type:            section.Type,
-			TitleEn:         section.TitleEn,
-			TitleAr:         section.TitleAr,
-			DescriptionEn:   section.DescriptionEn,
-			DescriptionAr:   section.DescriptionAr,
-			OrderNum:        section.OrderNum,
-			Identifications: []dtos.RiskIdentificationDTO{}, // Ensure empty array
-			ActionPlans:     []dtos.RiskActionPlanDTO{},     // Ensure empty array
-			KRIs:            []dtos.RiskReportKriDTO{},      // Ensure empty array
-		}
-	}
-
-	// Fetch Identified Risks and map to "identification" section
-	identifications, err := rrs.repo.GetIdentificationsByRiskReportID(riskReportID, tx...)
+	risks, err := rrs.repo.GetRiskIdentifications(riskReportID)
 	if err != nil {
-		return nil, err
-	}
-	for _, identification := range identifications {
-		sectionMap["identification"].Identifications = append(sectionMap["identification"].Identifications, dtos.RiskIdentificationDTO{
-			ReferenceNumber:        identification.ReferenceNumber,
-			RiskCategoryTitleEn:    identification.RiskCategoryTitleEn,
-			RiskCategoryTitleAr:    identification.RiskCategoryTitleAr,
-			Title:                  identification.Title,
-			Description:            identification.Description,
-			RiskSourceTitleEn:      identification.RiskSourceTitleEn,
-			RiskSourceTitleAr:      identification.RiskSourceTitleAr,
-			ReportedAt:             identification.RiskReportedAt,
-			ResponsibleUnitTitleEn: identification.ResponsibleUnitTitleEn,
-			ResponsibleUnitTitleAr: identification.ResponsibleUnitTitleAr,
-			RiskStatusTitleEn:      identification.RiskStatusTitleEn,
-			RiskStatusTitleAr:      identification.RiskStatusTitleAr,
-			RiskStatusColorCode:    identification.RiskStatusColorCode,
-		})
+		return nil, fmt.Errorf("failed to fetch risk identifications: %w", err)
 	}
 
-	// Fetch Action Plans and map to "mitigation" section
-	actionPlans, err := rrs.repo.GetActionPlansByRiskReportID(riskReportID, tx...)
+	riskAssessments, err := rrs.repo.GetRiskAssessments(riskReportID)
 	if err != nil {
-		return nil, err
-	}
-	for _, actionPlan := range actionPlans {
-		sectionMap["mitigation"].ActionPlans = append(sectionMap["mitigation"].ActionPlans, dtos.RiskActionPlanDTO{
-			Title:                 actionPlan.ActionPlanTitle,
-			Description:           actionPlan.ActionPlanDescription,
-			SeverityLevelTitleEn:  actionPlan.SeverityLevelTitleEn,
-			SeverityLevelTitleAr:  actionPlan.SeverityLevelTitleAr,
-			ResponsibleUserNameEn: actionPlan.ResponsibleUserNameEn,
-			ResponsibleUserNameAr: actionPlan.ResponsibleUserNameAr,
-			TargetDate:            actionPlan.TargetDate,
-			Status:                actionPlan.ActionPlanStatusTitleEn,
-		})
+		return nil, fmt.Errorf("failed to fetch risk assessments: %w", err)
 	}
 
-	// Fetch KRIs and map to "kri" section
-	kris, err := rrs.repo.GetKRIsByRiskReportID(riskReportID, tx...)
+	actionPlans, err := rrs.repo.GetRiskActionPlans(riskReportID)
 	if err != nil {
-		return nil, err
-	}
-	for _, kri := range kris {
-		sectionMap["kri"].KRIs = append(sectionMap["kri"].KRIs, dtos.RiskReportKriDTO{
-			RiskReferenceNumber: kri.RiskReportIdentification.ReferenceNumber,
-			RiskTitle:           kri.RiskReportIdentification.Title,
-			Title:               kri.Title,
-			Description:         kri.Description,
-			LowThreshold:        kri.LowThreshold,
-			MediumThreshold:     kri.MediumThreshold,
-			UnitTitleEn:         kri.UnitTitleEn,
-			UnitTitleAr:         kri.UnitTitleAr,
-			CurrentValue:        kri.CurrentValue,
-		})
+		return nil, fmt.Errorf("failed to fetch action plans: %w", err)
 	}
 
-	// Convert section map to array
-	for _, section := range sectionMap {
-		riskReportDTO.Sections = append(riskReportDTO.Sections, *section)
+	kris, err := rrs.repo.GetRiskKRIs(riskReportID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch KRIs: %w", err)
 	}
 
-	// Sort sections by order_num
-	sort.Slice(riskReportDTO.Sections, func(i, j int) bool {
-		return riskReportDTO.Sections[i].OrderNum < riskReportDTO.Sections[j].OrderNum
-	})
+	// Construct Response DTO
+	response := &dtos.RiskReportDetailsDTO{
+		ID:          riskReport.ID,
+		Title:       riskReport.Title,
+		StartDate:   riskReport.StartDate,
+		EndDate:     riskReport.EndDate,
+		Sections:    sections,
+		Risks:       risks,
+		Assessments: riskAssessments,
+		ActionPlans: actionPlans,
+		KRIs:        kris,
+	}
 
-	return riskReportDTO, nil
+	return response, nil
 }
+
+// func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint, tx ...utility.DatabaseTransaction) (*dtos.RiskReportDetailDTO, error) {
+// 	// Fetch Risk Report Details
+// 	riskReport, err := rrs.repo.GetRiskReportByID(riskReportID, tx...)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	// Initialize DTO
+// 	riskReportDTO := &dtos.RiskReportDetailDTO{
+// 		ID:                     riskReport.ID,
+// 		Title:                  riskReport.Title,
+// 		StartDate:              riskReport.StartDate,
+// 		EndDate:                riskReport.EndDate,
+// 		CreatedUserFirstNameEn: riskReport.CreatedByUser.FirstNameEn,
+// 		CreatedUserFirstNameAr: riskReport.CreatedByUser.FirstNameAr,
+// 		CreatedUserLastNameEn:  riskReport.CreatedByUser.LastNameEn,
+// 		CreatedUserLastNameAr:  riskReport.CreatedByUser.LastNameAr,
+// 		CreatedAt:              riskReport.CreatedAt,
+// 	}
+
+// 	// Fetch Sections
+// 	sections, err := rrs.repo.GetSectionsByRiskReportID(riskReportID, tx...)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	// Prepare sections with placeholder arrays
+// 	sectionMap := make(map[string]*dtos.RiskReportSectionDTO)
+
+// 	for _, section := range sections {
+// 		sectionMap[section.Type] = &dtos.RiskReportSectionDTO{
+// 			Type:            section.Type,
+// 			TitleEn:         section.TitleEn,
+// 			TitleAr:         section.TitleAr,
+// 			DescriptionEn:   section.DescriptionEn,
+// 			DescriptionAr:   section.DescriptionAr,
+// 			OrderNum:        section.OrderNum,
+// 			Identifications: []dtos.RiskIdentificationDTO{}, // Ensure empty array
+// 			ActionPlans:     []dtos.RiskActionPlanDTO{},     // Ensure empty array
+// 			KRIs:            []dtos.RiskReportKriDTO{},      // Ensure empty array
+// 		}
+// 	}
+
+// 	// Fetch Identified Risks and map to "identification" section
+// 	identifications, err := rrs.repo.GetIdentificationsByRiskReportID(riskReportID, tx...)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	for _, identification := range identifications {
+// 		sectionMap["identification"].Identifications = append(sectionMap["identification"].Identifications, dtos.RiskIdentificationDTO{
+// 			ReferenceNumber:        identification.ReferenceNumber,
+// 			RiskCategoryTitleEn:    identification.RiskCategoryTitleEn,
+// 			RiskCategoryTitleAr:    identification.RiskCategoryTitleAr,
+// 			Title:                  identification.Title,
+// 			Description:            identification.Description,
+// 			RiskSourceTitleEn:      identification.RiskSourceTitleEn,
+// 			RiskSourceTitleAr:      identification.RiskSourceTitleAr,
+// 			ReportedAt:             identification.RiskReportedAt,
+// 			ResponsibleUnitTitleEn: identification.ResponsibleUnitTitleEn,
+// 			ResponsibleUnitTitleAr: identification.ResponsibleUnitTitleAr,
+// 			RiskStatusTitleEn:      identification.RiskStatusTitleEn,
+// 			RiskStatusTitleAr:      identification.RiskStatusTitleAr,
+// 			RiskStatusColorCode:    identification.RiskStatusColorCode,
+// 		})
+// 	}
+
+// 	// Fetch Action Plans and map to "mitigation" section
+// 	actionPlans, err := rrs.repo.GetActionPlansByRiskReportID(riskReportID, tx...)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	for _, actionPlan := range actionPlans {
+// 		sectionMap["mitigation"].ActionPlans = append(sectionMap["mitigation"].ActionPlans, dtos.RiskActionPlanDTO{
+// 			Title:                 actionPlan.ActionPlanTitle,
+// 			Description:           actionPlan.ActionPlanDescription,
+// 			SeverityLevelTitleEn:  actionPlan.SeverityLevelTitleEn,
+// 			SeverityLevelTitleAr:  actionPlan.SeverityLevelTitleAr,
+// 			ResponsibleUserNameEn: actionPlan.ResponsibleUserNameEn,
+// 			ResponsibleUserNameAr: actionPlan.ResponsibleUserNameAr,
+// 			TargetDate:            actionPlan.TargetDate,
+// 			Status:                actionPlan.ActionPlanStatusTitleEn,
+// 		})
+// 	}
+
+// 	// Fetch KRIs and map to "kri" section
+// 	kris, err := rrs.repo.GetKRIsByRiskReportID(riskReportID, tx...)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	for _, kri := range kris {
+// 		sectionMap["kri"].KRIs = append(sectionMap["kri"].KRIs, dtos.RiskReportKriDTO{
+// 			RiskReferenceNumber: kri.RiskReportIdentification.ReferenceNumber,
+// 			RiskTitle:           kri.RiskReportIdentification.Title,
+// 			Title:               kri.Title,
+// 			Description:         kri.Description,
+// 			LowThreshold:        kri.LowThreshold,
+// 			MediumThreshold:     kri.MediumThreshold,
+// 			UnitTitleEn:         kri.UnitTitleEn,
+// 			UnitTitleAr:         kri.UnitTitleAr,
+// 			CurrentValue:        kri.CurrentValue,
+// 		})
+// 	}
+
+// 	// Convert section map to array
+// 	for _, section := range sectionMap {
+// 		riskReportDTO.Sections = append(riskReportDTO.Sections, *section)
+// 	}
+
+// 	// Sort sections by order_num
+// 	sort.Slice(riskReportDTO.Sections, func(i, j int) bool {
+// 		return riskReportDTO.Sections[i].OrderNum < riskReportDTO.Sections[j].OrderNum
+// 	})
+
+// 	return riskReportDTO, nil
+// }
 
 func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportFormDTO *dtos.RiskReportFormDTO) (uint, error) {
 	tx := rrs.repo.BeginTransaction()
