@@ -116,7 +116,9 @@ func (repo *RiskReportRepository) GetKRIsByRiskReportID(riskReportID uint, tx ..
 	}
 
 	var kris []models.RiskReportKRI
-	result := db.Where("risk_report_id = ?", riskReportID).Find(&kris)
+	result := db.
+		Preload("RiskReportIdentification").
+		Where("risk_report_id = ?", riskReportID).Find(&kris)
 	if result.Error != nil {
 		return nil, result.Error
 	}

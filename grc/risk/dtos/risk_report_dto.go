@@ -31,11 +31,19 @@ type RiskReportSectionDTO struct {
 
 // RiskIdentificationDTO represents an identified risk
 type RiskIdentificationDTO struct {
-	ReferenceNumber string `json:"reference_number"`
-	Title           string `json:"title"`
-	Description     string `json:"description"`
-	RiskCategory    string `json:"risk_category"`
-	RiskStatus      string `json:"risk_status"`
+	ReferenceNumber        string    `json:"reference_number"`
+	RiskCategoryTitleEn    string    `json:"risk_category_title_en"`
+	RiskCategoryTitleAr    string    `json:"risk_category_title_ar"`
+	Title                  string    `json:"title"`
+	Description            *string   `json:"description"`
+	RiskSourceTitleEn      *string   `json:"risk_source_title_en"`
+	RiskSourceTitleAr      *string   `json:"risk_source_title_en_ar"`
+	ReportedAt             time.Time `json:"reported_at"`
+	ResponsibleUnitTitleEn string    `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr string    `json:"responsible_unit_title_ar"`
+	RiskStatusTitleEn      string    `json:"risk_status_title_en"`
+	RiskStatusTitleAr      string    `json:"risk_status_title_ar"`
+	RiskStatusColorCode    string    `json:"risk_status_color_code"`
 }
 
 // RiskActionPlanDTO represents an action plan under mitigation
@@ -50,62 +58,16 @@ type RiskActionPlanDTO struct {
 
 // RiskReportKriDTO represents a Key Risk Indicator (KRI)
 type RiskReportKriDTO struct {
-	Title        string `json:"title"`
-	Description  string `json:"description"`
-	Threshold    string `json:"threshold"`
-	CurrentValue string `json:"current_value"`
-	Status       string `json:"status"`
+	RiskReferenceNumber string  `json:"risk_reference_number"`
+	RiskTitle           string  `json:"risk_title"`
+	Title               string  `json:"title"`
+	Description         *string `json:"description"`
+	LowThreshold        *int    `json:"low_threshold"`
+	MediumThreshold     *int    `json:"medium_threshold"`
+	UnitTitleEn         *string `json:"unit_title_en"`
+	UnitTitleAr         *string `json:"unit_title_ar"`
+	CurrentValue        *int    `json:"current_value"`
 }
-
-// type RiskReportDetailDTO struct {
-// 	ID              uint                    `json:"id"`
-// 	Title           string                  `json:"title"`
-// 	StartDate       time.Time               `json:"start_date"`
-// 	EndDate         time.Time               `json:"end_date"`
-// 	CreatedBy       string                  `json:"created_by"`
-// 	CreatedAt       time.Time               `json:"created_at"`
-// 	Sections        []RiskReportSectionDTO  `json:"sections"`
-// 	Identifications []RiskIdentificationDTO `json:"identifications"`
-// 	ActionPlans     []RiskActionPlanDTO     `json:"action_plans"`
-// 	KRIs            []RiskReportKriDTO      `json:"kris"`
-// }
-
-// type RiskReportSectionDTO struct {
-// 	Type          string `json:"type"`
-// 	TitleEn       string `json:"title_en"`
-// 	TitleAr       string `json:"title_ar"`
-// 	DescriptionEn string `json:"description_en"`
-// 	DescriptionAr string `json:"description_ar"`
-// 	OrderNum      int    `json:"order_num"`
-// }
-
-// type RiskIdentificationDTO struct {
-// 	ReferenceNumber string  `json:"reference_number"`
-// 	Title           string  `json:"title"`
-// 	Description     *string `json:"description"`
-// 	RiskCategory    string  `json:"risk_category"`
-// 	RiskStatus      string  `json:"risk_status"`
-// }
-
-// type RiskActionPlanDTO struct {
-// 	ReferenceNumber  string  `json:"reference_number"`
-// 	Title            string  `json:"title"`
-// 	Description      *string `json:"description"`
-// 	SeverityLevel    string  `json:"severity_level"`
-// 	ResponsibleUser  string  `json:"responsible_user"`
-// 	OrganizationUnit string  `json:"organization_unit"`
-// 	TargetDate       string  `json:"target_date"`
-// 	Status           string  `json:"status"`
-// }
-
-// type RiskReportKriDTO struct {
-// 	ReferenceNumber string  `json:"reference_number"`
-// 	Title           string  `json:"title"`
-// 	Description     *string `json:"description"`
-// 	Threshold       string  `json:"threshold"`
-// 	CurrentValue    string  `json:"current_value"`
-// 	Status          string  `json:"status"`
-// }
 
 type RiskReportFormDTO struct {
 	Title               string    `json:"title" binding:"required"`
@@ -124,8 +86,8 @@ type RiskRegisterDTO struct {
 	RiskCategoryTitleAr    string    `json:"risk_category_title_ar"`
 	RiskSourceTitleEn      *string   `json:"risk_source_title_en"`
 	RiskSourceTitleAr      *string   `json:"risk_source_title_ar"`
-	ResponsibleUnitTitleEn *string   `json:"responsible_unit_title_en"`
-	ResponsibleUnitTitleAr *string   `json:"responsible_unit_title_ar"`
+	ResponsibleUnitTitleEn string    `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr string    `json:"responsible_unit_title_ar"`
 
 	InherentRiskRatingTitleEn   *string `json:"inherent_risk_rating_title_en"`
 	InherentRiskRatingTitleAr   *string `json:"inherent_risk_rating_title_ar"`
@@ -150,9 +112,9 @@ type RiskRegisterDTO struct {
 	ExistingControls *string `json:"existing_controls"`
 	ProposedControls *string `json:"proposed_controls"`
 
-	RiskStatusTitleEn   *string `json:"risk_status_title_en"`
-	RiskStatusTitleAr   *string `json:"risk_status_title_ar"`
-	RiskStatusColorCode *string `json:"risk_status_color_code"`
+	RiskStatusTitleEn   string `json:"risk_status_title_en"`
+	RiskStatusTitleAr   string `json:"risk_status_title_ar"`
+	RiskStatusColorCode string `json:"risk_status_color_code"`
 }
 
 type RiskReportActionPlanFormDTO struct {

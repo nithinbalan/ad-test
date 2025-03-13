@@ -13,8 +13,8 @@ type RiskReportIdentification struct {
 	RiskSourceTitleEn      *string   `json:"risk_source_title_en"`
 	RiskSourceTitleAr      *string   `json:"risk_source_title_ar"`
 	RiskReportedAt         time.Time `json:"risk_reported_at" gorm:"not null"`
-	ResponsibleUnitTitleEn *string   `json:"responsible_unit_title_en"`
-	ResponsibleUnitTitleAr *string   `json:"responsible_unit_title_ar"`
+	ResponsibleUnitTitleEn string    `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr string    `json:"responsible_unit_title_ar"`
 
 	InherentRiskRatingTitleEn   *string `json:"inherent_risk_rating_title_en"`
 	InherentRiskRatingTitleAr   *string `json:"inherent_risk_rating_title_ar"`
@@ -39,9 +39,9 @@ type RiskReportIdentification struct {
 	ExistingControls *string `json:"existing_controls"`
 	ProposedControls *string `json:"proposed_controls"`
 
-	RiskStatusTitleEn   *string `json:"risk_status_title_en"`
-	RiskStatusTitleAr   *string `json:"risk_status_title_ar"`
-	RiskStatusColorCode *string `json:"risk_status_color_code"`
+	RiskStatusTitleEn   string `json:"risk_status_title_en"`
+	RiskStatusTitleAr   string `json:"risk_status_title_ar"`
+	RiskStatusColorCode string `json:"risk_status_color_code"`
 
 	RiskReport *RiskReport `gorm:"foreignKey:RiskReportID"`
 }
