@@ -182,6 +182,8 @@ func (rrs RiskRegisterService) GetFullDetailsByID(id uint, tx ...utility.Databas
 func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *riskDTOs.RiskRegisterFormDTO) (uint, error) {
 	tx := rrs.repo.BeginTransaction()
 
+	riskRegisterFormDTO.ResponsibleUserID = currentUserID
+
 	if err := rrs.validateRiskRegisterFormDTO(riskRegisterFormDTO); err != nil {
 		return 0, err
 	}

@@ -48,7 +48,7 @@ func NewApp(db *gorm.DB) *App {
 	auditInsightsModule := NewAuditInsightsModule(db, sharedModule, organizationModule, auditModule, commonModule)
 	reportsModule := NewReportsModule(db, complianceModule, organizationModule, riskModule, auditModule, incidentModule, meetingModule, settingsModule, documentModule)
 	businessFunctionModule := NewBusinessContinuityModule(db, sharedModule, settingsModule, masterModule, organizationModule, assetModule, documentModule, riskModule)
-	strategyModule := NewStrategyModule(db, sharedModule, settingsModule, masterModule)
+	strategyModule := NewStrategyModule(db, sharedModule, settingsModule, masterModule, organizationModule)
 
 	return &App{
 		DB:                       db,

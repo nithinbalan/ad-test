@@ -240,3 +240,51 @@ func (tecapc *TestAndExerciseCommunicationActionPlanController) DeleteTestAndExe
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (sasuc *TestAndExerciseCommunicationActionPlanController) StatusUpdate(c *gin.Context) {
+	var taeCommunicationStatusUpdateFormDTO businessContinuityDTOs.TaeCommunicationActionPlanStatusUpdateFormDTO
+
+	testAndExerciseIDStr := c.Param("testAndExerciseId")
+
+	testAndExerciseID, err := strconv.ParseUint(testAndExerciseIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanIDStr := c.Param("id")
+
+	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&taeCommunicationStatusUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(sasuc.db, c, err.Error())
+		return
+	}
+
+	err = sasuc.service.StatusUpdate(uint(testAndExerciseID), uint(actionPlanID), currentUserID, &taeCommunicationStatusUpdateFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(sasuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
