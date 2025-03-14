@@ -47,6 +47,7 @@ type ComplianceModule struct {
 	ComplianceActionPlanSvc        services.ComplianceActionPlanServiceInterface
 	SlaRegisterSvc                 services.SLARegisterServiceInterface
 	ComplianceActionPlanCommentSvc services.ComplianceActionPlanCommentServiceInterface
+	ComplianceStatusSvc            services.ComplianceStatusServiceInterface
 }
 
 func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule, organizationModule *OrganizationModule, taskModule *TaskModule, settingsModule *SettingsModule, commonModule *CommonModule) *ComplianceModule {
@@ -289,5 +290,6 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceActionPlanSvc:        complianceActionPlanSvc,
 		SlaRegisterSvc:                 slaRegisterSvc,
 		ComplianceActionPlanCommentSvc: complianceActionPlanCommentSvc,
+		ComplianceStatusSvc:            complianceStatusSvc,
 	}
 }

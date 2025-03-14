@@ -45,6 +45,7 @@ func NewAssetModule(db *gorm.DB,
 	taskModule *TaskModule,
 	commonModule *CommonModule,
 	documentModule *DocumentModule,
+	complianceModule *ComplianceModule,
 ) *AssetModule {
 	assetTypeRepo := repositories.NewAssetTypeRepository(db)
 	assetTypeSvc := services.NewAssetTypeService(assetTypeRepo, sharedModule.ActivityLogService)
@@ -193,6 +194,7 @@ func NewAssetModule(db *gorm.DB,
 		assetRegisterSvc,
 		documentModule.DocumentRequirementGroupSvc,
 		assetPolicySvc,
+		complianceModule.ComplianceStatusSvc,
 	)
 	assetPolicyChecklistController := controllers.NewAssetPolicyChecklistController(assetPolicyChecklistSvc)
 
