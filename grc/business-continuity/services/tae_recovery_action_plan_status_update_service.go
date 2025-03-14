@@ -525,9 +525,9 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Approve(testAndExerciseID
 		return utility.NewResourceNotFoundError(err, actionPlanID)
 	}
 
-	// if currentUserID != *existingActionPlan.ReviewUserID {
-	// 	return utility.NewForbiddenError("Permission denied.")
-	// }
+	if currentUserID != *existingActionPlan.ReviewUserID {
+		return utility.NewForbiddenError("Permission denied.")
+	}
 
 	actionPlanStatusResolved, err := sasus.actionPlanStatusSvc.GetByType("completed")
 	if err != nil {
