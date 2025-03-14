@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"jethur/grc/asset/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -16,6 +17,7 @@ type AssetPolicyChecklistRepositoryInterface interface {
 
 	DeleteAssetPolicyChecklists(ids []uint, tx ...utility.DatabaseTransaction) error
 	BulkUpdateAssetPolicyChecklists(checklists []*models.AssetPolicyChecklist, tx ...utility.DatabaseTransaction) error
+	GetAssetPolicyChecklistSummary(assetPolicyID uint) (*dtos.AssetPolicyChecklistSummaryDTO, error)
 }
 
 type AssetPolicyChecklistRepository struct {
@@ -90,4 +92,22 @@ func (repo *AssetPolicyChecklistRepository) BulkUpdateAssetPolicyChecklists(chec
 	}
 
 	return nil
+}
+
+func (repo *AssetPolicyChecklistRepository) GetAssetPolicyChecklistSummary(assetPolicyID uint) (*dtos.AssetPolicyChecklistSummaryDTO, error) {
+	result := dtos.AssetPolicyChecklistSummaryDTO{}
+
+	query := repo.db.Table("asset_policy_checklists").
+		Select(`
+			COUNT(asset_policy_checklists.id) AS total_checklist,
+			COUNT(CASE WHEN compliance_statuses.type = 'compliant' THEN asset_policy_checklists.id END) AS compliant, 
+			COUNT(CASE WHEN compliance_statuses.type = 'partially_compliant' THEN asset_policy_checklists.id END) AS partially_compliant, 
+			COUNT(CASE WHEN compliance_statuses.type = 'not_applicable' THEN asset_policy_checklists.id END) AS not_applicable, 
+			COUNT(CASE WHEN compliance_statuses.type NOT IN ('compliant', 'partially_compliant', 'not_applicable') OR compliance_statuses.type IS NULL THEN asset_policy_checklists.id END) AS non_compliant
+		`).
+		Joins("LEFT JOIN compliance_statuses ON asset_policy_checklists.compliance_status_id = compliance_statuses.id").
+		Where("asset_policy_checklists.asset_policy_id = ?", assetPolicyID)
+
+	err := query.Scan(&result).Error
+	return &result, err
 }

@@ -22,6 +22,7 @@ type AssetPolicyChecklistServiceInterface interface {
 
 	AnswerAssetPolicyChecklist(id uint, formDTO *dtos.AssetPolicyChecklistAnswerFormDTO, currentUserID uint, assetId uint, assetPolicyId uint) error
 	DeleteAnswerAssetPolicyChecklist(ids []uint, currentUserID uint, assetId uint, assetPolicyId uint) ([]uint, error)
+	GetAssetPolicyChecklistSummary(assetID uint, policyID uint) (*dtos.AssetPolicyChecklistSummaryDTO, error)
 }
 
 type AssetPolicyChecklistService struct {
@@ -299,4 +300,8 @@ func (apcs *AssetPolicyChecklistService) DeleteAnswerAssetPolicyChecklist(ids []
 	}
 
 	return failedIds, nil
+}
+
+func (apcs *AssetPolicyChecklistService) GetAssetPolicyChecklistSummary(assetID uint, policyID uint) (*dtos.AssetPolicyChecklistSummaryDTO, error) {
+	return apcs.repo.GetAssetPolicyChecklistSummary(policyID)
 }

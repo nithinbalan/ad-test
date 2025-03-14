@@ -22,6 +22,7 @@ type AssetPolicyRepositoryInterface interface {
 	CreateAssetPolicyChecklists(checklists []*models.AssetPolicyChecklist, tx ...utility.DatabaseTransaction) error
 	DeleteAssetPolicyChecklists(policyIDs []uint, tx ...utility.DatabaseTransaction) error
 	DeleteAssetPolicies(policyIDs []uint, tx ...utility.DatabaseTransaction) error
+	GetAssetPolicyComplianceSummary(assetRegisterID uint) (*dtos.AssetPolicyByComplianceDTO, error)
 }
 
 type AssetPolicyRepository struct {
@@ -199,4 +200,22 @@ func (repo *AssetPolicyRepository) DeleteAssetPolicies(policyIDs []uint, tx ...u
 		return err
 	}
 	return nil
+}
+
+func (repo *AssetPolicyRepository) GetAssetPolicyComplianceSummary(assetRegisterID uint) (*dtos.AssetPolicyByComplianceDTO, error) {
+	result := dtos.AssetPolicyByComplianceDTO{}
+
+	query := repo.db.Table("asset_policies").
+		Select(`
+			COUNT(asset_policies.id) AS total_policies,
+			COUNT(CASE WHEN compliance_statuses.type = 'compliant' THEN asset_policies.id END) AS compliant, 
+			COUNT(CASE WHEN compliance_statuses.type != 'compliant' OR compliance_statuses.type IS NULL THEN asset_policies.id END) AS non_compliant,
+			(100.0 * COUNT(CASE WHEN compliance_statuses.type = 'compliant' THEN asset_policies.id END) / NULLIF(COUNT(asset_policies.id), 0)) AS compliant_percentage,
+			(100.0 * COUNT(CASE WHEN compliance_statuses.type != 'compliant' OR compliance_statuses.type IS NULL THEN asset_policies.id END) / NULLIF(COUNT(asset_policies.id), 0)) AS non_compliant_percentage
+		`).
+		Joins("LEFT JOIN compliance_statuses ON asset_policies.compliance_status_id = compliance_statuses.id").
+		Where("asset_policies.asset_register_id = ?", assetRegisterID)
+
+	err := query.Scan(&result).Error
+	return &result, err
 }

@@ -20,6 +20,7 @@ type AssetPolicyServiceInterface interface {
 	GetFullDetailsByID(assetRegisterID uint, id uint, tx ...utility.DatabaseTransaction) (*dtos.AssetPolicyDetailDTO, error)
 	Update(assetPolicyForm *dtos.AssetPolicyFormDTO, currentUserID uint, assetId uint) ([]uint, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	GetAssetPolicyComplianceSummary(assetID uint) (*dtos.AssetPolicyByComplianceDTO, error)
 }
 
 type AssetPolicyService struct {
@@ -285,6 +286,10 @@ func (aps *AssetPolicyService) Delete(ids []uint, currentUserID uint) ([]uint, e
 	}
 
 	return failedIds, nil
+}
+
+func (aps *AssetPolicyService) GetAssetPolicyComplianceSummary(assetID uint) (*dtos.AssetPolicyByComplianceDTO, error) {
+	return aps.repo.GetAssetPolicyComplianceSummary(assetID)
 }
 
 func (aps *AssetPolicyService) validateAssetPolicyFormDTO(assetPolicyForm *dtos.AssetPolicyFormDTO) error {

@@ -58,3 +58,11 @@ type AssetPolicyDetailDTO struct {
 	CreatedAt             time.Time                        `json:"created_at"`
 	UpdatedAt             *time.Time                       `json:"updated_at,omitempty"`
 }
+
+type AssetPolicyByComplianceDTO struct {
+	TotalPolicies          int     `json:"total_policies"`
+	Compliant              int     `json:"compliant"`
+	NonCompliant           int     `json:"non_compliant"`
+	CompliantPercentage    float64 `json:"compliant_percentage"`
+	NonCompliantPercentage float64 `json:"non_compliant_percentage"`
+}

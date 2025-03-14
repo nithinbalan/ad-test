@@ -38,3 +38,11 @@ type AssetPolicyChecklistFormDTO struct {
 type AssetPolicyChecklistUpdateDTO struct {
 	QuestionTitle string `json:"question_title" binding:"required,max=500"`
 }
+
+type AssetPolicyChecklistSummaryDTO struct {
+	TotalChecklist     int `json:"total_checklist"`
+	Compliant          int `json:"compliant"`
+	PartiallyCompliant int `json:"partially_compliant"`
+	NotApplicable      int `json:"not_applicable"`
+	NonCompliant       int `json:"non_compliant"`
+}

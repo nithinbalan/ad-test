@@ -131,3 +131,19 @@ func (apc *AssetPolicyController) DeletePolicies(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (apc *AssetPolicyController) GetAssetPolicyComplianceSummary(c *gin.Context) {
+	assetRegisterID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	summary, err := apc.service.GetAssetPolicyComplianceSummary(uint(assetRegisterID))
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, summary)
+}
