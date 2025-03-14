@@ -20,6 +20,8 @@ type TaeRecoveryActionPlanStatusUpdateRepositoryInterface interface {
 	CreateDocuments(docs []*models.TaeRecoveryActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.TaeRecoveryActionPlanStatusUpdateDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	RecoveryActionPlanUpdateStatus(actionPlan *models.TestAndExerciseRecoveryActionPlan, tx ...utility.DatabaseTransaction) error
 }
 
 type TaeRecoveryActionPlanStatusUpdateRepository struct {
@@ -215,4 +217,15 @@ func (repo *TaeRecoveryActionPlanStatusUpdateRepository) GetLatestTaeRecoveryAct
 	}
 
 	return taeRecoveryActionPlanUpdate, nil
+}
+
+func (repo *TaeRecoveryActionPlanStatusUpdateRepository) RecoveryActionPlanUpdateStatus(actionPlan *models.TestAndExerciseRecoveryActionPlan, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(actionPlan).Error; err != nil {
+		return err
+	}
+	return nil
 }

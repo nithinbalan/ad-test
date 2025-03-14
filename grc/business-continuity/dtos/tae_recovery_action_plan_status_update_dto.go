@@ -51,3 +51,7 @@ type TaeRecoveryActionPlanStatusUpdateDocumentDTO struct {
 	OriginalName string `json:"original_name"`
 	Type         string `json:"type"`
 }
+
+type TaeRecoveryActionPlanReviewUserStatusUpdateFormDTO struct {
+	Comment string `json:"comment"`
+}

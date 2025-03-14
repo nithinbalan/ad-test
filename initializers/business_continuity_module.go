@@ -29,6 +29,7 @@ type BusinessContinuityModule struct {
 	TestResultOptionController                       *controllers.TestResultOptionController
 	TestAndExerciseTestResultController              *controllers.TestAndExerciseTestResultController
 	TaeRecoveryActionPlanStatusUpdateController      *controllers.TaeRecoveryActionPlanStatusUpdateController
+	TaeRecoveryActionPlanCommentController           *controllers.TaeRecoveryActionPlanCommentController
 
 	BusinessFunctionSvc                  services.BusinessFunctionServiceInterface
 	BcpTeamSvc                           services.BcpTeamServiceInterface
@@ -45,6 +46,8 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	assetModule *AssetModule,
 	documentModule *DocumentModule,
 	riskModule *RiskModule,
+	commonModule *CommonModule,
+	taskModule *TaskModule,
 ) *BusinessContinuityModule {
 	businessFunctionRepo := repositories.NewBusinessFunctionRepository(db)
 
@@ -108,7 +111,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	testAndExerciseCommunicationActionPlanController := controllers.NewTestAndExerciseCommunicationActionPlanController(testAndExerciseCommunicationActionPlanSvc)
 
 	testAndExerciseRecoveryActionPlanRepo := repositories.NewTestAndExerciseRecoveryActionPlanRepository(db)
-	testAndExerciseRecoveryActionPlanSvc := services.NewTestAndExerciseRecoveryActionPlanService(testAndExerciseRecoveryActionPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, testAndExerciseSvc, masterModule.ActionPlanStatusSvc)
+	testAndExerciseRecoveryActionPlanSvc := services.NewTestAndExerciseRecoveryActionPlanService(testAndExerciseRecoveryActionPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, testAndExerciseSvc, masterModule.ActionPlanStatusSvc, taskModule.TaskService, commonModule.NotificationService, organizationModule.UserSettingSvc)
 	testAndExerciseRecoveryActionPlanController := controllers.NewTestAndExerciseRecoveryActionPlanController(testAndExerciseRecoveryActionPlanSvc)
 
 	timelinessRepo := repositories.NewTimelinessRepository(db)
@@ -128,8 +131,12 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	testAndExerciseTestResultController := controllers.NewTestAndExerciseTestResultController(testAndExerciseTestResultSvc)
 
 	taeRecoveryActionPlanStatusUpdateRepo := repositories.NewTaeRecoveryActionPlanStatusUpdateRepository(db)
-	taeRecoveryActionPlanStatusUpdateSvc := services.NewTaeRecoveryActionPlanStatusUpdateService(taeRecoveryActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, testAndExerciseRecoveryActionPlanSvc, masterModule.ActionPlanStatusSvc)
+	taeRecoveryActionPlanStatusUpdateSvc := services.NewTaeRecoveryActionPlanStatusUpdateService(taeRecoveryActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, testAndExerciseRecoveryActionPlanSvc, masterModule.ActionPlanStatusSvc, testAndExerciseSvc, organizationModule.UserSvc, commonModule.NotificationService, taskModule.TaskService, taskModule.TaskStatusService)
 	taeRecoveryActionPlanStatusUpdateController := controllers.NewTaeRecoveryActionPlanStatusUpdateController(taeRecoveryActionPlanStatusUpdateSvc)
+
+	taeRecoveryActionPlanCommentRepository := repositories.NewTaeRecoveryActionPlanCommentRepository(db)
+	taeRecoveryActionPlanCommentSvc := services.NewTaeRecoveryActionPlanCommentService(taeRecoveryActionPlanCommentRepository, organizationModule.UserSvc, sharedModule.ActivityLogService, testAndExerciseRecoveryActionPlanSvc, commonModule.NotificationService)
+	taeRecoveryActionPlanCommentController := controllers.NewTaeRecoveryActionPlanCommentController(taeRecoveryActionPlanCommentSvc)
 
 	return &BusinessContinuityModule{
 		BusinessFunctionController:                       businessFunctionController,
@@ -152,6 +159,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		TestResultOptionController:                       testResultOptionController,
 		TestAndExerciseTestResultController:              testAndExerciseTestResultController,
 		TaeRecoveryActionPlanStatusUpdateController:      taeRecoveryActionPlanStatusUpdateController,
+		TaeRecoveryActionPlanCommentController:           taeRecoveryActionPlanCommentController,
 
 		BusinessFunctionSvc:                  businessFunctionSvc,
 		BcpTeamSvc:                           bcpTeamSvc,

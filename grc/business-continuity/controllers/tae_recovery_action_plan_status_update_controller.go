@@ -293,3 +293,101 @@ func (rapsuc *TaeRecoveryActionPlanStatusUpdateController) DownloadTaeRecoveryAc
 	// Serve the file
 	c.File(slaActionPlanStatusUpdateDocumentPath)
 }
+
+func (rapsuc *TaeRecoveryActionPlanStatusUpdateController) ApproveTaeRecoveryActionPlan(c *gin.Context) {
+	var recoveryReviewUserUpdateFormDTO businessContinuityDTOs.TaeRecoveryActionPlanReviewUserStatusUpdateFormDTO
+
+	testAndExerciseIDStr := c.Param("testAndExerciseId")
+
+	testAndExerciseID, err := strconv.ParseUint(testAndExerciseIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&recoveryReviewUserUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rapsuc.db, c, err.Error())
+		return
+	}
+
+	err = rapsuc.service.Approve(uint(testAndExerciseID), uint(actionPlanID), currentUserID, &recoveryReviewUserUpdateFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(rapsuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (rapsuc *TaeRecoveryActionPlanStatusUpdateController) RevertTaeRecoveryActionPlan(c *gin.Context) {
+	var recoveryReviewUserUpdateFormDTO businessContinuityDTOs.TaeRecoveryActionPlanReviewUserStatusUpdateFormDTO
+
+	testAndExerciseIDStr := c.Param("testAndExerciseId")
+
+	testAndExerciseID, err := strconv.ParseUint(testAndExerciseIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&recoveryReviewUserUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rapsuc.db, c, err.Error())
+		return
+	}
+
+	err = rapsuc.service.Revert(uint(testAndExerciseID), uint(actionPlanID), currentUserID, &recoveryReviewUserUpdateFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(rapsuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
