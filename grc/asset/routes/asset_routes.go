@@ -213,6 +213,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.GET("/assets/:id/policies/:policyId", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetPolicyController.GetPolicyDetails)
 	assetRoutes.POST("/assets/:id/policies", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyController.CreatePolicy)
 	assetRoutes.POST("/assets/:id/policies/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyController.DeletePolicies)
+	assetRoutes.GET("/assets/:id/policies-summary", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetPolicyController.GetAssetPolicyComplianceSummary)
 
 	assetRoutes.POST("/assets/:id/policies/:policyId/checklists", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyChecklistController.CreateAssetPolicyChecklist)
 	assetRoutes.PUT("/assets/:id/policies/:policyId/checklists/:checklistId", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyChecklistController.UpdateAssetPolicyChecklist)
@@ -220,6 +221,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/assets/:id/policies/:policyId/checklists/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyChecklistController.DeleteAssetPolicyChecklists)
 	assetRoutes.PUT("/assets/:id/policies/:policyId/checklists/:checklistId/answer", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyChecklistController.AnswerAssetPolicyChecklist)
 	assetRoutes.POST("/assets/:id/policies/:policyId/checklists/delete-answer", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyChecklistController.DeleteAnswerAssetPolicyChecklist)
+	assetRoutes.GET("/assets/:id/policies/:policyId/checklists-summary", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetPolicyChecklistController.GetAssetPolicyChecklistSummary)
 
 	assetRoutes.GET("/assets/:id/policies/:policyId/comments", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetPolicyCommentController.GetAllComments)
 	assetRoutes.GET("/assets/:id/policies/:policyId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetPolicyCommentController.GetCommentDetails)

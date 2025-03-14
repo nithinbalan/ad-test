@@ -214,3 +214,24 @@ func (apcc *AssetPolicyChecklistController) DeleteAnswerAssetPolicyChecklist(c *
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (apcc *AssetPolicyChecklistController) GetAssetPolicyChecklistSummary(c *gin.Context) {
+	assetRegisterID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	policyId, err := strconv.Atoi(c.Param("policyId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	summary, err := apcc.service.GetAssetPolicyChecklistSummary(uint(assetRegisterID), uint(policyId))
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, summary)
+}

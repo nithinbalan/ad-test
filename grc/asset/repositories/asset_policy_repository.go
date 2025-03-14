@@ -21,7 +21,9 @@ type AssetPolicyRepositoryInterface interface {
 
 	CreateAssetPolicyChecklists(checklists []*models.AssetPolicyChecklist, tx ...utility.DatabaseTransaction) error
 	DeleteAssetPolicyChecklists(policyIDs []uint, tx ...utility.DatabaseTransaction) error
+	DeleteAssetPolicyComments(policyIDs []uint, tx ...utility.DatabaseTransaction) error
 	DeleteAssetPolicies(policyIDs []uint, tx ...utility.DatabaseTransaction) error
+	GetAssetPolicyComplianceSummary(assetRegisterID uint) (*dtos.AssetPolicyByComplianceDTO, error)
 }
 
 type AssetPolicyRepository struct {
@@ -49,6 +51,9 @@ func (repo *AssetPolicyRepository) GetAll(params *dtos.AssetPolicyListQueryParam
 			asset_categories.title_ar AS asset_category_title_ar,
 			asset_sub_categories.title_en AS asset_sub_category_title_en,
 			asset_sub_categories.title_ar AS asset_sub_category_title_ar,
+			compliance_statuses.title_en AS compliance_status_title_en,
+			compliance_statuses.title_ar AS compliance_status_title_ar,
+			compliance_statuses.color_code AS compliance_status_color_code,
 			documents.title_en AS document_title_en,
 			documents.title_ar AS document_title_ar,
 			document_versions.url AS document_url,
@@ -63,6 +68,7 @@ func (repo *AssetPolicyRepository) GetAll(params *dtos.AssetPolicyListQueryParam
 		Joins("LEFT JOIN asset_sub_categories ON asset_sub_categories.id = asset_register.asset_sub_category_id").
 		Joins("LEFT JOIN documents ON documents.id = asset_policies.document_id").
 		Joins("LEFT JOIN document_versions ON document_versions.document_id = documents.id AND document_versions.is_latest_version = 1").
+		Joins("LEFT JOIN compliance_statuses ON asset_policies.compliance_status_id = compliance_statuses.id").
 		Where("asset_policies.asset_register_id = ?", assetRegisterID)
 
 	if err := query.Count(&totalCount).Error; err != nil {
@@ -110,6 +116,7 @@ func (repo *AssetPolicyRepository) GetFullDetailsByID(id uint, tx ...utility.Dat
 	result := db.
 		Preload("AssetRegister").
 		Preload("Document").
+		Preload("ComplianceStatus").
 		Preload("AssetPolicyChecklists").
 		Preload("AssetPolicyChecklists.DocumentRequirementGroup").
 		Preload("CreatedByUser").
@@ -154,8 +161,8 @@ func (repo *AssetPolicyRepository) GetByAssetID(assetID uint, tx ...utility.Data
 
 	var assetPolicies []*models.AssetPolicy
 	err := db.Where("asset_register_id = ?", assetID).
-		Preload("Document").      // Preload related Document data (if applicable)
-		Preload("CreatedByUser"). // Preload creator details (optional)
+		Preload("Document").
+		Preload("CreatedByUser").
 		Find(&assetPolicies).Error
 
 	if err != nil {
@@ -188,6 +195,16 @@ func (repo *AssetPolicyRepository) DeleteAssetPolicyChecklists(policyIDs []uint,
 	}
 	return nil
 }
+func (repo *AssetPolicyRepository) DeleteAssetPolicyComments(policyIDs []uint, tx ...utility.DatabaseTransaction) error {
+	// db := repo.db
+	// if len(tx) > 0 && tx[0] != nil {
+	// 	db = tx[0].DB()
+	// }
+	// if err := db.Where("asset_policy_id IN (?)", policyIDs).Delete(&models.AssetPolicyComment{}).Error; err != nil {
+	// 	return err
+	// }
+	return nil
+}
 
 // BulkDeleteAssetPolicies deletes multiple AssetPolicy records in bulk.
 func (repo *AssetPolicyRepository) DeleteAssetPolicies(policyIDs []uint, tx ...utility.DatabaseTransaction) error {
@@ -199,4 +216,22 @@ func (repo *AssetPolicyRepository) DeleteAssetPolicies(policyIDs []uint, tx ...u
 		return err
 	}
 	return nil
+}
+
+func (repo *AssetPolicyRepository) GetAssetPolicyComplianceSummary(assetRegisterID uint) (*dtos.AssetPolicyByComplianceDTO, error) {
+	result := dtos.AssetPolicyByComplianceDTO{}
+
+	query := repo.db.Table("asset_policies").
+		Select(`
+			COUNT(asset_policies.id) AS total_policies,
+			COUNT(CASE WHEN compliance_statuses.type = 'compliant' THEN asset_policies.id END) AS compliant, 
+			COUNT(CASE WHEN compliance_statuses.type != 'compliant' OR compliance_statuses.type IS NULL THEN asset_policies.id END) AS non_compliant,
+			(100.0 * COUNT(CASE WHEN compliance_statuses.type = 'compliant' THEN asset_policies.id END) / NULLIF(COUNT(asset_policies.id), 0)) AS compliant_percentage,
+			(100.0 * COUNT(CASE WHEN compliance_statuses.type != 'compliant' OR compliance_statuses.type IS NULL THEN asset_policies.id END) / NULLIF(COUNT(asset_policies.id), 0)) AS non_compliant_percentage
+		`).
+		Joins("LEFT JOIN compliance_statuses ON asset_policies.compliance_status_id = compliance_statuses.id").
+		Where("asset_policies.asset_register_id = ?", assetRegisterID)
+
+	err := query.Scan(&result).Error
+	return &result, err
 }

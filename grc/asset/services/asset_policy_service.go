@@ -17,9 +17,12 @@ import (
 type AssetPolicyServiceInterface interface {
 	GetAll(params *dtos.AssetPolicyListQueryParamsDTO, assetRegisterID uint) (*dtos.AssetPolicyListResponseDTO, error)
 	GetByID(id uint) (*models.AssetPolicy, error)
+	GetByAssetID(assetId uint, tx ...utility.DatabaseTransaction) ([]*models.AssetPolicy, error)
 	GetFullDetailsByID(assetRegisterID uint, id uint, tx ...utility.DatabaseTransaction) (*dtos.AssetPolicyDetailDTO, error)
 	Update(assetPolicyForm *dtos.AssetPolicyFormDTO, currentUserID uint, assetId uint) ([]uint, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	GetAssetPolicyComplianceSummary(assetID uint) (*dtos.AssetPolicyByComplianceDTO, error)
+	StatusUpdate(id uint, currentUserID uint, assetPolicyStatusUpdateFormDTO *dtos.AssetPolicyStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
 }
 
 type AssetPolicyService struct {
@@ -50,6 +53,9 @@ func NewAssetPolicyService(
 }
 
 func (aps *AssetPolicyService) GetAll(params *dtos.AssetPolicyListQueryParamsDTO, assetRegisterID uint) (*dtos.AssetPolicyListResponseDTO, error) {
+	if _, err := aps.assetRegisterSvc.GetByID(assetRegisterID); err != nil {
+		return nil, err
+	}
 	return aps.repo.GetAll(params, assetRegisterID)
 }
 func (aps *AssetPolicyService) GetByID(id uint) (*models.AssetPolicy, error) {
@@ -62,10 +68,22 @@ func (aps *AssetPolicyService) GetByID(id uint) (*models.AssetPolicy, error) {
 	}
 	return policy, nil
 }
+func (aps *AssetPolicyService) GetByAssetID(assetId uint, tx ...utility.DatabaseTransaction) ([]*models.AssetPolicy, error) {
+	policies, err := aps.repo.GetByAssetID(assetId, tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, assetId)
+		}
+		return nil, err
+	}
+	return policies, nil
+}
 
 func (aps *AssetPolicyService) GetFullDetailsByID(assetRegisterID uint, id uint, tx ...utility.DatabaseTransaction) (*dtos.AssetPolicyDetailDTO, error) {
 	var assetPolicyDetailDTO dtos.AssetPolicyDetailDTO
-
+	if _, err := aps.assetRegisterSvc.GetByID(assetRegisterID); err != nil {
+		return nil, err
+	}
 	assetPolicy, err := aps.repo.GetFullDetailsByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -86,10 +104,6 @@ func (aps *AssetPolicyService) GetFullDetailsByID(assetRegisterID uint, id uint,
 func (aps *AssetPolicyService) Update(assetPolicyForm *dtos.AssetPolicyFormDTO, currentUserID uint, assetId uint) ([]uint, error) {
 	tx := aps.repo.BeginTransaction()
 
-	if err := aps.validateAssetPolicyFormDTO(assetPolicyForm); err != nil {
-		return nil, err
-	}
-
 	var policyIDs []uint
 	var deletePolicyIDs []uint
 
@@ -98,6 +112,13 @@ func (aps *AssetPolicyService) Update(assetPolicyForm *dtos.AssetPolicyFormDTO, 
 	if err != nil {
 		tx.Rollback()
 		return nil, err
+	}
+
+	for _, documentID := range assetPolicyForm.DocumentIDs {
+		if _, err := aps.documentSvc.GetByID(documentID, tx); err != nil {
+			tx.Rollback()
+			return nil, utility.NewValidationError(fmt.Errorf("document id %d does not exist", documentID), "not_exist", "document id")
+		}
 	}
 
 	existingPolicyMap := make(map[uint]uint) // Map[DocumentID]AssetPolicyID
@@ -256,7 +277,11 @@ func (aps *AssetPolicyService) Delete(ids []uint, currentUserID uint) ([]uint, e
 		fmt.Printf("Failed to delete checklists for policies: %v\n", err)
 		return failedIds, err
 	}
-
+	if err := aps.repo.DeleteAssetPolicyComments(existingPolicyIDs, tx); err != nil {
+		tx.Rollback()
+		fmt.Printf("Failed to delete asset policies comments: %v\n", err)
+		return failedIds, err
+	}
 	//  Delete AssetPolicies
 	if err := aps.repo.DeleteAssetPolicies(existingPolicyIDs, tx); err != nil {
 		tx.Rollback()
@@ -287,10 +312,29 @@ func (aps *AssetPolicyService) Delete(ids []uint, currentUserID uint) ([]uint, e
 	return failedIds, nil
 }
 
-func (aps *AssetPolicyService) validateAssetPolicyFormDTO(assetPolicyForm *dtos.AssetPolicyFormDTO) error {
-	// if _, err := aps.userSvc.GetByID(uint(assetPolicyForm.PerformedByID)); err != nil {
-	// 	return utility.NewValidationError(fmt.Errorf("performed by user does not exist"), "not_exist", "performed by user")
-	// }
+func (aps *AssetPolicyService) GetAssetPolicyComplianceSummary(assetID uint) (*dtos.AssetPolicyByComplianceDTO, error) {
+	if _, err := aps.assetRegisterSvc.GetByID(assetID); err != nil {
+		return nil, err
+	}
+	return aps.repo.GetAssetPolicyComplianceSummary(assetID)
+}
+
+func (aps *AssetPolicyService) StatusUpdate(id uint, currentUserID uint, assetPolicyStatusUpdateFormDTO *dtos.AssetPolicyStatusUpdateFormDTO, tx utility.DatabaseTransaction) error {
+	// Fetch the existing asset policy record
+	existingAssetPolicy, err := aps.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	// Update asset policy status, comments, and percentage
+	existingAssetPolicy.ComplianceStatusID = &assetPolicyStatusUpdateFormDTO.ComplianceStatusID
+	existingAssetPolicy.UpdatedBYID = currentUserID
+
+	// Update the record in the repository
+	err = aps.repo.Update(existingAssetPolicy, tx)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

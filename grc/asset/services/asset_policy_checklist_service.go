@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
+	complianceServices "jethur/grc/compliance/services"
 	documentServices "jethur/grc/documents/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
@@ -22,6 +23,7 @@ type AssetPolicyChecklistServiceInterface interface {
 
 	AnswerAssetPolicyChecklist(id uint, formDTO *dtos.AssetPolicyChecklistAnswerFormDTO, currentUserID uint, assetId uint, assetPolicyId uint) error
 	DeleteAnswerAssetPolicyChecklist(ids []uint, currentUserID uint, assetId uint, assetPolicyId uint) ([]uint, error)
+	GetAssetPolicyChecklistSummary(assetID uint, policyID uint) (*dtos.AssetPolicyChecklistSummaryDTO, error)
 }
 
 type AssetPolicyChecklistService struct {
@@ -30,6 +32,7 @@ type AssetPolicyChecklistService struct {
 	assetRegisterSvc            AssetRegisterServiceInterface
 	documentRequirementGroupSvc documentServices.DocumentRequirementGroupServiceInterface
 	assetPolicySvc              AssetPolicyServiceInterface
+	complianceStatusSvc         complianceServices.ComplianceStatusServiceInterface
 }
 
 func NewAssetPolicyChecklistService(
@@ -38,6 +41,7 @@ func NewAssetPolicyChecklistService(
 	assetRegisterSvc AssetRegisterServiceInterface,
 	documentRequirementGroupSvc documentServices.DocumentRequirementGroupServiceInterface,
 	assetPolicySvc AssetPolicyServiceInterface,
+	complianceStatusSvc complianceServices.ComplianceStatusServiceInterface,
 ) AssetPolicyChecklistServiceInterface {
 	return &AssetPolicyChecklistService{
 		repo:                        repo,
@@ -45,6 +49,7 @@ func NewAssetPolicyChecklistService(
 		assetRegisterSvc:            assetRegisterSvc,
 		documentRequirementGroupSvc: documentRequirementGroupSvc,
 		assetPolicySvc:              assetPolicySvc,
+		complianceStatusSvc:         complianceStatusSvc,
 	}
 }
 
@@ -200,16 +205,17 @@ func (apcs *AssetPolicyChecklistService) Delete(ids []uint, currentUserID uint) 
 	return failedIds, nil
 }
 
-func (apcs *AssetPolicyChecklistService) AnswerAssetPolicyChecklist(id uint, formDTO *dtos.AssetPolicyChecklistAnswerFormDTO, currentUserID uint, assetId uint, assetPolicyId uint) error {
+func (apcs *AssetPolicyChecklistService) AnswerAssetPolicyChecklist(id uint, formDTO *dtos.AssetPolicyChecklistAnswerFormDTO, currentUserID uint, assetID uint, assetPolicyID uint) error {
 	tx := apcs.repo.BeginTransaction()
 
 	// Fetch existing checklist
 	existingChecklist, err := apcs.repo.GetByID(id)
 	if err != nil {
-		return errors.New("checklist not found")
+		tx.Rollback()
+		return err
 	}
 
-	// Update fields
+	// Update checklist fields
 	existingChecklist.Justification = formDTO.Justification
 	existingChecklist.ComplianceStatusID = &formDTO.ComplianceStatusID
 	existingChecklist.AnsweredBYID = &currentUserID
@@ -223,8 +229,87 @@ func (apcs *AssetPolicyChecklistService) AnswerAssetPolicyChecklist(id uint, for
 		tx.Rollback()
 		return err
 	}
-	tx.Commit()
 
+	// Fetch all checklists under this AssetPolicyID
+	checklists, err := apcs.assetPolicySvc.GetByAssetID(assetPolicyID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Fetch compliance statuses
+	compliantStatus, err := apcs.complianceStatusSvc.GetByType("compliant")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	notApplicableStatus, err := apcs.complianceStatusSvc.GetByType("not_applicable")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	partiallyCompliantStatus, err := apcs.complianceStatusSvc.GetByType("partially_compliant")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	// notCompliantStatus, err := apcs.complianceStatusSvc.GetByType("not_compliant")
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return err
+	// }
+
+	// Count occurrences of each status
+	var compliantCount, notApplicableCount, partiallyCompliantCount int
+	for _, checklist := range checklists {
+		if checklist.ComplianceStatusID != nil {
+			switch *checklist.ComplianceStatusID {
+			case compliantStatus.ID:
+				compliantCount++
+			case notApplicableStatus.ID:
+				notApplicableCount++
+			case partiallyCompliantStatus.ID:
+				partiallyCompliantCount++
+				// case notCompliantStatus.ID:
+				// 	notCompliantCount++
+			}
+		}
+	}
+
+	// **Determine Final Policy Status**
+	var finalStatusID *uint
+
+	// if notCompliantCount > 0 {
+	// 	// If any checklist is **not_compliant**, then the overall policy is **not_compliant**
+	// 	finalStatusID = &notCompliantStatus.ID
+	// }
+	if partiallyCompliantCount > 0 {
+		// If all are **partially_compliant** or mixed with **compliant/not_applicable**
+		finalStatusID = &partiallyCompliantStatus.ID
+	} else if compliantCount > 0 && notApplicableCount == 0 {
+		// If **all are compliant** (excluding not_applicable)
+		finalStatusID = &compliantStatus.ID
+	} else if notApplicableCount > 0 && compliantCount == 0 && partiallyCompliantCount == 0 {
+		// If **all are not_applicable**
+		finalStatusID = &notApplicableStatus.ID
+	} else {
+		// No status can be determined (fallback)
+		finalStatusID = nil
+	}
+
+	// ✅ Update Asset Policy status if applicable
+	if finalStatusID != nil {
+		updateDTO := &dtos.AssetPolicyStatusUpdateFormDTO{
+			ComplianceStatusID: *finalStatusID,
+		}
+
+		if err := apcs.assetPolicySvc.StatusUpdate(assetPolicyID, currentUserID, updateDTO, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
 	return nil
 }
 
@@ -275,6 +360,83 @@ func (apcs *AssetPolicyChecklistService) DeleteAnswerAssetPolicyChecklist(ids []
 		fmt.Printf("Failed to unset asset policy checklists: %v\n", err)
 		return failedIds, err
 	}
+	checklists, err := apcs.assetPolicySvc.GetByAssetID(assetPolicyId, tx)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// Fetch compliance statuses
+	compliantStatus, err := apcs.complianceStatusSvc.GetByType("compliant")
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	notApplicableStatus, err := apcs.complianceStatusSvc.GetByType("not_applicable")
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	partiallyCompliantStatus, err := apcs.complianceStatusSvc.GetByType("partially_compliant")
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	// notCompliantStatus, err := apcs.complianceStatusSvc.GetByType("not_compliant")
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return nil, err
+	// }
+
+	// Count occurrences of each status
+	var compliantCount, notApplicableCount, partiallyCompliantCount int
+	for _, checklist := range checklists {
+		if checklist.ComplianceStatusID != nil {
+			switch *checklist.ComplianceStatusID {
+			case compliantStatus.ID:
+				compliantCount++
+			case notApplicableStatus.ID:
+				notApplicableCount++
+			case partiallyCompliantStatus.ID:
+				partiallyCompliantCount++
+				// case notCompliantStatus.ID:
+				// 	notCompliantCount++
+			}
+		}
+	}
+
+	// **Determine Final Policy Status**
+	var finalStatusID *uint
+
+	// if notCompliantCount > 0 {
+	// 	// If any checklist is **not_compliant**, then the overall policy is **not_compliant**
+	// 	finalStatusID = &notCompliantStatus.ID
+	// }
+	if partiallyCompliantCount > 0 {
+		// If all are **partially_compliant** or mixed with **compliant/not_applicable**
+		finalStatusID = &partiallyCompliantStatus.ID
+	} else if compliantCount > 0 && notApplicableCount == 0 {
+		// If **all are compliant** (excluding not_applicable)
+		finalStatusID = &compliantStatus.ID
+	} else if notApplicableCount > 0 && compliantCount == 0 && partiallyCompliantCount == 0 {
+		// If **all are not_applicable**
+		finalStatusID = &notApplicableStatus.ID
+	} else {
+		// No status can be determined (fallback)
+		finalStatusID = nil
+	}
+
+	// ✅ Update Asset Policy status if applicable
+	if finalStatusID != nil {
+		updateDTO := &dtos.AssetPolicyStatusUpdateFormDTO{
+			ComplianceStatusID: *finalStatusID,
+		}
+
+		if err := apcs.assetPolicySvc.StatusUpdate(assetPolicyId, currentUserID, updateDTO, tx); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+	}
 
 	tx.Commit()
 	for _, checklist := range updatedChecklists {
@@ -299,4 +461,8 @@ func (apcs *AssetPolicyChecklistService) DeleteAnswerAssetPolicyChecklist(ids []
 	}
 
 	return failedIds, nil
+}
+
+func (apcs *AssetPolicyChecklistService) GetAssetPolicyChecklistSummary(assetID uint, policyID uint) (*dtos.AssetPolicyChecklistSummaryDTO, error) {
+	return apcs.repo.GetAssetPolicyChecklistSummary(policyID)
 }
