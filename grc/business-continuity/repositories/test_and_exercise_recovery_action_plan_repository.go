@@ -82,6 +82,8 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
             test_and_exercise_recovery_action_plans.action_plan_status_id,
             action_plan_statuses.title_en AS action_plan_status_title_en, 
             action_plan_statuses.title_ar AS action_plan_status_title_ar, 
+			action_plan_statuses.color_code AS action_plan_status_color_code, 
+			action_plan_statuses.type AS action_plan_status_type, 
             test_and_exercise_recovery_action_plans.created_by_id,
             created_user.first_name_en AS created_user_first_name_en,
             created_user.last_name_en AS created_user_last_name_en, 

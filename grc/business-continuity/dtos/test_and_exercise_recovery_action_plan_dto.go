@@ -38,6 +38,8 @@ type TestAndExerciseRecoveryActionPlanListDTO struct {
 	ActionPlanStatusID              *uint      `json:"action_plan_status_id"`
 	ActionPlanStatusTitleEn         *string    `json:"action_plan_status_title_en"`
 	ActionPlanStatusTitleAr         *string    `json:"action_plan_status_title_ar"`
+	ActionPlanStatusType            *string    `json:"action_plan_status_type"`
+	ActionPlanStatusColorCode       *string    `json:"action_plan_status_color_code"`
 	IsRecovery                      bool       `json:"is_recovery"`
 	Percentage                      *int       `json:"percentage"`
 	ReviewUserID                    *uint      `json:"review_user_id"`
