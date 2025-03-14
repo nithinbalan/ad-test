@@ -18,6 +18,10 @@ type TestAndExerciseRecoveryActionPlanRepositoryInterface interface {
 	Delete(actionPlanID uint, tx ...utility.DatabaseTransaction) error
 
 	CreateInitialSLAActionPlanStatusUpdate(recoveryActionPlanStatusUpdate *models.TaeRecoveryActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	DeleteActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteActionPlanComments(ids []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteActionPlanCommentDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteActionPlanStatusUpdateDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type TestAndExerciseRecoveryActionPlanRepository struct {
@@ -186,6 +190,7 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetFullDetailsByID(id u
 	var actionPlan *models.TestAndExerciseRecoveryActionPlan
 	result := db.
 		Preload("TestAndExercise").
+		Preload("TestAndExercise.BcpTestAndExercise").
 		Preload("BcpPhase").
 		Preload("Process").
 		Preload("SeverityLevel").
@@ -254,4 +259,55 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) CreateInitialSLAActionP
 		return 0, err
 	}
 	return recoveryActionPlanStatusUpdate.ID, nil
+}
+func (repo *TestAndExerciseRecoveryActionPlanRepository) DeleteActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.TaeRecoveryActionPlanStatusUpdate{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *TestAndExerciseRecoveryActionPlanRepository) DeleteActionPlanComments(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.TaeRecoveryActionPlanComment{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *TestAndExerciseRecoveryActionPlanRepository) DeleteActionPlanCommentDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", docIds).Delete(&models.TaeRecoveryActionPlanCommentDocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *TestAndExerciseRecoveryActionPlanRepository) DeleteActionPlanStatusUpdateDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", docIds).Delete(&models.TaeRecoveryActionPlanStatusUpdateDocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
