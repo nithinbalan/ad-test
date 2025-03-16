@@ -17,7 +17,7 @@ type RiskReportRepositoryInterface interface {
 	GetAll(params *dtos.RiskReportListQueryParamsDTO) (*dtos.RiskReportListResponseDTO, error)
 	// GetFullDetailsByID(riskReportID uint) (*models.RiskReport, error)
 
-	GetRiskReportByID(riskReportID uint) (*models.RiskReport, error)
+	GetRiskReportByID(riskReportID uint, tx ...utility.DatabaseTransaction) (*models.RiskReport, error)
 	GetRiskReportSections(riskReportID uint) ([]dtos.RiskReportSectionResponseDTO, error)
 	GetRiskIdentifications(riskReportID uint) ([]dtos.RiskIdentificationResponseDTO, error)
 	GetRiskActionPlans(riskReportID uint) ([]dtos.RiskReportActionPlanResponseDTO, error)
@@ -154,9 +154,13 @@ func (repo *RiskReportRepository) GetSectionByID(sectionID uint, tx ...utility.D
 }
 
 // Fetch main report details
-func (repo *RiskReportRepository) GetRiskReportByID(riskReportID uint) (*models.RiskReport, error) {
+func (repo *RiskReportRepository) GetRiskReportByID(riskReportID uint, tx ...utility.DatabaseTransaction) (*models.RiskReport, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var riskReport models.RiskReport
-	err := repo.db.
+	err := db.
 		Preload("CreatedByUser").
 		Where("id = ?", riskReportID).First(&riskReport).Error
 	if err != nil {

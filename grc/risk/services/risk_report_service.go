@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
@@ -18,19 +19,22 @@ type RiskReportServiceInterface interface {
 	// GetRiskReportDetails(riskReportID uint, tx ...utility.DatabaseTransaction) (*dtos.RiskReportDetailDTO, error)
 	Create(currentUserID uint, riskReportFormDTO *dtos.RiskReportFormDTO) (uint, error)
 	UpdateSection(riskID uint, id uint, currentUserID uint, riskReporSectionFormDTO *dtos.RiskReportSectionFormDTO) error
-	DeleteRiskReportSection(riskReportID uint, sectionID uint) error
-	DeleteRiskReport(riskReportID uint) error
+	DeleteRiskReportSection(riskReportID uint, sectionID uint, currentUserID uint) error
+	DeleteRiskReport(riskReportID uint, currentUserID uint) error
 }
 
 type RiskReportService struct {
-	repo repositories.RiskReportRepositoryInterface
+	repo           repositories.RiskReportRepositoryInterface
+	activityLogSvc logServices.ActivityLogServiceInterface
 }
 
 func NewRiskReportService(
 	repo repositories.RiskReportRepositoryInterface,
+	activityLogSvc logServices.ActivityLogServiceInterface,
 ) RiskReportServiceInterface {
 	return &RiskReportService{
-		repo: repo,
+		repo:           repo,
+		activityLogSvc: activityLogSvc,
 	}
 }
 
@@ -289,6 +293,20 @@ func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos
 	}
 
 	tx.Commit()
+
+	go func() {
+		err := rrs.activityLogSvc.LogActivity(
+			models.CreateAction,
+			models.RiskReport{}.TableName(),
+			riskReportID,
+			riskReport,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
+		}
+	}()
 	return riskReportID, nil
 }
 
@@ -297,9 +315,19 @@ func (rrs *RiskReportService) UpdateSection(riskReportID uint, sectionID uint, c
 
 	existingReportSection, err := rrs.GetSectionByID(riskReportID, sectionID, tx)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
+	// Capture old values before update
+	oldValues := map[string]interface{}{
+		"title_en":       existingReportSection.TitleEn,
+		"title_ar":       existingReportSection.TitleAr,
+		"description_en": existingReportSection.DescriptionEn,
+		"description_ar": existingReportSection.DescriptionAr,
+	}
+
+	// Update section details
 	existingReportSection.TitleEn = riskReporSectionFormDTO.TitleEn
 	existingReportSection.TitleAr = riskReporSectionFormDTO.TitleAr
 	existingReportSection.DescriptionEn = *riskReporSectionFormDTO.DescriptionEn
@@ -313,10 +341,38 @@ func (rrs *RiskReportService) UpdateSection(riskReportID uint, sectionID uint, c
 
 	tx.Commit()
 
+	// Capture new values after update
+	newValues := map[string]interface{}{
+		"title_en":       existingReportSection.TitleEn,
+		"title_ar":       existingReportSection.TitleAr,
+		"description_en": existingReportSection.DescriptionEn,
+		"description_ar": existingReportSection.DescriptionAr,
+	}
+
+	// Identify changes
+	changedData := utility.CompareFieldChanges(oldValues, newValues)
+
+	// Log activity only if there are changes
+	if len(changedData) > 0 {
+		go func() {
+			err := rrs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.RiskReportSection{}.TableName(),
+				sectionID,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
+			}
+		}()
+	}
+
 	return nil
 }
 
-func (rrs *RiskReportService) DeleteRiskReportSection(riskReportID uint, sectionID uint) error {
+func (rrs *RiskReportService) DeleteRiskReportSection(riskReportID uint, sectionID uint, currentUserID uint) error {
 	tx := rrs.repo.BeginTransaction()
 
 	section, err := rrs.GetSectionByID(riskReportID, sectionID, tx)
@@ -338,11 +394,30 @@ func (rrs *RiskReportService) DeleteRiskReportSection(riskReportID uint, section
 	}
 
 	tx.Commit()
+	go func() {
+		err := rrs.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.RiskReportSection{}.TableName(),
+			sectionID,
+			section,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
+		}
+	}()
 	return nil
 }
 
-func (rrs *RiskReportService) DeleteRiskReport(riskReportID uint) error {
+func (rrs *RiskReportService) DeleteRiskReport(riskReportID uint, currentUserID uint) error {
 	tx := rrs.repo.BeginTransaction()
+
+	existingReport, err := rrs.repo.GetRiskReportByID(riskReportID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
 	if err := rrs.repo.DeleteRiskReportOrganizationUnits(riskReportID, tx); err != nil {
 		tx.Rollback()
@@ -373,6 +448,20 @@ func (rrs *RiskReportService) DeleteRiskReport(riskReportID uint) error {
 		tx.Rollback()
 		return err
 	}
+
+	go func() {
+		err := rrs.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.RiskReport{}.TableName(),
+			riskReportID,
+			existingReport,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
+		}
+	}()
 
 	tx.Commit()
 	return nil

@@ -188,7 +188,13 @@ func (rrc *RiskReportController) DeleteRiskReportSection(c *gin.Context) {
 		return
 	}
 
-	err = rrc.service.DeleteRiskReportSection(uint(riskReportID), uint(sectionID))
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrc.db, c, err.Error())
+		return
+	}
+
+	err = rrc.service.DeleteRiskReportSection(uint(riskReportID), uint(sectionID), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -212,8 +218,13 @@ func (rrc *RiskReportController) DeleteRiskReport(c *gin.Context) {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrc.db, c, err.Error())
+		return
+	}
 
-	err = rrc.service.DeleteRiskReport(uint(riskReportID))
+	err = rrc.service.DeleteRiskReport(uint(riskReportID), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
