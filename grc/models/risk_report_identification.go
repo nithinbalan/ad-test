@@ -43,7 +43,9 @@ type RiskReportIdentification struct {
 	RiskStatusTitleAr   string `json:"risk_status_title_ar" gorm:"not null"`
 	RiskStatusColorCode string `json:"risk_status_color_code" gorm:"not null"`
 
-	RiskReport *RiskReport `gorm:"foreignKey:RiskReportID"`
+	RiskReport  *RiskReport           `gorm:"foreignKey:RiskReportID"`
+	ActionPlans *RiskReportActionPlan `gorm:"foreignKey:RiskReportIdentificationID"`
+	KRIs        *RiskReportKRI        `gorm:"foreignKey:RiskReportIdentificationID"`
 }
 
 func (RiskReportIdentification) TableName() string {
