@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -23,27 +24,52 @@ func NewRiskReportController(service services.RiskReportServiceInterface) *RiskR
 	}
 }
 
-func (rrc *RiskReportController) GetAllReports(c *gin.Context) {
+func (rrc *RiskReportController) GetAllRiskReports(c *gin.Context) {
+	sort := c.DefaultQuery("sort_order", "desc")
+	sortBy := c.DefaultQuery("sort_by", "created_at")
+	keyword := c.Query("keyword")
 
-	riskReportID, err := strconv.Atoi(c.Param("riskReportId"))
+	validSortFields := map[string]string{
+		"title":      "risk_reports.title",
+		"start_date": "risk_reports.start_date",
+		"end_date":   "risk_reports.end_date",
+		"created_at": "risk_reports.created_at",
+	}
+
+	filters := utility.ParseQueryFilters([]string{}, c.Request.URL.Query())
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
-		utility.SendNotFoundErrResp(c)
+		utility.SendInternalErrResp(rrc.db, c, "Invalid page parameter")
 		return
 	}
 
-	reports, err := rrc.service.GetAll(uint(riskReportID))
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
 	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		default:
-			utility.SendInternalErrResp(rrc.db, c, e.Error())
-			return
-		}
+		utility.SendInternalErrResp(rrc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	queryParams := dtos.RiskReportListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   dbField,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Filters:  filters,
+	}
+
+	reports, err := rrc.service.GetAll(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(rrc.db, c, err.Error())
+		return
 	}
 
 	c.JSON(http.StatusOK, reports)
@@ -106,7 +132,7 @@ func (rrc *RiskReportController) CreateRiskReport(c *gin.Context) {
 	})
 }
 
-func (rrc *RiskReportController) UpdateReport(c *gin.Context) {
+func (rrc *RiskReportController) UpdateRiskReportSection(c *gin.Context) {
 	riskReportID, err := strconv.Atoi(c.Param("riskReportId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -131,7 +157,7 @@ func (rrc *RiskReportController) UpdateReport(c *gin.Context) {
 		return
 	}
 
-	err = rrc.service.Update(uint(riskReportID), uint(sectionID), currentUserID, &formDTO)
+	err = rrc.service.UpdateSection(uint(riskReportID), uint(sectionID), currentUserID, &formDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -146,5 +172,60 @@ func (rrc *RiskReportController) UpdateReport(c *gin.Context) {
 		}
 	}
 
+	c.Status(http.StatusOK)
+}
+
+func (rrc *RiskReportController) DeleteRiskReportSection(c *gin.Context) {
+	riskReportID, err := strconv.Atoi(c.Param("riskReportId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sectionID, err := strconv.Atoi(c.Param("sectionId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	err = rrc.service.DeleteRiskReportSection(uint(riskReportID), uint(sectionID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (rrc *RiskReportController) DeleteRiskReport(c *gin.Context) {
+	riskReportID, err := strconv.Atoi(c.Param("riskReportId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	err = rrc.service.DeleteRiskReport(uint(riskReportID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rrc.db, c, e.Error())
+			return
+		}
+	}
 	c.Status(http.StatusOK)
 }

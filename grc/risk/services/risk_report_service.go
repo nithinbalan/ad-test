@@ -1,18 +1,25 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"jethur/grc/models"
 	"jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
+	"jethur/utility"
 	"strings"
+
+	"gorm.io/gorm"
 )
 
 type RiskReportServiceInterface interface {
-	GetAll(riskID uint) ([]*dtos.RiskReportListDTO, error)
+	GetAll(params *dtos.RiskReportListQueryParamsDTO) (*dtos.RiskReportListResponseDTO, error)
 	GetRiskReportDetails(riskReportID uint) (*dtos.RiskReportDetailResponseDTO, error)
 	// GetRiskReportDetails(riskReportID uint, tx ...utility.DatabaseTransaction) (*dtos.RiskReportDetailDTO, error)
 	Create(currentUserID uint, riskReportFormDTO *dtos.RiskReportFormDTO) (uint, error)
+	UpdateSection(riskID uint, id uint, currentUserID uint, riskReporSectionFormDTO *dtos.RiskReportSectionFormDTO) error
+	DeleteRiskReportSection(riskReportID uint, sectionID uint) error
+	DeleteRiskReport(riskReportID uint) error
 }
 
 type RiskReportService struct {
@@ -27,8 +34,8 @@ func NewRiskReportService(
 	}
 }
 
-func (rrs *RiskReportService) GetAll(riskID uint) ([]*dtos.RiskReportListDTO, error) {
-	return rrs.repo.GetAll(riskID)
+func (rrs *RiskReportService) GetAll(params *dtos.RiskReportListQueryParamsDTO) (*dtos.RiskReportListResponseDTO, error) {
+	return rrs.repo.GetAll(params)
 }
 
 func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint) (*dtos.RiskReportDetailResponseDTO, error) {
@@ -75,6 +82,17 @@ func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint) (*dtos.Ris
 	}
 
 	return response, nil
+}
+
+func (rrs *RiskReportService) GetSectionByID(riskID uint, id uint) (*models.RiskReportSection, error) {
+	section, err := rrs.repo.GetSectionByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return section, nil
 }
 
 // func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint, tx ...utility.DatabaseTransaction) (*dtos.RiskReportDetailDTO, error) {
@@ -372,18 +390,20 @@ func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos
 	return riskReportID, nil
 }
 
-func (rrs *RiskReportService) Update(riskID uint, id uint, currentUserID uint, riskReporSectionFormDTO *dtos.RiskReportSectionFormDTO) error {
+func (rrs *RiskReportService) UpdateSection(riskID uint, id uint, currentUserID uint, riskReporSectionFormDTO *dtos.RiskReportSectionFormDTO) error {
 	tx := rrs.repo.BeginTransaction()
 
-	existingReportSection, err := rrs.GetByID(riskID, id)
+	existingReportSection, err := rrs.GetSectionByID(riskID, id)
 	if err != nil {
 		return err
 	}
 
-	existingReportSection.Title = riskReporSectionFormDTO.Title
-	existingReportSection.Description = riskReporSectionFormDTO.Description
+	existingReportSection.TitleEn = riskReporSectionFormDTO.TitleEn
+	existingReportSection.TitleAr = riskReporSectionFormDTO.TitleAr
+	existingReportSection.DescriptionEn = *riskReporSectionFormDTO.DescriptionEn
+	existingReportSection.DescriptionAr = *riskReporSectionFormDTO.DescriptionAr
 
-	err = rrs.repo.Update(existingReportSection, tx)
+	err = rrs.repo.UpdateSection(existingReportSection, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -391,6 +411,63 @@ func (rrs *RiskReportService) Update(riskID uint, id uint, currentUserID uint, r
 
 	tx.Commit()
 
+	return nil
+}
+
+func (rrs *RiskReportService) DeleteRiskReportSection(riskReportID uint, sectionID uint) error {
+	tx := rrs.repo.BeginTransaction()
+
+	if err := rrs.repo.DeleteRiskReportSection(sectionID, tx); err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete risk report sections: %w", err)
+	}
+
+	// Step 7: Commit the transaction
+	tx.Commit()
+	return nil
+}
+
+func (rrs *RiskReportService) DeleteRiskReport(riskReportID uint) error {
+	tx := rrs.repo.BeginTransaction()
+
+	// Step 1: Delete Risk Report Organization Units (Child Table)
+	if err := rrs.repo.DeleteRiskReportOrganizationUnits(riskReportID, tx); err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete risk report organization units: %w", err)
+	}
+
+	// Step 2: Delete Risk KRIs (Child Table)
+	if err := rrs.repo.DeleteRiskKRIs(riskReportID, tx); err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete risk KRIs: %w", err)
+	}
+
+	// Step 3: Delete Risk Action Plans (Child Table)
+	if err := rrs.repo.DeleteRiskActionPlans(riskReportID, tx); err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete risk action plans: %w", err)
+	}
+
+	// Step 4: Delete Risk Identifications (Child Table)
+	if err := rrs.repo.DeleteRiskIdentifications(riskReportID, tx); err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete risk identifications: %w", err)
+	}
+
+	// Step 5: Delete Risk Report Sections (Child Table)
+	if err := rrs.repo.DeleteRiskReportSections(riskReportID, tx); err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete risk report sections: %w", err)
+	}
+
+	// Step 6: Delete the Risk Report (Parent Table)
+	if err := rrs.repo.DeleteRiskReport(riskReportID, tx); err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete risk report: %w", err)
+	}
+
+	// Step 7: Commit the transaction
+	tx.Commit()
 	return nil
 }
 

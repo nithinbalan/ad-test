@@ -1,6 +1,33 @@
 package dtos
 
-import "time"
+import (
+	commonDTOs "jethur/grc/common/dtos"
+	"time"
+)
+
+type RiskReportListDTO struct {
+	ID                       uint   `json:"id"`
+	Title                    string `json:"title"`
+	StartDate                string `json:"start_date"`
+	EndDate                  string `json:"end_date"`
+	CreatedAt                string `json:"created_at"`
+	OrganizationUnitTitlesEn string `json:"organization_unit_titles_en"`
+	OrganizationUnitTitlesAr string `json:"organization_unit_titles_ar"`
+}
+
+type RiskReportListQueryParamsDTO struct {
+	Sort     string
+	SortBy   string
+	Keyword  string
+	Page     int
+	PageSize int
+	Filters  map[string][]string
+}
+
+type RiskReportListResponseDTO struct {
+	Items      []*RiskReportListDTO         `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
 
 type RiskReportDetailResponseDTO struct {
 	ID                     uint                              `json:"id"`
@@ -237,6 +264,8 @@ type RiskReportKRIDTO struct {
 }
 
 type RiskReportSectionFormDTO struct {
-	Title       string  `json:"title" binding:"required"`
-	Description *string `json:"description"`
+	TitleEn       string  `json:"title_en" binding:"required"`
+	TitleAr       string  `json:"title_ar" binding:"required"`
+	DescriptionEn *string `json:"description_en"`
+	DescriptionAr *string `json:"description_ar"`
 }

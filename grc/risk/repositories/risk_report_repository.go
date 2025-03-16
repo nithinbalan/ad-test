@@ -1,8 +1,10 @@
 package repositories
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/grc/risk/dtos"
+
 	"jethur/utility"
 	"time"
 
@@ -12,7 +14,10 @@ import (
 type RiskReportRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 
+	GetAll(params *dtos.RiskReportListQueryParamsDTO) (*dtos.RiskReportListResponseDTO, error)
+
 	GetRiskReportByID(riskReportID uint) (*models.RiskReport, error)
+	GetSectionByID(riskReportID uint) (*models.RiskReportSection, error)
 	GetRiskReportSections(riskReportID uint) ([]dtos.RiskReportSectionResponseDTO, error)
 	GetRiskIdentifications(riskReportID uint) ([]dtos.RiskIdentificationResponseDTO, error)
 	GetRiskActionPlans(riskReportID uint) ([]dtos.RiskReportActionPlanResponseDTO, error)
@@ -37,6 +42,17 @@ type RiskReportRepositoryInterface interface {
 	CreateRiskIdentification(identification *models.RiskReportIdentification, tx ...utility.DatabaseTransaction) error
 	CreateRiskActionPlan(actionPlan *models.RiskReportActionPlan, tx ...utility.DatabaseTransaction) error
 	CreateRiskKRI(riskKRI *models.RiskReportKRI, tx ...utility.DatabaseTransaction) error
+
+	UpdateSection(section *models.RiskReportSection, tx ...utility.DatabaseTransaction) error
+
+	DeleteRiskReportOrganizationUnits(riskReportID uint, tx ...utility.DatabaseTransaction) error
+	DeleteRiskKRIs(riskReportID uint, tx ...utility.DatabaseTransaction) error
+	DeleteRiskActionPlans(riskReportID uint, tx ...utility.DatabaseTransaction) error
+	DeleteRiskIdentifications(riskReportID uint, tx ...utility.DatabaseTransaction) error
+	DeleteRiskReportSections(riskReportID uint, tx ...utility.DatabaseTransaction) error
+	DeleteRiskReport(riskReportID uint, tx ...utility.DatabaseTransaction) error
+
+	DeleteRiskReportSection(sectionID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskReportRepository struct {
@@ -51,6 +67,59 @@ func (repo *RiskReportRepository) BeginTransaction() utility.DatabaseTransaction
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
+func (repo *RiskReportRepository) GetAll(params *dtos.RiskReportListQueryParamsDTO) (*dtos.RiskReportListResponseDTO, error) {
+	var reports []*dtos.RiskReportListDTO
+	var totalCount int64
+
+	query := repo.db.Table("risk_reports").
+		Select(`
+			risk_reports.id, 
+			risk_reports.title, 
+			risk_reports.start_date, 
+			risk_reports.end_date, 
+			risk_reports.created_at,
+			STRING_AGG(organization_units.title_en, ', ') AS organization_unit_titles_en,
+			STRING_AGG(organization_units.title_ar, ', ') AS organization_unit_titles_ar
+		`).
+		Joins("LEFT JOIN risk_report_organization_units ON risk_report_organization_units.risk_report_id = risk_reports.id").
+		Joins("LEFT JOIN organization_units ON organization_units.id = risk_report_organization_units.organization_unit_id").
+		Group("risk_reports.id, risk_reports.title, risk_reports.start_date, risk_reports.end_date, risk_reports.created_at")
+
+	if params.Keyword != "" {
+		query = query.Where(`
+			(risk_reports.title LIKE ? OR 
+			organization_units.title_en LIKE ? OR 
+			organization_units.title_ar LIKE ?)`,
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	offset := (params.Page - 1) * params.PageSize
+	query = query.Offset(offset).Limit(params.PageSize)
+
+	if err := query.Find(&reports).Error; err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &dtos.RiskReportListResponseDTO{
+		Items: reports,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
 // Fetch main report details
 func (repo *RiskReportRepository) GetRiskReportByID(riskReportID uint) (*models.RiskReport, error) {
 	var riskReport models.RiskReport
@@ -61,6 +130,16 @@ func (repo *RiskReportRepository) GetRiskReportByID(riskReportID uint) (*models.
 		return nil, err
 	}
 	return &riskReport, nil
+}
+
+func (repo *RiskReportRepository) GetSectionByID(riskReportID uint) (*models.RiskReportSection, error) {
+	var riskReportSection models.RiskReportSection
+	err := repo.db.
+		Where("id = ?", riskReportSection).First(&riskReportSection).Error
+	if err != nil {
+		return nil, err
+	}
+	return &riskReportSection, nil
 }
 
 // Fetch sections for the report
@@ -454,4 +533,75 @@ func (repo *RiskReportRepository) CreateRiskReportOrganizationUnit(orgUnit *mode
 		db = tx[0].DB()
 	}
 	return db.Create(orgUnit).Error
+}
+
+func (repo *RiskReportRepository) UpdateSection(section *models.RiskReportSection, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Save(section).Error
+}
+
+func (repo *RiskReportRepository) DeleteRiskReportOrganizationUnits(riskReportID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("risk_report_id = ?", riskReportID).Delete(&models.RiskReportOrganizationUnit{}).Error
+}
+
+func (repo *RiskReportRepository) DeleteRiskKRIs(riskReportID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("risk_report_id = ?", riskReportID).Delete(&models.RiskReportKRI{}).Error
+}
+
+func (repo *RiskReportRepository) DeleteRiskActionPlans(riskReportID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("risk_report_id = ?", riskReportID).Delete(&models.RiskReportActionPlan{}).Error
+}
+
+func (repo *RiskReportRepository) DeleteRiskIdentifications(riskReportID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("risk_report_id = ?", riskReportID).Delete(&models.RiskReportIdentification{}).Error
+}
+
+func (repo *RiskReportRepository) DeleteRiskReportSections(riskReportID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("risk_report_id = ?", riskReportID).Delete(&models.RiskReportSection{}).Error
+}
+
+func (repo *RiskReportRepository) DeleteRiskReport(riskReportID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("id = ?", riskReportID).Delete(&models.RiskReport{}).Error
+}
+
+func (repo *RiskReportRepository) DeleteRiskReportSection(sectionID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("id = ?", sectionID).Delete(&models.RiskReportSection{}).Error
 }
