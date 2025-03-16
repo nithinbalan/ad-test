@@ -353,8 +353,8 @@ func (rcs *RiskCommentService) SubmitRisk(riskID uint, currentUserID uint) error
 
 		// Prepare notification and email
 		urlParam := fmt.Sprintf(`{"riskID":%d}`, riskID)
-		entity := "risk"
-		action := "risk-submitted"
+		entity := "risk-register"
+		action := "submitted"
 
 		dbNotification := &commonDTOs.DBNotificationDTO{
 			UserIDs:              reviewUserIDs,
@@ -507,8 +507,8 @@ func (rcs *RiskCommentService) RevertRisk(riskID uint, currentUserID uint, comme
 
 		// Prepare notification and email
 		urlParam := fmt.Sprintf(`{"riskID":%d}`, riskID)
-		entity := "risk"
-		action := "risk-reverted"
+		entity := "risk-register"
+		action := "reverted"
 
 		dbNotification := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{responsibleUser.ID},
@@ -653,13 +653,13 @@ func (rcs *RiskCommentService) RejectRisk(riskID uint, currentUserID uint, comme
 
 		// Prepare notification and email
 		urlParam := fmt.Sprintf(`{"riskID":%d}`, riskID)
-		entity := "risk"
-		action := "risk-rejected"
+		entity := "risk-register"
+		action := "rejected"
 
 		dbNotification := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{responsibleUser.ID},
 			ModuleIdentifier:     "risk",
-			NotificationType:     string(commonDTOs.AssignmentType),
+			NotificationType:     string(commonDTOs.InformationType),
 			HeadingEn:            "Risk Rejected",
 			HeadingAr:            "تم رفض المخاطرة",
 			TitleEn:              risk.Title,
@@ -805,8 +805,8 @@ func (rcs *RiskCommentService) ApproveRisk(riskID uint, currentUserID uint, comm
 
 		// Prepare notification and email
 		urlParam := fmt.Sprintf(`{"riskID":%d}`, riskID)
-		entity := "risk"
-		action := "risk-approved"
+		entity := "risk-register"
+		action := "approved"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{responsibleUser.ID},
@@ -980,7 +980,7 @@ func (rcs *RiskCommentService) ResubmitRisk(riskID uint, currentUserID uint, com
 
 		// Prepare notification and email
 		urlParam := fmt.Sprintf(`{"riskID":%d}`, riskID)
-		entity := "risk"
+		entity := "risk-register"
 		action := "risk-resubmitted"
 
 		dbNotification := &commonDTOs.DBNotificationDTO{

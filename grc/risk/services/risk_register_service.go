@@ -628,7 +628,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		dbNotificationReview := &commonDTOs.DBNotificationDTO{
 			UserIDs:              reviewUserIDs, // Single DB notification for all reviewers
 			ModuleIdentifier:     "risk",
-			NotificationType:     string(commonDTOs.AssignmentType),
+			NotificationType:     string(commonDTOs.InformationType),
 			HeadingEn:            "Risk Register Review Assigned",
 			HeadingAr:            "تم تعيين مراجعة سجل المخاطر",
 			TitleEn:              riskRegister.Title,
