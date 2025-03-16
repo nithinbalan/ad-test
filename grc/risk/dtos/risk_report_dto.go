@@ -228,10 +228,15 @@ type RiskReportActionPlanDTO struct {
 
 type RiskReportKRIDTO struct {
 	Title           string  `json:"title"`
-	Description     *string `json:"description,omitempty"`
+	Description     *string `json:"description"`
 	LowThreshold    int     `json:"low_threshold"`
 	MediumThreshold int     `json:"medium_threshold"`
 	UnitTitleEn     string  `json:"unit_title_en"`
 	UnitTitleAr     string  `json:"unit_title_ar"`
 	CurrentValue    int     `json:"current_value"`
+}
+
+type RiskReportSectionFormDTO struct {
+	Title       string  `json:"title" binding:"required"`
+	Description *string `json:"description"`
 }

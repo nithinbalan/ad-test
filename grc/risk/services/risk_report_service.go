@@ -9,9 +9,10 @@ import (
 )
 
 type RiskReportServiceInterface interface {
+	GetAll(riskID uint) ([]*dtos.RiskReportListDTO, error)
 	GetRiskReportDetails(riskReportID uint) (*dtos.RiskReportDetailResponseDTO, error)
 	// GetRiskReportDetails(riskReportID uint, tx ...utility.DatabaseTransaction) (*dtos.RiskReportDetailDTO, error)
-	GenerateRiskReport(currentUserID uint, riskReportFormDTO *dtos.RiskReportFormDTO) (uint, error)
+	Create(currentUserID uint, riskReportFormDTO *dtos.RiskReportFormDTO) (uint, error)
 }
 
 type RiskReportService struct {
@@ -24,6 +25,10 @@ func NewRiskReportService(
 	return &RiskReportService{
 		repo: repo,
 	}
+}
+
+func (rrs *RiskReportService) GetAll(riskID uint) ([]*dtos.RiskReportListDTO, error) {
+	return rrs.repo.GetAll(riskID)
 }
 
 func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint) (*dtos.RiskReportDetailResponseDTO, error) {
@@ -188,7 +193,7 @@ func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint) (*dtos.Ris
 // 	return riskReportDTO, nil
 // }
 
-func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportFormDTO *dtos.RiskReportFormDTO) (uint, error) {
+func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos.RiskReportFormDTO) (uint, error) {
 	tx := rrs.repo.BeginTransaction()
 
 	// Step 1: Create Risk Report Entry
@@ -367,6 +372,28 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 	return riskReportID, nil
 }
 
+func (rrs *RiskReportService) Update(riskID uint, id uint, currentUserID uint, riskReporSectionFormDTO *dtos.RiskReportSectionFormDTO) error {
+	tx := rrs.repo.BeginTransaction()
+
+	existingReportSection, err := rrs.GetByID(riskID, id)
+	if err != nil {
+		return err
+	}
+
+	existingReportSection.Title = riskReporSectionFormDTO.Title
+	existingReportSection.Description = riskReporSectionFormDTO.Description
+
+	err = rrs.repo.Update(existingReportSection, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	return nil
+}
+
 func formatTitle(sectionType string) (string, string) {
 	switch sectionType {
 	case "executive-summary":
@@ -374,19 +401,19 @@ func formatTitle(sectionType string) (string, string) {
 	case "context":
 		return "Risk Governance & Context", "حوكمة المخاطر والسياق"
 	case "identification":
-		return "Risk Identification & Assessment", "تحديد وتقييم المخاطر"
+		return "Risk Identification", "تحديد المخاطر"
 	case "assessment":
-		return "Risk Evaluation & Impact", "تقييم المخاطر وتأثيرها"
+		return "Risk Assessment Details", "تفاصيل تقييم المخاطر"
 	case "mitigation":
-		return "Risk Mitigation Strategies", "استراتيجيات التخفيف من المخاطر"
+		return "Risk Response & Mitigation", "الاستجابة للمخاطر والتخفيف منها"
 	case "kri":
-		return "Key Risk Indicators (KRIs)", "مؤشرات المخاطر الرئيسية"
+		return "Key Risk Indicators (KRIs) & Performance", "مؤشرات المخاطر الرئيسية والأداء"
 	case "communication":
-		return "Risk Communication & Reporting", "الاتصال والإبلاغ عن المخاطر"
+		return "Risk Monitoring, Reporting & Communication", "مراقبة المخاطر والإبلاغ والتواصل"
 	case "recommendation":
 		return "Recommendations & Action Plan", "التوصيات وخطة العمل"
 	case "documents":
-		return "Supporting Documents", "المستندات الداعمة"
+		return "Appendices & Supporting Documents", "الملاحق والمستندات الداعمة"
 	default:
 		return sectionType, sectionType // Default to sectionType if not found
 	}
