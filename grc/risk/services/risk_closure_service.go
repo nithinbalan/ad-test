@@ -2,9 +2,12 @@ package services
 
 import (
 	"errors"
+	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 
+	"jethur/config"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
@@ -17,10 +20,12 @@ import (
 
 type RiskClosureServiceInterface interface {
 	GetAll(riskID uint) ([]*riskDTOs.RiskClosureListDTO, error)
-	GetFullDetailsByID(riskID uint) (*riskDTOs.RiskClosureDetailsDTO, error)
+	GetFullDetailsByID(riskID uint, id uint, tx ...utility.DatabaseTransaction) (*riskDTOs.RiskClosureDetailsDTO, error)
 	Create(riskID uint, currentUserID uint, closureFormDTO *riskDTOs.RiskClosureFormDTO) (uint, error)
 	Update(riskID uint, id uint, currentUserID uint, closureFormDTO *riskDTOs.RiskClosureFormDTO) error
 	Delete(riskID uint, id uint, currentUserID uint) (uint, error)
+
+	GetDocumentPath(riskId uint, id uint, token string) (string, error)
 }
 
 type RiskClosureService struct {
@@ -45,12 +50,12 @@ func (rcs *RiskClosureService) GetAll(riskID uint) ([]*riskDTOs.RiskClosureListD
 	return rcs.repo.GetAll(riskID)
 }
 
-func (rcs *RiskClosureService) GetFullDetailsByID(riskID uint) (*riskDTOs.RiskClosureDetailsDTO, error) {
+func (rcs *RiskClosureService) GetFullDetailsByID(riskID uint, id uint, tx ...utility.DatabaseTransaction) (*riskDTOs.RiskClosureDetailsDTO, error) {
 	if _, err := rcs.riskRegisterSvc.GetByID(riskID); err != nil {
 		return nil, err
 	}
 
-	closureDetails, err := rcs.repo.GetFullDetailsByID(riskID)
+	closureDetails, err := rcs.repo.GetFullDetailsByID(riskID, id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, riskID)
@@ -63,6 +68,9 @@ func (rcs *RiskClosureService) GetFullDetailsByID(riskID uint) (*riskDTOs.RiskCl
 	if err != nil {
 		return nil, err
 	}
+
+	closureDetailsDTO.CreatedAt = closureDetails.CreatedAt
+	closureDetailsDTO.UpdatedAt = closureDetails.UpdatedAt
 
 	return &closureDetailsDTO, nil
 }
@@ -297,7 +305,7 @@ func (rcs *RiskClosureService) Delete(riskID uint, id uint, currentUserID uint) 
 		return 0, err
 	}
 
-	riskClosure, err := rcs.GetFullDetailsByID(riskID)
+	riskClosure, err := rcs.GetFullDetailsByID(riskID, id, tx)
 	if err != nil {
 		return 0, err
 	}
@@ -352,4 +360,48 @@ func (rcs *RiskClosureService) Delete(riskID uint, id uint, currentUserID uint) 
 	}()
 
 	return 0, nil
+}
+
+func (rcs *RiskClosureService) GetDocumentPath(riskId uint, id uint, token string) (string, error) {
+	// Get full details of the risk register by ID
+	existingRiskClosure, err := rcs.GetFullDetailsByID(riskId, id)
+	if err != nil {
+		return "", err
+	}
+
+	// Check if there are any associated documents
+	if len(existingRiskClosure.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the risk closure")
+	}
+
+	fmt.Println(token)
+
+	// Decrypt the token to get the file name
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	fmt.Println(existingRiskClosure)
+
+	// Define the storage path
+	storagePath := filepath.Join("risk", "risk-register", strconv.FormatUint(uint64(riskId), 10), "closure", strconv.FormatUint(uint64(id), 10), "documents")
+
+	// Get the base storage path from environment variables
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists at the specified path
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }
