@@ -194,10 +194,10 @@ type RiskReportKriResponseDTO struct {
 // }
 
 type RiskReportFormDTO struct {
-	Title               string    `json:"title" binding:"required"`
-	StartDate           time.Time `json:"start_date" binding:"required"`
-	EndDate             time.Time `json:"end_date" binding:"required"`
-	OrganizationUnitIDs []uint    `json:"organization_unit_ids"`
+	Title               string `json:"title" binding:"required"`
+	StartDate           string `json:"start_date" binding:"required"`
+	EndDate             string `json:"end_date" binding:"required"`
+	OrganizationUnitIDs []uint `json:"organization_unit_ids"`
 }
 
 type RiskReportIdentifiedRiskDTO struct {
@@ -273,4 +273,9 @@ type RiskReportSectionFormDTO struct {
 	TitleAr       string  `json:"title_ar" binding:"required"`
 	DescriptionEn *string `json:"description_en"`
 	DescriptionAr *string `json:"description_ar"`
+}
+
+type RiskReportParsedDates struct {
+	StartDate *time.Time
+	EndDate   *time.Time
 }

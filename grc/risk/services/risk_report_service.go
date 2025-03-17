@@ -126,11 +126,16 @@ func (rrs *RiskReportService) GetSectionByID(riskReportID uint, sectionID uint, 
 func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos.RiskReportFormDTO) (uint, error) {
 	tx := rrs.repo.BeginTransaction()
 
+	dates, err := rrs.parseRiskReportDates(riskReportFormDTO)
+	if err != nil {
+		return 0, err
+	}
+
 	// Step 1: Create Risk Report Entry
 	riskReport := &models.RiskReport{
 		Title:       riskReportFormDTO.Title,
-		StartDate:   riskReportFormDTO.StartDate,
-		EndDate:     riskReportFormDTO.EndDate,
+		StartDate:   *dates.StartDate,
+		EndDate:     *dates.EndDate,
 		CreatedBYID: currentUserID,
 	}
 
@@ -175,7 +180,7 @@ func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos
 		}
 	}
 
-	risks, err := rrs.repo.GetRisksByDateRange(riskReportFormDTO.StartDate, riskReportFormDTO.EndDate, riskReportFormDTO.OrganizationUnitIDs, tx)
+	risks, err := rrs.repo.GetRisksByDateRange(*dates.StartDate, *dates.EndDate, riskReportFormDTO.OrganizationUnitIDs, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -490,4 +495,22 @@ func formatTitle(sectionType string) (string, string) {
 	default:
 		return sectionType, sectionType // Default to sectionType if not found
 	}
+}
+
+func (rrs *RiskReportService) parseRiskReportDates(dto *dtos.RiskReportFormDTO) (*dtos.RiskReportParsedDates, error) {
+	parsed := &dtos.RiskReportParsedDates{}
+
+	var err error
+
+	parsed.StartDate, err = utility.ParseDate(dto.StartDate)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid start date"), "invalid_date", "start date")
+	}
+
+	parsed.EndDate, err = utility.ParseDate(dto.EndDate)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid end date"), "invalid_date", "end date")
+	}
+
+	return parsed, nil
 }
