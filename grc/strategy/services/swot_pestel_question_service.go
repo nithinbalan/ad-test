@@ -5,21 +5,29 @@ import (
 	"fmt"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
+	strategyDTOs "jethur/grc/strategy/dtos"
 	"jethur/grc/strategy/repositories"
 	"jethur/utility"
 	"log"
+	"time"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type SwotPestelQuestionServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*models.SwotPestelQuestion, error)
+	GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*strategyDTOs.SwotPestelQuestionListDTO, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.SwotPestelQuestionDTO, error)
 	GetByID(id uint) (*models.SwotPestelQuestion, error)
 	Create(currentUserID uint, swotPestelQuestion *models.SwotPestelQuestion) (*models.SwotPestelQuestion, error)
 	Update(id uint, currentUserID uint, swotPestelQuestion *models.SwotPestelQuestion) (*models.SwotPestelQuestion, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
+
+	UpdateAnswer(id uint, currentUserID uint, answerFormDTO *strategyDTOs.AnswerFormDTO) error
+	CreateInvitees(id uint, currentUserID uint, inviteeFormDTO *strategyDTOs.InviteeFormDTO) error
+	DeleteInvitees(questionId uint, ids []*uint, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
@@ -35,8 +43,33 @@ func NewSwotPestelQuestionService(repo repositories.SwotPestelQuestionRepository
 	}
 }
 
-func (sqs *SwotPestelQuestionService) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*models.SwotPestelQuestion, error) {
+func (sqs *SwotPestelQuestionService) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*strategyDTOs.SwotPestelQuestionListDTO, error) {
+	// Fetch raw models from the repository
 	return sqs.repo.GetAll(sort, sortBy, keyword, status, isSwot, isPestel)
+}
+
+func (sqs SwotPestelQuestionService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.SwotPestelQuestionDTO, error) {
+	// Initialize your DTO
+	var swotPestelQuestionDTO strategyDTOs.SwotPestelQuestionDTO
+
+	question, err := sqs.repo.GetFullDetailsByID(id, tx...)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	// Map the result to your DTO
+	err = mapstructure.Decode(question, &swotPestelQuestionDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	swotPestelQuestionDTO.AnsweredAt = question.AnsweredAt
+
+	return &swotPestelQuestionDTO, nil
 }
 
 func (sqs SwotPestelQuestionService) GetByID(id uint) (*models.SwotPestelQuestion, error) {
@@ -262,4 +295,156 @@ func (sqs *SwotPestelQuestionService) Deactivate(ids []uint, currentUserID uint)
 	}
 
 	return err
+}
+
+func (sqs *SwotPestelQuestionService) UpdateAnswer(id uint, currentUserID uint, answerFormDTO *strategyDTOs.AnswerFormDTO) error {
+	existingAnswer, err := sqs.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	oldAnswer, err := sqs.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+	existingAnswer.Answer = answerFormDTO.Answer
+	existingAnswer.AnsweredBYID = &currentUserID
+	existingAnswer.AnsweredAt = &now
+
+	result, err := sqs.repo.Update(id, existingAnswer)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		existingAnswer, err := sqs.GetByID(id)
+		if err != nil {
+			return
+		}
+
+		changedData := make(map[string]interface{})
+
+		//log changes
+		oldData := map[string]interface{}{
+			"answer": oldAnswer.Answer,
+		}
+
+		newData := map[string]interface{}{
+			"answer": existingAnswer.Answer,
+		}
+
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		if len(changedData) > 0 {
+			err := sqs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.SwotPestelQuestion{}.TableName(),
+				result.ID,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				// @todo - save to log file
+				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			}
+		}
+	}()
+	return err
+}
+
+func (sqs *SwotPestelQuestionService) CreateInvitees(id uint, currentUserID uint, inviteeFormDTO *strategyDTOs.InviteeFormDTO) error {
+	question, err := sqs.repo.GetFullDetailsByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, id)
+		}
+		return err
+	}
+
+	var existingInvitees []*uint
+	for _, user := range question.SwotPestelQuestionInvitees {
+		userID := user.UserID
+		existingInvitees = append(existingInvitees, &userID)
+	}
+
+	if err := sqs.repo.DeleteSwotPestelQuestionInvitees(id, existingInvitees); err != nil {
+		return err
+	}
+
+	// Prepare invitee records
+	var invitees []*models.SwotPestelQuestionInvitee
+	for _, userID := range inviteeFormDTO.UserIds {
+		if userID != nil {
+			invitee := &models.SwotPestelQuestionInvitee{
+				SwotPestelQuestionID: id,
+				UserID:               *userID,
+				CreatedBYID:          currentUserID,
+			}
+			invitees = append(invitees, invitee)
+		}
+	}
+
+	if len(invitees) > 0 {
+		if err := sqs.repo.CreateSwotPestelQuestionInvitees(invitees); err != nil {
+			return err
+		}
+	}
+
+	return nil
+
+}
+
+func (spqfs *SwotPestelQuestionService) DeleteInvitees(questionId uint, ids []*uint, currentUserID uint) ([]uint, error) {
+	tx := spqfs.repo.BeginTransaction()
+	var failedIds []uint
+	var successfulIds []uint
+	var deletedSwotPestelQuestionInvitee []map[string]interface{}
+
+	for _, id := range ids {
+
+		deletedSwotPestelQuestionInvitee = append(deletedSwotPestelQuestionInvitee, map[string]interface{}{
+			"id": id,
+		})
+
+		// Delete the business
+		if err := spqfs.repo.DeleteSwotPestelQuestionInvitees(questionId, ids); err != nil {
+			failedIds = append(failedIds, *id)
+			continue
+		} else {
+			successfulIds = append(successfulIds, *id)
+		}
+	}
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
+	tx.Commit()
+
+	// Log bulk delete activities for successful deletions
+	if len(successfulIds) > 0 {
+		go func() {
+			err := spqfs.activityLogSvc.LogBulkActivities(
+				models.DeleteAction, // Make sure this action constant is defined appropriately
+				models.SwotPestelQuestionInvitee{}.TableName(),
+				successfulIds,
+				deletedSwotPestelQuestionInvitee,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				// @todo - save to log file
+				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			}
+
+		}()
+	}
+
+	return failedIds, nil
 }

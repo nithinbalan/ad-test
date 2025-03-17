@@ -203,7 +203,7 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 		// Construct the URL for the document
 		url := utility.GenerateDocumentURL("business-continuity", "business-continuity-plan", strconv.FormatUint(uint64(id), 10), "documents")
 
-		// Create a new ComplianceRequirementStatusUpdateDocument instance
+		// Create a new StatusUpdateDocument instance
 		document := &models.BcpDocument{
 			BusinessContinuityPlanID: id,
 			URL:                      url,
@@ -219,7 +219,7 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 
 	}
 	if len(documents) > 0 {
-		// Save the ComplianceRequirementStatusUpdateDocument
+		// Save the StatusUpdateDocument
 		if err := bcps.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return 0, err
@@ -529,7 +529,7 @@ func (bcps *BusinessContinuityPlanService) Delete(ids []uint, currentUserID uint
 			}
 		}
 
-		// Delete each Compliance document if documents exist
+		// Delete each document if documents exist
 		if len(businessContinuityPlan.Documents) > 0 {
 			var deleteDocumentIds []*uint
 			for _, doc := range businessContinuityPlan.Documents {

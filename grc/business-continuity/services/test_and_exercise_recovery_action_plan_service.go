@@ -3,14 +3,17 @@ package services
 import (
 	"errors"
 	"fmt"
-
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	TestAndExerciseRecoveryActionPlanRepositories "jethur/grc/business-continuity/repositories"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -23,6 +26,7 @@ type TestAndExerciseRecoveryActionPlanServiceInterface interface {
 	Create(testAndExerciseID uint, currentUserID uint, dto *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanFormDTO) (uint, error)
 	Update(testAndExerciseID uint, id uint, currentUserID uint, dto *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanFormDTO) error
 	Delete(testAndExerciseID uint, ids []uint, currentUserID uint) ([]uint, error)
+	StatusUpdate(testAndExerciseId uint, id uint, currentUserID uint, testAndExerciseRecoveryActionPlanStatusUpdateFormDTO *businessContinuityDTOs.TaeRecoveryActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
 }
 
 type TestAndExerciseRecoveryActionPlanService struct {
@@ -31,6 +35,9 @@ type TestAndExerciseRecoveryActionPlanService struct {
 	userSvc             organizationServices.UserServiceInterface
 	testAndExerciseSvc  TestAndExerciseServiceInterface
 	ActionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
+	taskSvc             taskServices.TaskServiceInterface
+	notificationSvc     commonServices.NotificationServiceInterface
+	userSettingSvc      organizationServices.UserSettingServiceInterface
 }
 
 func NewTestAndExerciseRecoveryActionPlanService(
@@ -39,6 +46,9 @@ func NewTestAndExerciseRecoveryActionPlanService(
 	userSvc organizationServices.UserServiceInterface,
 	testAndExerciseSvc TestAndExerciseServiceInterface,
 	ActionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
+	taskSvc taskServices.TaskServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) TestAndExerciseRecoveryActionPlanServiceInterface {
 	return &TestAndExerciseRecoveryActionPlanService{
 		repo:                repo,
@@ -46,6 +56,9 @@ func NewTestAndExerciseRecoveryActionPlanService(
 		userSvc:             userSvc,
 		testAndExerciseSvc:  testAndExerciseSvc,
 		ActionPlanStatusSvc: ActionPlanStatusSvc,
+		taskSvc:             taskSvc,
+		notificationSvc:     notificationSvc,
+		userSettingSvc:      userSettingSvc,
 	}
 }
 
@@ -100,6 +113,11 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) GetFullDetailsByID(testA
 func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID uint, currentUserID uint, recoveryActionPlanFormDTO *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanFormDTO) (uint, error) {
 	tx := teraps.repo.BeginTransaction()
 
+	testAndExercise, err := teraps.testAndExerciseSvc.GetFullDetailsByID(testAndExerciseID)
+	if err != nil {
+		return 0, err
+	}
+
 	if _, err := teraps.testAndExerciseSvc.GetByID(testAndExerciseID); err != nil {
 		return 0, err
 	}
@@ -127,6 +145,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID
 		Title:              recoveryActionPlanFormDTO.Title,
 		ResponsibleUserID:  recoveryActionPlanFormDTO.ResponsibleUserID,
 		ResponsibleUnitID:  responsibleUnitID,
+		ReviewUserID:       recoveryActionPlanFormDTO.ReviewUserID,
 		TargetDate:         dates.TargetDate,
 		ActionPlanStatusId: &actionPlanStatus.ID,
 		IsRecovery:         recoveryActionPlanFormDTO.IsRecovery,
@@ -136,6 +155,41 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID
 
 	id, err := teraps.repo.Create(actionPlan, tx)
 	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	actionPlanStatusID := actionPlanStatus.ID
+	recoveryActionPlanUpdate := &models.TaeRecoveryActionPlanStatusUpdate{
+		TestAndExerciseRecoveryActionPlanID: id,
+		ActionPlanStatusID:                  actionPlanStatusID,
+		Comment:                             "Initial action plan status",
+		Percentage:                          recoveryActionPlanFormDTO.Percentage,
+		CreatedByID:                         currentUserID,
+	}
+
+	_, err = teraps.repo.CreateInitialSLAActionPlanStatusUpdate(recoveryActionPlanUpdate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	urlParam := fmt.Sprintf(`{"test_and_exercise_id":%d, "action_plan_id":%d}`, testAndExerciseID, id)
+	if recoveryActionPlanFormDTO.IsRecovery {
+		urlParam = fmt.Sprintf(`{"test_and_exercise_id":%d, "recovery_action_plan_id":%d}`, testAndExerciseID, id)
+	}
+	taskDTO := commonDTOs.TaskFormDTO{
+		ModuleIdentifier:     "business_continuity",
+		RecoveryActionPlanID: &id,
+		Title:                recoveryActionPlanFormDTO.Title,
+		TargetDate:           dates.TargetDate,
+		URLParam:             &urlParam,
+		QueryParam:           nil,
+		SeverityLevelID:      recoveryActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID:    recoveryActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	if _, err := teraps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -169,12 +223,89 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID
 
 			utility.LogError("Failed to log activity", fields)
 		}
+		// prepare notification
+		appURL := utility.GetAppURL()
+		urlParam := fmt.Sprintf(`{"test_and_exercise_id":%d, "action_plan_id":%d}`, testAndExerciseID, id)
+		redirectUrl := fmt.Sprintf("%sbusiness-continuity/test-and-exercise/%d/action-plans?action_plan_id=%d", appURL, testAndExerciseID, id)
+		if recoveryActionPlanFormDTO.IsRecovery {
+			urlParam = fmt.Sprintf(`{"test_and_exercise_id":%d, "recovery_action_plan_id":%d}`, testAndExerciseID, id)
+			redirectUrl = fmt.Sprintf("%sbusiness-continuity/test-and-exercise/%d/recovery-action-plans?action_plan_id=%d", appURL, testAndExerciseID, id)
+		}
+		queryParam := ""
+		entity := "test-and-exercise-action-plan"
+		action := "responsible-user-assign"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{recoveryActionPlanFormDTO.ResponsibleUserID},
+			ModuleIdentifier:     "business_continuity",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Action Plan Responsibility Assigned",
+			HeadingAr:            "مسؤولية خطة العمل الموكلة",
+			TitleEn:              recoveryActionPlanFormDTO.Title,
+			TitleAr:              recoveryActionPlanFormDTO.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			QueryParam:           queryParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := teraps.userSvc.GetByID(recoveryActionPlanFormDTO.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		assignedBy, err := teraps.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Action Plan/%s: Responsibility Assigned", recoveryActionPlanFormDTO.Title)
+		emailData := map[string]interface{}{
+			"FirstNameEn":           responsibleUser.FirstNameEn,
+			"LastNameEn":            responsibleUser.LastNameEn,
+			"ReferenceNumber":       testAndExercise.ReferenceNumber,
+			"TestAndExerciseTitle":  testAndExercise.BcpTestAndExercise.Title,
+			"ActionPlanTitle":       recoveryActionPlanFormDTO.Title,
+			"TargetDate":            dates.TargetDate.Format("2006-01-02"),
+			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+			"AssignedByLastNameEn":  assignedBy.LastNameEn,
+			"AssignedOn":            time.Now().Format("2006-01-02"),
+			"RedirectURL":           redirectUrl,
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "business-continuity/templates/email/action_plan_create_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		// send notification and mail
+		err = teraps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "test_and_exercise")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}()
 	return id, nil
 }
 
 func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID uint, id uint, currentUserID uint, recoveryActionPlanFormDTO *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanFormDTO) error {
 	tx := teraps.repo.BeginTransaction()
+
+	testAndExercise, err := teraps.testAndExerciseSvc.GetFullDetailsByID(testAndExerciseID)
+	if err != nil {
+		return err
+	}
 
 	existingRecoveryPlan, err := teraps.repo.GetByID(id)
 	if err != nil {
@@ -186,6 +317,8 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 		tx.Rollback()
 		return err
 	}
+
+	oldResponsibleUserID := existingRecoveryPlan.ResponsibleUserID
 
 	if existingRecoveryPlan.ResponsibleUserID != recoveryActionPlanFormDTO.ResponsibleUserID {
 		responsibleUnitID, err := teraps.userSvc.GetUserPrimaryUnitID(existingRecoveryPlan.ResponsibleUserID)
@@ -208,9 +341,29 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 	existingRecoveryPlan.TargetDate = dates.TargetDate
 	existingRecoveryPlan.IsRecovery = recoveryActionPlanFormDTO.IsRecovery
 	existingRecoveryPlan.Percentage = recoveryActionPlanFormDTO.Percentage
+	existingRecoveryPlan.ReviewUserID = recoveryActionPlanFormDTO.ReviewUserID
 	existingRecoveryPlan.UpdatedBYID = &currentUserID
 
 	err = teraps.repo.Update(existingRecoveryPlan, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// //update task
+	urlParam := fmt.Sprintf(`{"test_and_exercise_id":%d, "action_plan_id":%d}`, testAndExerciseID, id)
+	if recoveryActionPlanFormDTO.IsRecovery {
+		urlParam = fmt.Sprintf(`{"test_and_exercise_id":%d, "recovery_action_plan_id":%d}`, testAndExerciseID, id)
+	}
+	taskUpdateDTO := commonDTOs.TaskFormDTO{
+		Title:             recoveryActionPlanFormDTO.Title,
+		TargetDate:        dates.TargetDate,
+		URLParam:          &urlParam,
+		SeverityLevelID:   recoveryActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID: recoveryActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	err = teraps.taskSvc.Update(currentUserID, taskUpdateDTO, "recovery_action_plan_id", id, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -268,6 +421,138 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 				utility.LogError("Failed to log activity", fields)
 			}
 		}
+
+		appURL := utility.GetAppURL()
+		urlParam := fmt.Sprintf(`{"test_and_exercise_id":%d, "action_plan_id":%d}`, testAndExerciseID, id)
+		redirectUrl := fmt.Sprintf("%sbusiness-continuity/test-and-exercise/%d/action-plans?action_plan_id=%d", appURL, testAndExerciseID, id)
+		if recoveryActionPlanFormDTO.IsRecovery {
+			urlParam = fmt.Sprintf(`{"test_and_exercise_id":%d, "recovery_action_plan_id":%d}`, testAndExerciseID, id)
+			redirectUrl = fmt.Sprintf("%sbusiness-continuity/test-and-exercise/%d/recovery-action-plans?action_plan_id=%d", appURL, testAndExerciseID, id)
+		}
+
+		// sends notification if responsible user has changed
+		if oldResponsibleUserID != existingActionPlan.ResponsibleUserID {
+			queryParam := ""
+			entity := "test-and-exercise-action-plan"
+
+			oldResponsibleUserAction := "responsible-user-remove"
+			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{oldResponsibleUserID},
+				ModuleIdentifier:     "business_continuity",
+				NotificationType:     string(commonDTOs.InformationType),
+				HeadingEn:            "Action Plan Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية خطة العمل",
+				TitleEn:              existingActionPlan.Title,
+				TitleAr:              existingActionPlan.Title,
+				Entity:               &entity,
+				Action:               &oldResponsibleUserAction,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			newResponsibleUserAction := "responsible-user-assign"
+			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{recoveryActionPlanFormDTO.ResponsibleUserID},
+				ModuleIdentifier:     "business_continuity",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Action Plan Responsibility Assigned",
+				HeadingAr:            "مسؤولية خطة العمل الموكلة",
+				TitleEn:              existingActionPlan.Title,
+				TitleAr:              existingActionPlan.Title,
+				Entity:               &entity,
+				Action:               &newResponsibleUserAction,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			oldResponsibleUser, err := teraps.userSvc.GetByID(oldResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			newResponsibleUser, err := teraps.userSvc.GetByID(recoveryActionPlanFormDTO.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			assignedBy, err := teraps.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+			oldResponsibleUserSubject := fmt.Sprintf("Action Plan/%s: Responsibility Removed", existingActionPlan.Title)
+			oldResponsibleUserTemplateRelativePath := "business-continuity/templates/email/action_plan_remove_responsible_user_mail.html"
+			oldResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":          oldResponsibleUser.FirstNameEn,
+				"LastNameEn":           oldResponsibleUser.LastNameEn,
+				"ReferenceNumber":      testAndExercise.ReferenceNumber,
+				"TestAndExerciseTitle": testAndExercise.BcpTestAndExercise.Title,
+				"ActionPlanTitle":      existingActionPlan.Title,
+				"RedirectURL":          redirectUrl,
+			}
+
+			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldResponsibleUserEmailTo,
+				Subject:              oldResponsibleUserSubject,
+				TemplateRelativePath: oldResponsibleUserTemplateRelativePath,
+				EmailData:            oldResponsibleUserEmailData,
+			}
+
+			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+			newResponsibleUserSubject := fmt.Sprintf("Action Plan/%s: Responsibility Assigned", existingActionPlan.Title)
+			newResponsibleUserTemplateRelativePath := "business-continuity/templates/email/action_plan_change_responsible_user_mail.html"
+			newResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":           newResponsibleUser.FirstNameEn,
+				"LastNameEn":            newResponsibleUser.LastNameEn,
+				"ReferenceNumber":       testAndExercise.ReferenceNumber,
+				"TestAndExerciseTitle":  testAndExercise.BcpTestAndExercise.Title,
+				"ActionPlanTitle":       existingRecoveryPlan.Title,
+				"TargetDate":            existingRecoveryPlan.TargetDate.Format("2006-01-02"),
+				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+				"AssignedByLastNameEn":  assignedBy.LastNameEn,
+				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           redirectUrl,
+			}
+
+			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              newResponsibleUserEmailTo,
+				Subject:              newResponsibleUserSubject,
+				TemplateRelativePath: newResponsibleUserTemplateRelativePath,
+				EmailData:            newResponsibleUserEmailData,
+			}
+
+			err = teraps.notificationSvc.SendNotification(
+				newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "test_and_exercise",
+			)
+			if err != nil {
+				utility.LogError("Failed to send new responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+			err = teraps.notificationSvc.SendNotification(
+				oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "test_and_exercise",
+			)
+			if err != nil {
+				utility.LogError("Failed to send old responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
 	}()
 	return nil
 }
@@ -279,9 +564,22 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Delete(testAndExerciseID
 		return nil, err
 	}
 
+	testAndExercise, err := teraps.testAndExerciseSvc.GetFullDetailsByID(testAndExerciseID)
+	if err != nil {
+		return nil, err
+	}
+
 	var failedIDs []uint
 	var successfulIDs []uint
 	var deletedActionPlans []map[string]interface{}
+	var notifications []struct {
+		OwnerID              *uint
+		TitleEn              string
+		TitleAr              string
+		Description          string
+		ReferenceNumber      string
+		TestAndExerciseTitle string
+	}
 
 	for _, id := range ids {
 		actionPlan, err := teraps.GetFullDetailsByID(testAndExerciseID, id, tx)
@@ -289,11 +587,75 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Delete(testAndExerciseID
 			tx.Rollback()
 			return nil, err
 		}
+		// Prepare notification data before deletion
+		notifications = append(notifications, struct {
+			OwnerID              *uint
+			TitleEn              string
+			TitleAr              string
+			Description          string
+			ReferenceNumber      string
+			TestAndExerciseTitle string
+		}{
+			OwnerID:              &actionPlan.ResponsibleUserID,
+			TitleEn:              actionPlan.Title,
+			TitleAr:              actionPlan.Title,
+			ReferenceNumber:      testAndExercise.ReferenceNumber,
+			TestAndExerciseTitle: testAndExercise.BcpTestAndExercise.Title,
+		})
 
 		deletedActionPlans = append(deletedActionPlans, map[string]interface{}{
 			"id":                id,
 			"test_and_exercise": actionPlan.ID,
 		})
+
+		if len(actionPlan.ActionPlanStatusUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			var deleteDocumentIds []*uint
+			for _, update := range actionPlan.ActionPlanStatusUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+				for _, document := range update.Documents {
+					deleteDocumentIds = append(deleteDocumentIds, &document.ID)
+				}
+			}
+			if err := teraps.repo.DeleteActionPlanStatusUpdateDocuments(deleteDocumentIds); err != nil {
+				failedIDs = append(failedIDs, id)
+				continue
+			}
+			if err := teraps.repo.DeleteActionPlanStatusUpdates(deleteStatusUpdateIds); err != nil {
+				failedIDs = append(failedIDs, id)
+				continue
+			}
+		}
+
+		if len(actionPlan.ActionPlanComments) > 0 {
+			var deleteCommentIds []*uint
+			var deleteCommentDocumentIds []*uint
+			for _, update := range actionPlan.ActionPlanComments {
+				deleteCommentIds = append(deleteCommentIds, &update.ID)
+				for _, document := range update.Documents {
+					deleteCommentDocumentIds = append(deleteCommentDocumentIds, &document.ID)
+				}
+			}
+			if err := teraps.repo.DeleteActionPlanCommentDocuments(deleteCommentDocumentIds); err != nil {
+				failedIDs = append(failedIDs, id)
+				continue
+			}
+			if err := teraps.repo.DeleteActionPlanComments(deleteCommentIds); err != nil {
+				failedIDs = append(failedIDs, id)
+				continue
+			}
+		}
+
+		existingTask, err := teraps.taskSvc.GetByFieldID("recovery_action_plan_id", id)
+		if err != nil {
+			failedIDs = append(failedIDs, id)
+			continue
+		}
+
+		taskID, err := teraps.taskSvc.Delete(existingTask.ID, currentUserID)
+		if err != nil {
+			failedIDs = append(failedIDs, taskID)
+		}
 
 		if err := teraps.repo.Delete(id, tx); err != nil {
 			failedIDs = append(failedIDs, id)
@@ -323,6 +685,63 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Delete(testAndExerciseID
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
 		}()
+		for _, notification := range notifications {
+			urlParam := ""
+			entity := "test-and-exercise-action-plan"
+			action := "delete"
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{*notification.OwnerID},
+				ModuleIdentifier:     "business_continuity",
+				NotificationType:     string(commonDTOs.DeletionType),
+				HeadingEn:            "Action Plan Deleted",
+				HeadingAr:            "تم حذف خطة العمل",
+				TitleEn:              notification.TitleEn,
+				TitleAr:              notification.TitleAr,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			ownerUser, err := teraps.userSvc.GetByID(*notification.OwnerID)
+			if err != nil {
+				utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
+					"error": err.Error(),
+				})
+				continue
+			}
+
+			ownerEmailTo := []string{ownerUser.Email}
+			subject := fmt.Sprintf("Action Plan/%s: Deleted", notification.TitleEn)
+			templateRelativePath := "business-continuity/templates/email/action_plan_delete_mail.html"
+
+			emailData := map[string]interface{}{
+				"FirstNameEn":           ownerUser.FirstNameEn,
+				"LastNameEn":            ownerUser.LastNameEn,
+				"ReferenceNumber":       notification.ReferenceNumber,
+				"TestAndExerciseTitle":  notification.TestAndExerciseTitle,
+				"ActionPlanTitle":       notification.TitleEn,
+				"ActionPlanDescription": notification.Description,
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              ownerEmailTo,
+				Subject:              subject,
+				TemplateRelativePath: templateRelativePath,
+				EmailData:            emailData,
+			}
+
+			err = teraps.notificationSvc.SendNotification(
+				dbNotificationDTO, emailNotificationDTO, "test_and_exercise")
+			if err != nil {
+				utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+		}
 	}
 
 	return failedIDs, nil
@@ -341,4 +760,32 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) parseTestAndExerciseReco
 	}
 
 	return parsed, nil
+}
+
+func (teraps *TestAndExerciseRecoveryActionPlanService) StatusUpdate(slaID uint, id uint, currentUserID uint, testAndExerciseRecoveryActionPlanStatusUpdateFormDTO *businessContinuityDTOs.TaeRecoveryActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error {
+	existingTestAndExerciseRecoveryActionPlan, err := teraps.GetByID(slaID, id)
+	if err != nil {
+		return err
+	}
+
+	existingTestAndExerciseRecoveryActionPlan.ActionPlanStatusId = &testAndExerciseRecoveryActionPlanStatusUpdateFormDTO.ActionPlanStatusID
+	existingTestAndExerciseRecoveryActionPlan.Percentage = testAndExerciseRecoveryActionPlanStatusUpdateFormDTO.Percentage
+	existingTestAndExerciseRecoveryActionPlan.UpdatedBYID = &currentUserID
+
+	err = teraps.repo.Update(existingTestAndExerciseRecoveryActionPlan, tx)
+	if err != nil {
+		return err
+	}
+	isReviewUserNull := existingTestAndExerciseRecoveryActionPlan.ReviewUserID == nil
+	// Fetch the corresponding task and update its status
+	existingTask, err := teraps.taskSvc.GetByFieldID("recovery_action_plan_id", id)
+	if err != nil {
+		return err
+	}
+	err = teraps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, testAndExerciseRecoveryActionPlanStatusUpdateFormDTO.ActionPlanStatusID, isReviewUserNull, tx)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

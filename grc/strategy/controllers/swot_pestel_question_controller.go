@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"jethur/grc/models"
+	strategyDTOs "jethur/grc/strategy/dtos"
 	"jethur/grc/strategy/services"
 	"jethur/utility"
 	"net/http"
@@ -40,7 +41,7 @@ func (sqc *SwotPestelQuestionController) GetAllSwotPestelQuestions(c *gin.Contex
 }
 
 func (sqc *SwotPestelQuestionController) GetSwotPestelQuestionDetails(c *gin.Context) {
-	idStr := c.Param("id")
+	idStr := c.Param("questionId")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -48,7 +49,7 @@ func (sqc *SwotPestelQuestionController) GetSwotPestelQuestionDetails(c *gin.Con
 		return
 	}
 
-	swotPestelQuestion, err := sqc.service.GetByID(uint(id))
+	swotPestelQuestion, err := sqc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -86,7 +87,7 @@ func (sqc *SwotPestelQuestionController) CreateSwotPestelQuestion(c *gin.Context
 }
 
 func (sqc *SwotPestelQuestionController) UpdateSwotPestelQuestion(c *gin.Context) {
-	swotPestelQuestionID, err := strconv.Atoi(c.Param("id"))
+	swotPestelQuestionID, err := strconv.Atoi(c.Param("questionId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -194,4 +195,112 @@ func (sqc *SwotPestelQuestionController) DeactivateSwotPestelQuestions(c *gin.Co
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (sqc *SwotPestelQuestionController) UpdateAnswer(c *gin.Context) {
+	var answerFormDTO strategyDTOs.AnswerFormDTO
+
+	questionIDStr := c.Param("id")
+
+	questionId, err := strconv.ParseUint(questionIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&answerFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(sqc.db, c, err.Error())
+		return
+	}
+	err = sqc.service.UpdateAnswer(uint(questionId), currentUserID, &answerFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(sqc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (sqc *SwotPestelQuestionController) CreateInvitees(c *gin.Context) {
+	var SwotPestelQuestionInvitee *strategyDTOs.InviteeFormDTO
+
+	questionIDStr := c.Param("questionId")
+
+	questionId, err := strconv.ParseUint(questionIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&SwotPestelQuestionInvitee); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(sqc.db, c, err.Error())
+		return
+	}
+
+	err = sqc.service.CreateInvitees(uint(questionId), currentUserID, SwotPestelQuestionInvitee)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(sqc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusCreated, questionId)
+}
+
+func (sqc *SwotPestelQuestionController) DeleteInvitees(c *gin.Context) {
+	var request struct {
+		IDs []*uint `json:"ids"`
+	}
+
+	questionIDStr := c.Param("questionId")
+
+	questionId, err := strconv.ParseUint(questionIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(sqc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := sqc.service.DeleteInvitees(uint(questionId), request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(sqc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }

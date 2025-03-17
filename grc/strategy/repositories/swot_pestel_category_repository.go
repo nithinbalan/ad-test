@@ -1,0 +1,73 @@
+package repositories
+
+import (
+	"jethur/grc/models"
+
+	"gorm.io/gorm"
+)
+
+// Interfaces
+type SwotPestelCategoryRepositoryInterface interface {
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SwotPestelCategory, error)
+	GetByID(id uint) (*models.SwotPestelCategory, error)
+	GetByType(status string) (*models.SwotPestelCategory, error)
+}
+
+// implementation
+type SwotPestelCategoryRepository struct {
+	db *gorm.DB
+}
+
+func NewSwotPestelCategoryRepository(db *gorm.DB) *SwotPestelCategoryRepository {
+	return &SwotPestelCategoryRepository{
+		db: db,
+	}
+}
+
+func (repo *SwotPestelCategoryRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SwotPestelCategory, error) {
+	var swotPestelCategories []*models.SwotPestelCategory
+
+	query := repo.db
+
+	if keyword != "" {
+		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
+	}
+	if sortBy == "" {
+		sortBy = "title_en"
+	}
+	if sort != "asc" && sort != "desc" {
+		sort = "asc"
+	}
+
+	if status == "active" || status == "inactive" {
+		query = query.Where("status = ?", status)
+	}
+
+	query = query.Order(sortBy + " " + sort)
+	result := query.Find(&swotPestelCategories)
+
+	return swotPestelCategories, result.Error
+}
+
+func (repo *SwotPestelCategoryRepository) GetByID(id uint) (*models.SwotPestelCategory, error) {
+	var status *models.SwotPestelCategory
+	result := repo.db.First(&status, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return status, result.Error
+}
+
+func (repo *SwotPestelCategoryRepository) GetByType(status string) (*models.SwotPestelCategory, error) {
+	var swotPestelCategory *models.SwotPestelCategory
+
+	result := repo.db.Where("type = ?", status).First(&swotPestelCategory)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return swotPestelCategory, nil
+}
