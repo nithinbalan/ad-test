@@ -94,6 +94,8 @@ type BusinessFunctionDetailDTO struct {
 	SeverityLevel        *masterDTOs.SeverityLevelDTO    `json:"severity_level"`
 	ReviewFrequency      *masterDTOs.ReviewFrequencyDTO  `json:"review_frequency"`
 
+	LatestBusinessContinuityPlan *BusinessContinuityPlanDetailDTO `json:"latest_business_continuity_plan"`
+
 	Processes     []*BusinessFunctionProcessDTO   `json:"processes"`
 	CreatedAt     time.Time                       `json:"created_at"`
 	UpdatedAt     *time.Time                      `json:"updated_at"`

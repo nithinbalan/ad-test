@@ -185,11 +185,20 @@ func (repo *BusinessFunctionRepository) GetFullDetailsByID(id uint, tx ...utilit
 		Preload("SeverityLevel").
 		Preload("Processes").
 		Preload("Processes.Process").
-		Preload("ResponsibleUser").
-		Preload("ResponsibleUser.OrganizationUnit1").
+		Preload("ResponsibleUser", models.WithPrimaryOrganizationUnit()).
 		Preload("ReviewFrequency").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("LatestBusinessContinuityPlan").
+		Preload("LatestBusinessContinuityPlan.MtpdUnit").
+		Preload("LatestBusinessContinuityPlan.RpoUnit").
+		Preload("LatestBusinessContinuityPlan.RtoUnit").
+		Preload("LatestBusinessContinuityPlan.Processes").
+		Preload("LatestBusinessContinuityPlan.Processes.Process").
+		Preload("LatestBusinessContinuityPlan.Processes.MtpdUnit").
+		Preload("LatestBusinessContinuityPlan.Processes.RpoUnit").
+		Preload("LatestBusinessContinuityPlan.Processes.RtoUnit").
+		Preload("LatestBusinessContinuityPlan.Processes.RiskLevel").
 		First(&businessFunction, id)
 
 	if result.Error != nil {
