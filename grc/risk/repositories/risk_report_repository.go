@@ -73,8 +73,8 @@ func (repo *RiskReportRepository) GetAll(params *dtos.RiskReportListQueryParamsD
 		Select(`
 			risk_reports.id, 
 			risk_reports.title, 
-			risk_reports.start_date, 
-			risk_reports.end_date, 
+			CONVERT(VARCHAR, risk_reports.start_date, 23) AS start_date,
+			CONVERT(VARCHAR, risk_reports.end_date, 23) AS end_date,
 			risk_reports.created_at,
 			STRING_AGG(organization_units.title_en, ', ') AS organization_unit_titles_en,
 			STRING_AGG(organization_units.title_ar, ', ') AS organization_unit_titles_ar
