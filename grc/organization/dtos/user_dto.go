@@ -110,16 +110,17 @@ type OrganizationUnit1DTO struct {
 	Status  string `json:"status"`
 }
 type UserMinimalDTO struct {
-	ID               int     `json:"id"`
-	FirstNameEN      string  `json:"first_name_en"`
-	LastNameEN       string  `json:"last_name_en"`
-	FirstNameAR      string  `json:"first_name_ar"`
-	LastNameAR       string  `json:"last_name_ar"`
-	ProfileImagePath *string `json:"profile_image_path"`
-	Email            string  `json:"email"`
-	Initial          string  `json:"initial"`
-	Color            string  `json:"color"`
-	MobileNumber     *string `json:"mobile_number"`
+	ID                      int                             `json:"id"`
+	FirstNameEN             string                          `json:"first_name_en"`
+	LastNameEN              string                          `json:"last_name_en"`
+	FirstNameAR             string                          `json:"first_name_ar"`
+	LastNameAR              string                          `json:"last_name_ar"`
+	ProfileImagePath        *string                         `json:"profile_image_path"`
+	Email                   string                          `json:"email"`
+	Initial                 string                          `json:"initial"`
+	Color                   string                          `json:"color"`
+	MobileNumber            *string                         `json:"mobile_number"`
+	PrimaryOrganizationUnit settingDTOs.OrganizationUnitDTO `json:"primary_organization_unit"`
 }
 
 type UserRoleDTO struct {

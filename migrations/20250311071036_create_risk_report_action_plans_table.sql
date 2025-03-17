@@ -8,13 +8,13 @@ CREATE TABLE risk_report_action_plans (
     action_plan_title NVARCHAR(255) NOT NULL,
     action_plan_description NVARCHAR(MAX) NULL,
 
-    severity_level_title_en NVARCHAR(255) NOT NULL,
-    severity_level_title_ar NVARCHAR(255) NOT NULL,
+    severity_level_title_en NVARCHAR(255) NULL,
+    severity_level_title_ar NVARCHAR(255) NULL,
 
     responsible_user_name_en NVARCHAR(255) NOT NULL,
     responsible_user_name_ar NVARCHAR(255) NOT NULL,
 
-    target_date DATE NOT NULL,
+    target_date DATE NULL,
 
     action_plan_status_title_en NVARCHAR(255) NOT NULL,
     action_plan_status_title_ar NVARCHAR(255) NOT NULL,
