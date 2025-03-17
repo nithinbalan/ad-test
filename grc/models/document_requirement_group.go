@@ -13,9 +13,10 @@ type DocumentRequirementGroup struct {
 	UpdatedBYID *uint      `json:"updated_by_id" gorm:"default:null"`
 	UpdatedAt   *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	// Relationships
-	Document      Document `gorm:"foreignKey:DocumentID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	CreatedByUser *User    `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	UpdatedByUser *User    `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Document             Document               `gorm:"foreignKey:DocumentID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	CreatedByUser        *User                  `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	UpdatedByUser        *User                  `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	DocumentRequirements []*DocumentRequirement `gorm:"foreignKey:DocumentRequirementGroupID"`
 }
 
 // TableName overrides the default table name

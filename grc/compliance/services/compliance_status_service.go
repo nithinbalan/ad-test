@@ -10,6 +10,7 @@ type ComplianceStatusServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceStatus, error)
 	GetByID(id uint) (*models.ComplianceStatus, error)
 	GetMaxBaseScore(tx ...utility.DatabaseTransaction) (int, error)
+	GetByType(status string) (*models.ComplianceStatus, error)
 }
 
 // Service and implementations
@@ -33,4 +34,14 @@ func (css ComplianceStatusService) GetByID(id uint) (*models.ComplianceStatus, e
 
 func (css ComplianceStatusService) GetMaxBaseScore(tx ...utility.DatabaseTransaction) (int, error) {
 	return css.repo.GetMaxBaseScore(tx...)
+}
+
+func (css *ComplianceStatusService) GetByType(status string) (*models.ComplianceStatus, error) {
+	statusResult, err := css.repo.GetByType(status)
+	if err != nil {
+		// Handle error appropriately
+		return nil, err
+	}
+
+	return statusResult, nil
 }

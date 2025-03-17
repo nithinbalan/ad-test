@@ -54,11 +54,12 @@ type Document struct {
 	LastCheckinByUser  *User               `gorm:"foreignKey:LastCheckinBYID"`
 	PublishedByUser    *User               `gorm:"foreignKey:PublishedBYID"`
 
-	LatestDocumentVersion *DocumentVersion      `gorm:"foreignKey:DocumentID"`
-	DocumentVersions      []*DocumentVersion    `gorm:"foreignKey:DocumentID"`
-	DocumentSharedUsers   []*DocumentSharedUser `gorm:"foreignKey:DocumentID"`
-	DocumentSharedUnits   []*DocumentSharedUnit `gorm:"foreignKey:DocumentID"`
-	DocumentAuditLogs     []*DocumentAuditLog   `gorm:"foreignKey:DocumentID"`
+	LatestDocumentVersion     *DocumentVersion            `gorm:"foreignKey:DocumentID"`
+	DocumentVersions          []*DocumentVersion          `gorm:"foreignKey:DocumentID"`
+	DocumentSharedUsers       []*DocumentSharedUser       `gorm:"foreignKey:DocumentID"`
+	DocumentSharedUnits       []*DocumentSharedUnit       `gorm:"foreignKey:DocumentID"`
+	DocumentAuditLogs         []*DocumentAuditLog         `gorm:"foreignKey:DocumentID"`
+	DocumentRequirementGroups []*DocumentRequirementGroup `gorm:"foreignKey:DocumentID"`
 
 	// New Field
 	Acknowledged bool `json:"acknowledged,omitempty" gorm:"-"`
