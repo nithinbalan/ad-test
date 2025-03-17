@@ -17,7 +17,7 @@ type RiskReportRepositoryInterface interface {
 	GetAll(params *dtos.RiskReportListQueryParamsDTO) (*dtos.RiskReportListResponseDTO, error)
 	// GetFullDetailsByID(riskReportID uint) (*models.RiskReport, error)
 
-	GetRiskReportByID(riskReportID uint, tx ...utility.DatabaseTransaction) (*models.RiskReport, error)
+	GetRiskReportByID(riskReportID uint, tx ...utility.DatabaseTransaction) (*dtos.RiskReportListDTO, error)
 	GetRiskReportSections(riskReportID uint) ([]dtos.RiskReportSectionResponseDTO, error)
 	GetRiskIdentifications(riskReportID uint) ([]dtos.RiskIdentificationResponseDTO, error)
 	GetRiskActionPlans(riskReportID uint) ([]dtos.RiskReportActionPlanResponseDTO, error)
@@ -154,19 +154,53 @@ func (repo *RiskReportRepository) GetSectionByID(sectionID uint, tx ...utility.D
 }
 
 // Fetch main report details
-func (repo *RiskReportRepository) GetRiskReportByID(riskReportID uint, tx ...utility.DatabaseTransaction) (*models.RiskReport, error) {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	var riskReport models.RiskReport
-	err := db.
-		Preload("CreatedByUser").
-		Where("id = ?", riskReportID).First(&riskReport).Error
-	if err != nil {
+// func (repo *RiskReportRepository) GetRiskReportByID(riskReportID uint, tx ...utility.DatabaseTransaction) (*models.RiskReport, error) {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
+// 	var riskReport models.RiskReport
+// 	err := db.
+// 		Preload("CreatedByUser").
+// 		Preload("OrganizationUnits.OrganizationUnit").
+// 		Where("id = ?", riskReportID).First(&riskReport).Error
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return &riskReport, nil
+// }
+
+func (repo *RiskReportRepository) GetRiskReportByID(riskReportID uint, tx ...utility.DatabaseTransaction) (*dtos.RiskReportListDTO, error) {
+	var report dtos.RiskReportListDTO
+
+	query := repo.db.Table("risk_reports").
+		Select(`
+			risk_reports.id, 
+			risk_reports.title, 
+			CONVERT(VARCHAR, risk_reports.start_date, 23) AS start_date,
+			CONVERT(VARCHAR, risk_reports.end_date, 23) AS end_date,
+			risk_reports.created_at,
+			users.id AS created_by_id,
+			users.first_name_en AS created_user_first_name_en,
+			users.first_name_ar AS created_user_first_name_ar,
+			users.last_name_en AS created_user_last_name_en,
+			users.last_name_ar AS created_user_last_name_ar,
+			users.email AS created_user_email,
+			COALESCE(STRING_AGG(organization_units.title_en, ', '), '') AS organization_unit_titles_en,
+			COALESCE(STRING_AGG(organization_units.title_ar, ', '), '') AS organization_unit_titles_ar
+		`).
+		Joins("LEFT JOIN users ON users.id = risk_reports.created_by_id").
+		Joins("LEFT JOIN risk_report_organization_units ON risk_report_organization_units.risk_report_id = risk_reports.id").
+		Joins("LEFT JOIN organization_units ON organization_units.id = risk_report_organization_units.organization_unit_id").
+		Where("risk_reports.id = ?", riskReportID).
+		Group("risk_reports.id, risk_reports.title, risk_reports.start_date, risk_reports.end_date, risk_reports.created_at, users.id, users.first_name_en, users.first_name_ar, users.last_name_en, users.last_name_ar, users.email")
+
+	if err := query.First(&report).Error; err != nil {
+
 		return nil, err
 	}
-	return &riskReport, nil
+
+	return &report, nil
 }
 
 // Fetch sections for the report

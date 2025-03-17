@@ -13,6 +13,10 @@ type RiskReportListDTO struct {
 	CreatedAt                string `json:"created_at"`
 	OrganizationUnitTitlesEn string `json:"organization_unit_titles_en"`
 	OrganizationUnitTitlesAr string `json:"organization_unit_titles_ar"`
+	CreatedUserFirstNameEn   string `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr   string `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn    string `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr    string `json:"created_user_last_name_ar"`
 }
 
 type RiskReportListQueryParamsDTO struct {
@@ -30,19 +34,21 @@ type RiskReportListResponseDTO struct {
 }
 
 type RiskReportDetailDTO struct {
-	ID                     uint                              `json:"id"`
-	Title                  string                            `json:"title"`
-	StartDate              time.Time                         `json:"start_date"`
-	EndDate                time.Time                         `json:"end_date"`
-	CreatedUserFirstNameEn string                            `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr string                            `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn  string                            `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr  string                            `json:"created_user_last_name_ar"`
-	CreatedAt              time.Time                         `json:"created_at"`
-	Sections               []RiskReportSectionResponseDTO    `json:"sections"`
-	Risks                  []RiskIdentificationResponseDTO   `json:"risks"`
-	ActionPlans            []RiskReportActionPlanResponseDTO `json:"action_plans"`
-	KRIs                   []RiskReportKriResponseDTO        `json:"kris"`
+	ID                       uint                              `json:"id"`
+	Title                    string                            `json:"title"`
+	StartDate                string                            `json:"start_date"`
+	EndDate                  string                            `json:"end_date"`
+	OrganizationUnitTitlesEn string                            `json:"organization_unit_titles_en"`
+	OrganizationUnitTitlesAr string                            `json:"organization_unit_titles_ar"`
+	CreatedUserFirstNameEn   string                            `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr   string                            `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn    string                            `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr    string                            `json:"created_user_last_name_ar"`
+	CreatedAt                string                            `json:"created_at"`
+	Sections                 []RiskReportSectionResponseDTO    `json:"sections"`
+	Risks                    []RiskIdentificationResponseDTO   `json:"risks"`
+	ActionPlans              []RiskReportActionPlanResponseDTO `json:"action_plans"`
+	KRIs                     []RiskReportKriResponseDTO        `json:"kris"`
 }
 
 type RiskReportSectionResponseDTO struct {

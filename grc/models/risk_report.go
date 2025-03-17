@@ -11,12 +11,12 @@ type RiskReport struct {
 	CreatedAt   time.Time `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
 
 	// Relationships
-	CreatedByUser     *User                        `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	Sections          []RiskReportSection          `gorm:"foreignKey:RiskReportID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	Identifications   []RiskReportIdentification   `gorm:"foreignKey:RiskReportID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	ActionPlans       []RiskReportActionPlan       `gorm:"foreignKey:RiskReportID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	KRIs              []RiskReportKRI              `gorm:"foreignKey:RiskReportID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	OrganizationUnits []RiskReportOrganizationUnit `gorm:"foreignKey:RiskReportID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	CreatedByUser     *User                         `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	Sections          []RiskReportSection           `gorm:"foreignKey:RiskReportID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Identifications   []RiskReportIdentification    `gorm:"foreignKey:RiskReportID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	ActionPlans       []RiskReportActionPlan        `gorm:"foreignKey:RiskReportID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	KRIs              []RiskReportKRI               `gorm:"foreignKey:RiskReportID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	OrganizationUnits []*RiskReportOrganizationUnit `gorm:"foreignKey:RiskReportID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 // TableName overrides the table name used by RiskReport to `risk_reports`

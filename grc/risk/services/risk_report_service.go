@@ -94,19 +94,21 @@ func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint) (*dtos.Ris
 
 	// Construct Response DTO
 	response := &dtos.RiskReportDetailDTO{
-		ID:                     riskReport.ID,
-		Title:                  riskReport.Title,
-		StartDate:              riskReport.StartDate,
-		EndDate:                riskReport.EndDate,
-		CreatedAt:              riskReport.CreatedAt,
-		CreatedUserFirstNameEn: riskReport.CreatedByUser.FirstNameEn,
-		CreatedUserFirstNameAr: riskReport.CreatedByUser.FirstNameAr,
-		CreatedUserLastNameEn:  riskReport.CreatedByUser.LastNameEn,
-		CreatedUserLastNameAr:  riskReport.CreatedByUser.LastNameAr,
-		Sections:               sections,
-		Risks:                  risks,
-		ActionPlans:            actionPlans,
-		KRIs:                   kris,
+		ID:                       riskReport.ID,
+		Title:                    riskReport.Title,
+		StartDate:                riskReport.StartDate,
+		EndDate:                  riskReport.EndDate,
+		CreatedAt:                riskReport.CreatedAt,
+		CreatedUserFirstNameEn:   riskReport.CreatedUserFirstNameEn,
+		CreatedUserFirstNameAr:   riskReport.CreatedUserFirstNameAr,
+		CreatedUserLastNameEn:    riskReport.CreatedUserLastNameEn,
+		CreatedUserLastNameAr:    riskReport.CreatedUserLastNameAr,
+		OrganizationUnitTitlesEn: riskReport.OrganizationUnitTitlesEn,
+		OrganizationUnitTitlesAr: riskReport.OrganizationUnitTitlesAr,
+		Sections:                 sections,
+		Risks:                    risks,
+		ActionPlans:              actionPlans,
+		KRIs:                     kris,
 	}
 
 	return response, nil
