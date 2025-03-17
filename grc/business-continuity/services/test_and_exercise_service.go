@@ -201,27 +201,30 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 				// Handle parsing error
 				continue
 			}
-
-			// Convert TargetCompletion to an integer
-			targetCompletion, err := strconv.Atoi(*bcpRecoveryPlan.TargetCompletion)
-			if err != nil {
-				// Handle parsing error for TargetCompletion
-				continue
-			}
-
 			var targetDate time.Time
-			switch bcpRecoveryPlan.TargetCompletionUnit.TitleEn {
-			case "Minutes":
-				targetDate = testingDate.Add(time.Duration(targetCompletion) * time.Minute)
-			case "Hours":
-				targetDate = testingDate.Add(time.Duration(targetCompletion) * time.Hour)
-			case "Days":
-				targetDate = testingDate.AddDate(0, 0, targetCompletion)
-			case "Weeks":
-				targetDate = testingDate.AddDate(0, 0, targetCompletion*7)
-			default:
-				// Handle unsupported unit
-				continue
+			if bcpRecoveryPlan.TargetCompletion != nil {
+				// Convert TargetCompletion to an integer
+				targetCompletion, err := strconv.Atoi(*bcpRecoveryPlan.TargetCompletion)
+				if err != nil {
+					// Handle parsing error for TargetCompletion
+					continue
+				}
+
+				switch bcpRecoveryPlan.TargetCompletionUnit.TitleEn {
+				case "Minutes":
+					targetDate = testingDate.Add(time.Duration(targetCompletion) * time.Minute)
+				case "Hours":
+					targetDate = testingDate.Add(time.Duration(targetCompletion) * time.Hour)
+				case "Days":
+					targetDate = testingDate.AddDate(0, 0, targetCompletion)
+				case "Weeks":
+					targetDate = testingDate.AddDate(0, 0, targetCompletion*7)
+				default:
+					// Handle unsupported unit
+					continue
+				}
+			} else {
+				targetDate = *testingDate
 			}
 
 			actionPlanStatus, err := tes.actionPlanSvc.GetByType("new")
