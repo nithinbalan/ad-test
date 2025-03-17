@@ -1,8 +1,35 @@
 package dtos
 
-import "time"
+import (
+	commonDTOs "jethur/grc/common/dtos"
+	"time"
+)
 
-type RiskReportDetailResponseDTO struct {
+type RiskReportListDTO struct {
+	ID                       uint   `json:"id"`
+	Title                    string `json:"title"`
+	StartDate                string `json:"start_date"`
+	EndDate                  string `json:"end_date"`
+	CreatedAt                string `json:"created_at"`
+	OrganizationUnitTitlesEn string `json:"organization_unit_titles_en"`
+	OrganizationUnitTitlesAr string `json:"organization_unit_titles_ar"`
+}
+
+type RiskReportListQueryParamsDTO struct {
+	Sort     string
+	SortBy   string
+	Keyword  string
+	Page     int
+	PageSize int
+	Filters  map[string][]string
+}
+
+type RiskReportListResponseDTO struct {
+	Items      []*RiskReportListDTO         `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type RiskReportDetailDTO struct {
 	ID                     uint                              `json:"id"`
 	Title                  string                            `json:"title"`
 	StartDate              time.Time                         `json:"start_date"`
@@ -28,6 +55,7 @@ type RiskReportSectionResponseDTO struct {
 }
 
 type RiskIdentificationResponseDTO struct {
+	ID                          uint      `json:"id"`
 	ReferenceNumber             string    `json:"reference_number"`
 	RiskCategoryTitleEn         string    `json:"risk_category_title_en"`
 	RiskCategoryTitleAr         string    `json:"risk_category_title_ar"`
@@ -62,34 +90,38 @@ type RiskIdentificationResponseDTO struct {
 	ResidualImpactTitleAr *string `json:"residual_impact_title_ar"`
 
 	ExistingControls *string `json:"existing_controls"`
-	ProposedControls *string `json:"proposed_controls"`
 }
 
 type RiskReportActionPlanResponseDTO struct {
-	RiskReferenceNumber       string     `json:"risk_reference_number"`
-	RiskTitle                 string     `json:"risk_title"`
-	ActionPlanTitle           string     `json:"action_plan_title"`
-	ActionPlanDescription     *string    `json:"action_plan_description"`
-	SeverityLevelTitleEn      *string    `json:"severity_level_title_en"`
-	SeverityLevelTitleAr      *string    `json:"severity_level_title_ar"`
-	ResponsibleUserNameEn     string     `json:"responsible_user_name_en"`
-	ResponsibleUserNameAr     string     `json:"responsible_user_name_ar"`
-	TargetDate                *time.Time `json:"target_date"`
-	ActionPlanStatusTitleEn   string     `json:"action_plan_status_title_en"`
-	ActionPlanStatusTitleAr   string     `json:"action_plan_status_title_ar"`
-	ActionPlanStatusColorCode string     `json:"action_plan_status_color_code"`
+	ID                         uint       `json:"id"`
+	RiskReportIdentificationID uint       `json:"risk_report_identification_id"`
+	RiskReferenceNumber        string     `json:"risk_reference_number"`
+	RiskTitle                  string     `json:"risk_title"`
+	ActionPlanTitle            string     `json:"action_plan_title"`
+	ActionPlanDescription      *string    `json:"action_plan_description"`
+	SeverityLevelTitleEn       *string    `json:"severity_level_title_en"`
+	SeverityLevelTitleAr       *string    `json:"severity_level_title_ar"`
+	ResponsibleUserNameEn      string     `json:"responsible_user_name_en"`
+	ResponsibleUserNameAr      string     `json:"responsible_user_name_ar"`
+	TargetDate                 *time.Time `json:"target_date"`
+	ActionPlanStatusTitleEn    string     `json:"action_plan_status_title_en"`
+	ActionPlanStatusTitleAr    string     `json:"action_plan_status_title_ar"`
+	ActionPlanStatusColorCode  string     `json:"action_plan_status_color_code"`
+	ProposedControls           *string    `json:"proposed_controls"`
 }
 
 type RiskReportKriResponseDTO struct {
-	RiskReferenceNumber string  `json:"risk_reference_number"`
-	RiskTitle           string  `json:"risk_title"`
-	Title               string  `json:"title"`
-	Description         *string `json:"description"`
-	LowThreshold        *int    `json:"low_threshold"`
-	MediumThreshold     *int    `json:"medium_threshold"`
-	UnitTitleEn         *string `json:"unit_title_en"`
-	UnitTitleAr         *string `json:"unit_title_ar"`
-	CurrentValue        *int    `json:"current_value"`
+	ID                         uint    `json:"id"`
+	RiskReportIdentificationID uint    `json:"risk_report_identification_id"`
+	RiskReferenceNumber        string  `json:"risk_reference_number"`
+	RiskTitle                  string  `json:"risk_title"`
+	Title                      string  `json:"title"`
+	Description                *string `json:"description"`
+	LowThreshold               *int    `json:"low_threshold"`
+	MediumThreshold            *int    `json:"medium_threshold"`
+	UnitTitleEn                *string `json:"unit_title_en"`
+	UnitTitleAr                *string `json:"unit_title_ar"`
+	CurrentValue               *int    `json:"current_value"`
 }
 
 // // RiskReportDetailDTO represents the complete risk report details
@@ -223,14 +255,22 @@ type RiskReportActionPlanDTO struct {
 	ActionPlanStatusTitleEn    string    `json:"action_plan_status_title_en"`
 	ActionPlanStatusTitleAr    string    `json:"action_plan_status_title_ar"`
 	ActionPlanStatusColorCode  string    `json:"action_plan_status_color_code"`
+	ProposedControls           *string   `json:"proposed_controls"`
 }
 
 type RiskReportKRIDTO struct {
 	Title           string  `json:"title"`
-	Description     *string `json:"description,omitempty"`
+	Description     *string `json:"description"`
 	LowThreshold    int     `json:"low_threshold"`
 	MediumThreshold int     `json:"medium_threshold"`
 	UnitTitleEn     string  `json:"unit_title_en"`
 	UnitTitleAr     string  `json:"unit_title_ar"`
 	CurrentValue    int     `json:"current_value"`
+}
+
+type RiskReportSectionFormDTO struct {
+	TitleEn       string  `json:"title_en" binding:"required"`
+	TitleAr       string  `json:"title_ar" binding:"required"`
+	DescriptionEn *string `json:"description_en"`
+	DescriptionAr *string `json:"description_ar"`
 }

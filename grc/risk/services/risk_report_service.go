@@ -1,59 +1,99 @@
 package services
 
 import (
+	"errors"
 	"fmt"
+	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
+	"jethur/utility"
 	"strings"
+
+	"gorm.io/gorm"
 )
 
 type RiskReportServiceInterface interface {
-	GetRiskReportDetails(riskReportID uint) (*dtos.RiskReportDetailResponseDTO, error)
+	GetAll(params *dtos.RiskReportListQueryParamsDTO) (*dtos.RiskReportListResponseDTO, error)
+	GetRiskReportDetails(riskReportID uint) (*dtos.RiskReportDetailDTO, error)
 	// GetRiskReportDetails(riskReportID uint, tx ...utility.DatabaseTransaction) (*dtos.RiskReportDetailDTO, error)
-	GenerateRiskReport(currentUserID uint, riskReportFormDTO *dtos.RiskReportFormDTO) (uint, error)
+	Create(currentUserID uint, riskReportFormDTO *dtos.RiskReportFormDTO) (uint, error)
+	UpdateSection(riskID uint, id uint, currentUserID uint, riskReporSectionFormDTO *dtos.RiskReportSectionFormDTO) error
+	DeleteRiskReportSection(riskReportID uint, sectionID uint, currentUserID uint) error
+	DeleteRiskReport(riskReportID uint, currentUserID uint) error
 }
 
 type RiskReportService struct {
-	repo repositories.RiskReportRepositoryInterface
+	repo           repositories.RiskReportRepositoryInterface
+	activityLogSvc logServices.ActivityLogServiceInterface
 }
 
 func NewRiskReportService(
 	repo repositories.RiskReportRepositoryInterface,
+	activityLogSvc logServices.ActivityLogServiceInterface,
 ) RiskReportServiceInterface {
 	return &RiskReportService{
-		repo: repo,
+		repo:           repo,
+		activityLogSvc: activityLogSvc,
 	}
 }
 
-func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint) (*dtos.RiskReportDetailResponseDTO, error) {
+func (rrs *RiskReportService) GetAll(params *dtos.RiskReportListQueryParamsDTO) (*dtos.RiskReportListResponseDTO, error) {
+	return rrs.repo.GetAll(params)
+}
+
+// func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint) (*dtos.RiskReportDetailDTO, error) {
+// 	// Fetch the full risk report with all related data using Preload
+// 	riskReport, err := rrs.repo.GetFullDetailsByID(riskReportID)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	// Initialize DTO
+// 	var riskReportDTO dtos.RiskReportDetailDTO
+
+// 	// Use mapstructure to map the retrieved model to the DTO
+// 	err = mapstructure.Decode(riskReport, &riskReportDTO)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	// Ensure date formatting for the DTO
+// 	riskReportDTO.StartDate = riskReport.StartDate
+// 	riskReportDTO.EndDate = riskReport.EndDate
+// 	riskReportDTO.CreatedAt = riskReport.CreatedAt
+
+// 	return &riskReportDTO, nil
+// }
+
+func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint) (*dtos.RiskReportDetailDTO, error) {
 	riskReport, err := rrs.repo.GetRiskReportByID(riskReportID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch risk report: %w", err)
+		return nil, err
 	}
 
 	sections, err := rrs.repo.GetRiskReportSections(riskReportID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch sections: %w", err)
+		return nil, err
 	}
 
 	risks, err := rrs.repo.GetRiskIdentifications(riskReportID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch risk identifications: %w", err)
+		return nil, err
 	}
 
 	actionPlans, err := rrs.repo.GetRiskActionPlans(riskReportID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch action plans: %w", err)
+		return nil, err
 	}
 
 	kris, err := rrs.repo.GetRiskKRIs(riskReportID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch KRIs: %w", err)
+		return nil, err
 	}
 
 	// Construct Response DTO
-	response := &dtos.RiskReportDetailResponseDTO{
+	response := &dtos.RiskReportDetailDTO{
 		ID:                     riskReport.ID,
 		Title:                  riskReport.Title,
 		StartDate:              riskReport.StartDate,
@@ -72,123 +112,18 @@ func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint) (*dtos.Ris
 	return response, nil
 }
 
-// func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint, tx ...utility.DatabaseTransaction) (*dtos.RiskReportDetailDTO, error) {
-// 	// Fetch Risk Report Details
-// 	riskReport, err := rrs.repo.GetRiskReportByID(riskReportID, tx...)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+func (rrs *RiskReportService) GetSectionByID(riskReportID uint, sectionID uint, tx ...utility.DatabaseTransaction) (*models.RiskReportSection, error) {
+	section, err := rrs.repo.GetSectionByID(sectionID, tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, sectionID)
+		}
+		return nil, err
+	}
+	return section, nil
+}
 
-// 	// Initialize DTO
-// 	riskReportDTO := &dtos.RiskReportDetailDTO{
-// 		ID:                     riskReport.ID,
-// 		Title:                  riskReport.Title,
-// 		StartDate:              riskReport.StartDate,
-// 		EndDate:                riskReport.EndDate,
-// 		CreatedUserFirstNameEn: riskReport.CreatedByUser.FirstNameEn,
-// 		CreatedUserFirstNameAr: riskReport.CreatedByUser.FirstNameAr,
-// 		CreatedUserLastNameEn:  riskReport.CreatedByUser.LastNameEn,
-// 		CreatedUserLastNameAr:  riskReport.CreatedByUser.LastNameAr,
-// 		CreatedAt:              riskReport.CreatedAt,
-// 	}
-
-// 	// Fetch Sections
-// 	sections, err := rrs.repo.GetSectionsByRiskReportID(riskReportID, tx...)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	// Prepare sections with placeholder arrays
-// 	sectionMap := make(map[string]*dtos.RiskReportSectionResponseDTO)
-
-// 	for _, section := range sections {
-// 		sectionMap[section.Type] = &dtos.RiskReportSectionResponseDTO{
-// 			Type:            section.Type,
-// 			TitleEn:         section.TitleEn,
-// 			TitleAr:         section.TitleAr,
-// 			DescriptionEn:   section.DescriptionEn,
-// 			DescriptionAr:   section.DescriptionAr,
-// 			OrderNum:        section.OrderNum,
-// 			Identifications: []dtos.RiskIdentificationResponseDTO{}, // Ensure empty array
-// 			ActionPlans:     []dtos.RiskActionPlanDTO{},     // Ensure empty array
-// 			KRIs:            []dtos.RiskReportKriResponseDTO{},      // Ensure empty array
-// 		}
-// 	}
-
-// 	// Fetch Identified Risks and map to "identification" section
-// 	identifications, err := rrs.repo.GetIdentificationsByRiskReportID(riskReportID, tx...)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	for _, identification := range identifications {
-// 		sectionMap["identification"].Identifications = append(sectionMap["identification"].Identifications, dtos.RiskIdentificationResponseDTO{
-// 			ReferenceNumber:        identification.ReferenceNumber,
-// 			RiskCategoryTitleEn:    identification.RiskCategoryTitleEn,
-// 			RiskCategoryTitleAr:    identification.RiskCategoryTitleAr,
-// 			Title:                  identification.Title,
-// 			Description:            identification.Description,
-// 			RiskSourceTitleEn:      identification.RiskSourceTitleEn,
-// 			RiskSourceTitleAr:      identification.RiskSourceTitleAr,
-// 			ReportedAt:             identification.RiskReportedAt,
-// 			ResponsibleUnitTitleEn: identification.ResponsibleUnitTitleEn,
-// 			ResponsibleUnitTitleAr: identification.ResponsibleUnitTitleAr,
-// 			RiskStatusTitleEn:      identification.RiskStatusTitleEn,
-// 			RiskStatusTitleAr:      identification.RiskStatusTitleAr,
-// 			RiskStatusColorCode:    identification.RiskStatusColorCode,
-// 		})
-// 	}
-
-// 	// Fetch Action Plans and map to "mitigation" section
-// 	actionPlans, err := rrs.repo.GetActionPlansByRiskReportID(riskReportID, tx...)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	for _, actionPlan := range actionPlans {
-// 		sectionMap["mitigation"].ActionPlans = append(sectionMap["mitigation"].ActionPlans, dtos.RiskActionPlanDTO{
-// 			Title:                 actionPlan.ActionPlanTitle,
-// 			Description:           actionPlan.ActionPlanDescription,
-// 			SeverityLevelTitleEn:  actionPlan.SeverityLevelTitleEn,
-// 			SeverityLevelTitleAr:  actionPlan.SeverityLevelTitleAr,
-// 			ResponsibleUserNameEn: actionPlan.ResponsibleUserNameEn,
-// 			ResponsibleUserNameAr: actionPlan.ResponsibleUserNameAr,
-// 			TargetDate:            actionPlan.TargetDate,
-// 			Status:                actionPlan.ActionPlanStatusTitleEn,
-// 		})
-// 	}
-
-// 	// Fetch KRIs and map to "kri" section
-// 	kris, err := rrs.repo.GetKRIsByRiskReportID(riskReportID, tx...)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	for _, kri := range kris {
-// 		sectionMap["kri"].KRIs = append(sectionMap["kri"].KRIs, dtos.RiskReportKriResponseDTO{
-// 			RiskReferenceNumber: kri.RiskReportIdentification.ReferenceNumber,
-// 			RiskTitle:           kri.RiskReportIdentification.Title,
-// 			Title:               kri.Title,
-// 			Description:         kri.Description,
-// 			LowThreshold:        kri.LowThreshold,
-// 			MediumThreshold:     kri.MediumThreshold,
-// 			UnitTitleEn:         kri.UnitTitleEn,
-// 			UnitTitleAr:         kri.UnitTitleAr,
-// 			CurrentValue:        kri.CurrentValue,
-// 		})
-// 	}
-
-// 	// Convert section map to array
-// 	for _, section := range sectionMap {
-// 		riskReportDTO.Sections = append(riskReportDTO.Sections, *section)
-// 	}
-
-// 	// Sort sections by order_num
-// 	sort.Slice(riskReportDTO.Sections, func(i, j int) bool {
-// 		return riskReportDTO.Sections[i].OrderNum < riskReportDTO.Sections[j].OrderNum
-// 	})
-
-// 	return riskReportDTO, nil
-// }
-
-func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportFormDTO *dtos.RiskReportFormDTO) (uint, error) {
+func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos.RiskReportFormDTO) (uint, error) {
 	tx := rrs.repo.BeginTransaction()
 
 	// Step 1: Create Risk Report Entry
@@ -240,14 +175,12 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 		}
 	}
 
-	// Step 2: Fetch Risks in Date Range
 	risks, err := rrs.repo.GetRisksByDateRange(riskReportFormDTO.StartDate, riskReportFormDTO.EndDate, riskReportFormDTO.OrganizationUnitIDs, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
 
-	// Step 3: Populate Risk Report Identifications
 	for _, risk := range risks {
 
 		controlTitles, err := rrs.repo.GetControlTitlesByRiskID(risk.ID, tx)
@@ -256,7 +189,6 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 			return 0, fmt.Errorf("failed to fetch control titles for risk %d: %w", risk.ID, err)
 		}
 
-		// Join control titles into a comma-separated string
 		existingControls := strings.Join(controlTitles, ", ")
 
 		riskIdentification := &models.RiskReportIdentification{
@@ -292,7 +224,6 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 			RiskStatusColorCode: risk.RiskStatusColorCode,
 		}
 
-		// Step 4: Insert Risk Identification Entry
 		if err := rrs.repo.CreateRiskIdentification(riskIdentification, tx); err != nil {
 			tx.Rollback()
 			return 0, err
@@ -305,6 +236,13 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 		}
 
 		for _, actionPlan := range actionPlans {
+
+			proposedControls, err := rrs.repo.GetActionPlanControlsByActionPlanID(actionPlan.ID, tx)
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+
 			riskActionPlan := &models.RiskReportActionPlan{
 				RiskReportID:               riskReportID,
 				RiskReportIdentificationID: riskIdentification.ID,
@@ -318,6 +256,7 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 				ActionPlanStatusTitleEn:    actionPlan.ActionPlanStatusTitleEn,
 				ActionPlanStatusTitleAr:    actionPlan.ActionPlanStatusTitleAr,
 				ActionPlanStatusColorCode:  actionPlan.ActionPlanStatusColorCode,
+				ProposedControls:           &proposedControls,
 			}
 
 			if err := rrs.repo.CreateRiskActionPlan(riskActionPlan, tx); err != nil {
@@ -326,7 +265,6 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 			}
 		}
 
-		//Update KRI table
 		kris, err := rrs.repo.GetKRIsByRiskID(risk.ID, tx)
 		if err != nil {
 			tx.Rollback()
@@ -354,9 +292,179 @@ func (rrs *RiskReportService) GenerateRiskReport(currentUserID uint, riskReportF
 
 	}
 
-	// Step 5: Commit Transaction
 	tx.Commit()
+
+	go func() {
+		err := rrs.activityLogSvc.LogActivity(
+			models.CreateAction,
+			models.RiskReport{}.TableName(),
+			riskReportID,
+			riskReport,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
+		}
+	}()
 	return riskReportID, nil
+}
+
+func (rrs *RiskReportService) UpdateSection(riskReportID uint, sectionID uint, currentUserID uint, riskReporSectionFormDTO *dtos.RiskReportSectionFormDTO) error {
+	tx := rrs.repo.BeginTransaction()
+
+	existingReportSection, err := rrs.GetSectionByID(riskReportID, sectionID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Capture old values before update
+	oldValues := map[string]interface{}{
+		"title_en":       existingReportSection.TitleEn,
+		"title_ar":       existingReportSection.TitleAr,
+		"description_en": existingReportSection.DescriptionEn,
+		"description_ar": existingReportSection.DescriptionAr,
+	}
+
+	// Update section details
+	existingReportSection.TitleEn = riskReporSectionFormDTO.TitleEn
+	existingReportSection.TitleAr = riskReporSectionFormDTO.TitleAr
+	existingReportSection.DescriptionEn = *riskReporSectionFormDTO.DescriptionEn
+	existingReportSection.DescriptionAr = *riskReporSectionFormDTO.DescriptionAr
+
+	err = rrs.repo.UpdateSection(existingReportSection, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	// Capture new values after update
+	newValues := map[string]interface{}{
+		"title_en":       existingReportSection.TitleEn,
+		"title_ar":       existingReportSection.TitleAr,
+		"description_en": existingReportSection.DescriptionEn,
+		"description_ar": existingReportSection.DescriptionAr,
+	}
+
+	// Identify changes
+	changedData := utility.CompareFieldChanges(oldValues, newValues)
+
+	// Log activity only if there are changes
+	if len(changedData) > 0 {
+		go func() {
+			err := rrs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.RiskReportSection{}.TableName(),
+				sectionID,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
+			}
+		}()
+	}
+
+	return nil
+}
+
+func (rrs *RiskReportService) DeleteRiskReportSection(riskReportID uint, sectionID uint, currentUserID uint) error {
+	tx := rrs.repo.BeginTransaction()
+
+	section, err := rrs.GetSectionByID(riskReportID, sectionID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Delete the section
+	if err := rrs.repo.DeleteRiskReportSection(sectionID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Reorder remaining sections
+	if err := rrs.repo.ReorderRiskReportSections(riskReportID, section.OrderNum, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+	go func() {
+		err := rrs.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.RiskReportSection{}.TableName(),
+			sectionID,
+			section,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
+		}
+	}()
+	return nil
+}
+
+func (rrs *RiskReportService) DeleteRiskReport(riskReportID uint, currentUserID uint) error {
+	tx := rrs.repo.BeginTransaction()
+
+	existingReport, err := rrs.repo.GetRiskReportByID(riskReportID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := rrs.repo.DeleteRiskReportOrganizationUnits(riskReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := rrs.repo.DeleteRiskKRIs(riskReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := rrs.repo.DeleteRiskActionPlans(riskReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := rrs.repo.DeleteRiskIdentifications(riskReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := rrs.repo.DeleteRiskReportSections(riskReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := rrs.repo.DeleteRiskReport(riskReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	go func() {
+		err := rrs.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.RiskReport{}.TableName(),
+			riskReportID,
+			existingReport,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
+		}
+	}()
+
+	tx.Commit()
+	return nil
 }
 
 func formatTitle(sectionType string) (string, string) {
@@ -366,19 +474,19 @@ func formatTitle(sectionType string) (string, string) {
 	case "context":
 		return "Risk Governance & Context", "حوكمة المخاطر والسياق"
 	case "identification":
-		return "Risk Identification & Assessment", "تحديد وتقييم المخاطر"
+		return "Risk Identification", "تحديد المخاطر"
 	case "assessment":
-		return "Risk Evaluation & Impact", "تقييم المخاطر وتأثيرها"
+		return "Risk Assessment Details", "تفاصيل تقييم المخاطر"
 	case "mitigation":
-		return "Risk Mitigation Strategies", "استراتيجيات التخفيف من المخاطر"
+		return "Risk Response & Mitigation", "الاستجابة للمخاطر والتخفيف منها"
 	case "kri":
-		return "Key Risk Indicators (KRIs)", "مؤشرات المخاطر الرئيسية"
+		return "Key Risk Indicators (KRIs) & Performance", "مؤشرات المخاطر الرئيسية والأداء"
 	case "communication":
-		return "Risk Communication & Reporting", "الاتصال والإبلاغ عن المخاطر"
+		return "Risk Monitoring, Reporting & Communication", "مراقبة المخاطر والإبلاغ والتواصل"
 	case "recommendation":
 		return "Recommendations & Action Plan", "التوصيات وخطة العمل"
 	case "documents":
-		return "Supporting Documents", "المستندات الداعمة"
+		return "Appendices & Supporting Documents", "الملاحق والمستندات الداعمة"
 	default:
 		return sectionType, sectionType // Default to sectionType if not found
 	}

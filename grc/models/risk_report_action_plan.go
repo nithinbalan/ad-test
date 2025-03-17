@@ -16,6 +16,7 @@ type RiskReportActionPlan struct {
 	ActionPlanStatusTitleEn    string     `json:"action_plan_status_title_en" gorm:"type:varchar(255);not null"`
 	ActionPlanStatusTitleAr    string     `json:"action_plan_status_title_ar" gorm:"type:varchar(255);not null"`
 	ActionPlanStatusColorCode  string     `json:"action_plan_status_color_code" gorm:"type:varchar(7);not null"`
+	ProposedControls           *string    `json:"proposed_controls" gorm:"default:null"`
 
 	// Relationships
 	RiskReportIdentification *RiskReportIdentification `gorm:"foreignKey:RiskReportIdentificationID"`
