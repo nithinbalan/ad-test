@@ -312,6 +312,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("/risk-reports", riskReportController.GetAllRiskReports)
 	riskRoutes.GET("/risk-reports/:riskReportId", riskReportController.GetRiskReportDetails)
 	riskRoutes.POST("/risk-reports", riskReportController.CreateRiskReport)
+	riskRoutes.GET("/risk-reports/:riskReportId/sections/:sectionId", riskReportController.GetRiskReportSection)
 	riskRoutes.PUT("/risk-reports/:riskReportId/sections/:sectionId", riskReportController.UpdateRiskReportSection)
 	riskRoutes.DELETE("/risk-reports/:riskReportId/sections/:sectionId", riskReportController.DeleteRiskReportSection)
 	riskRoutes.DELETE("/risk-reports/:riskReportId", riskReportController.DeleteRiskReport)

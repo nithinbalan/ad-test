@@ -18,6 +18,7 @@ type RiskReportServiceInterface interface {
 	GetRiskReportDetails(riskReportID uint) (*dtos.RiskReportDetailDTO, error)
 	// GetRiskReportDetails(riskReportID uint, tx ...utility.DatabaseTransaction) (*dtos.RiskReportDetailDTO, error)
 	Create(currentUserID uint, riskReportFormDTO *dtos.RiskReportFormDTO) (uint, error)
+	GetSectionByID(riskReportID uint, sectionID uint, tx ...utility.DatabaseTransaction) (*models.RiskReportSection, error)
 	UpdateSection(riskID uint, id uint, currentUserID uint, riskReporSectionFormDTO *dtos.RiskReportSectionFormDTO) error
 	DeleteRiskReportSection(riskReportID uint, sectionID uint, currentUserID uint) error
 	DeleteRiskReport(riskReportID uint, currentUserID uint) error

@@ -68,7 +68,7 @@ type RiskIdentificationResponseDTO struct {
 	Title                       string    `json:"title"`
 	Description                 *string   `json:"description"`
 	RiskSourceTitleEn           *string   `json:"risk_source_title_en"`
-	RiskSourceTitleAr           *string   `json:"risk_source_title_en_ar"`
+	RiskSourceTitleAr           *string   `json:"risk_source_title_ar"`
 	RiskReportedAt              time.Time `json:"risk_reported_at"`
 	ResponsibleUnitTitleEn      string    `json:"responsible_unit_title_en"`
 	ResponsibleUnitTitleAr      string    `json:"responsible_unit_title_ar"`

@@ -132,6 +132,34 @@ func (rrc *RiskReportController) CreateRiskReport(c *gin.Context) {
 	})
 }
 
+func (rrc *RiskReportController) GetRiskReportSection(c *gin.Context) {
+
+	riskReportID, err := strconv.Atoi(c.Param("riskReportId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sectionID, err := strconv.Atoi(c.Param("sectionId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	details, err := rrc.service.GetSectionByID(uint(riskReportID), uint(sectionID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, details)
+}
+
 func (rrc *RiskReportController) UpdateRiskReportSection(c *gin.Context) {
 	riskReportID, err := strconv.Atoi(c.Param("riskReportId"))
 	if err != nil {
