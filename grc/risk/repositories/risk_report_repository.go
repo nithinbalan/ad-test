@@ -28,7 +28,7 @@ type RiskReportRepositoryInterface interface {
 	Create(riskReport *models.RiskReport, tx ...utility.DatabaseTransaction) (uint, error)
 	CreateRiskReportOrganizationUnit(orgUnit *models.RiskReportOrganizationUnit, tx ...utility.DatabaseTransaction) error
 
-	GetRisksByDateRange(startDate, endDate time.Time, organizationUnitIDs []uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportIdentifiedRiskDTO, error)
+	GetRisksByDateRange(startDate time.Time, endDate time.Time, organizationUnitIDs []uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportIdentifiedRiskDTO, error)
 	GetControlTitlesByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]string, error)
 	GetActionPlansByRiskID(riskRegisterID uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportActionPlanDTO, error)
 	GetActionPlanControlsByActionPlanID(actionPlanID uint, tx ...utility.DatabaseTransaction) (string, error)
@@ -277,7 +277,7 @@ func (repo *RiskReportRepository) CreateRiskIdentification(identification *model
 	return db.Create(identification).Error
 }
 
-func (repo *RiskReportRepository) GetRisksByDateRange(startDate, endDate time.Time, organizationUnitIDs []uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportIdentifiedRiskDTO, error) {
+func (repo *RiskReportRepository) GetRisksByDateRange(startDate time.Time, endDate time.Time, organizationUnitIDs []uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportIdentifiedRiskDTO, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -326,7 +326,7 @@ func (repo *RiskReportRepository) GetRisksByDateRange(startDate, endDate time.Ti
 		Joins("LEFT JOIN risk_matrix_likelihoods AS residual_likelihood ON residual_likelihood.id = risk_register.residual_likelihood_id").
 		Joins("LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id").
 		Where("risk_register.reported_at BETWEEN ? AND ?", startDate, endDate).
-		// Where("risk_register.responsible_unit_id IN (?)", organizationUnitIDs).
+		Where("risk_register.responsible_unit_id IN (?)", organizationUnitIDs).
 		Order("risk_register.reported_at DESC")
 
 	if err := query.Find(&risks).Error; err != nil {
