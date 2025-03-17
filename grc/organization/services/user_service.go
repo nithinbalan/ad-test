@@ -230,14 +230,14 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		return 0, err
 	}
 
-	if systemPreference != nil && systemPreference.LicenseKey != nil && *systemPreference.LicenseKey != "" {
-		if err := us.validateLicenseKey(*systemPreference.LicenseKey); err != nil {
+	if systemPreference != nil && systemPreference.LicenseKeyDetails.LicenseKey != nil && *systemPreference.LicenseKeyDetails.LicenseKey != "" {
+		if err := us.validateLicenseKey(*systemPreference.LicenseKeyDetails.LicenseKey); err != nil {
 			return 0, err
 		}
 	}
 
 	// Check if user creation is allowed based on available licenses
-	if systemPreference.BalanceLicensedUserCount != nil && *systemPreference.BalanceLicensedUserCount <= 0 {
+	if systemPreference.LicenseKeyDetails.BalanceLicensedUserCount != nil && *systemPreference.LicenseKeyDetails.BalanceLicensedUserCount <= 0 {
 		tx.Rollback()
 		return 0, utility.NewValidationError(fmt.Errorf("invalid balance user"), "invalid", "balance users")
 	}

@@ -60,9 +60,25 @@ func (sps SystemPreferenceService) GetSystemPreference() (*dtos.SystemPreference
 		return nil, err
 	}
 
-	if systemPreference.LicenseKeyExpiryDate != nil {
+	// Populate License Key as an object
+	if systemPreference.LicenseKey != nil {
+		claims, err := utility.DecryptJWTToken(*systemPreference.LicenseKey)
+		if err != nil {
+			return nil, err
+		}
+
 		expiryDate := systemPreference.LicenseKeyExpiryDate.Format("2006-01-02")
-		systemPreferenceDetailDTO.LicenseKeyExpiryDateString = &expiryDate
+
+		licenseKey := *systemPreference.LicenseKey
+		licenseDTO := &dtos.LicenseKeyDTO{
+			LicenseKey:                 &licenseKey,
+			LicenseKeyExpiryDateString: &expiryDate,
+			BalanceLicensedUserCount:   systemPreference.BalanceLicensedUserCount,
+			TotalLicensedUserCount:     systemPreference.TotalLicensedUserCount,
+			EnabledModules:             claims["enabled_modules"].([]string),
+		}
+
+		systemPreferenceDetailDTO.LicenseKeyDetails = licenseDTO
 	}
 
 	return &systemPreferenceDetailDTO, nil

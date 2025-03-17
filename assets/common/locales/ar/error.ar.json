@@ -153,7 +153,7 @@
 },
 {
   "id": "module_not_allowed",
-  "translation": "لا يُسمح باستخدام وحدة {{.Field}}"
+  "translation": "لا يُسمح باستخدام وحدة {{.Field}} بموجب الترخيص الحالي"
 }
 
 
