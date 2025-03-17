@@ -196,13 +196,13 @@ func (repo *AssetPolicyRepository) DeleteAssetPolicyChecklists(policyIDs []uint,
 	return nil
 }
 func (repo *AssetPolicyRepository) DeleteAssetPolicyComments(policyIDs []uint, tx ...utility.DatabaseTransaction) error {
-	// db := repo.db
-	// if len(tx) > 0 && tx[0] != nil {
-	// 	db = tx[0].DB()
-	// }
-	// if err := db.Where("asset_policy_id IN (?)", policyIDs).Delete(&models.AssetPolicyComment{}).Error; err != nil {
-	// 	return err
-	// }
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Where("asset_policy_id IN (?)", policyIDs).Delete(&models.AssetPolicyComment{}).Error; err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -33,6 +33,7 @@ type AssetModule struct {
 	AssetCriticalityController                    *controllers.AssetCriticalityController
 	AssetPolicyController                         *controllers.AssetPolicyController
 	AssetPolicyChecklistController                *controllers.AssetPolicyChecklistController
+	AssetPolicyCommentController                  *controllers.AssetPolicyCommentController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
@@ -198,6 +199,15 @@ func NewAssetModule(db *gorm.DB,
 	)
 	assetPolicyChecklistController := controllers.NewAssetPolicyChecklistController(assetPolicyChecklistSvc)
 
+	assetPolicyCommentRepo := repositories.NewAssetPolicyCommentRepository(db)
+	assetPolicyCommentSvc := services.NewAssetPolicyCommentService(
+		assetPolicyCommentRepo,
+		sharedModule.ActivityLogService,
+		assetRegisterSvc,
+		assetPolicySvc,
+	)
+	assetPolicyCommentController := controllers.NewAssetPolicyCommentController(assetPolicyCommentSvc)
+
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
 		AssetCategoryController:                       assetCategoryController,
@@ -223,6 +233,7 @@ func NewAssetModule(db *gorm.DB,
 		AssetCriticalityController:                    assetCriticalityController,
 		AssetPolicyController:                         assetPolicyController,
 		AssetPolicyChecklistController:                assetPolicyChecklistController,
+		AssetPolicyCommentController:                  assetPolicyCommentController,
 
 		AssetRegisterSvc: assetRegisterSvc,
 	}

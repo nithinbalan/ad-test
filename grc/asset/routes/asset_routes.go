@@ -41,6 +41,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetCriticalityController := app.AssetModule.AssetCriticalityController
 	assetPolicyController := app.AssetModule.AssetPolicyController
 	assetPolicyChecklistController := app.AssetModule.AssetPolicyChecklistController
+	assetPolicyCommentController := app.AssetModule.AssetPolicyCommentController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -221,5 +222,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.PUT("/assets/:id/policies/:policyId/checklists/:checklistId/answer", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyChecklistController.AnswerAssetPolicyChecklist)
 	assetRoutes.POST("/assets/:id/policies/:policyId/checklists/delete-answer", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyChecklistController.DeleteAnswerAssetPolicyChecklist)
 	assetRoutes.GET("/assets/:id/policies/:policyId/checklists-summary", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetPolicyChecklistController.GetAssetPolicyChecklistSummary)
+
+	assetRoutes.GET("/assets/:id/policies/:policyId/comments", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetPolicyCommentController.GetAllComments)
+	assetRoutes.GET("/assets/:id/policies/:policyId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetPolicyCommentController.GetCommentDetails)
+	assetRoutes.POST("/assets/:id/policies/:policyId/comments", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyCommentController.CreateComment)
+	assetRoutes.PUT("/assets/:id/policies/:policyId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyCommentController.UpdateComment)
+	assetRoutes.POST("/assets/:id/policies/:policyId/comments/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyCommentController.DeleteComment)
 
 }
