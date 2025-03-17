@@ -391,6 +391,8 @@ func (repo *DocumentRepository) GetFullDetailsByID(id uint, currentUserID *uint,
 		Preload("DocumentSharedUsers.CreatedByUser").
 		Preload("DocumentSharedUnits").
 		Preload("DocumentSharedUnits.OrganizationUnit").
+		Preload("DocumentRequirementGroups").
+		Preload("DocumentRequirementGroups.DocumentRequirements").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&document, id)
