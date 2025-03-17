@@ -69,13 +69,20 @@ func (sps SystemPreferenceService) GetSystemPreference() (*dtos.SystemPreference
 
 		expiryDate := systemPreference.LicenseKeyExpiryDate.Format("2006-01-02")
 
+		var allowedModules []string
+		// Extract expiry_date from claims
+		enabledModules, ok := claims["enabled_modules"].([]string) // Check if it's a string
+		if ok {
+			allowedModules = enabledModules
+		}
+
 		licenseKey := *systemPreference.LicenseKey
 		licenseDTO := &dtos.LicenseKeyDTO{
 			LicenseKey:                 &licenseKey,
 			LicenseKeyExpiryDateString: &expiryDate,
 			BalanceLicensedUserCount:   systemPreference.BalanceLicensedUserCount,
 			TotalLicensedUserCount:     systemPreference.TotalLicensedUserCount,
-			EnabledModules:             claims["enabled_modules"].([]string),
+			EnabledModules:             allowedModules,
 		}
 
 		systemPreferenceDetailDTO.LicenseKeyDetails = licenseDTO
