@@ -150,6 +150,10 @@
 {
   "id": "user_exceed",
   "translation": "تجاوز عدد المستخدمين."
+},
+{
+  "id": "module_not_allowed",
+  "translation": "لا يُسمح باستخدام وحدة {{.Field}}"
 }
 
 

@@ -150,6 +150,10 @@
   {
     "id": "user_exceed",
     "translation": "The number of users exceeded."
+  },
+  {
+    "id": "module_not_allowed",
+    "translation": "{{.Field}} module is not allowed."
   }
   
   

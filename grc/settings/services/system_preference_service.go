@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"jethur/grc/logs/services"
@@ -32,14 +33,16 @@ type SystemPreferenceService struct {
 	activityLogSvc services.ActivityLogServiceInterface
 	currencySvc    masterServices.CurrencyServiceInterface
 	integrationSvc IntegrationServiceInterface
+	moduleSvc      ModuleServiceInterface
 }
 
-func NewSystemPreferenceService(repo repositories.SystemPreferenceRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface, currencySvc masterServices.CurrencyServiceInterface, integrationSvc IntegrationServiceInterface) SystemPreferenceServiceInterface {
+func NewSystemPreferenceService(repo repositories.SystemPreferenceRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface, currencySvc masterServices.CurrencyServiceInterface, integrationSvc IntegrationServiceInterface, moduleSvc ModuleServiceInterface) SystemPreferenceServiceInterface {
 	return &SystemPreferenceService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
 		currencySvc:    currencySvc,
 		integrationSvc: integrationSvc,
+		moduleSvc:      moduleSvc,
 	}
 }
 
@@ -222,6 +225,33 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(systemPreferenceFormDTO *dt
 	err = sps.repo.Update(existingSystemPreference)
 	if err != nil {
 		return err
+	}
+
+	rawModules, ok := claims["enabled_modules"]
+	if !ok {
+		return utility.NewValidationError(fmt.Errorf("invalid token"), "invalid", "enabled modules")
+	}
+
+	var enabledModules []string
+	if str, ok := rawModules.(string); ok {
+		if err := json.Unmarshal([]byte(str), &enabledModules); err != nil {
+			return utility.NewValidationError(fmt.Errorf("failed to parse enabled_modules"), "invalid", "enabled modules")
+		}
+	} else {
+		return utility.NewValidationError(fmt.Errorf("invalid enabled_modules format"), "invalid", "enabled modules")
+	}
+
+	// Enable modules
+	for _, moduleIdentifier := range enabledModules {
+		moduleID, err := sps.moduleSvc.GetModuleIDByIdentifier(moduleIdentifier)
+		if err != nil {
+			return err
+		}
+
+		// Ensure EnableModule returns an error if it fails
+		if _, err := sps.moduleSvc.EnableModule(moduleID); err != nil {
+			return err
+		}
 	}
 
 	go func() {

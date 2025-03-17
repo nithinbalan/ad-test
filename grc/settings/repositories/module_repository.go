@@ -16,6 +16,8 @@ type ModuleRepositoryInterface interface {
 	GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]dtos.ModuleListDTO, error)
 	GetFullDetailsByID(id uint) (*models.Module, error)
 	Update(moduleId uint, module *models.Module) (uint, error)
+
+	GetSystemPreference() (*models.SystemPreference, error)
 }
 
 // Implementation
@@ -178,4 +180,18 @@ func (repo *ModuleRepository) Update(moduleId uint, module *models.Module) (uint
 	}
 
 	return moduleId, nil
+}
+
+func (repo *ModuleRepository) GetSystemPreference() (*models.SystemPreference, error) {
+	var systemPreference *models.SystemPreference
+	result := repo.db.
+		Preload("Timezone").
+		Preload("Currency").
+		First(&systemPreference)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return systemPreference, nil
 }
