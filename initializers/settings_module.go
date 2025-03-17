@@ -43,17 +43,17 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	integrationSvc := services.NewIntegrationService(integrationRepo, sharedModule.ActivityLogService, masterModule.IntegrationCategorySvc)
 	integrationController := controllers.NewIntegrationController(integrationSvc)
 
+	moduleRepo := repositories.NewModuleRepository(db)
+	moduleSvc := services.NewModuleService(moduleRepo)
+	moduleController := controllers.NewModuleController(moduleSvc)
+
 	systemPreferenceRepo := repositories.NewSystemPreferenceRepository(db)
-	systemPreferenceSvc := services.NewSystemPreferenceService(systemPreferenceRepo, sharedModule.ActivityLogService, masterModule.CurrencySvc, integrationSvc)
+	systemPreferenceSvc := services.NewSystemPreferenceService(systemPreferenceRepo, sharedModule.ActivityLogService, masterModule.CurrencySvc, integrationSvc, moduleSvc)
 	systemPreferenceController := controllers.NewSystemPreferenceController(systemPreferenceSvc)
 
 	emailTemplateSettingsRepo := repositories.NewEmailTemplateSettingsRepository(db)
 	emailTemplateSettingsService := services.NewEmailTemplateSettingsService(emailTemplateSettingsRepo, sharedModule.ActivityLogService)
 	emailTemplateSettingsController := controllers.NewEmailTemplateSettingsController(emailTemplateSettingsService)
-
-	moduleRepo := repositories.NewModuleRepository(db)
-	moduleSvc := services.NewModuleService(moduleRepo)
-	moduleController := controllers.NewModuleController(moduleSvc)
 
 	rolePermissionTypeRepo := repositories.NewRolePermissionTypeRepository(db)
 	rolePermissionTypeSvc := services.NewRolePermissionTypeService(rolePermissionTypeRepo)

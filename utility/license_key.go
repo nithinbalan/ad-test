@@ -1,6 +1,7 @@
 package utility
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -21,6 +22,21 @@ func DecryptJWTToken(tokenString string) (jwt.MapClaims, error) {
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
 		return nil, NewValidationError(fmt.Errorf("invalid token claims"), "invalid", "token claims")
+	}
+
+	// Extract and decode enabled_modules
+	if modules, exists := claims["enabled_modules"]; exists {
+		var enabledModules []string
+		if str, ok := modules.(string); ok {
+			if err := json.Unmarshal([]byte(str), &enabledModules); err != nil {
+				return nil, NewValidationError(fmt.Errorf("failed to parse enabled_modules"), "invalid", "enabled modules")
+			}
+		} else {
+			return nil, NewValidationError(fmt.Errorf("invalid enabled_modules format"), "invalid", "enabled modules")
+		}
+
+		// Update claims with parsed enabled_modules
+		claims["enabled_modules"] = enabledModules
 	}
 
 	return claims, nil
