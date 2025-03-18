@@ -369,7 +369,7 @@ func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos
 			// 🔹 Store new document record in the database
 			riskReportDocument := &models.RiskReportDocument{
 				RiskReportID:               riskReportID,
-				RiskReportIdentificationID: riskIdentification.ID,
+				RiskReportIdentificationID: &riskIdentification.ID,
 				URL:                        newURL,
 				Name:                       *document.Name,
 				Size:                       document.Size,
@@ -666,7 +666,7 @@ func (rrs *RiskReportService) UploadRiskReportDocuments(riskReportID uint, curre
 
 		document := &models.RiskReportDocument{
 			RiskReportID:               riskReportID,
-			RiskReportIdentificationID: 1,
+			RiskReportIdentificationID: nil,
 			URL:                        url,
 			Name:                       doc.FileName,
 			Size:                       doc.Size,
