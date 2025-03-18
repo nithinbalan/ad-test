@@ -3,6 +3,7 @@ package controllers
 import (
 	"errors"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"jethur/grc/risk/dtos"
@@ -267,4 +268,70 @@ func (rrc *RiskReportController) DeleteRiskReport(c *gin.Context) {
 		}
 	}
 	c.Status(http.StatusOK)
+}
+
+func (rrc *RiskReportController) GetRiskReportDocumentPreview(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := rrc.service.GetDocumentPath(uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(rrc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(documentPath)
+}
+
+func (rrc *RiskReportController) DownloadRiskReportDocument(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := rrc.service.GetDocumentPath(uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(rrc.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(documentPath)
+
+	// Set headers for file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	// Serve the file
+	c.File(documentPath)
 }

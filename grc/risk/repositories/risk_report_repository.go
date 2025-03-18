@@ -22,6 +22,7 @@ type RiskReportRepositoryInterface interface {
 	GetRiskIdentifications(riskReportID uint) ([]dtos.RiskIdentificationResponseDTO, error)
 	GetRiskActionPlans(riskReportID uint) ([]dtos.RiskReportActionPlanResponseDTO, error)
 	GetRiskKRIs(riskReportID uint) ([]dtos.RiskReportKriResponseDTO, error)
+	GetRiskReportDocuments(riskReportID uint) ([]dtos.RiskReportDocumentDTO, error)
 
 	GetSectionByID(sectionID uint, tx ...utility.DatabaseTransaction) (*models.RiskReportSection, error)
 
@@ -53,6 +54,8 @@ type RiskReportRepositoryInterface interface {
 	DeleteRiskReportSection(sectionID uint, tx ...utility.DatabaseTransaction) error
 
 	ReorderRiskReportSections(riskReportID uint, deletedOrderNum int, tx ...utility.DatabaseTransaction) error
+
+	CreateRiskDocuments(documents []*models.RiskReportDocument, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskReportRepository struct {
@@ -292,6 +295,18 @@ func (repo *RiskReportRepository) GetRiskKRIs(riskReportID uint) ([]dtos.RiskRep
 		return nil, err
 	}
 	return kris, nil
+}
+
+func (repo *RiskReportRepository) GetRiskReportDocuments(riskReportID uint) ([]dtos.RiskReportDocumentDTO, error) {
+	var documents []dtos.RiskReportDocumentDTO
+	err := repo.db.Table("risk_report_documents").
+		Select("id, url, name, size, original_name, type, created_at").
+		Where("risk_report_id = ?", riskReportID).
+		Find(&documents).Error
+	if err != nil {
+		return nil, err
+	}
+	return documents, nil
 }
 
 func (repo *RiskReportRepository) Create(riskReport *models.RiskReport, tx ...utility.DatabaseTransaction) (uint, error) {
@@ -635,4 +650,20 @@ func (repo *RiskReportRepository) ReorderRiskReportSections(riskReportID uint, d
 		riskReportID, deletedOrderNum).Error
 
 	return err
+}
+
+func (repo *RiskReportRepository) CreateRiskDocuments(documents []*models.RiskReportDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if len(documents) == 0 {
+		return nil // No documents to insert
+	}
+
+	if err := db.Create(&documents).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

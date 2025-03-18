@@ -49,6 +49,7 @@ type RiskReportDetailDTO struct {
 	Risks                    []RiskIdentificationResponseDTO   `json:"risks"`
 	ActionPlans              []RiskReportActionPlanResponseDTO `json:"action_plans"`
 	KRIs                     []RiskReportKriResponseDTO        `json:"kris"`
+	Documents                []RiskReportDocumentDTO           `json:"documents"`
 }
 
 type RiskReportSectionResponseDTO struct {
