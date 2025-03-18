@@ -9,7 +9,7 @@ type BusinessContinuityPlan struct {
 	ReferenceNumber    string     `json:"reference_number" binding:"omitempty,max=45" gorm:"size:45"`
 	BusinessFunctionID uint       `json:"business_function_id" binding:"required"`
 	Version            *int       `json:"version"`
-	IsLatestVersion    *bool      `json:"is_latest_version" gorm:"default:true"`
+	IsLatestVersion    *bool      `json:"is_latest_version" gorm:"not null;default:true"`
 	Purpose            *string    `json:"purpose"`
 	Scope              *string    `json:"scope"`
 	Objectives         *string    `json:"objectives"`
