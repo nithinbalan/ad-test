@@ -49,6 +49,7 @@ type RiskReportDetailDTO struct {
 	Risks                    []RiskIdentificationResponseDTO   `json:"risks"`
 	ActionPlans              []RiskReportActionPlanResponseDTO `json:"action_plans"`
 	KRIs                     []RiskReportKriResponseDTO        `json:"kris"`
+	Documents                []RiskReportDocumentDTO           `json:"documents"`
 }
 
 type RiskReportSectionResponseDTO struct {
@@ -272,6 +273,15 @@ type RiskReportKRIDTO struct {
 	UnitTitleEn     string  `json:"unit_title_en"`
 	UnitTitleAr     string  `json:"unit_title_ar"`
 	CurrentValue    int     `json:"current_value"`
+}
+
+type RiskReportDocumentDTO struct {
+	URL          string  `json:"url"`
+	Name         *string `json:"name"`
+	Size         int     `json:"size"`
+	Token        string  `json:"token"`
+	OriginalName string  `json:"original_name"`
+	Type         string  `json:"type"`
 }
 
 type RiskReportSectionFormDTO struct {

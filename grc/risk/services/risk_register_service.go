@@ -611,6 +611,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		// Prepare Review User Emails & Names
 		reviewEmailTo := make([]string, len(reviewUserIDs))
 		reviewers := make(map[uint]string) // Map of userID -> full name
+		reviewAction := "review-user-assign"
 
 		for i, userID := range reviewUserIDs {
 			user, err := rrs.userSvc.GetByID(userID)
@@ -628,14 +629,14 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		dbNotificationReview := &commonDTOs.DBNotificationDTO{
 			UserIDs:              reviewUserIDs, // Single DB notification for all reviewers
 			ModuleIdentifier:     "risk",
-			NotificationType:     string(commonDTOs.AssignmentType),
+			NotificationType:     string(commonDTOs.InformationType),
 			HeadingEn:            "Risk Register Review Assigned",
 			HeadingAr:            "تم تعيين مراجعة سجل المخاطر",
 			TitleEn:              riskRegister.Title,
 			TitleAr:              riskRegister.Title,
 			ReferenceNumber:      existingRiskRegister.ReferenceNumber,
 			Entity:               &entity,
-			Action:               &action,
+			Action:               &reviewAction,
 			URLParam:             urlParam,
 			IsSystemNotification: false,
 			CreatedByID:          &currentUserID,

@@ -185,6 +185,16 @@ func (repo *BusinessFunctionRepository) GetFullDetailsByID(id uint, tx ...utilit
 		Preload("SeverityLevel").
 		Preload("Processes").
 		Preload("Processes.Process").
+		Preload("Processes.Process.MtpdUnit").
+		Preload("Processes.Process.RpoUnit").
+		Preload("Processes.Process.RtoUnit").
+		Preload("Processes.Process.ProcessGroup").
+		Preload("Processes.Process.RiskLevel").
+		Preload("Processes.Process.OwnerUnit").
+		Preload("Processes.Process.Owner").
+		Preload("Processes.Process.LifecycleStatus").
+		Preload("Processes.Process.RiskMatrixRating").
+		Preload("Processes.Process.RiskMatrixRatingValue").
 		Preload("ResponsibleUser", models.WithPrimaryOrganizationUnit()).
 		Preload("ReviewFrequency").
 		Preload("CreatedByUser").

@@ -3,11 +3,16 @@ package services
 import (
 	"errors"
 	"fmt"
+	"io"
+	"jethur/config"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
 	"jethur/utility"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 
 	"gorm.io/gorm"
@@ -22,6 +27,8 @@ type RiskReportServiceInterface interface {
 	UpdateSection(riskID uint, id uint, currentUserID uint, riskReporSectionFormDTO *dtos.RiskReportSectionFormDTO) error
 	DeleteRiskReportSection(riskReportID uint, sectionID uint, currentUserID uint) error
 	DeleteRiskReport(riskReportID uint, currentUserID uint) error
+
+	GetDocumentPath(id uint, token string) (string, error)
 }
 
 type RiskReportService struct {
@@ -93,6 +100,11 @@ func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint) (*dtos.Ris
 		return nil, err
 	}
 
+	documents, err := rrs.repo.GetRiskReportDocuments(riskReportID)
+	if err != nil {
+		return nil, err
+	}
+
 	// Construct Response DTO
 	response := &dtos.RiskReportDetailDTO{
 		ID:                       riskReport.ID,
@@ -110,6 +122,7 @@ func (rrs *RiskReportService) GetRiskReportDetails(riskReportID uint) (*dtos.Ris
 		Risks:                    risks,
 		ActionPlans:              actionPlans,
 		KRIs:                     kris,
+		Documents:                documents,
 	}
 
 	return response, nil
@@ -293,6 +306,84 @@ func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos
 			}
 
 			if err := rrs.repo.CreateRiskKRI(riskKRI, tx); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+
+		documents, err := rrs.repo.GetDocumentsByRiskID(risk.ID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		var riskReportDocuments []*models.RiskReportDocument
+
+		for _, document := range documents {
+
+			// Get STORAGE_PATH from environment variables
+			storagePath := config.GetEnv("STORAGE_PATH", "")
+
+			// Construct correct old file path using STORAGE_PATH
+			oldFilePath := filepath.Join(storagePath, "risk", "risk-register", strconv.FormatUint(uint64(risk.ID), 10), "documents", *document.Name)
+
+			// 🔹 Ensure the source file exists
+			if _, err := os.Stat(oldFilePath); os.IsNotExist(err) {
+				tx.Rollback()
+				return 0, fmt.Errorf("source file does not exist: %s", oldFilePath)
+			}
+
+			// Construct new storage path for copied file
+			newStoragePath := filepath.Join(storagePath, "risk", "risk-report", strconv.FormatUint(uint64(riskReportID), 10), "documents")
+			newFilePath := filepath.Join(newStoragePath, *document.Name)
+			newURL := utility.GenerateDocumentURL("risk", "risk-report", strconv.FormatUint(uint64(riskReportID), 10), "documents")
+
+			// 🔹 Ensure new directory exists
+			if err := os.MkdirAll(newStoragePath, os.ModePerm); err != nil {
+				tx.Rollback()
+				return 0, fmt.Errorf("failed to create destination directory: %w", err)
+			}
+
+			// 🔹 Copy file from the old location to the new location
+			inputFile, err := os.Open(oldFilePath)
+			if err != nil {
+				tx.Rollback()
+				return 0, fmt.Errorf("failed to open source file %s: %w", oldFilePath, err)
+			}
+			defer inputFile.Close()
+
+			outputFile, err := os.Create(newFilePath)
+			if err != nil {
+				tx.Rollback()
+				return 0, fmt.Errorf("failed to create destination file %s: %w", newFilePath, err)
+			}
+			defer outputFile.Close()
+
+			_, err = io.Copy(outputFile, inputFile)
+			if err != nil {
+				tx.Rollback()
+				return 0, fmt.Errorf("failed to copy file: %w", err)
+			}
+
+			// 🔹 Store new document record in the database
+			riskReportDocument := &models.RiskReportDocument{
+				RiskReportID:               riskReportID,
+				RiskReportIdentificationID: riskIdentification.ID,
+				URL:                        newURL,
+				Name:                       *document.Name,
+				Size:                       document.Size,
+				Token:                      document.Token,
+				OriginalName:               document.OriginalName,
+				Type:                       document.Type,
+				CreatedByID:                currentUserID,
+			}
+			riskReportDocuments = append(riskReportDocuments, riskReportDocument)
+
+		}
+
+		// 🔹 Insert copied documents into `RiskReportDocuments`
+		if len(riskReportDocuments) > 0 {
+			if err := rrs.repo.CreateRiskDocuments(riskReportDocuments, tx); err != nil {
 				tx.Rollback()
 				return 0, err
 			}
@@ -516,4 +607,44 @@ func (rrs *RiskReportService) parseRiskReportDates(dto *dtos.RiskReportFormDTO) 
 	}
 
 	return parsed, nil
+}
+
+func (rrs *RiskReportService) GetDocumentPath(id uint, token string) (string, error) {
+	// Get full details of the risk report by ID
+	existingRiskReport, err := rrs.GetRiskReportDetails(id)
+	if err != nil {
+		return "", err
+	}
+
+	// Check if there are any associated documents
+	if len(existingRiskReport.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the risk report")
+	}
+
+	// Decrypt the token to get the file name
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	// Define the storage path
+	storagePath := filepath.Join("risk", "risk-report", strconv.FormatUint(uint64(id), 10), "documents")
+
+	// Get the base storage path from environment variables
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists at the specified path
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }
