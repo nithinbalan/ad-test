@@ -7,7 +7,7 @@ import (
 type RiskReportDocument struct {
 	ID                         uint       `json:"id" gorm:"primary_key;auto_increment"`
 	RiskReportID               uint       `json:"risk_register_id"`
-	RiskReportIdentificationID uint       `json:"risk_report_identification_id" gorm:"not null"`
+	RiskReportIdentificationID uint       `json:"risk_report_identification_id" `
 	URL                        string     `json:"url"`
 	Name                       string     `json:"name" binding:"required"`
 	Size                       int        `json:"size"`

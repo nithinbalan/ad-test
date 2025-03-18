@@ -295,3 +295,7 @@ type RiskReportParsedDates struct {
 	StartDate *time.Time
 	EndDate   *time.Time
 }
+
+type RiskReportDocumentFormDTO struct {
+	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"required"`
+}

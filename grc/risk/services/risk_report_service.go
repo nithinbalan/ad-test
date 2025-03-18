@@ -29,6 +29,7 @@ type RiskReportServiceInterface interface {
 	DeleteRiskReport(riskReportID uint, currentUserID uint) error
 
 	GetDocumentPath(id uint, token string) (string, error)
+	UploadRiskReportDocuments(riskReportID uint, currentUserID uint, riskReportDocumentFormDTO *dtos.RiskReportDocumentFormDTO) (uint, error)
 }
 
 type RiskReportService struct {
@@ -647,4 +648,70 @@ func (rrs *RiskReportService) GetDocumentPath(id uint, token string) (string, er
 	}
 
 	return fullPath, nil
+}
+
+func (rrs *RiskReportService) UploadRiskReportDocuments(riskReportID uint, currentUserID uint, riskReportDocumentFormDTO *dtos.RiskReportDocumentFormDTO) (uint, error) {
+	tx := rrs.repo.BeginTransaction()
+
+	var documents []*models.RiskReportDocument
+
+	for _, doc := range riskReportDocumentFormDTO.Documents {
+		encryptedFilename, err := utility.EncryptData([]byte(doc.FileName))
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		url := utility.GenerateDocumentURL("risk", "risk-report", strconv.FormatUint(uint64(riskReportID), 10), "documents")
+
+		document := &models.RiskReportDocument{
+			RiskReportID:               riskReportID,
+			RiskReportIdentificationID: 1,
+			URL:                        url,
+			Name:                       doc.FileName,
+			Size:                       doc.Size,
+			Token:                      encryptedFilename,
+			OriginalName:               doc.OriginalName,
+			Type:                       doc.Type,
+			CreatedByID:                currentUserID,
+		}
+
+		documents = append(documents, document)
+	}
+
+	if len(documents) > 0 {
+		if err := rrs.repo.CreateRiskDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		// Move file to storage
+		for _, doc := range documents {
+			storagePath := filepath.Join("risk", "risk-report", strconv.FormatUint(uint64(riskReportID), 10), "documents")
+			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+	}
+
+	tx.Commit()
+
+	go func() {
+		err := rrs.activityLogSvc.LogActivity(
+			models.CreateAction,
+			models.RiskReportDocument{}.TableName(),
+			riskReportID,
+			documents,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}()
+
+	return riskReportID, nil
 }
