@@ -611,6 +611,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		// Prepare Review User Emails & Names
 		reviewEmailTo := make([]string, len(reviewUserIDs))
 		reviewers := make(map[uint]string) // Map of userID -> full name
+		reviewAction := "review-user-assign"
 
 		for i, userID := range reviewUserIDs {
 			user, err := rrs.userSvc.GetByID(userID)
@@ -635,7 +636,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			TitleAr:              riskRegister.Title,
 			ReferenceNumber:      existingRiskRegister.ReferenceNumber,
 			Entity:               &entity,
-			Action:               &action,
+			Action:               &reviewAction,
 			URLParam:             urlParam,
 			IsSystemNotification: false,
 			CreatedByID:          &currentUserID,
