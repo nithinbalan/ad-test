@@ -594,12 +594,12 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 
 		// Prepare notification and email
 		urlParam := fmt.Sprintf(`{"assessmentID":%d, "requirementID":%d}`, assessmentID, requirementID)
-		entity := "compliance-assessment"
-		action := "requirement-approved"
+		entity := "compliance-requirement"
+		action := "approved"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{submittedUser.ID},
-			ModuleIdentifier:     "compliance",
+			ModuleIdentifier:     "compliance_register",
 			NotificationType:     string(commonDTOs.InformationType),
 			HeadingEn:            "Compliance Requirement Approved",
 			HeadingAr:            "تم الموافقة على متطلبات الامتثال",
@@ -749,12 +749,12 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 
 		// Prepare notification and email
 		urlParam := fmt.Sprintf(`{"assessmentID":%d, "requirementID":%d}`, assessmentID, requirementID)
-		entity := "compliance-assessment"
-		action := "requirement-reverted"
+		entity := "compliance-requirement"
+		action := "reverted"
 
 		dbNotification := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{submittedUser.ID},
-			ModuleIdentifier:     "compliance",
+			ModuleIdentifier:     "compliance_register",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Requirement Reverted",
 			HeadingAr:            "تم إرجاع متطلب الامتثال",
@@ -907,12 +907,12 @@ func (cars *ComplianceAssessmentRequirementService) ResubmitComplianceRequiremen
 
 		// Prepare notification and email
 		urlParam := fmt.Sprintf(`{"assessmentID":%d, "requirementID":%d}`, assessmentID, requirementID)
-		entity := "compliance-assessment"
-		action := "requirement-resubmitted"
+		entity := "compliance-requirement"
+		action := "resubmitted"
 
 		dbNotification := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{reviewUser.ID},
-			ModuleIdentifier:     "compliance",
+			ModuleIdentifier:     "compliance_register",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Requirement Resubmitted",
 			HeadingAr:            "إعادة تقديم متطلب الامتثال",

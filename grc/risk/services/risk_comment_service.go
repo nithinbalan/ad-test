@@ -3,13 +3,16 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
 	"jethur/utility"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -37,6 +40,7 @@ type RiskCommentService struct {
 	activityLogSvc  logServices.ActivityLogServiceInterface
 	userSvc         organizationServices.UserServiceInterface
 	riskSettingsSvc RiskSettingsServiceInterface
+	notificationSvc commonServices.NotificationServiceInterface
 }
 
 func NewRiskCommentService(repo repositories.RiskCommentRepositoryInterface,
@@ -45,13 +49,16 @@ func NewRiskCommentService(repo repositories.RiskCommentRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	riskSettingsSvc RiskSettingsServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) *RiskCommentService {
-	return &RiskCommentService{repo: repo,
+	return &RiskCommentService{
+		repo:            repo,
 		riskRegisterSvc: riskRegisterSvc,
 		riskStatusSvc:   riskStatusSvc,
 		activityLogSvc:  activityLogSvc,
 		userSvc:         userSvc,
 		riskSettingsSvc: riskSettingsSvc,
+		notificationSvc: notificationSvc,
 	}
 }
 
@@ -294,6 +301,110 @@ func (rcs *RiskCommentService) SubmitRisk(riskID uint, currentUserID uint) error
 				"error":     err.Error(),
 			})
 		}
+
+		// Fetch risk settings
+		riskSetting, err := rcs.riskSettingsSvc.Get()
+		if err != nil {
+			utility.LogError("Failed to fetch risk setting", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Get Review User IDs
+		reviewUserIDs, err := rcs.userSvc.GetUserIdsByRole(riskSetting.ReviewRoleID)
+		if err != nil {
+			utility.LogError("Failed to fetch review user IDs", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Ensure we have valid reviewers
+		if len(reviewUserIDs) == 0 {
+			fmt.Println("No review users found, skipping notifications")
+			return
+		}
+
+		// Prepare Review User Emails & Names
+		reviewEmailTo := make([]string, len(reviewUserIDs))
+		reviewers := make(map[uint]string) // Map of userID -> full name
+
+		for i, userID := range reviewUserIDs {
+			user, err := rcs.userSvc.GetByID(userID)
+			if err != nil {
+				utility.LogError("Failed to fetch reviewer details", map[string]interface{}{
+					"error":  err.Error(),
+					"userID": userID,
+				})
+				continue
+			}
+			reviewEmailTo[i] = user.Email
+			reviewers[userID] = user.FirstNameEn + " " + user.LastNameEn
+		}
+
+		createdBy, err := rcs.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch created user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Prepare notification and email
+		urlParam := fmt.Sprintf(`{"riskID":%d}`, riskID)
+		entity := "risk-register"
+		action := "submitted"
+
+		dbNotification := &commonDTOs.DBNotificationDTO{
+			UserIDs:              reviewUserIDs,
+			ModuleIdentifier:     "risk_register",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Risk Submitted",
+			HeadingAr:            "تم تقديم المخاطر",
+			TitleEn:              risk.Title,
+			TitleAr:              risk.Title,
+			ReferenceNumber:      risk.ReferenceNumber,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		// **Send DB Notification only once**
+		err = rcs.notificationSvc.SendNotification(dbNotification, nil, "risk")
+		if err != nil {
+			utility.LogError("Failed to send DB notification", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+
+		for userID, fullName := range reviewers {
+			emailNotification := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              reviewEmailTo,
+				Subject:              fmt.Sprintf("Risk #%d Submitted", riskID),
+				TemplateRelativePath: "risk/templates/email/risk_submitted.html",
+				EmailData: map[string]interface{}{
+					"FirstNameEn":          fullName,
+					"TitleEn":              risk.Title,
+					"Description":          risk.Description,
+					"ReferenceNumber":      risk.ReferenceNumber,
+					"SubmittedByFirstName": createdBy.FirstNameEn,
+					"SubmittedByLastName":  createdBy.LastNameEn,
+					"SubmissionDate":       time.Now().Format("2006-01-02"),
+					"RedirectURL":          fmt.Sprintf("%srisk/risk-register/%d/overview", utility.GetAppURL(), riskID),
+				},
+			}
+
+			err = rcs.notificationSvc.SendNotification(nil, emailNotification, "risk")
+			if err != nil {
+				utility.LogError("Failed to send review user email", map[string]interface{}{
+					"error":  err.Error(),
+					"userID": userID,
+				})
+			}
+		}
 	}()
 
 	return nil
@@ -377,6 +488,69 @@ func (rcs *RiskCommentService) RevertRisk(riskID uint, currentUserID uint, comme
 				"error":     err.Error(),
 			})
 		}
+
+		responsibleUser, err := rcs.userSvc.GetByID(risk.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		createdBy, err := rcs.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch created user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Prepare notification and email
+		urlParam := fmt.Sprintf(`{"riskID":%d}`, riskID)
+		entity := "risk-register"
+		action := "reverted"
+
+		dbNotification := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{responsibleUser.ID},
+			ModuleIdentifier:     "risk_register",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Risk Reverted",
+			HeadingAr:            "عادت المخاطر",
+			TitleEn:              risk.Title,
+			TitleAr:              risk.Title,
+			ReferenceNumber:      risk.ReferenceNumber,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		emailNotification := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              []string{responsibleUser.Email},
+			Subject:              fmt.Sprintf("Risk #%d Reverted", riskID),
+			TemplateRelativePath: "risk/templates/email/risk_reverted.html",
+			EmailData: map[string]interface{}{
+				"FirstNameEn":         responsibleUser.FirstNameEn,
+				"LastNameEn":          responsibleUser.LastNameEn,
+				"TitleEn":             risk.Title,
+				"Description":         risk.Description,
+				"ReferenceNumber":     risk.ReferenceNumber,
+				"Comment":             commentForm.Comment,
+				"RevertedByFirstName": createdBy.FirstNameEn,
+				"RevertedByLastName":  createdBy.LastNameEn,
+				"ReversionDate":       time.Now().Format("2006-01-02"),
+				"RedirectURL":         fmt.Sprintf("%srisk/risk-register/%d/overview", utility.GetAppURL(), riskID),
+			},
+		}
+
+		// **Send Both Notifications at ONCE**
+		err = rcs.notificationSvc.SendNotification(dbNotification, emailNotification, "risk")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}()
 
 	return nil
@@ -458,6 +632,69 @@ func (rcs *RiskCommentService) RejectRisk(riskID uint, currentUserID uint, comme
 				"recordID":  riskID,
 				"userID":    currentUserID,
 				"error":     err.Error(),
+			})
+		}
+
+		responsibleUser, err := rcs.userSvc.GetByID(risk.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		createdBy, err := rcs.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch created user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Prepare notification and email
+		urlParam := fmt.Sprintf(`{"riskID":%d}`, riskID)
+		entity := "risk-register"
+		action := "rejected"
+
+		dbNotification := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{responsibleUser.ID},
+			ModuleIdentifier:     "risk_register",
+			NotificationType:     string(commonDTOs.InformationType),
+			HeadingEn:            "Risk Rejected",
+			HeadingAr:            "تم رفض المخاطرة",
+			TitleEn:              risk.Title,
+			TitleAr:              risk.Title,
+			ReferenceNumber:      risk.ReferenceNumber,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		emailNotification := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              []string{responsibleUser.Email},
+			Subject:              fmt.Sprintf("Risk #%d Rejected", riskID),
+			TemplateRelativePath: "risk/templates/email/risk_rejected.html",
+			EmailData: map[string]interface{}{
+				"FirstNameEn":         responsibleUser.FirstNameEn,
+				"LastNameEn":          responsibleUser.LastNameEn,
+				"TitleEn":             risk.Title,
+				"Description":         risk.Description,
+				"ReferenceNumber":     risk.ReferenceNumber,
+				"Comment":             commentForm.Comment,
+				"RejectedByFirstName": createdBy.FirstNameEn,
+				"RejectedByLastName":  createdBy.LastNameEn,
+				"RejectionDate":       time.Now().Format("2006-01-02"),
+				"RedirectURL":         fmt.Sprintf("%srisk/risk-register/%d/overview", utility.GetAppURL(), riskID),
+			},
+		}
+
+		// **Send Both Notifications at ONCE**
+		err = rcs.notificationSvc.SendNotification(dbNotification, emailNotification, "risk")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
 			})
 		}
 	}()
@@ -549,6 +786,69 @@ func (rcs *RiskCommentService) ApproveRisk(riskID uint, currentUserID uint, comm
 				"error":     err.Error(),
 			})
 		}
+
+		responsibleUser, err := rcs.userSvc.GetByID(risk.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		createdBy, err := rcs.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch created user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Prepare notification and email
+		urlParam := fmt.Sprintf(`{"riskID":%d}`, riskID)
+		entity := "risk-register"
+		action := "approved"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{responsibleUser.ID},
+			ModuleIdentifier:     "risk_register",
+			NotificationType:     string(commonDTOs.InformationType),
+			HeadingEn:            "Risk Approved",
+			HeadingAr:            "تمت الموافقة على المخاطر",
+			TitleEn:              risk.Title,
+			TitleAr:              risk.Title,
+			ReferenceNumber:      risk.ReferenceNumber,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		emailNotification := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              []string{responsibleUser.Email},
+			Subject:              fmt.Sprintf("Risk #%d Approved", riskID),
+			TemplateRelativePath: "risk/templates/email/risk_approved.html",
+			EmailData: map[string]interface{}{
+				"FirstNameEn":         responsibleUser.FirstNameEn,
+				"LastNameEn":          responsibleUser.LastNameEn,
+				"TitleEn":             risk.Title,
+				"Description":         risk.Description,
+				"ReferenceNumber":     risk.ReferenceNumber,
+				"Comment":             commentForm.Comment,
+				"ApprovedByFirstName": createdBy.FirstNameEn,
+				"ApprovedByLastName":  createdBy.LastNameEn,
+				"ApprovalDate":        time.Now().Format("2006-01-02"),
+				"RedirectURL":         fmt.Sprintf("%srisk/risk-register/%d/overview", utility.GetAppURL(), riskID),
+			},
+		}
+
+		// **Send Both Notifications at ONCE**
+		err = rcs.notificationSvc.SendNotification(dbNotificationDTO, emailNotification, "risk")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}()
 
 	return nil
@@ -627,6 +927,110 @@ func (rcs *RiskCommentService) ResubmitRisk(riskID uint, currentUserID uint, com
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			})
+		}
+
+		// Fetch risk settings
+		riskSetting, err := rcs.riskSettingsSvc.Get()
+		if err != nil {
+			utility.LogError("Failed to fetch risk setting", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Get Review User IDs
+		reviewUserIDs, err := rcs.userSvc.GetUserIdsByRole(riskSetting.ReviewRoleID)
+		if err != nil {
+			utility.LogError("Failed to fetch review user IDs", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Ensure we have valid reviewers
+		if len(reviewUserIDs) == 0 {
+			fmt.Println("No review users found, skipping notifications")
+			return
+		}
+
+		// Prepare Review User Emails & Names
+		reviewEmailTo := make([]string, len(reviewUserIDs))
+		reviewers := make(map[uint]string)
+
+		for i, userID := range reviewUserIDs {
+			user, err := rcs.userSvc.GetByID(userID)
+			if err != nil {
+				utility.LogError("Failed to fetch reviewer details", map[string]interface{}{
+					"error":  err.Error(),
+					"userID": userID,
+				})
+				continue
+			}
+			reviewEmailTo[i] = user.Email
+			reviewers[userID] = user.FirstNameEn + " " + user.LastNameEn
+		}
+
+		createdBy, err := rcs.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch created user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Prepare notification and email
+		urlParam := fmt.Sprintf(`{"riskID":%d}`, riskID)
+		entity := "risk-register"
+		action := "risk-resubmitted"
+
+		dbNotification := &commonDTOs.DBNotificationDTO{
+			UserIDs:              reviewUserIDs,
+			ModuleIdentifier:     "risk_register",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Risk Resubmitted",
+			HeadingAr:            "تم إعادة تقديم المخاطر",
+			TitleEn:              risk.Title,
+			TitleAr:              risk.Title,
+			ReferenceNumber:      risk.ReferenceNumber,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		err = rcs.notificationSvc.SendNotification(dbNotification, nil, "risk")
+		if err != nil {
+			utility.LogError("Failed to send DB notification", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+
+		for userID, fullName := range reviewers {
+			emailNotification := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              reviewEmailTo,
+				Subject:              fmt.Sprintf("Risk #%d Resubmitted", riskID),
+				TemplateRelativePath: "risk/templates/email/risk_resubmitted.html",
+				EmailData: map[string]interface{}{
+					"FirstNameEn":            fullName,
+					"TitleEn":                risk.Title,
+					"Description":            risk.Description,
+					"ReferenceNumber":        risk.ReferenceNumber,
+					"Comment":                commentForm.Comment,
+					"ResubmittedByFirstName": createdBy.FirstNameEn,
+					"ResubmittedByLastName":  createdBy.LastNameEn,
+					"ResubmissionDate":       time.Now().Format("2006-01-02"),
+					"RedirectURL":            fmt.Sprintf("%srisk/risk-register/%d/overview", utility.GetAppURL(), riskID),
+				},
+			}
+
+			err = rcs.notificationSvc.SendNotification(nil, emailNotification, "risk")
+			if err != nil {
+				utility.LogError("Failed to send review user email", map[string]interface{}{
+					"error":  err.Error(),
+					"userID": userID,
+				})
+			}
 		}
 	}()
 
