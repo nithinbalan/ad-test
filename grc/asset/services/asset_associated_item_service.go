@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	assetDTOs "jethur/grc/asset/dtos"
 	assetRepsitories "jethur/grc/asset/repositories"
 	"jethur/grc/models"
@@ -13,6 +14,10 @@ type AssetAssociatedItemServiceInterface interface {
 	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisks(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error)
 	GetAllVulnerabilities(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]assetDTOs.VulnerabilityDTO, error)
+	CreateAssetVulnerabilities(assetID uint, formDTO assetDTOs.AssetVulnerabilitiesFormDTO, currentUserID uint) error
+	DeleteAssetVulnerabilities(assetID uint, vulnerabilityIDs []uint, currentUserID uint) ([]uint, error)
+	CreateAssetVulnerabilityThreats(vulnerabilityId uint, formDTO assetDTOs.AssetVulnerabilityThreatsFormDTO, currentUserID uint) error
+	DeleteAssetVulnerabilityThreats(vulnerabilityId uint, threatIDs []uint, currentUserID uint) ([]uint, error)
 }
 
 // Service Implementation
@@ -21,6 +26,8 @@ type AssetAssociatedItemService struct {
 	assetRegisterSvc               AssetRegisterServiceInterface
 	controlImplementationStatusSvc organizationServices.ControlImplementationStatusServiceInterface
 	controlEfficiencyStatusService organizationServices.ControlEfficiencyStatusServiceInterface
+	vulnerabilitySvc               VulnerabilityServiceInterface
+	threatSvc                      ThreatServiceInterface
 }
 
 // Constructor Function
@@ -29,12 +36,16 @@ func NewAssetAssociatedItemService(
 	assetRegisterSvc AssetRegisterServiceInterface,
 	controlImplementationStatusSvc organizationServices.ControlImplementationStatusServiceInterface,
 	controlEfficiencyStatusService organizationServices.ControlEfficiencyStatusServiceInterface,
+	vulnerabilitySvc VulnerabilityServiceInterface,
+	threatSvc ThreatServiceInterface,
 ) AssetAssociatedItemServiceInterface {
 	return &AssetAssociatedItemService{
 		repo:                           repo,
 		assetRegisterSvc:               assetRegisterSvc,
 		controlImplementationStatusSvc: controlImplementationStatusSvc,
 		controlEfficiencyStatusService: controlEfficiencyStatusService,
+		vulnerabilitySvc:               vulnerabilitySvc,
+		threatSvc:                      threatSvc,
 	}
 }
 
@@ -295,4 +306,123 @@ func (service *AssetAssociatedItemService) GetAllVulnerabilities(assetID uint, p
 	}
 
 	return vulnerabilityDTOs, nil
+}
+
+func (aais *AssetAssociatedItemService) CreateAssetVulnerabilities(assetID uint, formDTO assetDTOs.AssetVulnerabilitiesFormDTO, currentUserID uint) error {
+	tx := aais.repo.BeginTransaction()
+
+	// Fetch asset to ensure it exists
+	_, err := aais.assetRegisterSvc.GetByID(assetID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Prepare vulnerabilities for insertion
+	var vulnerabilities []*models.VulnerabilityAsset
+	for _, vulnerabilityID := range formDTO.VulnerabilityIds {
+		vulnerability := &models.VulnerabilityAsset{
+			AssetRegisterID: assetID,
+			VulnerabilityID: vulnerabilityID,
+			CreatedByID:     currentUserID,
+		}
+		vulnerabilities = append(vulnerabilities, vulnerability)
+	}
+
+	// Bulk insert vulnerabilities
+	if len(vulnerabilities) > 0 {
+		if err := aais.repo.CreateAssetVulnerabilities(vulnerabilities, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+	return nil
+}
+
+func (aais *AssetAssociatedItemService) DeleteAssetVulnerabilities(assetID uint, vulnerabilityIDs []uint, currentUserID uint) ([]uint, error) {
+	var failedIDs []uint
+	var successfulIDs []uint
+
+	if len(vulnerabilityIDs) == 0 {
+		return nil, nil
+	}
+
+	// Process each vulnerability for deletion
+	for _, id := range vulnerabilityIDs {
+		_, err := aais.vulnerabilitySvc.GetByID(id)
+		if err != nil {
+			fmt.Printf("Failed to fetch asset vulnerability with ID %d: %v\n", id, err)
+			continue
+		}
+
+		err = aais.repo.DeleteAssetVulnerability(assetID, id)
+		if err != nil {
+			failedIDs = append(failedIDs, id)
+		} else {
+			successfulIDs = append(successfulIDs, id)
+		}
+	}
+
+	return failedIDs, nil
+}
+
+func (aais *AssetAssociatedItemService) CreateAssetVulnerabilityThreats(vulnerabilityId uint, formDTO assetDTOs.AssetVulnerabilityThreatsFormDTO, currentUserID uint) error {
+	tx := aais.repo.BeginTransaction()
+
+	// Fetch asset to ensure it exists
+	_, err := aais.vulnerabilitySvc.GetByID(vulnerabilityId)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Prepare threats for insertion
+	var threats []*models.VulnerabilityThreat
+	for _, threatID := range formDTO.ThreatIds {
+		threat := &models.VulnerabilityThreat{
+			VulnerabilityID: vulnerabilityId,
+			ThreatID:        threatID,
+			CreatedBYID:     currentUserID,
+		}
+		threats = append(threats, threat)
+	}
+
+	// Bulk insert threats
+	if len(threats) > 0 {
+		if err := aais.repo.CreateAssetVulnerabilityThreats(threats, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	tx.Commit()
+	return nil
+}
+
+func (aais *AssetAssociatedItemService) DeleteAssetVulnerabilityThreats(vulnerabilityId uint, threatIDs []uint, currentUserID uint) ([]uint, error) {
+	var failedIDs []uint
+	var successfulIDs []uint
+
+	if len(threatIDs) == 0 {
+		return nil, nil
+	}
+
+	// Process each threat for deletion
+	for _, id := range threatIDs {
+		_, err := aais.threatSvc.GetByID(id)
+		if err != nil {
+			fmt.Printf("Failed to fetch asset threat with ID %d: %v\n", id, err)
+			continue
+		}
+
+		err = aais.repo.DeleteVulnerabilityThreats(id)
+		if err != nil {
+			failedIDs = append(failedIDs, id)
+		} else {
+			successfulIDs = append(successfulIDs, id)
+		}
+	}
+
+	return failedIDs, nil
 }

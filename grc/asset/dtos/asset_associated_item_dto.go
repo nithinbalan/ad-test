@@ -226,3 +226,10 @@ type AssetVulnerabilitiesResponseDTO struct {
 	AssetID         uint               `json:"asset_id"`
 	Vulnerabilities []VulnerabilityDTO `json:"vulnerabilities"`
 }
+
+type AssetVulnerabilitiesFormDTO struct {
+	VulnerabilityIds []uint `json:"vulnerability_ids"`
+}
+type AssetVulnerabilityThreatsFormDTO struct {
+	ThreatIds []uint `json:"threat_ids"`
+}
