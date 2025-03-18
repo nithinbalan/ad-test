@@ -298,6 +298,31 @@ func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos
 			}
 		}
 
+		documents, err := rrs.repo.GetDocumentsByRiskID(risk.ID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		for _, document := range documents {
+			riskReportDocument := &models.RiskReportDocument{
+				RiskReportID:               riskReportID,
+				RiskReportIdentificationID: riskIdentification.ID,
+				URL:                        document.URL,
+				Name:                       *document.Name,
+				Size:                       document.Size,
+				Token:                      document.Token,
+				OriginalName:               document.OriginalName,
+				Type:                       document.Type,
+				CreatedByID:                currentUserID,
+			}
+
+			if err := rrs.repo.CreateRiskDocument(riskReportDocument, tx); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+
 	}
 
 	tx.Commit()

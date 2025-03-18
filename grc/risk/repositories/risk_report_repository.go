@@ -33,11 +33,13 @@ type RiskReportRepositoryInterface interface {
 	GetActionPlansByRiskID(riskRegisterID uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportActionPlanDTO, error)
 	GetActionPlanControlsByActionPlanID(actionPlanID uint, tx ...utility.DatabaseTransaction) (string, error)
 	GetKRIsByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportKRIDTO, error)
+	GetDocumentsByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportDocumentDTO, error)
 
 	CreateSection(section *models.RiskReportSection, tx ...utility.DatabaseTransaction) error
 	CreateRiskIdentification(identification *models.RiskReportIdentification, tx ...utility.DatabaseTransaction) error
 	CreateRiskActionPlan(actionPlan *models.RiskReportActionPlan, tx ...utility.DatabaseTransaction) error
 	CreateRiskKRI(riskKRI *models.RiskReportKRI, tx ...utility.DatabaseTransaction) error
+	CreateRiskDocument(riskDocument *models.RiskReportDocument, tx ...utility.DatabaseTransaction) error
 
 	UpdateSection(section *models.RiskReportSection, tx ...utility.DatabaseTransaction) error
 
@@ -360,7 +362,7 @@ func (repo *RiskReportRepository) GetRisksByDateRange(startDate time.Time, endDa
 		Joins("LEFT JOIN risk_matrix_likelihoods AS residual_likelihood ON residual_likelihood.id = risk_register.residual_likelihood_id").
 		Joins("LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id").
 		Where("risk_register.reported_at BETWEEN ? AND ?", startDate, endDate).
-		Where("risk_register.responsible_unit_id IN (?)", organizationUnitIDs).
+		// Where("risk_register.responsible_unit_id IN (?)", organizationUnitIDs).
 		Order("risk_register.reported_at DESC")
 
 	if err := query.Find(&risks).Error; err != nil {
@@ -496,6 +498,32 @@ func (repo *RiskReportRepository) GetKRIsByRiskID(riskID uint, tx ...utility.Dat
 	return kris, nil
 }
 
+func (repo *RiskReportRepository) GetDocumentsByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportDocumentDTO, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var documents []dtos.RiskReportDocumentDTO
+
+	query := db.Table("risk_documents").
+		Select(`
+			risk_documents.url,
+			risk_documents.name,
+			risk_documents.size,
+			risk_documents.token,
+			risk_documents.original_name,
+			risk_documents.type
+		`).
+		Where("risk_documents.risk_register_id = ?", riskID)
+
+	if err := query.Find(&documents).Error; err != nil {
+		return nil, err
+	}
+
+	return documents, nil
+}
+
 func (repo *RiskReportRepository) CreateRiskKRI(riskKRI *models.RiskReportKRI, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -503,6 +531,15 @@ func (repo *RiskReportRepository) CreateRiskKRI(riskKRI *models.RiskReportKRI, t
 	}
 
 	return db.Create(riskKRI).Error
+}
+
+func (repo *RiskReportRepository) CreateRiskDocument(riskDocument *models.RiskReportDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(riskDocument).Error
 }
 
 func (repo *RiskReportRepository) CreateRiskReportOrganizationUnit(orgUnit *models.RiskReportOrganizationUnit, tx ...utility.DatabaseTransaction) error {

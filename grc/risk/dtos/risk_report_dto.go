@@ -274,6 +274,15 @@ type RiskReportKRIDTO struct {
 	CurrentValue    int     `json:"current_value"`
 }
 
+type RiskReportDocumentDTO struct {
+	URL          string  `json:"url"`
+	Name         *string `json:"name"`
+	Size         int     `json:"size"`
+	Token        string  `json:"token"`
+	OriginalName string  `json:"original_name"`
+	Type         string  `json:"type"`
+}
+
 type RiskReportSectionFormDTO struct {
 	TitleEn       string  `json:"title_en" binding:"required"`
 	TitleAr       string  `json:"title_ar" binding:"required"`
