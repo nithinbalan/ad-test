@@ -74,6 +74,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.POST("/business-functions/delete", middlewares.RolePermissionMiddleware(db, "business_functions", "modify"), businessFunctionController.DeleteBusinessFunctions)
 	businessContinuityRoutes.GET("/business-functions/export", middlewares.RolePermissionMiddleware(db, "business_functions", "view"), businessFunctionController.GetAllBusinessFunctionExport)
 
+	businessContinuityRoutes.GET("/business-functions/:id/processes/:processId/associated-risks", middlewares.RolePermissionMiddleware(db, "business_functions", "view"), businessFunctionController.GetProcessAssociatedRisks)
+	businessContinuityRoutes.GET("/business-functions/:id/processes/:processId/associated-incidents", middlewares.RolePermissionMiddleware(db, "business_functions", "view"), businessFunctionController.GetProcessAssociatedIncidents)
+	businessContinuityRoutes.GET("/business-functions/:id/processes/:processId/associated-controls", middlewares.RolePermissionMiddleware(db, "business_functions", "view"), businessFunctionController.GetProcessAssociatedControls)
 	// Business Impact Assessment
 	businessContinuityRoutes.GET("bia/processes", middlewares.RolePermissionMiddleware(db, "bia", "view"), businessImpactAssessmentController.GetAllProcesses)
 	businessContinuityRoutes.GET("bia/processes/export", middlewares.RolePermissionMiddleware(db, "bia", "view"), businessImpactAssessmentController.GetAllProcessesExport)
