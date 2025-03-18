@@ -345,7 +345,7 @@ func (rcs *RiskCommentService) SubmitRisk(riskID uint, currentUserID uint) error
 
 		createdBy, err := rcs.userSvc.GetByID(currentUserID)
 		if err != nil {
-			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+			utility.LogError("Failed to fetch created user", map[string]interface{}{
 				"error": err.Error(),
 			})
 			return
@@ -358,7 +358,7 @@ func (rcs *RiskCommentService) SubmitRisk(riskID uint, currentUserID uint) error
 
 		dbNotification := &commonDTOs.DBNotificationDTO{
 			UserIDs:              reviewUserIDs,
-			ModuleIdentifier:     "risk",
+			ModuleIdentifier:     "risk_register",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Risk Submitted",
 			HeadingAr:            "تم تقديم المخاطر",
@@ -491,7 +491,7 @@ func (rcs *RiskCommentService) RevertRisk(riskID uint, currentUserID uint, comme
 
 		responsibleUser, err := rcs.userSvc.GetByID(risk.ResponsibleUserID)
 		if err != nil {
-			utility.LogError("Failed to fetch submitted user", map[string]interface{}{
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 				"error": err.Error(),
 			})
 			return
@@ -512,7 +512,7 @@ func (rcs *RiskCommentService) RevertRisk(riskID uint, currentUserID uint, comme
 
 		dbNotification := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{responsibleUser.ID},
-			ModuleIdentifier:     "risk",
+			ModuleIdentifier:     "risk_register",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Risk Reverted",
 			HeadingAr:            "عادت المخاطر",
@@ -637,7 +637,7 @@ func (rcs *RiskCommentService) RejectRisk(riskID uint, currentUserID uint, comme
 
 		responsibleUser, err := rcs.userSvc.GetByID(risk.ResponsibleUserID)
 		if err != nil {
-			utility.LogError("Failed to fetch submitted user", map[string]interface{}{
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 				"error": err.Error(),
 			})
 			return
@@ -658,7 +658,7 @@ func (rcs *RiskCommentService) RejectRisk(riskID uint, currentUserID uint, comme
 
 		dbNotification := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{responsibleUser.ID},
-			ModuleIdentifier:     "risk",
+			ModuleIdentifier:     "risk_register",
 			NotificationType:     string(commonDTOs.InformationType),
 			HeadingEn:            "Risk Rejected",
 			HeadingAr:            "تم رفض المخاطرة",
@@ -789,7 +789,7 @@ func (rcs *RiskCommentService) ApproveRisk(riskID uint, currentUserID uint, comm
 
 		responsibleUser, err := rcs.userSvc.GetByID(risk.ResponsibleUserID)
 		if err != nil {
-			utility.LogError("Failed to fetch submitted user", map[string]interface{}{
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 				"error": err.Error(),
 			})
 			return
@@ -810,7 +810,7 @@ func (rcs *RiskCommentService) ApproveRisk(riskID uint, currentUserID uint, comm
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{responsibleUser.ID},
-			ModuleIdentifier:     "risk",
+			ModuleIdentifier:     "risk_register",
 			NotificationType:     string(commonDTOs.InformationType),
 			HeadingEn:            "Risk Approved",
 			HeadingAr:            "تمت الموافقة على المخاطر",
@@ -972,7 +972,7 @@ func (rcs *RiskCommentService) ResubmitRisk(riskID uint, currentUserID uint, com
 
 		createdBy, err := rcs.userSvc.GetByID(currentUserID)
 		if err != nil {
-			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+			utility.LogError("Failed to fetch created user", map[string]interface{}{
 				"error": err.Error(),
 			})
 			return
@@ -985,7 +985,7 @@ func (rcs *RiskCommentService) ResubmitRisk(riskID uint, currentUserID uint, com
 
 		dbNotification := &commonDTOs.DBNotificationDTO{
 			UserIDs:              reviewUserIDs,
-			ModuleIdentifier:     "risk",
+			ModuleIdentifier:     "risk_register",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Risk Resubmitted",
 			HeadingAr:            "تم إعادة تقديم المخاطر",
