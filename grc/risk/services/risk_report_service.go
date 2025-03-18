@@ -30,6 +30,7 @@ type RiskReportServiceInterface interface {
 
 	GetDocumentPath(id uint, token string) (string, error)
 	UploadRiskReportDocuments(riskReportID uint, currentUserID uint, riskReportDocumentFormDTO *dtos.RiskReportDocumentFormDTO) (uint, error)
+	DeleteRiskReportDocument(riskReportID uint, documentID uint, currentUserID uint) error
 }
 
 type RiskReportService struct {
@@ -714,4 +715,43 @@ func (rrs *RiskReportService) UploadRiskReportDocuments(riskReportID uint, curre
 	}()
 
 	return riskReportID, nil
+}
+
+func (rrs *RiskReportService) DeleteRiskReportDocument(riskReportID uint, documentID uint, currentUserID uint) error {
+	tx := rrs.repo.BeginTransaction()
+
+	document, err := rrs.repo.GetRiskReportDocumentByID(riskReportID, documentID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	err = rrs.repo.DeleteRiskReportDocument(riskReportID, documentID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	storagePath := filepath.Join("risk", "risk-report", strconv.FormatUint(uint64(riskReportID), 10), "documents")
+	if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+		tx.Rollback()
+	}
+
+	tx.Commit()
+
+	go func() {
+		err := rrs.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.RiskReportDocument{}.TableName(),
+			documentID,
+			nil,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
+		}
+	}()
+
+	return nil
 }

@@ -319,5 +319,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.DELETE("/risk-reports/:riskReportId/sections/:sectionId", riskReportController.DeleteRiskReportSection)
 	riskRoutes.DELETE("/risk-reports/:riskReportId", riskReportController.DeleteRiskReport)
 	riskRoutes.POST("/risk-reports/:riskReportId/documents", riskReportController.CreateRiskReportDocuments)
+	riskRoutes.DELETE("/risk-reports/:riskReportId/documents/:documentId", riskReportController.DeleteRiskReportDocument)
 
 }

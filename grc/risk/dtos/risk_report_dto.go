@@ -276,12 +276,15 @@ type RiskReportKRIDTO struct {
 }
 
 type RiskReportDocumentDTO struct {
-	URL          string  `json:"url"`
-	Name         *string `json:"name"`
-	Size         int     `json:"size"`
-	Token        string  `json:"token"`
-	OriginalName string  `json:"original_name"`
-	Type         string  `json:"type"`
+	ID                         uint    `json:"id"`
+	RiskReportID               uint    `json:"risk_report_id"`
+	RiskReportIdentificationID uint    `json:"risk_report_identification_id"`
+	URL                        string  `json:"url"`
+	Name                       *string `json:"name"`
+	Size                       int     `json:"size"`
+	Token                      string  `json:"token"`
+	OriginalName               string  `json:"original_name"`
+	Type                       string  `json:"type"`
 }
 
 type RiskReportSectionFormDTO struct {
