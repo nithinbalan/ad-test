@@ -154,6 +154,7 @@ type ProcessDetailDTO struct {
 	RiskMatrixRating      *RiskMatrixRiskRatingDTO          `json:"risk_matrix_risk_rating"`
 	RiskMatrixRatingValue *RiskMatrixRiskRatingValueDTO     `json:"risk_matrix_rating_value"`
 	AuditableItem         *AuditableItemMinimalDetailDTO    `json:"auditable_item"`
+	RiskLevel             *RiskLevelDTO                     `json:"risk_level"`
 }
 type AuditableItemMinimalDetailDTO struct {
 	ID                  uint                             `json:"id"`
@@ -262,4 +263,11 @@ type AssetMinimalDTO struct {
 	MtpdUnitId  *uint   `json:"mtpd_uint_id"`
 	Rpo         *int    `json:"rpo"`
 	RpoUnitId   *uint   `json:"rpo_uint_id"`
+}
+
+type RiskLevelDTO struct {
+	ID        uint   `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
 }
