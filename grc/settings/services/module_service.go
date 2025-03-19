@@ -1,7 +1,6 @@
 package services
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"jethur/grc/models"
@@ -106,21 +105,28 @@ func (ms *ModuleService) EnableModule(id uint) (*models.Module, error) {
 		return nil, fmt.Errorf("invalid or missing enabled modules in license key")
 	}
 
-	var allowedModules []string
-
-	if str, ok := rawModules.(string); ok {
-		if err := json.Unmarshal([]byte(str), &allowedModules); err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("failed to parse enabled_modules"), "invalid", "enabled modules")
-		}
-	} else {
+	allowedModules, ok := rawModules.([]string)
+	if !ok {
 		return nil, utility.NewValidationError(fmt.Errorf("invalid enabled_modules format"), "invalid", "enabled modules")
 	}
+
+	// var allowedModules []string
+
+	// if str, ok := rawModules.(string); ok {
+	// 	if err := json.Unmarshal([]byte(str), &allowedModules); err != nil {
+	// 		fmt.Println("1")
+	// 		return nil, utility.NewValidationError(fmt.Errorf("failed to parse enabled_modules"), "invalid", "enabled modules")
+	// 	}
+	// } else {
+	// 	fmt.Println("2")
+	// 	return nil, utility.NewValidationError(fmt.Errorf("invalid enabled_modules format"), "invalid", "enabled modules")
+	// }
 
 	moduleDetail, err := ms.GetFullDetailsByID(id)
 	if err != nil {
 		return nil, err
 	}
-
+	fmt.Println(allowedModules)
 	// Check if the module identifier is allowed in the license
 	isAllowed := false
 	for _, allowedModule := range allowedModules {
