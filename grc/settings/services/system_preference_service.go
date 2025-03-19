@@ -1,7 +1,6 @@
 package services
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"jethur/grc/logs/services"
@@ -250,32 +249,32 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(systemPreferenceFormDTO *dt
 		return err
 	}
 
-	rawModules, ok := claims["enabled_modules"]
-	if !ok {
-		return utility.NewValidationError(fmt.Errorf("invalid token"), "invalid", "enabled modules")
-	}
+	// rawModules, ok := claims["enabled_modules"]
+	// if !ok {
+	// 	return utility.NewValidationError(fmt.Errorf("invalid token"), "invalid", "enabled modules")
+	// }
 
-	var enabledModules []string
-	if str, ok := rawModules.(string); ok {
-		if err := json.Unmarshal([]byte(str), &enabledModules); err != nil {
-			return utility.NewValidationError(fmt.Errorf("failed to parse enabled_modules"), "invalid", "enabled modules")
-		}
-	} else {
-		return utility.NewValidationError(fmt.Errorf("invalid enabled_modules format"), "invalid", "enabled modules")
-	}
+	// var enabledModules []string
+	// if str, ok := rawModules.(string); ok {
+	// 	if err := json.Unmarshal([]byte(str), &enabledModules); err != nil {
+	// 		return utility.NewValidationError(fmt.Errorf("failed to parse enabled_modules"), "invalid", "enabled modules")
+	// 	}
+	// } else {
+	// 	return utility.NewValidationError(fmt.Errorf("invalid enabled_modules format"), "invalid", "enabled modules")
+	// }
 
-	// Enable modules
-	for _, moduleIdentifier := range enabledModules {
-		moduleID, err := sps.moduleSvc.GetModuleIDByIdentifier(moduleIdentifier)
-		if err != nil {
-			return err
-		}
+	// // Enable modules
+	// for _, moduleIdentifier := range enabledModules {
+	// 	moduleID, err := sps.moduleSvc.GetModuleIDByIdentifier(moduleIdentifier)
+	// 	if err != nil {
+	// 		return err
+	// 	}
 
-		// Ensure EnableModule returns an error if it fails
-		if _, err := sps.moduleSvc.EnableModule(moduleID); err != nil {
-			return err
-		}
-	}
+	// 	// Ensure EnableModule returns an error if it fails
+	// 	if _, err := sps.moduleSvc.EnableModule(moduleID); err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	go func() {
 		err := sps.activityLogSvc.LogActivity(
