@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
-	strategyDTOs "jethur/grc/strategy/dtos"
-	"jethur/grc/strategy/repositories"
+	organizationalContextDTOs "jethur/grc/organizational-context/dtos"
+	"jethur/grc/organizational-context/repositories"
 	"jethur/utility"
 	"log"
 	"time"
@@ -16,8 +16,8 @@ import (
 )
 
 type SwotPestelQuestionServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*strategyDTOs.SwotPestelQuestionListDTO, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.SwotPestelQuestionDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*organizationalContextDTOs.SwotPestelQuestionListDTO, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationalContextDTOs.SwotPestelQuestionDTO, error)
 	GetByID(id uint) (*models.SwotPestelQuestion, error)
 	Create(currentUserID uint, swotPestelQuestion *models.SwotPestelQuestion) (*models.SwotPestelQuestion, error)
 	Update(id uint, currentUserID uint, swotPestelQuestion *models.SwotPestelQuestion) (*models.SwotPestelQuestion, error)
@@ -25,8 +25,8 @@ type SwotPestelQuestionServiceInterface interface {
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
 
-	UpdateAnswer(id uint, currentUserID uint, answerFormDTO *strategyDTOs.AnswerFormDTO) error
-	CreateInvitees(id uint, currentUserID uint, inviteeFormDTO *strategyDTOs.InviteeFormDTO) error
+	UpdateAnswer(id uint, currentUserID uint, answerFormDTO *organizationalContextDTOs.AnswerFormDTO) error
+	CreateInvitees(id uint, currentUserID uint, inviteeFormDTO *organizationalContextDTOs.InviteeFormDTO) error
 	DeleteInvitees(questionId uint, ids []*uint, currentUserID uint) ([]uint, error)
 }
 
@@ -43,14 +43,14 @@ func NewSwotPestelQuestionService(repo repositories.SwotPestelQuestionRepository
 	}
 }
 
-func (sqs *SwotPestelQuestionService) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*strategyDTOs.SwotPestelQuestionListDTO, error) {
+func (sqs *SwotPestelQuestionService) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*organizationalContextDTOs.SwotPestelQuestionListDTO, error) {
 	// Fetch raw models from the repository
 	return sqs.repo.GetAll(sort, sortBy, keyword, status, isSwot, isPestel)
 }
 
-func (sqs SwotPestelQuestionService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.SwotPestelQuestionDTO, error) {
+func (sqs SwotPestelQuestionService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationalContextDTOs.SwotPestelQuestionDTO, error) {
 	// Initialize your DTO
-	var swotPestelQuestionDTO strategyDTOs.SwotPestelQuestionDTO
+	var swotPestelQuestionDTO organizationalContextDTOs.SwotPestelQuestionDTO
 
 	question, err := sqs.repo.GetFullDetailsByID(id, tx...)
 
@@ -297,7 +297,7 @@ func (sqs *SwotPestelQuestionService) Deactivate(ids []uint, currentUserID uint)
 	return err
 }
 
-func (sqs *SwotPestelQuestionService) UpdateAnswer(id uint, currentUserID uint, answerFormDTO *strategyDTOs.AnswerFormDTO) error {
+func (sqs *SwotPestelQuestionService) UpdateAnswer(id uint, currentUserID uint, answerFormDTO *organizationalContextDTOs.AnswerFormDTO) error {
 	existingAnswer, err := sqs.GetByID(id)
 	if err != nil {
 		return err
@@ -357,7 +357,7 @@ func (sqs *SwotPestelQuestionService) UpdateAnswer(id uint, currentUserID uint, 
 	return err
 }
 
-func (sqs *SwotPestelQuestionService) CreateInvitees(id uint, currentUserID uint, inviteeFormDTO *strategyDTOs.InviteeFormDTO) error {
+func (sqs *SwotPestelQuestionService) CreateInvitees(id uint, currentUserID uint, inviteeFormDTO *organizationalContextDTOs.InviteeFormDTO) error {
 	question, err := sqs.repo.GetFullDetailsByID(id)
 
 	if err != nil {

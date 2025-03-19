@@ -3,8 +3,8 @@ package controllers
 import (
 	"errors"
 	commonDTOs "jethur/grc/common/dtos"
-	strategyDTOs "jethur/grc/strategy/dtos"
-	"jethur/grc/strategy/services"
+	organizationalContextDTOs "jethur/grc/organizational-context/dtos"
+	"jethur/grc/organizational-context/services"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -71,7 +71,7 @@ func (brpc *SwotPestelQuestionFactorController) GetAllSwotPestelQuestionFactors(
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
-	queryParams := strategyDTOs.SwotPestelQuestionFactorListQueryParamsDTO{
+	queryParams := organizationalContextDTOs.SwotPestelQuestionFactorListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortField,
 		Keyword:  keyword,
@@ -80,6 +80,61 @@ func (brpc *SwotPestelQuestionFactorController) GetAllSwotPestelQuestionFactors(
 		Filters:  filters,
 	}
 	swotPestelQuestionFactors, err := brpc.service.GetAll(uint(questionId), &queryParams)
+
+	if err != nil {
+		utility.SendInternalErrResp(brpc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, swotPestelQuestionFactors)
+}
+
+func (brpc *SwotPestelQuestionFactorController) GetAllSwotPestelFactors(c *gin.Context) {
+
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "description")
+	keyword := c.Query("keyword")
+
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"swot_pestel_category_ids",
+	}
+	validSortFields := map[string]string{
+		"description":                   "swot_pestel_question_factors.description",
+		"swot_pestel_question_title_en": "swot_pestel_questions.title_en",
+		"swot_pestel_question_title_ar": "swot_pestel_questions.title_ar",
+		"swot_pestel_category_title_en": "swot_pestel_categories.title_en",
+		"swot_pestel_category_title_ar": "swot_pestel_categories.title_ar",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(brpc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(brpc.db, c, "Invalid page_size parameter")
+		return
+	}
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+	queryParams := organizationalContextDTOs.SwotPestelQuestionFactorListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortField,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Filters:  filters,
+	}
+	swotPestelQuestionFactors, err := brpc.service.GetAllFactors(&queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(brpc.db, c, err.Error())
@@ -122,7 +177,7 @@ func (brpc *SwotPestelQuestionFactorController) CreateSwotPestelQuestionFactor(c
 		return
 	}
 
-	var swotPestelQuestionFactorFormDTO strategyDTOs.SwotPestelQuestionFactorFormDTO
+	var swotPestelQuestionFactorFormDTO organizationalContextDTOs.SwotPestelQuestionFactorFormDTO
 
 	if err := c.ShouldBindJSON(&swotPestelQuestionFactorFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -155,7 +210,7 @@ func (brpc *SwotPestelQuestionFactorController) CreateSwotPestelQuestionFactor(c
 }
 
 func (brpc *SwotPestelQuestionFactorController) UpdateSwotPestelQuestionFactor(c *gin.Context) {
-	var swotPestelQuestionFactorFormDTO strategyDTOs.SwotPestelQuestionFactorFormDTO
+	var swotPestelQuestionFactorFormDTO organizationalContextDTOs.SwotPestelQuestionFactorFormDTO
 
 	swotPestelQuestionFactorID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {

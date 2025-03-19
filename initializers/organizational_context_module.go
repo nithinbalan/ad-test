@@ -1,27 +1,27 @@
 package initializers
 
 import (
-	"jethur/grc/strategy/controllers"
-	"jethur/grc/strategy/repositories"
-	"jethur/grc/strategy/services"
+	"jethur/grc/organizational-context/controllers"
+	"jethur/grc/organizational-context/repositories"
+	"jethur/grc/organizational-context/services"
 
 	"gorm.io/gorm"
 )
 
-type StrategyModule struct {
+type OrganizationalContextModule struct {
 	SwotPestelQuestionGroupController  *controllers.SwotPestelQuestionGroupController
 	SwotPestelQuestionController       *controllers.SwotPestelQuestionController
 	SwotPestelCategoryController       *controllers.SwotPestelCategoryController
 	SwotPestelQuestionFactorController *controllers.SwotPestelQuestionFactorController
 }
 
-func NewStrategyModule(db *gorm.DB,
+func NewOrganizationalContextModule(db *gorm.DB,
 	sharedModule *SharedModule,
 	settingsModule *SettingsModule,
 	masterModule *MasterModule,
 	organizationModule *OrganizationModule,
 
-) *StrategyModule {
+) *OrganizationalContextModule {
 	swotQuestionGroupRepo := repositories.NewSwotPestelQuestionGroupRepository(db)
 	swotQuestionGroupSvc := services.NewSwotPestelQuestionGroupService(swotQuestionGroupRepo, sharedModule.ActivityLogService)
 	swotQuestionGroupController := controllers.NewSwotPestelQuestionGroupController(swotQuestionGroupSvc)
@@ -38,7 +38,7 @@ func NewStrategyModule(db *gorm.DB,
 	swotQuestionFactorSvc := services.NewSwotPestelQuestionFactorService(swotQuestionFactorRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc)
 	swotQuestionFactorController := controllers.NewSwotPestelQuestionFactorController(swotQuestionFactorSvc)
 
-	return &StrategyModule{
+	return &OrganizationalContextModule{
 		SwotPestelQuestionGroupController:  swotQuestionGroupController,
 		SwotPestelQuestionController:       swotQuestionController,
 		SwotPestelCategoryController:       swotPestelCategoryController,

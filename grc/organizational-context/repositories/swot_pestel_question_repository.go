@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"jethur/grc/models"
-	strategyDTOs "jethur/grc/strategy/dtos"
+	organizationalContextDTOs "jethur/grc/organizational-context/dtos"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -11,7 +11,7 @@ import (
 // Interfaces
 type SwotPestelQuestionRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*strategyDTOs.SwotPestelQuestionListDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*organizationalContextDTOs.SwotPestelQuestionListDTO, error)
 	GetAllOrdered(swotPestelQuestionGroupId uint) ([]*models.SwotPestelQuestion, error)
 	GetByID(id uint) (*models.SwotPestelQuestion, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.SwotPestelQuestion, error)
@@ -43,8 +43,8 @@ func (repo *SwotPestelQuestionRepository) BeginTransaction() utility.DatabaseTra
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *SwotPestelQuestionRepository) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*strategyDTOs.SwotPestelQuestionListDTO, error) {
-	var swotPestelQuestions []*strategyDTOs.SwotPestelQuestionListDTO
+func (repo *SwotPestelQuestionRepository) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*organizationalContextDTOs.SwotPestelQuestionListDTO, error) {
+	var swotPestelQuestions []*organizationalContextDTOs.SwotPestelQuestionListDTO
 
 	query := repo.db.Table("swot_pestel_questions").
 		Select(`

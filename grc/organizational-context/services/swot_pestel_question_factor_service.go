@@ -6,8 +6,8 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
-	strategyDTOs "jethur/grc/strategy/dtos"
-	swotPestelQuestionFactorRepositories "jethur/grc/strategy/repositories"
+	organizationalContextDTOs "jethur/grc/organizational-context/dtos"
+	swotPestelQuestionFactorRepositories "jethur/grc/organizational-context/repositories"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -15,11 +15,12 @@ import (
 )
 
 type SwotPestelQuestionFactorServiceInterface interface {
-	GetAll(questionId uint, params *strategyDTOs.SwotPestelQuestionFactorListQueryParamsDTO) ([]*strategyDTOs.SwotPestelQuestionFactorListDTO, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.SwotPestelQuestionFactorDetailDTO, error)
+	GetAll(questionId uint, params *organizationalContextDTOs.SwotPestelQuestionFactorListQueryParamsDTO) ([]*organizationalContextDTOs.SwotPestelQuestionFactorListDTO, error)
+	GetAllFactors(params *organizationalContextDTOs.SwotPestelQuestionFactorListQueryParamsDTO) ([]*organizationalContextDTOs.SwotPestelQuestionFactorListDTO, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationalContextDTOs.SwotPestelQuestionFactorDetailDTO, error)
 	GetByID(id uint) (*models.SwotPestelQuestionFactor, error)
-	Create(questionId uint, currentUserID uint, strategyDTOs *strategyDTOs.SwotPestelQuestionFactorFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, swotPestelQuestionFactor *strategyDTOs.SwotPestelQuestionFactorFormDTO) error
+	Create(questionId uint, currentUserID uint, organizationalContextDTOs *organizationalContextDTOs.SwotPestelQuestionFactorFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, swotPestelQuestionFactor *organizationalContextDTOs.SwotPestelQuestionFactorFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
@@ -45,8 +46,12 @@ func NewSwotPestelQuestionFactorService(
 	}
 }
 
-func (spqfs *SwotPestelQuestionFactorService) GetAll(questionId uint, params *strategyDTOs.SwotPestelQuestionFactorListQueryParamsDTO) ([]*strategyDTOs.SwotPestelQuestionFactorListDTO, error) {
+func (spqfs *SwotPestelQuestionFactorService) GetAll(questionId uint, params *organizationalContextDTOs.SwotPestelQuestionFactorListQueryParamsDTO) ([]*organizationalContextDTOs.SwotPestelQuestionFactorListDTO, error) {
 	return spqfs.repo.GetAll(questionId, params)
+}
+
+func (spqfs *SwotPestelQuestionFactorService) GetAllFactors(params *organizationalContextDTOs.SwotPestelQuestionFactorListQueryParamsDTO) ([]*organizationalContextDTOs.SwotPestelQuestionFactorListDTO, error) {
+	return spqfs.repo.GetAllFactors(params)
 }
 
 func (spqfs SwotPestelQuestionFactorService) GetByID(id uint) (*models.SwotPestelQuestionFactor, error) {
@@ -61,9 +66,9 @@ func (spqfs SwotPestelQuestionFactorService) GetByID(id uint) (*models.SwotPeste
 	return swotPestelQuestionFactor, nil
 }
 
-func (spqfs SwotPestelQuestionFactorService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.SwotPestelQuestionFactorDetailDTO, error) {
+func (spqfs SwotPestelQuestionFactorService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationalContextDTOs.SwotPestelQuestionFactorDetailDTO, error) {
 	// Initialize your DTO
-	var swotPestelQuestionFactorDTO strategyDTOs.SwotPestelQuestionFactorDetailDTO
+	var swotPestelQuestionFactorDTO organizationalContextDTOs.SwotPestelQuestionFactorDetailDTO
 
 	swotPestelQuestionFactor, err := spqfs.repo.GetFullDetailsByID(id, tx...)
 
@@ -86,7 +91,7 @@ func (spqfs SwotPestelQuestionFactorService) GetFullDetailsByID(id uint, tx ...u
 	return &swotPestelQuestionFactorDTO, nil
 }
 
-func (spqfs *SwotPestelQuestionFactorService) Create(questionId uint, currentUserID uint, swotPestelQuestionFactorFormDTO *strategyDTOs.SwotPestelQuestionFactorFormDTO) (uint, error) {
+func (spqfs *SwotPestelQuestionFactorService) Create(questionId uint, currentUserID uint, swotPestelQuestionFactorFormDTO *organizationalContextDTOs.SwotPestelQuestionFactorFormDTO) (uint, error) {
 
 	tx := spqfs.repo.BeginTransaction()
 
@@ -134,7 +139,7 @@ func (spqfs *SwotPestelQuestionFactorService) Create(questionId uint, currentUse
 	}()
 	return id, nil
 }
-func (spqfs *SwotPestelQuestionFactorService) Update(id uint, currentUserID uint, swotPestelQuestionFactorFormDTO *strategyDTOs.SwotPestelQuestionFactorFormDTO) error {
+func (spqfs *SwotPestelQuestionFactorService) Update(id uint, currentUserID uint, swotPestelQuestionFactorFormDTO *organizationalContextDTOs.SwotPestelQuestionFactorFormDTO) error {
 	tx := spqfs.repo.BeginTransaction()
 
 	existingSwotPestelQuestionFactor, err := spqfs.repo.GetByID(id)

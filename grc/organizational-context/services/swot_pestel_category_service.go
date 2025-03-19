@@ -3,7 +3,7 @@ package services
 import (
 	"errors"
 	"jethur/grc/models"
-	"jethur/grc/strategy/repositories"
+	"jethur/grc/organizational-context/repositories"
 	"jethur/utility"
 
 	"gorm.io/gorm"

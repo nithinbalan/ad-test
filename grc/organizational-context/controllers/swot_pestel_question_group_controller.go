@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"jethur/grc/models"
-	"jethur/grc/strategy/services"
+	"jethur/grc/organizational-context/services"
 	"jethur/utility"
 	"net/http"
 	"strconv"

@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"jethur/grc/models"
-	strategyDTOs "jethur/grc/strategy/dtos"
-	"jethur/grc/strategy/services"
+	organizationalContextDTOs "jethur/grc/organizational-context/dtos"
+	"jethur/grc/organizational-context/services"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -198,7 +198,7 @@ func (sqc *SwotPestelQuestionController) DeactivateSwotPestelQuestions(c *gin.Co
 }
 
 func (sqc *SwotPestelQuestionController) UpdateAnswer(c *gin.Context) {
-	var answerFormDTO strategyDTOs.AnswerFormDTO
+	var answerFormDTO organizationalContextDTOs.AnswerFormDTO
 
 	questionIDStr := c.Param("id")
 
@@ -237,7 +237,7 @@ func (sqc *SwotPestelQuestionController) UpdateAnswer(c *gin.Context) {
 }
 
 func (sqc *SwotPestelQuestionController) CreateInvitees(c *gin.Context) {
-	var SwotPestelQuestionInvitee *strategyDTOs.InviteeFormDTO
+	var SwotPestelQuestionInvitee *organizationalContextDTOs.InviteeFormDTO
 
 	questionIDStr := c.Param("questionId")
 

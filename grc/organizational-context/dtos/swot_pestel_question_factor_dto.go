@@ -16,6 +16,7 @@ type SwotPestelQuestionFactorListDTO struct {
 	SwotPestelCategoryType      string  `json:"swot_pestel_category_type"`
 	SwotPestelQuestionTitleEn   string  `json:"swot_pestel_question_title_en"`
 	SwotPestelQuestionTitleAr   string  `json:"swot_pestel_question_title_ar"`
+	SwotPestelQuestionAnswer    string  `json:"swot_pestel_question_answer"`
 	CreatedUserID               uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn      string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string  `json:"created_user_first_name_ar"`

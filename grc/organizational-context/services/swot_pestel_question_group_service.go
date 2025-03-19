@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
-	"jethur/grc/strategy/repositories"
+	"jethur/grc/organizational-context/repositories"
 	"jethur/utility"
 	"log"
 	"strconv"
