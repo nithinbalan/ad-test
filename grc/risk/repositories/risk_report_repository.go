@@ -302,7 +302,7 @@ func (repo *RiskReportRepository) GetRiskKRIs(riskReportID uint) ([]dtos.RiskRep
 func (repo *RiskReportRepository) GetRiskReportDocuments(riskReportID uint) ([]dtos.RiskReportDocumentDTO, error) {
 	var documents []dtos.RiskReportDocumentDTO
 	err := repo.db.Table("risk_report_documents").
-		Select("id, risk_report_id, risk_report_identification_id, url, name, size, original_name, type, created_at").
+		Select("id, risk_report_id, risk_report_identification_id, url, name, size, original_name, type, token, created_at").
 		Where("risk_report_id = ?", riskReportID).
 		Find(&documents).Error
 	if err != nil {
