@@ -23,6 +23,11 @@ type AssetAssociatedItemRepositoryInterface interface {
 
 	CreateAssetVulnerabilityThreats(threats []*models.VulnerabilityThreat, tx ...utility.DatabaseTransaction) error
 	DeleteVulnerabilityThreats(id uint) error
+
+	CreateAssetThreatRisks(risks []*models.RiskThreat, tx ...utility.DatabaseTransaction) error
+	DeleteAssetThreatRisks(riskID uint, threatId uint) error
+
+	GetByRiskID(id uint) (*models.RiskRegister, error)
 }
 
 type AssetAssociatedItemRepository struct {
@@ -427,4 +432,33 @@ func (repo *AssetAssociatedItemRepository) DeleteVulnerabilityThreats(id uint) e
 		return err
 	}
 	return nil
+}
+
+func (repo *AssetAssociatedItemRepository) CreateAssetThreatRisks(risks []*models.RiskThreat, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(risks).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AssetAssociatedItemRepository) DeleteAssetThreatRisks(riskID uint, threatId uint) error {
+	if err := repo.db.
+		Where("risk_register_id = ? AND threat_id = ?", riskID, threatId).
+		Delete(&models.RiskThreat{}).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AssetAssociatedItemRepository) GetByRiskID(id uint) (*models.RiskRegister, error) {
+	var riskRegister *models.RiskRegister
+	result := repo.db.First(&riskRegister, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return riskRegister, nil
 }

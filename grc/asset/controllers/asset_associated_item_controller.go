@@ -335,7 +335,7 @@ func (aaic *AssetAssociatedItemController) DeleteAssetVulnerabilities(c *gin.Con
 }
 
 func (aaic *AssetAssociatedItemController) CreateAssetThreats(c *gin.Context) {
-	idStr := c.Param("vulnerabilityId")
+	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -381,7 +381,7 @@ func (aaic *AssetAssociatedItemController) DeleteAssetThreats(c *gin.Context) {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
-	idStr := c.Param("vulnerabilityId")
+	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -394,6 +394,74 @@ func (aaic *AssetAssociatedItemController) DeleteAssetThreats(c *gin.Context) {
 	}
 
 	failedIDs, err := aaic.service.DeleteAssetVulnerabilityThreats(uint(id), request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (aaic *AssetAssociatedItemController) CreateAssetThreatRisks(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var risks assetDTOs.AssetThreatRisksFormDTO
+	if err := c.ShouldBindJSON(&risks); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, err.Error())
+		return
+	}
+
+	err = aaic.service.CreateAssetThreatRisks(uint(id), risks, currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(aaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (aaic *AssetAssociatedItemController) DeleteAssetThreatRisks(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := aaic.service.DeleteAssetThreatRisks(uint(id), request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(aaic.db, c, err.Error())
 		return

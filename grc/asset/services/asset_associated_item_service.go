@@ -18,6 +18,8 @@ type AssetAssociatedItemServiceInterface interface {
 	DeleteAssetVulnerabilities(assetID uint, vulnerabilityIDs []uint, currentUserID uint) ([]uint, error)
 	CreateAssetVulnerabilityThreats(vulnerabilityId uint, formDTO assetDTOs.AssetVulnerabilityThreatsFormDTO, currentUserID uint) error
 	DeleteAssetVulnerabilityThreats(vulnerabilityId uint, threatIDs []uint, currentUserID uint) ([]uint, error)
+	CreateAssetThreatRisks(threatId uint, formDTO assetDTOs.AssetThreatRisksFormDTO, currentUserID uint) error
+	DeleteAssetThreatRisks(threatId uint, riskIDs []uint, currentUserID uint) ([]uint, error)
 }
 
 // Service Implementation
@@ -309,18 +311,19 @@ func (service *AssetAssociatedItemService) GetAllVulnerabilities(assetID uint, p
 }
 
 func (aais *AssetAssociatedItemService) CreateAssetVulnerabilities(assetID uint, formDTO assetDTOs.AssetVulnerabilitiesFormDTO, currentUserID uint) error {
-	tx := aais.repo.BeginTransaction()
-
 	// Fetch asset to ensure it exists
 	_, err := aais.assetRegisterSvc.GetByID(assetID)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	// Prepare vulnerabilities for insertion
 	var vulnerabilities []*models.VulnerabilityAsset
 	for _, vulnerabilityID := range formDTO.VulnerabilityIds {
+		_, err := aais.vulnerabilitySvc.GetByID(vulnerabilityID)
+		if err != nil {
+			return err
+		}
 		vulnerability := &models.VulnerabilityAsset{
 			AssetRegisterID: assetID,
 			VulnerabilityID: vulnerabilityID,
@@ -328,6 +331,7 @@ func (aais *AssetAssociatedItemService) CreateAssetVulnerabilities(assetID uint,
 		}
 		vulnerabilities = append(vulnerabilities, vulnerability)
 	}
+	tx := aais.repo.BeginTransaction()
 
 	// Bulk insert vulnerabilities
 	if len(vulnerabilities) > 0 {
@@ -417,6 +421,68 @@ func (aais *AssetAssociatedItemService) DeleteAssetVulnerabilityThreats(vulnerab
 		}
 
 		err = aais.repo.DeleteVulnerabilityThreats(id)
+		if err != nil {
+			failedIDs = append(failedIDs, id)
+		} else {
+			successfulIDs = append(successfulIDs, id)
+		}
+	}
+
+	return failedIDs, nil
+}
+
+func (aais *AssetAssociatedItemService) CreateAssetThreatRisks(threatId uint, formDTO assetDTOs.AssetThreatRisksFormDTO, currentUserID uint) error {
+
+	// Fetch asset to ensure it exists
+	_, err := aais.threatSvc.GetByID(threatId)
+	if err != nil {
+		return err
+	}
+
+	// Prepare threats for insertion
+	var risks []*models.RiskThreat
+	for _, riskID := range formDTO.RiskIds {
+		_, err := aais.repo.GetByRiskID(riskID)
+		if err != nil {
+			return err
+		}
+		risk := &models.RiskThreat{
+			ThreatID:       threatId,
+			RiskRegisterID: riskID,
+			CreatedByID:    currentUserID,
+		}
+		risks = append(risks, risk)
+	}
+	tx := aais.repo.BeginTransaction()
+
+	// Bulk insert risks
+	if len(risks) > 0 {
+		if err := aais.repo.CreateAssetThreatRisks(risks, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	tx.Commit()
+	return nil
+}
+
+func (aais *AssetAssociatedItemService) DeleteAssetThreatRisks(threatId uint, riskIDs []uint, currentUserID uint) ([]uint, error) {
+	var failedIDs []uint
+	var successfulIDs []uint
+
+	if len(riskIDs) == 0 {
+		return nil, nil
+	}
+
+	// Process each risk for deletion
+	for _, id := range riskIDs {
+		_, err := aais.repo.GetByRiskID(id)
+		if err != nil {
+			fmt.Printf("Failed to fetch asset risk with ID %d: %v\n", id, err)
+			continue
+		}
+
+		err = aais.repo.DeleteAssetThreatRisks(threatId, id)
 		if err != nil {
 			failedIDs = append(failedIDs, id)
 		} else {
