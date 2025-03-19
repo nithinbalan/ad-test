@@ -335,3 +335,82 @@ func (rrc *RiskReportController) DownloadRiskReportDocument(c *gin.Context) {
 	// Serve the file
 	c.File(documentPath)
 }
+
+func (rc *RiskReportController) CreateRiskReportDocuments(c *gin.Context) {
+	var riskReportDocumentFormDTO dtos.RiskReportDocumentFormDTO
+
+	riskReportIDStr := c.Param("riskReportId")
+	riskReportID, err := strconv.ParseUint(riskReportIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&riskReportDocumentFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	createdID, err := rc.service.UploadRiskReportDocuments(uint(riskReportID), currentUserID, &riskReportDocumentFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(nil, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"id": createdID})
+}
+
+func (rrc *RiskReportController) DeleteRiskReportDocument(c *gin.Context) {
+	riskReportIDStr := c.Param("riskReportId")
+	riskReportID, err := strconv.ParseUint(riskReportIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentIDStr := c.Param("documentId")
+	documentID, err := strconv.ParseUint(documentIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(nil, c, e.Error())
+			return
+		}
+	}
+
+	err = rrc.service.DeleteRiskReportDocument(uint(riskReportID), uint(documentID), currentUserID)
+	if err != nil {
+
+		utility.SendInternalErrResp(rrc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Document deleted successfully"})
+}

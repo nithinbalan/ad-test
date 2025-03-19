@@ -7,6 +7,7 @@ import (
 	businessFunctionRepositories "jethur/grc/business-continuity/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 	"os"
@@ -25,14 +26,19 @@ type BusinessFunctionServiceInterface interface {
 
 	UpdateBusinessFunction(businessFunction *models.BusinessFunction, tx utility.DatabaseTransaction) error
 	ExportBusinessFunction(data []*businessContinuityDTOs.BusinessFunctionListDTO, currentUserID uint) (*os.File, error)
+
+	GetProcessAssociatedRisks(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemRiskListResponseDTO, error)
+	GetProcessAssociatedIncidents(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error)
+	GetProcessAssociatedControls(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error)
 }
 
 // Service and implementations
 type BusinessFunctionService struct {
-	repo           businessFunctionRepositories.BusinessFunctionRepositoryInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
-	userSvc        organizationServices.UserServiceInterface
-	userSettingSvc organizationServices.UserSettingServiceInterface
+	repo                     businessFunctionRepositories.BusinessFunctionRepositoryInterface
+	activityLogSvc           logServices.ActivityLogServiceInterface
+	userSvc                  organizationServices.UserServiceInterface
+	userSettingSvc           organizationServices.UserSettingServiceInterface
+	processAssociatedItemSvc organizationServices.ProcessAssociatedItemServiceInterface
 }
 
 func NewBusinessFunctionService(
@@ -40,12 +46,14 @@ func NewBusinessFunctionService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	processAssociatedItemSvc organizationServices.ProcessAssociatedItemServiceInterface,
 ) BusinessFunctionServiceInterface {
 	return &BusinessFunctionService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
-		userSvc:        userSvc,
-		userSettingSvc: userSettingSvc,
+		repo:                     repo,
+		activityLogSvc:           activityLogSvc,
+		userSvc:                  userSvc,
+		userSettingSvc:           userSettingSvc,
+		processAssociatedItemSvc: processAssociatedItemSvc,
 	}
 }
 
@@ -508,4 +516,31 @@ func (bfs *BusinessFunctionService) ExportBusinessFunction(data []*businessConti
 	}
 
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (bfs *BusinessFunctionService) GetProcessAssociatedRisks(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemRiskListResponseDTO, error) {
+	risks, err := bfs.processAssociatedItemSvc.GetAllRisks(processID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return risks, nil
+}
+
+func (bfs *BusinessFunctionService) GetProcessAssociatedIncidents(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error) {
+	incidents, err := bfs.processAssociatedItemSvc.GetAllIncidents(processID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return incidents, nil
+}
+
+func (bfs *BusinessFunctionService) GetProcessAssociatedControls(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error) {
+	controls, err := bfs.processAssociatedItemSvc.GetAllControls(processID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return controls, nil
 }

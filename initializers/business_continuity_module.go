@@ -55,6 +55,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		sharedModule.ActivityLogService,
 		organizationModule.UserSvc,
 		organizationModule.UserSettingSvc,
+		organizationModule.ProcessAssociatedItemSvc,
 	)
 	businessFunctionController := controllers.NewBusinessFunctionController(businessFunctionSvc)
 
