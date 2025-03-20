@@ -1,0 +1,306 @@
+package services
+
+import (
+	"errors"
+	"fmt"
+	"jethur/grc/asset/dtos"
+	"jethur/grc/asset/repositories"
+	logServices "jethur/grc/logs/services"
+	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
+	"jethur/utility"
+	"time"
+
+	"github.com/mitchellh/mapstructure"
+	"gorm.io/gorm"
+)
+
+// Service interface
+type AssetControlAnalysisServiceInterface interface {
+	GetAll(assetID uint, params *dtos.AssetControlAnalysisListQueryParamsDTO) ([]*dtos.AssetControlAnalysisListDTO, error)
+	GetByID(assetID uint, id uint) (*models.AssetControl, error)
+	GetFullDetailsByID(assetID uint, id uint) (*dtos.AssetControlAnalysisDetailDTO, error)
+	Create(assetID uint, currentUserID uint, formDTO *dtos.AssetControlFormDTO) error
+	Update(assetID uint, id uint, currentUserID uint, updateFormDTO *dtos.AssetControlUpdateFormDTO) error
+	Delete(assetID uint, ids []uint, currentUserID uint) ([]uint, error)
+}
+
+// Service implementation
+type AssetControlAnalysisService struct {
+	repo                           repositories.AssetControlAnalysisRepositoryInterface
+	activityLogSvc                 logServices.ActivityLogServiceInterface
+	controlSvc                     organizationServices.ControlServiceInterface
+	controlImplementationStatusSvc organizationServices.ControlImplementationStatusServiceInterface
+	controlEfficiencyStatusSvc     organizationServices.ControlEfficiencyStatusServiceInterface
+}
+
+func NewAssetControlAnalysisService(
+	repo repositories.AssetControlAnalysisRepositoryInterface,
+	activityLogSvc logServices.ActivityLogServiceInterface,
+	controlSvc organizationServices.ControlServiceInterface,
+	controlImplementationStatusSvc organizationServices.ControlImplementationStatusServiceInterface,
+	controlEfficiencyStatusSvc organizationServices.ControlEfficiencyStatusServiceInterface,
+) AssetControlAnalysisServiceInterface {
+	return &AssetControlAnalysisService{
+		repo:                           repo,
+		activityLogSvc:                 activityLogSvc,
+		controlSvc:                     controlSvc,
+		controlImplementationStatusSvc: controlImplementationStatusSvc,
+		controlEfficiencyStatusSvc:     controlEfficiencyStatusSvc,
+	}
+}
+
+func (acas *AssetControlAnalysisService) GetAll(assetID uint, params *dtos.AssetControlAnalysisListQueryParamsDTO) ([]*dtos.AssetControlAnalysisListDTO, error) {
+	return acas.repo.GetAll(assetID, params)
+}
+
+func (acas *AssetControlAnalysisService) GetByID(assetID uint, id uint) (*models.AssetControl, error) {
+	assetControlAnalysis, err := acas.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return assetControlAnalysis, nil
+}
+
+func (acas *AssetControlAnalysisService) GetFullDetailsByID(assetID uint, id uint) (*dtos.AssetControlAnalysisDetailDTO, error) {
+	var assetControlAnalysisDTO dtos.AssetControlAnalysisDetailDTO
+
+	assetControlAnalysis, err := acas.repo.GetFullDetailsByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(assetControlAnalysis, &assetControlAnalysisDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return &assetControlAnalysisDTO, nil
+}
+
+func (acas *AssetControlAnalysisService) Create(assetID uint, currentUserID uint, formDTO *dtos.AssetControlFormDTO) error {
+	tx := acas.repo.BeginTransaction()
+
+	// Ensure at least one control is provided
+	if len(formDTO.ControlIds) == 0 {
+		return errors.New("at least one control must be selected")
+	}
+
+	if err := acas.validateAssetControlFormDTO(formDTO); err != nil {
+		return err
+	}
+
+	var controlAnalysis []*models.AssetControl
+	var ids []uint
+
+	for _, controlID := range formDTO.ControlIds {
+		control, err := acas.controlSvc.GetByID(*controlID)
+		if err != nil {
+			return err
+		}
+
+		assetControlAnalysis := &models.AssetControl{
+			AssetRegisterID:               assetID,
+			ControlID:                     *controlID,
+			ControlEfficiencyStatusID:     control.ControlEfficiencyStatusID,
+			ControlImplementationStatusID: control.ControlImplementationStatusID,
+			CreatedBYID:                   currentUserID,
+			CreatedAt:                     time.Now(),
+		}
+
+		createdID, err := acas.repo.Create(assetControlAnalysis)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		controlAnalysis = append(controlAnalysis, assetControlAnalysis)
+		ids = append(ids, createdID)
+	}
+
+	tx.Commit()
+
+	// Log activity asynchronously
+	go func() {
+		err := acas.activityLogSvc.LogBulkActivities(
+			models.CreateAction,
+			models.AssetControl{}.TableName(),
+			ids,
+			controlAnalysis,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.CreateAction,
+				"tableName": models.AssetControl{}.TableName(),
+				"recordID":  ids,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
+		}
+	}()
+
+	return nil
+}
+
+func (acas *AssetControlAnalysisService) Update(assetID uint, id uint, currentUserID uint, updateFormDTO *dtos.AssetControlUpdateFormDTO) error {
+	tx := acas.repo.BeginTransaction()
+
+	if err := acas.validateAssetControlUpdateFormDTO(updateFormDTO); err != nil {
+		return err
+	}
+
+	existingAssetControlAnalysis, err := acas.GetByID(assetID, id)
+	if err != nil {
+		return err
+	}
+
+	oldControlAnalysis, err := acas.GetFullDetailsByID(assetID, id)
+	if err != nil {
+		return err
+	}
+
+	// Update fields based on the DTO
+	existingAssetControlAnalysis.ControlEfficiencyStatusID = &updateFormDTO.ControlEfficiencyStatusID
+	existingAssetControlAnalysis.ControlImplementationStatusID = &updateFormDTO.ControlImplementationStatusID
+	existingAssetControlAnalysis.Comments = updateFormDTO.Comments
+	existingAssetControlAnalysis.UpdatedByID = &currentUserID
+
+	// Save changes
+	err = acas.repo.Update(existingAssetControlAnalysis, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	// Fetch updated data for logging
+	existingControlAnalysis, err := acas.GetFullDetailsByID(assetID, id)
+	if err != nil {
+		return err
+	}
+
+	// Log changes asynchronously
+	go func() {
+		changedData := utility.CompareFieldChanges(map[string]interface{}{
+			"control_efficiency_status":     oldControlAnalysis.ControlEfficiencyStatusID,
+			"control_implementation_status": oldControlAnalysis.ControlImplementationStatusID,
+			"comments":                      oldControlAnalysis.Comments,
+		}, map[string]interface{}{
+			"control_efficiency_status":     existingControlAnalysis.ControlEfficiencyStatusID,
+			"control_implementation_status": existingControlAnalysis.ControlImplementationStatusID,
+			"comments":                      existingControlAnalysis.Comments,
+		})
+
+		if len(changedData) > 0 {
+			err := acas.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AssetControl{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AssetControl{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				})
+			}
+		}
+	}()
+
+	return nil
+}
+
+func (acas *AssetControlAnalysisService) Delete(assetID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	tx := acas.repo.BeginTransaction()
+
+	var failedIds []uint
+	var successfulIds []uint
+	var deletedControlAnalysis []map[string]interface{}
+
+	for _, id := range ids {
+		assetControlAnalysis, err := acas.GetByID(assetID, id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		err = acas.repo.Delete(assetControlAnalysis.ID, tx)
+		if err != nil {
+			tx.Rollback()
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		successfulIds = append(successfulIds, id)
+		deletedControlAnalysis = append(deletedControlAnalysis, map[string]interface{}{
+			"id":       id,
+			"asset_id": assetID,
+		})
+	}
+
+	tx.Commit()
+
+	go func() {
+		err := acas.activityLogSvc.LogBulkActivities(
+			models.DeleteAction,
+			models.AssetControl{}.TableName(),
+			successfulIds,
+			deletedControlAnalysis,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log bulk delete activity", nil)
+		}
+	}()
+
+	return failedIds, nil
+}
+
+func (acas *AssetControlAnalysisService) validateAssetControlFormDTO(assetControlFormDTO *dtos.AssetControlFormDTO) error {
+
+	controlIds := assetControlFormDTO.ControlIds
+
+	controlIDs := make(map[uint]bool)
+
+	for _, controlId := range controlIds {
+		if controlIDs[*controlId] {
+			return utility.NewValidationError(fmt.Errorf("duplicate control ID: %d", controlId), "duplicate", "control")
+		}
+
+		if _, err := acas.controlSvc.GetByID(*controlId); err != nil {
+			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlId), "not_exist", "control")
+		}
+
+		controlIDs[*controlId] = true
+	}
+
+	return nil
+}
+
+func (acas *AssetControlAnalysisService) validateAssetControlUpdateFormDTO(assetControlUpdateFormDTO *dtos.AssetControlUpdateFormDTO) error {
+
+	if _, err := acas.controlImplementationStatusSvc.GetByID(uint(assetControlUpdateFormDTO.ControlImplementationStatusID)); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control implementation status does not exist"), "not_exist", "control implementation status")
+	}
+
+	if _, err := acas.controlImplementationStatusSvc.GetByID(uint(assetControlUpdateFormDTO.ControlEfficiencyStatusID)); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control efficiency status does not exist"), "not_exist", "control efficiency status")
+	}
+
+	return nil
+}

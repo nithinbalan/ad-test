@@ -42,6 +42,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetPolicyController := app.AssetModule.AssetPolicyController
 	assetPolicyChecklistController := app.AssetModule.AssetPolicyChecklistController
 	assetPolicyCommentController := app.AssetModule.AssetPolicyCommentController
+	assetControlAnalysisController := app.AssetModule.AssetControlAnalysisController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -239,5 +240,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/assets/:id/policies/:policyId/comments", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyCommentController.CreateComment)
 	assetRoutes.PUT("/assets/:id/policies/:policyId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyCommentController.UpdateComment)
 	assetRoutes.POST("/assets/:id/policies/:policyId/comments/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyCommentController.DeleteComment)
+
+	assetRoutes.GET("assets/:id/control-analysis", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetControlAnalysisController.GetAllAssetControlAnalyses)
+	assetRoutes.GET("assets/:id/control-analysis/:analysisId", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetControlAnalysisController.GetAssetControlAnalysisDetails)
+	assetRoutes.POST("assets/:id/control-analysis", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetControlAnalysisController.CreateAssetControlAnalysis)
+	assetRoutes.PUT("assets/:id/control-analysis/:analysisId", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetControlAnalysisController.UpdateAssetControlAnalysis)
+	assetRoutes.POST("assets/:id/control-analysis/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetControlAnalysisController.DeleteAssetControlAnalyses)
 
 }
