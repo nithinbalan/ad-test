@@ -30,6 +30,7 @@ type BusinessContinuityModule struct {
 	TestAndExerciseTestResultController              *controllers.TestAndExerciseTestResultController
 	TaeRecoveryActionPlanStatusUpdateController      *controllers.TaeRecoveryActionPlanStatusUpdateController
 	TaeRecoveryActionPlanCommentController           *controllers.TaeRecoveryActionPlanCommentController
+	BcpRiskAnalysisController                        *controllers.BcpRiskAnalysisController
 
 	BusinessFunctionSvc                  services.BusinessFunctionServiceInterface
 	BcpTeamSvc                           services.BcpTeamServiceInterface
@@ -70,6 +71,10 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	businessContinuityPlanRepo := repositories.NewBusinessContinuityPlanRepository(db)
 	businessContinuityPlanSvc := services.NewBusinessContinuityPlanService(businessContinuityPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, businessFunctionSvc, organizationModule.UserSettingSvc, bcpStatusSvc)
 	businessContinuityPlanController := controllers.NewBusinessContinuityPlanController(businessContinuityPlanSvc)
+
+	bcpRiskAnalysisRepo := repositories.NewBcpRiskAnalysisRepository(db)
+	bcpRiskAnalysisSvc := services.NewBcpRiskAnalysisService(bcpRiskAnalysisRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, businessContinuityPlanSvc)
+	bcpRiskAnalysisController := controllers.NewBcpRiskAnalysisController(bcpRiskAnalysisSvc)
 
 	bcpBiaMatrixRepo := repositories.NewBcpBiaMatrixRepository(db)
 	bcpBiaMatrixSvc := services.NewBcpBiaMatrixService(bcpBiaMatrixRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, businessContinuityPlanSvc, businessFunctionSvc)
@@ -161,6 +166,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		TestAndExerciseTestResultController:              testAndExerciseTestResultController,
 		TaeRecoveryActionPlanStatusUpdateController:      taeRecoveryActionPlanStatusUpdateController,
 		TaeRecoveryActionPlanCommentController:           taeRecoveryActionPlanCommentController,
+		BcpRiskAnalysisController:                        bcpRiskAnalysisController,
 
 		BusinessFunctionSvc:                  businessFunctionSvc,
 		BcpTeamSvc:                           bcpTeamSvc,

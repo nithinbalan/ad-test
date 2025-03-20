@@ -37,6 +37,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	testResultOptionController := app.BusinessContinuityModule.TestResultOptionController
 	testAndExerciseTestResultController := app.BusinessContinuityModule.TestAndExerciseTestResultController
 	taeRecoveryActionPlanCommentController := app.BusinessContinuityModule.TaeRecoveryActionPlanCommentController
+	bcpRiskAnalysisController := app.BusinessContinuityModule.BcpRiskAnalysisController
 
 	// bcp phase
 	businessContinuityRoutes.GET("/bcp-phases", bcpPhaseController.GetAllBcpPhases)
@@ -104,6 +105,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.PUT("/business-continuity-plans/:id", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), businessContinuityPlanController.UpdateBusinessContinuityPlan)
 	businessContinuityRoutes.POST("/business-continuity-plans/delete", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), businessContinuityPlanController.DeleteBusinessContinuityPlans)
 	businessContinuityRoutes.GET("/business-continuity-plans/export", middlewares.RolePermissionMiddleware(db, "bcp", "view"), businessContinuityPlanController.GetAllBusinessContinuityPlanExport)
+
+	// bcp risk analysis
+	businessContinuityRoutes.POST("/bcp/:bcpId/risk-analysis/risks", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpRiskAnalysisController.AddRiskToBcp)
+	businessContinuityRoutes.GET("/bcp/:bcpId/risk-analysis/risks", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpRiskAnalysisController.GetAllRisksByBcpId)
+	businessContinuityRoutes.POST("/bcp/:bcpId/risk-analysis/risks/delete", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpRiskAnalysisController.DeleteRiskFromBcp)
+	businessContinuityRoutes.GET("/bcp/:bcpId/risk-analysis/process-risks", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpRiskAnalysisController.GetAllProcessRisks)
 
 	// bcp bia matrix
 	businessContinuityRoutes.GET("/bcp/:bcpId/key-processes", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpBiaMatrixController.GetAllBcpKeyProcesses)
