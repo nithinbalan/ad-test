@@ -29,7 +29,7 @@ type BusinessFunctionServiceInterface interface {
 
 	GetProcessAssociatedRisks(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemRiskListResponseDTO, error)
 	GetProcessAssociatedIncidents(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error)
-	GetProcessAssociatedControls(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error)
+	GetProcessAssociatedControls(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemControlListResponseDTO, error)
 }
 
 // Service and implementations
@@ -536,8 +536,8 @@ func (bfs *BusinessFunctionService) GetProcessAssociatedIncidents(businessFuncti
 	return incidents, nil
 }
 
-func (bfs *BusinessFunctionService) GetProcessAssociatedControls(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error) {
-	controls, err := bfs.processAssociatedItemSvc.GetAllControls(processID, params)
+func (bfs *BusinessFunctionService) GetProcessAssociatedControls(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemControlListResponseDTO, error) {
+	controls, err := bfs.processAssociatedItemSvc.GetAllControlsWithPagination(processID, params)
 	if err != nil {
 		return nil, err
 	}
