@@ -10,6 +10,8 @@ type BcpRiskListDTO struct {
 	ID                              uint    `json:"id"`
 	RiskRegisterID                  uint    `json:"risk_register_id"`
 	ProcessID                       uint    `json:"process_id"`
+	ProcessTitleEn                  string  `json:"process_title_en"`
+	ProcessTitleAr                  string  `json:"process_title_ar"`
 	ReferenceNumber                 string  `json:"reference_number"`
 	RiskCategoryTitleEn             string  `json:"risk_category_title_en"`
 	RiskCategoryTitleAr             string  `json:"risk_category_title_ar"`

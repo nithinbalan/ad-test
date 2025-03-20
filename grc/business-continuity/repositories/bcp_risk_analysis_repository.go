@@ -31,6 +31,8 @@ func (repo *BcpRiskAnalysisRepository) GetAllRisksByBcpId(bcpId uint, params *dt
 
 	query := repo.db.Table("bcp_risks").
 		Select(`
+			bcp_risks.id,
+			bcp_risks.risk_register_id,
 			risk_register.reference_number,
 			risk_register.title,
 			risk_register.description,
@@ -149,13 +151,15 @@ func (repo *BcpRiskAnalysisRepository) GetAllProcessRisks(bcpId uint, params *dt
 	var riskList []*dtos.BcpRiskListDTO
 	var totalCount int64
 
-	query := repo.db.Table("risk_register").
-		Select(`
-			risk_register.id,
+	query := repo.db.Table("bcp_processes").
+		Select(`		
+			bcp_processes.process_id,
+			processes.title_en as process_title_en,
+			processes.title_ar as process_title_ar,
 			risk_register.reference_number,
 			risk_register.title,
 			risk_register.description,
-			processes.title as process_title,
+			risk_register.id as risk_register_id,
 			risk_categories.title_en AS risk_category_title_en,
 			risk_categories.title_ar AS risk_category_title_ar,
 			risk_sources.title_en AS risk_source_title_en,
@@ -187,8 +191,8 @@ func (repo *BcpRiskAnalysisRepository) GetAllProcessRisks(bcpId uint, params *dt
 			risk_statuses.color_code AS risk_status_color_code
 		`).
 		Joins(`
-			INNER JOIN risk_processes ON risk_processes.risk_register_id = risk_register.id
-			INNER JOIN bcp_processes ON bcp_processes.id = risk_processes.process_id
+			INNER JOIN risk_processes ON risk_processes.process_id = bcp_processes.process_id
+			INNER JOIN risk_register ON risk_register.id = risk_processes.risk_register_id
 			LEFT JOIN processes ON processes.id = bcp_processes.process_id
 			LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
 			LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
@@ -225,8 +229,9 @@ func (repo *BcpRiskAnalysisRepository) GetAllProcessRisks(bcpId uint, params *dt
 			risk_statuses.title_en LIKE ? OR
 			risk_statuses.title_ar LIKE ? OR
 			risk_statuses.color_code LIKE ? OR
-			processes.title LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			processes.title_en LIKE ? OR
+			processes.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	if params.Value != 0 {
