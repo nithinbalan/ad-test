@@ -110,7 +110,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.POST("/bcp/:bcpId/risk-analysis/risks", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpRiskAnalysisController.AddRiskToBcp)
 	businessContinuityRoutes.GET("/bcp/:bcpId/risk-analysis/risks", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpRiskAnalysisController.GetAllRisksByBcpId)
 	businessContinuityRoutes.POST("/bcp/:bcpId/risk-analysis/risks/delete", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpRiskAnalysisController.DeleteRiskFromBcp)
-	businessContinuityRoutes.GET("/bcp/:bcpId/risk-analysis/process-risks", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpRiskAnalysisController.GetAllProcessRisks)
+	businessContinuityRoutes.GET("/bcp/:bcpId/risk-analysis/processes-risks", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpRiskAnalysisController.GetAllProcessRisks)
 
 	// bcp bia matrix
 	businessContinuityRoutes.GET("/bcp/:bcpId/key-processes", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpBiaMatrixController.GetAllBcpKeyProcesses)
