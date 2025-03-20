@@ -18,6 +18,7 @@ type ModuleRepositoryInterface interface {
 	Update(moduleId uint, module *models.Module) (uint, error)
 
 	GetSystemPreference() (*models.SystemPreference, error)
+	GetAllModules() ([]*dtos.ModuleListDTO, error)
 }
 
 // Implementation
@@ -194,4 +195,68 @@ func (repo *ModuleRepository) GetSystemPreference() (*models.SystemPreference, e
 	}
 
 	return systemPreference, nil
+}
+
+func (repo *ModuleRepository) GetAllModules() ([]*dtos.ModuleListDTO, error) {
+	var modules []models.Module
+
+	query := repo.db.Table("modules").
+		Select(`
+			modules.id,
+			modules.identifier,
+			modules.title_en,
+			modules.title_ar,
+			modules.icon,
+			modules.route,
+			modules.is_enable,
+			[modules].[order]  -- Escape the 'order' column
+		`).Where("module_id IS NULL")
+
+	if err := query.Find(&modules).Error; err != nil {
+		return nil, err
+	}
+
+	var moduleList []*dtos.ModuleListDTO
+	for _, module := range modules {
+		var submoduleDTOs []dtos.SubModuleListDTO
+		if module.SubModules != nil {
+			for _, submodule := range *module.SubModules {
+				submoduleDTO := dtos.SubModuleListDTO{
+					ID:         submodule.ID,
+					Identifier: submodule.Identifier,
+					TitleEn:    submodule.TitleEn,
+					TitleAr:    submodule.TitleAr,
+					Order:      submodule.Order,
+					Icon:       submodule.Icon,
+					Route:      submodule.Route,
+					IsEnable:   submodule.IsEnable,
+				}
+				submoduleDTOs = append(submoduleDTOs, submoduleDTO)
+			}
+
+			sort.SliceStable(submoduleDTOs, func(i, j int) bool {
+				return submoduleDTOs[i].Order < submoduleDTOs[j].Order
+			})
+		}
+
+		moduleDTO := dtos.ModuleListDTO{
+			ID:         module.ID,
+			Identifier: module.Identifier,
+			TitleEn:    module.TitleEn,
+			TitleAr:    module.TitleAr,
+			Order:      module.Order,
+			Icon:       module.Icon,
+			Route:      module.Route,
+			IsEnable:   module.IsEnable,
+			SubModules: submoduleDTOs,
+		}
+
+		moduleList = append(moduleList, &moduleDTO)
+	}
+
+	sort.SliceStable(moduleList, func(i, j int) bool {
+		return moduleList[i].Order < moduleList[j].Order
+	})
+
+	return moduleList, nil
 }

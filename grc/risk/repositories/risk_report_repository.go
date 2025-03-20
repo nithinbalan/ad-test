@@ -55,7 +55,9 @@ type RiskReportRepositoryInterface interface {
 
 	ReorderRiskReportSections(riskReportID uint, deletedOrderNum int, tx ...utility.DatabaseTransaction) error
 
+	GetRiskReportDocumentByID(riskReportID uint, documentID uint, tx ...utility.DatabaseTransaction) (*models.RiskReportDocument, error)
 	CreateRiskDocuments(documents []*models.RiskReportDocument, tx ...utility.DatabaseTransaction) error
+	DeleteRiskReportDocument(riskReportID uint, documentID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskReportRepository struct {
@@ -300,7 +302,7 @@ func (repo *RiskReportRepository) GetRiskKRIs(riskReportID uint) ([]dtos.RiskRep
 func (repo *RiskReportRepository) GetRiskReportDocuments(riskReportID uint) ([]dtos.RiskReportDocumentDTO, error) {
 	var documents []dtos.RiskReportDocumentDTO
 	err := repo.db.Table("risk_report_documents").
-		Select("id, url, name, size, original_name, type, created_at").
+		Select("id, risk_report_id, risk_report_identification_id, url, name, size, original_name, type, token, created_at").
 		Where("risk_report_id = ?", riskReportID).
 		Find(&documents).Error
 	if err != nil {
@@ -666,4 +668,31 @@ func (repo *RiskReportRepository) CreateRiskDocuments(documents []*models.RiskRe
 	}
 
 	return nil
+}
+
+func (repo *RiskReportRepository) DeleteRiskReportDocument(riskReportID uint, documentID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("id = ? AND risk_report_id = ?", documentID, riskReportID).Delete(&models.RiskReportDocument{}).Error
+}
+
+func (repo *RiskReportRepository) GetRiskReportDocumentByID(riskReportID uint, documentID uint, tx ...utility.DatabaseTransaction) (*models.RiskReportDocument, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var riskReportDocument models.RiskReportDocument
+
+	err := db.
+		Where("id = ? AND risk_report_id = ?", documentID, riskReportID).
+		First(&riskReportDocument).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &riskReportDocument, nil
 }

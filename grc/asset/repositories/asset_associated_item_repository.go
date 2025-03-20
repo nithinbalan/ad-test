@@ -4,16 +4,30 @@ import (
 	assetDTOs "jethur/grc/asset/dtos"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
 
 type AssetAssociatedItemRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
+
 	GetAllControls(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]*assetDTOs.AssetControlListDTO, error)
 	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisks(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error)
 	GetAllVulnerabilities(assetID uint) ([]models.Vulnerability, error)
 	GetRisksByThreatID(threatID uint) ([]*assetDTOs.RiskDTO, error)
+
+	CreateAssetVulnerabilities(vulnerabilities []*models.VulnerabilityAsset, tx ...utility.DatabaseTransaction) error
+	DeleteAssetVulnerability(assetID, vulnerabilityID uint) error
+
+	CreateAssetVulnerabilityThreats(threats []*models.VulnerabilityThreat, tx ...utility.DatabaseTransaction) error
+	DeleteVulnerabilityThreats(id uint) error
+
+	CreateAssetThreatRisks(risks []*models.RiskThreat, tx ...utility.DatabaseTransaction) error
+	DeleteAssetThreatRisks(riskID uint, threatId uint) error
+
+	GetByRiskID(id uint) (*models.RiskRegister, error)
 }
 
 type AssetAssociatedItemRepository struct {
@@ -25,6 +39,10 @@ func NewAssetAssociatedItemRepository(db *gorm.DB) *AssetAssociatedItemRepositor
 	return &AssetAssociatedItemRepository{
 		db: db,
 	}
+}
+
+func (repo *AssetAssociatedItemRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *AssetAssociatedItemRepository) GetAllControls(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]*assetDTOs.AssetControlListDTO, error) {
@@ -377,4 +395,70 @@ func (repo *AssetAssociatedItemRepository) GetRisksByThreatID(threatID uint) ([]
 	}
 
 	return risks, nil
+}
+
+func (repo *AssetAssociatedItemRepository) CreateAssetVulnerabilities(vulnerabilities []*models.VulnerabilityAsset, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(vulnerabilities).Error; err != nil {
+		return err
+	}
+	return nil
+}
+func (repo *AssetAssociatedItemRepository) DeleteAssetVulnerability(assetID, vulnerabilityID uint) error {
+	if err := repo.db.
+		Where("asset_register_id = ? AND vulnerability_id = ?", assetID, vulnerabilityID).
+		Delete(&models.VulnerabilityAsset{}).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AssetAssociatedItemRepository) CreateAssetVulnerabilityThreats(threats []*models.VulnerabilityThreat, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(threats).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AssetAssociatedItemRepository) DeleteVulnerabilityThreats(id uint) error {
+	if err := repo.db.Where("id = ?", id).Delete(&models.VulnerabilityThreat{}).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AssetAssociatedItemRepository) CreateAssetThreatRisks(risks []*models.RiskThreat, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(risks).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AssetAssociatedItemRepository) DeleteAssetThreatRisks(riskID uint, threatId uint) error {
+	if err := repo.db.
+		Where("risk_register_id = ? AND threat_id = ?", riskID, threatId).
+		Delete(&models.RiskThreat{}).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AssetAssociatedItemRepository) GetByRiskID(id uint) (*models.RiskRegister, error) {
+	var riskRegister *models.RiskRegister
+	result := repo.db.First(&riskRegister, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return riskRegister, nil
 }
