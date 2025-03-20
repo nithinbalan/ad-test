@@ -389,12 +389,26 @@ func (bfc *BusinessFunctionController) GetProcessAssociatedControls(c *gin.Conte
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(bfc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(bfc.db, c, "Invalid page_size parameter")
+		return
+	}
+
 	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
 		Status:      status,
 		QuickFilter: quickFilter,
+		Page:        page,
+		PageSize:    pageSize,
 	}
 	controls, err := bfc.service.GetProcessAssociatedControls(uint(businessFunctionID), uint(processID), &queryParams)
 	if err != nil {
