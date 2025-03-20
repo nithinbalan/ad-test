@@ -18,12 +18,15 @@ type AssetAssociatedItemRepositoryInterface interface {
 	GetAllVulnerabilities(assetID uint) ([]models.Vulnerability, error)
 	GetRisksByThreatID(threatID uint) ([]*assetDTOs.RiskDTO, error)
 
+	GetVulnerabilityAssetExist(assetID, vulnerabilityID uint) (bool, error)
 	CreateAssetVulnerabilities(vulnerabilities []*models.VulnerabilityAsset, tx ...utility.DatabaseTransaction) error
 	DeleteAssetVulnerability(assetID, vulnerabilityID uint) error
 
+	GetVulnerabilityThreatExist(vulnerabilityId uint, threatID uint) (bool, error)
 	CreateAssetVulnerabilityThreats(threats []*models.VulnerabilityThreat, tx ...utility.DatabaseTransaction) error
 	DeleteVulnerabilityThreats(vulnerabilityID uint, threatId uint) error
 
+	GetThreatRiskExist(threatId uint, riskID uint) (bool, error)
 	CreateAssetThreatRisks(risks []*models.RiskThreat, tx ...utility.DatabaseTransaction) error
 	DeleteAssetThreatRisks(riskID uint, threatId uint) error
 
@@ -608,4 +611,37 @@ func getThreatIDs(threats []*assetDTOs.ThreatDTO) []uint {
 		ids = append(ids, t.ID)
 	}
 	return ids
+}
+
+func (repo *AssetAssociatedItemRepository) GetVulnerabilityAssetExist(assetID, vulnerabilityID uint) (bool, error) {
+	var count int64
+	err := repo.db.Model(&models.VulnerabilityAsset{}).
+		Where("asset_register_id = ? AND vulnerability_id = ?", assetID, vulnerabilityID).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *AssetAssociatedItemRepository) GetVulnerabilityThreatExist(vulnerabilityId uint, threatID uint) (bool, error) {
+	var count int64
+	err := repo.db.Model(&models.VulnerabilityThreat{}).
+		Where("vulnerability_id = ? AND threat_id = ?", vulnerabilityId, threatID).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *AssetAssociatedItemRepository) GetThreatRiskExist(threatId uint, riskID uint) (bool, error) {
+	var count int64
+	err := repo.db.Model(&models.RiskAsset{}).
+		Where("risk_register_id = ? AND asset_register_id = ?", threatId, riskID).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

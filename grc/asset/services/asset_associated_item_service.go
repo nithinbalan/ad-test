@@ -6,6 +6,7 @@ import (
 	assetRepsitories "jethur/grc/asset/repositories"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+	"jethur/utility"
 )
 
 // Service Interface
@@ -317,14 +318,35 @@ func (aais *AssetAssociatedItemService) CreateAssetVulnerabilities(assetID uint,
 	if err != nil {
 		return err
 	}
+	var existingVulnerabilities []uint
 
-	// Prepare vulnerabilities for insertion
-	var vulnerabilities []*models.VulnerabilityAsset
 	for _, vulnerabilityID := range formDTO.VulnerabilityIds {
+		// Ensure vulnerability exists
 		_, err := aais.vulnerabilitySvc.GetByID(vulnerabilityID)
 		if err != nil {
 			return err
 		}
+
+		// ✅ Check if asset-vulnerability relationship already exists
+		exists, err := aais.repo.GetVulnerabilityAssetExist(assetID, vulnerabilityID)
+		if err != nil {
+			return err
+		}
+		if exists {
+			existingVulnerabilities = append(existingVulnerabilities, vulnerabilityID)
+		}
+	}
+
+	// ✅ If any existing vulnerabilities were found, return validation error & exit
+	if len(existingVulnerabilities) > 0 {
+		return utility.NewValidationError(
+			fmt.Errorf("vulnerabilities already mapped"),
+			"already_exists", "vulnerability_ids",
+		)
+	}
+	// Prepare vulnerabilities for insertion
+	var vulnerabilities []*models.VulnerabilityAsset
+	for _, vulnerabilityID := range formDTO.VulnerabilityIds {
 		vulnerability := &models.VulnerabilityAsset{
 			AssetRegisterID: assetID,
 			VulnerabilityID: vulnerabilityID,
@@ -380,7 +402,31 @@ func (aais *AssetAssociatedItemService) CreateAssetVulnerabilityThreats(vulnerab
 	if err != nil {
 		return err
 	}
+	var existingThreats []uint
 
+	for _, threatID := range formDTO.ThreatIds {
+		_, err := aais.threatSvc.GetByID(threatID)
+		if err != nil {
+			return err
+		}
+
+		// Check if threat is already mapped to the vulnerability
+		exists, err := aais.repo.GetVulnerabilityThreatExist(vulnerabilityId, threatID)
+		if err != nil {
+			return err
+		}
+		if exists {
+			existingThreats = append(existingThreats, threatID)
+		}
+	}
+
+	// ✅ If any threats are already mapped, return validation error
+	if len(existingThreats) > 0 {
+		return utility.NewValidationError(
+			fmt.Errorf("threats already mapped"),
+			"already_exists", "threat_ids",
+		)
+	}
 	// Prepare threats for insertion
 	var threats []*models.VulnerabilityThreat
 	for _, threatID := range formDTO.ThreatIds {
@@ -442,13 +488,34 @@ func (aais *AssetAssociatedItemService) CreateAssetThreatRisks(threatId uint, fo
 		return err
 	}
 
-	// Prepare threats for insertion
-	var risks []*models.RiskThreat
+	var existingRisks []uint
+
 	for _, riskID := range formDTO.RiskIds {
 		_, err := aais.repo.GetByRiskID(riskID)
 		if err != nil {
 			return err
 		}
+
+		// Check if risk is already mapped to the threat
+		exists, err := aais.repo.GetThreatRiskExist(threatId, riskID)
+		if err != nil {
+			return err
+		}
+		if exists {
+			existingRisks = append(existingRisks, riskID)
+		}
+	}
+
+	// ✅ If any risks are already mapped, return validation error
+	if len(existingRisks) > 0 {
+		return utility.NewValidationError(
+			fmt.Errorf("risks already mapped"),
+			"already_exists", "risk_ids",
+		)
+	}
+	// Prepare threats for insertion
+	var risks []*models.RiskThreat
+	for _, riskID := range formDTO.RiskIds {
 		risk := &models.RiskThreat{
 			ThreatID:       threatId,
 			RiskRegisterID: riskID,
