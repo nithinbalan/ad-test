@@ -23,6 +23,8 @@ type ModuleServiceInterface interface {
 	ReorderSubModule(modules []dtos.ModuleReorderDTO) error
 	UpdateModule(id uint, moduleFormDTO dtos.ModuleFormDTO) error
 	UpdateSubModule(id uint, subModuleFormDTO dtos.SubModuleFormDTO) error
+
+	GetAllModules() ([]*dtos.ModuleListDTO, error)
 }
 
 type ModuleService struct {
@@ -304,4 +306,8 @@ func (ms *ModuleService) UpdateSubModule(id uint, subModuleFormDTO dtos.SubModul
 		return nil
 	}
 	return nil
+}
+
+func (ms *ModuleService) GetAllModules() ([]*dtos.ModuleListDTO, error) {
+	return ms.repo.GetAllModules()
 }
