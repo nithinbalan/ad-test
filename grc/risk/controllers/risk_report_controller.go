@@ -271,7 +271,7 @@ func (rrc *RiskReportController) DeleteRiskReport(c *gin.Context) {
 }
 
 func (rrc *RiskReportController) GetRiskReportDocumentPreview(c *gin.Context) {
-	idStr := c.Param("id")
+	idStr := c.Param("riskReportId")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -298,7 +298,7 @@ func (rrc *RiskReportController) GetRiskReportDocumentPreview(c *gin.Context) {
 }
 
 func (rrc *RiskReportController) DownloadRiskReportDocument(c *gin.Context) {
-	idStr := c.Param("id")
+	idStr := c.Param("riskReportId")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)

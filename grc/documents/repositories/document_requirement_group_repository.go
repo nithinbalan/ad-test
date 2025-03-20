@@ -33,7 +33,7 @@ func NewDocumentRequirementGroupRepository(db *gorm.DB) *DocumentRequirementGrou
 
 func (repo *DocumentRequirementGroupRepository) GetAll(documentId uint, sort string, sortBy string, keyword string, status string) ([]*models.DocumentRequirementGroup, error) {
 	var documentRequirementGroups []*models.DocumentRequirementGroup
-	query := repo.db.Preload("Document")
+	query := repo.db.Preload("DocumentRequirements")
 
 	if keyword != "" {
 		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
