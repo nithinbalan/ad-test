@@ -212,6 +212,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("threats/:id/risks", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.CreateAssetThreatRisks)
 	assetRoutes.POST("threats/:id/risks/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.DeleteAssetThreatRisks)
 
+	assetRoutes.GET("assets/:id/risk-analysis", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.GetRiskAnalysis)
+
 	//asset criticality
 	assetRoutes.GET("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetCriticalityController.GetAssetCriticality)
 	assetRoutes.POST("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.CreateAssetCriticality)

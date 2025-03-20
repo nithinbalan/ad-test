@@ -20,6 +20,7 @@ type AssetAssociatedItemServiceInterface interface {
 	DeleteAssetVulnerabilityThreats(vulnerabilityId uint, threatIDs []uint, currentUserID uint) ([]uint, error)
 	CreateAssetThreatRisks(threatId uint, formDTO assetDTOs.AssetThreatRisksFormDTO, currentUserID uint) error
 	DeleteAssetThreatRisks(threatId uint, riskIDs []uint, currentUserID uint) ([]uint, error)
+	GetRiskAnalysis(assetID uint) ([]*assetDTOs.VulnerabilityDTO, error)
 }
 
 // Service Implementation
@@ -373,18 +374,20 @@ func (aais *AssetAssociatedItemService) DeleteAssetVulnerabilities(assetID uint,
 }
 
 func (aais *AssetAssociatedItemService) CreateAssetVulnerabilityThreats(vulnerabilityId uint, formDTO assetDTOs.AssetVulnerabilityThreatsFormDTO, currentUserID uint) error {
-	tx := aais.repo.BeginTransaction()
 
 	// Fetch asset to ensure it exists
 	_, err := aais.vulnerabilitySvc.GetByID(vulnerabilityId)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	// Prepare threats for insertion
 	var threats []*models.VulnerabilityThreat
 	for _, threatID := range formDTO.ThreatIds {
+		_, err := aais.threatSvc.GetByID(threatID)
+		if err != nil {
+			return err
+		}
 		threat := &models.VulnerabilityThreat{
 			VulnerabilityID: vulnerabilityId,
 			ThreatID:        threatID,
@@ -392,6 +395,7 @@ func (aais *AssetAssociatedItemService) CreateAssetVulnerabilityThreats(vulnerab
 		}
 		threats = append(threats, threat)
 	}
+	tx := aais.repo.BeginTransaction()
 
 	// Bulk insert threats
 	if len(threats) > 0 {
@@ -419,8 +423,7 @@ func (aais *AssetAssociatedItemService) DeleteAssetVulnerabilityThreats(vulnerab
 			fmt.Printf("Failed to fetch asset threat with ID %d: %v\n", id, err)
 			continue
 		}
-
-		err = aais.repo.DeleteVulnerabilityThreats(id)
+		err = aais.repo.DeleteVulnerabilityThreats(vulnerabilityId, id)
 		if err != nil {
 			failedIDs = append(failedIDs, id)
 		} else {
@@ -491,4 +494,50 @@ func (aais *AssetAssociatedItemService) DeleteAssetThreatRisks(threatId uint, ri
 	}
 
 	return failedIDs, nil
+}
+
+func (aais *AssetAssociatedItemService) GetRiskAnalysis(assetID uint) ([]*assetDTOs.VulnerabilityDTO, error) {
+	// Ensure asset exists before fetching risk analysis
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return nil, err
+	}
+
+	// Fetch vulnerabilities, threats, and risks from the repository
+	vulnerabilities, threats, risks, err := aais.repo.GetAssetRiskAnalysis(assetID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 1: Create a map for Risks indexed by Threat ID
+	riskMap := make(map[uint][]assetDTOs.RiskDTO)
+
+	for _, risk := range risks {
+		riskMap[risk.ID] = append(riskMap[risk.ID], *risk) // Store risks under each Threat ID
+	}
+
+	// Step 2: Create a map for Threats indexed by Vulnerability ID
+	threatMap := make(map[uint][]assetDTOs.ThreatDTO)
+
+	for _, threat := range threats {
+		// Assign risks to each threat before adding to threatMap
+		if mappedRisks, exists := riskMap[threat.ID]; exists {
+			threat.Risks = mappedRisks // Attach risks to the threat
+		} else {
+			threat.Risks = []assetDTOs.RiskDTO{} // Ensure empty array
+		}
+
+		threatMap[threat.VulnerabilityID] = append(threatMap[threat.VulnerabilityID], *threat)
+	}
+
+	// Step 3: Assign threats (with risks) to vulnerabilities
+	for _, vulnerability := range vulnerabilities {
+		if mappedThreats, exists := threatMap[vulnerability.ID]; exists {
+			vulnerability.Threats = mappedThreats // Attach threats to vulnerability
+		} else {
+			vulnerability.Threats = []assetDTOs.ThreatDTO{} // Ensure empty array
+		}
+	}
+
+	// Return the structured response
+	return vulnerabilities, nil
 }
