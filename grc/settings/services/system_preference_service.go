@@ -248,6 +248,18 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(systemPreferenceFormDTO *dt
 	if err != nil {
 		return err
 	}
+
+	modules, err := sps.moduleSvc.GetAllModules()
+	if err != nil {
+		return err
+	}
+
+	for _, module := range modules {
+		if _, err := sps.moduleSvc.DisableModule(module.ID); err != nil {
+			return err
+		}
+	}
+
 	rawModules, ok := claims["enabled_modules"]
 	if !ok {
 		return utility.NewValidationError(fmt.Errorf("invalid token"), "invalid", "enabled modules")
