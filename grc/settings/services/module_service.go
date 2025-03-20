@@ -92,52 +92,40 @@ func (ms *ModuleService) EnableModule(id uint) (*models.Module, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// Extract allowed modules from the license key
-	claims, err := utility.DecryptJWTToken(*existingSystemPreference.LicenseKey)
-	if err != nil {
-		return nil, err
-	}
-
-	// Extract allowed modules (can be a string or array)
-	rawModules, ok := claims["enabled_modules"]
-	if !ok {
-		return nil, fmt.Errorf("invalid or missing enabled modules in license key")
-	}
-
-	allowedModules, ok := rawModules.([]string)
-	if !ok {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid enabled_modules format"), "invalid", "enabled modules")
-	}
-
-	// var allowedModules []string
-
-	// if str, ok := rawModules.(string); ok {
-	// 	if err := json.Unmarshal([]byte(str), &allowedModules); err != nil {
-	// 		fmt.Println("1")
-	// 		return nil, utility.NewValidationError(fmt.Errorf("failed to parse enabled_modules"), "invalid", "enabled modules")
-	// 	}
-	// } else {
-	// 	fmt.Println("2")
-	// 	return nil, utility.NewValidationError(fmt.Errorf("invalid enabled_modules format"), "invalid", "enabled modules")
-	// }
-
 	moduleDetail, err := ms.GetFullDetailsByID(id)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(allowedModules)
-	// Check if the module identifier is allowed in the license
-	isAllowed := false
-	for _, allowedModule := range allowedModules {
-		if allowedModule == moduleDetail.Identifier {
-			isAllowed = true
-			break
+	if existingSystemPreference.LicenseKey != nil {
+		// Extract allowed modules from the license key
+		claims, err := utility.DecryptJWTToken(*existingSystemPreference.LicenseKey)
+		if err != nil {
+			return nil, err
 		}
-	}
 
-	if !isAllowed {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid module"), "module_not_allowed", moduleDetail.TitleEn)
+		// Extract allowed modules (can be a string or array)
+		rawModules, ok := claims["enabled_modules"]
+		if !ok {
+			return nil, fmt.Errorf("invalid or missing enabled modules in license key")
+		}
+
+		allowedModules, ok := rawModules.([]string)
+		if !ok {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid enabled_modules format"), "invalid", "enabled modules")
+		}
+
+		// Check if the module identifier is allowed in the license
+		isAllowed := false
+		for _, allowedModule := range allowedModules {
+			if allowedModule == moduleDetail.Identifier {
+				isAllowed = true
+				break
+			}
+		}
+
+		if !isAllowed {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid module"), "module_not_allowed", moduleDetail.TitleEn)
+		}
 	}
 
 	// Enable the module
