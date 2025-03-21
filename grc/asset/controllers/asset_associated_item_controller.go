@@ -469,3 +469,31 @@ func (aaic *AssetAssociatedItemController) DeleteAssetThreatRisks(c *gin.Context
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (aaic *AssetAssociatedItemController) GetRiskAnalysis(c *gin.Context) {
+
+	assetIDStr := c.Param("id")
+
+	assetID, err := strconv.ParseUint(assetIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	results, err := aaic.service.GetRiskAnalysis(uint(assetID))
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(aaic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, results)
+}
