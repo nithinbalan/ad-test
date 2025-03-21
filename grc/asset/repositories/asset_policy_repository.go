@@ -44,6 +44,7 @@ func (repo *AssetPolicyRepository) GetAll(params *dtos.AssetPolicyListQueryParam
 	query := repo.db.Table("asset_policies").
 		Select(`
 			asset_policies.id,
+			asset_policies.document_id,
 			asset_policies.asset_register_id,
 			asset_register.title_en AS asset_register_title_en,
 			asset_register.title_ar AS asset_register_title_ar,
@@ -115,10 +116,13 @@ func (repo *AssetPolicyRepository) GetFullDetailsByID(id uint, tx ...utility.Dat
 
 	result := db.
 		Preload("AssetRegister").
+		Preload("ComplianceStatus").
 		Preload("Document").
+		Preload("Document.LatestDocumentVersion").
 		Preload("ComplianceStatus").
 		Preload("AssetPolicyChecklists").
 		Preload("AssetPolicyChecklists.DocumentRequirementGroup").
+		Preload("AssetPolicyChecklists.ComplianceStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&assetPolicy, id)

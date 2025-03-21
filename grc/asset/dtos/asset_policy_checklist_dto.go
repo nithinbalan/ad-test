@@ -1,6 +1,7 @@
 package dtos
 
 import (
+	complianceDTOs "jethur/grc/compliance/dtos"
 	documentsDTOs "jethur/grc/documents/dtos"
 
 	"time"
@@ -16,6 +17,7 @@ type AssetPolicyChecklistDTO struct {
 	QuestionTitle              string                                    `json:"question_title"`
 	Justification              *string                                   `json:"justification,omitempty"`
 	ComplianceStatusID         *uint                                     `json:"compliance_status_id,omitempty"`
+	ComplianceStatus           complianceDTOs.ComplianceStatusDTO        `json:"compliance_status"`
 	AnsweredBYID               *uint                                     `json:"answered_by_id,omitempty"`
 	AnsweredAt                 *time.Time                                `json:"answered_at,omitempty"`
 	CreatedAt                  time.Time                                 `json:"created_at"`
