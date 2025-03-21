@@ -11,7 +11,6 @@ import (
 	"jethur/utility"
 	"path/filepath"
 	"strconv"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -34,6 +33,7 @@ type AssetControlAnalysisService struct {
 	controlSvc                     organizationServices.ControlServiceInterface
 	controlImplementationStatusSvc organizationServices.ControlImplementationStatusServiceInterface
 	controlEfficiencyStatusSvc     organizationServices.ControlEfficiencyStatusServiceInterface
+	assetRegisterSvc               AssetRegisterServiceInterface
 }
 
 func NewAssetControlAnalysisService(
@@ -42,6 +42,7 @@ func NewAssetControlAnalysisService(
 	controlSvc organizationServices.ControlServiceInterface,
 	controlImplementationStatusSvc organizationServices.ControlImplementationStatusServiceInterface,
 	controlEfficiencyStatusSvc organizationServices.ControlEfficiencyStatusServiceInterface,
+	assetRegisterSvc AssetRegisterServiceInterface,
 ) AssetControlAnalysisServiceInterface {
 	return &AssetControlAnalysisService{
 		repo:                           repo,
@@ -49,6 +50,7 @@ func NewAssetControlAnalysisService(
 		controlSvc:                     controlSvc,
 		controlImplementationStatusSvc: controlImplementationStatusSvc,
 		controlEfficiencyStatusSvc:     controlEfficiencyStatusSvc,
+		assetRegisterSvc:               assetRegisterSvc,
 	}
 }
 
@@ -98,32 +100,57 @@ func (acas *AssetControlAnalysisService) Create(assetID uint, currentUserID uint
 		return err
 	}
 
-	var controlAnalysis []*models.AssetControl
-	var ids []uint
+	existingAsset, err := acas.assetRegisterSvc.GetFullDetailsByID(assetID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
-	for _, controlID := range formDTO.ControlIds {
-		control, err := acas.controlSvc.GetByID(*controlID)
-		if err != nil {
-			return err
+	existingControlIDs := make(map[uint]bool)
+	for _, ctrl := range existingAsset.Controls {
+		existingControlIDs[ctrl.ControlID] = true
+	}
+
+	newControlIDs := make(map[uint]bool)
+	for _, ctrl := range formDTO.ControlIds {
+		newControlIDs[ctrl] = true
+	}
+
+	var controlsToAdd []*models.AssetControl
+	for _, newControlID := range formDTO.ControlIds {
+		if _, exists := existingControlIDs[newControlID]; !exists {
+			control := &models.AssetControl{
+				AssetRegisterID: assetID,
+				ControlID:       newControlID,
+				CreatedBYID:     currentUserID,
+			}
+			controlsToAdd = append(controlsToAdd, control)
 		}
+	}
 
-		assetControlAnalysis := &models.AssetControl{
-			AssetRegisterID:               assetID,
-			ControlID:                     *controlID,
-			ControlEfficiencyStatusID:     control.ControlEfficiencyStatusID,
-			ControlImplementationStatusID: control.ControlImplementationStatusID,
-			CreatedBYID:                   currentUserID,
-			CreatedAt:                     time.Now(),
-		}
-
-		createdID, err := acas.repo.Create(assetControlAnalysis)
-		if err != nil {
+	if len(controlsToAdd) > 0 {
+		if err := acas.repo.CreateAssetControls(controlsToAdd, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
+	}
 
-		controlAnalysis = append(controlAnalysis, assetControlAnalysis)
-		ids = append(ids, createdID)
+	var deleteControlIDs []*uint
+
+	for _, existingControl := range existingAsset.Controls {
+		if _, exists := newControlIDs[existingControl.ControlID]; !exists {
+			deleteControlIDs = append(deleteControlIDs, existingControl.ID)
+		}
+	}
+
+	if len(deleteControlIDs) > 0 {
+		if err := acas.repo.DeleteAssetControls(deleteControlIDs, tx); err != nil {
+			tx.Rollback()
+			if utility.IsForeignKeyConstraintError(err) {
+				return utility.NewResourceConflictError(fmt.Errorf("foreign key constraint violation while deleting controls"))
+			}
+			return err
+		}
 	}
 
 	tx.Commit()
@@ -133,8 +160,8 @@ func (acas *AssetControlAnalysisService) Create(assetID uint, currentUserID uint
 		err := acas.activityLogSvc.LogBulkActivities(
 			models.CreateAction,
 			models.AssetControl{}.TableName(),
-			ids,
-			controlAnalysis,
+			formDTO.ControlIds,
+			controlsToAdd,
 			currentUserID,
 			nil,
 		)
@@ -142,7 +169,7 @@ func (acas *AssetControlAnalysisService) Create(assetID uint, currentUserID uint
 			utility.LogError("Failed to log activity", map[string]interface{}{
 				"action":    models.CreateAction,
 				"tableName": models.AssetControl{}.TableName(),
-				"recordID":  ids,
+				"recordID":  formDTO.ControlIds,
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			})
@@ -363,15 +390,15 @@ func (acas *AssetControlAnalysisService) validateAssetControlFormDTO(assetContro
 	controlIDs := make(map[uint]bool)
 
 	for _, controlId := range controlIds {
-		if controlIDs[*controlId] {
+		if controlIDs[controlId] {
 			return utility.NewValidationError(fmt.Errorf("duplicate control ID: %d", controlId), "duplicate", "control")
 		}
 
-		if _, err := acas.controlSvc.GetByID(*controlId); err != nil {
+		if _, err := acas.controlSvc.GetByID(controlId); err != nil {
 			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlId), "not_exist", "control")
 		}
 
-		controlIDs[*controlId] = true
+		controlIDs[controlId] = true
 	}
 
 	return nil

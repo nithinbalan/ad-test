@@ -86,7 +86,7 @@ type AssetControlAnalysisDetailDTO struct {
 }
 
 type AssetControlFormDTO struct {
-	ControlIds []*uint `json:"control_ids"`
+	ControlIds []uint `json:"control_ids"`
 }
 
 type AssetControlUpdateFormDTO struct {

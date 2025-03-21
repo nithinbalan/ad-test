@@ -114,6 +114,9 @@ func (acac *AssetControlAnalysisController) CreateAssetControlAnalysis(c *gin.Co
 
 	if err != nil {
 		switch e := err.(type) {
+		case *utility.ResourceConflictError:
+			utility.SendConflictErrResp(c, e.Error())
+			return
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return

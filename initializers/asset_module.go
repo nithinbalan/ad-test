@@ -210,7 +210,7 @@ func NewAssetModule(db *gorm.DB,
 	assetPolicyCommentController := controllers.NewAssetPolicyCommentController(assetPolicyCommentSvc)
 
 	assetControlAnalysisRepo := repositories.NewAssetControlAnalysisRepository(db)
-	assetControlAnalysisSvc := services.NewAssetControlAnalysisService(assetControlAnalysisRepo, sharedModule.ActivityLogService, organizationModule.ControlSvc, organizationModule.ControlImplementationStatusSvc, organizationModule.ControlEfficiencyStatusSvc)
+	assetControlAnalysisSvc := services.NewAssetControlAnalysisService(assetControlAnalysisRepo, sharedModule.ActivityLogService, organizationModule.ControlSvc, organizationModule.ControlImplementationStatusSvc, organizationModule.ControlEfficiencyStatusSvc, assetRegisterSvc)
 	assetControlAnalysisController := controllers.NewAssetControlAnalysisController(assetControlAnalysisSvc)
 
 	return &AssetModule{

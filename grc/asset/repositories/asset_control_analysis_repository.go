@@ -19,6 +19,9 @@ type AssetControlAnalysisRepositoryInterface interface {
 	GetDocumentByID(id uint) (*models.AssetControlDocument, error)
 	CreateDocuments(docs []*models.AssetControlDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	CreateAssetControls(controls []*models.AssetControl, tx ...utility.DatabaseTransaction) error
+	DeleteAssetControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
 	// GetAllControlsByAssetID(assetID uint) ([]*models.AssetControl, error)
 }
 
@@ -226,6 +229,30 @@ func (repo *AssetControlAnalysisRepository) DeleteDocuments(docIds []*uint, tx .
 
 	// Delete documents by IDs
 	if err := db.Where("id IN (?)", docIds).Delete(&models.AssetControlDocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AssetControlAnalysisRepository) CreateAssetControls(controls []*models.AssetControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&controls).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AssetControlAnalysisRepository) DeleteAssetControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", controlIds).Delete(&models.AssetControl{}).Error; err != nil {
 		return err
 	}
 
