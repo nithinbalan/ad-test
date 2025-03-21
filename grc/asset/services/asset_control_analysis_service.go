@@ -9,6 +9,8 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -178,6 +180,89 @@ func (acas *AssetControlAnalysisService) Update(assetID uint, id uint, currentUs
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	var newDocuments []*models.AssetControlDocument
+	var deleteDocumentIDs []*uint
+	var documentsToDelete []*models.AssetControlDocument
+
+	fmt.Println(updateFormDTO.Documents)
+
+	// Iterate over the provided documents
+	for _, doc := range updateFormDTO.Documents {
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			// Encrypt the filename
+			dataToEncrypt := []byte(doc.FileName)
+			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+			if err != nil {
+				return err
+			}
+
+			// Generate document URL
+			url := utility.GenerateDocumentURL("asset", "asset-control", strconv.FormatUint(uint64(id), 10), "documents")
+
+			// Create document model
+			document := &models.AssetControlDocument{
+				AssetControlID: id,
+				URL:            url,
+				Name:           doc.FileName,
+				Size:           doc.Size,
+				Token:          encryptedFilename,
+				OriginalName:   doc.OriginalName,
+				Type:           doc.Type,
+				CreatedByID:    currentUserID,
+			}
+
+			newDocuments = append(newDocuments, document)
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			// Handle file deletion
+			if doc.ID != nil {
+				existingDocument, err := acas.repo.GetDocumentByID(*doc.ID)
+				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return utility.NewResourceNotFoundError(err, id)
+					}
+					return err
+				}
+
+				documentsToDelete = append(documentsToDelete, existingDocument)
+				deleteDocumentIDs = append(deleteDocumentIDs, &existingDocument.ID)
+			}
+		}
+	}
+
+	// Save new documents if any
+	if len(newDocuments) > 0 {
+		if err := acas.repo.CreateDocuments(newDocuments, tx); err != nil {
+			return err
+		}
+	}
+
+	// Delete specified documents
+	if len(deleteDocumentIDs) > 0 {
+		if err := acas.repo.DeleteDocuments(deleteDocumentIDs, tx); err != nil {
+			return err
+		}
+	}
+
+	// Store uploaded files
+	if len(newDocuments) > 0 {
+		for _, doc := range newDocuments {
+			storagePath := filepath.Join("asset", "asset-control", strconv.FormatUint(uint64(id), 10), "documents")
+			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Remove deleted files from storage
+	if len(documentsToDelete) > 0 {
+		for _, document := range documentsToDelete {
+			storagePath := filepath.Join("asset", "asset-control", strconv.FormatUint(uint64(id), 10), "documents")
+			if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+				return err
+			}
+		}
 	}
 
 	tx.Commit()

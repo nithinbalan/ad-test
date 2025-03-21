@@ -1,6 +1,7 @@
 package dtos
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 
 	"time"
@@ -56,6 +57,18 @@ type AssetControlAnalysisListDTO struct {
 	UpdatedUserEmail                     string     `json:"updated_user_email"`
 	UpdatedUserProfileImagePath          string     `json:"updated_user_profile_image_path"`
 	UpdatedAt                            *time.Time `json:"updated_at"`
+
+	Documents []*AssetControlAnalysisDocumentDTO `json:"documents" gorm:"-"`
+}
+
+type AssetControlAnalysisDocumentDTO struct {
+	ID           uint   `json:"id"`
+	URL          string `json:"url"`
+	Name         string `json:"name"`
+	Size         int    `json:"size"`
+	Token        string `json:"token"`
+	OriginalName string `json:"original_name"`
+	Type         string `json:"type"`
 }
 
 type AssetControlAnalysisDetailDTO struct {
@@ -77,9 +90,10 @@ type AssetControlFormDTO struct {
 }
 
 type AssetControlUpdateFormDTO struct {
-	ControlEfficiencyStatusID     uint    `json:"control_efficiency_status_id"`
-	ControlImplementationStatusID uint    `json:"control_implementation_status_id"`
-	Comments                      *string `json:"comments"`
+	ControlEfficiencyStatusID     uint                          `json:"control_efficiency_status_id"`
+	ControlImplementationStatusID uint                          `json:"control_implementation_status_id"`
+	Comments                      *string                       `json:"comments"`
+	Documents                     []*commonDTOs.DocumentFormDTO `json:"documents"`
 }
 
 type AssetControlAnalysisListQueryParamsDTO struct {

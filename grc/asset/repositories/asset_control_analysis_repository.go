@@ -16,6 +16,9 @@ type AssetControlAnalysisRepositoryInterface interface {
 	Create(assetControlAnalysis *models.AssetControl) (uint, error)
 	Update(assetControlAnalysis *models.AssetControl, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint) (*models.AssetControlDocument, error)
+	CreateDocuments(docs []*models.AssetControlDocument, tx ...utility.DatabaseTransaction) error
+	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 	// GetAllControlsByAssetID(assetID uint) ([]*models.AssetControl, error)
 }
 
@@ -125,6 +128,13 @@ func (repo *AssetControlAnalysisRepository) GetAll(assetID uint, params *dtos.As
 		return nil, err
 	}
 
+	for _, assetControlAnalysis := range assetControlAnalyses {
+		var documents []*dtos.AssetControlAnalysisDocumentDTO
+
+		repo.db.Model(&models.AssetControlDocument{}).Where("asset_control_id = ?", assetControlAnalysis.ID).Find(&documents)
+		assetControlAnalysis.Documents = documents
+	}
+
 	return assetControlAnalyses, nil
 }
 
@@ -182,6 +192,40 @@ func (repo *AssetControlAnalysisRepository) Delete(id uint, tx ...utility.Databa
 	}
 
 	if err := db.Delete(&models.AssetControl{}, id).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AssetControlAnalysisRepository) GetDocumentByID(id uint) (*models.AssetControlDocument, error) {
+	var document models.AssetControlDocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
+}
+
+func (repo *AssetControlAnalysisRepository) CreateDocuments(docs []*models.AssetControlDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	// Save all documents in a single transaction
+	if err := db.Create(&docs).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AssetControlAnalysisRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete documents by IDs
+	if err := db.Where("id IN (?)", docIds).Delete(&models.AssetControlDocument{}).Error; err != nil {
 		return err
 	}
 
