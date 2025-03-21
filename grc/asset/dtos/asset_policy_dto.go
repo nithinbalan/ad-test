@@ -11,6 +11,7 @@ import (
 // AssetPolicyListDTO - Used for listing Asset Policies
 type AssetPolicyListDTO struct {
 	ID                        uint      `json:"id"`
+	DocumentID                uint      `json:"document_id"`
 	AssetRegisterID           uint      `json:"asset_register_id"`
 	AssetRegisterTitleEn      string    `json:"asset_register_title_en"`
 	AssetRegisterTitleAr      string    `json:"asset_register_title_ar"`
