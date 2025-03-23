@@ -34,6 +34,8 @@ type AssetModule struct {
 	AssetPolicyController                         *controllers.AssetPolicyController
 	AssetPolicyChecklistController                *controllers.AssetPolicyChecklistController
 	AssetPolicyCommentController                  *controllers.AssetPolicyCommentController
+	AssetControlAnalysisController                *controllers.AssetControlAnalysisController
+	AssetKriController                            *controllers.AssetKriController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
@@ -208,6 +210,18 @@ func NewAssetModule(db *gorm.DB,
 	)
 	assetPolicyCommentController := controllers.NewAssetPolicyCommentController(assetPolicyCommentSvc)
 
+	assetControlAnalysisRepo := repositories.NewAssetControlAnalysisRepository(db)
+	assetControlAnalysisSvc := services.NewAssetControlAnalysisService(assetControlAnalysisRepo, sharedModule.ActivityLogService, organizationModule.ControlSvc, organizationModule.ControlImplementationStatusSvc, organizationModule.ControlEfficiencyStatusSvc, assetRegisterSvc)
+	assetControlAnalysisController := controllers.NewAssetControlAnalysisController(assetControlAnalysisSvc)
+
+	assetKriRepo := repositories.NewAssetKriRepository(db)
+	assetKriSvc := services.NewAssetKriService(
+		assetKriRepo,
+		sharedModule.ActivityLogService,
+		assetRegisterSvc,
+	)
+	assetKriController := controllers.NewAssetKriController(assetKriSvc)
+
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
 		AssetCategoryController:                       assetCategoryController,
@@ -234,6 +248,8 @@ func NewAssetModule(db *gorm.DB,
 		AssetPolicyController:                         assetPolicyController,
 		AssetPolicyChecklistController:                assetPolicyChecklistController,
 		AssetPolicyCommentController:                  assetPolicyCommentController,
+		AssetControlAnalysisController:                assetControlAnalysisController,
+		AssetKriController:                            assetKriController,
 
 		AssetRegisterSvc: assetRegisterSvc,
 	}
