@@ -47,6 +47,7 @@ type AssetRegister struct {
 	Controls                          []*AssetControl                    `gorm:"foreignKey:AssetRegisterID"`
 	Contributions                     []*AssetCriticalityContribution    `gorm:"foreignKey:AssetRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Documents                         *[]AssetDocument                   `gorm:"foreignKey:AssetRegisterID"`
+	KRIs                              []*AssetKri                        `gorm:"foreignKey:AssetRegisterID"`
 
 	CreatedByUser *User `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser *User `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
