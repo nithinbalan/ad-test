@@ -25,14 +25,14 @@ func NewBusinessContinuityPlanController(service services.BusinessContinuityPlan
 	}
 }
 
-func (bfc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *gin.Context) {
+func (bcpc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "business_function_title")
 	keyword := c.Query("keyword")
 
 	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
 	if err != nil {
-		utility.SendInternalErrResp(bfc.db, c, "Invalid export parameter")
+		utility.SendInternalErrResp(bcpc.db, c, "Invalid export parameter")
 		return
 	}
 
@@ -50,13 +50,13 @@ func (bfc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *gi
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
-		utility.SendInternalErrResp(bfc.db, c, "Invalid page parameter")
+		utility.SendInternalErrResp(bcpc.db, c, "Invalid page parameter")
 		return
 	}
 
 	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
 	if err != nil {
-		utility.SendInternalErrResp(bfc.db, c, "Invalid page_size parameter")
+		utility.SendInternalErrResp(bcpc.db, c, "Invalid page_size parameter")
 		return
 	}
 	sortField, valid := validSortFields[sortBy]
@@ -74,10 +74,10 @@ func (bfc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *gi
 		Filters:  filters,
 		Export:   export,
 	}
-	businessContinuityPlans, err := bfc.service.GetAll(&queryParams)
+	businessContinuityPlans, err := bcpc.service.GetAll(&queryParams)
 
 	if err != nil {
-		utility.SendInternalErrResp(bfc.db, c, err.Error())
+		utility.SendInternalErrResp(bcpc.db, c, err.Error())
 		return
 	}
 
@@ -85,13 +85,13 @@ func (bfc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *gi
 
 		currentUserID, err := utility.GetCurrentUserID(c)
 		if err != nil {
-			utility.SendInternalErrResp(bfc.db, c, err.Error())
+			utility.SendInternalErrResp(bcpc.db, c, err.Error())
 			return
 		}
 
-		excelFile, err := bfc.service.ExportBusinessContinuityPlan(businessContinuityPlans.Items, currentUserID)
+		excelFile, err := bcpc.service.ExportBusinessContinuityPlan(businessContinuityPlans.Items, currentUserID)
 		if err != nil {
-			utility.SendInternalErrResp(bfc.db, c, err.Error())
+			utility.SendInternalErrResp(bcpc.db, c, err.Error())
 			return
 		}
 		defer excelFile.Close()
@@ -107,7 +107,7 @@ func (bfc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *gi
 	c.JSON(http.StatusOK, businessContinuityPlans)
 }
 
-func (bfc *BusinessContinuityPlanController) GetBusinessContinuityPlanDetails(c *gin.Context) {
+func (bcpc *BusinessContinuityPlanController) GetBusinessContinuityPlanDetails(c *gin.Context) {
 	idStr := c.Param("id")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -116,21 +116,21 @@ func (bfc *BusinessContinuityPlanController) GetBusinessContinuityPlanDetails(c 
 		return
 	}
 
-	businessContinuityPlan, err := bfc.service.GetFullDetailsByID(uint(id))
+	businessContinuityPlan, err := bcpc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(bfc.db, c, e.Error())
+			utility.SendInternalErrResp(bcpc.db, c, e.Error())
 			return
 		}
 	}
 	c.JSON(http.StatusOK, businessContinuityPlan)
 }
 
-func (bfc *BusinessContinuityPlanController) CreateBusinessContinuityPlan(c *gin.Context) {
+func (bcpc *BusinessContinuityPlanController) CreateBusinessContinuityPlan(c *gin.Context) {
 	var businessContinuityPlanFormDTO businessContinuityDTOs.BusinessContinuityPlanFormDTO
 
 	if err := c.ShouldBindJSON(&businessContinuityPlanFormDTO); err != nil {
@@ -140,11 +140,11 @@ func (bfc *BusinessContinuityPlanController) CreateBusinessContinuityPlan(c *gin
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(bfc.db, c, err.Error())
+		utility.SendInternalErrResp(bcpc.db, c, err.Error())
 		return
 	}
 
-	id, err := bfc.service.Create(currentUserID, &businessContinuityPlanFormDTO)
+	id, err := bcpc.service.Create(currentUserID, &businessContinuityPlanFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -155,7 +155,7 @@ func (bfc *BusinessContinuityPlanController) CreateBusinessContinuityPlan(c *gin
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(bfc.db, c, e.Error())
+			utility.SendInternalErrResp(bcpc.db, c, e.Error())
 			return
 		}
 	}
@@ -163,7 +163,7 @@ func (bfc *BusinessContinuityPlanController) CreateBusinessContinuityPlan(c *gin
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
-func (bfc *BusinessContinuityPlanController) UpdateBusinessContinuityPlan(c *gin.Context) {
+func (bcpc *BusinessContinuityPlanController) UpdateBusinessContinuityPlan(c *gin.Context) {
 	var businessContinuityPlanFormDTO businessContinuityDTOs.BusinessContinuityPlanFormDTO
 
 	businessContinuityPlanID, err := strconv.Atoi(c.Param("id"))
@@ -179,11 +179,11 @@ func (bfc *BusinessContinuityPlanController) UpdateBusinessContinuityPlan(c *gin
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(bfc.db, c, err.Error())
+		utility.SendInternalErrResp(bcpc.db, c, err.Error())
 		return
 	}
 
-	err = bfc.service.Update(uint(businessContinuityPlanID), currentUserID, &businessContinuityPlanFormDTO)
+	err = bcpc.service.Update(uint(businessContinuityPlanID), currentUserID, &businessContinuityPlanFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -193,7 +193,7 @@ func (bfc *BusinessContinuityPlanController) UpdateBusinessContinuityPlan(c *gin
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(bfc.db, c, e.Error())
+			utility.SendInternalErrResp(bcpc.db, c, e.Error())
 			return
 		}
 	}
@@ -201,7 +201,7 @@ func (bfc *BusinessContinuityPlanController) UpdateBusinessContinuityPlan(c *gin
 	c.Status(http.StatusOK)
 }
 
-func (bfc *BusinessContinuityPlanController) DeleteBusinessContinuityPlans(c *gin.Context) {
+func (bcpc *BusinessContinuityPlanController) DeleteBusinessContinuityPlans(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -213,26 +213,26 @@ func (bfc *BusinessContinuityPlanController) DeleteBusinessContinuityPlans(c *gi
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(bfc.db, c, err.Error())
+		utility.SendInternalErrResp(bcpc.db, c, err.Error())
 		return
 	}
 
-	failedIDs, err := bfc.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := bcpc.service.Delete(request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(bfc.db, c, err.Error())
+		utility.SendInternalErrResp(bcpc.db, c, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (bfc *BusinessContinuityPlanController) GetAllBusinessContinuityPlanExport(c *gin.Context) {
+func (bcpc *BusinessContinuityPlanController) GetAllBusinessContinuityPlanExport(c *gin.Context) {
 	c.Request.URL.RawQuery += "&export=true"
 
-	bfc.GetAllBusinessContinuityPlans(c)
+	bcpc.GetAllBusinessContinuityPlans(c)
 }
 
-func (crc *BusinessContinuityPlanController) GetBusinessContinuityPlanDocumentPreview(c *gin.Context) {
+func (bcpc *BusinessContinuityPlanController) GetBusinessContinuityPlanDocumentPreview(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -246,20 +246,20 @@ func (crc *BusinessContinuityPlanController) GetBusinessContinuityPlanDocumentPr
 		return
 	}
 
-	bcpDocumentPath, err := crc.service.GetDocumentPath(uint(id), token)
+	bcpDocumentPath, err := bcpc.service.GetDocumentPath(uint(id), token)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 		default:
-			utility.SendInternalErrResp(crc.db, c, err.Error())
+			utility.SendInternalErrResp(bcpc.db, c, err.Error())
 		}
 		return
 	}
 	c.File(bcpDocumentPath)
 }
 
-func (crc *BusinessContinuityPlanController) DownloadBusinessContinuityPlanDocument(c *gin.Context) {
+func (bcpc *BusinessContinuityPlanController) DownloadBusinessContinuityPlanDocument(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -273,13 +273,13 @@ func (crc *BusinessContinuityPlanController) DownloadBusinessContinuityPlanDocum
 		return
 	}
 
-	bcpDocumentPath, err := crc.service.GetDocumentPath(uint(id), token)
+	bcpDocumentPath, err := bcpc.service.GetDocumentPath(uint(id), token)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 		default:
-			utility.SendInternalErrResp(crc.db, c, err.Error())
+			utility.SendInternalErrResp(bcpc.db, c, err.Error())
 		}
 		return
 	}
@@ -296,4 +296,29 @@ func (crc *BusinessContinuityPlanController) DownloadBusinessContinuityPlanDocum
 
 	// Serve the file
 	c.File(bcpDocumentPath)
+}
+
+func (bcpc *BusinessContinuityPlanController) GetBcpHeatmap(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	heatmap, err := bcpc.service.GetBcpHeatmap(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(bcpc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, heatmap)
 }
