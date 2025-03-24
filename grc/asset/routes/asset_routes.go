@@ -43,6 +43,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetPolicyChecklistController := app.AssetModule.AssetPolicyChecklistController
 	assetPolicyCommentController := app.AssetModule.AssetPolicyCommentController
 	assetDocumentCategoryController := app.AssetModule.AssetDocumentCategoryController
+	assetOtherDocumentController := app.AssetModule.AssetOtherDocumentController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -249,5 +250,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/asset-document-categories/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetDocumentCategoryController.DeleteAssetDocumentCategories)
 	assetRoutes.PUT("/asset-document-categories/activate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetDocumentCategoryController.ActivateAssetDocumentCategories)
 	assetRoutes.PUT("/asset-document-categories/deactivate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetDocumentCategoryController.DeactivateAssetDocumentCategories)
+
+	assetRoutes.GET("/assets/:id/other-documents", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetOtherDocumentController.GetAllDocuments)
+	assetRoutes.GET("/assets/:id/other-documents/:documentId", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetOtherDocumentController.GetDocumentDetails)
+	assetRoutes.POST("/assets/:id/other-documents", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetOtherDocumentController.CreateDocument)
+	assetRoutes.PUT("/assets/:id/other-documents/:documentId", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetOtherDocumentController.UpdateDocument)
+	assetRoutes.POST("/assets/:id/other-documents/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetOtherDocumentController.DeleteDocuments)
 
 }
