@@ -12,7 +12,7 @@ type AssetOtherDocumentListDTO struct {
 	AssetDocumentCategoryID      uint                         `json:"asset_document_category_id"`
 	AssetDocumentCategoryTitleEn string                       `json:"asset_document_category_title_en"`
 	AssetDocumentCategoryTitleAr string                       `json:"asset_document_category_title_ar"`
-	Documents                    []*AssetOtherDocumentListDTO `json:"documents"`
+	Documents                    []*AssetOtherDocumentListDTO `json:"documents" gorm:"-"`
 	CreatedByID                  uint                         `json:"created_by_id"`
 	CreatedByFirstNameEn         string                       `json:"created_by_first_name_en"`
 	CreatedByFirstNameAr         string                       `json:"created_by_first_name_ar"`

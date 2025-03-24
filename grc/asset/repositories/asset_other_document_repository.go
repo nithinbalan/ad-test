@@ -34,7 +34,7 @@ func (repo *AssetOtherDocumentRepository) BeginTransaction() utility.DatabaseTra
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *AssetOtherDocumentRepository) GetAllGroupedByCategory(assetRegisterID uint) (map[uint][]*dtos.AssetOtherDocumentListDTO, error) {
+func (repo *AssetOtherDocumentRepository) GetAll(assetRegisterID uint) ([]*dtos.AssetOtherDocumentListDTO, error) {
 	var documents []*dtos.AssetOtherDocumentListDTO
 
 	err := repo.db.Table("asset_other_documents").
@@ -50,25 +50,35 @@ func (repo *AssetOtherDocumentRepository) GetAllGroupedByCategory(assetRegisterI
 			asset_other_documents.token,
 			asset_other_documents.original_name,
 			asset_other_documents.type,
+			created_by.id AS created_by_id,
+			created_by.first_name_en AS created_by_first_name_en,
+			created_by.first_name_ar AS created_by_first_name_ar,
+			created_by.last_name_en AS created_by_last_name_en,
+			created_by.last_name_ar AS created_by_last_name_ar,
+			created_by.initial AS created_by_initial,
+			created_by.color AS created_by_color,
+			created_by.email AS created_by_email,
+			created_by.profile_image_path AS created_by_profile_image_path,
 			asset_other_documents.created_at,
+			updated_by.id AS updated_by_id,
+			updated_by.first_name_en AS updated_by_first_name_en,
+			updated_by.first_name_ar AS updated_by_first_name_ar,
+			updated_by.last_name_en AS updated_by_last_name_en,
+			updated_by.last_name_ar AS updated_by_last_name_ar,
+			updated_by.initial AS updated_by_initial,
+			updated_by.color AS updated_by_color,
+			updated_by.email AS updated_by_email,
+			updated_by.profile_image_path AS updated_by_profile_image_path,
 			asset_other_documents.updated_at
 		`).
 		Joins("LEFT JOIN asset_document_categories ON asset_document_categories.id = asset_other_documents.asset_document_category_id").
+		Joins("LEFT JOIN users AS created_by ON created_by.id = asset_other_documents.created_by_id").
+		Joins("LEFT JOIN users AS updated_by ON updated_by.id = asset_other_documents.updated_by_id").
 		Where("asset_other_documents.asset_register_id = ?", assetRegisterID).
 		Order("asset_other_documents.created_at DESC").
 		Find(&documents).Error
 
-	if err != nil {
-		return nil, err
-	}
-
-	// Group by asset_document_category_id
-	grouped := make(map[uint][]*dtos.AssetOtherDocumentListDTO)
-	for _, doc := range documents {
-		grouped[doc.AssetDocumentCategoryID] = append(grouped[doc.AssetDocumentCategoryID], doc)
-	}
-
-	return grouped, nil
+	return documents, err
 }
 
 func (repo *AssetOtherDocumentRepository) GetByID(id uint) (*models.AssetOtherDocument, error) {

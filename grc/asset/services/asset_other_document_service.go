@@ -49,7 +49,36 @@ func (aods *AssetOtherDocumentService) GetAll(assetRegisterID uint) ([]*dtos.Ass
 	if _, err := aods.assetRegisterSvc.GetByID(assetRegisterID); err != nil {
 		return nil, err
 	}
-	return aods.repo.GetAll(assetRegisterID)
+
+	docs, err := aods.repo.GetAll(assetRegisterID)
+	if err != nil {
+		return nil, err
+	}
+
+	groupMap := make(map[uint][]*dtos.AssetOtherDocumentListDTO)
+	for _, doc := range docs {
+		groupMap[doc.AssetDocumentCategoryID] = append(groupMap[doc.AssetDocumentCategoryID], doc)
+	}
+
+	var result []*dtos.AssetOtherDocumentListDTO
+	for _, group := range groupMap {
+		parent := group[0]
+
+		// Build a clean copy of group without recursive Documents field
+		var cleanedDocs []*dtos.AssetOtherDocumentListDTO
+		for _, doc := range group {
+			copied := *doc
+			copied.Documents = nil // prevent cycle
+			cleanedDocs = append(cleanedDocs, &copied)
+		}
+
+		parentCopy := *parent
+		parentCopy.Documents = cleanedDocs
+
+		result = append(result, &parentCopy)
+	}
+
+	return result, nil
 }
 
 func (aods *AssetOtherDocumentService) GetByID(assetRegisterID uint, id uint) (*models.AssetOtherDocument, error) {
