@@ -97,6 +97,8 @@ func (aps *AssetPolicyService) GetFullDetailsByID(assetRegisterID uint, id uint,
 		fmt.Printf("Decode error: %v\n", err)
 		return nil, err
 	}
+	assetPolicyDetailDTO.CreatedAt = assetPolicy.CreatedAt
+	assetPolicyDetailDTO.UpdatedAt = &assetPolicy.UpdatedAt
 
 	return &assetPolicyDetailDTO, nil
 }

@@ -15,15 +15,15 @@ type AssetPolicyChecklistDTO struct {
 	DocumentRequirementGroup   documentsDTOs.DocumentRequirementGroupDTO `json:"document_requirement_group"`
 	QuestionGroupTitle         string                                    `json:"question_group_title"`
 	QuestionTitle              string                                    `json:"question_title"`
-	Justification              *string                                   `json:"justification,omitempty"`
-	ComplianceStatusID         *uint                                     `json:"compliance_status_id,omitempty"`
-	ComplianceStatus           complianceDTOs.ComplianceStatusDTO        `json:"compliance_status"`
-	AnsweredBYID               *uint                                     `json:"answered_by_id,omitempty"`
-	AnsweredAt                 *time.Time                                `json:"answered_at,omitempty"`
+	Justification              *string                                   `json:"justification"`
+	ComplianceStatusID         *uint                                     `json:"compliance_status_id"`
+	ComplianceStatus           *complianceDTOs.ComplianceStatusDTO       `json:"compliance_status"`
+	AnsweredBYID               *uint                                     `json:"answered_by_id"`
+	AnsweredAt                 *time.Time                                `json:"answered_at"`
 	CreatedAt                  time.Time                                 `json:"created_at"`
-	UpdatedAt                  *time.Time                                `json:"updated_at,omitempty"`
+	UpdatedAt                  *time.Time                                `json:"updated_at"`
 	CreatedBYID                uint                                      `json:"created_by_id"`
-	UpdatedBYID                *uint                                     `json:"updated_by_id,omitempty"`
+	UpdatedBYID                *uint                                     `json:"updated_by_id"`
 }
 
 // AssetPolicyChecklistFormDTO is used for creating or updating a checklist
