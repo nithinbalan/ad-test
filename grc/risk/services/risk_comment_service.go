@@ -720,7 +720,7 @@ func (rcs *RiskCommentService) ApproveRisk(riskID uint, currentUserID uint, comm
 		return utility.NewForbiddenError("Only the review user can approve this risk.")
 	}
 
-	approvedStatus, err := rcs.riskStatusSvc.GetByType("approved")
+	approvedStatus, err := rcs.riskStatusSvc.GetByType("open")
 	if err != nil {
 		tx.Rollback()
 		return err
