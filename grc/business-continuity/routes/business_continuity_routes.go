@@ -106,6 +106,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.POST("/business-continuity-plans/delete", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), businessContinuityPlanController.DeleteBusinessContinuityPlans)
 	businessContinuityRoutes.GET("/business-continuity-plans/export", middlewares.RolePermissionMiddleware(db, "bcp", "view"), businessContinuityPlanController.GetAllBusinessContinuityPlanExport)
 
+	//bcp heatmap
+	businessContinuityRoutes.GET("/business-continuity-plans/:id/heatmap", middlewares.RolePermissionMiddleware(db, "bcp", "view"), businessContinuityPlanController.GetBcpHeatmap)
+
 	// bcp risk analysis
 	businessContinuityRoutes.POST("/bcp/:bcpId/risk-analysis/risks", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpRiskAnalysisController.AddRiskToBcp)
 	businessContinuityRoutes.GET("/bcp/:bcpId/risk-analysis/risks", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpRiskAnalysisController.GetAllRisksByBcpId)

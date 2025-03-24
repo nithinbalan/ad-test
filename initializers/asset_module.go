@@ -36,6 +36,8 @@ type AssetModule struct {
 	AssetPolicyCommentController                  *controllers.AssetPolicyCommentController
 	AssetDocumentCategoryController               *controllers.AssetDocumentCategoryController
 	AssetOtherDocumentController                  *controllers.AssetOtherDocumentController
+	AssetControlAnalysisController                *controllers.AssetControlAnalysisController
+	AssetKriController                            *controllers.AssetKriController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
@@ -222,6 +224,17 @@ func NewAssetModule(db *gorm.DB,
 		assetDocumentCategorySvc,
 	)
 	assetOtherDocumentController := controllers.NewAssetOtherDocumentController(assetOtherDocumentSvc)
+	assetControlAnalysisRepo := repositories.NewAssetControlAnalysisRepository(db)
+	assetControlAnalysisSvc := services.NewAssetControlAnalysisService(assetControlAnalysisRepo, sharedModule.ActivityLogService, organizationModule.ControlSvc, organizationModule.ControlImplementationStatusSvc, organizationModule.ControlEfficiencyStatusSvc, assetRegisterSvc)
+	assetControlAnalysisController := controllers.NewAssetControlAnalysisController(assetControlAnalysisSvc)
+
+	assetKriRepo := repositories.NewAssetKriRepository(db)
+	assetKriSvc := services.NewAssetKriService(
+		assetKriRepo,
+		sharedModule.ActivityLogService,
+		assetRegisterSvc,
+	)
+	assetKriController := controllers.NewAssetKriController(assetKriSvc)
 
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
@@ -251,6 +264,8 @@ func NewAssetModule(db *gorm.DB,
 		AssetPolicyCommentController:                  assetPolicyCommentController,
 		AssetDocumentCategoryController:               assetDocumentCategoryController,
 		AssetOtherDocumentController:                  assetOtherDocumentController,
+		AssetControlAnalysisController:                assetControlAnalysisController,
+		AssetKriController:                            assetKriController,
 
 		AssetRegisterSvc: assetRegisterSvc,
 	}

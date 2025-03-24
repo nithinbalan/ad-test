@@ -69,7 +69,15 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	bcpStatusController := controllers.NewBcpStatusController(bcpStatusSvc)
 
 	businessContinuityPlanRepo := repositories.NewBusinessContinuityPlanRepository(db)
-	businessContinuityPlanSvc := services.NewBusinessContinuityPlanService(businessContinuityPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, businessFunctionSvc, organizationModule.UserSettingSvc, bcpStatusSvc)
+	businessContinuityPlanSvc := services.NewBusinessContinuityPlanService(
+		businessContinuityPlanRepo,
+		sharedModule.ActivityLogService,
+		organizationModule.UserSvc,
+		businessFunctionSvc,
+		organizationModule.UserSettingSvc,
+		bcpStatusSvc,
+		riskModule.RiskHeatMapSvc,
+	)
 	businessContinuityPlanController := controllers.NewBusinessContinuityPlanController(businessContinuityPlanSvc)
 
 	bcpRiskAnalysisRepo := repositories.NewBcpRiskAnalysisRepository(db)
