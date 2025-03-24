@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
+	complianceServices "jethur/grc/compliance/services"
 	documentServices "jethur/grc/documents/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
@@ -32,6 +33,7 @@ type AssetPolicyService struct {
 	documentSvc                 documentServices.DocumentServiceInterface
 	documentRequirementGroupSvc documentServices.DocumentRequirementGroupServiceInterface
 	documentRequirementSvc      documentServices.DocumentRequirementServiceInterface
+	complianceStatusSvc         complianceServices.ComplianceStatusServiceInterface
 }
 
 func NewAssetPolicyService(
@@ -41,6 +43,7 @@ func NewAssetPolicyService(
 	documentSvc documentServices.DocumentServiceInterface,
 	documentRequirementGroupSvc documentServices.DocumentRequirementGroupServiceInterface,
 	documentRequirementSvc documentServices.DocumentRequirementServiceInterface,
+	complianceStatusSvc complianceServices.ComplianceStatusServiceInterface,
 ) AssetPolicyServiceInterface {
 	return &AssetPolicyService{
 		repo:                        repo,
@@ -49,6 +52,7 @@ func NewAssetPolicyService(
 		documentSvc:                 documentSvc,
 		documentRequirementGroupSvc: documentRequirementGroupSvc,
 		documentRequirementSvc:      documentRequirementSvc,
+		complianceStatusSvc:         complianceStatusSvc,
 	}
 }
 
@@ -104,10 +108,15 @@ func (aps *AssetPolicyService) GetFullDetailsByID(assetRegisterID uint, id uint,
 }
 
 func (aps *AssetPolicyService) Update(assetPolicyForm *dtos.AssetPolicyFormDTO, currentUserID uint, assetId uint) ([]uint, error) {
+
+	notImplementedStatus, err := aps.complianceStatusSvc.GetByType("not-implemented")
+	if err != nil {
+		return nil, err
+	}
 	tx := aps.repo.BeginTransaction()
 
 	var policyIDs []uint
-	var deletePolicyIDs []uint
+	// var deletePolicyIDs []uint
 
 	// Fetch existing asset policies for this asset
 	existingPolicies, err := aps.repo.GetByAssetID(assetId, tx)
@@ -134,33 +143,32 @@ func (aps *AssetPolicyService) Update(assetPolicyForm *dtos.AssetPolicyFormDTO, 
 	}
 
 	// Identify policies and checklists to delete
-	for documentID, policyID := range existingPolicyMap {
-		if !newDocumentIDSet[documentID] {
-			deletePolicyIDs = append(deletePolicyIDs, policyID)
-		}
-	}
+	// for documentID, policyID := range existingPolicyMap {
+	// 	if !newDocumentIDSet[documentID] {
+	// 		deletePolicyIDs = append(deletePolicyIDs, policyID)
+	// 	}
+	// }
 
 	// If there are policies to delete, remove them in bulk
-	if len(deletePolicyIDs) > 0 {
-		// First delete associated checklists
-		if err := aps.repo.DeleteAssetPolicyChecklists(deletePolicyIDs, tx); err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-		// Then delete the asset policies
-		if err := aps.repo.DeleteAssetPolicies(deletePolicyIDs, tx); err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-	}
+	// if len(deletePolicyIDs) > 0 {
+	// 	if err := aps.repo.DeleteAssetPolicyChecklists(deletePolicyIDs, tx); err != nil {
+	// 		tx.Rollback()
+	// 		return nil, err
+	// 	}
+	// 	if err := aps.repo.DeleteAssetPolicies(deletePolicyIDs, tx); err != nil {
+	// 		tx.Rollback()
+	// 		return nil, err
+	// 	}
+	// }
 
 	// ADD new policies (and related checklists) that are in DTO but not in DB
 	for _, documentID := range assetPolicyForm.DocumentIDs {
 		if _, exists := existingPolicyMap[documentID]; !exists {
 			assetPolicy := &models.AssetPolicy{
-				AssetRegisterID: assetId,
-				DocumentID:      documentID,
-				CreatedBYID:     currentUserID,
+				AssetRegisterID:    assetId,
+				DocumentID:         documentID,
+				ComplianceStatusID: &notImplementedStatus.ID,
+				CreatedBYID:        currentUserID,
 			}
 
 			policyID, err := aps.repo.Create(assetPolicy, tx)

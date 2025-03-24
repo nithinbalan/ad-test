@@ -187,6 +187,7 @@ func NewAssetModule(db *gorm.DB,
 		documentModule.DocumentSvc,
 		documentModule.DocumentRequirementGroupSvc,
 		documentModule.DocumentRequirementSvc,
+		complianceModule.ComplianceStatusSvc,
 	)
 	assetPolicyController := controllers.NewAssetPolicyController(assetPolicySvc)
 
