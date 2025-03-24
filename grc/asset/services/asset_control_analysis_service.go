@@ -24,6 +24,8 @@ type AssetControlAnalysisServiceInterface interface {
 	Create(assetID uint, currentUserID uint, formDTO *dtos.AssetControlFormDTO) error
 	Update(assetID uint, id uint, currentUserID uint, updateFormDTO *dtos.AssetControlUpdateFormDTO) error
 	Delete(assetID uint, ids []uint, currentUserID uint) ([]uint, error)
+
+	GetControlSummary(assetID uint) (map[string]interface{}, error)
 }
 
 // Service implementation
@@ -119,10 +121,16 @@ func (acas *AssetControlAnalysisService) Create(assetID uint, currentUserID uint
 	var controlsToAdd []*models.AssetControl
 	for _, newControlID := range formDTO.ControlIds {
 		if _, exists := existingControlIDs[newControlID]; !exists {
+			controlDetails, err := acas.controlSvc.GetByID(newControlID)
+			if err != nil {
+				return err
+			}
 			control := &models.AssetControl{
-				AssetRegisterID: assetID,
-				ControlID:       newControlID,
-				CreatedBYID:     currentUserID,
+				AssetRegisterID:               assetID,
+				ControlID:                     newControlID,
+				ControlEfficiencyStatusID:     controlDetails.ControlEfficiencyStatusID,
+				ControlImplementationStatusID: controlDetails.ControlImplementationStatusID,
+				CreatedBYID:                   currentUserID,
 			}
 			controlsToAdd = append(controlsToAdd, control)
 		}
@@ -415,4 +423,76 @@ func (acas *AssetControlAnalysisService) validateAssetControlUpdateFormDTO(asset
 	}
 
 	return nil
+}
+
+func (acas *AssetControlAnalysisService) GetControlSummary(assetID uint) (map[string]interface{}, error) {
+	assetControlAnalyses, err := acas.repo.GetControlSummary(assetID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(assetControlAnalyses) == 0 {
+		return map[string]interface{}{
+			"total_control_score":       0,
+			"implementation_status":     []map[string]interface{}{},
+			"efficiency_percentage":     0,
+			"implementation_percentage": 0,
+			"total_efficiency":          []map[string]interface{}{},
+			"total_control_count":       0,
+		}, nil
+	}
+
+	implementationStatusCount := make(map[string]int)
+	efficiencyStatusCount := make(map[string]int)
+	implementationDetails := make(map[string]models.ControlImplementationStatus)
+	efficiencyDetails := make(map[string]models.ControlEfficiencyStatus)
+
+	for _, aca := range assetControlAnalyses {
+		implStatus := aca.ControlImplementationStatus.Type
+		implementationStatusCount[implStatus]++
+		implementationDetails[implStatus] = *aca.ControlImplementationStatus
+
+		effStatus := aca.ControlEfficiencyStatus.Type
+		efficiencyStatusCount[effStatus]++
+		efficiencyDetails[effStatus] = *aca.ControlEfficiencyStatus
+	}
+
+	totalControls := len(assetControlAnalyses)
+
+	implementationStatus := make([]map[string]interface{}, 0)
+	for status, count := range implementationStatusCount {
+		implDetail := implementationDetails[status]
+		implementationStatus = append(implementationStatus, map[string]interface{}{
+			"id":         implDetail.ID,
+			"type":       implDetail.Type,
+			"title_en":   implDetail.TitleEn,
+			"title_ar":   implDetail.TitleAr,
+			"count":      count,
+			"color_code": implDetail.ColorCode,
+		})
+	}
+
+	efficiencyStatus := make([]map[string]interface{}, 0)
+	for status, count := range efficiencyStatusCount {
+		effDetail := efficiencyDetails[status]
+		efficiencyStatus = append(efficiencyStatus, map[string]interface{}{
+			"id":         effDetail.ID,
+			"type":       effDetail.Type,
+			"title_en":   effDetail.TitleEn,
+			"title_ar":   effDetail.TitleAr,
+			"count":      count,
+			"color_code": effDetail.ColorCode,
+		})
+	}
+
+	summary := map[string]interface{}{
+		"total_control_score":       (float64(implementationStatusCount["implemented"]) / float64(totalControls)) * 100,
+		"implementation_status":     implementationStatus,
+		"efficiency_percentage":     (float64(efficiencyStatusCount["efficient"]) / float64(totalControls)) * 100,
+		"implementation_percentage": (float64(implementationStatusCount["implemented"]) / float64(totalControls)) * 100,
+		"total_efficiency":          efficiencyStatus,
+		"total_control_count":       totalControls,
+	}
+
+	return summary, nil
 }

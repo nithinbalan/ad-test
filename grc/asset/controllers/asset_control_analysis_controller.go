@@ -213,17 +213,18 @@ func (acac *AssetControlAnalysisController) DeleteAssetControlAnalyses(c *gin.Co
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-// func (acac *AssetControlAnalysisController) GetAssetControlSummary(c *gin.Context) {
-// 	assetID, err := strconv.Atoi(c.Param("id"))
-// 	if err != nil {
-// 		utility.SendNotFoundErrResp(c)
-// 		return
-// 	}
+func (acac *AssetControlAnalysisController) GetAssetControlSummary(c *gin.Context) {
+	assetID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 
-// 	asset, err := acac.service.GetControlSummary(uint(assetID))
-// 	if err != nil {
-// 		utility.SendInternalErrResp(acac.db, c, err.Error())
-// 		return
-// 	}
-// 	c.JSON(http.StatusOK, asset)
-// }
+	summary, err := acac.service.GetControlSummary(uint(assetID))
+	if err != nil {
+		utility.SendInternalErrResp(acac.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, summary)
+}

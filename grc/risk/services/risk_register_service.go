@@ -608,9 +608,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			return
 		}
 
-		// Prepare Review User Emails & Names
 		reviewEmailTo := make([]string, len(reviewUserIDs))
-		reviewers := make(map[uint]string) // Map of userID -> full name
 		reviewAction := "review-user-assign"
 
 		for i, userID := range reviewUserIDs {
@@ -623,11 +621,10 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 				continue
 			}
 			reviewEmailTo[i] = user.Email
-			reviewers[userID] = user.FirstNameEn + " " + user.LastNameEn
 		}
 
 		dbNotificationReview := &commonDTOs.DBNotificationDTO{
-			UserIDs:              reviewUserIDs, // Single DB notification for all reviewers
+			UserIDs:              reviewUserIDs,
 			ModuleIdentifier:     "risk",
 			NotificationType:     string(commonDTOs.InformationType),
 			HeadingEn:            "Risk Register Review Assigned",
@@ -642,7 +639,6 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			CreatedByID:          &currentUserID,
 		}
 
-		// **Send DB Notification only once**
 		err = rrs.notificationSvc.SendNotification(dbNotificationReview, nil, "risk")
 		if err != nil {
 			utility.LogError("Failed to send DB notification", map[string]interface{}{
@@ -650,33 +646,30 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			})
 		}
 
-		// **Send Personalized Emails inside the loop**
-		for userID, fullName := range reviewers {
-			emailNotificationReview := &commonDTOs.EmailNotificationDTO{
-				EmailTo:              reviewEmailTo, // All reviewers receive the same email
-				Subject:              fmt.Sprintf("Risk Register/%s: Review Assigned", riskRegister.Title),
-				TemplateRelativePath: "risk/templates/email/risk_register_review_user_mail.html",
-				EmailData: map[string]interface{}{
-					"FirstNameEn":          fullName,
-					"RiskReferenceNumber":  existingRiskRegister.ReferenceNumber,
-					"RiskTitle":            existingRiskRegister.Title,
-					"RiskDescription":      existingRiskRegister.Description,
-					"CreatedByFirstNameEn": createdBy.FirstNameEn,
-					"CreatedByLastNameEn":  createdBy.LastNameEn,
-					"AssignedOn":           time.Now().Format("2006-01-02"),
-					"RedirectURL":          fmt.Sprintf("%srisk/risk-register/%d/overview", utility.GetAppURL(), riskRegister.ID),
-				},
-			}
-
-			// **Send only email notification here**
-			err = rrs.notificationSvc.SendNotification(nil, emailNotificationReview, "risk")
-			if err != nil {
-				utility.LogError("Failed to send review user email", map[string]interface{}{
-					"error":  err.Error(),
-					"userID": userID,
-				})
-			}
+		emailNotificationReview := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              reviewEmailTo,
+			Subject:              fmt.Sprintf("Risk Register/%s: Review Assigned", riskRegister.Title),
+			TemplateRelativePath: "risk/templates/email/risk_register_review_user_mail.html",
+			EmailData: map[string]interface{}{
+				"FirstNameEn":          riskSetting.ReviewRole.TitleEn,
+				"RiskReferenceNumber":  existingRiskRegister.ReferenceNumber,
+				"RiskTitle":            existingRiskRegister.Title,
+				"RiskDescription":      existingRiskRegister.Description,
+				"CreatedByFirstNameEn": createdBy.FirstNameEn,
+				"CreatedByLastNameEn":  createdBy.LastNameEn,
+				"AssignedOn":           time.Now().Format("2006-01-02"),
+				"RedirectURL":          fmt.Sprintf("%srisk/risk-register/%d/overview", utility.GetAppURL(), riskRegister.ID),
+			},
 		}
+
+		err = rrs.notificationSvc.SendNotification(nil, emailNotificationReview, "risk")
+		if err != nil {
+			utility.LogError("Failed to send review user email", map[string]interface{}{
+				"error":       err.Error(),
+				"user_emails": reviewEmailTo,
+			})
+		}
+
 	}()
 
 	return id, nil
