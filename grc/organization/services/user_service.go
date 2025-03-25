@@ -230,16 +230,19 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		return 0, err
 	}
 
-	if systemPreference != nil && systemPreference.LicenseKeyDetails.LicenseKey != nil && *systemPreference.LicenseKeyDetails.LicenseKey != "" {
-		if err := us.validateLicenseKey(*systemPreference.LicenseKeyDetails.LicenseKey); err != nil {
-			return 0, err
+	if systemPreference != nil && systemPreference.LicenseKeyDetails != nil {
+		if systemPreference.LicenseKeyDetails.LicenseKey != nil && *systemPreference.LicenseKeyDetails.LicenseKey != "" {
+			if err := us.validateLicenseKey(*systemPreference.LicenseKeyDetails.LicenseKey); err != nil {
+				return 0, err
+			}
 		}
 	}
-
-	// Check if user creation is allowed based on available licenses
-	if systemPreference.LicenseKeyDetails.BalanceLicensedUserCount != nil && *systemPreference.LicenseKeyDetails.BalanceLicensedUserCount <= 0 {
-		tx.Rollback()
-		return 0, utility.NewValidationError(fmt.Errorf("invalid balance user"), "invalid", "balance users")
+	if systemPreference != nil && systemPreference.LicenseKeyDetails != nil {
+		// Check if user creation is allowed based on available licenses
+		if systemPreference.LicenseKeyDetails.BalanceLicensedUserCount != nil && *systemPreference.LicenseKeyDetails.BalanceLicensedUserCount <= 0 {
+			tx.Rollback()
+			return 0, utility.NewValidationError(fmt.Errorf("invalid balance user"), "invalid", "balance users")
+		}
 	}
 
 	if err := us.validateUserFormDTO(nil, userFormDTO); err != nil {
