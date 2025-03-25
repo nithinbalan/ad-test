@@ -33,6 +33,7 @@ type BusinessContinuityPlanServiceInterface interface {
 
 	GetDocumentPath(id uint, token string) (string, error)
 	GetBcpHeatmap(bcpId uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
+	GetTestSummary(bcpID uint) (*businessContinuityDTOs.BcpTestSummaryDTO, error)
 }
 
 // Service and implementations
@@ -701,4 +702,47 @@ func (bcpc *BusinessContinuityPlanService) GetBcpHeatmap(bcpId uint) ([][]*riskD
 	}
 
 	return heatmap, nil
+}
+
+func (bcs *BusinessContinuityPlanService) GetTestSummary(bcpID uint) (*businessContinuityDTOs.BcpTestSummaryDTO, error) {
+	// Get executed tests from test_and_exercises
+	executedTests, err := bcs.repo.GetTestAndExercisesByBcpID(bcpID)
+	if err != nil {
+		return nil, err
+	}
+
+	var successful, partiallySuccess, failure int
+	executedCount := 0
+
+	for _, testExercise := range executedTests {
+		if testExercise == nil {
+			continue
+		}
+
+		if testExercise.TestAndExerciseTestResult != nil && testExercise.TestAndExerciseTestResult.TestResultOption != nil {
+			executedCount++
+			switch testExercise.TestAndExerciseTestResult.TestResultOption.Type {
+			case "successful":
+				successful++
+			case "partially_successful":
+				partiallySuccess++
+			case "failure":
+				failure++
+			}
+		}
+	}
+
+	// Calculate test score (assuming score is percentage of successful tests)
+	testScore := 0
+	if executedCount > 0 {
+		testScore = (successful * 100) / executedCount
+	}
+
+	return &businessContinuityDTOs.BcpTestSummaryDTO{
+		TestScore:        testScore,
+		ExecutedTests:    executedCount,
+		SuccessfulTests:  successful,
+		FailedTests:      failure,
+		PartiallySuccess: partiallySuccess,
+	}, nil
 }

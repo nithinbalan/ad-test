@@ -152,3 +152,11 @@ type BcpDocumentDTO struct {
 	OriginalName string `json:"original_name"`
 	Type         string `json:"type"`
 }
+
+type BcpTestSummaryDTO struct {
+	TestScore        int `json:"test_score"`
+	ExecutedTests    int `json:"executed_tests"`
+	SuccessfulTests  int `json:"successful_tests"`
+	FailedTests      int `json:"failed_tests"`
+	PartiallySuccess int `json:"partially_success"`
+}

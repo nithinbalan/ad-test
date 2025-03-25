@@ -322,3 +322,26 @@ func (bcpc *BusinessContinuityPlanController) GetBcpHeatmap(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, heatmap)
 }
+
+func (bcpc *BusinessContinuityPlanController) GetTestSummary(c *gin.Context) {
+	bcpIDStr := c.Param("id")
+	bcpID, err := strconv.ParseUint(bcpIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	testSummary, err := bcpc.service.GetTestSummary(uint(bcpID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(bcpc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, testSummary)
+}
