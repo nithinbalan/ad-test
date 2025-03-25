@@ -24,17 +24,17 @@ type MeetingByResponsibleUnitDTO struct {
 }
 
 type MeetingByOrganizerDTO struct {
-	UserID               uint   `json:"user_id"`
-	UserFirstNameEn      string `json:"user_first_name_en"`
-	UserFirstNameAr      string `json:"user_first_name_ar"`
-	UserLastNameEn       string `json:"user_last_name_en"`
-	UserLastNameAr       string `json:"user_last_name_ar"`
-	UserTitleEn          string `json:"user_title_en"`
-	UserTitleAr          string `json:"user_title_ar"`
-	UserInitial          string `json:"user_initial"`
-	UserColor            string `json:"user_color"`
-	UserEmail            string `json:"user_email"`
-	UserProfileImagePath string `json:"user_profile_image_path"`
+	UserID               uint   `json:"id"`
+	UserFirstNameEn      string `json:"first_name_en"`
+	UserFirstNameAr      string `json:"first_name_ar"`
+	UserLastNameEn       string `json:"last_name_en"`
+	UserLastNameAr       string `json:"last_name_ar"`
+	UserTitleEn          string `json:"title_en"`
+	UserTitleAr          string `json:"title_ar"`
+	UserInitial          string `json:"initial"`
+	UserColor            string `json:"color"`
+	UserEmail            string `json:"email"`
+	UserProfileImagePath string `json:"profile_image_path"`
 	Count                int    `json:"count"`
 }
 
@@ -64,16 +64,16 @@ type MeetingActionPlanByResponsibleUnitDTO struct {
 
 type MeetingActionPlanByResponsibleUserDTO struct {
 	ID                   uint   `json:"id"`
-	UserFirstNameEn      string `json:"user_first_name_en"`
-	UserFirstNameAr      string `json:"user_first_name_ar"`
-	UserLastNameEn       string `json:"user_last_name_en"`
-	UserLastNameAr       string `json:"user_last_name_ar"`
-	UserTitleEn          string `json:"user_title_en"`
-	UserTitleAr          string `json:"user_title_ar"`
-	UserInitial          string `json:"user_initial"`
-	UserColor            string `json:"user_color"`
-	UserEmail            string `json:"user_email"`
-	UserProfileImagePath string `json:"user_profile_image_path"`
+	UserFirstNameEn      string `json:"first_name_en"`
+	UserFirstNameAr      string `json:"first_name_ar"`
+	UserLastNameEn       string `json:"last_name_en"`
+	UserLastNameAr       string `json:"last_name_ar"`
+	UserTitleEn          string `json:"title_en"`
+	UserTitleAr          string `json:"title_ar"`
+	UserInitial          string `json:"initial"`
+	UserColor            string `json:"color"`
+	UserEmail            string `json:"email"`
+	UserProfileImagePath string `json:"profile_image_path"`
 	Count                int    `json:"count"`
 }
 
@@ -117,16 +117,16 @@ type MeetingCountByYearDTO struct {
 }
 
 type MeetingCountByUserDTO struct {
-	UserID           uint   `json:"user_id"`
-	UserFirstNameEn  string `json:"user_first_name_en"`
-	UserFirstNameAr  string `json:"user_first_name_ar"`
-	UserLastNameEn   string `json:"user_last_name_en"`
-	UserLastNameAr   string `json:"user_last_name_ar"`
-	UserTitleEn      string `json:"user_title_en"`
-	UserTitleAr      string `json:"user_title_ar"`
-	UserInitial      string `json:"user_initial"`
-	UserColor        string `json:"user_color"`
-	UserEmail        string `json:"user_email"`
-	UserProfileImage string `json:"user_profile_image_path"`
+	UserID           uint   `json:"id"`
+	UserFirstNameEn  string `json:"first_name_en"`
+	UserFirstNameAr  string `json:"first_name_ar"`
+	UserLastNameEn   string `json:"last_name_en"`
+	UserLastNameAr   string `json:"last_name_ar"`
+	UserTitleEn      string `json:"title_en"`
+	UserTitleAr      string `json:"title_ar"`
+	UserInitial      string `json:"initial"`
+	UserColor        string `json:"color"`
+	UserEmail        string `json:"email"`
+	UserProfileImage string `json:"profile_image_path"`
 	MeetingCount     int    `json:"count"`
 }

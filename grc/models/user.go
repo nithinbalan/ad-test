@@ -2,6 +2,8 @@ package models
 
 import (
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type User struct {
@@ -42,9 +44,68 @@ type User struct {
 	UserSetting       *UserSetting        `gorm:"foreignKey:UserID"`
 	CreatedByUser     *User               `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser     *User               `gorm:"foreignKey:UpdatedByID"`
+	// Add this virtual field
+	PrimaryOrganizationUnit *OrganizationUnit `gorm:"-"`
 }
 
 // TableName overrides the table name used by User to `users`
 func (User) TableName() string {
 	return "users"
+}
+
+// Scope function to preload all necessary data
+func WithPrimaryOrganizationUnit() func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		// Query to check if unit is primary
+		primaryCheck := "EXISTS (SELECT 1 FROM organization_levels ol WHERE ol.id = organization_units.organization_level_id AND ol.is_primary = 1)"
+
+		// Only load the unit if it's primary
+		return db.Preload("OrganizationUnit1", primaryCheck).
+			Preload("OrganizationUnit1.OrganizationLevel", "is_primary = 1").
+			Preload("OrganizationUnit2", primaryCheck).
+			Preload("OrganizationUnit2.OrganizationLevel", "is_primary = 1").
+			Preload("OrganizationUnit3", primaryCheck).
+			Preload("OrganizationUnit3.OrganizationLevel", "is_primary = 1").
+			Preload("OrganizationUnit4", primaryCheck).
+			Preload("OrganizationUnit4.OrganizationLevel", "is_primary = 1").
+			Preload("OrganizationUnit5", primaryCheck).
+			Preload("OrganizationUnit5.OrganizationLevel", "is_primary = 1")
+	}
+}
+
+// Helper function to check if a unit is primary
+func checkUnitIsPrimary(unit *OrganizationUnit) bool {
+	return unit != nil &&
+		unit.OrganizationLevel != nil &&
+		unit.OrganizationLevel.IsPrimary
+}
+
+// Get the primary organization unit
+func (u *User) GetPrimaryOrganizationUnit() *OrganizationUnit {
+	if u == nil {
+		return nil
+	}
+
+	if checkUnitIsPrimary(u.OrganizationUnit1) {
+		return u.OrganizationUnit1
+	}
+	if checkUnitIsPrimary(u.OrganizationUnit2) {
+		return u.OrganizationUnit2
+	}
+	if checkUnitIsPrimary(u.OrganizationUnit3) {
+		return u.OrganizationUnit3
+	}
+	if checkUnitIsPrimary(u.OrganizationUnit4) {
+		return u.OrganizationUnit4
+	}
+	if checkUnitIsPrimary(u.OrganizationUnit5) {
+		return u.OrganizationUnit5
+	}
+	return nil
+}
+
+// AfterFind hook to automatically set primary unit
+func (u *User) AfterFind(tx *gorm.DB) error {
+	u.PrimaryOrganizationUnit = u.GetPrimaryOrganizationUnit()
+	return nil
 }

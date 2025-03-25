@@ -262,7 +262,6 @@ func (repo *IncidentRegisterRepository) GetFullDetailsByID(id uint, tx ...utilit
 		Preload("AssociatedDocuments").
 		Preload("Assets").
 		Preload("Assets.AssetRegister").
-		Preload("Assets.AssetRegister.AssetType").
 		Preload("Assets.AssetRegister.AssetCategory").
 		Preload("Assets.AssetRegister.AssetStatus").
 		Preload("Assets.AssetRegister.ResponsibleUser").

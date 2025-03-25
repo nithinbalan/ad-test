@@ -147,6 +147,11 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		return 0, err
 	}
 
+	actionPlanStatus, err := maps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
 	meetingActionPlan := &models.MeetingActionPlan{
 		MeetingID:          meetingID,
 		Title:              MeetingActionPlanFormDTO.Title,
@@ -157,7 +162,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		MeetingMinuteID:    MeetingActionPlanFormDTO.MeetingMinuteID,
 		TargetDate:         dates.TargetDate,
 		Percentage:         MeetingActionPlanFormDTO.Percentage,
-		ActionPlanStatusID: MeetingActionPlanFormDTO.ActionPlanStatusID,
+		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedByID:        currentUserID,
 	}
 
@@ -175,7 +180,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		return 0, err
 	}
 
-	actionPlanStatusID := MeetingActionPlanFormDTO.ActionPlanStatusID
+	actionPlanStatusID := actionPlanStatus.ID
 	meetingActionPlanUpdate := &models.MeetingActionPlanStatusUpdate{
 		MeetingActionPlanID: id,
 		ActionPlanStatusID:  actionPlanStatusID,
@@ -245,7 +250,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               MeetingActionPlanFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{MeetingActionPlanFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "meeting",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Meeting Action Plan Responsibility Assigned",
@@ -349,7 +354,6 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	existingMeetingActionPlan.ReviewUserID = MeetingActionPlanFormDTO.ReviewUserID
 	existingMeetingActionPlan.TargetDate = dates.TargetDate
 	existingMeetingActionPlan.Percentage = MeetingActionPlanFormDTO.Percentage
-	existingMeetingActionPlan.ActionPlanStatusID = MeetingActionPlanFormDTO.ActionPlanStatusID
 	existingMeetingActionPlan.MeetingMinuteID = MeetingActionPlanFormDTO.MeetingMinuteID
 	existingMeetingActionPlan.UpdatedByID = &currentUserID
 
@@ -381,7 +385,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"title":              oldMeetingActionPlan.Title,
@@ -444,7 +448,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "meeting",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Meeting Action Plan Responsibility Removed",
@@ -461,7 +465,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               MeetingActionPlanFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{MeetingActionPlanFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "meeting",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Meeting Action Plan Responsibility Assigned",
@@ -671,7 +675,7 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "meeting",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Meeting Action Plan Deleted",
@@ -773,9 +777,6 @@ func (maps *MeetingActionPlanService) validateMeetingActionPlanFormDTO(meetingAc
 		return utility.NewValidationError(fmt.Errorf("responsible user does not exist"), "not_exist", "responsible user")
 	}
 
-	if _, err := maps.actionPlanStatusSvc.GetByID(meetingActionPlanFormDTO.ActionPlanStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
-	}
 	if _, err := maps.meetingMinuteSvc.GetByID(*meetingActionPlanFormDTO.MeetingMinuteID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("meeting minute does not exist"), "not_exist", "meeting minute")
 	}

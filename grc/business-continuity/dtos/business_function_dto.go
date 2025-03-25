@@ -94,6 +94,8 @@ type BusinessFunctionDetailDTO struct {
 	SeverityLevel        *masterDTOs.SeverityLevelDTO    `json:"severity_level"`
 	ReviewFrequency      *masterDTOs.ReviewFrequencyDTO  `json:"review_frequency"`
 
+	LatestBusinessContinuityPlan *BusinessContinuityPlanDetailDTO `json:"latest_business_continuity_plan"`
+
 	Processes     []*BusinessFunctionProcessDTO   `json:"processes"`
 	CreatedAt     time.Time                       `json:"created_at"`
 	UpdatedAt     *time.Time                      `json:"updated_at"`
@@ -111,4 +113,13 @@ type BusinessFunctionProcessDTO struct {
 type BusinessFunctionParsedDates struct {
 	NextReviewDate *time.Time
 	LastReviewDate *time.Time
+}
+
+type BusinessFunctionOverallTestResultDTO struct {
+	Successful       int `json:"successful"`
+	PartiallySuccess int `json:"partially_success"`
+	Failure          int `json:"failure"`
+	TestPlanned      int `json:"test_planned"`
+	TestExecuted     int `json:"test_executed"`
+	OverallScore     int `json:"overall_score"`
 }

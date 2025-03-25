@@ -147,6 +147,11 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		return 0, err
 	}
 
+	actionPlanStatus, err := iaps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
 	incidentActionPlan := &models.IncidentActionPlan{
 		IncidentRegisterID: incidentID,
 		Title:              IncidentActionPlanFormDTO.Title,
@@ -157,7 +162,7 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		TargetDate:         dates.TargetDate,
 		Percentage:         IncidentActionPlanFormDTO.Percentage,
 		Comments:           IncidentActionPlanFormDTO.Comments,
-		ActionPlanStatusID: IncidentActionPlanFormDTO.ActionPlanStatusID,
+		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedBYID:        currentUserID,
 	}
 
@@ -166,7 +171,7 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		tx.Rollback()
 		return 0, err
 	}
-	actionPlanStatusID := IncidentActionPlanFormDTO.ActionPlanStatusID
+	actionPlanStatusID := actionPlanStatus.ID
 	incidentActionPlanUpdate := &models.IncidentActionPlanStatusUpdate{
 		IncidentActionPlanID: id,
 		ActionPlanStatusID:   actionPlanStatusID,
@@ -229,7 +234,6 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 	tx.Commit()
 
 	go func() {
-
 		existingIncidentActionPlan, err := iaps.GetFullDetailsByID(incidentID, id)
 		if err != nil {
 			utility.LogError("Failed to fetch incident action plan", map[string]interface{}{
@@ -265,7 +269,7 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               IncidentActionPlanFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{IncidentActionPlanFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "incident",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Incident Action Plan Responsibility Assigned",
@@ -370,7 +374,6 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	existingIncidentActionPlan.TargetDate = dates.TargetDate
 	existingIncidentActionPlan.Percentage = IncidentActionPlanFormDTO.Percentage
 	existingIncidentActionPlan.Comments = IncidentActionPlanFormDTO.Comments
-	existingIncidentActionPlan.ActionPlanStatusID = IncidentActionPlanFormDTO.ActionPlanStatusID
 	existingIncidentActionPlan.UpdatedBYID = &currentUserID
 
 	err = iaps.repo.Update(existingIncidentActionPlan, tx)
@@ -402,7 +405,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"title":              oldIncidentActionPlan.Title,
@@ -442,7 +445,6 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -463,7 +465,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "incident",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Incident Action Plan Responsibility Removed",
@@ -480,7 +482,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               IncidentActionPlanFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{IncidentActionPlanFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "incident",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Incident Action Plan Responsibility Assigned",
@@ -715,7 +717,7 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "incident",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Incident Action Plan Deleted",
@@ -807,10 +809,6 @@ func (iaps *IncidentActionPlanService) validateIncidentActionPlanFormDTO(Inciden
 		if _, err := iaps.severityLevelSvc.GetByID(*IncidentActionPlanFormDTO.SeverityLevelID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 		}
-	}
-
-	if _, err := iaps.actionPlanStatusSvc.GetByID(IncidentActionPlanFormDTO.ActionPlanStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
 
 	return nil

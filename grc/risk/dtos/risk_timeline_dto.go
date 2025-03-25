@@ -7,6 +7,7 @@ import (
 type RiskTimelineListDTO struct {
 	ID                          uint      `json:"id"`
 	RiskRegisterID              uint      `json:"risk_register_id"`
+	RiskTimelineTypeID          uint      `json:"risk_timeline_type_id"`
 	RiskTimelineType            string    `json:"risk_timeline_type"`
 	RiskTimelineTypeTitleEn     string    `json:"risk_timeline_type_title_en"`
 	RiskTimelineTypeTitleAr     string    `json:"risk_timeline_type_title_ar"`

@@ -33,6 +33,9 @@ type BusinessFunction struct {
 	Processes       []*BusinessFunctionProcess `gorm:"foreignKey:BusinessFunctionID"`
 	CreatedByUser   *User                      `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser   *User                      `gorm:"foreignKey:UpdatedBYID"`
+
+	BusinessContinuityPlans      []BusinessContinuityPlan `gorm:"foreignKey:BusinessFunctionID"`
+	LatestBusinessContinuityPlan *BusinessContinuityPlan  `gorm:"foreignKey:BusinessFunctionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;where:is_latest_version = true"`
 }
 
 // TableName overrides the table name used by BusinessFunction to `business_functions`

@@ -25,6 +25,7 @@ type App struct {
 	AssetModule              *AssetModule
 	SharedModule             *SharedModule
 	BusinessContinuityModule *BusinessContinuityModule
+	StrategyModule           *StrategyModule
 }
 
 func NewApp(db *gorm.DB) *App {
@@ -37,16 +38,17 @@ func NewApp(db *gorm.DB) *App {
 	organizationModule := NewOrganizationModule(db, sharedModule, settingsModule, masterModule, taskModule, commonModule)
 	authModule := NewAuthModule(db, organizationModule, settingsModule, commonModule)
 	complianceModule := NewComplianceModule(db, sharedModule, masterModule, organizationModule, taskModule, settingsModule, commonModule)
-	assetModule := NewAssetModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
+	documentModule := NewDocumentModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
+	assetModule := NewAssetModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule, documentModule, complianceModule)
 	riskModule := NewRiskModule(db, sharedModule, settingsModule, masterModule, libraryModule, organizationModule, complianceModule, commonModule, taskModule, assetModule)
 	incidentModule := NewIncidentModule(db, sharedModule, settingsModule, masterModule, organizationModule, complianceModule, riskModule, taskModule, commonModule, assetModule)
-	documentModule := NewDocumentModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
 	meetingModule := NewMeetingModule(db, sharedModule, organizationModule, masterModule, commonModule, complianceModule, riskModule, incidentModule, taskModule)
 	auditModule := NewAuditModule(db, sharedModule, organizationModule, complianceModule, riskModule, incidentModule, documentModule, settingsModule, masterModule, taskModule, commonModule)
 	kpiModule := NewKPIModule(db, riskModule)
 	auditInsightsModule := NewAuditInsightsModule(db, sharedModule, organizationModule, auditModule, commonModule)
-	reportsModule := NewReportsModule(db, complianceModule, organizationModule, riskModule, auditModule, incidentModule, meetingModule, settingsModule)
-	businessFunctionModule := NewBusinessContinuityModule(db, sharedModule, settingsModule, masterModule, organizationModule, assetModule, documentModule, riskModule)
+	reportsModule := NewReportsModule(db, complianceModule, organizationModule, riskModule, auditModule, incidentModule, meetingModule, settingsModule, documentModule)
+	businessFunctionModule := NewBusinessContinuityModule(db, sharedModule, settingsModule, masterModule, organizationModule, assetModule, documentModule, riskModule, commonModule, taskModule)
+	strategyModule := NewStrategyModule(db, sharedModule, settingsModule, masterModule, organizationModule)
 
 	return &App{
 		DB:                       db,
@@ -69,5 +71,6 @@ func NewApp(db *gorm.DB) *App {
 		AssetModule:              assetModule,
 		SharedModule:             sharedModule,
 		BusinessContinuityModule: businessFunctionModule,
+		StrategyModule:           strategyModule,
 	}
 }

@@ -39,6 +39,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetMaintenanceController := app.AssetModule.AssetMaintenanceController
 	assetAssociatedItemController := app.AssetModule.AssetAssociatedItemController
 	assetCriticalityController := app.AssetModule.AssetCriticalityController
+	assetPolicyController := app.AssetModule.AssetPolicyController
+	assetPolicyChecklistController := app.AssetModule.AssetPolicyChecklistController
+	assetPolicyCommentController := app.AssetModule.AssetPolicyCommentController
+	assetControlAnalysisController := app.AssetModule.AssetControlAnalysisController
+	assetKriController := app.AssetModule.AssetKriController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -78,6 +83,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.PUT("/asset-register/:id", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetRegisterController.UpdateAsset)
 	assetRoutes.POST("/asset-register/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetRegisterController.DeleteAssets)
 	assetRoutes.GET("/asset-register/:id/control-summary", middlewares.RolePermissionMiddleware(db, "process", "view"), assetRegisterController.GetControlSummary)
+	unauthenticatedRoutes.GET("/asset-register/:id/document-download", assetRegisterController.DownloadAssetDocument)
 
 	//Asset Matrix
 	assetRoutes.GET("/asset-criticality-matrices", middlewares.RolePermissionMiddleware(db, "asset_criticality_matrix", "view"), assetCriticalityMatrixController.GetAllMatrices)
@@ -199,9 +205,55 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.GET("assets/:id/risks", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.GetAllAssetRisks)
 	assetRoutes.GET("assets/:id/vulnerabilities", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.GetAllAssetVulnerabilities)
 
+	assetRoutes.POST("assets/:id/vulnerabilities", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.CreateAssetVulnerabilities)
+	assetRoutes.POST("assets/:id/vulnerabilities/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.DeleteAssetVulnerabilities)
+
+	assetRoutes.POST("vulnerabilities/:id/threats", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.CreateAssetThreats)
+	assetRoutes.POST("vulnerabilities/:id/threats/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.DeleteAssetThreats)
+
+	assetRoutes.POST("threats/:id/risks", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.CreateAssetThreatRisks)
+	assetRoutes.POST("threats/:id/risks/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.DeleteAssetThreatRisks)
+
+	assetRoutes.GET("assets/:id/risk-analysis", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.GetRiskAnalysis)
+
 	//asset criticality
 	assetRoutes.GET("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetCriticalityController.GetAssetCriticality)
 	assetRoutes.POST("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.CreateAssetCriticality)
 	assetRoutes.PUT("assets/:id/criticality/:criticalityId", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.UpdateAssetCriticality)
 	assetRoutes.DELETE("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.DeleteAssetCriticality)
+
+	assetRoutes.GET("/assets/:id/policies", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetPolicyController.GetAllPolicies)
+	assetRoutes.GET("/assets/:id/policies/:policyId", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetPolicyController.GetPolicyDetails)
+	assetRoutes.POST("/assets/:id/policies", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyController.CreatePolicy)
+	assetRoutes.POST("/assets/:id/policies/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyController.DeletePolicies)
+	assetRoutes.GET("/assets/:id/policies-summary", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetPolicyController.GetAssetPolicyComplianceSummary)
+
+	assetRoutes.POST("/assets/:id/policies/:policyId/checklists", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyChecklistController.CreateAssetPolicyChecklist)
+	assetRoutes.PUT("/assets/:id/policies/:policyId/checklists/:checklistId", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyChecklistController.UpdateAssetPolicyChecklist)
+	assetRoutes.GET("/assets/:id/policies/:policyId/checklists/:checklistId", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetPolicyChecklistController.GetAssetPolicyChecklistDetails)
+	assetRoutes.POST("/assets/:id/policies/:policyId/checklists/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyChecklistController.DeleteAssetPolicyChecklists)
+	assetRoutes.PUT("/assets/:id/policies/:policyId/checklists/:checklistId/answer", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyChecklistController.AnswerAssetPolicyChecklist)
+	assetRoutes.POST("/assets/:id/policies/:policyId/checklists/delete-answer", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyChecklistController.DeleteAnswerAssetPolicyChecklist)
+	assetRoutes.GET("/assets/:id/policies/:policyId/checklists-summary", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetPolicyChecklistController.GetAssetPolicyChecklistSummary)
+
+	assetRoutes.GET("/assets/:id/policies/:policyId/comments", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetPolicyCommentController.GetAllComments)
+	assetRoutes.GET("/assets/:id/policies/:policyId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetPolicyCommentController.GetCommentDetails)
+	assetRoutes.POST("/assets/:id/policies/:policyId/comments", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyCommentController.CreateComment)
+	assetRoutes.PUT("/assets/:id/policies/:policyId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyCommentController.UpdateComment)
+	assetRoutes.POST("/assets/:id/policies/:policyId/comments/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetPolicyCommentController.DeleteComment)
+
+	assetRoutes.GET("assets/:id/control-analysis", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetControlAnalysisController.GetAllAssetControlAnalyses)
+	assetRoutes.GET("assets/:id/control-analysis/:analysisId", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetControlAnalysisController.GetAssetControlAnalysisDetails)
+	assetRoutes.POST("assets/:id/control-analysis", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetControlAnalysisController.CreateAssetControlAnalysis)
+	assetRoutes.PUT("assets/:id/control-analysis/:analysisId", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetControlAnalysisController.UpdateAssetControlAnalysis)
+	assetRoutes.POST("assets/:id/control-analysis/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetControlAnalysisController.DeleteAssetControlAnalyses)
+
+	assetRoutes.GET("assets/:id/control-analysis/control-summary", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetControlAnalysisController.GetAssetControlSummary)
+
+	assetRoutes.GET("/assets/:id/kris", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetKriController.GetAllAssetKris)
+	assetRoutes.GET("/assets/:id/kris/:kriId", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetKriController.GetAssetKriDetails)
+	assetRoutes.POST("/assets/:id/kris", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetKriController.CreateAssetKri)
+	assetRoutes.PUT("/assets/:id/kris", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetKriController.UpdateAssetKri)
+	assetRoutes.POST("/assets/:id/kris/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetKriController.DeleteAssetKris)
+
 }

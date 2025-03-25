@@ -7,6 +7,7 @@ import (
 	businessFunctionRepositories "jethur/grc/business-continuity/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 	"os"
@@ -25,14 +26,20 @@ type BusinessFunctionServiceInterface interface {
 
 	UpdateBusinessFunction(businessFunction *models.BusinessFunction, tx utility.DatabaseTransaction) error
 	ExportBusinessFunction(data []*businessContinuityDTOs.BusinessFunctionListDTO, currentUserID uint) (*os.File, error)
+
+	GetProcessAssociatedRisks(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemRiskListResponseDTO, error)
+	GetProcessAssociatedIncidents(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error)
+	GetProcessAssociatedControls(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemControlListResponseDTO, error)
+	GetTestResults(businessFunctionID uint) (*businessContinuityDTOs.BusinessFunctionOverallTestResultDTO, error)
 }
 
 // Service and implementations
 type BusinessFunctionService struct {
-	repo           businessFunctionRepositories.BusinessFunctionRepositoryInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
-	userSvc        organizationServices.UserServiceInterface
-	userSettingSvc organizationServices.UserSettingServiceInterface
+	repo                     businessFunctionRepositories.BusinessFunctionRepositoryInterface
+	activityLogSvc           logServices.ActivityLogServiceInterface
+	userSvc                  organizationServices.UserServiceInterface
+	userSettingSvc           organizationServices.UserSettingServiceInterface
+	processAssociatedItemSvc organizationServices.ProcessAssociatedItemServiceInterface
 }
 
 func NewBusinessFunctionService(
@@ -40,12 +47,14 @@ func NewBusinessFunctionService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	processAssociatedItemSvc organizationServices.ProcessAssociatedItemServiceInterface,
 ) BusinessFunctionServiceInterface {
 	return &BusinessFunctionService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
-		userSvc:        userSvc,
-		userSettingSvc: userSettingSvc,
+		repo:                     repo,
+		activityLogSvc:           activityLogSvc,
+		userSvc:                  userSvc,
+		userSettingSvc:           userSettingSvc,
+		processAssociatedItemSvc: processAssociatedItemSvc,
 	}
 }
 
@@ -508,4 +517,93 @@ func (bfs *BusinessFunctionService) ExportBusinessFunction(data []*businessConti
 	}
 
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (bfs *BusinessFunctionService) GetProcessAssociatedRisks(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemRiskListResponseDTO, error) {
+	risks, err := bfs.processAssociatedItemSvc.GetAllRisks(processID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return risks, nil
+}
+
+func (bfs *BusinessFunctionService) GetProcessAssociatedIncidents(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error) {
+	incidents, err := bfs.processAssociatedItemSvc.GetAllIncidents(processID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return incidents, nil
+}
+
+func (bfs *BusinessFunctionService) GetProcessAssociatedControls(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemControlListResponseDTO, error) {
+	controls, err := bfs.processAssociatedItemSvc.GetAllControlsWithPagination(processID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return controls, nil
+}
+
+func (bfs *BusinessFunctionService) GetTestResults(businessFunctionID uint) (*businessContinuityDTOs.BusinessFunctionOverallTestResultDTO, error) {
+	businessFunction, err := bfs.GetFullDetailsByID(businessFunctionID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Initialize counters
+	var successful, partiallySuccess, failure, testPlanned, testExecuted int
+
+	// Get test results from the latest BCP
+	if businessFunction.LatestBusinessContinuityPlan != nil {
+		// Get planned tests from bcp_test_and_exercises
+		plannedTests, err := bfs.repo.GetBcpTestAndExercisesByBcpID(businessFunction.LatestBusinessContinuityPlan.ID)
+		if err != nil {
+			return nil, err
+		}
+		testPlanned = len(plannedTests)
+
+		// Get executed tests from test_and_exercises
+		executedTests, err := bfs.repo.GetTestAndExercisesByBcpID(businessFunction.LatestBusinessContinuityPlan.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, testExercise := range executedTests {
+			fmt.Println("testExercise", testExercise)
+			if testExercise == nil {
+				continue
+			}
+
+			if testExercise.TestAndExerciseTestResult != nil && testExercise.TestAndExerciseTestResult.TestResultOption != nil {
+				fmt.Println("testExercise.TestAndExerciseTestResult.TestResultOption.Type", testExercise.TestAndExerciseTestResult.TestResultOption.Type)
+				testExecuted++
+				switch testExercise.TestAndExerciseTestResult.TestResultOption.Type {
+				case "successful":
+					successful++
+				case "partially_successful":
+					partiallySuccess++
+				case "failure":
+					failure++
+				}
+			}
+		}
+	}
+
+	// Calculate overall score
+	totalTests := successful + partiallySuccess + failure
+	overallScore := 0
+	if totalTests > 0 {
+		overallScore = (successful * 100) / totalTests
+	}
+
+	return &businessContinuityDTOs.BusinessFunctionOverallTestResultDTO{
+		Successful:       successful,
+		PartiallySuccess: partiallySuccess,
+		Failure:          failure,
+		TestPlanned:      testPlanned,
+		TestExecuted:     testExecuted,
+		OverallScore:     overallScore,
+	}, nil
 }

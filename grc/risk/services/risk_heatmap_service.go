@@ -18,6 +18,8 @@ type RiskHeatmapServiceInterface interface {
 	GetRiskHeatmapByResponseStrategy() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
 	GetRiskHeatmapByRiskStatus() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
 	GetRiskHeatmapByReviewFrequency() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
+
+	GetRiskHeatmap(riskRegisterIDs []uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
 }
 
 type RiskHeatmapService struct {
@@ -51,7 +53,7 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByProcessID(processID uint) ([][]*r
 		riskRegisterIDs = append(riskRegisterIDs, rp.RiskRegisterID)
 	}
 
-	return rhs.getRiskHeatmap(riskRegisterIDs)
+	return rhs.GetRiskHeatmap(riskRegisterIDs)
 }
 
 func (rhs *RiskHeatmapService) GetRiskHeatmapByControlID(controlID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error) {
@@ -65,7 +67,7 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByControlID(controlID uint) ([][]*r
 		riskRegisterIDs = append(riskRegisterIDs, rc.RiskRegisterID)
 	}
 
-	return rhs.getRiskHeatmap(riskRegisterIDs)
+	return rhs.GetRiskHeatmap(riskRegisterIDs)
 }
 
 func (rhs *RiskHeatmapService) GetRiskHeatmapByComplianceID(complianceID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error) {
@@ -79,7 +81,7 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByComplianceID(complianceID uint) (
 		riskRegisterIDs = append(riskRegisterIDs, rc.RiskRegisterID)
 	}
 
-	return rhs.getRiskHeatmap(riskRegisterIDs)
+	return rhs.GetRiskHeatmap(riskRegisterIDs)
 }
 
 func (rhs *RiskHeatmapService) GetRiskHeatmapBySLAID(slaID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error) {
@@ -93,7 +95,7 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapBySLAID(slaID uint) ([][]*riskDTOs.
 		riskRegisterIDs = append(riskRegisterIDs, rs.RiskRegisterID)
 	}
 
-	return rhs.getRiskHeatmap(riskRegisterIDs)
+	return rhs.GetRiskHeatmap(riskRegisterIDs)
 }
 
 func (rhs *RiskHeatmapService) GetRiskHeatmapByResponsibleUnit() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error) {
@@ -316,11 +318,11 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByRiskMatrix() ([][]*riskDTOs.RiskH
 		riskRegisterIDs = append(riskRegisterIDs, rp.ID)
 	}
 
-	return rhs.getRiskHeatmap(riskRegisterIDs)
+	return rhs.GetRiskHeatmap(riskRegisterIDs)
 }
 
 // function to get risk heatmap matrix
-func (rhs *RiskHeatmapService) getRiskHeatmap(riskRegisterIDs []uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error) {
+func (rhs *RiskHeatmapService) GetRiskHeatmap(riskRegisterIDs []uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error) {
 	riskMatrixType, err := rhs.riskMatrixSvc.GetByType("erm")
 	if err != nil {
 		return nil, err

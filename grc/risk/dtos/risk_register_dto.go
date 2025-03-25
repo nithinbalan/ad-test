@@ -157,6 +157,9 @@ type RiskRegisterDetailDTO struct {
 	UpdatedAt               *time.Time                         `json:"updated_at"`
 	CreatedByUser           organizationDTOs.UserMinimalDTO    `json:"created_by"`
 	UpdatedByUser           organizationDTOs.UserMinimalDTO    `json:"updated_by"`
+	SubmittedByUser         *organizationDTOs.UserMinimalDTO   `json:"submitted_by"`
+	SubmittedAtString       *string                            `json:"submitted_at"`
+	ReviewedByUser          *organizationDTOs.UserMinimalDTO   `json:"reviewed_by"`
 	Controls                []*RiskControlDTO                  `json:"controls"`
 	ComplianceRequirements  []*RiskComplianceRequirementDTO    `json:"compliance_requirements"`
 	Processes               []*RiskProcessDTO                  `json:"processes"`
@@ -169,6 +172,7 @@ type RiskRegisterDetailDTO struct {
 	MarkedAsAuditableItem   bool                               `json:"marked_as_auditable_item"`
 	AuditableItem           *AuditableItemMinimalRiskDetailDTO `json:"auditable_item"`
 }
+
 type AuditableItemMinimalRiskDetailDTO struct {
 	ID                  uint                             `json:"id"`
 	Type                string                           `json:"type"`
@@ -262,7 +266,7 @@ type RiskThreatDTO struct {
 type RiskRegisterFormDTO struct {
 	RiskCategoryID           uint                          `json:"risk_category_id" binding:"required"`
 	RiskSourceID             *uint                         `json:"risk_source_id"`
-	ResponsibleUserID        uint                          `json:"responsible_user_id" binding:"required"`
+	ResponsibleUserID        uint                          `json:"responsible_user_id"`
 	Title                    string                        `json:"title" binding:"required,max=255"`
 	Description              *string                       `json:"description"`
 	ReportedAt               *string                       `json:"reported_at" binding:"required,datetime=2006-01-02"`

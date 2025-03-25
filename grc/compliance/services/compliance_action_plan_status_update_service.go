@@ -3,6 +3,11 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
@@ -14,10 +19,6 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	taskServices "jethur/grc/task/services"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -83,7 +84,6 @@ func (casus ComplianceActionPlanStatusUpdateService) GetByID(ComplianceID uint, 
 	}
 
 	complianceActionPlanStatusUpdate, err := casus.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -158,7 +158,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 			tx.Rollback()
 			return 0, err
 		}
-		//move file to storage
+		// move file to storage
 		for _, doc := range documents {
 			storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
@@ -212,7 +212,6 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -232,7 +231,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 			action := "review-user"
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               *complianceActionPlan.ReviewUserID,
+				UserIDs:              []uint{*complianceActionPlan.ReviewUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Compliance Action Plan Status Update",
@@ -306,13 +305,11 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 	}
 
 	oldComplianceActionPlanStatusUpdate, err := casus.GetByID(ComplianceID, ComplianceActionPlanID, id)
-
 	if err != nil {
 		return err
 	}
 
 	existingComplianceActionPlanStatusUpdate, err := casus.GetByID(ComplianceID, ComplianceActionPlanID, id)
-
 	if err != nil {
 		return err
 	}
@@ -345,18 +342,16 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 	var documentsToDelete []*models.ComplianceActionPlanStatusUpdateDocument
 
 	for _, doc := range complianceActionPlanStatusUpdateFormDTO.Documents {
-
 		if doc.IsNewFile != nil && *doc.IsNewFile {
 			// Encrypt the filename
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
 
-			//genereate URL
+			// genereate URL
 			url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
 			// Create a new Control test Document instance
@@ -428,7 +423,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"comment":    oldComplianceActionPlanStatusUpdate.Comment,
@@ -454,7 +449,6 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -473,7 +467,6 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 }
 
 func (casus *ComplianceActionPlanStatusUpdateService) validateComplianceActionPlanStatusUpdateFormDTO(complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO) error {
-
 	if _, err := casus.actionPlanStatusSvc.GetByID(complianceActionPlanStatusUpdateFormDTO.ActionPlanStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
@@ -490,7 +483,6 @@ func (capsus ComplianceActionPlanStatusUpdateService) GetLatestComplianceActionP
 }
 
 func (capsus *ComplianceActionPlanStatusUpdateService) GetDocumentPath(ComplianceID, ActionPlanID, id uint, token string) (string, error) {
-
 	existingComplianceActionplanStatusUpdate, err := capsus.GetByID(ComplianceID, ActionPlanID, id)
 	if err != nil {
 		return "", err
@@ -603,14 +595,13 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 	tx2.Commit()
 
 	go func() {
-
 		urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, compliaceActionPlanID)
 		queryParam := ""
 		entity := "compliance-action-plan"
 		action := "close-compliance-action-plan"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               existingComplianceActionPlan.ResponsibleUserID,
+			UserIDs:              []uint{existingComplianceActionPlan.ResponsibleUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Action Plan Status Update",
@@ -683,7 +674,6 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.ApproveAction,
@@ -765,14 +755,13 @@ func (capus *ComplianceActionPlanStatusUpdateService) Revert(complianceID uint, 
 	tx.Commit()
 
 	go func() {
-
 		urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, compliaceActionPlanID)
 		queryParam := ""
 		entity := "compliance-action-plan"
 		action := "reopen-compliance-action-plan"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               existingComplianceActionPlan.ResponsibleUserID,
+			UserIDs:              []uint{existingComplianceActionPlan.ResponsibleUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Action Plan Status Update",
@@ -845,7 +834,6 @@ func (capus *ComplianceActionPlanStatusUpdateService) Revert(complianceID uint, 
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.ApproveAction,

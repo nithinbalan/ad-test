@@ -143,11 +143,13 @@ func (repo *RiskAssociatedItemRepository) GetAllComplianceRequirements(riskID ui
 			compliance_register.title_en AS compliance_register_title_en,
 			compliance_register.title_ar AS compliance_register_title_ar,
 			risk_compliance_requirements.compliance_requirement_id AS compliance_requirement_id,
-			compliance_clauses.title AS compliance_clause_title,
+			compliance_clauses.title_en AS compliance_clause_title_en,
+			compliance_clauses.title_ar AS compliance_clause_title_ar,
 			compliance_clauses.clause_no AS compliance_clause_no,
 			compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
 			compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
-			compliance_requirements.title AS compliance_requirement_title,
+			compliance_requirements.title_en AS compliance_requirement_title_en,
+			compliance_requirements.title_ar AS compliance_requirement_title_ar,
 			compliance_statuses.title_en AS compliance_status_title_en,
 			compliance_statuses.title_ar AS compliance_status_title_ar,
 			compliance_statuses.color_code AS compliance_status_color_code
@@ -168,11 +170,11 @@ func (repo *RiskAssociatedItemRepository) GetAllComplianceRequirements(riskID ui
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
-		query = query.Where(`(compliance_requirements.title LIKE ?)`, keyword)
+		query = query.Where(`(compliance_requirements.title_en LIKE ?)`, keyword)
 	}
 
 	if params.SortBy == "" {
-		params.SortBy = "compliance_requirements.title"
+		params.SortBy = "compliance_requirements.title_en"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
@@ -672,8 +674,6 @@ func (repo *RiskAssociatedItemRepository) GetAllAssets(riskID uint, params *risk
 		asset_register.location,
 		asset_register.description,
 		CONVERT(VARCHAR, asset_register.acquisition_date, 23) AS acquisition_date,
-		asset_types.title_en AS asset_type_title_en,
-		asset_types.title_ar AS asset_type_title_ar,
 		asset_categories.title_en AS asset_category_title_en,
 		asset_categories.title_ar AS asset_category_title_ar,
 		asset_statuses.title_en AS asset_status_title_en,
@@ -710,7 +710,6 @@ func (repo *RiskAssociatedItemRepository) GetAllAssets(riskID uint, params *risk
 		updated_user.profile_image_path AS updated_user_profile_image_path
 	`).
 		Joins("LEFT JOIN asset_register ON asset_register.id = risk_assets.asset_register_id").
-		Joins("LEFT JOIN asset_types ON asset_types.id = asset_register.asset_type_id").
 		Joins("LEFT JOIN asset_categories ON asset_categories.id = asset_register.asset_category_id").
 		Joins("LEFT JOIN asset_statuses ON asset_statuses.id = asset_register.asset_status_id").
 		Joins("LEFT JOIN organization_units ON organization_units.id = asset_register.responsible_unit_id").
@@ -731,16 +730,13 @@ func (repo *RiskAssociatedItemRepository) GetAllAssets(riskID uint, params *risk
 			asset_register.title_ar LIKE ? OR
 			asset_register.reference_number LIKE ? OR
 			asset_register.description LIKE ? OR
-			asset_types.title_en LIKE ? OR
-			asset_types.title_ar LIKE ? OR
 			asset_categories.title_en LIKE ? OR
 			asset_categories.title_ar LIKE ? OR
 			asset_statuses.title_en LIKE ? OR
 			asset_statuses.title_ar LIKE ?)`,
 
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	if params.SortBy == "" {

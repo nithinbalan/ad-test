@@ -3,6 +3,11 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"jethur/config"
 	"jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
@@ -12,10 +17,6 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -78,7 +79,6 @@ func (adfcs AuditDraftFindingConversationService) GetByID(auditDraftFindingID ui
 	}
 
 	auditDraftFindingConversation, err := adfcs.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -96,7 +96,6 @@ func (adfcs AuditDraftFindingConversationService) GetFullDetailsByID(auditDraftF
 	}
 
 	auditDraftFindingConversation, err := adfcs.repo.GetFullDetailsByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -114,6 +113,7 @@ func (adfcs AuditDraftFindingConversationService) GetFullDetailsByID(auditDraftF
 
 	return &auditDraftFindingConversationDTO, nil
 }
+
 func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID uint, currentUserID uint, formDTO *dtos.AuditDraftFindingConversationFormDTO) (uint, error) {
 	existingAuditDraftFinding, err := adfcs.auditDraftFindingSvc.GetByID(auditDraftFindingID)
 	if err != nil {
@@ -149,7 +149,7 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 			return 0, utility.NewForbiddenError("The current user is not authorized to perform this action.")
 		}
 	}
-	//begin tx
+	// begin tx
 	tx := adfcs.repo.BeginTransaction()
 
 	conversation := &models.AuditDraftFindingConversation{
@@ -261,11 +261,11 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 	}
 	tx.Commit()
 	utility.LogInfo("formDTO state", map[string]interface{}{
-		"IsReopened": formDTO.IsReopened,
+		"IsReopened":  formDTO.IsReopened,
 		"IsDismissed": formDTO.IsDismissed,
-		"IsAccepted": formDTO.IsAccepted,
+		"IsAccepted":  formDTO.IsAccepted,
 	})
-	
+
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -359,7 +359,7 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 				}
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               userID,
+					UserIDs:              []uint{userID},
 					ModuleIdentifier:     "audit",
 					NotificationType:     string(commonDTOs.ReviewType),
 					HeadingEn:            "Audit Draft Report Finding Reopened",
@@ -396,7 +396,7 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 					}
 					responsibleUser := item.AuditableItem.ResponsibleUser
 					dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-						UserID:               responsibleUser.ID,
+						UserIDs:              []uint{responsibleUser.ID},
 						ModuleIdentifier:     "audit_insight_draft_reports",
 						NotificationType:     string(commonDTOs.ReviewType),
 						HeadingEn:            "Audit Draft Report Finding Dismissed",
@@ -449,7 +449,7 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 						})
 					}
 				}
-			}	
+			}
 		}
 		if formDTO.IsAccepted != nil && *formDTO.IsAccepted {
 			urlParam := fmt.Sprintf(`{"id":%d}`, auditDraftReport.ID)
@@ -520,7 +520,7 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 				}
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               userID,
+					UserIDs:              []uint{userID},
 					ModuleIdentifier:     "audit",
 					NotificationType:     string(commonDTOs.ReviewType),
 					HeadingEn:            "Approve Audit Draft Report Finding",
@@ -558,7 +558,6 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
 				"action":    models.CreateAction,
@@ -588,7 +587,6 @@ func (adfcs *AuditDraftFindingConversationService) Update(auditDraftFindingID ui
 	}
 
 	existingAuditDraftFindingConversation, err := adfcs.GetByID(auditDraftFindingID, id)
-
 	if err != nil {
 		return err
 	}
@@ -599,12 +597,11 @@ func (adfcs *AuditDraftFindingConversationService) Update(auditDraftFindingID ui
 	existingAuditDraftFindingConversation.UpdatedBYID = &currentUserID
 
 	err = adfcs.repo.Update(existingAuditDraftFindingConversation, tx)
-
 	if err != nil {
 		return err
 	}
 	auditID := existingAuditDraftFinding.AuditID
-	//update document
+	// update document
 	var documents []*models.AuditDraftFindingConversationDocument
 	var deleteDocumentIds []*uint
 	var documentsToDelete []*models.AuditDraftFindingConversationDocument
@@ -614,13 +611,12 @@ func (adfcs *AuditDraftFindingConversationService) Update(auditDraftFindingID ui
 			// Encrypt the filename
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
 
-			//genereate URL
+			// genereate URL
 			url := utility.GenerateDocumentURL("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "draft-findings", strconv.FormatUint(uint64(auditDraftFindingID), 10), "conversations", strconv.FormatUint(uint64(id), 10), "documents")
 
 			// Create a new Control test Document instance
@@ -692,7 +688,7 @@ func (adfcs *AuditDraftFindingConversationService) Update(auditDraftFindingID ui
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"comment": oldAuditDraftFindingConversation.Comment,
 			"type":    oldAuditDraftFindingConversation.Type,
@@ -717,7 +713,6 @@ func (adfcs *AuditDraftFindingConversationService) Update(auditDraftFindingID ui
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -799,7 +794,6 @@ func (adfcs *AuditDraftFindingConversationService) Delete(auditDraftFindingID ui
 	tx.Commit()
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := adfcs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,

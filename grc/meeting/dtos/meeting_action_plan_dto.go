@@ -94,7 +94,7 @@ type MeetingActionPlanFormDTO struct {
 	TargetDate         *string `json:"target_date" binding:"omitempty,datetime=2006-01-02"`
 	Percentage         uint    `json:"percentage"`
 	Comments           *string `json:"comments" binding:"omitempty"`
-	ActionPlanStatusID uint    `json:"action_plan_status_id" binding:"required"`
+	ActionPlanStatusID uint    `json:"action_plan_status_id"`
 	MeetingMinuteID    *uint   `json:"meeting_minute_id"  binding:"required"`
 }
 

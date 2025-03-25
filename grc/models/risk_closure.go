@@ -18,7 +18,7 @@ type RiskClosure struct {
 	UpdatedBYID    *uint      `json:"updated_by_id"`
 
 	// Relationships
-	RiskRegister  *RiskRegister          `gorm:"foreignKey:RiskRegisterID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	RiskRegister  *RiskRegister          `gorm:"foreignKey:RiskRegisterID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	CreatedByUser *User                  `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	UpdatedByUser *User                  `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	Documents     []*RiskClosureDocument `gorm:"foreignKey:RiskClosureID"`

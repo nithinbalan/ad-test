@@ -234,6 +234,26 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 
 	tx := us.repo.BeginTransaction()
 
+	systemPreference, err := us.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return 0, err
+	}
+
+	if systemPreference != nil && systemPreference.LicenseKeyDetails != nil {
+		if systemPreference.LicenseKeyDetails.LicenseKey != nil && *systemPreference.LicenseKeyDetails.LicenseKey != "" {
+			if err := us.validateLicenseKey(*systemPreference.LicenseKeyDetails.LicenseKey); err != nil {
+				return 0, err
+			}
+		}
+	}
+	if systemPreference != nil && systemPreference.LicenseKeyDetails != nil {
+		// Check if user creation is allowed based on available licenses
+		if systemPreference.LicenseKeyDetails.BalanceLicensedUserCount != nil && *systemPreference.LicenseKeyDetails.BalanceLicensedUserCount <= 0 {
+			tx.Rollback()
+			return 0, utility.NewValidationError(fmt.Errorf("invalid balance user"), "invalid", "balance users")
+		}
+	}
+
 	if err := us.validateUserFormDTO(nil, userFormDTO); err != nil {
 		return 0, err
 	}
@@ -288,6 +308,21 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 	if err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+
+	// Decrease the balance licensed user count
+	preference, err := us.systemPreferenceSvc.GetByID(uint(systemPreference.ID))
+	if err != nil {
+		return 0, err
+	}
+	if preference.BalanceLicensedUserCount != nil {
+		newBalance := *preference.BalanceLicensedUserCount - 1
+		preference.BalanceLicensedUserCount = &newBalance
+		err = us.systemPreferenceSvc.UpdateBalanceUserCount(preference, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	userSecurityDTO := &userDTOs.UserSecurityFormDTO{
@@ -762,6 +797,33 @@ func (us *UserService) GetCurrentUserDetails(id uint) (*userDTOs.CurrentUserDeta
 		return nil, err
 	}
 
+	primaryLevel, err := us.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return nil, err
+	}
+
+	var primaryOrgUnitID *uint
+
+	switch primaryLevel.Level {
+	case 1:
+		primaryOrgUnitID = &user.OrganizationUnit1ID
+	case 2:
+		primaryOrgUnitID = user.OrganizationUnit2ID
+	case 3:
+		primaryOrgUnitID = user.OrganizationUnit3ID
+	case 4:
+		primaryOrgUnitID = user.OrganizationUnit4ID
+	case 5:
+		primaryOrgUnitID = user.OrganizationUnit5ID
+	default:
+		return nil, fmt.Errorf("invalid primary level: %d", primaryLevel.Level)
+	}
+
+	if primaryOrgUnitID != nil {
+
+		userDetailsDTO.PrimaryUnitID = primaryOrgUnitID
+	}
+
 	roles := make([]settingDTOs.RoleDTO, 0, len(*user.UserRoles))
 	for _, userRole := range *user.UserRoles {
 		roles = append(roles, settingDTOs.RoleDTO{
@@ -941,6 +1003,48 @@ func (us *UserService) GetUserPermissions(userID uint, params *settingDTOs.Modul
 	}
 
 	return &moduleList, nil
+}
+
+func (us *UserService) DecodeMaxUsersFromLicense(licenseKey string) (float64, error) {
+	claims, err := utility.DecryptJWTToken(licenseKey)
+	if err != nil {
+		return 0, err
+	}
+	// Extract max_users
+	maxUsers, ok := claims["max_users"].(float64) // JWT numbers are float64
+	if !ok {
+		return 0, fmt.Errorf("max_users field missing in license key")
+	}
+
+	return maxUsers, nil
+}
+
+func (us *UserService) validateLicenseKey(licenseKey string) error {
+
+	claims, err := utility.DecryptJWTToken(licenseKey)
+	if err != nil {
+		return err
+	}
+	// Extract max_users
+	maxUsers, ok := claims["max_users"].(float64) // JWT numbers are float64
+	if !ok {
+		return fmt.Errorf("max_users field missing in license key")
+	}
+
+	activeUsers, err := us.repo.GetActiveUserCount()
+	if err != nil {
+		return err
+	}
+
+	if activeUsers >= int64(maxUsers) {
+		return utility.NewValidationError(
+			fmt.Errorf("maximum allowed users limit reached (%d users)", int64(maxUsers)),
+			"user_exceed",
+			"user",
+		)
+	}
+
+	return nil
 }
 
 func (us *UserService) GenerateUserTemplate() (*os.File, error) {

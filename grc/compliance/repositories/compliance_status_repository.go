@@ -14,6 +14,7 @@ type ComplianceStatusRepositoryInterface interface {
 	GetByID(id uint) (*models.ComplianceStatus, error)
 
 	GetMaxBaseScore(tx ...utility.DatabaseTransaction) (int, error)
+	GetByType(status string) (*models.ComplianceStatus, error)
 }
 
 // implementation
@@ -78,4 +79,18 @@ func (repo *ComplianceStatusRepository) GetMaxBaseScore(tx ...utility.DatabaseTr
 		return 0, err
 	}
 	return maxBaseScore, nil
+}
+
+func (repo *ComplianceStatusRepository) GetByType(status string) (*models.ComplianceStatus, error) {
+	var complianceStatus *models.ComplianceStatus
+
+	result := repo.db.Where("type = ?", status).First(&complianceStatus)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, "Compliance Status with status "+status)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return complianceStatus, nil
 }

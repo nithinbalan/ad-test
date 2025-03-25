@@ -27,7 +27,7 @@ type ControlServiceInterface interface {
 	GetAllControls() ([]*models.Control, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationDTOs.ControlDetailDTO, error)
-	Create(currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) (uint, error)
+	Create(currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(id uint, currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
@@ -156,7 +156,17 @@ func (cs *ControlService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTran
 	return &controlDetailDTO, nil
 }
 
-func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) (uint, error) {
+func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO, tx ...utility.DatabaseTransaction) (uint, error) {
+
+	var transaction utility.DatabaseTransaction
+
+	if len(tx) > 0 && tx[0] != nil {
+		transaction = tx[0]
+	} else {
+		transaction = cs.repo.BeginTransaction()
+		defer transaction.Rollback() // Ensure rollback if transaction was started here and not committed
+	}
+
 	if err := cs.validateControlFormDTO(controlFormDTO); err != nil {
 		return 0, err
 	}
@@ -166,7 +176,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 		return 0, err
 	}
 
-	referenceNumber, err := cs.repo.GenerateReferenceNumber()
+	referenceNumber, err := cs.repo.GenerateReferenceNumber(transaction)
 	if err != nil {
 		return 0, err
 	}
@@ -211,9 +221,13 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 		ImplementationGuideline:       controlFormDTO.ImplementationGuideline,
 	}
 
-	id, err := cs.repo.Create(control)
+	id, err := cs.repo.Create(control, transaction)
 	if err != nil {
 		return 0, err
+	}
+
+	if len(tx) == 0 {
+		transaction.Commit()
 	}
 
 	go func() {
@@ -223,7 +237,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 
 		// Send notification to new owner
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               controlFormDTO.OwnerID,
+			UserIDs:              []uint{controlFormDTO.OwnerID},
 			ModuleIdentifier:     "organization",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			ReferenceNumber:      referenceNumber,
@@ -375,7 +389,7 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 
 			// Notify the old owner
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.InformationType),
 				ReferenceNumber:      existingControl.ReferenceNumber,
@@ -392,7 +406,7 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 
 			// Notify the new owner
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               controlFormDTO.OwnerID,
+				UserIDs:              []uint{controlFormDTO.OwnerID},
 				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				ReferenceNumber:      existingControl.ReferenceNumber,
@@ -564,7 +578,7 @@ func (cs *ControlService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "organization",
 					NotificationType:     string(commonDTOs.DeletionType),
 					ReferenceNumber:      notification.ReferenceNumber,
@@ -747,14 +761,20 @@ func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTO
 		}
 	}
 
-	if _, err := cs.userSvc.GetByID(uint(controlFormDTO.TestResponsibleUserID)); err != nil {
-		return utility.NewValidationError(fmt.Errorf("control test responsible user does not exist"), "not_exist", "test responsible user")
+	if controlFormDTO.TestResponsibleUserID != nil {
+		if _, err := cs.userSvc.GetByID(uint(*controlFormDTO.TestResponsibleUserID)); err != nil {
+			return utility.NewValidationError(fmt.Errorf("control test responsible user does not exist"), "not_exist", "test responsible user")
+		}
 	}
 
 	if controlFormDTO.TestFrequencyID != nil {
 		if _, err := cs.reviewFrequencySvc.GetByID(uint(*controlFormDTO.TestFrequencyID)); err != nil {
 			return utility.NewValidationError(fmt.Errorf("review test frequiency does not exist"), "not_exist", "test frequiency")
 		}
+	}
+
+	if controlFormDTO.TestFrequencyID != nil && controlFormDTO.TestResponsibleUserID == nil {
+		return utility.NewValidationError(fmt.Errorf("test responsible user is required when test frequency is selected"), "required", "test responsible user")
 	}
 
 	if controlFormDTO.IsApplicable {
@@ -1021,7 +1041,7 @@ func (ps *ControlService) ImportProcesses(file multipart.File, currentUserID uin
 			OwnerID:               utility.ParseUint(row["OwnerID"]),
 			TitleEn:               row["TitleEn"],
 			TitleAr:               row["TitleAr"],
-			TestResponsibleUserID: utility.ParseUint(row["TestResponsibleUserID"]),
+			TestResponsibleUserID: utility.ParseOptionalUint(row["TestResponsibleUserID"]),
 		}
 
 		// Validate and create the process
@@ -1212,7 +1232,7 @@ func (cs *ControlService) ImportControls(input []map[string]interface{}, current
 			Description:                   utility.GetOptionalStringValue(record["description"]),
 			ControlImplementationStatusID: utility.GetOptionalUintValue(record["implementation_status_id"]),
 			ControlEfficiencyStatusID:     utility.GetOptionalUintValue(record["efficiency_status_id"]),
-			TestResponsibleUserID:         record["test_responsible_user_id"].(uint),
+			TestResponsibleUserID:         utility.GetOptionalUintValue(record["test_responsible_user_id"]),
 			IsApplicable:                  true,
 		}
 

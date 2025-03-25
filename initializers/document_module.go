@@ -33,8 +33,14 @@ type DocumentModule struct {
 	DocumentChangeRequestReviewController         *controllers.DocumentChangeRequestReviewController
 	DocumentChangeRequestWorkflowController       *controllers.DocumentChangeRequestWorkflowController
 	DocumentPeriodicReviewController              *controllers.DocumentPeriodicReviewController
+	DocumentRequirementGroupController            *controllers.DocumentRequirementGroupController
+	DocumentRequirementController                 *controllers.DocumentRequirementController
+	// DocumentRequirementController                 *controllers.DocumentRequirementController
 
-	DocumentSvc services.DocumentServiceInterface
+	DocumentSvc                 services.DocumentServiceInterface
+	DocumentChangeRequestSvc    services.DocumentChangeRequestServiceInterface
+	DocumentRequirementGroupSvc services.DocumentRequirementGroupServiceInterface
+	DocumentRequirementSvc      services.DocumentRequirementServiceInterface
 }
 
 func NewDocumentModule(db *gorm.DB,
@@ -222,6 +228,14 @@ func NewDocumentModule(db *gorm.DB,
 	)
 	documentPeriodicReviewController := controllers.NewDocumentPeriodicReviewController(documentPeriodicReviewSvc)
 
+	documentRequirementGroupRepo := repositories.NewDocumentRequirementGroupRepository(db)
+	documentRequirementGroupSvc := services.NewDocumentRequirementGroupService(documentRequirementGroupRepo, sharedModule.ActivityLogService, documentSvc)
+	documentRequirementGroupController := controllers.NewDocumentRequirementGroupController(documentRequirementGroupSvc)
+
+	documentRequirementRepo := repositories.NewDocumentRequirementRepository(db)
+	documentRequirementSvc := services.NewDocumentRequirementService(documentRequirementRepo, sharedModule.ActivityLogService, documentRequirementGroupSvc)
+	documentRequirementController := controllers.NewDocumentRequirementController(documentRequirementSvc)
+
 	return &DocumentModule{
 		DocumentCategoryController:                    documentCategoryController,
 		DocumentTypeController:                        documentTypeController,
@@ -247,7 +261,12 @@ func NewDocumentModule(db *gorm.DB,
 		DocumentChangeRequestReviewController:         documentCRReviewController,
 		DocumentChangeRequestWorkflowController:       documentChangeRequestWorkflowController,
 		DocumentPeriodicReviewController:              documentPeriodicReviewController,
+		DocumentRequirementGroupController:            documentRequirementGroupController,
+		DocumentRequirementController:                 documentRequirementController,
 
-		DocumentSvc: documentSvc,
+		DocumentSvc:                 documentSvc,
+		DocumentChangeRequestSvc:    documentChangeRequestSvc,
+		DocumentRequirementGroupSvc: documentRequirementGroupSvc,
+		DocumentRequirementSvc:      documentRequirementSvc,
 	}
 }

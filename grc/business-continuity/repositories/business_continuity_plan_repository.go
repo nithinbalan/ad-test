@@ -28,6 +28,8 @@ type BusinessContinuityPlanRepositoryInterface interface {
 	CreateDocuments(docs []*models.BcpDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.BcpDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetBcpRisksByBcpId(bcpId uint) ([]models.BcpRisk, error)
 }
 
 type BusinessContinuityPlanRepository struct {
@@ -356,4 +358,13 @@ func (repo *BusinessContinuityPlanRepository) DeleteDocuments(docIds []*uint, tx
 	}
 
 	return nil
+}
+
+func (repo *BusinessContinuityPlanRepository) GetBcpRisksByBcpId(bcpId uint) ([]models.BcpRisk, error) {
+	var bcpRisks []models.BcpRisk
+	if err := repo.db.Where("business_continuity_plan_id = ?", bcpId).Find(&bcpRisks).Error; err != nil {
+		return nil, err
+	}
+
+	return bcpRisks, nil
 }

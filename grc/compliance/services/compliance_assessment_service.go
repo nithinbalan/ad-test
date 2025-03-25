@@ -428,7 +428,6 @@ func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(com
 }
 
 func (cras *ComplianceAssessmentService) validateComplianceAssessmentOrganizationUnit(organizationUnitID uint, complianceRegisterID uint, id *uint) error {
-
 	statusIds := []uint{}
 
 	complianceAssessmentDraftStatus, err := cras.complianceAssessmentStatusSvc.GetByType("draft")
@@ -577,7 +576,7 @@ func (cras *ComplianceAssessmentService) SubmitComplianceAssessment(assessmentID
 
 		createdUser, err := cras.userSvc.GetByID(currentUserID)
 		if err != nil {
-			fmt.Println("Error: Failed to fetch submitting user", err)
+			fmt.Println("Error: Failed to fetch created user", err)
 			return
 		}
 		if createdUser == nil {
@@ -587,11 +586,11 @@ func (cras *ComplianceAssessmentService) SubmitComplianceAssessment(assessmentID
 
 		// Prepare DB Notification
 		urlParam := fmt.Sprintf(`{"id":%d}`, assessmentID)
-		entity := "compliance-register"
-		action := "review-user-assignment"
+		entity := "compliance-assessment"
+		action := "submitted"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               assessment.ReviewUserID,
+			UserIDs:              []uint{assessment.ReviewUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "New Compliance Assessment Submitted",
@@ -613,8 +612,7 @@ func (cras *ComplianceAssessmentService) SubmitComplianceAssessment(assessmentID
 		emailData := map[string]interface{}{
 			"ReviewerFirstName": reviewUser.FirstNameEn,
 			"ReviewerLastName":  reviewUser.LastNameEn,
-			"AssessmentID":      assessmentID,
-			"PrimaryUnitId":     assessment.PrimaryUnitID,
+			"PrimaryUnit":       assessmentDetails.OrganizationUnit.TitleEn,
 			"ReferenceNumber":   assessmentDetails.ComplianceRegister.ReferenceNumber,
 			"TitleEn":           assessmentDetails.ComplianceRegister.TitleEn,
 			"TitleAr":           assessmentDetails.ComplianceRegister.TitleAr,
@@ -694,6 +692,74 @@ func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentI
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			})
+		}
+
+		assessmentDetails, err := cras.GetFullDetailsByID(assessmentID)
+		if err != nil {
+			return
+		}
+
+		submittedUser, err := cras.userSvc.GetByID(*assessment.SubmittedBy)
+		if err != nil {
+			fmt.Println("Error: Failed to fetch submitted user", err)
+			return
+		}
+
+		createdUser, err := cras.userSvc.GetByID(currentUserID)
+		if err != nil {
+			fmt.Println("Error: Failed to fetch created user", err)
+			return
+		}
+
+		// Prepare DB Notification
+		urlParam := fmt.Sprintf(`{"id":%d}`, assessmentID)
+		entity := "compliance-assessment"
+		action := "approved"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{submittedUser.ID},
+			ModuleIdentifier:     "compliance",
+			NotificationType:     string(commonDTOs.InformationType),
+			HeadingEn:            "New Compliance Assessment Submitted",
+			HeadingAr:            "تم تقديم تقييم الامتثال الجديد",
+			TitleEn:              assessmentDetails.ComplianceRegister.TitleEn,
+			TitleAr:              assessmentDetails.ComplianceRegister.TitleAr,
+			ReferenceNumber:      assessmentDetails.ComplianceRegister.ReferenceNumber,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		// Prepare Email Notification
+		emailTo := []string{submittedUser.Email}
+		subject := fmt.Sprintf("Compliance Assessment/%s: Approved", assessmentDetails.ComplianceRegister.TitleEn)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstName":       submittedUser.FirstNameEn,
+			"LastName":        submittedUser.LastNameEn,
+			"PrimaryUnit":     assessmentDetails.OrganizationUnit.TitleEn,
+			"ReferenceNumber": assessmentDetails.ComplianceRegister.ReferenceNumber,
+			"TitleEn":         assessmentDetails.ComplianceRegister.TitleEn,
+			"TitleAr":         assessmentDetails.ComplianceRegister.TitleAr,
+			"Description":     assessment.Description,
+			"CreatedBy":       fmt.Sprintf("%s %s", createdUser.FirstNameEn, createdUser.LastNameEn),
+			"ApprovedAt":      time.Now().Format("2006-01-02"),
+			"RedirectURL":     fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, assessmentID),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "compliance/templates/email/compliance_assessment_approve_mail.html",
+			EmailData:            emailData,
+		}
+
+		// Send Notification
+		err = cras.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_assessment")
+		if err != nil {
+			fmt.Println("Failed to send notifications:", err)
 		}
 	}()
 

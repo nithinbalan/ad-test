@@ -136,6 +136,11 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 		return 0, err
 	}
 
+	actionPlanStatus, err := taps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
 	actionPlan := &models.ThreatActionPlan{
 		ThreatID:           threatID,
 		Title:              formDTO.Title,
@@ -146,7 +151,7 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 		TargetDate:         dates.TargetDate,
 		Percentage:         formDTO.Percentage,
 		Comments:           formDTO.Comments,
-		ActionPlanStatusID: formDTO.ActionPlanStatusID,
+		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedByID:        currentUserID,
 	}
 
@@ -157,7 +162,7 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 
 	actionPlanUpdate := &models.ThreatActionPlanStatusUpdate{
 		ThreatActionPlanID: id,
-		ActionPlanStatusID: formDTO.ActionPlanStatusID,
+		ActionPlanStatusID: actionPlanStatus.ID,
 		Percentage:         formDTO.Percentage,
 		Comment:            "Initial action plan status",
 		CreatedByID:        currentUserID,
@@ -220,7 +225,7 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 
 		// Prepare DB Notification
 		dbNotification := &commonDTOs.DBNotificationDTO{
-			UserID:               formDTO.ResponsibleUserID,
+			UserIDs:              []uint{formDTO.ResponsibleUserID},
 			ModuleIdentifier:     "threat",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Threat Action Plan Responsibility Assigned",
@@ -307,7 +312,6 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 	existingActionPlan.TargetDate = dates.TargetDate
 	existingActionPlan.Percentage = formDTO.Percentage
 	existingActionPlan.Comments = formDTO.Comments
-	existingActionPlan.ActionPlanStatusID = formDTO.ActionPlanStatusID
 	existingActionPlan.UpdatedByID = &currentUserID
 
 	err = taps.repo.Update(existingActionPlan, tx)
@@ -326,7 +330,7 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 		// Prepare log data
 		changedData := make(map[string]interface{})
 
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title":              oldActionPlan.Title,
 			"description":        oldActionPlan.Description,
@@ -365,7 +369,6 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -387,7 +390,7 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "threat",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Threat Action Plan Responsibility Removed",
@@ -404,7 +407,7 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               formDTO.ResponsibleUserID,
+				UserIDs:              []uint{formDTO.ResponsibleUserID},
 				ModuleIdentifier:     "threat",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Threat Action Plan Responsibility Assigned",
@@ -596,7 +599,7 @@ func (taps *ThreatActionPlanService) Delete(threatID uint, ids []uint, currentUs
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               notification.UserID,
+					UserIDs:              []uint{notification.UserID},
 					ModuleIdentifier:     "threat",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Threat Action Plan Deleted",
@@ -676,10 +679,6 @@ func (taps *ThreatActionPlanService) validateActionPlanFormDTO(formDTO *assetDTO
 		if _, err := taps.severityLevelSvc.GetByID(*formDTO.SeverityLevelID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 		}
-	}
-
-	if _, err := taps.actionPlanStatusSvc.GetByID(formDTO.ActionPlanStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
 
 	return nil

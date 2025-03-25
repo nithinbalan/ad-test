@@ -4,16 +4,34 @@ import (
 	assetDTOs "jethur/grc/asset/dtos"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
 
 type AssetAssociatedItemRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
+
 	GetAllControls(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]*assetDTOs.AssetControlListDTO, error)
 	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisks(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error)
 	GetAllVulnerabilities(assetID uint) ([]models.Vulnerability, error)
 	GetRisksByThreatID(threatID uint) ([]*assetDTOs.RiskDTO, error)
+
+	GetVulnerabilityAssetExist(assetID, vulnerabilityID uint) (bool, error)
+	CreateAssetVulnerabilities(vulnerabilities []*models.VulnerabilityAsset, tx ...utility.DatabaseTransaction) error
+	DeleteAssetVulnerability(assetID, vulnerabilityID uint) error
+
+	GetVulnerabilityThreatExist(vulnerabilityId uint, threatID uint) (bool, error)
+	CreateAssetVulnerabilityThreats(threats []*models.VulnerabilityThreat, tx ...utility.DatabaseTransaction) error
+	DeleteVulnerabilityThreats(vulnerabilityID uint, threatId uint) error
+
+	GetThreatRiskExist(threatId uint, riskID uint) (bool, error)
+	CreateAssetThreatRisks(risks []*models.RiskThreat, tx ...utility.DatabaseTransaction) error
+	DeleteAssetThreatRisks(riskID uint, threatId uint) error
+
+	GetByRiskID(id uint) (*models.RiskRegister, error)
+	GetAssetRiskAnalysis(assetID uint) ([]*assetDTOs.VulnerabilityDTO, []*assetDTOs.ThreatDTO, []*assetDTOs.RiskDTO, error)
 }
 
 type AssetAssociatedItemRepository struct {
@@ -25,6 +43,10 @@ func NewAssetAssociatedItemRepository(db *gorm.DB) *AssetAssociatedItemRepositor
 	return &AssetAssociatedItemRepository{
 		db: db,
 	}
+}
+
+func (repo *AssetAssociatedItemRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *AssetAssociatedItemRepository) GetAllControls(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]*assetDTOs.AssetControlListDTO, error) {
@@ -377,4 +399,249 @@ func (repo *AssetAssociatedItemRepository) GetRisksByThreatID(threatID uint) ([]
 	}
 
 	return risks, nil
+}
+
+func (repo *AssetAssociatedItemRepository) CreateAssetVulnerabilities(vulnerabilities []*models.VulnerabilityAsset, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(vulnerabilities).Error; err != nil {
+		return err
+	}
+	return nil
+}
+func (repo *AssetAssociatedItemRepository) DeleteAssetVulnerability(assetID, vulnerabilityID uint) error {
+	if err := repo.db.
+		Where("asset_register_id = ? AND vulnerability_id = ?", assetID, vulnerabilityID).
+		Delete(&models.VulnerabilityAsset{}).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AssetAssociatedItemRepository) CreateAssetVulnerabilityThreats(threats []*models.VulnerabilityThreat, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(threats).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AssetAssociatedItemRepository) DeleteVulnerabilityThreats(vulnerabilityID uint, threatId uint) error {
+	if err := repo.db.
+		Where("vulnerability_id = ? AND threat_id = ?", vulnerabilityID, threatId).
+		Delete(&models.VulnerabilityThreat{}).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AssetAssociatedItemRepository) CreateAssetThreatRisks(risks []*models.RiskThreat, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(risks).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AssetAssociatedItemRepository) DeleteAssetThreatRisks(riskID uint, threatId uint) error {
+	if err := repo.db.
+		Where("risk_register_id = ? AND threat_id = ?", riskID, threatId).
+		Delete(&models.RiskThreat{}).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AssetAssociatedItemRepository) GetByRiskID(id uint) (*models.RiskRegister, error) {
+	var riskRegister *models.RiskRegister
+	result := repo.db.First(&riskRegister, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return riskRegister, nil
+}
+
+func (repo *AssetAssociatedItemRepository) GetAssetRiskAnalysis(assetID uint) ([]*assetDTOs.VulnerabilityDTO, []*assetDTOs.ThreatDTO, []*assetDTOs.RiskDTO, error) {
+	var vulnerabilities []*assetDTOs.VulnerabilityDTO
+	var threats []*assetDTOs.ThreatDTO
+	var risks []*assetDTOs.RiskDTO
+	// Step 1: Fetch Vulnerabilities linked to the asset
+	err := repo.db.Table("vulnerability_assets").
+		Select(`
+            vulnerabilities.id,
+            vulnerabilities.reference_number,
+            vulnerabilities.title_en,
+            vulnerabilities.title_ar,
+            vulnerabilities.description,
+            vulnerabilities.source,
+            vulnerabilities.severity_level_id,
+            severity_levels.title_en AS severity_level_title_en,
+            severity_levels.title_ar AS severity_level_title_ar,
+            severity_levels.color_code AS severity_level_color_code,
+            vulnerabilities.vulnerability_status_id,
+            vulnerability_statuses.title_en AS vulnerability_status_title_en,
+            vulnerability_statuses.title_ar AS vulnerability_status_title_ar,
+            vulnerability_statuses.color_code AS vulnerability_status_color_code,
+            vulnerability_statuses.type AS vulnerability_status_type,
+            vulnerability_types.title_en AS vulnerability_type_title_en,
+            vulnerability_types.title_ar AS vulnerability_type_title_ar,
+            users.id AS responsible_user_id,
+            users.first_name_en AS responsible_user_first_name_en,
+            users.first_name_ar AS responsible_user_first_name_ar,
+            users.last_name_en AS responsible_user_last_name_en,
+            users.last_name_ar AS responsible_user_last_name_ar,
+            users.initial AS responsible_user_initial,
+            users.color AS responsible_user_color,
+            users.email AS responsible_user_email,
+            users.profile_image_path AS responsible_user_profile_image_path
+        `).
+		Joins("LEFT JOIN vulnerabilities ON vulnerabilities.id = vulnerability_assets.vulnerability_id").
+		Joins("LEFT JOIN severity_levels ON severity_levels.id = vulnerabilities.severity_level_id").
+		Joins("LEFT JOIN vulnerability_statuses ON vulnerability_statuses.id = vulnerabilities.vulnerability_status_id").
+		Joins("LEFT JOIN vulnerability_types ON vulnerability_types.id = vulnerabilities.vulnerability_type_id").
+		Joins("LEFT JOIN users ON users.id = vulnerabilities.responsible_user_id").
+		Where("vulnerability_assets.asset_register_id = ?", assetID).
+		Find(&vulnerabilities).Error
+
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	err = repo.db.Table("vulnerability_threats").
+		Select(`
+            vulnerability_threats.vulnerability_id,
+            vulnerability_threats.id,
+            threats.title_en,
+            threats.title_ar,
+            threat_types.title_en AS threat_type_title_en,
+            threat_types.title_ar AS threat_type_title_ar,
+            threats.severity_level_id,
+            severity_levels.title_en AS severity_level_title_en,
+            severity_levels.title_ar AS severity_level_title_ar,
+            severity_levels.color_code AS severity_level_color_code,
+            threats.threat_status_id,
+            threat_statuses.title_en AS threat_status_title_en,
+            threat_statuses.title_ar AS threat_status_title_ar,
+            threat_statuses.color_code AS threat_status_color_code,
+            threat_statuses.type AS threat_status_type,
+            threats.source,
+            threats.description,
+            threats.detection_date,
+            threats.resolution_date,
+            users.id AS responsible_user_id,
+            users.first_name_en AS responsible_user_first_name_en,
+            users.first_name_ar AS responsible_user_first_name_ar,
+            users.last_name_en AS responsible_user_last_name_en,
+            users.last_name_ar AS responsible_user_last_name_ar,
+            users.initial AS responsible_user_initial,
+            users.color AS responsible_user_color,
+            users.email AS responsible_user_email,
+            users.profile_image_path AS responsible_user_profile_image_path
+        `).
+		Joins("LEFT JOIN threats ON threats.id = vulnerability_threats.threat_id").
+		Joins("LEFT JOIN threat_types ON threat_types.id = threats.threat_type_id").
+		Joins("LEFT JOIN severity_levels ON severity_levels.id = threats.severity_level_id").
+		Joins("LEFT JOIN threat_statuses ON threat_statuses.id = threats.threat_status_id").
+		Joins("LEFT JOIN users ON users.id = threats.responsible_user_id").
+		Where("vulnerability_threats.vulnerability_id IN (?)", getVulnerabilityIDs(vulnerabilities)).
+		Find(&threats).Error
+
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	// Step 3: Fetch Risks related to these threats
+	err = repo.db.Table("risk_threats").
+		Select(`
+            risk_threats.threat_id,
+            risk_threats.id,
+            risk_register.reference_number,
+            risk_register.title,
+            risk_register.description,
+            risk_categories.title_en AS risk_category_title_en,
+            risk_categories.title_ar AS risk_category_title_ar,
+            risk_sources.title_en AS risk_source_title_en,
+            risk_sources.title_ar AS risk_source_title_ar,
+            organization_units.title_en AS responsible_unit_title_en,
+            organization_units.title_ar AS responsible_unit_title_ar,
+            users.id AS responsible_user_id,
+            users.first_name_en AS responsible_user_first_name_en,
+            users.first_name_ar AS responsible_user_first_name_ar,
+            users.last_name_en AS responsible_user_last_name_en,
+            users.last_name_ar AS responsible_user_last_name_ar,
+            users.initial AS responsible_user_initial,
+            users.color AS responsible_user_color,
+            users.email AS responsible_user_email,
+            users.profile_image_path AS responsible_user_profile_image_path
+        `).
+		Joins("LEFT JOIN risk_register ON risk_register.id = risk_threats.risk_register_id").
+		Joins("LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id").
+		Joins("LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id").
+		Joins("LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id").
+		Joins("LEFT JOIN users ON users.id = risk_register.responsible_user_id").
+		Where("risk_threats.threat_id IN (?)", getThreatIDs(threats)).
+		Find(&risks).Error
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return vulnerabilities, threats, risks, nil
+}
+
+// Helper function to extract vulnerability IDs
+func getVulnerabilityIDs(vulnerabilities []*assetDTOs.VulnerabilityDTO) []uint {
+	var ids []uint
+	for _, v := range vulnerabilities {
+		ids = append(ids, v.ID)
+	}
+	return ids
+}
+
+// Helper function to extract threat IDs
+func getThreatIDs(threats []*assetDTOs.ThreatDTO) []uint {
+	var ids []uint
+	for _, t := range threats {
+		ids = append(ids, t.ID)
+	}
+	return ids
+}
+
+func (repo *AssetAssociatedItemRepository) GetVulnerabilityAssetExist(assetID, vulnerabilityID uint) (bool, error) {
+	var count int64
+	err := repo.db.Model(&models.VulnerabilityAsset{}).
+		Where("asset_register_id = ? AND vulnerability_id = ?", assetID, vulnerabilityID).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *AssetAssociatedItemRepository) GetVulnerabilityThreatExist(vulnerabilityId uint, threatID uint) (bool, error) {
+	var count int64
+	err := repo.db.Model(&models.VulnerabilityThreat{}).
+		Where("vulnerability_id = ? AND threat_id = ?", vulnerabilityId, threatID).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *AssetAssociatedItemRepository) GetThreatRiskExist(threatId uint, riskID uint) (bool, error) {
+	var count int64
+	err := repo.db.Model(&models.RiskAsset{}).
+		Where("risk_register_id = ? AND asset_register_id = ?", threatId, riskID).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

@@ -135,6 +135,11 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		return 0, err
 	}
 
+	actionPlanStatus, err := saps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
 	slaActionPlan := &models.SLAActionPlan{
 		SLARegisterID:      slaID,
 		SLACheckQuestionID: slaActionPlanFormDTO.SLACheckQuestionID,
@@ -146,7 +151,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		TargetDate:         dates.TargetDate,
 		Percentage:         slaActionPlanFormDTO.Percentage,
 		Comments:           slaActionPlanFormDTO.Comments,
-		ActionPlanStatusID: slaActionPlanFormDTO.ActionPlanStatusID,
+		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedByID:        currentUserID,
 	}
 
@@ -156,7 +161,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		return 0, err
 	}
 
-	actionPlanStatusID := slaActionPlanFormDTO.ActionPlanStatusID
+	actionPlanStatusID := actionPlanStatus.ID
 	slaActionPlanUpdate := &models.SLAActionPlanStatusUpdate{
 		SLAActionPlanID:    id,
 		ActionPlanStatusID: actionPlanStatusID,
@@ -227,7 +232,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               slaActionPlanFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{slaActionPlanFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Sla Action Plan Responsiblity Assigned",
@@ -333,7 +338,6 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 	existingSLAActionPlan.TargetDate = dates.TargetDate
 	existingSLAActionPlan.Percentage = slaActionPlanFormDTO.Percentage
 	existingSLAActionPlan.Comments = slaActionPlanFormDTO.Comments
-	existingSLAActionPlan.ActionPlanStatusID = slaActionPlanFormDTO.ActionPlanStatusID
 	existingSLAActionPlan.UpdatedByID = &currentUserID
 
 	err = saps.repo.Update(existingSLAActionPlan, tx)
@@ -365,7 +369,7 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"title":              oldSLAActionPlan.Title,
@@ -411,7 +415,6 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -432,7 +435,7 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Sla Action Plan Responsibility Removed",
@@ -449,7 +452,7 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               existingSLAActionPlan.ResponsibleUserID,
+				UserIDs:              []uint{existingSLAActionPlan.ResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Sla Action Plan Responsibility Assigned",
@@ -662,7 +665,7 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Sla Action Plan Deleted",
@@ -760,10 +763,6 @@ func (saps *SLAActionPlanService) validateSLAActionPlanFormDTO(slaID uint, slaAc
 		if _, err := saps.slaCheckQuestionSvc.GetQuestionByID(slaID, *slaActionPlanFormDTO.SLACheckQuestionID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("SLA requirement does not exist"), "not_exist", "SLA requirement")
 		}
-	}
-
-	if _, err := saps.actionPlanStatusSvc.GetByID(slaActionPlanFormDTO.ActionPlanStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
 
 	return nil

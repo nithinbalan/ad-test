@@ -49,6 +49,7 @@ type UserRepositoryInterface interface {
 
 	GetPermissionsForModule(roleID, moduleID uint) (map[string]bool, error)
 	GetUserRoles(userID uint) ([]models.UserRole, error)
+	GetActiveUserCount() (int64, error)
 }
 
 type UserRepository struct {
@@ -767,4 +768,17 @@ func (repo *UserRepository) GetUserRoles(userID uint) ([]models.UserRole, error)
 		return nil, err
 	}
 	return userRoles, nil
+}
+
+func (repo *UserRepository) GetActiveUserCount() (int64, error) {
+	var count int64
+	err := repo.db.Model(&models.User{}).
+		Joins("JOIN user_statuses ON user_statuses.id = users.user_status_id").
+		Where("user_statuses.is_active = ?", true).
+		Count(&count).
+		Error
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }

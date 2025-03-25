@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"jethur/grc/models"
 	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/repositories"
@@ -22,6 +23,8 @@ type ModuleServiceInterface interface {
 	ReorderSubModule(modules []dtos.ModuleReorderDTO) error
 	UpdateModule(id uint, moduleFormDTO dtos.ModuleFormDTO) error
 	UpdateSubModule(id uint, subModuleFormDTO dtos.SubModuleFormDTO) error
+
+	GetAllModules() ([]*dtos.ModuleListDTO, error)
 }
 
 type ModuleService struct {
@@ -87,11 +90,47 @@ func (ms ModuleService) GetFullDetailsByID(moduleId uint) (*dtos.ModuleDetailDTO
 }
 
 func (ms *ModuleService) EnableModule(id uint) (*models.Module, error) {
+	existingSystemPreference, err := ms.repo.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
 	moduleDetail, err := ms.GetFullDetailsByID(id)
 	if err != nil {
 		return nil, err
 	}
+	if existingSystemPreference.LicenseKey != nil {
+		// Extract allowed modules from the license key
+		claims, err := utility.DecryptJWTToken(*existingSystemPreference.LicenseKey)
+		if err != nil {
+			return nil, err
+		}
 
+		// Extract allowed modules (can be a string or array)
+		rawModules, ok := claims["enabled_modules"]
+		if !ok {
+			return nil, fmt.Errorf("invalid or missing enabled modules in license key")
+		}
+
+		allowedModules, ok := rawModules.([]string)
+		if !ok {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid enabled_modules format"), "invalid", "enabled modules")
+		}
+
+		// Check if the module identifier is allowed in the license
+		isAllowed := false
+		for _, allowedModule := range allowedModules {
+			if allowedModule == moduleDetail.Identifier {
+				isAllowed = true
+				break
+			}
+		}
+
+		if !isAllowed {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid module"), "module_not_allowed", moduleDetail.TitleEn)
+		}
+	}
+
+	// Enable the module
 	module, err := ms.GetByID(id)
 	if err != nil {
 		return nil, err
@@ -101,6 +140,8 @@ func (ms *ModuleService) EnableModule(id uint) (*models.Module, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Enable submodules if it's a parent module
 	if module.ModuleID == nil {
 		if len(moduleDetail.SubModules) > 0 {
 
@@ -112,7 +153,7 @@ func (ms *ModuleService) EnableModule(id uint) (*models.Module, error) {
 					return nil, err
 				}
 				existingSubModule.IsEnable = true
-				_, err = ms.repo.Update(module.ID, existingSubModule)
+				_, err = ms.repo.Update(existingSubModule.ID, existingSubModule)
 				if err != nil {
 					return nil, err
 				}
@@ -265,4 +306,8 @@ func (ms *ModuleService) UpdateSubModule(id uint, subModuleFormDTO dtos.SubModul
 		return nil
 	}
 	return nil
+}
+
+func (ms *ModuleService) GetAllModules() ([]*dtos.ModuleListDTO, error) {
+	return ms.repo.GetAllModules()
 }

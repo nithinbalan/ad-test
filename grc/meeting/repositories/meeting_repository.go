@@ -38,6 +38,9 @@ type MeetingRepositoryInterface interface {
 
 	GetAllCounts(meetingID uint) (*meetingDTOs.MeetingsCountResponseDTO, error)
 	GetMeetingEffectiveness(meetingID uint) (float64, error)
+	GetDocumentByID(id uint) (*models.MeetingDocument, error)
+	CreateMeetingDocuments(docs []*models.MeetingDocument, tx ...utility.DatabaseTransaction) error
+	DeleteMeetingDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type MeetingRepository struct {
@@ -252,6 +255,7 @@ func (repo *MeetingRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("Risks").
 		Preload("Processes").
 		Preload("Incidents").
+		Preload("Documents").
 		First(&meeting, id)
 
 	if result.Error != nil {
@@ -555,4 +559,34 @@ func (repo *MeetingRepository) GetMeetingEffectiveness(meetingID uint) (float64,
 
 	effectiveness := float64(closedCount) / float64(total)
 	return effectiveness, nil
+}
+
+func (repo *MeetingRepository) GetDocumentByID(id uint) (*models.MeetingDocument, error) {
+	var document models.MeetingDocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
+}
+
+func (repo *MeetingRepository) CreateMeetingDocuments(docs []*models.MeetingDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&docs).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *MeetingRepository) DeleteMeetingDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Where("id IN (?)", docIds).Delete(&models.MeetingDocument{}).Error; err != nil {
+		return err
+	}
+	return nil
 }

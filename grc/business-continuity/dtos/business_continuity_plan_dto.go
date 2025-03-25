@@ -14,6 +14,7 @@ type BusinessContinuityPlanListDTO struct {
 	BusinessFunctionID              uint    `json:"business_function_id"`
 	BusinessFunctionTitle           string  `json:"business_function_title"`
 	Version                         *int    `json:"version"`
+	IsLatestVersion                 *bool   `json:"is_latest_version"`
 	Purpose                         *string `json:"purpose"`
 	Scope                           *string `json:"scope"`
 	Objectives                      *string `json:"objectives"`
@@ -97,6 +98,7 @@ type BusinessContinuityPlanDetailDTO struct {
 	BusinessFunctionID uint                             `json:"business_function_id"`
 	BusinessFunction   BusinessFunctionDetailDTO        `json:"business_function"`
 	Version            int                              `json:"version"`
+	IsLatestVersion    *bool                            `json:"is_latest_version"`
 	Purpose            *string                          `json:"purpose"`
 	Scope              *string                          `json:"scope"`
 	Objectives         *string                          `json:"objectives"`

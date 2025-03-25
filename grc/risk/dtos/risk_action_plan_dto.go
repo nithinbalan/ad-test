@@ -84,15 +84,24 @@ type RiskActionPlanListResponseDTO struct {
 }
 
 type RiskActionPlanFormDTO struct {
-	Title              string  `json:"title" binding:"required"`
-	Description        *string `json:"description" binding:"omitempty"`
-	SeverityLevelID    *uint   `json:"severity_level_id" binding:"omitempty"`
-	ResponsibleUserID  uint    `json:"responsible_user_id" binding:"required"`
-	TargetDate         *string `json:"target_date" binding:"omitempty,datetime=2006-01-02"`
-	Percentage         *uint   `json:"percentage" binding:"omitempty"`
-	Comments           *string `json:"comments" binding:"omitempty"`
-	ReviewUserID       *uint   `json:"review_user_id"`
-	ActionPlanStatusID uint    `json:"action_plan_status_id" binding:"required"`
+	Title              string            `json:"title" binding:"required"`
+	Description        *string           `json:"description" binding:"omitempty"`
+	SeverityLevelID    *uint             `json:"severity_level_id" binding:"omitempty"`
+	ResponsibleUserID  uint              `json:"responsible_user_id" binding:"required"`
+	TargetDate         *string           `json:"target_date" binding:"omitempty,datetime=2006-01-02"`
+	Percentage         *uint             `json:"percentage" binding:"omitempty"`
+	Comments           *string           `json:"comments" binding:"omitempty"`
+	ReviewUserID       *uint             `json:"review_user_id"`
+	ActionPlanStatusID uint              `json:"action_plan_status_id"`
+	Controls           []*ControlFormDTO `json:"controls"`
+}
+
+type ControlFormDTO struct {
+	ID            *uint  `json:"id"`
+	ControlTypeID uint   `json:"control_type_id" binding:"required"`
+	OwnerID       uint   `json:"owner_id" binding:"required"`
+	TitleEn       string `json:"title_en" binding:"required"`
+	TitleAr       string `json:"title_ar" binding:"required"`
 }
 
 type RiskActionPlanParsedDates struct {
@@ -116,6 +125,7 @@ type RiskActionPlanDetailDTO struct {
 	CreatedByUser           organizationDTOs.UserMinimalDTO  `json:"created_by_user"`
 	UpdatedByUser           *organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
 	ActionPlanStatusUpdates []*RiskActionPlanStatusUpdateDTO `json:"action_plan_status_updates"`
+	Controls                []*RiskActionPlanControlDTO      `json:"controls"`
 }
 
 type RiskActionPlanStatusUpdateDTO struct {
@@ -138,4 +148,11 @@ type RiskActionPlanStatusUpdateDocumentDTO struct {
 	Token        string `json:"token"`
 	OriginalName string `json:"original_name"`
 	Type         string `json:"type"`
+}
+
+type RiskActionPlanControlDTO struct {
+	ID               *uint                             `json:"id"`
+	RiskActionPlanID uint                              `json:"risk_action_plan_id"`
+	ControlID        uint                              `json:"control_id"`
+	Control          organizationDTOs.ControlDetailDTO `json:"control"`
 }
