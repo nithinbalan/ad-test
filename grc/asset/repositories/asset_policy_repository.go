@@ -37,6 +37,7 @@ func NewAssetPolicyRepository(db *gorm.DB) *AssetPolicyRepository {
 func (repo *AssetPolicyRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
+
 func (repo *AssetPolicyRepository) GetAll(params *dtos.AssetPolicyListQueryParamsDTO, assetRegisterID uint) (*dtos.AssetPolicyListResponseDTO, error) {
 	var policies []*dtos.AssetPolicyListDTO
 	var totalCount int64
@@ -72,6 +73,16 @@ func (repo *AssetPolicyRepository) GetAll(params *dtos.AssetPolicyListQueryParam
 		Joins("LEFT JOIN compliance_statuses ON asset_policies.compliance_status_id = compliance_statuses.id").
 		Where("asset_policies.asset_register_id = ?", assetRegisterID)
 
+	// Apply search filter
+	if params.Keyword != "" {
+		query = query.Where(`
+			documents.title_en LIKE ? OR
+			documents.title_ar LIKE ? OR
+			compliance_statuses.title_en LIKE ? OR
+			compliance_statuses.title_ar LIKE ?
+		`, "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+	}
+
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
@@ -80,8 +91,7 @@ func (repo *AssetPolicyRepository) GetAll(params *dtos.AssetPolicyListQueryParam
 		Offset((params.Page - 1) * params.PageSize).
 		Limit(params.PageSize)
 
-	err := query.Find(&policies).Error
-	if err != nil {
+	if err := query.Find(&policies).Error; err != nil {
 		return nil, err
 	}
 

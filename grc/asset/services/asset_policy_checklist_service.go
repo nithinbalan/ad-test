@@ -253,48 +253,32 @@ func (apcs *AssetPolicyChecklistService) AnswerAssetPolicyChecklist(id uint, for
 		tx.Rollback()
 		return err
 	}
-	// notCompliantStatus, err := apcs.complianceStatusSvc.GetByType("not_compliant")
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	return err
-	// }
+	notCompliantStatus, err := apcs.complianceStatusSvc.GetByType("not_implemented")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
-	// Count occurrences of each status
-	var compliantCount, notApplicableCount, partiallyCompliantCount int
+	// ✅ Simplified logic using status set
+	statusSet := map[uint]bool{}
+
 	for _, checklist := range checklists {
 		if checklist.ComplianceStatusID != nil {
-			switch *checklist.ComplianceStatusID {
-			case compliantStatus.ID:
-				compliantCount++
-			case notApplicableStatus.ID:
-				notApplicableCount++
-			case partiallyCompliantStatus.ID:
-				partiallyCompliantCount++
-				// case notCompliantStatus.ID:
-				// 	notCompliantCount++
-			}
+			statusSet[*checklist.ComplianceStatusID] = true
 		}
 	}
 
-	// **Determine Final Policy Status**
+	// Determine final status
 	var finalStatusID *uint
-
-	// if notCompliantCount > 0 {
-	// 	// If any checklist is **not_compliant**, then the overall policy is **not_compliant**
-	// 	finalStatusID = &notCompliantStatus.ID
-	// }
-	if partiallyCompliantCount > 0 {
-		// If all are **partially_compliant** or mixed with **compliant/not_applicable**
+	switch {
+	case statusSet[notCompliantStatus.ID]:
+		finalStatusID = &notCompliantStatus.ID
+	case len(statusSet) == 1 && statusSet[partiallyCompliantStatus.ID]:
 		finalStatusID = &partiallyCompliantStatus.ID
-	} else if compliantCount > 0 && notApplicableCount == 0 {
-		// If **all are compliant** (excluding not_applicable)
+	case len(statusSet) == 1 && statusSet[compliantStatus.ID]:
 		finalStatusID = &compliantStatus.ID
-	} else if notApplicableCount > 0 && compliantCount == 0 && partiallyCompliantCount == 0 {
-		// If **all are not_applicable**
+	case len(statusSet) == 1 && statusSet[notApplicableStatus.ID]:
 		finalStatusID = &notApplicableStatus.ID
-	} else {
-		// No status can be determined (fallback)
-		finalStatusID = nil
 	}
 
 	// ✅ Update Asset Policy status if applicable

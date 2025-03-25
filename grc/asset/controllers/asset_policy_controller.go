@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/services"
 	"jethur/utility"
@@ -29,15 +30,42 @@ func (apc *AssetPolicyController) GetAllPolicies(c *gin.Context) {
 		return
 	}
 
+	// Query parameters
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "created_at")
 	keyword := c.Query("keyword")
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
 
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInvalidErrResp(c, errors.New("invalid page parameter"))
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInvalidErrResp(c, errors.New("invalid page_size parameter"))
+		return
+	}
+
+	// Valid sort fields
+	validSortFields := map[string]string{
+		"created_at":           "asset_policies.created_at",
+		"document_title_en":    "documents.title_en",
+		"document_title_ar":    "documents.title_ar",
+		"compliance_status_en": "compliance_statuses.title_en",
+		"compliance_status_ar": "compliance_statuses.title_ar",
+	}
+
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		utility.SendInvalidErrResp(c, errors.New("invalid 'sort_by' parameter"))
+		return
+	}
+
+	// Pass query params to DTO
 	params := dtos.AssetPolicyListQueryParamsDTO{
 		Sort:     sort,
-		SortBy:   sortBy,
+		SortBy:   sortField,
 		Keyword:  keyword,
 		Page:     page,
 		PageSize: pageSize,
@@ -97,7 +125,7 @@ func (apc *AssetPolicyController) CreatePolicy(c *gin.Context) {
 		return
 	}
 
-	policyIDs, err := apc.service.Update(&policyForm, currentUserID, uint(assetId))
+	policyIDs, err := apc.service.Create(&policyForm, currentUserID, uint(assetId))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
