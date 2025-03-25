@@ -177,6 +177,7 @@ func (repo *AssetPolicyRepository) GetByAssetID(assetID uint, tx ...utility.Data
 	var assetPolicies []*models.AssetPolicy
 	err := db.Where("asset_register_id = ?", assetID).
 		Preload("Document").
+		Preload("AssetPolicyChecklists").
 		Preload("CreatedByUser").
 		Find(&assetPolicies).Error
 
