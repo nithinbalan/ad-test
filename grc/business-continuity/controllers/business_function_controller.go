@@ -424,3 +424,26 @@ func (bfc *BusinessFunctionController) GetProcessAssociatedControls(c *gin.Conte
 
 	c.JSON(http.StatusOK, controls)
 }
+
+func (bfc *BusinessFunctionController) GetBusinessFunctionTestResults(c *gin.Context) {
+	businessFunctionIDStr := c.Param("id")
+
+	businessFunctionID, err := strconv.ParseUint(businessFunctionIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	testResults, err := bfc.service.GetTestResults(uint(businessFunctionID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(bfc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, testResults)
+}
