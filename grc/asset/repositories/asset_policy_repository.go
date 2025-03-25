@@ -73,6 +73,9 @@ func (repo *AssetPolicyRepository) GetAll(params *dtos.AssetPolicyListQueryParam
 		Joins("LEFT JOIN compliance_statuses ON asset_policies.compliance_status_id = compliance_statuses.id").
 		Where("asset_policies.asset_register_id = ?", assetRegisterID)
 
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 	// Apply search filter
 	if params.Keyword != "" {
 		query = query.Where(`
@@ -83,10 +86,6 @@ func (repo *AssetPolicyRepository) GetAll(params *dtos.AssetPolicyListQueryParam
 		`, "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	query = query.Order(params.SortBy + " " + params.Sort).
 		Offset((params.Page - 1) * params.PageSize).
 		Limit(params.PageSize)
@@ -95,12 +94,14 @@ func (repo *AssetPolicyRepository) GetAll(params *dtos.AssetPolicyListQueryParam
 		return nil, err
 	}
 
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
 	response := &dtos.AssetPolicyListResponseDTO{
 		Items: policies,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
 			PageSize:    params.PageSize,
-			TotalPages:  int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize)),
+			TotalPages:  totalPages,
 			TotalCount:  totalCount,
 		},
 	}
@@ -176,6 +177,7 @@ func (repo *AssetPolicyRepository) GetByAssetID(assetID uint, tx ...utility.Data
 	var assetPolicies []*models.AssetPolicy
 	err := db.Where("asset_register_id = ?", assetID).
 		Preload("Document").
+		Preload("AssetPolicyChecklists").
 		Preload("CreatedByUser").
 		Find(&assetPolicies).Error
 

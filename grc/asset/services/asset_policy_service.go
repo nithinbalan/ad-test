@@ -423,7 +423,7 @@ func (aps *AssetPolicyService) StatusUpdate(id uint, currentUserID uint, assetPo
 	if err != nil {
 		return err
 	}
-
+	fmt.Println("dssddsfsdfdsf=", assetPolicyStatusUpdateFormDTO.ComplianceStatusID)
 	// Update asset policy status, comments, and percentage
 	existingAssetPolicy.ComplianceStatusID = &assetPolicyStatusUpdateFormDTO.ComplianceStatusID
 	existingAssetPolicy.UpdatedBYID = currentUserID
