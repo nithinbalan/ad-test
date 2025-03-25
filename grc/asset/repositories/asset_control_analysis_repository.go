@@ -22,7 +22,7 @@ type AssetControlAnalysisRepositoryInterface interface {
 
 	CreateAssetControls(controls []*models.AssetControl, tx ...utility.DatabaseTransaction) error
 	DeleteAssetControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
-	// GetAllControlsByAssetID(assetID uint) ([]*models.AssetControl, error)
+	GetControlSummary(assetID uint) ([]models.AssetControl, error)
 }
 
 type AssetControlAnalysisRepository struct {
@@ -259,14 +259,18 @@ func (repo *AssetControlAnalysisRepository) DeleteAssetControls(controlIds []*ui
 	return nil
 }
 
-// func (repo *AssetControlAnalysisRepository) GetAllControlsByAssetID(assetID uint) ([]*models.AssetControl, error) {
-// 	var assetControls []*models.AssetControl
+func (repo *AssetControlAnalysisRepository) GetControlSummary(assetID uint) ([]models.AssetControl, error) {
+	var assetControlAnalyses []models.AssetControl
 
-// 	err := repo.db.Where("asset_register_id = ?", assetID).Find(&assetControls).Error
+	result := repo.db.
+		Preload("ControlEfficiencyStatus").
+		Preload("ControlImplementationStatus").
+		Where("asset_register_id = ?", assetID).
+		Find(&assetControlAnalyses)
 
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	if result.Error != nil {
+		return nil, result.Error
+	}
 
-// 	return assetControls, nil
-// }
+	return assetControlAnalyses, nil
+}
