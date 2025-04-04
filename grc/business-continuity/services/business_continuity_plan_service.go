@@ -361,6 +361,35 @@ func (bcps *BusinessContinuityPlanService) Update(id uint, currentUserID uint, b
 				return err
 			}
 		}
+
+		//update bcp status of old business function
+
+		oldBusinessFunction, err := bcps.businessFunctionSvc.GetByID(oldBusinessContinuityPlan.BusinessFunctionID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		oldBusinessFunction.BcpStatus = false
+
+		if err := bcps.businessFunctionSvc.UpdateBusinessFunction(oldBusinessFunction, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		//update bcp status of new business function
+		newBusinessFunction, err := bcps.businessFunctionSvc.GetByID(businessContinuityPlanFormDTO.BusinessFunctionID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		newBusinessFunction.BcpStatus = true
+
+		if err := bcps.businessFunctionSvc.UpdateBusinessFunction(newBusinessFunction, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	var documents []*models.BcpDocument
@@ -555,6 +584,20 @@ func (bcps *BusinessContinuityPlanService) Delete(ids []uint, currentUserID uint
 			continue
 		} else {
 			successfulIds = append(successfulIds, id)
+		}
+
+		//update bcp status of business function
+		businessFunction, err := bcps.businessFunctionSvc.GetByID(businessContinuityPlan.BusinessFunctionID)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		businessFunction.BcpStatus = false
+
+		if err := bcps.businessFunctionSvc.UpdateBusinessFunction(businessFunction, tx); err != nil {
+			tx.Rollback()
+			return nil, err
 		}
 	}
 	if len(failedIds) > 0 {
