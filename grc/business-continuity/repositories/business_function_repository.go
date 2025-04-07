@@ -24,6 +24,8 @@ type BusinessFunctionRepositoryInterface interface {
 
 	CreateBusinessFunctionProcesses(processes []*models.BusinessFunctionProcess, tx ...utility.DatabaseTransaction) error
 	DeleteBusinessFunctionProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error
+	GetTestAndExercisesByBcpID(bcpID uint) ([]*models.TestAndExercise, error)
+	GetBcpTestAndExercisesByBcpID(bcpID uint) ([]*models.BcpTestAndExercise, error)
 }
 
 type BusinessFunctionRepository struct {
@@ -307,4 +309,34 @@ func (repo *BusinessFunctionRepository) DeleteBusinessFunctionProcesses(processI
 	}
 
 	return nil
+}
+
+func (repo *BusinessFunctionRepository) GetTestAndExercisesByBcpID(bcpID uint) ([]*models.TestAndExercise, error) {
+	var testAndExercises []*models.TestAndExercise
+
+	result := repo.db.
+		Preload("TestAndExerciseTestResult").
+		Preload("TestAndExerciseTestResult.TestResultOption").
+		Where("business_continuity_plan_id = ?", bcpID).
+		Find(&testAndExercises)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return testAndExercises, nil
+}
+
+func (repo *BusinessFunctionRepository) GetBcpTestAndExercisesByBcpID(bcpID uint) ([]*models.BcpTestAndExercise, error) {
+	var bcpTestAndExercises []*models.BcpTestAndExercise
+
+	result := repo.db.
+		Where("business_continuity_plan_id = ?", bcpID).
+		Find(&bcpTestAndExercises)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return bcpTestAndExercises, nil
 }

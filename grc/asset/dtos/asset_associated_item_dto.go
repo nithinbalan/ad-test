@@ -166,11 +166,12 @@ type VulnerabilityDTO struct {
 	ResponsibleUserColor            string      `json:"responsible_user_color"`
 	ResponsibleUserEmail            string      `json:"responsible_user_email"`
 	ResponsibleUserProfileImagePath *string     `json:"responsible_user_profile_image_path"`
-	Threats                         []ThreatDTO `json:"threats"`
+	Threats                         []ThreatDTO `json:"threats"  gorm:"-"`
 }
 
 type ThreatDTO struct {
 	ID                              uint       `json:"id"`
+	VulnerabilityID                 uint       `json:"vulnerability_id"`
 	TitleEn                         string     `json:"title_en"`
 	TitleAr                         string     `json:"title_ar"`
 	ThreatTypeTitleEn               *string    `json:"threat_type_title_en"`
@@ -197,11 +198,12 @@ type ThreatDTO struct {
 	ResponsibleUserColor            string     `json:"responsible_user_color"`
 	ResponsibleUserEmail            string     `json:"responsible_user_email"`
 	ResponsibleUserProfileImagePath *string    `json:"responsible_user_profile_image_path"`
-	Risks                           []RiskDTO  `json:"risks"`
+	Risks                           []RiskDTO  `json:"risks" gorm:"-"`
 }
 
 type RiskDTO struct {
 	ID                              uint    `json:"id"`
+	ThreatID                        uint    `json:"threat_id"`
 	ReferenceNumber                 string  `json:"reference_number"`
 	Title                           string  `json:"title"`
 	Description                     *string `json:"description"`

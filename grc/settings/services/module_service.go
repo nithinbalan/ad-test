@@ -1,7 +1,6 @@
 package services
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"jethur/grc/models"
@@ -24,6 +23,8 @@ type ModuleServiceInterface interface {
 	ReorderSubModule(modules []dtos.ModuleReorderDTO) error
 	UpdateModule(id uint, moduleFormDTO dtos.ModuleFormDTO) error
 	UpdateSubModule(id uint, subModuleFormDTO dtos.SubModuleFormDTO) error
+
+	GetAllModules() ([]*dtos.ModuleListDTO, error)
 }
 
 type ModuleService struct {
@@ -93,45 +94,40 @@ func (ms *ModuleService) EnableModule(id uint) (*models.Module, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// Extract allowed modules from the license key
-	claims, err := utility.DecryptJWTToken(*existingSystemPreference.LicenseKey)
-	if err != nil {
-		return nil, err
-	}
-
-	// Extract allowed modules (can be a string or array)
-	rawModules, ok := claims["enabled_modules"]
-	if !ok {
-		return nil, fmt.Errorf("invalid or missing enabled modules in license key")
-	}
-
-	var allowedModules []string
-
-	if str, ok := rawModules.(string); ok {
-		if err := json.Unmarshal([]byte(str), &allowedModules); err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("failed to parse enabled_modules"), "invalid", "enabled modules")
-		}
-	} else {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid enabled_modules format"), "invalid", "enabled modules")
-	}
-
 	moduleDetail, err := ms.GetFullDetailsByID(id)
 	if err != nil {
 		return nil, err
 	}
-
-	// Check if the module identifier is allowed in the license
-	isAllowed := false
-	for _, allowedModule := range allowedModules {
-		if allowedModule == moduleDetail.Identifier {
-			isAllowed = true
-			break
+	if existingSystemPreference.LicenseKey != nil {
+		// Extract allowed modules from the license key
+		claims, err := utility.DecryptJWTToken(*existingSystemPreference.LicenseKey)
+		if err != nil {
+			return nil, err
 		}
-	}
 
-	if !isAllowed {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid module"), "module_not_allowed", moduleDetail.TitleEn)
+		// Extract allowed modules (can be a string or array)
+		rawModules, ok := claims["enabled_modules"]
+		if !ok {
+			return nil, fmt.Errorf("invalid or missing enabled modules in license key")
+		}
+
+		allowedModules, ok := rawModules.([]string)
+		if !ok {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid enabled_modules format"), "invalid", "enabled modules")
+		}
+
+		// Check if the module identifier is allowed in the license
+		isAllowed := false
+		for _, allowedModule := range allowedModules {
+			if allowedModule == moduleDetail.Identifier {
+				isAllowed = true
+				break
+			}
+		}
+
+		if !isAllowed {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid module"), "module_not_allowed", moduleDetail.TitleEn)
+		}
 	}
 
 	// Enable the module
@@ -310,4 +306,8 @@ func (ms *ModuleService) UpdateSubModule(id uint, subModuleFormDTO dtos.SubModul
 		return nil
 	}
 	return nil
+}
+
+func (ms *ModuleService) GetAllModules() ([]*dtos.ModuleListDTO, error) {
+	return ms.repo.GetAllModules()
 }

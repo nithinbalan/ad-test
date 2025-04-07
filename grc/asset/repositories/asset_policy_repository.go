@@ -37,6 +37,7 @@ func NewAssetPolicyRepository(db *gorm.DB) *AssetPolicyRepository {
 func (repo *AssetPolicyRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
+
 func (repo *AssetPolicyRepository) GetAll(params *dtos.AssetPolicyListQueryParamsDTO, assetRegisterID uint) (*dtos.AssetPolicyListResponseDTO, error) {
 	var policies []*dtos.AssetPolicyListDTO
 	var totalCount int64
@@ -44,6 +45,7 @@ func (repo *AssetPolicyRepository) GetAll(params *dtos.AssetPolicyListQueryParam
 	query := repo.db.Table("asset_policies").
 		Select(`
 			asset_policies.id,
+			asset_policies.document_id,
 			asset_policies.asset_register_id,
 			asset_register.title_en AS asset_register_title_en,
 			asset_register.title_ar AS asset_register_title_ar,
@@ -74,22 +76,32 @@ func (repo *AssetPolicyRepository) GetAll(params *dtos.AssetPolicyListQueryParam
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
+	// Apply search filter
+	if params.Keyword != "" {
+		query = query.Where(`
+			documents.title_en LIKE ? OR
+			documents.title_ar LIKE ? OR
+			compliance_statuses.title_en LIKE ? OR
+			compliance_statuses.title_ar LIKE ?
+		`, "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+	}
 
 	query = query.Order(params.SortBy + " " + params.Sort).
 		Offset((params.Page - 1) * params.PageSize).
 		Limit(params.PageSize)
 
-	err := query.Find(&policies).Error
-	if err != nil {
+	if err := query.Find(&policies).Error; err != nil {
 		return nil, err
 	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
 	response := &dtos.AssetPolicyListResponseDTO{
 		Items: policies,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
 			PageSize:    params.PageSize,
-			TotalPages:  int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize)),
+			TotalPages:  totalPages,
 			TotalCount:  totalCount,
 		},
 	}
@@ -115,10 +127,13 @@ func (repo *AssetPolicyRepository) GetFullDetailsByID(id uint, tx ...utility.Dat
 
 	result := db.
 		Preload("AssetRegister").
+		Preload("ComplianceStatus").
 		Preload("Document").
+		Preload("Document.LatestDocumentVersion").
 		Preload("ComplianceStatus").
 		Preload("AssetPolicyChecklists").
 		Preload("AssetPolicyChecklists.DocumentRequirementGroup").
+		Preload("AssetPolicyChecklists.ComplianceStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&assetPolicy, id)
@@ -162,6 +177,7 @@ func (repo *AssetPolicyRepository) GetByAssetID(assetID uint, tx ...utility.Data
 	var assetPolicies []*models.AssetPolicy
 	err := db.Where("asset_register_id = ?", assetID).
 		Preload("Document").
+		Preload("AssetPolicyChecklists").
 		Preload("CreatedByUser").
 		Find(&assetPolicies).Error
 
