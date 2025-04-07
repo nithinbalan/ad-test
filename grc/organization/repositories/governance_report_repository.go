@@ -22,11 +22,11 @@ type GovernanceReportRepositoryInterface interface {
 	GetGovernanceReportSections(governanceReportID uint) ([]dtos.GovernanceReportSectionResponseDTO, error)
 	GetGovernanceReportDocuments(reportID uint) ([]dtos.GovernanceDocumentResponseDTO, error)
 	GetGovernanceReportMeetings(reportID uint) ([]dtos.GovernanceReportMeetingResponseDTO, error)
+	GetGovernanceReportTasks(governanceReportID uint) ([]dtos.GovernanceReportTaskResponseDTO, error)
 
 	Create(governanceReport *models.GovernanceReport, tx ...utility.DatabaseTransaction) (uint, error)
 	CreateSection(section *models.GovernanceReportSection, tx ...utility.DatabaseTransaction) error
 	GetPolicyDocumentByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]*models.Document, error)
-	GetFullDetailsByID(id uint, currentUserID *uint, tx ...utility.DatabaseTransaction) (*models.Document, error)
 	GetDocumentAcknowledgmentSummary(documentID uint, primaryOrgUnitField string) (*dtos.DocumentAcknowledgmentSummaryDTO, error)
 	GetPublicDocumentAcknowledgmentSummary(documentID uint) (*dtos.DocumentAcknowledgmentSummaryDTO, error)
 	CreateGovernanceIDocument(document *models.GovernanceReportDocument, tx ...utility.DatabaseTransaction) error
@@ -35,13 +35,16 @@ type GovernanceReportRepositoryInterface interface {
 	DeleteGovernanceReportSections(governanceReportID uint, tx ...utility.DatabaseTransaction) error
 	DeleteGovernanceReportDocuments(governanceReportID uint, tx ...utility.DatabaseTransaction) error
 	DeleteGovernanceReportMeetings(governanceReportID uint, tx ...utility.DatabaseTransaction) error
+	DeleteGovernanceReportTasks(governanceReportID uint, tx ...utility.DatabaseTransaction) error
 
 	DeleteGovernanceReport(governanceReportID uint, tx ...utility.DatabaseTransaction) error
 	DeleteGovernanceReportSection(sectionID uint, tx ...utility.DatabaseTransaction) error
 	ReorderGovernanceReportSections(governanceReportID uint, deletedOrderNum int, tx ...utility.DatabaseTransaction) error
 
 	GetMeetingsByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]*models.Meeting, error)
+	GetTasksByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]*models.Task, error)
 	CreateGovernanceReportMeeting(meeting *models.GovernanceReportMeeting, tx ...utility.DatabaseTransaction) error
+	CreateGovernanceReportTask(task *models.GovernanceReportTask, tx ...utility.DatabaseTransaction) error
 }
 
 type GovernanceReportRepository struct {
@@ -204,6 +207,41 @@ func (repo *GovernanceReportRepository) GetGovernanceReportMeetings(governanceRe
 	return meetings, err
 }
 
+func (repo *GovernanceReportRepository) GetGovernanceReportTasks(governanceReportID uint) ([]dtos.GovernanceReportTaskResponseDTO, error) {
+	var tasks []dtos.GovernanceReportTaskResponseDTO
+
+	err := repo.db.Table("governance_report_tasks").
+		Select(`
+			governance_report_tasks.id,
+			governance_report_tasks.governance_report_id,
+			governance_report_tasks.task_title,
+			governance_report_tasks.task_description,
+			governance_report_tasks.responsible_user_name_en,
+			governance_report_tasks.responsible_user_name_ar,
+			governance_report_tasks.task_status,
+			governance_report_tasks.task_status_title_en AS task_status_title_en,
+			governance_report_tasks.task_status_title_ar AS task_status_title_ar,
+			governance_report_tasks.task_status_color_code AS task_status_color_code,
+			CONVERT(VARCHAR, governance_report_tasks.target_date, 23) AS target_date,
+			governance_report_tasks.created_by_id,
+			CONVERT(VARCHAR, governance_report_tasks.created_at, 120) AS created_at,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.email AS created_user_email,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.profile_image_path AS created_user_profile_image_path
+		`).
+		Joins("LEFT JOIN users AS created_user ON created_user.id = governance_report_tasks.created_by_id").
+		Where("governance_report_tasks.governance_report_id = ?", governanceReportID).
+		Order("governance_report_tasks.target_date ASC").
+		Scan(&tasks).Error
+
+	return tasks, err
+}
+
 func (repo *GovernanceReportRepository) Create(governanceReport *models.GovernanceReport, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -228,6 +266,7 @@ func (repo *GovernanceReportRepository) GetPolicyDocumentByDateRange(startDate, 
 		Where("documents.created_at BETWEEN ? AND ?", startDate, endDate).
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUnit").
+		Preload("DocumentAccessType").
 		Find(&documents).Error
 
 	if err != nil {
@@ -281,6 +320,15 @@ func (repo *GovernanceReportRepository) DeleteGovernanceReportMeetings(governanc
 	return db.Where("governance_report_id = ?", governanceReportID).Delete(&models.GovernanceReportMeeting{}).Error
 }
 
+func (repo *GovernanceReportRepository) DeleteGovernanceReportTasks(governanceReportID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("governance_report_id = ?", governanceReportID).Delete(&models.GovernanceReportTask{}).Error
+}
+
 func (repo *GovernanceReportRepository) DeleteGovernanceReport(governanceReportID uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -313,32 +361,6 @@ func (repo *GovernanceReportRepository) ReorderGovernanceReportSections(governan
 		governanceReportID, deletedOrderNum).Error
 
 	return err
-}
-
-func (repo *GovernanceReportRepository) GetFullDetailsByID(id uint, currentUserID *uint, tx ...utility.DatabaseTransaction) (*models.Document, error) {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	var document *models.Document
-	result := db.
-		Preload("DocumentAccessType").
-		First(&document, id)
-
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	// If currentUserID is provided, check the acknowledgment status
-	if currentUserID != nil {
-		var count int64
-		db.Model(&models.DocumentAcknowledgeUser{}).
-			Where("document_id = ? AND user_id = ?", id, *currentUserID).
-			Count(&count)
-		document.Acknowledged = count > 0
-	}
-
-	return document, nil
 }
 
 func (repo *GovernanceReportRepository) GetDocumentAcknowledgmentSummary(documentID uint, primaryOrgUnitField string) (*dtos.DocumentAcknowledgmentSummaryDTO, error) {
@@ -487,10 +509,43 @@ func (repo *GovernanceReportRepository) GetMeetingsByDateRange(startDate, endDat
 	return meetings, nil
 }
 
+// repositories/governance_report_repository.go
+
+func (repo *GovernanceReportRepository) GetTasksByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]*models.Task, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var tasks []*models.Task
+
+	err := db.
+		Preload("ResponsibleUser").
+		Preload("TaskStatus").
+		Joins("LEFT JOIN users ON users.id = tasks.responsible_user_id").
+		Where("tasks.created_at BETWEEN ? AND ?", startDate, endDate).
+		Find(&tasks).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return tasks, nil
+}
+
 func (repo *GovernanceReportRepository) CreateGovernanceReportMeeting(meeting *models.GovernanceReportMeeting, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 	return db.Create(&meeting).Error
+}
+
+func (repo *GovernanceReportRepository) CreateGovernanceReportTask(task *models.GovernanceReportTask, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(task).Error
 }

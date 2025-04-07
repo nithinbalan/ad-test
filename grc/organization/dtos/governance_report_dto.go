@@ -49,6 +49,7 @@ type GovernanceReportDetailDTO struct {
 	Sections               []GovernanceReportSectionResponseDTO `json:"sections"`
 	Documents              []GovernanceDocumentResponseDTO      `json:"documents"`
 	Meetings               []GovernanceReportMeetingResponseDTO `json:"meetings"`
+	Tasks                  []GovernanceReportTaskResponseDTO    `json:"tasks"`
 }
 
 type GovernanceReportSectionResponseDTO struct {
@@ -85,6 +86,30 @@ type GovernanceReportMeetingResponseDTO struct {
 	ActionsAssigned   string    `json:"actions_assigned"`
 	CreatedByID       uint      `json:"created_by_id"`
 	CreatedAt         time.Time `json:"created_at"`
+}
+
+type GovernanceReportTaskResponseDTO struct {
+	ID                    uint   `json:"id"`
+	GovernanceReportID    uint   `json:"governance_report_id"`
+	TaskTitle             string `json:"task_title"`
+	TaskDescription       string `json:"task_description,omitempty"`
+	ResponsibleUserNameEn string `json:"responsible_user_name_en"`
+	ResponsibleUserNameAr string `json:"responsible_user_name_ar"`
+	TaskStatusTitleEn     string `json:"task_status_title_en"`
+	TaskStatusTitleAr     string `json:"task_status_title_ar"`
+	TaskStatusColorCode   string `json:"task_status_color_code"`
+	TargetDate            string `json:"target_date"`
+	CreatedByID           uint   `json:"created_by_id"`
+	CreatedAt             string `json:"created_at"`
+
+	CreatedUserFirstNameEn  string `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr  string `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn   string `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr   string `json:"created_user_last_name_ar"`
+	CreatedUserEmail        string `json:"created_user_email"`
+	CreatedUserInitial      string `json:"created_user_initial"`
+	CreatedUserColor        string `json:"created_user_color"`
+	CreatedUserProfileImage string `json:"created_user_profile_image_path"`
 }
 
 type GovernanceReportFormDTO struct {

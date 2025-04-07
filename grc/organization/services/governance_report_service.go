@@ -49,6 +49,9 @@ func (grs *GovernanceReportService) GetAll(params *dtos.GovernanceReportListQuer
 func (grs *GovernanceReportService) GetGovernanceReportDetails(governanceReportID uint) (*dtos.GovernanceReportDetailDTO, error) {
 	governanceReport, err := grs.repo.GetGovernanceReportByID(governanceReportID)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, governanceReportID)
+		}
 		return nil, err
 	}
 
@@ -67,6 +70,11 @@ func (grs *GovernanceReportService) GetGovernanceReportDetails(governanceReportI
 		return nil, err
 	}
 
+	tasks, err := grs.repo.GetGovernanceReportTasks(governanceReportID)
+	if err != nil {
+		return nil, err
+	}
+
 	// Construct Response DTO
 	response := &dtos.GovernanceReportDetailDTO{
 		ID:                     governanceReport.ID,
@@ -81,6 +89,7 @@ func (grs *GovernanceReportService) GetGovernanceReportDetails(governanceReportI
 		Sections:               sections,
 		Documents:              documents,
 		Meetings:               meetings,
+		Tasks:                  tasks,
 	}
 
 	return response, nil
@@ -146,7 +155,7 @@ func (grs *GovernanceReportService) Create(currentUserID uint, governanceReportF
 	}
 
 	for _, document := range documents {
-		summary, err := grs.GetDocumentAcknowledgmentSummary(document.ID)
+		summary, err := grs.GetDocumentAcknowledgmentSummary(document)
 		if err != nil {
 			tx.Rollback()
 			return 0, fmt.Errorf("failed to get acknowledgment summary for document ID %d: %w", document.ID, err)
@@ -210,6 +219,32 @@ func (grs *GovernanceReportService) Create(currentUserID uint, governanceReportF
 		if err := grs.repo.CreateGovernanceReportMeeting(meetingRecord, tx); err != nil {
 			tx.Rollback()
 			return 0, fmt.Errorf("failed to insert governance_report_meeting: %w", err)
+		}
+	}
+
+	tasks, err := grs.repo.GetTasksByDateRange(*dates.StartDate, *dates.EndDate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to fetch governance tasks: %w", err)
+	}
+
+	for _, task := range tasks {
+		taskRecord := &models.GovernanceReportTask{
+			GovernanceReportID:    governanceReportID,
+			TaskTitle:             task.Title,
+			TaskDescription:       task.Description,
+			ResponsibleUserNameEn: fmt.Sprintf("%s %s", task.ResponsibleUser.FirstNameEn, task.ResponsibleUser.LastNameEn),
+			ResponsibleUserNameAr: fmt.Sprintf("%s %s", task.ResponsibleUser.FirstNameAr, task.ResponsibleUser.LastNameAr),
+			TaskStatusTitleEn:     task.TaskStatus.TitleEn,
+			TaskStatusTitleAr:     task.TaskStatus.TitleAr,
+			TaskStatusColorCode:   task.TaskStatus.ColorCode,
+			TargetDate:            *task.TargetDate,
+			CreatedByID:           currentUserID,
+		}
+
+		if err := grs.repo.CreateGovernanceReportTask(taskRecord, tx); err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to insert governance_report_task: %w", err)
 		}
 	}
 
@@ -341,6 +376,11 @@ func (grs *GovernanceReportService) DeleteGovernanceReport(governanceReportID ui
 		return err
 	}
 
+	if err := grs.repo.DeleteGovernanceReportTasks(governanceReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	if err := grs.repo.DeleteGovernanceReportMeetings(governanceReportID, tx); err != nil {
 		tx.Rollback()
 		return err
@@ -414,14 +454,10 @@ func (grs *GovernanceReportService) parseGovernanceReportDates(dto *dtos.Governa
 	return parsed, nil
 }
 
-func (grs *GovernanceReportService) GetDocumentAcknowledgmentSummary(documentID uint) (*dtos.DocumentAcknowledgmentSummaryDTO, error) {
-	document, err := grs.repo.GetFullDetailsByID(documentID, nil)
-	if err != nil {
-		return nil, err
-	}
+func (grs *GovernanceReportService) GetDocumentAcknowledgmentSummary(document *models.Document) (*dtos.DocumentAcknowledgmentSummaryDTO, error) {
 
 	if document.DocumentAccessType.Type == "public" {
-		return grs.repo.GetPublicDocumentAcknowledgmentSummary(documentID)
+		return grs.repo.GetPublicDocumentAcknowledgmentSummary(document.ID)
 	}
 
 	primaryLevel, err := grs.organizationLevelSvc.GetPrimaryLevel()
@@ -445,5 +481,5 @@ func (grs *GovernanceReportService) GetDocumentAcknowledgmentSummary(documentID 
 		return nil, fmt.Errorf("unsupported primary level")
 	}
 
-	return grs.repo.GetDocumentAcknowledgmentSummary(documentID, primaryOrgUnitField)
+	return grs.repo.GetDocumentAcknowledgmentSummary(document.ID, primaryOrgUnitField)
 }
