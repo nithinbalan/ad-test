@@ -75,7 +75,9 @@ func (drgs *DocumentRequirementGroupService) GetAll(documentId uint, sort string
 
 		dtoList = append(dtoList, dto)
 	}
-
+	if dtoList == nil {
+		dtoList = []*dtos.DocumentRequirementGroupListDTO{}
+	}
 	return dtoList, nil
 }
 
