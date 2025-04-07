@@ -12,12 +12,21 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	organizationalContextRoutes.Use(middlewares.AuthMiddleware())
 
+	unauthenticatedRoutes := router.Group("/")
+
 	db := app.DB
 
 	swotPestelQuestionGroupController := app.OrganizationalContextModule.SwotPestelQuestionGroupController
 	swotPestelQuestionController := app.OrganizationalContextModule.SwotPestelQuestionController
 	swotPestelCategoryController := app.OrganizationalContextModule.SwotPestelCategoryController
 	swotPestelQuestionFactorController := app.OrganizationalContextModule.SwotPestelQuestionFactorController
+	stakeholderController := app.OrganizationalContextModule.StakeholderController
+	evaluationStatusController := app.OrganizationalContextModule.EvaluationStatusController
+	stakeholderNeedsAndExpectationController := app.OrganizationalContextModule.StakeholderNeedsAndExpectationController
+	stakeholderNeedsAndExpectationEvaluationController := app.OrganizationalContextModule.StakeholderNeedsAndExpectationEvaluationController
+	stakeholderEngagementController := app.OrganizationalContextModule.StakeholderEngagementController
+	stakeholderEngagementEvaluationController := app.OrganizationalContextModule.StakeholderEngagementEvaluationController
+	stakeholderActionPlanController := app.OrganizationalContextModule.StakeholderActionPlanController
 
 	organizationalContextRoutes.GET("/swot-question-groups", swotPestelQuestionGroupController.GetAllSwotPestelQuestionGroups)
 	organizationalContextRoutes.GET("/swot-question-groups/:id", swotPestelQuestionGroupController.GetSwotPestelQuestionGroupDetails)
@@ -77,4 +86,51 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationalContextRoutes.POST("/pestel-questions/:questionId/factors", middlewares.RolePermissionMiddleware(db, "pestel_analysis", "modify"), swotPestelQuestionFactorController.CreateSwotPestelQuestionFactor)
 	organizationalContextRoutes.PUT("/pestel-questions/:questionId/factors/:id", middlewares.RolePermissionMiddleware(db, "pestel_analysis", "modify"), swotPestelQuestionFactorController.UpdateSwotPestelQuestionFactor)
 	organizationalContextRoutes.POST("/pestel-questions/:questionId/factors/delete", middlewares.RolePermissionMiddleware(db, "pestel_analysis", "modify"), swotPestelQuestionFactorController.DeleteSwotPestelQuestionFactors)
+
+	// stakeholder
+	organizationalContextRoutes.GET("/stakeholders", stakeholderController.GetAllStakeholders)
+	organizationalContextRoutes.GET("/stakeholders/:stakeholderId", stakeholderController.GetStakeholderDetails)
+	organizationalContextRoutes.POST("/stakeholders", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderController.CreateStakeholder)
+	organizationalContextRoutes.PUT("/stakeholders/:stakeholderId", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderController.UpdateStakeholder)
+	organizationalContextRoutes.POST("/stakeholders/delete", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderController.DeleteStakeholders)
+
+	// Evaluation Status
+	organizationalContextRoutes.GET("/evaluation-statuses", evaluationStatusController.GetAllEvaluationStatuses)
+	organizationalContextRoutes.GET("/evaluation-statuses/:id", evaluationStatusController.GetEvaluationStatusDetails)
+
+	// Stakeholder Needs and expectation
+	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/needs-and-expectations", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "view"), stakeholderNeedsAndExpectationController.GetAllStakeholderNeedsAndExpectations)
+	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/needs-and-expectations/:needsAndExpectationId", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "view"), stakeholderNeedsAndExpectationController.GetStakeholderNeedsAndExpectationDetails)
+	organizationalContextRoutes.POST("/stakeholder/:stakeholderId/needs-and-expectations", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderNeedsAndExpectationController.CreateStakeholderNeedsAndExpectation)
+	organizationalContextRoutes.PUT("/stakeholder/:stakeholderId/needs-and-expectations/:needsAndExpectationId", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderNeedsAndExpectationController.UpdateStakeholderNeedsAndExpectation)
+	organizationalContextRoutes.POST("/stakeholder/:stakeholderId/needs-and-expectations/delete", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderNeedsAndExpectationController.DeleteStakeholderNeedsAndExpectations)
+
+	// Needs and expectation evaluation
+	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/needs-and-expectations/:needsAndExpectationId/evaluations", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "view"), stakeholderNeedsAndExpectationEvaluationController.GetAllStakeholderNeedsAndExpectationEvaluations)
+	organizationalContextRoutes.POST("/stakeholder/:stakeholderId/needs-and-expectations/:needsAndExpectationId/evaluations", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderNeedsAndExpectationEvaluationController.CreateStakeholderNeedsAndExpectationEvaluation)
+	organizationalContextRoutes.PUT("/stakeholder/:stakeholderId/needs-and-expectations/:needsAndExpectationId/evaluations/:id", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderNeedsAndExpectationEvaluationController.UpdateStakeholderNeedsAndExpectationEvaluation)
+	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/needs-and-expectations/:needsAndExpectationId/evaluations/latest", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "view"), stakeholderNeedsAndExpectationEvaluationController.GetLatestStakeholderNeedsAndExpectationEvaluation)
+
+	// Stakeholder Engagement
+	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/engagements", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "view"), stakeholderEngagementController.GetAllStakeholderEngagements)
+	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/engagements/:engagementId", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "view"), stakeholderEngagementController.GetStakeholderEngagementDetails)
+	organizationalContextRoutes.POST("/stakeholder/:stakeholderId/engagements", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderEngagementController.CreateStakeholderEngagement)
+	organizationalContextRoutes.PUT("/stakeholder/:stakeholderId/engagements/:engagementId", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderEngagementController.UpdateStakeholderEngagement)
+	organizationalContextRoutes.POST("/stakeholder/:stakeholderId/engagements/delete", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderEngagementController.DeleteStakeholderEngagements)
+
+	// Engagement evaluation
+	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/engagements/:engagementId/evaluations", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "view"), stakeholderEngagementEvaluationController.GetAllStakeholderEngagementEvaluations)
+	organizationalContextRoutes.POST("/stakeholder/:stakeholderId/engagements/:engagementId/evaluations", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderEngagementEvaluationController.CreateStakeholderEngagementEvaluation)
+	organizationalContextRoutes.PUT("/stakeholder/:stakeholderId/engagements/:engagementId/evaluations/:id", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderEngagementEvaluationController.UpdateStakeholderEngagementEvaluation)
+	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/engagements/:engagementId/evaluations/latest", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "view"), stakeholderEngagementEvaluationController.GetLatestStakeholderEngagementEvaluation)
+
+	// stakeholder action plan
+	unauthenticatedRoutes.GET("/stakeholder/:stakeholderId/action-plans/:actionPlanId/document-preview", stakeholderActionPlanController.GetDocumentPreview)
+	unauthenticatedRoutes.GET("/stakeholder/:stakeholderId/action-plans/:actionPlanId/document-download", stakeholderActionPlanController.DownloadStakeholderActionPlanDocument)
+	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/action-plans", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "view"), stakeholderActionPlanController.GetAllStakeholderActionPlans)
+	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "view"), stakeholderActionPlanController.GetStakeholderActionPlanDetails)
+	organizationalContextRoutes.POST("/stakeholder/:stakeholderId/action-plans", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderActionPlanController.CreateStakeholderActionPlan)
+	organizationalContextRoutes.PUT("/stakeholder/:stakeholderId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderActionPlanController.UpdateStakeholderActionPlan)
+	organizationalContextRoutes.POST("/stakeholder/:stakeholderId/action-plans/delete", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderActionPlanController.DeleteStakeholderActionPlans)
+
 }
