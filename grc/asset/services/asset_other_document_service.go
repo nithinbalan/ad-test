@@ -67,22 +67,50 @@ func (aods *AssetOtherDocumentService) GetAll(assetRegisterID uint) ([]*dtos.Ass
 	for _, group := range groupMap {
 		parent := group[0]
 
-		// Build a clean copy of group without recursive Documents field
 		var cleanedDocs []*dtos.AssetOtherDocumentListDTO
 		for _, doc := range group {
-			copied := *doc
-			copied.Documents = nil // prevent cycle
-			cleanedDocs = append(cleanedDocs, &copied)
+			cleanedDocs = append(cleanedDocs, &dtos.AssetOtherDocumentListDTO{
+				ID:                        doc.ID,
+				AssetRegisterID:           doc.AssetRegisterID,
+				AssetDocumentCategoryID:   doc.AssetDocumentCategoryID,
+				URL:                       doc.URL,
+				Name:                      doc.Name,
+				Size:                      doc.Size,
+				Token:                     doc.Token,
+				OriginalName:              doc.OriginalName,
+				Type:                      doc.Type,
+				CreatedAt:                 doc.CreatedAt,
+				CreatedByID:               doc.CreatedByID,
+				CreatedByFirstNameEn:      doc.CreatedByFirstNameEn,
+				CreatedByFirstNameAr:      doc.CreatedByFirstNameAr,
+				CreatedByLastNameEn:       doc.CreatedByLastNameEn,
+				CreatedByLastNameAr:       doc.CreatedByLastNameAr,
+				CreatedByInitial:          doc.CreatedByInitial,
+				CreatedByColor:            doc.CreatedByColor,
+				CreatedByEmail:            doc.CreatedByEmail,
+				CreatedByProfileImagePath: doc.CreatedByProfileImagePath,
+				UpdatedAt:                 doc.UpdatedAt,
+				UpdatedByID:               doc.UpdatedByID,
+				UpdatedByFirstNameEn:      doc.UpdatedByFirstNameEn,
+				UpdatedByFirstNameAr:      doc.UpdatedByFirstNameAr,
+				UpdatedByLastNameEn:       doc.UpdatedByLastNameEn,
+				UpdatedByLastNameAr:       doc.UpdatedByLastNameAr,
+				UpdatedByInitial:          doc.UpdatedByInitial,
+				UpdatedByColor:            doc.UpdatedByColor,
+				UpdatedByEmail:            doc.UpdatedByEmail,
+				UpdatedByProfileImagePath: doc.UpdatedByProfileImagePath,
+			})
 		}
 
 		parentCopy := *parent
 		parentCopy.Documents = cleanedDocs
-
 		result = append(result, &parentCopy)
 	}
+
 	if result == nil {
 		result = []*dtos.AssetOtherDocumentListDTO{}
 	}
+
 	return result, nil
 }
 

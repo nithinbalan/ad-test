@@ -33,6 +33,12 @@ type AssetOtherDocumentListDTO struct {
 	UpdatedByEmail               *string                      `json:"updated_by_email"`
 	UpdatedByProfileImagePath    *string                      `json:"updated_by_profile_image_path"`
 	UpdatedAt                    *time.Time                   `json:"updated_at"`
+	URL                          *string                      `json:"url"`
+	Name                         string                       `json:"name"`
+	OriginalName                 string                       `json:"original_name"`
+	Token                        string                       `json:"token"`
+	Type                         string                       `json:"type"`
+	Size                         int                          `json:"size"`
 }
 
 type AssetOtherDocumentFormDTO struct {
