@@ -32,6 +32,7 @@ type OrganizationModule struct {
 	ControlAssociatedItemController         *controllers.ControlAssociatedItemController
 	ControlReviewController                 *controllers.ControlReviewController
 	UserProfileController                   *controllers.UserProfileController
+	GovernanceReportController              *controllers.GovernanceReportController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -173,6 +174,10 @@ func NewOrganizationModule(
 
 	userProfileController := controllers.NewUserProfileController(userSettingSvc, userTaskSvc, userSvc)
 
+	governanceReportRepo := repositories.NewGovernanceReportRepository(db)
+	governanceReportSvc := services.NewGovernanceReportService(governanceReportRepo, sharedModule.ActivityLogService, settingsModule.OrganizationLevelSvc)
+	governanceReportController := controllers.NewGovernanceReportController(governanceReportSvc)
+
 	return &OrganizationModule{
 		DesignationController:                   designationController,
 		UserStatusController:                    userStatusController,
@@ -197,6 +202,7 @@ func NewOrganizationModule(
 		ControlAssociatedItemController:         controlAssociatedItemController,
 		ControlReviewController:                 controlReviewController,
 		UserProfileController:                   userProfileController,
+		GovernanceReportController:              governanceReportController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,

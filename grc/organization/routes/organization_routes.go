@@ -38,6 +38,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	controlReviewStatusController := app.OrganizationModule.ControlReviewStatusController
 	controlReviewController := app.OrganizationModule.ControlReviewController
 	userProfileController := app.OrganizationModule.UserProfileController
+	governanceReportController := app.OrganizationModule.GovernanceReportController
 
 	//Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
@@ -247,5 +248,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/processes/:processId/assets", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllProcessAssets)
 	organizationRoutes.GET("/processes/:processId/documents", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllProcessDocuments)
 	organizationRoutes.GET("/processes/:processId/associated-item-summary", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllAssociatedCounts)
+
+	organizationRoutes.GET("/governance-reports", governanceReportController.GetAllGovernanceReports)
+	organizationRoutes.GET("/governance-reports/:governanceReportId", governanceReportController.GetGovernanceReportDetails)
+	organizationRoutes.POST("/governance-reports", governanceReportController.CreateGovernanceReport)
+	organizationRoutes.GET("/governance-reports/:governanceReportId/sections/:sectionId", governanceReportController.GetGovernanceReportSection)
+	organizationRoutes.PUT("/governance-reports/:governanceReportId/sections/:sectionId", governanceReportController.UpdateGovernanceReportSection)
+	organizationRoutes.DELETE("/governance-reports/:governanceReportId/sections/:sectionId", governanceReportController.DeleteGovernanceReportSection)
+	organizationRoutes.DELETE("/governance-reports/:governanceReportId", governanceReportController.DeleteGovernanceReport)
 
 }
