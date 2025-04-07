@@ -40,12 +40,12 @@ func NewDocumentRequirementGroupService(repo repositories.DocumentRequirementGro
 func (drgs *DocumentRequirementGroupService) GetAll(documentId uint, sort string, sortBy string, keyword string, status string) ([]*dtos.DocumentRequirementGroupListDTO, error) {
 	_, err := drgs.documentSvc.GetByID(documentId, nil)
 	if err != nil {
-		return nil, err
+		return []*dtos.DocumentRequirementGroupListDTO{}, err
 	}
 
 	documentRequirementGroups, err := drgs.repo.GetAll(documentId, sort, sortBy, keyword, status)
 	if err != nil {
-		return nil, err
+		return []*dtos.DocumentRequirementGroupListDTO{}, err
 	}
 
 	// Convert Model to DTO

@@ -231,7 +231,7 @@ func (apcs *AssetPolicyChecklistService) AnswerAssetPolicyChecklist(id uint, for
 	}
 
 	// Fetch all checklists under this AssetPolicyID
-	checklists, err := apcs.assetPolicySvc.GetByAssetID(assetPolicyID, tx)
+	assetDetails, err := apcs.assetPolicySvc.GetFullDetailsByID(assetID, assetPolicyID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -262,7 +262,7 @@ func (apcs *AssetPolicyChecklistService) AnswerAssetPolicyChecklist(id uint, for
 	// ✅ Simplified logic using status set
 	statusSet := map[uint]bool{}
 
-	for _, checklist := range checklists {
+	for _, checklist := range assetDetails.AssetPolicyChecklists {
 		if checklist.ComplianceStatusID != nil {
 			statusSet[*checklist.ComplianceStatusID] = true
 		}
@@ -273,11 +273,12 @@ func (apcs *AssetPolicyChecklistService) AnswerAssetPolicyChecklist(id uint, for
 	switch {
 	case statusSet[notCompliantStatus.ID]:
 		finalStatusID = &notCompliantStatus.ID
-	case len(statusSet) == 1 && statusSet[partiallyCompliantStatus.ID]:
+	case statusSet[partiallyCompliantStatus.ID]:
+		// Even if mixed with compliant or not_applicable
 		finalStatusID = &partiallyCompliantStatus.ID
-	case len(statusSet) == 1 && statusSet[compliantStatus.ID]:
+	case statusSet[compliantStatus.ID] && len(statusSet) == 1:
 		finalStatusID = &compliantStatus.ID
-	case len(statusSet) == 1 && statusSet[notApplicableStatus.ID]:
+	case statusSet[notApplicableStatus.ID] && len(statusSet) == 1:
 		finalStatusID = &notApplicableStatus.ID
 	}
 

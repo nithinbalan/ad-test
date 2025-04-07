@@ -35,8 +35,7 @@ func (repo *AssetOtherDocumentRepository) BeginTransaction() utility.DatabaseTra
 }
 
 func (repo *AssetOtherDocumentRepository) GetAll(assetRegisterID uint) ([]*dtos.AssetOtherDocumentListDTO, error) {
-	var documents []*dtos.AssetOtherDocumentListDTO
-
+	documents := []*dtos.AssetOtherDocumentListDTO{}
 	err := repo.db.Table("asset_other_documents").
 		Select(`
 			asset_other_documents.id,
@@ -77,7 +76,6 @@ func (repo *AssetOtherDocumentRepository) GetAll(assetRegisterID uint) ([]*dtos.
 		Where("asset_other_documents.asset_register_id = ?", assetRegisterID).
 		Order("asset_other_documents.created_at DESC").
 		Find(&documents).Error
-
 	return documents, err
 }
 

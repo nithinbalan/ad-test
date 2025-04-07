@@ -47,12 +47,15 @@ func NewAssetOtherDocumentService(
 
 func (aods *AssetOtherDocumentService) GetAll(assetRegisterID uint) ([]*dtos.AssetOtherDocumentListDTO, error) {
 	if _, err := aods.assetRegisterSvc.GetByID(assetRegisterID); err != nil {
-		return nil, err
+		return []*dtos.AssetOtherDocumentListDTO{}, err
 	}
 
 	docs, err := aods.repo.GetAll(assetRegisterID)
 	if err != nil {
-		return nil, err
+		return []*dtos.AssetOtherDocumentListDTO{}, err
+	}
+	if docs == nil {
+		docs = []*dtos.AssetOtherDocumentListDTO{}
 	}
 
 	groupMap := make(map[uint][]*dtos.AssetOtherDocumentListDTO)
@@ -77,7 +80,9 @@ func (aods *AssetOtherDocumentService) GetAll(assetRegisterID uint) ([]*dtos.Ass
 
 		result = append(result, &parentCopy)
 	}
-
+	if result == nil {
+		result = []*dtos.AssetOtherDocumentListDTO{}
+	}
 	return result, nil
 }
 
