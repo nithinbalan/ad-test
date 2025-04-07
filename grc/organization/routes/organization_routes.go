@@ -38,6 +38,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	controlReviewStatusController := app.OrganizationModule.ControlReviewStatusController
 	controlReviewController := app.OrganizationModule.ControlReviewController
 	userProfileController := app.OrganizationModule.UserProfileController
+	processDependencyTypeController := app.OrganizationModule.ProcessDependencyTypeController
 
 	//Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
@@ -248,4 +249,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/processes/:processId/documents", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllProcessDocuments)
 	organizationRoutes.GET("/processes/:processId/associated-item-summary", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllAssociatedCounts)
 
+	// process dependency type
+	organizationRoutes.GET("/process-dependency-types", processDependencyTypeController.GetAllProcessDependencyTypes)
+	organizationRoutes.GET("/process-dependency-types/:id", processDependencyTypeController.GetProcessDependencyTypeDetails)
 }
