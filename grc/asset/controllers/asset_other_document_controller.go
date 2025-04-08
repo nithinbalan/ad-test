@@ -31,7 +31,11 @@ func (aodc *AssetOtherDocumentController) GetAllDocuments(c *gin.Context) {
 		return
 	}
 
-	result, err := aodc.service.GetAll(uint(assetID))
+	// Get keyword from query params
+	keyword := c.Query("keyword")
+
+	// Call service with keyword filter
+	result, err := aodc.service.GetAll(uint(assetID), keyword)
 	if err != nil {
 		utility.SendInternalErrResp(aodc.db, c, err.Error())
 		return

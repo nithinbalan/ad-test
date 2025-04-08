@@ -16,7 +16,7 @@ import (
 )
 
 type AssetOtherDocumentServiceInterface interface {
-	GetAll(assetRegisterID uint) ([]*dtos.AssetOtherDocumentListDTO, error)
+	GetAll(assetRegisterID uint, keyword string) ([]*dtos.AssetOtherDocumentListDTO, error)
 	GetByID(assetRegisterID, id uint) (*models.AssetOtherDocument, error)
 	GetFullDetailsByID(assetRegisterID uint, id uint, tx ...utility.DatabaseTransaction) (*dtos.AssetOtherDocumentDetailDTO, error)
 	Create(assetRegisterID uint, form *dtos.AssetOtherDocumentFormDTO, currentUserID uint) ([]uint, error)
@@ -45,12 +45,12 @@ func NewAssetOtherDocumentService(
 	}
 }
 
-func (aods *AssetOtherDocumentService) GetAll(assetRegisterID uint) ([]*dtos.AssetOtherDocumentListDTO, error) {
+func (aods *AssetOtherDocumentService) GetAll(assetRegisterID uint, keyword string) ([]*dtos.AssetOtherDocumentListDTO, error) {
 	if _, err := aods.assetRegisterSvc.GetByID(assetRegisterID); err != nil {
 		return []*dtos.AssetOtherDocumentListDTO{}, err
 	}
 
-	docs, err := aods.repo.GetAll(assetRegisterID)
+	docs, err := aods.repo.GetAll(assetRegisterID, keyword)
 	if err != nil {
 		return []*dtos.AssetOtherDocumentListDTO{}, err
 	}

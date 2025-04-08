@@ -12,7 +12,7 @@ import (
 
 type AssetOtherDocumentRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(assetRegisterID uint) ([]*dtos.AssetOtherDocumentListDTO, error)
+	GetAll(assetRegisterID uint, keyword string) ([]*dtos.AssetOtherDocumentListDTO, error)
 	GetByID(id uint) (*models.AssetOtherDocument, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AssetOtherDocument, error)
 	Create(doc *models.AssetOtherDocument, tx ...utility.DatabaseTransaction) (uint, error)
@@ -34,9 +34,10 @@ func (repo *AssetOtherDocumentRepository) BeginTransaction() utility.DatabaseTra
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *AssetOtherDocumentRepository) GetAll(assetRegisterID uint) ([]*dtos.AssetOtherDocumentListDTO, error) {
+func (repo *AssetOtherDocumentRepository) GetAll(assetRegisterID uint, keyword string) ([]*dtos.AssetOtherDocumentListDTO, error) {
 	documents := []*dtos.AssetOtherDocumentListDTO{}
-	err := repo.db.Table("asset_other_documents").
+
+	query := repo.db.Table("asset_other_documents").
 		Select(`
 			asset_other_documents.id,
 			asset_other_documents.asset_register_id,
@@ -74,8 +75,16 @@ func (repo *AssetOtherDocumentRepository) GetAll(assetRegisterID uint) ([]*dtos.
 		Joins("LEFT JOIN users AS created_by ON created_by.id = asset_other_documents.created_by_id").
 		Joins("LEFT JOIN users AS updated_by ON updated_by.id = asset_other_documents.updated_by_id").
 		Where("asset_other_documents.asset_register_id = ?", assetRegisterID).
-		Order("asset_other_documents.created_at DESC").
-		Find(&documents).Error
+		Order("asset_other_documents.created_at DESC")
+
+	if keyword != "" {
+		query = query.Where(`
+			asset_document_categories.title_en LIKE ? OR
+			asset_document_categories.title_ar LIKE ?`,
+			"%"+keyword+"%", "%"+keyword+"%")
+	}
+
+	err := query.Find(&documents).Error
 	return documents, err
 }
 
