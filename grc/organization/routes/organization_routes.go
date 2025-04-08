@@ -40,6 +40,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	userProfileController := app.OrganizationModule.UserProfileController
 	processDependencyTypeController := app.OrganizationModule.ProcessDependencyTypeController
 	processDependencySubTypeController := app.OrganizationModule.ProcessDependencySubTypeController
+	governanceReportController := app.OrganizationModule.GovernanceReportController
 
 	//Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
@@ -261,5 +262,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/process-dependency-sub-types/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processDependencySubTypeController.DeleteProcessDependencySubTypes)
 	organizationRoutes.PUT("/process-dependency-sub-types/activate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processDependencySubTypeController.ActivateProcessDependencySubTypes)
 	organizationRoutes.PUT("/process-dependency-sub-types/deactivate", middlewares.RolePermissionMiddleware(db, "processorganization_setting_dependency_setting", "modify"), processDependencySubTypeController.DeactivateProcessDependencySubTypes)
+
+	organizationRoutes.GET("/governance-reports", governanceReportController.GetAllGovernanceReports)
+	organizationRoutes.GET("/governance-reports/:governanceReportId", governanceReportController.GetGovernanceReportDetails)
+	organizationRoutes.POST("/governance-reports", governanceReportController.CreateGovernanceReport)
+	organizationRoutes.GET("/governance-reports/:governanceReportId/sections/:sectionId", governanceReportController.GetGovernanceReportSection)
+	organizationRoutes.PUT("/governance-reports/:governanceReportId/sections/:sectionId", governanceReportController.UpdateGovernanceReportSection)
+	organizationRoutes.DELETE("/governance-reports/:governanceReportId/sections/:sectionId", governanceReportController.DeleteGovernanceReportSection)
+	organizationRoutes.DELETE("/governance-reports/:governanceReportId", governanceReportController.DeleteGovernanceReport)
 
 }

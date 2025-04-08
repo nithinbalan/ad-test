@@ -6,17 +6,22 @@ import (
 )
 
 type RiskReportListDTO struct {
-	ID                       uint   `json:"id"`
-	Title                    string `json:"title"`
-	StartDate                string `json:"start_date"`
-	EndDate                  string `json:"end_date"`
-	CreatedAt                string `json:"created_at"`
-	OrganizationUnitTitlesEn string `json:"organization_unit_titles_en"`
-	OrganizationUnitTitlesAr string `json:"organization_unit_titles_ar"`
-	CreatedUserFirstNameEn   string `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr   string `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn    string `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr    string `json:"created_user_last_name_ar"`
+	ID                          uint   `json:"id"`
+	Title                       string `json:"title"`
+	StartDate                   string `json:"start_date"`
+	EndDate                     string `json:"end_date"`
+	CreatedAt                   string `json:"created_at"`
+	OrganizationUnitTitlesEn    string `json:"organization_unit_titles_en"`
+	OrganizationUnitTitlesAr    string `json:"organization_unit_titles_ar"`
+	CreatedUserID               uint   `json:"created_user_id"`
+	CreatedUserFirstNameEn      string `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr      string `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn       string `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr       string `json:"created_user_last_name_ar"`
+	CreatedUserInitial          string `json:"created_user_initial"`
+	CreatedUserColor            string `json:"created_user_color"`
+	CreatedUserEmail            string `json:"created_user_email"`
+	CreatedUserProfileImagePath string `json:"created_user_profile_image_path"`
 }
 
 type RiskReportListQueryParamsDTO struct {
