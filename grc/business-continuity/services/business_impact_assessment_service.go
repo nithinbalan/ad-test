@@ -23,6 +23,7 @@ type BusinessImpactAssessmentServiceInterface interface {
 	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.BusinessImpactFormDTO) (uint, error)
 	UpdateImpactAnalysis(businessImpactAssessmentFormDTO businessContinuityDTOs.BusinessImpactAssessmentFormDTO, currentUserID uint) error
 	UpdateRecoveryObjectives(businessImpactAssessmentRecoveryObjectiveFormDTO businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveFormDTO, currentUserID uint) error
+	UpdateProcessCriticality(businessImpactAssessmentProcessCriticalityFormDTO businessContinuityDTOs.BusinessImpactAssessmentProcessCriticalityFormDTO, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) ([]businessContinuityDTOs.BIAMatrixResponseDTO, error)
 
@@ -204,7 +205,7 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 			tx.Rollback()
 			return err
 		}
-		var riskLevels []string
+
 		for _, impactAssessment := range businessImpactAssessmentFormDTO.BusinessImpactAssessments {
 			businessImpactAssessment := &models.BusinessImpactAssessment{
 				ProcessID:        businessImpactAssessmentFormDTO.ProcessID,
@@ -221,23 +222,13 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 				tx.Rollback()
 				return err
 			}
-			// Add the risk level type for evaluation
-			if impactAssessment.RiskLevelID != nil {
-				riskLevel, err := bias.riskLevelSvc.GetByID(*impactAssessment.RiskLevelID)
-				if err != nil {
-					tx.Rollback()
-					return err
-				}
-				riskLevels = append(riskLevels, riskLevel.Type)
-			}
-
 		}
 		// Determine overall process risk level
-		overallRiskLevel, err := bias.DetermineProcessRiskLevel(riskLevels)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
+		// overallRiskLevel, err := bias.DetermineProcessRiskLevel(riskLevels)
+		// if err != nil {
+		// 	tx.Rollback()
+		// 	return err
+		// }
 
 		// Update the process risk level
 		existingProcess, err := bias.processSvc.GetByID(*businessImpactAssessmentFormDTO.ProcessID, tx)
@@ -246,7 +237,8 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 			return err
 		}
 
-		existingProcess.RiskLevelId = &overallRiskLevel.ID
+		existingProcess.RiskLevelId = businessImpactAssessmentFormDTO.RiskLevelID
+		existingProcess.ImpactJustification = businessImpactAssessmentFormDTO.ImpactJustification
 		if err := bias.processSvc.UpdateProcessRecoveryObjective(existingProcess, tx); err != nil {
 			tx.Rollback()
 			return err
@@ -432,6 +424,27 @@ func (bias *BusinessImpactAssessmentService) UpdateRecoveryObjectives(businessIm
 	return nil
 }
 
+func (bias *BusinessImpactAssessmentService) UpdateProcessCriticality(businessImpactAssessmenProcessCriticalityFormDTO businessContinuityDTOs.BusinessImpactAssessmentProcessCriticalityFormDTO, currentUserID uint) error {
+	tx := bias.repo.BeginTransaction()
+
+	existingProcess, err := bias.processSvc.GetByID(*businessImpactAssessmenProcessCriticalityFormDTO.ProcessID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingProcess.ProcessCriticalityLevelId = businessImpactAssessmenProcessCriticalityFormDTO.ProcessCriticalityLevelID
+	existingProcess.CriticalityJustification = businessImpactAssessmenProcessCriticalityFormDTO.CriticalityJustification
+	if err := bias.processSvc.UpdateProcessRecoveryObjective(existingProcess, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	return nil
+}
+
 func (bias *BusinessImpactAssessmentService) DetermineProcessRiskLevel(riskLevels []string) (*models.RiskLevel, error) {
 	hasHigh := false
 	hasMedium := false
@@ -510,7 +523,9 @@ func (bias *BusinessImpactAssessmentService) Delete(ids []uint, currentUserID ui
 		existingProcess.RpoUnitId = nil
 		existingProcess.IsBiaPerformed = false
 		existingProcess.RiskLevelId = nil
-		existingProcess.LastAssessedAt = nil
+		existingProcess.ImpactJustification = nil
+		existingProcess.ProcessCriticalityLevelId = nil
+		existingProcess.CriticalityJustification = nil
 		existingProcess.LastAssessedByID = nil
 
 		err = bias.processSvc.UpdateProcessRecoveryObjective(existingProcess, tx)

@@ -21,6 +21,9 @@ type Process struct {
 	Rpo                         *int       `json:"rpo" gorm:"default:null"`
 	RpoUnitId                   *uint      `json:"rpo_uint_id" gorm:"default:null"`
 	RiskLevelId                 *uint      `json:"risk_level_id" gorm:"default:null"`
+	ImpactJustification         *string    `json:"impact_justification" gorm:"default:null"`
+	ProcessCriticalityLevelId   *uint      `json:"process_criticality_level_id" gorm:"default:null"`
+	CriticalityJustification    *string    `json:"criticality_justification" gorm:"default:null"`
 	IsBiaPerformed              bool       `json:"is_bia_performed" gorm:"default:false"`
 	LastAssessedAt              *time.Time `json:"last_assessed_at" gorm:"type:datetime; null" binding:"-"`
 	LastAssessedByID            *uint      `json:"last_assessed_by_id" gorm:"default:null;column:last_assessed_by_id" binding:"omitempty"`
