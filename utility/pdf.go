@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"jethur/assets"
+	"jethur/config"
 	"os"
 	"os/exec"
 )
@@ -15,6 +16,7 @@ func GeneratePDFContent(dto interface{}, templatePaths []string, logoImagePath s
 		"LogoImagePath":    template.HTML(logoImagePath),
 		"CoverBGImagePath": template.HTML(coverBGImagePath),
 		"Data":             dto,
+		"ApiPath":          config.GetEnv("API_URL", ""),
 	}
 
 	templates := template.New("pdf").Funcs(template.FuncMap{
