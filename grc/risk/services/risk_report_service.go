@@ -9,11 +9,13 @@ import (
 	"jethur/grc/models"
 	"jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
+	settingsServices "jethur/grc/settings/services"
 	"jethur/utility"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -31,20 +33,24 @@ type RiskReportServiceInterface interface {
 	GetDocumentPath(id uint, token string) (string, error)
 	UploadRiskReportDocuments(riskReportID uint, currentUserID uint, riskReportDocumentFormDTO *dtos.RiskReportDocumentFormDTO) (uint, error)
 	DeleteRiskReportDocument(riskReportID uint, documentID uint, currentUserID uint) error
+	ExportRiskReportToPDF(riskReportID uint, currentUserID uint) (string, error)
 }
 
 type RiskReportService struct {
 	repo           repositories.RiskReportRepositoryInterface
 	activityLogSvc logServices.ActivityLogServiceInterface
+	settingSvc     settingsServices.RiskTemplateSettingServiceInterface
 }
 
 func NewRiskReportService(
 	repo repositories.RiskReportRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
+	settingSvc settingsServices.RiskTemplateSettingServiceInterface,
 ) RiskReportServiceInterface {
 	return &RiskReportService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
+		settingSvc:     settingSvc,
 	}
 }
 
@@ -754,4 +760,124 @@ func (rrs *RiskReportService) DeleteRiskReportDocument(riskReportID uint, docume
 	}()
 
 	return nil
+}
+
+func (rrs *RiskReportService) ExportRiskReportToPDF(riskReportID uint, currentUserID uint) (string, error) {
+	// Fetch risk report detail
+	riskReport, err := rrs.GetRiskReportDetails(riskReportID)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch risk report details: %w", err)
+	}
+
+	var sectionData []dtos.RiskReportSectionWithDataDTO
+
+	for _, section := range riskReport.Sections {
+		sectionItem := dtos.RiskReportSectionWithDataDTO{
+			ID:            section.ID,
+			Type:          section.Type,
+			TitleEn:       section.TitleEn,
+			TitleAr:       section.TitleAr,
+			DescriptionEn: section.DescriptionEn,
+			DescriptionAr: section.DescriptionAr,
+		}
+
+		if section.Type == "identification" {
+			for _, risk := range riskReport.Risks {
+				riskItem := dtos.RiskReportIdentifiedRiskPDFDTO{
+					ID:                          risk.ID,
+					ReferenceNumber:             risk.ReferenceNumber,
+					Title:                       risk.Title,
+					Description:                 risk.Description,
+					ReportedAt:                  risk.RiskReportedAt.Format("2006-01-02"),
+					RiskCategoryTitleEn:         risk.RiskCategoryTitleEn,
+					RiskCategoryTitleAr:         risk.RiskCategoryTitleAr,
+					RiskSourceTitleEn:           risk.RiskSourceTitleEn,
+					RiskSourceTitleAr:           risk.RiskSourceTitleAr,
+					ResponsibleUnitTitleEn:      risk.ResponsibleUnitTitleEn,
+					ResponsibleUnitTitleAr:      risk.ResponsibleUnitTitleAr,
+					InherentRiskRatingTitleEn:   risk.InherentRiskRatingTitleEn,
+					InherentRiskRatingTitleAr:   risk.InherentRiskRatingTitleAr,
+					InherentRiskRatingColorCode: risk.InherentRiskRatingColorCode,
+					InherentLikelihoodTitleEn:   risk.InherentLikelihoodTitleEn,
+					InherentLikelihoodTitleAr:   risk.InherentLikelihoodTitleAr,
+					InherentImpactTitleEn:       risk.InherentImpactTitleEn,
+					InherentImpactTitleAr:       risk.InherentImpactTitleAr,
+					ResidualRiskRatingTitleEn:   risk.ResidualRiskRatingTitleEn,
+					ResidualRiskRatingTitleAr:   risk.ResidualRiskRatingTitleAr,
+					ResidualRiskRatingColorCode: risk.ResidualRiskRatingColorCode,
+					ResidualLikelihoodTitleEn:   risk.ResidualLikelihoodTitleEn,
+					ResidualLikelihoodTitleAr:   risk.ResidualLikelihoodTitleAr,
+					ResidualImpactTitleEn:       risk.ResidualImpactTitleEn,
+					ResidualImpactTitleAr:       risk.ResidualImpactTitleAr,
+					ExistingControls:            risk.ExistingControls,
+					ProposedControls:            risk.ExistingControls,
+					RiskStatusTitleEn:           risk.RiskStatusTitleEn,
+					RiskStatusTitleAr:           risk.RiskStatusTitleAr,
+					RiskStatusColorCode:         risk.RiskStatusColorCode,
+				}
+
+				// Match Action Plans
+				for _, ap := range riskReport.ActionPlans {
+					if ap.RiskReferenceNumber == risk.ReferenceNumber {
+						riskItem.ActionPlans = append(riskItem.ActionPlans, ap)
+					}
+				}
+
+				// Match KRIs
+				for _, kri := range riskReport.KRIs {
+					if kri.RiskReferenceNumber == risk.ReferenceNumber {
+						riskItem.KeyRiskIdentifiers = append(riskItem.KeyRiskIdentifiers, kri)
+					}
+				}
+
+				sectionItem.Risks = append(sectionItem.Risks, riskItem)
+			}
+		}
+
+		sectionData = append(sectionData, sectionItem)
+	}
+	parsedCreatedAt, err := time.Parse(time.RFC3339, riskReport.CreatedAt)
+	if err != nil {
+		return "", fmt.Errorf("invalid CreatedAt format: %w", err)
+	}
+
+	// Final DTO to render
+	reportDetail := dtos.RiskReportPDFDetailDTO{
+		ID:                       riskReport.ID,
+		Title:                    riskReport.Title,
+		StartDate:                riskReport.StartDate,
+		EndDate:                  riskReport.EndDate,
+		OrganizationUnitTitlesEn: riskReport.OrganizationUnitTitlesEn,
+		OrganizationUnitTitlesAr: riskReport.OrganizationUnitTitlesAr,
+		CreatedUserFirstNameEn:   riskReport.CreatedUserFirstNameEn,
+		CreatedUserFirstNameAr:   riskReport.CreatedUserFirstNameAr,
+		CreatedUserLastNameEn:    riskReport.CreatedUserLastNameEn,
+		CreatedUserLastNameAr:    riskReport.CreatedUserLastNameAr,
+		CreatedAt:                parsedCreatedAt.Format("2006-01-02"),
+		Sections:                 sectionData,
+		Documents:                riskReport.Documents,
+	}
+
+	// Generate PDF content
+	templatePaths := []string{"risk/templates/pdf/risk_report.html"}
+	htmlContent, err := utility.GeneratePDFContent(reportDetail, templatePaths, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate HTML content: %w", err)
+	}
+
+	// Convert to PDF
+	pdfFileName := fmt.Sprintf("RiskReport_%d.pdf", riskReportID)
+	if err := utility.ConvertHTMLContentToPDF(htmlContent, pdfFileName); err != nil {
+		return "", fmt.Errorf("failed to generate PDF: %w", err)
+	}
+
+	return pdfFileName, nil
+}
+
+func copyFile(src, dst string) error {
+	input, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(dst, input, 0644)
 }
