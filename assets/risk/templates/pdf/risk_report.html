@@ -30,9 +30,9 @@
 
 
         <div style="width: 1000px; margin: 20px auto; background: #fff;">
-            <div style="min-height: 180px; background: url({{.CoverBGImagePath}}) 0 0 no-repeat; background-size: 100% 100%; padding: 20px;">
+            <div style="min-height: 180px; background: url({{.ApiPath}}/risk-template-settings/image-preview?type=cover-page-bg) 0 0 no-repeat; background-size: 100% 100%; padding: 20px;">
                 <div>
-                    <img src="{{.LogoImagePath}}" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; width: 130px; padding: 5px 0; height: 60px;">
+                    <img src="{{.ApiPath}}/risk-template-settings/image-preview?type=logo" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; width: 130px; padding: 5px 0; height: 60px;">
 
                 </div>
                 <div style="padding-top: 10px;">
@@ -71,23 +71,25 @@
                 
                 <div class="keep-together">
 
-    {{range .Data.Sections}}
+
+
+                    {{range .Data.Sections}}
                     {{if eq .Type "executive-summary"}}
                     <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #000;">{{.TitleEn}}</h4>
-
+            
                     <p style="margin: 0 0 20px 0; color: #000;">{{.DescriptionEn}}</p>
                     {{end}}
                     {{if eq .Type "context"}}
-
+            
                     <h4 style="margin: 0 0 15px 0; font-size: 18px; color: #000;">{{.TitleEn}}</h4>
-                    <ul style=" padding: 0 0 0 20px;">
-                        <li>{{.DescriptionEn}}</li>
-                    </ul>
+                    {{if .DescriptionEn}}
+                        <ul style=" padding: 0 0 0 20px;">
+                            <li>{{.DescriptionEn}}</li>
+                        </ul>
                     {{end}}
-
-
-
+                    {{end}}
     <div style="margin: 0 0 20px 0; color: #000; background: #FCFCFC ; border-radius: 3px; padding: 15px; border:1px solid #EAEDF2; margin-bottom:20px">
+
 
     {{if eq .Type "identification"}}
     <h2 style="color: #000;  font-size: 18px; font-weight: bold; margin-top: 0; " >Risks</h2>
@@ -372,10 +374,10 @@
             <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px;">Current Value </p>
             <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 500;">{{.CurrentValue}}   </p>
         </div>
-        <div style="width: 24%; display: inline-block; vertical-align: top;">
+        <!-- <div style="width: 24%; display: inline-block; vertical-align: top;">
             <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px;">Risk Status </p>
             <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 500;">  </p>
-        </div>
+        </div> -->
 
     
     </div>

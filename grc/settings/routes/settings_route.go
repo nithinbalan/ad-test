@@ -105,6 +105,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	settingRoutes.GET("/risk-template-settings", riskTemplateSettingController.GetAllRiskTemplateSettings)
 	settingRoutes.PUT("/risk-template-settings/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), riskTemplateSettingController.UpdateRiskTemplateSetting)
-	unauthenticatedRoutes.GET("/risk-template-settings/:id/image-preview", riskTemplateSettingController.GetRiskTemplateSettingPreview)
+	unauthenticatedRoutes.GET("/risk-template-settings/image-preview", riskTemplateSettingController.GetRiskTemplateSettingPreview)
 
 }

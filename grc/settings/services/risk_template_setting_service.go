@@ -21,7 +21,7 @@ type RiskTemplateSettingServiceInterface interface {
 	GetByID(id uint) (*models.RiskTemplateSetting, error)
 	GetFirst() (*models.RiskTemplateSetting, error)
 	Update(id uint, currentUserID uint, updatedTemplateSettingDTO *settingsDTOs.RiskTemplateSettingFormDTO) error
-	GetImagePath(id uint, templateType string) (string, error)
+	GetImagePath(templateType string) (string, error)
 }
 
 // Service and implementations
@@ -148,13 +148,10 @@ func (rtss *RiskTemplateSettingService) Update(id uint, currentUserID uint, upda
 	return nil
 }
 
-func (rtss *RiskTemplateSettingService) GetImagePath(id uint, templateType string) (string, error) {
+func (rtss *RiskTemplateSettingService) GetImagePath(templateType string) (string, error) {
 	// Retrieve the RiskTemplateSetting by ID
-	riskTemplateSetting, err := rtss.repo.GetByID(id)
+	riskTemplateSetting, err := rtss.repo.GetFirst()
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", utility.NewResourceNotFoundError(err, id)
-		}
 		return "", err
 	}
 

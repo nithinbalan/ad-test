@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -787,7 +788,7 @@ func (rrs *RiskReportService) ExportRiskReportToPDF(riskReportID uint, currentUs
 					ReferenceNumber:             risk.ReferenceNumber,
 					Title:                       risk.Title,
 					Description:                 risk.Description,
-					ReportedAt:                  risk.RiskReportedAt,
+					ReportedAt:                  risk.RiskReportedAt.Format("2006-01-02"),
 					RiskCategoryTitleEn:         risk.RiskCategoryTitleEn,
 					RiskCategoryTitleAr:         risk.RiskCategoryTitleAr,
 					RiskSourceTitleEn:           risk.RiskSourceTitleEn,
@@ -835,6 +836,10 @@ func (rrs *RiskReportService) ExportRiskReportToPDF(riskReportID uint, currentUs
 
 		sectionData = append(sectionData, sectionItem)
 	}
+	parsedCreatedAt, err := time.Parse(time.RFC3339, riskReport.CreatedAt)
+	if err != nil {
+		return "", fmt.Errorf("invalid CreatedAt format: %w", err)
+	}
 
 	// Final DTO to render
 	reportDetail := dtos.RiskReportPDFDetailDTO{
@@ -848,31 +853,14 @@ func (rrs *RiskReportService) ExportRiskReportToPDF(riskReportID uint, currentUs
 		CreatedUserFirstNameAr:   riskReport.CreatedUserFirstNameAr,
 		CreatedUserLastNameEn:    riskReport.CreatedUserLastNameEn,
 		CreatedUserLastNameAr:    riskReport.CreatedUserLastNameAr,
-		CreatedAt:                riskReport.CreatedAt,
+		CreatedAt:                parsedCreatedAt.Format("2006-01-02"),
 		Sections:                 sectionData,
 		Documents:                riskReport.Documents,
 	}
-	riskTemplateSetting, err := rrs.settingSvc.GetFirst()
-	if err != nil {
-		return "", fmt.Errorf("failed to fetch risk template details: %w", err)
-	}
-	logoImagePath, err := rrs.settingSvc.GetImagePath(riskTemplateSetting.ID, "logo")
-	if err != nil {
-		return "", fmt.Errorf("failed to fetch risk template logo Image Path: %w", err)
-	}
-	bgImagePath, err := rrs.settingSvc.GetImagePath(riskTemplateSetting.ID, "cover-page-bg")
-	if err != nil {
-		return "", fmt.Errorf("failed to fetch risk template logo Image Path: %w", err)
-	}
-	logoImagePath = "file:///" + strings.ReplaceAll(logoImagePath, "\\", "/")
-	bgImagePath = "file:///" + strings.ReplaceAll(bgImagePath, "\\", "/")
-
-	fmt.Println("Logo Image Path:", logoImagePath)
-	fmt.Println("Final Report Cover Page BG Image Path:", bgImagePath)
 
 	// Generate PDF content
 	templatePaths := []string{"risk/templates/pdf/risk_report.html"}
-	htmlContent, err := utility.GeneratePDFContent(reportDetail, templatePaths, logoImagePath, bgImagePath)
+	htmlContent, err := utility.GeneratePDFContent(reportDetail, templatePaths, "", "")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate HTML content: %w", err)
 	}

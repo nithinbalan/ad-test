@@ -306,6 +306,7 @@ type RiskReportDocumentFormDTO struct {
 type RiskReportPDFDetailDTO struct {
 	ID                       uint                           `json:"id"`
 	Title                    string                         `json:"title"`
+	Logo                     string                         `json:"logo"`
 	StartDate                string                         `json:"start_date"`
 	EndDate                  string                         `json:"end_date"`
 	OrganizationUnitTitlesEn string                         `json:"organization_unit_titles_en"`
@@ -330,17 +331,17 @@ type RiskReportSectionWithDataDTO struct {
 	Risks []RiskReportIdentifiedRiskPDFDTO `json:"risks,omitempty"`
 }
 type RiskReportIdentifiedRiskPDFDTO struct {
-	ID                     uint      `json:"id"`
-	ReferenceNumber        string    `json:"reference_number"`
-	Title                  string    `json:"title"`
-	Description            *string   `json:"description"`
-	ReportedAt             time.Time `json:"reported_at"`
-	RiskCategoryTitleEn    string    `json:"risk_category_title_en"`
-	RiskCategoryTitleAr    string    `json:"risk_category_title_ar"`
-	RiskSourceTitleEn      *string   `json:"risk_source_title_en"`
-	RiskSourceTitleAr      *string   `json:"risk_source_title_ar"`
-	ResponsibleUnitTitleEn string    `json:"responsible_unit_title_en"`
-	ResponsibleUnitTitleAr string    `json:"responsible_unit_title_ar"`
+	ID                     uint    `json:"id"`
+	ReferenceNumber        string  `json:"reference_number"`
+	Title                  string  `json:"title"`
+	Description            *string `json:"description"`
+	ReportedAt             string  `json:"reported_at"`
+	RiskCategoryTitleEn    string  `json:"risk_category_title_en"`
+	RiskCategoryTitleAr    string  `json:"risk_category_title_ar"`
+	RiskSourceTitleEn      *string `json:"risk_source_title_en"`
+	RiskSourceTitleAr      *string `json:"risk_source_title_ar"`
+	ResponsibleUnitTitleEn string  `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr string  `json:"responsible_unit_title_ar"`
 
 	InherentRiskRatingTitleEn   *string `json:"inherent_risk_rating_title_en"`
 	InherentRiskRatingTitleAr   *string `json:"inherent_risk_rating_title_ar"`

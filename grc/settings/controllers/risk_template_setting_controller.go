@@ -93,18 +93,13 @@ func (rtsc *RiskTemplateSettingController) UpdateRiskTemplateSetting(c *gin.Cont
 }
 
 func (rtsc *RiskTemplateSettingController) GetRiskTemplateSettingPreview(c *gin.Context) {
-	riskTemplateSettingID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
 	templateType := c.Query("type")
 	if templateType == "" {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	riskTemplateSettingImagePath, err := rtsc.service.GetImagePath(uint(riskTemplateSettingID), templateType)
+	riskTemplateSettingImagePath, err := rtsc.service.GetImagePath(templateType)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:
