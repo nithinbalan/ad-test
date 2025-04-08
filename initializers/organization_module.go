@@ -33,6 +33,7 @@ type OrganizationModule struct {
 	ControlReviewController                 *controllers.ControlReviewController
 	UserProfileController                   *controllers.UserProfileController
 	ProcessDependencyTypeController         *controllers.ProcessDependencyTypeController
+	ProcessDependencySubTypeController      *controllers.ProcessDependencySubTypeController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -178,6 +179,10 @@ func NewOrganizationModule(
 	processDependencyTypeSvc := services.NewProcessDependencyTypeService(processDependencyTypeRepo)
 	processDependencyTypeController := controllers.NewProcessDependencyTypeController(processDependencyTypeSvc)
 
+	processDependencySubTypeRepo := repositories.NewProcessDependencySubTypeRepository(db)
+	processDependencySubTypeSvc := services.NewProcessDependencySubTypeService(processDependencySubTypeRepo, processDependencyTypeSvc, sharedModule.ActivityLogService)
+	processDependencySubTypeController := controllers.NewProcessDependencySubTypeController(processDependencySubTypeSvc)
+
 	return &OrganizationModule{
 		DesignationController:                   designationController,
 		UserStatusController:                    userStatusController,
@@ -203,6 +208,7 @@ func NewOrganizationModule(
 		ControlReviewController:                 controlReviewController,
 		UserProfileController:                   userProfileController,
 		ProcessDependencyTypeController:         processDependencyTypeController,
+		ProcessDependencySubTypeController:      processDependencySubTypeController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,
