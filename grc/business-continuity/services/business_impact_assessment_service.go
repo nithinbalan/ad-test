@@ -27,7 +27,6 @@ type BusinessImpactAssessmentServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) ([]businessContinuityDTOs.BIAMatrixResponseDTO, error)
 
-	DetermineProcessRiskLevel(riskLevels []string) (*models.RiskLevel, error)
 	ExportBiaMatrix(data []businessContinuityDTOs.BIAMatrixResponseDTO, currentUserID uint) (*os.File, error)
 }
 
@@ -223,12 +222,6 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 				return err
 			}
 		}
-		// Determine overall process risk level
-		// overallRiskLevel, err := bias.DetermineProcessRiskLevel(riskLevels)
-		// if err != nil {
-		// 	tx.Rollback()
-		// 	return err
-		// }
 
 		// Update the process risk level
 		existingProcess, err := bias.processSvc.GetByID(*businessImpactAssessmentFormDTO.ProcessID, tx)
@@ -443,42 +436,6 @@ func (bias *BusinessImpactAssessmentService) UpdateProcessCriticality(businessIm
 	tx.Commit()
 
 	return nil
-}
-
-func (bias *BusinessImpactAssessmentService) DetermineProcessRiskLevel(riskLevels []string) (*models.RiskLevel, error) {
-	hasHigh := false
-	hasMedium := false
-	var riskLevelType string
-
-	for _, level := range riskLevels {
-		if level == "high" {
-			hasHigh = true
-			break
-		} else if level == "medium" {
-			hasMedium = true
-		}
-	}
-
-	if hasHigh {
-		riskLevelType = "high"
-	} else if hasMedium {
-		riskLevelType = "medium"
-	} else {
-		riskLevelType = "low"
-	}
-
-	// Fetch RiskLevel model from the database
-	riskLevel, err := bias.riskLevelSvc.GetByType(riskLevelType)
-	if err != nil {
-		// Log the error and return it
-		utility.LogError("Failed to fetch RiskLevel", map[string]interface{}{
-			"error":         err.Error(),
-			"riskLevelType": riskLevelType,
-		})
-		return nil, err
-	}
-
-	return riskLevel, nil
 }
 
 func (bias *BusinessImpactAssessmentService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
