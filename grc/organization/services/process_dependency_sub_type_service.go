@@ -66,6 +66,7 @@ func (svc *ProcessDependencySubTypeService) Create(currentUserID uint, dto *orgD
 		TitleAr:                 dto.TitleAr,
 		DescriptionEn:           dto.DescriptionEn,
 		DescriptionAr:           dto.DescriptionAr,
+		Type:                    "other",
 		Status:                  dto.Status,
 	}
 

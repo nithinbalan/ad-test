@@ -7,6 +7,7 @@ type ProcessDependencySubType struct {
 	TitleAr                 string `gorm:"type:nvarchar(255);not null" json:"title_ar"`
 	DescriptionEn           string `gorm:"type:nvarchar(MAX)" json:"description_en"`
 	DescriptionAr           string `gorm:"type:nvarchar(MAX)" json:"description_ar"`
+	Type                    string `gorm:"type:varchar(20);not null;default:'other'" json:"type" binding:"required,oneof=process department asset vendor other"`
 	Status                  string `gorm:"type:varchar(10);default:'active'" json:"status"`
 
 	ProcessDependencyType *ProcessDependencyType `gorm:"foreignKey:ProcessDependencyTypeID" json:"process_dependency_type,omitempty"`
