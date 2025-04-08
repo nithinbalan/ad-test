@@ -30,6 +30,8 @@ type AssetRegisterServiceInterface interface {
 	GetControlSummary(assetID uint) (map[string]interface{}, error)
 	UpdateAssetRecoveryObjective(asset *models.AssetRegister, tx utility.DatabaseTransaction) error
 	GetDocumentPath(id uint, token string) (string, error)
+	GetAssetRegisterVulnerabilitySummary(assetRegisterID uint) (*dtos.VulnerabilityAssetSummaryDTO, error)
+	GetAssetRegisterThreatSummary(assetRegisterID uint) (*dtos.ThreatStatusSummaryDTO, error)
 }
 
 type AssetRegisterService struct {
@@ -821,4 +823,18 @@ func (ars *AssetRegisterService) GetDocumentPath(id uint, token string) (string,
 	}
 
 	return fullPath, nil
+}
+
+func (ars *AssetRegisterService) GetAssetRegisterVulnerabilitySummary(assetRegisterID uint) (*dtos.VulnerabilityAssetSummaryDTO, error) {
+	if _, err := ars.repo.GetByID(assetRegisterID); err != nil {
+		return nil, err
+	}
+	return ars.repo.GetAssetRegisterVulnerabilitySummary(assetRegisterID)
+}
+
+func (ars *AssetRegisterService) GetAssetRegisterThreatSummary(assetRegisterID uint) (*dtos.ThreatStatusSummaryDTO, error) {
+	if _, err := ars.repo.GetByID(assetRegisterID); err != nil {
+		return nil, err
+	}
+	return ars.repo.GetAssetRegisterThreatSummary(assetRegisterID)
 }
