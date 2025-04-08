@@ -74,14 +74,15 @@ func (repo *AssetOtherDocumentRepository) GetAll(assetRegisterID uint, keyword s
 		Joins("LEFT JOIN asset_document_categories ON asset_document_categories.id = asset_other_documents.asset_document_category_id").
 		Joins("LEFT JOIN users AS created_by ON created_by.id = asset_other_documents.created_by_id").
 		Joins("LEFT JOIN users AS updated_by ON updated_by.id = asset_other_documents.updated_by_id").
-		Where("asset_other_documents.asset_register_id = ?", assetRegisterID).
 		Order("asset_other_documents.created_at DESC")
 
 	if keyword != "" {
 		query = query.Where(`
-			asset_document_categories.title_en LIKE ? OR
-			asset_document_categories.title_ar LIKE ?`,
-			"%"+keyword+"%", "%"+keyword+"%")
+			asset_other_documents.asset_register_id = ? AND 
+			(asset_document_categories.title_en LIKE ? OR asset_document_categories.title_ar LIKE ?)`,
+			assetRegisterID, "%"+keyword+"%", "%"+keyword+"%")
+	} else {
+		query = query.Where("asset_other_documents.asset_register_id = ?", assetRegisterID)
 	}
 
 	err := query.Find(&documents).Error
