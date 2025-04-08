@@ -164,6 +164,7 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 	}
 
 	var testAndExerciseProcesses []*models.TestAndExerciseProcess
+	processIds := make(map[uint]bool)
 	for _, bcpProcess := range bcpTestAndExercise.BcpTestAndExerciseBcpProcesses {
 		process := &models.TestAndExerciseProcess{
 			TestAndExerciseID: id,
@@ -177,6 +178,7 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 			CreatedBYID:       currentUserID,
 		}
 		testAndExerciseProcesses = append(testAndExerciseProcesses, process)
+		processIds[bcpProcess.BcpProcess.ProcessID] = true
 	}
 	if len(testAndExerciseProcesses) > 0 {
 		if err := tes.repo.CreateTestAndExerciseProcesses(testAndExerciseProcesses, tx); err != nil {
@@ -196,6 +198,9 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 		var testAndExerciseRecoveryActionPlan []*models.TestAndExerciseRecoveryActionPlan
 
 		for _, bcpRecoveryPlan := range businessContinuityPlan.BcpRecoveryPlans {
+			if _, exists := processIds[bcpRecoveryPlan.BcpProcess.Process.ID]; !exists {
+				continue
+			}
 			testingDate, err := utility.ParseDate(testAndExerciseFormDTO.TestingDate) //time.Parse("2006-01-02", testAndExerciseFormDTO.TestingDate)
 			if err != nil {
 				// Handle parsing error
@@ -260,7 +265,9 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 		var testAndExerciseCommunicationActionPlan []*models.TestAndExerciseCommunicationActionPlan
 
 		for _, bcpCommunicationPlan := range businessContinuityPlan.BcpCommunicationPlans {
-
+			if _, exists := processIds[bcpCommunicationPlan.BcpProcess.ProcessID]; !exists {
+				continue
+			}
 			communicationActionPlanStatus, err := tes.communicationActionPlanStatusSvc.GetByType("pending")
 			if err != nil {
 				return 0, err

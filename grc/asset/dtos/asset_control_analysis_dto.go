@@ -77,6 +77,7 @@ type AssetControlAnalysisDetailDTO struct {
 	ControlEfficiencyStatusID     uint                                             `json:"control_efficiency_status_id"`
 	ControlImplementationStatusID uint                                             `json:"control_implementation_status_id"`
 	Comments                      *string                                          `json:"comments"`
+	Control                       *organizationDTOs.ControlDetailDTO               `json:"control"`
 	ControlImplementationStatus   *organizationDTOs.ControlImplementationStatusDTO `json:"control_implementation_status"`
 	ControlEfficiencyStatus       *organizationDTOs.ControlEfficiencyStatusDTO     `json:"control_efficiency_status"`
 	CreatedAt                     time.Time                                        `json:"created_at"`
@@ -101,23 +102,3 @@ type AssetControlAnalysisListQueryParamsDTO struct {
 	SortBy  string `json:"sort_by"`
 	Keyword string `json:"keyword"`
 }
-
-// // DTO for fetching control summary
-// type AssetControlSummaryDTO struct {
-// 	TotalControlScore        float64                   `json:"total_control_score"`
-// 	ImplementationStatus     []ControlStatusSummaryDTO `json:"implementation_status"`
-// 	EfficiencyPercentage     float64                   `json:"efficiency_percentage"`
-// 	ImplementationPercentage float64                   `json:"implementation_percentage"`
-// 	TotalEfficiency          []ControlStatusSummaryDTO `json:"total_efficiency"`
-// 	TotalControlCount        int                       `json:"total_control_count"`
-// }
-
-// // DTO for control efficiency/implementation status
-// type ControlStatusSummaryDTO struct {
-// 	ID        uint   `json:"id"`
-// 	Type      string `json:"type"`
-// 	TitleEn   string `json:"title_en"`
-// 	TitleAr   string `json:"title_ar"`
-// 	Count     int    `json:"count"`
-// 	ColorCode string `json:"color_code"`
-// }
