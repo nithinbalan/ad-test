@@ -39,6 +39,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	controlReviewController := app.OrganizationModule.ControlReviewController
 	userProfileController := app.OrganizationModule.UserProfileController
 	processDependencyTypeController := app.OrganizationModule.ProcessDependencyTypeController
+	processDependencySubTypeController := app.OrganizationModule.ProcessDependencySubTypeController
 
 	//Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
@@ -252,4 +253,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// process dependency type
 	organizationRoutes.GET("/process-dependency-types", processDependencyTypeController.GetAllProcessDependencyTypes)
 	organizationRoutes.GET("/process-dependency-types/:id", processDependencyTypeController.GetProcessDependencyTypeDetails)
+
+	organizationRoutes.GET("/process-dependency-sub-types", processDependencySubTypeController.GetAllProcessDependencySubTypes)
+	organizationRoutes.GET("/process-dependency-sub-types/:id", processDependencySubTypeController.GetProcessDependencySubTypeDetails)
+	organizationRoutes.POST("/process-dependency-sub-types", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processDependencySubTypeController.CreateProcessDependencySubType)
+	organizationRoutes.PUT("/process-dependency-sub-types/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processDependencySubTypeController.UpdateProcessDependencySubType)
+	organizationRoutes.POST("/process-dependency-sub-types/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processDependencySubTypeController.DeleteProcessDependencySubTypes)
+	organizationRoutes.PUT("/process-dependency-sub-types/activate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processDependencySubTypeController.ActivateProcessDependencySubTypes)
+	organizationRoutes.PUT("/process-dependency-sub-types/deactivate", middlewares.RolePermissionMiddleware(db, "processorganization_setting_dependency_setting", "modify"), processDependencySubTypeController.DeactivateProcessDependencySubTypes)
+
 }
