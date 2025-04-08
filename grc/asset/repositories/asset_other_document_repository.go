@@ -74,7 +74,7 @@ func (repo *AssetOtherDocumentRepository) GetAll(assetRegisterID uint, keyword s
 		Joins("LEFT JOIN asset_document_categories ON asset_document_categories.id = asset_other_documents.asset_document_category_id").
 		Joins("LEFT JOIN users AS created_by ON created_by.id = asset_other_documents.created_by_id").
 		Joins("LEFT JOIN users AS updated_by ON updated_by.id = asset_other_documents.updated_by_id").
-		Order("asset_other_documents.created_at DESC")
+		Order("asset_document_categories.title_en ASC")
 
 	if keyword != "" {
 		query = query.Where(`

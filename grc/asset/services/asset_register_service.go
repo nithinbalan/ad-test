@@ -735,10 +735,19 @@ func (ars *AssetRegisterService) GetControlSummary(assetID uint) (map[string]int
 	efficiencyDetails := make(map[string]models.ControlEfficiencyStatus)
 
 	for _, ac := range assetControls {
-		implStatus := ac.Control.ControlImplementationStatus.Type
-		implementationStatusCount[implStatus]++
-		implementationDetails[implStatus] = *ac.Control.ControlImplementationStatus
+		// Safe nil check for Control
+		if ac.Control == nil {
+			continue
+		}
 
+		// Implementation status
+		if ac.Control.ControlImplementationStatus != nil {
+			implStatus := ac.Control.ControlImplementationStatus.Type
+			implementationStatusCount[implStatus]++
+			implementationDetails[implStatus] = *ac.Control.ControlImplementationStatus
+		}
+
+		// Efficiency status
 		if ac.Control.ControlEfficiencyStatus != nil {
 			effStatus := ac.Control.ControlEfficiencyStatus.Type
 			efficiencyStatusCount[effStatus]++
@@ -747,6 +756,12 @@ func (ars *AssetRegisterService) GetControlSummary(assetID uint) (map[string]int
 	}
 
 	totalControls := len(assetControls)
+
+	// Avoid division by zero
+	totalControlsFloat := float64(totalControls)
+	if totalControls == 0 {
+		totalControlsFloat = 1
+	}
 
 	implementationStatus := make([]map[string]interface{}, 0)
 	for status, count := range implementationStatusCount {
@@ -775,10 +790,10 @@ func (ars *AssetRegisterService) GetControlSummary(assetID uint) (map[string]int
 	}
 
 	summary := map[string]interface{}{
-		"total_control_score":       (float64(implementationStatusCount["implemented"]) / float64(totalControls)) * 100,
+		"total_control_score":       (float64(implementationStatusCount["implemented"]) / totalControlsFloat) * 100,
 		"implementation_status":     implementationStatus,
-		"efficiency_percentage":     (float64(efficiencyStatusCount["efficient"]) / float64(totalControls)) * 100,
-		"implementation_percentage": (float64(implementationStatusCount["implemented"]) / float64(totalControls)) * 100,
+		"efficiency_percentage":     (float64(efficiencyStatusCount["efficient"]) / totalControlsFloat) * 100,
+		"implementation_percentage": (float64(implementationStatusCount["implemented"]) / totalControlsFloat) * 100,
 		"total_efficiency":          efficiencyStatus,
 		"total_control_count":       totalControls,
 	}
