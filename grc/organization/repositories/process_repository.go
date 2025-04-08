@@ -271,6 +271,8 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("RtoUnit").
 		Preload("MtpdUnit").
 		Preload("RpoUnit").
+		Preload("RiskLevel").
+		Preload("ProcessCriticalityLevel").
 		Preload("LastAssessedByUser").
 		Preload("AuditableItems", func(db *gorm.DB) *gorm.DB {
 			return db.Order("created_at DESC").Limit(5) // Fetch the latest 5 auditable items
