@@ -84,6 +84,17 @@ type AssetControlAnalysisDetailDTO struct {
 	UpdatedAt                     *time.Time                                       `json:"updated_at"`
 	CreatedByUser                 organizationDTOs.UserMinimalDTO                  `json:"created_by"`
 	UpdatedByUser                 *organizationDTOs.UserMinimalDTO                 `json:"updated_by"`
+	Documents                     []*AssetControlDocumentDTO                       `json:"documents"`
+}
+
+type AssetControlDocumentDTO struct {
+	ID           uint   `json:"id"`
+	URL          string `json:"url"`
+	Name         string `json:"name"`
+	Size         int    `json:"size"`
+	Token        string `json:"token"`
+	OriginalName string `json:"original_name"`
+	Type         string `json:"type"`
 }
 
 type AssetControlFormDTO struct {

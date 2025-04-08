@@ -19,6 +19,7 @@ type AssetControl struct {
 	// Relationships
 	AssetRegister               *AssetRegister               `gorm:"foreignKey:AssetRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Control                     *Control                     `gorm:"foreignKey:ControlID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Documents                   []*AssetControlDocument      `gorm:"foreignKey:AssetControlID"`
 	ControlImplementationStatus *ControlImplementationStatus `gorm:"foreignKey:ControlImplementationStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ControlEfficiencyStatus     *ControlEfficiencyStatus     `gorm:"foreignKey:ControlEfficiencyStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser               *User                        `gorm:"foreignKey:CreatedBYID"`
