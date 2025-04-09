@@ -505,6 +505,37 @@ func (biac *BusinessImpactAssessmentController) UpdateRecoveryObjective(c *gin.C
 	c.Status(http.StatusOK)
 }
 
+func (biac *BusinessImpactAssessmentController) UpdateProcessCriticality(c *gin.Context) {
+	var businessImpactAssessmentProcessCriticalityFormDTO businessContinuityDTOs.BusinessImpactAssessmentProcessCriticalityFormDTO
+
+	if err := c.ShouldBindJSON(&businessImpactAssessmentProcessCriticalityFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, err.Error())
+		return
+	}
+
+	err = biac.service.UpdateProcessCriticality(businessImpactAssessmentProcessCriticalityFormDTO, currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(biac.db, c, e.Error())
+			return
+		}
+	}
+	c.Status(http.StatusOK)
+}
+
 func (biac *BusinessImpactAssessmentController) DeleteBusinessImpactAssessments(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
