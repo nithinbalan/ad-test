@@ -300,35 +300,3 @@ func (arc *AssetRegisterController) DownloadAssetDocument(c *gin.Context) {
 	// Serve the file
 	c.File(assetDocumentPath)
 }
-
-func (arc *AssetRegisterController) GetAssetRegisterVulnerabilitySummary(c *gin.Context) {
-	assetRegisterID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	summary, err := arc.service.GetAssetRegisterVulnerabilitySummary(uint(assetRegisterID))
-	if err != nil {
-		utility.SendInternalErrResp(nil, c, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, summary)
-}
-
-func (arc *AssetRegisterController) GetAssetRegisterThreatSummary(c *gin.Context) {
-	assetRegisterID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	summary, err := arc.service.GetAssetRegisterThreatSummary(uint(assetRegisterID))
-	if err != nil {
-		utility.SendInternalErrResp(nil, c, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, summary)
-}

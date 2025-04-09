@@ -562,10 +562,11 @@ func (ts *ThreatService) GetThreatSummary(assetId uint) (*dtos.ThreatSummaryDTO,
 	if err != nil {
 		return nil, err
 	}
-
+	totalCount := openCount + closedCount
 	summary := &dtos.ThreatSummaryDTO{
 		OpenCount:   openCount,
 		ClosedCount: closedCount,
+		TotalCount:  totalCount,
 	}
 
 	return summary, nil

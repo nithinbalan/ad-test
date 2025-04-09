@@ -10,6 +10,7 @@ type RiskHeatmapServiceInterface interface {
 	GetRiskHeatmapByControlID(controlID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
 	GetRiskHeatmapByComplianceID(complianceID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
 	GetRiskHeatmapBySLAID(slaID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
+	GetRiskHeatmapByAssetID(assetID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
 
 	GetRiskHeatmapByResponsibleUnit() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
 	GetRiskHeatmapByRiskCategory() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
@@ -596,4 +597,18 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByReviewFrequency() ([]*riskDTOs.Ri
 	}
 
 	return heatmapResponses, nil
+}
+
+func (rhs *RiskHeatmapService) GetRiskHeatmapByAssetID(assetID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error) {
+	riskAssets, err := rhs.repo.GetRiskAssetByAssetID(assetID)
+	if err != nil {
+		return nil, err
+	}
+
+	var riskRegisterIDs []uint
+	for _, rs := range riskAssets {
+		riskRegisterIDs = append(riskRegisterIDs, rs.RiskRegisterID)
+	}
+
+	return rhs.GetRiskHeatmap(riskRegisterIDs)
 }

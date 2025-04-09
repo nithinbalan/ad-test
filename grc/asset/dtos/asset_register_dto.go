@@ -159,27 +159,3 @@ type AssetControlDTO struct {
 	ControlID uint                              `json:"control_id"`
 	Control   organizationDTOs.ControlDetailDTO `json:"control"`
 }
-
-type VulnerabilityAssetSeverityCount struct {
-	TitleEn   string `json:"title_en"`
-	TitleAr   string `json:"title_ar"`
-	ColorCode string `json:"color_code"`
-	Count     int64  `json:"count"`
-}
-
-type VulnerabilityAssetStatusCount struct {
-	OpenCount   int64 `json:"open_count"`
-	ClosedCount int64 `json:"closed_count"`
-	TotalCount  int64 `json:"total_count"`
-}
-
-type VulnerabilityAssetSummaryDTO struct {
-	SeverityLevels []VulnerabilityAssetSeverityCount `json:"severity_levels"`
-	StatusGroups   []VulnerabilityAssetStatusCount   `json:"vulnerability_statuses"`
-}
-
-type ThreatStatusSummaryDTO struct {
-	OpenCount   int64 `json:"open_count"`
-	ClosedCount int64 `json:"closed_count"`
-	TotalCount  int64 `json:"total_count"`
-}
