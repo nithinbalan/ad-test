@@ -23,6 +23,14 @@ func NewProcessDependencyController(service services.ProcessDependencyServiceInt
 }
 
 func (p *ProcessDependencyController) GetAllProcessDependencies(c *gin.Context) {
+	processIDStr := c.Param("processId")
+
+	processID, err := strconv.ParseUint(processIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -38,7 +46,7 @@ func (p *ProcessDependencyController) GetAllProcessDependencies(c *gin.Context) 
 		Keyword: keyword,
 		Filters: filters,
 	}
-	result, err := p.service.GetAll(&queryParams)
+	result, err := p.service.GetAll(uint(processID), &queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(p.db, c, err.Error())
@@ -48,6 +56,14 @@ func (p *ProcessDependencyController) GetAllProcessDependencies(c *gin.Context) 
 }
 
 func (p *ProcessDependencyController) GetProcessDependencyDetails(c *gin.Context) {
+	processIDStr := c.Param("processId")
+
+	processID, err := strconv.ParseUint(processIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	idStr := c.Param("id")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -56,7 +72,7 @@ func (p *ProcessDependencyController) GetProcessDependencyDetails(c *gin.Context
 		return
 	}
 
-	item, err := p.service.GetByID(uint(id))
+	item, err := p.service.GetByID(uint(processID), uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -66,6 +82,14 @@ func (p *ProcessDependencyController) GetProcessDependencyDetails(c *gin.Context
 }
 
 func (p *ProcessDependencyController) CreateProcessDependency(c *gin.Context) {
+	processIDStr := c.Param("processId")
+
+	processID, err := strconv.ParseUint(processIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	var dto *processDTOs.ProcessDependencyFormDTO
 
 	if err := c.ShouldBindJSON(&dto); err != nil {
@@ -77,7 +101,7 @@ func (p *ProcessDependencyController) CreateProcessDependency(c *gin.Context) {
 		utility.SendInternalErrResp(p.db, c, err.Error())
 		return
 	}
-	id, err := p.service.Create(currentUserID, dto)
+	id, err := p.service.Create(uint(processID), currentUserID, dto)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -92,6 +116,15 @@ func (p *ProcessDependencyController) CreateProcessDependency(c *gin.Context) {
 }
 
 func (p *ProcessDependencyController) UpdateProcessDependency(c *gin.Context) {
+
+	processIDStr := c.Param("processId")
+
+	processID, err := strconv.ParseUint(processIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -110,7 +143,7 @@ func (p *ProcessDependencyController) UpdateProcessDependency(c *gin.Context) {
 		return
 	}
 
-	err = p.service.Update(uint(id), currentUserID, dto)
+	err = p.service.Update(uint(processID), uint(id), currentUserID, dto)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -127,6 +160,15 @@ func (p *ProcessDependencyController) UpdateProcessDependency(c *gin.Context) {
 }
 
 func (p *ProcessDependencyController) DeleteProcessDependencies(c *gin.Context) {
+
+	processIDStr := c.Param("processId")
+
+	processID, err := strconv.ParseUint(processIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -141,7 +183,7 @@ func (p *ProcessDependencyController) DeleteProcessDependencies(c *gin.Context) 
 		return
 	}
 
-	failedIDs, err := p.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := p.service.Delete(uint(processID), request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(p.db, c, err.Error())
 		return

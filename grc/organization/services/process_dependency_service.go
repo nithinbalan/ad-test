@@ -7,43 +7,57 @@ import (
 	"jethur/grc/models"
 	orgDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/organization/repositories"
+	settingServices "jethur/grc/settings/services"
 	"jethur/utility"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type ProcessDependencyServiceInterface interface {
-	GetAll(params *orgDTOs.ProcessDependencyListQueryParamsDTO) ([]*orgDTOs.ProcessDependencyDTO, error)
-	GetByID(id uint) (*models.ProcessDependency, error)
-	Create(currentUserID uint, dto *orgDTOs.ProcessDependencyFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, dto *orgDTOs.ProcessDependencyFormDTO) error
-	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	GetAll(processID uint, params *orgDTOs.ProcessDependencyListQueryParamsDTO) ([]*orgDTOs.ProcessDependencyDTO, error)
+	GetByID(processID uint, id uint) (*models.ProcessDependency, error)
+	Create(processID uint, currentUserID uint, processDependencyFormDTO *orgDTOs.ProcessDependencyFormDTO) (uint, error)
+	Update(processID uint, id uint, currentUserID uint, processDependencyFormDTO *orgDTOs.ProcessDependencyFormDTO) error
+	Delete(processID uint, ids []uint, currentUserID uint) ([]uint, error)
 }
 
 type ProcessDependencyService struct {
-	repo                     repositories.ProcessDependencyRepositoryInterface
-	processDependencySubType ProcessDependencySubTypeServiceInterface
-	activityLogSvc           activityLogServices.ActivityLogServiceInterface
+	repo                        repositories.ProcessDependencyRepositoryInterface
+	processDependencySubTypeSvc ProcessDependencySubTypeServiceInterface
+	activityLogSvc              activityLogServices.ActivityLogServiceInterface
+	processSvc                  ProcessServiceInterface
+	organizationUnitSvc         settingServices.OrganizationUnitServiceInterface
 }
 
 func NewProcessDependencyService(
 	repo repositories.ProcessDependencyRepositoryInterface,
-	processDependencySubType ProcessDependencySubTypeServiceInterface,
+	processDependencySubTypeSvc ProcessDependencySubTypeServiceInterface,
 	activityLogSvc activityLogServices.ActivityLogServiceInterface,
+	processSvc ProcessServiceInterface,
+	organizationUnitSvc settingServices.OrganizationUnitServiceInterface,
 ) ProcessDependencyServiceInterface {
 	return &ProcessDependencyService{
-		repo:                     repo,
-		processDependencySubType: processDependencySubType,
-		activityLogSvc:           activityLogSvc,
+		repo:                        repo,
+		processDependencySubTypeSvc: processDependencySubTypeSvc,
+		activityLogSvc:              activityLogSvc,
+		processSvc:                  processSvc,
+		organizationUnitSvc:         organizationUnitSvc,
 	}
 }
 
-func (svc *ProcessDependencyService) GetAll(params *orgDTOs.ProcessDependencyListQueryParamsDTO) ([]*orgDTOs.ProcessDependencyDTO, error) {
-	return svc.repo.GetAll(params)
+func (pds *ProcessDependencyService) GetAll(processID uint, params *orgDTOs.ProcessDependencyListQueryParamsDTO) ([]*orgDTOs.ProcessDependencyDTO, error) {
+	if _, err := pds.processSvc.GetByID(processID); err != nil {
+		return nil, err
+	}
+	return pds.repo.GetAll(params)
 }
 
-func (svc *ProcessDependencyService) GetByID(id uint) (*models.ProcessDependency, error) {
-	processDependency, err := svc.repo.GetByID(id)
+func (pds *ProcessDependencyService) GetByID(processID uint, id uint) (*models.ProcessDependency, error) {
+	if _, err := pds.processSvc.GetByID(processID); err != nil {
+		return nil, err
+	}
+	processDependency, err := pds.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -53,30 +67,53 @@ func (svc *ProcessDependencyService) GetByID(id uint) (*models.ProcessDependency
 	return processDependency, nil
 }
 
-func (svc *ProcessDependencyService) Create(currentUserID uint, dto *orgDTOs.ProcessDependencyFormDTO) (uint, error) {
-	if err := svc.validateForm(dto, nil); err != nil {
+func (pds *ProcessDependencyService) GetFullDetailsByID(processID uint, id uint) (*orgDTOs.ProcessDependencyDetailDTO, error) {
+	var processDependencyDetailDTO orgDTOs.ProcessDependencyDetailDTO
+
+	processDependency, err := pds.repo.GetFullDetailsByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(processDependency, &processDependencyDetailDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return &processDependencyDetailDTO, nil
+}
+
+func (pds *ProcessDependencyService) Create(processID uint, currentUserID uint, processDependencyFormDTO *orgDTOs.ProcessDependencyFormDTO) (uint, error) {
+	if _, err := pds.processSvc.GetByID(processID); err != nil {
 		return 0, err
 	}
 
-	entity := &models.ProcessDependency{
-		ProcessID:                  *dto.DependentProcessID,
-		ProcessDependencySubTypeID: dto.ProcessDependencySubTypeID,
-		DependentProcessID:         dto.DependentProcessID,
-		AssetID:                    dto.AssetID,
-		OrganizationUnitID:         dto.OrganizationUnitID,
-		Title:                      dto.Title,
-		Description:                *dto.Description,
+	if err := pds.validateProcessDependencyFormDTO(processDependencyFormDTO, nil); err != nil {
+		return 0, err
+	}
+
+	processDependency := &models.ProcessDependency{
+		ProcessID:                  *processDependencyFormDTO.DependentProcessID,
+		ProcessDependencySubTypeID: processDependencyFormDTO.ProcessDependencySubTypeID,
+		DependentProcessID:         processDependencyFormDTO.DependentProcessID,
+		AssetID:                    processDependencyFormDTO.AssetID,
+		OrganizationUnitID:         processDependencyFormDTO.OrganizationUnitID,
+		Title:                      *processDependencyFormDTO.Title,
+		Description:                *processDependencyFormDTO.Description,
 		CreatedBYID:                currentUserID,
 	}
 
-	id, err := svc.repo.Create(entity)
+	id, err := pds.repo.Create(processDependency)
 	if err != nil {
 		return 0, err
 	}
 
 	go func() {
-		created, _ := svc.GetByID(id)
-		svc.activityLogSvc.LogActivity(
+		created, _ := pds.GetByID(processID, id)
+		pds.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.ProcessDependency{}.TableName(),
 			id,
@@ -89,65 +126,100 @@ func (svc *ProcessDependencyService) Create(currentUserID uint, dto *orgDTOs.Pro
 	return id, nil
 }
 
-func (svc *ProcessDependencyService) Update(id uint, currentUserID uint, dto *orgDTOs.ProcessDependencyFormDTO) error {
-	oldData, err := svc.GetByID(id)
+func (pds *ProcessDependencyService) Update(processID uint, id uint, currentUserID uint, dto *orgDTOs.ProcessDependencyFormDTO) error {
+	if _, err := pds.processSvc.GetByID(processID); err != nil {
+		return err
+	}
+
+	oldData, err := pds.GetByID(processID, id)
 	if err != nil {
 		return err
 	}
 
-	existing, err := svc.GetByID(id)
+	existing, err := pds.GetByID(processID, id)
 	if err != nil {
 		return err
 	}
 
-	if err := svc.validateForm(dto, &id); err != nil {
+	if err := pds.validateProcessDependencyFormDTO(dto, &id); err != nil {
 		return err
 	}
 
 	existing.ProcessDependencySubTypeID = dto.ProcessDependencySubTypeID
 	existing.DependentProcessID = dto.DependentProcessID
-	existing.AssetID = dto.AssetID
 	existing.OrganizationUnitID = dto.OrganizationUnitID
-	existing.Title = dto.Title
+	existing.AssetID = dto.AssetID
+	existing.Title = *dto.Title
 	existing.Description = *dto.Description
 	existing.UpdatedBYID = &currentUserID
 
-	err = svc.repo.Update(existing)
+	err = pds.repo.Update(existing)
 	if err != nil {
 		return err
 	}
 
-	changed, _ := utility.CompareFields(oldData, existing, []string{
-		"ProcessDependencyTypeID", "TitleEn", "TitleAr", "DescriptionEn", "DescriptionAr", "Status",
-	})
-	changedDataJSON, _ := utility.ChangesToJSON(changed)
-
 	go func() {
-		svc.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.ProcessDependency{}.TableName(),
-			id,
-			changedDataJSON,
-			currentUserID,
-			nil,
-		)
+		// Prepare old vs new data for structured logging
+		oldFields := map[string]interface{}{
+			"process_dependency_sub_type_id": oldData.ProcessDependencySubTypeID,
+			"dependent_process_id":           oldData.DependentProcessID,
+			"organization_unit_id":           oldData.OrganizationUnitID,
+			"asset_id":                       oldData.AssetID,
+			"title":                          oldData.Title,
+			"description":                    oldData.Description,
+		}
+
+		newFields := map[string]interface{}{
+			"process_dependency_sub_type_id": existing.ProcessDependencySubTypeID,
+			"dependent_process_id":           existing.DependentProcessID,
+			"organization_unit_id":           existing.OrganizationUnitID,
+			"asset_id":                       existing.AssetID,
+			"title":                          existing.Title,
+			"description":                    existing.Description,
+		}
+
+		changedData := utility.CompareFieldChanges(oldFields, newFields)
+
+		if len(changedData) > 0 {
+			err := pds.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.ProcessDependency{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log process dependency update", map[string]interface{}{
+					"action":    models.UpdateAction,
+					"table":     models.ProcessDependency{}.TableName(),
+					"record_id": id,
+					"user_id":   currentUserID,
+					"error":     err.Error(),
+				})
+			}
+		}
 	}()
 
 	return nil
 }
 
-func (svc *ProcessDependencyService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (pds *ProcessDependencyService) Delete(processID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	if _, err := pds.processSvc.GetByID(processID); err != nil {
+		return nil, err
+	}
+
 	var failedIds []uint
 	var successfulIds []uint
 	var deletedItems []map[string]interface{}
 
 	for _, id := range ids {
-		item, err := svc.repo.GetByID(id)
+		item, err := pds.repo.GetByID(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue
 		}
-		if err := svc.repo.Delete(id); err != nil {
+		if err := pds.repo.Delete(id); err != nil {
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
@@ -159,7 +231,7 @@ func (svc *ProcessDependencyService) Delete(ids []uint, currentUserID uint) ([]u
 	}
 
 	if len(successfulIds) > 0 {
-		go svc.activityLogSvc.LogBulkActivities(
+		go pds.activityLogSvc.LogBulkActivities(
 			models.DeleteAction,
 			models.ProcessDependency{}.TableName(),
 			successfulIds,
@@ -172,10 +244,38 @@ func (svc *ProcessDependencyService) Delete(ids []uint, currentUserID uint) ([]u
 	return failedIds, nil
 }
 
-func (svc *ProcessDependencyService) validateForm(dto *orgDTOs.ProcessDependencyFormDTO, id *uint) error {
-	if _, err := svc.processDependencySubType.GetByID(dto.ProcessDependencySubTypeID); err != nil {
+func (pds *ProcessDependencyService) validateProcessDependencyFormDTO(processDependencyFormDTO *orgDTOs.ProcessDependencyFormDTO, id *uint) error {
+	if _, err := pds.processDependencySubTypeSvc.GetByID(processDependencyFormDTO.ProcessDependencySubTypeID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("dependency sub type does not exist"), "not_exist", "process dependency sub type")
 	}
 
+	if processDependencyFormDTO.DependentProcessID != nil {
+		if _, err := pds.processSvc.GetByID(*processDependencyFormDTO.DependentProcessID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("process does not exist"), "not_exist", "process")
+		}
+	}
+
+	if processDependencyFormDTO.OrganizationUnitID != nil {
+		if _, err := pds.organizationUnitSvc.GetByID(*processDependencyFormDTO.OrganizationUnitID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("organization unit does not exist"), "not_exist", "organization unit")
+		}
+	}
+
+	if processDependencyFormDTO.AssetID != nil {
+		if _, err := pds.GetAssetByID(*processDependencyFormDTO.AssetID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("asset register does not exist"), "not_exist", "asset register")
+		}
+	}
 	return nil
+}
+
+func (pds *ProcessDependencyService) GetAssetByID(id uint) (*models.AssetRegister, error) {
+	asset, err := pds.repo.GetAssetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return asset, nil
 }

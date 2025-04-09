@@ -190,7 +190,7 @@ func NewOrganizationModule(
 	governanceReportController := controllers.NewGovernanceReportController(governanceReportSvc)
 
 	processDependencyRepo := repositories.NewProcessDependencyRepository(db)
-	processDependencySvc := services.NewProcessDependencyService(processDependencyRepo, processDependencySubTypeSvc, sharedModule.ActivityLogService)
+	processDependencySvc := services.NewProcessDependencyService(processDependencyRepo, processDependencySubTypeSvc, sharedModule.ActivityLogService, processSvc, settingsModule.OrganizationUnitSvc)
 	processDependencyController := controllers.NewProcessDependencyController(processDependencySvc)
 
 	return &OrganizationModule{
