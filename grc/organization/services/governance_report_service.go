@@ -238,7 +238,7 @@ func (grs *GovernanceReportService) Create(currentUserID uint, governanceReportF
 			TaskStatusTitleEn:     task.TaskStatus.TitleEn,
 			TaskStatusTitleAr:     task.TaskStatus.TitleAr,
 			TaskStatusColorCode:   task.TaskStatus.ColorCode,
-			TargetDate:            *task.TargetDate,
+			TargetDate:            task.TargetDate,
 			CreatedByID:           currentUserID,
 		}
 

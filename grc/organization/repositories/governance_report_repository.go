@@ -173,7 +173,7 @@ func (repo *GovernanceReportRepository) GetGovernanceReportSections(governanceRe
 }
 
 func (repo *GovernanceReportRepository) GetGovernanceReportDocuments(governanceReportID uint) ([]dtos.GovernanceDocumentResponseDTO, error) {
-	var documents []dtos.GovernanceDocumentResponseDTO
+	var documents = []dtos.GovernanceDocumentResponseDTO{}
 
 	err := repo.db.Table("governance_report_documents").
 		Select(`
@@ -192,7 +192,7 @@ func (repo *GovernanceReportRepository) GetGovernanceReportDocuments(governanceR
 }
 
 func (repo *GovernanceReportRepository) GetGovernanceReportMeetings(governanceReportID uint) ([]dtos.GovernanceReportMeetingResponseDTO, error) {
-	var meetings []dtos.GovernanceReportMeetingResponseDTO
+	var meetings = []dtos.GovernanceReportMeetingResponseDTO{}
 
 	err := repo.db.Table("governance_report_meetings").
 		Select(`
@@ -208,7 +208,7 @@ func (repo *GovernanceReportRepository) GetGovernanceReportMeetings(governanceRe
 }
 
 func (repo *GovernanceReportRepository) GetGovernanceReportTasks(governanceReportID uint) ([]dtos.GovernanceReportTaskResponseDTO, error) {
-	var tasks []dtos.GovernanceReportTaskResponseDTO
+	var tasks = []dtos.GovernanceReportTaskResponseDTO{}
 
 	err := repo.db.Table("governance_report_tasks").
 		Select(`

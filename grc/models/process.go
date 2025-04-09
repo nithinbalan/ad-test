@@ -21,6 +21,9 @@ type Process struct {
 	Rpo                         *int       `json:"rpo" gorm:"default:null"`
 	RpoUnitId                   *uint      `json:"rpo_uint_id" gorm:"default:null"`
 	RiskLevelId                 *uint      `json:"risk_level_id" gorm:"default:null"`
+	ImpactJustification         *string    `json:"impact_justification" gorm:"default:null"`
+	ProcessCriticalityLevelId   *uint      `json:"process_criticality_level_id" gorm:"default:null"`
+	CriticalityJustification    *string    `json:"criticality_justification" gorm:"default:null"`
 	IsBiaPerformed              bool       `json:"is_bia_performed" gorm:"default:false"`
 	LastAssessedAt              *time.Time `json:"last_assessed_at" gorm:"type:datetime; null" binding:"-"`
 	LastAssessedByID            *uint      `json:"last_assessed_by_id" gorm:"default:null;column:last_assessed_by_id" binding:"omitempty"`
@@ -33,24 +36,25 @@ type Process struct {
 	RiskMatrixRiskRatingValueID *uint      `json:"risk_matrix_risk_rating_value_id" gorm:"default:null"`
 
 	// Relationships
-	ProcessGroup          *ProcessGroup                `gorm:"foreignKey:ProcessGroupID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	OwnerUnit             *OrganizationUnit            `gorm:"foreignKey:OwnerUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Owner                 *User                        `gorm:"foreignKey:OwnerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	LifecycleStatus       *LifecycleStatus             `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	RiskMatrixRating      *RiskMatrixRiskRating        `gorm:"foreignKey:RiskMatrixRiskRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	RiskMatrixRatingValue *RiskMatrixRiskRatingValue   `gorm:"foreignKey:RiskMatrixRiskRatingValueID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser         *User                        `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser         *User                        `gorm:"foreignKey:UpdatedBYID"`
-	LastAssessedByUser    *User                        `gorm:"foreignKey:LastAssessedByID"`
-	Controls              []*ProcessControl            `gorm:"foreignKey:ProcessID"`
-	Assets                []*ProcessAsset              `gorm:"foreignKey:ProcessID"`
-	Documents             []*ProcessAssociatedDocument `gorm:"foreignKey:ProcessID"`
-	Risks                 []*RiskProcess               `gorm:"foreignKey:ProcessID"`
-	AuditableItems        []*AuditableItem             `gorm:"foreignKey:ProcessID"`
-	RtoUnit               *TimeUnit                    `gorm:"foreignKey:RtoUnitId"`
-	MtpdUnit              *TimeUnit                    `gorm:"foreignKey:MtpdUnitId"`
-	RpoUnit               *TimeUnit                    `gorm:"foreignKey:RpoUnitId"`
-	RiskLevel             *RiskLevel                   `gorm:"foreignKey:RiskLevelId"`
+	ProcessGroup            *ProcessGroup                `gorm:"foreignKey:ProcessGroupID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	OwnerUnit               *OrganizationUnit            `gorm:"foreignKey:OwnerUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Owner                   *User                        `gorm:"foreignKey:OwnerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	LifecycleStatus         *LifecycleStatus             `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RiskMatrixRating        *RiskMatrixRiskRating        `gorm:"foreignKey:RiskMatrixRiskRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RiskMatrixRatingValue   *RiskMatrixRiskRatingValue   `gorm:"foreignKey:RiskMatrixRiskRatingValueID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser           *User                        `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser           *User                        `gorm:"foreignKey:UpdatedBYID"`
+	LastAssessedByUser      *User                        `gorm:"foreignKey:LastAssessedByID"`
+	Controls                []*ProcessControl            `gorm:"foreignKey:ProcessID"`
+	Assets                  []*ProcessAsset              `gorm:"foreignKey:ProcessID"`
+	Documents               []*ProcessAssociatedDocument `gorm:"foreignKey:ProcessID"`
+	Risks                   []*RiskProcess               `gorm:"foreignKey:ProcessID"`
+	AuditableItems          []*AuditableItem             `gorm:"foreignKey:ProcessID"`
+	RtoUnit                 *TimeUnit                    `gorm:"foreignKey:RtoUnitId"`
+	MtpdUnit                *TimeUnit                    `gorm:"foreignKey:MtpdUnitId"`
+	RpoUnit                 *TimeUnit                    `gorm:"foreignKey:RpoUnitId"`
+	RiskLevel               *RiskLevel                   `gorm:"foreignKey:RiskLevelId"`
+	ProcessCriticalityLevel *ProcessCriticalityLevel     `gorm:"foreignKey:ProcessCriticalityLevelId"`
 }
 
 func (Process) TableName() string {

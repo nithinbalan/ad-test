@@ -89,18 +89,18 @@ type GovernanceReportMeetingResponseDTO struct {
 }
 
 type GovernanceReportTaskResponseDTO struct {
-	ID                    uint   `json:"id"`
-	GovernanceReportID    uint   `json:"governance_report_id"`
-	TaskTitle             string `json:"task_title"`
-	TaskDescription       string `json:"task_description,omitempty"`
-	ResponsibleUserNameEn string `json:"responsible_user_name_en"`
-	ResponsibleUserNameAr string `json:"responsible_user_name_ar"`
-	TaskStatusTitleEn     string `json:"task_status_title_en"`
-	TaskStatusTitleAr     string `json:"task_status_title_ar"`
-	TaskStatusColorCode   string `json:"task_status_color_code"`
-	TargetDate            string `json:"target_date"`
-	CreatedByID           uint   `json:"created_by_id"`
-	CreatedAt             string `json:"created_at"`
+	ID                    uint    `json:"id"`
+	GovernanceReportID    uint    `json:"governance_report_id"`
+	TaskTitle             string  `json:"task_title"`
+	TaskDescription       string  `json:"task_description,omitempty"`
+	ResponsibleUserNameEn string  `json:"responsible_user_name_en"`
+	ResponsibleUserNameAr string  `json:"responsible_user_name_ar"`
+	TaskStatusTitleEn     string  `json:"task_status_title_en"`
+	TaskStatusTitleAr     string  `json:"task_status_title_ar"`
+	TaskStatusColorCode   string  `json:"task_status_color_code"`
+	TargetDate            *string `json:"target_date"`
+	CreatedByID           uint    `json:"created_by_id"`
+	CreatedAt             string  `json:"created_at"`
 
 	CreatedUserFirstNameEn  string `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr  string `json:"created_user_first_name_ar"`
