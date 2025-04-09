@@ -3,6 +3,7 @@ package repositories
 import (
 	"jethur/grc/models"
 	orgDTOs "jethur/grc/organization/dtos"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
@@ -17,6 +18,7 @@ type ProcessDependencyRepositoryInterface interface {
 	Delete(id uint) error
 
 	GetAssetByID(id uint) (*models.AssetRegister, error)
+	UpdateProcessDependencyRecoveryObjective(processDependency *models.ProcessDependency, tx ...utility.DatabaseTransaction) error
 }
 
 // Implementation
@@ -70,7 +72,7 @@ func (repo *ProcessDependencyRepository) GetAll(params *orgDTOs.ProcessDependenc
 
 func (repo *ProcessDependencyRepository) GetByID(id uint) (*models.ProcessDependency, error) {
 	var processDependency *models.ProcessDependency
-	err := repo.db.Preload("ProcessDependencyType").First(&processDependency, id).Error
+	err := repo.db.Preload("ProcessDependencySubType").First(&processDependency, id).Error
 	return processDependency, err
 }
 
@@ -116,4 +118,15 @@ func (repo *ProcessDependencyRepository) GetAssetByID(id uint) (*models.AssetReg
 		return nil, result.Error
 	}
 	return assetRegister, nil
+}
+
+func (repo *ProcessDependencyRepository) UpdateProcessDependencyRecoveryObjective(processDependency *models.ProcessDependency, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(processDependency).Error; err != nil {
+		return err
+	}
+	return nil
 }

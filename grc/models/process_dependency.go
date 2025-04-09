@@ -9,19 +9,25 @@ type ProcessDependency struct {
 	AssetID                    *uint   `json:"asset_id"`
 	Title                      string  `gorm:"type:nvarchar(255);not null" json:"title"`
 	Description                string  `gorm:"type:nvarchar(MAX)" json:"description"`
+	Rto                        *int    `json:"rto" gorm:"default:null"`
+	RtoUnitId                  *uint   `json:"rto_uint_id" gorm:"default:null"`
+	Mtpd                       *int    `json:"mtpd" gorm:"default:null"`
+	MtpdUnitId                 *uint   `json:"mtpd_uint_id" gorm:"default:null"`
+	Rpo                        *int    `json:"rpo" gorm:"default:null"`
+	RpoUnitId                  *uint   `json:"rpo_uint_id" gorm:"default:null"`
 	CreatedBYID                uint    `gorm:"not null" json:"created_by_id"`
 	CreatedAt                  string  `gorm:"type:datetime;not null" json:"created_at"`
 	UpdatedBYID                *uint   `json:"updated_by_id"`
 	UpdatedAt                  *string `gorm:"type:datetime" json:"updated_at"`
 
 	// Relationships
-	Process           *Process                  `gorm:"foreignKey:ProcessID" json:"process,omitempty"`
-	DependencySubType *ProcessDependencySubType `gorm:"foreignKey:ProcessDependencySubTypeID" json:"process_dependency_sub_type,omitempty"`
-	DependentProcess  *Process                  `gorm:"foreignKey:DependentProcessID" json:"dependent_process,omitempty"`
-	OrganizationUnit  *OrganizationUnit         `gorm:"foreignKey:OrganizationUnitID" json:"organization_unit,omitempty"`
-	Asset             *AssetRegister            `gorm:"foreignKey:AssetID" json:"asset,omitempty"`
-	CreatedByUser     *User                     `gorm:"foreignKey:CreatedBYID" json:"created_by,omitempty"`
-	UpdatedByUser     *User                     `gorm:"foreignKey:UpdatedBYID" json:"updated_by,omitempty"`
+	Process                  *Process                  `gorm:"foreignKey:ProcessID" json:"process,omitempty"`
+	ProcessDependencySubType *ProcessDependencySubType `gorm:"foreignKey:ProcessDependencySubTypeID" json:"process_dependency_sub_type,omitempty"`
+	DependentProcess         *Process                  `gorm:"foreignKey:DependentProcessID" json:"dependent_process,omitempty"`
+	OrganizationUnit         *OrganizationUnit         `gorm:"foreignKey:OrganizationUnitID" json:"organization_unit,omitempty"`
+	Asset                    *AssetRegister            `gorm:"foreignKey:AssetID" json:"asset,omitempty"`
+	CreatedByUser            *User                     `gorm:"foreignKey:CreatedBYID" json:"created_by,omitempty"`
+	UpdatedByUser            *User                     `gorm:"foreignKey:UpdatedBYID" json:"updated_by,omitempty"`
 }
 
 func (ProcessDependency) TableName() string {

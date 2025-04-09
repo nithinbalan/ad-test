@@ -20,6 +20,8 @@ type ProcessDependencyServiceInterface interface {
 	Create(processID uint, currentUserID uint, processDependencyFormDTO *orgDTOs.ProcessDependencyFormDTO) (uint, error)
 	Update(processID uint, id uint, currentUserID uint, processDependencyFormDTO *orgDTOs.ProcessDependencyFormDTO) error
 	Delete(processID uint, ids []uint, currentUserID uint) ([]uint, error)
+
+	UpdateProcessDependencyRecoveryObjective(processDependency *models.ProcessDependency, tx utility.DatabaseTransaction) error
 }
 
 type ProcessDependencyService struct {
@@ -278,4 +280,15 @@ func (pds *ProcessDependencyService) GetAssetByID(id uint) (*models.AssetRegiste
 		return nil, err
 	}
 	return asset, nil
+}
+
+func (pds *ProcessDependencyService) UpdateProcessDependencyRecoveryObjective(processDependency *models.ProcessDependency, tx utility.DatabaseTransaction) error {
+
+	err := pds.repo.UpdateProcessDependencyRecoveryObjective(processDependency, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return nil
 }
