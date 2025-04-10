@@ -42,6 +42,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	processDependencySubTypeController := app.OrganizationModule.ProcessDependencySubTypeController
 	governanceReportController := app.OrganizationModule.GovernanceReportController
 	processDependencyController := app.OrganizationModule.ProcessDependencyController
+	processCriticalityLevelController := app.OrganizationModule.ProcessCriticalityLevelController
 
 	//Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
@@ -277,5 +278,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/processes/:processId/dependencies", middlewares.RolePermissionMiddleware(db, "process", "modify"), processDependencyController.CreateProcessDependency)
 	organizationRoutes.PUT("/processes/:processId/dependencies/:dependencyId", middlewares.RolePermissionMiddleware(db, "process", "modify"), processDependencyController.UpdateProcessDependency)
 	organizationRoutes.POST("/processes/:processId/dependencies/delete", middlewares.RolePermissionMiddleware(db, "process", "modify"), processDependencyController.DeleteProcessDependencies)
+	// process criticality level
+	organizationRoutes.GET("/process-criticality-levels", processCriticalityLevelController.GetAllProcessCriticalityLevels)
+	organizationRoutes.GET("/process-criticality-levels/:id", processCriticalityLevelController.GetProcessCriticalityLevelDetails)
 
 }

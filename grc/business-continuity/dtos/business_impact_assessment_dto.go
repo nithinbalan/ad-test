@@ -117,6 +117,8 @@ type BusinessImpactFormDTO struct {
 type BusinessImpactAssessmentFormDTO struct {
 	ProcessID                 *uint                         `json:"process_id"`
 	BusinessImpactAssessments []BusinessImpactAssessmentDTO `json:"business_impact_assessments"`
+	RiskLevelID               *uint                         `json:"risk_level_id"`
+	ImpactJustification       *string                       `json:"impact_justification"`
 }
 
 type BusinessImpactAssessmentDTO struct {
@@ -136,6 +138,12 @@ type BusinessImpactAssessmentRecoveryObjectiveFormDTO struct {
 	Rpo                *int                                           `json:"rpo"`
 	RpoUnitId          *uint                                          `json:"rpo_unit_id"`
 	RecoveryObjectives []BusinessImpactAssessmentRecoveryObjectiveDTO `json:"recovery_objectives"`
+}
+
+type BusinessImpactAssessmentProcessCriticalityFormDTO struct {
+	ProcessID                 *uint   `json:"process_id"`
+	ProcessCriticalityLevelID *uint   `json:"process_criticality_level_id"`
+	CriticalityJustification  *string `json:"criticality_justification"`
 }
 
 type BusinessImpactAssessmentRecoveryObjectiveDTO struct {
@@ -168,7 +176,6 @@ type BIAMatrixResponseDTO struct {
 	RiskLevelID            *uint   `json:"risk_level_id"`
 	RiskLevelTitleEn       *string `json:"risk_level_title_en"`
 	RiskLevelTitleAr       *string `json:"risk_level_title_ar"`
-	RiskLevelColorCode     *string `json:"risk_level_color_code"`
 }
 
 type BIAMatrixQueryParamsDTO struct {
