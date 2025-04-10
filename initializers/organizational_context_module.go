@@ -20,6 +20,8 @@ type OrganizationalContextModule struct {
 	StakeholderEngagementController                    *controllers.StakeholderEngagementController
 	StakeholderEngagementEvaluationController          *controllers.StakeholderEngagementEvaluationController
 	StakeholderActionPlanController                    *controllers.StakeholderActionPlanController
+	StakeholderActionPlanStatusUpdateController        *controllers.StakeholderActionPlanStatusUpdateController
+	StakeholderActionPlanCommentController             *controllers.StakeholderActionPlanCommentController
 }
 
 func NewOrganizationalContextModule(db *gorm.DB,
@@ -27,6 +29,8 @@ func NewOrganizationalContextModule(db *gorm.DB,
 	settingsModule *SettingsModule,
 	masterModule *MasterModule,
 	organizationModule *OrganizationModule,
+	taskModule *TaskModule,
+	commonModule *CommonModule,
 
 ) *OrganizationalContextModule {
 	swotQuestionGroupRepo := repositories.NewSwotPestelQuestionGroupRepository(db)
@@ -80,8 +84,16 @@ func NewOrganizationalContextModule(db *gorm.DB,
 	stakeholderEngagementEvaluationController := controllers.NewStakeholderEngagementEvaluationController(stakeholderEngagementEvaluationSvc)
 
 	stakeholderActionPlanRepo := repositories.NewStakeholderActionPlanRepository(db)
-	stakeholderActionPlanSvc := services.NewStakeholderActionPlanService(stakeholderActionPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, stakeholderSvc, masterModule.ActionPlanStatusSvc, organizationModule.UserSettingSvc)
+	stakeholderActionPlanSvc := services.NewStakeholderActionPlanService(stakeholderActionPlanRepo, sharedModule.ActivityLogService, stakeholderSvc, masterModule.ActionPlanStatusSvc, masterModule.SeverityLevelSvc, taskModule.TaskService, settingsModule.ModuleSvc, organizationModule.UserSvc, commonModule.NotificationService, organizationModule.UserSettingSvc, settingsModule.OrganizationUnitSvc)
 	stakeholderActionPlanController := controllers.NewStakeholderActionPlanController(stakeholderActionPlanSvc)
+
+	stakeholderActionPlanStatusUpdateRepo := repositories.NewStakeholderActionPlanStatusUpdateRepository(db)
+	stakeholderActionPlanStatusUpdateSvc := services.NewStakeholderActionPlanStatusUpdateService(stakeholderActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, stakeholderSvc, stakeholderActionPlanSvc, masterModule.ActionPlanStatusSvc, organizationModule.UserSvc, commonModule.NotificationService, taskModule.TaskService, taskModule.TaskStatusService)
+	stakeholderActionPlanStatusUpdateController := controllers.NewStakeholderActionPlanStatusUpdateController(stakeholderActionPlanStatusUpdateSvc)
+
+	stakeholderActionPlanCommentRepository := repositories.NewStakeholderActionPlanCommentRepository(db)
+	stakeholderActionPlanCommentSvc := services.NewStakeholderActionPlanCommentService(stakeholderActionPlanCommentRepository, organizationModule.UserSvc, sharedModule.ActivityLogService, stakeholderActionPlanSvc, commonModule.NotificationService)
+	stakeholderActionPlanCommentController := controllers.NewStakeholderActionPlanCommentController(stakeholderActionPlanCommentSvc)
 
 	return &OrganizationalContextModule{
 		SwotPestelQuestionGroupController:                  swotQuestionGroupController,
@@ -95,5 +107,7 @@ func NewOrganizationalContextModule(db *gorm.DB,
 		StakeholderEngagementController:                    stakeholderEngagementController,
 		StakeholderEngagementEvaluationController:          stakeholderEngagementEvaluationController,
 		StakeholderActionPlanController:                    stakeholderActionPlanController,
+		StakeholderActionPlanStatusUpdateController:        stakeholderActionPlanStatusUpdateController,
+		StakeholderActionPlanCommentController:             stakeholderActionPlanCommentController,
 	}
 }

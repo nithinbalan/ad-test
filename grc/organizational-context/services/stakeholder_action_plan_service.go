@@ -3,85 +3,112 @@ package services
 import (
 	"errors"
 	"fmt"
-	"jethur/config"
+	"time"
+
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
+	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	organizationalContextDTOs "jethur/grc/organizational-context/dtos"
-	StakeholderActionPlanRepositories "jethur/grc/organizational-context/repositories"
+	stakeholderRepositories "jethur/grc/organizational-context/repositories"
+	settingService "jethur/grc/settings/services"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type StakeholderActionPlanServiceInterface interface {
-	GetAll(stakeholderId uint, params *organizationalContextDTOs.StakeholderActionPlanQueryParamsDTO) ([]*organizationalContextDTOs.StakeholderActionPlanListDTO, error)
+	GetAll(stakeholderID uint, params *organizationalContextDTOs.StakeholderActionPlanListQueryParamsDTO) (*organizationalContextDTOs.StakeholderActionPlanListResponseDTO, error)
 	GetByID(stakeholderID uint, id uint) (*models.StakeholderActionPlan, error)
 	GetFullDetailsByID(stakeholderID uint, id uint, tx ...utility.DatabaseTransaction) (*organizationalContextDTOs.StakeholderActionPlanDetailDTO, error)
-	Create(stakeholderID uint, currentUserID uint, dto *organizationalContextDTOs.StakeholderActionPlanFormDTO) (uint, error)
-	Update(stakeholderID uint, id uint, currentUserID uint, dto *organizationalContextDTOs.StakeholderActionPlanFormDTO) error
+	Create(stakeholderID uint, currentUserID uint, StakeholderActionPlanFormDTO *organizationalContextDTOs.StakeholderActionPlanFormDTO) (uint, error)
+	Update(stakeholderID uint, id uint, currentUserID uint, stakeholder *organizationalContextDTOs.StakeholderActionPlanFormDTO) error
 	Delete(stakeholderID uint, ids []uint, currentUserID uint) ([]uint, error)
-
-	GetDocumentPath(stakeholderID uint, actionPlanID uint, token string) (string, error)
+	StatusUpdate(stakeholderID uint, id uint, currentUserID uint, stakeholderActionPlanStatusUpdateFormDTO *organizationalContextDTOs.StakeholderActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
 }
 
+// Service and implementations
 type StakeholderActionPlanService struct {
-	repo                StakeholderActionPlanRepositories.StakeholderActionPlanRepositoryInterface
+	repo                stakeholderRepositories.StakeholderActionPlanRepositoryInterface
 	activityLogSvc      logServices.ActivityLogServiceInterface
-	userSvc             organizationServices.UserServiceInterface
 	stakeholderSvc      StakeholderServiceInterface
-	ActionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
+	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
+	severityLevelSvc    masterServices.SeverityLevelServiceInterface
+	taskSvc             taskServices.TaskServiceInterface
+	moduleSvc           settingService.ModuleServiceInterface
+	userSvc             organizationServices.UserServiceInterface
+	notificationSvc     commonServices.NotificationServiceInterface
 	userSettingSvc      organizationServices.UserSettingServiceInterface
+	organizationUnitSvc settingService.OrganizationUnitServiceInterface
 }
 
 func NewStakeholderActionPlanService(
-	repo StakeholderActionPlanRepositories.StakeholderActionPlanRepositoryInterface,
+	repo stakeholderRepositories.StakeholderActionPlanRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
-	userSvc organizationServices.UserServiceInterface,
 	stakeholderSvc StakeholderServiceInterface,
-	ActionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
+	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
+	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
+	taskSvc taskServices.TaskServiceInterface,
+	moduleSvc settingService.ModuleServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	organizationUnitSvc settingService.OrganizationUnitServiceInterface,
 ) StakeholderActionPlanServiceInterface {
 	return &StakeholderActionPlanService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
-		userSvc:             userSvc,
 		stakeholderSvc:      stakeholderSvc,
-		ActionPlanStatusSvc: ActionPlanStatusSvc,
+		actionPlanStatusSvc: actionPlanStatusSvc,
+		severityLevelSvc:    severityLevelSvc,
+		taskSvc:             taskSvc,
+		moduleSvc:           moduleSvc,
+		userSvc:             userSvc,
+		notificationSvc:     notificationSvc,
 		userSettingSvc:      userSettingSvc,
+		organizationUnitSvc: organizationUnitSvc,
 	}
 }
 
-func (saps *StakeholderActionPlanService) GetAll(stakeholderId uint, params *organizationalContextDTOs.StakeholderActionPlanQueryParamsDTO) ([]*organizationalContextDTOs.StakeholderActionPlanListDTO, error) {
-	if _, err := saps.stakeholderSvc.GetByID(stakeholderId); err != nil {
+func (caps *StakeholderActionPlanService) GetAll(stakeholderID uint, params *organizationalContextDTOs.StakeholderActionPlanListQueryParamsDTO) (*organizationalContextDTOs.StakeholderActionPlanListResponseDTO, error) {
+	if stakeholderID != 0 {
+		if _, err := caps.stakeholderSvc.GetByID(stakeholderID); err != nil {
+			return nil, err
+		}
+	}
+	return caps.repo.GetAll(stakeholderID, params, uint(0))
+}
+
+func (caps StakeholderActionPlanService) GetByID(stakeholderID uint, id uint) (*models.StakeholderActionPlan, error) {
+	if _, err := caps.stakeholderSvc.GetByID(stakeholderID); err != nil {
 		return nil, err
 	}
-	return saps.repo.GetAll(stakeholderId, params)
-}
 
-func (saps *StakeholderActionPlanService) GetByID(stakeholderID uint, id uint) (*models.StakeholderActionPlan, error) {
-	actionPlan, err := saps.repo.GetByID(id)
+	stakeholderActionPlan, err := caps.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
 		}
 		return nil, err
 	}
-	return actionPlan, nil
+	return stakeholderActionPlan, nil
 }
 
-func (saps *StakeholderActionPlanService) GetFullDetailsByID(stakeholderID uint, id uint, tx ...utility.DatabaseTransaction) (*organizationalContextDTOs.StakeholderActionPlanDetailDTO, error) {
-	if _, err := saps.stakeholderSvc.GetByID(stakeholderID); err != nil {
+func (caps StakeholderActionPlanService) GetFullDetailsByID(stakeholderID uint, id uint, tx ...utility.DatabaseTransaction) (*organizationalContextDTOs.StakeholderActionPlanDetailDTO, error) {
+	var stakeholderActionPlanDTO organizationalContextDTOs.StakeholderActionPlanDetailDTO
+
+	// Check if the stakeholder register exists
+	if _, err := caps.stakeholderSvc.GetByID(stakeholderID); err != nil {
 		return nil, err
 	}
-	var recoveryActionPlan organizationalContextDTOs.StakeholderActionPlanDetailDTO
 
-	actionPlan, err := saps.repo.GetFullDetailsByID(id, tx...)
+	// Get full details of the stakeholder action plan
+	stakeholderActionPlan, err := caps.repo.GetFullDetailsByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -89,109 +116,132 @@ func (saps *StakeholderActionPlanService) GetFullDetailsByID(stakeholderID uint,
 		return nil, err
 	}
 
-	err = mapstructure.Decode(actionPlan, &recoveryActionPlan)
+	// Decode the stakeholder action plan into the DTO
+	err = mapstructure.Decode(stakeholderActionPlan, &stakeholderActionPlanDTO)
+	if err != nil {
+		return nil, err
+	}
+	if stakeholderActionPlan.TargetDate != nil {
+		targetDate := stakeholderActionPlan.TargetDate.Format("2006-01-02")
+		stakeholderActionPlanDTO.TargetDateString = &targetDate
+	}
+
+	responsibleUnitID, err := caps.userSvc.GetUserPrimaryUnitID(stakeholderActionPlan.ResponsibleUserID)
 	if err != nil {
 		return nil, err
 	}
 
-	if actionPlan.TargetDate != nil {
-		targetDate := actionPlan.TargetDate.Format("2006-01-02")
-		recoveryActionPlan.TargetDateString = &targetDate
+	responsibleUnit, err := caps.organizationUnitSvc.GetFullDetailsByID(responsibleUnitID)
+	if err != nil {
+		return nil, err
 	}
+	stakeholderActionPlanDTO.ResponsibleUnitID = &responsibleUnitID
+	stakeholderActionPlanDTO.ResponsibleUnit = responsibleUnit
 
-	recoveryActionPlan.CreatedAt = actionPlan.CreatedAt
-	recoveryActionPlan.UpdatedAt = actionPlan.UpdatedAt
+	// if stakeholderActionPlan.ReviewUserID != nil {
+	// 	reviewUserUnitID, err := caps.userSvc.GetUserPrimaryUnitID(*stakeholderActionPlan.ReviewUserID)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
 
-	return &recoveryActionPlan, nil
+	// 	reviewUserUnit, err := caps.organizationUnitSvc.GetFullDetailsByID(reviewUserUnitID)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	stakeholderActionPlanDTO.ReviewUserUnitID = &reviewUserUnitID
+	// 	stakeholderActionPlanDTO.ReviewUserUnit = reviewUserUnit
+	// }
+
+	stakeholderActionPlanDTO.CreatedAt = stakeholderActionPlan.CreatedAt
+	stakeholderActionPlanDTO.UpdatedAt = stakeholderActionPlan.UpdatedAt
+
+	// TODO: Add any additional fields required for the details screen
+
+	return &stakeholderActionPlanDTO, nil
 }
 
-func (saps *StakeholderActionPlanService) Create(stakeholderID uint, currentUserID uint, stakeholderActionPlanFormDTO *organizationalContextDTOs.StakeholderActionPlanFormDTO) (uint, error) {
-	tx := saps.repo.BeginTransaction()
+func (caps *StakeholderActionPlanService) Create(stakeholderID uint, currentUserID uint, StakeholderActionPlanFormDTO *organizationalContextDTOs.StakeholderActionPlanFormDTO) (uint, error) {
+	tx := caps.repo.BeginTransaction()
 
-	if _, err := saps.stakeholderSvc.GetByID(stakeholderID); err != nil {
-		return 0, err
-	}
-
-	responsibleUnitID, err := saps.userSvc.GetUserPrimaryUnitID(*stakeholderActionPlanFormDTO.ResponsibleUserID)
-	if err != nil {
-		return 0, utility.NewValidationError(errors.New("organization unit not set for responsible user"), "not_exist", "responsible unit")
-	}
-
-	actionPlanStatus, err := saps.ActionPlanStatusSvc.GetByType("new")
+	stakeholder, err := caps.stakeholderSvc.GetByID(stakeholderID)
 	if err != nil {
 		return 0, err
 	}
 
-	dates, err := saps.parseStakeholderActionPlanDates(stakeholderActionPlanFormDTO)
+	if err := caps.validateStakeholderActionPlanFormDTO(stakeholderID, StakeholderActionPlanFormDTO); err != nil {
+		return 0, err
+	}
+
+	dates, err := caps.parseStakeholderActionPlanDates(StakeholderActionPlanFormDTO)
 	if err != nil {
 		return 0, err
 	}
 
-	actionPlan := &models.StakeholderActionPlan{
-		StakeholderID:      stakeholderID,
-		SeverityLevelID:    stakeholderActionPlanFormDTO.SeverityLevelID,
-		Title:              stakeholderActionPlanFormDTO.Title,
-		Requirement:        stakeholderActionPlanFormDTO.Requirement,
-		Description:        stakeholderActionPlanFormDTO.Description,
-		ResponsibleUserID:  stakeholderActionPlanFormDTO.ResponsibleUserID,
-		ResponsibleUnitID:  &responsibleUnitID,
-		AssignedOwnerID:    stakeholderActionPlanFormDTO.AssignedOwnerID,
+	actionPlanStatus, err := caps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
+	stakeholderActionPlan := &models.StakeholderActionPlan{
+		StakeholderID:      &stakeholderID,
+		Title:              StakeholderActionPlanFormDTO.Title,
+		Description:        StakeholderActionPlanFormDTO.Description,
+		SeverityLevelID:    StakeholderActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID:  StakeholderActionPlanFormDTO.ResponsibleUserID,
+		ReviewUserID:       StakeholderActionPlanFormDTO.ReviewUserID,
 		TargetDate:         dates.TargetDate,
-		ActionPlanStatusID: &actionPlanStatus.ID,
-		CreatedBYID:        currentUserID,
+		ActionPlanStatusID: actionPlanStatus.ID,
+		CreatedByID:        currentUserID,
 	}
 
-	id, err := saps.repo.Create(actionPlan, tx)
+	id, err := caps.repo.Create(stakeholderActionPlan, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
 
-	var documents []*models.StakeholderActionPlanDocument
-	for _, doc := range stakeholderActionPlanFormDTO.Documents {
-		dataToEncrypt := []byte(doc.FileName)
-		encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-		if err != nil {
-			return 0, err
-		}
-		url := utility.GenerateDocumentURL("organization-context", "stakeholder", strconv.FormatUint(uint64(stakeholderID), 10), "actionPlan", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
-		document := &models.StakeholderActionPlanDocument{
-			StakeholderActionPlanID: id,
-			URL:                     url,
-			Name:                    doc.FileName,
-			Size:                    doc.Size,
-			Token:                   encryptedFileName,
-			OriginalName:            doc.OriginalName,
-			Type:                    doc.Type,
-			CreatedBYID:             currentUserID,
-		}
-		documents = append(documents, document)
+	actionPlanStatusID := actionPlanStatus.ID
+	stakeholderActionPlanUpdate := &models.StakeholderActionPlanStatusUpdate{
+		StakeholderActionPlanID: id,
+		ActionPlanStatusID:      actionPlanStatusID,
+		Comment:                 "Initial action plan status",
+		CreatedByID:             currentUserID,
 	}
 
-	if len(documents) > 0 {
-		if err := saps.repo.CreateDocuments(documents, tx); err != nil {
-			return 0, err
-		}
+	_, err = caps.repo.CreateInitialStakeholderActionPlanStatusUpdate(stakeholderActionPlanUpdate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	urlParam := fmt.Sprintf(`{"stakeholder_register_id":%d, "action_plan_id":%d}`, stakeholderID, id)
+	taskDTO := commonDTOs.TaskFormDTO{
+		ModuleIdentifier:        "stakeholder",
+		StakeholderActionPlanID: &id,
+		Title:                   StakeholderActionPlanFormDTO.Title,
+		Description:             StakeholderActionPlanFormDTO.Description,
+		TargetDate:              dates.TargetDate,
+		URLParam:                &urlParam,
+		QueryParam:              nil,
+		SeverityLevelID:         StakeholderActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID:       StakeholderActionPlanFormDTO.ResponsibleUserID,
 	}
 
-	for _, doc := range documents {
-		storagePath := filepath.Join("organization-context", "stakeholder", strconv.FormatUint(uint64(stakeholderID), 10), "actionPlan", strconv.FormatUint(uint64(id), 10), "documents")
-		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
-			return 0, err
-		}
+	if _, err := caps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
 	}
-
 	tx.Commit()
+
 	go func() {
-		existingStakeholderActionPlan, err := saps.GetFullDetailsByID(stakeholderID, actionPlan.ID)
+		existingStakeholderActionPlan, err := caps.GetFullDetailsByID(stakeholderID, id)
 		if err != nil {
-			utility.LogError("Failed to fetch stakeholder", map[string]interface{}{
+			utility.LogError("Failed to fetch stakeholder action plan", map[string]interface{}{
 				"error": err.Error(),
 			})
 			return
 		}
 
-		err = saps.activityLogSvc.LogActivity(
+		err = caps.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.StakeholderActionPlan{}.TableName(),
 			id,
@@ -210,168 +260,176 @@ func (saps *StakeholderActionPlanService) Create(stakeholderID uint, currentUser
 
 			utility.LogError("Failed to log activity", fields)
 		}
-	}()
-	return id, nil
-}
 
-func (saps *StakeholderActionPlanService) Update(stakeholderID uint, id uint, currentUserID uint, stakeholderActionPlanFormDTO *organizationalContextDTOs.StakeholderActionPlanFormDTO) error {
-	tx := saps.repo.BeginTransaction()
+		// prepare notification
+		urlParam := fmt.Sprintf(`{"stakeholder_register_id":%d, "action_plan_id":%d}`, stakeholderID, id)
+		queryParam := ""
+		entity := "stakeholder-action-plan"
+		action := "responsible-user-assign"
 
-	existingStakeholderActionPlan, err := saps.repo.GetByID(id)
-	if err != nil {
-		return utility.NewResourceNotFoundError(err, id)
-	}
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{StakeholderActionPlanFormDTO.ResponsibleUserID},
+			ModuleIdentifier:     "stakeholder",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Stakeholder Action Plan Responsibility Assigned",
+			HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+			TitleEn:              StakeholderActionPlanFormDTO.Title,
+			TitleAr:              StakeholderActionPlanFormDTO.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			QueryParam:           queryParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
 
-	oldActionPlan, err := saps.GetFullDetailsByID(stakeholderID, id, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	if existingStakeholderActionPlan.ResponsibleUserID != stakeholderActionPlanFormDTO.ResponsibleUserID {
-		responsibleUnitID, err := saps.userSvc.GetUserPrimaryUnitID(*existingStakeholderActionPlan.ResponsibleUserID)
+		responsibleUser, err := caps.userSvc.GetByID(StakeholderActionPlanFormDTO.ResponsibleUserID)
 		if err != nil {
-			return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "risk responsible unit")
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
 		}
-		existingStakeholderActionPlan.ResponsibleUnitID = &responsibleUnitID
-	}
-
-	dates, err := saps.parseStakeholderActionPlanDates(stakeholderActionPlanFormDTO)
-	if err != nil {
-		return err
-	}
-
-	existingStakeholderActionPlan.SeverityLevelID = stakeholderActionPlanFormDTO.SeverityLevelID
-	existingStakeholderActionPlan.Title = stakeholderActionPlanFormDTO.Title
-	existingStakeholderActionPlan.ResponsibleUserID = stakeholderActionPlanFormDTO.ResponsibleUserID
-	existingStakeholderActionPlan.TargetDate = dates.TargetDate
-	existingStakeholderActionPlan.Requirement = stakeholderActionPlanFormDTO.Requirement
-	existingStakeholderActionPlan.Description = stakeholderActionPlanFormDTO.Description
-	existingStakeholderActionPlan.AssignedOwnerID = stakeholderActionPlanFormDTO.AssignedOwnerID
-	existingStakeholderActionPlan.UpdatedBYID = &currentUserID
-
-	err = saps.repo.Update(existingStakeholderActionPlan, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// Handle documents
-	var documents []*models.StakeholderActionPlanDocument
-	var deleteDocumentIds []*uint
-	var documentsToDelete []*models.StakeholderActionPlanDocument
-
-	for _, doc := range stakeholderActionPlanFormDTO.Documents {
-		if doc.IsNewFile != nil && *doc.IsNewFile {
-			// Encrypt the filename
-			dataToEncrypt := []byte(doc.FileName)
-			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-			if err != nil {
-				tx.Rollback()
-				return err
-			}
-
-			// Generate URL
-			url := utility.GenerateDocumentURL("organization-context", "stakeholder", strconv.FormatUint(uint64(stakeholderID), 10), "actionPlan", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
-
-			// Create a new actionPlan Document instance
-			document := &models.StakeholderActionPlanDocument{
-				StakeholderActionPlanID: id,
-				URL:                     url,
-				Name:                    doc.FileName,
-				Size:                    doc.Size,
-				Token:                   encryptedFileName,
-				OriginalName:            doc.OriginalName,
-				Type:                    doc.Type,
-			}
-
-			documents = append(documents, document)
-
-		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
-			if doc.ID != nil {
-				existingDocument, err := saps.repo.GetDocumentByID(*doc.ID)
-				if err != nil {
-					if errors.Is(err, gorm.ErrRecordNotFound) {
-						return utility.NewResourceNotFoundError(err, id)
-					}
-					return err
-				}
-				documentsToDelete = append(documentsToDelete, existingDocument)
-				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
-			}
-		}
-	}
-
-	// Create new documents if any
-	if len(documents) > 0 {
-		if err := saps.repo.CreateDocuments(documents, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	// Delete documents if any
-	if len(deleteDocumentIds) > 0 {
-		if err := saps.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	tx.Commit()
-
-	// Store new files to storage
-	for _, doc := range documents {
-		storagePath := filepath.Join("organization-context", "stakeholder", strconv.FormatUint(uint64(stakeholderID), 10), "actionPlan", strconv.FormatUint(uint64(id), 10), "documents")
-		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
-			fmt.Printf("Failed to store file %s: %v\n", doc.Name, err)
-		}
-	}
-
-	// Remove deleted files from storage
-	for _, document := range documentsToDelete {
-		storagePath := filepath.Join("organization-context", "stakeholder", strconv.FormatUint(uint64(stakeholderID), 10), "actionPlan", strconv.FormatUint(uint64(id), 10), "documents")
-		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
-			fmt.Printf("Failed to delete file %s: %v\n", document.Name, err)
-		}
-	}
-
-	go func() {
-		existingActionPlan, err := saps.GetFullDetailsByID(stakeholderID, id)
+		assignedBy, err := caps.userSvc.GetByID(currentUserID)
 		if err != nil {
+			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+				"error": err.Error(),
+			})
 			return
 		}
 
-		changedData := make(map[string]interface{})
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("stakeholder Action Plan/%s: Responsibility Assigned", StakeholderActionPlanFormDTO.Title)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":           responsibleUser.FirstNameEn,
+			"LastNameEn":            responsibleUser.LastNameEn,
+			"StakeholderTitle":      stakeholder.TitleEn,
+			"ActionPlanTitle":       StakeholderActionPlanFormDTO.Title,
+			"ActionPlanDescription": StakeholderActionPlanFormDTO.Description,
+			"TargetDate":            dates.TargetDate.Format("2006-01-02"),
+			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+			"AssignedByLastNameEn":  assignedBy.LastNameEn,
+			"AssignedOn":            time.Now().Format("2006-01-02"),
+			"RedirectURL":           fmt.Sprintf("%sstakeholder/register/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
+		}
 
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "stakeholder/templates/email/stakeholder_action_plan_create_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		// send notification and mail
+		err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "stakeholder_action_plan")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}()
+
+	return id, nil
+}
+
+func (caps *StakeholderActionPlanService) Update(stakeholderID uint, id uint, currentUserID uint, StakeholderActionPlanFormDTO *organizationalContextDTOs.StakeholderActionPlanFormDTO) error {
+	tx := caps.repo.BeginTransaction()
+
+	stakeholder, err := caps.stakeholderSvc.GetByID(stakeholderID)
+	if err != nil {
+		return err
+	}
+
+	existingStakeholderActionPlan, err := caps.GetByID(stakeholderID, id)
+	if err != nil {
+		return err
+	}
+
+	oldStakeholderActionPlan, err := caps.GetFullDetailsByID(stakeholderID, id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	oldResponsibleUserID := existingStakeholderActionPlan.ResponsibleUserID
+
+	if err := caps.validateStakeholderActionPlanFormDTO(stakeholderID, StakeholderActionPlanFormDTO); err != nil {
+		return err
+	}
+
+	dates, err := caps.parseStakeholderActionPlanDates(StakeholderActionPlanFormDTO)
+	if err != nil {
+		return err
+	}
+
+	// Update Stakeholder ActionPlan
+	existingStakeholderActionPlan.Title = StakeholderActionPlanFormDTO.Title
+	existingStakeholderActionPlan.Description = StakeholderActionPlanFormDTO.Description
+	existingStakeholderActionPlan.SeverityLevelID = StakeholderActionPlanFormDTO.SeverityLevelID
+	existingStakeholderActionPlan.ResponsibleUserID = StakeholderActionPlanFormDTO.ResponsibleUserID
+	existingStakeholderActionPlan.ReviewUserID = StakeholderActionPlanFormDTO.ReviewUserID
+	existingStakeholderActionPlan.TargetDate = dates.TargetDate
+	existingStakeholderActionPlan.UpdatedByID = &currentUserID
+
+	err = caps.repo.Update(existingStakeholderActionPlan, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	// //update task
+	urlParam := fmt.Sprintf(`{"stakeholder_register_id":%d, "action_plan_id":%d}`, stakeholderID, id)
+
+	taskUpdateDTO := commonDTOs.TaskFormDTO{
+		Title:             StakeholderActionPlanFormDTO.Title,
+		Description:       StakeholderActionPlanFormDTO.Description,
+		TargetDate:        dates.TargetDate,
+		URLParam:          &urlParam,
+		SeverityLevelID:   StakeholderActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID: StakeholderActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	err = caps.taskSvc.Update(currentUserID, taskUpdateDTO, "stakeholder_action_plan_id", id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+
+	go func() {
+		existingActionPlan, err := caps.GetFullDetailsByID(stakeholderID, id)
+		if err != nil {
+			return
+		}
 		// log changes
+		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
-			"title":            oldActionPlan.Title,
-			"responsible_user": utility.GetFieldValue(oldActionPlan.ResponsibleUser),
-			"assigned_owner":   utility.GetFieldValue(oldActionPlan.AssignedOwner),
-			"requirement":      oldActionPlan.Requirement,
-			"description":      oldActionPlan.Description,
-			"severity_level":   utility.GetFieldValue(oldActionPlan.SeverityLevel),
-			"target_date":      oldActionPlan.TargetDateString,
+			"title":              oldStakeholderActionPlan.Title,
+			"description":        oldStakeholderActionPlan.Description,
+			"severity_level":     oldStakeholderActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", oldStakeholderActionPlan.ResponsibleUser.FirstNameEN, oldStakeholderActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        utility.GetFieldValue(oldStakeholderActionPlan.ReviewUser),
+			"target_date":        oldStakeholderActionPlan.TargetDateString,
+			"action_plan_status": oldStakeholderActionPlan.ActionPlanStatus.TitleEn,
 		}
 
 		newData := map[string]interface{}{
-			"title":            existingActionPlan.Title,
-			"responsible_user": utility.GetFieldValue(existingActionPlan.ResponsibleUser),
-			"assigned_owner":   utility.GetFieldValue(existingActionPlan.AssignedOwner),
-			"requirement":      existingActionPlan.Requirement,
-			"description":      existingActionPlan.Description,
-			"severity_level":   utility.GetFieldValue(existingActionPlan.SeverityLevel),
-			"target_date":      existingActionPlan.TargetDateString,
+			"title":              existingActionPlan.Title,
+			"description":        existingActionPlan.Description,
+			"severity_level":     existingActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", existingActionPlan.ResponsibleUser.FirstNameEN, existingActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        utility.GetFieldValue(existingActionPlan.ReviewUser),
+			"target_date":        existingActionPlan.TargetDateString,
+			"action_plan_status": existingActionPlan.ActionPlanStatus.TitleEn,
 		}
-
+		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)
 		for k, v := range fieldChanges {
 			changedData[k] = v
 		}
-
+		// Log activity if there are any changes
 		if len(changedData) > 0 {
-			err := saps.activityLogSvc.LogActivity(
+			err := caps.activityLogSvc.LogActivity(
 				models.UpdateAction,
 				models.StakeholderActionPlan{}.TableName(),
 				id,
@@ -391,88 +449,347 @@ func (saps *StakeholderActionPlanService) Update(stakeholderID uint, id uint, cu
 				utility.LogError("Failed to log activity", fields)
 			}
 		}
+		// sends notification if responsible user has changed
+		if oldResponsibleUserID != existingStakeholderActionPlan.ResponsibleUserID {
+			urlParam := fmt.Sprintf(`{"stakeholder_register_id":%d, "action_plan_id":%d}`, stakeholderID, id)
+			queryParam := ""
+			entity := "stakeholder-action-plan"
+
+			oldResponsibleUserAction := "responsible-user-remove"
+			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{oldResponsibleUserID},
+				ModuleIdentifier:     "stakeholder",
+				NotificationType:     string(commonDTOs.InformationType),
+				HeadingEn:            "Stakeholder Action Plan Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية خطة عمل الامتثال",
+				TitleEn:              existingStakeholderActionPlan.Title,
+				TitleAr:              existingStakeholderActionPlan.Title,
+				Entity:               &entity,
+				Action:               &oldResponsibleUserAction,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			newResponsibleUserAction := "responsible-user-assign"
+			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{StakeholderActionPlanFormDTO.ResponsibleUserID},
+				ModuleIdentifier:     "stakeholder",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Stakeholder Action Plan Responsibility Assigned",
+				HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+				TitleEn:              existingStakeholderActionPlan.Title,
+				TitleAr:              existingStakeholderActionPlan.Title,
+				Entity:               &entity,
+				Action:               &newResponsibleUserAction,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			oldResponsibleUser, err := caps.userSvc.GetByID(oldResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			newResponsibleUser, err := caps.userSvc.GetByID(StakeholderActionPlanFormDTO.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			assignedBy, err := caps.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			appURL := utility.GetAppURL()
+
+			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+			oldResponsibleUserSubject := fmt.Sprintf("Stakeholder Action Plan/%s: Responsibility Removed", existingStakeholderActionPlan.Title)
+			oldResponsibleUserTemplateRelativePath := "stakeholder/templates/email/stakeholder_action_plan_remove_responsible_user_mail.html"
+			oldResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":           oldResponsibleUser.FirstNameEn,
+				"LastNameEn":            oldResponsibleUser.LastNameEn,
+				"StakeholderTitle":      stakeholder.TitleEn,
+				"ActionPlanTitle":       existingStakeholderActionPlan.Title,
+				"ActionPlanDescription": existingStakeholderActionPlan.Description,
+				"RedirectURL":           fmt.Sprintf("%sstakeholder/register/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
+			}
+
+			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldResponsibleUserEmailTo,
+				Subject:              oldResponsibleUserSubject,
+				TemplateRelativePath: oldResponsibleUserTemplateRelativePath,
+				EmailData:            oldResponsibleUserEmailData,
+			}
+
+			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+			newResponsibleUserSubject := fmt.Sprintf("Stakeholder Action Plan/%s: Responsibility Assigned", existingStakeholderActionPlan.Title)
+			newResponsibleUserTemplateRelativePath := "stakeholder/templates/email/stakeholder_action_plan_change_responsible_user_mail.html"
+			newResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":           newResponsibleUser.FirstNameEn,
+				"LastNameEn":            newResponsibleUser.LastNameEn,
+				"StakeholderTitle":      stakeholder.TitleEn,
+				"ActionPlanTitle":       existingStakeholderActionPlan.Title,
+				"ActionPlanDescription": existingStakeholderActionPlan.Description,
+				"TargetDate":            existingStakeholderActionPlan.TargetDate.Format("2006-01-02"),
+				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+				"AssignedByLastNameEn":  assignedBy.LastNameEn,
+				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           fmt.Sprintf("%sstakeholder/register/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
+			}
+
+			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              newResponsibleUserEmailTo,
+				Subject:              newResponsibleUserSubject,
+				TemplateRelativePath: newResponsibleUserTemplateRelativePath,
+				EmailData:            newResponsibleUserEmailData,
+			}
+
+			err = caps.notificationSvc.SendNotification(
+				newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "stakeholder_action_plan",
+			)
+			if err != nil {
+				utility.LogError("Failed to send new responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+			err = caps.notificationSvc.SendNotification(
+				oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "stakeholder_action_plan",
+			)
+			if err != nil {
+				utility.LogError("Failed to send old responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
 	}()
+
 	return nil
 }
 
-func (saps *StakeholderActionPlanService) Delete(stakeholderID uint, ids []uint, currentUserID uint) ([]uint, error) {
-	tx := saps.repo.BeginTransaction()
-
-	if _, err := saps.stakeholderSvc.GetByID(stakeholderID); err != nil {
+func (caps *StakeholderActionPlanService) Delete(stakeholderID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	if _, err := caps.stakeholderSvc.GetByID(stakeholderID); err != nil {
 		return nil, err
 	}
 
-	var failedIDs []uint
-	var successfulIDs []uint
-	var deletedActionPlans []map[string]interface{}
-	documentsToDelete := make(map[uint][]*organizationalContextDTOs.StakeholderActionPlanDocumentDTO)
-
+	var failedIds []uint
+	var successfulIds []uint
+	var deletedStakeholderActionPlan []map[string]interface{}
+	var notifications []struct {
+		OwnerID          *uint
+		TitleEn          string
+		TitleAr          string
+		Description      string
+		ReferenceNumber  string
+		StakeholderTitle string
+	}
 	for _, id := range ids {
-		var deleteDocumentIds []*uint
-		actionPlan, err := saps.GetFullDetailsByID(stakeholderID, id, tx)
+
+		stakeholderActionPlan, err := caps.GetFullDetailsByID(stakeholderID, id)
 		if err != nil {
-			tx.Rollback()
-			return nil, err
+			continue
 		}
 
-		deletedActionPlans = append(deletedActionPlans, map[string]interface{}{
-			"id":          id,
-			"stakeholder": actionPlan.Title,
+		// Prepare notification data before deletion
+		notifications = append(notifications, struct {
+			OwnerID          *uint
+			TitleEn          string
+			TitleAr          string
+			Description      string
+			ReferenceNumber  string
+			StakeholderTitle string
+		}{
+			OwnerID:          &stakeholderActionPlan.ResponsibleUserID,
+			TitleEn:          stakeholderActionPlan.Title,
+			TitleAr:          stakeholderActionPlan.Title,
+			Description:      *stakeholderActionPlan.Description,
+			StakeholderTitle: stakeholderActionPlan.Stakeholder.TitleEn,
 		})
 
-		if actionPlan.Documents != nil && len(actionPlan.Documents) > 0 {
-			for _, document := range actionPlan.Documents {
-				documentsToDelete[id] = append(documentsToDelete[id], document)
-				deleteDocumentIds = append(deleteDocumentIds, document.ID)
+		if len(stakeholderActionPlan.ActionPlanStatusUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			for _, update := range stakeholderActionPlan.ActionPlanStatusUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
 			}
-
-			if len(deleteDocumentIds) > 0 {
-				if err := saps.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
-					failedIDs = append(failedIDs, id)
-					continue
-				}
+			if err := caps.repo.DeleteStakeholderActionPlanStatusUpdates(deleteStatusUpdateIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
 			}
 		}
+		existingTask, err := caps.taskSvc.GetByFieldID("stakeholder_action_plan_id", id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
 
-		if err := saps.repo.Delete(id, tx); err != nil {
-			failedIDs = append(failedIDs, id)
+		taskID, err := caps.taskSvc.Delete(existingTask.ID, currentUserID)
+		if err != nil {
+			failedIds = append(failedIds, taskID)
+		}
+
+		err = caps.repo.Delete(id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
 		} else {
-			successfulIDs = append(successfulIDs, id)
+			successfulIds = append(successfulIds, id)
 		}
+
+		deletedStakeholderActionPlan = append(deletedStakeholderActionPlan, map[string]interface{}{
+			"id":                      id,
+			"stakeholder_register_id": stakeholderID,
+			"title":                   stakeholderActionPlan.Title,
+		})
+
 	}
 
-	if len(failedIDs) > 0 {
-		tx.Rollback()
-		return failedIDs, nil
+	if len(failedIds) > 0 {
+		return failedIds, nil
 	}
 
-	tx.Commit()
-
-	if len(successfulIDs) > 0 {
+	if len(successfulIds) > 0 {
 		go func() {
-			err := saps.activityLogSvc.LogBulkActivities(
+			err := caps.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
 				models.StakeholderActionPlan{}.TableName(),
-				successfulIDs,
-				deletedActionPlans,
+				successfulIds,
+				deletedStakeholderActionPlan,
 				currentUserID,
 				nil,
 			)
 			if err != nil {
+				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			}
+
+			for _, notification := range notifications {
+				urlParam := ""
+				entity := "stakeholder-action-plan"
+				action := "delete"
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserIDs:              []uint{*notification.OwnerID},
+					ModuleIdentifier:     "stakeholder",
+					NotificationType:     string(commonDTOs.DeletionType),
+					HeadingEn:            "Stakeholder Action Plan Deleted",
+					HeadingAr:            "تم حذف خطة عمل الامتثال",
+					TitleEn:              notification.TitleEn,
+					TitleAr:              notification.TitleAr,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				ownerUser, err := caps.userSvc.GetByID(*notification.OwnerID)
+				if err != nil {
+					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				ownerEmailTo := []string{ownerUser.Email}
+				subject := fmt.Sprintf("Stakeholder Action Plan/%s: Deleted", notification.TitleEn)
+				templateRelativePath := "stakeholder/templates/email/stakeholder_action_plan_delete_mail.html"
+
+				emailData := map[string]interface{}{
+					"FirstNameEn":                ownerUser.FirstNameEn,
+					"LastNameEn":                 ownerUser.LastNameEn,
+					"StakeholderReferenceNumber": notification.ReferenceNumber,
+					"StakeholderTitle":           notification.StakeholderTitle,
+					"ActionPlanTitle":            notification.TitleEn,
+					"ActionPlanDescription":      notification.Description,
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              ownerEmailTo,
+					Subject:              subject,
+					TemplateRelativePath: templateRelativePath,
+					EmailData:            emailData,
+				}
+
+				err = caps.notificationSvc.SendNotification(
+					dbNotificationDTO, emailNotificationDTO, "stakeholder_action_plan")
+				if err != nil {
+					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+
 			}
 		}()
 	}
 
-	return failedIDs, nil
+	return failedIds, nil
 }
 
-func (saps *StakeholderActionPlanService) parseStakeholderActionPlanDates(dto *organizationalContextDTOs.StakeholderActionPlanFormDTO) (*organizationalContextDTOs.StakeholderActionPlanParsedDates, error) {
+func (caps *StakeholderActionPlanService) StatusUpdate(stakeholderID uint, id uint, currentUserID uint, stakeholderActionPlanStatusUpdateFormDTO *organizationalContextDTOs.StakeholderActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error {
+	existingStakeholderActionPlan, err := caps.GetByID(stakeholderID, id)
+	if err != nil {
+		return err
+	}
+
+	existingStakeholderActionPlan.ActionPlanStatusID = stakeholderActionPlanStatusUpdateFormDTO.ActionPlanStatusID
+	existingStakeholderActionPlan.Comments = &stakeholderActionPlanStatusUpdateFormDTO.Comment
+	existingStakeholderActionPlan.Percentage = stakeholderActionPlanStatusUpdateFormDTO.Percentage
+	existingStakeholderActionPlan.UpdatedByID = &currentUserID
+
+	err = caps.repo.Update(existingStakeholderActionPlan, tx)
+	if err != nil {
+		return err
+	}
+
+	isReviewUserNull := existingStakeholderActionPlan.ReviewUserID == nil
+
+	// Fetch the corresponding task and update its status
+	existingTask, err := caps.taskSvc.GetByFieldID("stakeholder_action_plan_id", id)
+	if err != nil {
+		return err
+	}
+	err = caps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, stakeholderActionPlanStatusUpdateFormDTO.ActionPlanStatusID, isReviewUserNull, tx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (caps *StakeholderActionPlanService) validateStakeholderActionPlanFormDTO(stakeholderID uint, StakeholderActionPlanFormDTO *organizationalContextDTOs.StakeholderActionPlanFormDTO) error {
+	if StakeholderActionPlanFormDTO.SeverityLevelID != nil {
+		if _, err := caps.severityLevelSvc.GetByID(*StakeholderActionPlanFormDTO.SeverityLevelID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
+		}
+	}
+
+	if StakeholderActionPlanFormDTO.ReviewUserID != nil {
+		if StakeholderActionPlanFormDTO.ResponsibleUserID == *StakeholderActionPlanFormDTO.ReviewUserID {
+			return utility.NewValidationError(fmt.Errorf("review user and responsible user must be distinct"), "distinct_review_user", "stakeholder action plan distinct review user")
+		}
+	}
+
+	return nil
+}
+
+func (caps *StakeholderActionPlanService) parseStakeholderActionPlanDates(dto *organizationalContextDTOs.StakeholderActionPlanFormDTO) (*organizationalContextDTOs.StakeholderActionPlanParsedDates, error) {
 	parsed := &organizationalContextDTOs.StakeholderActionPlanParsedDates{}
 
 	var err error
-
-	if &dto.TargetDate != nil {
+	if dto.TargetDate != "" {
 		parsed.TargetDate, err = utility.ParseDate(dto.TargetDate)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid target date"), "invalid_date", "target date")
@@ -480,39 +797,4 @@ func (saps *StakeholderActionPlanService) parseStakeholderActionPlanDates(dto *o
 	}
 
 	return parsed, nil
-}
-
-func (saps *StakeholderActionPlanService) GetDocumentPath(stakeholderID uint, actionPlanID uint, token string) (string, error) {
-	statusUpdate, err := saps.GetFullDetailsByID(stakeholderID, actionPlanID)
-	if err != nil {
-		fmt.Printf("Error fetching status update by ID: %v\n", err)
-		return "", err
-	}
-	if len(statusUpdate.Documents) == 0 {
-		return "", fmt.Errorf("no documents found for the stakeholder action plan")
-	}
-
-	decryptedFilenameBytes, err := utility.DecryptData(token)
-	if err != nil || len(decryptedFilenameBytes) == 0 {
-		fmt.Printf("Token decryption failed: %v\n", err)
-		return "", fmt.Errorf("resource not found")
-	}
-	decryptedFilename := string(decryptedFilenameBytes)
-	fmt.Printf("Decrypted filename: %s\n", decryptedFilename)
-
-	storagePath := filepath.Join("organization-context", "stakeholder", strconv.FormatUint(uint64(stakeholderID), 10), "actionPlan", strconv.FormatUint(uint64(actionPlanID), 10), "documents")
-
-	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
-	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
-	fmt.Printf("Constructed file path: %s\n", fullPath)
-
-	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-		fmt.Printf("File does not exist at path: %s\n", fullPath)
-		return "", fmt.Errorf("file not found")
-	} else if err != nil {
-		fmt.Printf("Error accessing file at path %s: %v\n", fullPath, err)
-		return "", fmt.Errorf("error accessing file: %w", err)
-	}
-
-	return fullPath, nil
 }

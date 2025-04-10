@@ -2,9 +2,7 @@ package controllers
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
-	"path/filepath"
 	"strconv"
 
 	commonDTOs "jethur/grc/common/dtos"
@@ -76,7 +74,7 @@ func (sapc *StakeholderActionPlanController) GetAllStakeholderActionPlans(c *gin
 		return
 	}
 
-	queryParams := organizationalContextDTOs.StakeholderActionPlanQueryParamsDTO{
+	queryParams := organizationalContextDTOs.StakeholderActionPlanListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortField,
 		Keyword:     keyword,
@@ -265,55 +263,4 @@ func (sapc *StakeholderActionPlanController) DeleteStakeholderActionPlans(c *gin
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
-}
-
-func (sapc *StakeholderActionPlanController) GetDocumentPreview(c *gin.Context) {
-	stakeholderIDStr := c.Param("stakeholderId")
-	actionPlanIDStr := c.Param("actionPlanId")
-	token := c.Query("token")
-
-	stakeholderID, err := strconv.ParseUint(stakeholderIDStr, 10, 32)
-	if err != nil {
-		fmt.Printf("Failed to parse stakeholderID: %v\n", err)
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
-	if err != nil {
-		fmt.Printf("Failed to parse actionPlanID: %v\n", err)
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	documentPath, err := sapc.service.GetDocumentPath(uint(stakeholderID), uint(actionPlanID), token)
-	if err != nil {
-		fmt.Printf("Error in service call for document path: %v\n", err)
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	c.File(documentPath)
-}
-
-func (sapc *StakeholderActionPlanController) DownloadStakeholderActionPlanDocument(c *gin.Context) {
-	stakeholderID, _ := strconv.ParseUint(c.Param("stakeholderId"), 10, 32)
-	actionPlanID, _ := strconv.ParseUint(c.Param("actionPlanId"), 10, 32)
-	token := c.Query("token")
-
-	documentPath, err := sapc.service.GetDocumentPath(uint(stakeholderID), uint(actionPlanID), token)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	fileName := filepath.Base(documentPath)
-	c.Header("Content-Description", "File Transfer")
-	c.Header("Content-Type", "application/octet-stream")
-	c.Header("Content-Disposition", "attachment; filename="+fileName)
-	c.Header("Content-Transfer-Encoding", "binary")
-	c.Header("Expires", "0")
-	c.Header("Cache-Control", "must-revalidate")
-	c.Header("Pragma", "public")
-
-	c.File(documentPath)
 }
