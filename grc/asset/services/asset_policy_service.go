@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
+	complianceServices "jethur/grc/compliance/services"
 	documentServices "jethur/grc/documents/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
@@ -19,6 +20,7 @@ type AssetPolicyServiceInterface interface {
 	GetByID(id uint) (*models.AssetPolicy, error)
 	GetByAssetID(assetId uint, tx ...utility.DatabaseTransaction) ([]*models.AssetPolicy, error)
 	GetFullDetailsByID(assetRegisterID uint, id uint, tx ...utility.DatabaseTransaction) (*dtos.AssetPolicyDetailDTO, error)
+	Create(assetPolicyForm *dtos.AssetPolicyFormDTO, currentUserID uint, assetId uint) ([]uint, error)
 	Update(assetPolicyForm *dtos.AssetPolicyFormDTO, currentUserID uint, assetId uint) ([]uint, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GetAssetPolicyComplianceSummary(assetID uint) (*dtos.AssetPolicyByComplianceDTO, error)
@@ -32,6 +34,7 @@ type AssetPolicyService struct {
 	documentSvc                 documentServices.DocumentServiceInterface
 	documentRequirementGroupSvc documentServices.DocumentRequirementGroupServiceInterface
 	documentRequirementSvc      documentServices.DocumentRequirementServiceInterface
+	complianceStatusSvc         complianceServices.ComplianceStatusServiceInterface
 }
 
 func NewAssetPolicyService(
@@ -41,6 +44,7 @@ func NewAssetPolicyService(
 	documentSvc documentServices.DocumentServiceInterface,
 	documentRequirementGroupSvc documentServices.DocumentRequirementGroupServiceInterface,
 	documentRequirementSvc documentServices.DocumentRequirementServiceInterface,
+	complianceStatusSvc complianceServices.ComplianceStatusServiceInterface,
 ) AssetPolicyServiceInterface {
 	return &AssetPolicyService{
 		repo:                        repo,
@@ -49,6 +53,7 @@ func NewAssetPolicyService(
 		documentSvc:                 documentSvc,
 		documentRequirementGroupSvc: documentRequirementGroupSvc,
 		documentRequirementSvc:      documentRequirementSvc,
+		complianceStatusSvc:         complianceStatusSvc,
 	}
 }
 
@@ -97,11 +102,105 @@ func (aps *AssetPolicyService) GetFullDetailsByID(assetRegisterID uint, id uint,
 		fmt.Printf("Decode error: %v\n", err)
 		return nil, err
 	}
+	assetPolicyDetailDTO.CreatedAt = assetPolicy.CreatedAt
+	assetPolicyDetailDTO.UpdatedAt = &assetPolicy.UpdatedAt
 
 	return &assetPolicyDetailDTO, nil
 }
 
+func (aps *AssetPolicyService) Create(assetPolicyForm *dtos.AssetPolicyFormDTO, currentUserID uint, assetId uint) ([]uint, error) {
+	notImplementedStatus, err := aps.complianceStatusSvc.GetByType("not_implemented")
+	if err != nil {
+		return nil, err
+	}
+
+	tx := aps.repo.BeginTransaction()
+
+	var policyIDs []uint
+
+	// Validate documents
+	for _, documentID := range assetPolicyForm.DocumentIDs {
+		if _, err := aps.documentSvc.GetByID(documentID, tx); err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("document id %d does not exist", documentID), "not_exist", "document id")
+		}
+	}
+
+	// Loop and create asset policies and checklists
+	for _, documentID := range assetPolicyForm.DocumentIDs {
+		assetPolicy := &models.AssetPolicy{
+			AssetRegisterID:    assetId,
+			DocumentID:         documentID,
+			ComplianceStatusID: &notImplementedStatus.ID,
+			CreatedBYID:        currentUserID,
+		}
+
+		policyID, err := aps.repo.Create(assetPolicy, tx)
+		if err != nil {
+			return nil, err
+		}
+
+		document, err := aps.documentSvc.GetFullDetailsByID(documentID, &currentUserID, tx)
+		if err != nil {
+			return nil, err
+		}
+
+		var checklists []*models.AssetPolicyChecklist
+
+		for _, group := range document.DocumentRequirementGroups {
+			for _, req := range group.DocumentRequirements {
+				checklists = append(checklists, &models.AssetPolicyChecklist{
+					AssetPolicyID:              policyID,
+					DocumentRequirementGroupID: group.ID,
+					QuestionGroupTitle:         group.TitleEn,
+					QuestionTitle:              req.TitleEn,
+					CreatedBYID:                currentUserID,
+				})
+			}
+		}
+
+		if len(checklists) > 0 {
+			if err := aps.repo.CreateAssetPolicyChecklists(checklists, tx); err != nil {
+				return nil, err
+			}
+		}
+
+		policyIDs = append(policyIDs, policyID)
+	}
+
+	tx.Commit()
+
+	// Async activity log
+	go func() {
+		for _, policyID := range policyIDs {
+			policy, err := aps.GetFullDetailsByID(assetId, policyID)
+			if err != nil {
+				utility.LogError("Failed to fetch asset policy for logging", map[string]interface{}{"error": err.Error()})
+				continue
+			}
+			if err := aps.activityLogSvc.LogActivity(
+				models.CreateAction,
+				models.AssetPolicy{}.TableName(),
+				policyID,
+				policy,
+				currentUserID,
+				nil,
+			); err != nil {
+				utility.LogError("Failed to log asset policy activity", map[string]interface{}{
+					"recordID": policyID, "userID": currentUserID, "error": err.Error(),
+				})
+			}
+		}
+	}()
+
+	return policyIDs, nil
+}
+
 func (aps *AssetPolicyService) Update(assetPolicyForm *dtos.AssetPolicyFormDTO, currentUserID uint, assetId uint) ([]uint, error) {
+
+	notImplementedStatus, err := aps.complianceStatusSvc.GetByType("not_implemented")
+	if err != nil {
+		return nil, err
+	}
 	tx := aps.repo.BeginTransaction()
 
 	var policyIDs []uint
@@ -140,12 +239,10 @@ func (aps *AssetPolicyService) Update(assetPolicyForm *dtos.AssetPolicyFormDTO, 
 
 	// If there are policies to delete, remove them in bulk
 	if len(deletePolicyIDs) > 0 {
-		// First delete associated checklists
 		if err := aps.repo.DeleteAssetPolicyChecklists(deletePolicyIDs, tx); err != nil {
 			tx.Rollback()
 			return nil, err
 		}
-		// Then delete the asset policies
 		if err := aps.repo.DeleteAssetPolicies(deletePolicyIDs, tx); err != nil {
 			tx.Rollback()
 			return nil, err
@@ -156,9 +253,10 @@ func (aps *AssetPolicyService) Update(assetPolicyForm *dtos.AssetPolicyFormDTO, 
 	for _, documentID := range assetPolicyForm.DocumentIDs {
 		if _, exists := existingPolicyMap[documentID]; !exists {
 			assetPolicy := &models.AssetPolicy{
-				AssetRegisterID: assetId,
-				DocumentID:      documentID,
-				CreatedBYID:     currentUserID,
+				AssetRegisterID:    assetId,
+				DocumentID:         documentID,
+				ComplianceStatusID: &notImplementedStatus.ID,
+				CreatedBYID:        currentUserID,
 			}
 
 			policyID, err := aps.repo.Create(assetPolicy, tx)
@@ -325,7 +423,7 @@ func (aps *AssetPolicyService) StatusUpdate(id uint, currentUserID uint, assetPo
 	if err != nil {
 		return err
 	}
-
+	fmt.Println("dssddsfsdfdsf=", assetPolicyStatusUpdateFormDTO.ComplianceStatusID)
 	// Update asset policy status, comments, and percentage
 	existingAssetPolicy.ComplianceStatusID = &assetPolicyStatusUpdateFormDTO.ComplianceStatusID
 	existingAssetPolicy.UpdatedBYID = currentUserID

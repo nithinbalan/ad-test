@@ -135,6 +135,13 @@ type AssetRegisterDetailDTO struct {
 	UpdatedAt                         *time.Time                            `json:"updated_at"`
 	CreatedByUser                     organizationDTOs.UserMinimalDTO       `json:"created_by"`
 	UpdatedByUser                     *organizationDTOs.UserMinimalDTO      `json:"updated_by"`
+	Kris                              []*AssetKRIDTO                        `json:"kris"`
+}
+
+type AssetKRIDTO struct {
+	ID              *uint `json:"id"`
+	AssetRegisterID uint  `json:"risk_register_id"`
+	KriID           uint  `json:"kri_id"`
 }
 
 type AssetDocumentDTO struct {

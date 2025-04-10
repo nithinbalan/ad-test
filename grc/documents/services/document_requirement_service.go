@@ -38,9 +38,20 @@ func NewDocumentRequirementService(repo repositories.DocumentRequirementReposito
 func (drs *DocumentRequirementService) GetAll(documentId uint, requirementGroupId uint, sort string, sortBy string, keyword string) ([]*models.DocumentRequirement, error) {
 	_, err := drs.documentRequirementGroupSvc.GetByID(documentId, requirementGroupId)
 	if err != nil {
-		return nil, err
+		return []*models.DocumentRequirement{}, err
 	}
-	return drs.repo.GetAll(requirementGroupId, sort, sortBy, keyword)
+
+	documentRequirements, err := drs.repo.GetAll(requirementGroupId, sort, sortBy, keyword)
+	if err != nil {
+		return []*models.DocumentRequirement{}, err
+	}
+
+	// Ensure non-nil return
+	if documentRequirements == nil {
+		documentRequirements = []*models.DocumentRequirement{}
+	}
+
+	return documentRequirements, nil
 }
 
 func (drs *DocumentRequirementService) GetByID(documentId uint, requirementGroupId uint, id uint) (*models.DocumentRequirement, error) {

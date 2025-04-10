@@ -84,18 +84,38 @@ func (repo *RiskReportRepository) GetAll(params *dtos.RiskReportListQueryParamsD
 			CONVERT(VARCHAR, risk_reports.end_date, 23) AS end_date,
 			risk_reports.created_at,
 			STRING_AGG(organization_units.title_en, ', ') AS organization_unit_titles_en,
-			STRING_AGG(organization_units.title_ar, ', ') AS organization_unit_titles_ar
+			STRING_AGG(organization_units.title_ar, ', ') AS organization_unit_titles_ar,
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.email AS created_user_email,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.profile_image_path AS created_user_profile_image_path
 		`).
 		Joins("LEFT JOIN risk_report_organization_units ON risk_report_organization_units.risk_report_id = risk_reports.id").
 		Joins("LEFT JOIN organization_units ON organization_units.id = risk_report_organization_units.organization_unit_id").
-		Group("risk_reports.id, risk_reports.title, risk_reports.start_date, risk_reports.end_date, risk_reports.created_at")
+		Joins("LEFT JOIN users AS created_user ON created_user.id = risk_reports.created_by_id").
+		Group(`
+			risk_reports.id, risk_reports.title, risk_reports.start_date, risk_reports.end_date, risk_reports.created_at,
+			created_user.id, created_user.first_name_en, created_user.first_name_ar, 
+			created_user.last_name_en, created_user.last_name_ar, created_user.email,
+			created_user.initial, created_user.color, created_user.profile_image_path
+		`)
 
 	if params.Keyword != "" {
 		query = query.Where(`
 			(risk_reports.title LIKE ? OR 
 			organization_units.title_en LIKE ? OR 
-			organization_units.title_ar LIKE ?)`,
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			organization_units.title_ar LIKE ? OR 
+			created_user.first_name_en LIKE ? OR 
+			created_user.last_name_en LIKE ? OR
+			created_user.first_name_ar LIKE ? OR
+			created_user.last_name_ar LIKE ?)`,
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)
@@ -302,7 +322,7 @@ func (repo *RiskReportRepository) GetRiskKRIs(riskReportID uint) ([]dtos.RiskRep
 func (repo *RiskReportRepository) GetRiskReportDocuments(riskReportID uint) ([]dtos.RiskReportDocumentDTO, error) {
 	var documents []dtos.RiskReportDocumentDTO
 	err := repo.db.Table("risk_report_documents").
-		Select("id, risk_report_id, risk_report_identification_id, url, name, size, original_name, type, created_at").
+		Select("id, risk_report_id, risk_report_identification_id, url, name, size, original_name, type, token, created_at").
 		Where("risk_report_id = ?", riskReportID).
 		Find(&documents).Error
 	if err != nil {

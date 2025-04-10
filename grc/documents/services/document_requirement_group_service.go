@@ -14,7 +14,7 @@ import (
 )
 
 type DocumentRequirementGroupServiceInterface interface {
-	GetAll(documentId uint, sort string, sortBy string, keyword string, status string) ([]*models.DocumentRequirementGroup, error)
+	GetAll(documentId uint, sort string, sortBy string, keyword string, status string) ([]*dtos.DocumentRequirementGroupListDTO, error)
 	GetByID(documentId uint, id uint) (*models.DocumentRequirementGroup, error)
 	Create(documentId uint, currentUserID uint, dto *dtos.DocumentRequirementGroupFormDTO) (uint, error)
 	Update(documentId uint, id uint, currentUserID uint, dto *dtos.DocumentRequirementGroupFormDTO) (*models.DocumentRequirementGroup, error)
@@ -37,12 +37,48 @@ func NewDocumentRequirementGroupService(repo repositories.DocumentRequirementGro
 	}
 }
 
-func (drgs *DocumentRequirementGroupService) GetAll(documentId uint, sort string, sortBy string, keyword string, status string) ([]*models.DocumentRequirementGroup, error) {
+func (drgs *DocumentRequirementGroupService) GetAll(documentId uint, sort string, sortBy string, keyword string, status string) ([]*dtos.DocumentRequirementGroupListDTO, error) {
 	_, err := drgs.documentSvc.GetByID(documentId, nil)
 	if err != nil {
-		return nil, err
+		return []*dtos.DocumentRequirementGroupListDTO{}, err
 	}
-	return drgs.repo.GetAll(documentId, sort, sortBy, keyword, status)
+
+	documentRequirementGroups, err := drgs.repo.GetAll(documentId, sort, sortBy, keyword, status)
+	if err != nil {
+		return []*dtos.DocumentRequirementGroupListDTO{}, err
+	}
+
+	// Convert Model to DTO
+	var dtoList []*dtos.DocumentRequirementGroupListDTO
+	for _, drg := range documentRequirementGroups {
+		dto := &dtos.DocumentRequirementGroupListDTO{
+			ID:                   drg.ID,
+			DocumentID:           drg.DocumentID,
+			TitleEn:              drg.TitleEn,
+			TitleAr:              drg.TitleAr,
+			Status:               drg.Status,
+			CreatedByID:          drg.CreatedBYID,
+			DocumentRequirements: []dtos.DocumentRequirementDTO{}, // Initialize as empty array
+		}
+		// Convert DocumentRequirements to DTO
+		if len(drg.DocumentRequirements) > 0 {
+			for _, requirement := range drg.DocumentRequirements {
+				requirementDTO := dtos.DocumentRequirementDTO{
+					ID:                         requirement.ID,
+					DocumentRequirementGroupID: requirement.DocumentRequirementGroupID,
+					TitleEn:                    requirement.TitleEn,
+					TitleAr:                    requirement.TitleAr,
+				}
+				dto.DocumentRequirements = append(dto.DocumentRequirements, requirementDTO)
+			}
+		}
+
+		dtoList = append(dtoList, dto)
+	}
+	if dtoList == nil {
+		dtoList = []*dtos.DocumentRequirementGroupListDTO{}
+	}
+	return dtoList, nil
 }
 
 func (drgs *DocumentRequirementGroupService) GetByID(documentId uint, id uint) (*models.DocumentRequirementGroup, error) {

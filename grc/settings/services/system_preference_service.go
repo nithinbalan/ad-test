@@ -1,7 +1,6 @@
 package services
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"jethur/grc/logs/services"
@@ -250,20 +249,26 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(systemPreferenceFormDTO *dt
 		return err
 	}
 
+	modules, err := sps.moduleSvc.GetAllModules()
+	if err != nil {
+		return err
+	}
+
+	for _, module := range modules {
+		if _, err := sps.moduleSvc.DisableModule(module.ID); err != nil {
+			return err
+		}
+	}
+
 	rawModules, ok := claims["enabled_modules"]
 	if !ok {
 		return utility.NewValidationError(fmt.Errorf("invalid token"), "invalid", "enabled modules")
 	}
 
-	var enabledModules []string
-	if str, ok := rawModules.(string); ok {
-		if err := json.Unmarshal([]byte(str), &enabledModules); err != nil {
-			return utility.NewValidationError(fmt.Errorf("failed to parse enabled_modules"), "invalid", "enabled modules")
-		}
-	} else {
+	enabledModules, ok := rawModules.([]string)
+	if !ok {
 		return utility.NewValidationError(fmt.Errorf("invalid enabled_modules format"), "invalid", "enabled modules")
 	}
-
 	// Enable modules
 	for _, moduleIdentifier := range enabledModules {
 		moduleID, err := sps.moduleSvc.GetModuleIDByIdentifier(moduleIdentifier)

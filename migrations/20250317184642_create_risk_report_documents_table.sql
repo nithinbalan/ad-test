@@ -3,7 +3,7 @@
 CREATE TABLE risk_report_documents (
     id INT PRIMARY KEY IDENTITY(1,1),
     risk_report_id INT NOT NULL,
-    risk_report_identification_id INT NOT NULL,
+    risk_report_identification_id INT NULL,
     url VARCHAR(1000) DEFAULT NULL,
     name NVARCHAR(255) NULL,
     size INT DEFAULT NULL,

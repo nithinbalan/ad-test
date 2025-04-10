@@ -177,6 +177,11 @@ type ProcessAssociatedItemAssetListResponseDTO struct {
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
+type ProcessAssociatedItemControlListResponseDTO struct {
+	Items      []*ProcessControlListDTO     `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
 type ProcessAssociatedItemsCountResponseDTO struct {
 	Controls  int `json:"controls"`
 	Risks     int `json:"risks"`
