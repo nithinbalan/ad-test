@@ -169,26 +169,18 @@ func (pds *ProcessDependencyService) Update(processID uint, id uint, currentUser
 
 		oldFields := map[string]interface{}{
 			"sub_type_title_en":          oldData.ProcessDependencySubType.TitleEn,
-			"sub_type_title_ar":          oldData.ProcessDependencySubType.TitleAr,
-			"dependent_process_en":       oldData.DependentProcess.TitleEn,
-			"dependent_process_ar":       oldData.DependentProcess.TitleAr,
-			"organization_unit_title_en": oldData.OrganizationUnit.TitleEn,
-			"organization_unit_title_ar": oldData.OrganizationUnit.TitleAr,
-			"asset_title_en":             oldData.Asset.TitleEn,
-			"asset_title_ar":             oldData.Asset.TitleAr,
+			"dependent_process_en":       utility.GetFieldValue(oldData.DependentProcess).(string),
+			"organization_unit_title_en": utility.GetFieldValue(oldData.OrganizationUnit).(string),
+			"asset_title_en":             utility.GetFieldValue(oldData.Asset).(string),
 			"title":                      oldData.Title,
 			"description":                oldData.Description,
 		}
 
 		newFields := map[string]interface{}{
 			"sub_type_title_en":          newData.ProcessDependencySubType.TitleEn,
-			"sub_type_title_ar":          newData.ProcessDependencySubType.TitleAr,
-			"dependent_process_en":       newData.DependentProcess.TitleEn,
-			"dependent_process_ar":       newData.DependentProcess.TitleAr,
-			"organization_unit_title_en": newData.OrganizationUnit.TitleEn,
-			"organization_unit_title_ar": newData.OrganizationUnit.TitleAr,
-			"asset_title_en":             newData.Asset.TitleEn,
-			"asset_title_ar":             newData.Asset.TitleAr,
+			"dependent_process_en":       utility.GetFieldValue(newData.DependentProcess).(string),
+			"organization_unit_title_en": utility.GetFieldValue(newData.OrganizationUnit).(string),
+			"asset_title_en":             utility.GetFieldValue(newData.Asset).(string),
 			"title":                      newData.Title,
 			"description":                newData.Description,
 		}
