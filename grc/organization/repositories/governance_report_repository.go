@@ -196,8 +196,13 @@ func (repo *GovernanceReportRepository) GetGovernanceReportMeetings(governanceRe
 
 	err := repo.db.Table("governance_report_meetings").
 		Select(`
-			id, governance_report_id, meeting_title, meeting_date,
-			participants_count, key_decisions, actions_assigned,
+			id,
+			governance_report_id, 
+			meeting_title, 
+			CONVERT(VARCHAR, meeting_date, 23) AS meeting_date,
+			participants_count,
+			key_decisions, 
+			actions_assigned,
 			created_by_id, created_at
 		`).
 		Where("governance_report_id = ?", governanceReportID).
