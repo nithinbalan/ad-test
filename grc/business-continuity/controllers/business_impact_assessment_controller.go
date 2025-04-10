@@ -19,15 +19,18 @@ type BusinessImpactAssessmentController struct {
 	service                  services.BusinessImpactAssessmentServiceInterface
 	processAssociatedItemSvc processServices.ProcessAssociatedItemServiceInterface
 	processSvc               processServices.ProcessServiceInterface
+	processDependencySvc     processServices.ProcessDependencyServiceInterface
 	db                       *gorm.DB
 }
 
 func NewBusinessImpactAssessmentController(service services.BusinessImpactAssessmentServiceInterface,
 	processAssociatedItemSvc processServices.ProcessAssociatedItemServiceInterface,
+	processDependencySvc processServices.ProcessDependencyServiceInterface,
 	processSvc processServices.ProcessServiceInterface) *BusinessImpactAssessmentController {
 	return &BusinessImpactAssessmentController{
 		service:                  service,
 		processAssociatedItemSvc: processAssociatedItemSvc,
+		processDependencySvc:     processDependencySvc,
 		processSvc:               processSvc,
 	}
 }
@@ -342,6 +345,39 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessRisks(c *gin.Contex
 		}
 	}
 	c.JSON(http.StatusOK, documents)
+}
+
+func (biac *BusinessImpactAssessmentController) GetAllProcessDependencies(c *gin.Context) {
+	processIDStr := c.Param("processId")
+
+	processID, err := strconv.ParseUint(processIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	allowedParams := []string{
+		"process_dependency_sub_type_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	queryParams := organizationDTOs.ProcessDependencyListQueryParamsDTO{
+		Sort:    sort,
+		SortBy:  sortBy,
+		Keyword: keyword,
+		Filters: filters,
+	}
+	result, err := biac.processDependencySvc.GetAll(uint(processID), &queryParams)
+
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, result)
 }
 
 func (biac *BusinessImpactAssessmentController) GetAllBIAImpactAnalysis(c *gin.Context) {
