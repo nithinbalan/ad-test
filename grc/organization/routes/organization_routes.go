@@ -273,9 +273,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.DELETE("/governance-reports/:governanceReportId", governanceReportController.DeleteGovernanceReport)
 
 	organizationRoutes.GET("/processes/:processId/dependencies", processDependencyController.GetAllProcessDependencies)
-	organizationRoutes.GET("/processes/:processId/dependencies/:dependency_id", processDependencyController.GetProcessDependencyDetails)
+	organizationRoutes.GET("/processes/:processId/dependencies/:dependencyId", processDependencyController.GetProcessDependencyDetails)
 	organizationRoutes.POST("/processes/:processId/dependencies", middlewares.RolePermissionMiddleware(db, "process", "modify"), processDependencyController.CreateProcessDependency)
-	organizationRoutes.PUT("/processes/:processId/dependencies/:dependency_id", middlewares.RolePermissionMiddleware(db, "process", "modify"), processDependencyController.UpdateProcessDependency)
-	organizationRoutes.DELETE("/processes/:processId/dependencies/:dependency_id", middlewares.RolePermissionMiddleware(db, "process", "modify"), processDependencyController.DeleteProcessDependencies)
+	organizationRoutes.PUT("/processes/:processId/dependencies/:dependencyId", middlewares.RolePermissionMiddleware(db, "process", "modify"), processDependencyController.UpdateProcessDependency)
+	organizationRoutes.POST("/processes/:processId/dependencies/delete", middlewares.RolePermissionMiddleware(db, "process", "modify"), processDependencyController.DeleteProcessDependencies)
 
 }

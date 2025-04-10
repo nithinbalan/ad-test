@@ -15,7 +15,7 @@ import (
 )
 
 type ProcessDependencyServiceInterface interface {
-	GetAll(processID uint, params *orgDTOs.ProcessDependencyListQueryParamsDTO) ([]*orgDTOs.ProcessDependencyDTO, error)
+	GetAll(processID uint, params *orgDTOs.ProcessDependencyListQueryParamsDTO) ([]*orgDTOs.ProcessDependencyListDTO, error)
 	GetByID(processID uint, id uint) (*models.ProcessDependency, error)
 	Create(processID uint, currentUserID uint, processDependencyFormDTO *orgDTOs.ProcessDependencyFormDTO) (uint, error)
 	Update(processID uint, id uint, currentUserID uint, processDependencyFormDTO *orgDTOs.ProcessDependencyFormDTO) error
@@ -48,11 +48,11 @@ func NewProcessDependencyService(
 	}
 }
 
-func (pds *ProcessDependencyService) GetAll(processID uint, params *orgDTOs.ProcessDependencyListQueryParamsDTO) ([]*orgDTOs.ProcessDependencyDTO, error) {
+func (pds *ProcessDependencyService) GetAll(processID uint, params *orgDTOs.ProcessDependencyListQueryParamsDTO) ([]*orgDTOs.ProcessDependencyListDTO, error) {
 	if _, err := pds.processSvc.GetByID(processID); err != nil {
 		return nil, err
 	}
-	return pds.repo.GetAll(params)
+	return pds.repo.GetAll(processID, params)
 }
 
 func (pds *ProcessDependencyService) GetByID(processID uint, id uint) (*models.ProcessDependency, error) {
@@ -133,7 +133,7 @@ func (pds *ProcessDependencyService) Update(processID uint, id uint, currentUser
 		return err
 	}
 
-	oldData, err := pds.GetByID(processID, id)
+	oldData, err := pds.GetFullDetailsByID(processID, id)
 	if err != nil {
 		return err
 	}
@@ -161,23 +161,36 @@ func (pds *ProcessDependencyService) Update(processID uint, id uint, currentUser
 	}
 
 	go func() {
-		// Prepare old vs new data for structured logging
+		// Fetch updated full details after update
+		newData, err := pds.GetFullDetailsByID(processID, id)
+		if err != nil {
+			return
+		}
+
 		oldFields := map[string]interface{}{
-			"process_dependency_sub_type_id": oldData.ProcessDependencySubTypeID,
-			"dependent_process_id":           oldData.DependentProcessID,
-			"organization_unit_id":           oldData.OrganizationUnitID,
-			"asset_id":                       oldData.AssetID,
-			"title":                          oldData.Title,
-			"description":                    oldData.Description,
+			"sub_type_title_en":          oldData.ProcessDependencySubType.TitleEn,
+			"sub_type_title_ar":          oldData.ProcessDependencySubType.TitleAr,
+			"dependent_process_en":       oldData.DependentProcess.TitleEn,
+			"dependent_process_ar":       oldData.DependentProcess.TitleAr,
+			"organization_unit_title_en": oldData.OrganizationUnit.TitleEn,
+			"organization_unit_title_ar": oldData.OrganizationUnit.TitleAr,
+			"asset_title_en":             oldData.Asset.TitleEn,
+			"asset_title_ar":             oldData.Asset.TitleAr,
+			"title":                      oldData.Title,
+			"description":                oldData.Description,
 		}
 
 		newFields := map[string]interface{}{
-			"process_dependency_sub_type_id": existing.ProcessDependencySubTypeID,
-			"dependent_process_id":           existing.DependentProcessID,
-			"organization_unit_id":           existing.OrganizationUnitID,
-			"asset_id":                       existing.AssetID,
-			"title":                          existing.Title,
-			"description":                    existing.Description,
+			"sub_type_title_en":          newData.ProcessDependencySubType.TitleEn,
+			"sub_type_title_ar":          newData.ProcessDependencySubType.TitleAr,
+			"dependent_process_en":       newData.DependentProcess.TitleEn,
+			"dependent_process_ar":       newData.DependentProcess.TitleAr,
+			"organization_unit_title_en": newData.OrganizationUnit.TitleEn,
+			"organization_unit_title_ar": newData.OrganizationUnit.TitleAr,
+			"asset_title_en":             newData.Asset.TitleEn,
+			"asset_title_ar":             newData.Asset.TitleAr,
+			"title":                      newData.Title,
+			"description":                newData.Description,
 		}
 
 		changedData := utility.CompareFieldChanges(oldFields, newFields)

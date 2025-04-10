@@ -64,7 +64,7 @@ func (p *ProcessDependencyController) GetProcessDependencyDetails(c *gin.Context
 		return
 	}
 
-	idStr := c.Param("dependency_id")
+	idStr := c.Param("dependencyId")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -125,7 +125,7 @@ func (p *ProcessDependencyController) UpdateProcessDependency(c *gin.Context) {
 		return
 	}
 
-	id, err := strconv.Atoi(c.Param("dependency_id"))
+	id, err := strconv.Atoi(c.Param("dependencyId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return

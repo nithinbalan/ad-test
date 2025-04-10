@@ -10,7 +10,7 @@ import (
 
 // Interface
 type ProcessDependencyRepositoryInterface interface {
-	GetAll(params *orgDTOs.ProcessDependencyListQueryParamsDTO) ([]*orgDTOs.ProcessDependencyDTO, error)
+	GetAll(processID uint, params *orgDTOs.ProcessDependencyListQueryParamsDTO) ([]*orgDTOs.ProcessDependencyListDTO, error)
 	GetByID(id uint) (*models.ProcessDependency, error)
 	GetFullDetailsByID(id uint) (*models.ProcessDependency, error)
 	Create(item *models.ProcessDependency) (uint, error)
@@ -32,15 +32,45 @@ func NewProcessDependencyRepository(db *gorm.DB) *ProcessDependencyRepository {
 	}
 }
 
-func (repo *ProcessDependencyRepository) GetAll(params *orgDTOs.ProcessDependencyListQueryParamsDTO) ([]*orgDTOs.ProcessDependencyDTO, error) {
-	var result []*orgDTOs.ProcessDependencyDTO
+func (repo *ProcessDependencyRepository) GetAll(processID uint, params *orgDTOs.ProcessDependencyListQueryParamsDTO) ([]*orgDTOs.ProcessDependencyListDTO, error) {
+	var result []*orgDTOs.ProcessDependencyListDTO
 
-	query := repo.db.Table("process_dependency_sub_types").
+	query := repo.db.Table("process_dependencies").
 		Select(`
-			process_dependency_sub_types.*, 
-			process_dependency_types.title_en AS process_dependency_type_title_en, 
-			process_dependency_types.title_ar AS process_dependency_type_title_ar`).
-		Joins(`LEFT JOIN process_dependency_types ON process_dependency_types.id = process_dependency_sub_types.process_dependency_type_id`)
+			process_dependencies.id,
+			process_dependencies.process_id,
+			parent_process.title_en AS process_title_en,
+			parent_process.title_ar AS process_title_ar,
+
+			process_dependencies.process_dependency_sub_type_id,
+			process_dependency_sub_types.title_en AS process_dependency_sub_type_title_en,
+			process_dependency_sub_types.title_ar AS process_dependency_sub_type_title_ar,
+
+			process_dependency_types.title_en AS process_dependency_type_title_en,
+			process_dependency_types.title_ar AS process_dependency_type_title_ar,
+
+			process_dependencies.dependent_process_id,
+			dependent_process.title_en AS dependent_process_title_en,
+			dependent_process.title_ar AS dependent_process_title_ar,
+
+			process_dependencies.organization_unit_id,
+			organization_units.title_en AS organization_unit_title_en,
+			organization_units.title_ar AS organization_unit_title_ar,
+
+			process_dependencies.asset_id,
+			asset_register.title_en AS asset_title_en,
+			asset_register.title_ar AS asset_title_ar,
+
+			process_dependencies.title,
+			process_dependencies.description
+		`).
+		Joins(`LEFT JOIN processes AS parent_process ON parent_process.id = process_dependencies.process_id`).
+		Joins(`LEFT JOIN process_dependency_sub_types ON process_dependency_sub_types.id = process_dependencies.process_dependency_sub_type_id`).
+		Joins(`LEFT JOIN process_dependency_types ON process_dependency_types.id = process_dependency_sub_types.process_dependency_type_id`).
+		Joins(`LEFT JOIN processes AS dependent_process ON dependent_process.id = process_dependencies.dependent_process_id`).
+		Joins(`LEFT JOIN organization_units ON organization_units.id = process_dependencies.organization_unit_id`).
+		Joins(`LEFT JOIN asset_register ON asset_register.id = process_dependencies.asset_id`).
+		Where("process_dependencies.process_id = ?", processID)
 
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
@@ -49,16 +79,20 @@ func (repo *ProcessDependencyRepository) GetAll(params *orgDTOs.ProcessDependenc
 	}
 
 	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(process_dependency_sub_types.title_en LIKE ? OR
-			 process_dependency_sub_types.title_ar LIKE ? OR
-			 process_dependency_sub_types.description_en LIKE ? OR
-			 process_dependency_sub_types.description_ar LIKE ?)`,
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			process_dependencies.title LIKE ? OR
+			process_dependencies.description LIKE ? OR
+			process_dependency_sub_types.title_en LIKE ? OR
+			process_dependency_types.title_en LIKE ? OR
+			dependent_process.title_en LIKE ? OR
+			organization_units.title_en LIKE ? OR
+			asset_register.title_en LIKE ?
+		`, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	if params.SortBy == "" {
-		params.SortBy = "title_en"
+		params.SortBy = "process_dependencies.title"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
