@@ -14,7 +14,7 @@ type ProcessDependencyRepositoryInterface interface {
 	GetByID(id uint) (*models.ProcessDependency, error)
 	GetFullDetailsByID(id uint) (*models.ProcessDependency, error)
 	Create(item *models.ProcessDependency) (uint, error)
-	Update(item *models.ProcessDependency) error
+	Update(updatedProcessDependency *models.ProcessDependency) error
 	Delete(id uint) error
 
 	GetAssetByID(id uint) (*models.AssetRegister, error)
@@ -106,7 +106,7 @@ func (repo *ProcessDependencyRepository) GetAll(processID uint, params *orgDTOs.
 
 func (repo *ProcessDependencyRepository) GetByID(id uint) (*models.ProcessDependency, error) {
 	var processDependency *models.ProcessDependency
-	err := repo.db.Preload("ProcessDependencySubType").First(&processDependency, id).Error
+	err := repo.db.First(&processDependency, id).Error
 	return processDependency, err
 }
 
@@ -134,11 +134,13 @@ func (repo *ProcessDependencyRepository) Create(processDependency *models.Proces
 	return processDependency.ID, err
 }
 
-func (repo *ProcessDependencyRepository) Update(processDependency *models.ProcessDependency) error {
-	return repo.db.Model(&models.ProcessDependency{}).
-		Where("id = ?", processDependency.ID).
-		Select("ProcessDependencyTypeID", "TitleEn", "TitleAr", "DescriptionEn", "DescriptionAr", "Status").
-		Updates(processDependency).Error
+func (repo *ProcessDependencyRepository) Update(updatedProcessDependency *models.ProcessDependency) error {
+
+	if err := repo.db.Save(updatedProcessDependency).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (repo *ProcessDependencyRepository) Delete(id uint) error {
