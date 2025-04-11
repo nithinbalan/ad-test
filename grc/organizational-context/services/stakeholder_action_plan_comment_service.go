@@ -139,7 +139,7 @@ func (caps *StakeholderActionPlanCommentService) Create(stakeholderID uint, acti
 		}
 
 		url := utility.GenerateDocumentURL(
-			"stakeholder", "stakeholder-register", strconv.FormatUint(uint64(stakeholderID), 10),
+			"organizational-context", "stakeholder", strconv.FormatUint(uint64(stakeholderID), 10),
 			"action-plans", strconv.FormatUint(uint64(actionPlanID), 10),
 			"comments", strconv.FormatUint(uint64(id), 10),
 			"documents",
@@ -167,7 +167,7 @@ func (caps *StakeholderActionPlanCommentService) Create(stakeholderID uint, acti
 
 		for _, doc := range documents {
 			storagePath := filepath.Join(
-				"stakeholder", "stakeholder-register", strconv.FormatUint(uint64(stakeholderID), 10),
+				"organizational-context", "stakeholder", strconv.FormatUint(uint64(stakeholderID), 10),
 				"action-plans", strconv.FormatUint(uint64(actionPlanID), 10),
 				"comments", strconv.FormatUint(uint64(id), 10),
 				"documents",
@@ -221,7 +221,7 @@ func (caps *StakeholderActionPlanCommentService) Create(stakeholderID uint, acti
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 					UserIDs:              []uint{*stakeholderActionPlan.ReviewUserID},
-					ModuleIdentifier:     "stakeholder",
+					ModuleIdentifier:     "stakeholder_analysis",
 					NotificationType:     string(commonDTOs.AssignmentType),
 					HeadingEn:            "Comment Added For Stakeholder Action Plan",
 					HeadingAr:            "تمت إضافة التعليق لخطة عمل الامتثال",
@@ -262,13 +262,13 @@ func (caps *StakeholderActionPlanCommentService) Create(stakeholderID uint, acti
 					"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 					"CommentedByLastNameEn":  assignedBy.LastNameEn,
 					"CommentedOn":            time.Now().Format("2006-01-02"),
-					"RedirectURL":            fmt.Sprintf("%sstakeholder/register/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
+					"RedirectURL":            fmt.Sprintf("%sstakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, actionPlanID),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 					EmailTo:              emailTo,
 					Subject:              subject,
-					TemplateRelativePath: "stakeholder/templates/email/stakeholder_action_plan_comment.html",
+					TemplateRelativePath: "organizational-context/templates/email/stakeholder_action_plan_comment.html",
 					EmailData:            emailData,
 				}
 
@@ -290,7 +290,7 @@ func (caps *StakeholderActionPlanCommentService) Create(stakeholderID uint, acti
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 				UserIDs:              []uint{stakeholderActionPlan.ResponsibleUserID},
-				ModuleIdentifier:     "stakeholder",
+				ModuleIdentifier:     "stakeholder_analysis",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Comment Added For Stakeholder Action Plan",
 				HeadingAr:            "تمت إضافة التعليق لخطة عمل الامتثال",
@@ -331,13 +331,13 @@ func (caps *StakeholderActionPlanCommentService) Create(stakeholderID uint, acti
 				"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":             time.Now().Format("2006-01-02"),
-				"RedirectURL":            fmt.Sprintf("%sstakeholder/register/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
+				"RedirectURL":            fmt.Sprintf("%sstakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, actionPlanID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 				EmailTo:              emailTo,
 				Subject:              subject,
-				TemplateRelativePath: "stakeholder/templates/email/stakeholder_action_plan_comment.html",
+				TemplateRelativePath: "organizational-context/templates/email/stakeholder_action_plan_comment.html",
 				EmailData:            emailData,
 			}
 
@@ -358,7 +358,7 @@ func (caps *StakeholderActionPlanCommentService) Create(stakeholderID uint, acti
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 				UserIDs:              []uint{stakeholderActionPlan.ResponsibleUserID},
-				ModuleIdentifier:     "stakeholder",
+				ModuleIdentifier:     "stakeholder_analysis",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Comment Added For Stakeholder Action Plan",
 				HeadingAr:            "تمت إضافة التعليق لخطة عمل الامتثال",
@@ -399,13 +399,13 @@ func (caps *StakeholderActionPlanCommentService) Create(stakeholderID uint, acti
 				"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":             time.Now().Format("2006-01-02"),
-				"RedirectURL":            fmt.Sprintf("%sstakeholder/register/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
+				"RedirectURL":            fmt.Sprintf("%sstakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, actionPlanID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 				EmailTo:              emailTo,
 				Subject:              subject,
-				TemplateRelativePath: "stakeholder/templates/email/stakeholder_action_plan_comment.html",
+				TemplateRelativePath: "organizational-context/templates/email/stakeholder_action_plan_comment.html",
 				EmailData:            emailData,
 			}
 
@@ -425,7 +425,7 @@ func (caps *StakeholderActionPlanCommentService) Create(stakeholderID uint, acti
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 					UserIDs:              []uint{*stakeholderActionPlan.ReviewUserID},
-					ModuleIdentifier:     "stakeholder",
+					ModuleIdentifier:     "stakeholder_analysis",
 					NotificationType:     string(commonDTOs.AssignmentType),
 					HeadingEn:            "Comment Added For Stakeholder Action Plan",
 					HeadingAr:            "تمت إضافة التعليق لخطة عمل الامتثال",
@@ -466,13 +466,13 @@ func (caps *StakeholderActionPlanCommentService) Create(stakeholderID uint, acti
 					"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 					"CommentedByLastNameEn":  assignedBy.LastNameEn,
 					"AssignedOn":             time.Now().Format("2006-01-02"),
-					"RedirectURL":            fmt.Sprintf("%sstakeholder/register/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
+					"RedirectURL":            fmt.Sprintf("%sstakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, actionPlanID),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 					EmailTo:              emailTo,
 					Subject:              subject,
-					TemplateRelativePath: "stakeholder/templates/email/stakeholder_action_plan_comment.html",
+					TemplateRelativePath: "organizational-context/templates/email/stakeholder_action_plan_comment.html",
 					EmailData:            emailData,
 				}
 
@@ -536,13 +536,13 @@ func (caps *StakeholderActionPlanCommentService) Create(stakeholderID uint, acti
 		// 	"AssignedByFirstNameEn":     assignedBy.FirstNameEn,
 		// 	"AssignedByLastNameEn":      assignedBy.LastNameEn,
 		// 	"AssignedOn":                time.Now().Format("2006-01-02"),
-		// 	"RedirectURL":               fmt.Sprintf("%sstakeholder/register/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
+		// 	"RedirectURL":               fmt.Sprintf("%sstakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
 		// }
 
 		// emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 		// 	EmailTo:              emailTo,
 		// 	Subject:              subject,
-		// 	TemplateRelativePath: "stakeholder/templates/email/stakeholder_action_plan_create_responsible_user_mail.html",
+		// 	TemplateRelativePath: "organizational-context/templates/email/stakeholder_action_plan_create_responsible_user_mail.html",
 		// 	EmailData:            emailData,
 		// }
 
@@ -596,7 +596,7 @@ func (caps *StakeholderActionPlanCommentService) Update(stakeholderID uint, acti
 				return err
 			}
 
-			url := utility.GenerateDocumentURL("stakeholder", "stakeholder-register", strconv.FormatUint(uint64(stakeholderID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+			url := utility.GenerateDocumentURL("organizational-context", "stakeholder", strconv.FormatUint(uint64(stakeholderID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 			document := &models.StakeholderActionPlanCommentDocument{
 				StakeholderActionPlanCommentID: id,
@@ -642,7 +642,7 @@ func (caps *StakeholderActionPlanCommentService) Update(stakeholderID uint, acti
 	}
 
 	for _, doc := range newDocuments {
-		storagePath := filepath.Join("stakeholder", "stakeholder-register", strconv.FormatUint(uint64(stakeholderID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("organizational-context", "stakeholder", strconv.FormatUint(uint64(stakeholderID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			tx.Rollback()
@@ -651,7 +651,7 @@ func (caps *StakeholderActionPlanCommentService) Update(stakeholderID uint, acti
 	}
 
 	for _, document := range documentsToDelete {
-		storagePath := filepath.Join("stakeholder", "stakeholder-register", strconv.FormatUint(uint64(stakeholderID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("organizational-context", "stakeholder", strconv.FormatUint(uint64(stakeholderID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 			tx.Rollback()
@@ -775,7 +775,7 @@ func (caps *StakeholderActionPlanCommentService) GetDocumentPath(stakeholderID, 
 		return "", fmt.Errorf("resource not found")
 	}
 
-	storagePath := filepath.Join("stakeholder", "stakeholder-register", strconv.FormatUint(uint64(stakeholderID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+	storagePath := filepath.Join("organizational-context", "stakeholder", strconv.FormatUint(uint64(stakeholderID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
 	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)

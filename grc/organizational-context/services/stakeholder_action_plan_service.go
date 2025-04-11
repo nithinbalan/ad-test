@@ -182,12 +182,20 @@ func (caps *StakeholderActionPlanService) Create(stakeholderID uint, currentUser
 		return 0, err
 	}
 
+	var responsibleUnitID uint
+	unitID, err := caps.userSvc.GetUserPrimaryUnitID(StakeholderActionPlanFormDTO.ResponsibleUserID)
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "responsible unit")
+	}
+	responsibleUnitID = unitID
+
 	stakeholderActionPlan := &models.StakeholderActionPlan{
 		StakeholderID:      &stakeholderID,
 		Title:              StakeholderActionPlanFormDTO.Title,
 		Description:        StakeholderActionPlanFormDTO.Description,
 		SeverityLevelID:    StakeholderActionPlanFormDTO.SeverityLevelID,
 		ResponsibleUserID:  StakeholderActionPlanFormDTO.ResponsibleUserID,
+		ResponsibleUnitID:  responsibleUnitID,
 		ReviewUserID:       StakeholderActionPlanFormDTO.ReviewUserID,
 		TargetDate:         dates.TargetDate,
 		ActionPlanStatusID: actionPlanStatus.ID,
@@ -213,9 +221,9 @@ func (caps *StakeholderActionPlanService) Create(stakeholderID uint, currentUser
 		tx.Rollback()
 		return 0, err
 	}
-	urlParam := fmt.Sprintf(`{"stakeholder_register_id":%d, "action_plan_id":%d}`, stakeholderID, id)
+	urlParam := fmt.Sprintf(`{"stakeholder_id":%d, "action_plan_id":%d}`, stakeholderID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
-		ModuleIdentifier:        "stakeholder",
+		ModuleIdentifier:        "stakeholder_analysis",
 		StakeholderActionPlanID: &id,
 		Title:                   StakeholderActionPlanFormDTO.Title,
 		Description:             StakeholderActionPlanFormDTO.Description,
@@ -262,17 +270,17 @@ func (caps *StakeholderActionPlanService) Create(stakeholderID uint, currentUser
 		}
 
 		// prepare notification
-		urlParam := fmt.Sprintf(`{"stakeholder_register_id":%d, "action_plan_id":%d}`, stakeholderID, id)
+		urlParam := fmt.Sprintf(`{"stakeholder_id":%d, "action_plan_id":%d}`, stakeholderID, id)
 		queryParam := ""
 		entity := "stakeholder-action-plan"
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{StakeholderActionPlanFormDTO.ResponsibleUserID},
-			ModuleIdentifier:     "stakeholder",
+			ModuleIdentifier:     "stakeholder_analysis",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Stakeholder Action Plan Responsibility Assigned",
-			HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+			HeadingAr:            "مسؤولية خطة عمل أصحاب المصلحة المعينة",
 			TitleEn:              StakeholderActionPlanFormDTO.Title,
 			TitleAr:              StakeholderActionPlanFormDTO.Title,
 			Entity:               &entity,
@@ -311,13 +319,13 @@ func (caps *StakeholderActionPlanService) Create(stakeholderID uint, currentUser
 			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":  assignedBy.LastNameEn,
 			"AssignedOn":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%sstakeholder/register/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
+			"RedirectURL":           fmt.Sprintf("%sstakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
 			Subject:              subject,
-			TemplateRelativePath: "stakeholder/templates/email/stakeholder_action_plan_create_responsible_user_mail.html",
+			TemplateRelativePath: "organizational-context/templates/email/stakeholder_action_plan_create_responsible_user_mail.html",
 			EmailData:            emailData,
 		}
 
@@ -378,7 +386,7 @@ func (caps *StakeholderActionPlanService) Update(stakeholderID uint, id uint, cu
 		return err
 	}
 	// //update task
-	urlParam := fmt.Sprintf(`{"stakeholder_register_id":%d, "action_plan_id":%d}`, stakeholderID, id)
+	urlParam := fmt.Sprintf(`{"stakeholder_id":%d, "action_plan_id":%d}`, stakeholderID, id)
 
 	taskUpdateDTO := commonDTOs.TaskFormDTO{
 		Title:             StakeholderActionPlanFormDTO.Title,
@@ -451,17 +459,17 @@ func (caps *StakeholderActionPlanService) Update(stakeholderID uint, id uint, cu
 		}
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingStakeholderActionPlan.ResponsibleUserID {
-			urlParam := fmt.Sprintf(`{"stakeholder_register_id":%d, "action_plan_id":%d}`, stakeholderID, id)
+			urlParam := fmt.Sprintf(`{"stakeholder_id":%d, "action_plan_id":%d}`, stakeholderID, id)
 			queryParam := ""
 			entity := "stakeholder-action-plan"
 
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
 				UserIDs:              []uint{oldResponsibleUserID},
-				ModuleIdentifier:     "stakeholder",
+				ModuleIdentifier:     "stakeholder_analysis",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Stakeholder Action Plan Responsibility Removed",
-				HeadingAr:            "تمت إزالة مسؤولية خطة عمل الامتثال",
+				HeadingAr:            "تمت إزالة مسؤولية خطة عمل أصحاب المصلحة",
 				TitleEn:              existingStakeholderActionPlan.Title,
 				TitleAr:              existingStakeholderActionPlan.Title,
 				Entity:               &entity,
@@ -475,10 +483,10 @@ func (caps *StakeholderActionPlanService) Update(stakeholderID uint, id uint, cu
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
 				UserIDs:              []uint{StakeholderActionPlanFormDTO.ResponsibleUserID},
-				ModuleIdentifier:     "stakeholder",
+				ModuleIdentifier:     "stakeholder_analysis",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Stakeholder Action Plan Responsibility Assigned",
-				HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+				HeadingAr:            "مسؤولية خطة عمل أصحاب المصلحة المعينة",
 				TitleEn:              existingStakeholderActionPlan.Title,
 				TitleAr:              existingStakeholderActionPlan.Title,
 				Entity:               &entity,
@@ -517,14 +525,14 @@ func (caps *StakeholderActionPlanService) Update(stakeholderID uint, id uint, cu
 
 			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
 			oldResponsibleUserSubject := fmt.Sprintf("Stakeholder Action Plan/%s: Responsibility Removed", existingStakeholderActionPlan.Title)
-			oldResponsibleUserTemplateRelativePath := "stakeholder/templates/email/stakeholder_action_plan_remove_responsible_user_mail.html"
+			oldResponsibleUserTemplateRelativePath := "organizational-context/templates/email/stakeholder_action_plan_remove_responsible_user_mail.html"
 			oldResponsibleUserEmailData := map[string]interface{}{
 				"FirstNameEn":           oldResponsibleUser.FirstNameEn,
 				"LastNameEn":            oldResponsibleUser.LastNameEn,
 				"StakeholderTitle":      stakeholder.TitleEn,
 				"ActionPlanTitle":       existingStakeholderActionPlan.Title,
 				"ActionPlanDescription": existingStakeholderActionPlan.Description,
-				"RedirectURL":           fmt.Sprintf("%sstakeholder/register/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
+				"RedirectURL":           fmt.Sprintf("%sstakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -536,7 +544,7 @@ func (caps *StakeholderActionPlanService) Update(stakeholderID uint, id uint, cu
 
 			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
 			newResponsibleUserSubject := fmt.Sprintf("Stakeholder Action Plan/%s: Responsibility Assigned", existingStakeholderActionPlan.Title)
-			newResponsibleUserTemplateRelativePath := "stakeholder/templates/email/stakeholder_action_plan_change_responsible_user_mail.html"
+			newResponsibleUserTemplateRelativePath := "organizational-context/templates/email/stakeholder_action_plan_change_responsible_user_mail.html"
 			newResponsibleUserEmailData := map[string]interface{}{
 				"FirstNameEn":           newResponsibleUser.FirstNameEn,
 				"LastNameEn":            newResponsibleUser.LastNameEn,
@@ -547,7 +555,7 @@ func (caps *StakeholderActionPlanService) Update(stakeholderID uint, id uint, cu
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%sstakeholder/register/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
+				"RedirectURL":           fmt.Sprintf("%sstakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -649,9 +657,9 @@ func (caps *StakeholderActionPlanService) Delete(stakeholderID uint, ids []uint,
 		}
 
 		deletedStakeholderActionPlan = append(deletedStakeholderActionPlan, map[string]interface{}{
-			"id":                      id,
-			"stakeholder_register_id": stakeholderID,
-			"title":                   stakeholderActionPlan.Title,
+			"id":             id,
+			"stakeholder_id": stakeholderID,
+			"title":          stakeholderActionPlan.Title,
 		})
 
 	}
@@ -682,10 +690,10 @@ func (caps *StakeholderActionPlanService) Delete(stakeholderID uint, ids []uint,
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 					UserIDs:              []uint{*notification.OwnerID},
-					ModuleIdentifier:     "stakeholder",
+					ModuleIdentifier:     "stakeholder_analysis",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Stakeholder Action Plan Deleted",
-					HeadingAr:            "تم حذف خطة عمل الامتثال",
+					HeadingAr:            "تم حذف خطة عمل أصحاب المصلحة",
 					TitleEn:              notification.TitleEn,
 					TitleAr:              notification.TitleAr,
 					Entity:               &entity,
@@ -705,7 +713,7 @@ func (caps *StakeholderActionPlanService) Delete(stakeholderID uint, ids []uint,
 
 				ownerEmailTo := []string{ownerUser.Email}
 				subject := fmt.Sprintf("Stakeholder Action Plan/%s: Deleted", notification.TitleEn)
-				templateRelativePath := "stakeholder/templates/email/stakeholder_action_plan_delete_mail.html"
+				templateRelativePath := "organizational-context/templates/email/stakeholder_action_plan_delete_mail.html"
 
 				emailData := map[string]interface{}{
 					"FirstNameEn":                ownerUser.FirstNameEn,

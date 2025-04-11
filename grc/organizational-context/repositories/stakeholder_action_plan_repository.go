@@ -216,10 +216,7 @@ func (repo *StakeholderActionPlanRepository) GetFullDetailsByID(id uint, tx ...u
 
 	// Load the stakeholder action plan with all related data
 	result := db.
-		Preload("StakeholderRequirement.StakeholderClause").
-		Preload("StakeholderAssessmentRequirement").
-		Preload("StakeholderAssessmentRequirement.StakeholderRequirement").
-		Preload("StakeholderRegister").
+		Preload("Stakeholder").
 		Preload("SeverityLevel").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").

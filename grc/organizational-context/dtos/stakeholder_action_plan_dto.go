@@ -29,7 +29,6 @@ type StakeholderActionPlanListDTO struct {
 	ResponsibleUserColor            *string    `json:"responsible_user_color"`
 	ResponsibleUserProfileImagePath *string    `json:"responsible_user_profile_image_path"`
 	TargetDate                      *string    `json:"target_date"`
-	Requirement                     *string    `json:"requirement"`
 	Description                     *string    `json:"description"`
 	ActionPlanStatusID              *uint      `json:"action_plan_status_id"`
 	ActionPlanStatusTitleEn         *string    `json:"action_plan_status_title_en"`
@@ -84,7 +83,6 @@ type StakeholderActionPlanDetailDTO struct {
 	TargetDateString        *string                                  `json:"target_date"`
 	ActionPlanStatusID      *uint                                    `json:"action_plan_status_id"`
 	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO           `json:"action_plan_status"`
-	Requirement             *string                                  `json:"requirement"`
 	Description             *string                                  `json:"description"`
 	CreatedBYID             uint                                     `json:"created_by_id"`
 	CreatedByUser           organizationDTOs.UserMinimalDTO          `json:"created_by_user"`
@@ -110,7 +108,6 @@ type StakeholderActionPlanStatusUpdateDTO struct {
 
 type StakeholderActionPlanFormDTO struct {
 	Title             string  `json:"title" binding:"required"`
-	Requirement       *string `json:"requirement"`
 	Description       *string `json:"description"`
 	SeverityLevelID   *uint   `json:"severity_level_id"`
 	ResponsibleUserID uint    `json:"responsible_user_id" binding:"required"`

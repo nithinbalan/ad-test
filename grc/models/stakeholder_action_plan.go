@@ -11,6 +11,7 @@ type StakeholderActionPlan struct {
 	Description        *string    `json:"description" gorm:"type:nvarchar(max);null"`
 	SeverityLevelID    *uint      `json:"severity_level_id" binding:"omitempty" gorm:"not null"`
 	ResponsibleUserID  uint       `json:"responsible_user_id" binding:"required" gorm:"not null"`
+	ResponsibleUnitID  uint       `json:"responsible_unit_id"`
 	ReviewUserID       *uint      `json:"review_user_id" gorm:"default:null"`
 	Comments           *string    `json:"comments" gorm:"type:nvarchar(max);null"`
 	TargetDate         *time.Time `json:"target_date" binding:"omitempty" gorm:"type:date,default:null"`
