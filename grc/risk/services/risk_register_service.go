@@ -3,9 +3,11 @@ package services
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"jethur/config"
@@ -44,6 +46,11 @@ type RiskRegisterServiceInterface interface {
 	ExportRiskRegister(data []*riskDTOs.RiskRegisterListDTO, currentUserID uint) (*os.File, error)
 
 	SetRiskInherentEvaluationService(evaluationSvc RiskInherentEvaluationServiceInterface)
+
+	GenerateRiskTemplate() (*os.File, error)
+	ValidateRiskTemplate(file io.Reader) ([]map[string]interface{}, error)
+	ValidateImportRisks(input []map[string]interface{}) ([]map[string]interface{}, error)
+	ImportRisks(input []map[string]interface{}, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
@@ -2420,4 +2427,294 @@ func (cs *RiskRegisterService) ExportRiskRegister(data []*riskDTOs.RiskRegisterL
 
 func (rrs *RiskRegisterService) SetRiskInherentEvaluationService(evaluationSvc RiskInherentEvaluationServiceInterface) {
 	rrs.riskInherentEvaluationSvc = evaluationSvc
+}
+
+func (rrs *RiskRegisterService) GenerateRiskTemplate() (*os.File, error) {
+	templateHeaders := []string{
+		"RiskCategory", "RiskSource", "ResponsibleUser", "Title", "Description", "ReportedAt",
+		"ReviewFrequency", "NextReviewDate", "LastReviewNote",
+	}
+	templateData := [][]interface{}{}
+
+	// Fetch Risk Categories
+	categories, err := rrs.riskCategorySvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch risk categories: %v", err)
+	}
+	categoryData := [][]interface{}{{"RiskCategory"}}
+	for _, cat := range categories {
+		categoryData = append(categoryData, []interface{}{cat.TitleEn})
+	}
+
+	// Fetch Risk Sources
+	sources, err := rrs.riskSourceSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch risk sources: %v", err)
+	}
+	sourceData := [][]interface{}{{"RiskSource"}}
+	for _, src := range sources {
+		sourceData = append(sourceData, []interface{}{src.TitleEn})
+	}
+
+	// Fetch Users
+	users, err := rrs.userSvc.GetAllUsers()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch users: %v", err)
+	}
+	userData := [][]interface{}{{"ResponsibleUser", "Email"}}
+	for _, u := range users {
+		userData = append(userData, []interface{}{
+			fmt.Sprintf("%s %s", u.FirstNameEN, u.LastNameEN),
+			u.Email,
+		})
+	}
+
+	// Fetch Review Frequencies
+	reviews, err := rrs.reviewFrequencySvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch review frequencies: %v", err)
+	}
+	reviewData := [][]interface{}{{"ReviewFrequency"}}
+	for _, rf := range reviews {
+		reviewData = append(reviewData, []interface{}{rf.TitleEn})
+	}
+
+	file, err := utility.GenerateExcelFileWithSheets(map[string][][]interface{}{
+		"Template":        append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
+		"RiskCategory":    categoryData,
+		"RiskSource":      sourceData,
+		"ResponsibleUser": userData,
+		"ReviewFrequency": reviewData,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
+}
+
+func (rrs *RiskRegisterService) ValidateRiskTemplate(file io.Reader) ([]map[string]interface{}, error) {
+	rows, err := utility.ReadExcelFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	headers := []string{"RiskCategory", "RiskSource", "ResponsibleUser", "Title", "Description", "ReportedAt", "ReviewFrequency", "NextReviewDate", "LastReviewNote"}
+	snakeHeaders := []string{"risk_category", "risk_source", "responsible_user", "title", "description", "reported_at", "review_frequency", "next_review_date", "last_review_note"}
+
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("empty Excel file")
+	}
+	if !utility.ValidateHeaders(headers, rows[0]) {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid headers"), "invalid_header", "Risk Template")
+	}
+
+	var input []map[string]interface{}
+	for _, row := range rows[1:] {
+		record := make(map[string]interface{})
+		for i, header := range snakeHeaders {
+			if i < len(row) {
+				record[header] = row[i]
+			} else {
+				record[header] = ""
+			}
+		}
+		input = append(input, record)
+	}
+
+	validatedData, err := rrs.validateRisks(input)
+	if err != nil {
+		return nil, err
+	}
+
+	return validatedData, nil
+}
+
+func (cs *RiskRegisterService) ValidateImportRisks(input []map[string]interface{}) ([]map[string]interface{}, error) {
+	validatedData, err := cs.validateRisks(input)
+	if err != nil {
+		return nil, err
+	}
+
+	return validatedData, nil
+}
+
+func (rs *RiskRegisterService) ImportRisks(input []map[string]interface{}, currentUserID uint) ([]uint, error) {
+	validatedData, err := rs.validateRisks(input)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, record := range validatedData {
+		if errors, ok := record["errors"].(map[string]interface{}); ok && len(errors) > 0 {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid data in the import file"), "invalid_data", "Invalid Data")
+		}
+	}
+
+	var createdIDs []uint
+	for _, record := range validatedData {
+
+		reportedAtStr, _ := record["reported_at"].(string)
+		nextReviewDate, _ := record["next_review_date"].(string)
+		dto := &riskDTOs.RiskRegisterFormDTO{
+			RiskCategoryID:    record["risk_category_id"].(uint),
+			RiskSourceID:      utility.GetOptionalUintValue(record["risk_source_id"]),
+			ResponsibleUserID: record["responsible_user_id"].(uint),
+			Title:             record["title"].(string),
+			Description:       utility.GetOptionalStringValue(record["description"]),
+			ReportedAt:        &reportedAtStr,
+			ReviewFrequencyID: utility.GetOptionalUintValue(record["review_frequency_id"]),
+			NextReviewDate:    &nextReviewDate,
+			LastReviewNote:    utility.GetOptionalStringValue(record["last_review_note"]),
+		}
+
+		id, err := rs.Create(currentUserID, dto)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create risk for record: %+v, error: %v", record, err)
+		}
+		createdIDs = append(createdIDs, id)
+	}
+
+	return createdIDs, nil
+}
+
+func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]map[string]interface{}, error) {
+	headers := []string{"risk_category", "risk_source", "responsible_user", "title", "description", "reported_at", "review_frequency", "next_review_date", "last_review_note"}
+
+	// Fetch risk categories
+	riskCategories, err := rs.riskCategorySvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching risk categories: %v", err)
+	}
+	riskCategoryTitles := make(map[string]uint)
+	for _, cat := range riskCategories {
+		riskCategoryTitles[strings.TrimSpace(cat.TitleEn)] = cat.ID
+	}
+
+	// Fetch risk sources
+	riskSources, err := rs.riskSourceSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching risk sources: %v", err)
+	}
+	riskSourceTitles := make(map[string]uint)
+	for _, src := range riskSources {
+		riskSourceTitles[strings.TrimSpace(src.TitleEn)] = src.ID
+	}
+
+	// Fetch users
+	users, err := rs.userSvc.GetAllUsers()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching users: %v", err)
+	}
+	userFullNames := make(map[string]uint)
+	for _, user := range users {
+		fullName := strings.TrimSpace(user.FirstNameEN + " " + user.LastNameEN)
+		userFullNames[fullName] = uint(user.ID)
+	}
+
+	// Fetch review frequencies
+	reviewFrequencies, err := rs.reviewFrequencySvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching review frequencies: %v", err)
+	}
+	reviewFrequencyTitles := make(map[string]uint)
+	for _, freq := range reviewFrequencies {
+		reviewFrequencyTitles[strings.TrimSpace(freq.TitleEn)] = freq.ID
+	}
+
+	// Perform validation
+	var validatedData []map[string]interface{}
+	for _, record := range input {
+		rowErrors := make(map[string]interface{})
+		riskRecord := make(map[string]interface{})
+
+		// Copy original data
+		for key, value := range record {
+			riskRecord[key] = value
+		}
+
+		for _, header := range headers {
+			value, ok := record[header].(string)
+			switch header {
+			case "risk_category":
+				if !ok || value == "" {
+					rowErrors[header] = "Risk Category is required"
+				} else if id, exists := riskCategoryTitles[strings.TrimSpace(value)]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid risk category: %s", value)
+				} else {
+					riskRecord["risk_category_id"] = id
+				}
+			case "risk_source":
+				if value == "" {
+					// Allow empty risk source, set to nil in the record
+					riskRecord["risk_source_id"] = nil
+				} else if id, exists := riskSourceTitles[strings.TrimSpace(value)]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid risk source: %s", value)
+				} else {
+					riskRecord["risk_source_id"] = id
+				}
+
+			case "responsible_user":
+				if !ok || value == "" {
+					rowErrors[header] = "Responsible User is required"
+				} else if id, exists := userFullNames[strings.TrimSpace(value)]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid responsible user: %s", value)
+				} else {
+					riskRecord["responsible_user_id"] = id
+				}
+
+			case "title":
+				if !ok || value == "" {
+					rowErrors[header] = "Title is required"
+				}
+
+			case "description":
+				// Optional
+			case "reported_at":
+				if !ok || value == "" {
+					rowErrors[header] = "Reported Date is required"
+				} else if _, err := time.Parse("2006-01-02", value); err != nil {
+					rowErrors[header] = "Invalid format. Expected YYYY-MM-DD"
+				} else {
+					riskRecord["reported_at"] = value
+				}
+
+			case "review_frequency":
+				if value != "" {
+					if id, exists := reviewFrequencyTitles[strings.TrimSpace(value)]; !exists {
+						rowErrors[header] = fmt.Sprintf("Invalid review frequency: %s", value)
+					} else {
+						riskRecord["review_frequency_id"] = id
+					}
+				}
+
+			case "next_review_date":
+				if value != "" {
+					if _, err := time.Parse("2006-01-02", value); err != nil {
+						rowErrors[header] = "Invalid format. Expected YYYY-MM-DD"
+					} else {
+						riskRecord["next_review_date"] = value
+					}
+				}
+
+			case "last_review_note":
+				// Optional
+			}
+		}
+
+		if len(rowErrors) == 0 {
+			riskRecord["errors"] = nil
+		} else {
+			for _, header := range headers {
+				if _, exists := rowErrors[header]; !exists {
+					rowErrors[header] = ""
+				}
+			}
+			riskRecord["errors"] = rowErrors
+		}
+
+		validatedData = append(validatedData, riskRecord)
+	}
+
+	return validatedData, nil
 }
