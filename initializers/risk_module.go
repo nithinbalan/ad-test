@@ -194,7 +194,10 @@ func NewRiskModule(db *gorm.DB,
 		organizationModule.UserSettingSvc,
 		commonModule.NotificationService,
 		assetModule.AssetRegisterSvc,
-		nil, riskSettingsSvc)
+		nil,
+		riskSettingsSvc,
+		riskMatrixLikelihoodSvc,
+		riskMatrixImpactSvc)
 	riskRegisterController := controllers.NewRiskRegisterController(riskRegisterSvc)
 
 	potentialRiskRepo := repositories.NewPotentialRiskRepository(db)
