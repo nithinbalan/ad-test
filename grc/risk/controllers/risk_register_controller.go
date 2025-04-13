@@ -541,11 +541,11 @@ func (rc *RiskRegisterController) ImportRisks(c *gin.Context) {
 		return
 	}
 
-	importedIDs, err := rc.service.ImportRisks(input, uint(currentUserID))
+	createdIDs, err := rc.service.ImportRisks(input, uint(currentUserID))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"imported_ids": importedIDs})
+	c.JSON(http.StatusOK, gin.H{"created_ids": createdIDs})
 }
