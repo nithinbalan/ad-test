@@ -18,6 +18,7 @@ type NotificationRepositoryInteface interface {
 	CreateEmailLog(emailLog *models.EmailLog, tx ...utility.DatabaseTransaction) error
 
 	GetSocialMediaLinks() (*dtos.SocialMediaLinksDTO, error)
+	GetUserByEmail(email string) (*models.User, error)
 }
 
 type NotificationRepository struct {
@@ -85,4 +86,15 @@ func (repo *NotificationRepository) GetSocialMediaLinks() (*dtos.SocialMediaLink
 	}
 
 	return &links, nil
+}
+
+func (repo *NotificationRepository) GetUserByEmail(email string) (*models.User, error) {
+	var user models.User
+	if err := repo.db.Where("email = ?", email).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &user, nil
 }
