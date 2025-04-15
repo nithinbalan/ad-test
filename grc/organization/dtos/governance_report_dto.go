@@ -80,7 +80,7 @@ type GovernanceDocumentResponseDTO struct {
 type GovernanceReportMeetingResponseDTO struct {
 	ID                uint      `json:"id"`
 	MeetingTitle      string    `json:"meeting_title"`
-	MeetingDate       time.Time `json:"meeting_date"`
+	MeetingDate       string    `json:"meeting_date"`
 	ParticipantsCount int       `json:"participants_count"`
 	KeyDecisions      string    `json:"key_decisions"`
 	ActionsAssigned   string    `json:"actions_assigned"`

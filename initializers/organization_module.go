@@ -35,6 +35,7 @@ type OrganizationModule struct {
 	ProcessDependencyTypeController         *controllers.ProcessDependencyTypeController
 	ProcessDependencySubTypeController      *controllers.ProcessDependencySubTypeController
 	GovernanceReportController              *controllers.GovernanceReportController
+	ProcessDependencyController             *controllers.ProcessDependencyController
 	ProcessCriticalityLevelController       *controllers.ProcessCriticalityLevelController
 
 	UserSvc                        services.UserServiceInterface
@@ -46,6 +47,7 @@ type OrganizationModule struct {
 	ControlImplementationStatusSvc services.ControlImplementationStatusServiceInterface
 	ControlEfficiencyStatusSvc     services.ControlEfficiencyStatusServiceInterface
 	ProcessAssociatedItemSvc       services.ProcessAssociatedItemServiceInterface
+	ProcessDependencySvc           services.ProcessDependencyServiceInterface
 }
 
 func NewOrganizationModule(
@@ -189,6 +191,9 @@ func NewOrganizationModule(
 	governanceReportSvc := services.NewGovernanceReportService(governanceReportRepo, sharedModule.ActivityLogService, settingsModule.OrganizationLevelSvc)
 	governanceReportController := controllers.NewGovernanceReportController(governanceReportSvc)
 
+	processDependencyRepo := repositories.NewProcessDependencyRepository(db)
+	processDependencySvc := services.NewProcessDependencyService(processDependencyRepo, processDependencySubTypeSvc, sharedModule.ActivityLogService, processSvc, settingsModule.OrganizationUnitSvc)
+	processDependencyController := controllers.NewProcessDependencyController(processDependencySvc)
 	processCriticalityLevelRepo := repositories.NewProcessCriticalityLevelRepository(db)
 	processCriticalityLevelSvc := services.NewProcessCriticalityLevelService(processCriticalityLevelRepo)
 	processCriticalityLevelController := controllers.NewProcessCriticalityLevelController(processCriticalityLevelSvc)
@@ -220,6 +225,7 @@ func NewOrganizationModule(
 		ProcessDependencyTypeController:         processDependencyTypeController,
 		ProcessDependencySubTypeController:      processDependencySubTypeController,
 		GovernanceReportController:              governanceReportController,
+		ProcessDependencyController:             processDependencyController,
 		ProcessCriticalityLevelController:       processCriticalityLevelController,
 
 		UserSvc:                        userSvc,
@@ -231,5 +237,6 @@ func NewOrganizationModule(
 		ControlImplementationStatusSvc: controlImplementationStatusSvc,
 		ControlEfficiencyStatusSvc:     controlEfficiencyStatusSvc,
 		ProcessAssociatedItemSvc:       processAssociatedItemSvc,
+		ProcessDependencySvc:           processDependencySvc,
 	}
 }

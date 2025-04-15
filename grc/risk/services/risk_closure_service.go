@@ -32,17 +32,20 @@ type RiskClosureService struct {
 	repo            riskRepositories.RiskClosureRepositoryInterface
 	activityLogSvc  logServices.ActivityLogServiceInterface
 	riskRegisterSvc RiskRegisterServiceInterface
+	riskStatusSvc   RiskStatusServiceInterface
 }
 
 func NewRiskClosureService(
 	repo riskRepositories.RiskClosureRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	riskRegisterSvc RiskRegisterServiceInterface,
+	riskStatusSvc RiskStatusServiceInterface,
 ) RiskClosureServiceInterface {
 	return &RiskClosureService{
 		repo:            repo,
 		activityLogSvc:  activityLogSvc,
 		riskRegisterSvc: riskRegisterSvc,
+		riskStatusSvc:   riskStatusSvc,
 	}
 }
 
@@ -93,7 +96,9 @@ func (rcs RiskClosureService) GetByID(riskID uint, id uint) (*models.RiskClosure
 func (rcs *RiskClosureService) Create(riskID uint, currentUserID uint, closureFormDTO *riskDTOs.RiskClosureFormDTO) (uint, error) {
 	tx := rcs.repo.BeginTransaction()
 
-	if _, err := rcs.riskRegisterSvc.GetByID(riskID); err != nil {
+	risk, err := rcs.riskRegisterSvc.GetByID(riskID)
+	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -108,6 +113,19 @@ func (rcs *RiskClosureService) Create(riskID uint, currentUserID uint, closureFo
 	}
 
 	id, err := rcs.repo.Create(closure, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	closedStatus, err := rcs.riskStatusSvc.GetByType("closed")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	risk.RiskStatusID = closedStatus.ID
+	err = rcs.repo.UpdateRiskStatus(risk, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err

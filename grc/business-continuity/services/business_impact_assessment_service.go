@@ -32,15 +32,16 @@ type BusinessImpactAssessmentServiceInterface interface {
 
 // Service and implementations
 type BusinessImpactAssessmentService struct {
-	repo              businessImpactAssessmentRepositories.BusinessImpactAssessmentRepositoryInterface
-	activityLogSvc    logServices.ActivityLogServiceInterface
-	userSvc           organizationServices.UserServiceInterface
-	impactCategorySvc masterServices.ImpactCategoryServiceInterface
-	processSvc        organizationServices.ProcessServiceInterface
-	assetRegisterSvc  assetServices.AssetRegisterServiceInterface
-	documentSvc       documentServices.DocumentServiceInterface
-	riskLevelSvc      riskServices.RiskLevelServiceInterface
-	userSettingSvc    organizationServices.UserSettingServiceInterface
+	repo                 businessImpactAssessmentRepositories.BusinessImpactAssessmentRepositoryInterface
+	activityLogSvc       logServices.ActivityLogServiceInterface
+	userSvc              organizationServices.UserServiceInterface
+	impactCategorySvc    masterServices.ImpactCategoryServiceInterface
+	processSvc           organizationServices.ProcessServiceInterface
+	assetRegisterSvc     assetServices.AssetRegisterServiceInterface
+	documentSvc          documentServices.DocumentServiceInterface
+	processDependencySvc organizationServices.ProcessDependencyServiceInterface
+	riskLevelSvc         riskServices.RiskLevelServiceInterface
+	userSettingSvc       organizationServices.UserSettingServiceInterface
 }
 
 func NewBusinessImpactAssessmentService(
@@ -51,19 +52,21 @@ func NewBusinessImpactAssessmentService(
 	processSvc organizationServices.ProcessServiceInterface,
 	assetRegisterSvc assetServices.AssetRegisterServiceInterface,
 	documentSvc documentServices.DocumentServiceInterface,
+	processDependencySvc organizationServices.ProcessDependencyServiceInterface,
 	riskLevelSvc riskServices.RiskLevelServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) BusinessImpactAssessmentServiceInterface {
 	return &BusinessImpactAssessmentService{
-		repo:              repo,
-		activityLogSvc:    activityLogSvc,
-		userSvc:           userSvc,
-		impactCategorySvc: impactCategorySvc,
-		processSvc:        processSvc,
-		assetRegisterSvc:  assetRegisterSvc,
-		documentSvc:       documentSvc,
-		riskLevelSvc:      riskLevelSvc,
-		userSettingSvc:    userSettingSvc,
+		repo:                 repo,
+		activityLogSvc:       activityLogSvc,
+		userSvc:              userSvc,
+		impactCategorySvc:    impactCategorySvc,
+		processSvc:           processSvc,
+		assetRegisterSvc:     assetRegisterSvc,
+		documentSvc:          documentSvc,
+		processDependencySvc: processDependencySvc,
+		riskLevelSvc:         riskLevelSvc,
+		userSettingSvc:       userSettingSvc,
 	}
 }
 
@@ -109,47 +112,6 @@ func (bias *BusinessImpactAssessmentService) Create(currentUserID uint, business
 	if err != nil {
 		tx.Rollback()
 		return 0, err
-	}
-
-	if process.Assets != nil {
-		for _, asset := range process.Assets {
-			recoveryObjective := &models.BusinessImpactAssessmentRecoveryObjective{
-				ProcessID:       businessImpactAssessmentFormDTO.ProcessID,
-				AssetRegisterID: &asset.Asset.ID,
-				Rto:             asset.Asset.Rto,
-				RtoUnitId:       asset.Asset.RtoUnitId,
-				Mtpd:            asset.Asset.Mtpd,
-				MtpdUnitId:      asset.Asset.MtpdUnitId,
-				Rpo:             asset.Asset.Rpo,
-				RpoUnitId:       asset.Asset.RpoUnitId,
-				CreatedByID:     currentUserID,
-			}
-			err := bias.repo.CreateRecoveryObjective(recoveryObjective, tx)
-			if err != nil {
-				tx.Rollback()
-				return 0, err
-			}
-		}
-	}
-	if process.Documents != nil {
-		for _, document := range process.Documents {
-			recoveryObjective := &models.BusinessImpactAssessmentRecoveryObjective{
-				ProcessID:   businessImpactAssessmentFormDTO.ProcessID,
-				DocumentID:  &document.DocumentID,
-				Rto:         document.Document.Rto,
-				RtoUnitId:   document.Document.RtoUnitId,
-				Mtpd:        document.Document.Mtpd,
-				MtpdUnitId:  document.Document.MtpdUnitId,
-				Rpo:         document.Document.Rpo,
-				RpoUnitId:   document.Document.RpoUnitId,
-				CreatedByID: currentUserID,
-			}
-			err := bias.repo.CreateRecoveryObjective(recoveryObjective, tx)
-			if err != nil {
-				tx.Rollback()
-				return 0, err
-			}
-		}
 	}
 
 	existingProcess, err := bias.processSvc.GetByID(*businessImpactAssessmentFormDTO.ProcessID, tx)
@@ -292,69 +254,50 @@ func (bias *BusinessImpactAssessmentService) UpdateRecoveryObjectives(businessIm
 
 		for _, recoveryObjective := range businessImpactAssessmentRecoveryObjectiveFormDTO.RecoveryObjectives {
 
-			ImpactRecoveryObjective := &models.BusinessImpactAssessmentRecoveryObjective{
-				ProcessID:         businessImpactAssessmentRecoveryObjectiveFormDTO.ProcessID,
-				AssetRegisterID:   recoveryObjective.AssetRegisterID,
-				DocumentID:        recoveryObjective.DocumentID,
-				RoleInProcess:     recoveryObjective.RoleInProcess,
-				Rto:               recoveryObjective.Rto,
-				RtoUnitId:         recoveryObjective.RtoUnitId,
-				Mtpd:              recoveryObjective.Mtpd,
-				MtpdUnitId:        recoveryObjective.MtpdUnitId,
-				Rpo:               recoveryObjective.Rpo,
-				RpoUnitId:         recoveryObjective.RpoUnitId,
-				ImpactDescription: recoveryObjective.ImpactDescription,
-				CreatedByID:       currentUserID,
-			}
-
-			newBusinessImpactAssessment = append(newBusinessImpactAssessment, ImpactRecoveryObjective)
-
-			err := bias.repo.CreateRecoveryObjective(ImpactRecoveryObjective, tx)
-			if err != nil {
-				tx.Rollback()
-				return err
-			}
-
-			if recoveryObjective.AssetRegisterID != nil {
-				existingAsset, err := bias.assetRegisterSvc.GetByID(*recoveryObjective.AssetRegisterID)
+			if recoveryObjective.ProcessDependencyID != nil {
+				existingDependency, err := bias.processDependencySvc.GetByID(*businessImpactAssessmentRecoveryObjectiveFormDTO.ProcessID, *recoveryObjective.ProcessDependencyID)
 				if err != nil {
 					return err
 				}
 
-				existingAsset.Rto = recoveryObjective.Rto
-				existingAsset.RtoUnitId = recoveryObjective.RtoUnitId
-				existingAsset.Mtpd = recoveryObjective.Mtpd
-				existingAsset.MtpdUnitId = recoveryObjective.MtpdUnitId
-				existingAsset.Rpo = recoveryObjective.Rpo
-				existingAsset.RpoUnitId = recoveryObjective.RpoUnitId
-				existingAsset.UpdatedBYID = &currentUserID
+				existingDependency.Rto = recoveryObjective.Rto
+				existingDependency.RtoUnitId = recoveryObjective.RtoUnitId
+				existingDependency.Mtpd = recoveryObjective.Mtpd
+				existingDependency.MtpdUnitId = recoveryObjective.MtpdUnitId
+				existingDependency.Rpo = recoveryObjective.Rpo
+				existingDependency.RpoUnitId = recoveryObjective.RpoUnitId
+				existingDependency.UpdatedBYID = &currentUserID
 
-				err = bias.assetRegisterSvc.UpdateAssetRecoveryObjective(existingAsset, tx)
+				fmt.Println(existingDependency.Rto)
+
+				fmt.Println(recoveryObjective.Rto)
+
+				err = bias.processDependencySvc.UpdateProcessDependencyRecoveryObjective(existingDependency, tx)
 				if err != nil {
 					tx.Rollback()
 					return err
 				}
-			}
 
-			if recoveryObjective.DocumentID != nil {
-				existingDocument, err := bias.documentSvc.GetByID(*recoveryObjective.DocumentID)
-				if err != nil {
-					return err
-				}
+				// if existingDependency.AssetID != nil {
+				// 	existingAsset, err := bias.assetRegisterSvc.GetByID(*existingDependency.AssetID)
+				// 	if err != nil {
+				// 		return err
+				// 	}
 
-				existingDocument.Rto = recoveryObjective.Rto
-				existingDocument.RtoUnitId = recoveryObjective.RtoUnitId
-				existingDocument.Mtpd = recoveryObjective.Mtpd
-				existingDocument.MtpdUnitId = recoveryObjective.MtpdUnitId
-				existingDocument.Rpo = recoveryObjective.Rpo
-				existingDocument.RpoUnitId = recoveryObjective.RpoUnitId
-				existingDocument.UpdatedBYID = &currentUserID
+				// 	existingAsset.Rto = recoveryObjective.Rto
+				// 	existingAsset.RtoUnitId = recoveryObjective.RtoUnitId
+				// 	existingAsset.Mtpd = recoveryObjective.Mtpd
+				// 	existingAsset.MtpdUnitId = recoveryObjective.MtpdUnitId
+				// 	existingAsset.Rpo = recoveryObjective.Rpo
+				// 	existingAsset.RpoUnitId = recoveryObjective.RpoUnitId
+				// 	existingAsset.UpdatedBYID = &currentUserID
 
-				err = bias.documentSvc.UpdateDocumentRecoveryObjective(existingDocument, tx)
-				if err != nil {
-					tx.Rollback()
-					return err
-				}
+				// 	err = bias.assetRegisterSvc.UpdateAssetRecoveryObjective(existingAsset, tx)
+				// 	if err != nil {
+				// 		tx.Rollback()
+				// 		return err
+				// 	}
+				// }
 			}
 
 		}

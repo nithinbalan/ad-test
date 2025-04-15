@@ -475,3 +475,77 @@ func (rrc *RiskRegisterController) GetRiskRegisterExport(c *gin.Context) {
 
 	rrc.GetAllRiskRegisters(c)
 }
+
+func (rc *RiskRegisterController) GenerateRiskTemplate(c *gin.Context) {
+	file, err := rc.service.GenerateRiskTemplate()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate template"})
+		return
+	}
+	defer file.Close()
+
+	c.Header("Content-Disposition", "attachment; filename=RiskTemplate.xlsx")
+	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.File(file.Name())
+}
+
+func (rc *RiskRegisterController) ValidateRiskTemplate(c *gin.Context) {
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "File is required"})
+		return
+	}
+
+	openedFile, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open file"})
+		return
+	}
+	defer openedFile.Close()
+
+	validatedData, err := rc.service.ValidateRiskTemplate(openedFile)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, validatedData)
+}
+
+func (rc *RiskRegisterController) ValidateImportRisks(c *gin.Context) {
+	var input []map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	validatedData, err := rc.service.ValidateImportRisks(input)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, validatedData)
+}
+
+func (rc *RiskRegisterController) ImportRisks(c *gin.Context) {
+	var input []map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	createdIDs, err := rc.service.ImportRisks(input, uint(currentUserID))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"created_ids": createdIDs})
+}
