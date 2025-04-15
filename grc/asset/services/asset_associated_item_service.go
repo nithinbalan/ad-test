@@ -305,7 +305,7 @@ func (service *AssetAssociatedItemService) GetAllVulnerabilities(assetID uint, p
 			ResponsibleUserColor:            vuln.ResponsibleUser.Color,
 			ResponsibleUserEmail:            vuln.ResponsibleUser.Email,
 			ResponsibleUserProfileImagePath: vuln.ResponsibleUser.ProfileImagePath,
-			Threats:                         threatDTOs,
+			// Threats:                         threatDTOs,
 		})
 	}
 
