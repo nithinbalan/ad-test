@@ -729,17 +729,17 @@ func (afaps *AuditFindingActionPlanService) StatusUpdate(findingID uint, id uint
 		return err
 	}
 
-	isReviewUserNull := existingAuditFindingActionPlan.ReviewUserID == nil
+	// isReviewUserNull := existingAuditFindingActionPlan.ReviewUserID == nil
 
 	// Fetch the corresponding task and update its status
-	existingTask, err := afaps.taskSvc.GetByFieldID("audit_finding_action_plan_id", id)
-	if err != nil {
-		return err
-	}
-	err = afaps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, auditFindingActionPlanStatusUpdateFormDTO.ActionPlanStatusID, isReviewUserNull, tx)
-	if err != nil {
-		return err
-	}
+	// existingTask, err := afaps.taskSvc.GetByFieldID("audit_finding_action_plan_id", id)
+	// if err != nil {
+	// 	return err
+	// }
+	// err = afaps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, auditFindingActionPlanStatusUpdateFormDTO.ActionPlanStatusID, isReviewUserNull, tx)
+	// if err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
