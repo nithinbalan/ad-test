@@ -267,6 +267,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	organizationRoutes.GET("/governance-reports", governanceReportController.GetAllGovernanceReports)
 	organizationRoutes.GET("/governance-reports/:governanceReportId", governanceReportController.GetGovernanceReportDetails)
+	organizationRoutes.GET("/governance-reports/:governanceReportId/export-pdf", governanceReportController.ExportGovernanceReportToPDF)
 	organizationRoutes.POST("/governance-reports", governanceReportController.CreateGovernanceReport)
 	organizationRoutes.GET("/governance-reports/:governanceReportId/sections/:sectionId", governanceReportController.GetGovernanceReportSection)
 	organizationRoutes.PUT("/governance-reports/:governanceReportId/sections/:sectionId", governanceReportController.UpdateGovernanceReportSection)
