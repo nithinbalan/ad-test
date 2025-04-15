@@ -5,27 +5,27 @@ import (
 )
 
 type App struct {
-	DB                       *gorm.DB
-	SettingsModule           *SettingsModule
-	CommonModule             *CommonModule
-	MasterModule             *MasterModule
-	MeetingModule            *MeetingModule
-	LibraryModule            *LibraryModule
-	OrganizationModule       *OrganizationModule
-	AuthModule               *AuthModule
-	ComplianceModule         *ComplianceModule
-	RiskModule               *RiskModule
-	IncidentModule           *IncidentModule
-	TaskModule               *TaskModule
-	DocumentModule           *DocumentModule
-	AuditModule              *AuditModule
-	KPIModule                *KPIModule
-	AuditInsightsModule      *AuditInsightsModule
-	ReportsModule            *ReportsModule
-	AssetModule              *AssetModule
-	SharedModule             *SharedModule
-	BusinessContinuityModule *BusinessContinuityModule
-	StrategyModule           *StrategyModule
+	DB                          *gorm.DB
+	SettingsModule              *SettingsModule
+	CommonModule                *CommonModule
+	MasterModule                *MasterModule
+	MeetingModule               *MeetingModule
+	LibraryModule               *LibraryModule
+	OrganizationModule          *OrganizationModule
+	AuthModule                  *AuthModule
+	ComplianceModule            *ComplianceModule
+	RiskModule                  *RiskModule
+	IncidentModule              *IncidentModule
+	TaskModule                  *TaskModule
+	DocumentModule              *DocumentModule
+	AuditModule                 *AuditModule
+	KPIModule                   *KPIModule
+	AuditInsightsModule         *AuditInsightsModule
+	ReportsModule               *ReportsModule
+	AssetModule                 *AssetModule
+	SharedModule                *SharedModule
+	BusinessContinuityModule    *BusinessContinuityModule
+	OrganizationalContextModule *OrganizationalContextModule
 }
 
 func NewApp(db *gorm.DB) *App {
@@ -48,29 +48,29 @@ func NewApp(db *gorm.DB) *App {
 	auditInsightsModule := NewAuditInsightsModule(db, sharedModule, organizationModule, auditModule, commonModule)
 	reportsModule := NewReportsModule(db, complianceModule, organizationModule, riskModule, auditModule, incidentModule, meetingModule, settingsModule, documentModule)
 	businessFunctionModule := NewBusinessContinuityModule(db, sharedModule, settingsModule, masterModule, organizationModule, assetModule, documentModule, riskModule, commonModule, taskModule)
-	strategyModule := NewStrategyModule(db, sharedModule, settingsModule, masterModule, organizationModule)
+	organizationalContextModule := NewOrganizationalContextModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
 
 	return &App{
-		DB:                       db,
-		SettingsModule:           settingsModule,
-		CommonModule:             commonModule,
-		MasterModule:             masterModule,
-		LibraryModule:            libraryModule,
-		OrganizationModule:       organizationModule,
-		AuthModule:               authModule,
-		TaskModule:               taskModule,
-		ComplianceModule:         complianceModule,
-		RiskModule:               riskModule,
-		IncidentModule:           incidentModule,
-		DocumentModule:           documentModule,
-		MeetingModule:            meetingModule,
-		AuditModule:              auditModule,
-		KPIModule:                kpiModule,
-		AuditInsightsModule:      auditInsightsModule,
-		ReportsModule:            reportsModule,
-		AssetModule:              assetModule,
-		SharedModule:             sharedModule,
-		BusinessContinuityModule: businessFunctionModule,
-		StrategyModule:           strategyModule,
+		DB:                          db,
+		SettingsModule:              settingsModule,
+		CommonModule:                commonModule,
+		MasterModule:                masterModule,
+		LibraryModule:               libraryModule,
+		OrganizationModule:          organizationModule,
+		AuthModule:                  authModule,
+		TaskModule:                  taskModule,
+		ComplianceModule:            complianceModule,
+		RiskModule:                  riskModule,
+		IncidentModule:              incidentModule,
+		DocumentModule:              documentModule,
+		MeetingModule:               meetingModule,
+		AuditModule:                 auditModule,
+		KPIModule:                   kpiModule,
+		AuditInsightsModule:         auditInsightsModule,
+		ReportsModule:               reportsModule,
+		AssetModule:                 assetModule,
+		SharedModule:                sharedModule,
+		BusinessContinuityModule:    businessFunctionModule,
+		OrganizationalContextModule: organizationalContextModule,
 	}
 }
