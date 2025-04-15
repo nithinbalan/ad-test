@@ -188,16 +188,19 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 			return 0, err
 		}
 	}
-	if len(threatFormDTO.VulnerabilityIDs) > 0 {
-		var threatVulnerabilities []*models.VulnerabilityThreat
-		for _, vulnerabilityID := range threatFormDTO.VulnerabilityIDs {
-			threatVulnerabilities = append(threatVulnerabilities, &models.VulnerabilityThreat{
-				ThreatID:        id,
-				VulnerabilityID: *vulnerabilityID,
-				CreatedBYID:     currentUserID,
-			})
+	var threatVulnerabilities []*models.VulnerabilityThreat
+	for _, vulnerabilityID := range threatFormDTO.VulnerabilityIDs {
+		threatVulnerability := &models.VulnerabilityThreat{
+			ThreatID:        id,
+			VulnerabilityID: *vulnerabilityID,
+			CreatedBYID:     currentUserID,
 		}
+		threatVulnerabilities = append(threatVulnerabilities, threatVulnerability)
+	}
+
+	if len(threatVulnerabilities) > 0 {
 		if err := ts.repo.CreateThreatVulnerabilities(threatVulnerabilities, tx); err != nil {
+			tx.Rollback()
 			return 0, err
 		}
 	}
