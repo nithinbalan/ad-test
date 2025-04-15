@@ -111,19 +111,36 @@ func (ns *NotificationService) SendNotification(notificationDTO *commonDTOs.DBNo
 			FooterEmail:    emailTemplateSettings.FooterEmail,
 		}
 
-		err = utility.SendTemplatedEmail(
-			emailNotificationDTO.EmailTo,
-			emailNotificationDTO.Subject,
-			emailNotificationDTO.TemplateRelativePath,
-			emailNotificationDTO.EmailData,
-			emailTemplateAndSocialDTO,
-			nil,
-			emailNotificationDTO.CC,
-		)
-		if err != nil {
-			utility.LogError("Failed to send email", map[string]interface{}{
-				"error": err.Error(),
-			})
+		//Filter EmailTo by IsNotificationEnabled
+		var filteredEmails []string
+		for _, email := range emailNotificationDTO.EmailTo {
+			user, err := ns.repo.GetUserByEmail(email)
+			if err != nil || user == nil {
+				continue
+			}
+			isEnabled, err := ns.IsNotificationEnabled(user.ID, notificationMasterIdentifier)
+			if err != nil || !isEnabled {
+				continue
+			}
+			filteredEmails = append(filteredEmails, email)
+		}
+
+		// ✅ Only send if at least one user is eligible
+		if len(filteredEmails) > 0 {
+			err = utility.SendTemplatedEmail(
+				filteredEmails,
+				emailNotificationDTO.Subject,
+				emailNotificationDTO.TemplateRelativePath,
+				emailNotificationDTO.EmailData,
+				emailTemplateAndSocialDTO,
+				nil,
+				emailNotificationDTO.CC,
+			)
+			if err != nil {
+				utility.LogError("Failed to send email", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
 		}
 	}
 
