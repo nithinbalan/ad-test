@@ -98,13 +98,12 @@ type ThreatParsedDates struct {
 }
 
 type ThreatDetailDTO struct {
-	ID            uint                        `json:"id"`
-	TitleEn       string                      `json:"title_en"`
-	TitleAr       string                      `json:"title_ar"`
-	ThreatType    *ThreatTypeDTO              `json:"threat_type"`
-	SeverityLevel masterDTOs.SeverityLevelDTO `json:"severity_level"`
-	ThreatStatus  ThreatStatusDTO             `json:"threat_status"`
-	// Vulnerability        *VulnerabilityDetailsDTO         `json:"vulnerability"`
+	ID                   uint                             `json:"id"`
+	TitleEn              string                           `json:"title_en"`
+	TitleAr              string                           `json:"title_ar"`
+	ThreatType           *ThreatTypeDTO                   `json:"threat_type"`
+	SeverityLevel        masterDTOs.SeverityLevelDTO      `json:"severity_level"`
+	ThreatStatus         ThreatStatusDTO                  `json:"threat_status"`
 	ResponsibleUser      organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
 	ResponsibleUnit      settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
 	Description          *string                          `json:"description,omitempty"`
