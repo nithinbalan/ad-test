@@ -24,6 +24,8 @@ type ThreatRepositoryInterface interface {
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetThreatSummary(assetId uint) (openCount int, closedCount int, err error)
+	CreateThreatVulnerabilities(vulnerabilityThreats []*models.VulnerabilityThreat, tx ...utility.DatabaseTransaction) error
+	DeleteThreatVulnerabilities(vulnerabilityThreatIDs []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 // Implementation
@@ -201,6 +203,8 @@ func (repo *ThreatRepository) GetFullDetailsByID(id uint, tx ...utility.Database
 		Preload("Documents").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("VulnerabilityThreats").
+		Preload("VulnerabilityThreats.Vulnerability").
 		First(&threat, id)
 
 	if result.Error != nil {
@@ -301,4 +305,28 @@ func (repo *ThreatRepository) GetThreatSummary(assetId uint) (openCount int, clo
 	closedCount = int(closed)
 
 	return openCount, closedCount, nil
+}
+
+func (repo *ThreatRepository) CreateThreatVulnerabilities(vulnerabilityThreats []*models.VulnerabilityThreat, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&vulnerabilityThreats).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ThreatRepository) DeleteThreatVulnerabilities(vulnerabilityThreatIDs []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", vulnerabilityThreatIDs).Delete(&models.VulnerabilityThreat{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
