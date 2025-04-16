@@ -22,6 +22,11 @@ type AssetAssociatedItemRepositoryInterface interface {
 	CreateAssetVulnerabilities(vulnerabilities []*models.VulnerabilityAsset, tx ...utility.DatabaseTransaction) error
 	DeleteAssetVulnerability(assetID, vulnerabilityID uint) error
 
+	GetAssetComplianceClauseExist(assetID uint, clauseID uint) (bool, error)
+	CreateAssetComplianceClauses(clauses []*models.AssetComplianceRequirement, tx ...utility.DatabaseTransaction) error
+	GetAssetComplianceClauseByID(id uint) (*models.AssetComplianceRequirement, error)
+	DeleteAssetComplianceClause(assetID uint, id uint) error
+
 	GetVulnerabilityThreatExist(vulnerabilityId uint, threatID uint) (bool, error)
 	CreateAssetVulnerabilityThreats(threats []*models.VulnerabilityThreat, tx ...utility.DatabaseTransaction) error
 	DeleteVulnerabilityThreats(vulnerabilityID uint, threatId uint) error
@@ -622,6 +627,40 @@ func (repo *AssetAssociatedItemRepository) GetVulnerabilityAssetExist(assetID, v
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func (r *AssetAssociatedItemRepository) GetAssetComplianceClauseExist(assetID uint, clauseID uint) (bool, error) {
+	var count int64
+	err := r.db.Model(&models.AssetComplianceRequirement{}).
+		Where("asset_register_id = ? AND compliance_clause_id = ?", assetID, clauseID).
+		Count(&count).Error
+	return count > 0, err
+}
+
+func (repo *AssetAssociatedItemRepository) CreateAssetComplianceClauses(clauses []*models.AssetComplianceRequirement, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(clauses).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *AssetAssociatedItemRepository) GetAssetComplianceClauseByID(id uint) (*models.AssetComplianceRequirement, error) {
+	var record models.AssetComplianceRequirement
+	err := r.db.First(&record, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &record, nil
+}
+
+func (r *AssetAssociatedItemRepository) DeleteAssetComplianceClause(assetID uint, id uint) error {
+	return r.db.
+		Where("id = ? AND asset_register_id = ?", id, assetID).
+		Delete(&models.AssetComplianceRequirement{}).Error
 }
 
 func (repo *AssetAssociatedItemRepository) GetVulnerabilityThreatExist(vulnerabilityId uint, threatID uint) (bool, error) {
