@@ -502,8 +502,8 @@ func (grs *GovernanceReportService) ExportGovernanceReportToPDF(governanceReport
 			Type:          section.Type,
 			TitleEn:       section.TitleEn,
 			TitleAr:       section.TitleAr,
-			DescriptionEn: section.DescriptionEn,
-			DescriptionAr: section.DescriptionAr,
+			DescriptionEn: utility.StripPTags(section.DescriptionEn),
+			DescriptionAr: utility.StripPTags(section.DescriptionAr),
 		}
 
 		switch section.Type {
