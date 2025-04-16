@@ -134,7 +134,6 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 		ThreatStatusID:    threatFormDTO.ThreatStatusID,
 		ResponsibleUserID: threatFormDTO.ResponsibleUserID,
 		ResponsibleUnitID: organizationUnitID,
-		VulnerabilityID:   threatFormDTO.VulnerabilityID,
 		Description:       threatFormDTO.Description,
 		Source:            threatFormDTO.Source,
 		DetectionDate:     dates.DetectionDate,
@@ -186,6 +185,22 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 	for _, doc := range threatDocuments {
 		storagePath := filepath.Join("asset", "threat", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.StoreFile(*doc.Name, storagePath); err != nil {
+			return 0, err
+		}
+	}
+	var threatVulnerabilities []*models.VulnerabilityThreat
+	for _, vulnerabilityID := range threatFormDTO.VulnerabilityIDs {
+		threatVulnerability := &models.VulnerabilityThreat{
+			ThreatID:        id,
+			VulnerabilityID: *vulnerabilityID,
+			CreatedBYID:     currentUserID,
+		}
+		threatVulnerabilities = append(threatVulnerabilities, threatVulnerability)
+	}
+
+	if len(threatVulnerabilities) > 0 {
+		if err := ts.repo.CreateThreatVulnerabilities(threatVulnerabilities, tx); err != nil {
+			tx.Rollback()
 			return 0, err
 		}
 	}
@@ -266,7 +281,6 @@ func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, curr
 	existingThreat.SeverityLevelID = threatFormDTO.SeverityLevelID
 	existingThreat.ThreatStatusID = threatFormDTO.ThreatStatusID
 	existingThreat.ResponsibleUserID = threatFormDTO.ResponsibleUserID
-	existingThreat.VulnerabilityID = threatFormDTO.VulnerabilityID
 	existingThreat.Description = threatFormDTO.Description
 	existingThreat.Source = threatFormDTO.Source
 	existingThreat.DetectionDate = dates.DetectionDate
@@ -278,6 +292,57 @@ func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, curr
 		tx.Rollback()
 		return err
 	}
+	// Fetch existing threat details with related vulnerabilities
+	existingThreatDetails, err := ts.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Map existing and new vulnerability IDs
+	existingVulnIDs := make(map[uint]struct{})
+	for _, vt := range existingThreatDetails.VulnerabilityThreats {
+		existingVulnIDs[vt.VulnerabilityID] = struct{}{}
+	}
+
+	newVulnIDs := make(map[uint]struct{})
+	for _, vID := range threatFormDTO.VulnerabilityIDs {
+		newVulnIDs[*vID] = struct{}{}
+	}
+
+	// Find vulnerabilities to add
+	var toAdd []*models.VulnerabilityThreat
+	for _, vID := range threatFormDTO.VulnerabilityIDs {
+		if _, exists := existingVulnIDs[*vID]; !exists {
+			toAdd = append(toAdd, &models.VulnerabilityThreat{
+				ThreatID:        id,
+				VulnerabilityID: *vID,
+				CreatedBYID:     currentUserID,
+				CreatedAt:       time.Now(),
+			})
+		}
+	}
+	if len(toAdd) > 0 {
+		if err := ts.repo.CreateThreatVulnerabilities(toAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Find vulnerabilities to delete
+	var toDelete []*uint
+	for _, vt := range existingThreatDetails.VulnerabilityThreats {
+		if _, exists := newVulnIDs[vt.VulnerabilityID]; !exists {
+			toDelete = append(toDelete, &vt.ID)
+		}
+	}
+	if len(toDelete) > 0 {
+		if err := ts.repo.DeleteThreatVulnerabilities(toDelete, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	// Prepare slices for new and deleted documents
 	var newDocuments []*models.ThreatDocument
 	var deleteDocumentIds []*uint
@@ -377,7 +442,6 @@ func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, curr
 			"title_ar":         oldThreat.TitleAr,
 			"description":      oldThreat.Description,
 			"threat_status":    oldThreat.ThreatStatus.TitleEn,
-			"vulnerability":    utility.GetFieldValue(oldThreat.Vulnerability),
 			"source":           oldThreat.Source,
 			"detection_date":   oldThreat.DetectionDateString,
 			"resolution_date":  oldThreat.ResolutionDateString,
@@ -391,7 +455,6 @@ func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, curr
 			"title_ar":         existingThreat.TitleAr,
 			"description":      existingThreat.Description,
 			"threat_status":    existingThreat.ThreatStatus.TitleEn,
-			"vulnerability":    utility.GetFieldValue(existingThreat.Vulnerability),
 			"source":           existingThreat.Source,
 			"detection_date":   existingThreat.DetectionDateString,
 			"resolution_date":  existingThreat.ResolutionDateString,
@@ -452,6 +515,17 @@ func (ts *ThreatService) Delete(ids []uint, currentUserID uint) ([]uint, error) 
 			if err := ts.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
 				tx.Rollback()
 				return nil, err
+			}
+			// Delete associated threat-vulnerability links
+			var threatVulnIDs []*uint
+			for _, vt := range existingThreatDetails.VulnerabilityThreats {
+				threatVulnIDs = append(threatVulnIDs, &vt.ID)
+			}
+			if len(threatVulnIDs) > 0 {
+				if err := ts.repo.DeleteThreatVulnerabilities(threatVulnIDs, tx); err != nil {
+					tx.Rollback()
+					return nil, err
+				}
 			}
 
 		}
@@ -530,11 +604,11 @@ func (ts *ThreatService) validateThreatFormDTO(threatFormDTO *dtos.ThreatFormDTO
 		return utility.NewValidationError(fmt.Errorf("responsible user does not exist"), "not_exist", "responsible user")
 	}
 
-	if threatFormDTO.VulnerabilityID != nil {
-		if _, err := ts.vulnerabilitySvc.GetByID(*threatFormDTO.VulnerabilityID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("vulnerability does not exist"), "not_exist", "vulnerability")
-		}
-	}
+	// if threatFormDTO.VulnerabilityID != nil {
+	// 	if _, err := ts.vulnerabilitySvc.GetByID(*threatFormDTO.VulnerabilityID); err != nil {
+	// 		return utility.NewValidationError(fmt.Errorf("vulnerability does not exist"), "not_exist", "vulnerability")
+	// 	}
+	// }
 	return nil
 }
 

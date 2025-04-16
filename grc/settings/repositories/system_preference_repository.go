@@ -52,7 +52,13 @@ func (repo *SystemPreferenceRepository) GetByID(id uint) (*models.SystemPreferen
 }
 
 func (repo *SystemPreferenceRepository) Update(systemPreference *models.SystemPreference) error {
-	if err := repo.db.Save(systemPreference).Error; err != nil {
+
+	var preference *models.SystemPreference
+	if err := repo.db.First(&preference, systemPreference.ID).Error; err != nil {
+		return err
+	}
+
+	if err := repo.db.Model(&preference).Updates(systemPreference).Error; err != nil {
 		return err
 	}
 

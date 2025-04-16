@@ -561,37 +561,71 @@ func (repo *AssetAssociatedItemRepository) GetAssetRiskAnalysis(assetID uint) ([
 	// Step 3: Fetch Risks related to these threats
 	err = repo.db.Table("risk_threats").
 		Select(`
-            risk_threats.threat_id,
-            risk_threats.id,
-            risk_register.reference_number,
-            risk_register.title,
-            risk_register.description,
-            risk_categories.title_en AS risk_category_title_en,
-            risk_categories.title_ar AS risk_category_title_ar,
-            risk_sources.title_en AS risk_source_title_en,
-            risk_sources.title_ar AS risk_source_title_ar,
-            organization_units.title_en AS responsible_unit_title_en,
-            organization_units.title_ar AS responsible_unit_title_ar,
-            users.id AS responsible_user_id,
-            users.first_name_en AS responsible_user_first_name_en,
-            users.first_name_ar AS responsible_user_first_name_ar,
-            users.last_name_en AS responsible_user_last_name_en,
-            users.last_name_ar AS responsible_user_last_name_ar,
-            users.initial AS responsible_user_initial,
-            users.color AS responsible_user_color,
-            users.email AS responsible_user_email,
-            users.profile_image_path AS responsible_user_profile_image_path
-        `).
+        risk_threats.threat_id,
+        risk_threats.id,
+        risk_register.reference_number,
+        risk_register.title,
+        risk_register.description,
+        risk_categories.title_en AS risk_category_title_en,
+        risk_categories.title_ar AS risk_category_title_ar,
+        risk_sources.title_en AS risk_source_title_en,
+        risk_sources.title_ar AS risk_source_title_ar,
+        organization_units.title_en AS responsible_unit_title_en,
+        organization_units.title_ar AS responsible_unit_title_ar,
+        users.id AS responsible_user_id,
+        users.first_name_en AS responsible_user_first_name_en,
+        users.first_name_ar AS responsible_user_first_name_ar,
+        users.last_name_en AS responsible_user_last_name_en,
+        users.last_name_ar AS responsible_user_last_name_ar,
+        users.initial AS responsible_user_initial,
+        users.color AS responsible_user_color,
+        users.email AS responsible_user_email,
+        users.profile_image_path AS responsible_user_profile_image_path,
+        risk_statuses.title_en AS risk_status_title_en,
+        risk_statuses.title_ar AS risk_status_title_ar,
+        risk_statuses.color_code AS risk_status_color_code,
+
+        inherent_likelihoods.title_en AS inherent_likelihood_title_en,
+        inherent_likelihoods.title_ar AS inherent_likelihood_title_ar,
+        inherent_impacts.title_en AS inherent_impact_title_en,
+        inherent_impacts.title_ar AS inherent_impact_title_ar,
+        inherent_risk_ratings.title_en AS inherent_risk_rating_title_en,
+        inherent_risk_ratings.title_ar AS inherent_risk_rating_title_ar,
+        inherent_risk_ratings.color_code AS inherent_risk_rating_color_code,
+
+        residual_likelihoods.title_en AS residual_likelihood_title_en,
+        residual_likelihoods.title_ar AS residual_likelihood_title_ar,
+        residual_impacts.title_en AS residual_impact_title_en,
+        residual_impacts.title_ar AS residual_impact_title_ar,
+        residual_risk_ratings.title_en AS residual_risk_rating_title_en,
+        residual_risk_ratings.title_ar AS residual_risk_rating_title_ar,
+        residual_risk_ratings.color_code AS residual_risk_rating_color_code,
+
+        review_frequencies.title_en AS review_frequency_title_en,
+        review_frequencies.title_ar AS review_frequency_title_ar,
+        CONVERT(VARCHAR, risk_register.next_review_date, 23) AS next_review_date,
+        risk_register.last_review_note
+    `).
 		Joins("LEFT JOIN risk_register ON risk_register.id = risk_threats.risk_register_id").
 		Joins("LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id").
 		Joins("LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id").
 		Joins("LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id").
 		Joins("LEFT JOIN users ON users.id = risk_register.responsible_user_id").
+		Joins("LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
+		Joins("LEFT JOIN risk_matrix_likelihoods AS inherent_likelihoods ON inherent_likelihoods.id = risk_register.inherent_likelihood_id").
+		Joins("LEFT JOIN risk_matrix_impacts AS inherent_impacts ON inherent_impacts.id = risk_register.inherent_impact_id").
+		Joins("LEFT JOIN risk_matrix_risk_ratings AS inherent_risk_ratings ON inherent_risk_ratings.id = risk_register.inherent_risk_rating_id").
+		Joins("LEFT JOIN risk_matrix_likelihoods AS residual_likelihoods ON residual_likelihoods.id = risk_register.residual_likelihood_id").
+		Joins("LEFT JOIN risk_matrix_impacts AS residual_impacts ON residual_impacts.id = risk_register.residual_impact_id").
+		Joins("LEFT JOIN risk_matrix_risk_ratings AS residual_risk_ratings ON residual_risk_ratings.id = risk_register.residual_risk_rating_id").
+		Joins("LEFT JOIN review_frequencies ON review_frequencies.id = risk_register.review_frequency_id").
 		Where("risk_threats.threat_id IN (?)", getThreatIDs(threats)).
 		Find(&risks).Error
+
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
 	return vulnerabilities, threats, risks, nil
 }
 

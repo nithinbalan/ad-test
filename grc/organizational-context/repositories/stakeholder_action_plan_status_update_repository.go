@@ -1,0 +1,234 @@
+package repositories
+
+import (
+	"jethur/grc/models"
+	organizationalContextDTOs "jethur/grc/organizational-context/dtos"
+	"jethur/utility"
+
+	"gorm.io/gorm"
+)
+
+type StakeholderActionPlanStatusUpdateRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
+	GetAll(stakeholderActionPlanID uint, sort string, sortBy string, keyword string) ([]*organizationalContextDTOs.StakeholderActionPlanStatusUpdateListDTO, error)
+	GetByID(id uint) (*models.StakeholderActionPlanStatusUpdate, error)
+	Create(StakeholderActionPlanStatusUpdate *models.StakeholderActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(StakeholderActionPlanStatusUpdate *models.StakeholderActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) error
+
+	//Document
+	CreateDocuments(docs []*models.StakeholderActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint) (*models.StakeholderActionPlanStatusUpdateDocument, error)
+	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetLatestStakeholderActionPlanStatusUpdate(stakeholderActionPlanID uint) (*organizationalContextDTOs.StakeholderActionPlanStatusUpdateListDTO, error)
+	StakeholderActionPlanUpdateStatus(stakeholderActionPlan *models.StakeholderActionPlan, tx ...utility.DatabaseTransaction) error
+}
+
+type StakeholderActionPlanStatusUpdateRepository struct {
+	db *gorm.DB
+}
+
+func NewStakeholderActionPlanStatusUpdateRepository(db *gorm.DB) *StakeholderActionPlanStatusUpdateRepository {
+	return &StakeholderActionPlanStatusUpdateRepository{
+		db: db,
+	}
+}
+
+// BeginTransaction starts a new transaction.
+func (repo *StakeholderActionPlanStatusUpdateRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
+}
+
+func (repo *StakeholderActionPlanStatusUpdateRepository) GetAll(stakeholderActionPlanID uint, sort string, sortBy string, keyword string) ([]*organizationalContextDTOs.StakeholderActionPlanStatusUpdateListDTO, error) {
+
+	var stakeholderActionPlanUpdates []*organizationalContextDTOs.StakeholderActionPlanStatusUpdateListDTO
+
+	query := repo.db.Table("stakeholder_action_plan_status_updates").
+		Select(`
+            stakeholder_action_plan_status_updates.*,
+            stakeholder_action_plans.title AS stakeholder_action_plan_title,
+            action_plan_statuses.title_en AS action_plan_status_title_en,
+            action_plan_statuses.title_ar AS action_plan_status_title_ar,
+            action_plan_statuses.color_code AS action_plan_status_color_code,
+			action_plan_statuses.type AS action_plan_status_type,
+        	created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+        	created_user.first_name_ar AS created_user_first_name_ar,
+        	created_user.last_name_en AS created_user_last_name_en,
+        	created_user.last_name_ar AS created_user_last_name_ar,   
+        	created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+        	updated_user.first_name_ar AS updated_user_first_name_ar,
+        	updated_user.last_name_en AS updated_user_last_name_en,
+        	updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path
+        `).
+		Joins(`
+            LEFT JOIN stakeholder_action_plans ON stakeholder_action_plans.id = stakeholder_action_plan_status_updates.stakeholder_action_plan_id
+            LEFT JOIN action_plan_statuses ON action_plan_statuses.id = stakeholder_action_plan_status_updates.action_plan_status_id
+            LEFT JOIN users AS created_user ON created_user.id = stakeholder_action_plan_status_updates.created_by_id
+            LEFT JOIN users AS updated_user ON updated_user.id = stakeholder_action_plan_status_updates.updated_by_id
+        `).
+		Where("stakeholder_action_plan_status_updates.stakeholder_action_plan_id = ?", stakeholderActionPlanID)
+
+	if keyword != "" {
+		query = query.Where(`
+            (stakeholder_action_plans.title LIKE ? OR
+            stakeholder_action_plan_status_updates.comment LIKE ? OR
+            action_plan_statuses.title_en LIKE ? OR
+            action_plan_statuses.title_ar LIKE ?)`,
+			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
+	}
+	if sortBy == "" {
+		sortBy = "stakeholder_action_plan_status_updates.id"
+	}
+	if sort != "asc" && sort != "desc" {
+		sort = "asc"
+	}
+	query = query.Order(sortBy + " " + sort)
+	result := query.Find(&stakeholderActionPlanUpdates)
+
+	for _, statusUpdate := range stakeholderActionPlanUpdates {
+		var documents []*organizationalContextDTOs.StakeholderActionPlanStatusUpdateDocumentDTO
+
+		repo.db.Model(&models.StakeholderActionPlanStatusUpdateDocument{}).Where("stakeholder_action_plan_status_update_id = ?", statusUpdate.ID).Find(&documents)
+		statusUpdate.Documents = documents
+	}
+
+	return stakeholderActionPlanUpdates, result.Error
+}
+
+func (repo *StakeholderActionPlanStatusUpdateRepository) GetByID(id uint) (*models.StakeholderActionPlanStatusUpdate, error) {
+	var stakeholderActionPlanStatusUpdate *models.StakeholderActionPlanStatusUpdate
+	result := repo.db.Preload("Documents").First(&stakeholderActionPlanStatusUpdate, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return stakeholderActionPlanStatusUpdate, nil
+}
+
+func (repo *StakeholderActionPlanStatusUpdateRepository) Create(StakeholderActionPlanStatusUpdate *models.StakeholderActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(StakeholderActionPlanStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+
+	return StakeholderActionPlanStatusUpdate.ID, nil
+}
+
+func (repo *StakeholderActionPlanStatusUpdateRepository) Update(StakeholderActionPlanStatusUpdate *models.StakeholderActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(StakeholderActionPlanStatusUpdate).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *StakeholderActionPlanStatusUpdateRepository) CreateDocuments(docs []*models.StakeholderActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	// Save all documents in a single transaction
+	if err := db.Create(&docs).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *StakeholderActionPlanStatusUpdateRepository) GetDocumentByID(id uint) (*models.StakeholderActionPlanStatusUpdateDocument, error) {
+	var document models.StakeholderActionPlanStatusUpdateDocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
+}
+
+func (repo *StakeholderActionPlanStatusUpdateRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete documents by IDs
+	if err := db.Where("id IN (?)", docIds).Delete(&models.StakeholderActionPlanStatusUpdateDocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *StakeholderActionPlanStatusUpdateRepository) GetLatestStakeholderActionPlanStatusUpdate(stakeholderActionPlanID uint) (*organizationalContextDTOs.StakeholderActionPlanStatusUpdateListDTO, error) {
+
+	var stakeholderActionPlanUpdate *organizationalContextDTOs.StakeholderActionPlanStatusUpdateListDTO
+
+	query := repo.db.Table("stakeholder_action_plan_status_updates").
+		Select(`
+            stakeholder_action_plan_status_updates.*,
+            stakeholder_action_plans.title AS stakeholder_action_plan_title,
+            action_plan_statuses.title_en AS action_plan_status_title_en,
+            action_plan_statuses.title_ar AS action_plan_status_title_ar,
+            action_plan_statuses.color_code AS action_plan_status_color_code,
+			action_plan_statuses.type AS action_plan_status_type,
+        	created_user.id AS created_user_id,
+        		created_user.first_name_en AS created_user_first_name_en,
+        	created_user.first_name_ar AS created_user_first_name_ar,
+        	created_user.last_name_en AS created_user_last_name_en,
+        	created_user.last_name_ar AS created_user_last_name_ar,   
+        	created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+        	updated_user.first_name_ar AS updated_user_first_name_ar,
+        	updated_user.last_name_en AS updated_user_last_name_en,
+        	updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path
+        `).
+		Joins(`
+            LEFT JOIN stakeholder_action_plans ON stakeholder_action_plans.id = stakeholder_action_plan_status_updates.stakeholder_action_plan_id
+            LEFT JOIN action_plan_statuses ON action_plan_statuses.id = stakeholder_action_plan_status_updates.action_plan_status_id
+            LEFT JOIN users AS created_user ON created_user.id = stakeholder_action_plan_status_updates.created_by_id
+            LEFT JOIN users AS updated_user ON updated_user.id = stakeholder_action_plan_status_updates.updated_by_id
+        `).
+		Where("stakeholder_action_plan_status_updates.stakeholder_action_plan_id = ?", stakeholderActionPlanID).
+		Order("stakeholder_action_plan_status_updates.created_at DESC").
+		First(&stakeholderActionPlanUpdate)
+
+	if query.Error != nil {
+		return nil, query.Error
+	}
+
+	return stakeholderActionPlanUpdate, nil
+
+}
+
+func (repo *StakeholderActionPlanStatusUpdateRepository) StakeholderActionPlanUpdateStatus(StakeholderActionPlan *models.StakeholderActionPlan, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(StakeholderActionPlan).Error; err != nil {
+		return err
+	}
+	return nil
+}
