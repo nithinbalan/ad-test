@@ -16,6 +16,8 @@ type AssetAssociatedItemRepositoryInterface interface {
 	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisks(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error)
 	GetAllVulnerabilities(assetID uint) ([]models.Vulnerability, error)
+	GetAllClauses(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemClauseListResponseDTO, error)
+
 	GetRisksByThreatID(threatID uint) ([]*assetDTOs.RiskDTO, error)
 
 	GetVulnerabilityAssetExist(assetID, vulnerabilityID uint) (bool, error)
@@ -404,6 +406,69 @@ func (repo *AssetAssociatedItemRepository) GetRisksByThreatID(threatID uint) ([]
 	}
 
 	return risks, nil
+}
+
+func (repo *AssetAssociatedItemRepository) GetAllClauses(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemClauseListResponseDTO, error) {
+	var totalCount int64
+	var clauseList []*assetDTOs.AssetClauseListDTO
+
+	query := repo.db.Table("asset_compliance_requirements").
+		Select(`
+			DISTINCT asset_compliance_requirements.id,
+			compliance_clauses.id AS clause_id,
+			compliance_clauses.clause_no,
+			compliance_clauses.title_en AS clause_title_en,
+			compliance_clauses.title_ar AS clause_title_ar,
+			compliance_register.id AS compliance_register_id,
+			compliance_register.title_en AS compliance_register_title_en,
+			compliance_register.title_ar AS compliance_register_title_ar
+		`).
+		Joins("LEFT JOIN compliance_clauses ON compliance_clauses.id = asset_compliance_requirements.compliance_clause_id").
+		Joins("LEFT JOIN compliance_register ON compliance_register.id = compliance_clauses.compliance_register_id").
+		Where("asset_compliance_requirements.asset_register_id = ?", assetID)
+
+	// Apply keyword search
+	if params.Keyword != "" {
+		kw := "%" + params.Keyword + "%"
+		query = query.Where(`
+			compliance_clauses.clause_no LIKE ? OR 
+			compliance_clauses.title_en LIKE ? OR 
+			compliance_register.title_en LIKE ?
+		`, kw, kw, kw)
+	}
+
+	// Count total
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Sorting
+	if params.SortBy == "" {
+		params.SortBy = "compliance_clauses.clause_no"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	// Pagination
+	offset := (params.Page - 1) * params.PageSize
+	err := query.Offset(offset).Limit(params.PageSize).Find(&clauseList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Pagination response
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	return &assetDTOs.AssetAssociatedItemClauseListResponseDTO{
+		Items: clauseList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}, nil
 }
 
 func (repo *AssetAssociatedItemRepository) CreateAssetVulnerabilities(vulnerabilities []*models.VulnerabilityAsset, tx ...utility.DatabaseTransaction) error {

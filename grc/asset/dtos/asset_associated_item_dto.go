@@ -113,6 +113,17 @@ type AssetRiskListDTO struct {
 	RiskMatrixRiskRatingValue       string     `json:"risk_matrix_risk_rating_value"`
 }
 
+type AssetClauseListDTO struct {
+	ID                        uint   `json:"id"`
+	ComplianceRegisterID      uint   `json:"compliance_register_id"`
+	ComplianceRegisterTitleEn string `json:"compliance_register_title_en"`
+	ComplianceRegisterTitleAr string `json:"compliance_register_title_ar"`
+	ClauseID                  uint   `json:"clause_id"`
+	ClauseNo                  string `json:"clause_no"`
+	ClauseTitleEn             string `json:"clause_title_en"`
+	ClauseTitleAr             string `json:"clause_title_ar"`
+}
+
 type AssetAssociatedItemListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
@@ -136,6 +147,11 @@ type AssetAssociatedItemIncidentListResponseDTO struct {
 
 type AssetAssociatedItemRiskListResponseDTO struct {
 	Items      []*AssetRiskListDTO          `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type AssetAssociatedItemClauseListResponseDTO struct {
+	Items      []*AssetClauseListDTO        `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
