@@ -131,7 +131,7 @@ func (p *ProcessDependencyController) UpdateProcessDependency(c *gin.Context) {
 		return
 	}
 
-	var dto *processDTOs.ProcessDependencyFormDTO
+	var dto *processDTOs.ProcessDependencyUpdateFormDTO
 	if err := c.ShouldBindJSON(&dto); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return

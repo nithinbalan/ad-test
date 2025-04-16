@@ -7,8 +7,8 @@ type ProcessDependency struct {
 	DependentProcessID         *uint   `json:"dependent_process_id"`
 	OrganizationUnitID         *uint   `json:"organization_unit_id"`
 	AssetID                    *uint   `json:"asset_id"`
-	Title                      string  `gorm:"type:nvarchar(255);not null" json:"title"`
-	Description                string  `gorm:"type:nvarchar(MAX)" json:"description"`
+	Title                      *string `gorm:"type:nvarchar(255)" json:"title"`
+	Description                *string `gorm:"type:nvarchar(MAX)" json:"description"`
 	Rto                        *int    `json:"rto" gorm:"default:null"`
 	RtoUnitId                  *uint   `json:"rto_uint_id" gorm:"default:null"`
 	Mtpd                       *int    `json:"mtpd" gorm:"default:null"`

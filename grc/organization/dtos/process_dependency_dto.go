@@ -45,6 +45,15 @@ type ProcessDependencyDetailDTO struct {
 
 type ProcessDependencyFormDTO struct {
 	ProcessDependencySubTypeID uint    `json:"process_dependency_sub_type_id" binding:"required"`
+	DependentProcessIDs        []*uint `json:"dependent_process_ids"`
+	OrganizationUnitIDs        []*uint `json:"organization_unit_ids"`
+	AssetIDs                   []*uint `json:"asset_ids"`
+	Title                      *string `json:"title"`
+	Description                *string `json:"description"`
+}
+
+type ProcessDependencyUpdateFormDTO struct {
+	ProcessDependencySubTypeID uint    `json:"process_dependency_sub_type_id" binding:"required"`
 	DependentProcessID         *uint   `json:"dependent_process_id"`
 	OrganizationUnitID         *uint   `json:"organization_unit_id"`
 	AssetID                    *uint   `json:"asset_id"`
