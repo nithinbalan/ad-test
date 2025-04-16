@@ -87,11 +87,11 @@ func (sps StrategyProfileInitiativeService) GetFullDetailsByID(strategyProfileID
 		return nil, err
 	}
 
-	if strategyProfileInitiativeDTO.StartDateString != "" {
+	if strategyProfileInitiative.StartDate != nil {
 		strategyProfileInitiativeDTO.StartDateString = strategyProfileInitiative.StartDate.Format("2006-01-02")
 	}
 
-	if strategyProfileInitiativeDTO.EndDateString != "" {
+	if strategyProfileInitiative.EndDate != nil {
 		strategyProfileInitiativeDTO.EndDateString = strategyProfileInitiative.EndDate.Format("2006-01-02")
 	}
 

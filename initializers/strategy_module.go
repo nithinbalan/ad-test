@@ -14,6 +14,7 @@ type StrategyModule struct {
 	StrategyProfileGoalController       *controllers.StrategyProfileGoalController
 	StrategyProfileObjectiveController  *controllers.StrategyProfileObjectiveController
 	StrategyProfileInitiativeController *controllers.StrategyProfileInitiativeController
+	StrategyProfileProjectController    *controllers.StrategyProfileProjectController
 }
 
 func NewStrategyModule(db *gorm.DB,
@@ -46,11 +47,16 @@ func NewStrategyModule(db *gorm.DB,
 	strategyProfileInitiativeSvc := services.NewStrategyProfileInitiativeService(strategyProfileInitiativeRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
 	strategyProfileInitiativeController := controllers.NewStrategyProfileInitiativeController(strategyProfileInitiativeSvc)
 
+	strategyProfileProjectRepo := repositories.NewStrategyProfileProjectRepository(db)
+	strategyProfileProjectSvc := services.NewStrategyProfileProjectService(strategyProfileProjectRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
+	strategyProfileProjectController := controllers.NewStrategyProfileProjectController(strategyProfileProjectSvc)
+
 	return &StrategyModule{
 		StrategyProfileController:           strategyProfileController,
 		StrategyProfileFocusAreaController:  strategyProfileFocusAreaController,
 		StrategyProfileGoalController:       strategyProfileGoalController,
 		StrategyProfileObjectiveController:  strategyProfileObjectiveController,
 		StrategyProfileInitiativeController: strategyProfileInitiativeController,
+		StrategyProfileProjectController:    strategyProfileProjectController,
 	}
 }

@@ -9,6 +9,10 @@ type StrategyProfileInitiativeListDTO struct {
 	ID                              int     `json:"id"`
 	Title                           string  `json:"title"`
 	Description                     *string `json:"description"`
+	StrategyProfileTitle            string  `json:"strategy_profile_title"`
+	StrategyProfileFocusAreaTitle   *string `json:"strategy_profile_focus_area_title"`
+	StrategyProfileGoalTitle        *string `json:"strategy_profile_goal_title"`
+	StrategyprofileObjectiveTitle   *string `json:"strategy_profile_objective_title"`
 	ResponsibleUserID               *uint   `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn      *string `json:"responsible_user_first_name_en"`
 	ResponsibleUserLastNameEn       *string `json:"responsible_user_last_name_en"`
