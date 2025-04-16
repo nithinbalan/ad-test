@@ -777,8 +777,8 @@ func (rrs *RiskReportService) ExportRiskReportToPDF(riskReportID uint, currentUs
 			Type:          section.Type,
 			TitleEn:       section.TitleEn,
 			TitleAr:       section.TitleAr,
-			DescriptionEn: section.DescriptionEn,
-			DescriptionAr: section.DescriptionAr,
+			DescriptionEn: utility.StripPTags(section.DescriptionEn),
+			DescriptionAr: utility.StripPTags(section.DescriptionEn),
 		}
 
 		if section.Type == "identification" {
