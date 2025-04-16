@@ -8,6 +8,7 @@ import (
 	"jethur/config"
 	"os"
 	"os/exec"
+	"regexp"
 )
 
 func GeneratePDFContent(dto interface{}, templatePaths []string, logoImagePath string, coverBGImagePath string) (string, error) {
@@ -81,4 +82,9 @@ func ConvertHTMLContentToPDF(htmlContent, pdfFileName string) error {
 	}
 
 	return nil
+}
+
+func StripPTags(input string) string {
+	re := regexp.MustCompile(`(?i)</?p[^>]*>`)
+	return re.ReplaceAllString(input, "")
 }

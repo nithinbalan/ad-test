@@ -222,3 +222,28 @@ type DocumentAcknowledgmentSummaryDTO struct {
 	AcknowledgedPercent    float64 `json:"acknowledged_percent"`
 	NotAcknowledgedPercent float64 `json:"not_acknowledged_percent"`
 }
+
+type GovernanceReportPDFDetailDTO struct {
+	ID                     uint                                 `json:"id"`
+	Title                  string                               `json:"title"`
+	StartDate              string                               `json:"start_date"`
+	EndDate                string                               `json:"end_date"`
+	CreatedUserFirstNameEn string                               `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr string                               `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn  string                               `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr  string                               `json:"created_user_last_name_ar"`
+	CreatedAt              string                               `json:"created_at"`
+	Sections               []GovernanceReportSectionWithDataDTO `json:"sections"`
+}
+
+type GovernanceReportSectionWithDataDTO struct {
+	ID            uint                                 `json:"id"`
+	Type          string                               `json:"type"`
+	TitleEn       string                               `json:"title_en"`
+	TitleAr       string                               `json:"title_ar"`
+	DescriptionEn string                               `json:"description_en"`
+	DescriptionAr string                               `json:"description_ar"`
+	Documents     []GovernanceDocumentResponseDTO      `json:"documents,omitempty"`
+	Meetings      []GovernanceReportMeetingResponseDTO `json:"meetings,omitempty"`
+	Tasks         []GovernanceReportTaskResponseDTO    `json:"tasks,omitempty"`
+}
