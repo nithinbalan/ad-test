@@ -3,6 +3,7 @@ package dtos
 type ProcessDependencySubTypeDTO struct {
 	ID                           int     `json:"id"`
 	ProcessDependencyTypeID      *uint   `json:"process_dependency_type_id"`
+	Type                         string  `json:"type"`
 	TitleEn                      string  `json:"title_en"`
 	TitleAr                      string  `json:"title_ar"`
 	DescriptionEn                *string `json:"description_en"`
