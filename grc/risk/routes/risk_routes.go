@@ -323,4 +323,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.POST("/risk-reports/:riskReportId/documents", riskReportController.CreateRiskReportDocuments)
 	riskRoutes.DELETE("/risk-reports/:riskReportId/documents/:documentId", riskReportController.DeleteRiskReportDocument)
 
+	riskRoutes.GET("/risks/template", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskRegisterController.GenerateRiskTemplate)
+	riskRoutes.POST("/risks/template/validate", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskRegisterController.ValidateRiskTemplate)
+	riskRoutes.POST("/risks/import/validate", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskRegisterController.ValidateImportRisks)
+	riskRoutes.POST("/risks/import", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskRegisterController.ImportRisks)
+
 }

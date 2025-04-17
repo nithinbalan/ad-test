@@ -18,6 +18,7 @@ import (
 	masterRoutes "jethur/grc/masters/routes"
 	meetingRoutes "jethur/grc/meeting/routes"
 	organizationRoutes "jethur/grc/organization/routes"
+	organizationalContextRoutes "jethur/grc/organizational-context/routes"
 	reportRoutes "jethur/grc/reports/routes"
 	riskRoutes "jethur/grc/risk/routes"
 	settingRoutes "jethur/grc/settings/routes"
@@ -85,6 +86,7 @@ func main() {
 	reportRoutes.RegisterRoutes(app, r)
 	assetRoutes.RegisterRoutes(app, r)
 	businessContinuityRoutes.RegisterRoutes(app, r)
+	organizationalContextRoutes.RegisterRoutes(app, r)
 	strategyRoutes.RegisterRoutes(app, r)
 
 	if err := r.Run(":" + port); err != nil {

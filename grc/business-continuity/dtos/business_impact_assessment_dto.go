@@ -147,16 +147,13 @@ type BusinessImpactAssessmentProcessCriticalityFormDTO struct {
 }
 
 type BusinessImpactAssessmentRecoveryObjectiveDTO struct {
-	AssetRegisterID   *uint   `json:"asset_register_id"`
-	DocumentID        *uint   `json:"document_id"`
-	RoleInProcess     *string `json:"role_in_process" gorm:"type:nvarchar(max)"`
-	Rto               *int    `json:"rto"`
-	RtoUnitId         *uint   `json:"rto_unit_id"`
-	Mtpd              *int    `json:"mtpd"`
-	MtpdUnitId        *uint   `json:"mtpd_unit_id"`
-	Rpo               *int    `json:"rpo"`
-	RpoUnitId         *uint   `json:"rpo_unit_id"`
-	ImpactDescription *string `json:"impact_description"`
+	ProcessDependencyID *uint `json:"process_dependency_id"`
+	Rto                 *int  `json:"rto"`
+	RtoUnitId           *uint `json:"rto_unit_id"`
+	Mtpd                *int  `json:"mtpd"`
+	MtpdUnitId          *uint `json:"mtpd_unit_id"`
+	Rpo                 *int  `json:"rpo"`
+	RpoUnitId           *uint `json:"rpo_unit_id"`
 }
 
 type BIAMatrixResponseDTO struct {

@@ -194,7 +194,10 @@ func NewRiskModule(db *gorm.DB,
 		organizationModule.UserSettingSvc,
 		commonModule.NotificationService,
 		assetModule.AssetRegisterSvc,
-		nil, riskSettingsSvc)
+		nil,
+		riskSettingsSvc,
+		riskMatrixLikelihoodSvc,
+		riskMatrixImpactSvc)
 	riskRegisterController := controllers.NewRiskRegisterController(riskRegisterSvc)
 
 	potentialRiskRepo := repositories.NewPotentialRiskRepository(db)
@@ -291,7 +294,7 @@ func NewRiskModule(db *gorm.DB,
 	riskKriController := controllers.NewRiskKriController(riskKriSvc)
 
 	riskClosureRepo := repositories.NewRiskClosureRepository(db)
-	riskClosureSvc := services.NewRiskClosureService(riskClosureRepo, sharedModule.ActivityLogService, riskRegisterSvc)
+	riskClosureSvc := services.NewRiskClosureService(riskClosureRepo, sharedModule.ActivityLogService, riskRegisterSvc, riskStatusSvc)
 	riskClosureController := controllers.NewRiskClosureController(riskClosureSvc)
 
 	riskCommentRepo := repositories.NewRiskCommentRepository(db)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	assetDTOs "jethur/grc/asset/dtos"
 	assetRepsitories "jethur/grc/asset/repositories"
+	complianceServices "jethur/grc/compliance/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
@@ -15,6 +16,11 @@ type AssetAssociatedItemServiceInterface interface {
 	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisks(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error)
 	GetAllVulnerabilities(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]assetDTOs.VulnerabilityDTO, error)
+	GetAllClauses(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemClauseListResponseDTO, error)
+
+	CreateAssetComplianceClauses(assetID uint, formDTO assetDTOs.AssetComplianceClauseFormDTO, currentUserID uint) error
+	DeleteAssetComplianceClauses(assetID uint, ids []uint, currentUserID uint) ([]uint, error)
+
 	CreateAssetVulnerabilities(assetID uint, formDTO assetDTOs.AssetVulnerabilitiesFormDTO, currentUserID uint) error
 	DeleteAssetVulnerabilities(assetID uint, vulnerabilityIDs []uint, currentUserID uint) ([]uint, error)
 	CreateAssetVulnerabilityThreats(vulnerabilityId uint, formDTO assetDTOs.AssetVulnerabilityThreatsFormDTO, currentUserID uint) error
@@ -32,6 +38,7 @@ type AssetAssociatedItemService struct {
 	controlEfficiencyStatusService organizationServices.ControlEfficiencyStatusServiceInterface
 	vulnerabilitySvc               VulnerabilityServiceInterface
 	threatSvc                      ThreatServiceInterface
+	complianceClauseSvc            complianceServices.ComplianceClauseServiceInterface
 }
 
 // Constructor Function
@@ -42,6 +49,7 @@ func NewAssetAssociatedItemService(
 	controlEfficiencyStatusService organizationServices.ControlEfficiencyStatusServiceInterface,
 	vulnerabilitySvc VulnerabilityServiceInterface,
 	threatSvc ThreatServiceInterface,
+	complianceClauseSvc complianceServices.ComplianceClauseServiceInterface,
 ) AssetAssociatedItemServiceInterface {
 	return &AssetAssociatedItemService{
 		repo:                           repo,
@@ -50,6 +58,7 @@ func NewAssetAssociatedItemService(
 		controlEfficiencyStatusService: controlEfficiencyStatusService,
 		vulnerabilitySvc:               vulnerabilitySvc,
 		threatSvc:                      threatSvc,
+		complianceClauseSvc:            complianceClauseSvc,
 	}
 }
 
@@ -203,72 +212,72 @@ func (service *AssetAssociatedItemService) GetAllVulnerabilities(assetID uint, p
 	vulnerabilityDTOs := make([]assetDTOs.VulnerabilityDTO, 0, len(vulnerabilities))
 	for _, vuln := range vulnerabilities {
 		// Map threats to DTOs
-		threatDTOs := make([]assetDTOs.ThreatDTO, 0, len(vuln.Threats))
-		for _, threat := range vuln.Threats {
-			// Fetch risks for the current threat
-			risks, err := service.repo.GetRisksByThreatID(threat.ID)
-			if err != nil {
-				return nil, err
-			}
+		// threatDTOs := make([]assetDTOs.ThreatDTO, 0, len(vuln.Threats))
+		// for _, threat := range vuln.Threats {
+		// 	// Fetch risks for the current threat
+		// 	risks, err := service.repo.GetRisksByThreatID(threat.ID)
+		// 	if err != nil {
+		// 		return nil, err
+		// 	}
 
-			// Map risks to DTOs
-			riskDTOs := make([]assetDTOs.RiskDTO, 0, len(risks))
-			for _, risk := range risks {
-				riskDTOs = append(riskDTOs, assetDTOs.RiskDTO{
-					ID:                              risk.ID,
-					ReferenceNumber:                 risk.ReferenceNumber,
-					Title:                           risk.Title,
-					Description:                     risk.Description,
-					RiskCategoryTitleEn:             risk.RiskCategoryTitleEn,
-					RiskCategoryTitleAr:             risk.RiskCategoryTitleAr,
-					RiskSourceTitleEn:               risk.RiskSourceTitleEn,
-					RiskSourceTitleAr:               risk.RiskSourceTitleAr,
-					ResponsibleUnitTitleEn:          risk.ResponsibleUnitTitleEn,
-					ResponsibleUnitTitleAr:          risk.ResponsibleUnitTitleAr,
-					ResponsibleUserID:               risk.ResponsibleUserID,
-					ResponsibleUserFirstNameEn:      risk.ResponsibleUserFirstNameEn,
-					ResponsibleUserFirstNameAr:      risk.ResponsibleUserFirstNameAr,
-					ResponsibleUserLastNameEn:       risk.ResponsibleUserLastNameEn,
-					ResponsibleUserLastNameAr:       risk.ResponsibleUserLastNameAr,
-					ResponsibleUserInitial:          risk.ResponsibleUserInitial,
-					ResponsibleUserColor:            risk.ResponsibleUserColor,
-					ResponsibleUserEmail:            risk.ResponsibleUserEmail,
-					ResponsibleUserProfileImagePath: risk.ResponsibleUserProfileImagePath,
-				})
-			}
+		// 	// Map risks to DTOs
+		// 	riskDTOs := make([]assetDTOs.RiskDTO, 0, len(risks))
+		// 	for _, risk := range risks {
+		// 		riskDTOs = append(riskDTOs, assetDTOs.RiskDTO{
+		// 			ID:                              risk.ID,
+		// 			ReferenceNumber:                 risk.ReferenceNumber,
+		// 			Title:                           risk.Title,
+		// 			Description:                     risk.Description,
+		// 			RiskCategoryTitleEn:             risk.RiskCategoryTitleEn,
+		// 			RiskCategoryTitleAr:             risk.RiskCategoryTitleAr,
+		// 			RiskSourceTitleEn:               risk.RiskSourceTitleEn,
+		// 			RiskSourceTitleAr:               risk.RiskSourceTitleAr,
+		// 			ResponsibleUnitTitleEn:          risk.ResponsibleUnitTitleEn,
+		// 			ResponsibleUnitTitleAr:          risk.ResponsibleUnitTitleAr,
+		// 			ResponsibleUserID:               risk.ResponsibleUserID,
+		// 			ResponsibleUserFirstNameEn:      risk.ResponsibleUserFirstNameEn,
+		// 			ResponsibleUserFirstNameAr:      risk.ResponsibleUserFirstNameAr,
+		// 			ResponsibleUserLastNameEn:       risk.ResponsibleUserLastNameEn,
+		// 			ResponsibleUserLastNameAr:       risk.ResponsibleUserLastNameAr,
+		// 			ResponsibleUserInitial:          risk.ResponsibleUserInitial,
+		// 			ResponsibleUserColor:            risk.ResponsibleUserColor,
+		// 			ResponsibleUserEmail:            risk.ResponsibleUserEmail,
+		// 			ResponsibleUserProfileImagePath: risk.ResponsibleUserProfileImagePath,
+		// 		})
+		// 	}
 
-			// Append threat with its risks
-			threatDTOs = append(threatDTOs, assetDTOs.ThreatDTO{
-				ID:                              threat.ID,
-				TitleEn:                         threat.TitleEn,
-				TitleAr:                         threat.TitleAr,
-				ThreatTypeTitleEn:               &threat.ThreatType.TitleEn,
-				ThreatTypeTitleAr:               &threat.ThreatType.TitleAr,
-				SeverityLevelID:                 threat.SeverityLevelID,
-				SeverityLevelTitleEn:            threat.SeverityLevel.TitleEn,
-				SeverityLevelTitleAr:            threat.SeverityLevel.TitleAr,
-				SeverityLevelColorCode:          threat.SeverityLevel.ColorCode,
-				ThreatStatusID:                  threat.ThreatStatusID,
-				ThreatStatusTitleEn:             threat.ThreatStatus.TitleEn,
-				ThreatStatusTitleAr:             threat.ThreatStatus.TitleAr,
-				ThreatStatusColorCode:           threat.ThreatStatus.ColorCode,
-				ThreatStatusType:                threat.ThreatStatus.Type,
-				Description:                     threat.Description,
-				Source:                          threat.Source,
-				DetectionDate:                   threat.DetectionDate,
-				ResolutionDate:                  threat.ResolutionDate,
-				ResponsibleUserID:               threat.ResponsibleUserID,
-				ResponsibleUserFirstNameEn:      threat.ResponsibleUser.FirstNameEn,
-				ResponsibleUserFirstNameAr:      threat.ResponsibleUser.FirstNameAr,
-				ResponsibleUserLastNameEn:       threat.ResponsibleUser.LastNameEn,
-				ResponsibleUserLastNameAr:       threat.ResponsibleUser.LastNameAr,
-				ResponsibleUserInitial:          threat.ResponsibleUser.Initial,
-				ResponsibleUserColor:            threat.ResponsibleUser.Color,
-				ResponsibleUserEmail:            threat.ResponsibleUser.Email,
-				ResponsibleUserProfileImagePath: threat.ResponsibleUser.ProfileImagePath,
-				Risks:                           riskDTOs,
-			})
-		}
+		// 	// Append threat with its risks
+		// 	threatDTOs = append(threatDTOs, assetDTOs.ThreatDTO{
+		// 		ID:                              threat.ID,
+		// 		TitleEn:                         threat.TitleEn,
+		// 		TitleAr:                         threat.TitleAr,
+		// 		ThreatTypeTitleEn:               &threat.ThreatType.TitleEn,
+		// 		ThreatTypeTitleAr:               &threat.ThreatType.TitleAr,
+		// 		SeverityLevelID:                 threat.SeverityLevelID,
+		// 		SeverityLevelTitleEn:            threat.SeverityLevel.TitleEn,
+		// 		SeverityLevelTitleAr:            threat.SeverityLevel.TitleAr,
+		// 		SeverityLevelColorCode:          threat.SeverityLevel.ColorCode,
+		// 		ThreatStatusID:                  threat.ThreatStatusID,
+		// 		ThreatStatusTitleEn:             threat.ThreatStatus.TitleEn,
+		// 		ThreatStatusTitleAr:             threat.ThreatStatus.TitleAr,
+		// 		ThreatStatusColorCode:           threat.ThreatStatus.ColorCode,
+		// 		ThreatStatusType:                threat.ThreatStatus.Type,
+		// 		Description:                     threat.Description,
+		// 		Source:                          threat.Source,
+		// 		DetectionDate:                   threat.DetectionDate,
+		// 		ResolutionDate:                  threat.ResolutionDate,
+		// 		ResponsibleUserID:               threat.ResponsibleUserID,
+		// 		ResponsibleUserFirstNameEn:      threat.ResponsibleUser.FirstNameEn,
+		// 		ResponsibleUserFirstNameAr:      threat.ResponsibleUser.FirstNameAr,
+		// 		ResponsibleUserLastNameEn:       threat.ResponsibleUser.LastNameEn,
+		// 		ResponsibleUserLastNameAr:       threat.ResponsibleUser.LastNameAr,
+		// 		ResponsibleUserInitial:          threat.ResponsibleUser.Initial,
+		// 		ResponsibleUserColor:            threat.ResponsibleUser.Color,
+		// 		ResponsibleUserEmail:            threat.ResponsibleUser.Email,
+		// 		ResponsibleUserProfileImagePath: threat.ResponsibleUser.ProfileImagePath,
+		// 		Risks:                           riskDTOs,
+		// 	})
+		// }
 
 		var severityLevelTitleEn, severityLevelTitleAr, severityLevelColorCode *string
 		if vuln.SeverityLevel != nil {
@@ -305,11 +314,18 @@ func (service *AssetAssociatedItemService) GetAllVulnerabilities(assetID uint, p
 			ResponsibleUserColor:            vuln.ResponsibleUser.Color,
 			ResponsibleUserEmail:            vuln.ResponsibleUser.Email,
 			ResponsibleUserProfileImagePath: vuln.ResponsibleUser.ProfileImagePath,
-			Threats:                         threatDTOs,
+			// Threats:                         threatDTOs,
 		})
 	}
 
 	return vulnerabilityDTOs, nil
+}
+
+func (aais *AssetAssociatedItemService) GetAllClauses(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemClauseListResponseDTO, error) {
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return nil, err
+	}
+	return aais.repo.GetAllClauses(assetID, params)
 }
 
 func (aais *AssetAssociatedItemService) CreateAssetVulnerabilities(assetID uint, formDTO assetDTOs.AssetVulnerabilitiesFormDTO, currentUserID uint) error {
@@ -389,6 +405,85 @@ func (aais *AssetAssociatedItemService) DeleteAssetVulnerabilities(assetID uint,
 			failedIDs = append(failedIDs, id)
 		} else {
 			successfulIDs = append(successfulIDs, id)
+		}
+	}
+
+	return failedIDs, nil
+}
+
+func (aais *AssetAssociatedItemService) CreateAssetComplianceClauses(assetID uint, formDTO assetDTOs.AssetComplianceClauseFormDTO, currentUserID uint) error {
+	// Check if asset exists
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return err
+	}
+
+	var existingClauseIDs []uint
+	var records []*models.AssetComplianceRequirement
+
+	for _, clauseID := range formDTO.ComplianceClauseIDs {
+		if clauseID == nil {
+			continue
+		}
+
+		// Validate clause exists
+		if _, err := aais.complianceClauseSvc.GetByID(*clauseID); err != nil {
+			return err
+		}
+
+		// Check if mapping already exists
+		exists, err := aais.repo.GetAssetComplianceClauseExist(assetID, *clauseID)
+		if err != nil {
+			return err
+		}
+		if exists {
+			existingClauseIDs = append(existingClauseIDs, *clauseID)
+			continue
+		}
+
+		// Add to batch for insert
+		records = append(records, &models.AssetComplianceRequirement{
+			AssetRegisterID:    assetID,
+			ComplianceClauseID: clauseID,
+			CreatedBYID:        currentUserID,
+		})
+	}
+
+	// If any existing clause mappings found, return validation error
+	if len(existingClauseIDs) > 0 {
+		return utility.NewValidationError(
+			fmt.Errorf("compliance clauses already mapped"),
+			"already_exists", "compliance_clause_ids",
+		)
+	}
+
+	// Insert new records
+	tx := aais.repo.BeginTransaction()
+	if err := aais.repo.CreateAssetComplianceClauses(records, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+
+	return nil
+}
+
+func (aais *AssetAssociatedItemService) DeleteAssetComplianceClauses(assetID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	var failedIDs []uint
+
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	for _, id := range ids {
+		// Optionally validate record exists
+		_, err := aais.repo.GetAssetComplianceClauseByID(id)
+		if err != nil {
+			failedIDs = append(failedIDs, id)
+			continue
+		}
+
+		if err := aais.repo.DeleteAssetComplianceClause(assetID, id); err != nil {
+			failedIDs = append(failedIDs, id)
 		}
 	}
 
@@ -579,7 +674,8 @@ func (aais *AssetAssociatedItemService) GetRiskAnalysis(assetID uint) ([]*assetD
 	riskMap := make(map[uint][]assetDTOs.RiskDTO)
 
 	for _, risk := range risks {
-		riskMap[risk.ID] = append(riskMap[risk.ID], *risk) // Store risks under each Threat ID
+		riskMap[risk.ThreatID] = append(riskMap[risk.ThreatID], *risk)
+		// riskMap[risk.ID] = append(riskMap[risk.ID], *risk) // Store risks under each Threat ID
 	}
 
 	// Step 2: Create a map for Threats indexed by Vulnerability ID

@@ -113,6 +113,17 @@ type AssetRiskListDTO struct {
 	RiskMatrixRiskRatingValue       string     `json:"risk_matrix_risk_rating_value"`
 }
 
+type AssetClauseListDTO struct {
+	ID                        uint   `json:"id"`
+	ComplianceRegisterID      uint   `json:"compliance_register_id"`
+	ComplianceRegisterTitleEn string `json:"compliance_register_title_en"`
+	ComplianceRegisterTitleAr string `json:"compliance_register_title_ar"`
+	ClauseID                  uint   `json:"clause_id"`
+	ClauseNo                  string `json:"clause_no"`
+	ClauseTitleEn             string `json:"clause_title_en"`
+	ClauseTitleAr             string `json:"clause_title_ar"`
+}
+
 type AssetAssociatedItemListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
@@ -136,6 +147,11 @@ type AssetAssociatedItemIncidentListResponseDTO struct {
 
 type AssetAssociatedItemRiskListResponseDTO struct {
 	Items      []*AssetRiskListDTO          `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type AssetAssociatedItemClauseListResponseDTO struct {
+	Items      []*AssetClauseListDTO        `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
@@ -202,26 +218,60 @@ type ThreatDTO struct {
 }
 
 type RiskDTO struct {
-	ID                              uint    `json:"id"`
-	ThreatID                        uint    `json:"threat_id"`
-	ReferenceNumber                 string  `json:"reference_number"`
-	Title                           string  `json:"title"`
-	Description                     *string `json:"description"`
-	RiskCategoryTitleEn             string  `json:"risk_category_title_en"`
-	RiskCategoryTitleAr             string  `json:"risk_category_title_ar"`
-	RiskSourceTitleEn               string  `json:"risk_source_title_en"`
-	RiskSourceTitleAr               string  `json:"risk_source_title_ar"`
-	ResponsibleUnitTitleEn          string  `json:"responsible_unit_title_en"`
-	ResponsibleUnitTitleAr          string  `json:"responsible_unit_title_ar"`
-	ResponsibleUserID               uint    `json:"responsible_user_id"`
-	ResponsibleUserFirstNameEn      string  `json:"responsible_user_first_name_en"`
-	ResponsibleUserFirstNameAr      string  `json:"responsible_user_first_name_ar"`
-	ResponsibleUserLastNameEn       string  `json:"responsible_user_last_name_en"`
-	ResponsibleUserLastNameAr       string  `json:"responsible_user_last_name_ar"`
-	ResponsibleUserInitial          string  `json:"responsible_user_initial"`
-	ResponsibleUserColor            string  `json:"responsible_user_color"`
-	ResponsibleUserEmail            string  `json:"responsible_user_email"`
-	ResponsibleUserProfileImagePath string  `json:"responsible_user_profile_image_path"`
+	ID              uint    `json:"id"`
+	ThreatID        uint    `json:"threat_id"`
+	ReferenceNumber string  `json:"reference_number"`
+	Title           string  `json:"title"`
+	Description     *string `json:"description"`
+
+	// Risk Category & Source
+	RiskCategoryTitleEn string `json:"risk_category_title_en"`
+	RiskCategoryTitleAr string `json:"risk_category_title_ar"`
+	RiskSourceTitleEn   string `json:"risk_source_title_en"`
+	RiskSourceTitleAr   string `json:"risk_source_title_ar"`
+
+	// Responsible User & Unit
+	ResponsibleUserID               uint   `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn      string `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          string `json:"responsible_user_initial"`
+	ResponsibleUserColor            string `json:"responsible_user_color"`
+	ResponsibleUserEmail            string `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath string `json:"responsible_user_profile_image_path"`
+	ResponsibleUnitTitleEn          string `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr          string `json:"responsible_unit_title_ar"`
+
+	// Inherent Risk
+	InherentLikelihoodTitleEn   string `json:"inherent_likelihood_title_en"`
+	InherentLikelihoodTitleAr   string `json:"inherent_likelihood_title_ar"`
+	InherentImpactTitleEn       string `json:"inherent_impact_title_en"`
+	InherentImpactTitleAr       string `json:"inherent_impact_title_ar"`
+	InherentRiskRatingTitleEn   string `json:"inherent_risk_rating_title_en"`
+	InherentRiskRatingTitleAr   string `json:"inherent_risk_rating_title_ar"`
+	InherentRiskRatingColorCode string `json:"inherent_risk_rating_color_code"`
+
+	// Residual Risk
+	ResidualLikelihoodTitleEn   string `json:"residual_likelihood_title_en"`
+	ResidualLikelihoodTitleAr   string `json:"residual_likelihood_title_ar"`
+	ResidualImpactTitleEn       string `json:"residual_impact_title_en"`
+	ResidualImpactTitleAr       string `json:"residual_impact_title_ar"`
+	ResidualRiskRatingTitleEn   string `json:"residual_risk_rating_title_en"`
+	ResidualRiskRatingTitleAr   string `json:"residual_risk_rating_title_ar"`
+	ResidualRiskRatingColorCode string `json:"residual_risk_rating_color_code"`
+
+	// Status
+	RiskStatusTitleEn   string `json:"risk_status_title_en"`
+	RiskStatusTitleAr   string `json:"risk_status_title_ar"`
+	RiskStatusColorCode string `json:"risk_status_color_code"`
+
+	// Review
+	ReviewFrequencyTitleEn *string `json:"review_frequency_title_en"`
+	ReviewFrequencyTitleAr *string `json:"review_frequency_title_ar"`
+	NextReviewDate         *string `json:"next_review_date"`
+	LastReviewNote         *string `json:"last_review_note"`
+	ReportedAt             *string `json:"reported_at"`
 }
 
 type AssetVulnerabilitiesResponseDTO struct {
@@ -232,6 +282,11 @@ type AssetVulnerabilitiesResponseDTO struct {
 type AssetVulnerabilitiesFormDTO struct {
 	VulnerabilityIds []uint `json:"vulnerability_ids"`
 }
+
+type AssetComplianceClauseFormDTO struct {
+	ComplianceClauseIDs []*uint `json:"compliance_clause_ids"`
+}
+
 type AssetVulnerabilityThreatsFormDTO struct {
 	ThreatIds []uint `json:"threat_ids"`
 }

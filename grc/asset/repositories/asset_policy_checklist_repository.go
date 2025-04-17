@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"jethur/grc/asset/dtos"
+	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -95,19 +96,44 @@ func (repo *AssetPolicyChecklistRepository) BulkUpdateAssetPolicyChecklists(chec
 }
 
 func (repo *AssetPolicyChecklistRepository) GetAssetPolicyChecklistSummary(assetPolicyID uint) (*dtos.AssetPolicyChecklistSummaryDTO, error) {
-	result := dtos.AssetPolicyChecklistSummaryDTO{}
+	summary := &dtos.AssetPolicyChecklistSummaryDTO{}
+	checklistCounts := dtos.ChecklistSummaryDTO{}
 
-	query := repo.db.Table("asset_policy_checklists").
+	// Query to get checklist status counts
+	err := repo.db.
+		Table("asset_policy_checklists").
 		Select(`
-			COUNT(asset_policy_checklists.id) AS total_checklist,
-			COUNT(CASE WHEN compliance_statuses.type = 'compliant' THEN asset_policy_checklists.id END) AS compliant, 
-			COUNT(CASE WHEN compliance_statuses.type = 'partially_compliant' THEN asset_policy_checklists.id END) AS partially_compliant, 
-			COUNT(CASE WHEN compliance_statuses.type = 'not_applicable' THEN asset_policy_checklists.id END) AS not_applicable, 
-			COUNT(CASE WHEN compliance_statuses.type NOT IN ('compliant', 'partially_compliant', 'not_applicable') OR compliance_statuses.type IS NULL THEN asset_policy_checklists.id END) AS non_compliant
+			COUNT(*) AS total_checklist,
+			COUNT(CASE WHEN compliance_statuses.type = 'compliant' THEN 1 END) AS compliant,
+			COUNT(CASE WHEN compliance_statuses.type = 'partially_compliant' THEN 1 END) AS partially_compliant,
+			COUNT(CASE WHEN compliance_statuses.type = 'not_applicable' THEN 1 END) AS not_applicable,
+			COUNT(CASE WHEN compliance_statuses.type NOT IN ('compliant', 'partially_compliant', 'not_applicable') OR compliance_statuses.type IS NULL THEN 1 END) AS non_compliant
 		`).
-		Joins("LEFT JOIN compliance_statuses ON asset_policy_checklists.compliance_status_id = compliance_statuses.id").
-		Where("asset_policy_checklists.asset_policy_id = ?", assetPolicyID)
+		Joins("LEFT JOIN compliance_statuses ON compliance_statuses.id = asset_policy_checklists.compliance_status_id").
+		Where("asset_policy_checklists.asset_policy_id = ?", assetPolicyID).
+		Scan(&checklistCounts).Error
+	if err != nil {
+		return nil, err
+	}
+	summary.Summary = checklistCounts
 
-	err := query.Scan(&result).Error
-	return &result, err
+	// Query to get asset policy's overall compliance status
+	var complianceStatus complianceDTOs.ComplianceStatusDTO
+	err = repo.db.
+		Table("asset_policies").
+		Select(`
+			compliance_statuses.id,
+			compliance_statuses.title_en,
+			compliance_statuses.title_ar,
+			compliance_statuses.color_code,
+			compliance_statuses.type
+		`).
+		Joins("LEFT JOIN compliance_statuses ON compliance_statuses.id = asset_policies.compliance_status_id").
+		Where("asset_policies.id = ?", assetPolicyID).
+		Scan(&complianceStatus).Error
+	if err == nil && complianceStatus.ID != 0 {
+		summary.ComplianceStatus = &complianceStatus
+	}
+
+	return summary, nil
 }
