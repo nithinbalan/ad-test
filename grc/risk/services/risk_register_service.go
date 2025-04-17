@@ -2707,6 +2707,20 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 		strategyTitles[strings.TrimSpace(s.TitleEn)] = s.ID
 	}
 
+	//for checking unique risks
+	// 1. Fetch existing titles from DB
+	existingRisks, err := rs.repo.GetAllRiskTitles() // Implement this function to return []string
+	if err != nil {
+		return nil, fmt.Errorf("error fetching existing risk titles: %v", err)
+	}
+	existingTitleSet := make(map[string]bool)
+	for _, title := range existingRisks {
+		existingTitleSet[strings.TrimSpace(strings.ToLower(title))] = true
+	}
+
+	// 2. Track titles seen in the current Excel
+	sheetTitleSet := make(map[string]bool)
+
 	// Perform validation
 	var validatedData []map[string]interface{}
 	for _, record := range input {
@@ -2749,14 +2763,24 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 				}
 
 			case "title":
-				if !ok || value == "" {
+				if !ok || strings.TrimSpace(value) == "" {
 					rowErrors[header] = "Title is required"
+				} else {
+					trimmedTitle := strings.ToLower(strings.TrimSpace(value))
+					if _, exists := sheetTitleSet[trimmedTitle]; exists {
+						rowErrors[header] = "Duplicate title in the sheet"
+					} else if _, exists := existingTitleSet[trimmedTitle]; exists {
+						rowErrors[header] = "Title already exists in the system"
+					} else {
+						sheetTitleSet[trimmedTitle] = true
+					}
 				}
 
 			case "description":
-				// Optional
+
 			case "reported_at":
-				if !ok || value == "" {
+				value = strings.TrimSpace(value)
+				if value == "" {
 					rowErrors[header] = "Reported Date is required"
 				} else if _, err := time.Parse("2006-01-02", value); err != nil {
 					rowErrors[header] = "Invalid format. Expected YYYY-MM-DD"

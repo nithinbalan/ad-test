@@ -49,6 +49,8 @@ type RiskRegisterRepositoryInterface interface {
 	DeleteRiskThreats(threatIDs []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetControlSummary(riskID uint, controlType string) ([]models.RiskControlAnalysis, error)
+
+	GetAllRiskTitles() ([]string, error)
 }
 
 type RiskRegisterRepository struct {
@@ -732,4 +734,12 @@ func (repo *RiskRegisterRepository) DeleteRiskThreats(threatIDs []*uint, tx ...u
 		return err
 	}
 	return nil
+}
+
+func (repo *RiskRegisterRepository) GetAllRiskTitles() ([]string, error) {
+	var titles []string
+	err := repo.db.
+		Table("risk_register").
+		Pluck("title", &titles).Error
+	return titles, err
 }
