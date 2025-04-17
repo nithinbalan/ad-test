@@ -76,6 +76,7 @@ type RiskRegisterService struct {
 	riskSettingsSvc           RiskSettingsServiceInterface
 	riskMatrixLikelihoodSvc   RiskMatrixLikelihoodServiceInterface
 	riskMatrixImpactSvc       RiskMatrixImpactServiceInterface
+	riskResponseStrategySvc   RiskResponseStrategyServiceInterface
 }
 
 func NewRiskRegisterService(
@@ -100,6 +101,7 @@ func NewRiskRegisterService(
 	riskSettingsSvc RiskSettingsServiceInterface,
 	riskMatrixLikelihoodSvc RiskMatrixLikelihoodServiceInterface,
 	riskMatrixImpactSvc RiskMatrixImpactServiceInterface,
+	riskResponseStrategySvc RiskResponseStrategyServiceInterface,
 ) RiskRegisterServiceInterface {
 	return &RiskRegisterService{
 		repo:                      repo,
@@ -123,6 +125,7 @@ func NewRiskRegisterService(
 		riskSettingsSvc:           riskSettingsSvc,
 		riskMatrixLikelihoodSvc:   riskMatrixLikelihoodSvc,
 		riskMatrixImpactSvc:       riskMatrixImpactSvc,
+		riskResponseStrategySvc:   riskResponseStrategySvc,
 	}
 }
 
@@ -2438,7 +2441,8 @@ func (rrs *RiskRegisterService) SetRiskInherentEvaluationService(evaluationSvc R
 func (rrs *RiskRegisterService) GenerateRiskTemplate() (*os.File, error) {
 	templateHeaders := []string{
 		"RiskCategory", "RiskSource", "ResponsibleUser", "Title", "Description", "ReportedAt",
-		"ReviewFrequency", "NextReviewDate", "LastReviewNote", "CurrentLikelihood", "CurrentImpact",
+		"ReviewFrequency", "NextReviewDate", "LastReviewNote", "InherentLikelihood", "InherentImpact",
+		"RiskResponseStrategy", "ResidualLikelihood", "ResidualImpact",
 	}
 
 	templateData := [][]interface{}{}
@@ -2506,14 +2510,24 @@ func (rrs *RiskRegisterService) GenerateRiskTemplate() (*os.File, error) {
 		impactData = append(impactData, []interface{}{i.TitleEn})
 	}
 
+	strategies, err := rrs.riskResponseStrategySvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch risk response strategies: %v", err)
+	}
+	strategyData := [][]interface{}{{"RiskResponseStrategy"}}
+	for _, s := range strategies {
+		strategyData = append(strategyData, []interface{}{s.TitleEn})
+	}
+
 	file, err := utility.GenerateExcelFileWithSheets(map[string][][]interface{}{
-		"Template":          append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
-		"RiskCategory":      categoryData,
-		"RiskSource":        sourceData,
-		"ResponsibleUser":   userData,
-		"ReviewFrequency":   reviewData,
-		"CurrentLikelihood": likelihoodData,
-		"CurrentImpact":     impactData,
+		"Template":             append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
+		"RiskCategory":         categoryData,
+		"RiskSource":           sourceData,
+		"ResponsibleUser":      userData,
+		"ReviewFrequency":      reviewData,
+		"Likelihood":           likelihoodData,
+		"Impact":               impactData,
+		"RiskResponseStrategy": strategyData,
 	})
 	if err != nil {
 		return nil, err
@@ -2528,8 +2542,17 @@ func (rrs *RiskRegisterService) ValidateRiskTemplate(file io.Reader) ([]map[stri
 		return nil, err
 	}
 
-	headers := []string{"RiskCategory", "RiskSource", "ResponsibleUser", "Title", "Description", "ReportedAt", "ReviewFrequency", "NextReviewDate", "LastReviewNote", "CurrentLikelihood", "CurrentImpact"}
-	snakeHeaders := []string{"risk_category", "risk_source", "responsible_user", "title", "description", "reported_at", "review_frequency", "next_review_date", "last_review_note", "current_likelihood", "current_impact"}
+	headers := []string{
+		"RiskCategory", "RiskSource", "ResponsibleUser", "Title", "Description", "ReportedAt",
+		"ReviewFrequency", "NextReviewDate", "LastReviewNote", "InherentLikelihood", "InherentImpact",
+		"RiskResponseStrategy", "ResidualLikelihood", "ResidualImpact",
+	}
+
+	snakeHeaders := []string{
+		"risk_category", "risk_source", "responsible_user", "title", "description", "reported_at",
+		"review_frequency", "next_review_date", "last_review_note", "inherent_likelihood", "inherent_impact",
+		"risk_response_strategy", "residual_likelihood", "residual_impact",
+	}
 
 	if len(rows) == 0 {
 		return nil, fmt.Errorf("empty Excel file")
@@ -2610,7 +2633,8 @@ func (rs *RiskRegisterService) ImportRisks(input []map[string]interface{}, curre
 }
 
 func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]map[string]interface{}, error) {
-	headers := []string{"risk_category", "risk_source", "responsible_user", "title", "description", "reported_at", "review_frequency", "next_review_date", "last_review_note", "current_likelihood", "current_impact"}
+	headers := []string{"risk_category", "risk_source", "responsible_user", "title", "description", "reported_at", "review_frequency", "next_review_date", "last_review_note", "inherent_likelihood", "inherent_impact",
+		"risk_response_strategy", "residual_likelihood", "residual_impact"}
 
 	// Fetch risk categories
 	riskCategories, err := rs.riskCategorySvc.GetAll("", "", "", "active")
@@ -2671,6 +2695,16 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 	impactTitles := make(map[string]uint)
 	for _, i := range impacts {
 		impactTitles[strings.TrimSpace(i.TitleEn)] = i.ID
+	}
+
+	// Risk Response Strategies
+	strategies, err := rs.riskResponseStrategySvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching risk response strategies: %v", err)
+	}
+	strategyTitles := make(map[string]uint)
+	for _, s := range strategies {
+		strategyTitles[strings.TrimSpace(s.TitleEn)] = s.ID
 	}
 
 	// Perform validation
@@ -2750,21 +2784,48 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 
 			case "last_review_note":
 				// Optional
-			case "current_likelihood":
+			case "inherent_likelihood":
 				if value != "" {
 					if id, exists := likelihoodTitles[strings.TrimSpace(value)]; !exists {
-						rowErrors[header] = fmt.Sprintf("Invalid likelihood: %s", value)
+						rowErrors[header] = fmt.Sprintf("Invalid inherent likelihood: %s", value)
 					} else {
-						riskRecord["current_likelihood_id"] = id
+						riskRecord["inherent_likelihood_id"] = id
 					}
 				}
 
-			case "current_impact":
+			case "inherent_impact":
 				if value != "" {
 					if id, exists := impactTitles[strings.TrimSpace(value)]; !exists {
-						rowErrors[header] = fmt.Sprintf("Invalid impact: %s", value)
+						rowErrors[header] = fmt.Sprintf("Invalid inherent impact: %s", value)
 					} else {
-						riskRecord["current_impact_id"] = id
+						riskRecord["inherent_impact_id"] = id
+					}
+				}
+
+			case "risk_response_strategy":
+				if value != "" {
+					if id, exists := strategyTitles[strings.TrimSpace(value)]; !exists {
+						rowErrors[header] = fmt.Sprintf("Invalid risk response strategy: %s", value)
+					} else {
+						riskRecord["risk_response_strategy_id"] = id
+					}
+				}
+
+			case "residual_likelihood":
+				if value != "" {
+					if id, exists := likelihoodTitles[strings.TrimSpace(value)]; !exists {
+						rowErrors[header] = fmt.Sprintf("Invalid residual likelihood: %s", value)
+					} else {
+						riskRecord["residual_likelihood_id"] = id
+					}
+				}
+
+			case "residual_impact":
+				if value != "" {
+					if id, exists := impactTitles[strings.TrimSpace(value)]; !exists {
+						rowErrors[header] = fmt.Sprintf("Invalid residual impact: %s", value)
+					} else {
+						riskRecord["residual_impact_id"] = id
 					}
 				}
 
