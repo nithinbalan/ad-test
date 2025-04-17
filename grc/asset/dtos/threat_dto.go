@@ -139,4 +139,5 @@ type ThreatDocumentDTO struct {
 type ThreatSummaryDTO struct {
 	OpenCount   int `json:"open_count"`
 	ClosedCount int `json:"closed_count"`
+	TotalCount  int `json:"total_count"`
 }

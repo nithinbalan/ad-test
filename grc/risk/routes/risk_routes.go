@@ -251,6 +251,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("controls/:controlId/risk-heatmap", middlewares.RolePermissionMiddleware(db, "controls", "view"), riskHeatmapController.GetControlRiskHeatmap)
 	riskRoutes.GET("compliances/:complianceId/risk-heatmap", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), riskHeatmapController.GetComplianceRiskHeatmap)
 	riskRoutes.GET("slas/:slaId/risk-heatmap", middlewares.RolePermissionMiddleware(db, "sla_contracts", "view"), riskHeatmapController.GetSLARiskHeatmap)
+	riskRoutes.GET("assets/:id/risk-heatmap", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), riskHeatmapController.GetAssetRiskHeatmap)
 
 	// Risk Control Analysis
 	riskRoutes.GET("risks/:riskId/inherent-control-analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskInherentControlAnalysisController.GetAllRiskControlAnalyses)
