@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+
 	libraryDTOs "jethur/grc/library/dtos"
 	"jethur/grc/library/repositories"
 	logServices "jethur/grc/logs/services"
@@ -57,19 +58,14 @@ func (kls KRILibraryService) GetByID(id uint) (*models.KRILibrary, error) {
 }
 
 func (kls *KRILibraryService) Create(currentUserID uint, kriLibraryFormDTO *libraryDTOs.KRILibraryFormDTO) (uint, error) {
-
-	if err := kls.validateKRILibraryFormDTO(kriLibraryFormDTO, nil); err != nil {
-		return 0, err
-	}
+	// if err := kls.validateKRILibraryFormDTO(kriLibraryFormDTO, nil); err != nil {
+	// 	return 0, err
+	// }
 
 	kriLibrary := &models.KRILibrary{
-		KRICategoryID:     kriLibraryFormDTO.KRICategoryID,
-		ReviewFrequencyID: kriLibraryFormDTO.ReviewFrequencyID,
-		Title:             kriLibraryFormDTO.Title,
-		Description:       kriLibraryFormDTO.Description,
-		CalculationType:   kriLibraryFormDTO.CalculationType,
-		Source:            kriLibraryFormDTO.Source,
-		Status:            kriLibraryFormDTO.Status,
+		KRICategory: kriLibraryFormDTO.KRICategory,
+		Title:       kriLibraryFormDTO.Title,
+		Description: kriLibraryFormDTO.Description,
 	}
 
 	id, err := kls.repo.Create(kriLibrary)
@@ -86,7 +82,6 @@ func (kls *KRILibraryService) Create(currentUserID uint, kriLibraryFormDTO *libr
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -104,27 +99,20 @@ func (kls *KRILibraryService) Create(currentUserID uint, kriLibraryFormDTO *libr
 }
 
 func (kls *KRILibraryService) Update(id uint, currentUserID uint, kriLibraryFormDTO *libraryDTOs.KRILibraryFormDTO) error {
-
 	existingKRILibrary, err := kls.repo.GetByID(id)
-
 	if err != nil {
 		return err
 	}
 
-	if err := kls.validateKRILibraryFormDTO(kriLibraryFormDTO, &id); err != nil {
-		return err
-	}
+	// if err := kls.validateKRILibraryFormDTO(kriLibraryFormDTO, &id); err != nil {
+	// 	return err
+	// }
 
-	existingKRILibrary.KRICategoryID = kriLibraryFormDTO.KRICategoryID
-	existingKRILibrary.ReviewFrequencyID = kriLibraryFormDTO.ReviewFrequencyID
+	existingKRILibrary.KRICategory = kriLibraryFormDTO.KRICategory
 	existingKRILibrary.Title = kriLibraryFormDTO.Title
 	existingKRILibrary.Description = kriLibraryFormDTO.Description
-	existingKRILibrary.CalculationType = kriLibraryFormDTO.CalculationType
-	existingKRILibrary.Source = kriLibraryFormDTO.Source
-	existingKRILibrary.Status = kriLibraryFormDTO.Status
 
 	err = kls.repo.Update(existingKRILibrary)
-
 	if err != nil {
 		return err
 	}
@@ -138,7 +126,6 @@ func (kls *KRILibraryService) Update(id uint, currentUserID uint, kriLibraryForm
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
@@ -161,7 +148,6 @@ func (kls *KRILibraryService) Delete(ids []uint, currentUserID uint) ([]uint, er
 	for _, id := range ids {
 
 		_, err := kls.repo.GetByID(id)
-
 		if err != nil {
 			continue
 		}
@@ -175,7 +161,6 @@ func (kls *KRILibraryService) Delete(ids []uint, currentUserID uint) ([]uint, er
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := kls.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -199,7 +184,6 @@ func (kls *KRILibraryService) Activate(ids []uint, currentUserID uint) error {
 	successfulIds, err := kls.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := kls.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
@@ -223,7 +207,6 @@ func (kls *KRILibraryService) Deactivate(ids []uint, currentUserID uint) error {
 	successfulIds, err := kls.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := kls.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,
@@ -244,31 +227,30 @@ func (kls *KRILibraryService) Deactivate(ids []uint, currentUserID uint) error {
 	return err
 }
 
-func (kls *KRILibraryService) validateKRILibraryFormDTO(kriLibraryFormDTO *libraryDTOs.KRILibraryFormDTO, id *uint) error {
-	if _, err := kls.kriCategorySvc.GetByID(kriLibraryFormDTO.KRICategoryID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("KRI category does not exist"), "not_exist", "kri category")
-	}
+// func (kls *KRILibraryService) validateKRILibraryFormDTO(kriLibraryFormDTO *libraryDTOs.KRILibraryFormDTO, id *uint) error {
+// 	if _, err := kls.kriCategorySvc.GetByID(kriLibraryFormDTO.KRICategoryID); err != nil {
+// 		return utility.NewValidationError(fmt.Errorf("KRI category does not exist"), "not_exist", "kri category")
+// 	}
 
-	if kriLibraryFormDTO.ReviewFrequencyID != nil {
-		if _, err := kls.reviewFrequencySvc.GetByID(*kriLibraryFormDTO.ReviewFrequencyID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("review frequency does not exist"), "not_exist", "review frequency")
-		}
-	}
+// 	if kriLibraryFormDTO.ReviewFrequencyID != nil {
+// 		if _, err := kls.reviewFrequencySvc.GetByID(*kriLibraryFormDTO.ReviewFrequencyID); err != nil {
+// 			return utility.NewValidationError(fmt.Errorf("review frequency does not exist"), "not_exist", "review frequency")
+// 		}
+// 	}
 
-	if id == nil {
-		if exists, err := kls.repo.ExistsByTitle(kriLibraryFormDTO.Title, kriLibraryFormDTO.KRICategoryID); err != nil {
-			return err
-		} else if exists {
-			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
-		}
+// 	if id == nil {
+// 		if exists, err := kls.repo.ExistsByTitle(kriLibraryFormDTO.Title, kriLibraryFormDTO.KRICategoryID); err != nil {
+// 			return err
+// 		} else if exists {
+// 			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+// 		}
+// 	} else {
+// 		if exists, err := kls.repo.ExistsByTitleExcludingID(*id, kriLibraryFormDTO.Title, kriLibraryFormDTO.KRICategoryID); err != nil {
+// 			return err
+// 		} else if exists {
+// 			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+// 		}
+// 	}
 
-	} else {
-		if exists, err := kls.repo.ExistsByTitleExcludingID(*id, kriLibraryFormDTO.Title, kriLibraryFormDTO.KRICategoryID); err != nil {
-			return err
-		} else if exists {
-			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
-		}
-	}
-
-	return nil
-}
+// 	return nil
+// }
