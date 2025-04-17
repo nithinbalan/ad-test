@@ -871,9 +871,17 @@ func (rrs *RiskReportService) ExportRiskReportToPDF(riskReportID uint, currentUs
 		return "", fmt.Errorf("failed to generate PDF: %w", err)
 	}
 
-	return pdfFileName, nil
-}
+	// Step 4: Create ZIP archive
+	zipFilePath := fmt.Sprintf("tmp/risk_report_%d.zip", riskReportID)
+	filesToZip := []string{docxFilePath} // add more files if needed
 
+	err = utility.CreateZipFile(zipFilePath, filesToZip)
+	if err != nil {
+		return "", fmt.Errorf("failed to create ZIP file: %w", err)
+	}
+
+	return zipFilePath, nil
+}
 func copyFile(src, dst string) error {
 	input, err := os.ReadFile(src)
 	if err != nil {
