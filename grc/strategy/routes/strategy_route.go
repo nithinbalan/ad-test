@@ -20,6 +20,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyProfileObjectiveController := app.StrategyModule.StrategyProfileObjectiveController
 	strategyProfileInitiativeController := app.StrategyModule.StrategyProfileInitiativeController
 	strategyProfileProjectController := app.StrategyModule.StrategyProfileProjectController
+	strategyProfileMilestoneController := app.StrategyModule.StrategyProfileMilestoneController
+	strategyProfileActionPlanController := app.StrategyModule.StrategyProfileActionPlanController
 
 	// strategy profile
 	strategyRoutes.GET("/strategy-profiles", strategyProfileController.GetAllStrategyProfiles)
@@ -62,4 +64,19 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.POST("/strategy-profiles/:strategyProfileId/projects", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileProjectController.CreateStrategyProfileProject)
 	strategyRoutes.PUT("/strategy-profiles/:strategyProfileId/projects/:projectId", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileProjectController.UpdateStrategyProfileProject)
 	strategyRoutes.POST("/strategy-profiles/:strategyProfileId/projects/delete", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileProjectController.DeleteStrategyProfileProjects)
+
+	// milestone
+	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/milestones", strategyProfileMilestoneController.GetAllStrategyProfileMilestones)
+	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/milestones/:milestoneId", strategyProfileMilestoneController.GetStrategyProfileMilestoneDetails)
+	strategyRoutes.POST("/strategy-profiles/:strategyProfileId/milestones", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileMilestoneController.CreateStrategyProfileMilestone)
+	strategyRoutes.PUT("/strategy-profiles/:strategyProfileId/milestones/:milestoneId", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileMilestoneController.UpdateStrategyProfileMilestone)
+	strategyRoutes.POST("/strategy-profiles/:strategyProfileId/milestones/delete", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileMilestoneController.DeleteStrategyProfileMilestones)
+
+	// action plan
+	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/action-plans", strategyProfileActionPlanController.GetAllStrategyProfileActionPlans)
+	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/action-plans/:actionPlanId", strategyProfileActionPlanController.GetStrategyProfileActionPlanDetails)
+	strategyRoutes.POST("/strategy-profiles/:strategyProfileId/action-plans", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileActionPlanController.CreateStrategyProfileActionPlan)
+	strategyRoutes.PUT("/strategy-profiles/:strategyProfileId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileActionPlanController.UpdateStrategyProfileActionPlan)
+	strategyRoutes.POST("/strategy-profiles/:strategyProfileId/action-plans/delete", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileActionPlanController.DeleteStrategyProfileActionPlans)
+
 }

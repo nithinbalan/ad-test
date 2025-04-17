@@ -15,6 +15,8 @@ type StrategyModule struct {
 	StrategyProfileObjectiveController  *controllers.StrategyProfileObjectiveController
 	StrategyProfileInitiativeController *controllers.StrategyProfileInitiativeController
 	StrategyProfileProjectController    *controllers.StrategyProfileProjectController
+	StrategyProfileMilestoneController  *controllers.StrategyProfileMilestoneController
+	StrategyProfileActionPlanController *controllers.StrategyProfileActionPlanController
 }
 
 func NewStrategyModule(db *gorm.DB,
@@ -51,6 +53,14 @@ func NewStrategyModule(db *gorm.DB,
 	strategyProfileProjectSvc := services.NewStrategyProfileProjectService(strategyProfileProjectRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
 	strategyProfileProjectController := controllers.NewStrategyProfileProjectController(strategyProfileProjectSvc)
 
+	strategyProfileMilestoneRepo := repositories.NewStrategyProfileMilestoneRepository(db)
+	strategyProfileMilestoneSvc := services.NewStrategyProfileMilestoneService(strategyProfileMilestoneRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
+	strategyProfileMilestoneController := controllers.NewStrategyProfileMilestoneController(strategyProfileMilestoneSvc)
+
+	strategyProfileActionPlanRepo := repositories.NewStrategyProfileActionPlanRepository(db)
+	strategyProfileActionPlanSvc := services.NewStrategyProfileActionPlanService(strategyProfileActionPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
+	strategyProfileActionPlanController := controllers.NewStrategyProfileActionPlanController(strategyProfileActionPlanSvc)
+
 	return &StrategyModule{
 		StrategyProfileController:           strategyProfileController,
 		StrategyProfileFocusAreaController:  strategyProfileFocusAreaController,
@@ -58,5 +68,7 @@ func NewStrategyModule(db *gorm.DB,
 		StrategyProfileObjectiveController:  strategyProfileObjectiveController,
 		StrategyProfileInitiativeController: strategyProfileInitiativeController,
 		StrategyProfileProjectController:    strategyProfileProjectController,
+		StrategyProfileMilestoneController:  strategyProfileMilestoneController,
+		StrategyProfileActionPlanController: strategyProfileActionPlanController,
 	}
 }

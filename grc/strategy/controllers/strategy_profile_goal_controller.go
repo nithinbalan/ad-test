@@ -72,7 +72,7 @@ func (snec *StrategyProfileGoalController) GetAllStrategyProfileGoals(c *gin.Con
 		Export:      export,
 	}
 
-	focusArea, err := snec.service.GetAll(uint(strategyProfileID), &queryParams)
+	goal, err := snec.service.GetAll(uint(strategyProfileID), &queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -84,7 +84,7 @@ func (snec *StrategyProfileGoalController) GetAllStrategyProfileGoals(c *gin.Con
 		}
 	}
 
-	c.JSON(http.StatusOK, focusArea)
+	c.JSON(http.StatusOK, goal)
 }
 
 func (snec *StrategyProfileGoalController) GetStrategyProfileGoalDetails(c *gin.Context) {
@@ -103,7 +103,7 @@ func (snec *StrategyProfileGoalController) GetStrategyProfileGoalDetails(c *gin.
 		return
 	}
 
-	focusArea, err := snec.service.GetFullDetailsByID(uint(strategyProfileID), uint(id))
+	goal, err := snec.service.GetFullDetailsByID(uint(strategyProfileID), uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -115,7 +115,7 @@ func (snec *StrategyProfileGoalController) GetStrategyProfileGoalDetails(c *gin.
 		}
 	}
 
-	c.JSON(http.StatusOK, focusArea)
+	c.JSON(http.StatusOK, goal)
 }
 
 func (snec *StrategyProfileGoalController) CreateStrategyProfileGoal(c *gin.Context) {
