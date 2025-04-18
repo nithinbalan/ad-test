@@ -30,3 +30,8 @@ type KRILibraryListResponseDTO struct {
 	Items      []*KRILibraryDTO             `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
+
+type KRICategoryCountDTO struct {
+	KRICategory string `json:"kri_category"`
+	Count       int    `json:"count"`
+}

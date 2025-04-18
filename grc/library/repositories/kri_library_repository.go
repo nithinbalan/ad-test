@@ -21,6 +21,7 @@ type KRILibraryRepositoryInterface interface {
 	Deactivate(ids []uint) ([]uint, error)
 	ExistsByTitle(Title string, KRICategoryID uint) (bool, error)
 	ExistsByTitleExcludingID(id uint, Title string, KRICategoryID uint) (bool, error)
+	GetKRICategoryCounts() ([]libraryDTOs.KRICategoryCountDTO, error)
 }
 
 type KRILibraryRepository struct {
@@ -98,6 +99,22 @@ func (repo *KRILibraryRepository) GetAll(params *libraryDTOs.KRILibraryListQuery
 	}
 
 	return response, nil
+}
+
+func (repo *KRILibraryRepository) GetKRICategoryCounts() ([]libraryDTOs.KRICategoryCountDTO, error) {
+	var results []libraryDTOs.KRICategoryCountDTO
+
+	err := repo.db.
+		Table("kri_library").
+		Select("kri_category, COUNT(*) as count").
+		Group("kri_category").
+		Order("kri_category ASC").
+		Scan(&results).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
 
 func (repo *KRILibraryRepository) GetByID(id uint) (*models.KRILibrary, error) {
