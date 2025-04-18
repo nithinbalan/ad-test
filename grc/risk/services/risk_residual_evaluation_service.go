@@ -17,7 +17,7 @@ import (
 type RiskResidualEvaluationServiceInterface interface {
 	GetFullDetailsByID(riskID uint) (*riskDTOs.RiskResidualEvaluationDetailsDTO, error)
 	GetByID(riskID uint, id uint) (*models.RiskEvaluation, error)
-	Create(riskID uint, currentUserID uint, residualEvaluationFormDTO *riskDTOs.RiskResidualEvaluationFormDTO) (uint, error)
+	Create(riskID uint, currentUserID uint, residualEvaluationFormDTO *riskDTOs.RiskResidualEvaluationFormDTO, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskID uint, id uint, currentUserID uint, residualEvaluationFormDTO *riskDTOs.RiskResidualEvaluationFormDTO) error
 	Delete(riskID uint, id uint, currentUserID uint) (uint, error)
 }
@@ -110,24 +110,38 @@ func (ries *RiskResidualEvaluationService) GetByID(riskID uint, id uint) (*model
 	return riskResidualEvaluation, nil
 }
 
-func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uint, residualEvaluationFormDTO *riskDTOs.RiskResidualEvaluationFormDTO) (uint, error) {
-	tx := ries.repo.BeginTransaction()
+func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uint, residualEvaluationFormDTO *riskDTOs.RiskResidualEvaluationFormDTO, tx ...utility.DatabaseTransaction) (uint, error) {
+	var transaction utility.DatabaseTransaction
 
-	if _, err := ries.riskRegisterSvc.GetByID(riskID); err != nil {
+	if len(tx) > 0 && tx[0] != nil {
+		transaction = tx[0]
+	} else {
+		transaction = ries.repo.BeginTransaction()
+		defer func() {
+			if r := recover(); r != nil {
+				transaction.Rollback()
+			}
+		}()
+	}
+	if _, err := ries.riskRegisterSvc.GetByID(riskID, transaction); err != nil {
+		transaction.Rollback()
 		return 0, err
 	}
 
 	if err := ries.validateRiskResidualEvaluationFormDTO(residualEvaluationFormDTO); err != nil {
+		transaction.Rollback()
 		return 0, err
 	}
 
 	riskMatrixType, err := ries.riskMatrixSvc.GetByType("erm")
 	if err != nil {
+		transaction.Rollback()
 		return 0, err
 	}
 
 	riskMatrix, err := ries.riskMatrixSvc.GetDetailsByID(riskMatrixType.ID)
 	if err != nil {
+		transaction.Rollback()
 		return 0, err
 	}
 
@@ -151,10 +165,12 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 
 	impact, err := ries.riskMatrixImpactSvc.GetByID(residualEvaluationFormDTO.RiskMatrixImpactID)
 	if err != nil {
+		transaction.Rollback()
 		return 0, err
 	}
 	likelihood, err := ries.riskMatrixLikelihoodSvc.GetByID(residualEvaluationFormDTO.RiskMatrixLikelihoodID)
 	if err != nil {
+		transaction.Rollback()
 		return 0, err
 	}
 	calculationMethod := riskMatrix.CalculationType
@@ -172,15 +188,15 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 		CreatedByID:                 currentUserID,
 	}
 
-	id, err := ries.repo.Create(riskResidualEvaluation, tx)
+	id, err := ries.repo.Create(riskResidualEvaluation, transaction)
 	if err != nil {
-		tx.Rollback()
+		transaction.Rollback()
 		return 0, err
 	}
 
-	err = ries.riskRegisterSvc.UpdateRiskRating(riskID, currentUserID, riskResidualEvaluation, tx, "residual")
+	err = ries.riskRegisterSvc.UpdateRiskRating(riskID, currentUserID, riskResidualEvaluation, transaction, "residual")
 	if err != nil {
-		tx.Rollback()
+		transaction.Rollback()
 		return 0, err
 	}
 
@@ -192,9 +208,9 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 			CreatedByID:          currentUserID,
 		}
 
-		err := ries.repo.CreateRiskImpactAnalysis(riskImpactEvaluation, tx)
+		err := ries.repo.CreateRiskImpactAnalysis(riskImpactEvaluation, transaction)
 		if err != nil {
-			tx.Rollback()
+			transaction.Rollback()
 			return 0, err
 		}
 
@@ -203,9 +219,9 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 				RiskImpactAnalysisID:        riskImpactEvaluation.ID,
 				RiskMatrixImpactGuidelineID: guidelineID,
 			}
-			err := ries.repo.CreateRiskImpactAnalysisGuideline(riskImpactAnalysisGuideline, tx)
+			err := ries.repo.CreateRiskImpactAnalysisGuideline(riskImpactAnalysisGuideline, transaction)
 			if err != nil {
-				tx.Rollback()
+				transaction.Rollback()
 				return 0, err
 			}
 		}
@@ -224,8 +240,8 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 	}
 
 	if len(riskAppetiteAlignments) > 0 {
-		if err := ries.repo.CreateRiskAppetiteAlignments(riskAppetiteAlignments, tx); err != nil {
-			tx.Rollback()
+		if err := ries.repo.CreateRiskAppetiteAlignments(riskAppetiteAlignments, transaction); err != nil {
+			transaction.Rollback()
 			return 0, err
 		}
 	}
@@ -233,12 +249,12 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 	//todo
 	timelineType, err := ries.riskTimelineSvc.GetByType("residual_risk_analysis")
 	if err != nil {
-		tx.Rollback()
+		transaction.Rollback()
 		return 0, err
 	}
 	timelineStatus, err := ries.riskTimelineSvc.GetByStatusType("completed")
 	if err != nil {
-		tx.Rollback()
+		transaction.Rollback()
 		return 0, err
 	}
 	currentTime := time.Now()
@@ -247,12 +263,14 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 		TimelineStatusID: timelineStatus.ID,
 		PerformedAt:      &currentTime,
 	}
-	if err := ries.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, tx); err != nil {
-		tx.Rollback()
+	if err := ries.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, transaction); err != nil {
+		transaction.Rollback()
 		return 0, err
 	}
 
-	tx.Commit()
+	if len(tx) == 0 {
+		transaction.Commit()
+	}
 	// Perform activity logging
 	go func() {
 		existingRiskResidualEvaluation, err := ries.GetFullDetailsByID(riskID)

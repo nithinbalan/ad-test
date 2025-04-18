@@ -202,7 +202,8 @@ func NewRiskModule(db *gorm.DB,
 		riskSettingsSvc,
 		riskMatrixLikelihoodSvc,
 		riskMatrixImpactSvc,
-		riskResponseStrategySvc)
+		riskResponseStrategySvc,
+		nil)
 	riskRegisterController := controllers.NewRiskRegisterController(riskRegisterSvc)
 
 	potentialRiskRepo := repositories.NewPotentialRiskRepository(db)
@@ -279,6 +280,8 @@ func NewRiskModule(db *gorm.DB,
 	riskResidualEvaluationRepo := repositories.NewRiskResidualEvaluationRepository(db)
 	riskResidualEvaluationSvc := services.NewRiskResidualEvaluationService(riskResidualEvaluationRepo, sharedModule.ActivityLogService, riskRegisterSvc, riskMatrixSvc, riskMatrixRiskRatingValueSvc, riskMatrixImpactSvc, riskMatrixLikelihoodSvc, riskImpactCategorySvc, riskMatrixImpactGuidelineSvc, riskAppetiteStatementSvc, riskInherentEvaluationSvc, riskTimelineSvc)
 	riskResidualEvaluationController := controllers.NewRiskResidualEvaluationController(riskResidualEvaluationSvc)
+
+	riskRegisterSvc.SetRiskResidualEvaluationService(riskResidualEvaluationSvc)
 
 	riskResidualControlAnalysisRepo := repositories.NewRiskResidualControlAnalysisRepository(db)
 	riskResidualControlAnalysisSvc := services.NewRiskResidualControlAnalysisService(riskResidualControlAnalysisRepo, sharedModule.ActivityLogService, riskRegisterSvc, organizationModule.ControlSvc, organizationModule.ControlTestSvc, riskTimelineSvc)
