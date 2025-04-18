@@ -46,6 +46,7 @@ type RiskRegisterServiceInterface interface {
 	ExportRiskRegister(data []*riskDTOs.RiskRegisterListDTO, currentUserID uint) (*os.File, error)
 
 	SetRiskInherentEvaluationService(evaluationSvc RiskInherentEvaluationServiceInterface)
+	SetRiskResidualEvaluationService(evaluationSvc RiskResidualEvaluationServiceInterface)
 
 	GenerateRiskTemplate() (*os.File, error)
 	ValidateRiskTemplate(file io.Reader) ([]map[string]interface{}, error)
@@ -76,6 +77,8 @@ type RiskRegisterService struct {
 	riskSettingsSvc           RiskSettingsServiceInterface
 	riskMatrixLikelihoodSvc   RiskMatrixLikelihoodServiceInterface
 	riskMatrixImpactSvc       RiskMatrixImpactServiceInterface
+	riskResponseStrategySvc   RiskResponseStrategyServiceInterface
+	riskResidualEvaluationSvc RiskResidualEvaluationServiceInterface
 }
 
 func NewRiskRegisterService(
@@ -100,6 +103,8 @@ func NewRiskRegisterService(
 	riskSettingsSvc RiskSettingsServiceInterface,
 	riskMatrixLikelihoodSvc RiskMatrixLikelihoodServiceInterface,
 	riskMatrixImpactSvc RiskMatrixImpactServiceInterface,
+	riskResponseStrategySvc RiskResponseStrategyServiceInterface,
+	riskResidualEvaluationSvc RiskResidualEvaluationServiceInterface,
 ) RiskRegisterServiceInterface {
 	return &RiskRegisterService{
 		repo:                      repo,
@@ -123,6 +128,8 @@ func NewRiskRegisterService(
 		riskSettingsSvc:           riskSettingsSvc,
 		riskMatrixLikelihoodSvc:   riskMatrixLikelihoodSvc,
 		riskMatrixImpactSvc:       riskMatrixImpactSvc,
+		riskResponseStrategySvc:   riskResponseStrategySvc,
+		riskResidualEvaluationSvc: riskResidualEvaluationSvc,
 	}
 }
 
@@ -227,20 +234,21 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 	}
 
 	riskRegister := &models.RiskRegister{
-		ReferenceNumber:   referenceNumber,
-		RiskCategoryID:    riskRegisterFormDTO.RiskCategoryID,
-		RiskSourceID:      riskRegisterFormDTO.RiskSourceID,
-		RiskMatrixID:      riskMatrix.ID,
-		ResponsibleUnitID: responsibleUnitID,
-		ResponsibleUserID: riskRegisterFormDTO.ResponsibleUserID,
-		RiskStatusID:      riskStatus.ID,
-		Title:             riskRegisterFormDTO.Title,
-		Description:       riskRegisterFormDTO.Description,
-		ReportedAt:        dates.ReportedAt,
-		ReviewFrequencyID: riskRegisterFormDTO.ReviewFrequencyID,
-		NextReviewDate:    dates.NextReviewDate,
-		LastReviewNote:    riskRegisterFormDTO.LastReviewNote,
-		CreatedBYID:       currentUserID,
+		ReferenceNumber:        referenceNumber,
+		RiskCategoryID:         riskRegisterFormDTO.RiskCategoryID,
+		RiskSourceID:           riskRegisterFormDTO.RiskSourceID,
+		RiskMatrixID:           riskMatrix.ID,
+		ResponsibleUnitID:      responsibleUnitID,
+		ResponsibleUserID:      riskRegisterFormDTO.ResponsibleUserID,
+		RiskStatusID:           riskStatus.ID,
+		Title:                  riskRegisterFormDTO.Title,
+		Description:            riskRegisterFormDTO.Description,
+		ReportedAt:             dates.ReportedAt,
+		ReviewFrequencyID:      riskRegisterFormDTO.ReviewFrequencyID,
+		NextReviewDate:         dates.NextReviewDate,
+		LastReviewNote:         riskRegisterFormDTO.LastReviewNote,
+		RiskResponseStrategyID: riskRegisterFormDTO.RiskResponseStrategyID,
+		CreatedBYID:            currentUserID,
 	}
 
 	id, err := rrs.repo.Create(riskRegister, tx)
@@ -493,13 +501,27 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		}
 	}
 
-	if riskRegisterFormDTO.RiskMatrixLikelihoodID != nil && riskRegisterFormDTO.RiskMatrixImpactID != nil {
+	//update evaluation
+	if riskRegisterFormDTO.InherentRiskMatrixLikelihoodID != nil && riskRegisterFormDTO.InherentRiskMatrixImpactID != nil {
 		inherentEvaluationFormDTO := &riskDTOs.RiskInherentEvaluationFormDTO{
-			RiskMatrixLikelihoodID: *riskRegisterFormDTO.RiskMatrixLikelihoodID,
-			RiskMatrixImpactID:     *riskRegisterFormDTO.RiskMatrixImpactID,
+			RiskMatrixLikelihoodID: *riskRegisterFormDTO.InherentRiskMatrixLikelihoodID,
+			RiskMatrixImpactID:     *riskRegisterFormDTO.InherentRiskMatrixImpactID,
 		}
 
 		_, err := rrs.riskInherentEvaluationSvc.Create(id, currentUserID, inherentEvaluationFormDTO, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	if riskRegisterFormDTO.ResidualRiskMatrixLikelihoodID != nil && riskRegisterFormDTO.ResidualRiskMatrixImpactID != nil {
+		residualEvaluationFormDTO := &riskDTOs.RiskResidualEvaluationFormDTO{
+			RiskMatrixLikelihoodID: *riskRegisterFormDTO.ResidualRiskMatrixLikelihoodID,
+			RiskMatrixImpactID:     *riskRegisterFormDTO.ResidualRiskMatrixImpactID,
+		}
+
+		_, err := rrs.riskResidualEvaluationSvc.Create(id, currentUserID, residualEvaluationFormDTO, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -2435,10 +2457,15 @@ func (rrs *RiskRegisterService) SetRiskInherentEvaluationService(evaluationSvc R
 	rrs.riskInherentEvaluationSvc = evaluationSvc
 }
 
+func (rrs *RiskRegisterService) SetRiskResidualEvaluationService(evaluationSvc RiskResidualEvaluationServiceInterface) {
+	rrs.riskResidualEvaluationSvc = evaluationSvc
+}
+
 func (rrs *RiskRegisterService) GenerateRiskTemplate() (*os.File, error) {
 	templateHeaders := []string{
 		"RiskCategory", "RiskSource", "ResponsibleUser", "Title", "Description", "ReportedAt",
-		"ReviewFrequency", "NextReviewDate", "LastReviewNote", "CurrentLikelihood", "CurrentImpact",
+		"ReviewFrequency", "NextReviewDate", "LastReviewNote", "InherentLikelihood", "InherentImpact",
+		"RiskResponseStrategy", "ResidualLikelihood", "ResidualImpact",
 	}
 
 	templateData := [][]interface{}{}
@@ -2506,14 +2533,24 @@ func (rrs *RiskRegisterService) GenerateRiskTemplate() (*os.File, error) {
 		impactData = append(impactData, []interface{}{i.TitleEn})
 	}
 
+	strategies, err := rrs.riskResponseStrategySvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch risk response strategies: %v", err)
+	}
+	strategyData := [][]interface{}{{"RiskResponseStrategy"}}
+	for _, s := range strategies {
+		strategyData = append(strategyData, []interface{}{s.TitleEn})
+	}
+
 	file, err := utility.GenerateExcelFileWithSheets(map[string][][]interface{}{
-		"Template":          append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
-		"RiskCategory":      categoryData,
-		"RiskSource":        sourceData,
-		"ResponsibleUser":   userData,
-		"ReviewFrequency":   reviewData,
-		"CurrentLikelihood": likelihoodData,
-		"CurrentImpact":     impactData,
+		"Template":             append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
+		"RiskCategory":         categoryData,
+		"RiskSource":           sourceData,
+		"ResponsibleUser":      userData,
+		"ReviewFrequency":      reviewData,
+		"Likelihood":           likelihoodData,
+		"Impact":               impactData,
+		"RiskResponseStrategy": strategyData,
 	})
 	if err != nil {
 		return nil, err
@@ -2528,8 +2565,17 @@ func (rrs *RiskRegisterService) ValidateRiskTemplate(file io.Reader) ([]map[stri
 		return nil, err
 	}
 
-	headers := []string{"RiskCategory", "RiskSource", "ResponsibleUser", "Title", "Description", "ReportedAt", "ReviewFrequency", "NextReviewDate", "LastReviewNote", "CurrentLikelihood", "CurrentImpact"}
-	snakeHeaders := []string{"risk_category", "risk_source", "responsible_user", "title", "description", "reported_at", "review_frequency", "next_review_date", "last_review_note", "current_likelihood", "current_impact"}
+	headers := []string{
+		"RiskCategory", "RiskSource", "ResponsibleUser", "Title", "Description", "ReportedAt",
+		"ReviewFrequency", "NextReviewDate", "LastReviewNote", "InherentLikelihood", "InherentImpact",
+		"RiskResponseStrategy", "ResidualLikelihood", "ResidualImpact",
+	}
+
+	snakeHeaders := []string{
+		"risk_category", "risk_source", "responsible_user", "title", "description", "reported_at",
+		"review_frequency", "next_review_date", "last_review_note", "inherent_likelihood", "inherent_impact",
+		"risk_response_strategy", "residual_likelihood", "residual_impact",
+	}
 
 	if len(rows) == 0 {
 		return nil, fmt.Errorf("empty Excel file")
@@ -2586,17 +2632,20 @@ func (rs *RiskRegisterService) ImportRisks(input []map[string]interface{}, curre
 		reportedAtStr, _ := record["reported_at"].(string)
 		nextReviewDate, _ := record["next_review_date"].(string)
 		dto := &riskDTOs.RiskRegisterFormDTO{
-			RiskCategoryID:         record["risk_category_id"].(uint),
-			RiskSourceID:           utility.GetOptionalUintValue(record["risk_source_id"]),
-			ResponsibleUserID:      record["responsible_user_id"].(uint),
-			Title:                  record["title"].(string),
-			Description:            utility.GetOptionalStringValue(record["description"]),
-			ReportedAt:             &reportedAtStr,
-			ReviewFrequencyID:      utility.GetOptionalUintValue(record["review_frequency_id"]),
-			NextReviewDate:         &nextReviewDate,
-			LastReviewNote:         utility.GetOptionalStringValue(record["last_review_note"]),
-			RiskMatrixLikelihoodID: utility.GetOptionalUintValue(record["current_likelihood_id"]),
-			RiskMatrixImpactID:     utility.GetOptionalUintValue(record["current_impact_id"]),
+			RiskCategoryID:                 record["risk_category_id"].(uint),
+			RiskSourceID:                   utility.GetOptionalUintValue(record["risk_source_id"]),
+			ResponsibleUserID:              record["responsible_user_id"].(uint),
+			Title:                          record["title"].(string),
+			Description:                    utility.GetOptionalStringValue(record["description"]),
+			ReportedAt:                     &reportedAtStr,
+			ReviewFrequencyID:              utility.GetOptionalUintValue(record["review_frequency_id"]),
+			NextReviewDate:                 &nextReviewDate,
+			LastReviewNote:                 utility.GetOptionalStringValue(record["last_review_note"]),
+			InherentRiskMatrixLikelihoodID: utility.GetOptionalUintValue(record["inherent_likelihood_id"]),
+			InherentRiskMatrixImpactID:     utility.GetOptionalUintValue(record["inherent_impact_id"]),
+			RiskResponseStrategyID:         utility.GetOptionalUintValue(record["risk_response_strategy_id"]),
+			ResidualRiskMatrixLikelihoodID: utility.GetOptionalUintValue(record["residual_likelihood_id"]),
+			ResidualRiskMatrixImpactID:     utility.GetOptionalUintValue(record["residual_impact_id"]),
 		}
 
 		id, err := rs.Create(currentUserID, dto)
@@ -2610,7 +2659,8 @@ func (rs *RiskRegisterService) ImportRisks(input []map[string]interface{}, curre
 }
 
 func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]map[string]interface{}, error) {
-	headers := []string{"risk_category", "risk_source", "responsible_user", "title", "description", "reported_at", "review_frequency", "next_review_date", "last_review_note", "current_likelihood", "current_impact"}
+	headers := []string{"risk_category", "risk_source", "responsible_user", "title", "description", "reported_at", "review_frequency", "next_review_date", "last_review_note", "inherent_likelihood", "inherent_impact",
+		"risk_response_strategy", "residual_likelihood", "residual_impact"}
 
 	// Fetch risk categories
 	riskCategories, err := rs.riskCategorySvc.GetAll("", "", "", "active")
@@ -2673,6 +2723,30 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 		impactTitles[strings.TrimSpace(i.TitleEn)] = i.ID
 	}
 
+	// Risk Response Strategies
+	strategies, err := rs.riskResponseStrategySvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching risk response strategies: %v", err)
+	}
+	strategyTitles := make(map[string]uint)
+	for _, s := range strategies {
+		strategyTitles[strings.TrimSpace(s.TitleEn)] = s.ID
+	}
+
+	//for checking unique risks
+	// 1. Fetch existing titles from DB
+	existingRisks, err := rs.repo.GetAllRiskTitles() // Implement this function to return []string
+	if err != nil {
+		return nil, fmt.Errorf("error fetching existing risk titles: %v", err)
+	}
+	existingTitleSet := make(map[string]bool)
+	for _, title := range existingRisks {
+		existingTitleSet[strings.TrimSpace(strings.ToLower(title))] = true
+	}
+
+	// 2. Track titles seen in the current Excel
+	sheetTitleSet := make(map[string]bool)
+
 	// Perform validation
 	var validatedData []map[string]interface{}
 	for _, record := range input {
@@ -2715,14 +2789,24 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 				}
 
 			case "title":
-				if !ok || value == "" {
+				if !ok || strings.TrimSpace(value) == "" {
 					rowErrors[header] = "Title is required"
+				} else {
+					trimmedTitle := strings.ToLower(strings.TrimSpace(value))
+					if _, exists := sheetTitleSet[trimmedTitle]; exists {
+						rowErrors[header] = "Duplicate title in the sheet"
+					} else if _, exists := existingTitleSet[trimmedTitle]; exists {
+						rowErrors[header] = "Title already exists in the system"
+					} else {
+						sheetTitleSet[trimmedTitle] = true
+					}
 				}
 
 			case "description":
-				// Optional
+
 			case "reported_at":
-				if !ok || value == "" {
+				value = strings.TrimSpace(value)
+				if value == "" {
 					rowErrors[header] = "Reported Date is required"
 				} else if _, err := time.Parse("2006-01-02", value); err != nil {
 					rowErrors[header] = "Invalid format. Expected YYYY-MM-DD"
@@ -2740,6 +2824,7 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 				}
 
 			case "next_review_date":
+				value = strings.TrimSpace(value)
 				if value != "" {
 					if _, err := time.Parse("2006-01-02", value); err != nil {
 						rowErrors[header] = "Invalid format. Expected YYYY-MM-DD"
@@ -2750,21 +2835,48 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 
 			case "last_review_note":
 				// Optional
-			case "current_likelihood":
+			case "inherent_likelihood":
 				if value != "" {
 					if id, exists := likelihoodTitles[strings.TrimSpace(value)]; !exists {
-						rowErrors[header] = fmt.Sprintf("Invalid likelihood: %s", value)
+						rowErrors[header] = fmt.Sprintf("Invalid inherent likelihood: %s", value)
 					} else {
-						riskRecord["current_likelihood_id"] = id
+						riskRecord["inherent_likelihood_id"] = id
 					}
 				}
 
-			case "current_impact":
+			case "inherent_impact":
 				if value != "" {
 					if id, exists := impactTitles[strings.TrimSpace(value)]; !exists {
-						rowErrors[header] = fmt.Sprintf("Invalid impact: %s", value)
+						rowErrors[header] = fmt.Sprintf("Invalid inherent impact: %s", value)
 					} else {
-						riskRecord["current_impact_id"] = id
+						riskRecord["inherent_impact_id"] = id
+					}
+				}
+
+			case "risk_response_strategy":
+				if value != "" {
+					if id, exists := strategyTitles[strings.TrimSpace(value)]; !exists {
+						rowErrors[header] = fmt.Sprintf("Invalid risk response strategy: %s", value)
+					} else {
+						riskRecord["risk_response_strategy_id"] = id
+					}
+				}
+
+			case "residual_likelihood":
+				if value != "" {
+					if id, exists := likelihoodTitles[strings.TrimSpace(value)]; !exists {
+						rowErrors[header] = fmt.Sprintf("Invalid residual likelihood: %s", value)
+					} else {
+						riskRecord["residual_likelihood_id"] = id
+					}
+				}
+
+			case "residual_impact":
+				if value != "" {
+					if id, exists := impactTitles[strings.TrimSpace(value)]; !exists {
+						rowErrors[header] = fmt.Sprintf("Invalid residual impact: %s", value)
+					} else {
+						riskRecord["residual_impact_id"] = id
 					}
 				}
 
