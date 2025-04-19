@@ -14,7 +14,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	questionLibraryController := app.LibraryModule.QuestionLibraryController
 	KRILibraryController := app.LibraryModule.KriLibraryController
-	RIskLibraryController := app.LibraryModule.RiskLibraryController
+	RiskLibraryController := app.LibraryModule.RiskLibraryController
 
 	masterRoutes.GET("/question-library", questionLibraryController.GetAllQuestionLibrary)
 	masterRoutes.POST("/question-library", questionLibraryController.CreateQuestionLibrary)
@@ -33,6 +33,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	masterRoutes.PUT("/kri-library/activate", KRILibraryController.ActivateKRILibraries)
 	masterRoutes.PUT("/kri-library/deactivate", KRILibraryController.DeactivateKRILibraries)
 
-	masterRoutes.GET("/risk-library", RIskLibraryController.GetAllKRILibrary)
-	masterRoutes.GET("/risk-library/category-count", RIskLibraryController.GetKRICategoryCounts)
+	masterRoutes.GET("/risk-library", RiskLibraryController.GetAllRiskLibrary)
+	masterRoutes.GET("/risk-library/category-count", RiskLibraryController.GetRiskCategoryCounts)
 }
