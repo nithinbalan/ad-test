@@ -55,6 +55,12 @@ func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *bus
 			risk_levels.title_en AS risk_level_title_en,
 			risk_levels.title_ar AS risk_level_title_ar,
 			risk_levels.color_code AS risk_level_color_code,
+			organization_units.id AS responsible_unit_id,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			process_criticality_levels.id AS process_criticality_level_id,
+			process_criticality_levels.title_en AS process_criticality_level_title_en,
+			process_criticality_levels.title_ar AS process_criticality_level_title_ar,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -76,6 +82,8 @@ func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *bus
         `).
 		Joins(`
 		    LEFT JOIN processes ON processes.id = business_impact_assessments.process_id
+		    LEFT JOIN organization_units ON organization_units.id = processes.owner_unit_id
+		    LEFT JOIN process_criticality_levels ON process_criticality_levels.id = processes.process_criticality_level_id
 		    LEFT JOIN asset_register ON asset_register.id = business_impact_assessments.asset_register_id
 			LEFT JOIN impact_categories ON impact_categories.id = business_impact_assessments.impact_category_id
 		    LEFT JOIN risk_levels ON risk_levels.id = business_impact_assessments.risk_level_id
@@ -87,6 +95,20 @@ func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *bus
 		if len(values) > 0 {
 			query = query.Where(columnName+" IN (?)", values)
 		}
+	}
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "high":
+			query = query.Where("process_criticality_levels.type = ?", "high")
+		case "medium":
+			query = query.Where("process_criticality_levels.type = ?", "medium")
+		case "low":
+			query = query.Where("process_criticality_levels.type = ?", "low")
+		case "all":
+			continue
+		}
+
 	}
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {

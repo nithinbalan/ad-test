@@ -382,20 +382,44 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessDependencies(c *gin
 
 func (biac *BusinessImpactAssessmentController) GetAllBIAImpactAnalysis(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "process_title_en")
 	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"process_ids",
 		"risk_level_ids",
+		"responsible_unit_ids",
+		"owner_ids",
+		"process_criticality_level_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
+	validSortFields := map[string]string{
+		"reference_number":        "business_impact_assessments.reference_number",
+		"process_title_en":        "processes.title_en",
+		"process_title_ar":        "processes.title_ar",
+		"asset_register_title_en": "asset_register.title_en",
+		"asset_register_title_ar": "asset_register.title_ar",
+		"risk_level_title_en":     "risk_levels.title_en",
+		"risk_level_title_ar":     "risk_levels.title_ar",
+	}
+
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	queryParams := businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO{
-		Sort:    sort,
-		Keyword: keyword,
-		Filters: filters,
+		Sort:        sort,
+		SortBy:      sortField,
+		Keyword:     keyword,
+		Filters:     filters,
+		QuickFilter: quickFilter,
 	}
 	businessImpactAssessments, err := biac.service.GetAllImpactAnalysis(&queryParams)
 

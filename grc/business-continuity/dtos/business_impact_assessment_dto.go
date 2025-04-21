@@ -97,10 +97,11 @@ type BusinessImpactAssessmentRecoveryObjectiveListDTO struct {
 }
 
 type BusinessImpactAssessmentListQueryParamsDTO struct {
-	Sort    string
-	SortBy  string
-	Keyword string
-	Filters map[string][]string
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Filters     map[string][]string
+	QuickFilter []string
 }
 
 type BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO struct {
