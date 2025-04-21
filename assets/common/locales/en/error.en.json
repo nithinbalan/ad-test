@@ -154,6 +154,10 @@
   {
     "id": "module_not_allowed",
     "translation": "{{.Field}} module is not allowed under the current license."
+  },
+  {
+    "id": "default_criticality_matrix",
+    "translation": "Default Criticality Matrix cannot be updated/deleted"
   }
   
   
