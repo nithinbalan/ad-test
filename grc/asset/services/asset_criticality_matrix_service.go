@@ -152,7 +152,7 @@ func (acms *AssetCriticalityMatrixService) Update(id uint, matrixFormDTO *dtos.A
 		return err
 	}
 	if id == defaultID {
-		return utility.NewValidationError(fmt.Errorf("default matrix cannot be updated"), "restricted_update", "default matrix")
+		return utility.NewValidationError(fmt.Errorf("default matrix cannot be updated"), "default_criticality_matrix", "default matrix")
 	}
 
 	tx := acms.repo.BeginTransaction()
@@ -323,7 +323,7 @@ func (acms *AssetCriticalityMatrixService) Delete(ids []uint, currentUserID uint
 			return nil, err
 		}
 		if id == defaultID {
-			return nil, utility.NewValidationError(fmt.Errorf("default matrix cannot be deleted"), "restricted_update", "default matrix")
+			return nil, utility.NewValidationError(fmt.Errorf("default matrix cannot be deleted"), "default_criticality_matrix", "default matrix")
 		}
 
 		criticalityMatrix, err := acms.repo.GetByID(id)
