@@ -16,6 +16,7 @@ type AssetAssociatedItemServiceInterface interface {
 	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisks(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error)
 	GetAllVulnerabilities(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]assetDTOs.VulnerabilityDTO, error)
+	GetAllClauses(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemClauseListResponseDTO, error)
 
 	CreateAssetComplianceClauses(assetID uint, formDTO assetDTOs.AssetComplianceClauseFormDTO, currentUserID uint) error
 	DeleteAssetComplianceClauses(assetID uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -318,6 +319,13 @@ func (service *AssetAssociatedItemService) GetAllVulnerabilities(assetID uint, p
 	}
 
 	return vulnerabilityDTOs, nil
+}
+
+func (aais *AssetAssociatedItemService) GetAllClauses(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemClauseListResponseDTO, error) {
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return nil, err
+	}
+	return aais.repo.GetAllClauses(assetID, params)
 }
 
 func (aais *AssetAssociatedItemService) CreateAssetVulnerabilities(assetID uint, formDTO assetDTOs.AssetVulnerabilitiesFormDTO, currentUserID uint) error {

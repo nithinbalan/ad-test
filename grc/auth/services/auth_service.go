@@ -21,7 +21,7 @@ type AuthServiceInterface interface {
 	Authenticate(email string, password string, ipAddress string, location string, device string, browser string) (*authDTOs.LoginResponseDTO, error)
 	GetTokenFromRefreshToken(refreshToken string) (*authDTOs.LoginResponseDTO, error)
 	LoginResendOTP(email string) error
-	LoginVerifyOTP(email string, otp string) (*authDTOs.LoginResponseDTO, error)
+	LoginVerifyOTP(email string, otp string, ipAddress string, location string, device string, browser string) (*authDTOs.LoginResponseDTO, error)
 	SendPasswordRecoveryOTP(email string) error
 	ReSendPasswordRecoveryOTP(email string) error
 	VerifyPasswordRecoveryOTP(email, otp string) (string, error)
@@ -157,7 +157,7 @@ func (as AuthService) LoginResendOTP(email string) error {
 	return as.sendOTP(userSecurity, user, subject, templateRelativePath)
 }
 
-func (as *AuthService) LoginVerifyOTP(email, otp string) (*authDTOs.LoginResponseDTO, error) {
+func (as *AuthService) LoginVerifyOTP(email, otp string, ipAddress string, location string, device string, browser string) (*authDTOs.LoginResponseDTO, error) {
 	user, err := as.userService.GetByEmail(email)
 	if err != nil {
 		return nil, err
@@ -169,6 +169,11 @@ func (as *AuthService) LoginVerifyOTP(email, otp string) (*authDTOs.LoginRespons
 	}
 
 	if *userSecurity.OTP != otp {
+		loginStatus := "failed"
+		logErr := as.userService.CreateUserLoginHistory(user, loginStatus, ipAddress, location, device, browser)
+		if logErr != nil {
+			return nil, utility.NewInternalServerError(logErr)
+		}
 		return nil, utility.NewValidationError(fmt.Errorf("invalid OTP"), "invalid_otp", "otp")
 	}
 
@@ -194,6 +199,12 @@ func (as *AuthService) LoginVerifyOTP(email, otp string) (*authDTOs.LoginRespons
 		AccessToken:  &accessToken,
 		RefreshToken: &refreshToken,
 		IsMFAEnabled: true,
+	}
+
+	loginStatus := "success"
+	err = as.userService.CreateUserLoginHistory(user, loginStatus, ipAddress, location, device, browser)
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
 	}
 
 	return responseDTO, nil

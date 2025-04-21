@@ -380,30 +380,28 @@ func (rcs *RiskCommentService) SubmitRisk(riskID uint, currentUserID uint) error
 			})
 		}
 
-		for userID, fullName := range reviewers {
-			emailNotification := &commonDTOs.EmailNotificationDTO{
-				EmailTo:              reviewEmailTo,
-				Subject:              fmt.Sprintf("Risk #%d Submitted", riskID),
-				TemplateRelativePath: "risk/templates/email/risk_submitted.html",
-				EmailData: map[string]interface{}{
-					"FirstNameEn":          fullName,
-					"TitleEn":              risk.Title,
-					"Description":          risk.Description,
-					"ReferenceNumber":      risk.ReferenceNumber,
-					"SubmittedByFirstName": createdBy.FirstNameEn,
-					"SubmittedByLastName":  createdBy.LastNameEn,
-					"SubmissionDate":       time.Now().Format("2006-01-02"),
-					"RedirectURL":          fmt.Sprintf("%srisk/risk-register/%d/overview", utility.GetAppURL(), riskID),
-				},
-			}
+		emailNotification := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              reviewEmailTo,
+			Subject:              fmt.Sprintf("Risk #%d Submitted", riskID),
+			TemplateRelativePath: "risk/templates/email/risk_submitted.html",
+			EmailData: map[string]interface{}{
+				"FirstNameEn":          riskSetting.ReviewRole.TitleEn,
+				"TitleEn":              risk.Title,
+				"Description":          risk.Description,
+				"ReferenceNumber":      risk.ReferenceNumber,
+				"SubmittedByFirstName": createdBy.FirstNameEn,
+				"SubmittedByLastName":  createdBy.LastNameEn,
+				"SubmissionDate":       time.Now().Format("2006-01-02"),
+				"RedirectURL":          fmt.Sprintf("%srisk/risk-register/%d/overview", utility.GetAppURL(), riskID),
+			},
+		}
 
-			err = rcs.notificationSvc.SendNotification(nil, emailNotification, "risk")
-			if err != nil {
-				utility.LogError("Failed to send review user email", map[string]interface{}{
-					"error":  err.Error(),
-					"userID": userID,
-				})
-			}
+		err = rcs.notificationSvc.SendNotification(nil, emailNotification, "risk")
+		if err != nil {
+			utility.LogError("Failed to send review user email", map[string]interface{}{
+				"error":       err.Error(),
+				"user_emails": reviewEmailTo,
+			})
 		}
 	}()
 
@@ -955,7 +953,6 @@ func (rcs *RiskCommentService) ResubmitRisk(riskID uint, currentUserID uint, com
 
 		// Prepare Review User Emails & Names
 		reviewEmailTo := make([]string, len(reviewUserIDs))
-		reviewers := make(map[uint]string)
 
 		for i, userID := range reviewUserIDs {
 			user, err := rcs.userSvc.GetByID(userID)
@@ -967,7 +964,6 @@ func (rcs *RiskCommentService) ResubmitRisk(riskID uint, currentUserID uint, com
 				continue
 			}
 			reviewEmailTo[i] = user.Email
-			reviewers[userID] = user.FirstNameEn + " " + user.LastNameEn
 		}
 
 		createdBy, err := rcs.userSvc.GetByID(currentUserID)
@@ -1006,31 +1002,29 @@ func (rcs *RiskCommentService) ResubmitRisk(riskID uint, currentUserID uint, com
 			})
 		}
 
-		for userID, fullName := range reviewers {
-			emailNotification := &commonDTOs.EmailNotificationDTO{
-				EmailTo:              reviewEmailTo,
-				Subject:              fmt.Sprintf("Risk #%d Resubmitted", riskID),
-				TemplateRelativePath: "risk/templates/email/risk_resubmitted.html",
-				EmailData: map[string]interface{}{
-					"FirstNameEn":            fullName,
-					"TitleEn":                risk.Title,
-					"Description":            risk.Description,
-					"ReferenceNumber":        risk.ReferenceNumber,
-					"Comment":                commentForm.Comment,
-					"ResubmittedByFirstName": createdBy.FirstNameEn,
-					"ResubmittedByLastName":  createdBy.LastNameEn,
-					"ResubmissionDate":       time.Now().Format("2006-01-02"),
-					"RedirectURL":            fmt.Sprintf("%srisk/risk-register/%d/overview", utility.GetAppURL(), riskID),
-				},
-			}
+		emailNotification := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              reviewEmailTo,
+			Subject:              fmt.Sprintf("Risk #%d Resubmitted", riskID),
+			TemplateRelativePath: "risk/templates/email/risk_resubmitted.html",
+			EmailData: map[string]interface{}{
+				"FirstNameEn":            riskSetting.ReviewRole.TitleEn,
+				"TitleEn":                risk.Title,
+				"Description":            risk.Description,
+				"ReferenceNumber":        risk.ReferenceNumber,
+				"Comment":                commentForm.Comment,
+				"ResubmittedByFirstName": createdBy.FirstNameEn,
+				"ResubmittedByLastName":  createdBy.LastNameEn,
+				"ResubmissionDate":       time.Now().Format("2006-01-02"),
+				"RedirectURL":            fmt.Sprintf("%srisk/risk-register/%d/overview", utility.GetAppURL(), riskID),
+			},
+		}
 
-			err = rcs.notificationSvc.SendNotification(nil, emailNotification, "risk")
-			if err != nil {
-				utility.LogError("Failed to send review user email", map[string]interface{}{
-					"error":  err.Error(),
-					"userID": userID,
-				})
-			}
+		err = rcs.notificationSvc.SendNotification(nil, emailNotification, "risk")
+		if err != nil {
+			utility.LogError("Failed to send review user email", map[string]interface{}{
+				"error":       err.Error(),
+				"user_emails": reviewEmailTo,
+			})
 		}
 	}()
 

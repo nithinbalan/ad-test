@@ -266,6 +266,74 @@ func (aaic *AssetAssociatedItemController) GetAllAssetVulnerabilities(c *gin.Con
 	c.JSON(http.StatusOK, vulnerabilities)
 }
 
+func (aaic *AssetAssociatedItemController) GetAllAssetClauses(c *gin.Context) {
+
+	assetIDStr := c.Param("id")
+
+	assetID, err := strconv.ParseUint(assetIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
+	valueStr := c.Query("value")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	var value int
+	if valueStr != "" {
+		value, err = strconv.Atoi(valueStr)
+		if err != nil {
+			utility.SendInternalErrResp(aaic.db, c, "Invalid value parameter")
+			return
+		}
+	}
+
+	queryParams := assetDTOs.AssetAssociatedItemListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Status:      status,
+		Value:       value,
+		Page:        page,
+		PageSize:    pageSize,
+		QuickFilter: quickFilter,
+	}
+
+	// Update method to GetAllVulnerabilities
+	vulnerabilities, err := aaic.service.GetAllClauses(uint(assetID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(aaic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, vulnerabilities)
+}
+
 func (aaic *AssetAssociatedItemController) CreateAssetVulnerabilities(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)

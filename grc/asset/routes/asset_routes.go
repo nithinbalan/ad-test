@@ -133,7 +133,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/vulnerabilities", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.CreateVulnerability)
 	assetRoutes.PUT("/vulnerabilities/:id", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.UpdateVulnerability)
 	assetRoutes.POST("/vulnerabilities/delete", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.DeleteVulnerabilities)
-	assetRoutes.GET("assets/:id/vulnerability-summary", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityController.GetVulnerabilitySummary)
+	assetRoutes.GET("/assets/:id/vulnerability-summary", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityController.GetVulnerabilitySummary)
 	//Threat types
 	assetRoutes.GET("/threat-types", threatTypeController.GetAllThreatTypes)
 	assetRoutes.GET("/threat-types/:id", threatTypeController.GetThreatTypeDetails)
@@ -153,7 +153,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/threats", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatController.CreateThreat)
 	assetRoutes.PUT("/threats/:id", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatController.UpdateThreat)
 	assetRoutes.POST("/threats/delete", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatController.DeleteThreats)
-	assetRoutes.GET("assets/:id/threat-summary", threatController.GetThreatSummary)
+	assetRoutes.GET("/assets/:id/threat-summary", middlewares.RolePermissionMiddleware(db, "threat", "view"), threatController.GetThreatSummary)
 
 	//vulnerability action plan
 	assetRoutes.GET("/vulnerability-action-plans/export", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityActionPlanController.GetVulnerabilityActionPlanExport)
@@ -206,6 +206,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.GET("assets/:id/incidents", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.GetAllAssetIncidents)
 	assetRoutes.GET("assets/:id/risks", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.GetAllAssetRisks)
 	assetRoutes.GET("assets/:id/vulnerabilities", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.GetAllAssetVulnerabilities)
+	assetRoutes.GET("assets/:id/clauses", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.GetAllAssetClauses)
 
 	assetRoutes.POST("assets/:id/vulnerabilities", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.CreateAssetVulnerabilities)
 	assetRoutes.POST("assets/:id/vulnerabilities/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.DeleteAssetVulnerabilities)
