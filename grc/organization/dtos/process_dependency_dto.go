@@ -7,6 +7,7 @@ type ProcessDependencyListDTO struct {
 	ProcessTitleAr *string `json:"process_title_ar"`
 
 	ProcessDependencySubTypeID      uint    `json:"process_dependency_sub_type_id"`
+	ProcessDependencySubTypeType    *string `json:"process_dependency_sub_type_type"`
 	ProcessDependencySubTypeTitleEn *string `json:"process_dependency_sub_type_title_en"`
 	ProcessDependencySubTypeTitleAr *string `json:"process_dependency_sub_type_title_ar"`
 	ProcessDependencyTypeTitleEn    *string `json:"process_dependency_type_title_en"`

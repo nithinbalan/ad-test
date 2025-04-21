@@ -137,7 +137,11 @@ func (ars *AssetRegisterService) Create(assetRegisterFormDTO *dtos.AssetRegister
 	}
 
 	if matrixID == 0 {
-		return 0, utility.NewValidationError(fmt.Errorf("no criticality matrix found for asset category"), "not_exist", "criticality matrix against category")
+		matrixID, err = ars.assetCriticalityMatrixSvc.GetDefaultCriticalityMatrixID()
+		if err != nil || matrixID == 0 {
+			tx.Rollback()
+			return 0, utility.NewValidationError(fmt.Errorf("no criticality matrix found for asset category or default"), "not_exist", "criticality matrix")
+		}
 	}
 
 	organizationUnitID, err := ars.userSvc.GetUserPrimaryUnitID(assetRegisterFormDTO.ResponsibleUserID)

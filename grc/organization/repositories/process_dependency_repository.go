@@ -43,6 +43,7 @@ func (repo *ProcessDependencyRepository) GetAll(processID uint, params *orgDTOs.
 			parent_process.title_ar AS process_title_ar,
 
 			process_dependencies.process_dependency_sub_type_id,
+			process_dependency_sub_types.type AS process_dependency_sub_type_type,
 			process_dependency_sub_types.title_en AS process_dependency_sub_type_title_en,
 			process_dependency_sub_types.title_ar AS process_dependency_sub_type_title_ar,
 
