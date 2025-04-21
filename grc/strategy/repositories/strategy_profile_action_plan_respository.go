@@ -16,6 +16,12 @@ type StrategyProfileActionPlanRepositoryInterface interface {
 	Create(strategyProfileActionPlan *models.StrategyProfileActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(strategyProfileActionPlan *models.StrategyProfileActionPlan, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+
+	CreateInitialStrategyProfileActionPlanStatusUpdate(strategyProfileActionPlanStatusUpdate *models.StrategyProfileActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	DeleteActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteActionPlanComments(ids []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteActionPlanCommentDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteActionPlanStatusUpdateDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type StrategyProfileActionPlanRepository struct {
@@ -161,6 +167,10 @@ func (repo *StrategyProfileActionPlanRepository) GetFullDetailsByID(id uint, tx 
 		Preload("StrategyProfileProject").
 		Preload("StrategyProfileMilestone").
 		Preload("ResponsibleUser").
+		Preload("SeverityLevel").
+		Preload("ResponsibleUnit").
+		Preload("ReviewUser").
+		Preload("ActionPlanStatusUpdates").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&strategyProfileActionPlan, id)
@@ -203,6 +213,69 @@ func (repo *StrategyProfileActionPlanRepository) Delete(id uint, tx ...utility.D
 	}
 	// Delete the Strategy profile
 	if err := db.Delete(&models.StrategyProfileActionPlan{}, id).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *StrategyProfileActionPlanRepository) CreateInitialStrategyProfileActionPlanStatusUpdate(strategyProfileActionPlanStatusUpdate *models.StrategyProfileActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(strategyProfileActionPlanStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return strategyProfileActionPlanStatusUpdate.ID, nil
+}
+
+func (repo *StrategyProfileActionPlanRepository) DeleteActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.StrategyProfileActionPlanStatusUpdate{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *StrategyProfileActionPlanRepository) DeleteActionPlanComments(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.StrategyProfileActionPlanComment{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *StrategyProfileActionPlanRepository) DeleteActionPlanCommentDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", docIds).Delete(&models.StrategyProfileActionPlanCommentDocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *StrategyProfileActionPlanRepository) DeleteActionPlanStatusUpdateDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", docIds).Delete(&models.StrategyProfileActionPlanStatusUpdateDocument{}).Error; err != nil {
 		return err
 	}
 
