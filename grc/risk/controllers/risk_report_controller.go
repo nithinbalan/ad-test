@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -481,15 +482,18 @@ func (rrc *RiskReportController) GetRiskReportExportZip(c *gin.Context) {
 		return
 	}
 
-	zipPath, err := rrc.service.ExportRiskReportToPDF(uint(riskReportID), currentUserID)
+	// Call the service to export and get ZIP file path
+	zipFilePath, err := rrc.service.GetRiskReportExportZip(uint(riskReportID), currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(rrc.db, c, fmt.Sprintf("failed to export report: %v", err))
+		utility.SendInternalErrResp(rrc.db, c, fmt.Sprintf("failed to export ZIP: %v", err))
 		return
 	}
 
-	// Send the zip file as download
-	c.Header("Content-Description", "File Transfer")
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filepath.Base(zipPath)))
+	// Set headers and return the file
 	c.Header("Content-Type", "application/zip")
-	c.File(zipPath)
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=risk_report_%d.zip", riskReportID))
+	c.File(zipFilePath)
+
+	// Optionally delete the file after serving it
+	defer os.Remove(zipFilePath)
 }
