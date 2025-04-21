@@ -2518,7 +2518,7 @@ func (rrs *RiskRegisterService) GenerateRiskTemplate() (*os.File, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch risk matrix likelihoods: %v", err)
 	}
-	likelihoodData := [][]interface{}{{"CurrentLikelihood"}}
+	likelihoodData := [][]interface{}{{"Likelihood"}}
 	for _, l := range likelihoods {
 		likelihoodData = append(likelihoodData, []interface{}{l.TitleEn})
 	}
@@ -2528,7 +2528,7 @@ func (rrs *RiskRegisterService) GenerateRiskTemplate() (*os.File, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch risk matrix impacts: %v", err)
 	}
-	impactData := [][]interface{}{{"CurrentImpact"}}
+	impactData := [][]interface{}{{"Impact"}}
 	for _, i := range impacts {
 		impactData = append(impactData, []interface{}{i.TitleEn})
 	}
