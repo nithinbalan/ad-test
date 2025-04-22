@@ -172,6 +172,11 @@ func (crs *ComplianceReportService) Create(currentUserID uint, request *dtos.Com
 				}
 
 				for _, actionPlan := range requirement.ActionPlans {
+					severityLevelID := uint(0) // Default value
+					if actionPlan.SeverityLevelID != nil {
+						severityLevelID = *actionPlan.SeverityLevelID
+					}
+
 					complianceReportActionPlan := &models.ComplianceReportActionPlan{
 						ComplianceReportID:            complianceReportID,
 						ComplianceReportRequirementID: complianceReportRequirementID,
@@ -179,7 +184,7 @@ func (crs *ComplianceReportService) Create(currentUserID uint, request *dtos.Com
 						Description:                   actionPlan.Description,
 						ActionPlanStatusID:            actionPlan.ActionPlanStatusID,
 						TargetDate:                    actionPlan.TargetDate,
-						SeverityLevelID:               *actionPlan.SeverityLevelID,
+						SeverityLevelID:               severityLevelID,
 						CreatedAt:                     time.Now(),
 						CreatedBYID:                   currentUserID,
 					}
