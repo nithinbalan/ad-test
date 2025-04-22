@@ -72,7 +72,7 @@ func (p *ProcessDependencyController) GetProcessDependencyDetails(c *gin.Context
 		return
 	}
 
-	item, err := p.service.GetByID(uint(processID), uint(id))
+	item, err := p.service.GetFullDetailsByID(uint(processID), uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return

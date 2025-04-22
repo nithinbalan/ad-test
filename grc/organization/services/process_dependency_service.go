@@ -16,6 +16,7 @@ import (
 
 type ProcessDependencyServiceInterface interface {
 	GetAll(processID uint, params *orgDTOs.ProcessDependencyListQueryParamsDTO) ([]*orgDTOs.ProcessDependencyListDTO, error)
+	GetFullDetailsByID(processID uint, id uint) (*orgDTOs.ProcessDependencyDetailDTO, error)
 	GetByID(processID uint, id uint) (*models.ProcessDependency, error)
 	Create(processID uint, currentUserID uint, processDependencyFormDTO *orgDTOs.ProcessDependencyFormDTO) (uint, error)
 	Update(processID uint, id uint, currentUserID uint, processDependencyFormDTO *orgDTOs.ProcessDependencyUpdateFormDTO) error
