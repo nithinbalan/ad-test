@@ -35,8 +35,8 @@ type ComplianceReportListResponseDTO struct {
 type ComplianceReportDetailsDTO struct {
 	ID                       uint                            `json:"id"`
 	Title                    string                          `json:"title"`
-	StartDate                time.Time                       `json:"start_date"`
-	EndDate                  time.Time                       `json:"end_date"`
+	StartDate                string                          `json:"start_date"`
+	EndDate                  string                          `json:"end_date"`
 	ComplianceRegisterID     uint                            `json:"compliance_register_id"`
 	CreatedAt                string                          `json:"created_at"`
 	UpdatedAt                *string                         `json:"updated_at"`

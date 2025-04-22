@@ -218,8 +218,8 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 	// Map basic report details
 	complianceReportDetails.ID = complianceReport.ID
 	complianceReportDetails.Title = complianceReport.Title
-	complianceReportDetails.StartDate = complianceReport.StartDate
-	complianceReportDetails.EndDate = complianceReport.EndDate
+	complianceReportDetails.StartDate = complianceReport.StartDate.Format("2006-01-02")
+	complianceReportDetails.EndDate = complianceReport.EndDate.Format("2006-01-02")
 	complianceReportDetails.ComplianceRegisterID = complianceReport.ComplianceRegisterID
 	complianceReportDetails.CreatedAt = complianceReport.CreatedAt.Format("2006-01-02")
 
@@ -304,7 +304,12 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 									TitleAr:   actionPlan.ActionPlanStatus.TitleAr,
 									ColorCode: actionPlan.ActionPlanStatus.ColorCode,
 								},
-								TargetDate: actionPlan.TargetDate.Format("2006-01-02"),
+								TargetDate: func() string {
+									if actionPlan.TargetDate == nil {
+										return ""
+									}
+									return actionPlan.TargetDate.Format("2006-01-02")
+								}(),
 								SeverityLevel: masterDTOs.SeverityLevelDTO{
 									ID:        actionPlan.SeverityLevel.ID,
 									TitleEn:   actionPlan.SeverityLevel.TitleEn,
@@ -381,7 +386,12 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 									TitleAr:   actionPlan.ActionPlanStatus.TitleAr,
 									ColorCode: actionPlan.ActionPlanStatus.ColorCode,
 								},
-								TargetDate: actionPlan.TargetDate.Format("2006-01-02"),
+								TargetDate: func() string {
+									if actionPlan.TargetDate == nil {
+										return ""
+									}
+									return actionPlan.TargetDate.Format("2006-01-02")
+								}(),
 								SeverityLevel: masterDTOs.SeverityLevelDTO{
 									ID:        actionPlan.SeverityLevel.ID,
 									TitleEn:   actionPlan.SeverityLevel.TitleEn,
@@ -430,7 +440,12 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 									TitleAr:   actionPlan.ActionPlanStatus.TitleAr,
 									ColorCode: actionPlan.ActionPlanStatus.ColorCode,
 								},
-								TargetDate: actionPlan.TargetDate.Format("2006-01-02"),
+								TargetDate: func() string {
+									if actionPlan.TargetDate == nil {
+										return ""
+									}
+									return actionPlan.TargetDate.Format("2006-01-02")
+								}(),
 								SeverityLevel: masterDTOs.SeverityLevelDTO{
 									ID:        actionPlan.SeverityLevel.ID,
 									TitleEn:   actionPlan.SeverityLevel.TitleEn,
