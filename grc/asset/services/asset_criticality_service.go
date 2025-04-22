@@ -1,6 +1,8 @@
 package services
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	assetDTOs "jethur/grc/asset/dtos"
@@ -8,6 +10,7 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"net/http"
 
 	"gorm.io/gorm"
 )
@@ -17,6 +20,8 @@ type AssetCriticalityServiceInterface interface {
 	Create(assetID uint, contributions []assetDTOs.AssetCriticalityFormDTO, currentUserID uint) error
 	Update(assetID uint, id uint, contribution assetDTOs.AssetCriticalityFormDTO, currentUserID uint) error
 	Delete(id uint, userID uint) error
+
+	GetAIResponse(req assetDTOs.CriticalityAIRequest) (map[string]interface{}, error)
 }
 
 type AssetCriticalityService struct {
@@ -323,3 +328,60 @@ func (acs *AssetCriticalityService) validateAssetCriticalityFormDTO(matrixID uin
 	}
 	return nil
 }
+
+func (svc *AssetCriticalityService) GetAIResponse(req assetDTOs.CriticalityAIRequest) (map[string]interface{}, error) {
+	apiURL := "https://ai-dev.jethur.com/api/v1/asset/criticality-assessment"
+
+	requestBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// ✅ Create request using a different variable name
+	httpReq, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(requestBody))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var result map[string]interface{}
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	return result, err
+}
+
+// func (svc *AssetCriticalityService) GetAIResponse(req assetDTOs.CriticalityAIRequest) (map[string]interface{}, error) {
+// 	apiURL := "https://ai-dev.jethur.com/api/v1/asset/criticality-assessment"
+
+// 	requestBody, err := json.Marshal(req)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	log.Printf("AI Request Payload: %s\n", string(requestBody))
+
+// 	httpReq, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(requestBody))
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	httpReq.Header.Set("Content-Type", "application/json")
+// 	httpReq.Header.Set("Accept", "application/json")
+
+// 	client := &http.Client{}
+// 	resp, err := client.Do(httpReq)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer resp.Body.Close()
+
+// 	var result map[string]interface{}
+// 	err = json.NewDecoder(resp.Body).Decode(&result)
+// 	return result, err
+// }
