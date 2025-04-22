@@ -219,3 +219,12 @@ func (klc *KRILibraryController) DeactivateKRILibraries(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+func (klc *KRILibraryController) GetKRICategoryCounts(c *gin.Context) {
+	result, err := klc.service.GetKRICategoryCounts()
+	if err != nil {
+		utility.SendInternalErrResp(klc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}

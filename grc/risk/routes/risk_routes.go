@@ -314,7 +314,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/risk-reports/:riskReportId/document-download", riskReportController.DownloadRiskReportDocument)
 	riskRoutes.GET("/risk-reports", riskReportController.GetAllRiskReports)
 	riskRoutes.GET("/risk-reports/:riskReportId", riskReportController.GetRiskReportDetails)
-	riskRoutes.GET("/risk-reports/:riskReportId/export-pdf", riskReportController.GetRiskReportExportPdf)
+	riskRoutes.GET("/risk-reports/:riskReportId/export-pdf", riskReportController.GetRiskReportExportZip)
 	riskRoutes.POST("/risk-reports", riskReportController.CreateRiskReport)
 	riskRoutes.GET("/risk-reports/:riskReportId/sections/:sectionId", riskReportController.GetRiskReportSection)
 	riskRoutes.PUT("/risk-reports/:riskReportId/sections/:sectionId", riskReportController.UpdateRiskReportSection)
