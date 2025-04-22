@@ -176,9 +176,9 @@ func (crs *ComplianceReportService) Create(currentUserID uint, request *dtos.Com
 						ComplianceReportID:            complianceReportID,
 						ComplianceReportRequirementID: complianceReportRequirementID,
 						Title:                         actionPlan.Title,
-						Description:                   *actionPlan.Description,
+						Description:                   actionPlan.Description,
 						ActionPlanStatusID:            actionPlan.ActionPlanStatusID,
-						TargetDate:                    *actionPlan.TargetDate,
+						TargetDate:                    actionPlan.TargetDate,
 						SeverityLevelID:               *actionPlan.SeverityLevelID,
 						CreatedAt:                     time.Now(),
 						CreatedBYID:                   currentUserID,
@@ -300,7 +300,7 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 									TitleAr:   actionPlan.ActionPlanStatus.TitleAr,
 									ColorCode: actionPlan.ActionPlanStatus.ColorCode,
 								},
-								TargetDate: &actionPlan.TargetDate,
+								TargetDate: actionPlan.TargetDate,
 								SeverityLevel: masterDTOs.SeverityLevelDTO{
 									ID:        actionPlan.SeverityLevel.ID,
 									TitleEn:   actionPlan.SeverityLevel.TitleEn,
@@ -375,7 +375,7 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 									TitleAr:   actionPlan.ActionPlanStatus.TitleAr,
 									ColorCode: actionPlan.ActionPlanStatus.ColorCode,
 								},
-								TargetDate: &actionPlan.TargetDate,
+								TargetDate: actionPlan.TargetDate,
 								SeverityLevel: masterDTOs.SeverityLevelDTO{
 									ID:        actionPlan.SeverityLevel.ID,
 									TitleEn:   actionPlan.SeverityLevel.TitleEn,
@@ -424,7 +424,7 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 									TitleAr:   actionPlan.ActionPlanStatus.TitleAr,
 									ColorCode: actionPlan.ActionPlanStatus.ColorCode,
 								},
-								TargetDate: &actionPlan.TargetDate,
+								TargetDate: actionPlan.TargetDate,
 								SeverityLevel: masterDTOs.SeverityLevelDTO{
 									ID:        actionPlan.SeverityLevel.ID,
 									TitleEn:   actionPlan.SeverityLevel.TitleEn,
