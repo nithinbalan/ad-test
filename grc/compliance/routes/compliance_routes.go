@@ -323,6 +323,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliance-reports/:complianceReportId", complianceReportController.GetComplianceReportDetails)
 	complianceRoutes.GET("/compliance-reports/:complianceReportId/export-pdf", complianceReportController.ExportComplianceReportToPDF)
 	complianceRoutes.DELETE("/compliance-reports/:complianceReportId", complianceReportController.DeleteComplianceReport)
+	complianceRoutes.GET("/compliance-reports/:complianceReportId/sections/:sectionId", complianceReportController.GetComplianceReportSectionDetails)
 	complianceRoutes.PUT("/compliance-reports/:complianceReportId/sections/:sectionId", complianceReportController.UpdateComplianceReportSection)
 
 }

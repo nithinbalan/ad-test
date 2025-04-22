@@ -21,6 +21,7 @@ type ComplianceReportServiceInterface interface {
 	GetAll(queryParams *dtos.ComplianceReportListQueryParamsDTO) (*dtos.ComplianceReportListResponseDTO, error)
 	Create(currentUserID uint, request *dtos.ComplianceReportFormDTO) (uint, error)
 	GetComplianceReportDetails(complianceReportID uint) (*dtos.ComplianceReportDetailsDTO, error)
+	GetComplianceReportSectionDetails(complianceReportID uint, sectionID uint) (*dtos.ComplianceReportSection, error)
 	UpdateSection(complianceReportID uint, sectionID uint, currentUserID uint, formDTO *dtos.ComplianceReportSectionFormDTO) error
 	DeleteComplianceReport(complianceReportID uint, currentUserID uint) error
 	ExportComplianceReportToPDF(complianceReportID uint, currentUserID uint) (string, error)
@@ -220,7 +221,7 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 	complianceReportDetails.StartDate = complianceReport.StartDate
 	complianceReportDetails.EndDate = complianceReport.EndDate
 	complianceReportDetails.ComplianceRegisterID = complianceReport.ComplianceRegisterID
-	complianceReportDetails.CreatedAt = complianceReport.CreatedAt
+	complianceReportDetails.CreatedAt = complianceReport.CreatedAt.Format("2006-01-02")
 
 	// Map compliance register
 	complianceReportDetails.ComplianceRegister.ID = complianceReport.ComplianceRegister.ID
@@ -303,7 +304,7 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 									TitleAr:   actionPlan.ActionPlanStatus.TitleAr,
 									ColorCode: actionPlan.ActionPlanStatus.ColorCode,
 								},
-								TargetDate: actionPlan.TargetDate,
+								TargetDate: actionPlan.TargetDate.Format("2006-01-02"),
 								SeverityLevel: masterDTOs.SeverityLevelDTO{
 									ID:        actionPlan.SeverityLevel.ID,
 									TitleEn:   actionPlan.SeverityLevel.TitleEn,
@@ -380,7 +381,7 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 									TitleAr:   actionPlan.ActionPlanStatus.TitleAr,
 									ColorCode: actionPlan.ActionPlanStatus.ColorCode,
 								},
-								TargetDate: actionPlan.TargetDate,
+								TargetDate: actionPlan.TargetDate.Format("2006-01-02"),
 								SeverityLevel: masterDTOs.SeverityLevelDTO{
 									ID:        actionPlan.SeverityLevel.ID,
 									TitleEn:   actionPlan.SeverityLevel.TitleEn,
@@ -429,7 +430,7 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 									TitleAr:   actionPlan.ActionPlanStatus.TitleAr,
 									ColorCode: actionPlan.ActionPlanStatus.ColorCode,
 								},
-								TargetDate: actionPlan.TargetDate,
+								TargetDate: actionPlan.TargetDate.Format("2006-01-02"),
 								SeverityLevel: masterDTOs.SeverityLevelDTO{
 									ID:        actionPlan.SeverityLevel.ID,
 									TitleEn:   actionPlan.SeverityLevel.TitleEn,
@@ -507,6 +508,25 @@ func calculateAverageScore(assessments []models.ComplianceAssessment) float64 {
 	}
 
 	return totalScore / float64(totalCount)
+}
+
+func (crs *ComplianceReportService) GetComplianceReportSectionDetails(complianceReportID uint, sectionID uint) (*dtos.ComplianceReportSection, error) {
+	section, err := crs.repo.GetComplianceReportSectionByID(sectionID)
+	if err != nil {
+		return nil, err
+	}
+
+	sectionDTO := &dtos.ComplianceReportSection{
+		ID:            section.ID,
+		TitleEn:       section.TitleEn,
+		TitleAr:       section.TitleAr,
+		DescriptionEn: section.DescriptionEn,
+		DescriptionAr: section.DescriptionAr,
+		Type:          section.Type,
+		Order:         section.OrderNum,
+	}
+
+	return sectionDTO, nil
 }
 
 func (crs *ComplianceReportService) UpdateSection(complianceReportID uint, sectionID uint, currentUserID uint, formDTO *dtos.ComplianceReportSectionFormDTO) error {

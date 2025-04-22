@@ -38,8 +38,8 @@ type ComplianceReportDetailsDTO struct {
 	StartDate                time.Time                       `json:"start_date"`
 	EndDate                  time.Time                       `json:"end_date"`
 	ComplianceRegisterID     uint                            `json:"compliance_register_id"`
-	CreatedAt                time.Time                       `json:"created_at"`
-	UpdatedAt                *time.Time                      `json:"updated_at"`
+	CreatedAt                string                          `json:"created_at"`
+	UpdatedAt                *string                         `json:"updated_at"`
 	CreatedByUser            organizationDTOs.UserMinimalDTO `json:"created_by"`
 	ComplianceRegister       ComplianceRegister              `json:"compliance_register"`
 	ComplianceReportSections []*ComplianceReportSection      `json:"compliance_report_sections"`
@@ -87,7 +87,7 @@ type ComplianceReportActionPlan struct {
 	Title            string                         `json:"title"`
 	Description      *string                        `json:"description"`
 	ActionPlanStatus masterDTOs.ActionPlanStatusDTO `json:"action_plan_status"`
-	TargetDate       *time.Time                     `json:"target_date"`
+	TargetDate       string                         `json:"target_date"`
 	SeverityLevel    masterDTOs.SeverityLevelDTO    `json:"severity_level"`
 }
 
