@@ -78,7 +78,7 @@ type ComplianceReportRequirement struct {
 	ID               uint                          `json:"id"`
 	TitleEn          string                        `json:"title_en"`
 	TitleAr          string                        `json:"title_ar"`
-	ComplianceStatus ComplianceStatusDTO           `json:"compliance_status"`
+	ComplianceStatus *ComplianceStatusDTO          `json:"compliance_status"`
 	Score            *int                          `json:"score"`
 	ActionPlans      []*ComplianceReportActionPlan `json:"action_plans"`
 }
