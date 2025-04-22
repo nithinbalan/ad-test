@@ -23,6 +23,7 @@ type KRILibraryServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
+	GetKRICategoryCounts() ([]libraryDTOs.KRICategoryCountDTO, error)
 }
 
 // Service and implementations
@@ -225,6 +226,10 @@ func (kls *KRILibraryService) Deactivate(ids []uint, currentUserID uint) error {
 	}
 
 	return err
+}
+
+func (svc *KRILibraryService) GetKRICategoryCounts() ([]libraryDTOs.KRICategoryCountDTO, error) {
+	return svc.repo.GetKRICategoryCounts()
 }
 
 // func (kls *KRILibraryService) validateKRILibraryFormDTO(kriLibraryFormDTO *libraryDTOs.KRILibraryFormDTO, id *uint) error {
