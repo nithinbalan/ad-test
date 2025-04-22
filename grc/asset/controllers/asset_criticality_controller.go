@@ -153,3 +153,19 @@ func (acc *AssetCriticalityController) DeleteAssetCriticality(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+func (acc *AssetCriticalityController) GetAIRecommendation(c *gin.Context) {
+	var req dtos.CriticalityAIRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	result, err := acc.service.GetAIResponse(req)
+	if err != nil {
+		utility.SendInternalErrResp(acc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}

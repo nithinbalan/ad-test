@@ -158,11 +158,19 @@ type BusinessImpactAssessmentRecoveryObjectiveDTO struct {
 }
 
 type BIAMatrixResponseDTO struct {
-	BusinessFunctionID     uint    `json:"business_function_id"`
-	BusinessFunctionTitle  string  `json:"business_function_title"`
-	ProcessID              uint    `json:"process_id"`
-	ProcessTitleEn         string  `json:"process_title_en"`
-	ProcessTitleAr         string  `json:"process_title_ar"`
+	BusinessFunctionID                 uint    `json:"business_function_id"`
+	BusinessFunctionTitle              string  `json:"business_function_title"`
+	BusinessFunctionCriticalityTitleEn *string `json:"business_function_criticality_title_en"`
+	BusinessFunctionCriticalityTitleAr *string `json:"business_function_criticality_title_ar"`
+	BusinessFunctionCriticalityColor   *string `json:"business_function_criticality_color"`
+
+	ProcessID                 uint    `json:"process_id"`
+	ProcessTitleEn            string  `json:"process_title_en"`
+	ProcessTitleAr            string  `json:"process_title_ar"`
+	ProcessCriticalityTitleEn *string `json:"process_criticality_title_en"`
+	ProcessCriticalityTitleAr *string `json:"process_criticality_title_ar"`
+	ProcessCriticalityColor   *string `json:"process_criticality_color"`
+
 	ProcessRTO             int     `json:"process_rto"`
 	ProcessMTPD            int     `json:"process_mtpd"`
 	ProcessRPO             int     `json:"process_rpo"`
@@ -174,9 +182,11 @@ type BIAMatrixResponseDTO struct {
 	ProcessRPOUnitID       *uint   `json:"process_rpo_unit_id"`
 	ProcessRPOUnitTitleEn  *string `json:"process_rpo_unit_title_en"`
 	ProcessRPOUnitTitleAr  *string `json:"process_rpo_unit_title_ar"`
-	RiskLevelID            *uint   `json:"risk_level_id"`
-	RiskLevelTitleEn       *string `json:"risk_level_title_en"`
-	RiskLevelTitleAr       *string `json:"risk_level_title_ar"`
+
+	RiskLevelID        *uint   `json:"risk_level_id"`
+	RiskLevelTitleEn   *string `json:"risk_level_title_en"`
+	RiskLevelTitleAr   *string `json:"risk_level_title_ar"`
+	RiskLevelColorCode *string `json:"risk_level_color_code"`
 }
 
 type BIAMatrixQueryParamsDTO struct {

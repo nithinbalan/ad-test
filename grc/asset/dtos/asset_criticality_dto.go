@@ -54,3 +54,7 @@ type AssetCriticalityContributionListQueryParamsDTO struct {
 	SortBy  string `json:"sort_by"`
 	Keyword string `json:"keyword"`
 }
+
+type CriticalityAIRequest struct {
+	Config map[string]interface{} `json:"config"`
+}
