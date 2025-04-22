@@ -85,7 +85,7 @@ type ComplianceReportRequirement struct {
 
 type ComplianceReportActionPlan struct {
 	Title            string                         `json:"title"`
-	Description      string                         `json:"description"`
+	Description      *string                        `json:"description"`
 	ActionPlanStatus masterDTOs.ActionPlanStatusDTO `json:"action_plan_status"`
 	TargetDate       *time.Time                     `json:"target_date"`
 	SeverityLevel    masterDTOs.SeverityLevelDTO    `json:"severity_level"`
