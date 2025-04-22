@@ -172,10 +172,6 @@ func (crs *ComplianceReportService) Create(currentUserID uint, request *dtos.Com
 				}
 
 				for _, actionPlan := range requirement.ActionPlans {
-					severityLevelID := uint(0) // Default value
-					if actionPlan.SeverityLevelID != nil {
-						severityLevelID = *actionPlan.SeverityLevelID
-					}
 
 					complianceReportActionPlan := &models.ComplianceReportActionPlan{
 						ComplianceReportID:            complianceReportID,
@@ -184,7 +180,7 @@ func (crs *ComplianceReportService) Create(currentUserID uint, request *dtos.Com
 						Description:                   actionPlan.Description,
 						ActionPlanStatusID:            actionPlan.ActionPlanStatusID,
 						TargetDate:                    actionPlan.TargetDate,
-						SeverityLevelID:               severityLevelID,
+						SeverityLevelID:               *actionPlan.SeverityLevelID,
 						CreatedAt:                     time.Now(),
 						CreatedBYID:                   currentUserID,
 					}
@@ -286,13 +282,15 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 						}
 
 						if nonCompliantRequirement.ComplianceStatus.ID != 0 {
-							nonCompliantArea.ComplianceStatus = dtos.ComplianceStatusDTO{
+							nonCompliantArea.ComplianceStatus = &dtos.ComplianceStatusDTO{
 								ID:        int(nonCompliantRequirement.ComplianceStatus.ID),
 								Type:      nonCompliantRequirement.ComplianceStatus.Type,
 								TitleEn:   nonCompliantRequirement.ComplianceStatus.TitleEn,
 								TitleAr:   nonCompliantRequirement.ComplianceStatus.TitleAr,
 								ColorCode: nonCompliantRequirement.ComplianceStatus.ColorCode,
 							}
+						} else {
+							nonCompliantArea.ComplianceStatus = nil
 						}
 
 						for _, actionPlan := range nonCompliantRequirement.ComplianceReportActionPlans {
@@ -358,13 +356,15 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 						}
 
 						if requirement.ComplianceStatus.ID != 0 {
-							requirementDTO.ComplianceStatus = dtos.ComplianceStatusDTO{
+							requirementDTO.ComplianceStatus = &dtos.ComplianceStatusDTO{
 								ID:        int(requirement.ComplianceStatus.ID),
 								Type:      requirement.ComplianceStatus.Type,
 								TitleEn:   requirement.ComplianceStatus.TitleEn,
 								TitleAr:   requirement.ComplianceStatus.TitleAr,
 								ColorCode: requirement.ComplianceStatus.ColorCode,
 							}
+						} else {
+							requirementDTO.ComplianceStatus = nil
 						}
 
 						for _, actionPlan := range requirement.ComplianceReportActionPlans {
