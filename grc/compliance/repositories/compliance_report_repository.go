@@ -55,7 +55,7 @@ func (repo *ComplianceReportRepository) GetAll(params *dtos.ComplianceReportList
 		Select(`
 			compliance_reports.id,
 			compliance_reports.title,
-			ONVERT(VARCHAR, compliance_reports.start_date, 23) AS start_date,
+			CONVERT(VARCHAR, compliance_reports.start_date, 23) AS start_date,
 			CONVERT(VARCHAR, compliance_reports.end_date, 23) AS end_date,
 			compliance_reports.created_at,
 			compliance_register.title_en AS compliance_register_title_en,
