@@ -23,6 +23,7 @@ type ComplianceReportServiceInterface interface {
 	GetComplianceReportDetails(complianceReportID uint) (*dtos.ComplianceReportDetailsDTO, error)
 	UpdateSection(complianceReportID uint, sectionID uint, currentUserID uint, formDTO *dtos.ComplianceReportSectionFormDTO) error
 	DeleteComplianceReport(complianceReportID uint, currentUserID uint) error
+	ExportComplianceReportToPDF(complianceReportID uint, currentUserID uint) (string, error)
 }
 
 func NewComplianceReportService(
@@ -586,4 +587,25 @@ func (crs *ComplianceReportService) DeleteComplianceReport(complianceReportID ui
 
 	tx.Commit()
 	return nil
+}
+
+func (crs *ComplianceReportService) ExportComplianceReportToPDF(complianceReportID uint, currentUserID uint) (string, error) {
+	complianceReport, err := crs.GetComplianceReportDetails(complianceReportID)
+	if err != nil {
+		return "", err
+	}
+
+	// Render template and generate PDF
+	templatePaths := []string{"compliance/templates/pdf/compliance_report.html"}
+	htmlContent, err := utility.GeneratePDFContent(complianceReport, templatePaths, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate HTML content: %w", err)
+	}
+
+	pdfFileName := fmt.Sprintf("ComplianceReport_%d.pdf", complianceReportID)
+	if err := utility.ConvertHTMLContentToPDF(htmlContent, pdfFileName); err != nil {
+		return "", fmt.Errorf("failed to generate PDF: %w", err)
+	}
+
+	return pdfFileName, nil
 }
