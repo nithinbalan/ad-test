@@ -1,0 +1,36 @@
+{{ define "content" }}
+<p>Dear {{ .FirstNameEn }} {{ .LastNameEn }},</p>
+<p>
+  We wanted to let you know that an action plan for the Strategy Profile Titled <strong>{{ .StrategyProfileTitle }}</strong> reopened. Below are the details of the assigned action plan:
+</p>
+
+<table style="width: 100%; background-color: #fff; border-collapse: collapse; margin: 20px 0;">
+    <tbody>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Strategy Profile Title</th>
+            <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">{{.StrategyProfileTitle}}</td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Action Plan Title</th>
+            <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">{{.ActionPlanTitle}}</td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Resolved By</th>
+            <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">{{.ResolvedByFirstNameEn}} {{ .ResolvedByLastNameEn }}</td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Resolved On</th>
+            <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">{{.ResolvedOn}}</td>
+        </tr>
+    </tbody>
+</table>
+
+<p>Please log into the system to review the action plan details and take the necessary actions.</p>
+
+<div style="text-align: center;">
+    <a href="{{.RedirectURL}}" style="background-color: #165D31; color: #ffffff; padding: 10px 20px; text-align: center; text-decoration: none; border-radius: 4px; display: inline-block; margin-top: 30px;">View Action Plan</a>
+</div>
+
+<p>Thank you for your prompt attention to this matter. Your efforts in managing action plans are crucial to maintaining the Strategy Profile effectiveness.</p>
+
+{{ end }}

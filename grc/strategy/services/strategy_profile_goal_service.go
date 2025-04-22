@@ -86,7 +86,7 @@ func (sps StrategyProfileGoalService) GetFullDetailsByID(strategyProfileID uint,
 	if err != nil {
 		return nil, err
 	}
-	if strategyProfileGoalDTO.TargetDateString != "" {
+	if strategyProfileGoal.TargetDate != nil {
 		strategyProfileGoalDTO.TargetDateString = strategyProfileGoal.TargetDate.Format("2006-01-02")
 	}
 

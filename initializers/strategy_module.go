@@ -9,12 +9,17 @@ import (
 )
 
 type StrategyModule struct {
-	StrategyProfileController           *controllers.StrategyProfileController
-	StrategyProfileFocusAreaController  *controllers.StrategyProfileFocusAreaController
-	StrategyProfileGoalController       *controllers.StrategyProfileGoalController
-	StrategyProfileObjectiveController  *controllers.StrategyProfileObjectiveController
-	StrategyProfileInitiativeController *controllers.StrategyProfileInitiativeController
-	StrategyProfileProjectController    *controllers.StrategyProfileProjectController
+	StrategyProfileController                       *controllers.StrategyProfileController
+	StrategyProfileFocusAreaController              *controllers.StrategyProfileFocusAreaController
+	StrategyProfileGoalController                   *controllers.StrategyProfileGoalController
+	StrategyProfileObjectiveController              *controllers.StrategyProfileObjectiveController
+	StrategyProfileInitiativeController             *controllers.StrategyProfileInitiativeController
+	StrategyProfileProjectController                *controllers.StrategyProfileProjectController
+	StrategyProfileMilestoneController              *controllers.StrategyProfileMilestoneController
+	StrategyProfileActionPlanController             *controllers.StrategyProfileActionPlanController
+	StrategyProfileActionPlanStatusUpdateController *controllers.StrategyProfileActionPlanStatusUpdateController
+	StrategyProfileActionPlanCommentController      *controllers.StrategyProfileActionPlanCommentController
+	StrategyProfileSettingController                *controllers.StrategyProfileSettingController
 }
 
 func NewStrategyModule(db *gorm.DB,
@@ -51,12 +56,37 @@ func NewStrategyModule(db *gorm.DB,
 	strategyProfileProjectSvc := services.NewStrategyProfileProjectService(strategyProfileProjectRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
 	strategyProfileProjectController := controllers.NewStrategyProfileProjectController(strategyProfileProjectSvc)
 
+	strategyProfileMilestoneRepo := repositories.NewStrategyProfileMilestoneRepository(db)
+	strategyProfileMilestoneSvc := services.NewStrategyProfileMilestoneService(strategyProfileMilestoneRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
+	strategyProfileMilestoneController := controllers.NewStrategyProfileMilestoneController(strategyProfileMilestoneSvc)
+
+	strategyProfileActionPlanRepo := repositories.NewStrategyProfileActionPlanRepository(db)
+	strategyProfileActionPlanSvc := services.NewStrategyProfileActionPlanService(strategyProfileActionPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, strategyProfileSvc, masterModule.ActionPlanStatusSvc, taskModule.TaskService, commonModule.NotificationService, organizationModule.UserSettingSvc)
+	strategyProfileActionPlanController := controllers.NewStrategyProfileActionPlanController(strategyProfileActionPlanSvc)
+
+	strategyProfileActionPlanStatusUpdateRepo := repositories.NewStrategyProfileActionPlanStatusUpdateRepository(db)
+	strategyProfileActionPlanStatusUpdateSvc := services.NewStrategyProfileActionPlanStatusUpdateService(strategyProfileActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, strategyProfileActionPlanSvc, masterModule.ActionPlanStatusSvc, strategyProfileSvc, organizationModule.UserSvc, commonModule.NotificationService, taskModule.TaskService, taskModule.TaskStatusService)
+	strategyProfileActionPlanStatusUpdateController := controllers.NewStrategyProfileActionPlanStatusUpdateController(strategyProfileActionPlanStatusUpdateSvc)
+
+	strategyProfileActionPlanCommentRepository := repositories.NewStrategyProfileActionPlanCommentRepository(db)
+	strategyProfileActionPlanCommentSvc := services.NewStrategyProfileActionPlanCommentService(strategyProfileActionPlanCommentRepository, organizationModule.UserSvc, sharedModule.ActivityLogService, strategyProfileActionPlanSvc, commonModule.NotificationService)
+	strategyProfileActionPlanCommentController := controllers.NewStrategyProfileActionPlanCommentController(strategyProfileActionPlanCommentSvc)
+
+	strategyProfileSettingRepo := repositories.NewStrategyProfileSettingRepository(db)
+	strategyProfileSettingSvc := services.NewStrategyProfileSettingService(strategyProfileSettingRepo)
+	strategyProfileSettingController := controllers.NewStrategyProfileSettingController(strategyProfileSettingSvc)
+
 	return &StrategyModule{
-		StrategyProfileController:           strategyProfileController,
-		StrategyProfileFocusAreaController:  strategyProfileFocusAreaController,
-		StrategyProfileGoalController:       strategyProfileGoalController,
-		StrategyProfileObjectiveController:  strategyProfileObjectiveController,
-		StrategyProfileInitiativeController: strategyProfileInitiativeController,
-		StrategyProfileProjectController:    strategyProfileProjectController,
+		StrategyProfileController:                       strategyProfileController,
+		StrategyProfileFocusAreaController:              strategyProfileFocusAreaController,
+		StrategyProfileGoalController:                   strategyProfileGoalController,
+		StrategyProfileObjectiveController:              strategyProfileObjectiveController,
+		StrategyProfileInitiativeController:             strategyProfileInitiativeController,
+		StrategyProfileProjectController:                strategyProfileProjectController,
+		StrategyProfileMilestoneController:              strategyProfileMilestoneController,
+		StrategyProfileActionPlanController:             strategyProfileActionPlanController,
+		StrategyProfileActionPlanStatusUpdateController: strategyProfileActionPlanStatusUpdateController,
+		StrategyProfileActionPlanCommentController:      strategyProfileActionPlanCommentController,
+		StrategyProfileSettingController:                strategyProfileSettingController,
 	}
 }

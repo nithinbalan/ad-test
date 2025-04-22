@@ -74,7 +74,7 @@ func (snec *StrategyProfileInitiativeController) GetAllStrategyProfileInitiative
 		Export:      export,
 	}
 
-	focusArea, err := snec.service.GetAll(uint(strategyProfileID), &queryParams)
+	initiative, err := snec.service.GetAll(uint(strategyProfileID), &queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -86,7 +86,7 @@ func (snec *StrategyProfileInitiativeController) GetAllStrategyProfileInitiative
 		}
 	}
 
-	c.JSON(http.StatusOK, focusArea)
+	c.JSON(http.StatusOK, initiative)
 }
 
 func (snec *StrategyProfileInitiativeController) GetStrategyProfileInitiativeDetails(c *gin.Context) {
@@ -105,7 +105,7 @@ func (snec *StrategyProfileInitiativeController) GetStrategyProfileInitiativeDet
 		return
 	}
 
-	focusArea, err := snec.service.GetFullDetailsByID(uint(strategyProfileID), uint(id))
+	initiative, err := snec.service.GetFullDetailsByID(uint(strategyProfileID), uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -117,7 +117,7 @@ func (snec *StrategyProfileInitiativeController) GetStrategyProfileInitiativeDet
 		}
 	}
 
-	c.JSON(http.StatusOK, focusArea)
+	c.JSON(http.StatusOK, initiative)
 }
 
 func (snec *StrategyProfileInitiativeController) CreateStrategyProfileInitiative(c *gin.Context) {

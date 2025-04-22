@@ -72,7 +72,7 @@ func (repo *StrategyProfileGoalRepository) GetAll(strategyProfileID uint, params
             updated_user.profile_image_path AS updated_user_profile_image_path  
         `).
 		Joins(`
-		LEFT JOIN users AS responsible_user ON responsible_user.id = strategy_profile_goals.responsible_user_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = strategy_profile_goals.responsible_user_id
 			LEFT JOIN strategy_profiles ON strategy_profiles.id = strategy_profile_goals.strategy_profile_id
 			LEFT JOIN strategy_profile_focus_areas ON strategy_profile_focus_areas.id = strategy_profile_goals.strategy_profile_focus_area_id
 			LEFT JOIN users AS created_user ON created_user.id = strategy_profile_goals.created_by_id
