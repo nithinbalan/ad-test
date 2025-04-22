@@ -190,11 +190,12 @@ type BIAMatrixResponseDTO struct {
 }
 
 type BIAMatrixQueryParamsDTO struct {
-	Sort     string
-	SortBy   string
-	Keyword  string
-	Page     int
-	PageSize int
-	Filters  map[string][]string
-	Export   bool
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Page        int
+	PageSize    int
+	Filters     map[string][]string
+	Export      bool
+	QuickFilter []string
 }

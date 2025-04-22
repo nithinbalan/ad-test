@@ -391,6 +391,7 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
 		Joins(`
 			INNER JOIN business_functions ON business_functions.id = business_function_processes.business_function_id
 			INNER JOIN processes ON processes.id = business_function_processes.process_id
+		    LEFT JOIN organization_units ON organization_units.id = processes.owner_unit_id
 			LEFT JOIN process_criticality_levels AS pcl_bf ON pcl_bf.id = business_functions.highest_process_criticality_level_id
 			LEFT JOIN process_criticality_levels AS pcl_proc ON pcl_proc.id = processes.process_criticality_level_id
 			LEFT JOIN risk_levels ON risk_levels.id = processes.risk_level_id
@@ -404,6 +405,20 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
 		if len(values) > 0 {
 			query = query.Where(columnName+" IN (?)", values)
 		}
+	}
+
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "high":
+			query = query.Where("process_criticality_levels.type = ?", "high")
+		case "medium":
+			query = query.Where("process_criticality_levels.type = ?", "medium")
+		case "low":
+			query = query.Where("process_criticality_levels.type = ?", "low")
+		case "all":
+			continue
+		}
+
 	}
 
 	if params.Keyword != "" {
