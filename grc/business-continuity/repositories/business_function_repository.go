@@ -26,6 +26,7 @@ type BusinessFunctionRepositoryInterface interface {
 	DeleteBusinessFunctionProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error
 	GetTestAndExercisesByBcpID(bcpID uint) ([]*models.TestAndExercise, error)
 	GetBcpTestAndExercisesByBcpID(bcpID uint) ([]*models.BcpTestAndExercise, error)
+	GetProcessWithCriticality(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error)
 }
 
 type BusinessFunctionRepository struct {
@@ -339,4 +340,17 @@ func (repo *BusinessFunctionRepository) GetBcpTestAndExercisesByBcpID(bcpID uint
 	}
 
 	return bcpTestAndExercises, nil
+}
+func (repo *BusinessFunctionRepository) GetProcessWithCriticality(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var process models.Process
+	err := db.Preload("ProcessCriticalityLevel").First(&process, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &process, nil
 }

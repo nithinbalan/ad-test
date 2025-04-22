@@ -11,6 +11,7 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 	"os"
+	"strings"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -133,6 +134,28 @@ func (bfs *BusinessFunctionService) Create(currentUserID uint, businessFunctionF
 		CreatedBYID:       currentUserID,
 	}
 
+	//find highest criticality level of process
+	var highestCriticalityLevelID *uint
+	if len(businessFunctionFormDTO.ProcessIDs) > 0 {
+		criticalityMap := map[string]int{"low": 1, "medium": 2, "high": 3}
+		var maxScore int
+		for _, processID := range businessFunctionFormDTO.ProcessIDs {
+			process, err := bfs.repo.GetProcessWithCriticality(*processID, tx)
+			if err != nil {
+				tx.Rollback()
+				return 0, fmt.Errorf("failed to fetch process criticality: %v", err)
+			}
+			if process.ProcessCriticalityLevel != nil {
+				score := criticalityMap[strings.ToLower(process.ProcessCriticalityLevel.Type)]
+				if score > maxScore {
+					maxScore = score
+					highestCriticalityLevelID = &process.ProcessCriticalityLevel.ID
+				}
+			}
+		}
+		businessFunction.HighestProcessCriticalityLevelID = highestCriticalityLevelID
+	}
+
 	id, err := bfs.repo.Create(businessFunction, tx)
 	if err != nil {
 		tx.Rollback()
@@ -190,6 +213,7 @@ func (bfs *BusinessFunctionService) Create(currentUserID uint, businessFunctionF
 	}()
 	return id, nil
 }
+
 func (bfs *BusinessFunctionService) Update(id uint, currentUserID uint, businessFunctionFormDTO *businessContinuityDTOs.BusinessFunctionFormDTO) error {
 	tx := bfs.repo.BeginTransaction()
 
@@ -281,6 +305,34 @@ func (bfs *BusinessFunctionService) Update(id uint, currentUserID uint, business
 			tx.Rollback()
 			return err
 		}
+	}
+
+	// Determine the highest process criticality level
+	var highestCriticalityLevelID *uint
+	if len(businessFunctionFormDTO.ProcessIDs) > 0 {
+		criticalityMap := map[string]int{"low": 1, "medium": 2, "high": 3}
+		var maxScore int
+		for _, processID := range businessFunctionFormDTO.ProcessIDs {
+			process, err := bfs.repo.GetProcessWithCriticality(*processID, tx)
+			if err != nil {
+				tx.Rollback()
+				return fmt.Errorf("failed to fetch process criticality: %v", err)
+			}
+			if process.ProcessCriticalityLevel != nil {
+				score := criticalityMap[strings.ToLower(process.ProcessCriticalityLevel.Type)]
+				if score > maxScore {
+					maxScore = score
+					highestCriticalityLevelID = &process.ProcessCriticalityLevel.ID
+				}
+			}
+		}
+	}
+
+	existingBusinessFunction.HighestProcessCriticalityLevelID = highestCriticalityLevelID
+
+	if err := bfs.repo.Update(existingBusinessFunction, tx); err != nil {
+		tx.Rollback()
+		return err
 	}
 
 	tx.Commit()

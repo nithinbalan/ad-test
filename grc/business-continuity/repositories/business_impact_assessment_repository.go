@@ -331,39 +331,51 @@ func (repo *BusinessImpactAssessmentRepository) GetImpactAssessmentsByProcessID(
 }
 
 func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) ([]businessContinuityDTOs.BIAMatrixResponseDTO, error) {
-	var results []businessContinuityDTOs.BIAMatrixResponseDTO
+	var results = []businessContinuityDTOs.BIAMatrixResponseDTO{}
 
 	query := repo.db.Table("business_function_processes").
 		Select(`
-        business_functions.id AS business_function_id,
-        business_functions.title AS business_function_title,
-        processes.id AS process_id,
-        processes.title_en AS process_title_en,
-        processes.title_ar AS process_title_ar,
-        processes.rto AS process_rto,
-        processes.mtpd AS process_mtpd,
-        processes.rpo AS process_rpo,
-        time_units_rto.title_en AS process_rto_unit_title_en,
-        time_units_rto.title_ar AS process_rto_unit_title_ar,
-        processes.mtpd_unit_id AS process_mtpd_unit_id,
-        time_units_mtpd.title_en AS process_mtpd_unit_title_en,
-        time_units_mtpd.title_ar AS process_mtpd_unit_title_ar,
-        processes.rpo_unit_id AS process_rpo_unit_id,
-        time_units_rpo.title_en AS process_rpo_unit_title_en,
-        time_units_rpo.title_ar AS process_rpo_unit_title_ar,
-        processes.risk_level_id AS risk_level_id,
-        risk_levels.title_en AS risk_level_title_en,
-        risk_levels.title_ar AS risk_level_title_ar,
-		risk_levels.color_code AS risk_level_color_code
-    `).
+			business_functions.id AS business_function_id,
+			business_functions.title AS business_function_title,
+			business_functions.highest_process_criticality_level_id,
+			pcl_bf.title_en AS business_function_criticality_title_en,
+			pcl_bf.title_ar AS business_function_criticality_title_ar,
+			pcl_bf.color_code AS business_function_criticality_color,
+
+			processes.id AS process_id,
+			processes.title_en AS process_title_en,
+			processes.title_ar AS process_title_ar,
+			processes.process_criticality_level_id,
+			pcl_proc.title_en AS process_criticality_title_en,
+			pcl_proc.title_ar AS process_criticality_title_ar,
+			pcl_proc.color_code AS process_criticality_color,
+
+			processes.rto AS process_rto,
+			processes.mtpd AS process_mtpd,
+			processes.rpo AS process_rpo,
+			time_units_rto.title_en AS process_rto_unit_title_en,
+			time_units_rto.title_ar AS process_rto_unit_title_ar,
+			processes.mtpd_unit_id AS process_mtpd_unit_id,
+			time_units_mtpd.title_en AS process_mtpd_unit_title_en,
+			time_units_mtpd.title_ar AS process_mtpd_unit_title_ar,
+			processes.rpo_unit_id AS process_rpo_unit_id,
+			time_units_rpo.title_en AS process_rpo_unit_title_en,
+			time_units_rpo.title_ar AS process_rpo_unit_title_ar,
+			processes.risk_level_id AS risk_level_id,
+			risk_levels.title_en AS risk_level_title_en,
+			risk_levels.title_ar AS risk_level_title_ar,
+			risk_levels.color_code AS risk_level_color_code
+		`).
 		Joins(`
-        INNER JOIN business_functions ON business_functions.id = business_function_processes.business_function_id
-        INNER JOIN processes ON processes.id = business_function_processes.process_id
-        LEFT JOIN risk_levels ON risk_levels.id = processes.risk_level_id
-        LEFT JOIN time_units AS time_units_rto ON time_units_rto.id = processes.rto_unit_id
-        LEFT JOIN time_units AS time_units_mtpd ON time_units_mtpd.id = processes.mtpd_unit_id
-        LEFT JOIN time_units AS time_units_rpo ON time_units_rpo.id = processes.rpo_unit_id
-    `).
+			INNER JOIN business_functions ON business_functions.id = business_function_processes.business_function_id
+			INNER JOIN processes ON processes.id = business_function_processes.process_id
+			LEFT JOIN process_criticality_levels AS pcl_bf ON pcl_bf.id = business_functions.highest_process_criticality_level_id
+			LEFT JOIN process_criticality_levels AS pcl_proc ON pcl_proc.id = processes.process_criticality_level_id
+			LEFT JOIN risk_levels ON risk_levels.id = processes.risk_level_id
+			LEFT JOIN time_units AS time_units_rto ON time_units_rto.id = processes.rto_unit_id
+			LEFT JOIN time_units AS time_units_mtpd ON time_units_mtpd.id = processes.mtpd_unit_id
+			LEFT JOIN time_units AS time_units_rpo ON time_units_rpo.id = processes.rpo_unit_id
+		`).
 		Where("processes.is_bia_performed = ?", 1)
 
 	for columnName, values := range params.Filters {
@@ -375,11 +387,11 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-            business_functions.title LIKE ? OR 
-            processes.title_en LIKE ? OR 
-            processes.title_ar LIKE ? OR 
-            risk_levels.title_en LIKE ? OR 
-            risk_levels.title_ar LIKE ?`,
+			business_functions.title LIKE ? OR 
+			processes.title_en LIKE ? OR 
+			processes.title_ar LIKE ? OR 
+			risk_levels.title_en LIKE ? OR 
+			risk_levels.title_ar LIKE ?`,
 			keyword, keyword, keyword, keyword, keyword)
 	}
 
