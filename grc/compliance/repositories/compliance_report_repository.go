@@ -55,8 +55,8 @@ func (repo *ComplianceReportRepository) GetAll(params *dtos.ComplianceReportList
 		Select(`
 			compliance_reports.id,
 			compliance_reports.title,
-			compliance_reports.start_date,
-			compliance_reports.end_date,
+			ONVERT(VARCHAR, compliance_reports.start_date, 23) AS start_date,
+			CONVERT(VARCHAR, compliance_reports.end_date, 23) AS end_date,
 			compliance_reports.created_at,
 			compliance_register.title_en AS compliance_register_title_en,
 			compliance_register.title_ar AS compliance_register_title_ar,
@@ -76,8 +76,8 @@ func (repo *ComplianceReportRepository) GetAll(params *dtos.ComplianceReportList
 	if params.Keyword != "" {
 		query = query.Where(`
 			(compliance_reports.title LIKE ? OR 
-			compliance_registers.title_en LIKE ? OR 
-			compliance_registers.title_ar LIKE ? OR 
+			compliance_register.title_en LIKE ? OR 
+			compliance_register.title_ar LIKE ? OR 
 			created_user.first_name_en LIKE ? OR 
 			created_user.first_name_ar LIKE ? OR 
 			created_user.last_name_en LIKE ? OR 
