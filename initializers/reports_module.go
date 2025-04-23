@@ -24,6 +24,7 @@ func NewReportsModule(db *gorm.DB,
 	organizationModule *OrganizationModule,
 	riskModule *RiskModule,
 	auditModule *AuditModule,
+	auditInsightsModule *AuditInsightsModule,
 	incidentModule *IncidentModule,
 	meetingModule *MeetingModule,
 	settingsModule *SettingsModule,
@@ -64,7 +65,12 @@ func NewReportsModule(db *gorm.DB,
 
 	auditInsightReportRepo := repositories.NewAuditInsightReportRepository(db)
 	auditInsightReportSvc := services.NewAuditInsightReportService(auditInsightReportRepo, organizationModule.UserSvc)
-	auditInsightReportController := controllers.NewAuditInsightReportController(auditInsightReportSvc)
+	auditInsightReportController := controllers.NewAuditInsightReportController(auditInsightReportSvc,
+		auditInsightsModule.AuditInsightsAuditSvc,
+		auditInsightsModule.AuditInsightsAuditFindingSvc,
+		auditInsightsModule.AuditInsightsFindingActionPlanSvc,
+		auditInsightsModule.AuditInsightsAuditPlanSvc,
+	)
 	meetingReportRepo := repositories.NewMeetingReportRepository(db)
 	meetingReportSvc := services.NewMeetingReportService(meetingReportRepo, settingsModule.OrganizationLevelSvc)
 	meetingReportController := controllers.NewMeetingReportController(meetingReportSvc,
