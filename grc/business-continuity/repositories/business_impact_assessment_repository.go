@@ -410,11 +410,11 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
 	for _, filter := range params.QuickFilter {
 		switch filter {
 		case "high":
-			query = query.Where("process_criticality_levels.type = ?", "high")
+			query = query.Where("pcl_proc.type = ?", "high")
 		case "medium":
-			query = query.Where("process_criticality_levels.type = ?", "medium")
+			query = query.Where("pcl_proc.type = ?", "medium")
 		case "low":
-			query = query.Where("process_criticality_levels.type = ?", "low")
+			query = query.Where("pcl_proc.type = ?", "low")
 		case "all":
 			continue
 		}

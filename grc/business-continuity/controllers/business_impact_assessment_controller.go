@@ -636,7 +636,7 @@ func (biac *BusinessImpactAssessmentController) GetBIAMatrix(c *gin.Context) {
 	allowedParams := []string{
 		"process_ids",
 		"risk_level_ids",
-		"responsible_unit_ids",
+		"owner_unit_ids",
 		"owner_ids",
 		"process_criticality_level_ids",
 	}
