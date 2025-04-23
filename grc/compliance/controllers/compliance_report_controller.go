@@ -134,6 +134,34 @@ func (crc *ComplianceReportController) GetComplianceReportDetails(c *gin.Context
 	c.JSON(http.StatusOK, complianceReport)
 }
 
+func (crc *ComplianceReportController) GetComplianceReportSectionDetails(c *gin.Context) {
+	complianceReportID, err := strconv.Atoi(c.Param("complianceReportId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sectionID, err := strconv.Atoi(c.Param("sectionId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	section, err := crc.service.GetComplianceReportSectionDetails(uint(complianceReportID), uint(sectionID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, section)
+}
+
 func (crc *ComplianceReportController) UpdateComplianceReportSection(c *gin.Context) {
 	complianceReportID, err := strconv.Atoi(c.Param("complianceReportId"))
 	if err != nil {

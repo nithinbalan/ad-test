@@ -70,20 +70,28 @@ func (repo *AssetPolicyRepository) GetAll(params *dtos.AssetPolicyListQueryParam
 		Joins("LEFT JOIN asset_sub_categories ON asset_sub_categories.id = asset_register.asset_sub_category_id").
 		Joins("LEFT JOIN documents ON documents.id = asset_policies.document_id").
 		Joins("LEFT JOIN document_versions ON document_versions.document_id = documents.id AND document_versions.is_latest_version = 1").
-		Joins("LEFT JOIN compliance_statuses ON asset_policies.compliance_status_id = compliance_statuses.id").
-		Where("asset_policies.asset_register_id = ?", assetRegisterID)
+		Joins("LEFT JOIN compliance_statuses ON asset_policies.compliance_status_id = compliance_statuses.id")
+
+	if params.Keyword != "" {
+		query = query.Where(`
+				asset_policies.asset_register_id = ? AND (
+					documents.title_en LIKE ? OR
+					documents.title_ar LIKE ? OR
+					compliance_statuses.title_en LIKE ? OR
+					compliance_statuses.title_ar LIKE ?
+				)
+			`, assetRegisterID,
+			"%"+params.Keyword+"%",
+			"%"+params.Keyword+"%",
+			"%"+params.Keyword+"%",
+			"%"+params.Keyword+"%",
+		)
+	} else {
+		query = query.Where("asset_policies.asset_register_id = ?", assetRegisterID)
+	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
-	}
-	// Apply search filter
-	if params.Keyword != "" {
-		query = query.Where(`
-			documents.title_en LIKE ? OR
-			documents.title_ar LIKE ? OR
-			compliance_statuses.title_en LIKE ? OR
-			compliance_statuses.title_ar LIKE ?
-		`, "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort).
