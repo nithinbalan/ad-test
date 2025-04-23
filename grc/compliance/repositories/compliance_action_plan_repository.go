@@ -13,7 +13,7 @@ import (
 
 type ComplianceActionPlanRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error)
+	GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO, complianceAssessmentRequirementID uint) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceActionPlan, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceActionPlan, error)
 	Create(complianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
@@ -22,6 +22,9 @@ type ComplianceActionPlanRepositoryInterface interface {
 
 	CreateInitialComplianceActionPlanStatusUpdate(complianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteComplianceActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceActionPlanComments(ids []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceActionPlanCommentDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceActionPlanStatusUpdateDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceActionPlanRepository struct {
@@ -39,7 +42,7 @@ func (repo *ComplianceActionPlanRepository) BeginTransaction() utility.DatabaseT
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error) {
+func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO, complianceAssessmentRequirementID uint) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error) {
 
 	var complianceActionPlans []*complianceDTOs.ComplianceActionPlanListDTO
 	var totalCount int64
@@ -56,6 +59,7 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
         action_plan_statuses.title_en AS action_plan_status_title_en,
         action_plan_statuses.title_ar AS action_plan_status_title_ar,
 		action_plan_statuses.color_code AS action_plan_status_color_code,
+		action_plan_statuses.type AS action_plan_status_type,
         severity_levels.title_en AS severity_level_title_en,
         severity_levels.title_ar AS severity_level_title_ar,
         severity_levels.color_code AS severity_level_color_code,
@@ -110,6 +114,11 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
 	// Conditionally apply compliance ID filter
 	if complianceID != 0 {
 		query = query.Where("compliance_action_plans.compliance_register_id = ?", complianceID)
+	}
+
+	// Conditionally apply compliance ID filter
+	if complianceAssessmentRequirementID != 0 {
+		query = query.Where("compliance_action_plans.compliance_assessment_requirement_id = ?", complianceAssessmentRequirementID)
 	}
 
 	// Apply dynamic filters to the query
@@ -226,6 +235,8 @@ func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint, tx ...ut
 	// Load the compliance action plan with all related data
 	result := db.
 		Preload("ComplianceRequirement.ComplianceClause").
+		Preload("ComplianceAssessmentRequirement").
+		Preload("ComplianceAssessmentRequirement.ComplianceRequirement").
 		Preload("ComplianceRegister").
 		Preload("SeverityLevel").
 		Preload("ResponsibleUser").
@@ -296,6 +307,45 @@ func (repo *ComplianceActionPlanRepository) DeleteComplianceActionPlanStatusUpda
 	}
 
 	if err := db.Where("id IN (?)", ids).Delete(&models.ComplianceActionPlanStatusUpdate{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ComplianceActionPlanRepository) DeleteComplianceActionPlanComments(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.ComplianceActionPlanComment{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ComplianceActionPlanRepository) DeleteComplianceActionPlanCommentDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", docIds).Delete(&models.ComplianceActionPlanCommentDocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ComplianceActionPlanRepository) DeleteComplianceActionPlanStatusUpdateDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", docIds).Delete(&models.ComplianceActionPlanStatusUpdateDocument{}).Error; err != nil {
 		return err
 	}
 

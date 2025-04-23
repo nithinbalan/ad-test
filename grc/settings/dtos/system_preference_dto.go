@@ -11,22 +11,34 @@ type SystemPreferenceFormDTO struct {
 	IsMaintenanceModeOn *bool  `json:"is_maintenance_mode_on"`
 }
 
-type SystemPreferenceDTO struct {
-	ID                  int         `json:"id"`
-	CurrencyID          uint        `json:"currency_id"`
-	TimezoneID          uint        `json:"timezone_id"`
-	DateFormat          string      `json:"date_format"`
-	TimeFormat          string      `json:"time_format"`
-	DocUploadSize       int         `json:"doc_upload_size"`
-	LogoUploadSize      int         `json:"logo_upload_size"`
-	IdleTimeout         int         `json:"idle_timeout"`
-	IsMaintenanceModeOn *bool       `json:"is_maintenance_mode_on"`
-	CreatedByID         uint        `json:"created_by_id"`
-	UpdatedByID         *uint       `json:"updated_by_id"`
-	Timezone            TimezoneDTO `json:"timezone"`
-	Currency            CurrencyDTO `json:"currency"`
+type LicenseKeyUpdateFormDTO struct {
+	LicenseKey *string `json:"license_key" binding:"required"`
 }
 
+type SystemPreferenceDTO struct {
+	ID                  int            `json:"id"`
+	CurrencyID          uint           `json:"currency_id"`
+	TimezoneID          uint           `json:"timezone_id"`
+	DateFormat          string         `json:"date_format"`
+	TimeFormat          string         `json:"time_format"`
+	DocUploadSize       int            `json:"doc_upload_size"`
+	LogoUploadSize      int            `json:"logo_upload_size"`
+	IdleTimeout         int            `json:"idle_timeout"`
+	IsMaintenanceModeOn *bool          `json:"is_maintenance_mode_on"`
+	CreatedByID         uint           `json:"created_by_id"`
+	UpdatedByID         *uint          `json:"updated_by_id"`
+	Timezone            TimezoneDTO    `json:"timezone"`
+	Currency            CurrencyDTO    `json:"currency"`
+	LicenseKeyDetails   *LicenseKeyDTO `json:"license_key_details"`
+}
+
+type LicenseKeyDTO struct {
+	LicenseKey                 *string  `json:"license_key"`
+	LicenseKeyExpiryDateString *string  `json:"license_key_expiry_date"`
+	BalanceLicensedUserCount   *int     `json:"balance_licensed_user_count"`
+	TotalLicensedUserCount     *int     `json:"total_licensed_user_count"`
+	EnabledModules             []string `json:"enabled_modules"`
+}
 type TimezoneDTO struct {
 	ID          int    `json:"id"`
 	Name        string `json:"name"`

@@ -6,7 +6,10 @@ import (
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
+	"strconv"
+	"strings"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -20,6 +23,7 @@ type ComplianceClauseServiceInterface interface {
 	Delete(id uint) error
 
 	GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error)
+	GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlListDTO, error)
 }
 
 type ComplianceClauseService struct {
@@ -124,8 +128,85 @@ func (ccs *ComplianceClauseService) Create(complianceID uint, currentUserID uint
 
 	var clauseNo string
 
-	// Check if ParentClauseID is provided
-	if formDTO.ParentClauseID != nil {
+	// If PreviousClauseID is provided, validate its relationship with ParentClauseID
+	if formDTO.AddAsFirst != nil && *formDTO.AddAsFirst {
+		if formDTO.ParentClauseID != nil {
+			// Adding as first under a parent
+			parentClause, err := ccs.repo.GetByID(*formDTO.ParentClauseID, tx)
+			if err != nil {
+				tx.Rollback()
+				return 0, utility.NewValidationError(fmt.Errorf("invalid parent_clause_id: %v", err), "invalid", "parent_clause_id")
+			}
+			clauseNo = fmt.Sprintf("%s.1", parentClause.ClauseNo)
+		} else {
+			// Adding as first at root level
+			clauseNo = "1"
+		}
+
+		// Check if first clause already exists
+		existingClause, _ := ccs.repo.GetByClauseNo(clauseNo, complianceID, tx)
+		if existingClause != nil {
+			tx.Rollback()
+			return 0, utility.NewValidationError(fmt.Errorf("first clause already exists"), "duplicate", "clause_no")
+		}
+	} else if formDTO.PreviousClauseID != nil {
+		// Fetch previous clause details
+		previousClause, err := ccs.repo.GetByID(*formDTO.PreviousClauseID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, utility.NewValidationError(fmt.Errorf("invalid previous_clause_id: %v", err), "invalid", "previous_clause_id")
+		}
+		if previousClause == nil {
+			tx.Rollback()
+			return 0, utility.NewValidationError(fmt.Errorf("previous clause does not exist"), "not_exist", "previous clause")
+		}
+
+		// **CASE 1: PreviousClauseID with ParentClauseID**
+		if formDTO.ParentClauseID != nil {
+			// Fetch parent clause details
+			parentClause, err := ccs.repo.GetByID(*formDTO.ParentClauseID, tx)
+			if err != nil {
+				tx.Rollback()
+				return 0, utility.NewValidationError(fmt.Errorf("invalid parent_clause_id: %v", err), "invalid", "parent_clause_id")
+			}
+			if parentClause == nil {
+				tx.Rollback()
+				return 0, utility.NewValidationError(fmt.Errorf("parent clause with ID %d not found", *formDTO.ParentClauseID), "not_exist", "parent_clause_id")
+			}
+
+			// Ensure PreviousClauseID is a direct child of ParentClauseID
+			if previousClause.ParentClauseID == nil || *previousClause.ParentClauseID != *formDTO.ParentClauseID {
+				tx.Rollback()
+				//return 0, fmt.Errorf("previous clause %s is not a first-level child of parent clause %s", previousClause.ClauseNo, parentClause.ClauseNo)
+				return 0, utility.NewValidationError(fmt.Errorf("previous clause %s is not a first-level child of parent clause %s", previousClause.ClauseNo, parentClause.ClauseNo), "invalid_clause_number", "clause_sequence")
+			}
+		}
+
+		// **CASE 2: PreviousClauseID without ParentClauseID (Top-Level Validation)**
+		if formDTO.ParentClauseID == nil {
+			if previousClause.ParentClauseID != nil {
+				tx.Rollback()
+				return 0, utility.NewValidationError(fmt.Errorf("previous clause %s is not a top-level clause", previousClause.ClauseNo), "invalid_clause_number", "clause_sequence")
+			}
+		}
+
+		// Generate the next sequence clause number
+		baseNumberParts := strings.Split(previousClause.ClauseNo, ".")
+		lastPartIndex := len(baseNumberParts) - 1
+		lastPartNumber, _ := strconv.Atoi(baseNumberParts[lastPartIndex]) // Convert last part to integer
+		nextSequence := lastPartNumber + 1                                // Get next clause number
+
+		// Generate the new clause number (e.g., "3.2")
+		baseNumberParts[lastPartIndex] = strconv.Itoa(nextSequence)
+		clauseNo = strings.Join(baseNumberParts, ".")
+
+		// Validate if clause number already exists
+		existingClause, _ := ccs.repo.GetByClauseNo(clauseNo, complianceID, tx)
+		if existingClause != nil {
+			tx.Rollback()
+			return 0, utility.NewValidationError(fmt.Errorf("clause number '%s' already exists", clauseNo), "duplicate", "clause_no")
+		}
+	} else if formDTO.ParentClauseID != nil {
 		// Validate parent clause
 		parentClause, err := ccs.repo.GetByID(*formDTO.ParentClauseID, tx)
 		if err != nil {
@@ -137,7 +218,7 @@ func (ccs *ComplianceClauseService) Create(complianceID uint, currentUserID uint
 			return 0, fmt.Errorf("parent clause with ID %d not found", *formDTO.ParentClauseID)
 		}
 
-		// Generate clause number
+		// Generate clause number based on parent
 		nextSequence, err := ccs.repo.GetNextClauseSequence(*formDTO.ParentClauseID, complianceID, tx)
 		if err != nil {
 			tx.Rollback()
@@ -264,4 +345,14 @@ func (ccs *ComplianceClauseService) GetAssociatedComplianceRequirements(complian
 	}
 
 	return requirements, nil
+}
+
+func (ccs *ComplianceClauseService) GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlListDTO, error) {
+	// Fetch associated controls through requirements from repository
+	controls, err := ccs.repo.GetAssociatedControls(complianceID, clauseID)
+	if err != nil {
+		return nil, err
+	}
+
+	return controls, nil
 }

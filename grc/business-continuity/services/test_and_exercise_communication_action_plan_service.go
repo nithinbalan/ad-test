@@ -21,6 +21,7 @@ type TestAndExerciseCommunicationActionPlanServiceInterface interface {
 	Create(testAndExerciseId uint, currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanFormDTO) (uint, error)
 	Update(testAndExerciseId uint, id uint, currentUserID uint, TestAndExerciseCommunicationActionPlan *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanFormDTO) error
 	Delete(testAndExerciseId uint, ids []uint, currentUserID uint) ([]uint, error)
+	StatusUpdate(testAndExerciseId uint, id uint, currentUserID uint, testAndExerciseCommunicationActionPlanStatusUpdateFormDTO *businessContinuityDTOs.TaeCommunicationActionPlanStatusUpdateFormDTO) error
 }
 
 // Service and implementations
@@ -46,7 +47,7 @@ func NewTestAndExerciseCommunicationActionPlanService(
 }
 
 func (tecaps *TestAndExerciseCommunicationActionPlanService) GetAll(testAndExerciseId uint, params *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListQueryParamsDTO) ([]*businessContinuityDTOs.TestAndExerciseCommunicationActionPlanListDTO, error) {
-	return tecaps.repo.GetAll(params)
+	return tecaps.repo.GetAll(testAndExerciseId, params)
 }
 
 func (tecaps TestAndExerciseCommunicationActionPlanService) GetByID(testAndExerciseId uint, id uint) (*models.TestAndExerciseCommunicationActionPlan, error) {
@@ -308,4 +309,23 @@ func (tecaps *TestAndExerciseCommunicationActionPlanService) Delete(testAndExerc
 	}
 
 	return failedIds, nil
+}
+
+func (tecaps *TestAndExerciseCommunicationActionPlanService) StatusUpdate(slaID uint, id uint, currentUserID uint, testAndExerciseCommunicationActionPlanStatusUpdateFormDTO *businessContinuityDTOs.TaeCommunicationActionPlanStatusUpdateFormDTO) error {
+	tx := tecaps.repo.BeginTransaction()
+	existingTestAndExerciseCommunicationActionPlan, err := tecaps.GetByID(slaID, id)
+	if err != nil {
+		return err
+	}
+
+	existingTestAndExerciseCommunicationActionPlan.CommunicationActionPlanStatusID = &testAndExerciseCommunicationActionPlanStatusUpdateFormDTO.CommunicationActionPlanStatusID
+	existingTestAndExerciseCommunicationActionPlan.Comment = testAndExerciseCommunicationActionPlanStatusUpdateFormDTO.Comment
+	existingTestAndExerciseCommunicationActionPlan.UpdatedBYID = &currentUserID
+
+	err = tecaps.repo.Update(existingTestAndExerciseCommunicationActionPlan, tx)
+	if err != nil {
+		return err
+	}
+	tx.Commit()
+	return nil
 }

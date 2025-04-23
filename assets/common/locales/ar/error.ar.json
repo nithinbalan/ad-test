@@ -142,7 +142,24 @@
 {
   "id": "distinct_review_user",
   "translation": "يجب أن يكون المستخدم المسؤول ومستخدم المراجعة مختلفين."
+},
+{
+  "id": "invalid",
+  "translation": "{{.Field}} غير صالح"
+},
+{
+  "id": "user_exceed",
+  "translation": "تجاوز عدد المستخدمين."
+},
+{
+  "id": "module_not_allowed",
+  "translation": "لا يُسمح باستخدام وحدة {{.Field}} بموجب الترخيص الحالي"
+},
+{
+  "id": "default_criticality_matrix",
+  "translation": "لا يمكن تعديل أو حذف مصفوفة الأهمية الافتراضية"
 }
+
 
 
 

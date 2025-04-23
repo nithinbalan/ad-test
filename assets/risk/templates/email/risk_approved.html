@@ -1,0 +1,45 @@
+{{ define "content" }}
+<p>Dear {{ .FirstNameEn }} {{ .LastNameEn }},</p>
+
+<p>
+    We are pleased to inform you that the risk <strong>{{ .TitleEn }}</strong> has been <strong>approved</strong>. Please find the details below:
+</p>
+
+<table style="width: 100%; background-color: #fff; border-collapse: collapse; margin: 20px 20px;">
+    <tbody>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; width: 30%; padding: 8px; background-color: #F6F6F6;">Reference Number</th>
+            <td style="text-align: center; padding: 8px;">{{ .ReferenceNumber }}</td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; padding: 8px; background-color: #F6F6F6;">Risk Title</th>
+            <td style="text-align: center; padding: 8px;">{{ .TitleEn }}</td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; padding: 10px; background-color: #F6F6F6;">Description</th>
+            <td style="text-align: center; padding: 10px;">{{ .Description }}</td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; padding: 8px; background-color: #F6F6F6;">Approved By</th>
+            <td style="text-align: center; padding: 8px;">{{ .ApprovedByFirstName }} {{ .ApprovedByLastName }}</td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; padding: 8px; background-color: #F6F6F6;">Approval Date</th>
+            <td style="text-align: center; padding: 8px;">{{ .ApprovalDate }}</td>
+        </tr>
+    </tbody>
+</table>
+
+<p>
+    The risk has been successfully approved. No further action is required at this stage unless additional updates arise.
+</p>
+
+<div style="text-align: center;">
+    <a href="{{ .RedirectURL }}" style="background-color: #165D31; color: #ffffff; padding: 10px 20px; text-align: center; text-decoration: none; border-radius: 4px; display: inline-block; margin-top: 30px;">
+        View Risk
+    </a>
+</div>
+
+<p>Thank you for your attention and prompt response.</p>
+
+{{ end }}

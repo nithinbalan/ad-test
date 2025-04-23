@@ -9,6 +9,7 @@ import (
 	"jethur/grc/models"
 	userDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
+	settingDTOs "jethur/grc/settings/dtos"
 	settingService "jethur/grc/settings/services"
 	"jethur/utility"
 	"sort"
@@ -465,6 +466,18 @@ func (uss *UserSettingService) ResetPassword(userID uint) error {
 }
 
 func (uss *UserSettingService) GetNotificationSettings(userID uint) ([]userDTOs.NotificationSettingListResponseDTO, error) {
+	// First get user's permissions
+	userPermissions, err := uss.userSvc.GetUserPermissions(userID, &settingDTOs.ModuleListQueryParamsDTO{})
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a map of permitted modules for quick lookup
+	permittedModules := make(map[string]bool)
+	for _, permission := range *userPermissions {
+		permittedModules[permission.Identifier] = true
+	}
+
 	modules, err := uss.repo.GetNotificationSetting(userID)
 	if err != nil {
 		return nil, err
@@ -472,9 +485,10 @@ func (uss *UserSettingService) GetNotificationSettings(userID uint) ([]userDTOs.
 
 	parentModulesMap := make(map[uint]*userDTOs.NotificationSettingListResponseDTO)
 
+	// Only add parent modules if user has permission
 	for _, module := range modules {
-		if module.ModuleID == nil {
-			// This is a parent module
+		if module.ModuleID == nil && permittedModules[module.Identifier] {
+			// This is a parent module and user has permission
 			parentModulesMap[module.ID] = &userDTOs.NotificationSettingListResponseDTO{
 				ModuleID:      module.ID,
 				ModuleTitleEn: module.TitleEn,
@@ -490,13 +504,21 @@ func (uss *UserSettingService) GetNotificationSettings(userID uint) ([]userDTOs.
 		notificationsSet := make(map[uint]bool)
 		if module.NotificationMasters != nil {
 			for _, notification := range *module.NotificationMasters {
-				notificationsSet[notification.ID] = true
+				// Check if notification's module is permitted
+				if permittedModules[module.Identifier] {
+					notificationsSet[notification.ID] = true
+				}
 			}
 		}
 		return notificationsSet
 	}
 
 	for _, module := range modules {
+		// Skip if user doesn't have permission for this module
+		if !permittedModules[module.Identifier] {
+			continue
+		}
+
 		notificationsSet := aggregateNotifications(module)
 		var notifications []userDTOs.NotificationListDTO
 
@@ -532,11 +554,13 @@ func (uss *UserSettingService) GetNotificationSettings(userID uint) ([]userDTOs.
 				notifications = append(notifications, notificationDTO)
 			}
 		}
+
 		// Sort notifications by ID
 		sort.Slice(notifications, func(i, j int) bool {
 			return notifications[i].ID < notifications[j].ID
 		})
 
+		// Only add notifications to permitted parent modules
 		if parentModule, exists := parentModulesMap[module.ID]; exists {
 			*parentModule.Notifications = append(*parentModule.Notifications, notifications...)
 		} else if module.ModuleID != nil {
@@ -544,10 +568,10 @@ func (uss *UserSettingService) GetNotificationSettings(userID uint) ([]userDTOs.
 				*parentModule.Notifications = append(*parentModule.Notifications, notifications...)
 			}
 		}
-
 	}
 
 	var response []userDTOs.NotificationSettingListResponseDTO
+	// Only include parent modules that have notifications and permissions
 	for _, parentModule := range parentModulesMap {
 		if len(*parentModule.Notifications) > 0 {
 			response = append(response, *parentModule)

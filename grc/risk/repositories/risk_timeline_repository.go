@@ -12,7 +12,7 @@ import (
 type RiskTimelineRepositoryInterface interface {
 	GetAll(riskID uint, params *riskDTOs.RiskTimelineListQueryParamsDTO) (*riskDTOs.RiskTimelineListResponseDTO, error)
 	GetAllTypes() ([]models.RiskTimelineType, error)
-	GetByID(riskID uint, timelineTypeID uint) (*models.RiskTimeline, error)
+	GetByID(riskID uint, timelineTypeID uint, tx ...utility.DatabaseTransaction) (*models.RiskTimeline, error)
 	GetByType(timelineType string) (*models.RiskTimelineType, error)
 	GetByStatusType(status string) (*models.TimelineStatus, error)
 	Create(timelines []models.RiskTimeline, tx ...utility.DatabaseTransaction) error
@@ -38,6 +38,7 @@ func (repo *RiskTimelineRepository) GetAll(riskID uint, params *riskDTOs.RiskTim
 		Select(`
 			risk_timelines.id AS id,
 			risk_timelines.risk_register_id AS risk_register_id,
+			risk_timeline_types.id AS risk_timeline_type_id,
 			risk_timeline_types.type AS risk_timeline_type,
 			risk_timeline_types.title_en AS risk_timeline_type_title_en,
 			risk_timeline_types.title_ar AS risk_timeline_type_title_ar,
@@ -113,10 +114,15 @@ func (repo *RiskTimelineRepository) GetAllTypes() ([]models.RiskTimelineType, er
 	return timelineTypes, nil
 }
 
-func (repo *RiskTimelineRepository) GetByID(riskID uint, timelineTypeID uint) (*models.RiskTimeline, error) {
+func (repo *RiskTimelineRepository) GetByID(riskID uint, timelineTypeID uint, tx ...utility.DatabaseTransaction) (*models.RiskTimeline, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var riskTimeline models.RiskTimeline
 
-	result := repo.db.Where("risk_register_id = ? AND risk_timeline_type_id = ?", riskID, timelineTypeID).First(&riskTimeline)
+	result := db.Where("risk_register_id = ? AND risk_timeline_type_id = ?", riskID, timelineTypeID).First(&riskTimeline)
 	if result.Error != nil {
 		return nil, result.Error
 	}

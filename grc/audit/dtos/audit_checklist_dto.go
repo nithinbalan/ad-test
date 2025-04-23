@@ -57,7 +57,8 @@ type AuditChecklistListDTO struct {
 	UserEmail                            string                       `json:"user_email"`
 	UserProfileImagePath                 string                       `json:"user_profile_image_path"`
 	IncidentRegisterTitle                string                       `json:"incident_register_title"`
-	ComplianceRequirementTitle           string                       `json:"compliance_requirement_title"`
+	ComplianceRequirementTitleEn         string                       `json:"compliance_requirement_title_en"`
+	ComplianceRequirementTitleAr         string                       `json:"compliance_requirement_title_ar"`
 	RiskRegisterTitle                    string                       `json:"risk_register_title"`
 	AnsweredUserFirstNameEn              string                       `json:"answered_user_first_name_en"`
 	AnsweredUserFirstNameAr              string                       `json:"answered_user_first_name_ar"`

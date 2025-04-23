@@ -99,6 +99,7 @@ func (repo *DocumentWorkflowRepository) GetDocumentWorkflowByLevel(docVersionId 
 		Preload("WorkflowLevelType").
 		Preload("DocumentWorkflowParticipants").
 		Preload("DocumentWorkflowReviews").
+		Preload("DocumentWorkflowReviews.DocumentWorkflowStatus").
 		Preload("DocumentWorkflowParticipants.User").
 		Where("document_version_id = ? AND level = ?", docVersionId, currentApprovalLevel).
 		Find(&documentWorkflow)

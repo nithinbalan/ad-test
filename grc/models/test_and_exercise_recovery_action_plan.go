@@ -17,21 +17,24 @@ type TestAndExerciseRecoveryActionPlan struct {
 	ActionPlanStatusId *uint      `json:"action_plan_status_id"`
 	IsRecovery         bool       `json:"is_recovery"`
 	Percentage         *int       `json:"percentage"`
+	ReviewUserID       *uint      `json:"review_user_id" gorm:"default:null"`
 	CreatedBYID        uint       `json:"created_by_id" binding:"required"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedBYID        *uint      `json:"updated_by_id"`
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relationships
-	TestAndExercise  *TestAndExercise  `gorm:"foreignKey:TestAndExerciseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	BcpPhase         *BcpPhase         `gorm:"foreignKey:BcpPhaseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Process          *Process          `gorm:"foreignKey:ProcessID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SeverityLevel    *SeverityLevel    `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ActionPlanStatus *ActionPlanStatus `gorm:"foreignKey:ActionPlanStatusId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser  *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUnit  *OrganizationUnit `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser    *User             `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedBYID"`
+	TestAndExercise         *TestAndExercise                     `gorm:"foreignKey:TestAndExerciseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	BcpPhase                *BcpPhase                            `gorm:"foreignKey:BcpPhaseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Process                 *Process                             `gorm:"foreignKey:ProcessID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SeverityLevel           *SeverityLevel                       `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatus        *ActionPlanStatus                    `gorm:"foreignKey:ActionPlanStatusId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser         *User                                `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUnit         *OrganizationUnit                    `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewUser              *User                                `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"` // New foreign key relationship
+	ActionPlanStatusUpdates []*TaeRecoveryActionPlanStatusUpdate `gorm:"foreignKey:TestAndExerciseRecoveryActionPlanID"`
+	CreatedByUser           *User                                `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser           *User                                `gorm:"foreignKey:UpdatedBYID"`
 }
 
 func (TestAndExerciseRecoveryActionPlan) TableName() string {

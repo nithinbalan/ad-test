@@ -74,8 +74,20 @@ func (ccc *ComplianceClauseController) CreateComplianceClause(c *gin.Context) {
 
 	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
 	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, err.Error())
+			return
+		default:
+			utility.SendInternalErrResp(ccc.db, c, e.Error())
+			return
+		}
 	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)
@@ -167,18 +179,13 @@ func (ccc *ComplianceClauseController) DeleteComplianceClause(c *gin.Context) {
 }
 
 func (ccc *ComplianceClauseController) GetAssociatedComplianceRequirement(c *gin.Context) {
-	complianceIDStr := c.Param("complianceId")
-	clauseIDStr := c.Param("clauseId")
-
-	// Convert compliance ID to uint
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	complianceID, err := strconv.Atoi(c.Param("complianceId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	// Convert clause ID to uint
-	clauseID, err := strconv.ParseUint(clauseIDStr, 10, 64)
+	clauseID, err := strconv.Atoi(c.Param("clauseId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -192,4 +199,27 @@ func (ccc *ComplianceClauseController) GetAssociatedComplianceRequirement(c *gin
 	}
 
 	c.JSON(http.StatusOK, requirements)
+}
+
+func (cc *ComplianceClauseController) GetAssociatedControls(c *gin.Context) {
+	complianceID, err := strconv.Atoi(c.Param("complianceId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	clauseID, err := strconv.Atoi(c.Param("clauseId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Get associated controls
+	controls, err := cc.service.GetAssociatedControls(uint(complianceID), uint(clauseID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, controls)
 }

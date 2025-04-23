@@ -265,6 +265,14 @@ func GetAppURL() string {
 	return appURL
 }
 
+func GetApiURL() string {
+	apiURL := os.Getenv("API_URL")
+	if apiURL == "" {
+		apiURL = "https://dev-api.jethur.com/"
+	}
+	return apiURL
+}
+
 func GetIntValueAsString(value interface{}) string {
 	switch v := value.(type) {
 	case *int:

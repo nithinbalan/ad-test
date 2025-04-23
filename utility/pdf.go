@@ -1,12 +1,17 @@
 package utility
 
 import (
+	"archive/zip"
 	"bytes"
 	"fmt"
 	"html/template"
+	"io"
 	"jethur/assets"
+	"jethur/config"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"regexp"
 )
 
 func GeneratePDFContent(dto interface{}, templatePaths []string, logoImagePath string, coverBGImagePath string) (string, error) {
@@ -15,6 +20,7 @@ func GeneratePDFContent(dto interface{}, templatePaths []string, logoImagePath s
 		"LogoImagePath":    template.HTML(logoImagePath),
 		"CoverBGImagePath": template.HTML(coverBGImagePath),
 		"Data":             dto,
+		"ApiPath":          config.GetEnv("API_URL", ""),
 	}
 
 	templates := template.New("pdf").Funcs(template.FuncMap{
@@ -79,4 +85,57 @@ func ConvertHTMLContentToPDF(htmlContent, pdfFileName string) error {
 	}
 
 	return nil
+}
+
+func StripPTags(input string) string {
+	re := regexp.MustCompile(`(?i)</?p[^>]*>`)
+	return re.ReplaceAllString(input, "")
+}
+
+func CreateZipFile(zipPath string, files []string) error {
+	newZipFile, err := os.Create(zipPath)
+	if err != nil {
+		return err
+	}
+	defer newZipFile.Close()
+
+	zipWriter := zip.NewWriter(newZipFile)
+	defer zipWriter.Close()
+
+	for _, file := range files {
+		err = AddFileToZip(zipWriter, file)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func AddFileToZip(zipWriter *zip.Writer, filename string) error {
+	fileToZip, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer fileToZip.Close()
+
+	info, err := fileToZip.Stat()
+	if err != nil {
+		return err
+	}
+
+	header, err := zip.FileInfoHeader(info)
+	if err != nil {
+		return err
+	}
+	header.Name = filepath.Base(filename)
+	header.Method = zip.Deflate
+
+	writer, err := zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(writer, fileToZip)
+	return err
 }

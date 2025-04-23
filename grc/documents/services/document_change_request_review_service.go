@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
+
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	documentDTOs "jethur/grc/documents/dtos"
@@ -13,7 +15,6 @@ import (
 	organizationSvc "jethur/grc/organization/services"
 	taskServices "jethur/grc/task/services"
 	"jethur/utility"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -47,7 +48,8 @@ func NewDocumentChangeRequestReviewService(
 	documentChangeRequestStatusSvc DocumentChangeRequestStatusServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
-	taskSvc taskServices.TaskServiceInterface) DocumentChangeRequestReviewServiceInterface {
+	taskSvc taskServices.TaskServiceInterface,
+) DocumentChangeRequestReviewServiceInterface {
 	return &DocumentChangeRequestReviewService{
 		repo:                           repo,
 		logService:                     logService,
@@ -555,7 +557,7 @@ func (dcrrs *DocumentChangeRequestReviewService) sendApprovalNotification(id uin
 
 		// Create the database notification DTO
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               uint(documentChangeRequest.Document.ResponsibleUser.ID),
+			UserIDs:              []uint{uint(documentChangeRequest.Document.ResponsibleUser.ID)},
 			ModuleIdentifier:     "document",
 			NotificationType:     string(commonDTOs.ApprovalType),
 			HeadingEn:            "Document change Request Approval",
@@ -632,7 +634,7 @@ func (dcrrs *DocumentChangeRequestReviewService) notifyNextLevelUsers(id uint, n
 			createdByID := uint(documentChangeRequest.Document.ResponsibleUser.ID)
 			// Prepare database notification DTO
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               participant.UserID,
+				UserIDs:              []uint{participant.UserID},
 				ModuleIdentifier:     "document",
 				NotificationType:     string(commonDTOs.ReviewType),
 				HeadingEn:            "Document Change Request Review",
@@ -740,7 +742,7 @@ func (dcrrs *DocumentChangeRequestReviewService) sendRejectedNotification(id uin
 
 		// Create the database notification DTO
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               uint(documentChangeRequest.Document.ResponsibleUser.ID),
+			UserIDs:              []uint{uint(documentChangeRequest.Document.ResponsibleUser.ID)},
 			ModuleIdentifier:     "document",
 			NotificationType:     string(commonDTOs.RejectType),
 			HeadingEn:            "Document Change Request Rejected",
@@ -809,7 +811,7 @@ func (dcrrs *DocumentChangeRequestReviewService) sendRevertedNotification(id uin
 
 		// Create the database notification DTO
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               uint(documentChangeRequest.Document.ResponsibleUser.ID),
+			UserIDs:              []uint{uint(documentChangeRequest.Document.ResponsibleUser.ID)},
 			ModuleIdentifier:     "document",
 			NotificationType:     string(commonDTOs.RevertType),
 			HeadingEn:            "Document Change Request Reverted",
@@ -878,7 +880,7 @@ func (dcrrs *DocumentChangeRequestReviewService) sendCommentNotification(id uint
 
 		// Create the database notification DTO
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               uint(documentChangeRequest.Document.ResponsibleUser.ID),
+			UserIDs:              []uint{uint(documentChangeRequest.Document.ResponsibleUser.ID)},
 			ModuleIdentifier:     "document",
 			NotificationType:     string(commonDTOs.CommentType),
 			HeadingEn:            "New Document Change Request Comment",

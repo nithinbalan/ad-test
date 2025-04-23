@@ -9,6 +9,8 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+	riskDTOs "jethur/grc/risk/dtos"
+	riskServices "jethur/grc/risk/services"
 	"jethur/utility"
 	"os"
 	"path/filepath"
@@ -30,6 +32,8 @@ type BusinessContinuityPlanServiceInterface interface {
 	ExportBusinessContinuityPlan(data []*businessContinuityDTOs.BusinessContinuityPlanListDTO, currentUserID uint) (*os.File, error)
 
 	GetDocumentPath(id uint, token string) (string, error)
+	GetBcpHeatmap(bcpId uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
+	GetTestSummary(bcpID uint) (*businessContinuityDTOs.BcpTestSummaryDTO, error)
 }
 
 // Service and implementations
@@ -40,6 +44,7 @@ type BusinessContinuityPlanService struct {
 	businessFunctionSvc BusinessFunctionServiceInterface
 	userSettingSvc      organizationServices.UserSettingServiceInterface
 	bcpStatusSvc        BcpStatusServiceInterface
+	riskHeatmapSvc      riskServices.RiskHeatmapServiceInterface
 }
 
 func NewBusinessContinuityPlanService(
@@ -49,6 +54,7 @@ func NewBusinessContinuityPlanService(
 	businessFunctionSvc BusinessFunctionServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	bcpStatusSvc BcpStatusServiceInterface,
+	riskHeatmapSvc riskServices.RiskHeatmapServiceInterface,
 ) BusinessContinuityPlanServiceInterface {
 	return &BusinessContinuityPlanService{
 		repo:                repo,
@@ -57,6 +63,7 @@ func NewBusinessContinuityPlanService(
 		businessFunctionSvc: businessFunctionSvc,
 		userSettingSvc:      userSettingSvc,
 		bcpStatusSvc:        bcpStatusSvc,
+		riskHeatmapSvc:      riskHeatmapSvc,
 	}
 }
 
@@ -203,7 +210,7 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 		// Construct the URL for the document
 		url := utility.GenerateDocumentURL("business-continuity", "business-continuity-plan", strconv.FormatUint(uint64(id), 10), "documents")
 
-		// Create a new ComplianceRequirementStatusUpdateDocument instance
+		// Create a new StatusUpdateDocument instance
 		document := &models.BcpDocument{
 			BusinessContinuityPlanID: id,
 			URL:                      url,
@@ -219,7 +226,7 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 
 	}
 	if len(documents) > 0 {
-		// Save the ComplianceRequirementStatusUpdateDocument
+		// Save the StatusUpdateDocument
 		if err := bcps.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return 0, err
@@ -353,6 +360,35 @@ func (bcps *BusinessContinuityPlanService) Update(id uint, currentUserID uint, b
 				tx.Rollback()
 				return err
 			}
+		}
+
+		//update bcp status of old business function
+
+		oldBusinessFunction, err := bcps.businessFunctionSvc.GetByID(oldBusinessContinuityPlan.BusinessFunctionID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		oldBusinessFunction.BcpStatus = false
+
+		if err := bcps.businessFunctionSvc.UpdateBusinessFunction(oldBusinessFunction, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		//update bcp status of new business function
+		newBusinessFunction, err := bcps.businessFunctionSvc.GetByID(businessContinuityPlanFormDTO.BusinessFunctionID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		newBusinessFunction.BcpStatus = true
+
+		if err := bcps.businessFunctionSvc.UpdateBusinessFunction(newBusinessFunction, tx); err != nil {
+			tx.Rollback()
+			return err
 		}
 	}
 
@@ -529,7 +565,7 @@ func (bcps *BusinessContinuityPlanService) Delete(ids []uint, currentUserID uint
 			}
 		}
 
-		// Delete each Compliance document if documents exist
+		// Delete each document if documents exist
 		if len(businessContinuityPlan.Documents) > 0 {
 			var deleteDocumentIds []*uint
 			for _, doc := range businessContinuityPlan.Documents {
@@ -548,6 +584,20 @@ func (bcps *BusinessContinuityPlanService) Delete(ids []uint, currentUserID uint
 			continue
 		} else {
 			successfulIds = append(successfulIds, id)
+		}
+
+		//update bcp status of business function
+		businessFunction, err := bcps.businessFunctionSvc.GetByID(businessContinuityPlan.BusinessFunctionID)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		businessFunction.BcpStatus = false
+
+		if err := bcps.businessFunctionSvc.UpdateBusinessFunction(businessFunction, tx); err != nil {
+			tx.Rollback()
+			return nil, err
 		}
 	}
 	if len(failedIds) > 0 {
@@ -676,4 +726,66 @@ func (crs *BusinessContinuityPlanService) GetDocumentPath(id uint, token string)
 	}
 
 	return fullPath, nil
+}
+
+func (bcpc *BusinessContinuityPlanService) GetBcpHeatmap(bcpId uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error) {
+	bcpRisks, err := bcpc.repo.GetBcpRisksByBcpId(bcpId)
+	if err != nil {
+		return nil, err
+	}
+
+	riskRegisterIDs := make([]uint, len(bcpRisks))
+	for i, risk := range bcpRisks {
+		riskRegisterIDs[i] = risk.RiskRegisterID
+	}
+
+	heatmap, err := bcpc.riskHeatmapSvc.GetRiskHeatmap(riskRegisterIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	return heatmap, nil
+}
+
+func (bcs *BusinessContinuityPlanService) GetTestSummary(bcpID uint) (*businessContinuityDTOs.BcpTestSummaryDTO, error) {
+	// Get executed tests from test_and_exercises
+	executedTests, err := bcs.repo.GetTestAndExercisesByBcpID(bcpID)
+	if err != nil {
+		return nil, err
+	}
+
+	var successful, partiallySuccess, failure int
+	executedCount := 0
+
+	for _, testExercise := range executedTests {
+		if testExercise == nil {
+			continue
+		}
+
+		if testExercise.TestAndExerciseTestResult != nil && testExercise.TestAndExerciseTestResult.TestResultOption != nil {
+			executedCount++
+			switch testExercise.TestAndExerciseTestResult.TestResultOption.Type {
+			case "successful":
+				successful++
+			case "partially_successful":
+				partiallySuccess++
+			case "failure":
+				failure++
+			}
+		}
+	}
+
+	// Calculate test score (assuming score is percentage of successful tests)
+	testScore := 0
+	if executedCount > 0 {
+		testScore = (successful * 100) / executedCount
+	}
+
+	return &businessContinuityDTOs.BcpTestSummaryDTO{
+		TestScore:        testScore,
+		ExecutedTests:    executedCount,
+		SuccessfulTests:  successful,
+		FailedTests:      failure,
+		PartiallySuccess: partiallySuccess,
+	}, nil
 }

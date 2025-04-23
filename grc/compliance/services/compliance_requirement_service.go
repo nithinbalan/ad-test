@@ -48,6 +48,7 @@ type ComplianceRequirementService struct {
 	notificationSvc                  commonServices.NotificationServiceInterface
 	userSettingSvc                   organizationServices.UserSettingServiceInterface
 	complianceClauseSvc              ComplianceClauseServiceInterface
+	requiredDocumentTitleSvc         masterServices.RequiredDocumentTitleServiceInterface
 }
 
 func NewComplianceRequirementService(
@@ -63,6 +64,7 @@ func NewComplianceRequirementService(
 	notificationSvc commonServices.NotificationServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	complianceClauseSvc ComplianceClauseServiceInterface,
+	requiredDocumentTitleSvc masterServices.RequiredDocumentTitleServiceInterface,
 ) ComplianceRequirementServiceInterface {
 	return &ComplianceRequirementService{
 		repo:                             repo,
@@ -77,6 +79,7 @@ func NewComplianceRequirementService(
 		notificationSvc:                  notificationSvc,
 		userSettingSvc:                   userSettingSvc,
 		complianceClauseSvc:              complianceClauseSvc,
+		requiredDocumentTitleSvc:         requiredDocumentTitleSvc,
 	}
 }
 
@@ -156,11 +159,6 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		return 0, err
 	}
 
-	clause, err := crs.complianceClauseSvc.GetByID(complianceRequirementFormDTO.ComplianceClauseID)
-	if err != nil {
-		return 0, err
-	}
-
 	if err := crs.validateComplianceRequirementFormDTO(complianceRequirementFormDTO); err != nil {
 		return 0, err
 	}
@@ -170,18 +168,10 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		return 0, err
 	}
 
-	// Create or retrieve the compliance clause
-	// complianceClause := &models.ComplianceClause{
-	// 	ComplianceRegisterID: complianceID,
-	// 	ClauseNo:             complianceRequirementFormDTO.ComplianceClauseNo,
-	// 	TitleEn:              complianceRequirementFormDTO.ComplianceClauseTitle,
-	// }
-
-	// clause, err := crs.repo.GetOrCreateComplianceClause(complianceClause, tx)
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	return 0, err
-	// }
+	clause, err := crs.complianceClauseSvc.GetByID(complianceRequirementFormDTO.ComplianceClauseID)
+	if err != nil {
+		return 0, err
+	}
 
 	// Calculate the score
 	score, err := crs.calculateComplianceRequirementScore(complianceRequirementFormDTO.ComplianceStatusID, complianceRequirementFormDTO.SeverityLevelID)
@@ -291,10 +281,26 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		}
 	}
 
+	var complianceRequirementRequiredDocumentTitle []*models.ComplianceRequirementRequiredDocumentTitle
+	for _, requiredDocumentTitleID := range complianceRequirementFormDTO.RequiredDocumentTitleIDs {
+		crrDocumentTitle := &models.ComplianceRequirementRequiredDocumentTitle{
+			ComplianceRequirementID: id,
+			RequiredDocumentTitleID: *requiredDocumentTitleID,
+			CreatedBYID:             currentUserID,
+		}
+		complianceRequirementRequiredDocumentTitle = append(complianceRequirementRequiredDocumentTitle, crrDocumentTitle)
+	}
+
+	if len(complianceRequirementRequiredDocumentTitle) > 0 {
+		if err := crs.repo.CreateComplianceRequirmentRequiredDocumentTitles(complianceRequirementRequiredDocumentTitle, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	tx.Commit()
 
 	go func() {
-
 		existingComplianceRequirement, err := crs.GetFullDetailsByID(complianceID, id)
 		if err != nil {
 			utility.LogError("Failed to fetch compliance register", map[string]interface{}{
@@ -330,7 +336,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               complianceRequirementFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{complianceRequirementFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Requirement Responsiblity Assigned",
@@ -411,11 +417,6 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		return err
 	}
 
-	clause, err := crs.complianceClauseSvc.GetByID(complianceRequirementFormDTO.ComplianceClauseID)
-	if err != nil {
-		return err
-	}
-
 	existingComplianceRequirement, err := crs.GetByID(complianceID, id, tx)
 	if err != nil {
 		return err
@@ -438,17 +439,10 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		return err
 	}
 
-	// complianceClause := &models.ComplianceClause{
-	// 	ComplianceRegisterID: complianceID,
-	// 	ClauseNo:             complianceRequirementFormDTO.ComplianceClauseNo,
-	// 	TitleEn:              complianceRequirementFormDTO.ComplianceClauseTitle,
-	// }
-
-	// clause, err := crs.repo.GetOrCreateComplianceClause(complianceClause, tx)
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	return err
-	// }
+	clause, err := crs.complianceClauseSvc.GetByID(complianceRequirementFormDTO.ComplianceClauseID)
+	if err != nil {
+		return err
+	}
 
 	score, err := crs.calculateComplianceRequirementScore(complianceRequirementFormDTO.ComplianceStatusID, complianceRequirementFormDTO.SeverityLevelID)
 	if err != nil {
@@ -650,6 +644,57 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		}
 	}
 
+	// Update Required Document Titles
+	existingDocumentTitleIDs := make(map[uint]bool)
+	for _, doc := range oldComplianceRequirement.RequiredDocumentTitles {
+		existingDocumentTitleIDs[doc.RequiredDocumentTitleID] = true
+	}
+
+	// Collect new required document title IDs
+	newDocumentTitleIDs := make(map[uint]bool)
+	for _, docID := range complianceRequirementFormDTO.RequiredDocumentTitleIDs {
+		newDocumentTitleIDs[*docID] = true
+	}
+
+	// Add new required document titles
+	var requiredDocumentsToAdd []*models.ComplianceRequirementRequiredDocumentTitle
+	for _, newDocumentTitleID := range complianceRequirementFormDTO.RequiredDocumentTitleIDs {
+		if _, exists := existingDocumentTitleIDs[*newDocumentTitleID]; !exists {
+			// Create a new compliance requirement document record
+			requiredDocument := &models.ComplianceRequirementRequiredDocumentTitle{
+				ComplianceRequirementID: id,
+				RequiredDocumentTitleID: *newDocumentTitleID,
+				CreatedBYID:             currentUserID,
+			}
+			requiredDocumentsToAdd = append(requiredDocumentsToAdd, requiredDocument)
+		}
+	}
+
+	// Save the new required documents
+	if len(requiredDocumentsToAdd) > 0 {
+		if err := crs.repo.CreateComplianceRequirmentRequiredDocumentTitles(requiredDocumentsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove required document titles not in the new list
+	var deleteDocumentTitleIDs []*uint
+	for _, existingDocument := range oldComplianceRequirement.RequiredDocumentTitles {
+		if _, exists := newDocumentTitleIDs[existingDocument.RequiredDocumentTitleID]; !exists {
+			// Append document to delete list
+			deleteDocumentTitleIDs = append(deleteDocumentTitleIDs, existingDocument.ID)
+		}
+	}
+
+	// Delete required document titles not in the new list
+	if len(deleteDocumentTitleIDs) > 0 {
+		if err := crs.repo.DeleteComplianceRequirmentRequiredDocumentTitles(deleteDocumentTitleIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -726,7 +771,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"compliance_requirement_category": oldComplianceRequirement.ComplianceRequirementCategory.TitleEn,
 			"compliance_status":               oldComplianceRequirement.ComplianceStatus.TitleEn,
@@ -782,7 +827,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 			// Old responsible user notification (Removal)
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Compliance Requirement Responsibility Removed",
@@ -801,7 +846,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 			// New responsible user notification (Assignment)
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               complianceRequirementFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{complianceRequirementFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Compliance Requirement Responsibility Assigned",
@@ -976,6 +1021,18 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 			}
 		}
 
+		// Check if requiredDocumentTitile exist
+		if len(requirement.RequiredDocumentTitles) > 0 {
+			var deleteRequiredDocumentTitleIds []*uint
+			for _, rdTitle := range requirement.RequiredDocumentTitles {
+				deleteRequiredDocumentTitleIds = append(deleteRequiredDocumentTitleIds, rdTitle.ID)
+			}
+			if err := crs.repo.DeleteComplianceRequirmentRequiredDocumentTitles(deleteRequiredDocumentTitleIds, tx); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
+
 		// Check if strategic objectives exist
 		if len(requirement.StrategicObjectives) > 0 {
 			var deleteStrategicObjectiveIds []*uint
@@ -1082,7 +1139,7 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 
 				// Prepare DB notification
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Compliance Requirement Deleted",
@@ -1205,6 +1262,10 @@ func (crs *ComplianceRequirementService) validateComplianceRequirementFormDTO(Co
 		return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 	}
 
+	if _, err := crs.complianceClauseSvc.GetByID(ComplianceRequirementFormDTO.ComplianceClauseID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("compliance clause does not exist"), "not_exist", "compliance clause")
+	}
+
 	controlIds := ComplianceRequirementFormDTO.ControlIDs
 
 	controlIDs := make(map[uint]bool)
@@ -1235,6 +1296,21 @@ func (crs *ComplianceRequirementService) validateComplianceRequirementFormDTO(Co
 		}
 
 		strategicObjectiveIDs[*strategicObjectiveId] = true
+	}
+
+	requiredDocumentTitleIds := ComplianceRequirementFormDTO.RequiredDocumentTitleIDs
+	requiredDocumentTitleIDs := make(map[uint]bool)
+
+	for _, requiredDocumentTitleId := range requiredDocumentTitleIds {
+		if requiredDocumentTitleIDs[*requiredDocumentTitleId] {
+			return utility.NewValidationError(fmt.Errorf("duplicate required document ID: %d", requiredDocumentTitleId), "duplicate", "required document")
+		}
+
+		if _, err := crs.requiredDocumentTitleSvc.GetByID(*requiredDocumentTitleId); err != nil {
+			return utility.NewValidationError(fmt.Errorf("required document does not exist for ID: %d", requiredDocumentTitleId), "not_exist", "required document")
+		}
+
+		requiredDocumentTitleIDs[*requiredDocumentTitleId] = true
 	}
 
 	return nil

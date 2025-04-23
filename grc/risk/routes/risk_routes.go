@@ -49,6 +49,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskKriController := app.RiskModule.RiskKriController
 	riskTimelineController := app.RiskModule.RiskTimelineController
 	riskSettingsController := app.RiskModule.RiskSettingsController
+	riskClosureController := app.RiskModule.RiskClosureController
+	riskCommentController := app.RiskModule.RiskCommentController
+	riskReportController := app.RiskModule.RiskReportController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -248,6 +251,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("controls/:controlId/risk-heatmap", middlewares.RolePermissionMiddleware(db, "controls", "view"), riskHeatmapController.GetControlRiskHeatmap)
 	riskRoutes.GET("compliances/:complianceId/risk-heatmap", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), riskHeatmapController.GetComplianceRiskHeatmap)
 	riskRoutes.GET("slas/:slaId/risk-heatmap", middlewares.RolePermissionMiddleware(db, "sla_contracts", "view"), riskHeatmapController.GetSLARiskHeatmap)
+	riskRoutes.GET("assets/:id/risk-heatmap", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), riskHeatmapController.GetAssetRiskHeatmap)
 
 	// Risk Control Analysis
 	riskRoutes.GET("risks/:riskId/inherent-control-analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskInherentControlAnalysisController.GetAllRiskControlAnalyses)
@@ -283,7 +287,45 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("/risks/:riskId/timelines", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskTimelineController.GetAllRiskTimelines)
 
 	// Risk Settings
-	riskRoutes.GET("/risk-settings", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskSettingsController.GetAllRiskSettings)
+	riskRoutes.GET("/risk-settings", riskSettingsController.GetAllRiskSettings)
 	riskRoutes.PUT("/risk-settings", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskSettingsController.UpdateRiskSettings)
+
+	unauthenticatedRoutes.GET("/risks/:riskId/closures/:id/document-preview", riskClosureController.GetRiskClosureDocumentPreview)
+	unauthenticatedRoutes.GET("/risks/:riskId/closures/:id/document-download", riskClosureController.DownloadRiskClosureDocument)
+	riskRoutes.GET("risks/:riskId/closures", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskClosureController.GetAllRiskClosures)
+	riskRoutes.GET("risks/:riskId/closures/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskClosureController.GetRiskClosureDetails)
+	riskRoutes.POST("risks/:riskId/closures", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskClosureController.CreateRiskClosure)
+	riskRoutes.PUT("risks/:riskId/closures/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskClosureController.UpdateRiskClosure)
+	riskRoutes.DELETE("risks/:riskId/closures/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskClosureController.DeleteRiskClosure)
+
+	riskRoutes.GET("/risks/:riskId/comments", middlewares.RolePermissionMiddleware(db, "risk", "view"), riskCommentController.GetAllComments)
+	riskRoutes.GET("/risks/:riskId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk", "view"), riskCommentController.GetCommentDetails)
+	riskRoutes.POST("/risks/:riskId/comments", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskCommentController.CreateComment)
+	riskRoutes.PUT("/risks/:riskId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskCommentController.UpdateComment)
+	riskRoutes.POST("/risks/:riskId/comments/delete", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskCommentController.DeleteComment)
+
+	riskRoutes.PUT("/risks/:riskId/submit", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.SubmitRisk)
+	riskRoutes.PUT("/risks/:riskId/revert", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.RevertRisk)
+	riskRoutes.PUT("/risks/:riskId/reject", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.RejectRisk)
+	riskRoutes.PUT("/risks/:riskId/approve", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.ApproveRisk)
+	riskRoutes.PUT("/risks/:riskId/resubmit", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.ResubmitRisk)
+
+	unauthenticatedRoutes.GET("/risk-reports/:riskReportId/document-preview", riskReportController.GetRiskReportDocumentPreview)
+	unauthenticatedRoutes.GET("/risk-reports/:riskReportId/document-download", riskReportController.DownloadRiskReportDocument)
+	riskRoutes.GET("/risk-reports", riskReportController.GetAllRiskReports)
+	riskRoutes.GET("/risk-reports/:riskReportId", riskReportController.GetRiskReportDetails)
+	riskRoutes.GET("/risk-reports/:riskReportId/export-pdf", riskReportController.GetRiskReportExportZip)
+	riskRoutes.POST("/risk-reports", riskReportController.CreateRiskReport)
+	riskRoutes.GET("/risk-reports/:riskReportId/sections/:sectionId", riskReportController.GetRiskReportSection)
+	riskRoutes.PUT("/risk-reports/:riskReportId/sections/:sectionId", riskReportController.UpdateRiskReportSection)
+	riskRoutes.DELETE("/risk-reports/:riskReportId/sections/:sectionId", riskReportController.DeleteRiskReportSection)
+	riskRoutes.DELETE("/risk-reports/:riskReportId", riskReportController.DeleteRiskReport)
+	riskRoutes.POST("/risk-reports/:riskReportId/documents", riskReportController.CreateRiskReportDocuments)
+	riskRoutes.DELETE("/risk-reports/:riskReportId/documents/:documentId", riskReportController.DeleteRiskReportDocument)
+
+	riskRoutes.GET("/risks/template", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskRegisterController.GenerateRiskTemplate)
+	riskRoutes.POST("/risks/template/validate", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskRegisterController.ValidateRiskTemplate)
+	riskRoutes.POST("/risks/import/validate", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskRegisterController.ValidateImportRisks)
+	riskRoutes.POST("/risks/import", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskRegisterController.ImportRisks)
 
 }

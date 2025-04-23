@@ -7,7 +7,7 @@ import (
 type Control struct {
 	ID                            uint       `json:"id" gorm:"primaryKey;autoIncrement" binding:"-"`
 	ControlTypeID                 uint       `json:"control_type_id" gorm:"not null" binding:"required"`
-	ControlCategoryID             *uint      `json:"control_category_id" gorm:"not null"`
+	ControlCategoryID             *uint      `json:"control_category_id" gorm:"null"`
 	OwnerUnitID                   uint       `json:"owner_unit_id" gorm:"not null" binding:"required"`
 	OwnerID                       uint       `json:"owner_id" gorm:"not null" binding:"required"`
 	ControlImplementationStatusID *uint      `json:"control_implementation_status_id" gorm:"default:null"`
@@ -23,7 +23,7 @@ type Control struct {
 	LastReviewDate                *time.Time `json:"last_review_date,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
 	NextReviewDate                *time.Time `json:"next_review_date,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
 	LastReviewNote                *string    `json:"last_review_note,omitempty" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
-	TestResponsibleUserID         uint       `json:"test_responsible_user_id" gorm:"not null" binding:"required"`
+	TestResponsibleUserID         *uint      `json:"test_responsible_user_id" gorm:"not null"`
 	TestFrequencyID               *uint      `json:"test_frequency_id,omitempty" gorm:"default:null" binding:"omitempty"`
 	LastTestDate                  *time.Time `json:"last_test_date,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
 	NextTestDate                  *time.Time `json:"next_test_date,omitempty" gorm:"type:date;default:null" binding:"omitempty"`

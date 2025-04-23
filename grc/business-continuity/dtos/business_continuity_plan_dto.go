@@ -14,6 +14,7 @@ type BusinessContinuityPlanListDTO struct {
 	BusinessFunctionID              uint    `json:"business_function_id"`
 	BusinessFunctionTitle           string  `json:"business_function_title"`
 	Version                         *int    `json:"version"`
+	IsLatestVersion                 *bool   `json:"is_latest_version"`
 	Purpose                         *string `json:"purpose"`
 	Scope                           *string `json:"scope"`
 	Objectives                      *string `json:"objectives"`
@@ -97,6 +98,7 @@ type BusinessContinuityPlanDetailDTO struct {
 	BusinessFunctionID uint                             `json:"business_function_id"`
 	BusinessFunction   BusinessFunctionDetailDTO        `json:"business_function"`
 	Version            int                              `json:"version"`
+	IsLatestVersion    *bool                            `json:"is_latest_version"`
 	Purpose            *string                          `json:"purpose"`
 	Scope              *string                          `json:"scope"`
 	Objectives         *string                          `json:"objectives"`
@@ -149,4 +151,12 @@ type BcpDocumentDTO struct {
 	Token        string `json:"token"`
 	OriginalName string `json:"original_name"`
 	Type         string `json:"type"`
+}
+
+type BcpTestSummaryDTO struct {
+	TestScore        int `json:"test_score"`
+	ExecutedTests    int `json:"executed_tests"`
+	SuccessfulTests  int `json:"successful_tests"`
+	FailedTests      int `json:"failed_tests"`
+	PartiallySuccess int `json:"partially_success"`
 }

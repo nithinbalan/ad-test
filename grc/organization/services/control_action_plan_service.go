@@ -3,6 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
@@ -12,7 +14,6 @@ import (
 	organizationRepositories "jethur/grc/organization/repositories"
 	taskServices "jethur/grc/task/services"
 	"jethur/utility"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -48,7 +49,8 @@ func NewControlActionPlanService(
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	userSvc UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
-	taskSvc taskServices.TaskServiceInterface) ControlActionPlanServiceInterface {
+	taskSvc taskServices.TaskServiceInterface,
+) ControlActionPlanServiceInterface {
 	return &ControlActionPlanService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
@@ -74,7 +76,6 @@ func (caps ControlActionPlanService) GetByID(controlID uint, id uint) (*models.C
 	}
 
 	controlActionPlan, err := caps.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -92,7 +93,6 @@ func (caps ControlActionPlanService) GetFullDetailsByID(controlID uint, id uint)
 	}
 
 	controlActionPlan, err := caps.repo.GetFullDetailsByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -105,7 +105,7 @@ func (caps ControlActionPlanService) GetFullDetailsByID(controlID uint, id uint)
 		return nil, err
 	}
 
-	//todo :- also add extra fields which required in details screen
+	// todo :- also add extra fields which required in details screen
 	if controlActionPlan.TargetDate != nil {
 		targetDate := controlActionPlan.TargetDate.Format("2006-01-02")
 		controlActionPlanDTO.TargetDateString = &targetDate
@@ -134,6 +134,11 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		return 0, err
 	}
 
+	actionPlanStatus, err := caps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
 	controlActionPlan := &models.ControlActionPlan{
 		ControlID:          controlID,
 		Title:              ControlActionPlanFormDTO.Title,
@@ -143,7 +148,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		ReviewUserID:       ControlActionPlanFormDTO.ReviewUserID,
 		TargetDate:         dates.TargetDate,
 		Percentage:         *ControlActionPlanFormDTO.Percentage,
-		ActionPlanStatusID: ControlActionPlanFormDTO.ActionPlanStatusID,
+		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedByID:        currentUserID,
 	}
 
@@ -153,7 +158,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		return 0, err
 	}
 
-	actionPlanStatusID := ControlActionPlanFormDTO.ActionPlanStatusID
+	actionPlanStatusID := actionPlanStatus.ID
 	controlActionPlanUpdate := &models.ControlActionPlanStatusUpdate{
 		ControlActionPlanID: id,
 		ActionPlanStatusID:  actionPlanStatusID,
@@ -199,7 +204,6 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -218,7 +222,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               ControlActionPlanFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{ControlActionPlanFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "organization",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Control Action Plan Assignment",
@@ -316,7 +320,6 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 	existingControlActionPlan.ReviewUserID = ControlActionPlanFormDTO.ReviewUserID
 	existingControlActionPlan.TargetDate = dates.TargetDate
 	existingControlActionPlan.Percentage = *ControlActionPlanFormDTO.Percentage
-	existingControlActionPlan.ActionPlanStatusID = ControlActionPlanFormDTO.ActionPlanStatusID
 	existingControlActionPlan.UpdatedByID = &currentUserID
 
 	err = caps.repo.Update(existingControlActionPlan, tx)
@@ -353,7 +356,7 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Control Action Plan Removal",
@@ -370,7 +373,7 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               ControlActionPlanFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{ControlActionPlanFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Control Action Plan Assignment",
@@ -531,7 +534,7 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 			}
 		}
 
-		//delete the task
+		// delete the task
 		existingTask, err := caps.taskSvc.GetByFieldID("control_action_plan_id", id)
 		if err != nil {
 			failedIds = append(failedIds, id)
@@ -574,7 +577,7 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "organization",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Control Action Plan Deletion",
@@ -632,7 +635,6 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 
 func (caps *ControlActionPlanService) StatusUpdate(controlID uint, id uint, currentUserID uint, controlActionPlanStatusUpdateFormDTO *organizationDTOs.ControlActionPlanStatusUpdateFormDTO, percentage uint, tx ...utility.DatabaseTransaction) error {
 	existingControlActionPlan, err := caps.GetByID(controlID, id)
-
 	if err != nil {
 		return err
 	}
@@ -670,10 +672,6 @@ func (caps *ControlActionPlanService) validateControlActionPlanFormDTO(ControlAc
 
 	if _, err := caps.userSvc.GetByID(uint(ControlActionPlanFormDTO.ResponsibleUserID)); err != nil {
 		return utility.NewValidationError(fmt.Errorf("responsible user does not exist"), "not_exist", "responsible user")
-	}
-
-	if _, err := caps.actionPlanStatusSvc.GetByID(ControlActionPlanFormDTO.ActionPlanStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
 
 	if ControlActionPlanFormDTO.Percentage == nil {

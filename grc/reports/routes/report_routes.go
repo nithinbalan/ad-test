@@ -20,6 +20,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentReportController := app.ReportsModule.IncidentReportController
 	auditInsightReportController := app.ReportsModule.AuditInsightReportController
 	meetingReportController := app.ReportsModule.MeetingReportController
+	documentReportController := app.ReportsModule.DocumentReportController
 
 	//Compliance
 	reportsRoutes.GET("/reports/compliance-registers", complianceReportController.GetAllComplianceRegisters)
@@ -204,4 +205,24 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/meeting-action-plans", meetingReportController.GetAllMeetingActionPlans)
 	reportsRoutes.GET("/reports/meeting-action-plans/export", meetingReportController.GetMeetingActionPlanExport)
 
+	//Documents
+	reportsRoutes.GET("/reports/documents", documentReportController.GetAllDocuments)
+	reportsRoutes.GET("/reports/documents/export", documentReportController.GetDocumentExport)
+	reportsRoutes.GET("/reports/document-by-category", documentReportController.GetDocumentByCategory)
+	reportsRoutes.GET("/reports/document-by-type", documentReportController.GetDocumentByType)
+	reportsRoutes.GET("/reports/document-by-status", documentReportController.GetDocumentByStatus)
+	reportsRoutes.GET("/reports/document-by-responsible-unit", documentReportController.GetDocumentByResponsibleUnit)
+	reportsRoutes.GET("/reports/document-by-responsible-user", documentReportController.GetDocumentByResponsibleUser)
+	reportsRoutes.GET("/reports/document-by-access", documentReportController.GetDocumentByAccess)
+	reportsRoutes.GET("/reports/document-by-policy-and-procedure", documentReportController.GetDocumentByPolicyAndProcedure)
+	reportsRoutes.GET("/reports/document-by-published-and-archived", documentReportController.GetDocumentByPublishedAndArchived)
+	reportsRoutes.GET("/reports/document-by-published-year", documentReportController.GetDocumentPublishedByYear)
+	reportsRoutes.GET("/reports/document-by-published-month", documentReportController.GetDocumentPublishedByMonth)
+
+	reportsRoutes.GET("/reports/document-change-requests", documentReportController.GetAllDocumentChangeRequests)
+	reportsRoutes.GET("/reports/document-change-requests/export", documentReportController.GetDocumentChangeRequestExport)
+	reportsRoutes.GET("/reports/document-change-request-by-type", documentReportController.GetDocumentChangeRequestByType)
+	reportsRoutes.GET("/reports/document-change-request-by-status", documentReportController.GetDocumentChangeRequestByStatus)
+	reportsRoutes.GET("/reports/document-updated-by-change-type", documentReportController.GetDocumentsUpdatedByChangeType) //document updated by change type, published change request
+	reportsRoutes.GET("/reports/document-archived-by-quarter", documentReportController.GetDocumentsArchivedByQuarter)
 }

@@ -157,6 +157,9 @@ type RiskRegisterDetailDTO struct {
 	UpdatedAt               *time.Time                         `json:"updated_at"`
 	CreatedByUser           organizationDTOs.UserMinimalDTO    `json:"created_by"`
 	UpdatedByUser           organizationDTOs.UserMinimalDTO    `json:"updated_by"`
+	SubmittedByUser         *organizationDTOs.UserMinimalDTO   `json:"submitted_by"`
+	SubmittedAtString       *string                            `json:"submitted_at"`
+	ReviewedByUser          *organizationDTOs.UserMinimalDTO   `json:"reviewed_by"`
 	Controls                []*RiskControlDTO                  `json:"controls"`
 	ComplianceRequirements  []*RiskComplianceRequirementDTO    `json:"compliance_requirements"`
 	Processes               []*RiskProcessDTO                  `json:"processes"`
@@ -169,6 +172,7 @@ type RiskRegisterDetailDTO struct {
 	MarkedAsAuditableItem   bool                               `json:"marked_as_auditable_item"`
 	AuditableItem           *AuditableItemMinimalRiskDetailDTO `json:"auditable_item"`
 }
+
 type AuditableItemMinimalRiskDetailDTO struct {
 	ID                  uint                             `json:"id"`
 	Type                string                           `json:"type"`
@@ -260,24 +264,29 @@ type RiskThreatDTO struct {
 }
 
 type RiskRegisterFormDTO struct {
-	RiskCategoryID           uint                          `json:"risk_category_id" binding:"required"`
-	RiskSourceID             *uint                         `json:"risk_source_id"`
-	ResponsibleUserID        uint                          `json:"responsible_user_id" binding:"required"`
-	Title                    string                        `json:"title" binding:"required,max=255"`
-	Description              *string                       `json:"description"`
-	ReportedAt               *string                       `json:"reported_at" binding:"required,datetime=2006-01-02"`
-	ReviewFrequencyID        *uint                         `json:"review_frequency_id"`
-	NextReviewDate           *string                       `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
-	LastReviewNote           *string                       `json:"last_review_note" binding:"omitempty"`
-	Documents                []*commonDTOs.DocumentFormDTO `json:"documents"`
-	ComplianceRequirementIDs []*uint                       `json:"compliance_requirement_ids"`
-	ControlIDs               []*uint                       `json:"control_ids"`
-	ProcessIDs               []*uint                       `json:"process_ids"`
-	StrategicObjectiveIDs    []*uint                       `json:"strategic_objective_ids"`
-	SLARegisterIDs           []*uint                       `json:"sla_register_ids"`
-	DocumentIds              []*uint                       `json:"document_ids"`
-	AssetIds                 []*uint                       `json:"asset_ids"`
-	ThreatIds                []*uint                       `json:"threat_ids"`
+	RiskCategoryID                 uint                          `json:"risk_category_id" binding:"required"`
+	RiskSourceID                   *uint                         `json:"risk_source_id"`
+	ResponsibleUserID              uint                          `json:"responsible_user_id"`
+	Title                          string                        `json:"title" binding:"required,max=255"`
+	Description                    *string                       `json:"description"`
+	ReportedAt                     *string                       `json:"reported_at" binding:"required,datetime=2006-01-02"`
+	ReviewFrequencyID              *uint                         `json:"review_frequency_id"`
+	NextReviewDate                 *string                       `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
+	LastReviewNote                 *string                       `json:"last_review_note" binding:"omitempty"`
+	Documents                      []*commonDTOs.DocumentFormDTO `json:"documents"`
+	ComplianceRequirementIDs       []*uint                       `json:"compliance_requirement_ids"`
+	ControlIDs                     []*uint                       `json:"control_ids"`
+	ProcessIDs                     []*uint                       `json:"process_ids"`
+	StrategicObjectiveIDs          []*uint                       `json:"strategic_objective_ids"`
+	SLARegisterIDs                 []*uint                       `json:"sla_register_ids"`
+	DocumentIds                    []*uint                       `json:"document_ids"`
+	AssetIds                       []*uint                       `json:"asset_ids"`
+	ThreatIds                      []*uint                       `json:"threat_ids"`
+	InherentRiskMatrixLikelihoodID *uint                         `json:"inherent_risk_matrix_likelihood_id"`
+	InherentRiskMatrixImpactID     *uint                         `json:"inherent_risk_matrix_impact_id"`
+	RiskResponseStrategyID         *uint                         `json:"risk_response_strategy_id"`
+	ResidualRiskMatrixLikelihoodID *uint                         `json:"residual_risk_matrix_likelihood_id"`
+	ResidualRiskMatrixImpactID     *uint                         `json:"residual_risk_matrix_impact_id"`
 }
 
 type RiskRegisterParsedDates struct {

@@ -4,6 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
 	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
@@ -17,12 +25,6 @@ import (
 	settinsSvc "jethur/grc/settings/services"
 	taskServices "jethur/grc/task/services"
 	"jethur/utility"
-	"log"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -132,12 +134,51 @@ func (ds *DocumentService) SetDocumentAccessService(svc DocumentAccessServiceInt
 }
 
 func (ds *DocumentService) GetAll(params *documentDTOs.DocumentListQueryParamsDTO, currentUserID uint) (*documentDTOs.DocumentListResponseDTO, error) {
-	return ds.repo.GetAll(params, currentUserID)
+	// Get user details to check for super admin role
+	user, err := ds.userSvc.GetFullDetailsByID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if user has super admin role
+	isUserSuperAdmin := false
+	if user.Roles != nil {
+		for _, role := range *user.Roles {
+			if role.IsSuperAdmin {
+				isUserSuperAdmin = true
+				break
+			}
+		}
+	}
+
+	// Get primary organization unit field
+	primaryLevel, err := ds.orgLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return nil, err
+	}
+
+	// Determine the field name based on the primary level
+	var primaryOrgUnitField string
+	switch primaryLevel.Level {
+	case 1:
+		primaryOrgUnitField = "organization_unit_1_id"
+	case 2:
+		primaryOrgUnitField = "organization_unit_2_id"
+	case 3:
+		primaryOrgUnitField = "organization_unit_3_id"
+	case 4:
+		primaryOrgUnitField = "organization_unit_4_id"
+	case 5:
+		primaryOrgUnitField = "organization_unit_5_id"
+	default:
+		return nil, fmt.Errorf("unsupported primary level")
+	}
+
+	return ds.repo.GetAll(params, currentUserID, isUserSuperAdmin, primaryOrgUnitField)
 }
 
 func (ds DocumentService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error) {
 	document, err := ds.repo.GetByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -274,7 +315,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			return 0, err
 		}
 
-		//generate token
+		// generate token
 		dataToEncrypt := []byte(documentTemplate.Document.Name)
 		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
@@ -311,7 +352,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			return 0, fmt.Errorf("failed to copy file: %w", err)
 		}
 
-		//add document history
+		// add document history
 		documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 			DocumentID:        id,
 			DocumentVersionID: docVersionId,
@@ -365,7 +406,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		// 	return 0, err
 		// }
 
-		//add document history
+		// add document history
 		documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 			DocumentID:        id,
 			DocumentVersionID: docVersionId,
@@ -400,7 +441,6 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 	}(fileNameCopy)
 
 	go func() {
-
 		existingDocument, err := ds.GetFullDetailsByID(id, &currentUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch document", map[string]interface{}{
@@ -417,7 +457,6 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -519,7 +558,6 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 	existingDocVersion.Version = documentFormDTO.DocumentVersion
 
 	err = ds.repo.UpdateDocumentVersion(existingDocVersion, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -587,7 +625,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			for userID := range existingUserIDs {
 				if !newUserIDs[userID] {
 					// User is in existing list but not in the new list, so mark for deletion
-					//userIDCopy := userID // Create a copy of userID to avoid pointer reuse issues
+					// userIDCopy := userID // Create a copy of userID to avoid pointer reuse issues
 					userIDsToDelete = append(userIDsToDelete, userID)
 				} else {
 					// User is still valid, remove from newUserIDs to avoid re-adding
@@ -735,7 +773,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		existingDocumentFileName := documentFullDetails.LatestDocumentVersion.Name
 		baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
 
-		//generate token
+		// generate token
 		dataToEncrypt := []byte(documentTemplate.Document.Name)
 		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
@@ -759,7 +797,6 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		existingDocVersion.UpdatedBYID = &currentUserID
 
 		err = ds.repo.UpdateDocumentVersion(existingDocVersion, tx)
-
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -784,7 +821,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			return fmt.Errorf("failed to copy file: %w", err)
 		}
 
-		//add document history
+		// add document history
 		documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 			DocumentID:        id,
 			DocumentVersionID: existingDocVersion.ID,
@@ -830,7 +867,6 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			existingDocVersion.UpdatedBYID = &currentUserID
 
 			err = ds.repo.UpdateDocumentVersion(existingDocVersion, tx)
-
 			if err != nil {
 				tx.Rollback()
 				return err
@@ -853,7 +889,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 				return err
 			}
 
-			//add document history
+			// add document history
 			documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 				DocumentID:        id,
 				DocumentVersionID: existingDocVersion.ID,
@@ -942,7 +978,6 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 
 	fileNameCopy := fileName
 	go func(fileName string) {
-
 		existingDoc, err := ds.repo.GetFullDetailsByID(id, nil)
 		if err != nil {
 			return
@@ -955,7 +990,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"document_type":        oldDocument.DocumentType.TitleEn,
 			"title_en":             oldDocument.TitleEn,
@@ -997,7 +1032,6 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -1163,7 +1197,6 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 						fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
 					}
 				}
-
 			}
 			destinationPath := filepath.Join("document", "draft", strconv.FormatUint(uint64(documentID), 10), "document-history")
 			if err := utility.RemoveFolder(destinationPath); err != nil {
@@ -1367,7 +1400,7 @@ func (ds *DocumentService) CheckoutDocument(id uint, currentUserID uint, token s
 		return "", err
 	}
 
-	//add document history
+	// add document history
 	documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 		DocumentID:        id,
 		DocumentVersionID: document.LatestDocumentVersion.ID,
@@ -1479,7 +1512,7 @@ func (ds *DocumentService) CheckinDocument(id uint, currentUserID uint, document
 		return err
 	}
 
-	//add document history
+	// add document history
 	documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 		DocumentID:        id,
 		DocumentVersionID: document.LatestDocumentVersion.ID,
@@ -1534,7 +1567,7 @@ func (ds *DocumentService) RevertDocumentCheckout(id uint, currentUserID uint) e
 		return err
 	}
 
-	//add document history
+	// add document history
 	documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 		DocumentID:        id,
 		DocumentVersionID: document.LatestDocumentVersion.ID,
@@ -1729,8 +1762,8 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 		}
 	}
 
-	//to do
-	//activity log
+	// to do
+	// activity log
 
 	// Prepare notification
 	go func() {
@@ -1740,7 +1773,7 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 
 		for _, participant := range docWorkflowLevel.DocumentWorkflowParticipants {
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               participant.User.ID,
+				UserIDs:              []uint{participant.User.ID},
 				ModuleIdentifier:     "document",
 				NotificationType:     string(commonDTOs.ReviewType),
 				ReferenceNumber:      existingDocument.ReferenceNumber,
@@ -1885,14 +1918,14 @@ func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
 	sourceDir := filepath.Join("document", "draft", strconv.FormatUint(uint64(document.ID), 10), "documents")
 	destinationDir := filepath.Join("document", "published", strconv.FormatUint(uint64(document.ID), 10), "documents")
 
-	//copy docx file
+	// copy docx file
 	err = utility.CopyFileFromPaths(sourceDir, destinationDir, fileName)
 	if err != nil {
 		tx.Rollback()
 		return fmt.Errorf("error copying .docx file: %w", err)
 	}
 
-	//copy pdf file
+	// copy pdf file
 	pdfFileName := baseFileName + ".pdf"
 	err = utility.CopyFileFromPaths(sourceDir, destinationDir, pdfFileName)
 	if err != nil {
@@ -1904,8 +1937,8 @@ func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
 
 	ds.notifyUsersOnPublish(document, id, currentUserID)
 
-	//to do
-	//activity log
+	// to do
+	// activity log
 
 	return nil
 }
@@ -1966,7 +1999,6 @@ func (ds *DocumentService) GetDocumentLastEditSummary(documentID uint) (*documen
 
 	// Handle case where activity is not found
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		// Populate default values when no activity is found
 		emptyString := ""
 		zeroTime := time.Time{}
 		latestActivityDTO = documentDTOs.ActivityDTO{
@@ -1976,10 +2008,8 @@ func (ds *DocumentService) GetDocumentLastEditSummary(documentID uint) (*documen
 			Timestamp: zeroTime,
 		}
 	} else if err != nil {
-		// Return other unexpected errors
 		return nil, err
 	} else {
-		// Map activity details to DTO
 		userDTO := mapUserToDTO(activity.CreatedByUser)
 		latestActivityDTO = documentDTOs.ActivityDTO{
 			Activity:  activity.ActionType,
@@ -1988,12 +2018,11 @@ func (ds *DocumentService) GetDocumentLastEditSummary(documentID uint) (*documen
 			Timestamp: activity.CreatedAt,
 		}
 	}
-	// Initialize variables for the current document workflow
+
 	var currentDocumentWorkflow *models.DocumentWorkflow
-	var participants []*organizationDTOs.UserMinimalDTO
+	var participants []*documentDTOs.ParticipantDTO
 	totalComments := 0
 
-	// Check if there is a next review level and fetch the corresponding workflow
 	if document.LatestDocumentVersion.NextReviewLevel != nil {
 		currentDocumentWorkflow, err = ds.documentWorkflowSvc.GetDocumentWorkflowByLevel(document.LatestDocumentVersion.ID, *document.LatestDocumentVersion.NextReviewLevel)
 		if err != nil {
@@ -2001,23 +2030,72 @@ func (ds *DocumentService) GetDocumentLastEditSummary(documentID uint) (*documen
 		}
 	}
 
-	// Process workflow participants and count comments
 	if currentDocumentWorkflow != nil {
-		for _, participant := range currentDocumentWorkflow.DocumentWorkflowParticipants {
-			userDTO := mapUserToDTO(participant.User)
-			if userDTO != nil {
-				participants = append(participants, userDTO)
-			}
-		}
+		approvalStatus := make(map[uint]bool)
+
+		fmt.Printf("\n=== Debug Workflow Info ===\n")
+		fmt.Printf("Total reviews: %d\n", len(currentDocumentWorkflow.DocumentWorkflowReviews))
+
+		// Sort reviews by CreatedAt to ensure chronological order
+		sort.Slice(currentDocumentWorkflow.DocumentWorkflowReviews, func(i, j int) bool {
+			return currentDocumentWorkflow.DocumentWorkflowReviews[i].CreatedAt.Before(
+				currentDocumentWorkflow.DocumentWorkflowReviews[j].CreatedAt)
+		})
+
+		// First find the latest resubmit
+		var latestResubmitTime time.Time
+		hasResubmit := false
 
 		for _, review := range currentDocumentWorkflow.DocumentWorkflowReviews {
+			if review.DocumentWorkflowStatus != nil &&
+				review.DocumentWorkflowStatus.Type == "resubmit" {
+				latestResubmitTime = review.CreatedAt
+				hasResubmit = true
+				fmt.Printf("Found resubmit at: %v\n", latestResubmitTime)
+				// Clear previous approvals as they are now invalid
+				approvalStatus = make(map[uint]bool)
+			}
+
+			// Process approvals
+			if review.DocumentWorkflowStatus != nil &&
+				review.DocumentWorkflowStatus.Type == "approve" {
+				if !hasResubmit || review.CreatedAt.After(latestResubmitTime) {
+					approvalStatus[review.CreatedBYID] = true
+					fmt.Printf("Valid approval from user %d at %v\n",
+						review.CreatedBYID, review.CreatedAt)
+				} else {
+					fmt.Printf("Skipping approval from user %d at %v (before resubmit)\n",
+						review.CreatedBYID, review.CreatedAt)
+				}
+			}
+
+			// Count all comments regardless of timing
 			if review.Comment != "" {
 				totalComments++
 			}
 		}
+
+		fmt.Printf("Final approval status map: %v\n", approvalStatus)
+
+		// Process participants
+		for _, participant := range currentDocumentWorkflow.DocumentWorkflowParticipants {
+			if participant.User != nil {
+				userDTO := mapUserToDTO(participant.User)
+				if userDTO != nil {
+					isApproved := approvalStatus[participant.UserID]
+					fmt.Printf("Participant %d (UserID: %d) approval status: %v\n",
+						participant.ID, participant.UserID, isApproved)
+
+					participantDTO := &documentDTOs.ParticipantDTO{
+						UserMinimalDTO: userDTO,
+						IsApproved:     isApproved,
+					}
+					participants = append(participants, participantDTO)
+				}
+			}
+		}
 	}
 
-	// Prepare the response DTO
 	responseDTO := &documentDTOs.DocumentLastEditSummaryDTO{
 		LatestActivity: latestActivityDTO,
 		CurrentLevel:   document.LatestDocumentVersion.NextReviewLevel,
@@ -2231,7 +2309,7 @@ func (ds *DocumentService) notifyUsersOnPublish(document *documentDTOs.DocumentD
 			uniqueUsers[uint(user.ID)] = true
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               uint(user.ID),
+				UserIDs:              []uint{uint(user.ID)},
 				ModuleIdentifier:     "document",
 				NotificationType:     string(commonDTOs.PublishType),
 				HeadingEn:            "Document Published",
@@ -2253,6 +2331,9 @@ func (ds *DocumentService) notifyUsersOnPublish(document *documentDTOs.DocumentD
 				"LastNameEn":             user.LastNameEN,
 				"DocumentTitle":          document.TitleEn,
 				"DocumentType":           document.DocumentType.TitleEn,
+				"DocumentCategory":       document.DocumentCategory.TitleEn,
+				"DocumentVersion":        document.LatestDocumentVersion.Version,
+				"DocumentResponsible":    document.ResponsibleUser.FirstNameEN + " " + document.ResponsibleUser.LastNameEN,
 				"PublishedByFirstNameEn": publishedUser.FirstNameEn,
 				"PublishedByFirstLastEn": publishedUser.LastNameEn,
 				"PublishedAt":            time.Now().Format("2006-01-02"),
@@ -2279,7 +2360,6 @@ func (ds *DocumentService) notifyUsersOnPublish(document *documentDTOs.DocumentD
 }
 
 func (ds *DocumentService) UpdateDocumentRecoveryObjective(document *models.Document, tx utility.DatabaseTransaction) error {
-
 	err := ds.repo.Update(document, tx)
 	if err != nil {
 		tx.Rollback()

@@ -128,7 +128,10 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
 		risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
 		risk_matrix_risk_ratings.color_code AS risk_rating_color_code,
-		risk_matrix_risk_rating_values.value AS risk_rating_value
+		risk_matrix_risk_rating_values.value AS risk_rating_value,
+		risk_levels.title_en AS risk_level_title_en,
+        risk_levels.title_ar AS risk_level_title_ar,
+		risk_levels.color_code AS risk_level_color_code
 	`).
 		Joins("LEFT JOIN process_groups ON process_groups.id = processes.process_group_id").
 		Joins("LEFT JOIN organization_units ON organization_units.id = processes.owner_unit_id").
@@ -141,7 +144,8 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		Joins("LEFT JOIN time_units AS mtpd_time_unit ON mtpd_time_unit.id = processes.mtpd_unit_id").
 		Joins("LEFT JOIN time_units AS rpo_time_unit ON rpo_time_unit.id = processes.rpo_unit_id").
 		Joins("LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = processes.risk_matrix_risk_rating_id").
-		Joins("LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = processes.risk_matrix_risk_rating_value_id")
+		Joins("LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = processes.risk_matrix_risk_rating_value_id").
+		Joins("LEFT JOIN risk_levels ON risk_levels.id = processes.risk_level_id")
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -267,6 +271,8 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("RtoUnit").
 		Preload("MtpdUnit").
 		Preload("RpoUnit").
+		Preload("RiskLevel").
+		Preload("ProcessCriticalityLevel").
 		Preload("LastAssessedByUser").
 		Preload("AuditableItems", func(db *gorm.DB) *gorm.DB {
 			return db.Order("created_at DESC").Limit(5) // Fetch the latest 5 auditable items

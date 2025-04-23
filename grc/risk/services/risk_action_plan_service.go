@@ -12,6 +12,7 @@ import (
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
@@ -45,6 +46,8 @@ type RiskActionPlanService struct {
 	userSvc             organizationServices.UserServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
 	taskSvc             taskServices.TaskServiceInterface
+	lifecycleStatusSvc  masterServices.LifecycleStatusServiceInterface
+	controlSvc          organizationServices.ControlServiceInterface
 }
 
 func NewRiskActionPlanService(
@@ -57,6 +60,8 @@ func NewRiskActionPlanService(
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	taskSvc taskServices.TaskServiceInterface,
+	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
+	controlSvc organizationServices.ControlServiceInterface,
 ) RiskActionPlanServiceInterface {
 	return &RiskActionPlanService{
 		repo:                repo,
@@ -68,6 +73,8 @@ func NewRiskActionPlanService(
 		userSvc:             userSvc,
 		notificationSvc:     notificationSvc,
 		taskSvc:             taskSvc,
+		lifecycleStatusSvc:  lifecycleStatusSvc,
+		controlSvc:          controlSvc,
 	}
 }
 
@@ -128,17 +135,26 @@ func (raps RiskActionPlanService) GetFullDetailsByID(riskID uint, id uint) (*ris
 func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskActionPlanFormDTO *riskDTOs.RiskActionPlanFormDTO) (uint, error) {
 	tx := raps.repo.BeginTransaction()
 
-	risk, err := raps.riskRegisterSvc.GetByID(riskID)
+	risk, err := raps.riskRegisterSvc.GetByID(riskID, tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	if err := raps.validateRiskActionPlanFormDTO(RiskActionPlanFormDTO); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	dates, err := raps.parseRiskActionPlanDates(RiskActionPlanFormDTO)
 	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	actionPlanStatus, err := raps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -152,16 +168,17 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 		TargetDate:         dates.TargetDate,
 		Percentage:         RiskActionPlanFormDTO.Percentage,
 		Comments:           RiskActionPlanFormDTO.Comments,
-		ActionPlanStatusID: RiskActionPlanFormDTO.ActionPlanStatusID,
+		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedBYID:        currentUserID,
 	}
 
-	id, err := raps.repo.Create(riskActionPlan)
+	id, err := raps.repo.Create(riskActionPlan, tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
-	actionPlanStatusID := RiskActionPlanFormDTO.ActionPlanStatusID
+	actionPlanStatusID := actionPlanStatus.ID
 	riskActionPlanUpdate := &models.RiskActionPlanStatusUpdate{
 		RiskActionPlanID:   id,
 		ActionPlanStatusID: actionPlanStatusID,
@@ -193,10 +210,50 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 		return 0, err
 	}
 
+	for _, control := range RiskActionPlanFormDTO.Controls {
+
+		// Create Control
+		controlDTO := &organizationDTOs.ControlFormDTO{
+			ControlTypeID: control.ControlTypeID,
+			TitleEn:       control.TitleEn,
+			TitleAr:       control.TitleAr,
+			OwnerID:       control.OwnerID,
+		}
+
+		controlId, err := raps.controlSvc.Create(currentUserID, controlDTO, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		riskActionPlanControl := &models.RiskActionPlanControl{
+			RiskActionPlanID: id,
+			ControlID:        controlId,
+			CreatedByID:      currentUserID,
+		}
+
+		if err := raps.repo.CreateRiskActionPlanControl(riskActionPlanControl, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		// Save risk control
+		riskControl := &models.RiskControl{
+			RiskRegisterID: riskID,
+			ControlID:      controlId,
+			CreatedByID:    currentUserID,
+		}
+
+		if err := raps.repo.CreateRiskControls(riskControl, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+	}
+
 	tx.Commit()
 
 	go func() {
-
 		existingRiskActionPlan, err := raps.GetFullDetailsByID(riskActionPlan.RiskRegisterID, riskActionPlan.ID)
 		if err != nil {
 			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
@@ -231,7 +288,7 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               RiskActionPlanFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{RiskActionPlanFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "risk",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Risk Action Plan Responsibility Assigned",
@@ -336,7 +393,6 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	existingRiskActionPlan.TargetDate = dates.TargetDate
 	existingRiskActionPlan.Percentage = RiskActionPlanFormDTO.Percentage
 	existingRiskActionPlan.Comments = RiskActionPlanFormDTO.Comments
-	existingRiskActionPlan.ActionPlanStatusID = RiskActionPlanFormDTO.ActionPlanStatusID
 	existingRiskActionPlan.UpdatedBYID = &currentUserID
 
 	err = raps.repo.Update(existingRiskActionPlan, tx)
@@ -362,6 +418,90 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 		return err
 	}
 
+	existingControlIDs := make(map[uint]bool)
+	for _, ctrl := range oldRiskActionPlan.Controls {
+		existingControlIDs[ctrl.ControlID] = true
+	}
+
+	newControlIDs := make(map[uint]bool)
+	for _, ctrl := range RiskActionPlanFormDTO.Controls {
+		if ctrl.ID != nil {
+			newControlIDs[*ctrl.ID] = true
+		}
+	}
+
+	var deleteControlIDs []*uint
+	for _, existingActionPlan := range oldRiskActionPlan.Controls {
+		if _, exists := newControlIDs[existingActionPlan.ControlID]; !exists {
+			deleteControlIDs = append(deleteControlIDs, existingActionPlan.ID)
+		}
+	}
+
+	if len(deleteControlIDs) > 0 {
+		if err := raps.repo.DeleteRiskActionPlanControl(deleteControlIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deletRiskControlIDs []*uint
+	for _, existingRiskControl := range oldRiskActionPlan.RiskRegister.Controls {
+		if _, exists := existingControlIDs[existingRiskControl.ControlID]; exists {
+			if _, exists := newControlIDs[existingRiskControl.ControlID]; !exists {
+				deletRiskControlIDs = append(deletRiskControlIDs, existingRiskControl.ID)
+			}
+		}
+	}
+
+	if len(deletRiskControlIDs) > 0 {
+		if err := raps.repo.DeleteRiskControls(deletRiskControlIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, control := range RiskActionPlanFormDTO.Controls {
+
+		if control.ID == nil {
+			// Create Control
+			controlDTO := &organizationDTOs.ControlFormDTO{
+				ControlTypeID: control.ControlTypeID, // Ensure the Code field exists and is of type *string in DocumentControl model
+				TitleEn:       control.TitleEn,
+				TitleAr:       control.TitleAr,
+				OwnerID:       control.OwnerID,
+			}
+
+			controlId, err := raps.controlSvc.Create(currentUserID, controlDTO, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			riskActionPlanControl := &models.RiskActionPlanControl{
+				RiskActionPlanID: id,
+				ControlID:        controlId,
+				CreatedByID:      currentUserID,
+			}
+
+			if err := raps.repo.CreateRiskActionPlanControl(riskActionPlanControl, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			// Save risk control
+			riskControl := &models.RiskControl{
+				RiskRegisterID: riskID,
+				ControlID:      controlId,
+				CreatedByID:    currentUserID,
+			}
+
+			if err := raps.repo.CreateRiskControls(riskControl, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -373,7 +513,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 		// Prepare log data
 		changedData := make(map[string]interface{})
 
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title":              oldRiskActionPlan.Title,
 			"description":        oldRiskActionPlan.Description,
@@ -431,7 +571,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "risk",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Risk Action Plan Responsibility Removed",
@@ -448,7 +588,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               RiskActionPlanFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{RiskActionPlanFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "risk",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Risk Action Plan Responsibility Assigned",
@@ -615,6 +755,42 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 			failedIds = append(failedIds, taskID)
 		}
 
+		existingRiskActionPlan, err := raps.GetFullDetailsByID(riskID, id)
+		if err != nil {
+			continue
+		}
+
+		newControlIDs := make(map[uint]bool)
+		for _, ctrl := range existingRiskActionPlan.Controls {
+			if ctrl.ID != nil {
+				newControlIDs[ctrl.ControlID] = true
+			}
+		}
+
+		if len(existingRiskActionPlan.Controls) > 0 {
+			var deleteControlIds []*uint
+			for _, control := range existingRiskActionPlan.Controls {
+				deleteControlIds = append(deleteControlIds, control.ID)
+			}
+			if err := raps.repo.DeleteRiskActionPlanControl(deleteControlIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
+
+		if len(existingRiskActionPlan.RiskRegister.Controls) > 0 {
+			var deleteRiskControlIds []*uint
+			for _, control := range existingRiskActionPlan.RiskRegister.Controls {
+				if _, exists := newControlIDs[control.ControlID]; exists {
+					deleteRiskControlIds = append(deleteRiskControlIds, control.ID)
+				}
+			}
+			if err := raps.repo.DeleteRiskControls(deleteRiskControlIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
+
 		if len(riskActionPlan.ActionPlanStatusUpdates) > 0 {
 			var deleteStatusUpdateIds []*uint
 			for _, update := range riskActionPlan.ActionPlanStatusUpdates {
@@ -655,7 +831,7 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "risk",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Risk Action Plan Deleted",
@@ -748,11 +924,10 @@ func (raps *RiskActionPlanService) validateRiskActionPlanFormDTO(RiskActionPlanF
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 		}
 	}
-
-	if _, err := raps.actionPlanStatusSvc.GetByID(RiskActionPlanFormDTO.ActionPlanStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
+	if RiskActionPlanFormDTO.Percentage == nil {
+		defaultValue := uint(0)
+		RiskActionPlanFormDTO.Percentage = &defaultValue
 	}
-
 	return nil
 }
 

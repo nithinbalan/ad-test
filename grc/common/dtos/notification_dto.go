@@ -1,7 +1,7 @@
 package dtos
 
 type DBNotificationDTO struct {
-	UserID               uint    `json:"user_id"`
+	UserIDs              []uint  `json:"user_ids"`
 	ModuleIdentifier     string  `json:"module_identifier"`
 	NotificationType     string  `json:"notification_type"`
 	ReferenceNumber      string  `json:"reference_number"`

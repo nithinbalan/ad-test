@@ -1,6 +1,8 @@
 package services
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	assetDTOs "jethur/grc/asset/dtos"
@@ -8,6 +10,7 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"net/http"
 
 	"gorm.io/gorm"
 )
@@ -17,6 +20,8 @@ type AssetCriticalityServiceInterface interface {
 	Create(assetID uint, contributions []assetDTOs.AssetCriticalityFormDTO, currentUserID uint) error
 	Update(assetID uint, id uint, contribution assetDTOs.AssetCriticalityFormDTO, currentUserID uint) error
 	Delete(id uint, userID uint) error
+
+	GetAIResponse(req assetDTOs.CriticalityAIRequest) (map[string]interface{}, error)
 }
 
 type AssetCriticalityService struct {
@@ -97,6 +102,7 @@ func (acs *AssetCriticalityService) Create(assetID uint, assetCriticalityFormDTO
 			AssetRegisterID:                      assetID,
 			AssetCriticalityMatrixFactorID:       dto.AssetCriticalityMatrixFactorID,
 			AssetCriticalityMatrixFactorRatingID: dto.AssetCriticalityMatrixFactorRatingID,
+			Comments:                             dto.Comments,
 			Score:                                calculatedScore,
 			CreatedByID:                          currentUserID,
 		}
@@ -187,6 +193,7 @@ func (acs *AssetCriticalityService) Update(assetID uint, id uint, dto assetDTOs.
 	contribution.AssetCriticalityMatrixFactorID = dto.AssetCriticalityMatrixFactorID
 	contribution.AssetCriticalityMatrixFactorRatingID = dto.AssetCriticalityMatrixFactorRatingID
 	contribution.Score = calculatedScore
+	contribution.Comments = dto.Comments
 	contribution.UpdatedByID = &userID
 
 	err = acs.repo.Update(contribution, tx)
@@ -218,12 +225,14 @@ func (acs *AssetCriticalityService) Update(assetID uint, id uint, dto assetDTOs.
 			"asset_criticality_matrix_factor":        oldContribution.AssetCriticalityMatrixFactor.TitleEn,
 			"asset_criticality_matrix_factor_rating": oldContribution.AssetCriticalityMatrixFactorRating.TitleEn,
 			"score":                                  oldContribution.Score,
+			"comments":                               oldContribution.Comments,
 		}
 
 		newData := map[string]interface{}{
 			"asset_criticality_matrix_factor":        existingContribution.AssetCriticalityMatrixFactor.TitleEn,
 			"asset_criticality_matrix_factor_rating": existingContribution.AssetCriticalityMatrixFactorRating.TitleEn,
 			"score":                                  existingContribution.Score,
+			"comments":                               existingContribution.Comments,
 		}
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)
@@ -319,3 +328,60 @@ func (acs *AssetCriticalityService) validateAssetCriticalityFormDTO(matrixID uin
 	}
 	return nil
 }
+
+func (svc *AssetCriticalityService) GetAIResponse(req assetDTOs.CriticalityAIRequest) (map[string]interface{}, error) {
+	apiURL := "https://ai-dev.jethur.com/api/v1/asset/criticality-assessment"
+
+	requestBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// ✅ Create request using a different variable name
+	httpReq, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(requestBody))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var result map[string]interface{}
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	return result, err
+}
+
+// func (svc *AssetCriticalityService) GetAIResponse(req assetDTOs.CriticalityAIRequest) (map[string]interface{}, error) {
+// 	apiURL := "https://ai-dev.jethur.com/api/v1/asset/criticality-assessment"
+
+// 	requestBody, err := json.Marshal(req)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	log.Printf("AI Request Payload: %s\n", string(requestBody))
+
+// 	httpReq, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(requestBody))
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	httpReq.Header.Set("Content-Type", "application/json")
+// 	httpReq.Header.Set("Accept", "application/json")
+
+// 	client := &http.Client{}
+// 	resp, err := client.Do(httpReq)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer resp.Body.Close()
+
+// 	var result map[string]interface{}
+// 	err = json.NewDecoder(resp.Body).Decode(&result)
+// 	return result, err
+// }

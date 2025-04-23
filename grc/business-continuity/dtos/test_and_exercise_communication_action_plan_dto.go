@@ -91,8 +91,14 @@ type TestAndExerciseCommunicationActionPlanDetailDTO struct {
 	Channel                       *string                           `json:"channel"`
 	Description                   *string                           `json:"description"`
 	CommunicationActionPlanStatus CommunicationActionPlanStatusDTO  `json:"communication_action_plan_status"`
+	Comment                       *string                           `json:"comment"`
 	CreatedAt                     time.Time                         `json:"created_at"`
 	UpdatedAt                     *time.Time                        `json:"updated_at"`
 	CreatedByUser                 organizationDTOs.UserMinimalDTO   `json:"created_by_user"`
 	UpdatedByUser                 *organizationDTOs.UserMinimalDTO  `json:"updated_by_user"`
+}
+
+type TaeCommunicationActionPlanStatusUpdateFormDTO struct {
+	CommunicationActionPlanStatusID uint    `json:"communication_action_plan_status_id" binding:"required"`
+	Comment                         *string `json:"comment"`
 }

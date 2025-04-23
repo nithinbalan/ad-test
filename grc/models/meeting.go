@@ -39,6 +39,9 @@ type Meeting struct {
 	CreatedByUser          *User                           `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser          *User                           `gorm:"foreignKey:UpdatedByID"`
 	Participants           []*MeetingParticipant           `gorm:"foreignKey:MeetingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	MeetingMinutes         []*MeetingMinute                `gorm:"foreignKey:MeetingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	MeetingActionPlans     []*MeetingActionPlan            `gorm:"foreignKey:MeetingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Documents              []*MeetingDocument              `gorm:"foreignKey:MeetingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 // TableName overrides the table name used by Meeting to `meetings`

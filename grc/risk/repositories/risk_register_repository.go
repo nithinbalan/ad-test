@@ -49,6 +49,8 @@ type RiskRegisterRepositoryInterface interface {
 	DeleteRiskThreats(threatIDs []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetControlSummary(riskID uint, controlType string) ([]models.RiskControlAnalysis, error)
+
+	GetAllRiskTitles() ([]string, error)
 }
 
 type RiskRegisterRepository struct {
@@ -405,6 +407,8 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("RiskResponseStrategy").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("SubmittedByUser").
+		Preload("ReviewedByUser").
 		Preload("AuditableItems", func(db *gorm.DB) *gorm.DB {
 			return db.Order("created_at DESC").Limit(5) // Fetch the latest 5 auditable items
 		}).
@@ -463,6 +467,7 @@ func (repo *RiskRegisterRepository) GenerateReferenceNumber() (string, error) {
 	err := repo.db.Model(&models.RiskRegister{}).
 		Select("reference_number").
 		Order("reference_number desc").
+		Where("reference_number LIKE ?", "IR-%").
 		Limit(1).
 		Pluck("reference_number", &lastReferenceNumber).
 		Error
@@ -481,7 +486,7 @@ func (repo *RiskRegisterRepository) GenerateReferenceNumber() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "RR", currentYear, lastReferenceID+1)
+	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "IR", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
 }
@@ -729,4 +734,12 @@ func (repo *RiskRegisterRepository) DeleteRiskThreats(threatIDs []*uint, tx ...u
 		return err
 	}
 	return nil
+}
+
+func (repo *RiskRegisterRepository) GetAllRiskTitles() ([]string, error) {
+	var titles []string
+	err := repo.db.
+		Table("risk_register").
+		Pluck("title", &titles).Error
+	return titles, err
 }

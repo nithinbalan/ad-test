@@ -3,8 +3,10 @@ package services
 import (
 	"errors"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"os"
+	"strings"
 	"time"
 
 	commonDTOs "jethur/grc/common/dtos"
@@ -25,7 +27,7 @@ type ControlServiceInterface interface {
 	GetAllControls() ([]*models.Control, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationDTOs.ControlDetailDTO, error)
-	Create(currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) (uint, error)
+	Create(currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(id uint, currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
@@ -40,6 +42,11 @@ type ControlServiceInterface interface {
 	UpdateControlRiskRating(control *models.Control, tx utility.DatabaseTransaction) error
 	MarkControlAsApplicable(controlID uint, currentUserID uint, controlApplicableFormDTO *organizationDTOs.ControlApplicableFormDTO) error
 	MarkControlAsNotApplicable(controlID uint, currentUserID uint, controlApplicableFormDTO *organizationDTOs.ControlApplicableFormDTO) error
+
+	GenerateControlTemplate() (*os.File, error)
+	ValidateControlTemplate(file io.Reader) ([]map[string]interface{}, error)
+	ValidateImportControls(input []map[string]interface{}) ([]map[string]interface{}, error)
+	ImportControls(input []map[string]interface{}, currentUserID uint) ([]uint, error)
 }
 
 type ControlService struct {
@@ -149,7 +156,17 @@ func (cs *ControlService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTran
 	return &controlDetailDTO, nil
 }
 
-func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) (uint, error) {
+func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO, tx ...utility.DatabaseTransaction) (uint, error) {
+
+	var transaction utility.DatabaseTransaction
+
+	if len(tx) > 0 && tx[0] != nil {
+		transaction = tx[0]
+	} else {
+		transaction = cs.repo.BeginTransaction()
+		defer transaction.Rollback() // Ensure rollback if transaction was started here and not committed
+	}
+
 	if err := cs.validateControlFormDTO(controlFormDTO); err != nil {
 		return 0, err
 	}
@@ -159,7 +176,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 		return 0, err
 	}
 
-	referenceNumber, err := cs.repo.GenerateReferenceNumber()
+	referenceNumber, err := cs.repo.GenerateReferenceNumber(transaction)
 	if err != nil {
 		return 0, err
 	}
@@ -204,9 +221,13 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 		ImplementationGuideline:       controlFormDTO.ImplementationGuideline,
 	}
 
-	id, err := cs.repo.Create(control)
+	id, err := cs.repo.Create(control, transaction)
 	if err != nil {
 		return 0, err
+	}
+
+	if len(tx) == 0 {
+		transaction.Commit()
 	}
 
 	go func() {
@@ -216,7 +237,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 
 		// Send notification to new owner
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               controlFormDTO.OwnerID,
+			UserIDs:              []uint{controlFormDTO.OwnerID},
 			ModuleIdentifier:     "organization",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			ReferenceNumber:      referenceNumber,
@@ -368,7 +389,7 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 
 			// Notify the old owner
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.InformationType),
 				ReferenceNumber:      existingControl.ReferenceNumber,
@@ -385,7 +406,7 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 
 			// Notify the new owner
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               controlFormDTO.OwnerID,
+				UserIDs:              []uint{controlFormDTO.OwnerID},
 				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				ReferenceNumber:      existingControl.ReferenceNumber,
@@ -557,7 +578,7 @@ func (cs *ControlService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "organization",
 					NotificationType:     string(commonDTOs.DeletionType),
 					ReferenceNumber:      notification.ReferenceNumber,
@@ -740,14 +761,20 @@ func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTO
 		}
 	}
 
-	if _, err := cs.userSvc.GetByID(uint(controlFormDTO.TestResponsibleUserID)); err != nil {
-		return utility.NewValidationError(fmt.Errorf("control test responsible user does not exist"), "not_exist", "test responsible user")
+	if controlFormDTO.TestResponsibleUserID != nil {
+		if _, err := cs.userSvc.GetByID(uint(*controlFormDTO.TestResponsibleUserID)); err != nil {
+			return utility.NewValidationError(fmt.Errorf("control test responsible user does not exist"), "not_exist", "test responsible user")
+		}
 	}
 
 	if controlFormDTO.TestFrequencyID != nil {
 		if _, err := cs.reviewFrequencySvc.GetByID(uint(*controlFormDTO.TestFrequencyID)); err != nil {
 			return utility.NewValidationError(fmt.Errorf("review test frequiency does not exist"), "not_exist", "test frequiency")
 		}
+	}
+
+	if controlFormDTO.TestFrequencyID != nil && controlFormDTO.TestResponsibleUserID == nil {
+		return utility.NewValidationError(fmt.Errorf("test responsible user is required when test frequency is selected"), "required", "test responsible user")
 	}
 
 	if controlFormDTO.IsApplicable {
@@ -1014,7 +1041,7 @@ func (ps *ControlService) ImportProcesses(file multipart.File, currentUserID uin
 			OwnerID:               utility.ParseUint(row["OwnerID"]),
 			TitleEn:               row["TitleEn"],
 			TitleAr:               row["TitleAr"],
-			TestResponsibleUserID: utility.ParseUint(row["TestResponsibleUserID"]),
+			TestResponsibleUserID: utility.ParseOptionalUint(row["TestResponsibleUserID"]),
 		}
 
 		// Validate and create the process
@@ -1026,4 +1053,347 @@ func (ps *ControlService) ImportProcesses(file multipart.File, currentUserID uin
 	}
 
 	return failedRows, nil
+}
+
+func (cs *ControlService) GenerateControlTemplate() (*os.File, error) {
+	// Headers for the first sheet (Template)
+	templateHeaders := []string{
+		"Code", "ControlType", "ControlCategory", "Owner", "TitleEn", "TitleAr",
+		"Description", "ImplementationStatus", "EfficiencyStatus", "TestResponsibleUser",
+	}
+	templateData := [][]interface{}{} // Empty template data
+
+	// Fetch Control Types
+	controlTypes, err := cs.controlTypeSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch control types: %v", err)
+	}
+	controlTypeHeaders := []string{"ControlType"}
+	controlTypeData := [][]interface{}{}
+	for _, ct := range controlTypes {
+		controlTypeData = append(controlTypeData, []interface{}{ct.TitleEn})
+	}
+
+	// Fetch Control Categories
+	controlCategories, err := cs.controlCategorySvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch control categories: %v", err)
+	}
+	controlCategoryHeaders := []string{"ControlCategory"}
+	controlCategoryData := [][]interface{}{}
+	for _, cc := range controlCategories {
+		controlCategoryData = append(controlCategoryData, []interface{}{cc.TitleEn})
+	}
+
+	// Fetch Owners
+	owners, err := cs.userSvc.GetAllUsers()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch owners: %v", err)
+	}
+	ownerHeaders := []string{"OwnerName", "Email", "Designation", "PrimaryDepartment"}
+	ownerData := [][]interface{}{}
+	for _, owner := range owners {
+		ownerData = append(ownerData, []interface{}{
+			fmt.Sprintf("%s %s", owner.FirstNameEN, owner.LastNameEN),
+			owner.Email,
+			owner.Designation,
+			owner.PrimaryUnit,
+		})
+	}
+
+	// Fetch Control Implementation Status
+	implementationStatuses, err := cs.controlImplementationStatusSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch control implementation statuses: %v", err)
+	}
+	implementationStatusHeaders := []string{"ImplementationStatus"}
+	implementationStatusData := [][]interface{}{}
+	for _, status := range implementationStatuses {
+		implementationStatusData = append(implementationStatusData, []interface{}{status.TitleEn})
+	}
+
+	// Fetch Control Efficiency Status
+	efficiencyStatuses, err := cs.controlEfficiencyStatusSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch control efficiency statuses: %v", err)
+	}
+	efficiencyStatusHeaders := []string{"EfficiencyStatus"}
+	efficiencyStatusData := [][]interface{}{}
+	for _, status := range efficiencyStatuses {
+		efficiencyStatusData = append(efficiencyStatusData, []interface{}{status.TitleEn})
+	}
+
+	// Fetch Test Responsible Users
+	testResponsibleUsers, err := cs.userSvc.GetAllUsers()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch test responsible users: %v", err)
+	}
+	testResponsibleUserHeaders := []string{"TestResponsibleUserName", "Email", "Designation", "PrimaryDepartment"}
+	testResponsibleUserData := [][]interface{}{}
+	for _, user := range testResponsibleUsers {
+		testResponsibleUserData = append(testResponsibleUserData, []interface{}{
+			fmt.Sprintf("%s %s", user.FirstNameEN, user.LastNameEN),
+			user.Email,
+			user.Designation,
+			user.PrimaryUnit,
+		})
+	}
+
+	// Generate the Excel file with multiple sheets
+	file, err := utility.GenerateExcelFileWithSheets(map[string][][]interface{}{
+		"Template":             append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
+		"ControlType":          append([][]interface{}{utility.ConvertToInterfaceSlice(controlTypeHeaders)}, controlTypeData...),
+		"ControlCategory":      append([][]interface{}{utility.ConvertToInterfaceSlice(controlCategoryHeaders)}, controlCategoryData...),
+		"Owner":                append([][]interface{}{utility.ConvertToInterfaceSlice(ownerHeaders)}, ownerData...),
+		"ImplementationStatus": append([][]interface{}{utility.ConvertToInterfaceSlice(implementationStatusHeaders)}, implementationStatusData...),
+		"EfficiencyStatus":     append([][]interface{}{utility.ConvertToInterfaceSlice(efficiencyStatusHeaders)}, efficiencyStatusData...),
+		"TestResponsibleUser":  append([][]interface{}{utility.ConvertToInterfaceSlice(testResponsibleUserHeaders)}, testResponsibleUserData...),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
+}
+
+func (cs *ControlService) ValidateControlTemplate(file io.Reader) ([]map[string]interface{}, error) {
+	// Read Excel file
+	rows, err := utility.ReadExcelFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers in the input format and map them to snake case
+	inputHeaders := []string{"Code", "ControlType", "ControlCategory", "Owner", "TitleEn", "TitleAr", "Description", "ImplementationStatus", "EfficiencyStatus", "TestResponsibleUser"}
+	snakeCaseHeaders := []string{"code", "control_type", "control_category", "owner", "title_en", "title_ar", "description", "implementation_status", "efficiency_status", "test_responsible_user"}
+
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("empty Excel file")
+	}
+
+	// Validate headers
+	if !utility.ValidateHeaders(inputHeaders, rows[0]) {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid headers in the Excel file"), "invalid_header", "Control Template")
+	}
+
+	// Convert rows to input format
+	var input []map[string]interface{}
+	for _, row := range rows[1:] { // Skip header row
+		record := make(map[string]interface{})
+		for i, header := range snakeCaseHeaders {
+			if i < len(row) {
+				record[header] = row[i]
+			} else {
+				record[header] = "" // Pad missing columns
+			}
+		}
+		input = append(input, record)
+	}
+
+	validatedData, err := cs.validateControls(input)
+	if err != nil {
+		return nil, err
+	}
+
+	return validatedData, nil
+}
+
+func (cs *ControlService) ValidateImportControls(input []map[string]interface{}) ([]map[string]interface{}, error) {
+	validatedData, err := cs.validateControls(input)
+	if err != nil {
+		return nil, err
+	}
+
+	return validatedData, nil
+}
+
+func (cs *ControlService) ImportControls(input []map[string]interface{}, currentUserID uint) ([]uint, error) {
+	validatedData, err := cs.validateControls(input)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check for any validation errors before processing the import
+	for _, record := range validatedData {
+		if errors, ok := record["errors"].(map[string]interface{}); ok && len(errors) > 0 {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid data in the import file"), "invalid_data", "Invalid Data")
+		}
+	}
+
+	var createdControlIDs []uint
+	for _, record := range validatedData {
+		controlFormDTO := &organizationDTOs.ControlFormDTO{
+			Code:                          utility.GetOptionalStringValue(record["code"]),
+			ControlTypeID:                 record["control_type_id"].(uint),
+			ControlCategoryID:             utility.GetOptionalUintValue(record["control_category_id"]),
+			OwnerID:                       record["owner_id"].(uint),
+			TitleEn:                       record["title_en"].(string),
+			TitleAr:                       record["title_ar"].(string),
+			Description:                   utility.GetOptionalStringValue(record["description"]),
+			ControlImplementationStatusID: utility.GetOptionalUintValue(record["implementation_status_id"]),
+			ControlEfficiencyStatusID:     utility.GetOptionalUintValue(record["efficiency_status_id"]),
+			TestResponsibleUserID:         utility.GetOptionalUintValue(record["test_responsible_user_id"]),
+			IsApplicable:                  true,
+		}
+
+		controlID, err := cs.Create(currentUserID, controlFormDTO)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create control for record: %+v, error: %v", record, err)
+		}
+
+		createdControlIDs = append(createdControlIDs, controlID)
+	}
+
+	return createdControlIDs, nil
+}
+
+func (cs *ControlService) validateControls(input []map[string]interface{}) ([]map[string]interface{}, error) {
+	headers := []string{"code", "control_type", "control_category", "owner", "title_en", "title_ar", "description", "implementation_status", "efficiency_status", "test_responsible_user"}
+
+	// Fetch control types
+	controlTypes, err := cs.controlTypeSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching control types: %v", err)
+	}
+	controlTypeTitles := make(map[string]uint)
+	for _, controlType := range controlTypes {
+		controlTypeTitles[strings.TrimSpace(controlType.TitleEn)] = controlType.ID
+	}
+
+	// Fetch control categories
+	controlCategories, err := cs.controlCategorySvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching control categories: %v", err)
+	}
+	controlCategoryTitles := make(map[string]uint)
+	for _, controlCategory := range controlCategories {
+		controlCategoryTitles[strings.TrimSpace(controlCategory.TitleEn)] = controlCategory.ID
+	}
+
+	// Fetch control implementation statuses
+	implementationStatuses, err := cs.controlImplementationStatusSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching implementation statuses: %v", err)
+	}
+	implementationStatusTitles := make(map[string]uint)
+	for _, status := range implementationStatuses {
+		implementationStatusTitles[strings.TrimSpace(status.TitleEn)] = status.ID
+	}
+
+	// Fetch control efficiency statuses
+	efficiencyStatuses, err := cs.controlEfficiencyStatusSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching efficiency statuses: %v", err)
+	}
+	efficiencyStatusTitles := make(map[string]uint)
+	for _, status := range efficiencyStatuses {
+		efficiencyStatusTitles[strings.TrimSpace(status.TitleEn)] = status.ID
+	}
+
+	// Fetch users
+	users, err := cs.userSvc.GetAllUsers()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching users: %v", err)
+	}
+	userFullNames := make(map[string]uint)
+	for _, user := range users {
+		fullName := strings.TrimSpace(user.FirstNameEN + " " + user.LastNameEN)
+		userFullNames[fullName] = uint(user.ID)
+	}
+
+	// Perform validation
+	var validatedData []map[string]interface{}
+
+	for _, record := range input {
+		rowErrors := make(map[string]interface{})
+		controlRecord := make(map[string]interface{})
+
+		// Copy original data
+		for key, value := range record {
+			controlRecord[key] = value
+		}
+
+		// Validation
+		for _, header := range headers {
+			value, ok := record[header].(string)
+			switch header {
+
+			case "control_type":
+				if !ok || value == "" {
+					rowErrors[header] = "Control Type is required"
+				} else if id, exists := controlTypeTitles[strings.TrimSpace(value)]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid control type: %s", value)
+				} else {
+					controlRecord["control_type_id"] = id
+				}
+
+			case "control_category":
+				if value == "" {
+					// Allow empty control category, set to nil in the record
+					controlRecord["control_category_id"] = nil
+				} else if id, exists := controlCategoryTitles[strings.TrimSpace(value)]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid control category: %s", value)
+				} else {
+					controlRecord["control_category_id"] = id
+				}
+
+			case "owner":
+				if !ok || value == "" {
+					rowErrors[header] = "Owner is required"
+				} else if id, exists := userFullNames[strings.TrimSpace(value)]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid owner: %s", value)
+				} else {
+					controlRecord["owner_id"] = id
+				}
+
+			case "title_en", "title_ar":
+				if !ok || value == "" {
+					rowErrors[header] = "Field is required"
+				}
+
+			case "description":
+				// Optional, no validation required
+			case "implementation_status":
+				if !ok || value == "" {
+					rowErrors[header] = "Implementation Status is required"
+				} else if id, exists := implementationStatusTitles[strings.TrimSpace(value)]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid implementation status: %s", value)
+				} else {
+					controlRecord["implementation_status_id"] = id
+				}
+
+			case "efficiency_status":
+				if !ok || value == "" {
+					rowErrors[header] = "Efficiency Status is required"
+				} else if id, exists := efficiencyStatusTitles[strings.TrimSpace(value)]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid efficiency status: %s", value)
+				} else {
+					controlRecord["efficiency_status_id"] = id
+				}
+
+			case "test_responsible_user":
+				if id, exists := userFullNames[strings.TrimSpace(value)]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid test responsible user: %s", value)
+				} else {
+					controlRecord["test_responsible_user_id"] = id
+				}
+			}
+		}
+
+		// Attach errors
+		if len(rowErrors) == 0 {
+			controlRecord["errors"] = nil
+		} else {
+			for _, header := range headers {
+				if _, exists := rowErrors[header]; !exists {
+					rowErrors[header] = "" // Fill empty error messages
+				}
+			}
+			controlRecord["errors"] = rowErrors
+		}
+
+		validatedData = append(validatedData, controlRecord)
+	}
+
+	return validatedData, nil
 }

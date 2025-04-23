@@ -38,6 +38,9 @@ type ComplianceRequirementRepositoryInterface interface {
 	DeleteComplianceRequirementDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	CalculateAverageScore(complianceRegisterID uint, tx ...utility.DatabaseTransaction) (float64, error)
+
+	CreateComplianceRequirmentRequiredDocumentTitles(requiredDocumentTitle []*models.ComplianceRequirementRequiredDocumentTitle, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceRequirmentRequiredDocumentTitles(requiredDocumentTitleIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceRequirementRepository struct {
@@ -154,8 +157,10 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
 			(compliance_clauses.clause_no LIKE ? OR
-			compliance_clauses.title LIKE ? OR
-			compliance_requirements.title LIKE ? OR
+			compliance_clauses.title_en LIKE ? OR
+			compliance_clauses.title_ar LIKE ? OR
+			compliance_requirements.title_en LIKE ? OR
+			compliance_requirements.title_ar LIKE ? OR
 			compliance_requirement_categories.title_en LIKE ? OR
 			compliance_requirement_categories.title_ar LIKE ? OR
 			severity_levels.title_en LIKE ? OR
@@ -176,7 +181,8 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword,
+			keyword)
 	}
 
 	if params.SortBy == "" {
@@ -428,6 +434,8 @@ func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("Documents").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("RequiredDocumentTitles").
+		Preload("RequiredDocumentTitles.RequiredDocumentTitle").
 		First(&complianceRequirement, id)
 
 	if result.Error != nil {
@@ -678,4 +686,28 @@ func (repo *ComplianceRequirementRepository) CalculateAverageScore(complianceReg
 	roundedScore := math.Round(averageScore*100) / 100
 
 	return roundedScore, nil
+}
+
+func (repo *ComplianceRequirementRepository) CreateComplianceRequirmentRequiredDocumentTitles(requiredDocumentTitle []*models.ComplianceRequirementRequiredDocumentTitle, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&requiredDocumentTitle).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceRequirementRepository) DeleteComplianceRequirmentRequiredDocumentTitles(requiredDocumentTitleIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", requiredDocumentTitleIds).Delete(&models.ComplianceRequirementRequiredDocumentTitle{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -55,7 +55,7 @@ INSERT INTO user_securities (
     updated_at
 ) VALUES (
     @UserID,
-    '$2a$10$lD/krN00lAIwGgy4gBVcPuG2lnY6xIdM8Xq74.eDgPDQ8g/rj8scq', -- Replace with your actual bcrypt hash
+    '$2b$12$aYlBn5N21I3OKJoRjWZ5wegEZvqBiAhJCpJ/MrSQpSn0I7SYkcTCe', -- Replace with your actual bcrypt hash
     0,
     NULL,
     NULL,

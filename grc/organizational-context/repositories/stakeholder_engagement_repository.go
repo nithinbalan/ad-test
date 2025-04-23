@@ -1,0 +1,194 @@
+package repositories
+
+import (
+	"jethur/grc/models"
+	organizationalContextDTOs "jethur/grc/organizational-context/dtos"
+	"jethur/utility"
+
+	"gorm.io/gorm"
+)
+
+type StakeholderEngagementRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
+	GetAll(stakeholderId uint, params *organizationalContextDTOs.StakeholderEngagementListQueryParamsDTO) ([]*organizationalContextDTOs.StakeholderEngagementListDTO, error)
+	GetByID(id uint) (*models.StakeholderEngagement, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StakeholderEngagement, error)
+	Create(stakeholderEngagement *models.StakeholderEngagement, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(stakeholderEngagement *models.StakeholderEngagement, tx ...utility.DatabaseTransaction) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
+}
+
+type StakeholderEngagementRepository struct {
+	db *gorm.DB
+}
+
+func NewStakeholderEngagementRepository(db *gorm.DB) *StakeholderEngagementRepository {
+	return &StakeholderEngagementRepository{
+		db: db,
+	}
+}
+
+// BeginTransaction starts a new transaction.
+func (repo *StakeholderEngagementRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
+}
+
+func (repo *StakeholderEngagementRepository) GetAll(stakeholderId uint, params *organizationalContextDTOs.StakeholderEngagementListQueryParamsDTO) ([]*organizationalContextDTOs.StakeholderEngagementListDTO, error) {
+	var stakeholderEngagements []*organizationalContextDTOs.StakeholderEngagementListDTO
+	var totalCount int64
+
+	query := repo.db.Table("stakeholder_engagements").
+		Select(`
+            stakeholder_engagements.*,
+			stakeholders.title_en as stakeholder_title_en,
+			stakeholders.title_ar as stakeholder_title_ar,
+			review_frequencies.title_en AS review_frequency_title_en,
+			review_frequencies.title_ar AS review_frequency_title_ar,
+			review_frequencies.type AS review_frequency_type,
+			assigned_owner.id AS assigned_owner_id,
+        	assigned_owner.first_name_en AS assigned_owner_first_name_en,
+        	assigned_owner.first_name_ar AS assigned_owner_first_name_ar,
+        	assigned_owner.last_name_en AS assigned_owner_last_name_en,
+        	assigned_owner.last_name_ar AS assigned_owner_last_name_ar,   
+        	assigned_owner.initial AS assigned_owner_initial,
+        	assigned_owner.color AS assigned_owner_color,
+        	assigned_owner.email AS assigned_owner_email,
+        	assigned_owner.profile_image_path AS assigned_owner_profile_image_path,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+            created_user.color AS created_user_color,
+            created_user.email AS created_user_email,
+            created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+            updated_user.color AS updated_user_color,
+            updated_user.email AS updated_user_email,
+            updated_user.profile_image_path AS updated_user_profile_image_path  
+        `).
+		Joins(`
+			LEFT JOIN stakeholders ON stakeholders.id = stakeholder_engagements.stakeholder_id
+			LEFT JOIN review_frequencies ON review_frequencies.id = stakeholder_engagements.review_frequency_id
+			LEFT JOIN users AS assigned_owner ON assigned_owner.id = stakeholder_engagements.assigned_owner_id
+			LEFT JOIN users AS created_user ON created_user.id = stakeholder_engagements.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = stakeholder_engagements.updated_by_id
+        `).Where(`stakeholder_engagements.stakeholder_id`, stakeholderId)
+	// Apply dynamic filters to the query
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(created_user.first_name_en LIKE ? OR
+			created_user.first_name_ar LIKE ? OR
+			created_user.last_name_en LIKE ? OR
+			created_user.last_name_ar LIKE ? OR
+    		updated_user.first_name_en LIKE ? OR
+			updated_user.first_name_ar LIKE ? OR
+			updated_user.last_name_en LIKE ? OR
+			updated_user.last_name_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	err := query.Find(&stakeholderEngagements).Error
+	if err != nil {
+		return nil, err
+	}
+	return stakeholderEngagements, nil
+}
+
+func (repo *StakeholderEngagementRepository) GetByID(id uint) (*models.StakeholderEngagement, error) {
+	var stakeholderEngagement *models.StakeholderEngagement
+
+	result := repo.db.First(&stakeholderEngagement, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return stakeholderEngagement, nil
+
+}
+
+func (repo *StakeholderEngagementRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StakeholderEngagement, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var stakeholderEngagement *models.StakeholderEngagement
+
+	result := db.
+		Preload("ReviewFrequency").
+		Preload("AssignedOwner").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&stakeholderEngagement, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return stakeholderEngagement, nil
+}
+
+func (repo *StakeholderEngagementRepository) Create(stakeholderEngagement *models.StakeholderEngagement, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(stakeholderEngagement).Error; err != nil {
+		return 0, err
+	}
+
+	return stakeholderEngagement.ID, nil
+}
+
+func (repo *StakeholderEngagementRepository) Update(stakeholderEngagement *models.StakeholderEngagement, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(stakeholderEngagement).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *StakeholderEngagementRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	// Delete the Swot Pestel Question Factor
+	if err := db.Delete(&models.StakeholderEngagement{}, id).Error; err != nil {
+		return err
+	}
+
+	return nil
+}

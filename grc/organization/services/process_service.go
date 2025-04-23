@@ -4,6 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"strings"
+	"time"
+
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
@@ -12,9 +16,6 @@ import (
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/utility"
-	"os"
-	"strings"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -62,7 +63,8 @@ func NewProcessService(
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
 	controlSvc ControlServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
-	userSettingSvc UserSettingServiceInterface) ProcessServiceInterface {
+	userSettingSvc UserSettingServiceInterface,
+) ProcessServiceInterface {
 	return &ProcessService{
 		repo:               repo,
 		activityLogSvc:     activityLogSvc,
@@ -81,7 +83,6 @@ func (ps *ProcessService) GetAll(params *organizationDTOs.ProcessListQueryParams
 
 func (ps *ProcessService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error) {
 	process, err := ps.repo.GetByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -95,7 +96,6 @@ func (ps *ProcessService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTran
 	var processDetailDTO organizationDTOs.ProcessDetailDTO
 
 	process, err := ps.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -227,7 +227,7 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 			return
 		}
 
-		//log
+		// log
 		err = ps.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.Process{}.TableName(),
@@ -236,7 +236,6 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
 				"action":    models.CreateAction,
@@ -247,13 +246,13 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 			})
 		}
 
-		//notification
+		// notification
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
 		entity := "process"
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               processFormDTO.OwnerID,
+			UserIDs:              []uint{processFormDTO.OwnerID},
 			ModuleIdentifier:     "organization",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			ReferenceNumber:      process.ReferenceNumber,
@@ -599,7 +598,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"process_group":    oldProcess.ProcessGroup.TitleEn,
 			"owner_unit":       oldProcess.OwnerUnit.TitleEn,
@@ -644,7 +643,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 			}
 		}
 
-		//notification
+		// notification
 		if oldOwnerID != processFormDTO.OwnerID {
 			urlParam := fmt.Sprintf(`{"id":%d}`, id)
 			queryParam := ""
@@ -652,7 +651,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 			action := "responsible-user-remove"
 
 			oldOwnerNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldOwnerID,
+				UserIDs:              []uint{oldOwnerID},
 				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.InformationType),
 				ReferenceNumber:      process.ReferenceNumber,
@@ -697,11 +696,11 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 				EmailData:            oldOwnerEmailData,
 			}
 
-			//new owner notification
+			// new owner notification
 			newOwnerAction := "responsible-user-assign"
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               processFormDTO.OwnerID,
+				UserIDs:              []uint{processFormDTO.OwnerID},
 				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				ReferenceNumber:      process.ReferenceNumber,
@@ -764,10 +763,8 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 				utility.LogError("Failed to send old owner notifications", map[string]interface{}{
 					"error": err.Error(),
 				})
-
 			}
 		}
-
 	}()
 
 	return nil
@@ -886,7 +883,7 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "organization",
 					NotificationType:     string(commonDTOs.DeletionType),
 					ReferenceNumber:      notification.ReferenceNumber,
@@ -955,7 +952,6 @@ func (ps *ProcessService) Archive(ids []uint, currentUserID uint) ([]uint, error
 	}
 
 	successfulIds, err := ps.repo.UpdateLifecycleStatusForIDs(idsToUpdate, lifecycleStatus.ID)
-
 	if err != nil {
 		return nil, err
 	}
@@ -992,7 +988,6 @@ func (ps *ProcessService) Restore(ids []uint, currentUserID uint) ([]uint, error
 	}
 
 	successfulIds, err := ps.repo.UpdateLifecycleStatusForIDs(idsToUpdate, lifecycleStatus.ID)
-
 	if err != nil {
 		return nil, err
 	}
@@ -1199,7 +1194,6 @@ func (ps *ProcessService) ExportProcesses(data []*organizationDTOs.ProcessListDT
 }
 
 func (ps *ProcessService) UpdateProcessRiskRating(process *models.Process, tx utility.DatabaseTransaction) error {
-
 	err := ps.repo.Update(process, tx)
 	if err != nil {
 		tx.Rollback()
@@ -1212,7 +1206,7 @@ func (ps *ProcessService) UpdateProcessRiskRating(process *models.Process, tx ut
 func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
 	// Headers for the first sheet (Template)
 	templateHeaders := []string{
-		"ProcessGroupTitle", "Owner", "TitleEn", "TitleAr", "Description", "Controls",
+		"ProcessGroup", "Owner", "TitleEn", "TitleAr", "Description", "Controls",
 	}
 	templateData := [][]interface{}{} // Empty template data
 
@@ -1283,8 +1277,8 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 	}
 
 	// Define headers in the input format and map them to snake case
-	inputHeaders := []string{"ProcessGroupTitle", "Owner", "TitleEn", "TitleAr", "Description", "Controls"}
-	snakeCaseHeaders := []string{"process_group_title", "owner", "title_en", "title_ar", "description", "controls"}
+	inputHeaders := []string{"ProcessGroup", "Owner", "TitleEn", "TitleAr", "Description", "Controls"}
+	snakeCaseHeaders := []string{"process_group", "owner", "title_en", "title_ar", "description", "controls"}
 
 	if len(rows) == 0 {
 		return nil, fmt.Errorf("empty Excel file")
@@ -1318,7 +1312,6 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 }
 
 func (ps *ProcessService) ValidateImportProcess(input []map[string]interface{}) ([]map[string]interface{}, error) {
-
 	validatedData, err := ps.validateProcesses(input)
 	if err != nil {
 		return nil, err
@@ -1332,8 +1325,6 @@ func (ps *ProcessService) ImportProcesses(input []map[string]interface{}, curren
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println(validatedData)
 
 	for _, record := range validatedData {
 		if errors, ok := record["errors"].(map[string]interface{}); ok && len(errors) > 0 {
@@ -1374,7 +1365,7 @@ func (ps *ProcessService) ImportProcesses(input []map[string]interface{}, curren
 }
 
 func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]map[string]interface{}, error) {
-	headers := []string{"process_group_title", "owner", "title_en", "title_ar", "description", "controls"}
+	headers := []string{"process_group", "owner", "title_en", "title_ar", "description", "controls"}
 
 	// Fetch process group titles and map to IDs
 	processGroups, err := ps.processGroupSvc.GetAll("", "", "", "active")
@@ -1423,11 +1414,11 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 		for _, header := range headers {
 			value, ok := record[header].(string)
 			switch header {
-			case "process_group_title":
+			case "process_group":
 				if !ok || value == "" {
-					rowErrors["process_group_title"] = "Field is required"
+					rowErrors["process_group"] = "Field is required"
 				} else if id, exists := processGroupTitles[strings.TrimSpace(value)]; !exists {
-					rowErrors["process_group_title"] = fmt.Sprintf("Invalid process group title: %s", value)
+					rowErrors["process_group"] = fmt.Sprintf("Invalid process group title: %s", value)
 				} else {
 					processedRecord["process_group_id"] = id // Add the ID
 				}
@@ -1490,7 +1481,6 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 }
 
 func (ps *ProcessService) UpdateProcessRecoveryObjective(process *models.Process, tx utility.DatabaseTransaction) error {
-
 	err := ps.repo.Update(process, tx)
 	if err != nil {
 		tx.Rollback()

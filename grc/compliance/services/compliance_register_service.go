@@ -57,6 +57,7 @@ type ComplianceRegisterService struct {
 	userSettingSvc        organizationServices.UserSettingServiceInterface
 	userSvc               organizationServices.UserServiceInterface
 	notificationSvc       commonServices.NotificationServiceInterface
+	complianceFolderSvc   ComplianceFolderServiceInterface
 }
 
 func NewComplianceRegisterService(
@@ -71,6 +72,7 @@ func NewComplianceRegisterService(
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	complianceFolderSvc ComplianceFolderServiceInterface,
 ) ComplianceRegisterServiceInterface {
 	return &ComplianceRegisterService{
 		repo:                  repo,
@@ -84,6 +86,7 @@ func NewComplianceRegisterService(
 		userSettingSvc:        userSettingSvc,
 		userSvc:               userSvc,
 		notificationSvc:       notificationSvc,
+		complianceFolderSvc:   complianceFolderSvc,
 	}
 }
 
@@ -202,6 +205,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		ComplianceReviewStatusID: complianceRegisterFormDTO.ComplianceReviewStatusID,
 		CreatedByID:              currentUserID,
 		LifecycleStatusID:        lifecycleStatus.ID,
+		ComplianceFolderID:       complianceRegisterFormDTO.ComplianceFolderID,
 	}
 
 	id, err := crs.repo.Create(complianceRegister, tx)
@@ -290,7 +294,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               complianceRegisterFormDTO.ResponsibleUserID,
+			UserIDs:              []uint{complianceRegisterFormDTO.ResponsibleUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Register Responsibility Assigned",
@@ -422,6 +426,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	existingComplianceRegister.ComplianceReviewStatusID = complianceRegisterFormDTO.ComplianceReviewStatusID
 	existingComplianceRegister.LastReviewNote = complianceRegisterFormDTO.LastReviewNote
 	existingComplianceRegister.UpdatedByID = &currentUserID
+	existingComplianceRegister.ComplianceFolderID = complianceRegisterFormDTO.ComplianceFolderID
 
 	err = crs.repo.Update(existingComplianceRegister, tx)
 	if err != nil {
@@ -493,7 +498,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	}
 
 	existingComplianceDocumentAr, err := crs.repo.GetLatestDocumentByComplianceID(id, "ar")
-	if err != nil {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
 	}
 
@@ -514,17 +519,22 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	}
 
 	if complianceRegisterFormDTO.DocumentAr.IsNewFile != nil && *complianceRegisterFormDTO.DocumentAr.IsNewFile {
-		existingComplianceDocumentArFileName := existingComplianceDocumentAr.Name
+		var existingComplianceDocumentArFileName string
+		if existingComplianceDocumentAr != nil {
+			existingComplianceDocumentArFileName = existingComplianceDocumentAr.Name
+		}
 
 		if err := crs.handleDocument(currentUserID, id, &complianceRegisterFormDTO.DocumentAr, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
 
-		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
-		if err := utility.RemoveFile(existingComplianceDocumentArFileName, storagePath); err != nil {
-			tx.Rollback()
-			return err
+		if existingComplianceDocumentAr != nil {
+			storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
+			if err := utility.RemoveFile(existingComplianceDocumentArFileName, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
 		}
 	}
 
@@ -561,7 +571,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"compliance_category":      oldComplianceRegister.ComplianceCategory.TitleEn,
 			"compliance_status":        oldComplianceRegister.ComplianceStatus.TitleEn,
@@ -640,7 +650,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 			// Old responsible user notification (Removal)
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
+				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Compliance Register Responsibility Removed",
@@ -658,7 +668,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 			// New responsible user notification (Assignment)
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               complianceRegisterFormDTO.ResponsibleUserID,
+				UserIDs:              []uint{complianceRegisterFormDTO.ResponsibleUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Compliance Register Responsibility Assigned",
@@ -912,7 +922,7 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 
 				// Prepare DB notification
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
+					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Compliance Register Deleted",
@@ -1069,6 +1079,12 @@ func (crs *ComplianceRegisterService) ReviewStatusUpdate(complianceRegister *mod
 }
 
 func (crs *ComplianceRegisterService) validateComplianceRegisterFormDTO(complianceRegisterFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error {
+	if complianceRegisterFormDTO.ComplianceFolderID != nil {
+		if _, err := crs.complianceFolderSvc.GetByID(*complianceRegisterFormDTO.ComplianceFolderID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("compliance folder does not exist"), "not_exist", "compliance folder")
+		}
+	}
+
 	if _, err := crs.complianceCategorySvc.GetByID(complianceRegisterFormDTO.ComplianceCategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("compliance category does not exist"), "not_exist", "compliance category")
 	}

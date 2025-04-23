@@ -1,12 +1,13 @@
 package controllers
 
 import (
+	"net/http"
+	"strconv"
+
 	commonDTOs "jethur/grc/common/dtos"
 	libraryDTOs "jethur/grc/library/dtos"
 	"jethur/grc/library/services"
 	"jethur/utility"
-	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -24,11 +25,9 @@ func NewKRILibraryController(service services.KRILibraryServiceInterface) *KRILi
 }
 
 func (klc *KRILibraryController) GetAllKRILibrary(c *gin.Context) {
-
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -46,12 +45,10 @@ func (klc *KRILibraryController) GetAllKRILibrary(c *gin.Context) {
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
-		Status:   status,
 		Page:     page,
 		PageSize: pageSize,
 	}
 	kriLibrary, err := klc.service.GetAll(&queryParams)
-
 	if err != nil {
 		utility.SendInternalErrResp(klc.db, c, err.Error())
 		return
@@ -83,7 +80,6 @@ func (klc *KRILibraryController) GetKRILibraryDetails(c *gin.Context) {
 }
 
 func (klc *KRILibraryController) CreateKRILibrary(c *gin.Context) {
-
 	var libraryFormDTOO libraryDTOs.KRILibraryFormDTO
 
 	if err := c.ShouldBindJSON(&libraryFormDTOO); err != nil {
@@ -98,7 +94,6 @@ func (klc *KRILibraryController) CreateKRILibrary(c *gin.Context) {
 	}
 
 	id, err := klc.service.Create(currentUserID, &libraryFormDTOO)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -114,7 +109,6 @@ func (klc *KRILibraryController) CreateKRILibrary(c *gin.Context) {
 }
 
 func (klc *KRILibraryController) UpdateKRILibrary(c *gin.Context) {
-
 	kriLibraryID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -152,7 +146,6 @@ func (klc *KRILibraryController) UpdateKRILibrary(c *gin.Context) {
 }
 
 func (klc *KRILibraryController) DeleteKRILibraries(c *gin.Context) {
-
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -225,4 +218,13 @@ func (klc *KRILibraryController) DeactivateKRILibraries(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (klc *KRILibraryController) GetKRICategoryCounts(c *gin.Context) {
+	result, err := klc.service.GetKRICategoryCounts()
+	if err != nil {
+		utility.SendInternalErrResp(klc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, result)
 }

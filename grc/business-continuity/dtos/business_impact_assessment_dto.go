@@ -39,61 +39,68 @@ type BusinessImpactAssessmentListDTO struct {
 }
 
 type BusinessImpactAssessmentRecoveryObjectiveListDTO struct {
-	ID                           uint    `json:"id"`
-	ProcessID                    *uint   `json:"process_id"`
-	ProcessTitleEn               string  `json:"process_title_en"`
-	ProcessTitleAr               string  `json:"process_title_ar"`
-	AssetRegisterID              *uint   `json:"asset_register_id"`
-	AssetRegisterTitleEn         *string `json:"asset_register_title_en"`
-	AssetRegisterTitleAr         *string `json:"asset_register_title_ar"`
-	AssetRegisterRto             *int    `json:"asset_register_rto"`
-	AssetRegisterRtoUnitId       *uint   `json:"asset_register_rto_unit_id"`
-	AssetRegisterRtoUnitTitleEn  *string `json:"asset_register_rto_unit_title_en"`
-	AssetRegisterRtoUnitTitleAr  *string `json:"asset_register_rto_unit_title_ar"`
-	AssetRegisterMtpd            *int    `json:"asset_register_mtpd"`
-	AssetRegisterMtpdUnitId      *uint   `json:"asset_register_mtpd_unit_id"`
-	AssetRegisterMtpdUnitTitleEn *string `json:"asset_register_mtpd_unit_title_en"`
-	AssetRegisterMtpdUnitTitleAr *string `json:"asset_register_mtpd_unit_title_ar"`
-	AssetRegisterRpo             *int    `json:"asset_register_rpo"`
-	AssetRegisterRpoUnitId       *uint   `json:"asset_register_rpo_unit_id"`
-	AssetRegisterRpoUnitTitleEn  *string `json:"asset_register_rpo_unit_title_en"`
-	AssetRegisterRpoUnitTitleAr  *string `json:"asset_register_rpo_unit_title_ar"`
-	DocumentID                   *uint   `json:"document_id"`
-	DocumentTitleEn              *string `json:"document_title_en"`
-	DocumentTitleAr              *string `json:"document_title_ar"`
-	DocumentRto                  *int    `json:"document_rto"`
-	DocumentRtoUnitId            *uint   `json:"document_rto_unit_id"`
-	DocumentRtoUnitTitleEn       *string `json:"document_rto_unit_title_en"`
-	DocumentRtoUnitTitleAr       *string `json:"document_rto_unit_title_ar"`
-	DocumentMtpd                 *int    `json:"document_mtpd"`
-	DocumentMtpdUnitId           *uint   `json:"document_mtpd_unit_id"`
-	DocumentMtpdUnitTitleEn      *string `json:"document_mtpd_unit_title_en"`
-	DocumentMtpdUnitTitleAr      *string `json:"document_mtpd_unit_title_ar"`
-	DocumentRpo                  *int    `json:"document_rpo"`
-	DocumentRpoUnitId            *uint   `json:"document_rpo_unit_id"`
-	DocumentRpoUnitTitleEn       *string `json:"document_rpo_unit_title_en"`
-	DocumentRpoUnitTitleAr       *string `json:"document_rpo_unit_title_ar"`
-	ImpactDescription            *string `json:"impact_description"`
-	CreatedAt                    string  `json:"created_at"`
-	UpdatedAt                    string  `json:"updated_at"`
-	CreatedUserID                uint    `json:"created_user_id"`
-	CreatedUserFirstNameEn       string  `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr       string  `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn        string  `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr        string  `json:"created_user_last_name_ar"`
-	CreatedUserInitial           string  `json:"created_user_initial"`
-	CreatedUserColor             string  `json:"created_user_color"`
-	CreatedUserEmail             string  `json:"created_user_email"`
-	CreatedUserProfileImagePath  string  `json:"created_user_profile_image_path"`
-	UpdatedUserID                *uint   `json:"updated_user_id"`
-	UpdatedUserFirstNameEn       *string `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr       *string `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn        *string `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr        *string `json:"updated_user_last_name_ar"`
-	UpdatedUserInitial           *string `json:"updated_user_initial"`
-	UpdatedUserColor             *string `json:"updated_user_color"`
-	UpdatedUserEmail             *string `json:"updated_user_email"`
-	UpdatedUserProfileImagePath  *string `json:"updated_user_profile_image_path"`
+	ID             uint    `json:"id"`
+	ProcessID      uint    `json:"process_id"`
+	ProcessTitleEn *string `json:"process_title_en"`
+	ProcessTitleAr *string `json:"process_title_ar"`
+
+	ProcessDependencySubTypeID      uint    `json:"process_dependency_sub_type_id"`
+	ProcessDependencySubTypeType    *string `json:"process_dependency_sub_type_type"`
+	ProcessDependencySubTypeTitleEn *string `json:"process_dependency_sub_type_title_en"`
+	ProcessDependencySubTypeTitleAr *string `json:"process_dependency_sub_type_title_ar"`
+	ProcessDependencyTypeTitleEn    *string `json:"process_dependency_type_title_en"`
+	ProcessDependencyTypeTitleAr    *string `json:"process_dependency_type_title_ar"`
+	ProcessDependencyTypeType       *string `json:"process_dependency_type_type"`
+
+	DependentProcessID      *uint   `json:"dependent_process_id"`
+	DependentProcessTitleEn *string `json:"dependent_process_title_en"`
+	DependentProcessTitleAr *string `json:"dependent_process_title_ar"`
+
+	OrganizationUnitID      *uint   `json:"organization_unit_id"`
+	OrganizationUnitTitleEn *string `json:"organization_unit_title_en"`
+	OrganizationUnitTitleAr *string `json:"organization_unit_title_ar"`
+
+	AssetID      *uint   `json:"asset_id"`
+	AssetTitleEn *string `json:"asset_title_en"`
+	AssetTitleAr *string `json:"asset_title_ar"`
+
+	Title       string  `json:"title"`
+	Description *string `json:"description"`
+
+	Rto               *int    `json:"rto"`
+	RtoUnitId         *uint   `json:"rto_unit_id"`
+	RtoUnitTitleEn    *string `json:"rto_unit_title_en"`
+	RtoUnitTitleAr    *string `json:"rto_unit_title_ar"`
+	Mtpd              *int    `json:"mtpd"`
+	MtpdUnitId        *uint   `json:"mtpd_unit_id"`
+	MtpdUnitTitleEn   *string `json:"mtpd_unit_title_en"`
+	MtpdUnitTitleAr   *string `json:"mtpd_unit_title_ar"`
+	Rpo               *int    `json:"rpo"`
+	RpoUnitId         *uint   `json:"rpo_unit_id"`
+	RpoUnitTitleEn    *string `json:"rpo_unit_title_en"`
+	RpoUnitTitleAr    *string `json:"rpo_unit_title_ar"`
+	ImpactDescription *string `json:"impact_description"`
+
+	CreatedAt                   string  `json:"created_at"`
+	UpdatedAt                   string  `json:"updated_at"`
+	CreatedUserID               uint    `json:"created_user_id"`
+	CreatedUserFirstNameEn      string  `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr      string  `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn       string  `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr       string  `json:"created_user_last_name_ar"`
+	CreatedUserInitial          string  `json:"created_user_initial"`
+	CreatedUserColor            string  `json:"created_user_color"`
+	CreatedUserEmail            string  `json:"created_user_email"`
+	CreatedUserProfileImagePath string  `json:"created_user_profile_image_path"`
+	UpdatedUserID               *uint   `json:"updated_user_id"`
+	UpdatedUserFirstNameEn      *string `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr      *string `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn       *string `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr       *string `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial          *string `json:"updated_user_initial"`
+	UpdatedUserColor            *string `json:"updated_user_color"`
+	UpdatedUserEmail            *string `json:"updated_user_email"`
+	UpdatedUserProfileImagePath *string `json:"updated_user_profile_image_path"`
 }
 
 type BusinessImpactAssessmentListQueryParamsDTO struct {
@@ -117,6 +124,8 @@ type BusinessImpactFormDTO struct {
 type BusinessImpactAssessmentFormDTO struct {
 	ProcessID                 *uint                         `json:"process_id"`
 	BusinessImpactAssessments []BusinessImpactAssessmentDTO `json:"business_impact_assessments"`
+	RiskLevelID               *uint                         `json:"risk_level_id"`
+	ImpactJustification       *string                       `json:"impact_justification"`
 }
 
 type BusinessImpactAssessmentDTO struct {
@@ -138,25 +147,36 @@ type BusinessImpactAssessmentRecoveryObjectiveFormDTO struct {
 	RecoveryObjectives []BusinessImpactAssessmentRecoveryObjectiveDTO `json:"recovery_objectives"`
 }
 
+type BusinessImpactAssessmentProcessCriticalityFormDTO struct {
+	ProcessID                 *uint   `json:"process_id"`
+	ProcessCriticalityLevelID *uint   `json:"process_criticality_level_id"`
+	CriticalityJustification  *string `json:"criticality_justification"`
+}
+
 type BusinessImpactAssessmentRecoveryObjectiveDTO struct {
-	AssetRegisterID   *uint   `json:"asset_register_id"`
-	DocumentID        *uint   `json:"document_id"`
-	RoleInProcess     *string `json:"role_in_process" gorm:"type:nvarchar(max)"`
-	Rto               *int    `json:"rto"`
-	RtoUnitId         *uint   `json:"rto_unit_id"`
-	Mtpd              *int    `json:"mtpd"`
-	MtpdUnitId        *uint   `json:"mtpd_unit_id"`
-	Rpo               *int    `json:"rpo"`
-	RpoUnitId         *uint   `json:"rpo_unit_id"`
-	ImpactDescription *string `json:"impact_description"`
+	ProcessDependencyID *uint `json:"process_dependency_id"`
+	Rto                 *int  `json:"rto"`
+	RtoUnitId           *uint `json:"rto_unit_id"`
+	Mtpd                *int  `json:"mtpd"`
+	MtpdUnitId          *uint `json:"mtpd_unit_id"`
+	Rpo                 *int  `json:"rpo"`
+	RpoUnitId           *uint `json:"rpo_unit_id"`
 }
 
 type BIAMatrixResponseDTO struct {
-	BusinessFunctionID     uint    `json:"business_function_id"`
-	BusinessFunctionTitle  string  `json:"business_function_title"`
-	ProcessID              uint    `json:"process_id"`
-	ProcessTitleEn         string  `json:"process_title_en"`
-	ProcessTitleAr         string  `json:"process_title_ar"`
+	BusinessFunctionID                 uint    `json:"business_function_id"`
+	BusinessFunctionTitle              string  `json:"business_function_title"`
+	BusinessFunctionCriticalityTitleEn *string `json:"business_function_criticality_title_en"`
+	BusinessFunctionCriticalityTitleAr *string `json:"business_function_criticality_title_ar"`
+	BusinessFunctionCriticalityColor   *string `json:"business_function_criticality_color"`
+
+	ProcessID                 uint    `json:"process_id"`
+	ProcessTitleEn            string  `json:"process_title_en"`
+	ProcessTitleAr            string  `json:"process_title_ar"`
+	ProcessCriticalityTitleEn *string `json:"process_criticality_title_en"`
+	ProcessCriticalityTitleAr *string `json:"process_criticality_title_ar"`
+	ProcessCriticalityColor   *string `json:"process_criticality_color"`
+
 	ProcessRTO             int     `json:"process_rto"`
 	ProcessMTPD            int     `json:"process_mtpd"`
 	ProcessRPO             int     `json:"process_rpo"`
@@ -168,9 +188,11 @@ type BIAMatrixResponseDTO struct {
 	ProcessRPOUnitID       *uint   `json:"process_rpo_unit_id"`
 	ProcessRPOUnitTitleEn  *string `json:"process_rpo_unit_title_en"`
 	ProcessRPOUnitTitleAr  *string `json:"process_rpo_unit_title_ar"`
-	RiskLevelID            *uint   `json:"risk_level_id"`
-	RiskLevelTitleEn       *string `json:"risk_level_title_en"`
-	RiskLevelTitleAr       *string `json:"risk_level_title_ar"`
+
+	RiskLevelID        *uint   `json:"risk_level_id"`
+	RiskLevelTitleEn   *string `json:"risk_level_title_en"`
+	RiskLevelTitleAr   *string `json:"risk_level_title_ar"`
+	RiskLevelColorCode *string `json:"risk_level_color_code"`
 }
 
 type BIAMatrixQueryParamsDTO struct {

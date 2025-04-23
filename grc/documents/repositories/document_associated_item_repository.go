@@ -141,11 +141,13 @@ func (repo *DocumentAssociatedItemRepository) GetAllComplianceRequirements(docum
 			compliance_register.title_en AS compliance_register_title_en,
 			compliance_register.title_ar AS compliance_register_title_ar,
 			compliance_requirement_associated_documents.compliance_requirement_id AS compliance_requirement_id,
-			compliance_clauses.title AS compliance_clause_title,
+			compliance_clauses.title_en AS compliance_clause_title_en,
+			compliance_clauses.title_ar AS compliance_clause_title_ar,
 			compliance_clauses.clause_no AS compliance_clause_no,
 			compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
 			compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
-			compliance_requirements.title AS compliance_requirement_title,
+			compliance_requirements.title_en AS compliance_requirement_title_en,
+			compliance_requirements.title_ar AS compliance_requirement_title_ar,
 			compliance_statuses.title_en AS compliance_status_title_en,
 			compliance_statuses.title_ar AS compliance_status_title_ar,
 			compliance_statuses.color_code AS compliance_status_color_code
@@ -166,11 +168,11 @@ func (repo *DocumentAssociatedItemRepository) GetAllComplianceRequirements(docum
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
-		query = query.Where(`(compliance_requirements.title LIKE ?)`, keyword)
+		query = query.Where(`(compliance_requirements.title_en LIKE ?)`, keyword)
 	}
 
 	if params.SortBy == "" {
-		params.SortBy = "compliance_requirements.title"
+		params.SortBy = "compliance_requirements.title_en"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"

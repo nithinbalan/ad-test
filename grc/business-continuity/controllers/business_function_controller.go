@@ -5,6 +5,7 @@ import (
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	"jethur/grc/business-continuity/services"
 	commonDTOs "jethur/grc/common/dtos"
+	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -239,4 +240,210 @@ func (bfc *BusinessFunctionController) GetAllBusinessFunctionExport(c *gin.Conte
 	c.Request.URL.RawQuery += "&export=true"
 
 	bfc.GetAllBusinessFunctions(c)
+}
+
+func (bfc *BusinessFunctionController) GetProcessAssociatedRisks(c *gin.Context) {
+	businessFunctionIDStr := c.Param("id")
+	businessFunctionID, err := strconv.ParseUint(businessFunctionIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	processIDStr := c.Param("processId")
+
+	processID, err := strconv.ParseUint(processIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+	valueStr := c.Query("value")
+	quickFilter := c.QueryArray("quick_filter")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(bfc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(bfc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	var value int
+	if valueStr != "" {
+		value, err = strconv.Atoi(valueStr)
+		if err != nil {
+			utility.SendInternalErrResp(bfc.db, c, "Invalid value parameter")
+			return
+		}
+	}
+
+	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
+		QuickFilter: quickFilter,
+		Value:       value,
+	}
+	risks, err := bfc.service.GetProcessAssociatedRisks(uint(businessFunctionID), uint(processID), &queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(bfc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, risks)
+}
+
+func (bfc *BusinessFunctionController) GetProcessAssociatedIncidents(c *gin.Context) {
+	businessFunctionIDStr := c.Param("id")
+	businessFunctionID, err := strconv.ParseUint(businessFunctionIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	processIDStr := c.Param("processId")
+	processID, err := strconv.ParseUint(processIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(bfc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(bfc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
+		QuickFilter: quickFilter,
+	}
+	incidents, err := bfc.service.GetProcessAssociatedIncidents(uint(businessFunctionID), uint(processID), &queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(bfc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, incidents)
+}
+
+func (bfc *BusinessFunctionController) GetProcessAssociatedControls(c *gin.Context) {
+	businessFunctionIDStr := c.Param("id")
+	businessFunctionID, err := strconv.ParseUint(businessFunctionIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	processIDStr := c.Param("processId")
+	processID, err := strconv.ParseUint(processIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(bfc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(bfc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Status:      status,
+		QuickFilter: quickFilter,
+		Page:        page,
+		PageSize:    pageSize,
+	}
+	controls, err := bfc.service.GetProcessAssociatedControls(uint(businessFunctionID), uint(processID), &queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(bfc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, controls)
+}
+
+func (bfc *BusinessFunctionController) GetBusinessFunctionTestResults(c *gin.Context) {
+	businessFunctionIDStr := c.Param("id")
+
+	businessFunctionID, err := strconv.ParseUint(businessFunctionIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	testResults, err := bfc.service.GetTestResults(uint(businessFunctionID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(bfc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, testResults)
 }

@@ -99,7 +99,7 @@ func (terapc *TestAndExerciseRecoveryActionPlanController) GetByID(c *gin.Contex
 		return
 	}
 
-	idStr := c.Param("id")
+	idStr := c.Param("actionPlanId")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -129,7 +129,7 @@ func (terapc *TestAndExerciseRecoveryActionPlanController) GetTestAndExerciseRec
 		return
 	}
 
-	idStr := c.Param("id")
+	idStr := c.Param("actionPlanId")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -198,7 +198,7 @@ func (terapc *TestAndExerciseRecoveryActionPlanController) UpdateTestAndExercise
 
 	var formDTO businessContinuityDTOs.TestAndExerciseRecoveryActionPlanFormDTO
 
-	actionPlanID, err := strconv.Atoi(c.Param("id"))
+	actionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return

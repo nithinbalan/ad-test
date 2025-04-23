@@ -134,39 +134,49 @@ func (repo *BusinessImpactAssessmentRepository) GetAllRecoveryObjectives(params 
 	var recoveryObjectives []*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListDTO
 	var totalCount int64
 
-	query := repo.db.Table("business_impact_assessment_recovery_objectives").
+	query := repo.db.Table("process_dependencies").
 		Select(`
-            business_impact_assessment_recovery_objectives.*,
-			processes.title_en AS process_title_en,
-			processes.title_ar AS process_title_ar,
-			asset_register.title_en AS asset_register_title_en,
-			asset_register.title_ar AS asset_register_title_ar,
-			asset_register.rto AS asset_register_rto,
-			asset_register.rto_unit_id AS asset_register_rto_unit_id,
-			asset_register_rto_time_unit.title_en AS asset_register_rto_unit_title_en,
-			asset_register_rto_time_unit.title_ar AS asset_register_rto_unit_title_ar,
-			asset_register.mtpd AS asset_register_mtpd,
-			asset_register.mtpd_unit_id AS asset_register_mtpd_unit_id,
-			asset_register_mtpd_time_unit.title_en AS asset_register_mtpd_unit_title_en,
-			asset_register_mtpd_time_unit.title_ar AS asset_register_mtpd_unit_title_ar,
-			asset_register.rpo AS asset_register_rpo,
-			asset_register.rpo_unit_id AS asset_register_rpo_unit_id,
-			asset_register_rpo_time_unit.title_en AS asset_register_rpo_unit_title_en,
-			asset_register_rpo_time_unit.title_ar AS asset_register_rpo_unit_title_ar,
-			documents.title_en AS document_title_en,
-			documents.title_ar AS document_title_ar,
-			documents.rto AS document_rto,
-			documents.rto_unit_id AS document_rto_unit_id,
-			document_rto_time_unit.title_en AS document_rto_unit_title_en,
-			document_rto_time_unit.title_ar AS document_rto_unit_title_ar,
-			documents.mtpd AS document_mtpd,
-			documents.mtpd_unit_id AS document_mtpd_unit_id,
-			document_mtpd_time_unit.title_en AS document_mtpd_unit_title_en,
-			document_mtpd_time_unit.title_ar AS document_mtpd_unit_title_ar,
-			documents.rpo AS document_rpo,
-			documents.rpo_unit_id AS document_rpo_unit_id,
-			document_rpo_time_unit.title_en AS document_rpo_unit_title_en,
-			document_rpo_time_unit.title_ar AS document_rpo_unit_title_ar,
+            process_dependencies.id,
+			process_dependencies.process_id,
+			parent_process.title_en AS process_title_en,
+			parent_process.title_ar AS process_title_ar,
+
+			process_dependencies.process_dependency_sub_type_id,
+			process_dependency_sub_types.type AS process_dependency_sub_type_type,
+			process_dependency_sub_types.title_en AS process_dependency_sub_type_title_en,
+			process_dependency_sub_types.title_ar AS process_dependency_sub_type_title_ar,
+
+			process_dependency_types.title_en AS process_dependency_type_title_en,
+			process_dependency_types.title_ar AS process_dependency_type_title_ar,
+			process_dependency_types.type AS process_dependency_type_type,
+
+			process_dependencies.dependent_process_id,
+			dependent_process.title_en AS dependent_process_title_en,
+			dependent_process.title_ar AS dependent_process_title_ar,
+
+			process_dependencies.organization_unit_id,
+			organization_units.title_en AS organization_unit_title_en,
+			organization_units.title_ar AS organization_unit_title_ar,
+
+			process_dependencies.asset_id,
+			asset_register.title_en AS asset_title_en,
+			asset_register.title_ar AS asset_title_ar,
+
+			process_dependencies.title,
+			process_dependencies.description,
+			process_dependencies.rto,
+			process_dependencies.rto_unit_id,
+			process_dependencies.mtpd,
+			process_dependencies.mtpd_unit_id,
+			process_dependencies.rpo,
+			process_dependencies.rpo_unit_id,
+
+			rto_time_unit.title_en AS rto_unit_title_en,
+			rto_time_unit.title_ar AS rto_unit_title_ar,
+			mtpd_time_unit.title_en AS mtpd_unit_title_en,
+			mtpd_time_unit.title_ar AS mtpd_unit_title_ar,
+			rpo_time_unit.title_en AS rpo_unit_title_en,
+			rpo_time_unit.title_ar AS rpo_unit_title_ar,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -187,17 +197,17 @@ func (repo *BusinessImpactAssessmentRepository) GetAllRecoveryObjectives(params 
             updated_user.profile_image_path AS updated_user_profile_image_path  
         `).
 		Joins(`
-		    LEFT JOIN processes ON processes.id = business_impact_assessment_recovery_objectives.process_id
-		    LEFT JOIN asset_register ON asset_register.id = business_impact_assessment_recovery_objectives.asset_register_id
-			LEFT JOIN time_units AS asset_register_rto_time_unit ON asset_register_rto_time_unit.id = asset_register.rto_unit_id
-			LEFT JOIN time_units AS asset_register_mtpd_time_unit ON asset_register_mtpd_time_unit.id = asset_register.mtpd_unit_id
-			LEFT JOIN time_units AS asset_register_rpo_time_unit ON asset_register_rpo_time_unit.id = asset_register.rpo_unit_id
-			LEFT JOIN documents ON documents.id = business_impact_assessment_recovery_objectives.document_id
-			LEFT JOIN time_units AS document_rto_time_unit ON document_rto_time_unit.id = documents.rto_unit_id
-			LEFT JOIN time_units AS document_mtpd_time_unit ON document_mtpd_time_unit.id = documents.mtpd_unit_id
-			LEFT JOIN time_units AS document_rpo_time_unit ON document_rpo_time_unit.id = documents.rpo_unit_id
-			LEFT JOIN users AS created_user ON created_user.id = business_impact_assessment_recovery_objectives.created_by_id
-			LEFT JOIN users AS updated_user ON updated_user.id = business_impact_assessment_recovery_objectives.updated_by_id
+		    LEFT JOIN processes AS parent_process ON parent_process.id = process_dependencies.process_id
+			LEFT JOIN process_dependency_sub_types ON process_dependency_sub_types.id = process_dependencies.process_dependency_sub_type_id
+			LEFT JOIN process_dependency_types ON process_dependency_types.id = process_dependency_sub_types.process_dependency_type_id
+			LEFT JOIN processes AS dependent_process ON dependent_process.id = process_dependencies.dependent_process_id
+			LEFT JOIN organization_units ON organization_units.id = process_dependencies.organization_unit_id
+			LEFT JOIN asset_register ON asset_register.id = process_dependencies.asset_id
+			LEFT JOIN time_units AS rto_time_unit ON rto_time_unit.id = process_dependencies.rto_unit_id
+			LEFT JOIN time_units AS mtpd_time_unit ON mtpd_time_unit.id = process_dependencies.mtpd_unit_id
+			LEFT JOIN time_units AS rpo_time_unit ON rpo_time_unit.id = process_dependencies.rpo_unit_id
+			LEFT JOIN users AS created_user ON created_user.id = process_dependencies.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = process_dependencies.updated_by_id
         `)
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -235,7 +245,7 @@ func (repo *BusinessImpactAssessmentRepository) GetAllRecoveryObjectives(params 
 		return nil, err
 	}
 
-	query = query.Order("business_impact_assessment_recovery_objectives.id")
+	query = query.Order("process_dependencies.id")
 
 	err := query.Find(&recoveryObjectives).Error
 	if err != nil {
@@ -331,38 +341,51 @@ func (repo *BusinessImpactAssessmentRepository) GetImpactAssessmentsByProcessID(
 }
 
 func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) ([]businessContinuityDTOs.BIAMatrixResponseDTO, error) {
-	var results []businessContinuityDTOs.BIAMatrixResponseDTO
+	var results = []businessContinuityDTOs.BIAMatrixResponseDTO{}
 
 	query := repo.db.Table("business_function_processes").
 		Select(`
-        business_functions.id AS business_function_id,
-        business_functions.title AS business_function_title,
-        processes.id AS process_id,
-        processes.title_en AS process_title_en,
-        processes.title_ar AS process_title_ar,
-        processes.rto AS process_rto,
-        processes.mtpd AS process_mtpd,
-        processes.rpo AS process_rpo,
-        time_units_rto.title_en AS process_rto_unit_title_en,
-        time_units_rto.title_ar AS process_rto_unit_title_ar,
-        processes.mtpd_unit_id AS process_mtpd_unit_id,
-        time_units_mtpd.title_en AS process_mtpd_unit_title_en,
-        time_units_mtpd.title_ar AS process_mtpd_unit_title_ar,
-        processes.rpo_unit_id AS process_rpo_unit_id,
-        time_units_rpo.title_en AS process_rpo_unit_title_en,
-        time_units_rpo.title_ar AS process_rpo_unit_title_ar,
-        processes.risk_level_id AS risk_level_id,
-        risk_levels.title_en AS risk_level_title_en,
-        risk_levels.title_ar AS risk_level_title_ar
-    `).
+			business_functions.id AS business_function_id,
+			business_functions.title AS business_function_title,
+			business_functions.highest_process_criticality_level_id,
+			pcl_bf.title_en AS business_function_criticality_title_en,
+			pcl_bf.title_ar AS business_function_criticality_title_ar,
+			pcl_bf.color_code AS business_function_criticality_color,
+
+			processes.id AS process_id,
+			processes.title_en AS process_title_en,
+			processes.title_ar AS process_title_ar,
+			processes.process_criticality_level_id,
+			pcl_proc.title_en AS process_criticality_title_en,
+			pcl_proc.title_ar AS process_criticality_title_ar,
+			pcl_proc.color_code AS process_criticality_color,
+
+			processes.rto AS process_rto,
+			processes.mtpd AS process_mtpd,
+			processes.rpo AS process_rpo,
+			time_units_rto.title_en AS process_rto_unit_title_en,
+			time_units_rto.title_ar AS process_rto_unit_title_ar,
+			processes.mtpd_unit_id AS process_mtpd_unit_id,
+			time_units_mtpd.title_en AS process_mtpd_unit_title_en,
+			time_units_mtpd.title_ar AS process_mtpd_unit_title_ar,
+			processes.rpo_unit_id AS process_rpo_unit_id,
+			time_units_rpo.title_en AS process_rpo_unit_title_en,
+			time_units_rpo.title_ar AS process_rpo_unit_title_ar,
+			processes.risk_level_id AS risk_level_id,
+			risk_levels.title_en AS risk_level_title_en,
+			risk_levels.title_ar AS risk_level_title_ar,
+			risk_levels.color_code AS risk_level_color_code
+		`).
 		Joins(`
-        INNER JOIN business_functions ON business_functions.id = business_function_processes.business_function_id
-        INNER JOIN processes ON processes.id = business_function_processes.process_id
-        LEFT JOIN risk_levels ON risk_levels.id = processes.risk_level_id
-        LEFT JOIN time_units AS time_units_rto ON time_units_rto.id = processes.rto_unit_id
-        LEFT JOIN time_units AS time_units_mtpd ON time_units_mtpd.id = processes.mtpd_unit_id
-        LEFT JOIN time_units AS time_units_rpo ON time_units_rpo.id = processes.rpo_unit_id
-    `).
+			INNER JOIN business_functions ON business_functions.id = business_function_processes.business_function_id
+			INNER JOIN processes ON processes.id = business_function_processes.process_id
+			LEFT JOIN process_criticality_levels AS pcl_bf ON pcl_bf.id = business_functions.highest_process_criticality_level_id
+			LEFT JOIN process_criticality_levels AS pcl_proc ON pcl_proc.id = processes.process_criticality_level_id
+			LEFT JOIN risk_levels ON risk_levels.id = processes.risk_level_id
+			LEFT JOIN time_units AS time_units_rto ON time_units_rto.id = processes.rto_unit_id
+			LEFT JOIN time_units AS time_units_mtpd ON time_units_mtpd.id = processes.mtpd_unit_id
+			LEFT JOIN time_units AS time_units_rpo ON time_units_rpo.id = processes.rpo_unit_id
+		`).
 		Where("processes.is_bia_performed = ?", 1)
 
 	for columnName, values := range params.Filters {
@@ -374,11 +397,11 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-            business_functions.title LIKE ? OR 
-            processes.title_en LIKE ? OR 
-            processes.title_ar LIKE ? OR 
-            risk_levels.title_en LIKE ? OR 
-            risk_levels.title_ar LIKE ?`,
+			business_functions.title LIKE ? OR 
+			processes.title_en LIKE ? OR 
+			processes.title_ar LIKE ? OR 
+			risk_levels.title_en LIKE ? OR 
+			risk_levels.title_ar LIKE ?`,
 			keyword, keyword, keyword, keyword, keyword)
 	}
 

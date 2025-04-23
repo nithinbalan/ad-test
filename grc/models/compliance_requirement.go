@@ -9,8 +9,8 @@ type ComplianceRequirement struct {
 	ComplianceClauseID              uint       `json:"compliance_clause_id" binding:"required" gorm:"not null"`
 	TitleEn                         string     `json:"title_en" binding:"required,max=255" gorm:"type:varchar(255);not null"`
 	TitleAr                         string     `json:"title_ar" binding:"required,max=255" gorm:"type:varchar(255);not null"`
-	ComplianceRequirementCategoryID uint       `json:"compliance_requirement_category_id" binding:"required" gorm:"not null"`
-	SeverityLevelID                 uint       `json:"severity_level_id" binding:"required" gorm:"not null"`
+	ComplianceRequirementCategoryID uint       `json:"compliance_requirement_category_id" binding:"omitempty" gorm:"default:null"`
+	SeverityLevelID                 uint       `json:"severity_level_id" binding:"omitempty" gorm:"default:null"`
 	ResponsibleUserID               uint       `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	Deadline                        *time.Time `json:"deadline" binding:"omitempty" gorm:"type:date"`
 	ComplianceStatusID              uint       `json:"compliance_status_id" binding:"required" gorm:"not null"`
@@ -22,16 +22,17 @@ type ComplianceRequirement struct {
 	Score                           int        `json:"score" gorm:"default:0"`
 
 	// Relationships
-	ComplianceClause              *ComplianceClause                          `gorm:"foreignKey:ComplianceClauseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ComplianceStatus              *ComplianceStatus                          `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ComplianceRequirementCategory *ComplianceRequirementCategory             `gorm:"foreignKey:ComplianceRequirementCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SeverityLevel                 *SeverityLevel                             `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser               *User                                      `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser                 *User                                      `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser                 *User                                      `gorm:"foreignKey:UpdatedByID"`
-	Controls                      []*ComplianceControl                       `gorm:"foreignKey:ComplianceRequirementID"`
-	StrategicObjectives           []*ComplianceRequirementStrategicObjective `gorm:"foreignKey:ComplianceRequirementID"`
-	Documents                     []*ComplianceRequirementAssociatedDocument `gorm:"foreignKey:ComplianceRequirementID"`
+	ComplianceClause              *ComplianceClause                             `gorm:"foreignKey:ComplianceClauseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceStatus              *ComplianceStatus                             `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceRequirementCategory *ComplianceRequirementCategory                `gorm:"foreignKey:ComplianceRequirementCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SeverityLevel                 *SeverityLevel                                `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser               *User                                         `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser                 *User                                         `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser                 *User                                         `gorm:"foreignKey:UpdatedByID"`
+	Controls                      []*ComplianceControl                          `gorm:"foreignKey:ComplianceRequirementID"`
+	StrategicObjectives           []*ComplianceRequirementStrategicObjective    `gorm:"foreignKey:ComplianceRequirementID"`
+	Documents                     []*ComplianceRequirementAssociatedDocument    `gorm:"foreignKey:ComplianceRequirementID"`
+	RequiredDocumentTitles        []*ComplianceRequirementRequiredDocumentTitle `gorm:"foreignKey:ComplianceRequirementID"`
 }
 
 // TableName overrides the table name used by ComplianceRequirement to `compliance_requirements`

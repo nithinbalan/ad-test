@@ -142,7 +142,23 @@
   {
     "id": "distinct_review_user",
     "translation": "Responsible User and Review User must be distinct."
+  },
+  {
+    "id": "invalid",
+    "translation": "The {{.Field}} is invalid"
+  },
+  {
+    "id": "user_exceed",
+    "translation": "The number of users exceeded."
+  },
+  {
+    "id": "module_not_allowed",
+    "translation": "{{.Field}} module is not allowed under the current license."
+  },
+  {
+    "id": "default_criticality_matrix",
+    "translation": "Default Criticality Matrix cannot be updated/deleted"
   }
-
+  
   
 ]

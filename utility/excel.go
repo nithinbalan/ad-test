@@ -77,69 +77,29 @@ func GenerateExcelFile(headers []string, data [][]interface{}) (*os.File, error)
 func GenerateExcelFileWithSheets(dataBySheet map[string][][]interface{}) (*os.File, error) {
 	f := excelize.NewFile()
 
-	// Flag to check if Sheet1 is needed
-	sheet1Used := false
-
-	// Iterate over sheets and populate data
-	for sheetName, data := range dataBySheet {
-		// If adding data to "Sheet1," mark it as used
-		if sheetName == "Sheet1" {
-			sheet1Used = true
-		} else {
-			// Create a new sheet for other sheet names
-			if _, err := f.NewSheet(sheetName); err != nil {
-				return nil, err
-			}
-		}
-
-		// Get headers and rows
-		if len(data) == 0 {
-			continue
-		}
-		headers := data[0]
-		rows := data[1:]
-
-		// Set headers as bold
-		boldStyle, err := f.NewStyle(&excelize.Style{
-			Font: &excelize.Font{
-				Bold: true,
-			},
-		})
-		if err != nil {
+	// Ensure Template is created and set as the first sheet
+	if data, exists := dataBySheet["Template"]; exists {
+		if err := createSheet(f, "Template", data); err != nil {
 			return nil, err
 		}
-		for i, header := range headers {
-			cell := fmt.Sprintf("%s1", string(rune('A'+i)))
-			f.SetCellValue(sheetName, cell, header)
-			f.SetCellStyle(sheetName, cell, cell, boldStyle)
+		sheetIndex, err := f.GetSheetIndex("Template")
+		if err != nil {
+			return nil, fmt.Errorf("failed to get Template sheet index: %v", err)
 		}
-
-		// Populate rows
-		for rowIndex, row := range rows {
-			for colIndex, value := range row {
-				cell := fmt.Sprintf("%s%d", string(rune('A'+colIndex)), rowIndex+2) // +2 for the header row
-				f.SetCellValue(sheetName, cell, value)
-			}
+		if sheetIndex != -1 {
+			f.SetActiveSheet(sheetIndex)
 		}
+		delete(dataBySheet, "Template") // Remove Template from the map to avoid duplicate processing
+	}
 
-		// Adjust column width
-		for colIndex, header := range headers {
-			maxWidth := len(fmt.Sprint(header))
-			for _, row := range rows {
-				if colIndex < len(row) {
-					cellWidth := len(fmt.Sprint(row[colIndex]))
-					if cellWidth > maxWidth {
-						maxWidth = cellWidth
-					}
-				}
-			}
-			columnName := string(rune('A' + colIndex))
-			f.SetColWidth(sheetName, columnName, columnName, float64(maxWidth+2)) // Add padding
+	// Create the remaining sheets
+	for sheetName, data := range dataBySheet {
+		if err := createSheet(f, sheetName, data); err != nil {
+			return nil, err
 		}
 	}
 
-	// Remove default "Sheet1" if it's not used
-	if !sheet1Used {
+	if index, err := f.GetSheetIndex("Sheet1"); err == nil && index != -1 {
 		f.DeleteSheet("Sheet1")
 	}
 
@@ -154,6 +114,58 @@ func GenerateExcelFileWithSheets(dataBySheet map[string][][]interface{}) (*os.Fi
 	}
 
 	return tempFile, nil
+}
+
+// Helper function to create a sheet and populate it with data
+func createSheet(f *excelize.File, sheetName string, data [][]interface{}) error {
+	if _, err := f.NewSheet(sheetName); err != nil {
+		return err
+	}
+
+	if len(data) == 0 {
+		return nil
+	}
+
+	headers := data[0]
+	rows := data[1:]
+
+	// Set headers as bold
+	boldStyle, err := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true},
+	})
+	if err != nil {
+		return err
+	}
+	for i, header := range headers {
+		cell := fmt.Sprintf("%s1", string(rune('A'+i)))
+		f.SetCellValue(sheetName, cell, header)
+		f.SetCellStyle(sheetName, cell, cell, boldStyle)
+	}
+
+	// Populate rows
+	for rowIndex, row := range rows {
+		for colIndex, value := range row {
+			cell := fmt.Sprintf("%s%d", string(rune('A'+colIndex)), rowIndex+2)
+			f.SetCellValue(sheetName, cell, value)
+		}
+	}
+
+	// Adjust column width
+	for colIndex, header := range headers {
+		maxWidth := len(fmt.Sprint(header))
+		for _, row := range rows {
+			if colIndex < len(row) {
+				cellWidth := len(fmt.Sprint(row[colIndex]))
+				if cellWidth > maxWidth {
+					maxWidth = cellWidth
+				}
+			}
+		}
+		columnName := string(rune('A' + colIndex))
+		f.SetColWidth(sheetName, columnName, columnName, float64(maxWidth+2))
+	}
+
+	return nil
 }
 
 func ConvertToInterfaceSlice(slice []string) []interface{} {
@@ -199,6 +211,14 @@ func GetOptionalStringValue(value interface{}) *string {
 	strValue, ok := value.(string)
 	if ok && strValue != "" {
 		return &strValue
+	}
+	return nil
+}
+
+// GetOptionalUintValue safely retrieves an optional uint value from a map
+func GetOptionalUintValue(value interface{}) *uint {
+	if val, ok := value.(uint); ok {
+		return &val
 	}
 	return nil
 }

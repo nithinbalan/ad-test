@@ -49,6 +49,7 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 		"review_frequency_ids",
 		"review_responsible_user_ids",
 		"lifecycle_status_ids",
+		"compliance_folder_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

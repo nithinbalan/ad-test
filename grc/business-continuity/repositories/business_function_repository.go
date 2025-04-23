@@ -24,6 +24,9 @@ type BusinessFunctionRepositoryInterface interface {
 
 	CreateBusinessFunctionProcesses(processes []*models.BusinessFunctionProcess, tx ...utility.DatabaseTransaction) error
 	DeleteBusinessFunctionProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error
+	GetTestAndExercisesByBcpID(bcpID uint) ([]*models.TestAndExercise, error)
+	GetBcpTestAndExercisesByBcpID(bcpID uint) ([]*models.BcpTestAndExercise, error)
+	GetProcessWithCriticality(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error)
 }
 
 type BusinessFunctionRepository struct {
@@ -185,11 +188,30 @@ func (repo *BusinessFunctionRepository) GetFullDetailsByID(id uint, tx ...utilit
 		Preload("SeverityLevel").
 		Preload("Processes").
 		Preload("Processes.Process").
-		Preload("ResponsibleUser").
-		Preload("ResponsibleUser.OrganizationUnit1").
+		Preload("Processes.Process.MtpdUnit").
+		Preload("Processes.Process.RpoUnit").
+		Preload("Processes.Process.RtoUnit").
+		Preload("Processes.Process.ProcessGroup").
+		Preload("Processes.Process.RiskLevel").
+		Preload("Processes.Process.OwnerUnit").
+		Preload("Processes.Process.Owner").
+		Preload("Processes.Process.LifecycleStatus").
+		Preload("Processes.Process.RiskMatrixRating").
+		Preload("Processes.Process.RiskMatrixRatingValue").
+		Preload("ResponsibleUser", models.WithPrimaryOrganizationUnit()).
 		Preload("ReviewFrequency").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("LatestBusinessContinuityPlan").
+		Preload("LatestBusinessContinuityPlan.MtpdUnit").
+		Preload("LatestBusinessContinuityPlan.RpoUnit").
+		Preload("LatestBusinessContinuityPlan.RtoUnit").
+		Preload("LatestBusinessContinuityPlan.Processes").
+		Preload("LatestBusinessContinuityPlan.Processes.Process").
+		Preload("LatestBusinessContinuityPlan.Processes.MtpdUnit").
+		Preload("LatestBusinessContinuityPlan.Processes.RpoUnit").
+		Preload("LatestBusinessContinuityPlan.Processes.RtoUnit").
+		Preload("LatestBusinessContinuityPlan.Processes.RiskLevel").
 		First(&businessFunction, id)
 
 	if result.Error != nil {
@@ -288,4 +310,47 @@ func (repo *BusinessFunctionRepository) DeleteBusinessFunctionProcesses(processI
 	}
 
 	return nil
+}
+
+func (repo *BusinessFunctionRepository) GetTestAndExercisesByBcpID(bcpID uint) ([]*models.TestAndExercise, error) {
+	var testAndExercises []*models.TestAndExercise
+
+	result := repo.db.
+		Preload("TestAndExerciseTestResult").
+		Preload("TestAndExerciseTestResult.TestResultOption").
+		Where("business_continuity_plan_id = ?", bcpID).
+		Find(&testAndExercises)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return testAndExercises, nil
+}
+
+func (repo *BusinessFunctionRepository) GetBcpTestAndExercisesByBcpID(bcpID uint) ([]*models.BcpTestAndExercise, error) {
+	var bcpTestAndExercises []*models.BcpTestAndExercise
+
+	result := repo.db.
+		Where("business_continuity_plan_id = ?", bcpID).
+		Find(&bcpTestAndExercises)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return bcpTestAndExercises, nil
+}
+func (repo *BusinessFunctionRepository) GetProcessWithCriticality(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var process models.Process
+	err := db.Preload("ProcessCriticalityLevel").First(&process, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &process, nil
 }

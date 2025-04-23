@@ -17,9 +17,25 @@ jobs:
           username: ${{ secrets.ZEPTO_USERNAME }}
           password: ${{ secrets.ZEPTO_PASSWORD }}
           subject: "Pipeline Started"
-          body: "GitHub Actions APP-API deployment has started."
+          body: |
+            GitHub Actions APP-API deployment has started.
+
+            Triggered by: ${{ github.actor }}
           to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
           from: "Jethur Notifications <info@jethur.com>"
+
+      - name: Cleanup workspace if not empty
+        run: |
+          $items = Get-ChildItem -Force -Recurse
+          if ($items.Count -gt 0) {
+            Write-Host "Folder is not empty. Proceeding with cleanup."
+            Remove-Item -Recurse -Force * -ErrorAction Continue
+            Remove-Item -Recurse -Force .??* -ErrorAction Continue
+          } else {
+            Write-Host "Folder is empty. No cleanup needed."
+          }
+          Get-ChildItem -Force
+        shell: powershell
           
       # Step: Checkout Code
       - name: Checkout Code
@@ -80,8 +96,9 @@ jobs:
       - name: Run Migrations and Seed
         run: |
           .\script.bat migrateup
+          if ($LASTEXITCODE -ne 0) { exit 1 }
           .\script.bat seed
-        shell: powershell
+          if ($LASTEXITCODE -ne 0) { exit 1 }
 
       # Step: Switch Back to Main Branch and Build API
       - name: Switch Back to Main Branch
