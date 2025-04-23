@@ -24,6 +24,8 @@ type Task struct {
 	AuditReportWorkflowID           *uint      `json:"audit_report_workflow_id"`
 	AuditDocumentRequestID          *uint      `json:"audit_document_request_id"`
 	RecoveryActionPlanID            *uint      `json:"recovery_action_plan_id"`
+	StakeholderActionPlanID         *uint      `json:"stakeholder_action_plan_id"`
+	StrategyProfileActionPlanID     *uint      `json:"strategy_profile_action_plan_id"`
 	RelatedTaskIDs                  *string    `json:"related_task_ids" gorm:"type:json"`
 	Title                           string     `json:"title" binding:"required,max=255"`
 	Description                     *string    `json:"description" gorm:"type:nvarchar(max)"`

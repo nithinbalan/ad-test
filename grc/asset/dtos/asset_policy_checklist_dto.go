@@ -42,6 +42,11 @@ type AssetPolicyChecklistUpdateDTO struct {
 }
 
 type AssetPolicyChecklistSummaryDTO struct {
+	Summary          ChecklistSummaryDTO                 `json:"summary"`
+	ComplianceStatus *complianceDTOs.ComplianceStatusDTO `json:"compliance_status"`
+}
+
+type ChecklistSummaryDTO struct {
 	TotalChecklist     int `json:"total_checklist"`
 	Compliant          int `json:"compliant"`
 	PartiallyCompliant int `json:"partially_compliant"`

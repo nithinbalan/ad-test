@@ -30,6 +30,7 @@ type BusinessContinuityPlanRepositoryInterface interface {
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetBcpRisksByBcpId(bcpId uint) ([]models.BcpRisk, error)
+	GetTestAndExercisesByBcpID(bcpID uint) ([]*models.TestAndExercise, error)
 }
 
 type BusinessContinuityPlanRepository struct {
@@ -367,4 +368,20 @@ func (repo *BusinessContinuityPlanRepository) GetBcpRisksByBcpId(bcpId uint) ([]
 	}
 
 	return bcpRisks, nil
+}
+
+func (repo *BusinessContinuityPlanRepository) GetTestAndExercisesByBcpID(bcpID uint) ([]*models.TestAndExercise, error) {
+	var testAndExercises []*models.TestAndExercise
+
+	result := repo.db.
+		Preload("TestAndExerciseTestResult").
+		Preload("TestAndExerciseTestResult.TestResultOption").
+		Where("business_continuity_plan_id = ?", bcpID).
+		Find(&testAndExercises)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return testAndExercises, nil
 }

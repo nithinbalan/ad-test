@@ -84,7 +84,7 @@ type ThreatFormDTO struct {
 	SeverityLevelID   uint                          `json:"severity_level_id" binding:"required"`
 	ThreatStatusID    uint                          `json:"threat_status_id" binding:"required"`
 	ResponsibleUserID uint                          `json:"responsible_user_id" binding:"required"`
-	VulnerabilityID   *uint                         `json:"vulnerability_id,omitempty"`
+	VulnerabilityIDs  []*uint                       `json:"vulnerability_ids"`
 	Description       *string                       `json:"description,omitempty"`
 	Source            *string                       `json:"source,omitempty"`
 	DetectionDate     *string                       `json:"detection_date,omitempty" binding:"omitempty,datetime=2006-01-02"`
@@ -104,7 +104,6 @@ type ThreatDetailDTO struct {
 	ThreatType           *ThreatTypeDTO                   `json:"threat_type"`
 	SeverityLevel        masterDTOs.SeverityLevelDTO      `json:"severity_level"`
 	ThreatStatus         ThreatStatusDTO                  `json:"threat_status"`
-	Vulnerability        *VulnerabilityDetailsDTO         `json:"vulnerability"`
 	ResponsibleUser      organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
 	ResponsibleUnit      settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
 	Description          *string                          `json:"description,omitempty"`
@@ -116,6 +115,16 @@ type ThreatDetailDTO struct {
 	CreatedByUser        organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser        *organizationDTOs.UserMinimalDTO `json:"updated_by,omitempty"`
 	Documents            []*ThreatDocumentDTO             `json:"documents"`
+	VulnerabilityThreats []*VulnerabilityThreatDTO        `json:"vulnerability_threats"`
+}
+
+type VulnerabilityThreatDTO struct {
+	ID              uint              `json:"id"`
+	VulnerabilityID uint              `json:"vulnerability_id"`
+	ThreatID        uint              `json:"threat_id"`
+	Vulnerability   *VulnerabilityDTO `json:"vulnerability"`
+	CreatedByID     uint              `json:"created_by_id"`
+	CreatedAt       time.Time         `json:"created_at"`
 }
 
 type ThreatDocumentDTO struct {
@@ -130,4 +139,5 @@ type ThreatDocumentDTO struct {
 type ThreatSummaryDTO struct {
 	OpenCount   int `json:"open_count"`
 	ClosedCount int `json:"closed_count"`
+	TotalCount  int `json:"total_count"`
 }

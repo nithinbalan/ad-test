@@ -9,10 +9,17 @@ import (
 )
 
 type StrategyModule struct {
-	SwotPestelQuestionGroupController  *controllers.SwotPestelQuestionGroupController
-	SwotPestelQuestionController       *controllers.SwotPestelQuestionController
-	SwotPestelCategoryController       *controllers.SwotPestelCategoryController
-	SwotPestelQuestionFactorController *controllers.SwotPestelQuestionFactorController
+	StrategyProfileController                       *controllers.StrategyProfileController
+	StrategyProfileFocusAreaController              *controllers.StrategyProfileFocusAreaController
+	StrategyProfileGoalController                   *controllers.StrategyProfileGoalController
+	StrategyProfileObjectiveController              *controllers.StrategyProfileObjectiveController
+	StrategyProfileInitiativeController             *controllers.StrategyProfileInitiativeController
+	StrategyProfileProjectController                *controllers.StrategyProfileProjectController
+	StrategyProfileMilestoneController              *controllers.StrategyProfileMilestoneController
+	StrategyProfileActionPlanController             *controllers.StrategyProfileActionPlanController
+	StrategyProfileActionPlanStatusUpdateController *controllers.StrategyProfileActionPlanStatusUpdateController
+	StrategyProfileActionPlanCommentController      *controllers.StrategyProfileActionPlanCommentController
+	StrategyProfileSettingController                *controllers.StrategyProfileSettingController
 }
 
 func NewStrategyModule(db *gorm.DB,
@@ -20,28 +27,66 @@ func NewStrategyModule(db *gorm.DB,
 	settingsModule *SettingsModule,
 	masterModule *MasterModule,
 	organizationModule *OrganizationModule,
+	taskModule *TaskModule,
+	commonModule *CommonModule,
 
 ) *StrategyModule {
-	swotQuestionGroupRepo := repositories.NewSwotPestelQuestionGroupRepository(db)
-	swotQuestionGroupSvc := services.NewSwotPestelQuestionGroupService(swotQuestionGroupRepo, sharedModule.ActivityLogService)
-	swotQuestionGroupController := controllers.NewSwotPestelQuestionGroupController(swotQuestionGroupSvc)
 
-	swotQuestionRepo := repositories.NewSwotPestelQuestionRepository(db)
-	swotQuestionSvc := services.NewSwotPestelQuestionService(swotQuestionRepo, sharedModule.ActivityLogService)
-	swotQuestionController := controllers.NewSwotPestelQuestionController(swotQuestionSvc)
+	strategyProfileRepo := repositories.NewStrategyProfileRepository(db)
+	strategyProfileSvc := services.NewStrategyProfileService(strategyProfileRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, settingsModule.OrganizationUnitSvc)
+	strategyProfileController := controllers.NewStrategyProfileController(strategyProfileSvc)
 
-	swotPestelCategoryRepo := repositories.NewSwotPestelCategoryRepository(db)
-	swotPestelCategorySvc := services.NewSwotPestelCategoryService(swotPestelCategoryRepo)
-	swotPestelCategoryController := controllers.NewSwotPestelCategoryController(swotPestelCategorySvc)
+	strategyProfileFocusAreaRepo := repositories.NewStrategyProfileFocusAreaRepository(db)
+	strategyProfileFocusAreaSvc := services.NewStrategyProfileFocusAreaService(strategyProfileFocusAreaRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
+	strategyProfileFocusAreaController := controllers.NewStrategyProfileFocusAreaController(strategyProfileFocusAreaSvc)
 
-	swotQuestionFactorRepo := repositories.NewSwotPestelQuestionFactorRepository(db)
-	swotQuestionFactorSvc := services.NewSwotPestelQuestionFactorService(swotQuestionFactorRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc)
-	swotQuestionFactorController := controllers.NewSwotPestelQuestionFactorController(swotQuestionFactorSvc)
+	strategyProfileGoalRepo := repositories.NewStrategyProfileGoalRepository(db)
+	strategyProfileGoalSvc := services.NewStrategyProfileGoalService(strategyProfileGoalRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
+	strategyProfileGoalController := controllers.NewStrategyProfileGoalController(strategyProfileGoalSvc)
+
+	strategyProfileObjectiveRepo := repositories.NewStrategyProfileObjectiveRepository(db)
+	strategyProfileObjectiveSvc := services.NewStrategyProfileObjectiveService(strategyProfileObjectiveRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
+	strategyProfileObjectiveController := controllers.NewStrategyProfileObjectiveController(strategyProfileObjectiveSvc)
+
+	strategyProfileInitiativeRepo := repositories.NewStrategyProfileInitiativeRepository(db)
+	strategyProfileInitiativeSvc := services.NewStrategyProfileInitiativeService(strategyProfileInitiativeRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
+	strategyProfileInitiativeController := controllers.NewStrategyProfileInitiativeController(strategyProfileInitiativeSvc)
+
+	strategyProfileProjectRepo := repositories.NewStrategyProfileProjectRepository(db)
+	strategyProfileProjectSvc := services.NewStrategyProfileProjectService(strategyProfileProjectRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
+	strategyProfileProjectController := controllers.NewStrategyProfileProjectController(strategyProfileProjectSvc)
+
+	strategyProfileMilestoneRepo := repositories.NewStrategyProfileMilestoneRepository(db)
+	strategyProfileMilestoneSvc := services.NewStrategyProfileMilestoneService(strategyProfileMilestoneRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
+	strategyProfileMilestoneController := controllers.NewStrategyProfileMilestoneController(strategyProfileMilestoneSvc)
+
+	strategyProfileActionPlanRepo := repositories.NewStrategyProfileActionPlanRepository(db)
+	strategyProfileActionPlanSvc := services.NewStrategyProfileActionPlanService(strategyProfileActionPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, strategyProfileSvc, masterModule.ActionPlanStatusSvc, taskModule.TaskService, commonModule.NotificationService, organizationModule.UserSettingSvc)
+	strategyProfileActionPlanController := controllers.NewStrategyProfileActionPlanController(strategyProfileActionPlanSvc)
+
+	strategyProfileActionPlanStatusUpdateRepo := repositories.NewStrategyProfileActionPlanStatusUpdateRepository(db)
+	strategyProfileActionPlanStatusUpdateSvc := services.NewStrategyProfileActionPlanStatusUpdateService(strategyProfileActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, strategyProfileActionPlanSvc, masterModule.ActionPlanStatusSvc, strategyProfileSvc, organizationModule.UserSvc, commonModule.NotificationService, taskModule.TaskService, taskModule.TaskStatusService)
+	strategyProfileActionPlanStatusUpdateController := controllers.NewStrategyProfileActionPlanStatusUpdateController(strategyProfileActionPlanStatusUpdateSvc)
+
+	strategyProfileActionPlanCommentRepository := repositories.NewStrategyProfileActionPlanCommentRepository(db)
+	strategyProfileActionPlanCommentSvc := services.NewStrategyProfileActionPlanCommentService(strategyProfileActionPlanCommentRepository, organizationModule.UserSvc, sharedModule.ActivityLogService, strategyProfileActionPlanSvc, commonModule.NotificationService)
+	strategyProfileActionPlanCommentController := controllers.NewStrategyProfileActionPlanCommentController(strategyProfileActionPlanCommentSvc)
+
+	strategyProfileSettingRepo := repositories.NewStrategyProfileSettingRepository(db)
+	strategyProfileSettingSvc := services.NewStrategyProfileSettingService(strategyProfileSettingRepo)
+	strategyProfileSettingController := controllers.NewStrategyProfileSettingController(strategyProfileSettingSvc)
 
 	return &StrategyModule{
-		SwotPestelQuestionGroupController:  swotQuestionGroupController,
-		SwotPestelQuestionController:       swotQuestionController,
-		SwotPestelCategoryController:       swotPestelCategoryController,
-		SwotPestelQuestionFactorController: swotQuestionFactorController,
+		StrategyProfileController:                       strategyProfileController,
+		StrategyProfileFocusAreaController:              strategyProfileFocusAreaController,
+		StrategyProfileGoalController:                   strategyProfileGoalController,
+		StrategyProfileObjectiveController:              strategyProfileObjectiveController,
+		StrategyProfileInitiativeController:             strategyProfileInitiativeController,
+		StrategyProfileProjectController:                strategyProfileProjectController,
+		StrategyProfileMilestoneController:              strategyProfileMilestoneController,
+		StrategyProfileActionPlanController:             strategyProfileActionPlanController,
+		StrategyProfileActionPlanStatusUpdateController: strategyProfileActionPlanStatusUpdateController,
+		StrategyProfileActionPlanCommentController:      strategyProfileActionPlanCommentController,
+		StrategyProfileSettingController:                strategyProfileSettingController,
 	}
 }

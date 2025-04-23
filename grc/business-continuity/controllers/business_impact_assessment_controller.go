@@ -19,15 +19,18 @@ type BusinessImpactAssessmentController struct {
 	service                  services.BusinessImpactAssessmentServiceInterface
 	processAssociatedItemSvc processServices.ProcessAssociatedItemServiceInterface
 	processSvc               processServices.ProcessServiceInterface
+	processDependencySvc     processServices.ProcessDependencyServiceInterface
 	db                       *gorm.DB
 }
 
 func NewBusinessImpactAssessmentController(service services.BusinessImpactAssessmentServiceInterface,
 	processAssociatedItemSvc processServices.ProcessAssociatedItemServiceInterface,
+	processDependencySvc processServices.ProcessDependencyServiceInterface,
 	processSvc processServices.ProcessServiceInterface) *BusinessImpactAssessmentController {
 	return &BusinessImpactAssessmentController{
 		service:                  service,
 		processAssociatedItemSvc: processAssociatedItemSvc,
+		processDependencySvc:     processDependencySvc,
 		processSvc:               processSvc,
 	}
 }
@@ -344,6 +347,39 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessRisks(c *gin.Contex
 	c.JSON(http.StatusOK, documents)
 }
 
+func (biac *BusinessImpactAssessmentController) GetAllProcessDependencies(c *gin.Context) {
+	processIDStr := c.Param("processId")
+
+	processID, err := strconv.ParseUint(processIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	allowedParams := []string{
+		"process_dependency_sub_type_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	queryParams := organizationDTOs.ProcessDependencyListQueryParamsDTO{
+		Sort:    sort,
+		SortBy:  sortBy,
+		Keyword: keyword,
+		Filters: filters,
+	}
+	result, err := biac.processDependencySvc.GetAll(uint(processID), &queryParams)
+
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
 func (biac *BusinessImpactAssessmentController) GetAllBIAImpactAnalysis(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	keyword := c.Query("keyword")
@@ -489,6 +525,37 @@ func (biac *BusinessImpactAssessmentController) UpdateRecoveryObjective(c *gin.C
 	}
 
 	err = biac.service.UpdateRecoveryObjectives(businessImpactAssessmentRecoveryObjectiveFormDTO, currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(biac.db, c, e.Error())
+			return
+		}
+	}
+	c.Status(http.StatusOK)
+}
+
+func (biac *BusinessImpactAssessmentController) UpdateProcessCriticality(c *gin.Context) {
+	var businessImpactAssessmentProcessCriticalityFormDTO businessContinuityDTOs.BusinessImpactAssessmentProcessCriticalityFormDTO
+
+	if err := c.ShouldBindJSON(&businessImpactAssessmentProcessCriticalityFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, err.Error())
+		return
+	}
+
+	err = biac.service.UpdateProcessCriticality(businessImpactAssessmentProcessCriticalityFormDTO, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

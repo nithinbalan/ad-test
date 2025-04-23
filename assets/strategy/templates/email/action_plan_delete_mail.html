@@ -1,0 +1,21 @@
+{{ define "content" }}
+<p>Dear {{ .FirstNameEn }} {{ .LastNameEn }},</p>
+<p>
+  We wanted to inform you that the Strategy Profile Action Plan titled <strong>{{ .ActionPlanTitle }}</strong> has been permanently deleted from the system. Below are the details of the deleted action plan:
+</p>
+
+<table style="width: 100%; background-color: #fff; border-collapse: collapse; margin: 20px 0;">
+    <tbody>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6;">Strategy Profile Title</th>
+            <td style="text-align: center; padding: 7px;">{{.StrategyProfileTitle}}</td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6;">Action Plan Title</th>
+            <td style="text-align: center; padding: 7px;">{{.ActionPlanTitle}}</td>
+        </tr>
+    </tbody>
+</table>
+
+<p>Thank you for your previous contributions.</p>
+{{ end }}

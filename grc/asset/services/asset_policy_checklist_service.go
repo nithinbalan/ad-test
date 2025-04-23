@@ -231,7 +231,7 @@ func (apcs *AssetPolicyChecklistService) AnswerAssetPolicyChecklist(id uint, for
 	}
 
 	// Fetch all checklists under this AssetPolicyID
-	checklists, err := apcs.assetPolicySvc.GetByAssetID(assetPolicyID, tx)
+	assetDetails, err := apcs.assetPolicySvc.GetFullDetailsByID(assetID, assetPolicyID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -262,7 +262,7 @@ func (apcs *AssetPolicyChecklistService) AnswerAssetPolicyChecklist(id uint, for
 	// ✅ Simplified logic using status set
 	statusSet := map[uint]bool{}
 
-	for _, checklist := range checklists {
+	for _, checklist := range assetDetails.AssetPolicyChecklists {
 		if checklist.ComplianceStatusID != nil {
 			statusSet[*checklist.ComplianceStatusID] = true
 		}
@@ -273,11 +273,12 @@ func (apcs *AssetPolicyChecklistService) AnswerAssetPolicyChecklist(id uint, for
 	switch {
 	case statusSet[notCompliantStatus.ID]:
 		finalStatusID = &notCompliantStatus.ID
-	case len(statusSet) == 1 && statusSet[partiallyCompliantStatus.ID]:
+	case statusSet[partiallyCompliantStatus.ID]:
+		// Even if mixed with compliant or not_applicable
 		finalStatusID = &partiallyCompliantStatus.ID
-	case len(statusSet) == 1 && statusSet[compliantStatus.ID]:
+	case statusSet[compliantStatus.ID] && len(statusSet) == 1:
 		finalStatusID = &compliantStatus.ID
-	case len(statusSet) == 1 && statusSet[notApplicableStatus.ID]:
+	case statusSet[notApplicableStatus.ID] && len(statusSet) == 1:
 		finalStatusID = &notApplicableStatus.ID
 	}
 
@@ -349,7 +350,6 @@ func (apcs *AssetPolicyChecklistService) DeleteAnswerAssetPolicyChecklist(ids []
 		tx.Rollback()
 		return nil, err
 	}
-
 	// Fetch compliance statuses
 	compliantStatus, err := apcs.complianceStatusSvc.GetByType("compliant")
 	if err != nil {
@@ -366,48 +366,33 @@ func (apcs *AssetPolicyChecklistService) DeleteAnswerAssetPolicyChecklist(ids []
 		tx.Rollback()
 		return nil, err
 	}
-	// notCompliantStatus, err := apcs.complianceStatusSvc.GetByType("not_compliant")
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	return nil, err
-	// }
+	notCompliantStatus, err := apcs.complianceStatusSvc.GetByType("not_implemented")
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
 
-	// Count occurrences of each status
-	var compliantCount, notApplicableCount, partiallyCompliantCount int
+	// ✅ Simplified logic using status set
+	statusSet := map[uint]bool{}
+
 	for _, checklist := range checklists {
 		if checklist.ComplianceStatusID != nil {
-			switch *checklist.ComplianceStatusID {
-			case compliantStatus.ID:
-				compliantCount++
-			case notApplicableStatus.ID:
-				notApplicableCount++
-			case partiallyCompliantStatus.ID:
-				partiallyCompliantCount++
-				// case notCompliantStatus.ID:
-				// 	notCompliantCount++
-			}
+			statusSet[*checklist.ComplianceStatusID] = true
 		}
 	}
 
-	// **Determine Final Policy Status**
+	// Determine final status
 	var finalStatusID *uint
-
-	// if notCompliantCount > 0 {
-	// 	// If any checklist is **not_compliant**, then the overall policy is **not_compliant**
-	// 	finalStatusID = &notCompliantStatus.ID
-	// }
-	if partiallyCompliantCount > 0 {
-		// If all are **partially_compliant** or mixed with **compliant/not_applicable**
+	switch {
+	case statusSet[notCompliantStatus.ID]:
+		finalStatusID = &notCompliantStatus.ID
+	case statusSet[partiallyCompliantStatus.ID]:
+		// Even if mixed with compliant or not_applicable
 		finalStatusID = &partiallyCompliantStatus.ID
-	} else if compliantCount > 0 && notApplicableCount == 0 {
-		// If **all are compliant** (excluding not_applicable)
+	case statusSet[compliantStatus.ID] && len(statusSet) == 1:
 		finalStatusID = &compliantStatus.ID
-	} else if notApplicableCount > 0 && compliantCount == 0 && partiallyCompliantCount == 0 {
-		// If **all are not_applicable**
+	case statusSet[notApplicableStatus.ID] && len(statusSet) == 1:
 		finalStatusID = &notApplicableStatus.ID
-	} else {
-		// No status can be determined (fallback)
-		finalStatusID = nil
 	}
 
 	// ✅ Update Asset Policy status if applicable

@@ -23,6 +23,7 @@ type AssetCriticalityMatrixRepositoryInterface interface {
 	DeleteCategoriesByMatrixID(matrixID uint, tx ...utility.DatabaseTransaction) error
 	ExistsByCategoryID(categoryID uint, excludeMatrixID uint, tx ...utility.DatabaseTransaction) (bool, error)
 	GetCriticalityMatrixByCategoryID(categoryID uint) (uint, error)
+	GetDefaultCriticalityMatrixID() (uint, error)
 }
 
 type AssetCriticalityMatrixRepository struct {
@@ -172,4 +173,19 @@ func (repo *AssetCriticalityMatrixRepository) GetCriticalityMatrixByCategoryID(c
 		return 0, err
 	}
 	return matrixID, nil
+}
+
+func (repo *AssetCriticalityMatrixRepository) GetDefaultCriticalityMatrixID() (uint, error) {
+	var id uint
+	err := repo.db.Table("asset_criticality_matrices").
+		Select("id").
+		Where("title_en = ?", "Default Asset Criticality Matrix").
+		Order("id").
+		Limit(1).
+		Scan(&id).Error
+
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
 }

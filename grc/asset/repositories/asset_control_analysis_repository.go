@@ -160,6 +160,7 @@ func (repo *AssetControlAnalysisRepository) GetFullDetailsByID(id uint) (*models
 		Preload("Control").
 		Preload("ControlEfficiencyStatus").
 		Preload("ControlImplementationStatus").
+		Preload("Documents").
 		First(&assetControlAnalysis, id)
 	if result.Error != nil {
 		return nil, result.Error

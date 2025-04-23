@@ -102,63 +102,37 @@ func (acas *AssetControlAnalysisService) Create(assetID uint, currentUserID uint
 		return err
 	}
 
-	existingAsset, err := acas.assetRegisterSvc.GetFullDetailsByID(assetID, tx)
+	defaultImplementationStatus, err := acas.controlImplementationStatusSvc.GetByType("not-implemented")
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	existingControlIDs := make(map[uint]bool)
-	for _, ctrl := range existingAsset.Controls {
-		existingControlIDs[ctrl.ControlID] = true
+	defaultEfficiencyStatus, err := acas.controlEfficiencyStatusSvc.GetByType("inefficient")
+	if err != nil {
+		return err
 	}
 
-	newControlIDs := make(map[uint]bool)
-	for _, ctrl := range formDTO.ControlIds {
-		newControlIDs[ctrl] = true
-	}
+	var controlAnalysis []*models.AssetControl
+	var ids []uint
 
-	var controlsToAdd []*models.AssetControl
-	for _, newControlID := range formDTO.ControlIds {
-		if _, exists := existingControlIDs[newControlID]; !exists {
-			controlDetails, err := acas.controlSvc.GetByID(newControlID)
-			if err != nil {
-				return err
-			}
-			control := &models.AssetControl{
-				AssetRegisterID:               assetID,
-				ControlID:                     newControlID,
-				ControlEfficiencyStatusID:     controlDetails.ControlEfficiencyStatusID,
-				ControlImplementationStatusID: controlDetails.ControlImplementationStatusID,
-				CreatedBYID:                   currentUserID,
-			}
-			controlsToAdd = append(controlsToAdd, control)
+	for _, controlID := range formDTO.ControlIds {
+
+		assetControlAnalysis := &models.AssetControl{
+			AssetRegisterID:               assetID,
+			ControlID:                     controlID,
+			ControlImplementationStatusID: &defaultImplementationStatus.ID,
+			ControlEfficiencyStatusID:     &defaultEfficiencyStatus.ID,
+			CreatedBYID:                   currentUserID,
 		}
-	}
 
-	if len(controlsToAdd) > 0 {
-		if err := acas.repo.CreateAssetControls(controlsToAdd, tx); err != nil {
+		createdID, err := acas.repo.Create(assetControlAnalysis)
+		if err != nil {
 			tx.Rollback()
 			return err
 		}
-	}
 
-	var deleteControlIDs []*uint
-
-	for _, existingControl := range existingAsset.Controls {
-		if _, exists := newControlIDs[existingControl.ControlID]; !exists {
-			deleteControlIDs = append(deleteControlIDs, existingControl.ID)
-		}
-	}
-
-	if len(deleteControlIDs) > 0 {
-		if err := acas.repo.DeleteAssetControls(deleteControlIDs, tx); err != nil {
-			tx.Rollback()
-			if utility.IsForeignKeyConstraintError(err) {
-				return utility.NewResourceConflictError(fmt.Errorf("foreign key constraint violation while deleting controls"))
-			}
-			return err
-		}
+		controlAnalysis = append(controlAnalysis, assetControlAnalysis)
+		ids = append(ids, createdID)
 	}
 
 	tx.Commit()
@@ -169,7 +143,7 @@ func (acas *AssetControlAnalysisService) Create(assetID uint, currentUserID uint
 			models.CreateAction,
 			models.AssetControl{}.TableName(),
 			formDTO.ControlIds,
-			controlsToAdd,
+			controlAnalysis,
 			currentUserID,
 			nil,
 		)

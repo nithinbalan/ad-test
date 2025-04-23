@@ -25,7 +25,7 @@ func NewCommunicationActionPlanStatusRepository(db *gorm.DB) *CommunicationActio
 }
 
 func (repo *CommunicationActionPlanStatusRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.CommunicationActionPlanStatus, error) {
-	var testAndExerciseStatuses []*models.CommunicationActionPlanStatus
+	var communicationActionPlanStatuses []*models.CommunicationActionPlanStatus
 
 	query := repo.db
 
@@ -44,9 +44,9 @@ func (repo *CommunicationActionPlanStatusRepository) GetAll(sort string, sortBy 
 	}
 
 	query = query.Order(sortBy + " " + sort)
-	result := query.Find(&testAndExerciseStatuses)
+	result := query.Find(&communicationActionPlanStatuses)
 
-	return testAndExerciseStatuses, result.Error
+	return communicationActionPlanStatuses, result.Error
 }
 
 func (repo *CommunicationActionPlanStatusRepository) GetByID(id uint) (*models.CommunicationActionPlanStatus, error) {
@@ -61,13 +61,13 @@ func (repo *CommunicationActionPlanStatusRepository) GetByID(id uint) (*models.C
 }
 
 func (repo *CommunicationActionPlanStatusRepository) GetByType(status string) (*models.CommunicationActionPlanStatus, error) {
-	var testAndExerciseStatus *models.CommunicationActionPlanStatus
+	var communicationActionPlanStatus *models.CommunicationActionPlanStatus
 
-	result := repo.db.Where("type = ?", status).First(&testAndExerciseStatus)
+	result := repo.db.Where("type = ?", status).First(&communicationActionPlanStatus)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return testAndExerciseStatus, nil
+	return communicationActionPlanStatus, nil
 }

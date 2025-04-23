@@ -32,6 +32,11 @@ type OrganizationModule struct {
 	ControlAssociatedItemController         *controllers.ControlAssociatedItemController
 	ControlReviewController                 *controllers.ControlReviewController
 	UserProfileController                   *controllers.UserProfileController
+	ProcessDependencyTypeController         *controllers.ProcessDependencyTypeController
+	ProcessDependencySubTypeController      *controllers.ProcessDependencySubTypeController
+	GovernanceReportController              *controllers.GovernanceReportController
+	ProcessDependencyController             *controllers.ProcessDependencyController
+	ProcessCriticalityLevelController       *controllers.ProcessCriticalityLevelController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -42,6 +47,7 @@ type OrganizationModule struct {
 	ControlImplementationStatusSvc services.ControlImplementationStatusServiceInterface
 	ControlEfficiencyStatusSvc     services.ControlEfficiencyStatusServiceInterface
 	ProcessAssociatedItemSvc       services.ProcessAssociatedItemServiceInterface
+	ProcessDependencySvc           services.ProcessDependencyServiceInterface
 }
 
 func NewOrganizationModule(
@@ -175,6 +181,25 @@ func NewOrganizationModule(
 
 	userProfileController := controllers.NewUserProfileController(userSettingSvc, userTaskSvc, userSvc)
 
+	processDependencyTypeRepo := repositories.NewProcessDependencyTypeRepository(db)
+	processDependencyTypeSvc := services.NewProcessDependencyTypeService(processDependencyTypeRepo)
+	processDependencyTypeController := controllers.NewProcessDependencyTypeController(processDependencyTypeSvc)
+
+	processDependencySubTypeRepo := repositories.NewProcessDependencySubTypeRepository(db)
+	processDependencySubTypeSvc := services.NewProcessDependencySubTypeService(processDependencySubTypeRepo, processDependencyTypeSvc, sharedModule.ActivityLogService)
+	processDependencySubTypeController := controllers.NewProcessDependencySubTypeController(processDependencySubTypeSvc)
+
+	governanceReportRepo := repositories.NewGovernanceReportRepository(db)
+	governanceReportSvc := services.NewGovernanceReportService(governanceReportRepo, sharedModule.ActivityLogService, settingsModule.OrganizationLevelSvc)
+	governanceReportController := controllers.NewGovernanceReportController(governanceReportSvc)
+
+	processDependencyRepo := repositories.NewProcessDependencyRepository(db)
+	processDependencySvc := services.NewProcessDependencyService(processDependencyRepo, processDependencySubTypeSvc, sharedModule.ActivityLogService, processSvc, settingsModule.OrganizationUnitSvc)
+	processDependencyController := controllers.NewProcessDependencyController(processDependencySvc)
+	processCriticalityLevelRepo := repositories.NewProcessCriticalityLevelRepository(db)
+	processCriticalityLevelSvc := services.NewProcessCriticalityLevelService(processCriticalityLevelRepo)
+	processCriticalityLevelController := controllers.NewProcessCriticalityLevelController(processCriticalityLevelSvc)
+
 	return &OrganizationModule{
 		DesignationController:                   designationController,
 		UserStatusController:                    userStatusController,
@@ -199,6 +224,11 @@ func NewOrganizationModule(
 		ControlAssociatedItemController:         controlAssociatedItemController,
 		ControlReviewController:                 controlReviewController,
 		UserProfileController:                   userProfileController,
+		ProcessDependencyTypeController:         processDependencyTypeController,
+		ProcessDependencySubTypeController:      processDependencySubTypeController,
+		GovernanceReportController:              governanceReportController,
+		ProcessDependencyController:             processDependencyController,
+		ProcessCriticalityLevelController:       processCriticalityLevelController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,
@@ -209,5 +239,6 @@ func NewOrganizationModule(
 		ControlImplementationStatusSvc: controlImplementationStatusSvc,
 		ControlEfficiencyStatusSvc:     controlEfficiencyStatusSvc,
 		ProcessAssociatedItemSvc:       processAssociatedItemSvc,
+		ProcessDependencySvc:           processDependencySvc,
 	}
 }

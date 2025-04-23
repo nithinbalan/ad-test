@@ -41,6 +41,7 @@ type ComplianceModule struct {
 	ComplianceAssessmentRequirementActionPlanController             *controllers.ComplianceAssessmentRequirementActionPlanController
 	ComplianceAssessmentRequirementActionPlanStatusUpdateController *controllers.ComplianceAssessmentRequirementActionPlanStatusUpdateController
 	ComplianceAssessmentRequirementActionPlanCommentController      *controllers.ComplianceAssessmentRequirementActionPlanCommentController
+	ComplianceReportController                                      *controllers.ComplianceReportController
 
 	ComplianceRegisterSvc          services.ComplianceRegisterServiceInterface
 	ComplianceRequirementSvc       services.ComplianceRequirementServiceInterface
@@ -48,6 +49,7 @@ type ComplianceModule struct {
 	SlaRegisterSvc                 services.SLARegisterServiceInterface
 	ComplianceActionPlanCommentSvc services.ComplianceActionPlanCommentServiceInterface
 	ComplianceStatusSvc            services.ComplianceStatusServiceInterface
+	ComplianceClausevc             services.ComplianceClauseServiceInterface
 }
 
 func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule, organizationModule *OrganizationModule, taskModule *TaskModule, settingsModule *SettingsModule, commonModule *CommonModule) *ComplianceModule {
@@ -251,6 +253,10 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceAssessmentRequirementActionPlanCommentSvc := services.NewComplianceAssessmentRequirementActionPlanCommentService(complianceAssessmentRequirementActionPlanCommentRepository, organizationModule.UserSvc, sharedModule.ActivityLogService, complianceAssessmentRequirementActionPlanSvc, commonModule.NotificationService)
 	complianceAssessmentRequirementActionPlanCommentController := controllers.NewComplianceAssessmentRequirementActionPlanCommentController(complianceAssessmentRequirementActionPlanCommentSvc)
 
+	complianceReportRepo := repositories.NewComplianceReportRepository(db)
+	complianceReportSvc := services.NewComplianceReportService(complianceReportRepo, sharedModule.ActivityLogService)
+	complianceReportController := controllers.NewComplianceReportController(complianceReportSvc)
+
 	return &ComplianceModule{
 		ComplianceCategoryController:                                    complianceCategoryController,
 		ComplianceStatusController:                                      complianceStatusController,
@@ -284,6 +290,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceAssessmentRequirementActionPlanController:             complianceAssessmentRequirementActionPlanController,
 		ComplianceAssessmentRequirementActionPlanStatusUpdateController: complianceAssessmentRequirementActionPlanStatusUpdateController,
 		ComplianceAssessmentRequirementActionPlanCommentController:      complianceAssessmentRequirementActionPlanCommentController,
+		ComplianceReportController:                                      complianceReportController,
 
 		ComplianceRequirementSvc:       complianceRequirementSvc,
 		ComplianceRegisterSvc:          complianceRegisterSvc,
@@ -291,5 +298,6 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		SlaRegisterSvc:                 slaRegisterSvc,
 		ComplianceActionPlanCommentSvc: complianceActionPlanCommentSvc,
 		ComplianceStatusSvc:            complianceStatusSvc,
+		ComplianceClausevc:             compilanceClauseSvc,
 	}
 }

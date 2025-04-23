@@ -20,6 +20,8 @@ type RiskClosureRepositoryInterface interface {
 	CreateDocuments(docs []*models.RiskClosureDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.RiskClosureDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	UpdateRiskStatus(risk *models.RiskRegister, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskClosureRepository struct {
@@ -174,6 +176,19 @@ func (repo *RiskClosureRepository) DeleteDocuments(docIds []*uint, tx ...utility
 
 	// Delete documents by IDs
 	if err := db.Where("id IN (?)", docIds).Delete(&models.RiskClosureDocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *RiskClosureRepository) UpdateRiskStatus(risk *models.RiskRegister, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Model(&models.RiskRegister{}).Where("id = ?", risk.ID).Updates(risk).Error; err != nil {
 		return err
 	}
 

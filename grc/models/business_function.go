@@ -5,26 +5,27 @@ import (
 )
 
 type BusinessFunction struct {
-	ID                uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	ReferenceNumber   string     `json:"reference_number" binding:"omitempty,max=45" gorm:"size:45"`
-	ResponsibleUserID uint       `json:"responsible_user_id" binding:"required" gorm:"not null"`
-	SeverityLevelID   *uint      `json:"severity_level_id" binding:"required"`
-	Title             string     `json:"title" binding:"required,max=255" gorm:"type:nvarchar(255);not null"`
-	Description       *string    `json:"description" gorm:"type:nvarchar(max)"`
-	BcpStatus         bool       `json:"bcp_status"`
-	ReviewFrequencyID *uint      `json:"review_frequency_id"`
-	NextReviewDate    *time.Time `json:"next_review_date"`
-	LastReviewDate    *time.Time `json:"last_review_date"`
-	Rto               *int       `json:"rto"`
-	RtoUnitId         *uint      `json:"rto_unit_id"`
-	Mtpd              *int       `json:"mtpd"`
-	MtpdUnitId        *uint      `json:"mtpd_unit_id"`
-	Rpo               *int       `json:"rpo"`
-	RpoUnitId         *uint      `json:"rpo_unit_id"`
-	CreatedBYID       uint       `json:"created_by_id" binding:"required"`
-	UpdatedBYID       *uint      `json:"updated_by_id"`
-	CreatedAt         time.Time  `json:"created_at" gorm:"type:datetime;not null"`
-	UpdatedAt         *time.Time `json:"updated_at" gorm:"type:datetime"`
+	ID                               uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	ReferenceNumber                  string     `json:"reference_number" binding:"omitempty,max=45" gorm:"size:45"`
+	ResponsibleUserID                uint       `json:"responsible_user_id" binding:"required" gorm:"not null"`
+	SeverityLevelID                  *uint      `json:"severity_level_id" binding:"required"`
+	Title                            string     `json:"title" binding:"required,max=255" gorm:"type:nvarchar(255);not null"`
+	Description                      *string    `json:"description" gorm:"type:nvarchar(max)"`
+	BcpStatus                        bool       `json:"bcp_status"`
+	ReviewFrequencyID                *uint      `json:"review_frequency_id"`
+	NextReviewDate                   *time.Time `json:"next_review_date"`
+	LastReviewDate                   *time.Time `json:"last_review_date"`
+	Rto                              *int       `json:"rto"`
+	RtoUnitId                        *uint      `json:"rto_unit_id"`
+	Mtpd                             *int       `json:"mtpd"`
+	MtpdUnitId                       *uint      `json:"mtpd_unit_id"`
+	Rpo                              *int       `json:"rpo"`
+	RpoUnitId                        *uint      `json:"rpo_unit_id"`
+	HighestProcessCriticalityLevelID *uint      `json:"highest_process_criticality_level_id" gorm:"default:null"`
+	CreatedBYID                      uint       `json:"created_by_id" binding:"required"`
+	UpdatedBYID                      *uint      `json:"updated_by_id"`
+	CreatedAt                        time.Time  `json:"created_at" gorm:"type:datetime;not null"`
+	UpdatedAt                        *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relationships
 	SeverityLevel   *SeverityLevel             `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -36,6 +37,7 @@ type BusinessFunction struct {
 
 	BusinessContinuityPlans      []BusinessContinuityPlan `gorm:"foreignKey:BusinessFunctionID"`
 	LatestBusinessContinuityPlan *BusinessContinuityPlan  `gorm:"foreignKey:BusinessFunctionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;where:is_latest_version = true"`
+	ProcessCriticalityLevel      *ProcessCriticalityLevel `gorm:"foreignKey:HighestProcessCriticalityLevelID"`
 }
 
 // TableName overrides the table name used by BusinessFunction to `business_functions`

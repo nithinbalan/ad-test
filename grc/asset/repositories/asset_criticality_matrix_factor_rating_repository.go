@@ -33,7 +33,7 @@ func (repo *AssetCriticalityMatrixFactorRatingRepository) GetAll(matrixID uint, 
 		query = query.Where("title_en LIKE ? OR title_ar LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
 	}
 	if sortBy == "" {
-		sortBy = "title_en"
+		sortBy = "id"
 	}
 	if sort != "asc" && sort != "desc" {
 		sort = "asc"

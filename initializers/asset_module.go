@@ -34,6 +34,8 @@ type AssetModule struct {
 	AssetPolicyController                         *controllers.AssetPolicyController
 	AssetPolicyChecklistController                *controllers.AssetPolicyChecklistController
 	AssetPolicyCommentController                  *controllers.AssetPolicyCommentController
+	AssetDocumentCategoryController               *controllers.AssetDocumentCategoryController
+	AssetOtherDocumentController                  *controllers.AssetOtherDocumentController
 	AssetControlAnalysisController                *controllers.AssetControlAnalysisController
 	AssetKriController                            *controllers.AssetKriController
 
@@ -166,7 +168,7 @@ func NewAssetModule(db *gorm.DB,
 	assetMaintenanceSvc := services.NewAssetMaintenanceService(assetMaintenanceRepo, sharedModule.ActivityLogService, assetRegisterSvc, organizationModule.UserSvc)
 	assetMaintenanceController := controllers.NewAssetMaintenanceController(assetMaintenanceSvc)
 	assetAssociatedItemRepo := repositories.NewAssetAssociatedItemRepository(db)
-	assetAssociatedItemSvc := services.NewAssetAssociatedItemService(assetAssociatedItemRepo, assetRegisterSvc, organizationModule.ControlImplementationStatusSvc, organizationModule.ControlEfficiencyStatusSvc, vulnerabilitySvc, threatSvc)
+	assetAssociatedItemSvc := services.NewAssetAssociatedItemService(assetAssociatedItemRepo, assetRegisterSvc, organizationModule.ControlImplementationStatusSvc, organizationModule.ControlEfficiencyStatusSvc, vulnerabilitySvc, threatSvc, complianceModule.ComplianceClausevc)
 	assetAssociatedItemController := controllers.NewAssetAssociatedItemController(assetAssociatedItemSvc)
 
 	assetCriticalityRepo := repositories.NewAssetCriticalityRepository(db)
@@ -211,6 +213,18 @@ func NewAssetModule(db *gorm.DB,
 	)
 	assetPolicyCommentController := controllers.NewAssetPolicyCommentController(assetPolicyCommentSvc)
 
+	assetDocumentCategoryRepo := repositories.NewAssetDocumentCategoryRepository(db)
+	assetDocumentCategorySvc := services.NewAssetDocumentCategoryService(assetDocumentCategoryRepo, assetTypeSvc, sharedModule.ActivityLogService)
+	assetDocumentCategoryController := controllers.NewAssetDocumentCategoryController(assetDocumentCategorySvc)
+
+	assetOtherDocumentRepo := repositories.NewAssetOtherDocumentRepository(db)
+	assetOtherDocumentSvc := services.NewAssetOtherDocumentService(
+		assetOtherDocumentRepo,
+		sharedModule.ActivityLogService,
+		assetRegisterSvc,
+		assetDocumentCategorySvc,
+	)
+	assetOtherDocumentController := controllers.NewAssetOtherDocumentController(assetOtherDocumentSvc)
 	assetControlAnalysisRepo := repositories.NewAssetControlAnalysisRepository(db)
 	assetControlAnalysisSvc := services.NewAssetControlAnalysisService(assetControlAnalysisRepo, sharedModule.ActivityLogService, organizationModule.ControlSvc, organizationModule.ControlImplementationStatusSvc, organizationModule.ControlEfficiencyStatusSvc, assetRegisterSvc)
 	assetControlAnalysisController := controllers.NewAssetControlAnalysisController(assetControlAnalysisSvc)
@@ -249,6 +263,8 @@ func NewAssetModule(db *gorm.DB,
 		AssetPolicyController:                         assetPolicyController,
 		AssetPolicyChecklistController:                assetPolicyChecklistController,
 		AssetPolicyCommentController:                  assetPolicyCommentController,
+		AssetDocumentCategoryController:               assetDocumentCategoryController,
+		AssetOtherDocumentController:                  assetOtherDocumentController,
 		AssetControlAnalysisController:                assetControlAnalysisController,
 		AssetKriController:                            assetKriController,
 

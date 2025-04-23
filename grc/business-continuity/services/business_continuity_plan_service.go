@@ -33,6 +33,7 @@ type BusinessContinuityPlanServiceInterface interface {
 
 	GetDocumentPath(id uint, token string) (string, error)
 	GetBcpHeatmap(bcpId uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
+	GetTestSummary(bcpID uint) (*businessContinuityDTOs.BcpTestSummaryDTO, error)
 }
 
 // Service and implementations
@@ -360,6 +361,35 @@ func (bcps *BusinessContinuityPlanService) Update(id uint, currentUserID uint, b
 				return err
 			}
 		}
+
+		//update bcp status of old business function
+
+		oldBusinessFunction, err := bcps.businessFunctionSvc.GetByID(oldBusinessContinuityPlan.BusinessFunctionID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		oldBusinessFunction.BcpStatus = false
+
+		if err := bcps.businessFunctionSvc.UpdateBusinessFunction(oldBusinessFunction, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		//update bcp status of new business function
+		newBusinessFunction, err := bcps.businessFunctionSvc.GetByID(businessContinuityPlanFormDTO.BusinessFunctionID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		newBusinessFunction.BcpStatus = true
+
+		if err := bcps.businessFunctionSvc.UpdateBusinessFunction(newBusinessFunction, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	var documents []*models.BcpDocument
@@ -555,6 +585,20 @@ func (bcps *BusinessContinuityPlanService) Delete(ids []uint, currentUserID uint
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		//update bcp status of business function
+		businessFunction, err := bcps.businessFunctionSvc.GetByID(businessContinuityPlan.BusinessFunctionID)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		businessFunction.BcpStatus = false
+
+		if err := bcps.businessFunctionSvc.UpdateBusinessFunction(businessFunction, tx); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
 	}
 	if len(failedIds) > 0 {
 		tx.Rollback()
@@ -701,4 +745,47 @@ func (bcpc *BusinessContinuityPlanService) GetBcpHeatmap(bcpId uint) ([][]*riskD
 	}
 
 	return heatmap, nil
+}
+
+func (bcs *BusinessContinuityPlanService) GetTestSummary(bcpID uint) (*businessContinuityDTOs.BcpTestSummaryDTO, error) {
+	// Get executed tests from test_and_exercises
+	executedTests, err := bcs.repo.GetTestAndExercisesByBcpID(bcpID)
+	if err != nil {
+		return nil, err
+	}
+
+	var successful, partiallySuccess, failure int
+	executedCount := 0
+
+	for _, testExercise := range executedTests {
+		if testExercise == nil {
+			continue
+		}
+
+		if testExercise.TestAndExerciseTestResult != nil && testExercise.TestAndExerciseTestResult.TestResultOption != nil {
+			executedCount++
+			switch testExercise.TestAndExerciseTestResult.TestResultOption.Type {
+			case "successful":
+				successful++
+			case "partially_successful":
+				partiallySuccess++
+			case "failure":
+				failure++
+			}
+		}
+	}
+
+	// Calculate test score (assuming score is percentage of successful tests)
+	testScore := 0
+	if executedCount > 0 {
+		testScore = (successful * 100) / executedCount
+	}
+
+	return &businessContinuityDTOs.BcpTestSummaryDTO{
+		TestScore:        testScore,
+		ExecutedTests:    executedCount,
+		SuccessfulTests:  successful,
+		FailedTests:      failure,
+		PartiallySuccess: partiallySuccess,
+	}, nil
 }

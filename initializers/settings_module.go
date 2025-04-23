@@ -21,6 +21,8 @@ type SettingsModule struct {
 	EmailTemplateSettingsController *controllers.EmailTemplateSettingsController
 	IntegrationController           *controllers.IntegrationController
 	AuditTemplateSettingController  *controllers.AuditTemplateSettingController
+	RiskTemplateSettingController   *controllers.RiskTemplateSettingController
+	ReportTemplateSettingController *controllers.ReportTemplateSettingController
 
 	SystemPreferenceSvc      services.SystemPreferenceServiceInterface
 	OrganizationUnitSvc      services.OrganizationUnitServiceInterface
@@ -32,6 +34,8 @@ type SettingsModule struct {
 	EmailTemplateSettingsSvc services.EmailTemplateSettingsServiceInterface
 	IntegrationSvc           services.IntegrationServiceInterface
 	AuditTemplateSettingSvc  services.AuditTemplateSettingServiceInterface
+	RiskTemplateSettingSvc   services.RiskTemplateSettingServiceInterface
+	ReportTemplateSettingSvc services.ReportTemplateSettingServiceInterface
 }
 
 func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule) *SettingsModule {
@@ -85,6 +89,18 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		sharedModule.ActivityLogService)
 	auditTemplateSettingController := controllers.NewAuditTemplateSettingController(auditTemplateSettingSvc)
 
+	riskTemplateSettingRepo := repositories.NewRiskTemplateSettingRepository(db)
+	riskTemplateSettingSvc := services.NewRiskTemplateSettingService(
+		riskTemplateSettingRepo,
+		sharedModule.ActivityLogService)
+	riskTemplateSettingController := controllers.NewRiskTemplateSettingController(riskTemplateSettingSvc)
+
+	reportTemplateSettingRepo := repositories.NewReportTemplateSettingRepository(db)
+	reportTemplateSettingSvc := services.NewReportTemplateSettingService(
+		reportTemplateSettingRepo,
+		sharedModule.ActivityLogService)
+	reportTemplateSettingController := controllers.NewReportTemplateSettingController(reportTemplateSettingSvc)
+
 	return &SettingsModule{
 		OrganizationLevelController:     organizationLevelController,
 		SystemPreferenceController:      systemPreferenceController,
@@ -98,6 +114,8 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		EmailTemplateSettingsController: emailTemplateSettingsController,
 		IntegrationController:           integrationController,
 		AuditTemplateSettingController:  auditTemplateSettingController,
+		RiskTemplateSettingController:   riskTemplateSettingController,
+		ReportTemplateSettingController: reportTemplateSettingController,
 
 		SystemPreferenceSvc:      systemPreferenceSvc,
 		OrganizationLevelSvc:     organizationLevelSvc,
@@ -109,5 +127,7 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		EmailTemplateSettingsSvc: emailTemplateSettingsService,
 		IntegrationSvc:           integrationSvc,
 		AuditTemplateSettingSvc:  auditTemplateSettingSvc,
+		RiskTemplateSettingSvc:   riskTemplateSettingSvc,
+		ReportTemplateSettingSvc: reportTemplateSettingSvc,
 	}
 }

@@ -27,7 +27,7 @@ func NewDocumentRequirementRepository(db *gorm.DB) *DocumentRequirementRepositor
 }
 
 func (repo *DocumentRequirementRepository) GetAll(documentRequirementGroupID uint, sort string, sortBy string, keyword string) ([]*models.DocumentRequirement, error) {
-	var documentRequirements []*models.DocumentRequirement
+	documentRequirements := []*models.DocumentRequirement{}
 	query := repo.db.Preload("DocumentRequirementGroup")
 
 	if keyword != "" {

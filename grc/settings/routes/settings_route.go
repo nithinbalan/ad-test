@@ -27,6 +27,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	emailTemplateSettingsController := app.SettingsModule.EmailTemplateSettingsController
 	integrationController := app.SettingsModule.IntegrationController
 	auditTemplateSettingController := app.SettingsModule.AuditTemplateSettingController
+	riskTemplateSettingController := app.SettingsModule.RiskTemplateSettingController
+	reportTemplateSettingController := app.SettingsModule.ReportTemplateSettingController
 
 	//Organization Level
 	settingRoutes.GET("/organization-levels", organizationLevelController.GetAllOrganizationLevels)
@@ -101,5 +103,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.GET("/audit-template-settings", auditTemplateSettingController.GetAllAuditTemplateSettings)
 	settingRoutes.PUT("/audit-template-settings/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), auditTemplateSettingController.UpdateAuditTemplateSetting)
 	unauthenticatedRoutes.GET("/audit-template-settings/:id/image-preview", auditTemplateSettingController.GetAuditTemplateSettingPreview)
+
+	settingRoutes.GET("/risk-template-settings", riskTemplateSettingController.GetAllRiskTemplateSettings)
+	settingRoutes.PUT("/risk-template-settings/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), riskTemplateSettingController.UpdateRiskTemplateSetting)
+	unauthenticatedRoutes.GET("/risk-template-settings/image-preview", riskTemplateSettingController.GetRiskTemplateSettingPreview)
+
+	settingRoutes.GET("/report-template-settings", reportTemplateSettingController.GetAllReportTemplateSettings)
+	settingRoutes.PUT("/report-template-settings/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), reportTemplateSettingController.UpdateReportTemplateSetting)
+	unauthenticatedRoutes.GET("/report-template-settings/image-preview", reportTemplateSettingController.GetReportTemplateSettingPreview)
 
 }

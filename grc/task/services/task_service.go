@@ -123,6 +123,8 @@ func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint
 		AuditDraftReportID:              taskDTO.AuditDraftReportID,
 		AuditReportWorkflowID:           taskDTO.AuditReportWorkflowID,
 		RecoveryActionPlanID:            taskDTO.RecoveryActionPlanID,
+		StakeholderActionPlanID:         taskDTO.StakeholderActionPlanID,
+		StrategyProfileActionPlanID:     taskDTO.StrategyProfileActionPlanID,
 		Title:                           taskDTO.Title,
 		Description:                     taskDTO.Description,
 		TargetDate:                      taskDTO.TargetDate,
