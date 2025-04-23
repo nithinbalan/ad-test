@@ -134,7 +134,7 @@
             {{end}}
             {{if $hasStandards}}
             <div style="margin: 0 0 20px 0; color: #000; background: #FCFCFC; border-radius: 3px; padding: 15px; border:1px solid #EAEDF2;">
-               <h2 style="color: #000; font-size: 18px; font-weight: bold; margin: 0 0 15px 0;">Compliance Status by CBAHI Standard</h2>
+               <h2 style="color: #000; font-size: 18px; font-weight: bold; margin: 0 0 15px 0;">{{.TitleEn}}</h2>
                {{range .ComplianceReportStandards}}
                {{if .ComplianceRequirements}}
                <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
@@ -182,7 +182,7 @@
             
             {{if eq .Type "action-plan-implementation"}}
             <div style="margin: 0 0 20px 0; color: #000; background: #FCFCFC; border-radius: 3px; padding: 15px; border:1px solid #EAEDF2;">
-               <h2 style="color: #000; font-size: 18px; font-weight: bold; margin: 0 0 15px 0;">Action Plan & Implementation Status</h2>
+               <h2 style="color: #000; font-size: 18px; font-weight: bold; margin: 0 0 15px 0;">{{.TitleEn}}</h2>
                {{range.ComplianceReportActionPlans}}
                <div style="padding: 10px 0; border-top:1px solid #C9D0DA">
                   <h3 style="color: #000; font-size: 15px; font-weight: bold; margin: 0 0 10px 0;">{{.Title}}</h3>
