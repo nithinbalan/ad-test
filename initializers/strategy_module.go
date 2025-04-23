@@ -20,6 +20,7 @@ type StrategyModule struct {
 	StrategyProfileActionPlanStatusUpdateController *controllers.StrategyProfileActionPlanStatusUpdateController
 	StrategyProfileActionPlanCommentController      *controllers.StrategyProfileActionPlanCommentController
 	StrategyProfileSettingController                *controllers.StrategyProfileSettingController
+	StrategyProfileMappingController                *controllers.StrategyProfileMappingController
 }
 
 func NewStrategyModule(db *gorm.DB,
@@ -76,6 +77,10 @@ func NewStrategyModule(db *gorm.DB,
 	strategyProfileSettingSvc := services.NewStrategyProfileSettingService(strategyProfileSettingRepo)
 	strategyProfileSettingController := controllers.NewStrategyProfileSettingController(strategyProfileSettingSvc)
 
+	strategyProfileMappingRepo := repositories.NewStrategyProfileMappingRepository(db)
+	strategyProfileMappingSvc := services.NewStrategyProfileMappingService(strategyProfileMappingRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, settingsModule.OrganizationUnitSvc, strategyProfileSettingSvc)
+	strategyProfileMappingController := controllers.NewStrategyProfileMappingController(strategyProfileMappingSvc)
+
 	return &StrategyModule{
 		StrategyProfileController:                       strategyProfileController,
 		StrategyProfileFocusAreaController:              strategyProfileFocusAreaController,
@@ -88,5 +93,6 @@ func NewStrategyModule(db *gorm.DB,
 		StrategyProfileActionPlanStatusUpdateController: strategyProfileActionPlanStatusUpdateController,
 		StrategyProfileActionPlanCommentController:      strategyProfileActionPlanCommentController,
 		StrategyProfileSettingController:                strategyProfileSettingController,
+		StrategyProfileMappingController:                strategyProfileMappingController,
 	}
 }

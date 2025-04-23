@@ -17,14 +17,15 @@ type StrategyProfileMilestone struct {
 	UpdatedAt                   *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
 	// Relationships
-	StrategyProfile           *StrategyProfile           `gorm:"foreignKey:StrategyProfileID" json:"strategy_profile,omitempty"`
-	StrategyProfileFocusArea  *StrategyProfileFocusArea  `gorm:"foreignKey:StrategyProfileFocusAreaID" json:"strategy_profile_focus_area,omitempty"`
-	StrategyProfileGoal       *StrategyProfileGoal       `gorm:"foreignKey:StrategyProfileGoalID" json:"strategy_profile_goal,omitempty"`
-	StrategyProfileObjective  *StrategyProfileObjective  `gorm:"foreignKey:StrategyProfileObjectiveID" json:"strategy_profile_objective,omitempty"`
-	StrategyProfileInitiative *StrategyProfileInitiative `gorm:"foreignKey:StrategyProfileInitiativeID" json:"strategy_profile_initiative,omitempty"`
-	StrategyProfileProject    *StrategyProfileProject    `gorm:"foreignKey:StrategyProfileProjectID" json:"strategy_profile_project,omitempty"`
-	CreatedByUser             *User                      `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	UpdatedByUser             *User                      `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	StrategyProfile            *StrategyProfile            `gorm:"foreignKey:StrategyProfileID" json:"strategy_profile,omitempty"`
+	StrategyProfileFocusArea   *StrategyProfileFocusArea   `gorm:"foreignKey:StrategyProfileFocusAreaID" json:"strategy_profile_focus_area,omitempty"`
+	StrategyProfileGoal        *StrategyProfileGoal        `gorm:"foreignKey:StrategyProfileGoalID" json:"strategy_profile_goal,omitempty"`
+	StrategyProfileObjective   *StrategyProfileObjective   `gorm:"foreignKey:StrategyProfileObjectiveID" json:"strategy_profile_objective,omitempty"`
+	StrategyProfileInitiative  *StrategyProfileInitiative  `gorm:"foreignKey:StrategyProfileInitiativeID" json:"strategy_profile_initiative,omitempty"`
+	StrategyProfileProject     *StrategyProfileProject     `gorm:"foreignKey:StrategyProfileProjectID" json:"strategy_profile_project,omitempty"`
+	StrategyProfileActionPlans []StrategyProfileActionPlan `gorm:"foreignKey:StrategyProfileMilestoneID"`
+	CreatedByUser              *User                       `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	UpdatedByUser              *User                       `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 }
 
 func (StrategyProfileMilestone) TableName() string {

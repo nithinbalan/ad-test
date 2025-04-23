@@ -27,6 +27,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyProfileActionPlanStatusUpdateController := app.StrategyModule.StrategyProfileActionPlanStatusUpdateController
 	strategyProfileActionPlanCommentController := app.StrategyModule.StrategyProfileActionPlanCommentController
 	strategyProfileSettingController := app.StrategyModule.StrategyProfileSettingController
+	strategyProfileMappingController := app.StrategyModule.StrategyProfileMappingController
 
 	// strategy profile
 	strategyRoutes.GET("/strategy-profiles", strategyProfileController.GetAllStrategyProfiles)
@@ -109,4 +110,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.PUT("/strategy-profile-setting/:settingId/enable", strategyProfileSettingController.EnableStrategyProfileSetting)
 	strategyRoutes.PUT("/strategy-profile-setting/:settingId/disable", strategyProfileSettingController.DisableStrategyProfileSetting)
 
+	// mapping
+	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/mapping", strategyProfileMappingController.GetStrategyProfile)
 }
