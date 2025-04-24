@@ -22,6 +22,11 @@ type AuditInsightsModule struct {
 	AuditInsightsFindingActionPlanController             *controllers.AuditInsightsFindingActionPlanController
 	AuditInsightsFindingActionPlanStatusUpdateController *controllers.AuditInsightsFindingActionPlanStatusUpdateController
 	AuditInsightsFinalReportController                   *controllers.AuditInsightsFinalReportController
+
+	AuditInsightsAuditSvc             services.AuditInsightsAuditServiceInterface
+	AuditInsightsAuditFindingSvc      services.AuditInsightsAuditFindingServiceInterface
+	AuditInsightsFindingActionPlanSvc services.AuditInsightsFindingActionPlanServiceInterface
+	AuditInsightsAuditPlanSvc         services.AuditInsightsAuditPlanServiceInterface
 }
 
 func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, auditModule *AuditModule, commonModule *CommonModule) *AuditInsightsModule {
@@ -161,5 +166,10 @@ func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizatio
 		AuditInsightsFindingActionPlanController:             auditInsightsFindingActionPlanController,
 		AuditInsightsFindingActionPlanStatusUpdateController: auditInsightsFindingActionPlanStatusUpdateController,
 		AuditInsightsFinalReportController:                   auditInsightsFinalReportController,
+
+		AuditInsightsAuditSvc:             auditInsightsAuditSvc,
+		AuditInsightsAuditFindingSvc:      auditInsightsAuditFindingSvc,
+		AuditInsightsFindingActionPlanSvc: auditInsightsFindingActionPlanSvc,
+		AuditInsightsAuditPlanSvc:         auditInsightsAuditPlanSvc,
 	}
 }

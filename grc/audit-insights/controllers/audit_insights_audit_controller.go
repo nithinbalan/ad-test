@@ -29,6 +29,13 @@ func (aiac *AuditInsightsAuditController) GetAllAuditInsightsAudits(c *gin.Conte
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	// Convert the export parameter to a boolean
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(aiac.db, c, "Invalid export parameter")
+		return
+	}
+
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"audit_category_ids",
@@ -65,15 +72,37 @@ func (aiac *AuditInsightsAuditController) GetAllAuditInsightsAudits(c *gin.Conte
 		QuickFilter: quickFilter,
 		StartDate:   startDate,
 		EndDate:     endDate,
+		Export:      export,
 	}
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(aiac.db, c, err.Error())
 		return
 	}
-	audits, err := aiac.service.GetAll(&queryParams,currentUserID)
+	audits, err := aiac.service.GetAll(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(aiac.db, c, err.Error())
+		return
+	}
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(aiac.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := aiac.service.ExportAuditInsights(audits.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(aiac.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Audit Insights.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
 		return
 	}
 	c.JSON(http.StatusOK, audits)
@@ -100,4 +129,10 @@ func (aiac *AuditInsightsAuditController) GetAuditInsightsAuditDetails(c *gin.Co
 		}
 	}
 	c.JSON(http.StatusOK, audit)
+}
+
+func (aiac *AuditInsightsAuditController) GetAuditInsightsAuditsExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	aiac.GetAllAuditInsightsAudits(c)
 }

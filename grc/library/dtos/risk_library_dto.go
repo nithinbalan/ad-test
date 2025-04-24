@@ -11,14 +11,6 @@ type RiskLibraryDTO struct {
 	Impact      *string `json:"impact"`
 }
 
-type RiskLibraryFormDTO struct {
-	Category    string  `json:"category" binding:"required,max=255"`
-	Title       string  `json:"title" binding:"required,max=500"`
-	Description *string `json:"description"`
-	Likelihood  *string `json:"likelihood"`
-	Impact      *string `json:"impact"`
-}
-
 type RiskLibraryListQueryParamsDTO struct {
 	Sort     string
 	SortBy   string
