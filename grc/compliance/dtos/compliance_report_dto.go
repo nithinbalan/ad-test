@@ -1,6 +1,7 @@
 package dtos
 
 import (
+	"html/template"
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
@@ -55,8 +56,8 @@ type ComplianceReportSection struct {
 	ID                          uint                          `json:"id"`
 	TitleEn                     string                        `json:"title_en"`
 	TitleAr                     string                        `json:"title_ar"`
-	DescriptionEn               *string                       `json:"description_en"`
-	DescriptionAr               *string                       `json:"description_ar"`
+	DescriptionEn               template.HTML                 `json:"description_en"`
+	DescriptionAr               template.HTML                 `json:"description_ar"`
 	Type                        string                        `json:"type"`
 	Order                       int                           `json:"order"`
 	ComplianceReportDepartments []*ComplianceReportDepartment `json:"compliance_report_departments"`
