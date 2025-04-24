@@ -600,15 +600,33 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByReviewFrequency() ([]*riskDTOs.Ri
 }
 
 func (rhs *RiskHeatmapService) GetRiskHeatmapByAssetID(assetID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error) {
-	riskAssets, err := rhs.repo.GetRiskAssetByAssetID(assetID)
+	// Step 1: Get vulnerability IDs by asset
+	vulnerabilityIDs, err := rhs.repo.GetVulnerabilityIDsByAssetID(assetID)
 	if err != nil {
 		return nil, err
 	}
-
-	var riskRegisterIDs []uint
-	for _, rs := range riskAssets {
-		riskRegisterIDs = append(riskRegisterIDs, rs.RiskRegisterID)
+	if len(vulnerabilityIDs) == 0 {
+		return [][]*riskDTOs.RiskHeatmapResponseDTO{}, nil
 	}
 
+	// Step 2: Get threat IDs by vulnerabilities
+	threatIDs, err := rhs.repo.GetThreatIDsByVulnerabilityIDs(vulnerabilityIDs)
+	if err != nil {
+		return nil, err
+	}
+	if len(threatIDs) == 0 {
+		return [][]*riskDTOs.RiskHeatmapResponseDTO{}, nil
+	}
+
+	// Step 3: Get risk register IDs by threats
+	riskRegisterIDs, err := rhs.repo.GetRiskRegisterIDsByThreatIDs(threatIDs)
+	if err != nil {
+		return nil, err
+	}
+	if len(riskRegisterIDs) == 0 {
+		return [][]*riskDTOs.RiskHeatmapResponseDTO{}, nil
+	}
+
+	// Step 4: Generate heatmap using those risk IDs
 	return rhs.GetRiskHeatmap(riskRegisterIDs)
 }

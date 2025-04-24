@@ -30,8 +30,24 @@ func (sqc *SwotPestelQuestionController) GetAllSwotPestelQuestions(c *gin.Contex
 	status := c.Query("status")
 	isSwot := c.Query("is_swot")
 	isPestel := c.Query("is_pestel")
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"swot_pestel_question_group_ids",
+	}
 
-	swotPestelQuestions, err := sqc.service.GetAll(sort, sortBy, keyword, status, isSwot, isPestel)
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	queryParams := organizationalContextDTOs.SwotPestelQuestionListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Status:   status,
+		IsSwot:   isSwot,
+		IsPestel: isPestel,
+		Filters:  filters,
+	}
+
+	swotPestelQuestions, err := sqc.service.GetAll(&queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(sqc.db, c, err.Error())
