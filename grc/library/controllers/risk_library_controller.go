@@ -54,7 +54,7 @@ func (rlc *RiskLibraryController) GetAllRiskLibrary(c *gin.Context) {
 	c.JSON(http.StatusOK, RiskLibrary)
 }
 
-func (rlc *RiskLibraryController) GetRiskCategoryCounts(c *gin.Context) {
+func (rlc *RiskLibraryController) RiskCountByCategory(c *gin.Context) {
 	result, err := rlc.service.GetRiskCategoryCounts()
 	if err != nil {
 		utility.SendInternalErrResp(rlc.db, c, err.Error())
