@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationalContextDTOs "jethur/grc/organizational-context/dtos"
 	"jethur/grc/organizational-context/repositories"
 	"jethur/utility"
 	"log"
@@ -14,7 +15,7 @@ import (
 )
 
 type SwotPestelQuestionGroupServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*models.SwotPestelQuestionGroup, error)
+	GetAll(params *organizationalContextDTOs.SwotPestelQuestionGroupListQueryParamsDTO) ([]*organizationalContextDTOs.SwotPestelQuestionGroupListDTO, error)
 	GetByID(id uint) (*models.SwotPestelQuestionGroup, error)
 	Create(currentUserID uint, swotPestelQuestionGroup *models.SwotPestelQuestionGroup) (*models.SwotPestelQuestionGroup, error)
 	Update(id uint, currentUserID uint, swotPestelQuestionGroup *models.SwotPestelQuestionGroup) (*models.SwotPestelQuestionGroup, error)
@@ -36,8 +37,8 @@ func NewSwotPestelQuestionGroupService(repo repositories.SwotPestelQuestionGroup
 	}
 }
 
-func (sqgs *SwotPestelQuestionGroupService) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*models.SwotPestelQuestionGroup, error) {
-	return sqgs.repo.GetAll(sort, sortBy, keyword, status, isSwot, isPestel)
+func (sqgs *SwotPestelQuestionGroupService) GetAll(params *organizationalContextDTOs.SwotPestelQuestionGroupListQueryParamsDTO) ([]*organizationalContextDTOs.SwotPestelQuestionGroupListDTO, error) {
+	return sqgs.repo.GetAll(params)
 }
 
 func (sqgs SwotPestelQuestionGroupService) GetByID(id uint) (*models.SwotPestelQuestionGroup, error) {
@@ -60,7 +61,7 @@ func (sqgs *SwotPestelQuestionGroupService) Create(currentUserID uint, swotPeste
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
-	existingGroups, err := sqgs.repo.GetAll("ASC", "[order]", "", "active", strconv.FormatBool(swotPestelQuestionGroup.IsSwot), strconv.FormatBool(swotPestelQuestionGroup.IsPestel))
+	existingGroups, err := sqgs.repo.GetAllSwotPestelQuestionGroups(strconv.FormatBool(swotPestelQuestionGroup.IsSwot), strconv.FormatBool(swotPestelQuestionGroup.IsPestel))
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +165,7 @@ func (sqgs *SwotPestelQuestionGroupService) Delete(ids []uint, currentUserID uin
 		}
 
 		// Fetch all records in order before deletion
-		swotGroups, err := sqgs.repo.GetAll("ASC", "[order]", "", "active", strconv.FormatBool(swotPestelQuestionGroup.IsSwot), strconv.FormatBool(swotPestelQuestionGroup.IsPestel))
+		swotGroups, err := sqgs.repo.GetAllSwotPestelQuestionGroups(strconv.FormatBool(swotPestelQuestionGroup.IsSwot), strconv.FormatBool(swotPestelQuestionGroup.IsPestel))
 		if err != nil {
 			return nil, err
 		}
