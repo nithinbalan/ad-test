@@ -14,6 +14,7 @@ type ReportsModule struct {
 	RiskReportController         *controllers.RiskReportController
 	AuditReportController        *controllers.AuditReportController
 	IncidentReportController     *controllers.IncidentReportController
+	AuditInsightReportController *controllers.AuditInsightReportController
 	MeetingReportController      *controllers.MeetingReportController
 	DocumentReportController     *controllers.DocumentReportController
 }
@@ -23,6 +24,7 @@ func NewReportsModule(db *gorm.DB,
 	organizationModule *OrganizationModule,
 	riskModule *RiskModule,
 	auditModule *AuditModule,
+	auditInsightsModule *AuditInsightsModule,
 	incidentModule *IncidentModule,
 	meetingModule *MeetingModule,
 	settingsModule *SettingsModule,
@@ -61,6 +63,14 @@ func NewReportsModule(db *gorm.DB,
 		incidentModule.IncidentRegisterSvc,
 		incidentModule.IncidentActionPlanSvc)
 
+	auditInsightReportRepo := repositories.NewAuditInsightReportRepository(db)
+	auditInsightReportSvc := services.NewAuditInsightReportService(auditInsightReportRepo, organizationModule.UserSvc)
+	auditInsightReportController := controllers.NewAuditInsightReportController(auditInsightReportSvc,
+		auditInsightsModule.AuditInsightsAuditSvc,
+		auditInsightsModule.AuditInsightsAuditFindingSvc,
+		auditInsightsModule.AuditInsightsFindingActionPlanSvc,
+		auditInsightsModule.AuditInsightsAuditPlanSvc,
+	)
 	meetingReportRepo := repositories.NewMeetingReportRepository(db)
 	meetingReportSvc := services.NewMeetingReportService(meetingReportRepo, settingsModule.OrganizationLevelSvc)
 	meetingReportController := controllers.NewMeetingReportController(meetingReportSvc,
@@ -78,6 +88,7 @@ func NewReportsModule(db *gorm.DB,
 		RiskReportController:         riskReportController,
 		AuditReportController:        auditReportController,
 		IncidentReportController:     incidentReportController,
+		AuditInsightReportController: auditInsightReportController,
 		MeetingReportController:      meetingReportController,
 		DocumentReportController:     documentReportController,
 	}

@@ -7,11 +7,13 @@ import (
 	logServices "jethur/grc/logs/services"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"os"
 )
 
 type AuditInsightsAuditServiceInterface interface {
 	GetAll(params *auditDTOs.AuditListQueryParamsDTO, currentUserID uint) (*auditDTOs.AuditListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDetailDTO, error)
+	ExportAuditInsights(data []*auditDTOs.AuditListDTO, currentUserID uint) (*os.File, error)
 }
 
 type AuditInsightsAuditService struct {
@@ -49,4 +51,12 @@ func (aias *AuditInsightsAuditService) GetFullDetailsByID(id uint, tx ...utility
 		return nil, err
 	}
 	return audit, nil
+}
+
+func (aias *AuditInsightsAuditService) ExportAuditInsights(data []*auditDTOs.AuditListDTO, currentUserID uint) (*os.File, error) {
+	export, err := aias.auditSvc.ExportAudits(data, currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	return export, nil
 }

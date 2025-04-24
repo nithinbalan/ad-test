@@ -29,6 +29,11 @@ func (aiapc *AuditInsightsAuditPlanController) GetAllAuditInsightsAuditPlans(c *
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(aiapc.db, c, "Invalid export parameter")
+		return
+	}
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"audit_category_ids",
@@ -65,15 +70,37 @@ func (aiapc *AuditInsightsAuditPlanController) GetAllAuditInsightsAuditPlans(c *
 		QuickFilter: quickFilter,
 		StartDate:   startDate,
 		TargetDate:  targetDate,
+		Export:      export,
 	}
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(aiapc.db, c, err.Error())
 		return
 	}
-	auditPlans, err := aiapc.service.GetAll(&queryParams,currentUserID)
+	auditPlans, err := aiapc.service.GetAll(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(aiapc.db, c, err.Error())
+		return
+	}
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(aiapc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := aiapc.service.ExportAuditInsightsAuditPlans(auditPlans.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(aiapc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Audit Insights Audit Plans.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
 		return
 	}
 	c.JSON(http.StatusOK, auditPlans)
@@ -102,3 +129,8 @@ func (aiapc *AuditInsightsAuditPlanController) GetAuditInsightsAuditPlanDetails(
 	c.JSON(http.StatusOK, auditPlan)
 }
 
+func (aiapc *AuditInsightsAuditPlanController) GetAuditInsightsAuditPlansExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	aiapc.GetAllAuditInsightsAuditPlans(c)
+}
