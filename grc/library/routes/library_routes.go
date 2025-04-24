@@ -25,7 +25,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	masterRoutes.PUT("/question-library/deactivate", questionLibraryController.DeactivateQuestionLibraries)
 
 	masterRoutes.GET("/kri-library", KRILibraryController.GetAllKRILibrary)
-	masterRoutes.GET("/kri-library/category-count", KRILibraryController.GetKRICategoryCounts)
+	masterRoutes.GET("/kri-library/category-count", KRILibraryController.KRICountByCategory)
 	masterRoutes.POST("/kri-library", KRILibraryController.CreateKRILibrary)
 	masterRoutes.GET("/kri-library/:id", KRILibraryController.GetKRILibraryDetails)
 	masterRoutes.PUT("/kri-library/:id", KRILibraryController.UpdateKRILibrary)
@@ -34,5 +34,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	masterRoutes.PUT("/kri-library/deactivate", KRILibraryController.DeactivateKRILibraries)
 
 	masterRoutes.GET("/risk-library", RiskLibraryController.GetAllRiskLibrary)
-	masterRoutes.GET("/risk-library/category-count", RiskLibraryController.GetRiskCategoryCounts)
+	masterRoutes.GET("/risk-library/category-count", RiskLibraryController.RiskCountByCategory)
 }

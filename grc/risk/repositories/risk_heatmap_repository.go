@@ -15,6 +15,10 @@ type RiskHeatmapRepositoryInterface interface {
 	GetAllRiskRegisters() ([]models.RiskRegister, error)
 
 	CountRiskRegistersWithLikelihoodAndImpact(riskRegisterIDs []uint, riskRatingValueID, likelihoodID, impactID uint) (int, error)
+
+	GetVulnerabilityIDsByAssetID(assetID uint) ([]uint, error)
+	GetThreatIDsByVulnerabilityIDs(vulnIDs []uint) ([]uint, error)
+	GetRiskRegisterIDsByThreatIDs(threatIDs []uint) ([]uint, error)
 }
 
 type RiskHeatmapRepository struct {
@@ -93,4 +97,31 @@ func (repo *RiskHeatmapRepository) GetAllRiskRegisters() ([]models.RiskRegister,
 		return nil, err
 	}
 	return risks, nil
+}
+
+func (repo *RiskHeatmapRepository) GetVulnerabilityIDsByAssetID(assetID uint) ([]uint, error) {
+	var ids []uint
+	err := repo.db.
+		Model(&models.VulnerabilityAsset{}).
+		Where("asset_register_id = ?", assetID).
+		Pluck("vulnerability_id", &ids).Error
+	return ids, err
+}
+
+func (repo *RiskHeatmapRepository) GetThreatIDsByVulnerabilityIDs(vulnIDs []uint) ([]uint, error) {
+	var ids []uint
+	err := repo.db.
+		Model(&models.VulnerabilityThreat{}).
+		Where("vulnerability_id IN ?", vulnIDs).
+		Pluck("threat_id", &ids).Error
+	return ids, err
+}
+
+func (repo *RiskHeatmapRepository) GetRiskRegisterIDsByThreatIDs(threatIDs []uint) ([]uint, error) {
+	var ids []uint
+	err := repo.db.
+		Model(&models.RiskThreat{}).
+		Where("threat_id IN ?", threatIDs).
+		Pluck("risk_register_id", &ids).Error
+	return ids, err
 }

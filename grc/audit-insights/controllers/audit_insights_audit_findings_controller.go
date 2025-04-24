@@ -30,6 +30,12 @@ func (aiafc *AuditInsightsAuditFindingController) GetAllAuditInsightsAuditFindin
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(aiafc.db, c, "Invalid export parameter")
+		return
+	}
+
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"audit_ids",
@@ -73,6 +79,7 @@ func (aiafc *AuditInsightsAuditFindingController) GetAllAuditInsightsAuditFindin
 		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
+		Export:      export,
 	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)
@@ -83,6 +90,27 @@ func (aiafc *AuditInsightsAuditFindingController) GetAllAuditInsightsAuditFindin
 	audits, err := aiafc.service.GetAll(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(aiafc.db, c, err.Error())
+		return
+	}
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(aiafc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := aiafc.service.ExportAuditInsightsAuditFindings(audits.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(aiafc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Audit Insights Audit Findings.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
 		return
 	}
 	c.JSON(http.StatusOK, audits)
@@ -132,4 +160,10 @@ func (aiafc *AuditInsightsAuditFindingController) GetAuditInsightFindingCountByC
 		}
 	}
 	c.JSON(http.StatusOK, findingCounts)
+}
+
+func (aiafc *AuditInsightsAuditFindingController) GetAuditInsightsAuditFindingsExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	aiafc.GetAllAuditInsightsAuditFindings(c)
 }
