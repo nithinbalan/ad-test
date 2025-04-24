@@ -112,21 +112,19 @@ func (repo *BusinessFunctionRepository) GetAll(params *businessContinuityDTOs.Bu
 			query = query.Where("business_functions.bcp_status = ?", false)
 		case "is_bcp":
 			query = query.Where("business_functions.bcp_status = ?", true)
-		}
-	}
-
-	for _, filter := range params.QuickFilter {
-		switch filter {
 		case "high":
 			query = query.Where("process_criticality_levels.type = ?", "high")
 		case "medium":
 			query = query.Where("process_criticality_levels.type = ?", "medium")
 		case "low":
 			query = query.Where("process_criticality_levels.type = ?", "low")
+		case "is_not_bcp_critical":
+			query = query.Where("process_criticality_levels.type = ? AND business_functions.bcp_status = ?", "high", false)
+		case "is_bcp_non_critical":
+			query = query.Where("process_criticality_levels.type = ? AND business_functions.bcp_status = ?", "low", true)
 		case "all":
 			continue
 		}
-
 	}
 	// Apply search keyword if exists
 	if params.Keyword != "" {
