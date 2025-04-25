@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"html/template"
 	"jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
@@ -294,12 +295,20 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 
 	// Map sections
 	for _, section := range complianceReport.Sections {
+		var descriptionEn template.HTML
+		if section.DescriptionEn != nil {
+			descriptionEn = template.HTML(*section.DescriptionEn)
+		}
+		var descriptionAr template.HTML
+		if section.DescriptionAr != nil {
+			descriptionAr = template.HTML(*section.DescriptionAr)
+		}
 		sectionDTO := &dtos.ComplianceReportSection{
 			ID:            section.ID,
 			TitleEn:       section.TitleEn,
 			TitleAr:       section.TitleAr,
-			DescriptionEn: section.DescriptionEn,
-			DescriptionAr: section.DescriptionAr,
+			DescriptionEn: descriptionEn,
+			DescriptionAr: descriptionAr,
 			Type:          section.Type,
 			Order:         section.OrderNum,
 		}
@@ -656,12 +665,20 @@ func (crs *ComplianceReportService) GetComplianceReportSectionDetails(compliance
 		return nil, err
 	}
 
+	var descriptionEn template.HTML
+	if section.DescriptionEn != nil {
+		descriptionEn = template.HTML(*section.DescriptionEn)
+	}
+	var descriptionAr template.HTML
+	if section.DescriptionAr != nil {
+		descriptionAr = template.HTML(*section.DescriptionAr)
+	}
 	sectionDTO := &dtos.ComplianceReportSection{
 		ID:            section.ID,
 		TitleEn:       section.TitleEn,
 		TitleAr:       section.TitleAr,
-		DescriptionEn: section.DescriptionEn,
-		DescriptionAr: section.DescriptionAr,
+		DescriptionEn: descriptionEn,
+		DescriptionAr: descriptionAr,
 		Type:          section.Type,
 		Order:         section.OrderNum,
 	}

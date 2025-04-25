@@ -48,6 +48,16 @@ type SwotPestelQuestionDTO struct {
 	SwotPestelQuestionFactors  []*SwotPestelQuestionFactorDetailDTO `json:"swot_pestel_question_factors" gorm:"foreignKey:SwotPestelQuestionID;references:ID"`
 }
 
+type SwotPestelQuestionListQueryParamsDTO struct {
+	Sort     string
+	SortBy   string
+	Keyword  string
+	Status   string
+	Filters  map[string][]string
+	IsSwot   string
+	IsPestel string
+}
+
 type AnswerFormDTO struct {
 	Answer *string `json:"answer" binding:"required"`
 }
