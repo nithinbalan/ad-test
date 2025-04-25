@@ -216,7 +216,7 @@ func (sqc *SwotPestelQuestionController) DeactivateSwotPestelQuestions(c *gin.Co
 func (sqc *SwotPestelQuestionController) UpdateAnswer(c *gin.Context) {
 	var answerFormDTO organizationalContextDTOs.AnswerFormDTO
 
-	questionIDStr := c.Param("id")
+	questionIDStr := c.Param("questionId")
 
 	questionId, err := strconv.ParseUint(questionIDStr, 10, 64)
 	if err != nil {
