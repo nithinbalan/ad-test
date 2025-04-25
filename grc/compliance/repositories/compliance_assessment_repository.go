@@ -112,7 +112,7 @@ func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.Compli
 		case "draft":
 			query = query.Where("compliance_assessment_statuses.type = ?", "draft")
 		case "in_review":
-			query = query.Where("compliance_assessment_statuses.type = ?", "in-review")
+			query = query.Where("compliance_assessment_statuses.type = ?", "in_review")
 		case "approved":
 			query = query.Where("compliance_assessment_statuses.type = ?", "approved")
 		}
