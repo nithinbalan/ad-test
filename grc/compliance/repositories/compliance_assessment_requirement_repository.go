@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"fmt"
+	"strings"
 
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
@@ -109,7 +110,7 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 		`, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
-	query = query.Order(params.SortBy + " " + params.Sort)
+	query = query.Order(strings.TrimSpace(params.SortBy) + " " + strings.TrimSpace(params.Sort))
 
 	// Execute the query
 	err := query.Find(&complianceRequirements).Error

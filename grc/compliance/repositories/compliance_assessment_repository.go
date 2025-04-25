@@ -106,6 +106,18 @@ func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.Compli
 		}
 	}
 
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "draft":
+			query = query.Where("compliance_assessment_statuses.type = ?", "draft")
+		case "in_review":
+			query = query.Where("compliance_assessment_statuses.type = ?", "in-review")
+		case "approved":
+			query = query.Where("compliance_assessment_statuses.type = ?", "approved")
+		}
+	}
+
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
