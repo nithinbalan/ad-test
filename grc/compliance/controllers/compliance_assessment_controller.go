@@ -41,6 +41,12 @@ func (cac *ComplianceAssessmentController) GetAllComplianceAssessments(c *gin.Co
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
+	// Add table qualifications to avoid ambiguous column references
+	if _, exists := filters["organization_unit_id"]; exists {
+		filters["organization_units.id"] = filters["organization_unit_id"]
+		delete(filters, "organization_unit_id")
+	}
+
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(cac.db, c, "Invalid page parameter")
