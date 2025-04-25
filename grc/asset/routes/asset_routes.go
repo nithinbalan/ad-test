@@ -263,6 +263,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/assets/:id/other-documents", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetOtherDocumentController.CreateDocument)
 	assetRoutes.PUT("/assets/:id/other-documents/:documentId", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetOtherDocumentController.UpdateDocument)
 	assetRoutes.POST("/assets/:id/other-documents/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetOtherDocumentController.DeleteDocuments)
+	unauthenticatedRoutes.GET("/assets/:id/other-documents/:documentId/document-download", assetOtherDocumentController.DownloadAssetOtherDocument)
+
 	assetRoutes.GET("assets/:id/control-analysis", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetControlAnalysisController.GetAllAssetControlAnalyses)
 	assetRoutes.GET("assets/:id/control-analysis/:analysisId", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetControlAnalysisController.GetAssetControlAnalysisDetails)
 	assetRoutes.POST("assets/:id/control-analysis", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetControlAnalysisController.CreateAssetControlAnalysis)

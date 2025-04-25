@@ -3,11 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -22,6 +24,7 @@ type AssetOtherDocumentServiceInterface interface {
 	Create(assetRegisterID uint, form *dtos.AssetOtherDocumentFormDTO, currentUserID uint) ([]uint, error)
 	Update(assetRegisterID uint, id uint, form *dtos.AssetOtherDocumentFormDTO, currentUserID uint) error
 	Delete(assetRegisterID uint, ids []uint, currentUserID uint) ([]uint, error)
+	GetAssetOtherDocumentPath(assetID, documentID uint, token string) (string, error)
 }
 
 type AssetOtherDocumentService struct {
@@ -383,4 +386,37 @@ func (aods *AssetOtherDocumentService) Delete(assetRegisterID uint, ids []uint, 
 	}()
 
 	return failedIds, nil
+}
+
+func (aods *AssetOtherDocumentService) GetAssetOtherDocumentPath(assetID, documentID uint, token string) (string, error) {
+	document, err := aods.repo.GetByID(documentID)
+	if err != nil {
+		return "", err
+	}
+
+	if document.Name == nil {
+		return "", fmt.Errorf("document filename not found")
+	}
+
+	decryptedFileNameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFileName := string(decryptedFileNameBytes)
+	if decryptedFileName == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("assets", "asset-register", strconv.FormatUint(uint64(assetID), 10), "other-documents")
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFileName)
+
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }
