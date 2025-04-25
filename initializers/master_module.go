@@ -31,6 +31,7 @@ type MasterModule struct {
 	ReviewStatusController          *controllers.ReviewStatusController
 	ApplicabilityStatusController   *controllers.ApplicabilityStatusController
 	RequiredDocumentTitleController *controllers.RequiredDocumentTitleController
+	CountryController               *controllers.CountryController
 
 	ReviewFrequencySvc       services.ReviewFrequencyServiceInterface
 	SeverityLevelSvc         services.SeverityLevelServiceInterface
@@ -54,6 +55,7 @@ type MasterModule struct {
 	ReviewStatusSvc          services.ReviewStatusServiceInterface
 	ApplicabilitySvc         services.ApplicabilityStatusServiceInterface
 	RequiredDocumentTitleSvc services.RequiredDocumentTitleServiceInterface
+	CountrySvc               services.CountryServiceInterface
 }
 
 func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
@@ -163,6 +165,10 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	requiredDocumentTitleSvc := services.NewRequiredDocumentTitleService(requiredDocumentTitleRepo, sharedModule.ActivityLogService)
 	requiredDocumentTitleController := controllers.NewRequiredDocumentTitleController(requiredDocumentTitleSvc)
 
+	countryRepo := repositories.NewCountryRepository(db)
+	countrySvc := services.NewCountryService(countryRepo)
+	countryController := controllers.NewCountryController(countrySvc)
+
 	return &MasterModule{
 		ReviewFrequencyController:       reviewFrequencyController,
 		SeverityLevelController:         severityLevelController,
@@ -186,6 +192,7 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		ReviewStatusController:          reviewStatusController,
 		ApplicabilityStatusController:   applicabilityStatusController,
 		RequiredDocumentTitleController: requiredDocumentTitleController,
+		CountryController:               countryController,
 
 		ReviewFrequencySvc:       reviewFrequencySvc,
 		SeverityLevelSvc:         severityLevelSvc,
@@ -209,5 +216,6 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		ReviewStatusSvc:          reviewStatusSvc,
 		ApplicabilitySvc:         applicabilityStatusSvc,
 		RequiredDocumentTitleSvc: requiredDocumentTitleSvc,
+		CountrySvc:               countrySvc,
 	}
 }
