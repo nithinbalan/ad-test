@@ -110,7 +110,15 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 		`, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
-	query = query.Order(strings.TrimSpace(params.SortBy) + " " + strings.TrimSpace(params.Sort))
+	// Ensure sort parameters are clean and valid
+	sortBy := params.SortBy
+	sort := strings.ToUpper(strings.TrimSpace(params.Sort))
+	if sort != "ASC" && sort != "DESC" {
+		sort = "ASC"
+	}
+
+	// Use TRIM on the database column in the ORDER BY clause
+	query = query.Order(fmt.Sprintf("TRIM(%s) %s", sortBy, sort))
 
 	// Execute the query
 	err := query.Find(&complianceRequirements).Error
