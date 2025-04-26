@@ -131,7 +131,8 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		risk_matrix_risk_rating_values.value AS risk_rating_value,
 		risk_levels.title_en AS risk_level_title_en,
         risk_levels.title_ar AS risk_level_title_ar,
-		risk_levels.color_code AS risk_level_color_code
+		risk_levels.color_code AS risk_level_color_code,
+		risk_levels.type AS risk_level_type
 	`).
 		Joins("LEFT JOIN process_groups ON process_groups.id = processes.process_group_id").
 		Joins("LEFT JOIN organization_units ON organization_units.id = processes.owner_unit_id").
