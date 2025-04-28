@@ -48,6 +48,8 @@ func (aiac *AuditInsightsAuditController) GetAllAuditInsightsAudits(c *gin.Conte
 
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -73,6 +75,8 @@ func (aiac *AuditInsightsAuditController) GetAllAuditInsightsAudits(c *gin.Conte
 		StartDate:   startDate,
 		EndDate:     endDate,
 		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
