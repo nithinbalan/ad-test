@@ -105,10 +105,11 @@ type BusinessImpactAssessmentRecoveryObjectiveListDTO struct {
 }
 
 type BusinessImpactAssessmentListQueryParamsDTO struct {
-	Sort    string
-	SortBy  string
-	Keyword string
-	Filters map[string][]string
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Filters     map[string][]string
+	QuickFilter []string
 }
 
 type BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO struct {
@@ -197,11 +198,12 @@ type BIAMatrixResponseDTO struct {
 }
 
 type BIAMatrixQueryParamsDTO struct {
-	Sort     string
-	SortBy   string
-	Keyword  string
-	Page     int
-	PageSize int
-	Filters  map[string][]string
-	Export   bool
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Page        int
+	PageSize    int
+	Filters     map[string][]string
+	Export      bool
+	QuickFilter []string
 }

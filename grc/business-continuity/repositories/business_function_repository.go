@@ -85,6 +85,10 @@ func (repo *BusinessFunctionRepository) GetAll(params *businessContinuityDTOs.Bu
             updated_user.profile_image_path AS updated_user_profile_image_path  
         `).
 		Joins(`
+			LEFT JOIN business_function_processes ON business_function_processes.business_function_id = business_functions.id
+			LEFT JOIN processes ON processes.id = business_function_processes.process_id
+		    LEFT JOIN organization_units ON organization_units.id = processes.owner_unit_id
+		    LEFT JOIN process_criticality_levels ON process_criticality_levels.id = processes.process_criticality_level_id
 		    LEFT JOIN severity_levels ON severity_levels.id = business_functions.severity_level_id
 			LEFT JOIN review_frequencies ON review_frequencies.id = business_functions.review_frequency_id
 		    LEFT JOIN users AS responsible_user ON responsible_user.id = business_functions.responsible_user_id
@@ -106,6 +110,20 @@ func (repo *BusinessFunctionRepository) GetAll(params *businessContinuityDTOs.Bu
 		switch filter {
 		case "is_not_bcp":
 			query = query.Where("business_functions.bcp_status = ?", false)
+		case "is_bcp":
+			query = query.Where("business_functions.bcp_status = ?", true)
+		case "high":
+			query = query.Where("process_criticality_levels.type = ?", "high")
+		case "medium":
+			query = query.Where("process_criticality_levels.type = ?", "medium")
+		case "low":
+			query = query.Where("process_criticality_levels.type = ?", "low")
+		case "is_not_bcp_critical":
+			query = query.Where("process_criticality_levels.type = ? AND business_functions.bcp_status = ?", "high", false)
+		case "is_bcp_non_critical":
+			query = query.Where("process_criticality_levels.type = ? AND business_functions.bcp_status = ?", "low", true)
+		case "all":
+			continue
 		}
 	}
 	// Apply search keyword if exists

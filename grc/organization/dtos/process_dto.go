@@ -60,6 +60,9 @@ type ProcessListDTO struct {
 	LastAssessedUserEmail            *string    `json:"last_assessed_user_email"`
 	LastAssessedUserProfileImagePath *string    `json:"last_assessed_user_profile_image_path"`
 	IsBiaPerformed                   bool       `json:"is_bia_performed"`
+	ProcessCriticalityLevelID        uint       `json:"process_criticality_level_id"`
+	ProcessCriticalityLevelTitleEn   string     `json:"process_criticality_level_title_en"`
+	ProcessCriticalityLevelTitleAr   string     `json:"process_criticality_level_title_ar"`
 	CreatedUserID                    uint       `json:"created_user_id"`
 	CreatedUserFirstNameEn           string     `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr           string     `json:"created_user_first_name_ar"`
