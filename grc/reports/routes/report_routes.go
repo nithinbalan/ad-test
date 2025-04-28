@@ -189,7 +189,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/audit-insight-action-plan-by-responsible-user", auditInsightReportController.GetAuditActionPlanByResponsibleUser)
 
 	reportsRoutes.GET("/reports/audit-insight-draft-report-by-status", auditInsightReportController.GetAuditDraftReportByStatus)
+	reportsRoutes.GET("/reports/audit-insight-draft-reports", auditInsightReportController.GetAllAuditInsightsDraftReports)
+	reportsRoutes.GET("/reports/audit-insight-draft-reports/export", auditInsightReportController.GetAuditInsightsDraftReportsExport)
+
 	reportsRoutes.GET("/reports/audit-insight-final-report-by-status", auditInsightReportController.GetAuditFinalReportByStatus)
+	reportsRoutes.GET("/reports/audit-insight-final-reports", auditInsightReportController.GetAllAuditInsightsFinalReports)
+	reportsRoutes.GET("/reports/audit-insight-final-reports/export", auditInsightReportController.GetAuditInsightsFinalReportsExport)
+
 	//Meetings
 	reportsRoutes.GET("/reports/meetings", meetingReportController.GetAllMeetings)
 	reportsRoutes.GET("/reports/meetings/export", meetingReportController.GetMeetingExport)

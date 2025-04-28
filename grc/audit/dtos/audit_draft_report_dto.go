@@ -102,6 +102,7 @@ type AuditDraftReportListQueryParamsDTO struct {
 	Filters     map[string][]string
 	QuickFilter []string
 	ReportDate  string
+	Export      bool
 }
 
 type AuditDraftReportListResponseDTO struct {

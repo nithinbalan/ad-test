@@ -52,6 +52,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// Audit Insights Draft Report
 	auditInsightsRoutes.GET("/audit-insights/draft-reports", middlewares.RolePermissionMiddleware(db, "draft_reports", "view"), auditInsightsDraftReportController.GetAllAuditInsightsDraftReports)
+	auditInsightsRoutes.GET("/audit-insights/draft-reports/export", middlewares.RolePermissionMiddleware(db, "draft_reports", "view"), auditInsightsDraftReportController.GetAuditInsightsDraftReportExport)
 	auditInsightsRoutes.GET("/audit-insights/draft-reports/:id", middlewares.RolePermissionMiddleware(db, "draft_reports", "view"), auditInsightsDraftReportController.GetAuditInsightsDraftReportDetails)
 
 	//Audit Insights Draft Findings
@@ -111,6 +112,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// Audit Insights Draft Report
 	auditInsightsRoutes.GET("/audit-insights/final-reports", middlewares.RolePermissionMiddleware(db, "final_report", "view"), auditInsightsFinalReportController.GetAllAuditInsightsFinalReports)
+	auditInsightsRoutes.GET("/audit-insights/final-reports/export", middlewares.RolePermissionMiddleware(db, "final_report", "view"), auditInsightsFinalReportController.GetAuditInsightsFinalReportExport)
 	auditInsightsRoutes.GET("/audit-insights/final-reports/:id", middlewares.RolePermissionMiddleware(db, "final_report", "view"), auditInsightsFinalReportController.GetAuditInsightsFinalReportDetails)
 
 }
