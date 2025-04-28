@@ -164,7 +164,9 @@ func (repo *AuditInsightsAuditFindingRepository) GetAll(params *auditDTOs.AuditF
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
-
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("audit_findings.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"

@@ -61,6 +61,7 @@ func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *bus
 			process_criticality_levels.id AS process_criticality_level_id,
 			process_criticality_levels.title_en AS process_criticality_level_title_en,
 			process_criticality_levels.title_ar AS process_criticality_level_title_ar,
+			risk_levels.type AS risk_level_type,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,

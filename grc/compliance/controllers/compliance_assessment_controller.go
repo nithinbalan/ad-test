@@ -29,15 +29,23 @@ func (cac *ComplianceAssessmentController) GetAllComplianceAssessments(c *gin.Co
 	sortBy := c.DefaultQuery("sort_by", "id")
 	status := c.Query("status")
 	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"compliance_register_ids",
 		"organization_unit_ids",
 		"review_user_ids",
+		"compliance_assessment_status_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	// Add table qualifications to avoid ambiguous column references
+	if _, exists := filters["organization_unit_id"]; exists {
+		filters["organization_units.id"] = filters["organization_unit_id"]
+		delete(filters, "organization_unit_id")
+	}
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -67,13 +75,14 @@ func (cac *ComplianceAssessmentController) GetAllComplianceAssessments(c *gin.Co
 		return
 	}
 	queryParams := complianceDTOs.ComplianceAssessmentListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortField,
-		Keyword:  keyword,
-		Status:   status,
-		Page:     page,
-		PageSize: pageSize,
-		Filters:  filters,
+		Sort:        sort,
+		SortBy:      sortField,
+		Keyword:     keyword,
+		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
+		Filters:     filters,
+		QuickFilter: quickFilter,
 	}
 
 	complianceAssessments, err := cac.service.GetAll(&queryParams)
