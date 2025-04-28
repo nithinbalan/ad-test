@@ -403,7 +403,8 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsAudits(c *gin.Conte
 
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
-
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(airc.db, c, "Invalid page parameter")
@@ -428,6 +429,8 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsAudits(c *gin.Conte
 		StartDate:   startDate,
 		EndDate:     endDate,
 		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
@@ -494,6 +497,8 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsActionPlans(c *gin.
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(airc.db, c, "Invalid page parameter")
@@ -527,6 +532,8 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsActionPlans(c *gin.
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)
@@ -593,6 +600,8 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsAuditFindings(c *gi
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(airc.db, c, "Invalid page parameter")
@@ -626,6 +635,8 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsAuditFindings(c *gi
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)
@@ -693,6 +704,8 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsAuditPlans(c *gin.C
 	startDate := c.Query("start_date")
 	targetDate := c.Query("target_date")
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(airc.db, c, "Invalid page parameter")
@@ -717,6 +730,8 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsAuditPlans(c *gin.C
 		StartDate:   startDate,
 		TargetDate:  targetDate,
 		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {

@@ -13,6 +13,7 @@ type BusinessImpactAssessmentListDTO struct {
 	RiskLevelTitleEn            string  `json:"risk_level_title_en"`
 	RiskLevelTitleAr            string  `json:"risk_level_title_ar"`
 	RiskLevelColorCode          string  `json:"risk_level_color_code"`
+	RiskLevelType               string  `json:"risk_level_type"`
 	Cost                        *uint   `json:"cost"`
 	Comments                    *string `json:"comments"`
 	IsApplicable                bool    `json:"is_applicable"`
