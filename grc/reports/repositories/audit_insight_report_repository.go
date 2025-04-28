@@ -16,8 +16,11 @@ type AuditInsightReportRepositoryInterface interface {
 	GetAuditPlanByCategory(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditPlanByCategoryDTO, error)
 	GetAuditPlanByTeamLead(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditPlanByTeamLeadDTO, error)
 	GetAuditPlanByAuditableItem(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditPlanByAuditableItemDTO, error)
+	GetAuditPlanByMonth(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditPlanByMonthDTO, error)
+	GetAuditPlanVsAudits(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditPlanVsAuditDTO, error)
 
 	GetAuditFindingByCategory(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditFindingByCategoryDTO, error)
+	GetAuditFindingByAuditCategory(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditFindingByAuditCategoryDTO, error)
 	GetAuditFindingByStatus(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditFindingByStatusDTO, error)
 	GetAuditFindingBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditFindingBySeverityLevelDTO, error)
 	GetAuditFindingByMonth(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditFindingByMonthDTO, error)
@@ -25,6 +28,9 @@ type AuditInsightReportRepositoryInterface interface {
 
 	GetAuditActionPlanByStatus(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditActionPlanByStatusDTO, error)
 	GetAuditActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditActionPlanByResponsibleUserDTO, error)
+	GetOpenActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditActionPlanByResponsibleUserDTO, error)
+	GetOverdueActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditActionPlanByResponsibleUserDTO, error)
+	GetAuditInsightOverdueActionPlanCount(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightOverdueActionPlanCountDTO, error)
 
 	GetAuditDraftReportByStatus(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditDraftReportByStatusDTO, error)
 	GetAuditFinalReportByStatus(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditFinalReportByStatusDTO, error)
@@ -286,6 +292,120 @@ func (repo *AuditInsightReportRepository) GetAuditPlanByAuditableItem(params *re
 	return results, err
 }
 
+func (repo *AuditInsightReportRepository) GetAuditPlanByMonth(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditPlanByMonthDTO, error) {
+	results := []*reportDTOs.AuditInsightAuditPlanByMonthDTO{}
+
+	// Define static Arabic month translations
+	monthTranslations := map[string]string{
+		"Jan": "يناير", "Feb": "فبراير", "Mar": "مارس", "Apr": "أبريل",
+		"May": "مايو", "Jun": "يونيو", "Jul": "يوليو", "Aug": "أغسطس",
+		"Sep": "سبتمبر", "Oct": "أكتوبر", "Nov": "نوفمبر", "Dec": "ديسمبر",
+	}
+
+	// Generate the last 12 months
+	last12Months := make(map[string]*reportDTOs.AuditInsightAuditPlanByMonthDTO)
+	now := time.Now()
+	for i := 0; i < 12; i++ {
+		month := now.AddDate(0, -i, 0).Format("Jan 2006") // e.g., "Jan 2025"
+		monthShort := month[:3]                           // Extract short form (e.g., "Jan")
+		last12Months[month] = &reportDTOs.AuditInsightAuditPlanByMonthDTO{
+			TitleEn: month,
+			TitleAr: monthTranslations[monthShort] + " " + month[4:], // Arabic + Year
+			Count:   0,                                               // Default count
+		}
+	}
+
+	// Fetch data for the last 12 months
+	var rawResults []struct {
+		MonthEn string `gorm:"column:title_en"`
+		Count   uint   `gorm:"column:count"`
+	}
+
+	query := repo.db.Table("audit_plans").
+		Select(`FORMAT(audit_plans.created_at, 'MMM yyyy') AS title_en, COUNT(audit_plans.id) AS count`).
+		Joins(`
+			LEFT JOIN audit_plan_auditable_items ON audit_plans.id = audit_plan_auditable_items.audit_plan_id
+			LEFT JOIN auditable_items ON auditable_items.id = audit_plan_auditable_items.auditable_item_id
+		`).
+		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID).
+		Where("audit_plans.created_at >= DATEADD(MONTH, -11, GETDATE())").
+		Group("FORMAT(audit_plans.created_at, 'MMM yyyy')").
+		Order("MIN(audit_plans.created_at) ASC")
+
+	err := query.Scan(&rawResults).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Merge database results into the last 12 months
+	for _, record := range rawResults {
+		if dto, exists := last12Months[record.MonthEn]; exists {
+			dto.Count = record.Count // Update count for the matching month
+		}
+	}
+
+	// Convert map to a slice in chronological order
+	for i := 11; i >= 0; i-- {
+		month := now.AddDate(0, -i, 0).Format("Jan 2006") // Same key format
+		results = append(results, last12Months[month])
+	}
+
+	return results, nil
+}
+func (repo *AuditInsightReportRepository) GetAuditPlanVsAudits(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditPlanVsAuditDTO, error) {
+	var auditPlanCount int64
+	var auditCount int64
+
+	// Count Audit Plans
+	auditPlanQuery := repo.db.Table("audit_plans").
+		Joins("LEFT JOIN audit_plan_auditable_items ON audit_plan_auditable_items.audit_plan_id = audit_plans.id").
+		Joins("LEFT JOIN auditable_items ON auditable_items.id = audit_plan_auditable_items.auditable_item_id").
+		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID)
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		auditPlanQuery = auditPlanQuery.Where("audit_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := auditPlanQuery.Count(&auditPlanCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Count Audits
+	auditQuery := repo.db.Table("audits").
+		Joins("LEFT JOIN audit_plans ON audit_plans.id = audits.audit_plan_id").
+		Joins("LEFT JOIN audit_plan_auditable_items ON audit_plan_auditable_items.audit_plan_id = audit_plans.id").
+		Joins("LEFT JOIN auditable_items ON auditable_items.id = audit_plan_auditable_items.auditable_item_id").
+		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID)
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		auditQuery = auditQuery.Where("audits.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err = auditQuery.Count(&auditCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Prepare result
+	results := []*reportDTOs.AuditInsightAuditPlanVsAuditDTO{
+		{
+			ID:      1,
+			TitleEn: "Audits",
+			TitleAr: "عمليات التدقيق",
+			Count:   auditCount,
+		},
+		{
+			ID:      2,
+			TitleEn: "Audit Plans",
+			TitleAr: "خطط التدقيق",
+			Count:   auditPlanCount,
+		},
+	}
+
+	return results, nil
+}
+
 func (repo *AuditInsightReportRepository) GetAuditFindingByCategory(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditFindingByCategoryDTO, error) {
 	results := []*reportDTOs.AuditInsightAuditFindingByCategoryDTO{}
 
@@ -303,6 +423,38 @@ func (repo *AuditInsightReportRepository) GetAuditFindingByCategory(params *repo
 		Order("COUNT(audit_findings.id) DESC") // Order by highest count
 
 	// Apply date filter if provided
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("audit_findings.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (repo *AuditInsightReportRepository) GetAuditFindingByAuditCategory(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditFindingByAuditCategoryDTO, error) {
+	results := []*reportDTOs.AuditInsightAuditFindingByAuditCategoryDTO{}
+
+	query := repo.db.Table("audit_categories").
+		Select(`
+			audit_categories.id AS audit_category_id,
+			audit_categories.title_en AS audit_category_title_en,
+			audit_categories.title_ar AS audit_category_title_ar,
+			COUNT(audit_findings.id) AS count
+		`).
+		Joins(`
+			LEFT JOIN audit_plans ON audit_plans.audit_category_id = audit_categories.id
+			LEFT JOIN audit_findings ON audit_findings.audit_id = audit_plans.id
+			LEFT JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id
+				AND auditable_items.responsible_unit_id = ?
+		`, currentUserResponsibleUnitID).
+		Group("audit_categories.id, audit_categories.title_en, audit_categories.title_ar").
+		Order("COUNT(audit_findings.id) DESC")
+
+	// Optional: date filter
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("audit_findings.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
@@ -591,4 +743,104 @@ func (repo *AuditInsightReportRepository) GetAuditFinalReportByStatus(params *re
 
 	err := query.Scan(&results).Error
 	return results, err
+}
+
+func (repo *AuditInsightReportRepository) GetOpenActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditActionPlanByResponsibleUserDTO, error) {
+	results := []*reportDTOs.AuditInsightAuditActionPlanByResponsibleUserDTO{}
+
+	query := repo.db.Table("audit_finding_action_plans").
+		Select(`
+			users.id AS responsible_user_id,
+			users.first_name_en AS responsible_user_first_name_en,
+			users.first_name_ar AS responsible_user_first_name_ar,
+			users.last_name_en AS responsible_user_last_name_en,
+			users.last_name_ar AS responsible_user_last_name_ar,
+			CONCAT(users.first_name_en, ' ', users.last_name_en) AS responsible_user_title_en,
+			CONCAT(users.first_name_ar, ' ', users.last_name_ar) AS responsible_user_title_ar,
+			users.initial AS responsible_user_initial,
+			users.color AS responsible_user_color,
+			users.email AS responsible_user_email,
+			users.profile_image_path AS responsible_user_profile_image_path,
+			COUNT(audit_finding_action_plans.id) AS count
+		`).
+		Joins("JOIN audit_findings ON audit_findings.id = audit_finding_action_plans.audit_finding_id").
+		Joins("JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id").
+		Joins("JOIN users ON users.id = auditable_items.responsible_user_id").
+		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID).
+		Where("action_plan_status_id != (SELECT id FROM action_plan_statuses WHERE type = 'close')").
+		Group("users.id, users.first_name_en, users.last_name_en, users.first_name_ar, users.last_name_ar, users.initial, users.color, users.email, users.profile_image_path")
+
+	// Date filter if required
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("audit_finding_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (repo *AuditInsightReportRepository) GetOverdueActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditActionPlanByResponsibleUserDTO, error) {
+	results := []*reportDTOs.AuditInsightAuditActionPlanByResponsibleUserDTO{}
+
+	query := repo.db.Table("audit_finding_action_plans").
+		Select(`
+			users.id AS responsible_user_id,
+			users.first_name_en AS responsible_user_first_name_en,
+			users.first_name_ar AS responsible_user_first_name_ar,
+			users.last_name_en AS responsible_user_last_name_en,
+			users.last_name_ar AS responsible_user_last_name_ar,
+			CONCAT(users.first_name_en, ' ', users.last_name_en) AS responsible_user_title_en,
+			CONCAT(users.first_name_ar, ' ', users.last_name_ar) AS responsible_user_title_ar,
+			users.initial AS responsible_user_initial,
+			users.color AS responsible_user_color,
+			users.email AS responsible_user_email,
+			users.profile_image_path AS responsible_user_profile_image_path,
+			COUNT(audit_finding_action_plans.id) AS count
+		`).
+		Joins("JOIN audit_findings ON audit_findings.id = audit_finding_action_plans.audit_finding_id").
+		Joins("JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id").
+		Joins("JOIN users ON users.id = auditable_items.responsible_user_id").
+		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID).
+		Where("audit_finding_action_plans.target_date < CONVERT(date, GETDATE())").
+		Where("action_plan_status_id != (SELECT id FROM action_plan_statuses WHERE type = 'close')").
+		Group("users.id, users.first_name_en, users.last_name_en, users.first_name_ar, users.last_name_ar, users.initial, users.color, users.email, users.profile_image_path")
+
+	// Date filter if required
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("audit_finding_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (repo *AuditInsightReportRepository) GetAuditInsightOverdueActionPlanCount(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightOverdueActionPlanCountDTO, error) {
+	var totalCount int64
+
+	query := repo.db.Table("audit_finding_action_plans").
+		Select("COUNT(audit_finding_action_plans.id)").
+		Joins("JOIN audit_findings ON audit_findings.id = audit_finding_action_plans.audit_finding_id").
+		Joins("JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id").
+		Joins("JOIN users ON users.id = auditable_items.responsible_user_id").
+		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = audit_finding_action_plans.action_plan_status_id").
+		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID).
+		Where("audit_finding_action_plans.target_date < CONVERT(date, GETDATE())").
+		Where("action_plan_statuses.type != 'close'")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("audit_finding_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Count(&totalCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	result := &reportDTOs.AuditInsightOverdueActionPlanCountDTO{
+		TitleEn: "Overdue Action Plans",
+		TitleAr: "خطط العمل المتأخرة",
+		Count:   totalCount,
+	}
+
+	return []*reportDTOs.AuditInsightOverdueActionPlanCountDTO{result}, nil
 }

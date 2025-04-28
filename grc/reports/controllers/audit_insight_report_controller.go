@@ -182,6 +182,53 @@ func (airc *AuditInsightReportController) GetAuditPlanByAuditableItem(c *gin.Con
 	c.JSON(http.StatusOK, results)
 }
 
+func (airc *AuditInsightReportController) GetAuditPlanByMonth(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(airc.db, c, err.Error())
+		return
+	}
+
+	results, err := airc.service.GetAuditPlanByMonth(&queryParams, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (airc *AuditInsightReportController) GetAuditPlanVsAudits(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(airc.db, c, err.Error())
+		return
+	}
+
+	results, err := airc.service.GetAuditPlanVsAudits(&queryParams, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
 func (airc *AuditInsightReportController) GetAuditFindingByCategory(c *gin.Context) {
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
@@ -197,6 +244,28 @@ func (airc *AuditInsightReportController) GetAuditFindingByCategory(c *gin.Conte
 	}
 
 	results, err := airc.service.GetAuditFindingByCategory(&queryParams, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+func (airc *AuditInsightReportController) GetAuditFindingByAuditCategory(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(airc.db, c, err.Error())
+		return
+	}
+
+	results, err := airc.service.GetAuditFindingByAuditCategory(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(nil, c, err.Error())
 		return
@@ -375,6 +444,78 @@ func (airc *AuditInsightReportController) GetAuditFinalReportByStatus(c *gin.Con
 		return
 	}
 	results, err := airc.service.GetAuditFinalReportByStatus(&queryParams, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (airc *AuditInsightReportController) GetOpenActionPlanByResponsibleUser(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(airc.db, c, err.Error())
+		return
+	}
+
+	results, err := airc.service.GetOpenActionPlanByResponsibleUser(&queryParams, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (airc *AuditInsightReportController) GetOverdueActionPlanByResponsibleUser(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(airc.db, c, err.Error())
+		return
+	}
+
+	results, err := airc.service.GetOverdueActionPlanByResponsibleUser(&queryParams, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (airc *AuditInsightReportController) GetAuditInsightOverdueActionPlans(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(airc.db, c, err.Error())
+		return
+	}
+
+	results, err := airc.service.GetAuditInsightOverdueActionPlans(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(nil, c, err.Error())
 		return
