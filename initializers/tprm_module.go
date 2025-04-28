@@ -9,12 +9,15 @@ import (
 )
 
 type TprmModule struct {
-	ThirdPartyTypeController *controllers.ThirdPartyTypeController
+	ThirdPartyTypeController     *controllers.ThirdPartyTypeController
+	ThirdPartyRegisterController *controllers.ThirdPartyRegisterController
 
-	ThirdPartyTypeSvc services.ThirdPartyTypeServiceInterface
+	ThirdPartyTypeSvc     services.ThirdPartyTypeServiceInterface
+	ThirdPartyRegisterSvc services.ThirdPartyRegisterServiceInterface
 }
 
-func NewTprmModule(db *gorm.DB,
+func NewTprmModule(
+	db *gorm.DB,
 	sharedModule *SharedModule,
 	settingsModule *SettingsModule,
 	masterModule *MasterModule,
@@ -22,13 +25,30 @@ func NewTprmModule(db *gorm.DB,
 	taskModule *TaskModule,
 	commonModule *CommonModule,
 ) *TprmModule {
+
+	// === Third Party Type ===
 	thirdPartyTypeRepo := repositories.NewThirdPartyTypeRepository(db)
 	thirdPartyTypeSvc := services.NewThirdPartyTypeService(thirdPartyTypeRepo, sharedModule.ActivityLogService)
 	thirdPartyTypeController := controllers.NewThirdPartyTypeController(thirdPartyTypeSvc)
 
-	return &TprmModule{
-		ThirdPartyTypeController: thirdPartyTypeController,
+	// === Third Party Register ===
+	thirdPartyRegisterRepo := repositories.NewThirdPartyRegisterRepository(db)
+	thirdPartyRegisterSvc := services.NewThirdPartyRegisterService(
+		thirdPartyRegisterRepo,
+		sharedModule.ActivityLogService,
+		masterModule.SeverityLevelSvc,
+		organizationModule.UserSvc,
+		settingsModule.OrganizationUnitSvc,
+		thirdPartyTypeSvc,
+		masterModule.CountrySvc,
+	)
+	thirdPartyRegisterController := controllers.NewThirdPartyRegisterController(thirdPartyRegisterSvc)
 
-		ThirdPartyTypeSvc: thirdPartyTypeSvc,
+	return &TprmModule{
+		ThirdPartyTypeController:     thirdPartyTypeController,
+		ThirdPartyRegisterController: thirdPartyRegisterController,
+
+		ThirdPartyTypeSvc:     thirdPartyTypeSvc,
+		ThirdPartyRegisterSvc: thirdPartyRegisterSvc,
 	}
 }
