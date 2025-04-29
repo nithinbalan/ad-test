@@ -17,6 +17,7 @@ type ReportsModule struct {
 	AuditInsightReportController *controllers.AuditInsightReportController
 	MeetingReportController      *controllers.MeetingReportController
 	DocumentReportController     *controllers.DocumentReportController
+	GRCReportController          *controllers.GRCReportController
 }
 
 func NewReportsModule(db *gorm.DB,
@@ -28,7 +29,8 @@ func NewReportsModule(db *gorm.DB,
 	incidentModule *IncidentModule,
 	meetingModule *MeetingModule,
 	settingsModule *SettingsModule,
-	documentModule *DocumentModule) *ReportsModule {
+	documentModule *DocumentModule,
+	sharedModule *SharedModule) *ReportsModule {
 
 	organizationReportRepo := repositories.NewOrganizationReportRepository(db)
 	organizationReportSvc := services.NewOrganizationReportService(organizationReportRepo)
@@ -82,6 +84,10 @@ func NewReportsModule(db *gorm.DB,
 	documentReportController := controllers.NewDocumentReportController(documentReportSvc,
 		documentModule.DocumentSvc, documentModule.DocumentChangeRequestSvc)
 
+	grcReportRepo := repositories.NewGRCReportRepository(db)
+	grcReportSvc := services.NewGRCReportService(grcReportRepo, sharedModule.ActivityLogService, settingsModule.OrganizationLevelSvc)
+	grcReportController := controllers.NewGRCReportController(grcReportSvc)
+
 	return &ReportsModule{
 		ComplianceReportController:   complianceReportController,
 		OrganizationReportController: organizationReportController,
@@ -91,5 +97,6 @@ func NewReportsModule(db *gorm.DB,
 		AuditInsightReportController: auditInsightReportController,
 		MeetingReportController:      meetingReportController,
 		DocumentReportController:     documentReportController,
+		GRCReportController:          grcReportController,
 	}
 }
