@@ -13,6 +13,7 @@ type TprmModule struct {
 	ThirdPartyRegisterController         *controllers.ThirdPartyRegisterController
 	ThirdPartyQuestionCategoryController *controllers.ThirdPartyQuestionCategoryController
 	ThirdPartyQuestionTypeController     *controllers.ThirdPartyQuestionTypeController
+	ThirdPartyQuestionLibraryController  *controllers.ThirdPartyQuestionLibraryController
 
 	ThirdPartyTypeSvc             services.ThirdPartyTypeServiceInterface
 	ThirdPartyRegisterSvc         services.ThirdPartyRegisterServiceInterface
@@ -56,11 +57,22 @@ func NewTprmModule(
 	thirdPartyQuestionTypeSvc := services.NewThirdPartyQuestionTypeService(thirdPartyQuestionTypeRepo)
 	thirdPartyQuestionTypeController := controllers.NewThirdPartyQuestionTypeController(thirdPartyQuestionTypeSvc)
 
+	// === Third Party Question Library ===
+	thirdPartyQuestionLibraryRepo := repositories.NewThirdPartyQuestionLibraryRepository(db)
+	thirdPartyQuestionLibrarySvc := services.NewThirdPartyQuestionLibraryService(
+		thirdPartyQuestionLibraryRepo,
+		sharedModule.ActivityLogService,
+		thirdPartyQuestionCategorySvc,
+		thirdPartyQuestionTypeSvc,
+	)
+	thirdPartyQuestionLibraryController := controllers.NewThirdPartyQuestionLibraryController(thirdPartyQuestionLibrarySvc)
+
 	return &TprmModule{
 		ThirdPartyTypeController:             thirdPartyTypeController,
 		ThirdPartyRegisterController:         thirdPartyRegisterController,
 		ThirdPartyQuestionCategoryController: thirdPartyQuestionCategoryController,
 		ThirdPartyQuestionTypeController:     thirdPartyQuestionTypeController,
+		ThirdPartyQuestionLibraryController:  thirdPartyQuestionLibraryController,
 
 		ThirdPartyTypeSvc:             thirdPartyTypeSvc,
 		ThirdPartyRegisterSvc:         thirdPartyRegisterSvc,
