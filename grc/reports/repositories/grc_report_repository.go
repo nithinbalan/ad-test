@@ -22,6 +22,7 @@ type GRCReportRepositoryInterface interface {
 	GetSectionByID(sectionID uint, tx ...utility.DatabaseTransaction) (*models.GRCReportSection, error)
 	GetGRCReportGovernanceDocuments(reportID uint) ([]dtos.GRCGovernanceDocumentResponseDTO, error)
 	GetGRCReportGovernanceTasks(grcReportID uint) ([]dtos.GRCGovernanceTaskResponseDTO, error)
+	GetGRCReportGovernanceSummary(grcReportID uint) (*dtos.GRCGovernanceSummaryResponseDTO, error)
 
 	AllUserCount(tx ...utility.DatabaseTransaction) (int64, error)
 	GetPolicyDocumentByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]*models.Document, error)
@@ -181,6 +182,7 @@ func (repo *GRCReportRepository) GetGRCReportGovernanceDocuments(grcReportID uin
 			responsible_user_name_en, responsible_user_name_ar,
 			responsible_unit_title_en, responsible_unit_title_ar,
 			total_employees, acknowledged_count, pending_count,
+			document_status_title_en, document_status_title_ar, document_status_color_code,
 			created_by_id, created_at
 		`).
 		Where("grc_report_id = ?", grcReportID).
@@ -205,6 +207,9 @@ func (repo *GRCReportRepository) GetGRCReportGovernanceTasks(grcReportID uint) (
 			grc_report_governance_tasks.task_status_title_en AS task_status_title_en,
 			grc_report_governance_tasks.task_status_title_ar AS task_status_title_ar,
 			grc_report_governance_tasks.task_status_color_code AS task_status_color_code,
+			grc_report_governance_tasks.severity_level_title_en AS severity_level_title_en,
+			grc_report_governance_tasks.severity_level_title_ar AS severity_level_title_ar,
+			grc_report_governance_tasks.severity_level_color_code AS severity_level_color_code,
 			CONVERT(VARCHAR, grc_report_governance_tasks.target_date, 23) AS target_date,
 			grc_report_governance_tasks.created_by_id,
 			CONVERT(VARCHAR, grc_report_governance_tasks.created_at, 120) AS created_at,
@@ -223,6 +228,32 @@ func (repo *GRCReportRepository) GetGRCReportGovernanceTasks(grcReportID uint) (
 		Scan(&tasks).Error
 
 	return tasks, err
+}
+
+func (repo *GRCReportRepository) GetGRCReportGovernanceSummary(grcReportID uint) (*dtos.GRCGovernanceSummaryResponseDTO, error) {
+	var summary dtos.GRCGovernanceSummaryResponseDTO
+
+	err := repo.db.Table("grc_report_governance_summary").
+		Select(`
+			id,
+			grc_report_id AS reference_number,
+			policies_in_system,
+			total_policies,
+			roles_defined,
+			policy_approved_rate,
+			highlights,
+			challenges,
+			created_by_id,
+			CONVERT(VARCHAR, created_at, 120) AS created_at
+		`).
+		Where("grc_report_id = ?", grcReportID).
+		First(&summary).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &summary, nil
 }
 
 func (repo *GRCReportRepository) Create(grcReport *models.GRCReport, tx ...utility.DatabaseTransaction) (uint, error) {

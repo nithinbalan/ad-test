@@ -37,19 +37,19 @@ type GRCReportListResponseDTO struct {
 }
 
 type GRCReportDetailDTO struct {
-	ID                     uint                          `json:"id"`
-	Title                  string                        `json:"title"`
-	StartDate              string                        `json:"start_date"`
-	EndDate                string                        `json:"end_date"`
-	CreatedUserFirstNameEn string                        `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr string                        `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn  string                        `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr  string                        `json:"created_user_last_name_ar"`
-	CreatedAt              string                        `json:"created_at"`
-	Sections               []GRCReportSectionResponseDTO `json:"sections"`
-	// Summary                []GRCGovernanceSummaryResponseDTO  `json:"documents"`
-	Documents []GRCGovernanceDocumentResponseDTO `json:"documents"`
-	Tasks     []GRCGovernanceTaskResponseDTO     `json:"tasks"`
+	ID                     uint                               `json:"id"`
+	Title                  string                             `json:"title"`
+	StartDate              string                             `json:"start_date"`
+	EndDate                string                             `json:"end_date"`
+	CreatedUserFirstNameEn string                             `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr string                             `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn  string                             `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr  string                             `json:"created_user_last_name_ar"`
+	CreatedAt              string                             `json:"created_at"`
+	Sections               []GRCReportSectionResponseDTO      `json:"sections"`
+	Summary                GRCGovernanceSummaryResponseDTO    `json:"summary"`
+	Documents              []GRCGovernanceDocumentResponseDTO `json:"documents"`
+	Tasks                  []GRCGovernanceTaskResponseDTO     `json:"tasks"`
 }
 
 type GRCReportSectionResponseDTO struct {
@@ -68,6 +68,8 @@ type GRCGovernanceSummaryResponseDTO struct {
 	TotalPolicies      int      `json:"total_policies"`
 	RolesDefined       int      `json:"roles_defined"`
 	PolicyApprovedRate *float64 `json:"policy_approved_rate"`
+	Highlights         *string  `json:"highlights"`
+	Challenges         *string  `json:"challenges"`
 	CreatedByID        uint     `json:"created_by_id"`
 	CreatedAt          string   `json:"created_at"`
 }

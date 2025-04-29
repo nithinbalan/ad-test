@@ -11,8 +11,8 @@ type GRCReportGovernanceSummary struct {
 	RolesDefined       int        `json:"roles_defined" gorm:"not null;default:0"`
 	TotalPolicies      int        `json:"total_policies" gorm:"not null;default:0"`
 	PolicyApprovedRate *float64   `json:"policy_approved_rate" gorm:"type:decimal(5,2)"`
-	Highlights         string     `json:"highlights" gorm:"type:nvarchar(max)"`
-	Challenges         string     `json:"challenges" gorm:"type:nvarchar(max)"`
+	Highlights         *string    `json:"highlights" gorm:"type:nvarchar(max)"`
+	Challenges         *string    `json:"challenges" gorm:"type:nvarchar(max)"`
 	CreatedBYID        uint       `json:"created_by_id" gorm:"not null"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedBYID        *uint      `json:"updated_by_id"`

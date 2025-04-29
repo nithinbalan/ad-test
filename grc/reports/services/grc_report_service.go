@@ -61,6 +61,11 @@ func (grs *GRCReportService) GetGRCReportDetails(grcReportID uint) (*dtos.GRCRep
 		return nil, err
 	}
 
+	summary, err := grs.repo.GetGRCReportGovernanceSummary(grcReportID)
+	if err != nil {
+		return nil, err
+	}
+
 	documents, err := grs.repo.GetGRCReportGovernanceDocuments(grcReportID)
 	if err != nil {
 		return nil, err
@@ -83,6 +88,7 @@ func (grs *GRCReportService) GetGRCReportDetails(grcReportID uint) (*dtos.GRCRep
 		CreatedUserLastNameEn:  grcReport.CreatedUserLastNameEn,
 		CreatedUserLastNameAr:  grcReport.CreatedUserLastNameAr,
 		Sections:               sections,
+		Summary:                *summary,
 		Documents:              documents,
 		Tasks:                  tasks,
 	}
@@ -271,8 +277,8 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		TotalPolicies:      totalPolicies,
 		RolesDefined:       int(userCount),
 		PolicyApprovedRate: policyApprovedRate,
-		Highlights:         "",
-		Challenges:         "",
+		Highlights:         nil,
+		Challenges:         nil,
 		CreatedBYID:        currentUserID,
 	}
 
