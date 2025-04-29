@@ -117,6 +117,7 @@ type ThirdPartyRegisterListQueryParamsDTO struct {
 	QuickFilter []string
 	DateFrom    string
 	DateTo      string
+	Export      bool
 }
 type ThirdPartyRegisterListResponseDTO struct {
 	Items      []*ThirdPartyRegisterListDTO `json:"items"`
