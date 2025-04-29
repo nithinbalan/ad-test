@@ -49,19 +49,57 @@ func (repo *ThirdPartyQuestionLibraryRepository) GetAll(params *dtos.ThirdPartyQ
 			third_party_question_categories.title_en AS third_party_question_category_title_en,
 			third_party_question_categories.title_ar AS third_party_question_category_title_ar,
 			third_party_question_types.title_en AS third_party_question_type_title_en,
-			third_party_question_types.title_ar AS third_party_question_type_title_ar
+			third_party_question_types.title_ar AS third_party_question_type_title_ar,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.last_name_en AS created_user_last_name_en,
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.last_name_en AS updated_user_last_name_en
 		`).
 		Joins("LEFT JOIN third_party_question_categories ON third_party_question_categories.id = third_party_question_libraries.third_party_question_category_id").
-		Joins("LEFT JOIN third_party_question_types ON third_party_question_types.id = third_party_question_libraries.third_party_question_type_id")
+		Joins("LEFT JOIN third_party_question_types ON third_party_question_types.id = third_party_question_libraries.third_party_question_type_id").
+		Joins("LEFT JOIN users AS created_user ON created_user.id = third_party_question_libraries.created_by_id").
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = third_party_question_libraries.updated_by_id")
 
-	if params.Keyword != "" {
-		keyword := "%" + params.Keyword + "%"
-		query = query.Where(`
-			third_party_question_libraries.question_title_en LIKE ? OR
-			third_party_question_libraries.question_title_ar LIKE ?
-		`, keyword, keyword)
+		// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "yes-no":
+			query = query.Where("third_party_question_types.type = ?", "yes-no")
+		case "dropdown-single":
+			query = query.Where("third_party_question_types.type = ?", "dropdown-single")
+		case "dropdown-multiple":
+			query = query.Where("third_party_question_types.type = ?", "dropdown-multiple")
+		case "rating-scale":
+			query = query.Where("third_party_question_types.type = ?", "rating-scale")
+		case "single-text":
+			query = query.Where("third_party_question_types.type = ?", "single-text")
+		case "text-area":
+			query = query.Where("third_party_question_types.type = ?", "text-area")
+		case "file-upload":
+			query = query.Where("third_party_question_types.type = ?", "file-upload")
+		case "date-picker":
+			query = query.Where("third_party_question_types.type = ?", "date-picker")
+		}
 	}
 
+	if params.Keyword != "" {
+		likePattern := "%" + params.Keyword + "%"
+		query = query.Where(`
+			third_party_question_libraries.question_title_en LIKE ? OR
+			third_party_question_libraries.question_title_ar LIKE ? OR
+			third_party_question_libraries.reference_number LIKE ? OR
+	
+			third_party_question_categories.title_en LIKE ? OR
+			third_party_question_categories.title_ar LIKE ? OR
+	
+			third_party_question_types.title_en LIKE ? OR
+			third_party_question_types.title_ar LIKE ?`,
+			likePattern, likePattern,
+			likePattern, likePattern,
+			likePattern, likePattern,
+			likePattern,
+		)
+	}
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
@@ -98,7 +136,11 @@ func (repo *ThirdPartyQuestionLibraryRepository) GetByID(id uint) (*models.Third
 
 func (repo *ThirdPartyQuestionLibraryRepository) GetFullDetailsByID(id uint) (*models.ThirdPartyQuestionLibrary, error) {
 	var entity *models.ThirdPartyQuestionLibrary
-	if err := repo.db.Preload("QuestionCategory").Preload("QuestionType").First(&entity, id).Error; err != nil {
+	if err := repo.db.Preload("QuestionCategory").
+		Preload("QuestionType").
+		Preload("AnswerOptions").
+		Preload("AnswerOptions.RiskLevel").
+		First(&entity, id).Error; err != nil {
 		return nil, err
 	}
 	return entity, nil

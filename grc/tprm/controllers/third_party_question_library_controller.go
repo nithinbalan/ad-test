@@ -28,6 +28,12 @@ func (tpqlc *ThirdPartyQuestionLibraryController) GetAllThirdPartyQuestionLibrar
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
+	allowedParams := []string{
+		"third_party_question_category_ids",
+		"third_party_question_type_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInvalidErrResp(c, errors.New("Invalid page parameter"))
@@ -56,6 +62,7 @@ func (tpqlc *ThirdPartyQuestionLibraryController) GetAllThirdPartyQuestionLibrar
 		Keyword:     keyword,
 		Page:        page,
 		PageSize:    pageSize,
+		Filters:     filters,
 		QuickFilter: quickFilter,
 	}
 
@@ -77,8 +84,14 @@ func (tpqlc *ThirdPartyQuestionLibraryController) GetThirdPartyQuestionLibraryDe
 
 	result, err := tpqlc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
-		utility.SendInternalErrResp(tpqlc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(tpqlc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, result)
@@ -98,8 +111,17 @@ func (tpqlc *ThirdPartyQuestionLibraryController) CreateThirdPartyQuestionLibrar
 
 	id, err := tpqlc.service.Create(currentUserID, &form)
 	if err != nil {
-		utility.SendInternalErrResp(tpqlc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(tpqlc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"id": id})
@@ -124,9 +146,19 @@ func (tpqlc *ThirdPartyQuestionLibraryController) UpdateThirdPartyQuestionLibrar
 		return
 	}
 
-	if err := tpqlc.service.Update(uint(id), currentUserID, &form); err != nil {
-		utility.SendInternalErrResp(tpqlc.db, c, err.Error())
-		return
+	err = tpqlc.service.Update(uint(id), currentUserID, &form)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(tpqlc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.Status(http.StatusOK)

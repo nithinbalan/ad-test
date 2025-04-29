@@ -2,6 +2,7 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	risksDTOs "jethur/grc/risk/dtos"
 	"time"
 )
 
@@ -31,15 +32,25 @@ type ThirdPartyQuestionLibraryFormDTO struct {
 }
 
 type ThirdPartyQuestionLibraryDetailDTO struct {
-	ID                         uint                          `json:"id"`
-	ReferenceNumber            string                        `json:"reference_number"`
-	QuestionTitleEn            string                        `json:"question_title_en"`
-	QuestionTitleAr            string                        `json:"question_title_ar"`
-	ThirdPartyQuestionCategory ThirdPartyQuestionCategoryDTO `json:"third_party_question_category"`
-	ThirdPartyQuestionType     ThirdPartyQuestionTypeDTO     `json:"third_party_question_type"`
-	Mandatory                  bool                          `json:"mandatory"`
-	CreatedAt                  time.Time                     `json:"created_at"`
-	UpdatedAt                  *time.Time                    `json:"updated_at"`
+	ID               uint                                             `json:"id"`
+	ReferenceNumber  string                                           `json:"reference_number"`
+	QuestionTitleEn  string                                           `json:"question_title_en"`
+	QuestionTitleAr  string                                           `json:"question_title_ar"`
+	QuestionCategory ThirdPartyQuestionCategoryDTO                    `json:"third_party_question_category"`
+	QuestionType     ThirdPartyQuestionTypeDTO                        `json:"third_party_question_type"`
+	Mandatory        bool                                             `json:"mandatory"`
+	CreatedAt        time.Time                                        `json:"created_at"`
+	UpdatedAt        *time.Time                                       `json:"updated_at"`
+	AnswerOptions    []ThirdPartyQuestionLibraryAnswerOptionDetailDTO `json:"answer_options"`
+}
+type ThirdPartyQuestionLibraryAnswerOptionDetailDTO struct {
+	ID                  uint                   `json:"id"`
+	AnswerOptionTitleEn *string                `json:"answer_option_title_en"`
+	AnswerOptionTitleAr *string                `json:"answer_option_title_ar"`
+	RiskLevelID         *uint                  `json:"risk_level_id"`
+	RangeFrom           *int                   `json:"range_from"`
+	RangeTo             *int                   `json:"range_to"`
+	RiskLevel           risksDTOs.RiskLevelDTO `json:"risk_level"`
 }
 
 type ThirdPartyQuestionLibraryListQueryParamsDTO struct {
