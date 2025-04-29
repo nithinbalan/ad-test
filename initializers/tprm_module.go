@@ -41,6 +41,7 @@ func NewTprmModule(
 		settingsModule.OrganizationUnitSvc,
 		thirdPartyTypeSvc,
 		masterModule.CountrySvc,
+		organizationModule.UserSettingSvc,
 	)
 	thirdPartyRegisterController := controllers.NewThirdPartyRegisterController(thirdPartyRegisterSvc)
 
