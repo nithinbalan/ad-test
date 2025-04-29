@@ -79,7 +79,11 @@ func (repo *ThirdPartyRegisterRepository) GetAll(params *thirdPartyDTOs.ThirdPar
 
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			if columnName == "organization_unit_id" {
+				query = query.Where("third_party_register.organization_unit_id IN (?)", values)
+			} else {
+				query = query.Where(columnName+" IN (?)", values)
+			}
 		}
 	}
 	// Apply quick filters
@@ -99,12 +103,11 @@ func (repo *ThirdPartyRegisterRepository) GetAll(params *thirdPartyDTOs.ThirdPar
 		query = query.Where(`
 			third_party_register.title LIKE ? OR
 			third_party_register.reference_number LIKE ? OR
-			third_party_register.website LIKE ? OR
-			third_party_register.address LIKE ? OR
 			third_party_register.representative_name LIKE ? OR
 			third_party_register.representative_role LIKE ? OR
 			third_party_register.email LIKE ? OR
-			third_party_register.phone_number LIKE ? OR
+			third_party_register.service_start_date LIKE ? OR
+			third_party_register.service_end_date LIKE ? OR
 	
 			countries.title_en LIKE ? OR
 			countries.title_ar LIKE ? OR
@@ -117,23 +120,18 @@ func (repo *ThirdPartyRegisterRepository) GetAll(params *thirdPartyDTOs.ThirdPar
 	
 			severity_levels.title_en LIKE ? OR
 			severity_levels.title_ar LIKE ? OR
-			severity_levels.color_code LIKE ? OR
-			severity_levels.type LIKE ? OR
-	
-			created_user.first_name_en LIKE ? OR
-			created_user.last_name_en LIKE ? OR
 	
 			responsible_user.first_name_en LIKE ? OR
 			responsible_user.last_name_en LIKE ? OR
 			responsible_user.email LIKE ?
 		`,
-			likePattern, likePattern, likePattern, likePattern, likePattern, likePattern, likePattern, likePattern,
 			likePattern, likePattern,
 			likePattern, likePattern,
 			likePattern, likePattern,
-			likePattern, likePattern, likePattern, likePattern,
 			likePattern, likePattern,
 			likePattern, likePattern, likePattern,
+			likePattern, likePattern, likePattern,
+			likePattern, likePattern, likePattern, likePattern,
 		)
 	}
 
