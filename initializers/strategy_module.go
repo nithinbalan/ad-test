@@ -20,6 +20,7 @@ type StrategyModule struct {
 	StrategyProfileActionPlanStatusUpdateController *controllers.StrategyProfileActionPlanStatusUpdateController
 	StrategyProfileActionPlanCommentController      *controllers.StrategyProfileActionPlanCommentController
 	StrategyProfileSettingController                *controllers.StrategyProfileSettingController
+	KpiCategoryController                           *controllers.KPICategoryController
 }
 
 func NewStrategyModule(db *gorm.DB,
@@ -76,6 +77,10 @@ func NewStrategyModule(db *gorm.DB,
 	strategyProfileSettingSvc := services.NewStrategyProfileSettingService(strategyProfileSettingRepo)
 	strategyProfileSettingController := controllers.NewStrategyProfileSettingController(strategyProfileSettingSvc)
 
+	kpiCategoryRepository := repositories.NewKPICategoryRepository(db)
+	kpiCategorySvc := services.NewKPICategoryService(kpiCategoryRepository, sharedModule.ActivityLogService)
+	kpiCategoryController := controllers.NewKPICategoryController(kpiCategorySvc)
+
 	return &StrategyModule{
 		StrategyProfileController:                       strategyProfileController,
 		StrategyProfileFocusAreaController:              strategyProfileFocusAreaController,
@@ -88,5 +93,6 @@ func NewStrategyModule(db *gorm.DB,
 		StrategyProfileActionPlanStatusUpdateController: strategyProfileActionPlanStatusUpdateController,
 		StrategyProfileActionPlanCommentController:      strategyProfileActionPlanCommentController,
 		StrategyProfileSettingController:                strategyProfileSettingController,
+		KpiCategoryController:                           kpiCategoryController,
 	}
 }

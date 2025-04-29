@@ -32,6 +32,7 @@ type MasterModule struct {
 	ApplicabilityStatusController   *controllers.ApplicabilityStatusController
 	RequiredDocumentTitleController *controllers.RequiredDocumentTitleController
 	CountryController               *controllers.CountryController
+	CalculationTypeController       *controllers.CalculationTypeController
 
 	ReviewFrequencySvc       services.ReviewFrequencyServiceInterface
 	SeverityLevelSvc         services.SeverityLevelServiceInterface
@@ -169,6 +170,11 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	countrySvc := services.NewCountryService(countryRepo)
 	countryController := controllers.NewCountryController(countrySvc)
 
+	//calculation type
+	calculationTypeRepo := repositories.NewCalculationTypeRepository(db)
+	calculationTypeSvc := services.NewCalculationTypeService(calculationTypeRepo)
+	calculationTypeController := controllers.NewCalculationTypeController(calculationTypeSvc)
+
 	return &MasterModule{
 		ReviewFrequencyController:       reviewFrequencyController,
 		SeverityLevelController:         severityLevelController,
@@ -193,6 +199,7 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		ApplicabilityStatusController:   applicabilityStatusController,
 		RequiredDocumentTitleController: requiredDocumentTitleController,
 		CountryController:               countryController,
+		CalculationTypeController:       calculationTypeController,
 
 		ReviewFrequencySvc:       reviewFrequencySvc,
 		SeverityLevelSvc:         severityLevelSvc,
