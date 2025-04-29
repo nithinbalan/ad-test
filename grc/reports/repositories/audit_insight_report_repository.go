@@ -117,8 +117,6 @@ func (repo *AuditInsightReportRepository) GetAuditByYear(params *reportDTOs.Repo
 }
 
 func (repo *AuditInsightReportRepository) GetAuditByMonth(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditByMonthDTO, error) {
-	results := []*reportDTOs.AuditInsightAuditByMonthDTO{}
-
 	// Define static Arabic month translations
 	monthTranslations := map[string]string{
 		"Jan": "يناير", "Feb": "فبراير", "Mar": "مارس", "Apr": "أبريل",
@@ -127,16 +125,24 @@ func (repo *AuditInsightReportRepository) GetAuditByMonth(params *reportDTOs.Rep
 	}
 
 	// Generate the last 12 months
-	last12Months := make(map[string]*reportDTOs.AuditInsightAuditByMonthDTO)
 	now := time.Now()
-	for i := 0; i < 12; i++ {
-		month := now.AddDate(0, -i, 0).Format("Jan 2006") // e.g., "Jan 2025"
-		monthShort := month[:3]                           // Extract short form (e.g., "Jan")
-		last12Months[month] = &reportDTOs.AuditInsightAuditByMonthDTO{
-			TitleEn: month,
-			TitleAr: monthTranslations[monthShort] + " " + month[4:], // Arabic + Year
-			Count:   0,                                               // Default count
-		}
+	last12Months := []*reportDTOs.AuditInsightAuditByMonthDTO{}
+
+	for i := 11; i >= 0; i-- {
+		monthStart := now.AddDate(0, -i, 0)
+		monthStart = time.Date(monthStart.Year(), monthStart.Month(), 1, 0, 0, 0, 0, time.UTC)
+		monthEnd := monthStart.AddDate(0, 1, -1)
+
+		month := monthStart.Format("Jan 2006")
+		monthShort := monthStart.Format("Jan")
+
+		last12Months = append(last12Months, &reportDTOs.AuditInsightAuditByMonthDTO{
+			TitleEn:  month,
+			TitleAr:  monthTranslations[monthShort] + " " + monthStart.Format("2006"),
+			Count:    0,
+			DateFrom: monthStart.Format("2006-01-02"),
+			DateTo:   monthEnd.Format("2006-01-02"),
+		})
 	}
 
 	// Fetch data for the last 12 months
@@ -163,18 +169,15 @@ func (repo *AuditInsightReportRepository) GetAuditByMonth(params *reportDTOs.Rep
 
 	// Merge database results into the last 12 months
 	for _, record := range rawResults {
-		if dto, exists := last12Months[record.MonthEn]; exists {
-			dto.Count = record.Count // Update count for the matching month
+		for _, dto := range last12Months {
+			if dto.TitleEn == record.MonthEn {
+				dto.Count = record.Count
+				break
+			}
 		}
 	}
 
-	// Convert map to a slice in chronological order
-	for i := 11; i >= 0; i-- {
-		month := now.AddDate(0, -i, 0).Format("Jan 2006") // Same key format
-		results = append(results, last12Months[month])
-	}
-
-	return results, nil
+	return last12Months, nil
 }
 
 func (repo *AuditInsightReportRepository) GetAuditPlanByCategory(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditPlanByCategoryDTO, error) {
@@ -293,8 +296,6 @@ func (repo *AuditInsightReportRepository) GetAuditPlanByAuditableItem(params *re
 }
 
 func (repo *AuditInsightReportRepository) GetAuditPlanByMonth(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditPlanByMonthDTO, error) {
-	results := []*reportDTOs.AuditInsightAuditPlanByMonthDTO{}
-
 	// Define static Arabic month translations
 	monthTranslations := map[string]string{
 		"Jan": "يناير", "Feb": "فبراير", "Mar": "مارس", "Apr": "أبريل",
@@ -303,16 +304,24 @@ func (repo *AuditInsightReportRepository) GetAuditPlanByMonth(params *reportDTOs
 	}
 
 	// Generate the last 12 months
-	last12Months := make(map[string]*reportDTOs.AuditInsightAuditPlanByMonthDTO)
 	now := time.Now()
-	for i := 0; i < 12; i++ {
-		month := now.AddDate(0, -i, 0).Format("Jan 2006") // e.g., "Jan 2025"
-		monthShort := month[:3]                           // Extract short form (e.g., "Jan")
-		last12Months[month] = &reportDTOs.AuditInsightAuditPlanByMonthDTO{
-			TitleEn: month,
-			TitleAr: monthTranslations[monthShort] + " " + month[4:], // Arabic + Year
-			Count:   0,                                               // Default count
-		}
+	last12Months := []*reportDTOs.AuditInsightAuditPlanByMonthDTO{}
+
+	for i := 11; i >= 0; i-- {
+		monthStart := now.AddDate(0, -i, 0)
+		monthStart = time.Date(monthStart.Year(), monthStart.Month(), 1, 0, 0, 0, 0, time.UTC)
+		monthEnd := monthStart.AddDate(0, 1, -1)
+
+		month := monthStart.Format("Jan 2006")
+		monthShort := monthStart.Format("Jan")
+
+		last12Months = append(last12Months, &reportDTOs.AuditInsightAuditPlanByMonthDTO{
+			TitleEn:  month,
+			TitleAr:  monthTranslations[monthShort] + " " + monthStart.Format("2006"),
+			Count:    0,
+			DateFrom: monthStart.Format("2006-01-02"),
+			DateTo:   monthEnd.Format("2006-01-02"),
+		})
 	}
 
 	// Fetch data for the last 12 months
@@ -339,19 +348,17 @@ func (repo *AuditInsightReportRepository) GetAuditPlanByMonth(params *reportDTOs
 
 	// Merge database results into the last 12 months
 	for _, record := range rawResults {
-		if dto, exists := last12Months[record.MonthEn]; exists {
-			dto.Count = record.Count // Update count for the matching month
+		for _, dto := range last12Months {
+			if dto.TitleEn == record.MonthEn {
+				dto.Count = record.Count
+				break
+			}
 		}
 	}
 
-	// Convert map to a slice in chronological order
-	for i := 11; i >= 0; i-- {
-		month := now.AddDate(0, -i, 0).Format("Jan 2006") // Same key format
-		results = append(results, last12Months[month])
-	}
-
-	return results, nil
+	return last12Months, nil
 }
+
 func (repo *AuditInsightReportRepository) GetAuditPlanVsAudits(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditPlanVsAuditDTO, error) {
 	var auditPlanCount int64
 	var auditCount int64
@@ -526,8 +533,6 @@ func (repo *AuditInsightReportRepository) GetAuditFindingBySeverityLevel(params 
 }
 
 func (repo *AuditInsightReportRepository) GetAuditFindingByMonth(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditFindingByMonthDTO, error) {
-	results := []*reportDTOs.AuditInsightAuditFindingByMonthDTO{}
-
 	// Define static Arabic month translations
 	monthTranslations := map[string]string{
 		"Jan": "يناير", "Feb": "فبراير", "Mar": "مارس", "Apr": "أبريل",
@@ -535,20 +540,27 @@ func (repo *AuditInsightReportRepository) GetAuditFindingByMonth(params *reportD
 		"Sep": "سبتمبر", "Oct": "أكتوبر", "Nov": "نوفمبر", "Dec": "ديسمبر",
 	}
 
-	// Generate the last 12 months
-	last12Months := make(map[string]*reportDTOs.AuditInsightAuditFindingByMonthDTO)
 	now := time.Now()
-	for i := 0; i < 12; i++ {
-		month := now.AddDate(0, -i, 0).Format("Jan 2006") // e.g., "Jan 2025"
-		monthShort := month[:3]                           // Extract short form (e.g., "Jan")
-		last12Months[month] = &reportDTOs.AuditInsightAuditFindingByMonthDTO{
-			TitleEn: month,
-			TitleAr: monthTranslations[monthShort] + " " + month[4:], // Arabic + Year
-			Count:   0,                                               // Default count
-		}
+	last12Months := []*reportDTOs.AuditInsightAuditFindingByMonthDTO{}
+
+	for i := 11; i >= 0; i-- {
+		monthStart := now.AddDate(0, -i, 0)
+		monthStart = time.Date(monthStart.Year(), monthStart.Month(), 1, 0, 0, 0, 0, time.UTC)
+		monthEnd := monthStart.AddDate(0, 1, -1)
+
+		month := monthStart.Format("Jan 2006")
+		monthShort := monthStart.Format("Jan")
+
+		last12Months = append(last12Months, &reportDTOs.AuditInsightAuditFindingByMonthDTO{
+			TitleEn:  month,
+			TitleAr:  monthTranslations[monthShort] + " " + monthStart.Format("2006"),
+			Count:    0,
+			DateFrom: monthStart.Format("2006-01-02"),
+			DateTo:   monthEnd.Format("2006-01-02"),
+		})
 	}
 
-	// Fetch data for the last 12 months
+	// Fetch actual database results
 	var rawResults []struct {
 		MonthEn string `gorm:"column:title_en"`
 		Count   uint   `gorm:"column:count"`
@@ -567,20 +579,17 @@ func (repo *AuditInsightReportRepository) GetAuditFindingByMonth(params *reportD
 		return nil, err
 	}
 
-	// Merge database results into the last 12 months
+	// Merge database results into the prepared last12Months
 	for _, record := range rawResults {
-		if dto, exists := last12Months[record.MonthEn]; exists {
-			dto.Count = record.Count // Update count for the matching month
+		for _, dto := range last12Months {
+			if dto.TitleEn == record.MonthEn {
+				dto.Count = record.Count
+				break
+			}
 		}
 	}
 
-	// Convert map to a slice in chronological order
-	for i := 11; i >= 0; i-- {
-		month := now.AddDate(0, -i, 0).Format("Jan 2006") // Same key format
-		results = append(results, last12Months[month])
-	}
-
-	return results, nil
+	return last12Months, nil
 }
 
 func (repo *AuditInsightReportRepository) GetAuditFindingByYear(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditFindingByYearDTO, error) {

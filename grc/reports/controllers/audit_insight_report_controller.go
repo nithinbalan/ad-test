@@ -844,6 +844,7 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsAuditPlans(c *gin.C
 		"audit_team_ids",
 		"team_lead_ids",
 		"audit_status_ids",
+		"auditable_item_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
