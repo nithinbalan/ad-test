@@ -15,9 +15,11 @@ type AuditInsightAuditByYearDTO struct {
 }
 
 type AuditInsightAuditByMonthDTO struct {
-	TitleEn string `json:"title_en"` // Month in English
-	TitleAr string `json:"title_ar"` // Month in Arabic
-	Count   uint   `json:"count"`
+	TitleEn  string `json:"title_en"` // Month in English
+	TitleAr  string `json:"title_ar"` // Month in Arabic
+	Count    uint   `json:"count"`
+	DateFrom string `json:"date_from"`
+	DateTo   string `json:"date_to"`
 }
 
 type AuditInsightAuditPlanByCategoryDTO struct {
@@ -50,9 +52,11 @@ type AuditInsightAuditPlanByAuditableItemDTO struct {
 }
 
 type AuditInsightAuditPlanByMonthDTO struct {
-	TitleEn string `json:"title_en"` // Month in English
-	TitleAr string `json:"title_ar"` // Month in Arabic
-	Count   uint   `json:"count"`
+	TitleEn  string `json:"title_en"` // Month in English
+	TitleAr  string `json:"title_ar"` // Month in Arabic
+	Count    uint   `json:"count"`
+	DateFrom string `json:"date_from"`
+	DateTo   string `json:"date_to"`
 }
 
 type AuditInsightAuditFindingByCategoryDTO struct {
@@ -93,9 +97,11 @@ type AuditInsightAuditFindingBySeverityLevelDTO struct {
 }
 
 type AuditInsightAuditFindingByMonthDTO struct {
-	TitleEn string `json:"title_en"` // Month in English
-	TitleAr string `json:"title_ar"` // Month in Arabic
-	Count   uint   `json:"count"`
+	TitleEn  string `json:"title_en"` // Month in English
+	TitleAr  string `json:"title_ar"` // Month in Arabic
+	Count    uint   `json:"count"`
+	DateFrom string `json:"date_from"`
+	DateTo   string `json:"date_to"`
 }
 
 type AuditInsightAuditFindingByYearDTO struct {
