@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"os"
 
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
@@ -23,6 +24,7 @@ type ThirdPartyRegisterServiceInterface interface {
 	Create(currentUserID uint, dto *dtos.ThirdPartyRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, dto *dtos.ThirdPartyRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	ExportThirdPartyRegister(data []*dtos.ThirdPartyRegisterListDTO, currentUserID uint) (*os.File, error)
 }
 
 type ThirdPartyRegisterService struct {
@@ -33,6 +35,7 @@ type ThirdPartyRegisterService struct {
 	orgUnitSvc        settingsServices.OrganizationUnitServiceInterface
 	thirdPartyTypeSvc ThirdPartyTypeServiceInterface
 	countrySvc        masterServices.CountryServiceInterface
+	userSettingSvc    organizationServices.UserSettingServiceInterface
 }
 
 func NewThirdPartyRegisterService(
@@ -43,6 +46,7 @@ func NewThirdPartyRegisterService(
 	orgUnitSvc settingsServices.OrganizationUnitServiceInterface,
 	thirdPartyTypeSvc ThirdPartyTypeServiceInterface,
 	countrySvc masterServices.CountryServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) *ThirdPartyRegisterService {
 	return &ThirdPartyRegisterService{
 		repo:              repo,
@@ -52,6 +56,7 @@ func NewThirdPartyRegisterService(
 		orgUnitSvc:        orgUnitSvc,
 		thirdPartyTypeSvc: thirdPartyTypeSvc,
 		countrySvc:        countrySvc,
+		userSettingSvc:    userSettingSvc,
 	}
 }
 
@@ -267,4 +272,94 @@ func (tprs *ThirdPartyRegisterService) parseDates(dto *dtos.ThirdPartyRegisterFo
 		}
 	}
 	return parsed, nil
+}
+
+func (tps *ThirdPartyRegisterService) ExportThirdPartyRegister(data []*dtos.ThirdPartyRegisterListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := tps.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers based on language preference
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"رقم المرجع",
+			"العنوان",
+			"نوع الطرف الثالث",
+			"الدولة",
+			"الوحدة التنظيمية",
+			"اسم الممثل",
+			"دور الممثل",
+			"البريد الإلكتروني",
+			"رقم الهاتف",
+			"المستخدم المسؤول",
+			"تاريخ بدء الخدمة",
+			"تاريخ انتهاء الخدمة",
+			"تاريخ الانضمام",
+			"مستوى الشدة",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"Third Party Type",
+			"Country",
+			"Organization Unit",
+			"Representative Name",
+			"Representative Role",
+			"Email",
+			"Phone Number",
+			"Responsible User",
+			"Service Start Date",
+			"Service End Date",
+			"Onboarding Date",
+			"Severity Level",
+		}
+	}
+
+	// Prepare rows
+	rows := make([][]interface{}, len(data))
+	for i, item := range data {
+		var (
+			thirdPartyType, country, orgUnit, severityLevel, responsibleUser string
+		)
+
+		if userSetting.Language == "ar" {
+			thirdPartyType = item.ThirdPartyTypeTitleAr
+			country = item.CountryTitleAr
+			orgUnit = item.OrganizationUnitTitleAr
+			severityLevel = item.SeverityLevelTitleAr
+			responsibleUser = item.ResponsibleUserFirstNameAr + " " + item.ResponsibleUserLastNameAr
+		} else {
+			thirdPartyType = item.ThirdPartyTypeTitleEn
+			country = item.CountryTitleEn
+			orgUnit = item.OrganizationUnitTitleEn
+			severityLevel = item.SeverityLevelTitleEn
+			responsibleUser = item.ResponsibleUserFirstNameEn + " " + item.ResponsibleUserLastNameEn
+		}
+
+		rows[i] = []interface{}{
+			i + 1,
+			item.ReferenceNumber,
+			item.Title,
+			thirdPartyType,
+			country,
+			orgUnit,
+			utility.GetStringValue(item.RepresentativeName),
+			utility.GetStringValue(item.RepresentativeRole),
+			utility.GetStringValue(item.Email),
+			utility.GetStringValue(item.PhoneNumber),
+			responsibleUser,
+			utility.GetStringValue(item.ServiceStartDate),
+			utility.GetStringValue(item.ServiceEndDate),
+			utility.GetStringValue(item.OnboardingDate),
+			severityLevel,
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }

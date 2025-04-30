@@ -196,6 +196,8 @@ func (repo *AuditInsightsFindingActionPlanRepository) GetAll(params *auditDTOs.A
 			query = query.Where("action_plan_statuses.type = ?", "completed")
 		case "in_progress":
 			query = query.Where("action_plan_statuses.type = ?", "in_progress")
+		case "open":
+			query = query.Where("action_plan_statuses.type != ?", "close")
 		}
 	}
 

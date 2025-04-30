@@ -53,6 +53,15 @@ func (repo *ThirdPartyRegisterRepository) GetAll(params *thirdPartyDTOs.ThirdPar
 			third_party_types.title_ar AS third_party_type_title_ar,
 			organization_units.title_en AS organization_unit_title_en,
 			organization_units.title_ar AS organization_unit_title_ar,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			severity_levels.color_code AS severity_level_color_code,
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,
 			created_user.first_name_en AS created_user_first_name_en,
@@ -64,27 +73,65 @@ func (repo *ThirdPartyRegisterRepository) GetAll(params *thirdPartyDTOs.ThirdPar
 		Joins("LEFT JOIN countries ON countries.id = third_party_register.country_id").
 		Joins("LEFT JOIN organization_units ON organization_units.id = third_party_register.organization_unit_id").
 		Joins("LEFT JOIN severity_levels ON severity_levels.id = third_party_register.severity_level_id").
+		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = third_party_register.responsible_user_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = third_party_register.created_by_id").
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = third_party_register.updated_by_id")
 
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			if columnName == "organization_unit_id" {
+				query = query.Where("third_party_register.organization_unit_id IN (?)", values)
+			} else {
+				query = query.Where(columnName+" IN (?)", values)
+			}
+		}
+	}
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "low":
+			query = query.Where("severity_levels.type = ?", "low")
+		case "medium":
+			query = query.Where("severity_levels.type = ?", "medium")
+		case "high":
+			query = query.Where("severity_levels.type = ?", "high")
 		}
 	}
 
 	if params.Keyword != "" {
+		likePattern := "%" + params.Keyword + "%"
 		query = query.Where(`
-				third_party_register.title LIKE ? OR
-				third_party_register.reference_number LIKE ? OR
-				third_party_register.website LIKE ? OR
-				countries.title_en LIKE ? OR
-				countries.title_ar LIKE ?`,
-			"%"+params.Keyword+"%",
-			"%"+params.Keyword+"%",
-			"%"+params.Keyword+"%",
-			"%"+params.Keyword+"%",
-			"%"+params.Keyword+"%",
+			third_party_register.title LIKE ? OR
+			third_party_register.reference_number LIKE ? OR
+			third_party_register.representative_name LIKE ? OR
+			third_party_register.representative_role LIKE ? OR
+			third_party_register.email LIKE ? OR
+			third_party_register.service_start_date LIKE ? OR
+			third_party_register.service_end_date LIKE ? OR
+	
+			countries.title_en LIKE ? OR
+			countries.title_ar LIKE ? OR
+	
+			third_party_types.title_en LIKE ? OR
+			third_party_types.title_ar LIKE ? OR
+	
+			organization_units.title_en LIKE ? OR
+			organization_units.title_ar LIKE ? OR
+	
+			severity_levels.title_en LIKE ? OR
+			severity_levels.title_ar LIKE ? OR
+	
+			responsible_user.first_name_en LIKE ? OR
+			responsible_user.last_name_en LIKE ? OR
+			responsible_user.email LIKE ?
+		`,
+			likePattern, likePattern,
+			likePattern, likePattern,
+			likePattern, likePattern,
+			likePattern, likePattern,
+			likePattern, likePattern, likePattern,
+			likePattern, likePattern, likePattern,
+			likePattern, likePattern, likePattern, likePattern,
 		)
 	}
 
