@@ -9,11 +9,15 @@ import (
 )
 
 type TprmModule struct {
-	ThirdPartyTypeController     *controllers.ThirdPartyTypeController
-	ThirdPartyRegisterController *controllers.ThirdPartyRegisterController
+	ThirdPartyTypeController             *controllers.ThirdPartyTypeController
+	ThirdPartyRegisterController         *controllers.ThirdPartyRegisterController
+	ThirdPartyQuestionCategoryController *controllers.ThirdPartyQuestionCategoryController
+	ThirdPartyQuestionTypeController     *controllers.ThirdPartyQuestionTypeController
 
-	ThirdPartyTypeSvc     services.ThirdPartyTypeServiceInterface
-	ThirdPartyRegisterSvc services.ThirdPartyRegisterServiceInterface
+	ThirdPartyTypeSvc             services.ThirdPartyTypeServiceInterface
+	ThirdPartyRegisterSvc         services.ThirdPartyRegisterServiceInterface
+	ThirdPartyQuestionCategorySvc services.ThirdPartyQuestionCategoryServiceInterface
+	ThirdPartyQuestionTypeSvc     services.ThirdPartyQuestionTypeServiceInterface
 }
 
 func NewTprmModule(
@@ -45,11 +49,23 @@ func NewTprmModule(
 	)
 	thirdPartyRegisterController := controllers.NewThirdPartyRegisterController(thirdPartyRegisterSvc)
 
-	return &TprmModule{
-		ThirdPartyTypeController:     thirdPartyTypeController,
-		ThirdPartyRegisterController: thirdPartyRegisterController,
+	thirdPartyQuestionCategoryRepo := repositories.NewThirdPartyQuestionCategoryRepository(db)
+	thirdPartyQuestionCategorySvc := services.NewThirdPartyQuestionCategoryService(thirdPartyQuestionCategoryRepo, sharedModule.ActivityLogService)
+	thirdPartyQuestionCategoryController := controllers.NewThirdPartyQuestionCategoryController(thirdPartyQuestionCategorySvc)
 
-		ThirdPartyTypeSvc:     thirdPartyTypeSvc,
-		ThirdPartyRegisterSvc: thirdPartyRegisterSvc,
+	thirdPartyQuestionTypeRepo := repositories.NewThirdPartyQuestionTypeRepository(db)
+	thirdPartyQuestionTypeSvc := services.NewThirdPartyQuestionTypeService(thirdPartyQuestionTypeRepo)
+	thirdPartyQuestionTypeController := controllers.NewThirdPartyQuestionTypeController(thirdPartyQuestionTypeSvc)
+
+	return &TprmModule{
+		ThirdPartyTypeController:             thirdPartyTypeController,
+		ThirdPartyRegisterController:         thirdPartyRegisterController,
+		ThirdPartyQuestionCategoryController: thirdPartyQuestionCategoryController,
+		ThirdPartyQuestionTypeController:     thirdPartyQuestionTypeController,
+
+		ThirdPartyTypeSvc:             thirdPartyTypeSvc,
+		ThirdPartyRegisterSvc:         thirdPartyRegisterSvc,
+		ThirdPartyQuestionCategorySvc: thirdPartyQuestionCategorySvc,
+		ThirdPartyQuestionTypeSvc:     thirdPartyQuestionTypeSvc,
 	}
 }
