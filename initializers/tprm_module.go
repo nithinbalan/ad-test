@@ -9,11 +9,16 @@ import (
 )
 
 type TprmModule struct {
-	ThirdPartyTypeController     *controllers.ThirdPartyTypeController
-	ThirdPartyRegisterController *controllers.ThirdPartyRegisterController
+	ThirdPartyTypeController             *controllers.ThirdPartyTypeController
+	ThirdPartyRegisterController         *controllers.ThirdPartyRegisterController
+	ThirdPartyQuestionCategoryController *controllers.ThirdPartyQuestionCategoryController
+	ThirdPartyQuestionTypeController     *controllers.ThirdPartyQuestionTypeController
+	ThirdPartyQuestionLibraryController  *controllers.ThirdPartyQuestionLibraryController
 
-	ThirdPartyTypeSvc     services.ThirdPartyTypeServiceInterface
-	ThirdPartyRegisterSvc services.ThirdPartyRegisterServiceInterface
+	ThirdPartyTypeSvc             services.ThirdPartyTypeServiceInterface
+	ThirdPartyRegisterSvc         services.ThirdPartyRegisterServiceInterface
+	ThirdPartyQuestionCategorySvc services.ThirdPartyQuestionCategoryServiceInterface
+	ThirdPartyQuestionTypeSvc     services.ThirdPartyQuestionTypeServiceInterface
 }
 
 func NewTprmModule(
@@ -41,14 +46,38 @@ func NewTprmModule(
 		settingsModule.OrganizationUnitSvc,
 		thirdPartyTypeSvc,
 		masterModule.CountrySvc,
+		organizationModule.UserSettingSvc,
 	)
 	thirdPartyRegisterController := controllers.NewThirdPartyRegisterController(thirdPartyRegisterSvc)
 
-	return &TprmModule{
-		ThirdPartyTypeController:     thirdPartyTypeController,
-		ThirdPartyRegisterController: thirdPartyRegisterController,
+	thirdPartyQuestionCategoryRepo := repositories.NewThirdPartyQuestionCategoryRepository(db)
+	thirdPartyQuestionCategorySvc := services.NewThirdPartyQuestionCategoryService(thirdPartyQuestionCategoryRepo, sharedModule.ActivityLogService)
+	thirdPartyQuestionCategoryController := controllers.NewThirdPartyQuestionCategoryController(thirdPartyQuestionCategorySvc)
 
-		ThirdPartyTypeSvc:     thirdPartyTypeSvc,
-		ThirdPartyRegisterSvc: thirdPartyRegisterSvc,
+	thirdPartyQuestionTypeRepo := repositories.NewThirdPartyQuestionTypeRepository(db)
+	thirdPartyQuestionTypeSvc := services.NewThirdPartyQuestionTypeService(thirdPartyQuestionTypeRepo)
+	thirdPartyQuestionTypeController := controllers.NewThirdPartyQuestionTypeController(thirdPartyQuestionTypeSvc)
+
+	// === Third Party Question Library ===
+	thirdPartyQuestionLibraryRepo := repositories.NewThirdPartyQuestionLibraryRepository(db)
+	thirdPartyQuestionLibrarySvc := services.NewThirdPartyQuestionLibraryService(
+		thirdPartyQuestionLibraryRepo,
+		sharedModule.ActivityLogService,
+		thirdPartyQuestionCategorySvc,
+		thirdPartyQuestionTypeSvc,
+	)
+	thirdPartyQuestionLibraryController := controllers.NewThirdPartyQuestionLibraryController(thirdPartyQuestionLibrarySvc)
+
+	return &TprmModule{
+		ThirdPartyTypeController:             thirdPartyTypeController,
+		ThirdPartyRegisterController:         thirdPartyRegisterController,
+		ThirdPartyQuestionCategoryController: thirdPartyQuestionCategoryController,
+		ThirdPartyQuestionTypeController:     thirdPartyQuestionTypeController,
+		ThirdPartyQuestionLibraryController:  thirdPartyQuestionLibraryController,
+
+		ThirdPartyTypeSvc:             thirdPartyTypeSvc,
+		ThirdPartyRegisterSvc:         thirdPartyRegisterSvc,
+		ThirdPartyQuestionCategorySvc: thirdPartyQuestionCategorySvc,
+		ThirdPartyQuestionTypeSvc:     thirdPartyQuestionTypeSvc,
 	}
 }

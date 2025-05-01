@@ -168,17 +168,19 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/audit-insight-audit-by-status", auditInsightReportController.GetAuditByStatus)
 	reportsRoutes.GET("/reports/audit-insight-audit-by-year", auditInsightReportController.GetAuditByYear)
 	reportsRoutes.GET("/reports/audit-insight-audit-by-month", auditInsightReportController.GetAuditByMonth)
-	reportsRoutes.GET("/reports/audit-insight-audit-plan-by-month", auditInsightReportController.GetAuditByMonth)
 
 	reportsRoutes.GET("/reports/audit-insight-audit-plans", auditInsightReportController.GetAllAuditInsightsAuditPlans)
 	reportsRoutes.GET("/reports/audit-insight-audit-plans/export", auditInsightReportController.GetAuditInsightsAuditPlansExport)
 	reportsRoutes.GET("/reports/audit-insight-audit-plan-by-category", auditInsightReportController.GetAuditPlanByCategory)
 	reportsRoutes.GET("/reports/audit-insight-audit-plan-by-team-lead", auditInsightReportController.GetAuditPlanByTeamLead)
 	reportsRoutes.GET("/reports/audit-insight-audit-plan-by-auditableitem", auditInsightReportController.GetAuditPlanByAuditableItem)
+	reportsRoutes.GET("/reports/audit-insight-audit-plan-by-month", auditInsightReportController.GetAuditPlanByMonth)
+	reportsRoutes.GET("/reports/audit-insight-audit-plans-vs-audits", auditInsightReportController.GetAuditPlanVsAudits)
 
 	reportsRoutes.GET("/reports/audit-insight-findings", auditInsightReportController.GetAllAuditInsightsAuditFindings)
 	reportsRoutes.GET("/reports/audit-insight-findings/export", auditInsightReportController.GetAuditInsightsAuditFindingsExport)
 	reportsRoutes.GET("/reports/audit-insight-finding-by-category", auditInsightReportController.GetAuditFindingByCategory)
+	reportsRoutes.GET("/reports/audit-insight-finding-by-audit-category", auditInsightReportController.GetAuditFindingByAuditCategory)
 	reportsRoutes.GET("/reports/audit-insight-finding-by-status", auditInsightReportController.GetAuditFindingByStatus)
 	reportsRoutes.GET("/reports/audit-insight-finding-by-severity-level", auditInsightReportController.GetAuditFindingBySeverityLevel)
 	reportsRoutes.GET("/reports/audit-insight-finding-by-month", auditInsightReportController.GetAuditFindingByMonth)
@@ -188,9 +190,17 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/audit-insight-action-plans/export", auditInsightReportController.GetAuditInsightsActionPlanExport)
 	reportsRoutes.GET("/reports/audit-insight-action-plan-by-status", auditInsightReportController.GetAuditActionPlanByStatus)
 	reportsRoutes.GET("/reports/audit-insight-action-plan-by-responsible-user", auditInsightReportController.GetAuditActionPlanByResponsibleUser)
+	reportsRoutes.GET("/reports/audit-insight-open-action-plan-by-responsible-user", auditInsightReportController.GetOpenActionPlanByResponsibleUser)
+	reportsRoutes.GET("/reports/audit-insight-overdue-action-plan-by-responsible-user", auditInsightReportController.GetOverdueActionPlanByResponsibleUser)
 
 	reportsRoutes.GET("/reports/audit-insight-draft-report-by-status", auditInsightReportController.GetAuditDraftReportByStatus)
+	reportsRoutes.GET("/reports/audit-insight-draft-reports", auditInsightReportController.GetAllAuditInsightsDraftReports)
+	reportsRoutes.GET("/reports/audit-insight-draft-reports/export", auditInsightReportController.GetAuditInsightsDraftReportsExport)
+
 	reportsRoutes.GET("/reports/audit-insight-final-report-by-status", auditInsightReportController.GetAuditFinalReportByStatus)
+	reportsRoutes.GET("/reports/audit-insight-final-reports", auditInsightReportController.GetAllAuditInsightsFinalReports)
+	reportsRoutes.GET("/reports/audit-insight-final-reports/export", auditInsightReportController.GetAuditInsightsFinalReportsExport)
+
 	//Meetings
 	reportsRoutes.GET("/reports/meetings", meetingReportController.GetAllMeetings)
 	reportsRoutes.GET("/reports/meetings/export", meetingReportController.GetMeetingExport)

@@ -30,6 +30,12 @@ func (aidrc *AuditInsightsFinalReportController) GetAllAuditInsightsFinalReports
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(aidrc.db, c, "Invalid export parameter")
+		return
+	}
+
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"audit_ids",
@@ -37,6 +43,7 @@ func (aidrc *AuditInsightsFinalReportController) GetAllAuditInsightsFinalReports
 		"audit_team_ids",
 		"team_lead_ids",
 		"audit_status_ids",
+		"audit_final_report_status_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -84,6 +91,7 @@ func (aidrc *AuditInsightsFinalReportController) GetAllAuditInsightsFinalReports
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		ReportDate:  reportDate,
+		Export:      export,
 	}
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
@@ -95,7 +103,34 @@ func (aidrc *AuditInsightsFinalReportController) GetAllAuditInsightsFinalReports
 		utility.SendInternalErrResp(aidrc.db, c, err.Error())
 		return
 	}
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(aidrc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := aidrc.service.ExportAuditInsightsFinalReports(auditFinalReports.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(aidrc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Audit Insights Final Reports.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
 	c.JSON(http.StatusOK, auditFinalReports)
+}
+
+func (aidrc *AuditInsightsFinalReportController) GetAuditInsightsFinalReportExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	aidrc.GetAllAuditInsightsFinalReports(c)
 }
 
 func (aidrc *AuditInsightsFinalReportController) GetAuditInsightsFinalReportDetails(c *gin.Context) {

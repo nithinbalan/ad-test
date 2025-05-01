@@ -14,7 +14,11 @@ type AuditInsightReportServiceInterface interface {
 	GetAuditPlanByCategory(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditPlanByCategoryDTO, error)
 	GetAuditPlanByTeamLead(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditPlanByTeamLeadDTO, error)
 	GetAuditPlanByAuditableItem(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditPlanByAuditableItemDTO, error)
+	GetAuditPlanByMonth(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditPlanByMonthDTO, error)
+	GetAuditPlanVsAudits(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditPlanVsAuditDTO, error)
+
 	GetAuditFindingByCategory(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditFindingByCategoryDTO, error)
+	GetAuditFindingByAuditCategory(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditFindingByAuditCategoryDTO, error)
 	GetAuditFindingByStatus(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditFindingByStatusDTO, error)
 	GetAuditFindingBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditFindingBySeverityLevelDTO, error)
 	GetAuditFindingByMonth(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditFindingByMonthDTO, error)
@@ -23,6 +27,10 @@ type AuditInsightReportServiceInterface interface {
 	GetAuditActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditActionPlanByResponsibleUserDTO, error)
 	GetAuditDraftReportByStatus(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditDraftReportByStatusDTO, error)
 	GetAuditFinalReportByStatus(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditFinalReportByStatusDTO, error)
+
+	GetOpenActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditActionPlanByResponsibleUserDTO, error)
+	GetOverdueActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditActionPlanByResponsibleUserDTO, error)
+	GetAuditInsightOverdueActionPlans(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightOverdueActionPlanCountDTO, error)
 }
 
 type AuditInsightReportService struct {
@@ -91,6 +99,22 @@ func (airs *AuditInsightReportService) GetAuditFindingByCategory(params *reportD
 	return airs.repo.GetAuditFindingByCategory(params, orgUnitID)
 }
 
+func (airs *AuditInsightReportService) GetAuditFindingByAuditCategory(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditFindingByAuditCategoryDTO, error) {
+	orgUnitID, err := airs.userSvc.GetUserPrimaryUnitID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	return airs.repo.GetAuditFindingByAuditCategory(params, orgUnitID)
+}
+
+func (airs *AuditInsightReportService) GetAuditPlanByMonth(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditPlanByMonthDTO, error) {
+	orgUnitID, err := airs.userSvc.GetUserPrimaryUnitID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	return airs.repo.GetAuditPlanByMonth(params, orgUnitID)
+}
+
 func (airs *AuditInsightReportService) GetAuditFindingByStatus(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditFindingByStatusDTO, error) {
 	orgUnitID, err := airs.userSvc.GetUserPrimaryUnitID(currentUserID)
 	if err != nil {
@@ -153,4 +177,36 @@ func (airs *AuditInsightReportService) GetAuditFinalReportByStatus(params *repor
 		return nil, err
 	}
 	return airs.repo.GetAuditFinalReportByStatus(params, orgUnitID)
+}
+
+func (airs *AuditInsightReportService) GetOpenActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditActionPlanByResponsibleUserDTO, error) {
+	orgUnitID, err := airs.userSvc.GetUserPrimaryUnitID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	return airs.repo.GetOpenActionPlanByResponsibleUser(params, orgUnitID)
+}
+
+func (airs *AuditInsightReportService) GetOverdueActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditActionPlanByResponsibleUserDTO, error) {
+	orgUnitID, err := airs.userSvc.GetUserPrimaryUnitID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	return airs.repo.GetOverdueActionPlanByResponsibleUser(params, orgUnitID)
+}
+
+func (airs *AuditInsightReportService) GetAuditInsightOverdueActionPlans(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightOverdueActionPlanCountDTO, error) {
+	orgUnitID, err := airs.userSvc.GetUserPrimaryUnitID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	return airs.repo.GetAuditInsightOverdueActionPlanCount(params, orgUnitID)
+}
+
+func (airs *AuditInsightReportService) GetAuditPlanVsAudits(params *reportDTOs.ReportListQueryParamsDTO, currentUserID uint) ([]*reportDTOs.AuditInsightAuditPlanVsAuditDTO, error) {
+	orgUnitID, err := airs.userSvc.GetUserPrimaryUnitID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	return airs.repo.GetAuditPlanVsAudits(params, orgUnitID)
 }

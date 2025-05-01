@@ -38,6 +38,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	applicabilityStatusController := app.MasterModule.ApplicabilityStatusController
 	requiredDocumentTitleController := app.MasterModule.RequiredDocumentTitleController
 	countryController := app.MasterModule.CountryController
+	calculationTypeController := app.MasterModule.CalculationTypeController
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
@@ -145,5 +146,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	masterRoutes.GET("/countries", countryController.GetAllCountries)
 	masterRoutes.GET("/countries/:id", countryController.GetCountryDetails)
+
+	masterRoutes.GET("/calculation-types", calculationTypeController.GetAllCalculationTypes)
+	masterRoutes.GET("/calculation-types/:id", calculationTypeController.GetCalculationTypeDetails)
 
 }

@@ -72,6 +72,8 @@ func NewReportsModule(db *gorm.DB,
 		auditInsightsModule.AuditInsightsAuditFindingSvc,
 		auditInsightsModule.AuditInsightsFindingActionPlanSvc,
 		auditInsightsModule.AuditInsightsAuditPlanSvc,
+		auditInsightsModule.AuditInsightsDraftReportSvc,
+		auditInsightsModule.AuditInsightsFinalReportSvc,
 	)
 	meetingReportRepo := repositories.NewMeetingReportRepository(db)
 	meetingReportSvc := services.NewMeetingReportService(meetingReportRepo, settingsModule.OrganizationLevelSvc)
