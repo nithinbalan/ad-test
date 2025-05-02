@@ -238,6 +238,8 @@ type BIAProcessDetailDTO struct {
 	RpoUnitId                 *uint                                          `json:"rpo_uint_id"`
 	RpoUnit                   masterDTOs.TimeUnitDTO                         `json:"rpo_unit"`
 	RiskLevelId               *uint                                          `json:"risk_level_id"`
+	RiskMatrixRating          *organizationDTOs.RiskMatrixRiskRatingDTO      `json:"risk_matrix_risk_rating"`
+	RiskMatrixRatingValue     *organizationDTOs.RiskMatrixRiskRatingValueDTO `json:"risk_matrix_rating_value"`
 	LastAssessedAt            *time.Time                                     `json:"last_assessed_at"`
 	LastAssessedByID          *uint                                          `json:"last_assessed_by_id"`
 	LastAssessedByUser        *organizationDTOs.UserMinimalDTO               `json:"last_assessed_by"`

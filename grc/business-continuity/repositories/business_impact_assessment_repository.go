@@ -296,6 +296,8 @@ func (repo *BusinessImpactAssessmentRepository) GetProcessDetails(id uint, tx ..
 		Preload("CreatedByUser.OrganizationUnit1").
 		Preload("UpdatedByUser").
 		Preload("UpdatedByUser.OrganizationUnit1").
+		Preload("RiskMatrixRating").
+		Preload("RiskMatrixRatingValue").
 		Preload("Risks").
 		Preload("Risks.Risk").
 		Preload("Incidents").
