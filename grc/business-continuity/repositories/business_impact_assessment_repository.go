@@ -12,6 +12,7 @@ type BusinessImpactAssessmentRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAllImpactAnalysis(params *businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO) ([]*businessContinuityDTOs.BusinessImpactAssessmentListDTO, error)
 	GetAllRecoveryObjectives(params *businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO) ([]*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListDTO, error)
+	GetProcessDetails(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error)
 	CreateBusinessImpactAssessment(businessImpactAssessment *models.BusinessImpactAssessment, tx ...utility.DatabaseTransaction) error
 	UpdateBusinessImpactAssessment(businessImpactAssessment *models.BusinessImpactAssessment, tx ...utility.DatabaseTransaction) error
 	CreateRecoveryObjective(businessImpactAssessmentRecoveryObjective *models.BusinessImpactAssessmentRecoveryObjective, tx ...utility.DatabaseTransaction) error
@@ -276,6 +277,49 @@ func (repo *BusinessImpactAssessmentRepository) GetAllRecoveryObjectives(params 
 	}
 
 	return recoveryObjectives, nil
+}
+
+func (repo *BusinessImpactAssessmentRepository) GetProcessDetails(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var process *models.Process
+
+	result := db.
+		Preload("ProcessGroup").
+		Preload("OwnerUnit").
+		Preload("Owner").
+		Preload("Owner.OrganizationUnit1").
+		Preload("LifecycleStatus").
+		Preload("CreatedByUser").
+		Preload("CreatedByUser.OrganizationUnit1").
+		Preload("UpdatedByUser").
+		Preload("UpdatedByUser.OrganizationUnit1").
+		Preload("Risks").
+		Preload("Risks.Risk").
+		Preload("Incidents").
+		Preload("Incidents.IncidentRegister").
+		Preload("RtoUnit").
+		Preload("MtpdUnit").
+		Preload("RpoUnit").
+		Preload("RiskLevel").
+		Preload("ProcessCriticalityLevel").
+		Preload("LastAssessedByUser").
+		Preload("BusinessImpactAssessments").
+		Preload("ProcessDependencies").
+		Preload("ProcessDependencies.RtoUnit").
+		Preload("ProcessDependencies.MtpdUnit").
+		Preload("ProcessDependencies.RpoUnit").
+		Preload("ProcessDependencies.ProcessDependencySubType").
+		Preload("ProcessDependencies.ProcessDependencySubType.ProcessDependencyType").
+		First(&process, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return process, nil
 }
 
 func (repo *BusinessImpactAssessmentRepository) CreateBusinessImpactAssessment(businessImpactAssessment *models.BusinessImpactAssessment, tx ...utility.DatabaseTransaction) error {

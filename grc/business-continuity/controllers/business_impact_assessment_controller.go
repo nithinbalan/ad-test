@@ -463,7 +463,7 @@ func (biac *BusinessImpactAssessmentController) GetProcessDetails(c *gin.Context
 		return
 	}
 
-	process, err := biac.processSvc.GetFullDetailsByID(uint(processID))
+	process, err := biac.service.GetProcessDetails(uint(processID))
 	if err != nil {
 		utility.SendInternalErrResp(biac.db, c, err.Error())
 		return

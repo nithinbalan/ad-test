@@ -1,5 +1,12 @@
 package dtos
 
+import (
+	masterDTOs "jethur/grc/masters/dtos"
+	organizationDTOs "jethur/grc/organization/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
+	"time"
+)
+
 type BusinessImpactAssessmentListDTO struct {
 	ID                          uint    `json:"id"`
 	ProcessID                   *uint   `json:"process_id"`
@@ -206,4 +213,59 @@ type BIAMatrixQueryParamsDTO struct {
 	Filters     map[string][]string
 	Export      bool
 	QuickFilter []string
+}
+
+type BIAProcessDetailDTO struct {
+	ID                        uint                                           `json:"id"`
+	ReferenceNumber           string                                         `json:"reference_number"`
+	TitleEn                   string                                         `json:"title_en"`
+	TitleAr                   string                                         `json:"title_ar"`
+	Description               *string                                        `json:"description"`
+	ProcessGroup              *organizationDTOs.ProcessGroupDTO              `json:"process_group"`
+	OwnerUnit                 *settingsDTOs.OrganizationUnitDTO              `json:"owner_unit"`
+	OwnerID                   *uint                                          `json:"owner_id"`
+	Owner                     *organizationDTOs.UserMinimalDTO               `json:"owner"`
+	CreatedByUser             organizationDTOs.UserMinimalDTO                `json:"created_by"`
+	UpdatedByUser             *organizationDTOs.UserMinimalDTO               `json:"updated_by"`
+	LifecycleStatus           masterDTOs.LifecycleStatusDTO                  `json:"status"`
+	Rto                       *int                                           `json:"rto"`
+	RtoUnitId                 *uint                                          `json:"rto_uint_id"`
+	RtoUnit                   masterDTOs.TimeUnitDTO                         `json:"rto_unit"`
+	Mtpd                      *int                                           `json:"mtpd"`
+	MtpdUnitId                *uint                                          `json:"mtpd_uint_id"`
+	MtpdUnit                  masterDTOs.TimeUnitDTO                         `json:"mtpd_unit"`
+	Rpo                       *int                                           `json:"rpo"`
+	RpoUnitId                 *uint                                          `json:"rpo_uint_id"`
+	RpoUnit                   masterDTOs.TimeUnitDTO                         `json:"rpo_unit"`
+	RiskLevelId               *uint                                          `json:"risk_level_id"`
+	LastAssessedAt            *time.Time                                     `json:"last_assessed_at"`
+	LastAssessedByID          *uint                                          `json:"last_assessed_by_id"`
+	LastAssessedByUser        *organizationDTOs.UserMinimalDTO               `json:"last_assessed_by"`
+	IsBiaPerformed            bool                                           `json:"is_bia_performed"`
+	CreatedAt                 time.Time                                      `json:"created_at"`
+	UpdatedAt                 *time.Time                                     `json:"updated_at"`
+	MarkedAsAuditableItem     bool                                           `json:"marked_as_auditable_item"`
+	RiskLevel                 *organizationDTOs.RiskLevelDTO                 `json:"risk_level"`
+	ImpactJustification       *string                                        `json:"impact_justification"`
+	CriticalityJustification  *string                                        `json:"criticality_justification"`
+	ProcessCriticalityLevel   *organizationDTOs.ProcessCriticalityLevelDTO   `json:"process_criticality_level"`
+	BusinessImpactAssessments []*BusinessImpactAssessmentDTO                 `json:"business_impact_assessments"`
+	ProcessDependencies       []*organizationDTOs.ProcessDependencyDetailDTO `json:"process_dependencies"`
+	Risks                     []*organizationDTOs.ProcessRiskDTO             `json:"risks"`
+	Incidents                 []*ProcessIncidentDTO                          `json:"incidents"`
+}
+
+type ProcessIncidentDTO struct {
+	ID                 *uint              `json:"id"`
+	ProcessID          uint               `json:"process_id"`
+	IncidentRegisterID uint               `json:"incident_register_id"`
+	IncidentRegister   IncidentMinimalDTO `json:"incident_register"`
+}
+
+type IncidentMinimalDTO struct {
+	ID          uint      `json:"id"`
+	Title       string    `json:"title"`
+	Description *string   `json:"description"`
+	IncidentAt  time.Time `json:"incident_at"`
+	Location    *string   `json:"location"`
 }
