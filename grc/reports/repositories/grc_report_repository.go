@@ -45,6 +45,11 @@ type GRCReportRepositoryInterface interface {
 	DeleteGRCReportGovernanceTasks(grcReportID uint, tx ...utility.DatabaseTransaction) error
 
 	ReorderGRCReportSections(grcReportID uint, deletedOrderNum int, tx ...utility.DatabaseTransaction) error
+
+	// risk section
+	CreateGRCReportRiskSummary(summary *models.GRCReportRiskSummary, tx ...utility.DatabaseTransaction) error
+	GetRisksByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]*models.RiskRegister, error)
+	GetHighestActiveRiskRatingType(tx ...utility.DatabaseTransaction) (string, error)
 }
 
 type GRCReportRepository struct {
@@ -546,4 +551,50 @@ func (repo *GRCReportRepository) AllUserCount(tx ...utility.DatabaseTransaction)
 	var count int64
 	err := db.Model(&models.User{}).Count(&count).Error
 	return count, err
+}
+
+//risk report section
+
+func (repo *GRCReportRepository) GetRisksByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]*models.RiskRegister, error) {
+	var risks []*models.RiskRegister
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	err := db.Preload("RiskCategory").
+		Preload("RiskResponseStrategy").
+		Preload("CurrentRiskRating").
+		Preload("KRIs.KriRegister").
+		Where("reported_at BETWEEN ? AND ?", startDate, endDate).
+		Find(&risks).Error
+
+	return risks, err
+}
+
+func (repo *GRCReportRepository) CreateGRCReportRiskSummary(summary *models.GRCReportRiskSummary, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(summary).Error
+}
+
+func (repo *GRCReportRepository) GetHighestActiveRiskRatingType(tx ...utility.DatabaseTransaction) (string, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var ratingType string
+	err := db.Table("risk_matrix_risk_ratings").
+		Where("status = ?", "active").
+		Order("CASE type WHEN 'very_high' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 WHEN 'very_low' THEN 5 END").
+		Limit(1).
+		Pluck("type", &ratingType).Error
+	if err != nil || ratingType == "" {
+		return "", fmt.Errorf("failed to fetch highest risk rating type: %w", err)
+	}
+	return ratingType, nil
 }

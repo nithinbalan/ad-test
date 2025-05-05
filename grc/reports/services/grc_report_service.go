@@ -7,6 +7,7 @@ import (
 	"jethur/grc/models"
 	"jethur/grc/reports/dtos"
 	"jethur/grc/reports/repositories"
+	riskServices "jethur/grc/risk/services"
 	settingServices "jethur/grc/settings/services"
 	"jethur/utility"
 	"math"
@@ -26,20 +27,23 @@ type GRCReportServiceInterface interface {
 }
 
 type GRCReportService struct {
-	repo                 repositories.GRCReportRepositoryInterface
-	activityLogSvc       logServices.ActivityLogServiceInterface
-	organizationLevelSvc settingServices.OrganizationLevelServiceInterface
+	repo                    repositories.GRCReportRepositoryInterface
+	activityLogSvc          logServices.ActivityLogServiceInterface
+	organizationLevelSvc    settingServices.OrganizationLevelServiceInterface
+	riskResponseStrategySvc riskServices.RiskResponseStrategyServiceInterface
 }
 
 func NewGRCReportService(
 	repo repositories.GRCReportRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	organizationLevelSvc settingServices.OrganizationLevelServiceInterface,
+	riskResponseStrategySvc riskServices.RiskResponseStrategyServiceInterface,
 ) GRCReportServiceInterface {
 	return &GRCReportService{
-		repo:                 repo,
-		activityLogSvc:       activityLogSvc,
-		organizationLevelSvc: organizationLevelSvc,
+		repo:                    repo,
+		activityLogSvc:          activityLogSvc,
+		organizationLevelSvc:    organizationLevelSvc,
+		riskResponseStrategySvc: riskResponseStrategySvc,
 	}
 }
 
@@ -152,6 +156,7 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		}
 	}
 
+	//governance report section
 	documents, err := grs.repo.GetPolicyDocumentByDateRange(*dates.StartDate, *dates.EndDate, tx)
 	if err != nil {
 		tx.Rollback()
@@ -285,6 +290,81 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 	if err := grs.repo.CreateGRCReportGovernanceSummary(grcSummary, tx); err != nil {
 		tx.Rollback()
 		return 0, fmt.Errorf("failed to insert grc_report_governance_summary: %w", err)
+	}
+
+	// risk report section
+	risks, err := grs.repo.GetRisksByDateRange(*dates.StartDate, *dates.EndDate, tx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch risks: %w", err)
+	}
+
+	var totalRisks int
+	criticalCategorySet := make(map[string]struct{})
+	var riskScoreSummaryParts []string
+	var riskKRIs []*models.RiskKri
+	totalRisks = len(risks)
+
+	highestRatingType, err := grs.repo.GetHighestActiveRiskRatingType(tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	for _, risk := range risks {
+		if risk.CurrentRiskRating != nil && risk.CurrentRiskRating.Type == highestRatingType {
+			if risk.RiskCategory != nil {
+				criticalCategorySet[risk.RiskCategory.TitleEn] = struct{}{}
+			}
+		}
+		if risk.CurrentRiskRating != nil {
+			part := fmt.Sprintf("- %s risk with strategy: %s", risk.CurrentRiskRating.TitleEn, risk.RiskResponseStrategy.TitleEn)
+			riskScoreSummaryParts = append(riskScoreSummaryParts, part)
+		}
+		if risk.KRIs != nil {
+			riskKRIs = append(riskKRIs, risk.KRIs...)
+		}
+	}
+
+	strategies, err := grs.riskResponseStrategySvc.GetAll("", "", "", "active")
+	if err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to fetch active risk response strategies: %w", err)
+	}
+	var riskStrategies []string
+	for _, s := range strategies {
+		riskStrategies = append(riskStrategies, s.TitleEn)
+	}
+
+	var criticalCategories []string
+	for title := range criticalCategorySet {
+		criticalCategories = append(criticalCategories, title)
+	}
+
+	var kriSummaries []string
+	for _, rk := range riskKRIs {
+		if rk.KriRegister != nil && rk.KriRegister.Title != "" {
+			value := "- " + rk.KriRegister.Title
+			if rk.KriRegister.CurrentValue != nil {
+				value += fmt.Sprintf(" %d%%", *rk.KriRegister.CurrentValue)
+			}
+			kriSummaries = append(kriSummaries, value)
+		}
+	}
+
+	strPtr := func(s string) *string { return &s }
+
+	summary := &models.GRCReportRiskSummary{
+		GRCReportID:         grcReportID,
+		RiskIdentifiedCount: totalRisks,
+		CriticalRisks:       strPtr(strings.Join(criticalCategories, ", ")),
+		TreatmentStrategies: strPtr(strings.Join(riskStrategies, ", ")),
+		RiskScoreSummary:    strPtr(strings.Join(riskScoreSummaryParts, "\n")),
+		KRIs:                strPtr(strings.Join(kriSummaries, "\n")),
+		CreatedBYID:         currentUserID,
+	}
+
+	if err := grs.repo.CreateGRCReportRiskSummary(summary, tx); err != nil {
+		return 0, fmt.Errorf("failed to insert grc_report_risk_summary: %w", err)
 	}
 
 	tx.Commit()
