@@ -83,6 +83,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationalContextRoutes.PUT("/pestel-questions/:questionId/answer-invitees/delete", middlewares.RolePermissionMiddleware(db, "pestel_analysis", "modify"), swotPestelQuestionController.DeleteInvitees)
 
 	// swot pestel question factor
+	organizationalContextRoutes.GET("/pestel-questions/factors", swotPestelQuestionFactorController.GetAllSwotPestelFactors)
 	organizationalContextRoutes.GET("/pestel-questions/:questionId/factors", swotPestelQuestionFactorController.GetAllSwotPestelQuestionFactors)
 	organizationalContextRoutes.GET("/pestel-questions/:questionId/factors/:id", swotPestelQuestionFactorController.GetSwotPestelQuestionFactorDetails)
 	organizationalContextRoutes.POST("/pestel-questions/:questionId/factors", middlewares.RolePermissionMiddleware(db, "pestel_analysis", "modify"), swotPestelQuestionFactorController.CreateSwotPestelQuestionFactor)
