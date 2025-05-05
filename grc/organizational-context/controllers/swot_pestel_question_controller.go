@@ -320,3 +320,26 @@ func (sqc *SwotPestelQuestionController) DeleteInvitees(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (sqc *SwotPestelQuestionController) GetSwotPestelQuestionSummary(c *gin.Context) {
+
+	isSwot := c.Query("is_swot")
+	isPestel := c.Query("is_pestel")
+
+	summary, err := sqc.service.GetSwotPestelQuestionSummary(isSwot, isPestel)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(sqc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, summary)
+}

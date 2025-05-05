@@ -28,6 +28,8 @@ type SwotPestelQuestionServiceInterface interface {
 	UpdateAnswer(id uint, currentUserID uint, answerFormDTO *organizationalContextDTOs.AnswerFormDTO) error
 	CreateInvitees(id uint, currentUserID uint, inviteeFormDTO *organizationalContextDTOs.InviteeFormDTO) error
 	DeleteInvitees(questionId uint, ids []*uint, currentUserID uint) ([]uint, error)
+
+	GetSwotPestelQuestionSummary(isSwot string, isPestel string) (*organizationalContextDTOs.SwotPestelQuestionSummaryDTO, error)
 }
 
 // Service and implementations
@@ -447,4 +449,18 @@ func (spqfs *SwotPestelQuestionService) DeleteInvitees(questionId uint, ids []*u
 	}
 
 	return failedIds, nil
+}
+
+func (spqfs *SwotPestelQuestionService) GetSwotPestelQuestionSummary(isSwot string, isPestel string) (*organizationalContextDTOs.SwotPestelQuestionSummaryDTO, error) {
+	unansweredCount, answeredCount, err := spqfs.repo.GetSwotPestelQuestionSummary(isSwot, isPestel)
+	if err != nil {
+		return nil, err
+	}
+
+	summary := &organizationalContextDTOs.SwotPestelQuestionSummaryDTO{
+		UnansweredCount: unansweredCount,
+		AnsweredCount:   answeredCount,
+	}
+
+	return summary, nil
 }

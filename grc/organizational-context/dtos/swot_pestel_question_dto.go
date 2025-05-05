@@ -72,3 +72,9 @@ type SwotPestelQuestionInviteeDTO struct {
 	UserID               uint                            `json:"user_id"`
 	User                 organizationDTOs.UserMinimalDTO `json:"user"`
 }
+
+type SwotPestelQuestionSummaryDTO struct {
+	UnansweredCount int `json:"unanswered_count"`
+	AnsweredCount   int `json:"answered_count"`
+	TotalCount      int `json:"total_count"`
+}
