@@ -195,3 +195,15 @@ type TopFiveRiskDTO struct {
 
 	ExistingControls *string `json:"existing_controls"`
 }
+
+type GRCReportRiskKRIDTO struct {
+	RiskRegisterTitle        string  `json:"risk_register_title"`
+	KRIRegisterTitle         string  `json:"kri_register_title"`
+	KRIRegisterDescription   *string `json:"kri_register_description"`
+	LowThreshold             *int    `json:"low_threshold"`
+	MediumThreshold          *int    `json:"medium_threshold"`
+	CurrentValue             *int    `json:"current_value"`
+	RiskStatusTitleEn        string  `json:"risk_status_title_en"`
+	RiskStatusTitleAr        string  `json:"risk_status_title_ar"`
+	RiskStatusTitleColorCode string  `json:"risk_status_title_color_code"`
+}

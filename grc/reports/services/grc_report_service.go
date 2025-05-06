@@ -422,6 +422,33 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		}
 	}
 
+	kriRecords, err := grs.repo.GetKRIsByDateRange(*dates.StartDate, *dates.EndDate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to fetch KRIs: %w", err)
+	}
+
+	for _, kri := range kriRecords {
+		reportKRI := &models.GRCReportRiskKRI{
+			GRCReportID:              grcReportID,
+			RiskRegisterTitle:        kri.RiskRegisterTitle,
+			KRIRegisterTitle:         kri.KRIRegisterTitle,
+			KRIRegisterDescription:   kri.KRIRegisterDescription,
+			LowThreshold:             kri.LowThreshold,
+			MediumThreshold:          kri.MediumThreshold,
+			CurrentValue:             kri.CurrentValue,
+			RiskStatusTitleEn:        kri.RiskStatusTitleEn,
+			RiskStatusTitleAr:        kri.RiskStatusTitleAr,
+			RiskStatusTitleColorCode: kri.RiskStatusTitleColorCode,
+			CreatedBYID:              currentUserID,
+		}
+
+		if err := grs.repo.CreateGRCReportRiskKRI(reportKRI, tx); err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to insert KRI into report: %w", err)
+		}
+	}
+
 	tx.Commit()
 
 	go func() {

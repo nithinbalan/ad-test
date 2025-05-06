@@ -53,6 +53,8 @@ type GRCReportRepositoryInterface interface {
 	GetTopFiveRisksByRatingValue(startDate time.Time, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.TopFiveRiskDTO, error)
 	CreateGRCReportRiskTopFive(topFive *models.GRCReportRiskTopFive, tx ...utility.DatabaseTransaction) error
 	GetControlTitlesByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]string, error)
+	GetKRIsByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.GRCReportRiskKRIDTO, error)
+	CreateGRCReportRiskKRI(riskKri *models.GRCReportRiskKRI, tx ...utility.DatabaseTransaction) error
 }
 
 type GRCReportRepository struct {
@@ -689,4 +691,45 @@ func (repo *GRCReportRepository) GetControlTitlesByRiskID(riskID uint, tx ...uti
 		Pluck("controls.title_en", &titles).Error
 
 	return titles, err
+}
+
+func (repo *GRCReportRepository) GetKRIsByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.GRCReportRiskKRIDTO, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var results []dtos.GRCReportRiskKRIDTO
+
+	err := db.Table("risk_kris").
+		Select(`
+			risk_register.title AS risk_register_title,
+			kri_register.title AS kri_register_title,
+			kri_register.description AS kri_register_description,
+			kri_register.low_threshold,
+			kri_register.medium_threshold,
+			kri_register.current_value,
+			risk_statuses.title_en AS risk_status_title_en,
+			risk_statuses.title_ar AS risk_status_title_ar,
+			risk_statuses.color_code AS risk_status_title_color_code
+		`).
+		Joins("INNER JOIN risk_register ON risk_register.id = risk_kris.risk_register_id").
+		Joins("INNER JOIN kri_register ON kri_register.id = risk_kris.kri_register_id").
+		Joins("LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
+		Where("risk_register.reported_at BETWEEN ? AND ?", startDate, endDate).
+		Find(&results).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (repo *GRCReportRepository) CreateGRCReportRiskKRI(riskKri *models.GRCReportRiskKRI, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(riskKri).Error
 }
