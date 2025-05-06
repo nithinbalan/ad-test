@@ -46,8 +46,12 @@ func (tpqlc *ThirdPartyQuestionLibraryController) GetAllThirdPartyQuestionLibrar
 	}
 
 	validSortFields := map[string]string{
-		"question_title_en": "third_party_question_libraries.question_title_en",
-		"question_title_ar": "third_party_question_libraries.question_title_ar",
+		"question_title_en":                      "third_party_question_libraries.question_title_en",
+		"question_title_ar":                      "third_party_question_libraries.question_title_ar",
+		"third_party_question_category_title_en": "third_party_question_categories.title_en",
+		"third_party_question_category_title_ar": "third_party_question_categories.title_ar",
+		"third_party_question_type_title_en":     "third_party_question_types.title_en",
+		"third_party_question_type_title_ar":     "third_party_question_types.title_ar",
 	}
 
 	sortField, valid := validSortFields[sortBy]
