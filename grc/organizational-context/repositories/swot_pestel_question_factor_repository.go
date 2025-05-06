@@ -167,6 +167,11 @@ func (repo *SwotPestelQuestionFactorRepository) GetAllFactors(params *organizati
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
+
+	if params.CategoryType != "" {
+		query = query.Where("swot_pestel_categories.type = ?", params.CategoryType)
+	}
+
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
