@@ -55,6 +55,8 @@ type GRCReportRepositoryInterface interface {
 	GetControlTitlesByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]string, error)
 	GetKRIsByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.GRCReportRiskKRIDTO, error)
 	CreateGRCReportRiskKRI(riskKri *models.GRCReportRiskKRI, tx ...utility.DatabaseTransaction) error
+	GetRiskControlsByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.RiskControlReportDTO, error)
+	CreateGRCReportRiskControl(control *models.GRCReportRiskControl, tx ...utility.DatabaseTransaction) error
 }
 
 type GRCReportRepository struct {
@@ -732,4 +734,62 @@ func (repo *GRCReportRepository) CreateGRCReportRiskKRI(riskKri *models.GRCRepor
 		db = tx[0].DB()
 	}
 	return db.Create(riskKri).Error
+}
+
+func (repo *GRCReportRepository) GetRiskControlsByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.RiskControlReportDTO, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var controls []dtos.RiskControlReportDTO
+
+	err := db.Table("risk_controls").
+		Select(`
+			controls.code AS control_code,
+			control_categories.title_en AS control_category_title_en,
+			control_categories.title_ar AS control_category_title_ar,
+			controls.title_en AS title,
+			controls.description,
+			responsible_user.first_name_en + ' ' + responsible_user.last_name_en AS responsible_user_name_en,
+			responsible_user.first_name_ar + ' ' + responsible_user.last_name_ar AS responsible_user_name_ar,
+			owner_units.title_en AS responsible_unit_title_en,
+			owner_units.title_ar AS responsible_unit_title_ar,
+			implementation_status.title_en AS control_implementation_status_title_en,
+			implementation_status.title_ar AS control_implementation_status_title_ar,
+			implementation_status.color_code AS control_implementation_status_color_code,
+			efficiency_status.title_en AS control_efficiency_status_title_en,
+			efficiency_status.title_ar AS control_efficiency_status_title_ar,
+			efficiency_status.color_code AS control_efficiency_status_color_code,
+			test_frequency.title_en AS test_frequency_title_en,
+			test_frequency.title_ar AS test_frequency_title_ar,
+			controls.next_test_date,
+			test_user.first_name_en + ' ' + test_user.last_name_en AS test_responsible_user_name_en,
+			test_user.first_name_ar + ' ' + test_user.last_name_ar AS test_responsible_user_name_ar
+		`).
+		Joins("LEFT JOIN controls ON controls.id = risk_controls.control_id").
+		Joins("LEFT JOIN control_categories ON control_categories.id = controls.control_category_id").
+		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = controls.owner_id").
+		Joins("LEFT JOIN organization_units AS owner_units ON owner_units.id = controls.owner_unit_id").
+		Joins("LEFT JOIN control_implementation_statuses AS implementation_status ON implementation_status.id = controls.control_implementation_status_id").
+		Joins("LEFT JOIN control_efficiency_statuses AS efficiency_status ON efficiency_status.id = controls.control_efficiency_status_id").
+		Joins("LEFT JOIN review_frequencies AS test_frequency ON test_frequency.id = controls.test_frequency_id").
+		Joins("LEFT JOIN users AS test_user ON test_user.id = controls.test_responsible_user_id").
+		Joins("LEFT JOIN risk_register ON risk_register.id = risk_controls.risk_register_id").
+		Where("risk_register.reported_at BETWEEN ? AND ?", startDate, endDate).
+		Find(&controls).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return controls, nil
+}
+
+func (repo *GRCReportRepository) CreateGRCReportRiskControl(control *models.GRCReportRiskControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(control).Error
 }

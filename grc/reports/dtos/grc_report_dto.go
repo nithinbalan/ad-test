@@ -207,3 +207,26 @@ type GRCReportRiskKRIDTO struct {
 	RiskStatusTitleAr        string  `json:"risk_status_title_ar"`
 	RiskStatusTitleColorCode string  `json:"risk_status_title_color_code"`
 }
+
+type RiskControlReportDTO struct {
+	ControlCode                          string     `json:"control_code"`
+	ControlCategoryTitleEn               string     `json:"control_category_title_en"`
+	ControlCategoryTitleAr               string     `json:"control_category_title_ar"`
+	Title                                string     `json:"title"`
+	Description                          *string    `json:"description"`
+	ResponsibleUserNameEn                string     `json:"responsible_user_name_en"`
+	ResponsibleUserNameAr                string     `json:"responsible_user_name_ar"`
+	ResponsibleUnitTitleEn               string     `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr               string     `json:"responsible_unit_title_ar"`
+	ControlImplementationStatusTitleEn   string     `json:"control_implementation_status_title_en"`
+	ControlImplementationStatusTitleAr   string     `json:"control_implementation_status_title_ar"`
+	ControlImplementationStatusColorCode string     `json:"control_implementation_status_color_code"`
+	ControlEfficiencyStatusTitleEn       string     `json:"control_efficiency_status_title_en"`
+	ControlEfficiencyStatusTitleAr       string     `json:"control_efficiency_status_title_ar"`
+	ControlEfficiencyStatusColorCode     string     `json:"control_efficiency_status_color_code"`
+	TestFrequencyTitleEn                 *string    `json:"test_frequency_title_en"`
+	TestFrequencyTitleAr                 *string    `json:"test_frequency_title_ar"`
+	NextTestDate                         *time.Time `json:"next_test_date"`
+	TestResponsibleUserNameEn            *string    `json:"test_responsible_user_name_en"`
+	TestResponsibleUserNameAr            *string    `json:"test_responsible_user_name_ar"`
+}

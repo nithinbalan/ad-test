@@ -25,8 +25,11 @@ type GRCReportRiskControl struct {
 	NextTestDate                         *time.Time `json:"next_test_date" gorm:"type:date"`
 	TestResponsibleUserNameEn            *string    `json:"test_responsible_user_name_en" gorm:"type:nvarchar(255)"`
 	TestResponsibleUserNameAr            *string    `json:"test_responsible_user_name_ar" gorm:"type:nvarchar(255)"`
+	CreatedBYID                          uint       `json:"created_by_id" gorm:"not null"`
+	CreatedAt                            time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 
-	GRCReport *GRCReport `gorm:"foreignKey:GRCReportID;constraint:OnUpdate:NO ACTION,OnDelete:CASCADE"`
+	GRCReport     *GRCReport `gorm:"foreignKey:GRCReportID;constraint:OnUpdate:NO ACTION,OnDelete:CASCADE"`
+	CreatedByUser *User      `gorm:"foreignKey:CreatedBYID"`
 }
 
 func (GRCReportRiskControl) TableName() string {

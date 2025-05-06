@@ -449,6 +449,44 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		}
 	}
 
+	riskControls, err := grs.repo.GetRiskControlsByDateRange(*dates.StartDate, *dates.EndDate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to fetch risk controls: %w", err)
+	}
+
+	for _, control := range riskControls {
+		controlRecord := &models.GRCReportRiskControl{
+			GRCReportID:                          grcReportID,
+			ControlCode:                          control.ControlCode,
+			ControlCategoryTitleEn:               control.ControlCategoryTitleEn,
+			ControlCategoryTitleAr:               control.ControlCategoryTitleAr,
+			Title:                                control.Title,
+			Description:                          control.Description,
+			ResponsibleUserNameEn:                control.ResponsibleUserNameEn,
+			ResponsibleUserNameAr:                control.ResponsibleUserNameAr,
+			ResponsibleUnitTitleEn:               control.ResponsibleUnitTitleEn,
+			ResponsibleUnitTitleAr:               control.ResponsibleUnitTitleAr,
+			ControlImplementationStatusTitleEn:   control.ControlImplementationStatusTitleEn,
+			ControlImplementationStatusTitleAr:   control.ControlImplementationStatusTitleAr,
+			ControlImplementationStatusColorCode: control.ControlImplementationStatusColorCode,
+			ControlEfficiencyStatusTitleEn:       control.ControlEfficiencyStatusTitleEn,
+			ControlEfficiencyStatusTitleAr:       control.ControlEfficiencyStatusTitleAr,
+			ControlEfficiencyStatusColorCode:     control.ControlEfficiencyStatusColorCode,
+			TestFrequencyTitleEn:                 control.TestFrequencyTitleEn,
+			TestFrequencyTitleAr:                 control.TestFrequencyTitleAr,
+			NextTestDate:                         control.NextTestDate,
+			TestResponsibleUserNameEn:            control.TestResponsibleUserNameEn,
+			TestResponsibleUserNameAr:            control.TestResponsibleUserNameAr,
+			CreatedBYID:                          currentUserID,
+		}
+
+		if err := grs.repo.CreateGRCReportRiskControl(controlRecord, tx); err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to insert risk control record: %w", err)
+		}
+	}
+
 	tx.Commit()
 
 	go func() {
