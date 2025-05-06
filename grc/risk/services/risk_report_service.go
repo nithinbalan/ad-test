@@ -883,8 +883,15 @@ func (rrs *RiskReportService) GetRiskReportExportZip(riskReportID uint, currentU
 	}
 
 	// Step 4: Create ZIP archive
-	zipFilePath := fmt.Sprintf("tmp/risk_report_%d.zip", riskReportID)
+	// zipFilePath := fmt.Sprintf("tmp/risk_report_%d.zip", riskReportID)
 	// filesToZip := []string{pdfFileName} // add more files if needed
+	zipDir := "tmp"
+	zipFilePath := filepath.Join(zipDir, fmt.Sprintf("risk_report_%d.zip", riskReportID))
+
+	// Ensure the directory exists
+	if err := os.MkdirAll(zipDir, os.ModePerm); err != nil {
+		return "", fmt.Errorf("failed to create directory %s: %w", zipDir, err)
+	}
 
 	err = utility.CreateZipFile(zipFilePath, filesToZip)
 	if err != nil {
