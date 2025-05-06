@@ -146,3 +146,51 @@ type DocumentAcknowledgmentSummaryDTO struct {
 	AcknowledgedPercent    float64 `json:"acknowledged_percent"`
 	NotAcknowledgedPercent float64 `json:"not_acknowledged_percent"`
 }
+
+type TopFiveRiskDTO struct {
+	ReferenceNumber string  `json:"reference_number"`
+	Title           string  `json:"title"`
+	Description     *string `json:"description"`
+
+	RiskCategoryTitleEn *string `json:"risk_category_title_en"`
+	RiskCategoryTitleAr *string `json:"risk_category_title_ar"`
+
+	ResponsibleUserFirstNameEn string `json:"-"`
+	ResponsibleUserLastNameEn  string `json:"-"`
+	ResponsibleUserFirstNameAr string `json:"-"`
+	ResponsibleUserLastNameAr  string `json:"-"`
+
+	ResponsibleUserNameEn *string `json:"responsible_user_name_en"`
+	ResponsibleUserNameAr *string `json:"responsible_user_name_ar"`
+
+	ResponsibleUnitTitleEn *string `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr *string `json:"responsible_unit_title_ar"`
+
+	RiskStatusType *string `json:"risk_status_type"`
+	IsOpen         bool    `json:"is_open"`
+
+	InherentRiskRatingTitleEn   *string `json:"inherent_risk_rating_title_en"`
+	InherentRiskRatingTitleAr   *string `json:"inherent_risk_rating_title_ar"`
+	InherentRiskRatingColorCode *string `json:"inherent_risk_rating_color_code"`
+	InherentRiskRatingScore     *uint   `json:"inherent_risk_rating_score"`
+
+	InherentLikelihoodTitleEn *string `json:"inherent_likelihood_title_en"`
+	InherentLikelihoodTitleAr *string `json:"inherent_likelihood_title_ar"`
+	InherentImpactTitleEn     *string `json:"inherent_impact_title_en"`
+	InherentImpactTitleAr     *string `json:"inherent_impact_title_ar"`
+
+	ResidualRiskRatingTitleEn   *string `json:"residual_risk_rating_title_en"`
+	ResidualRiskRatingTitleAr   *string `json:"residual_risk_rating_title_ar"`
+	ResidualRiskRatingColorCode *string `json:"residual_risk_rating_color_code"`
+	ResidualRiskRatingScore     *uint   `json:"residual_risk_rating_score"`
+
+	ResidualLikelihoodTitleEn *string `json:"residual_likelihood_title_en"`
+	ResidualLikelihoodTitleAr *string `json:"residual_likelihood_title_ar"`
+	ResidualImpactTitleEn     *string `json:"residual_impact_title_en"`
+	ResidualImpactTitleAr     *string `json:"residual_impact_title_ar"`
+
+	RiskResponseStrategyTitleEn *string `json:"risk_response_strategy_title_en"`
+	RiskResponseStrategyTitleAr *string `json:"risk_response_strategy_title_ar"`
+
+	ExistingControls *string `json:"existing_controls"`
+}

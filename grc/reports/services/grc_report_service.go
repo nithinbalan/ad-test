@@ -367,6 +367,54 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		return 0, fmt.Errorf("failed to insert grc_report_risk_summary: %w", err)
 	}
 
+	// Top 5 Risks based on Current Risk Rating Value (descending order)
+	topFiveRisks, err := grs.repo.GetTopFiveRisksByRatingValue(*dates.StartDate, *dates.EndDate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to fetch top five risks: %w", err)
+	}
+
+	for _, risk := range topFiveRisks {
+		topFive := &models.GRCReportRiskTopFive{
+			GRCReportID:                 grcReportID,
+			RiskReferenceNumber:         risk.ReferenceNumber,
+			RiskCategoryTitleEn:         *risk.RiskCategoryTitleEn,
+			RiskCategoryTitleAr:         *risk.RiskCategoryTitleAr,
+			Title:                       risk.Title,
+			Description:                 risk.Description,
+			ResponsibleUserNameEn:       *risk.ResponsibleUserNameEn,
+			ResponsibleUserNameAr:       *risk.ResponsibleUserNameAr,
+			ResponsibleUnitTitleEn:      *risk.ResponsibleUnitTitleEn,
+			ResponsibleUnitTitleAr:      *risk.ResponsibleUnitTitleAr,
+			IsOpen:                      strings.ToLower(*risk.RiskStatusType) == "open",
+			InherentRiskRatingTitleEn:   risk.InherentRiskRatingTitleEn,
+			InherentRiskRatingTitleAr:   risk.InherentRiskRatingTitleAr,
+			InherentRiskRatingColorCode: risk.InherentRiskRatingColorCode,
+			InherentRiskRatingScore:     risk.InherentRiskRatingScore,
+			InherentLikelihoodTitleEn:   risk.InherentLikelihoodTitleEn,
+			InherentLikelihoodTitleAr:   risk.InherentLikelihoodTitleAr,
+			InherentImpactTitleEn:       risk.InherentImpactTitleEn,
+			InherentImpactTitleAr:       risk.InherentImpactTitleAr,
+			ResidualRiskRatingTitleEn:   risk.ResidualRiskRatingTitleEn,
+			ResidualRiskRatingTitleAr:   risk.ResidualRiskRatingTitleAr,
+			ResidualRiskRatingColorCode: risk.ResidualRiskRatingColorCode,
+			ResidualRiskRatingScore:     risk.ResidualRiskRatingScore,
+			ResidualLikelihoodTitleEn:   risk.ResidualLikelihoodTitleEn,
+			ResidualLikelihoodTitleAr:   risk.ResidualLikelihoodTitleAr,
+			ResidualImpactTitleEn:       risk.ResidualImpactTitleEn,
+			ResidualImpactTitleAr:       risk.ResidualImpactTitleAr,
+			// ExistingControls:            risk.ExistingControls,
+			RiskResponseStrategyTitleEn: risk.RiskResponseStrategyTitleEn,
+			RiskResponseStrategyTitleAr: risk.RiskResponseStrategyTitleAr,
+			ApprovalNote:                nil,
+			CreatedBYID:                 currentUserID,
+		}
+		if err := grs.repo.CreateGRCReportRiskTopFive(topFive, tx); err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to insert top five risk: %w", err)
+		}
+	}
+
 	tx.Commit()
 
 	go func() {
