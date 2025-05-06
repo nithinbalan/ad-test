@@ -32,27 +32,27 @@ type ProcessDependencyListDTO struct {
 }
 
 type ProcessDependencyDetailDTO struct {
-	ID                         uint                        `json:"id"`
-	ProcessID                  uint                        `json:"process_id"`
-	ProcessDependencySubTypeID uint                        `json:"process_dependency_sub_type_id"`
-	ProcessDependencySubType   ProcessDependencySubTypeDTO `json:"process_dependency_sub_type"`
-	DependentProcessID         *uint                       `json:"dependent_process_id"`
-	DependentProcess           *ProcessDetailDTO           `json:"dependent_process"`
-	OrganizationUnitID         *uint                       `json:"organization_unit_id"`
-	OrganizationUnit           *OrganizationUnit1DTO       `json:"organization_unit"`
-	AssetID                    *uint                       `json:"asset_id"`
-	Asset                      *AssetMinimalDTO            `json:"asset"`
-	Title                      string                      `json:"title"`
-	Description                *string                     `json:"description"`
-	Rto                        *int                        `json:"rto"`
-	RtoUnitId                  *uint                       `json:"rto_uint_id"`
-	RtoUnit                    masterDTOs.TimeUnitDTO      `json:"rto_unit"`
-	Mtpd                       *int                        `json:"mtpd"`
-	MtpdUnitId                 *uint                       `json:"mtpd_uint_id"`
-	MtpdUnit                   masterDTOs.TimeUnitDTO      `json:"mtpd_unit"`
-	Rpo                        *int                        `json:"rpo"`
-	RpoUnitId                  *uint                       `json:"rpo_uint_id"`
-	RpoUnit                    masterDTOs.TimeUnitDTO      `json:"rpo_unit"`
+	ID                         uint                              `json:"id"`
+	ProcessID                  uint                              `json:"process_id"`
+	ProcessDependencySubTypeID uint                              `json:"process_dependency_sub_type_id"`
+	ProcessDependencySubType   ProcessDependencySubTypeDetailDTO `json:"process_dependency_sub_type"`
+	DependentProcessID         *uint                             `json:"dependent_process_id"`
+	DependentProcess           *ProcessDetailDTO                 `json:"dependent_process"`
+	OrganizationUnitID         *uint                             `json:"organization_unit_id"`
+	OrganizationUnit           *OrganizationUnit1DTO             `json:"organization_unit"`
+	AssetID                    *uint                             `json:"asset_id"`
+	Asset                      *AssetMinimalDTO                  `json:"asset"`
+	Title                      string                            `json:"title"`
+	Description                *string                           `json:"description"`
+	Rto                        *int                              `json:"rto"`
+	RtoUnitId                  *uint                             `json:"rto_uint_id"`
+	RtoUnit                    masterDTOs.TimeUnitDTO            `json:"rto_unit"`
+	Mtpd                       *int                              `json:"mtpd"`
+	MtpdUnitId                 *uint                             `json:"mtpd_uint_id"`
+	MtpdUnit                   masterDTOs.TimeUnitDTO            `json:"mtpd_unit"`
+	Rpo                        *int                              `json:"rpo"`
+	RpoUnitId                  *uint                             `json:"rpo_uint_id"`
+	RpoUnit                    masterDTOs.TimeUnitDTO            `json:"rpo_unit"`
 }
 
 type ProcessDependencyFormDTO struct {

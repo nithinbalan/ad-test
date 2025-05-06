@@ -94,6 +94,7 @@ func (brpc *SwotPestelQuestionFactorController) GetAllSwotPestelFactors(c *gin.C
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "description")
 	keyword := c.Query("keyword")
+	categoryType := c.Query("type")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -127,12 +128,13 @@ func (brpc *SwotPestelQuestionFactorController) GetAllSwotPestelFactors(c *gin.C
 		return
 	}
 	queryParams := organizationalContextDTOs.SwotPestelQuestionFactorListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortField,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
-		Filters:  filters,
+		Sort:         sort,
+		SortBy:       sortField,
+		Keyword:      keyword,
+		Page:         page,
+		PageSize:     pageSize,
+		Filters:      filters,
+		CategoryType: categoryType,
 	}
 	swotPestelQuestionFactors, err := brpc.service.GetAllFactors(&queryParams)
 
