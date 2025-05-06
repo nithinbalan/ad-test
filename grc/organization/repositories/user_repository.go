@@ -50,6 +50,8 @@ type UserRepositoryInterface interface {
 	GetPermissionsForModule(roleID, moduleID uint) (map[string]bool, error)
 	GetUserRoles(userID uint) ([]models.UserRole, error)
 	GetActiveUserCount() (int64, error)
+
+	UpdateUserOrganizationUnit(userID uint, newDepartmentID uint, newUserID *uint, primaryOrgUnitField string) error
 }
 
 type UserRepository struct {
@@ -781,4 +783,73 @@ func (repo *UserRepository) GetActiveUserCount() (int64, error) {
 		return 0, err
 	}
 	return count, nil
+}
+
+// Updates the responsible_unit_id across all affected tables
+func (repo *UserRepository) UpdateUserOrganizationUnit(userID uint, newDepartmentID uint, newUserID *uint, primaryOrgUnitField string) error {
+	var tables []string
+	query := `
+	SELECT table_name
+	FROM information_schema.columns
+	WHERE column_name IN ('responsible_user_id', 'responsible_unit_id')
+	GROUP BY table_name
+	HAVING COUNT(DISTINCT column_name) = 2;
+`
+	err := repo.db.Raw(query).Scan(&tables).Error
+
+	if err != nil {
+		// handle error
+	}
+
+	tx := repo.db.Begin()
+
+	err = tx.Exec(`
+	UPDATE users 
+	SET `+primaryOrgUnitField+` = ? 
+	WHERE id = ?`,
+		newDepartmentID, userID).Error
+
+	if err != nil {
+		tx.Rollback()
+	}
+
+	if newUserID == nil {
+		for _, table := range tables {
+			query := fmt.Sprintf("UPDATE %s SET responsible_unit_id = ? WHERE responsible_user_id = ?", table)
+			if err := tx.Exec(query, newDepartmentID, userID).Error; err != nil {
+				tx.Rollback()
+				return fmt.Errorf("failed to update table %s: %w", table, err)
+			}
+		}
+	} else if newUserID != nil {
+		for _, table := range tables {
+			query := fmt.Sprintf("UPDATE %s SET responsible_user_id = ? WHERE responsible_user_id = ?", table)
+			if err := tx.Exec(query, newUserID, userID).Error; err != nil {
+				tx.Rollback()
+				return fmt.Errorf("failed to update table %s: %w", table, err)
+			}
+		}
+
+		var statusIDs []int
+		err = tx.Table("task_statuses").
+			Where("is_open = ?", true).
+			Pluck("id", &statusIDs).Error
+
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("failed to fetch task status IDs: %w", err)
+		}
+
+		err = tx.Exec(`
+		UPDATE tasks 
+		SET responsible_user_id = ? 
+		WHERE responsible_user_id = ? AND task_status_id IN (?)`,
+			newUserID, userID, statusIDs).Error
+
+		if err != nil {
+			tx.Rollback()
+		}
+	}
+
+	return tx.Commit().Error
 }

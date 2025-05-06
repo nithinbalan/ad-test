@@ -51,6 +51,8 @@ type UserServiceInterface interface {
 	ExportUsers(data []*userDTOs.UserListDTO, currentUserID uint) (*os.File, error)
 
 	GetUserPermissions(userID uint, params *settingDTOs.ModuleListQueryParamsDTO) (*[]settingDTOs.ModuleListDTO, error)
+
+	UpdateUserOrganizationUnit(userID uint, departmentUpdateFormDTO userDTOs.UpdateOrganizationUnitDTO) error
 }
 
 type UserService struct {
@@ -1036,4 +1038,31 @@ func (us *UserService) validateLicenseKey(licenseKey string) error {
 	}
 
 	return nil
+}
+
+// Handles logic when user's organization unit changes
+func (us *UserService) UpdateUserOrganizationUnit(userID uint, departmentUpdateFormDTO userDTOs.UpdateOrganizationUnitDTO) error {
+	primaryLevel, err := us.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return err
+	}
+
+	var primaryOrgUnitField string
+
+	switch primaryLevel.Level {
+	case 1:
+		primaryOrgUnitField = "organization_unit_1_id"
+	case 2:
+		primaryOrgUnitField = "organization_unit_2_id"
+	case 3:
+		primaryOrgUnitField = "organization_unit_3_id"
+	case 4:
+		primaryOrgUnitField = "organization_unit_4_id"
+	case 5:
+		primaryOrgUnitField = "organization_unit_5_id"
+	default:
+		return fmt.Errorf("unsupported primary level")
+	}
+
+	return us.repo.UpdateUserOrganizationUnit(userID, departmentUpdateFormDTO.OrganizationUnitID, departmentUpdateFormDTO.UserID, primaryOrgUnitField)
 }
