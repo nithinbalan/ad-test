@@ -60,7 +60,13 @@ func (repo *ThirdPartyQuestionLibraryRepository) GetAll(params *dtos.ThirdPartyQ
 		Joins("LEFT JOIN users AS created_user ON created_user.id = third_party_question_libraries.created_by_id").
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = third_party_question_libraries.updated_by_id")
 
-		// Apply quick filters
+	// Apply dynamic filters to the query
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(fmt.Sprintf("third_party_question_libraries.%s IN (?)", columnName), values)
+		}
+	}
+	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
 		case "yes-no":
@@ -82,6 +88,10 @@ func (repo *ThirdPartyQuestionLibraryRepository) GetAll(params *dtos.ThirdPartyQ
 		}
 	}
 
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
 	if params.Keyword != "" {
 		likePattern := "%" + params.Keyword + "%"
 		query = query.Where(`
@@ -100,10 +110,6 @@ func (repo *ThirdPartyQuestionLibraryRepository) GetAll(params *dtos.ThirdPartyQ
 			likePattern,
 		)
 	}
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	query = query.Order(params.SortBy + " " + params.Sort)
 	offset := (params.Page - 1) * params.PageSize
 	query = query.Offset(offset).Limit(params.PageSize)
