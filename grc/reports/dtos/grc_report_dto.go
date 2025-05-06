@@ -148,6 +148,7 @@ type DocumentAcknowledgmentSummaryDTO struct {
 }
 
 type TopFiveRiskDTO struct {
+	ID              uint    `json:"id"`
 	ReferenceNumber string  `json:"reference_number"`
 	Title           string  `json:"title"`
 	Description     *string `json:"description"`

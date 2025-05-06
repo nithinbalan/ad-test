@@ -375,6 +375,13 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 	}
 
 	for _, risk := range topFiveRisks {
+		controlTitles, err := grs.repo.GetControlTitlesByRiskID(risk.ID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to fetch control titles for risk %s: %w", risk.ReferenceNumber, err)
+		}
+		existingControls := strings.Join(controlTitles, ", ")
+
 		topFive := &models.GRCReportRiskTopFive{
 			GRCReportID:                 grcReportID,
 			RiskReferenceNumber:         risk.ReferenceNumber,
@@ -403,7 +410,7 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 			ResidualLikelihoodTitleAr:   risk.ResidualLikelihoodTitleAr,
 			ResidualImpactTitleEn:       risk.ResidualImpactTitleEn,
 			ResidualImpactTitleAr:       risk.ResidualImpactTitleAr,
-			// ExistingControls:            risk.ExistingControls,
+			ExistingControls:            &existingControls,
 			RiskResponseStrategyTitleEn: risk.RiskResponseStrategyTitleEn,
 			RiskResponseStrategyTitleAr: risk.RiskResponseStrategyTitleAr,
 			ApprovalNote:                nil,

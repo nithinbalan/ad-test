@@ -52,6 +52,7 @@ type GRCReportRepositoryInterface interface {
 	GetHighestActiveRiskRatingType(tx ...utility.DatabaseTransaction) (string, error)
 	GetTopFiveRisksByRatingValue(startDate time.Time, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.TopFiveRiskDTO, error)
 	CreateGRCReportRiskTopFive(topFive *models.GRCReportRiskTopFive, tx ...utility.DatabaseTransaction) error
+	GetControlTitlesByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]string, error)
 }
 
 type GRCReportRepository struct {
@@ -611,6 +612,7 @@ func (repo *GRCReportRepository) GetTopFiveRisksByRatingValue(startDate time.Tim
 
 	err := db.Table("risk_register").
 		Select(`
+			risk_register.id,
 			risk_register.reference_number,
 			risk_register.title,
 			risk_register.description,
@@ -671,4 +673,20 @@ func (repo *GRCReportRepository) CreateGRCReportRiskTopFive(topFive *models.GRCR
 		db = tx[0].DB()
 	}
 	return db.Create(topFive).Error
+}
+
+func (repo *GRCReportRepository) GetControlTitlesByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]string, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var titles []string
+	err := db.Table("risk_controls").
+		Select("controls.title_en").
+		Joins("JOIN controls ON controls.id = risk_controls.control_id").
+		Where("risk_controls.risk_register_id = ?", riskID).
+		Pluck("controls.title_en", &titles).Error
+
+	return titles, err
 }
