@@ -885,7 +885,7 @@ func (rrs *RiskReportService) GetRiskReportExportZip(riskReportID uint, currentU
 	// Step 4: Create ZIP archive
 	// zipFilePath := fmt.Sprintf("tmp/risk_report_%d.zip", riskReportID)
 	// filesToZip := []string{pdfFileName} // add more files if needed
-	zipDir := "tmp"
+	zipDir := filepath.Join("storage", "zip")
 	zipFilePath := filepath.Join(zipDir, fmt.Sprintf("risk_report_%d.zip", riskReportID))
 
 	// Ensure the directory exists
