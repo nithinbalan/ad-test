@@ -43,14 +43,15 @@ type SwotPestelQuestionFactorFormDTO struct {
 }
 
 type SwotPestelQuestionFactorListQueryParamsDTO struct {
-	Sort        string
-	SortBy      string
-	Keyword     string
-	Page        int
-	PageSize    int
-	Filters     map[string][]string
-	QuickFilter []string
-	Export      bool
+	Sort         string
+	SortBy       string
+	Keyword      string
+	Page         int
+	PageSize     int
+	Filters      map[string][]string
+	QuickFilter  []string
+	Export       bool
+	CategoryType string
 }
 
 type SwotPestelQuestionFactorDetailDTO struct {

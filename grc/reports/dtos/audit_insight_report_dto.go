@@ -9,9 +9,11 @@ type AuditInsightAuditByStatusDTO struct {
 }
 
 type AuditInsightAuditByYearDTO struct {
-	TitleEn string `json:"title_en"`
-	TitleAr string `json:"title_ar"`
-	Count   uint   `json:"count"`
+	TitleEn  string `json:"title_en"`
+	TitleAr  string `json:"title_ar"`
+	Count    uint   `json:"count"`
+	DateFrom string `json:"date_from"`
+	DateTo   string `json:"date_to"`
 }
 
 type AuditInsightAuditByMonthDTO struct {
@@ -105,9 +107,11 @@ type AuditInsightAuditFindingByMonthDTO struct {
 }
 
 type AuditInsightAuditFindingByYearDTO struct {
-	TitleEn string `json:"title_en"`
-	TitleAr string `json:"title_ar"`
-	Count   uint   `json:"count"`
+	TitleEn  string `json:"title_en"`
+	TitleAr  string `json:"title_ar"`
+	Count    uint   `json:"count"`
+	DateFrom string `json:"date_from"`
+	DateTo   string `json:"date_to"`
 }
 
 type AuditInsightAuditActionPlanByStatusDTO struct {

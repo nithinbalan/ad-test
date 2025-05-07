@@ -106,10 +106,14 @@ func (repo *AuditInsightReportRepository) GetAuditByYear(params *reportDTOs.Repo
 
 	// Convert year to English and Arabic title
 	for _, record := range rawResults {
+		startDate := fmt.Sprintf("%d-01-01", record.Year)
+		endDate := fmt.Sprintf("%d-12-31", record.Year)
 		results = append(results, &reportDTOs.AuditInsightAuditByYearDTO{
-			TitleEn: fmt.Sprintf("%d", record.Year), // English Title (Year)
-			TitleAr: fmt.Sprintf("%d", record.Year), // Arabic Title (Same as Year)
-			Count:   record.Count,
+			TitleEn:  fmt.Sprintf("%d", record.Year), // English Title (Year)
+			TitleAr:  fmt.Sprintf("%d", record.Year), // Arabic Title (Same as Year)
+			Count:    record.Count,
+			DateFrom: startDate,
+			DateTo:   endDate,
 		})
 	}
 
@@ -625,10 +629,14 @@ func (repo *AuditInsightReportRepository) GetAuditFindingByYear(params *reportDT
 
 	// Convert year to English and Arabic title
 	for _, record := range rawResults {
+		startDate := fmt.Sprintf("%d-01-01", record.Year)
+		endDate := fmt.Sprintf("%d-12-31", record.Year)
 		results = append(results, &reportDTOs.AuditInsightAuditFindingByYearDTO{
-			TitleEn: fmt.Sprintf("%d", record.Year), // English Title (Year)
-			TitleAr: fmt.Sprintf("%d", record.Year), // Arabic Title (Same as Year)
-			Count:   record.Count,
+			TitleEn:  fmt.Sprintf("%d", record.Year), // English Title (Year)
+			TitleAr:  fmt.Sprintf("%d", record.Year), // Arabic Title (Same as Year)
+			Count:    record.Count,
+			DateFrom: startDate,
+			DateTo:   endDate,
 		})
 	}
 
