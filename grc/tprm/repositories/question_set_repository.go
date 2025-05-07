@@ -48,12 +48,33 @@ func (repo *QuestionSetRepository) GetAll(params *dtos.QuestionSetListQueryParam
 
 	query := repo.db.Table("question_sets").
 		Select(`
-			question_sets.*,
+			question_sets.id,
+			question_sets.title_en,
+			question_sets.title_ar,
+			question_sets.description,
+			FORMAT(question_sets.created_at, 'yyyy-MM-dd HH:mm:ss') AS created_at,
+			FORMAT(question_sets.updated_at, 'yyyy-MM-dd HH:mm:ss') AS updated_at,
+			question_sets.created_by_id,
+			question_sets.updated_by_id,
 			ISNULL(qsq.total_questions, 0) AS total_questions,
+
 			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
 			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
+
 			updated_user.first_name_en AS updated_user_first_name_en,
-			updated_user.last_name_en AS updated_user_last_name_en
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path
 		`).
 		Joins("LEFT JOIN (?) AS qsq ON qsq.question_set_id = question_sets.id", subQuery).
 		Joins("LEFT JOIN users AS created_user ON created_user.id = question_sets.created_by_id").
