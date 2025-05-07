@@ -9,6 +9,7 @@ type QuestionSetListDTO struct {
 	ID                          uint   `json:"id"`
 	TitleEn                     string `json:"title_en"`
 	TitleAr                     string `json:"title_ar"`
+	Description                 string `json:"description"`
 	CreatedAt                   string `json:"created_at"`
 	UpdatedAt                   string `json:"updated_at"`
 	CreatedByID                 uint   `json:"created_by_id"`
