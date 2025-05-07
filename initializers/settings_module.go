@@ -9,20 +9,21 @@ import (
 )
 
 type SettingsModule struct {
-	OrganizationLevelController     *controllers.OrganizationLevelController
-	SystemPreferenceController      *controllers.SystemPreferenceController
-	RoleController                  *controllers.RoleController
-	OrganizationUnitController      *controllers.OrganizationUnitController
-	LogSettingsController           *controllers.LogSettingsController
-	WorkflowLevelTypeController     *controllers.WorkflowLevelTypeController
-	WorkflowController              *controllers.WorkflowController
-	RolePermissionTypeController    *controllers.RolePermissionTypeController
-	ModuleController                *controllers.ModuleController
-	EmailTemplateSettingsController *controllers.EmailTemplateSettingsController
-	IntegrationController           *controllers.IntegrationController
-	AuditTemplateSettingController  *controllers.AuditTemplateSettingController
-	RiskTemplateSettingController   *controllers.RiskTemplateSettingController
-	ReportTemplateSettingController *controllers.ReportTemplateSettingController
+	OrganizationLevelController      *controllers.OrganizationLevelController
+	SystemPreferenceController       *controllers.SystemPreferenceController
+	RoleController                   *controllers.RoleController
+	OrganizationUnitController       *controllers.OrganizationUnitController
+	LogSettingsController            *controllers.LogSettingsController
+	WorkflowLevelTypeController      *controllers.WorkflowLevelTypeController
+	WorkflowController               *controllers.WorkflowController
+	RolePermissionTypeController     *controllers.RolePermissionTypeController
+	ModuleController                 *controllers.ModuleController
+	EmailTemplateSettingsController  *controllers.EmailTemplateSettingsController
+	IntegrationController            *controllers.IntegrationController
+	AuditTemplateSettingController   *controllers.AuditTemplateSettingController
+	RiskTemplateSettingController    *controllers.RiskTemplateSettingController
+	ReportTemplateSettingController  *controllers.ReportTemplateSettingController
+	ActiveDirectorySettingController *controllers.ActiveDirectorySettingController
 
 	SystemPreferenceSvc      services.SystemPreferenceServiceInterface
 	OrganizationUnitSvc      services.OrganizationUnitServiceInterface
@@ -101,21 +102,27 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		sharedModule.ActivityLogService)
 	reportTemplateSettingController := controllers.NewReportTemplateSettingController(reportTemplateSettingSvc)
 
+	activeDirectorySettingRepo := repositories.NewActiveDirectorySettingRepository(db)
+	activeDirectorySettingSvc := services.NewActiveDirectorySettingService(
+		activeDirectorySettingRepo)
+	activeDirectorySettingController := controllers.NewActiveDirectorySettingController(activeDirectorySettingSvc)
+
 	return &SettingsModule{
-		OrganizationLevelController:     organizationLevelController,
-		SystemPreferenceController:      systemPreferenceController,
-		RoleController:                  roleController,
-		OrganizationUnitController:      organizationUnitController,
-		LogSettingsController:           logSettingsController,
-		WorkflowLevelTypeController:     workflowLevelTypeController,
-		WorkflowController:              workflowController,
-		RolePermissionTypeController:    rolePermissionTypeController,
-		ModuleController:                moduleController,
-		EmailTemplateSettingsController: emailTemplateSettingsController,
-		IntegrationController:           integrationController,
-		AuditTemplateSettingController:  auditTemplateSettingController,
-		RiskTemplateSettingController:   riskTemplateSettingController,
-		ReportTemplateSettingController: reportTemplateSettingController,
+		OrganizationLevelController:      organizationLevelController,
+		SystemPreferenceController:       systemPreferenceController,
+		RoleController:                   roleController,
+		OrganizationUnitController:       organizationUnitController,
+		LogSettingsController:            logSettingsController,
+		WorkflowLevelTypeController:      workflowLevelTypeController,
+		WorkflowController:               workflowController,
+		RolePermissionTypeController:     rolePermissionTypeController,
+		ModuleController:                 moduleController,
+		EmailTemplateSettingsController:  emailTemplateSettingsController,
+		IntegrationController:            integrationController,
+		AuditTemplateSettingController:   auditTemplateSettingController,
+		RiskTemplateSettingController:    riskTemplateSettingController,
+		ReportTemplateSettingController:  reportTemplateSettingController,
+		ActiveDirectorySettingController: activeDirectorySettingController,
 
 		SystemPreferenceSvc:      systemPreferenceSvc,
 		OrganizationLevelSvc:     organizationLevelSvc,
