@@ -1,8 +1,10 @@
 package dtos
 
 import (
+	incidentDTOs "jethur/grc/incident/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
+	riskDTOs "jethur/grc/risk/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
 	"time"
 )
@@ -253,8 +255,29 @@ type BIAProcessDetailDTO struct {
 	ProcessCriticalityLevel   *organizationDTOs.ProcessCriticalityLevelDTO   `json:"process_criticality_level"`
 	BusinessImpactAssessments []*BusinessImpactAssessmentDTO                 `json:"business_impact_assessments"`
 	ProcessDependencies       []*organizationDTOs.ProcessDependencyDetailDTO `json:"process_dependencies"`
-	Risks                     []*organizationDTOs.ProcessRiskDTO             `json:"risks"`
+	Risks                     []*ProcessRiskDTO                              `json:"risks"`
 	Incidents                 []*ProcessIncidentDTO                          `json:"incidents"`
+}
+
+type ProcessRiskDTO struct {
+	ID             *uint          `json:"id"`
+	ProcessID      uint           `json:"process_id"`
+	RiskRegisterID uint           `json:"risk_register_id"`
+	Risk           RiskMinimalDTO `json:"risk"`
+}
+
+type RiskMinimalDTO struct {
+	ID                       uint                                   `json:"id"`
+	Title                    string                                 `json:"title"`
+	Description              *string                                `json:"description"`
+	RiskCategory             *riskDTOs.RiskCategoryDTO              `json:"risk_category"`
+	RiskSource               *riskDTOs.RiskSourceDTO                `json:"risk_source"`
+	CurrentLikelihood        *riskDTOs.RiskMatrixLikelihoodDTO      `json:"current_likelihood"`
+	CurrentImpact            *riskDTOs.RiskMatrixImpactDTO          `json:"current_impact"`
+	CurrentRiskRating        *riskDTOs.RiskMatrixRiskRatingDTO      `json:"current_risk_rating"`
+	CurrentRiskRatingValue   *riskDTOs.RiskMatrixRiskRatingValueDTO `json:"current_risk_rating_value"`
+	CurrentRiskRatingID      *uint                                  `json:"current_risk_rating_id"`
+	CurrentRiskRatingValueID *uint                                  `json:"current_risk_rating_value_id"`
 }
 
 type ProcessIncidentDTO struct {
@@ -265,9 +288,12 @@ type ProcessIncidentDTO struct {
 }
 
 type IncidentMinimalDTO struct {
-	ID          uint      `json:"id"`
-	Title       string    `json:"title"`
-	Description *string   `json:"description"`
-	IncidentAt  time.Time `json:"incident_at"`
-	Location    *string   `json:"location"`
+	ID               uint                              `json:"id"`
+	Title            string                            `json:"title"`
+	Description      *string                           `json:"description"`
+	IncidentAt       time.Time                         `json:"incident_at"`
+	Location         *string                           `json:"location"`
+	ReportedAt       *time.Time                        `json:"reported_at"`
+	IncidentCategory *incidentDTOs.IncidentCategoryDTO `json:"incident_category"`
+	IncidentType     *incidentDTOs.IncidentTypeDTO     `json:"incident_type"`
 }
