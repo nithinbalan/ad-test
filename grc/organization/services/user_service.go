@@ -1064,5 +1064,16 @@ func (us *UserService) UpdateUserOrganizationUnit(userID uint, departmentUpdateF
 		return fmt.Errorf("unsupported primary level")
 	}
 
-	return us.repo.UpdateUserOrganizationUnit(userID, departmentUpdateFormDTO.OrganizationUnitID, departmentUpdateFormDTO.UserID, primaryOrgUnitField)
+	// Update the user's department
+	err = us.repo.UpdateUserPrimaryDepartment(userID, departmentUpdateFormDTO.OrganizationUnitID, primaryOrgUnitField)
+	if err != nil {
+		return err
+	}
+
+	if departmentUpdateFormDTO.UserID == nil {
+		return us.repo.UpdateResponsibleUnits(userID, departmentUpdateFormDTO.OrganizationUnitID)
+	} else {
+		return us.repo.UpdateResponsibleUsers(userID, *departmentUpdateFormDTO.UserID)
+	}
+
 }
