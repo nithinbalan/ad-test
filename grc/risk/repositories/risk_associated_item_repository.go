@@ -70,7 +70,7 @@ func (repo *RiskAssociatedItemRepository) GetAllControls(riskID uint, params *ri
             LEFT JOIN control_types ON controls.control_type_id = control_types.id
             LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
             LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
-			LEFT JOIN users AS owner ON controls.owner_id = owner.id
+			LEFT JOIN users AS owner ON controls.responsible_user_id = owner.id
         `).Where("risk_controls.risk_register_id = ?", riskID)
 
 	if err := query.Count(&totalCount).Error; err != nil {
@@ -223,8 +223,8 @@ func (repo *RiskAssociatedItemRepository) GetAllProcesses(riskID uint, params *r
 		Joins(`
 			LEFT JOIN processes ON processes.id = risk_processes.process_id
 			LEFT JOIN process_groups ON process_groups.id = processes.process_group_id
-			LEFT JOIN organization_units ON organization_units.id = processes.owner_unit_id
-			LEFT JOIN users AS owner ON owner.id = processes.owner_id
+			LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id
+			LEFT JOIN users AS owner ON owner.id = processes.responsible_user_id
 			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id
 		`).Where("risk_processes.risk_register_id = ?", riskID)
 

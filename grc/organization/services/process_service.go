@@ -149,8 +149,8 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 
 	process := &models.Process{
 		ProcessGroupID:    processFormDTO.ProcessGroupID,
-		OwnerID:           processFormDTO.OwnerID,
-		OwnerUnitID:       organizationUnitID,
+		ResponsibleUserID: processFormDTO.OwnerID,
+		ResponsibleUnitID: organizationUnitID,
 		LifecycleStatusID: lifecycleStatus.ID,
 		ReferenceNumber:   referenceNumber,
 		TitleEn:           processFormDTO.TitleEn,
@@ -362,7 +362,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		return err
 	}
 
-	oldOwnerID := process.OwnerID
+	oldOwnerID := process.ResponsibleUserID
 
 	if err := ps.validateProcessFormDTO(processFormDTO); err != nil {
 		tx.Rollback()
@@ -370,17 +370,17 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 	}
 
 	// If owner has changed, update the OwnerUnitID
-	if process.OwnerID != processFormDTO.OwnerID {
+	if process.ResponsibleUserID != processFormDTO.OwnerID {
 		organizationUnitID, err := ps.userSvc.GetUserPrimaryUnitID(uint(processFormDTO.OwnerID))
 		if err != nil {
 			tx.Rollback()
 			return utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "process owner unit")
 		}
-		process.OwnerUnitID = organizationUnitID
+		process.ResponsibleUnitID = organizationUnitID
 	}
 
 	process.ProcessGroupID = processFormDTO.ProcessGroupID
-	process.OwnerID = processFormDTO.OwnerID
+	process.ResponsibleUserID = processFormDTO.OwnerID
 	process.TitleEn = processFormDTO.TitleEn
 	process.TitleAr = processFormDTO.TitleAr
 	process.Description = processFormDTO.Description

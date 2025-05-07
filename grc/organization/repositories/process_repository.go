@@ -138,8 +138,8 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		risk_levels.type AS risk_level_type
 	`).
 		Joins("LEFT JOIN process_groups ON process_groups.id = processes.process_group_id").
-		Joins("LEFT JOIN organization_units ON organization_units.id = processes.owner_unit_id").
-		Joins("LEFT JOIN users AS owner ON owner.id = processes.owner_id").
+		Joins("LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id").
+		Joins("LEFT JOIN users AS owner ON owner.id = processes.responsible_user_id").
 		Joins("LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = processes.created_by_id").
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = processes.updated_by_id").
