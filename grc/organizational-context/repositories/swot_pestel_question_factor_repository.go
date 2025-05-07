@@ -17,6 +17,8 @@ type SwotPestelQuestionFactorRepositoryInterface interface {
 	Create(swotPestelQuestionFactor *models.SwotPestelQuestionFactor, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(swotPestelQuestionFactor *models.SwotPestelQuestionFactor, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+
+	GetSwotPestelFactorCountByCategory(isSwot string, isPestel string) ([]organizationalContextDTOs.SwotPestelCategoryCountResponseDTO, error)
 }
 
 type SwotPestelQuestionFactorRepository struct {
@@ -276,4 +278,41 @@ func (repo *SwotPestelQuestionFactorRepository) Delete(id uint, tx ...utility.Da
 	}
 
 	return nil
+}
+
+func (repo *SwotPestelQuestionFactorRepository) GetSwotPestelFactorCountByCategory(isSwot string, isPestel string) ([]organizationalContextDTOs.SwotPestelCategoryCountResponseDTO, error) {
+	var categoryCounts []organizationalContextDTOs.SwotPestelCategoryCountResponseDTO
+
+	query := repo.db.Table("swot_pestel_question_factors").
+		Select(`
+			swot_pestel_categories.id,
+			swot_pestel_categories.title_en,
+			swot_pestel_categories.title_ar,
+			swot_pestel_categories.color_code,
+			swot_pestel_categories.type,
+			COUNT(swot_pestel_question_factors.id) AS count
+		`).
+		Joins("JOIN swot_pestel_categories ON swot_pestel_categories.id = swot_pestel_question_factors.swot_pestel_category_id").
+		Group(`
+			swot_pestel_categories.id,
+			swot_pestel_categories.title_en,
+			swot_pestel_categories.title_ar,
+			swot_pestel_categories.color_code,
+			swot_pestel_categories.type
+		`)
+
+	if isSwot == "true" {
+		query = query.Where("is_swot = ?", true)
+	}
+
+	if isPestel == "true" {
+		query = query.Where("is_pestel = ?", true)
+	}
+
+	err := query.Scan(&categoryCounts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return categoryCounts, nil
 }

@@ -25,6 +25,8 @@ type SwotPestelQuestionRepositoryInterface interface {
 
 	CreateSwotPestelQuestionInvitees(invitees []*models.SwotPestelQuestionInvitee, tx ...utility.DatabaseTransaction) error
 	DeleteSwotPestelQuestionInvitees(swotPestelQuestionID uint, inviteeIDs []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetSwotPestelQuestionSummary(isSwot string, isPestel string) (unansweredCount int, answeredCount int, err error)
 }
 
 // implementation
@@ -294,4 +296,37 @@ func (repo *SwotPestelQuestionRepository) DeleteSwotPestelQuestionInvitees(swotP
 	}
 
 	return nil
+}
+
+func (repo *SwotPestelQuestionRepository) GetSwotPestelQuestionSummary(isSwot string, isPestel string) (unansweredCount int, answeredCount int, err error) {
+	var totalCount int64
+	var answered int64
+	var unanswered int64
+
+	query := repo.db.Model(&models.SwotPestelQuestion{}) // replace with your actual model if different
+
+	if isSwot == "true" {
+		query = query.Where("is_swot = ?", true)
+	}
+
+	if isPestel == "true" {
+		query = query.Where("is_pestel = ?", true)
+	}
+
+	// Count total
+	if err := query.Count(&totalCount).Error; err != nil {
+		return 0, 0, err
+	}
+
+	// Count answered (i.e. answered_by_id is NOT NULL)
+	if err := query.Where("answered_by_id IS NOT NULL").Count(&answered).Error; err != nil {
+		return 0, 0, err
+	}
+
+	unanswered = totalCount - answered
+
+	unansweredCount = int(unanswered)
+	answeredCount = int(answered)
+
+	return unansweredCount, answeredCount, nil
 }
