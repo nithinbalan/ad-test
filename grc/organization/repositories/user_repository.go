@@ -51,9 +51,10 @@ type UserRepositoryInterface interface {
 	GetUserRoles(userID uint) ([]models.UserRole, error)
 	GetActiveUserCount() (int64, error)
 
-	UpdateUserPrimaryDepartment(userID, orgUnitID uint, field string) error
-	UpdateResponsibleUnits(userID, newDepartmentID uint) error
-	UpdateResponsibleUsers(oldUserID, newUserID uint) error
+	UpdateUserPrimaryDepartment(userID, orgUnitID uint, field string, tx ...utility.DatabaseTransaction) error
+	UpdateResponsibleUnits(userID, newDepartmentID uint, tx ...utility.DatabaseTransaction) error
+	UpdateResponsibleUsers(oldUserID, newUserID uint, tx ...utility.DatabaseTransaction) error
+	UpdateResponsibleUserTasks(oldUserID, newUserID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type UserRepository struct {
@@ -787,13 +788,22 @@ func (repo *UserRepository) GetActiveUserCount() (int64, error) {
 	return count, nil
 }
 
-func (repo *UserRepository) UpdateUserPrimaryDepartment(userID, orgUnitID uint, field string) error {
-	return repo.db.Exec(
+func (repo *UserRepository) UpdateUserPrimaryDepartment(userID, orgUnitID uint, field string, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Exec(
 		`UPDATE users SET `+field+` = ? WHERE id = ?`, orgUnitID, userID,
 	).Error
 }
 
-func (repo *UserRepository) UpdateResponsibleUnits(userID, newDepartmentID uint) error {
+func (repo *UserRepository) UpdateResponsibleUnits(userID, newDepartmentID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var tables []string
 	query := `
 		SELECT table_name
@@ -803,23 +813,25 @@ func (repo *UserRepository) UpdateResponsibleUnits(userID, newDepartmentID uint)
 		HAVING COUNT(DISTINCT column_name) = 2;
 	`
 
-	err := repo.db.Raw(query).Scan(&tables).Error
+	err := db.Raw(query).Scan(&tables).Error
 	if err != nil {
 		return fmt.Errorf("failed to fetch table list: %w", err)
 	}
 
-	tx := repo.db.Begin()
 	for _, table := range tables {
 		updateQuery := fmt.Sprintf("UPDATE %s SET responsible_unit_id = ? WHERE responsible_user_id = ?", table)
-		if err := tx.Exec(updateQuery, newDepartmentID, userID).Error; err != nil {
-			tx.Rollback()
+		if err := db.Exec(updateQuery, newDepartmentID, userID).Error; err != nil {
 			return fmt.Errorf("failed to update table %s: %w", table, err)
 		}
 	}
-	return tx.Commit().Error
+	return nil
 }
 
-func (repo *UserRepository) UpdateResponsibleUsers(oldUserID, newUserID uint) error {
+func (repo *UserRepository) UpdateResponsibleUsers(oldUserID, newUserID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var tables []string
 	query := `
 		SELECT table_name
@@ -829,40 +841,42 @@ func (repo *UserRepository) UpdateResponsibleUsers(oldUserID, newUserID uint) er
 		HAVING COUNT(DISTINCT column_name) = 2;
 	`
 
-	err := repo.db.Raw(query).Scan(&tables).Error
+	err := db.Raw(query).Scan(&tables).Error
 	if err != nil {
 		return fmt.Errorf("failed to fetch table list: %w", err)
 	}
 
-	tx := repo.db.Begin()
 	for _, table := range tables {
 		updateQuery := fmt.Sprintf("UPDATE %s SET responsible_user_id = ? WHERE responsible_user_id = ?", table)
-		if err := tx.Exec(updateQuery, newUserID, oldUserID).Error; err != nil {
-			tx.Rollback()
+		if err := db.Exec(updateQuery, newUserID, oldUserID).Error; err != nil {
 			return fmt.Errorf("failed to update table %s: %w", table, err)
 		}
 	}
 
-	// Handle tasks separately for open/in-progress
+	return nil
+}
+
+func (repo *UserRepository) UpdateResponsibleUserTasks(oldUserID, newUserID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var statusIDs []int
-	err = tx.Table("task_statuses").
+	err := db.Table("task_statuses").
 		Where("is_open = ?", true).
 		Pluck("id", &statusIDs).Error
-
 	if err != nil {
-		tx.Rollback()
 		return fmt.Errorf("failed to fetch task status IDs: %w", err)
 	}
 
-	err = tx.Exec(`
+	err = db.Exec(`
 		UPDATE tasks
 		SET responsible_user_id = ?
 		WHERE responsible_user_id = ? AND task_status_id IN (?)`,
 		newUserID, oldUserID, statusIDs).Error
+
 	if err != nil {
-		tx.Rollback()
 		return fmt.Errorf("failed to update tasks: %w", err)
 	}
-
-	return tx.Commit().Error
+	return nil
 }

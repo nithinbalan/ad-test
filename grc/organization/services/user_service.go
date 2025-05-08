@@ -1042,6 +1042,9 @@ func (us *UserService) validateLicenseKey(licenseKey string) error {
 
 // Handles logic when user's organization unit changes
 func (us *UserService) UpdateUserOrganizationUnit(userID uint, departmentUpdateFormDTO userDTOs.UpdateOrganizationUnitDTO) error {
+
+	tx := us.repo.BeginTransaction()
+
 	primaryLevel, err := us.organizationLevelSvc.GetPrimaryLevel()
 	if err != nil {
 		return err
@@ -1065,15 +1068,31 @@ func (us *UserService) UpdateUserOrganizationUnit(userID uint, departmentUpdateF
 	}
 
 	// Update the user's department
-	err = us.repo.UpdateUserPrimaryDepartment(userID, departmentUpdateFormDTO.OrganizationUnitID, primaryOrgUnitField)
+	err = us.repo.UpdateUserPrimaryDepartment(userID, departmentUpdateFormDTO.OrganizationUnitID, primaryOrgUnitField, tx)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	if departmentUpdateFormDTO.UserID == nil {
-		return us.repo.UpdateResponsibleUnits(userID, departmentUpdateFormDTO.OrganizationUnitID)
+		err = us.repo.UpdateResponsibleUnits(userID, departmentUpdateFormDTO.OrganizationUnitID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 	} else {
-		return us.repo.UpdateResponsibleUsers(userID, *departmentUpdateFormDTO.UserID)
+		err = us.repo.UpdateResponsibleUsers(userID, *departmentUpdateFormDTO.UserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		err = us.repo.UpdateResponsibleUserTasks(userID, *departmentUpdateFormDTO.UserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
+	tx.Commit()
 
+	return nil
 }
