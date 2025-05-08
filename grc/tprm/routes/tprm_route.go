@@ -19,6 +19,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	thirdPartyQuestionCategoryController := app.TprmModule.ThirdPartyQuestionCategoryController
 	thirdPartyQuestionTypeController := app.TprmModule.ThirdPartyQuestionTypeController
 	thirdPartyQuestionLibraryController := app.TprmModule.ThirdPartyQuestionLibraryController
+	questionSetController := app.TprmModule.QuestionSetController
 
 	tprmRoutes.GET("/third-party-types", thirdPartyTypeController.GetAllThirdPartyTypes)
 	tprmRoutes.GET("/third-party-types/:id", thirdPartyTypeController.GetThirdPartyTypeDetails)
@@ -53,5 +54,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	tprmRoutes.POST("/third-party-question-libraries", thirdPartyQuestionLibraryController.CreateThirdPartyQuestionLibrary)
 	tprmRoutes.PUT("/third-party-question-libraries/:id", thirdPartyQuestionLibraryController.UpdateThirdPartyQuestionLibrary)
 	tprmRoutes.POST("/third-party-question-libraries/delete", thirdPartyQuestionLibraryController.DeleteThirdPartyQuestionLibraries)
+
+	tprmRoutes.GET("/question-sets", questionSetController.GetAllQuestionSets)
+	tprmRoutes.GET("/question-sets/:id", questionSetController.GetQuestionSetDetails)
+	tprmRoutes.POST("/question-sets", questionSetController.CreateQuestionSet)
+	tprmRoutes.PUT("/question-sets/:id", questionSetController.UpdateQuestionSet)
+	tprmRoutes.POST("/question-sets/delete", questionSetController.DeleteQuestionSets)
+	tprmRoutes.POST("/question-sets/:id/questions", questionSetController.AddQuestionsToSet)
+	tprmRoutes.DELETE("/question-sets/questions/:question_id", questionSetController.DeleteQuestionFromSet)
 
 }
