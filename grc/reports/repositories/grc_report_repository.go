@@ -47,6 +47,11 @@ type GRCReportRepositoryInterface interface {
 	ReorderGRCReportSections(grcReportID uint, deletedOrderNum int, tx ...utility.DatabaseTransaction) error
 
 	// risk section
+	GetGRCReportRiskTopFive(grcReportID uint) ([]dtos.GRCReportRiskTopFiveRiskResponseDTO, error)
+	GetGRCReportRiskKRIs(grcReportID uint) ([]dtos.GRCReportRiskKriResponseDTO, error)
+	GetGRCReportRiskControls(grcReportID uint) ([]dtos.GRCReportRiskControlResponseDTO, error)
+	GetGRCReportRiskSummary(grcReportID uint) (*dtos.GRCRiskSummaryResponseDTO, error)
+
 	CreateGRCReportRiskSummary(summary *models.GRCReportRiskSummary, tx ...utility.DatabaseTransaction) error
 	GetRisksByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]*models.RiskRegister, error)
 	GetHighestActiveRiskRatingType(tx ...utility.DatabaseTransaction) (string, error)
@@ -792,4 +797,61 @@ func (repo *GRCReportRepository) CreateGRCReportRiskControl(control *models.GRCR
 		db = tx[0].DB()
 	}
 	return db.Create(control).Error
+}
+
+func (repo *GRCReportRepository) GetGRCReportRiskTopFive(grcReportID uint) ([]dtos.GRCReportRiskTopFiveRiskResponseDTO, error) {
+	var risks []dtos.GRCReportRiskTopFiveRiskResponseDTO
+	err := repo.db.Table("grc_report_risk_top_five").
+		Where("grc_report_id = ?", grcReportID).
+		Find(&risks).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return risks, nil
+}
+
+func (repo *GRCReportRepository) GetGRCReportRiskKRIs(grcReportID uint) ([]dtos.GRCReportRiskKriResponseDTO, error) {
+	var kris []dtos.GRCReportRiskKriResponseDTO
+	err := repo.db.Table("grc_report_risk_kris").
+		Where("grc_report_id = ?", grcReportID).
+		Find(&kris).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return kris, nil
+}
+
+func (repo *GRCReportRepository) GetGRCReportRiskControls(grcReportID uint) ([]dtos.GRCReportRiskControlResponseDTO, error) {
+	var controls []dtos.GRCReportRiskControlResponseDTO
+	err := repo.db.Table("grc_report_risk_controls").
+		Where("grc_report_id = ?", grcReportID).
+		Find(&controls).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return controls, nil
+}
+
+func (repo *GRCReportRepository) GetGRCReportRiskSummary(grcReportID uint) (*dtos.GRCRiskSummaryResponseDTO, error) {
+	var summary dtos.GRCRiskSummaryResponseDTO
+
+	err := repo.db.Table("grc_report_risk_summary").
+		Select(`
+			risk_identified_count,
+			critical_risks,
+			treatment_strategies,
+			risk_score_summary,
+			kris
+		`).
+		Where("grc_report_id = ?", grcReportID).
+		Scan(&summary).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &summary, nil
 }

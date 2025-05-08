@@ -65,7 +65,7 @@ func (grs *GRCReportService) GetGRCReportDetails(grcReportID uint) (*dtos.GRCRep
 		return nil, err
 	}
 
-	summary, err := grs.repo.GetGRCReportGovernanceSummary(grcReportID)
+	governanceSummary, err := grs.repo.GetGRCReportGovernanceSummary(grcReportID)
 	if err != nil {
 		return nil, err
 	}
@@ -76,6 +76,27 @@ func (grs *GRCReportService) GetGRCReportDetails(grcReportID uint) (*dtos.GRCRep
 	}
 
 	tasks, err := grs.repo.GetGRCReportGovernanceTasks(grcReportID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 🔽 New Risk-Related Fetches
+	riskSummary, err := grs.repo.GetGRCReportRiskSummary(grcReportID)
+	if err != nil {
+		return nil, err
+	}
+
+	topFiveRisks, err := grs.repo.GetGRCReportRiskTopFive(grcReportID)
+	if err != nil {
+		return nil, err
+	}
+
+	kris, err := grs.repo.GetGRCReportRiskKRIs(grcReportID)
+	if err != nil {
+		return nil, err
+	}
+
+	riskControls, err := grs.repo.GetGRCReportRiskControls(grcReportID)
 	if err != nil {
 		return nil, err
 	}
@@ -92,9 +113,13 @@ func (grs *GRCReportService) GetGRCReportDetails(grcReportID uint) (*dtos.GRCRep
 		CreatedUserLastNameEn:  grcReport.CreatedUserLastNameEn,
 		CreatedUserLastNameAr:  grcReport.CreatedUserLastNameAr,
 		Sections:               sections,
-		Summary:                *summary,
+		GovernanceSummary:      *governanceSummary,
 		Documents:              documents,
 		Tasks:                  tasks,
+		RiskSummary:            *riskSummary,
+		TopFiveRisks:           topFiveRisks,
+		RiskKRIs:               kris,
+		RiskControls:           riskControls,
 	}
 
 	return response, nil
