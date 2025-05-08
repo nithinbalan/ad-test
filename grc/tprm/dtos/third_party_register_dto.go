@@ -96,7 +96,7 @@ type ThirdPartyRegisterDetailDTO struct {
 	RepresentativeRole     *string                          `json:"representative_role"`
 	Email                  *string                          `json:"email"`
 	PhoneNumber            *string                          `json:"phone_number"`
-	ResponsibleUser        organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
+	ResponsibleUser        *organizationDTOs.UserMinimalDTO `json:"responsible_user"`
 	OnboardingDateString   *string                          `json:"onboarding_date"`
 	ServiceStartDateString *string                          `json:"service_start_date"`
 	ServiceEndDateString   *string                          `json:"service_end_date"`

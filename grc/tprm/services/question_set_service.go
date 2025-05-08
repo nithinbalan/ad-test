@@ -105,6 +105,7 @@ func (svc *QuestionSetService) GetFullDetailsByID(id uint) (*dtos.QuestionSetDet
 			if q.QuestionLibrary.QuestionType != nil {
 				questionDTO.QuestionTypeTitleEn = q.QuestionLibrary.QuestionType.TitleEn
 				questionDTO.QuestionTypeTitleAr = q.QuestionLibrary.QuestionType.TitleAr
+				questionDTO.QuestionTypeType = q.QuestionLibrary.QuestionType.Type
 			}
 
 			for _, opt := range q.QuestionLibrary.AnswerOptions {
@@ -117,8 +118,11 @@ func (svc *QuestionSetService) GetFullDetailsByID(id uint) (*dtos.QuestionSetDet
 					RangeTo:             opt.RangeTo,
 				}
 				if opt.RiskLevel != nil {
+					optionDTO.RiskLevel.ID = opt.RiskLevel.ID
 					optionDTO.RiskLevel.TitleEn = opt.RiskLevel.TitleEn
 					optionDTO.RiskLevel.TitleAr = opt.RiskLevel.TitleAr
+					optionDTO.RiskLevel.ColorCode = opt.RiskLevel.ColorCode
+					optionDTO.RiskLevel.Type = opt.RiskLevel.Type
 				}
 				questionDTO.AnswerOptions = append(questionDTO.AnswerOptions, optionDTO)
 			}
@@ -136,10 +140,11 @@ func (svc *QuestionSetService) GetFullDetailsByID(id uint) (*dtos.QuestionSetDet
 	}
 
 	// Convert map to slice
+	dto.Categories = []dtos.QuestionSetCategoryGroupDTO{}
 	for _, v := range categoryMap {
 		dto.Categories = append(dto.Categories, *v)
 	}
-
+	dto.TotalQuestions = len(entity.Questions)
 	return dto, nil
 }
 

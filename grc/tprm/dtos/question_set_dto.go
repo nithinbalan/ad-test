@@ -81,19 +81,21 @@ type QuestionSetQuestionDetailDTO struct {
 	QuestionCategoryTitleAr string `json:"question_category_title_ar"`
 	QuestionTypeTitleEn     string `json:"question_type_title_en"`
 	QuestionTypeTitleAr     string `json:"question_type_title_ar"`
+	QuestionTypeType        string `json:"question_type_type"`
 
 	// Answer Options
 	AnswerOptions []ThirdPartyQuestionLibraryAnswerOptionDetailDTO `json:"answer_options"`
 }
 
 type QuestionSetDetailDTO struct {
-	ID          uint                          `json:"id"`
-	TitleEn     string                        `json:"title_en"`
-	TitleAr     string                        `json:"title_ar"`
-	Description *string                       `json:"description"`
-	CreatedAt   time.Time                     `json:"created_at"`
-	UpdatedAt   *time.Time                    `json:"updated_at"`
-	Categories  []QuestionSetCategoryGroupDTO `json:"categories"`
+	ID             uint                          `json:"id"`
+	TitleEn        string                        `json:"title_en"`
+	TitleAr        string                        `json:"title_ar"`
+	Description    *string                       `json:"description"`
+	CreatedAt      time.Time                     `json:"created_at"`
+	UpdatedAt      *time.Time                    `json:"updated_at"`
+	Categories     []QuestionSetCategoryGroupDTO `json:"categories"`
+	TotalQuestions int                           `json:"total_questions"`
 }
 
 type QuestionSetCategoryGroupDTO struct {
