@@ -51,7 +51,7 @@ type UserRepositoryInterface interface {
 	GetUserRoles(userID uint) ([]models.UserRole, error)
 	GetActiveUserCount() (int64, error)
 
-	UpdateUserPrimaryDepartment(userID, orgUnitID uint, field string, tx ...utility.DatabaseTransaction) error
+	UpdateUserPrimaryDepartment(userID, orgUnitID uint, fields map[string]*uint, tx ...utility.DatabaseTransaction) error
 	UpdateResponsibleUnits(userID, newDepartmentID uint, tx ...utility.DatabaseTransaction) error
 	UpdateResponsibleUsers(oldUserID, newUserID uint, tx ...utility.DatabaseTransaction) error
 	UpdateResponsibleUserTasks(oldUserID, newUserID uint, tx ...utility.DatabaseTransaction) error
@@ -788,14 +788,18 @@ func (repo *UserRepository) GetActiveUserCount() (int64, error) {
 	return count, nil
 }
 
-func (repo *UserRepository) UpdateUserPrimaryDepartment(userID, orgUnitID uint, field string, tx ...utility.DatabaseTransaction) error {
+func (repo *UserRepository) UpdateUserPrimaryDepartment(userID, orgUnitID uint, fields map[string]*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	return db.Exec(
-		`UPDATE users SET `+field+` = ? WHERE id = ?`, orgUnitID, userID,
-	).Error
+	for columnName, value := range fields {
+		updateQuery := fmt.Sprintf("UPDATE users SET %s = ? WHERE id = ?", columnName)
+		if err := db.Exec(updateQuery, value, userID).Error; err != nil {
+			return fmt.Errorf("failed to update table users: %w", err)
+		}
+	}
+	return nil
 }
 
 func (repo *UserRepository) UpdateResponsibleUnits(userID, newDepartmentID uint, tx ...utility.DatabaseTransaction) error {

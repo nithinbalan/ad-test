@@ -15,6 +15,7 @@ import (
 	"jethur/utility"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -67,6 +68,7 @@ type UserService struct {
 	moduleSvc                settingService.ModuleServiceInterface
 	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface
 	notificationSvc          commonService.NotificationServiceInterface
+	organizationUnitSvc      settingService.OrganizationUnitServiceInterface
 }
 
 func NewUserService(
@@ -80,6 +82,7 @@ func NewUserService(
 	moduleSvc settingService.ModuleServiceInterface,
 	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface,
 	notificationSvc commonService.NotificationServiceInterface,
+	organizationUnitSvc settingService.OrganizationUnitServiceInterface,
 ) UserServiceInterface {
 	return &UserService{
 		repo:                     repo,
@@ -92,6 +95,7 @@ func NewUserService(
 		moduleSvc:                moduleSvc,
 		emailTemplateSettingsSvc: emailTemplateSettingsSvc,
 		notificationSvc:          notificationSvc,
+		organizationUnitSvc:      organizationUnitSvc,
 	}
 }
 
@@ -1050,25 +1054,33 @@ func (us *UserService) UpdateUserOrganizationUnit(userID uint, departmentUpdateF
 		return err
 	}
 
-	var primaryOrgUnitField string
+	orgUnitIds := make(map[string]*uint)
 
-	switch primaryLevel.Level {
-	case 1:
-		primaryOrgUnitField = "organization_unit_1_id"
-	case 2:
-		primaryOrgUnitField = "organization_unit_2_id"
-	case 3:
-		primaryOrgUnitField = "organization_unit_3_id"
-	case 4:
-		primaryOrgUnitField = "organization_unit_4_id"
-	case 5:
-		primaryOrgUnitField = "organization_unit_5_id"
-	default:
-		return fmt.Errorf("unsupported primary level")
+	orgUnitIds["organization_unit_"+strconv.Itoa(int(primaryLevel.Level))+"_id"] = &departmentUpdateFormDTO.OrganizationUnitID
+
+	for i := int(primaryLevel.Level); i <= 5; i++ {
+		if int(primaryLevel.Level) != i {
+			orgUnitIds["organization_unit_"+strconv.Itoa(i)+"_id"] = nil
+		}
+	}
+
+	for i := int(primaryLevel.Level); i >= 1; i-- {
+		if int(primaryLevel.Level) != i {
+			organizationUnit, err := us.organizationUnitSvc.GetFullDetailsByID(*orgUnitIds["organization_unit_"+strconv.Itoa(i+1)+"_id"])
+			if err != nil {
+				return err
+			}
+			if organizationUnit.ParentUnit != nil {
+				parentID := uint(organizationUnit.ParentUnit.ID)
+				orgUnitIds["organization_unit_"+strconv.Itoa(i)+"_id"] = &parentID
+			} else {
+				orgUnitIds["organization_unit_"+strconv.Itoa(i)+"_id"] = nil
+			}
+		}
 	}
 
 	// Update the user's department
-	err = us.repo.UpdateUserPrimaryDepartment(userID, departmentUpdateFormDTO.OrganizationUnitID, primaryOrgUnitField, tx)
+	err = us.repo.UpdateUserPrimaryDepartment(userID, departmentUpdateFormDTO.OrganizationUnitID, orgUnitIds, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
