@@ -77,6 +77,7 @@ func (repo *AuditInsightsAuditFindingRepository) GetAll(params *auditDTOs.AuditF
 		LEFT JOIN audit_final_reports ON audit_final_reports.audit_id = audits.id
         LEFT JOIN audit_final_report_statuses ON audit_final_reports.audit_final_report_status_id = audit_final_report_statuses.id
 		LEFT JOIN audit_plans ON audit_plans.id = audits.audit_plan_id
+		LEFT JOIN audit_categories ON audit_categories.id = audit_plans.audit_category_id
 		LEFT JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id
 		LEFT JOIN audit_finding_categories ON audit_finding_categories.id = audit_findings.audit_finding_category_id
 		LEFT JOIN severity_levels ON severity_levels.id = audit_findings.severity_level_id
