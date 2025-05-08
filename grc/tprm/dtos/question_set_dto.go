@@ -99,6 +99,7 @@ type QuestionSetDetailDTO struct {
 }
 
 type QuestionSetCategoryGroupDTO struct {
+	CategoryID      uint                           `json:"category_id"`
 	CategoryTitleEn string                         `json:"category_title_en"`
 	CategoryTitleAr string                         `json:"category_title_ar"`
 	Questions       []QuestionSetQuestionDetailDTO `json:"questions"`

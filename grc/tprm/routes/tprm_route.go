@@ -61,6 +61,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	tprmRoutes.PUT("/question-sets/:id", questionSetController.UpdateQuestionSet)
 	tprmRoutes.POST("/question-sets/delete", questionSetController.DeleteQuestionSets)
 	tprmRoutes.POST("/question-sets/:id/questions", questionSetController.AddQuestionsToSet)
-	tprmRoutes.DELETE("/question-sets/questions/:question_id", questionSetController.DeleteQuestionFromSet)
+	tprmRoutes.DELETE("/question-sets/questions/:questionId", questionSetController.DeleteQuestionFromSet)
 
 }

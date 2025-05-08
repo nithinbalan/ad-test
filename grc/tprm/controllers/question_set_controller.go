@@ -216,9 +216,9 @@ func (qsc *QuestionSetController) AddQuestionsToSet(c *gin.Context) {
 }
 
 func (qsc *QuestionSetController) DeleteQuestionFromSet(c *gin.Context) {
-	questionID, err := strconv.Atoi(c.Param("question_id"))
+	questionID, err := strconv.Atoi(c.Param("questionId"))
 	if err != nil {
-		utility.SendInvalidErrResp(c, errors.New("Invalid question_id"))
+		utility.SendInvalidErrResp(c, errors.New("Invalid question id"))
 		return
 	}
 
