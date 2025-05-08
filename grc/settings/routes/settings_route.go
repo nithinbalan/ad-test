@@ -113,6 +113,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.PUT("/report-template-settings/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), reportTemplateSettingController.UpdateReportTemplateSetting)
 	unauthenticatedRoutes.GET("/report-template-settings/image-preview", reportTemplateSettingController.GetReportTemplateSettingPreview)
 
-	settingRoutes.POST("/auth/ad-login", activeDirectorySettingController.ADLogin)
+	settingRoutes.GET("/active-directory-settings", activeDirectorySettingController.GetActiveDirectorySettings)
+	settingRoutes.POST("/active-directory-settings", activeDirectorySettingController.CreateActiveDirectorySetting)
 
 }

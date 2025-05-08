@@ -1,6 +1,6 @@
 package dtos
 
-type ADLoginRequestDTO struct {
+type ActiveDirectorySettingDTO struct {
 	// Connection Details
 	Server         string `json:"server" binding:"required"`           // e.g., ad1.example.local
 	Port           int    `json:"port" binding:"required"`             // e.g., 389

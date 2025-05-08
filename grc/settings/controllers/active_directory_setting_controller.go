@@ -3,6 +3,7 @@ package controllers
 import (
 	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/services"
+	"jethur/utility"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -19,18 +20,41 @@ func NewActiveDirectorySettingController(service services.ActiveDirectorySetting
 		service: service,
 	}
 }
+func (adsc *ActiveDirectorySettingController) GetActiveDirectorySettings(c *gin.Context) {
+	ad, err := adsc.service.GetFirst()
+	if err != nil {
+		utility.SendInternalErrResp(adsc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, ad)
+}
 
-func (adsc *ActiveDirectorySettingController) ADLogin(c *gin.Context) {
-	var req dtos.ADLoginRequestDTO
+func (adsc *ActiveDirectorySettingController) CreateActiveDirectorySetting(c *gin.Context) {
+	var req dtos.ActiveDirectorySettingDTO
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request", "details": err.Error()})
+		utility.SendInvalidErrResp(c, err)
 		return
 	}
-
-	if err := adsc.service.Authenticate(req); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(adsc.db, c, err.Error())
 		return
 	}
+	err = adsc.service.Create(currentUserID, req)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(adsc.db, c, e.Error())
+			return
+		}
+	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Authenticated successfully"})
+	c.Status(http.StatusOK)
+
 }
