@@ -30,7 +30,9 @@ func NewReportsModule(db *gorm.DB,
 	meetingModule *MeetingModule,
 	settingsModule *SettingsModule,
 	documentModule *DocumentModule,
-	sharedModule *SharedModule) *ReportsModule {
+	sharedModule *SharedModule,
+	kpiModule *KPIModule,
+) *ReportsModule {
 
 	organizationReportRepo := repositories.NewOrganizationReportRepository(db)
 	organizationReportSvc := services.NewOrganizationReportService(organizationReportRepo)
@@ -85,7 +87,7 @@ func NewReportsModule(db *gorm.DB,
 		documentModule.DocumentSvc, documentModule.DocumentChangeRequestSvc)
 
 	grcReportRepo := repositories.NewGRCReportRepository(db)
-	grcReportSvc := services.NewGRCReportService(grcReportRepo, sharedModule.ActivityLogService, settingsModule.OrganizationLevelSvc, riskModule.RiskResponseStrategySvc)
+	grcReportSvc := services.NewGRCReportService(grcReportRepo, sharedModule.ActivityLogService, settingsModule.OrganizationLevelSvc, riskModule.RiskResponseStrategySvc, kpiModule.GrcDashboardSvc)
 	grcReportController := controllers.NewGRCReportController(grcReportSvc)
 
 	return &ReportsModule{

@@ -1,8 +1,11 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	kpiDTOs "jethur/grc/kpi/dtos"
+	kpiServices "jethur/grc/kpi/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/reports/dtos"
@@ -31,6 +34,7 @@ type GRCReportService struct {
 	activityLogSvc          logServices.ActivityLogServiceInterface
 	organizationLevelSvc    settingServices.OrganizationLevelServiceInterface
 	riskResponseStrategySvc riskServices.RiskResponseStrategyServiceInterface
+	grcDashboardSvc         kpiServices.GRCDashboardServiceInterface
 }
 
 func NewGRCReportService(
@@ -38,12 +42,14 @@ func NewGRCReportService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	organizationLevelSvc settingServices.OrganizationLevelServiceInterface,
 	riskResponseStrategySvc riskServices.RiskResponseStrategyServiceInterface,
+	grcDashboardSvc kpiServices.GRCDashboardServiceInterface,
 ) GRCReportServiceInterface {
 	return &GRCReportService{
 		repo:                    repo,
 		activityLogSvc:          activityLogSvc,
 		organizationLevelSvc:    organizationLevelSvc,
 		riskResponseStrategySvc: riskResponseStrategySvc,
+		grcDashboardSvc:         grcDashboardSvc,
 	}
 }
 
@@ -299,17 +305,60 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		policyApprovedRate = &rounded
 	}
 
+	// Fetch data
+	params := kpiDTOs.GRCDashboardListQueryParamsDTO{
+		DateFrom: dates.StartDate.Format("2006-01-02"),
+		DateTo:   dates.EndDate.Format("2006-01-02"),
+	}
+
+	documentOverview, err := grs.grcDashboardSvc.GetGRCDocumentOverview(&params)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch document overview: %w", err)
+	}
+
+	documentTypeChart, err := grs.grcDashboardSvc.GetGRCDocumentTypeChart(&params)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch document type chart: %w", err)
+	}
+
+	topDocuments, err := grs.grcDashboardSvc.GetGRCTopPublishedDocuments(&params)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch top published documents: %w", err)
+	}
+
+	overviewJSON, err := json.Marshal(documentOverview)
+	if err != nil {
+		return 0, fmt.Errorf("failed to marshal document overview: %w", err)
+	}
+
+	typeChartJSON, err := json.Marshal(documentTypeChart)
+	if err != nil {
+		return 0, fmt.Errorf("failed to marshal document type chart: %w", err)
+	}
+
+	topDocsJSON, err := json.Marshal(topDocuments)
+	if err != nil {
+		return 0, fmt.Errorf("failed to marshal top published documents: %w", err)
+	}
+
+	overviewStr := string(overviewJSON)
+	typeChartStr := string(typeChartJSON)
+	topDocsStr := string(topDocsJSON)
+
 	grcSummary := &models.GRCReportGovernanceSummary{
-		GRCReportID:        grcReportID,
-		ReviewUserID:       &grcReportFormDTO.ReviewUserID,
-		ApproveUserID:      &grcReportFormDTO.ApproveUserID,
-		PoliciesInSystem:   policiesInSystem,
-		TotalPolicies:      totalPolicies,
-		RolesDefined:       int(userCount),
-		PolicyApprovedRate: policyApprovedRate,
-		Highlights:         nil,
-		Challenges:         nil,
-		CreatedBYID:        currentUserID,
+		GRCReportID:           grcReportID,
+		ReviewUserID:          &grcReportFormDTO.ReviewUserID,
+		ApproveUserID:         &grcReportFormDTO.ApproveUserID,
+		PoliciesInSystem:      policiesInSystem,
+		TotalPolicies:         totalPolicies,
+		RolesDefined:          int(userCount),
+		PolicyApprovedRate:    policyApprovedRate,
+		Highlights:            nil,
+		Challenges:            nil,
+		DocumentOverviewChart: &overviewStr,
+		DocumentTypeChart:     &typeChartStr,
+		TopPublishedDocuments: &topDocsStr,
+		CreatedBYID:           currentUserID,
 	}
 
 	if err := grs.repo.CreateGRCReportGovernanceSummary(grcSummary, tx); err != nil {

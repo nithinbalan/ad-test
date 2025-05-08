@@ -632,7 +632,7 @@ func (repo *GRCDashboardRepository) GetTopPublishedDocuments(params *kpiDTOs.GRC
 
 func (repo *GRCDashboardRepository) GetGRCDocumentTypeChart(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCDocumentTypeChartDTO, error) {
 	var totalDocuments int64
-	var typeCounts []*kpiDTOs.GRCDocumentTypeChartDTO
+	var typeCounts = []*kpiDTOs.GRCDocumentTypeChartDTO{}
 
 	query := repo.db.Model(&models.Document{})
 
