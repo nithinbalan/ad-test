@@ -80,6 +80,7 @@ func (svc *QuestionSetService) GetFullDetailsByID(id uint) (*dtos.QuestionSetDet
 
 	for _, q := range entity.Questions {
 		var catEn, catAr string
+		var catID uint
 
 		questionDTO := dtos.QuestionSetQuestionDetailDTO{
 			ID:                          q.ID,
@@ -98,6 +99,8 @@ func (svc *QuestionSetService) GetFullDetailsByID(id uint) (*dtos.QuestionSetDet
 			if q.QuestionLibrary.QuestionCategory != nil {
 				catEn = q.QuestionLibrary.QuestionCategory.TitleEn
 				catAr = q.QuestionLibrary.QuestionCategory.TitleAr
+				catID = q.QuestionLibrary.QuestionCategory.ID
+				questionDTO.ThirdPartyQuestionCategoryID = q.QuestionLibrary.QuestionCategory.ID
 				questionDTO.QuestionCategoryTitleEn = catEn
 				questionDTO.QuestionCategoryTitleAr = catAr
 			}
@@ -131,6 +134,7 @@ func (svc *QuestionSetService) GetFullDetailsByID(id uint) (*dtos.QuestionSetDet
 		groupKey := catEn + "::" + catAr
 		if _, exists := categoryMap[groupKey]; !exists {
 			categoryMap[groupKey] = &dtos.QuestionSetCategoryGroupDTO{
+				CategoryID:      catID,
 				CategoryTitleEn: catEn,
 				CategoryTitleAr: catAr,
 				Questions:       []dtos.QuestionSetQuestionDetailDTO{},
@@ -203,6 +207,10 @@ func (svc *QuestionSetService) Delete(ids []uint, currentUserID uint) ([]uint, e
 		}
 
 		// Delete child questions first
+		if err := svc.repo.DeleteByQuestionSetID(id, tx); err != nil {
+			tx.Rollback()
+			failed = append(failed, id)
+		}
 
 		if err := svc.repo.Delete(id, tx); err != nil {
 			tx.Rollback()
