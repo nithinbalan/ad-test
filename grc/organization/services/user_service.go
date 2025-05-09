@@ -2,6 +2,7 @@ package services
 
 import (
 	"crypto/rand"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
@@ -18,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-ldap/ldap/v3"
 	"github.com/mitchellh/mapstructure"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -51,20 +53,22 @@ type UserServiceInterface interface {
 	ExportUsers(data []*userDTOs.UserListDTO, currentUserID uint) (*os.File, error)
 
 	GetUserPermissions(userID uint, params *settingDTOs.ModuleListQueryParamsDTO) (*[]settingDTOs.ModuleListDTO, error)
+	SyncUsersFromAD(currentUserID uint) (int, error)
 }
 
 type UserService struct {
-	repo                     organizationRepositories.UserRepositoryInterface
-	designationSvc           DesignationServiceInterface
-	userStatusSvc            UserStatusServiceInterface
-	activityLogSvc           logServices.ActivityLogServiceInterface
-	roleSvc                  settingService.RoleServiceInterface
-	userSettingSvc           UserSettingServiceInterface
-	systemPreferenceSvc      settingService.SystemPreferenceServiceInterface
-	organizationLevelSvc     settingService.OrganizationLevelServiceInterface
-	moduleSvc                settingService.ModuleServiceInterface
-	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface
-	notificationSvc          commonService.NotificationServiceInterface
+	repo                      organizationRepositories.UserRepositoryInterface
+	designationSvc            DesignationServiceInterface
+	userStatusSvc             UserStatusServiceInterface
+	activityLogSvc            logServices.ActivityLogServiceInterface
+	roleSvc                   settingService.RoleServiceInterface
+	userSettingSvc            UserSettingServiceInterface
+	systemPreferenceSvc       settingService.SystemPreferenceServiceInterface
+	organizationLevelSvc      settingService.OrganizationLevelServiceInterface
+	moduleSvc                 settingService.ModuleServiceInterface
+	emailTemplateSettingsSvc  settingService.EmailTemplateSettingsServiceInterface
+	notificationSvc           commonService.NotificationServiceInterface
+	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface
 }
 
 func NewUserService(
@@ -78,18 +82,20 @@ func NewUserService(
 	moduleSvc settingService.ModuleServiceInterface,
 	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface,
 	notificationSvc commonService.NotificationServiceInterface,
+	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface,
 ) UserServiceInterface {
 	return &UserService{
-		repo:                     repo,
-		designationSvc:           designationSvc,
-		userStatusSvc:            userStatusSvc,
-		activityLogSvc:           activityLogSvc,
-		roleSvc:                  roleSvc,
-		systemPreferenceSvc:      systemPreferenceSvc,
-		organizationLevelSvc:     organizationLevelSvc,
-		moduleSvc:                moduleSvc,
-		emailTemplateSettingsSvc: emailTemplateSettingsSvc,
-		notificationSvc:          notificationSvc,
+		repo:                      repo,
+		designationSvc:            designationSvc,
+		userStatusSvc:             userStatusSvc,
+		activityLogSvc:            activityLogSvc,
+		roleSvc:                   roleSvc,
+		systemPreferenceSvc:       systemPreferenceSvc,
+		organizationLevelSvc:      organizationLevelSvc,
+		moduleSvc:                 moduleSvc,
+		emailTemplateSettingsSvc:  emailTemplateSettingsSvc,
+		notificationSvc:           notificationSvc,
+		activeDirectorySettingSvc: activeDirectorySettingSvc,
 	}
 }
 
@@ -1036,4 +1042,89 @@ func (us *UserService) validateLicenseKey(licenseKey string) error {
 	}
 
 	return nil
+}
+
+func (us *UserService) SyncUsersFromAD(currentUserID uint) (int, error) {
+	// 1. Get AD settings
+	adSetting, err := us.activeDirectorySettingSvc.GetFirst()
+	if err != nil || adSetting == nil {
+		return 0, fmt.Errorf("active Directory configuration not found")
+	}
+	bindPsw := []byte(adSetting.BindPassword)
+	bindPassword, err := utility.DecryptData(string(bindPsw))
+	if err != nil {
+		return 0, fmt.Errorf("failed to decrypt bind password: %w", err)
+	}
+
+	// 2. Connect to LDAP
+	address := fmt.Sprintf("%s:%d", adSetting.Server, adSetting.Port)
+	var l *ldap.Conn
+	if adSetting.UseSSL {
+		l, err = ldap.DialTLS("tcp", address, &tls.Config{InsecureSkipVerify: true})
+	} else {
+		l, err = ldap.Dial("tcp", address)
+	}
+	if err != nil {
+		return 0, fmt.Errorf("LDAP connection failed: %w", err)
+	}
+	defer l.Close()
+
+	if err := l.Bind(adSetting.BindDN, string(bindPassword)); err != nil {
+		return 0, fmt.Errorf("bind failed: %w", err)
+	}
+
+	// 3. Search for enabled AD users
+	filter := "(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
+	searchReq := ldap.NewSearchRequest(
+		adSetting.BaseDN,
+		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+		filter,
+		[]string{"cn", "displayName", "mail", "givenName", "sn"},
+		nil,
+	)
+
+	sr, err := l.Search(searchReq)
+	if err != nil {
+		return 0, fmt.Errorf("LDAP search failed: %w", err)
+	}
+
+	// 4. Sync users
+	usersSynced := 0
+	for _, entry := range sr.Entries {
+		fmt.Println("uers=", usersSynced)
+		email := entry.GetAttributeValue("mail")
+		firstName := entry.GetAttributeValue("givenName")
+		lastName := entry.GetAttributeValue("sn")
+		fmt.Println("----")
+		fmt.Println("email:", entry.GetAttributeValue("mail"))
+		fmt.Println("Display Name:", entry.GetAttributeValue("displayName"))
+		fmt.Println("givenName:", entry.GetAttributeValue("givenName"))
+		fmt.Println("lastName:", entry.GetAttributeValue("sn"))
+
+		if email == "" || firstName == "" || lastName == "" {
+			continue
+		}
+
+		// Build DTO
+		dto := &userDTOs.UserFormDTO{
+			FirstNameEn:         firstName,
+			LastNameEn:          lastName,
+			FirstNameAr:         firstName,
+			LastNameAr:          lastName,
+			Email:               email,
+			MobileNumber:        nil,
+			OrganizationUnit1ID: 1,
+			DesignationID:       1,
+			RoleIDs:             []uint{1},
+			UserStatusID:        1,
+			IsSentEmail:         false,
+		}
+
+		if _, err := us.Create(currentUserID, dto); err == nil {
+			usersSynced++
+		}
+		usersSynced++
+	}
+
+	return usersSynced, nil
 }

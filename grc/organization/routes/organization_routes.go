@@ -282,5 +282,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// process criticality level
 	organizationRoutes.GET("/process-criticality-levels", processCriticalityLevelController.GetAllProcessCriticalityLevels)
 	organizationRoutes.GET("/process-criticality-levels/:id", processCriticalityLevelController.GetProcessCriticalityLevelDetails)
+	organizationRoutes.POST("/ad-users-sync", userController.SyncADUsers)
 
 }

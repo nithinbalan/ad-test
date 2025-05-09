@@ -25,18 +25,19 @@ type SettingsModule struct {
 	ReportTemplateSettingController  *controllers.ReportTemplateSettingController
 	ActiveDirectorySettingController *controllers.ActiveDirectorySettingController
 
-	SystemPreferenceSvc      services.SystemPreferenceServiceInterface
-	OrganizationUnitSvc      services.OrganizationUnitServiceInterface
-	OrganizationLevelSvc     services.OrganizationLevelServiceInterface
-	RoleSvc                  services.RoleServiceInterface
-	ModuleSvc                services.ModuleServiceInterface
-	WorkflowSvc              services.WorkflowServiceInterface
-	RolePermissionTypeSvc    services.RolePermissionTypeServiceInterface
-	EmailTemplateSettingsSvc services.EmailTemplateSettingsServiceInterface
-	IntegrationSvc           services.IntegrationServiceInterface
-	AuditTemplateSettingSvc  services.AuditTemplateSettingServiceInterface
-	RiskTemplateSettingSvc   services.RiskTemplateSettingServiceInterface
-	ReportTemplateSettingSvc services.ReportTemplateSettingServiceInterface
+	SystemPreferenceSvc       services.SystemPreferenceServiceInterface
+	OrganizationUnitSvc       services.OrganizationUnitServiceInterface
+	OrganizationLevelSvc      services.OrganizationLevelServiceInterface
+	RoleSvc                   services.RoleServiceInterface
+	ModuleSvc                 services.ModuleServiceInterface
+	WorkflowSvc               services.WorkflowServiceInterface
+	RolePermissionTypeSvc     services.RolePermissionTypeServiceInterface
+	EmailTemplateSettingsSvc  services.EmailTemplateSettingsServiceInterface
+	IntegrationSvc            services.IntegrationServiceInterface
+	AuditTemplateSettingSvc   services.AuditTemplateSettingServiceInterface
+	RiskTemplateSettingSvc    services.RiskTemplateSettingServiceInterface
+	ReportTemplateSettingSvc  services.ReportTemplateSettingServiceInterface
+	ActiveDirectorySettingSvc services.ActiveDirectorySettingServiceInterface
 }
 
 func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule) *SettingsModule {
@@ -124,17 +125,18 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		ReportTemplateSettingController:  reportTemplateSettingController,
 		ActiveDirectorySettingController: activeDirectorySettingController,
 
-		SystemPreferenceSvc:      systemPreferenceSvc,
-		OrganizationLevelSvc:     organizationLevelSvc,
-		RoleSvc:                  roleSvc,
-		ModuleSvc:                moduleSvc,
-		WorkflowSvc:              workflowSvc,
-		OrganizationUnitSvc:      organizationUnitSvc,
-		RolePermissionTypeSvc:    rolePermissionTypeSvc,
-		EmailTemplateSettingsSvc: emailTemplateSettingsService,
-		IntegrationSvc:           integrationSvc,
-		AuditTemplateSettingSvc:  auditTemplateSettingSvc,
-		RiskTemplateSettingSvc:   riskTemplateSettingSvc,
-		ReportTemplateSettingSvc: reportTemplateSettingSvc,
+		SystemPreferenceSvc:       systemPreferenceSvc,
+		OrganizationLevelSvc:      organizationLevelSvc,
+		RoleSvc:                   roleSvc,
+		ModuleSvc:                 moduleSvc,
+		WorkflowSvc:               workflowSvc,
+		OrganizationUnitSvc:       organizationUnitSvc,
+		RolePermissionTypeSvc:     rolePermissionTypeSvc,
+		EmailTemplateSettingsSvc:  emailTemplateSettingsService,
+		IntegrationSvc:            integrationSvc,
+		AuditTemplateSettingSvc:   auditTemplateSettingSvc,
+		RiskTemplateSettingSvc:    riskTemplateSettingSvc,
+		ReportTemplateSettingSvc:  reportTemplateSettingSvc,
+		ActiveDirectorySettingSvc: activeDirectorySettingSvc,
 	}
 }

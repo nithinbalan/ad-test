@@ -1,6 +1,7 @@
 package services
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	authDTOs "jethur/grc/auth/dtos"
@@ -11,6 +12,7 @@ import (
 	settingService "jethur/grc/settings/services"
 	"jethur/utility"
 
+	"github.com/go-ldap/ldap/v3"
 	"golang.org/x/crypto/bcrypt"
 
 	"strings"
@@ -30,26 +32,43 @@ type AuthServiceInterface interface {
 
 // Service and implementations
 type AuthService struct {
-	userService              services.UserServiceInterface
-	userSettingService       services.UserSettingServiceInterface
-	notificationSvc          commonService.NotificationServiceInterface
-	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface
+	userService               services.UserServiceInterface
+	userSettingService        services.UserSettingServiceInterface
+	notificationSvc           commonService.NotificationServiceInterface
+	emailTemplateSettingsSvc  settingService.EmailTemplateSettingsServiceInterface
+	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface
 }
 
 func NewAuthService(
 	userService services.UserServiceInterface,
 	userSettingService services.UserSettingServiceInterface,
 	notificationSvc commonService.NotificationServiceInterface,
-	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface) AuthServiceInterface {
+	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface,
+	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface) AuthServiceInterface {
 	return &AuthService{
-		userService:              userService,
-		userSettingService:       userSettingService,
-		notificationSvc:          notificationSvc,
-		emailTemplateSettingsSvc: emailTemplateSettingsSvc,
+		userService:               userService,
+		userSettingService:        userSettingService,
+		notificationSvc:           notificationSvc,
+		emailTemplateSettingsSvc:  emailTemplateSettingsSvc,
+		activeDirectorySettingSvc: activeDirectorySettingSvc,
 	}
 }
 
 func (as *AuthService) Authenticate(email string, password string, ipAddress string, location string, device string, browser string) (*authDTOs.LoginResponseDTO, error) {
+	// ✅ Check if AD login is enabled/configured
+
+	adSetting, err := as.activeDirectorySettingSvc.GetFirst()
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+	if adSetting != nil {
+		if response, err := as.LoginWithActiveDirectory(email, password, ipAddress, location, device, browser); err != nil {
+			return nil, err
+		} else if response != nil {
+			return response, nil
+		}
+	}
+
 	// Get user
 	user, err := as.userService.GetByEmail(email)
 	if err != nil {
@@ -458,4 +477,78 @@ func (as AuthService) sendOTP(userSecurity *models.UserSecurity, user *models.Us
 	}
 
 	return nil
+}
+
+func (as *AuthService) LoginWithActiveDirectory(email, password, ip, location, device, browser string) (*authDTOs.LoginResponseDTO, error) {
+	adSetting, err := as.activeDirectorySettingSvc.GetFirst()
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+	if adSetting == nil {
+		return nil, nil // no AD config, skip
+	}
+
+	bindPsw := []byte(adSetting.BindPassword)
+	decryptedBindPwd, err := utility.DecryptData(string(bindPsw))
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+
+	address := fmt.Sprintf("%s:%d", adSetting.Server, adSetting.Port)
+	var l *ldap.Conn
+	if adSetting.UseSSL {
+		l, err = ldap.DialTLS("tcp", address, &tls.Config{InsecureSkipVerify: true})
+	} else {
+		l, err = ldap.Dial("tcp", address)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("LDAP connection failed: %w", err)
+	}
+	defer l.Close()
+
+	if err := l.Bind(adSetting.BindDN, string(decryptedBindPwd)); err != nil {
+		return nil, fmt.Errorf("Bind failed: %w", err)
+	}
+
+	searchReq := ldap.NewSearchRequest(
+		adSetting.BaseDN,
+		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+		fmt.Sprintf("(mail=%s)", email),
+		[]string{"dn", "cn", "displayName", "mail"},
+		nil,
+	)
+
+	sr, err := l.Search(searchReq)
+	if err != nil || len(sr.Entries) == 0 {
+		return nil, fmt.Errorf("AD user not found: %w", err)
+	}
+
+	userDN := sr.Entries[0].DN
+
+	if err := l.Bind(userDN, password); err != nil {
+		// _ = as.userService.CreateUserLoginHistory(nil, "failed", ip, location, device, browser)
+		return nil, fmt.Errorf("AD login failed: %w", err)
+	}
+
+	user, err := as.userService.GetByEmail(email)
+	if err != nil {
+		return nil, utility.NewResourceNotFoundError(err, email)
+	}
+
+	accessToken, err := utility.GenerateToken(user.ID)
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+	refreshToken, err := utility.GenerateRefreshToken(user.ID)
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+
+	_ = as.userService.CreateUserLoginHistory(user, "success", ip, location, device, browser)
+
+	return &authDTOs.LoginResponseDTO{
+		AccessToken:  &accessToken,
+		RefreshToken: &refreshToken,
+		IsMFAEnabled: false,
+	}, nil
 }
