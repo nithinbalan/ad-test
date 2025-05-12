@@ -284,3 +284,11 @@ type UserPrimaryDetailsDTO struct {
 	MobileNumber     *string `json:"mobile_number"`
 	ProfileImagePath *string `json:"profile_image_path"`
 }
+
+type ADUserDTO struct {
+	FirstName        string  `json:"first_name"`
+	LastName         string  `json:"last_name"`
+	Email            string  `json:"email"`
+	OrganizationUnit *string `json:"organization_unit,omitempty"`
+	Designation      *string `json:"designation,omitempty"`
+}

@@ -522,3 +522,13 @@ func (uc *UserController) SyncADUsers(c *gin.Context) {
 		"users_synced": count,
 	})
 }
+
+func (uc *UserController) GetADUsers(c *gin.Context) {
+	users, err := uc.service.GetUsersFromAD()
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, users)
+}

@@ -21,6 +21,7 @@ type OrganizationUnitRepositoryInterface interface {
 	Deactivate(ids []uint) ([]uint, error)
 
 	GetAllDescendantUnitIDs(parentID uint) []uint
+	GetByTitleEn(title string) (*models.OrganizationUnit, error)
 }
 
 type OrganizationUnitRepository struct {
@@ -242,4 +243,15 @@ func (repo *OrganizationUnitRepository) GetAllDescendantUnitIDs(parentID uint) [
 	}
 
 	return allDescendantIDs
+}
+
+func (repo *OrganizationUnitRepository) GetByTitleEn(title string) (*models.OrganizationUnit, error) {
+	var organizationUnit *models.OrganizationUnit
+
+	result := repo.db.Where("title_en = ?", title).First(&organizationUnit)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return organizationUnit, nil
 }

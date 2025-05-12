@@ -54,6 +54,7 @@ type UserServiceInterface interface {
 
 	GetUserPermissions(userID uint, params *settingDTOs.ModuleListQueryParamsDTO) (*[]settingDTOs.ModuleListDTO, error)
 	SyncUsersFromAD(currentUserID uint) (int, error)
+	GetUsersFromAD() ([]*userDTOs.ADUserDTO, error)
 }
 
 type UserService struct {
@@ -69,6 +70,7 @@ type UserService struct {
 	emailTemplateSettingsSvc  settingService.EmailTemplateSettingsServiceInterface
 	notificationSvc           commonService.NotificationServiceInterface
 	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface
+	organizationUnitSvc       settingService.OrganizationUnitServiceInterface
 }
 
 func NewUserService(
@@ -83,6 +85,7 @@ func NewUserService(
 	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface,
 	notificationSvc commonService.NotificationServiceInterface,
 	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface,
+	organizationUnitSvc settingService.OrganizationUnitServiceInterface,
 ) UserServiceInterface {
 	return &UserService{
 		repo:                      repo,
@@ -96,6 +99,7 @@ func NewUserService(
 		emailTemplateSettingsSvc:  emailTemplateSettingsSvc,
 		notificationSvc:           notificationSvc,
 		activeDirectorySettingSvc: activeDirectorySettingSvc,
+		organizationUnitSvc:       organizationUnitSvc,
 	}
 }
 
@@ -1045,7 +1049,6 @@ func (us *UserService) validateLicenseKey(licenseKey string) error {
 }
 
 func (us *UserService) SyncUsersFromAD(currentUserID uint) (int, error) {
-	// 1. Get AD settings
 	adSetting, err := us.activeDirectorySettingSvc.GetFirst()
 	if err != nil || adSetting == nil {
 		return 0, fmt.Errorf("active Directory configuration not found")
@@ -1056,7 +1059,6 @@ func (us *UserService) SyncUsersFromAD(currentUserID uint) (int, error) {
 		return 0, fmt.Errorf("failed to decrypt bind password: %w", err)
 	}
 
-	// 2. Connect to LDAP
 	address := fmt.Sprintf("%s:%d", adSetting.Server, adSetting.Port)
 	var l *ldap.Conn
 	if adSetting.UseSSL {
@@ -1073,13 +1075,13 @@ func (us *UserService) SyncUsersFromAD(currentUserID uint) (int, error) {
 		return 0, fmt.Errorf("bind failed: %w", err)
 	}
 
-	// 3. Search for enabled AD users
 	filter := "(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
+
 	searchReq := ldap.NewSearchRequest(
 		adSetting.BaseDN,
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		filter,
-		[]string{"cn", "displayName", "mail", "givenName", "sn"},
+		[]string{"cn", "displayName", "mail", "givenName", "sn", "distinguishedName", "title"},
 		nil,
 	)
 
@@ -1088,24 +1090,88 @@ func (us *UserService) SyncUsersFromAD(currentUserID uint) (int, error) {
 		return 0, fmt.Errorf("LDAP search failed: %w", err)
 	}
 
-	// 4. Sync users
 	usersSynced := 0
+	primaryLevel, err := us.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return 0, err
+	}
 	for _, entry := range sr.Entries {
-		fmt.Println("uers=", usersSynced)
 		email := entry.GetAttributeValue("mail")
 		firstName := entry.GetAttributeValue("givenName")
 		lastName := entry.GetAttributeValue("sn")
-		fmt.Println("----")
-		fmt.Println("email:", entry.GetAttributeValue("mail"))
-		fmt.Println("Display Name:", entry.GetAttributeValue("displayName"))
-		fmt.Println("givenName:", entry.GetAttributeValue("givenName"))
-		fmt.Println("lastName:", entry.GetAttributeValue("sn"))
+		distinguishedName := entry.GetAttributeValue("distinguishedName")
+		designationTitle := entry.GetAttributeValue("title")
+		fmt.Println("Organization Unitsss:", designationTitle)
 
-		if email == "" || firstName == "" || lastName == "" {
-			continue
+		// Extract OU from DN
+		organizationUnitName := ""
+		dnParts := strings.Split(distinguishedName, ",")
+		for _, part := range dnParts {
+			if strings.HasPrefix(strings.ToUpper(part), "OU=") {
+				organizationUnitName = strings.TrimPrefix(part, "OU=")
+				break
+			}
 		}
 
-		// Build DTO
+		// 🚨 Validation: Check required fields
+		if email == "" || firstName == "" || lastName == "" || organizationUnitName == "" || distinguishedName == "" {
+			continue // Skip this user if any important field missing
+		}
+
+		fmt.Println("----")
+		fmt.Println("email:", email)
+		fmt.Println("First Name:", firstName)
+		fmt.Println("Last Name:", lastName)
+		fmt.Println("Organization Unit:", distinguishedName)
+		fmt.Println("Designation Title:", designationTitle)
+
+		var organizationUnitID uint
+		orgUnit, err := us.organizationUnitSvc.GetByTitleEn(organizationUnitName)
+		if err != nil || orgUnit == nil {
+			continue // Skip if no matching OrgUnit found
+		}
+		organizationUnitID = orgUnit.ID
+		var organizationUnit1ID uint
+
+		// Always find top-level OrganizationUnit1ID
+		currentOrgUnit := orgUnit
+		for currentOrgUnit != nil {
+			if currentOrgUnit.OrganizationLevelID == 1 {
+				organizationUnit1ID = currentOrgUnit.ID
+				break
+			}
+			if currentOrgUnit.OrganizationUnitID != nil {
+				parent, err := us.organizationUnitSvc.GetByID(*currentOrgUnit.OrganizationUnitID)
+				if err != nil {
+					break
+				}
+				currentOrgUnit = parent
+			} else {
+				break
+			}
+		}
+
+		// 🛡️ Find Designation ID
+		var designationID uint = 1 // default
+		if designationTitle != "" {
+			designation, err := us.designationSvc.GetByTitleEn(designationTitle)
+			if err == nil && designation != nil {
+				designationID = designation.ID
+			}
+		}
+		// Prepare organization units
+		var organizationUnit2ID, organizationUnit3ID, organizationUnit4ID, organizationUnit5ID *uint
+
+		switch primaryLevel.Level {
+		case 2:
+			organizationUnit2ID = &organizationUnitID
+		case 3:
+			organizationUnit3ID = &organizationUnitID
+		case 4:
+			organizationUnit4ID = &organizationUnitID
+		case 5:
+			organizationUnit5ID = &organizationUnitID
+		}
 		dto := &userDTOs.UserFormDTO{
 			FirstNameEn:         firstName,
 			LastNameEn:          lastName,
@@ -1113,18 +1179,110 @@ func (us *UserService) SyncUsersFromAD(currentUserID uint) (int, error) {
 			LastNameAr:          lastName,
 			Email:               email,
 			MobileNumber:        nil,
-			OrganizationUnit1ID: 1,
-			DesignationID:       1,
+			DesignationID:       designationID,
 			RoleIDs:             []uint{1},
 			UserStatusID:        1,
 			IsSentEmail:         false,
+			OrganizationUnit1ID: organizationUnit1ID,
+			OrganizationUnit2ID: organizationUnit2ID,
+			OrganizationUnit3ID: organizationUnit3ID,
+			OrganizationUnit4ID: organizationUnit4ID,
+			OrganizationUnit5ID: organizationUnit5ID,
 		}
 
+		// Set primary level org unit
+		switch primaryLevel.Level {
+		case 2:
+			dto.OrganizationUnit2ID = &organizationUnitID
+		case 3:
+			dto.OrganizationUnit3ID = &organizationUnitID
+		case 4:
+			dto.OrganizationUnit4ID = &organizationUnitID
+		case 5:
+			dto.OrganizationUnit5ID = &organizationUnitID
+		}
+
+		// Create user
 		if _, err := us.Create(currentUserID, dto); err == nil {
 			usersSynced++
 		}
-		usersSynced++
 	}
 
 	return usersSynced, nil
+}
+
+func (us *UserService) GetUsersFromAD() ([]*userDTOs.ADUserDTO, error) {
+	adSetting, err := us.activeDirectorySettingSvc.GetFirst()
+	if err != nil || adSetting == nil {
+		return nil, fmt.Errorf("Active Directory configuration not found")
+	}
+
+	bindPsw := []byte(adSetting.BindPassword)
+	bindPassword, err := utility.DecryptData(string(bindPsw))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt bind password: %w", err)
+	}
+
+	address := fmt.Sprintf("%s:%d", adSetting.Server, adSetting.Port)
+	var l *ldap.Conn
+	if adSetting.UseSSL {
+		l, err = ldap.DialTLS("tcp", address, &tls.Config{InsecureSkipVerify: true})
+	} else {
+		l, err = ldap.Dial("tcp", address)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("LDAP connection failed: %w", err)
+	}
+	defer l.Close()
+
+	if err := l.Bind(adSetting.BindDN, string(bindPassword)); err != nil {
+		return nil, fmt.Errorf("bind failed: %w", err)
+	}
+
+	filter := "(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
+	searchReq := ldap.NewSearchRequest(
+		adSetting.BaseDN,
+		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+		filter,
+		[]string{"givenName", "sn", "mail", "distinguishedName", "title"},
+		nil,
+	)
+
+	sr, err := l.Search(searchReq)
+	if err != nil {
+		return nil, fmt.Errorf("LDAP search failed: %w", err)
+	}
+
+	var users []*userDTOs.ADUserDTO
+	for _, entry := range sr.Entries {
+		firstName := entry.GetAttributeValue("givenName")
+		lastName := entry.GetAttributeValue("sn")
+		email := entry.GetAttributeValue("mail")
+		distinguishedName := entry.GetAttributeValue("distinguishedName")
+		designationTitle := entry.GetAttributeValue("title")
+
+		if email == "" || firstName == "" || lastName == "" {
+			continue
+		}
+
+		var organizationUnitName *string
+		dnParts := strings.Split(distinguishedName, ",")
+		for _, part := range dnParts {
+			if strings.HasPrefix(strings.ToUpper(part), "OU=") {
+				ou := strings.TrimPrefix(part, "OU=")
+				organizationUnitName = &ou
+				break
+			}
+		}
+
+		users = append(users, &userDTOs.ADUserDTO{
+			FirstName:        firstName,
+			LastName:         lastName,
+			Email:            email,
+			OrganizationUnit: organizationUnitName,
+			Designation:      &designationTitle,
+		})
+	}
+
+	return users, nil
 }
