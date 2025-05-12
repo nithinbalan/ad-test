@@ -12,6 +12,9 @@ type GRCReportRiskSummary struct {
 	TreatmentStrategies *string    `json:"treatment_strategies" gorm:"type:nvarchar(max)"`
 	RiskScoreSummary    *string    `json:"risk_score_summary" gorm:"type:nvarchar(max)"`
 	KRIs                *string    `json:"kris" gorm:"column:kris;type:nvarchar(max)"`
+	RiskOverviewChart   *string    `json:"risk_overview_chart" gorm:"type:nvarchar(max)"`
+	RiskHeatmapChart    *string    `json:"risk_heatmap_chart" gorm:"type:nvarchar(max)"`
+	TopRisks            *string    `json:"top_risks" gorm:"type:nvarchar(max)"`
 	CreatedBYID         uint       `json:"created_by_id" gorm:"not null"`
 	CreatedAt           time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedBYID         *uint      `json:"updated_by_id"`

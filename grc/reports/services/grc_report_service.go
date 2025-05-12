@@ -10,6 +10,7 @@ import (
 	"jethur/grc/models"
 	"jethur/grc/reports/dtos"
 	"jethur/grc/reports/repositories"
+	riskDTOs "jethur/grc/risk/dtos"
 	riskServices "jethur/grc/risk/services"
 	settingServices "jethur/grc/settings/services"
 	"jethur/utility"
@@ -35,6 +36,7 @@ type GRCReportService struct {
 	organizationLevelSvc    settingServices.OrganizationLevelServiceInterface
 	riskResponseStrategySvc riskServices.RiskResponseStrategyServiceInterface
 	grcDashboardSvc         kpiServices.GRCDashboardServiceInterface
+	riskHeatMapSvc          riskServices.RiskHeatmapServiceInterface
 }
 
 func NewGRCReportService(
@@ -43,6 +45,7 @@ func NewGRCReportService(
 	organizationLevelSvc settingServices.OrganizationLevelServiceInterface,
 	riskResponseStrategySvc riskServices.RiskResponseStrategyServiceInterface,
 	grcDashboardSvc kpiServices.GRCDashboardServiceInterface,
+	riskHeatMapSvc riskServices.RiskHeatmapServiceInterface,
 ) GRCReportServiceInterface {
 	return &GRCReportService{
 		repo:                    repo,
@@ -50,6 +53,7 @@ func NewGRCReportService(
 		organizationLevelSvc:    organizationLevelSvc,
 		riskResponseStrategySvc: riskResponseStrategySvc,
 		grcDashboardSvc:         grcDashboardSvc,
+		riskHeatMapSvc:          riskHeatMapSvc,
 	}
 }
 
@@ -311,6 +315,11 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		DateTo:   dates.EndDate.Format("2006-01-02"),
 	}
 
+	heatmapParams := riskDTOs.RiskHeatmapQueryParamsDTO{
+		DateFrom: dates.StartDate.Format("2006-01-02"),
+		DateTo:   dates.EndDate.Format("2006-01-02"),
+	}
+
 	documentOverview, err := grs.grcDashboardSvc.GetGRCDocumentOverview(&params)
 	if err != nil {
 		return 0, fmt.Errorf("failed to fetch document overview: %w", err)
@@ -425,6 +434,40 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		}
 	}
 
+	riskOverviewChart, err := grs.grcDashboardSvc.GetGRCRiskOverview(&params)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch document overview: %w", err)
+	}
+
+	riskHeatmapChart, err := grs.riskHeatMapSvc.GetRiskHeatmapByRiskMatrix(&heatmapParams)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch document type chart: %w", err)
+	}
+
+	topRisks, err := grs.grcDashboardSvc.GetGRCTopRisks(&params)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch top published documents: %w", err)
+	}
+
+	riskOverviewJSON, err := json.Marshal(riskOverviewChart)
+	if err != nil {
+		return 0, fmt.Errorf("failed to marshal risk overview: %w", err)
+	}
+
+	riskHeatmapJSON, err := json.Marshal(riskHeatmapChart)
+	if err != nil {
+		return 0, fmt.Errorf("failed to marshal risk overview: %w", err)
+	}
+
+	topRiskJSON, err := json.Marshal(topRisks)
+	if err != nil {
+		return 0, fmt.Errorf("failed to marshal top risk: %w", err)
+	}
+
+	riskOverviewStr := string(riskOverviewJSON)
+	riskHeatmapStr := string(riskHeatmapJSON)
+	topRiskStr := string(topRiskJSON)
+
 	strPtr := func(s string) *string { return &s }
 
 	summary := &models.GRCReportRiskSummary{
@@ -434,6 +477,9 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		TreatmentStrategies: strPtr(strings.Join(riskStrategies, ", ")),
 		RiskScoreSummary:    strPtr(strings.Join(riskScoreSummaryParts, "\n")),
 		KRIs:                strPtr(strings.Join(kriSummaries, "\n")),
+		RiskOverviewChart:   &riskOverviewStr,
+		TopRisks:            &topRiskStr,
+		RiskHeatmapChart:    &riskHeatmapStr,
 		CreatedBYID:         currentUserID,
 	}
 
