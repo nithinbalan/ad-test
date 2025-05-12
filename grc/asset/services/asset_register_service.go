@@ -30,6 +30,8 @@ type AssetRegisterServiceInterface interface {
 	GetControlSummary(assetID uint) (map[string]interface{}, error)
 	UpdateAssetRecoveryObjective(asset *models.AssetRegister, tx utility.DatabaseTransaction) error
 	GetDocumentPath(id uint, token string) (string, error)
+
+	ExportAsset(data []*dtos.AssetRegisterListDTO, currentUserID uint) (*os.File, error)
 }
 
 type AssetRegisterService struct {
@@ -41,6 +43,7 @@ type AssetRegisterService struct {
 	userSvc                              organizationServices.UserServiceInterface
 	assetCriticalityMatrixRatingScaleSvc AssetCriticalityMatrixRatingScaleServiceInterface
 	assetCriticalityMatrixSvc            AssetCriticalityMatrixServiceInterface
+	userSettingSvc                       organizationServices.UserSettingServiceInterface
 }
 
 func NewAssetRegisterService(
@@ -52,6 +55,7 @@ func NewAssetRegisterService(
 	userSvc organizationServices.UserServiceInterface,
 	assetCriticalityMatrixRatingScaleSvc AssetCriticalityMatrixRatingScaleServiceInterface,
 	assetCriticalityMatrixSvc AssetCriticalityMatrixServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) AssetRegisterServiceInterface {
 	return &AssetRegisterService{
 		repo:                                 repo,
@@ -62,6 +66,7 @@ func NewAssetRegisterService(
 		userSvc:                              userSvc,
 		assetCriticalityMatrixRatingScaleSvc: assetCriticalityMatrixRatingScaleSvc,
 		assetCriticalityMatrixSvc:            assetCriticalityMatrixSvc,
+		userSettingSvc:                       userSettingSvc,
 	}
 }
 
@@ -840,4 +845,65 @@ func (ars *AssetRegisterService) GetDocumentPath(id uint, token string) (string,
 	}
 
 	return fullPath, nil
+}
+
+func (ars *AssetRegisterService) ExportAsset(data []*dtos.AssetRegisterListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := ars.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"Category",
+			"Asset Status",
+			"Location",
+			"Responsible User",
+			"Acquisition Date",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"Category",
+			"Asset Status",
+			"Location",
+			"Responsible User",
+			"Acquisition Date",
+		}
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, asset := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				asset.ReferenceNumber,
+				asset.TitleAr,
+				utility.GetStringValue(asset.AssetCategoryTitleAr),
+				asset.AssetStatusTitleAr,
+				utility.GetStringValue(asset.Location),
+				fmt.Sprintf("%s %s", asset.ResponsibleUserFirstNameAr, asset.ResponsibleUserLastNameAr),
+				asset.AcquisitionDate,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				asset.ReferenceNumber,
+				asset.TitleEn,
+				utility.GetStringValue(asset.AssetCategoryTitleEn),
+				asset.AssetStatusTitleEn,
+				utility.GetStringValue(asset.Location),
+				fmt.Sprintf("%s %s", asset.ResponsibleUserFirstNameEn, asset.ResponsibleUserLastNameEn),
+				asset.AcquisitionDate,
+			}
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }
