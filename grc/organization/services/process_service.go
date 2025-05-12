@@ -601,8 +601,8 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		// log changes
 		oldData := map[string]interface{}{
 			"process_group":    oldProcess.ProcessGroup.TitleEn,
-			"owner_unit":       oldProcess.OwnerUnit.TitleEn,
-			"owner":            fmt.Sprintf("%s %s", oldProcess.Owner.FirstNameEN, oldProcess.Owner.LastNameEN),
+			"owner_unit":       oldProcess.ResponsibleUnit.TitleEn,
+			"owner":            fmt.Sprintf("%s %s", oldProcess.ResponsibleUser.FirstNameEN, oldProcess.ResponsibleUser.LastNameEN),
 			"lifecycle_status": oldProcess.LifecycleStatus.TitleEn,
 			"title_en":         oldProcess.TitleEn,
 			"title_ar":         oldProcess.TitleAr,
@@ -611,8 +611,8 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 
 		newData := map[string]interface{}{
 			"process_group":    existingProcess.ProcessGroup.TitleEn,
-			"owner_unit":       existingProcess.OwnerUnit.TitleEn,
-			"owner":            fmt.Sprintf("%s %s", existingProcess.Owner.FirstNameEN, existingProcess.Owner.LastNameEN),
+			"owner_unit":       existingProcess.ResponsibleUnit.TitleEn,
+			"owner":            fmt.Sprintf("%s %s", existingProcess.ResponsibleUser.FirstNameEN, existingProcess.ResponsibleUser.LastNameEN),
 			"lifecycle_status": existingProcess.LifecycleStatus.TitleEn,
 			"title_en":         existingProcess.TitleEn,
 			"title_ar":         existingProcess.TitleAr,
@@ -799,7 +799,7 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 			ReferenceNumber string
 			ProcessGroup    string
 		}{
-			OwnerID:         process.OwnerID,
+			OwnerID:         process.ResponsibleUserID,
 			TitleEn:         process.TitleEn,
 			TitleAr:         process.TitleAr,
 			ReferenceNumber: process.ReferenceNumber,

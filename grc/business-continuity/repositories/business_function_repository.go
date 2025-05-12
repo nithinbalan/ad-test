@@ -211,8 +211,8 @@ func (repo *BusinessFunctionRepository) GetFullDetailsByID(id uint, tx ...utilit
 		Preload("Processes.Process.RtoUnit").
 		Preload("Processes.Process.ProcessGroup").
 		Preload("Processes.Process.RiskLevel").
-		Preload("Processes.Process.OwnerUnit").
-		Preload("Processes.Process.Owner").
+		Preload("Processes.Process.ResponsibleUnit").
+		Preload("Processes.Process.ResponsibleUser").
 		Preload("Processes.Process.LifecycleStatus").
 		Preload("Processes.Process.RiskMatrixRating").
 		Preload("Processes.Process.RiskMatrixRatingValue").

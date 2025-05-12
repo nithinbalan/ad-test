@@ -539,7 +539,7 @@ func (cs *ControlService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 			Description     string
 			ReferenceNumber string
 		}{
-			OwnerID:         control.OwnerID,
+			OwnerID:         control.ResponsibleUserID,
 			TitleEn:         control.TitleEn,
 			TitleAr:         control.TitleAr,
 			Description:     *control.Description,

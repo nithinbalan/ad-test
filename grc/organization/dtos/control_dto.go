@@ -174,9 +174,9 @@ type ControlDetailDTO struct {
 	Objective                     *string                          `json:"objective"`
 	ControlType                   ControlTypeDTO                   `json:"control_type"`
 	ControlCategory               ControlCategoryDTO               `json:"control_category"`
-	OwnerUnit                     settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
-	OwnerID                       *uint                            `json:"owner_id"`
-	Owner                         *UserMinimalDTO                  `json:"owner"`
+	ResponsibleUnit               settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
+	ResponsibleUserID             *uint                            `json:"owner_id"`
+	Responsibleuser               *UserMinimalDTO                  `json:"owner"`
 	ControlImplementationStatus   *ControlImplementationStatusDTO  `json:"control_implementation_status"`
 	ControlEfficiencyStatus       *ControlEfficiencyStatusDTO      `json:"control_efficiency_status"`
 	EfficiencyScore               *uint                            `json:"efficiency_score"`

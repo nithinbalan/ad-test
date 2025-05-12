@@ -37,8 +37,8 @@ type Process struct {
 
 	// Relationships
 	ProcessGroup              *ProcessGroup                `gorm:"foreignKey:ProcessGroupID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	OwnerUnit                 *OrganizationUnit            `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Owner                     *User                        `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUnit           *OrganizationUnit            `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser           *User                        `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	LifecycleStatus           *LifecycleStatus             `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskMatrixRating          *RiskMatrixRiskRating        `gorm:"foreignKey:RiskMatrixRiskRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskMatrixRatingValue     *RiskMatrixRiskRatingValue   `gorm:"foreignKey:RiskMatrixRiskRatingValueID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

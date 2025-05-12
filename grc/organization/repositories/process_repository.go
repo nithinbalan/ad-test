@@ -262,9 +262,9 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 
 	result := db.
 		Preload("ProcessGroup").
-		Preload("OwnerUnit").
-		Preload("Owner").
-		Preload("Owner.OrganizationUnit1").
+		Preload("ResponsibleUnit").
+		Preload("ResponsibleUser").
+		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("LifecycleStatus").
 		Preload("Controls").
 		Preload("Controls.Control").

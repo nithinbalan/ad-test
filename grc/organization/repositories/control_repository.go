@@ -326,9 +326,9 @@ func (repo *ControlRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 	result := db.
 		Preload("ControlType").
 		Preload("ControlCategory").
-		Preload("OwnerUnit").
-		Preload("Owner").
-		Preload("Owner.OrganizationUnit1").
+		Preload("ResponsibleUnit").
+		Preload("ResponsibleUser").
+		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("ControlImplementationStatus").
 		Preload("ControlEfficiencyStatus").
 		Preload("TestResponsibleUser").
