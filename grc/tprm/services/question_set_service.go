@@ -21,7 +21,7 @@ type QuestionSetServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	AddQuestionsToSet(questionSetID, currentUserID uint, dto *dtos.QuestionSetAddQuestionsDTO) error
-	DeleteQuestionFromSet(questionID uint) error
+	DeleteQuestionFromSet(questionSetID uint, questionID uint) error
 }
 
 type QuestionSetService struct {
@@ -256,9 +256,12 @@ func (svc *QuestionSetService) AddQuestionsToSet(questionSetID, currentUserID ui
 	return nil
 }
 
-func (svc *QuestionSetService) DeleteQuestionFromSet(questionID uint) error {
+func (svc *QuestionSetService) DeleteQuestionFromSet(questionSetID uint, questionID uint) error {
 	tx := svc.repo.BeginTransaction()
-
+	_, err := svc.GetByID(questionSetID)
+	if err != nil {
+		return err
+	}
 	if err := svc.repo.DeleteByID(questionID, tx); err != nil {
 		tx.Rollback()
 		return err
