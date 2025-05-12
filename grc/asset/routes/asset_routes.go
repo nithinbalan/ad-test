@@ -86,6 +86,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/asset-register/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetRegisterController.DeleteAssets)
 	assetRoutes.GET("/asset-register/:id/control-summary", middlewares.RolePermissionMiddleware(db, "process", "view"), assetRegisterController.GetControlSummary)
 	unauthenticatedRoutes.GET("/asset-register/:id/document-download", assetRegisterController.DownloadAssetDocument)
+	assetRoutes.GET("/asset-register/export", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetRegisterController.GetAssetsExport)
 
 	//Asset Matrix
 	assetRoutes.GET("/asset-criticality-matrices", middlewares.RolePermissionMiddleware(db, "asset_criticality_matrix", "view"), assetCriticalityMatrixController.GetAllMatrices)
@@ -134,6 +135,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.PUT("/vulnerabilities/:id", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.UpdateVulnerability)
 	assetRoutes.POST("/vulnerabilities/delete", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.DeleteVulnerabilities)
 	assetRoutes.GET("/assets/:id/vulnerability-summary", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityController.GetVulnerabilitySummary)
+	assetRoutes.GET("/vulnerabilities/export", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityController.GetVulnerabilitiesExport)
 	//Threat types
 	assetRoutes.GET("/threat-types", threatTypeController.GetAllThreatTypes)
 	assetRoutes.GET("/threat-types/:id", threatTypeController.GetThreatTypeDetails)
@@ -154,6 +156,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.PUT("/threats/:id", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatController.UpdateThreat)
 	assetRoutes.POST("/threats/delete", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatController.DeleteThreats)
 	assetRoutes.GET("/assets/:id/threat-summary", middlewares.RolePermissionMiddleware(db, "threat", "view"), threatController.GetThreatSummary)
+	assetRoutes.GET("/threats/export", middlewares.RolePermissionMiddleware(db, "threat", "view"), threatController.GetThreatsExport)
 
 	//vulnerability action plan
 	assetRoutes.GET("/vulnerability-action-plans/export", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityActionPlanController.GetVulnerabilityActionPlanExport)

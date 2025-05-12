@@ -114,19 +114,28 @@ func (arc *AssetRegisterController) GetAllAssets(c *gin.Context) {
 		return
 	}
 
-	// if export {
-	// 	excelFile, err := arc.service.ExportAssets(assets.Items)
-	// 	if err != nil {
-	// 		utility.SendInternalErrResp(c, err.Error())
-	// 		return
-	// 	}
-	// 	defer excelFile.Close()
+	if export {
 
-	// 	c.Header("Content-Disposition", `attachment; filename="Assets.xlsx"`)
-	// 	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-	// 	c.File(excelFile.Name())
-	// 	return
-	// }
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(arc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := arc.service.ExportAsset(assets.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(arc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Assets.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
 
 	c.JSON(http.StatusOK, assets)
 }

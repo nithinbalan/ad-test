@@ -216,13 +216,18 @@ func (qsc *QuestionSetController) AddQuestionsToSet(c *gin.Context) {
 }
 
 func (qsc *QuestionSetController) DeleteQuestionFromSet(c *gin.Context) {
+	questionSetID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendInvalidErrResp(c, errors.New("Invalid question_set_id"))
+		return
+	}
 	questionID, err := strconv.Atoi(c.Param("questionId"))
 	if err != nil {
 		utility.SendInvalidErrResp(c, errors.New("Invalid question id"))
 		return
 	}
 
-	err = qsc.service.DeleteQuestionFromSet(uint(questionID))
+	err = qsc.service.DeleteQuestionFromSet(uint(questionSetID), uint(questionID))
 	if err != nil {
 		utility.SendInternalErrResp(qsc.db, c, err.Error())
 		return

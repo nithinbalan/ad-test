@@ -10,6 +10,7 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -27,6 +28,7 @@ type ThreatServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	GetThreatSummary(assetId uint) (*dtos.ThreatSummaryDTO, error)
+	ExportThreat(data []*dtos.ThreatListDTO, currentUserID uint) (*os.File, error)
 }
 
 type ThreatService struct {
@@ -37,6 +39,7 @@ type ThreatService struct {
 	threatStatusSvc  ThreatStatusServiceInterface
 	userSvc          organizationServices.UserServiceInterface
 	vulnerabilitySvc VulnerabilityServiceInterface
+	userSettingSvc   organizationServices.UserSettingServiceInterface
 }
 
 func NewThreatService(
@@ -47,6 +50,7 @@ func NewThreatService(
 	threatStatusSvc ThreatStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	vulnerabilitySvc VulnerabilityServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) ThreatServiceInterface {
 	return &ThreatService{
 		repo:             repo,
@@ -56,6 +60,7 @@ func NewThreatService(
 		threatStatusSvc:  threatStatusSvc,
 		userSvc:          userSvc,
 		vulnerabilitySvc: vulnerabilitySvc,
+		userSettingSvc:   userSettingSvc,
 	}
 }
 
@@ -643,4 +648,65 @@ func (ts *ThreatService) GetThreatSummary(assetId uint) (*dtos.ThreatSummaryDTO,
 	}
 
 	return summary, nil
+}
+
+func (ts *ThreatService) ExportThreat(data []*dtos.ThreatListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := ts.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Title",
+			"Threat Type",
+			"Threat Status",
+			"Detection Date",
+			"Responsible User",
+			"Source",
+			"Severity Level",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Title",
+			"Threat Type",
+			"Threat Status",
+			"Detection Date",
+			"Responsible User",
+			"Source",
+			"Severity Level",
+		}
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, threat := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				threat.TitleAr,
+				utility.GetStringValue(threat.ThreatTypeTitleAr),
+				utility.GetStringValue(threat.ThreatStatusTitleAr),
+				utility.GetStringValue(threat.DetectionDate),
+				fmt.Sprintf("%s %s", threat.ResponsibleUserFirstNameAr, threat.ResponsibleUserLastNameAr),
+				utility.GetStringValue(threat.Source),
+				utility.GetStringValue(threat.SeverityLevelTitleAr),
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				threat.TitleEn,
+				utility.GetStringValue(threat.ThreatTypeTitleEn),
+				utility.GetStringValue(threat.ThreatStatusTitleEn),
+				utility.GetStringValue(threat.DetectionDate),
+				fmt.Sprintf("%s %s", threat.ResponsibleUserFirstNameEn, threat.ResponsibleUserLastNameEn),
+				utility.GetStringValue(threat.Source),
+				utility.GetStringValue(threat.SeverityLevelTitleEn),
+			}
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }

@@ -94,7 +94,7 @@ type ControlTestFormDTO struct {
 	Description                   *string                       `json:"description"  binding:"omitempty"`
 	Score                         *uint                         `json:"score" binding:"omitempty"`
 	Comments                      *string                       `json:"comments" binding:"omitempty"`
-	TestedAt                      *string                       `json:"tested_at"` // assuming this will be a date in string format
+	TestedAt                      *string                       `json:"tested_at" binding:"required"` // assuming this will be a date in string format
 	TestedBy                      uint                          `json:"tested_by" binding:"required"`
 	Documents                     []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
 }
