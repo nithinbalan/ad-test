@@ -88,7 +88,7 @@ func (cts *ControlTestService) GetFullDetailsByID(id uint, tx ...utility.Databas
 	if err != nil {
 		return nil, err
 	}
-	if controlTest.TestedAt != nil {
+	if &controlTest.TestedAt != nil {
 		testedAt := controlTest.TestedAt.Format("2006-01-02")
 		controlTestDetailsDTO.TestedAtString = &testedAt
 	}
@@ -136,7 +136,7 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, riskID
 		Comments:                      controlTestFormDTO.Comments,
 		TestedSource:                  testedSource,
 		TestedBy:                      currentUserID,
-		TestedAt:                      dates.TestedAt,
+		TestedAt:                      *dates.TestedAt,
 	}
 
 	id, err := cts.repo.Create(controlTest, transaction)
@@ -265,7 +265,7 @@ func (cts *ControlTestService) Update(controlID uint, id uint, currentUserID uin
 	existingControlTest.Description = controlTestFormDTO.Description
 	existingControlTest.Comments = controlTestFormDTO.Comments
 	existingControlTest.Score = controlTestFormDTO.Score
-	existingControlTest.TestedAt = dates.TestedAt
+	existingControlTest.TestedAt = *dates.TestedAt
 	existingControlTest.UpdatedByID = &currentUserID
 
 	err = cts.repo.Update(existingControlTest, tx)
@@ -501,7 +501,7 @@ func (cts *ControlTestService) GetTrendAnalysis(controlID uint) ([]*organization
 
 	// Map the ControlTest models to ControlTrendAnalysisDTO using mapstructure
 	for _, ct := range controlTests {
-		if ct.Score != nil && ct.TestedAt != nil {
+		if ct.Score != nil && &ct.TestedAt != nil {
 			var dto organizationDTOs.ControlTrendAnalysisDTO
 			err := mapstructure.Decode(ct, &dto)
 			if err != nil {

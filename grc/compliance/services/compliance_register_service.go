@@ -180,10 +180,15 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		return 0, err
 	}
 
+	responsibleUnitID, err := crs.userSvc.GetUserPrimaryUnitID(uint(complianceRegisterFormDTO.ResponsibleUserID))
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "bcp communication plan responsible unit")
+	}
+
 	complianceRegister := &models.ComplianceRegister{
 		ComplianceCategoryID:     complianceRegisterFormDTO.ComplianceCategoryID,
 		ComplianceStatusID:       complianceRegisterFormDTO.ComplianceStatusID,
-		ResponsibleUnitID:        complianceRegisterFormDTO.ResponsibleUnitID,
+		ResponsibleUnitID:        responsibleUnitID,
 		ResponsibleUserID:        complianceRegisterFormDTO.ResponsibleUserID,
 		ReviewFrequencyID:        complianceRegisterFormDTO.ReviewFrequencyID,
 		LastReviewNote:           complianceRegisterFormDTO.LastReviewNote,
@@ -404,9 +409,16 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		return err
 	}
 
+	if existingComplianceRegister.ResponsibleUserID != complianceRegisterFormDTO.ResponsibleUserID {
+		responsibleUnitID, err := crs.userSvc.GetUserPrimaryUnitID(existingComplianceRegister.ResponsibleUserID)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "risk responsible unit")
+		}
+		existingComplianceRegister.ResponsibleUnitID = responsibleUnitID
+	}
+
 	existingComplianceRegister.ComplianceCategoryID = complianceRegisterFormDTO.ComplianceCategoryID
 	existingComplianceRegister.ComplianceStatusID = complianceRegisterFormDTO.ComplianceStatusID
-	existingComplianceRegister.ResponsibleUnitID = complianceRegisterFormDTO.ResponsibleUnitID
 	existingComplianceRegister.ResponsibleUserID = complianceRegisterFormDTO.ResponsibleUserID
 	existingComplianceRegister.ReviewFrequencyID = complianceRegisterFormDTO.ReviewFrequencyID
 	existingComplianceRegister.ReviewResponsibleUserID = complianceRegisterFormDTO.ReviewResponsibleUserID
