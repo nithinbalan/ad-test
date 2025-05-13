@@ -28,6 +28,7 @@ type AuthServiceInterface interface {
 	ReSendPasswordRecoveryOTP(email string) error
 	VerifyPasswordRecoveryOTP(email, otp string) (string, error)
 	SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySetPasswordFormDTO) error
+	GetLoginSettings() (*authDTOs.LoginSettingsDTO, error)
 }
 
 // Service and implementations
@@ -560,4 +561,19 @@ func (as *AuthService) LoginWithActiveDirectory(email, password, ip, location, d
 		RefreshToken: &refreshToken,
 		IsMFAEnabled: false,
 	}, nil
+}
+
+func (as *AuthService) GetLoginSettings() (*authDTOs.LoginSettingsDTO, error) {
+	// 1. Get Active Directory Integration by type
+	integration, err := as.integrationSvc.GetByType("active-directory")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Active Directory integration: %w", err)
+	}
+
+	// 2. Prepare typed response
+	settings := &authDTOs.LoginSettingsDTO{
+		ActiveDirectoryEnabled: integration.IsEnable,
+	}
+
+	return settings, nil
 }
