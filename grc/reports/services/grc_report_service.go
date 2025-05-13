@@ -4,18 +4,23 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	complianceDTOs "jethur/grc/compliance/dtos"
+	complianceServices "jethur/grc/compliance/services"
 	kpiDTOs "jethur/grc/kpi/dtos"
 	kpiServices "jethur/grc/kpi/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	userDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/reports/dtos"
 	"jethur/grc/reports/repositories"
 	riskDTOs "jethur/grc/risk/dtos"
 	riskServices "jethur/grc/risk/services"
+	settingDTOs "jethur/grc/settings/dtos"
 	settingServices "jethur/grc/settings/services"
 	"jethur/utility"
 	"math"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -37,6 +42,8 @@ type GRCReportService struct {
 	riskResponseStrategySvc riskServices.RiskResponseStrategyServiceInterface
 	grcDashboardSvc         kpiServices.GRCDashboardServiceInterface
 	riskHeatMapSvc          riskServices.RiskHeatmapServiceInterface
+	complianceStatusSvc     complianceServices.ComplianceStatusServiceInterface
+	organizationUnitSvc     settingServices.OrganizationUnitServiceInterface
 }
 
 func NewGRCReportService(
@@ -46,6 +53,8 @@ func NewGRCReportService(
 	riskResponseStrategySvc riskServices.RiskResponseStrategyServiceInterface,
 	grcDashboardSvc kpiServices.GRCDashboardServiceInterface,
 	riskHeatMapSvc riskServices.RiskHeatmapServiceInterface,
+	complianceStatusSvc complianceServices.ComplianceStatusServiceInterface,
+	organizationUnitSvc settingServices.OrganizationUnitServiceInterface,
 ) GRCReportServiceInterface {
 	return &GRCReportService{
 		repo:                    repo,
@@ -54,6 +63,8 @@ func NewGRCReportService(
 		riskResponseStrategySvc: riskResponseStrategySvc,
 		grcDashboardSvc:         grcDashboardSvc,
 		riskHeatMapSvc:          riskHeatMapSvc,
+		complianceStatusSvc:     complianceStatusSvc,
+		organizationUnitSvc:     organizationUnitSvc,
 	}
 }
 
@@ -111,6 +122,18 @@ func (grs *GRCReportService) GetGRCReportDetails(grcReportID uint) (*dtos.GRCRep
 		return nil, err
 	}
 
+	complianceSummary, err := grs.repo.GetGRCReportComplianceSummary(grcReportID)
+	if err != nil {
+		return nil, err
+	}
+
+	complianceSummaryDTO := mapComplianceSummaryToDTO(complianceSummary)
+
+	slas, err := grs.repo.GetGRCReportSLA(grcReportID)
+	if err != nil {
+		return nil, err
+	}
+
 	// Construct Response DTO
 	response := &dtos.GRCReportDetailDTO{
 		ID:                     grcReport.ID,
@@ -130,6 +153,8 @@ func (grs *GRCReportService) GetGRCReportDetails(grcReportID uint) (*dtos.GRCRep
 		TopFiveRisks:           topFiveRisks,
 		RiskKRIs:               kris,
 		RiskControls:           riskControls,
+		ComplianceSummary:      complianceSummaryDTO,
+		SLA:                    slas,
 	}
 
 	return response, nil
@@ -170,7 +195,27 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 	}
 
 	sectionTypes := []string{
-		"main-executive-summary", "governance-summary", "executive-summary-governance", "policy-approved-overview", "governance-tasks", "conclusion-governance", "main-conclusion",
+		"main-executive-summary",
+		"governance-summary",
+		"executive-summary-governance",
+		"policy-approved-overview",
+		"governance-tasks",
+		"conclusion-governance",
+		"executive-summary-compliance",
+		"compliance-summary-self-assessment",
+		"overall-compliance-status-by-department-self-assessment",
+		"conclusion-recommendations-compliance",
+		"integrated-grc-performance",
+		"risk-management-summary",
+		"executive-summary-risk",
+		"risk-governance-context",
+		"top-5-risks",
+		"key-risk-indicators-kris-performance",
+		"risk-control-matrix",
+		"risk-monitoring-reporting-communication",
+		"recommendations-action-plans",
+		"conclusion-recommendations-risk",
+		"main-conclusion",
 	}
 
 	for i, sectionType := range sectionTypes {
@@ -607,6 +652,175 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		}
 	}
 
+	//compliance and sla section
+	assessments, err := grs.repo.GetAllComplianceAssessments(*dates.StartDate, *dates.EndDate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	// Group assessments by organization unit
+	orgUnitAssessments := make(map[uint][]models.ComplianceAssessment)
+	for _, assessment := range assessments {
+		orgUnitAssessments[assessment.PrimaryUnitID] = append(orgUnitAssessments[assessment.PrimaryUnitID], *assessment)
+	}
+
+	// Calculate scores for each department
+	departmentScores := make(map[uint]float64)
+	for orgUnitID, assessments := range orgUnitAssessments {
+		var totalScore float64
+		var assessmentCount int
+
+		// Calculate average score for each assessment
+		for _, assessment := range assessments {
+			var requirementScore float64
+			var requirementCount int
+
+			// Calculate average score of requirements for this assessment
+			for _, requirement := range assessment.AssessmentRequirements {
+				if requirement.Score != nil && requirement.ComplianceStatus != nil &&
+					requirement.ComplianceStatus.Type != "not_applicable" {
+					requirementScore += float64(*requirement.Score)
+					requirementCount++
+				}
+			}
+
+			// Add assessment average to total if it has valid requirements
+			if requirementCount > 0 {
+				totalScore += requirementScore / float64(requirementCount)
+				assessmentCount++
+			}
+		}
+
+		// Calculate department's average score
+		if assessmentCount > 0 {
+			departmentScores[orgUnitID] = totalScore / float64(assessmentCount)
+		}
+	}
+
+	// Group departments by parent unit and calculate parent unit scores
+	parentUnitScores := make(map[uint]float64)
+	parentUnitDepartments := make(map[uint][]uint)
+
+	for orgUnitID := range departmentScores {
+		orgUnit, err := grs.organizationUnitSvc.GetByID(orgUnitID)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		// Add department to its parent's list
+		if orgUnit.OrganizationUnitID != nil {
+			parentUnitDepartments[*orgUnit.OrganizationUnitID] = append(parentUnitDepartments[*orgUnit.OrganizationUnitID], orgUnitID)
+		}
+	}
+
+	// Calculate parent unit scores
+	for parentID, departmentIDs := range parentUnitDepartments {
+		var totalScore float64
+		var deptCount int
+
+		for _, deptID := range departmentIDs {
+			if score, exists := departmentScores[deptID]; exists {
+				totalScore += score
+				deptCount++
+			}
+		}
+
+		if deptCount > 0 {
+			parentUnitScores[parentID] = totalScore / float64(deptCount)
+		}
+	}
+
+	// Create summary entries for parent units first
+	parentUnitSummaries := make(map[uint]uint) // parentUnitID -> summaryID
+	for parentID, score := range parentUnitScores {
+		summary := &models.GRCReportComplianceSummary{
+			GRCReportID:            grcReportID,
+			OrgUnitID:              parentID,
+			OverallComplianceScore: &score,
+			ReviewUserID:           &grcReportFormDTO.ReviewUserID,
+			ApproveUserID:          &grcReportFormDTO.ApproveUserID,
+			CreatedBYID:            currentUserID,
+		}
+
+		summaryID, err := grs.repo.CreateGRCReportComplianceSummary(summary, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		parentUnitSummaries[parentID] = summaryID
+	}
+
+	// Create department entries linked to parent summaries
+	for orgUnitID, score := range departmentScores {
+		orgUnit, err := grs.repo.GetOrganizationUnitByID(orgUnitID)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		if orgUnit.OrganizationUnitID != nil {
+			parentSummaryID := parentUnitSummaries[*orgUnit.OrganizationUnitID]
+
+			complianceStatusID, err := grs.getComplianceStatusByScore(score)
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+
+			department := &models.GRCReportComplianceDepartment{
+				GRCReportID:                  grcReportID,
+				GRCReportComplianceSummaryID: parentSummaryID,
+				OrgUnitID:                    orgUnitID,
+				ComplianceScore:              score,
+				ComplianceStatusID:           *complianceStatusID,
+				CreatedBYID:                  currentUserID,
+			}
+
+			_, err = grs.repo.CreateGRCReportComplianceDepartment(department, tx)
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+	}
+
+	// Create SLA entries
+	slas, err := grs.repo.GetAllSLAs(tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	for _, sla := range slas {
+		var issueDate, expiryDate *time.Time
+		if len(sla.Documents) > 0 {
+			issueDate = sla.Documents[0].IssueDate
+			expiryDate = sla.Documents[0].ExpiryDate
+		}
+
+		grcReportSLA := &models.GRCReportSLA{
+			GRCReportID:              grcReportID,
+			ParentOrganizationUnitID: *sla.ResponsibleUnit.OrganizationUnitID,
+			OrganizationUnitID:       sla.ResponsibleUnitID,
+			ReferenceNumber:          sla.ReferenceNumber,
+			TitleEn:                  sla.TitleEn,
+			TitleAr:                  &sla.TitleAr,
+			ComplianceStatusID:       sla.ComplianceStatusID,
+			LifecycleStatusID:        sla.LifecycleStatusID,
+			IssueDate:                issueDate,
+			ExpiryDate:               expiryDate,
+			CreatedBYID:              currentUserID,
+		}
+
+		_, err = grs.repo.CreateGRCReportSLA(grcReportSLA, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -783,11 +997,39 @@ func formatGRCSectionTitle(sectionType string) (string, string) {
 	case "executive-summary-governance":
 		return "Executive Summary - Governance", "الملخص التنفيذي - الحوكمة"
 	case "policy-approved-overview":
-		return "Policy Approved Overview", "نظرة عامة على السياسات المعتمدة"
+		return "Policy Approved And Notified Overview", "نظرة عامة على السياسات المعتمدة والمعلنة"
 	case "governance-tasks":
-		return "Governance Tasks", "مهام الحوكمة"
+		return "Governance Tasks & Action Plans", "مهام الحوكمة وخطط العمل"
 	case "conclusion-governance":
 		return "Conclusion - Governance", "الخاتمة - الحوكمة"
+	case "executive-summary-compliance":
+		return "Executive Summary Compliance", "الملخص التنفيذي - الامتثال"
+	case "compliance-summary-self-assessment":
+		return "Compliance Summary – Self Assessment", "ملخص الامتثال - التقييم الذاتي"
+	case "overall-compliance-status-by-department-self-assessment":
+		return "Overall Compliance Status by Department - Self Assessment", "حالة الامتثال العامة حسب الإدارات - التقييم الذاتي"
+	case "conclusion-recommendations-compliance":
+		return "Conclusion & Recommendations", "الخاتمة والتوصيات - الامتثال"
+	case "integrated-grc-performance":
+		return "Integrated GRC Performance", "الأداء المتكامل للحوكمة والامتثال"
+	case "risk-management-summary":
+		return "Risk Management Summary", "ملخص إدارة المخاطر"
+	case "executive-summary-risk":
+		return "Executive Summary", "الملخص التنفيذي - المخاطر"
+	case "risk-governance-context":
+		return "Risk Governance & Context", "حوكمة المخاطر والسياق"
+	case "top-5-risks":
+		return "Top 5 Risks", "أهم خمسة مخاطر"
+	case "key-risk-indicators-kris-performance":
+		return "Key Risk Indicators (KRIs) & Performance", "مؤشرات المخاطر الرئيسية والأداء"
+	case "risk-control-matrix":
+		return "Risk Control", "مصفوفة تحكم المخاطر"
+	case "risk-monitoring-reporting-communication":
+		return "Risk Monitoring, Reporting & Communication", "مراقبة المخاطر والتقارير والاتصالات"
+	case "recommendations-action-plans":
+		return "Recommendations & Action Plans", "التوصيات وخطط العمل"
+	case "conclusion-recommendations-risk":
+		return "Conclusion & Recommendations", "الخاتمة والتوصيات - المخاطر"
 	case "main-conclusion":
 		return "Main Conclusion", "الخاتمة الرئيسية"
 	default:
@@ -841,4 +1083,86 @@ func (grs *GRCReportService) GetDocumentAcknowledgmentSummary(document *models.D
 	}
 
 	return grs.repo.GetDocumentAcknowledgmentSummary(document.ID, primaryOrgUnitField)
+}
+
+func (grs *GRCReportService) getComplianceStatusByScore(score float64) (*uint, error) {
+	// Get all compliance statuses
+	sort := "asc"
+	sortBy := "id"
+	keyword := ""
+	status := ""
+	statuses, err := grs.complianceStatusSvc.GetAll(sort, sortBy, keyword, status)
+	if err != nil {
+		return nil, err
+	}
+
+	// Find the status that matches the score range
+	for _, status := range statuses {
+		if status.ScoreFrom != nil && status.ScoreTo != nil {
+			if score >= float64(*status.ScoreFrom) && score <= float64(*status.ScoreTo) {
+				return &status.ID, nil
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+func mapComplianceSummaryToDTO(complianceSummary []*models.GRCReportComplianceSummary) []*dtos.GRCReportComplianceSummaryDTO {
+	complianceSummaryDTOs := []*dtos.GRCReportComplianceSummaryDTO{}
+	fmt.Println(complianceSummary[0].OrganizationUnit.TitleEn)
+	for _, summary := range complianceSummary {
+		// Map the summary's organization unit
+		summaryOrgUnit := &settingDTOs.OrganizationUnitDTO{
+			ID:      int(summary.OrganizationUnit.ID),
+			TitleEn: summary.OrganizationUnit.TitleEn,
+			TitleAr: summary.OrganizationUnit.TitleAr,
+		}
+
+		complianceSummaryDTO := &dtos.GRCReportComplianceSummaryDTO{
+			ID:                     summary.ID,
+			GRCReportID:            summary.GRCReportID,
+			OrganizationUnit:       summaryOrgUnit,
+			OverallComplianceScore: *summary.OverallComplianceScore,
+			ReviewUser: &userDTOs.UserMinimalDTO{
+				ID:          int(summary.ReviewUser.ID),
+				FirstNameEN: summary.ReviewUser.FirstNameEn,
+				FirstNameAR: summary.ReviewUser.FirstNameAr,
+				LastNameEN:  summary.ReviewUser.LastNameEn,
+				LastNameAR:  summary.ReviewUser.LastNameAr,
+			},
+			ApproveUser: &userDTOs.UserMinimalDTO{
+				ID:          int(summary.ApproveUser.ID),
+				FirstNameEN: summary.ApproveUser.FirstNameEn,
+				FirstNameAR: summary.ApproveUser.FirstNameAr,
+				LastNameEN:  summary.ApproveUser.LastNameEn,
+				LastNameAR:  summary.ApproveUser.LastNameAr,
+			},
+			Departments: []*dtos.GRCReportComplianceDepartmentDTO{},
+		}
+
+		// Map each department with its own organization unit
+		for _, department := range summary.GRCReportComplianceDepartments {
+			// Create a new organization unit DTO for each department
+			departmentOrgUnit := &settingDTOs.OrganizationUnitDTO{
+				ID:      int(department.OrganizationUnit.ID),
+				TitleEn: department.OrganizationUnit.TitleEn,
+				TitleAr: department.OrganizationUnit.TitleAr,
+			}
+
+			complianceSummaryDTO.Departments = append(complianceSummaryDTO.Departments, &dtos.GRCReportComplianceDepartmentDTO{
+				ID:               department.ID,
+				OrganizationUnit: departmentOrgUnit,
+				ComplianceScore:  department.ComplianceScore,
+				ComplianceStatus: &complianceDTOs.ComplianceStatusDTO{
+					ID:        int(department.ComplianceStatus.ID),
+					TitleEn:   department.ComplianceStatus.TitleEn,
+					TitleAr:   department.ComplianceStatus.TitleAr,
+					ColorCode: department.ComplianceStatus.ColorCode,
+				},
+			})
+		}
+		complianceSummaryDTOs = append(complianceSummaryDTOs, complianceSummaryDTO)
+	}
+	return complianceSummaryDTOs
 }

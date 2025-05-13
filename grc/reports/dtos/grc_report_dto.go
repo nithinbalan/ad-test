@@ -2,6 +2,9 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	complianceDTOs "jethur/grc/compliance/dtos"
+	organizationDTOs "jethur/grc/organization/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
 	"time"
 )
 
@@ -54,6 +57,8 @@ type GRCReportDetailDTO struct {
 	TopFiveRisks           []GRCReportRiskTopFiveRiskResponseDTO `json:"top_five_risks"`
 	RiskKRIs               []GRCReportRiskKriResponseDTO         `json:"risk_kris"`
 	RiskControls           []GRCReportRiskControlResponseDTO     `json:"risk_controls"`
+	ComplianceSummary      []*GRCReportComplianceSummaryDTO      `json:"compliance_summary"`
+	SLA                    []*GRCReportSLAResponseDTO            `json:"sla"`
 }
 
 type GRCReportSectionResponseDTO struct {
@@ -321,4 +326,42 @@ type GRCReportRiskTopFiveRiskResponseDTO struct {
 	RiskResponseStrategyTitleEn *string `json:"risk_response_strategy_title_en"`
 	RiskResponseStrategyTitleAr *string `json:"risk_response_strategy_title_ar"`
 	ApprovalNote                *string `json:"approval_note"`
+}
+
+//compliance and sla
+
+type GRCReportComplianceSummaryDTO struct {
+	ID                     uint                                `json:"id"`
+	GRCReportID            uint                                `json:"grc_report_id"`
+	OrganizationUnit       *settingsDTOs.OrganizationUnitDTO   `json:"organization_unit"`
+	OverallComplianceScore float64                             `json:"overall_compliance_score"`
+	ReviewUser             *organizationDTOs.UserMinimalDTO    `json:"review_user"`
+	ApproveUser            *organizationDTOs.UserMinimalDTO    `json:"approve_user"`
+	Departments            []*GRCReportComplianceDepartmentDTO `json:"departments"`
+}
+
+type GRCReportComplianceDepartmentDTO struct {
+	ID               uint                                `json:"id"`
+	OrganizationUnit *settingsDTOs.OrganizationUnitDTO   `json:"organization_unit"`
+	ComplianceStatus *complianceDTOs.ComplianceStatusDTO `json:"compliance_status"`
+	ComplianceScore  float64                             `json:"compliance_score"`
+}
+
+type GRCReportSLAResponseDTO struct {
+	ID                            uint    `json:"id"`
+	GRCReportID                   uint    `json:"grc_report_id"`
+	TitleEn                       string  `json:"title_en"`
+	TitleAr                       *string `json:"title_ar"`
+	ParentOrganizationUnitTitleEn string  `json:"parent_organization_unit_title_en"`
+	ParentOrganizationUnitTitleAr string  `json:"parent_organization_unit_title_ar"`
+	OrganizationUnitTitleEn       string  `json:"organization_unit_title_en"`
+	OrganizationUnitTitleAr       string  `json:"organization_unit_title_ar"`
+	ComplianceStatusTitleEn       *string `json:"compliance_status_title_en"`
+	ComplianceStatusTitleAr       *string `json:"compliance_status_title_ar"`
+	ComplianceStatusColorCode     string  `json:"compliance_status_color_code"`
+	LifeCycleStatusTitleEn        string  `json:"life_cycle_status_title_en"`
+	LifeCycleStatusTitleAr        string  `json:"life_cycle_status_title_ar"`
+	LifeCycleStatusColorCode      string  `json:"life_cycle_status_color_code"`
+	ExperyDate                    *string `json:"expery_date"`
+	IssueDate                     *string `json:"issue_date"`
 }

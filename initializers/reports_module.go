@@ -89,7 +89,16 @@ func NewReportsModule(db *gorm.DB,
 		documentModule.DocumentSvc, documentModule.DocumentChangeRequestSvc)
 
 	grcReportRepo := repositories.NewGRCReportRepository(db)
-	grcReportSvc := services.NewGRCReportService(grcReportRepo, sharedModule.ActivityLogService, settingsModule.OrganizationLevelSvc, riskModule.RiskResponseStrategySvc, kpiModule.GrcDashboardSvc, riskModule.RiskHeatMapSvc)
+	grcReportSvc := services.NewGRCReportService(
+		grcReportRepo,
+		sharedModule.ActivityLogService,
+		settingsModule.OrganizationLevelSvc,
+		riskModule.RiskResponseStrategySvc,
+		kpiModule.GrcDashboardSvc,
+		riskModule.RiskHeatMapSvc,
+		complianceModule.ComplianceStatusSvc,
+		settingsModule.OrganizationUnitSvc,
+	)
 	grcReportController := controllers.NewGRCReportController(grcReportSvc)
 
 	return &ReportsModule{

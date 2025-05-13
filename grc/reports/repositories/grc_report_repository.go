@@ -62,6 +62,17 @@ type GRCReportRepositoryInterface interface {
 	CreateGRCReportRiskKRI(riskKri *models.GRCReportRiskKRI, tx ...utility.DatabaseTransaction) error
 	GetRiskControlsByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.RiskControlReportDTO, error)
 	CreateGRCReportRiskControl(control *models.GRCReportRiskControl, tx ...utility.DatabaseTransaction) error
+
+	// compliance and sla section
+	GetAllSLAs(tx ...utility.DatabaseTransaction) ([]*models.SLARegister, error)
+	CreateGRCReportSLA(sla *models.GRCReportSLA, tx ...utility.DatabaseTransaction) (uint, error)
+	GetAllComplianceAssessments(startDate time.Time, endDate time.Time, tx ...utility.DatabaseTransaction) ([]*models.ComplianceAssessment, error)
+	CreateGRCReportComplianceSummary(summary *models.GRCReportComplianceSummary, tx ...utility.DatabaseTransaction) (uint, error)
+	CreateGRCReportComplianceDepartment(department *models.GRCReportComplianceDepartment, tx ...utility.DatabaseTransaction) (uint, error)
+	GetOrganizationUnitByID(id uint) (*models.OrganizationUnit, error)
+
+	GetGRCReportComplianceSummary(grcReportID uint) ([]*models.GRCReportComplianceSummary, error)
+	GetGRCReportSLA(grcReportID uint) ([]*dtos.GRCReportSLAResponseDTO, error)
 }
 
 type GRCReportRepository struct {
@@ -860,4 +871,164 @@ func (repo *GRCReportRepository) GetGRCReportRiskSummary(grcReportID uint) (*dto
 	}
 
 	return &summary, nil
+}
+
+// compliance and sla section
+func (repo *GRCReportRepository) GetAllComplianceAssessments(startDate time.Time, endDate time.Time, tx ...utility.DatabaseTransaction) ([]*models.ComplianceAssessment, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var assessments []*models.ComplianceAssessment
+	// First get the latest assessment IDs for each department
+	var latestAssessmentIDs []uint
+	subQuery := db.Table("compliance_assessments ca1").
+		Select("ca1.id").
+		Joins("JOIN compliance_assessment_statuses ON ca1.compliance_assessment_status_id = compliance_assessment_statuses.id").
+		Where("ca1.created_at > ? AND ca1.created_at < ?", startDate, endDate).
+		Where("compliance_assessment_statuses.type = ?", "approved").
+		Where("ca1.created_at = (SELECT MAX(ca2.created_at) FROM compliance_assessments ca2 WHERE ca2.organization_unit_id = ca1.organization_unit_id AND ca2.compliance_register_id = ca1.compliance_register_id)").
+		Pluck("ca1.id", &latestAssessmentIDs)
+
+	if subQuery.Error != nil {
+		return nil, subQuery.Error
+	}
+
+	// Then get the full assessment data for these IDs
+	result := db.Preload("AssessmentRequirements").
+		Preload("AssessmentRequirements.ComplianceRequirement").
+		Preload("AssessmentRequirements.ActionPlans").
+		Preload("AssessmentRequirements.ComplianceRequirement.ComplianceClause").
+		Preload("AssessmentRequirements.ComplianceStatus").
+		Preload("ComplianceAssessmentStatus").
+		Where("id IN ?", latestAssessmentIDs).
+		Find(&assessments)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return assessments, nil
+}
+
+func (repo *GRCReportRepository) CreateGRCReportComplianceSummary(summary *models.GRCReportComplianceSummary, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.Create(summary)
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	return summary.ID, nil
+}
+
+func (repo *GRCReportRepository) CreateGRCReportComplianceDepartment(department *models.GRCReportComplianceDepartment, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.Create(department)
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	return uint(department.ID), nil
+}
+
+func (repo *GRCReportRepository) GetOrganizationUnitByID(id uint) (*models.OrganizationUnit, error) {
+	var orgUnit models.OrganizationUnit
+	result := repo.db.First(&orgUnit, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &orgUnit, nil
+}
+
+func (repo *GRCReportRepository) GetAllSLAs(tx ...utility.DatabaseTransaction) ([]*models.SLARegister, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var slas []*models.SLARegister
+	err := db.Preload("Documents", func(db *gorm.DB) *gorm.DB {
+		return db.Order("created_at DESC").Limit(1)
+	}).
+		Preload("ResponsibleUnit").
+		Preload("ResponsibleUser").
+		Preload("LifecycleStatus").
+		Preload("ComplianceStatus").
+		Find(&slas).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return slas, nil
+}
+
+func (repo *GRCReportRepository) CreateGRCReportSLA(sla *models.GRCReportSLA, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.Create(sla)
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	return sla.ID, nil
+}
+
+func (repo *GRCReportRepository) GetGRCReportComplianceSummary(grcReportID uint) ([]*models.GRCReportComplianceSummary, error) {
+	var summary []*models.GRCReportComplianceSummary
+	err := repo.db.
+		Preload("OrganizationUnit").
+		Preload("ApproveUser").
+		Preload("ReviewUser").
+		Preload("GRCReportComplianceDepartments", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("OrganizationUnit").Preload("ComplianceStatus")
+		}).
+		Where("grc_report_id = ?", grcReportID).
+		Find(&summary).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return summary, nil
+}
+
+func (repo *GRCReportRepository) GetGRCReportSLA(grcReportID uint) ([]*dtos.GRCReportSLAResponseDTO, error) {
+	var slas []*dtos.GRCReportSLAResponseDTO
+	err := repo.db.Table("grc_report_sla").
+		Select(`
+			grc_report_sla.id,
+			grc_report_sla.grc_report_id,
+			grc_report_sla.title_en,
+			grc_report_sla.title_ar,
+			parent_ou.title_en as parent_organization_unit_title_en,
+			parent_ou.title_ar as parent_organization_unit_title_ar,
+			ou.title_en as organization_unit_title_en,
+			ou.title_ar as organization_unit_title_ar,
+			compliance_status.title_en as compliance_status_title_en,
+			compliance_status.title_ar as compliance_status_title_ar,
+			compliance_status.color_code as compliance_status_color_code,
+			lifecycle_status.title_en as life_cycle_status_title_en,
+			lifecycle_status.title_ar as life_cycle_status_title_ar,
+			lifecycle_status.color_code as life_cycle_status_color_code,
+			grc_report_sla.expiry_date as expery_date,
+			grc_report_sla.issue_date as issue_date
+		`).
+		Joins("LEFT JOIN organization_units parent_ou ON parent_ou.id = grc_report_sla.parent_organization_unit_id").
+		Joins("LEFT JOIN organization_units ou ON ou.id = grc_report_sla.organization_unit_id").
+		Joins("LEFT JOIN compliance_statuses compliance_status ON compliance_status.id = grc_report_sla.compliance_status_id").
+		Joins("LEFT JOIN lifecycle_statuses lifecycle_status ON lifecycle_status.id = grc_report_sla.lifecycle_status_id").
+		Where("grc_report_sla.grc_report_id = ?", grcReportID).
+		Find(&slas).Error
+	if err != nil {
+		return nil, err
+	}
+	return slas, nil
 }
