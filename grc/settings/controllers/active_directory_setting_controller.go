@@ -58,3 +58,13 @@ func (adsc *ActiveDirectorySettingController) CreateActiveDirectorySetting(c *gi
 	c.Status(http.StatusOK)
 
 }
+
+func (c *ActiveDirectorySettingController) CheckActiveDirectorySettings(ctx *gin.Context) {
+	err := c.service.GetADConnection()
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"success": true, "message": "Active Directory connection successful"})
+}
