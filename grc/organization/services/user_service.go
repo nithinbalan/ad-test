@@ -74,7 +74,6 @@ type UserService struct {
 	notificationSvc           commonService.NotificationServiceInterface
 	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface
 	organizationUnitSvc       settingService.OrganizationUnitServiceInterface
-	organizationUnitSvc       settingService.OrganizationUnitServiceInterface
 }
 
 func NewUserService(
@@ -90,7 +89,6 @@ func NewUserService(
 	notificationSvc commonService.NotificationServiceInterface,
 	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface,
 	organizationUnitSvc settingService.OrganizationUnitServiceInterface,
-	organizationUnitSvc settingService.OrganizationUnitServiceInterface,
 ) UserServiceInterface {
 	return &UserService{
 		repo:                      repo,
@@ -104,7 +102,6 @@ func NewUserService(
 		emailTemplateSettingsSvc:  emailTemplateSettingsSvc,
 		notificationSvc:           notificationSvc,
 		activeDirectorySettingSvc: activeDirectorySettingSvc,
-		organizationUnitSvc:       organizationUnitSvc,
 		organizationUnitSvc:       organizationUnitSvc,
 	}
 }
