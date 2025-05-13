@@ -18,6 +18,8 @@ type DesignationRepositoryInterface interface {
 	Deactivate(ids []uint) ([]uint, error)
 	ExistsByTitle(titleEn string, titleAr string) (bool, error)
 	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
+
+	GetByTitleEn(titleEn string) (*models.Designation, error)
 }
 
 // implementation
@@ -178,4 +180,15 @@ func (repo *DesignationRepository) ExistsByTitleExcludingID(id uint, titleEn, ti
 	}
 
 	return count > 0, nil
+}
+
+func (repo *DesignationRepository) GetByTitleEn(titleEn string) (*models.Designation, error) {
+	var designation models.Designation
+
+	result := repo.db.Where("title_en = ?", titleEn).First(&designation)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &designation, nil
 }

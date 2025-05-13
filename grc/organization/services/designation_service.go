@@ -28,6 +28,7 @@ type DesignationServiceInterface interface {
 	ValidateDesignationTemplate(file io.Reader) ([]map[string]interface{}, error)
 	ValidateImportDesignation(input []map[string]interface{}) ([]map[string]interface{}, error)
 	ImportDesignations(input []map[string]interface{}, currentUserID uint) ([]uint, error)
+	GetByTitleEn(titleEn string) (*models.Designation, error)
 }
 
 // Service and implementations
@@ -424,4 +425,17 @@ func (ds *DesignationService) validateDesignations(input []map[string]interface{
 	}
 
 	return validatedData, nil
+}
+
+func (ds *DesignationService) GetByTitleEn(titleEn string) (*models.Designation, error) {
+	designation, err := ds.repo.GetByTitleEn(titleEn)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, titleEn)
+		}
+		return nil, err
+	}
+
+	return designation, nil
 }
