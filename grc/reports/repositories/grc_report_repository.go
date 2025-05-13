@@ -45,6 +45,23 @@ type GRCReportRepositoryInterface interface {
 	DeleteGRCReportGovernanceTasks(grcReportID uint, tx ...utility.DatabaseTransaction) error
 
 	ReorderGRCReportSections(grcReportID uint, deletedOrderNum int, tx ...utility.DatabaseTransaction) error
+
+	// risk section
+	GetGRCReportRiskTopFive(grcReportID uint) ([]dtos.GRCReportRiskTopFiveRiskResponseDTO, error)
+	GetGRCReportRiskKRIs(grcReportID uint) ([]dtos.GRCReportRiskKriResponseDTO, error)
+	GetGRCReportRiskControls(grcReportID uint) ([]dtos.GRCReportRiskControlResponseDTO, error)
+	GetGRCReportRiskSummary(grcReportID uint) (*dtos.GRCRiskSummaryResponseDTO, error)
+
+	CreateGRCReportRiskSummary(summary *models.GRCReportRiskSummary, tx ...utility.DatabaseTransaction) error
+	GetRisksByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]*models.RiskRegister, error)
+	GetHighestActiveRiskRatingType(tx ...utility.DatabaseTransaction) (string, error)
+	GetTopFiveRisksByRatingValue(startDate time.Time, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.TopFiveRiskDTO, error)
+	CreateGRCReportRiskTopFive(topFive *models.GRCReportRiskTopFive, tx ...utility.DatabaseTransaction) error
+	GetControlTitlesByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]string, error)
+	GetKRIsByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.GRCReportRiskKRIDTO, error)
+	CreateGRCReportRiskKRI(riskKri *models.GRCReportRiskKRI, tx ...utility.DatabaseTransaction) error
+	GetRiskControlsByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.RiskControlReportDTO, error)
+	CreateGRCReportRiskControl(control *models.GRCReportRiskControl, tx ...utility.DatabaseTransaction) error
 }
 
 type GRCReportRepository struct {
@@ -243,6 +260,9 @@ func (repo *GRCReportRepository) GetGRCReportGovernanceSummary(grcReportID uint)
 			policy_approved_rate,
 			highlights,
 			challenges,
+			document_overview_chart,
+			document_type_chart,
+			top_published_documents,
 			created_by_id,
 			CONVERT(VARCHAR, created_at, 120) AS created_at
 		`).
@@ -546,4 +566,298 @@ func (repo *GRCReportRepository) AllUserCount(tx ...utility.DatabaseTransaction)
 	var count int64
 	err := db.Model(&models.User{}).Count(&count).Error
 	return count, err
+}
+
+//risk report section
+
+func (repo *GRCReportRepository) GetRisksByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]*models.RiskRegister, error) {
+	var risks []*models.RiskRegister
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	err := db.Preload("RiskCategory").
+		Preload("RiskResponseStrategy").
+		Preload("CurrentRiskRating").
+		Preload("KRIs.KriRegister").
+		Where("reported_at BETWEEN ? AND ?", startDate, endDate).
+		Find(&risks).Error
+
+	return risks, err
+}
+
+func (repo *GRCReportRepository) CreateGRCReportRiskSummary(summary *models.GRCReportRiskSummary, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(summary).Error
+}
+
+func (repo *GRCReportRepository) GetHighestActiveRiskRatingType(tx ...utility.DatabaseTransaction) (string, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var ratingType string
+	err := db.Table("risk_matrix_risk_ratings").
+		Where("status = ?", "active").
+		Order("CASE type WHEN 'very_high' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 WHEN 'very_low' THEN 5 END").
+		Limit(1).
+		Pluck("type", &ratingType).Error
+	if err != nil || ratingType == "" {
+		return "", fmt.Errorf("failed to fetch highest risk rating type: %w", err)
+	}
+	return ratingType, nil
+}
+
+func (repo *GRCReportRepository) GetTopFiveRisksByRatingValue(startDate time.Time, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.TopFiveRiskDTO, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var risks []dtos.TopFiveRiskDTO
+
+	err := db.Table("risk_register").
+		Select(`
+			risk_register.id,
+			risk_register.reference_number,
+			risk_register.title,
+			risk_register.description,
+			risk_categories.title_en AS risk_category_title_en,
+			risk_categories.title_ar AS risk_category_title_ar,
+			(CONCAT(responsible_user.first_name_en, ' ', responsible_user.last_name_en)) AS responsible_user_name_en,
+			(CONCAT(responsible_user.first_name_ar, ' ', responsible_user.last_name_ar)) AS responsible_user_name_ar,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			risk_statuses.type AS risk_status_type,
+			inherent_risk_rating.title_en AS inherent_risk_rating_title_en,
+			inherent_risk_rating.title_ar AS inherent_risk_rating_title_ar,
+			inherent_risk_rating.color_code AS inherent_risk_rating_color_code,
+			inherent_rating_value.value AS inherent_risk_rating_score,
+			inherent_likelihood.title_en AS inherent_likelihood_title_en,
+			inherent_likelihood.title_ar AS inherent_likelihood_title_ar,
+			inherent_impact.title_en AS inherent_impact_title_en,
+			inherent_impact.title_ar AS inherent_impact_title_ar,
+			residual_risk_rating.title_en AS residual_risk_rating_title_en,
+			residual_risk_rating.title_ar AS residual_risk_rating_title_ar,
+			residual_risk_rating.color_code AS residual_risk_rating_color_code,
+			residual_rating_value.value AS residual_risk_rating_score,
+			residual_likelihood.title_en AS residual_likelihood_title_en,
+			residual_likelihood.title_ar AS residual_likelihood_title_ar,
+			residual_impact.title_en AS residual_impact_title_en,
+			residual_impact.title_ar AS residual_impact_title_ar,
+			risk_response_strategies.title_en AS risk_response_strategy_title_en,
+			risk_response_strategies.title_ar AS risk_response_strategy_title_ar
+		`).
+		Joins("LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id").
+		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = risk_register.responsible_user_id").
+		Joins("LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id").
+		Joins("LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
+		Joins("LEFT JOIN risk_matrix_risk_ratings AS inherent_risk_rating ON inherent_risk_rating.id = risk_register.inherent_risk_rating_id").
+		Joins("LEFT JOIN risk_matrix_risk_rating_values AS inherent_rating_value ON inherent_rating_value.id = risk_register.inherent_risk_rating_value_id").
+		Joins("LEFT JOIN risk_matrix_likelihoods AS inherent_likelihood ON inherent_likelihood.id = risk_register.inherent_likelihood_id").
+		Joins("LEFT JOIN risk_matrix_impacts AS inherent_impact ON inherent_impact.id = risk_register.inherent_impact_id").
+		Joins("LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = risk_register.residual_risk_rating_id").
+		Joins("LEFT JOIN risk_matrix_risk_rating_values AS residual_rating_value ON residual_rating_value.id = risk_register.residual_risk_rating_value_id").
+		Joins("LEFT JOIN risk_matrix_likelihoods AS residual_likelihood ON residual_likelihood.id = risk_register.residual_likelihood_id").
+		Joins("LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id").
+		Joins("LEFT JOIN risk_response_strategies ON risk_response_strategies.id = risk_register.risk_response_strategy_id").
+		Where("risk_register.reported_at BETWEEN ? AND ?", startDate, endDate).
+		Order("risk_register.current_risk_rating_value_id DESC").
+		Limit(5).
+		Find(&risks).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return risks, nil
+}
+
+func (repo *GRCReportRepository) CreateGRCReportRiskTopFive(topFive *models.GRCReportRiskTopFive, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(topFive).Error
+}
+
+func (repo *GRCReportRepository) GetControlTitlesByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]string, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var titles []string
+	err := db.Table("risk_controls").
+		Select("controls.title_en").
+		Joins("JOIN controls ON controls.id = risk_controls.control_id").
+		Where("risk_controls.risk_register_id = ?", riskID).
+		Pluck("controls.title_en", &titles).Error
+
+	return titles, err
+}
+
+func (repo *GRCReportRepository) GetKRIsByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.GRCReportRiskKRIDTO, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var results []dtos.GRCReportRiskKRIDTO
+
+	err := db.Table("risk_kris").
+		Select(`
+			risk_register.title AS risk_register_title,
+			kri_register.title AS kri_register_title,
+			kri_register.description AS kri_register_description,
+			kri_register.low_threshold,
+			kri_register.medium_threshold,
+			kri_register.current_value,
+			risk_statuses.title_en AS risk_status_title_en,
+			risk_statuses.title_ar AS risk_status_title_ar,
+			risk_statuses.color_code AS risk_status_title_color_code
+		`).
+		Joins("INNER JOIN risk_register ON risk_register.id = risk_kris.risk_register_id").
+		Joins("INNER JOIN kri_register ON kri_register.id = risk_kris.kri_register_id").
+		Joins("LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
+		Where("risk_register.reported_at BETWEEN ? AND ?", startDate, endDate).
+		Find(&results).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (repo *GRCReportRepository) CreateGRCReportRiskKRI(riskKri *models.GRCReportRiskKRI, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(riskKri).Error
+}
+
+func (repo *GRCReportRepository) GetRiskControlsByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.RiskControlReportDTO, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var controls []dtos.RiskControlReportDTO
+
+	err := db.Table("risk_controls").
+		Select(`
+			controls.code AS control_code,
+			control_categories.title_en AS control_category_title_en,
+			control_categories.title_ar AS control_category_title_ar,
+			controls.title_en AS title,
+			controls.description,
+			responsible_user.first_name_en + ' ' + responsible_user.last_name_en AS responsible_user_name_en,
+			responsible_user.first_name_ar + ' ' + responsible_user.last_name_ar AS responsible_user_name_ar,
+			owner_units.title_en AS responsible_unit_title_en,
+			owner_units.title_ar AS responsible_unit_title_ar,
+			implementation_status.title_en AS control_implementation_status_title_en,
+			implementation_status.title_ar AS control_implementation_status_title_ar,
+			implementation_status.color_code AS control_implementation_status_color_code,
+			efficiency_status.title_en AS control_efficiency_status_title_en,
+			efficiency_status.title_ar AS control_efficiency_status_title_ar,
+			efficiency_status.color_code AS control_efficiency_status_color_code,
+			test_frequency.title_en AS test_frequency_title_en,
+			test_frequency.title_ar AS test_frequency_title_ar,
+			controls.next_test_date,
+			test_user.first_name_en + ' ' + test_user.last_name_en AS test_responsible_user_name_en,
+			test_user.first_name_ar + ' ' + test_user.last_name_ar AS test_responsible_user_name_ar
+		`).
+		Joins("LEFT JOIN controls ON controls.id = risk_controls.control_id").
+		Joins("LEFT JOIN control_categories ON control_categories.id = controls.control_category_id").
+		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = controls.owner_id").
+		Joins("LEFT JOIN organization_units AS owner_units ON owner_units.id = controls.owner_unit_id").
+		Joins("LEFT JOIN control_implementation_statuses AS implementation_status ON implementation_status.id = controls.control_implementation_status_id").
+		Joins("LEFT JOIN control_efficiency_statuses AS efficiency_status ON efficiency_status.id = controls.control_efficiency_status_id").
+		Joins("LEFT JOIN review_frequencies AS test_frequency ON test_frequency.id = controls.test_frequency_id").
+		Joins("LEFT JOIN users AS test_user ON test_user.id = controls.test_responsible_user_id").
+		Joins("LEFT JOIN risk_register ON risk_register.id = risk_controls.risk_register_id").
+		Where("risk_register.reported_at BETWEEN ? AND ?", startDate, endDate).
+		Find(&controls).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return controls, nil
+}
+
+func (repo *GRCReportRepository) CreateGRCReportRiskControl(control *models.GRCReportRiskControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(control).Error
+}
+
+func (repo *GRCReportRepository) GetGRCReportRiskTopFive(grcReportID uint) ([]dtos.GRCReportRiskTopFiveRiskResponseDTO, error) {
+	var risks []dtos.GRCReportRiskTopFiveRiskResponseDTO
+	err := repo.db.Table("grc_report_risk_top_five").
+		Where("grc_report_id = ?", grcReportID).
+		Find(&risks).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return risks, nil
+}
+
+func (repo *GRCReportRepository) GetGRCReportRiskKRIs(grcReportID uint) ([]dtos.GRCReportRiskKriResponseDTO, error) {
+	var kris []dtos.GRCReportRiskKriResponseDTO
+	err := repo.db.Table("grc_report_risk_kris").
+		Where("grc_report_id = ?", grcReportID).
+		Find(&kris).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return kris, nil
+}
+
+func (repo *GRCReportRepository) GetGRCReportRiskControls(grcReportID uint) ([]dtos.GRCReportRiskControlResponseDTO, error) {
+	var controls []dtos.GRCReportRiskControlResponseDTO
+	err := repo.db.Table("grc_report_risk_controls").
+		Where("grc_report_id = ?", grcReportID).
+		Find(&controls).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return controls, nil
+}
+
+func (repo *GRCReportRepository) GetGRCReportRiskSummary(grcReportID uint) (*dtos.GRCRiskSummaryResponseDTO, error) {
+	var summary dtos.GRCRiskSummaryResponseDTO
+
+	err := repo.db.Table("grc_report_risk_summary").
+		Select(`
+			risk_identified_count,
+			critical_risks,
+			treatment_strategies,
+			risk_score_summary,
+			kris,
+			risk_overview_chart,
+			risk_heatmap_chart,
+			top_risks
+		`).
+		Where("grc_report_id = ?", grcReportID).
+		Scan(&summary).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &summary, nil
 }

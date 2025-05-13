@@ -1,12 +1,17 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	kpiDTOs "jethur/grc/kpi/dtos"
+	kpiServices "jethur/grc/kpi/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/reports/dtos"
 	"jethur/grc/reports/repositories"
+	riskDTOs "jethur/grc/risk/dtos"
+	riskServices "jethur/grc/risk/services"
 	settingServices "jethur/grc/settings/services"
 	"jethur/utility"
 	"math"
@@ -26,20 +31,29 @@ type GRCReportServiceInterface interface {
 }
 
 type GRCReportService struct {
-	repo                 repositories.GRCReportRepositoryInterface
-	activityLogSvc       logServices.ActivityLogServiceInterface
-	organizationLevelSvc settingServices.OrganizationLevelServiceInterface
+	repo                    repositories.GRCReportRepositoryInterface
+	activityLogSvc          logServices.ActivityLogServiceInterface
+	organizationLevelSvc    settingServices.OrganizationLevelServiceInterface
+	riskResponseStrategySvc riskServices.RiskResponseStrategyServiceInterface
+	grcDashboardSvc         kpiServices.GRCDashboardServiceInterface
+	riskHeatMapSvc          riskServices.RiskHeatmapServiceInterface
 }
 
 func NewGRCReportService(
 	repo repositories.GRCReportRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	organizationLevelSvc settingServices.OrganizationLevelServiceInterface,
+	riskResponseStrategySvc riskServices.RiskResponseStrategyServiceInterface,
+	grcDashboardSvc kpiServices.GRCDashboardServiceInterface,
+	riskHeatMapSvc riskServices.RiskHeatmapServiceInterface,
 ) GRCReportServiceInterface {
 	return &GRCReportService{
-		repo:                 repo,
-		activityLogSvc:       activityLogSvc,
-		organizationLevelSvc: organizationLevelSvc,
+		repo:                    repo,
+		activityLogSvc:          activityLogSvc,
+		organizationLevelSvc:    organizationLevelSvc,
+		riskResponseStrategySvc: riskResponseStrategySvc,
+		grcDashboardSvc:         grcDashboardSvc,
+		riskHeatMapSvc:          riskHeatMapSvc,
 	}
 }
 
@@ -61,7 +75,7 @@ func (grs *GRCReportService) GetGRCReportDetails(grcReportID uint) (*dtos.GRCRep
 		return nil, err
 	}
 
-	summary, err := grs.repo.GetGRCReportGovernanceSummary(grcReportID)
+	governanceSummary, err := grs.repo.GetGRCReportGovernanceSummary(grcReportID)
 	if err != nil {
 		return nil, err
 	}
@@ -72,6 +86,27 @@ func (grs *GRCReportService) GetGRCReportDetails(grcReportID uint) (*dtos.GRCRep
 	}
 
 	tasks, err := grs.repo.GetGRCReportGovernanceTasks(grcReportID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 🔽 New Risk-Related Fetches
+	riskSummary, err := grs.repo.GetGRCReportRiskSummary(grcReportID)
+	if err != nil {
+		return nil, err
+	}
+
+	topFiveRisks, err := grs.repo.GetGRCReportRiskTopFive(grcReportID)
+	if err != nil {
+		return nil, err
+	}
+
+	kris, err := grs.repo.GetGRCReportRiskKRIs(grcReportID)
+	if err != nil {
+		return nil, err
+	}
+
+	riskControls, err := grs.repo.GetGRCReportRiskControls(grcReportID)
 	if err != nil {
 		return nil, err
 	}
@@ -88,9 +123,13 @@ func (grs *GRCReportService) GetGRCReportDetails(grcReportID uint) (*dtos.GRCRep
 		CreatedUserLastNameEn:  grcReport.CreatedUserLastNameEn,
 		CreatedUserLastNameAr:  grcReport.CreatedUserLastNameAr,
 		Sections:               sections,
-		Summary:                *summary,
+		GovernanceSummary:      *governanceSummary,
 		Documents:              documents,
 		Tasks:                  tasks,
+		RiskSummary:            *riskSummary,
+		TopFiveRisks:           topFiveRisks,
+		RiskKRIs:               kris,
+		RiskControls:           riskControls,
 	}
 
 	return response, nil
@@ -152,6 +191,7 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		}
 	}
 
+	//governance report section
 	documents, err := grs.repo.GetPolicyDocumentByDateRange(*dates.StartDate, *dates.EndDate, tx)
 	if err != nil {
 		tx.Rollback()
@@ -269,22 +309,302 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		policyApprovedRate = &rounded
 	}
 
+	// Fetch data
+	params := kpiDTOs.GRCDashboardListQueryParamsDTO{
+		DateFrom: dates.StartDate.Format("2006-01-02"),
+		DateTo:   dates.EndDate.Format("2006-01-02"),
+	}
+
+	heatmapParams := riskDTOs.RiskHeatmapQueryParamsDTO{
+		DateFrom: dates.StartDate.Format("2006-01-02"),
+		DateTo:   dates.EndDate.Format("2006-01-02"),
+	}
+
+	documentOverview, err := grs.grcDashboardSvc.GetGRCDocumentOverview(&params)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch document overview: %w", err)
+	}
+
+	documentTypeChart, err := grs.grcDashboardSvc.GetGRCDocumentTypeChart(&params)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch document type chart: %w", err)
+	}
+
+	topDocuments, err := grs.grcDashboardSvc.GetGRCTopPublishedDocuments(&params)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch top published documents: %w", err)
+	}
+
+	overviewJSON, err := json.Marshal(documentOverview)
+	if err != nil {
+		return 0, fmt.Errorf("failed to marshal document overview: %w", err)
+	}
+
+	typeChartJSON, err := json.Marshal(documentTypeChart)
+	if err != nil {
+		return 0, fmt.Errorf("failed to marshal document type chart: %w", err)
+	}
+
+	topDocsJSON, err := json.Marshal(topDocuments)
+	if err != nil {
+		return 0, fmt.Errorf("failed to marshal top published documents: %w", err)
+	}
+
+	overviewStr := string(overviewJSON)
+	typeChartStr := string(typeChartJSON)
+	topDocsStr := string(topDocsJSON)
+
 	grcSummary := &models.GRCReportGovernanceSummary{
-		GRCReportID:        grcReportID,
-		ReviewUserID:       &grcReportFormDTO.ReviewUserID,
-		ApproveUserID:      &grcReportFormDTO.ApproveUserID,
-		PoliciesInSystem:   policiesInSystem,
-		TotalPolicies:      totalPolicies,
-		RolesDefined:       int(userCount),
-		PolicyApprovedRate: policyApprovedRate,
-		Highlights:         nil,
-		Challenges:         nil,
-		CreatedBYID:        currentUserID,
+		GRCReportID:           grcReportID,
+		ReviewUserID:          &grcReportFormDTO.ReviewUserID,
+		ApproveUserID:         &grcReportFormDTO.ApproveUserID,
+		PoliciesInSystem:      policiesInSystem,
+		TotalPolicies:         totalPolicies,
+		RolesDefined:          int(userCount),
+		PolicyApprovedRate:    policyApprovedRate,
+		Highlights:            nil,
+		Challenges:            nil,
+		DocumentOverviewChart: &overviewStr,
+		DocumentTypeChart:     &typeChartStr,
+		TopPublishedDocuments: &topDocsStr,
+		CreatedBYID:           currentUserID,
 	}
 
 	if err := grs.repo.CreateGRCReportGovernanceSummary(grcSummary, tx); err != nil {
 		tx.Rollback()
 		return 0, fmt.Errorf("failed to insert grc_report_governance_summary: %w", err)
+	}
+
+	// risk report section
+	risks, err := grs.repo.GetRisksByDateRange(*dates.StartDate, *dates.EndDate, tx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch risks: %w", err)
+	}
+
+	var totalRisks int
+	criticalCategorySet := make(map[string]struct{})
+	var riskScoreSummaryParts []string
+	var riskKRIs []*models.RiskKri
+	totalRisks = len(risks)
+
+	highestRatingType, err := grs.repo.GetHighestActiveRiskRatingType(tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	for _, risk := range risks {
+		if risk.CurrentRiskRating != nil && risk.CurrentRiskRating.Type == highestRatingType {
+			if risk.RiskCategory != nil {
+				criticalCategorySet[risk.RiskCategory.TitleEn] = struct{}{}
+			}
+		}
+		if risk.CurrentRiskRating != nil {
+			part := fmt.Sprintf("- %s risk with strategy: %s", risk.CurrentRiskRating.TitleEn, risk.RiskResponseStrategy.TitleEn)
+			riskScoreSummaryParts = append(riskScoreSummaryParts, part)
+		}
+		if risk.KRIs != nil {
+			riskKRIs = append(riskKRIs, risk.KRIs...)
+		}
+	}
+
+	strategies, err := grs.riskResponseStrategySvc.GetAll("", "", "", "active")
+	if err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to fetch active risk response strategies: %w", err)
+	}
+	var riskStrategies []string
+	for _, s := range strategies {
+		riskStrategies = append(riskStrategies, s.TitleEn)
+	}
+
+	var criticalCategories []string
+	for title := range criticalCategorySet {
+		criticalCategories = append(criticalCategories, title)
+	}
+
+	var kriSummaries []string
+	for _, rk := range riskKRIs {
+		if rk.KriRegister != nil && rk.KriRegister.Title != "" {
+			value := "- " + rk.KriRegister.Title
+			if rk.KriRegister.CurrentValue != nil {
+				value += fmt.Sprintf(" %d%%", *rk.KriRegister.CurrentValue)
+			}
+			kriSummaries = append(kriSummaries, value)
+		}
+	}
+
+	riskOverviewChart, err := grs.grcDashboardSvc.GetGRCRiskOverview(&params)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch document overview: %w", err)
+	}
+
+	riskHeatmapChart, err := grs.riskHeatMapSvc.GetRiskHeatmapByRiskMatrix(&heatmapParams)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch document type chart: %w", err)
+	}
+
+	topRisks, err := grs.grcDashboardSvc.GetGRCTopRisks(&params)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch top published documents: %w", err)
+	}
+
+	riskOverviewJSON, err := json.Marshal(riskOverviewChart)
+	if err != nil {
+		return 0, fmt.Errorf("failed to marshal risk overview: %w", err)
+	}
+
+	riskHeatmapJSON, err := json.Marshal(riskHeatmapChart)
+	if err != nil {
+		return 0, fmt.Errorf("failed to marshal risk overview: %w", err)
+	}
+
+	topRiskJSON, err := json.Marshal(topRisks)
+	if err != nil {
+		return 0, fmt.Errorf("failed to marshal top risk: %w", err)
+	}
+
+	riskOverviewStr := string(riskOverviewJSON)
+	riskHeatmapStr := string(riskHeatmapJSON)
+	topRiskStr := string(topRiskJSON)
+
+	strPtr := func(s string) *string { return &s }
+
+	summary := &models.GRCReportRiskSummary{
+		GRCReportID:         grcReportID,
+		RiskIdentifiedCount: totalRisks,
+		CriticalRisks:       strPtr(strings.Join(criticalCategories, ", ")),
+		TreatmentStrategies: strPtr(strings.Join(riskStrategies, ", ")),
+		RiskScoreSummary:    strPtr(strings.Join(riskScoreSummaryParts, "\n")),
+		KRIs:                strPtr(strings.Join(kriSummaries, "\n")),
+		RiskOverviewChart:   &riskOverviewStr,
+		TopRisks:            &topRiskStr,
+		RiskHeatmapChart:    &riskHeatmapStr,
+		CreatedBYID:         currentUserID,
+	}
+
+	if err := grs.repo.CreateGRCReportRiskSummary(summary, tx); err != nil {
+		return 0, fmt.Errorf("failed to insert grc_report_risk_summary: %w", err)
+	}
+
+	// Top 5 Risks based on Current Risk Rating Value (descending order)
+	topFiveRisks, err := grs.repo.GetTopFiveRisksByRatingValue(*dates.StartDate, *dates.EndDate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to fetch top five risks: %w", err)
+	}
+
+	for _, risk := range topFiveRisks {
+		controlTitles, err := grs.repo.GetControlTitlesByRiskID(risk.ID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to fetch control titles for risk %s: %w", risk.ReferenceNumber, err)
+		}
+		existingControls := strings.Join(controlTitles, ", ")
+
+		topFive := &models.GRCReportRiskTopFive{
+			GRCReportID:                 grcReportID,
+			RiskReferenceNumber:         risk.ReferenceNumber,
+			RiskCategoryTitleEn:         *risk.RiskCategoryTitleEn,
+			RiskCategoryTitleAr:         *risk.RiskCategoryTitleAr,
+			Title:                       risk.Title,
+			Description:                 risk.Description,
+			ResponsibleUserNameEn:       *risk.ResponsibleUserNameEn,
+			ResponsibleUserNameAr:       *risk.ResponsibleUserNameAr,
+			ResponsibleUnitTitleEn:      *risk.ResponsibleUnitTitleEn,
+			ResponsibleUnitTitleAr:      *risk.ResponsibleUnitTitleAr,
+			IsOpen:                      strings.ToLower(*risk.RiskStatusType) == "open",
+			InherentRiskRatingTitleEn:   risk.InherentRiskRatingTitleEn,
+			InherentRiskRatingTitleAr:   risk.InherentRiskRatingTitleAr,
+			InherentRiskRatingColorCode: risk.InherentRiskRatingColorCode,
+			InherentRiskRatingScore:     risk.InherentRiskRatingScore,
+			InherentLikelihoodTitleEn:   risk.InherentLikelihoodTitleEn,
+			InherentLikelihoodTitleAr:   risk.InherentLikelihoodTitleAr,
+			InherentImpactTitleEn:       risk.InherentImpactTitleEn,
+			InherentImpactTitleAr:       risk.InherentImpactTitleAr,
+			ResidualRiskRatingTitleEn:   risk.ResidualRiskRatingTitleEn,
+			ResidualRiskRatingTitleAr:   risk.ResidualRiskRatingTitleAr,
+			ResidualRiskRatingColorCode: risk.ResidualRiskRatingColorCode,
+			ResidualRiskRatingScore:     risk.ResidualRiskRatingScore,
+			ResidualLikelihoodTitleEn:   risk.ResidualLikelihoodTitleEn,
+			ResidualLikelihoodTitleAr:   risk.ResidualLikelihoodTitleAr,
+			ResidualImpactTitleEn:       risk.ResidualImpactTitleEn,
+			ResidualImpactTitleAr:       risk.ResidualImpactTitleAr,
+			ExistingControls:            &existingControls,
+			RiskResponseStrategyTitleEn: risk.RiskResponseStrategyTitleEn,
+			RiskResponseStrategyTitleAr: risk.RiskResponseStrategyTitleAr,
+			ApprovalNote:                nil,
+			CreatedBYID:                 currentUserID,
+		}
+		if err := grs.repo.CreateGRCReportRiskTopFive(topFive, tx); err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to insert top five risk: %w", err)
+		}
+	}
+
+	kriRecords, err := grs.repo.GetKRIsByDateRange(*dates.StartDate, *dates.EndDate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to fetch KRIs: %w", err)
+	}
+
+	for _, kri := range kriRecords {
+		reportKRI := &models.GRCReportRiskKRI{
+			GRCReportID:              grcReportID,
+			RiskRegisterTitle:        kri.RiskRegisterTitle,
+			KRIRegisterTitle:         kri.KRIRegisterTitle,
+			KRIRegisterDescription:   kri.KRIRegisterDescription,
+			LowThreshold:             kri.LowThreshold,
+			MediumThreshold:          kri.MediumThreshold,
+			CurrentValue:             kri.CurrentValue,
+			RiskStatusTitleEn:        kri.RiskStatusTitleEn,
+			RiskStatusTitleAr:        kri.RiskStatusTitleAr,
+			RiskStatusTitleColorCode: kri.RiskStatusTitleColorCode,
+			CreatedBYID:              currentUserID,
+		}
+
+		if err := grs.repo.CreateGRCReportRiskKRI(reportKRI, tx); err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to insert KRI into report: %w", err)
+		}
+	}
+
+	riskControls, err := grs.repo.GetRiskControlsByDateRange(*dates.StartDate, *dates.EndDate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to fetch risk controls: %w", err)
+	}
+
+	for _, control := range riskControls {
+		controlRecord := &models.GRCReportRiskControl{
+			GRCReportID:                          grcReportID,
+			ControlCode:                          control.ControlCode,
+			ControlCategoryTitleEn:               control.ControlCategoryTitleEn,
+			ControlCategoryTitleAr:               control.ControlCategoryTitleAr,
+			Title:                                control.Title,
+			Description:                          control.Description,
+			ResponsibleUserNameEn:                control.ResponsibleUserNameEn,
+			ResponsibleUserNameAr:                control.ResponsibleUserNameAr,
+			ResponsibleUnitTitleEn:               control.ResponsibleUnitTitleEn,
+			ResponsibleUnitTitleAr:               control.ResponsibleUnitTitleAr,
+			ControlImplementationStatusTitleEn:   control.ControlImplementationStatusTitleEn,
+			ControlImplementationStatusTitleAr:   control.ControlImplementationStatusTitleAr,
+			ControlImplementationStatusColorCode: control.ControlImplementationStatusColorCode,
+			ControlEfficiencyStatusTitleEn:       control.ControlEfficiencyStatusTitleEn,
+			ControlEfficiencyStatusTitleAr:       control.ControlEfficiencyStatusTitleAr,
+			ControlEfficiencyStatusColorCode:     control.ControlEfficiencyStatusColorCode,
+			TestFrequencyTitleEn:                 control.TestFrequencyTitleEn,
+			TestFrequencyTitleAr:                 control.TestFrequencyTitleAr,
+			NextTestDate:                         control.NextTestDate,
+			TestResponsibleUserNameEn:            control.TestResponsibleUserNameEn,
+			TestResponsibleUserNameAr:            control.TestResponsibleUserNameAr,
+			CreatedBYID:                          currentUserID,
+		}
+
+		if err := grs.repo.CreateGRCReportRiskControl(controlRecord, tx); err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to insert risk control record: %w", err)
+		}
 	}
 
 	tx.Commit()

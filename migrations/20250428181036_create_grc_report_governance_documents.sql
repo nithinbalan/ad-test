@@ -20,7 +20,7 @@ CREATE TABLE grc_report_governance_documents (
     created_at DATETIME NOT NULL,
 
     CONSTRAINT FK_grc_report_governance_documents_grc_reports FOREIGN KEY (grc_report_id) REFERENCES grc_reports(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT FK_grc_report_governance_documents_users FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+    CONSTRAINT FK_grc_report_governance_documents_users_1 FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 

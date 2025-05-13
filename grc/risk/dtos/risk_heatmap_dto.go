@@ -27,3 +27,8 @@ type RiskHeatmapResponseByItemDTO struct {
 	ItemTitleAr  string                                 `json:"item_title_ar"`
 	HeatmapCells []*RiskHeatmapResponseByItemDetailsDTO `json:"heatmap_cells"`
 }
+
+type RiskHeatmapQueryParamsDTO struct {
+	DateFrom string `json:"date_from"`
+	DateTo   string `json:"date_to"`
+}

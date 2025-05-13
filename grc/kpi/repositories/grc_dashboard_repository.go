@@ -110,7 +110,7 @@ func (repo *GRCDashboardRepository) GetGRCRiskSummary(params *kpiDTOs.GRCDashboa
 
 	totalRiskQuery := repo.db.Model(&models.RiskRegister{})
 	if params.DateFrom != "" && params.DateTo != "" {
-		totalRiskQuery = totalRiskQuery.Where("created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+		totalRiskQuery = totalRiskQuery.Where("reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 	err := totalRiskQuery.Count(&totalRisks).Error
 	if err != nil {
@@ -121,7 +121,7 @@ func (repo *GRCDashboardRepository) GetGRCRiskSummary(params *kpiDTOs.GRCDashboa
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
 		Where("risk_statuses.type = ?", "closed")
 	if params.DateFrom != "" && params.DateTo != "" {
-		closedRiskQuery = closedRiskQuery.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+		closedRiskQuery = closedRiskQuery.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 	err = closedRiskQuery.Count(&closedRisks).Error
 	if err != nil {
@@ -150,7 +150,7 @@ func (repo *GRCDashboardRepository) GetGRCRiskSummary(params *kpiDTOs.GRCDashboa
 		Where("risk_matrix_risk_ratings.type = ?", highestRating).
 		Where("risk_statuses.type = ?", "open")
 	if params.DateFrom != "" && params.DateTo != "" {
-		highRiskQuery = highRiskQuery.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+		highRiskQuery = highRiskQuery.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 	err = highRiskQuery.Count(&openHighRiskRatings).Error
 	if err != nil {
@@ -461,7 +461,7 @@ func (repo *GRCDashboardRepository) GetGRCRiskOverview(params *kpiDTOs.GRCDashbo
 		Joins("JOIN risk_matrix_risk_ratings ON risk_register.current_risk_rating_id = risk_matrix_risk_ratings.id")
 
 	if params.DateFrom != "" && params.DateTo != "" {
-		riskQuery = riskQuery.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+		riskQuery = riskQuery.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	var totalRisksRegistered int64
@@ -584,7 +584,7 @@ func (repo *GRCDashboardRepository) GetTopRiskRegisters(params *kpiDTOs.GRCDashb
 		Order("risk_matrix_risk_rating_values.value DESC")
 
 	if params.DateFrom != "" && params.DateTo != "" {
-		query = query.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+		query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	query = query.Limit(5)
@@ -632,7 +632,7 @@ func (repo *GRCDashboardRepository) GetTopPublishedDocuments(params *kpiDTOs.GRC
 
 func (repo *GRCDashboardRepository) GetGRCDocumentTypeChart(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCDocumentTypeChartDTO, error) {
 	var totalDocuments int64
-	var typeCounts []*kpiDTOs.GRCDocumentTypeChartDTO
+	var typeCounts = []*kpiDTOs.GRCDocumentTypeChartDTO{}
 
 	query := repo.db.Model(&models.Document{})
 
