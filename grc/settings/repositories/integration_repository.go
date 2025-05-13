@@ -67,7 +67,9 @@ func (repo *IntegrationRepository) GetAll(params *integrationDTOs.IntegrationLis
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc" // Default order is ascending if not specified
 	}
-
+	if params.Status == "active" || params.Status == "inactive" {
+		query = query.Where("integrations.status = ?", params.Status)
+	}
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {

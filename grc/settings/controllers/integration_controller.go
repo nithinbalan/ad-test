@@ -27,7 +27,7 @@ func (icc *IntegrationController) GetAllIntegrations(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
+	status := c.DefaultQuery("status", "active")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
