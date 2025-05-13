@@ -115,7 +115,7 @@ func (as *AssetRegisterService) GetFullDetailsByID(id uint, tx ...utility.Databa
 	}
 	// Add additional fields as necessary for the details screen
 	// For example, setting relationship data or additional fields as required by the DTO
-
+	assetDetailDTO.CreatedAt = asset.CreatedAt
 	return &assetDetailDTO, nil
 }
 
