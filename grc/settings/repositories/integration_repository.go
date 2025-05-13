@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	"jethur/grc/models"
 	integrationDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
@@ -18,6 +19,8 @@ type IntegrationRepositoryInterface interface {
 	CreateCredential(integrationCredential *models.IntegrationCredential) error
 	UpdateCredential(integrationCredential *models.IntegrationCredential, tx ...utility.DatabaseTransaction) error
 	DeleteCredential(id uint, tx ...utility.DatabaseTransaction) error
+
+	GetByType(integrationType string) (*models.Integration, error)
 }
 
 // implementation
@@ -150,4 +153,18 @@ func (repo *IntegrationRepository) DeleteCredential(id uint, tx ...utility.Datab
 	}
 
 	return nil
+}
+
+func (repo *IntegrationRepository) GetByType(integrationType string) (*models.Integration, error) {
+	var integration *models.Integration
+
+	result := repo.db.Where("type = ?", integrationType).First(&integration)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, "Integration type with type "+integrationType)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return integration, nil
 }

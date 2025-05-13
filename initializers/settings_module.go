@@ -105,7 +105,7 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 
 	activeDirectorySettingRepo := repositories.NewActiveDirectorySettingRepository(db)
 	activeDirectorySettingSvc := services.NewActiveDirectorySettingService(
-		activeDirectorySettingRepo)
+		activeDirectorySettingRepo, integrationSvc)
 	activeDirectorySettingController := controllers.NewActiveDirectorySettingController(activeDirectorySettingSvc)
 
 	return &SettingsModule{
