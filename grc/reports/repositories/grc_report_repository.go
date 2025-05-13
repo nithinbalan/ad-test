@@ -260,6 +260,9 @@ func (repo *GRCReportRepository) GetGRCReportGovernanceSummary(grcReportID uint)
 			policy_approved_rate,
 			highlights,
 			challenges,
+			document_overview_chart,
+			document_type_chart,
+			top_published_documents,
 			created_by_id,
 			CONVERT(VARCHAR, created_at, 120) AS created_at
 		`).
@@ -844,7 +847,10 @@ func (repo *GRCReportRepository) GetGRCReportRiskSummary(grcReportID uint) (*dto
 			critical_risks,
 			treatment_strategies,
 			risk_score_summary,
-			kris
+			kris,
+			risk_overview_chart,
+			risk_heatmap_chart,
+			top_risks
 		`).
 		Where("grc_report_id = ?", grcReportID).
 		Scan(&summary).Error

@@ -66,16 +66,19 @@ type GRCReportSectionResponseDTO struct {
 }
 
 type GRCGovernanceSummaryResponseDTO struct {
-	ID                 uint     `json:"id"`
-	ReferenceNumber    string   `json:"reference_number"`
-	PoliciesInSystem   string   `json:"policies_in_system"`
-	TotalPolicies      int      `json:"total_policies"`
-	RolesDefined       int      `json:"roles_defined"`
-	PolicyApprovedRate *float64 `json:"policy_approved_rate"`
-	Highlights         *string  `json:"highlights"`
-	Challenges         *string  `json:"challenges"`
-	CreatedByID        uint     `json:"created_by_id"`
-	CreatedAt          string   `json:"created_at"`
+	ID                    uint     `json:"id"`
+	ReferenceNumber       string   `json:"reference_number"`
+	PoliciesInSystem      string   `json:"policies_in_system"`
+	TotalPolicies         int      `json:"total_policies"`
+	RolesDefined          int      `json:"roles_defined"`
+	PolicyApprovedRate    *float64 `json:"policy_approved_rate"`
+	Highlights            *string  `json:"highlights"`
+	Challenges            *string  `json:"challenges"`
+	DocumentOverviewChart *string  `json:"document_overview_chart"`
+	DocumentTypeChart     *string  `json:"document_type_chart"`
+	TopPublishedDocuments *string  `json:"top_published_documents"`
+	CreatedByID           uint     `json:"created_by_id"`
+	CreatedAt             string   `json:"created_at"`
 }
 
 type GRCGovernanceDocumentResponseDTO struct {
@@ -241,6 +244,9 @@ type GRCRiskSummaryResponseDTO struct {
 	TreatmentStrategies *string `json:"treatment_strategies"`
 	RiskScoreSummary    *string `json:"risk_score_summary"`
 	KRIs                *string `json:"kris"`
+	RiskOverviewChart   *string `json:"risk_overview_chart"`
+	RiskHeatmapChart    *string `json:"risk_heatmap_chart"`
+	TopRisks            *string `json:"top_risks"`
 }
 
 type GRCReportRiskKriResponseDTO struct {
