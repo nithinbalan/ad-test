@@ -606,17 +606,15 @@ func (afrs *AuditFinalReportService) GetByAuditID(auditID uint) (*models.AuditFi
 
 func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (uint, error) {
 	// Check if a final report already exists for this audit
-	// existingReport, err := afrs.repo.GetByAuditID(auditID)
-	// if err != nil {
-	//     tx.Rollback()
-	//     return 0, err
-	// }
+	existingReport, err := afrs.repo.GetByAuditID(auditID)
+	if err != nil {
+		return 0, err
+	}
 
-	// // If an existing report is found, rollback and return an error
-	// if existingReport != nil {
-	//     tx.Rollback()
-	//     return 0, utility.NewForbiddenError("An audit final report already exists for this audit.")
-	// }
+	// If an existing report is found, rollback and return an error
+	if existingReport != nil {
+		return 0, utility.NewForbiddenError("An audit final report already exists for this audit.")
+	}
 	auditDraftReport, err := afrs.auditDraftReportSvc.GetByAuditID(auditID)
 	if err != nil {
 		return 0, err
@@ -631,7 +629,12 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	}
 
 	tx := afrs.repo.BeginTransaction()
-
+	// validate workflow structure
+	err = afrs.auditReportWorkflowSvc.ValidateWorkflowBeforeCreate("final-report", tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	audit, err := afrs.auditSvc.GetFullDetailsByID(auditID, tx)
 	if err != nil {
 		tx.Rollback()
