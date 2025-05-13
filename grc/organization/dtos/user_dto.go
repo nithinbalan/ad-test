@@ -287,7 +287,7 @@ type UserPrimaryDetailsDTO struct {
 
 type UpdateOrganizationUnitDTO struct {
 	UserID             *uint `json:"user_id"`
-	OrganizationUnitID uint  `json:"organization_unit_id" binding:"required"` // New Organization Unit ID
+	OrganizationUnitID *uint `json:"organization_unit_id"` // New Organization Unit ID
 }
 type ADUserDTO struct {
 	FirstName        string  `json:"first_name"`

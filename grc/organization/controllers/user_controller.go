@@ -548,8 +548,17 @@ func (uc *UserController) UpdateUserOrganizationUnit(c *gin.Context) {
 	}
 
 	if err := uc.service.UpdateUserOrganizationUnit(uint(userID), formDTO); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(uc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Responsible units updated successfully"})
