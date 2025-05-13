@@ -743,6 +743,7 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsAuditFindings(c *gi
 		"audit_finding_category_ids",
 		"severity_level_ids",
 		"audit_finding_status_ids",
+		"audit_category_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

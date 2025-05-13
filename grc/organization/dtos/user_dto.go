@@ -289,3 +289,10 @@ type UpdateOrganizationUnitDTO struct {
 	UserID             *uint `json:"user_id"`
 	OrganizationUnitID uint  `json:"organization_unit_id" binding:"required"` // New Organization Unit ID
 }
+type ADUserDTO struct {
+	FirstName        string  `json:"first_name"`
+	LastName         string  `json:"last_name"`
+	Email            string  `json:"email"`
+	OrganizationUnit *string `json:"organization_unit,omitempty"`
+	Designation      *string `json:"designation,omitempty"`
+}

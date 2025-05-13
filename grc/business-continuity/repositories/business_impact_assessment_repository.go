@@ -300,8 +300,16 @@ func (repo *BusinessImpactAssessmentRepository) GetProcessDetails(id uint, tx ..
 		Preload("RiskMatrixRatingValue").
 		Preload("Risks").
 		Preload("Risks.Risk").
+		Preload("Risks.Risk.RiskCategory").
+		Preload("Risks.Risk.RiskSource").
+		Preload("Risks.Risk.CurrentLikelihood").
+		Preload("Risks.Risk.CurrentImpact").
+		Preload("Risks.Risk.CurrentRiskRating").
+		Preload("Risks.Risk.CurrentRiskRatingValue").
 		Preload("Incidents").
 		Preload("Incidents.IncidentRegister").
+		Preload("Incidents.IncidentRegister.IncidentCategory").
+		Preload("Incidents.IncidentRegister.IncidentType").
 		Preload("RtoUnit").
 		Preload("MtpdUnit").
 		Preload("RpoUnit").

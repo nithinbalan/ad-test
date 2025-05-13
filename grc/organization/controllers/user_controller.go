@@ -504,6 +504,35 @@ func (uc *UserController) GetUserPermissions(c *gin.Context) {
 	c.JSON(http.StatusOK, permissions)
 }
 
+func (uc *UserController) SyncADUsers(c *gin.Context) {
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	count, err := uc.service.SyncUsersFromAD(currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":      "User sync successful",
+		"users_synced": count,
+	})
+}
+
+func (uc *UserController) GetADUsers(c *gin.Context) {
+	users, err := uc.service.GetUsersFromAD()
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, users)
+}
+
 func (uc *UserController) UpdateUserOrganizationUnit(c *gin.Context) {
 	userID, err := strconv.Atoi(c.Param("userId"))
 	if err != nil {

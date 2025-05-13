@@ -104,6 +104,8 @@ func (tprs *ThirdPartyRegisterService) GetFullDetailsByID(id uint) (*dtos.ThirdP
 		dto.ServiceEndDateString = &formatted
 	}
 
+	dto.CreatedAt = tpr.CreatedAt
+
 	return &dto, nil
 }
 

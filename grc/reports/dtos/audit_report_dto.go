@@ -38,9 +38,11 @@ type AuditPlanByTeamLeadDTO struct {
 }
 
 type AuditPlanByYearDTO struct {
-	TitleEn string `json:"title_en"`
-	TitleAr string `json:"title_ar"`
-	Count   uint   `json:"count"`
+	TitleEn  string `json:"title_en"`
+	TitleAr  string `json:"title_ar"`
+	Count    uint   `json:"count"`
+	DateFrom string `json:"date_from"`
+	DateTo   string `json:"date_to"`
 }
 
 type AuditByCategoryDTO struct {
@@ -68,9 +70,11 @@ type AuditByOpenVsClosedDTO struct {
 }
 
 type AuditByMonthDTO struct {
-	TitleEn string `json:"title_en"` // Month in English
-	TitleAr string `json:"title_ar"` // Month in Arabic
-	Count   uint   `json:"count"`
+	TitleEn  string `json:"title_en"` // Month in English
+	TitleAr  string `json:"title_ar"` // Month in Arabic
+	Count    uint   `json:"count"`
+	DateFrom string `json:"date_from"`
+	DateTo   string `json:"date_to"`
 }
 
 type AuditByTeamLeadDTO struct {
@@ -119,9 +123,11 @@ type AuditFindingByResponsibleUnitDTO struct {
 }
 
 type AuditFindingByMonthDTO struct {
-	TitleEn string `json:"title_en"` // Month in English
-	TitleAr string `json:"title_ar"` // Month in Arabic
-	Count   uint   `json:"count"`
+	TitleEn  string `json:"title_en"` // Month in English
+	TitleAr  string `json:"title_ar"` // Month in Arabic
+	Count    uint   `json:"count"`
+	DateFrom string `json:"date_from"`
+	DateTo   string `json:"date_to"`
 }
 type AuditFindingByAuditorDTO struct {
 	ID                   uint   `json:"id"`

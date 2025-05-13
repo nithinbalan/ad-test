@@ -53,7 +53,7 @@ func (repo *AuditInsightReportRepository) GetAuditByStatus(params *reportDTOs.Re
 			audit_statuses.title_en AS audit_status_title_en,
 			audit_statuses.title_ar AS audit_status_title_ar,
 			audit_statuses.color_code AS color_code,
-			COALESCE(COUNT(audits.id), 0) AS count
+			COALESCE(COUNT(DISTINCT audits.id), 0) AS count
 		`).
 		Joins(`
 			LEFT JOIN audits ON audits.audit_status_id = audit_statuses.id
@@ -106,10 +106,14 @@ func (repo *AuditInsightReportRepository) GetAuditByYear(params *reportDTOs.Repo
 
 	// Convert year to English and Arabic title
 	for _, record := range rawResults {
+		startDate := fmt.Sprintf("%d-01-01", record.Year)
+		endDate := fmt.Sprintf("%d-12-31", record.Year)
 		results = append(results, &reportDTOs.AuditInsightAuditByYearDTO{
-			TitleEn: fmt.Sprintf("%d", record.Year), // English Title (Year)
-			TitleAr: fmt.Sprintf("%d", record.Year), // Arabic Title (Same as Year)
-			Count:   record.Count,
+			TitleEn:  fmt.Sprintf("%d", record.Year), // English Title (Year)
+			TitleAr:  fmt.Sprintf("%d", record.Year), // Arabic Title (Same as Year)
+			Count:    record.Count,
+			DateFrom: startDate,
+			DateTo:   endDate,
 		})
 	}
 
@@ -152,7 +156,7 @@ func (repo *AuditInsightReportRepository) GetAuditByMonth(params *reportDTOs.Rep
 	}
 
 	query := repo.db.Table("audits").
-		Select(`FORMAT(audits.created_at, 'MMM yyyy') AS title_en, COUNT(audits.id) AS count`).
+		Select(`FORMAT(audits.created_at, 'MMM yyyy') AS title_en, COUNT(DISTINCT audits.id) AS count`).
 		Joins(`
 			LEFT JOIN audit_plan_auditable_items ON audits.audit_plan_id = audit_plan_auditable_items.audit_plan_id
 			LEFT JOIN auditable_items ON auditable_items.id = audit_plan_auditable_items.auditable_item_id
@@ -186,17 +190,20 @@ func (repo *AuditInsightReportRepository) GetAuditPlanByCategory(params *reportD
 	// Start the query from audit_categories
 	query := repo.db.Table("audit_categories").
 		Select(`
-			audit_categories.id AS audit_category_id, 
-			audit_categories.title_en AS audit_category_title_en, 
-			audit_categories.title_ar AS audit_category_title_ar, 
-			COUNT(DISTINCT audit_plans.id) AS count
-		`).
+		audit_categories.id AS audit_category_id,
+		audit_categories.title_en AS audit_category_title_en,
+		audit_categories.title_ar AS audit_category_title_ar,
+		COUNT(DISTINCT CASE 
+			WHEN auditable_items.responsible_unit_id = ? AND audit_statuses.type = 'published' THEN audit_plans.id 
+			ELSE NULL 
+		END) AS count
+	`, currentUserResponsibleUnitID).
 		Joins(`
-			LEFT JOIN audit_plans ON audit_plans.audit_category_id = audit_categories.id
-			LEFT JOIN audit_plan_auditable_items ON audit_plan_auditable_items.audit_plan_id = audit_plans.id
-			LEFT JOIN auditable_items ON auditable_items.id = audit_plan_auditable_items.auditable_item_id 
-				AND auditable_items.responsible_unit_id = ?
-		`, currentUserResponsibleUnitID).
+		LEFT JOIN audit_plans ON audit_plans.audit_category_id = audit_categories.id
+		LEFT JOIN audit_statuses ON audit_statuses.id = audit_plans.audit_status_id
+		LEFT JOIN audit_plan_auditable_items ON audit_plan_auditable_items.audit_plan_id = audit_plans.id
+		LEFT JOIN auditable_items ON auditable_items.id = audit_plan_auditable_items.auditable_item_id
+	`).
 		Group("audit_categories.id, audit_categories.title_en, audit_categories.title_ar")
 
 	// Apply date filters if provided
@@ -225,14 +232,15 @@ func (repo *AuditInsightReportRepository) GetAuditPlanByTeamLead(params *reportD
 			users.color AS team_lead_color,
 			users.email AS team_lead_email,
 			users.profile_image_path AS team_lead_profile_image_path,
-			COUNT(audit_plans.id) AS count
+			COUNT(DISTINCT audit_plans.id) AS count
 		`).
 		Joins(`
 			JOIN users ON users.id = audit_plans.team_lead_id
+			JOIN audit_statuses ON audit_statuses.id = audit_plans.audit_status_id
 			JOIN audit_plan_auditable_items ON audit_plan_auditable_items.audit_plan_id = audit_plans.id
 			JOIN auditable_items ON auditable_items.id = audit_plan_auditable_items.auditable_item_id
 		`).
-		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID).
+		Where("auditable_items.responsible_unit_id = ? AND audit_statuses.type = ?", currentUserResponsibleUnitID, "published").
 		Group("users.id, users.first_name_en, users.first_name_ar, users.last_name_en, users.last_name_ar, users.initial, users.color, users.email, users.profile_image_path")
 
 	// Apply date filter if provided
@@ -247,7 +255,6 @@ func (repo *AuditInsightReportRepository) GetAuditPlanByTeamLead(params *reportD
 func (repo *AuditInsightReportRepository) GetAuditPlanByAuditableItem(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditPlanByAuditableItemDTO, error) {
 	results := []*reportDTOs.AuditInsightAuditPlanByAuditableItemDTO{}
 
-	// Query to fetch audit plans grouped by auditable items
 	query := repo.db.Table("auditable_items").
 		Select(`
 			auditable_items.id AS auditable_item_id, 
@@ -261,7 +268,7 @@ func (repo *AuditInsightReportRepository) GetAuditPlanByAuditableItem(params *re
 				WHEN auditable_items.type = 'document' THEN documents.title_en
 				ELSE auditable_items.title_en
 			END, '') AS auditable_item_title_en,
-			
+
 			COALESCE(CASE 
 				WHEN auditable_items.type = 'control' THEN controls.title_ar
 				WHEN auditable_items.type = 'process' THEN processes.title_ar
@@ -274,7 +281,7 @@ func (repo *AuditInsightReportRepository) GetAuditPlanByAuditableItem(params *re
 		`).
 		Joins(`LEFT JOIN audit_plan_auditable_items ON audit_plan_auditable_items.auditable_item_id = auditable_items.id`).
 		Joins(`LEFT JOIN audit_plans ON audit_plans.id = audit_plan_auditable_items.audit_plan_id`).
-		// Correct table names
+		Joins(`LEFT JOIN audit_statuses ON audit_statuses.id = audit_plans.audit_status_id`).
 		Joins(`LEFT JOIN controls ON controls.id = auditable_items.control_id`).
 		Joins(`LEFT JOIN processes ON processes.id = auditable_items.process_id`).
 		Joins(`LEFT JOIN risk_register ON risk_register.id = auditable_items.risk_register_id`).
@@ -283,14 +290,19 @@ func (repo *AuditInsightReportRepository) GetAuditPlanByAuditableItem(params *re
 		Joins(`LEFT JOIN users ON users.id = auditable_items.user_id`).
 		Joins(`LEFT JOIN documents ON documents.id = auditable_items.document_id`).
 		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID).
-		Group("auditable_items.id, auditable_items.type, auditable_items.title_en, auditable_items.title_ar, controls.title_en, controls.title_ar, processes.title_en, processes.title_ar, risk_register.title, compliance_requirements.title_en, compliance_requirements.title_ar, incident_register.title, users.first_name_en, users.last_name_en, users.first_name_ar, users.last_name_ar, documents.title_en, documents.title_ar")
+		Where("audit_statuses.type = ?", "published").
+		Group(`
+			auditable_items.id, auditable_items.type, auditable_items.title_en, auditable_items.title_ar,
+			controls.title_en, controls.title_ar, processes.title_en, processes.title_ar,
+			risk_register.title, compliance_requirements.title_en, compliance_requirements.title_ar,
+			incident_register.title, users.first_name_en, users.last_name_en, users.first_name_ar, users.last_name_ar,
+			documents.title_en, documents.title_ar
+		`)
 
-	// Apply date filters if provided
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("audit_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
-	// Execute the query
 	err := query.Scan(&results).Error
 	return results, err
 }
@@ -333,10 +345,12 @@ func (repo *AuditInsightReportRepository) GetAuditPlanByMonth(params *reportDTOs
 	query := repo.db.Table("audit_plans").
 		Select(`FORMAT(audit_plans.created_at, 'MMM yyyy') AS title_en, COUNT(audit_plans.id) AS count`).
 		Joins(`
-			LEFT JOIN audit_plan_auditable_items ON audit_plans.id = audit_plan_auditable_items.audit_plan_id
-			LEFT JOIN auditable_items ON auditable_items.id = audit_plan_auditable_items.auditable_item_id
-		`).
+		LEFT JOIN audit_plan_auditable_items ON audit_plans.id = audit_plan_auditable_items.audit_plan_id
+		LEFT JOIN auditable_items ON auditable_items.id = audit_plan_auditable_items.auditable_item_id
+		LEFT JOIN audit_statuses ON audit_statuses.id = audit_plans.audit_status_id
+	`).
 		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID).
+		Where("audit_statuses.type = ?", "published").
 		Where("audit_plans.created_at >= DATEADD(MONTH, -11, GETDATE())").
 		Group("FORMAT(audit_plans.created_at, 'MMM yyyy')").
 		Order("MIN(audit_plans.created_at) ASC")
@@ -365,10 +379,11 @@ func (repo *AuditInsightReportRepository) GetAuditPlanVsAudits(params *reportDTO
 
 	// Count Audit Plans
 	auditPlanQuery := repo.db.Table("audit_plans").
+		Joins("LEFT JOIN audit_statuses ON audit_statuses.id = audit_plans.audit_status_id").
 		Joins("LEFT JOIN audit_plan_auditable_items ON audit_plan_auditable_items.audit_plan_id = audit_plans.id").
 		Joins("LEFT JOIN auditable_items ON auditable_items.id = audit_plan_auditable_items.auditable_item_id").
-		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID)
-
+		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID).
+		Where("audit_statuses.type = ?", "published")
 	if params.DateFrom != "" && params.DateTo != "" {
 		auditPlanQuery = auditPlanQuery.Where("audit_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
@@ -417,19 +432,22 @@ func (repo *AuditInsightReportRepository) GetAuditFindingByCategory(params *repo
 	results := []*reportDTOs.AuditInsightAuditFindingByCategoryDTO{}
 
 	query := repo.db.Table("audit_finding_categories").
-		Select(`audit_finding_categories.id AS audit_finding_category_id, 
-				audit_finding_categories.title_en AS audit_finding_category_title_en, 
-				audit_finding_categories.title_ar AS audit_finding_category_title_ar, 
-				COUNT(audit_findings.id) AS count`).
+		Select(`
+		audit_finding_categories.id AS audit_finding_category_id, 
+		audit_finding_categories.title_en AS audit_finding_category_title_en, 
+		audit_finding_categories.title_ar AS audit_finding_category_title_ar, 
+		COUNT(CASE WHEN audit_final_report_statuses.type = 'published' AND auditable_items.responsible_unit_id = ? THEN audit_findings.id ELSE NULL END) AS count
+	`, currentUserResponsibleUnitID).
 		Joins(`
-			LEFT JOIN audit_findings ON audit_findings.audit_finding_category_id = audit_finding_categories.id
-			LEFT JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id
-		`).
-		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID).
+		LEFT JOIN audit_findings ON audit_findings.audit_finding_category_id = audit_finding_categories.id
+		LEFT JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id
+		LEFT JOIN audits ON audits.id = audit_findings.audit_id
+		LEFT JOIN audit_final_reports ON audit_final_reports.audit_id = audits.id
+		LEFT JOIN audit_final_report_statuses ON audit_final_report_statuses.id = audit_final_reports.audit_final_report_status_id
+	`).
 		Group("audit_finding_categories.id, audit_finding_categories.title_en, audit_finding_categories.title_ar").
-		Order("COUNT(audit_findings.id) DESC") // Order by highest count
+		Order("COUNT(*) DESC")
 
-	// Apply date filter if provided
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("audit_findings.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
@@ -450,18 +468,25 @@ func (repo *AuditInsightReportRepository) GetAuditFindingByAuditCategory(params 
 			audit_categories.id AS audit_category_id,
 			audit_categories.title_en AS audit_category_title_en,
 			audit_categories.title_ar AS audit_category_title_ar,
-			COUNT(audit_findings.id) AS count
-		`).
+			COUNT(
+				CASE
+					WHEN audit_final_report_statuses.type = 'published' AND auditable_items.responsible_unit_id = ?
+					THEN audit_findings.id
+					ELSE NULL
+				END
+			) AS count
+		`, currentUserResponsibleUnitID).
 		Joins(`
 			LEFT JOIN audit_plans ON audit_plans.audit_category_id = audit_categories.id
-			LEFT JOIN audit_findings ON audit_findings.audit_id = audit_plans.id
+			LEFT JOIN audits ON audits.audit_plan_id = audit_plans.id
+			LEFT JOIN audit_findings ON audit_findings.audit_id = audits.id
 			LEFT JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id
-				AND auditable_items.responsible_unit_id = ?
-		`, currentUserResponsibleUnitID).
+			LEFT JOIN audit_final_reports ON audit_final_reports.audit_id = audits.id
+			LEFT JOIN audit_final_report_statuses ON audit_final_report_statuses.id = audit_final_reports.audit_final_report_status_id
+		`).
 		Group("audit_categories.id, audit_categories.title_en, audit_categories.title_ar").
-		Order("COUNT(audit_findings.id) DESC")
+		Order("COUNT(*) DESC")
 
-	// Optional: date filter
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("audit_findings.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
@@ -478,17 +503,32 @@ func (repo *AuditInsightReportRepository) GetAuditFindingByStatus(params *report
 	results := []*reportDTOs.AuditInsightAuditFindingByStatusDTO{}
 
 	query := repo.db.Table("audit_finding_statuses").
-		Select(`audit_finding_statuses.id,
-                audit_finding_statuses.title_en,
-                audit_finding_statuses.title_ar,
-                audit_finding_statuses.color_code,
-                COALESCE(COUNT(audit_findings.id), 0) AS count`).
+		Select(`
+			audit_finding_statuses.id,
+			audit_finding_statuses.title_en,
+			audit_finding_statuses.title_ar,
+			audit_finding_statuses.color_code,
+			COUNT(
+				CASE
+					WHEN audit_final_report_statuses.type = 'published' AND auditable_items.responsible_unit_id = ?
+					THEN audit_findings.id
+					ELSE NULL
+				END
+			) AS count
+		`, currentUserResponsibleUnitID).
 		Joins(`
 			LEFT JOIN audit_findings ON audit_findings.audit_finding_status_id = audit_finding_statuses.id
 			LEFT JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id
+			LEFT JOIN audits ON audits.id = audit_findings.audit_id
+			LEFT JOIN audit_final_reports ON audit_final_reports.audit_id = audits.id
+			LEFT JOIN audit_final_report_statuses ON audit_final_report_statuses.id = audit_final_reports.audit_final_report_status_id
 		`).
-		Where(`(auditable_items.responsible_unit_id = ? OR audit_findings.id IS NULL)`, currentUserResponsibleUnitID).
-		Group("audit_finding_statuses.id, audit_finding_statuses.title_en, audit_finding_statuses.title_ar, audit_finding_statuses.color_code")
+		Group(`
+			audit_finding_statuses.id,
+			audit_finding_statuses.title_en,
+			audit_finding_statuses.title_ar,
+			audit_finding_statuses.color_code
+		`)
 
 	// Apply date filter if provided
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -507,16 +547,26 @@ func (repo *AuditInsightReportRepository) GetAuditFindingBySeverityLevel(params 
 	results := []*reportDTOs.AuditInsightAuditFindingBySeverityLevelDTO{}
 
 	query := repo.db.Table("severity_levels").
-		Select(`severity_levels.id,
-                severity_levels.title_en,
-                severity_levels.title_ar,
-                severity_levels.color_code,
-                COUNT(audit_findings.id) AS count`).
+		Select(`
+			severity_levels.id,
+			severity_levels.title_en,
+			severity_levels.title_ar,
+			severity_levels.color_code,
+			COUNT(
+				CASE
+					WHEN audit_final_report_statuses.type = 'published' AND auditable_items.responsible_unit_id = ?
+					THEN audit_findings.id
+					ELSE NULL
+				END
+			) AS count
+		`, currentUserResponsibleUnitID).
 		Joins(`
 			LEFT JOIN audit_findings ON audit_findings.severity_level_id = severity_levels.id
 			LEFT JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id
+			LEFT JOIN audits ON audits.id = audit_findings.audit_id
+			LEFT JOIN audit_final_reports ON audit_final_reports.audit_id = audits.id
+			LEFT JOIN audit_final_report_statuses ON audit_final_report_statuses.id = audit_final_reports.audit_final_report_status_id
 		`).
-		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID).
 		Group("severity_levels.id, severity_levels.title_en, severity_levels.title_ar, severity_levels.color_code")
 
 	// Apply date filter if provided
@@ -533,19 +583,18 @@ func (repo *AuditInsightReportRepository) GetAuditFindingBySeverityLevel(params 
 }
 
 func (repo *AuditInsightReportRepository) GetAuditFindingByMonth(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditFindingByMonthDTO, error) {
-	// Define static Arabic month translations
+	// Arabic month translations
 	monthTranslations := map[string]string{
 		"Jan": "يناير", "Feb": "فبراير", "Mar": "مارس", "Apr": "أبريل",
 		"May": "مايو", "Jun": "يونيو", "Jul": "يوليو", "Aug": "أغسطس",
 		"Sep": "سبتمبر", "Oct": "أكتوبر", "Nov": "نوفمبر", "Dec": "ديسمبر",
 	}
 
+	// Prepare last 12 months
 	now := time.Now()
 	last12Months := []*reportDTOs.AuditInsightAuditFindingByMonthDTO{}
-
 	for i := 11; i >= 0; i-- {
-		monthStart := now.AddDate(0, -i, 0)
-		monthStart = time.Date(monthStart.Year(), monthStart.Month(), 1, 0, 0, 0, 0, time.UTC)
+		monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, -i, 0)
 		monthEnd := monthStart.AddDate(0, 1, -1)
 
 		month := monthStart.Format("Jan 2006")
@@ -560,7 +609,7 @@ func (repo *AuditInsightReportRepository) GetAuditFindingByMonth(params *reportD
 		})
 	}
 
-	// Fetch actual database results
+	// Fetch database counts
 	var rawResults []struct {
 		MonthEn string `gorm:"column:title_en"`
 		Count   uint   `gorm:"column:count"`
@@ -569,17 +618,20 @@ func (repo *AuditInsightReportRepository) GetAuditFindingByMonth(params *reportD
 	query := repo.db.Table("audit_findings").
 		Select(`FORMAT(audit_findings.created_at, 'MMM yyyy') AS title_en, COUNT(audit_findings.id) AS count`).
 		Joins(`LEFT JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id`).
+		Joins(`LEFT JOIN audits ON audits.id = audit_findings.audit_id`).
+		Joins(`LEFT JOIN audit_final_reports ON audit_final_reports.audit_id = audits.id`).
+		Joins(`LEFT JOIN audit_final_report_statuses ON audit_final_report_statuses.id = audit_final_reports.audit_final_report_status_id`).
 		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID).
+		Where("audit_final_report_statuses.type = ?", "published").
 		Where("audit_findings.created_at >= DATEADD(MONTH, -11, GETDATE())").
 		Group("FORMAT(audit_findings.created_at, 'MMM yyyy')").
 		Order("MIN(audit_findings.created_at) ASC")
 
-	err := query.Scan(&rawResults).Error
-	if err != nil {
+	if err := query.Scan(&rawResults).Error; err != nil {
 		return nil, err
 	}
 
-	// Merge database results into the prepared last12Months
+	// Merge counts into the 12-month DTOs
 	for _, record := range rawResults {
 		for _, dto := range last12Months {
 			if dto.TitleEn == record.MonthEn {
@@ -595,7 +647,7 @@ func (repo *AuditInsightReportRepository) GetAuditFindingByMonth(params *reportD
 func (repo *AuditInsightReportRepository) GetAuditFindingByYear(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditFindingByYearDTO, error) {
 	results := []*reportDTOs.AuditInsightAuditFindingByYearDTO{}
 
-	// Fetch yearly audit finding count
+	// Raw result structure
 	var rawResults []struct {
 		Year  int  `gorm:"column:year"`
 		Count uint `gorm:"column:count"`
@@ -606,29 +658,35 @@ func (repo *AuditInsightReportRepository) GetAuditFindingByYear(params *reportDT
 			YEAR(audit_findings.created_at) AS year,
 			COUNT(DISTINCT audit_findings.id) AS count
 		`).
-		Joins(`
-			LEFT JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id
-		`).
+		Joins(`LEFT JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id`).
+		Joins(`LEFT JOIN audits ON audits.id = audit_findings.audit_id`).
+		Joins(`LEFT JOIN audit_final_reports ON audit_final_reports.audit_id = audits.id`).
+		Joins(`LEFT JOIN audit_final_report_statuses ON audit_final_report_statuses.id = audit_final_reports.audit_final_report_status_id`).
 		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID).
+		Where("audit_final_report_statuses.type = ?", "published").
 		Group("YEAR(audit_findings.created_at)").
 		Order("YEAR(audit_findings.created_at) ASC")
 
-	// Apply date filter if provided
+	// Date range filter
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("audit_findings.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
+	// Execute
 	err := query.Scan(&rawResults).Error
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert year to English and Arabic title
+	// Format response
 	for _, record := range rawResults {
+		year := record.Year
 		results = append(results, &reportDTOs.AuditInsightAuditFindingByYearDTO{
-			TitleEn: fmt.Sprintf("%d", record.Year), // English Title (Year)
-			TitleAr: fmt.Sprintf("%d", record.Year), // Arabic Title (Same as Year)
-			Count:   record.Count,
+			TitleEn:  fmt.Sprintf("%d", year),
+			TitleAr:  fmt.Sprintf("%d", year),
+			Count:    record.Count,
+			DateFrom: fmt.Sprintf("%d-01-01", year),
+			DateTo:   fmt.Sprintf("%d-12-31", year),
 		})
 	}
 
@@ -640,21 +698,32 @@ func (repo *AuditInsightReportRepository) GetAuditActionPlanByStatus(params *rep
 
 	query := repo.db.Table("action_plan_statuses").
 		Select(`
-            action_plan_statuses.id,
-            action_plan_statuses.title_en,
-            action_plan_statuses.title_ar,
-            action_plan_statuses.color_code,
-            COALESCE(COUNT(audit_finding_action_plans.id), 0) AS count
-        `).
+			action_plan_statuses.id,
+			action_plan_statuses.title_en,
+			action_plan_statuses.title_ar,
+			action_plan_statuses.color_code,
+			COALESCE(COUNT(audit_finding_action_plans.id), 0) AS count
+		`).
 		Joins(`
 			LEFT JOIN audit_finding_action_plans ON audit_finding_action_plans.action_plan_status_id = action_plan_statuses.id
 			LEFT JOIN audit_findings ON audit_findings.id = audit_finding_action_plans.audit_finding_id
 			LEFT JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id
+			LEFT JOIN audits ON audits.id = audit_findings.audit_id
+			LEFT JOIN audit_final_reports ON audit_final_reports.audit_id = audits.id
+			LEFT JOIN audit_final_report_statuses ON audit_final_report_statuses.id = audit_final_reports.audit_final_report_status_id
 		`).
-		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID).
-		Group("action_plan_statuses.id, action_plan_statuses.title_en, action_plan_statuses.title_ar, action_plan_statuses.color_code")
+		Where(`
+			(auditable_items.responsible_unit_id = ? AND audit_final_report_statuses.type = 'published') 
+			OR audit_finding_action_plans.id IS NULL
+		`, currentUserResponsibleUnitID).
+		Group(`
+			action_plan_statuses.id, 
+			action_plan_statuses.title_en, 
+			action_plan_statuses.title_ar, 
+			action_plan_statuses.color_code
+		`)
 
-	// Apply date filter if provided
+	// Optional date filter
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("audit_finding_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
@@ -666,7 +735,7 @@ func (repo *AuditInsightReportRepository) GetAuditActionPlanByStatus(params *rep
 func (repo *AuditInsightReportRepository) GetAuditActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO, currentUserResponsibleUnitID uint) ([]*reportDTOs.AuditInsightAuditActionPlanByResponsibleUserDTO, error) {
 	results := []*reportDTOs.AuditInsightAuditActionPlanByResponsibleUserDTO{}
 
-	query := repo.db.Table("audit_finding_action_plans").
+	query := repo.db.Table("users").
 		Select(`
 			users.id AS responsible_user_id,
 			users.first_name_en AS responsible_user_first_name_en,
@@ -679,12 +748,18 @@ func (repo *AuditInsightReportRepository) GetAuditActionPlanByResponsibleUser(pa
 			users.color AS responsible_user_color,
 			users.email AS responsible_user_email,
 			users.profile_image_path AS responsible_user_profile_image_path,
-			COUNT(audit_finding_action_plans.id) AS count
-        `).
-		Joins("JOIN audit_findings ON audit_findings.id = audit_finding_action_plans.audit_finding_id").
-		Joins("JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id").
-		Joins("JOIN users ON users.id = auditable_items.responsible_user_id").
+			COALESCE(COUNT(audit_finding_action_plans.id), 0) AS count
+		`).
+		Joins(`
+			LEFT JOIN auditable_items ON auditable_items.responsible_user_id = users.id
+			LEFT JOIN audit_findings ON audit_findings.auditable_item_id = auditable_items.id
+			LEFT JOIN audits ON audits.id = audit_findings.audit_id
+			LEFT JOIN audit_final_reports ON audit_final_reports.audit_id = audits.id
+			LEFT JOIN audit_final_report_statuses ON audit_final_report_statuses.id = audit_final_reports.audit_final_report_status_id
+			LEFT JOIN audit_finding_action_plans ON audit_finding_action_plans.audit_finding_id = audit_findings.id
+		`).
 		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID).
+		Where("(audit_final_report_statuses.type = 'published' OR audit_finding_action_plans.id IS NULL)").
 		Group("users.id, users.first_name_en, users.last_name_en, users.first_name_ar, users.last_name_ar, users.initial, users.color, users.email, users.profile_image_path")
 
 	// Apply date filter if provided
@@ -772,14 +847,17 @@ func (repo *AuditInsightReportRepository) GetOpenActionPlanByResponsibleUser(par
 			users.profile_image_path AS responsible_user_profile_image_path,
 			COUNT(audit_finding_action_plans.id) AS count
 		`).
-		Joins("JOIN audit_findings ON audit_findings.id = audit_finding_action_plans.audit_finding_id").
-		Joins("JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id").
-		Joins("JOIN users ON users.id = auditable_items.responsible_user_id").
+		Joins(`JOIN audit_findings ON audit_findings.id = audit_finding_action_plans.audit_finding_id`).
+		Joins(`JOIN audits ON audits.id = audit_findings.audit_id`).
+		Joins(`JOIN audit_final_reports ON audit_final_reports.audit_id = audits.id`).
+		Joins(`JOIN audit_final_report_statuses ON audit_final_report_statuses.id = audit_final_reports.audit_final_report_status_id`).
+		Joins(`JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id`).
+		Joins(`JOIN users ON users.id = auditable_items.responsible_user_id`).
 		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID).
-		Where("action_plan_status_id != (SELECT id FROM action_plan_statuses WHERE type = 'close')").
+		Where("audit_final_report_statuses.type = 'published'").
+		Where("audit_finding_action_plans.action_plan_status_id != (SELECT id FROM action_plan_statuses WHERE type = 'close')").
 		Group("users.id, users.first_name_en, users.last_name_en, users.first_name_ar, users.last_name_ar, users.initial, users.color, users.email, users.profile_image_path")
 
-	// Date filter if required
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("audit_finding_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
@@ -807,14 +885,18 @@ func (repo *AuditInsightReportRepository) GetOverdueActionPlanByResponsibleUser(
 			COUNT(audit_finding_action_plans.id) AS count
 		`).
 		Joins("JOIN audit_findings ON audit_findings.id = audit_finding_action_plans.audit_finding_id").
+		Joins("JOIN audits ON audits.id = audit_findings.audit_id").
+		Joins("JOIN audit_final_reports ON audit_final_reports.audit_id = audits.id").
+		Joins("JOIN audit_final_report_statuses ON audit_final_report_statuses.id = audit_final_reports.audit_final_report_status_id").
 		Joins("JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id").
 		Joins("JOIN users ON users.id = auditable_items.responsible_user_id").
 		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID).
 		Where("audit_finding_action_plans.target_date < CONVERT(date, GETDATE())").
-		Where("action_plan_status_id != (SELECT id FROM action_plan_statuses WHERE type = 'close')").
+		Where("audit_final_report_statuses.type = 'published'").
+		Where("audit_finding_action_plans.action_plan_status_id != (SELECT id FROM action_plan_statuses WHERE type = 'close')").
 		Group("users.id, users.first_name_en, users.last_name_en, users.first_name_ar, users.last_name_ar, users.initial, users.color, users.email, users.profile_image_path")
 
-	// Date filter if required
+	// Apply optional date filter
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("audit_finding_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
@@ -829,11 +911,15 @@ func (repo *AuditInsightReportRepository) GetAuditInsightOverdueActionPlanCount(
 	query := repo.db.Table("audit_finding_action_plans").
 		Select("COUNT(audit_finding_action_plans.id)").
 		Joins("JOIN audit_findings ON audit_findings.id = audit_finding_action_plans.audit_finding_id").
+		Joins("JOIN audits ON audits.id = audit_findings.audit_id").
+		Joins("JOIN audit_final_reports ON audit_final_reports.audit_id = audits.id").
+		Joins("JOIN audit_final_report_statuses ON audit_final_report_statuses.id = audit_final_reports.audit_final_report_status_id").
 		Joins("JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id").
 		Joins("JOIN users ON users.id = auditable_items.responsible_user_id").
 		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = audit_finding_action_plans.action_plan_status_id").
 		Where("auditable_items.responsible_unit_id = ?", currentUserResponsibleUnitID).
 		Where("audit_finding_action_plans.target_date < CONVERT(date, GETDATE())").
+		Where("audit_final_report_statuses.type = 'published'").
 		Where("action_plan_statuses.type != 'close'")
 
 	if params.DateFrom != "" && params.DateTo != "" {
