@@ -78,6 +78,7 @@ func NewOrganizationModule(
 		settingsModule.ModuleSvc,
 		settingsModule.EmailTemplateSettingsSvc,
 		commonModule.NotificationService,
+		settingsModule.OrganizationUnitSvc,
 		settingsModule.ActiveDirectorySettingSvc,
 		settingsModule.OrganizationUnitSvc,
 	)

@@ -107,7 +107,7 @@ func (repo *BusinessContinuityPlanRepository) GetAll(params *businessContinuityD
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			query = query.Where("business_continuity_plans."+columnName+" IN (?)", values)
 		}
 	}
 	// Calculate total count for pagination

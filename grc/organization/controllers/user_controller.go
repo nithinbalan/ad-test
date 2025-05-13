@@ -532,3 +532,25 @@ func (uc *UserController) GetADUsers(c *gin.Context) {
 
 	c.JSON(http.StatusOK, users)
 }
+
+func (uc *UserController) UpdateUserOrganizationUnit(c *gin.Context) {
+	userID, err := strconv.Atoi(c.Param("userId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var formDTO organizationDTOs.UpdateOrganizationUnitDTO
+
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	if err := uc.service.UpdateUserOrganizationUnit(uint(userID), formDTO); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Responsible units updated successfully"})
+}

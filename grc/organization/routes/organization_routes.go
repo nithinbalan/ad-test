@@ -69,6 +69,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/users/:userId", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.UpdateUser)
 	organizationRoutes.POST("/users/delete", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.DeleteUsers)
 	organizationRoutes.GET("/users/:userId/login-history", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUserLoginHistory)
+	organizationRoutes.PUT("/users/:userId/change-unit", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.UpdateUserOrganizationUnit)
 
 	organizationRoutes.GET("/users/me", userController.GetCurrentUserDetails)
 	organizationRoutes.GET("/users/me/permissions", userController.GetUserPermissions)

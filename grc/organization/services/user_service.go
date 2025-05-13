@@ -16,6 +16,7 @@ import (
 	"jethur/utility"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -55,6 +56,8 @@ type UserServiceInterface interface {
 	GetUserPermissions(userID uint, params *settingDTOs.ModuleListQueryParamsDTO) (*[]settingDTOs.ModuleListDTO, error)
 	SyncUsersFromAD(currentUserID uint) (int, error)
 	GetUsersFromAD() ([]*userDTOs.ADUserDTO, error)
+
+	UpdateUserOrganizationUnit(userID uint, departmentUpdateFormDTO userDTOs.UpdateOrganizationUnitDTO) error
 }
 
 type UserService struct {
@@ -71,6 +74,7 @@ type UserService struct {
 	notificationSvc           commonService.NotificationServiceInterface
 	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface
 	organizationUnitSvc       settingService.OrganizationUnitServiceInterface
+	organizationUnitSvc       settingService.OrganizationUnitServiceInterface
 }
 
 func NewUserService(
@@ -86,6 +90,7 @@ func NewUserService(
 	notificationSvc commonService.NotificationServiceInterface,
 	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface,
 	organizationUnitSvc settingService.OrganizationUnitServiceInterface,
+	organizationUnitSvc settingService.OrganizationUnitServiceInterface,
 ) UserServiceInterface {
 	return &UserService{
 		repo:                      repo,
@@ -99,6 +104,7 @@ func NewUserService(
 		emailTemplateSettingsSvc:  emailTemplateSettingsSvc,
 		notificationSvc:           notificationSvc,
 		activeDirectorySettingSvc: activeDirectorySettingSvc,
+		organizationUnitSvc:       organizationUnitSvc,
 		organizationUnitSvc:       organizationUnitSvc,
 	}
 }
@@ -1285,4 +1291,69 @@ func (us *UserService) GetUsersFromAD() ([]*userDTOs.ADUserDTO, error) {
 	}
 
 	return users, nil
+}
+
+// Handles logic when user's organization unit changes
+func (us *UserService) UpdateUserOrganizationUnit(userID uint, departmentUpdateFormDTO userDTOs.UpdateOrganizationUnitDTO) error {
+
+	tx := us.repo.BeginTransaction()
+
+	primaryLevel, err := us.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return err
+	}
+
+	orgUnitIds := make(map[string]*uint)
+
+	orgUnitIds["organization_unit_"+strconv.Itoa(int(primaryLevel.Level))+"_id"] = &departmentUpdateFormDTO.OrganizationUnitID
+
+	for i := int(primaryLevel.Level); i <= 5; i++ {
+		if int(primaryLevel.Level) != i {
+			orgUnitIds["organization_unit_"+strconv.Itoa(i)+"_id"] = nil
+		}
+	}
+
+	for i := int(primaryLevel.Level); i >= 1; i-- {
+		if int(primaryLevel.Level) != i {
+			organizationUnit, err := us.organizationUnitSvc.GetFullDetailsByID(*orgUnitIds["organization_unit_"+strconv.Itoa(i+1)+"_id"])
+			if err != nil {
+				return err
+			}
+			if organizationUnit.ParentUnit != nil {
+				parentID := uint(organizationUnit.ParentUnit.ID)
+				orgUnitIds["organization_unit_"+strconv.Itoa(i)+"_id"] = &parentID
+			} else {
+				orgUnitIds["organization_unit_"+strconv.Itoa(i)+"_id"] = nil
+			}
+		}
+	}
+
+	// Update the user's department
+	err = us.repo.UpdateUserPrimaryDepartment(userID, departmentUpdateFormDTO.OrganizationUnitID, orgUnitIds, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if departmentUpdateFormDTO.UserID == nil {
+		err = us.repo.UpdateResponsibleUnits(userID, departmentUpdateFormDTO.OrganizationUnitID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	} else {
+		err = us.repo.UpdateResponsibleUsers(userID, *departmentUpdateFormDTO.UserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		err = us.repo.UpdateResponsibleUserTasks(userID, *departmentUpdateFormDTO.UserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	tx.Commit()
+
+	return nil
 }

@@ -285,6 +285,10 @@ type UserPrimaryDetailsDTO struct {
 	ProfileImagePath *string `json:"profile_image_path"`
 }
 
+type UpdateOrganizationUnitDTO struct {
+	UserID             *uint `json:"user_id"`
+	OrganizationUnitID uint  `json:"organization_unit_id" binding:"required"` // New Organization Unit ID
+}
 type ADUserDTO struct {
 	FirstName        string  `json:"first_name"`
 	LastName         string  `json:"last_name"`
