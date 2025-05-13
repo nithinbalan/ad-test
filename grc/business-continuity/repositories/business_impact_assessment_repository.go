@@ -288,9 +288,9 @@ func (repo *BusinessImpactAssessmentRepository) GetProcessDetails(id uint, tx ..
 
 	result := db.
 		Preload("ProcessGroup").
-		Preload("OwnerUnit").
-		Preload("Owner").
-		Preload("Owner.OrganizationUnit1").
+		Preload("ResponsibleUnit").
+		Preload("ResponsibleUser").
+		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("LifecycleStatus").
 		Preload("CreatedByUser").
 		Preload("CreatedByUser.OrganizationUnit1").

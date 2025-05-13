@@ -224,9 +224,9 @@ type BIAProcessDetailDTO struct {
 	TitleAr                   string                                         `json:"title_ar"`
 	Description               *string                                        `json:"description"`
 	ProcessGroup              *organizationDTOs.ProcessGroupDTO              `json:"process_group"`
-	OwnerUnit                 *settingsDTOs.OrganizationUnitDTO              `json:"owner_unit"`
-	OwnerID                   *uint                                          `json:"owner_id"`
-	Owner                     *organizationDTOs.UserMinimalDTO               `json:"owner"`
+	ResponsibleUnit           *settingsDTOs.OrganizationUnitDTO              `json:"owner_unit"`
+	ResponsibleUserID         *uint                                          `json:"owner_id"`
+	ResponsibleUser           *organizationDTOs.UserMinimalDTO               `json:"owner"`
 	CreatedByUser             organizationDTOs.UserMinimalDTO                `json:"created_by"`
 	UpdatedByUser             *organizationDTOs.UserMinimalDTO               `json:"updated_by"`
 	LifecycleStatus           masterDTOs.LifecycleStatusDTO                  `json:"status"`
