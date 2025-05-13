@@ -1293,6 +1293,11 @@ func (us *UserService) GetUsersFromAD() ([]*userDTOs.ADUserDTO, error) {
 // Handles logic when user's organization unit changes
 func (us *UserService) UpdateUserOrganizationUnit(userID uint, departmentUpdateFormDTO userDTOs.UpdateOrganizationUnitDTO) error {
 
+	// Validate DTO
+	if err := us.validateUpdateOrganizationUnitDTO(userID, departmentUpdateFormDTO); err != nil {
+		return err
+	}
+
 	tx := us.repo.BeginTransaction()
 
 	primaryLevel, err := us.organizationLevelSvc.GetPrimaryLevel()
@@ -1302,7 +1307,7 @@ func (us *UserService) UpdateUserOrganizationUnit(userID uint, departmentUpdateF
 
 	orgUnitIds := make(map[string]*uint)
 
-	orgUnitIds["organization_unit_"+strconv.Itoa(int(primaryLevel.Level))+"_id"] = &departmentUpdateFormDTO.OrganizationUnitID
+	orgUnitIds["organization_unit_"+strconv.Itoa(int(primaryLevel.Level))+"_id"] = departmentUpdateFormDTO.OrganizationUnitID
 
 	for i := int(primaryLevel.Level); i <= 5; i++ {
 		if int(primaryLevel.Level) != i {
@@ -1326,14 +1331,14 @@ func (us *UserService) UpdateUserOrganizationUnit(userID uint, departmentUpdateF
 	}
 
 	// Update the user's department
-	err = us.repo.UpdateUserPrimaryDepartment(userID, departmentUpdateFormDTO.OrganizationUnitID, orgUnitIds, tx)
+	err = us.repo.UpdateUserPrimaryDepartment(userID, *departmentUpdateFormDTO.OrganizationUnitID, orgUnitIds, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	if departmentUpdateFormDTO.UserID == nil {
-		err = us.repo.UpdateResponsibleUnits(userID, departmentUpdateFormDTO.OrganizationUnitID, tx)
+		err = us.repo.UpdateResponsibleUnits(userID, *departmentUpdateFormDTO.OrganizationUnitID, tx)
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -1351,6 +1356,63 @@ func (us *UserService) UpdateUserOrganizationUnit(userID uint, departmentUpdateF
 		}
 	}
 	tx.Commit()
+
+	return nil
+}
+
+func (us *UserService) validateUpdateOrganizationUnitDTO(userID uint, dto userDTOs.UpdateOrganizationUnitDTO) error {
+
+	if dto.UserID == nil {
+		if dto.OrganizationUnitID == nil {
+			return utility.NewValidationError(fmt.Errorf("the organization unit ID required"), "required", "organization unit id")
+		} else {
+			if _, err := us.organizationUnitSvc.GetByID(uint(*dto.OrganizationUnitID)); err != nil {
+				return utility.NewValidationError(fmt.Errorf("organization unit does not exist"), "not_exist", "organization unit")
+			}
+		}
+	} else {
+		if _, err := us.GetByID(uint(*dto.UserID)); err != nil {
+			return utility.NewValidationError(fmt.Errorf("user does not exist"), "not_exist", "user")
+		}
+	}
+	if dto.OrganizationUnitID == nil {
+		if dto.UserID == nil {
+			return utility.NewValidationError(fmt.Errorf("the user ID required"), "required", "user id")
+		} else {
+			if _, err := us.GetByID(uint(*dto.UserID)); err != nil {
+				return utility.NewValidationError(fmt.Errorf("user does not exist"), "not_exist", "user")
+			}
+			existingUserOrganizationUnitID, err := us.GetUserPrimaryUnitID(uint(userID))
+			if err != nil {
+				return utility.NewValidationError(fmt.Errorf("organization unit not set for user"), "not_exist", "user unit")
+			}
+
+			newUserOrganizationUnitID, err := us.GetUserPrimaryUnitID(uint(*dto.UserID))
+			if err != nil {
+				return utility.NewValidationError(fmt.Errorf("organization unit not set for user"), "not_exist", "user unit")
+			}
+
+			if existingUserOrganizationUnitID != newUserOrganizationUnitID {
+				return utility.NewValidationError(fmt.Errorf("organization unit should be same"), "same_organization_unit", "organization unit")
+			}
+		}
+	} else {
+		if _, err := us.organizationUnitSvc.GetByID(uint(*dto.OrganizationUnitID)); err != nil {
+			return utility.NewValidationError(fmt.Errorf("organization unit does not exist"), "not_exist", "organization unit")
+		}
+	}
+
+	if dto.UserID != nil && dto.OrganizationUnitID != nil {
+
+		existingUserOrganizationUnitID, err := us.GetUserPrimaryUnitID(uint(userID))
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("organization unit not set for user"), "not_exist", "user unit")
+		}
+
+		if existingUserOrganizationUnitID != *dto.OrganizationUnitID {
+			return utility.NewValidationError(fmt.Errorf("organization unit should be same"), "same_organization_unit", "organization unit")
+		}
+	}
 
 	return nil
 }
