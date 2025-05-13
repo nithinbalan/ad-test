@@ -28,6 +28,7 @@ type AuthServiceInterface interface {
 	ReSendPasswordRecoveryOTP(email string) error
 	VerifyPasswordRecoveryOTP(email, otp string) (string, error)
 	SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySetPasswordFormDTO) error
+	GetLoginSettings() (*authDTOs.LoginSettingsDTO, error)
 }
 
 // Service and implementations
@@ -37,6 +38,7 @@ type AuthService struct {
 	notificationSvc           commonService.NotificationServiceInterface
 	emailTemplateSettingsSvc  settingService.EmailTemplateSettingsServiceInterface
 	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface
+	integrationSvc            settingService.IntegrationServiceInterface
 }
 
 func NewAuthService(
@@ -44,28 +46,36 @@ func NewAuthService(
 	userSettingService services.UserSettingServiceInterface,
 	notificationSvc commonService.NotificationServiceInterface,
 	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface,
-	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface) AuthServiceInterface {
+	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface,
+	integrationSvc settingService.IntegrationServiceInterface) AuthServiceInterface {
 	return &AuthService{
 		userService:               userService,
 		userSettingService:        userSettingService,
 		notificationSvc:           notificationSvc,
 		emailTemplateSettingsSvc:  emailTemplateSettingsSvc,
 		activeDirectorySettingSvc: activeDirectorySettingSvc,
+		integrationSvc:            integrationSvc,
 	}
 }
 
 func (as *AuthService) Authenticate(email string, password string, ipAddress string, location string, device string, browser string) (*authDTOs.LoginResponseDTO, error) {
 	// ✅ Check if AD login is enabled/configured
-
-	adSetting, err := as.activeDirectorySettingSvc.GetFirst()
+	integration, err := as.integrationSvc.GetByType("active-directory")
 	if err != nil {
 		return nil, utility.NewInternalServerError(err)
 	}
-	if adSetting != nil {
-		if response, err := as.LoginWithActiveDirectory(email, password, ipAddress, location, device, browser); err != nil {
-			return nil, err
-		} else if response != nil {
-			return response, nil
+	// ✅ Check if integration is enabled
+	if integration.IsEnable {
+		adSetting, err := as.activeDirectorySettingSvc.GetFirst()
+		if err != nil {
+			return nil, utility.NewInternalServerError(err)
+		}
+		if adSetting != nil {
+			if response, err := as.LoginWithActiveDirectory(email, password, ipAddress, location, device, browser); err != nil {
+				return nil, err
+			} else if response != nil {
+				return response, nil
+			}
 		}
 	}
 
@@ -551,4 +561,19 @@ func (as *AuthService) LoginWithActiveDirectory(email, password, ip, location, d
 		RefreshToken: &refreshToken,
 		IsMFAEnabled: false,
 	}, nil
+}
+
+func (as *AuthService) GetLoginSettings() (*authDTOs.LoginSettingsDTO, error) {
+	// 1. Get Active Directory Integration by type
+	integration, err := as.integrationSvc.GetByType("active-directory")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Active Directory integration: %w", err)
+	}
+
+	// 2. Prepare typed response
+	settings := &authDTOs.LoginSettingsDTO{
+		ActiveDirectoryEnabled: integration.IsEnable,
+	}
+
+	return settings, nil
 }

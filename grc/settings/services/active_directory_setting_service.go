@@ -17,12 +17,14 @@ type ActiveDirectorySettingServiceInterface interface {
 }
 
 type ActiveDirectorySettingService struct {
-	repo repositories.ActiveDirectorySettingRepositoryInterface
+	repo           repositories.ActiveDirectorySettingRepositoryInterface
+	integrationSvc IntegrationServiceInterface
 }
 
-func NewActiveDirectorySettingService(repo repositories.ActiveDirectorySettingRepositoryInterface) ActiveDirectorySettingServiceInterface {
+func NewActiveDirectorySettingService(repo repositories.ActiveDirectorySettingRepositoryInterface, integrationSvc IntegrationServiceInterface) ActiveDirectorySettingServiceInterface {
 	return &ActiveDirectorySettingService{
-		repo: repo,
+		repo:           repo,
+		integrationSvc: integrationSvc,
 	}
 }
 
@@ -41,6 +43,14 @@ func (adss *ActiveDirectorySettingService) Create(currentUserID uint, dto dtos.A
 	if err != nil {
 		return fmt.Errorf("failed to encrypt user password: %w", err)
 	}
+	integration, err := adss.integrationSvc.GetByType("active-directory")
+	if err != nil {
+		return fmt.Errorf("failed to find integration: %w", err)
+	}
+	// ✅ Check if integration is enabled
+	if !integration.IsEnable {
+		return fmt.Errorf("integration 'active-directory' is disabled")
+	}
 	// Check if an entry already exists
 	activeDirectorySetting, err := adss.repo.GetFirst()
 	if err != nil {
@@ -49,6 +59,7 @@ func (adss *ActiveDirectorySettingService) Create(currentUserID uint, dto dtos.A
 
 	if activeDirectorySetting != nil {
 		// Update activeDirectorySetting
+		activeDirectorySetting.IntegrationID = integration.ID
 		activeDirectorySetting.Server = dto.Server
 		activeDirectorySetting.Port = dto.Port
 		activeDirectorySetting.UseSSL = dto.UseSSL
@@ -66,6 +77,7 @@ func (adss *ActiveDirectorySettingService) Create(currentUserID uint, dto dtos.A
 	} else {
 		// Create new
 		activeDirectorySetting := models.ActiveDirectorySetting{
+			IntegrationID:  integration.ID,
 			Server:         dto.Server,
 			Port:           dto.Port,
 			UseSSL:         dto.UseSSL,

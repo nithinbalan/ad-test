@@ -6,6 +6,7 @@ import (
 
 type ActiveDirectorySetting struct {
 	ID             uint       `json:"id" gorm:"primaryKey;autoIncrement"`
+	IntegrationID  uint       `json:"integration_id"`
 	Server         string     `json:"server" gorm:"size:255;not null"`
 	Port           int        `json:"port" gorm:"not null"`
 	UseSSL         bool       `json:"use_ssl" gorm:"not null"`
@@ -21,8 +22,9 @@ type ActiveDirectorySetting struct {
 	UpdatedAt      *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
 
 	// Relationships
-	CreatedByUser *User `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	UpdatedByUser *User `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Integration   *Integration `gorm:"foreignKey:IntegrationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser *User        `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	UpdatedByUser *User        `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 func (ActiveDirectorySetting) TableName() string {
