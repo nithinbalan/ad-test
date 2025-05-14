@@ -74,3 +74,9 @@ func SendForbiddenErrResp(c *gin.Context, errorMessage string) {
 	resp := ErrorResponse{Error: errorMessage}
 	c.JSON(http.StatusForbidden, resp)
 }
+
+func SendCustomErrResp(c *gin.Context, statusCode int, message string) {
+	c.JSON(statusCode, gin.H{
+		"message": message,
+	})
+}

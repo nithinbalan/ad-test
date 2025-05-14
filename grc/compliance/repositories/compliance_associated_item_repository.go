@@ -68,7 +68,7 @@ func (repo *ComplianceAssociatedItemRepository) GetAllControls(complianceID uint
             LEFT JOIN control_types ON controls.control_type_id = control_types.id
             LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
             LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
-			LEFT JOIN users AS owner ON controls.owner_id = owner.id
+			LEFT JOIN users AS owner ON controls.responsible_user_id = owner.id
         `).Where("compliance_controls.compliance_register_id = ?", complianceID)
 
 	if err := query.Count(&totalCount).Error; err != nil {

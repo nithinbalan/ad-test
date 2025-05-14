@@ -87,8 +87,8 @@ func (repo *RiskResidualControlAnalysisRepository) GetAll(riskID uint, params *r
 			LEFT JOIN controls ON controls.id = risk_controls.control_id
 			LEFT JOIN control_types ON control_types.id = controls.control_type_id
 			LEFT JOIN control_categories ON control_categories.id = controls.control_category_id
-			LEFT JOIN organization_units ON organization_units.id = controls.owner_unit_id
-			LEFT JOIN users AS owner ON owner.id = controls.owner_id
+			LEFT JOIN organization_units ON organization_units.id = controls.responsible_unit_id
+			LEFT JOIN users AS owner ON owner.id = controls.responsible_user_id
             LEFT JOIN control_efficiency_statuses ON control_efficiency_statuses.id = risk_control_analyses.control_efficiency_status_id
             LEFT JOIN control_implementation_statuses ON control_implementation_statuses.id = risk_control_analyses.control_implementation_status_id
             LEFT JOIN users AS created_user ON created_user.id = risk_control_analyses.created_by_id

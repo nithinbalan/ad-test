@@ -14,6 +14,7 @@ import (
 type ActiveDirectorySettingServiceInterface interface {
 	GetFirst() (*models.ActiveDirectorySetting, error)
 	Create(currentUserID uint, dto dtos.ActiveDirectorySettingDTO) error
+	CheckADConnection(dto *dtos.ActiveDirectorySettingDTO) error
 	GetADConnection() error
 }
 
@@ -35,27 +36,27 @@ func (adss *ActiveDirectorySettingService) GetFirst() (*models.ActiveDirectorySe
 
 func (adss *ActiveDirectorySettingService) Create(currentUserID uint, dto dtos.ActiveDirectorySettingDTO) error {
 	// Step 1: Check connection first
-	if err := adss.TestADConnection(dto); err != nil {
-		return fmt.Errorf("AD connection test failed: %w", err)
+	if err := adss.CheckADConnection(&dto); err != nil {
+		return err
 	}
 
 	// Step 2: Encrypt passwords
 	encryptedBindPassword, err := utility.EncryptData([]byte(dto.BindPassword))
 	if err != nil {
-		return fmt.Errorf("failed to encrypt bind password: %w", err)
+		return err
 	}
 	encryptedUserPassword, err := utility.EncryptData([]byte(dto.Password))
 	if err != nil {
-		return fmt.Errorf("failed to encrypt user password: %w", err)
+		return err
 	}
 
 	// Step 3: Check integration setting
 	integration, err := adss.integrationSvc.GetByType("active-directory")
 	if err != nil {
-		return fmt.Errorf("failed to find integration: %w", err)
+		return err
 	}
 	if !integration.IsEnable {
-		return fmt.Errorf("integration 'active-directory' is disabled")
+		return err
 	}
 
 	// Step 4: Save or Update setting
@@ -79,7 +80,7 @@ func (adss *ActiveDirectorySettingService) Create(currentUserID uint, dto dtos.A
 		activeDirectorySetting.UpdatedBYID = &currentUserID
 
 		if err := adss.repo.Update(activeDirectorySetting); err != nil {
-			return fmt.Errorf("failed to update AD config: %w", err)
+			return err
 		}
 	} else {
 		// Create new
@@ -104,9 +105,7 @@ func (adss *ActiveDirectorySettingService) Create(currentUserID uint, dto dtos.A
 	return nil
 }
 
-func (adss *ActiveDirectorySettingService) TestADConnection(dto dtos.ActiveDirectorySettingDTO) error {
-	// 🔐 Decrypting here not needed, since dto contains raw passwords
-
+func (adss *ActiveDirectorySettingService) CheckADConnection(dto *dtos.ActiveDirectorySettingDTO) error {
 	address := fmt.Sprintf("%s:%d", dto.Server, dto.Port)
 
 	var l *ldap.Conn
@@ -117,16 +116,20 @@ func (adss *ActiveDirectorySettingService) TestADConnection(dto dtos.ActiveDirec
 		l, err = ldap.Dial("tcp", address)
 	}
 	if err != nil {
-		return fmt.Errorf("LDAP connection failed: %w", err)
+		return utility.NewActiveDirectoryConnectionError(
+			fmt.Errorf("failed to connect to LDAP server: %w", err),
+		)
 	}
 	defer l.Close()
 
 	// Bind with BindDN and BindPassword
 	if err := l.Bind(dto.BindDN, dto.BindPassword); err != nil {
-		return fmt.Errorf("bind user failed: %w", err)
+		return utility.NewActiveDirectoryConnectionError(
+			fmt.Errorf("LDAP bind failed: %w", err),
+		)
 	}
 
-	// 🔍 Search user to validate
+	// Search user to validate
 	const userFilter = "(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
 
 	searchReq := ldap.NewSearchRequest(
@@ -138,14 +141,18 @@ func (adss *ActiveDirectorySettingService) TestADConnection(dto dtos.ActiveDirec
 	)
 	sr, err := l.Search(searchReq)
 	if err != nil || len(sr.Entries) == 0 {
-		return fmt.Errorf("user not found: %w", err)
+		return utility.NewActiveDirectoryConnectionError(
+			fmt.Errorf("LDAP search failed or no users found: %w", err),
+		)
 	}
 
 	userDN := sr.Entries[0].DN
 
-	// Bind with actual username and password (user login check)
+	// Bind with actual user login details
 	if err := l.Bind(userDN, dto.Password); err != nil {
-		return fmt.Errorf("user auth failed: %w", err)
+		return utility.NewActiveDirectoryConnectionError(
+			fmt.Errorf("LDAP user authentication failed: %w", err),
+		)
 	}
 
 	return nil
@@ -154,59 +161,52 @@ func (adss *ActiveDirectorySettingService) TestADConnection(dto dtos.ActiveDirec
 func (adss *ActiveDirectorySettingService) GetADConnection() error {
 	integration, err := adss.integrationSvc.GetByType("active-directory")
 	if err != nil {
-		return fmt.Errorf("failed to find integration: %w", err)
+		return utility.NewActiveDirectoryConnectionError(
+			fmt.Errorf("failed to find integration: %w", err),
+		)
 	}
 	if !integration.IsEnable {
-		return fmt.Errorf("integration 'active-directory' is disabled")
+		return utility.NewActiveDirectoryConnectionError(
+			fmt.Errorf("integration 'active-directory' is disabled"),
+		)
 	}
-	// 1. Fetch saved settings
+
 	activeDirectorySetting, err := adss.repo.GetFirst()
 	if err != nil {
-		return fmt.Errorf("failed to fetch saved AD settings: %w", err)
+		return utility.NewActiveDirectoryConnectionError(
+			fmt.Errorf("failed to fetch saved AD settings: %w", err),
+		)
 	}
 	if activeDirectorySetting == nil {
-		return fmt.Errorf("no AD settings found")
+		return utility.NewActiveDirectoryConnectionError(
+			fmt.Errorf("no AD settings found"),
+		)
 	}
 
-	// 2. Decrypt saved bind password
 	decryptedBindPassword, err := utility.DecryptData(activeDirectorySetting.BindPassword)
 	if err != nil {
-		return fmt.Errorf("failed to decrypt bind password: %w", err)
+		return utility.NewActiveDirectoryConnectionError(
+			fmt.Errorf("failed to decrypt bind password: %w", err),
+		)
 	}
-	bindPassword := string(decryptedBindPassword)
-
-	// 3. Connect to LDAP server
-	address := fmt.Sprintf("%s:%d", activeDirectorySetting.Server, activeDirectorySetting.Port)
-
-	var l *ldap.Conn
-	if activeDirectorySetting.UseSSL {
-		l, err = ldap.DialTLS("tcp", address, &tls.Config{InsecureSkipVerify: true})
-	} else {
-		l, err = ldap.Dial("tcp", address)
-	}
+	decryptedUserPassword, err := utility.DecryptData(activeDirectorySetting.Password)
 	if err != nil {
-		return fmt.Errorf("LDAP connection failed: %w", err)
-	}
-	defer l.Close()
-
-	// 4. Bind with saved BindDN and decrypted password
-	if err := l.Bind(activeDirectorySetting.BindDN, bindPassword); err != nil {
-		return fmt.Errorf("bind failed: %w", err)
-	}
-	const userFilter = "(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
-
-	// 5. (Optional) Run a very basic search to ensure base DN is correct
-	searchReq := ldap.NewSearchRequest(
-		activeDirectorySetting.BaseDN,
-		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
-		userFilter,
-		[]string{"cn", "displayName", "mail"},
-		nil,
-	)
-	_, err = l.Search(searchReq)
-	if err != nil {
-		return fmt.Errorf("basic search failed: %w", err)
+		return utility.NewActiveDirectoryConnectionError(
+			fmt.Errorf("failed to decrypt user password: %w", err),
+		)
 	}
 
-	return nil
+	// Prepare DTO manually
+	dto := dtos.ActiveDirectorySettingDTO{
+		Server:       activeDirectorySetting.Server,
+		Port:         activeDirectorySetting.Port,
+		UseSSL:       activeDirectorySetting.UseSSL,
+		BaseDN:       activeDirectorySetting.BaseDN,
+		BindDN:       activeDirectorySetting.BindDN,
+		BindPassword: string(decryptedBindPassword),
+		Password:     string(decryptedUserPassword),
+	}
+
+	// This will already return ActiveDirectoryConnectionError if fails
+	return adss.CheckADConnection(&dto)
 }

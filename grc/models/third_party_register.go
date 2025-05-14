@@ -16,6 +16,7 @@ type ThirdPartyRegister struct {
 	Email              *string    `json:"email,omitempty" gorm:"type:nvarchar(150);default:null"`
 	PhoneNumber        *string    `json:"phone_number,omitempty" gorm:"type:varchar(20);default:null"`
 	ResponsibleUserID  *uint      `json:"responsible_user_id,omitempty"`
+	ResponsibleUnitID  *uint      `json:"responsible_unit_id"`
 	OnboardingDate     *time.Time `json:"onboarding_date,omitempty" gorm:"type:date;default:null"`
 	ServiceStartDate   *time.Time `json:"service_start_date,omitempty" gorm:"type:date;default:null"`
 	ServiceEndDate     *time.Time `json:"service_end_date,omitempty" gorm:"type:date;default:null"`
@@ -32,6 +33,7 @@ type ThirdPartyRegister struct {
 	OrganizationUnit *OrganizationUnit `gorm:"foreignKey:OrganizationUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SeverityLevel    *SeverityLevel    `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUser  *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUnit  *OrganizationUnit `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser    *User             `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }

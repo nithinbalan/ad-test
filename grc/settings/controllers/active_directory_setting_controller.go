@@ -49,6 +49,12 @@ func (adsc *ActiveDirectorySettingController) CreateActiveDirectorySetting(c *gi
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, err.Error())
+			return
+		case *utility.ActiveDirectoryConnectionError:
+			utility.SendCustomErrResp(c, http.StatusUnprocessableEntity, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(adsc.db, c, e.Error())
 			return
@@ -59,11 +65,31 @@ func (adsc *ActiveDirectorySettingController) CreateActiveDirectorySetting(c *gi
 
 }
 
-func (c *ActiveDirectorySettingController) CheckActiveDirectorySettings(ctx *gin.Context) {
-	err := c.service.GetADConnection()
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+func (adsc *ActiveDirectorySettingController) CheckActiveDirectoryConnection(ctx *gin.Context) {
+	var adDTO dtos.ActiveDirectorySettingDTO
+	if err := ctx.ShouldBindJSON(&adDTO); err != nil {
+		utility.SendInvalidErrResp(ctx, err)
 		return
+	}
+	err := adsc.service.CheckADConnection(&adDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(ctx)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(ctx, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(ctx, err.Error())
+			return
+		case *utility.ActiveDirectoryConnectionError:
+			utility.SendCustomErrResp(ctx, http.StatusUnprocessableEntity, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(adsc.db, ctx, e.Error())
+			return
+		}
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"success": true, "message": "Active Directory connection successful"})

@@ -39,8 +39,8 @@ func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"process_group_ids",
-		"owner_unit_ids",
-		"owner_ids",
+		"responsible_unit_ids",
+		"responsible_user_ids",
 		"lifecycle_status_ids",
 	}
 

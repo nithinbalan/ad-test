@@ -7,8 +7,8 @@ import (
 type Process struct {
 	ID                          uint       `json:"id" gorm:"primaryKey;autoIncrement"`
 	ProcessGroupID              uint       `json:"process_group_id" gorm:"not null" binding:"required"`
-	OwnerUnitID                 uint       `json:"owner_unit_id" gorm:"not null" binding:"required"`
-	OwnerID                     uint       `json:"owner_id" gorm:"not null" binding:"required"`
+	ResponsibleUnitID           uint       `json:"owner_unit_id" gorm:"not null" binding:"required"`
+	ResponsibleUserID           uint       `json:"owner_id" gorm:"not null" binding:"required"`
 	LifecycleStatusID           uint       `json:"lifecycle_status_id" gorm:"not null" binding:"required"`
 	ReferenceNumber             string     `json:"reference_number" gorm:"type:varchar(45);not null;unique" binding:"required"`
 	TitleEn                     string     `json:"title_en" gorm:"type:nvarchar(500);not null" binding:"required"`
@@ -37,8 +37,8 @@ type Process struct {
 
 	// Relationships
 	ProcessGroup              *ProcessGroup                `gorm:"foreignKey:ProcessGroupID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	OwnerUnit                 *OrganizationUnit            `gorm:"foreignKey:OwnerUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Owner                     *User                        `gorm:"foreignKey:OwnerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUnit           *OrganizationUnit            `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser           *User                        `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	LifecycleStatus           *LifecycleStatus             `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskMatrixRating          *RiskMatrixRiskRating        `gorm:"foreignKey:RiskMatrixRiskRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskMatrixRatingValue     *RiskMatrixRiskRatingValue   `gorm:"foreignKey:RiskMatrixRiskRatingValueID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
