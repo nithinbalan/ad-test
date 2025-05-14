@@ -59,8 +59,13 @@ func (adsc *ActiveDirectorySettingController) CreateActiveDirectorySetting(c *gi
 
 }
 
-func (c *ActiveDirectorySettingController) CheckActiveDirectorySettings(ctx *gin.Context) {
-	err := c.service.GetADConnection()
+func (adsc *ActiveDirectorySettingController) CheckActiveDirectoryConection(ctx *gin.Context) {
+	var adDTO dtos.ActiveDirectorySettingDTO
+	if err := ctx.ShouldBindJSON(&adDTO); err != nil {
+		utility.SendInvalidErrResp(ctx, err)
+		return
+	}
+	err := adsc.service.CheckADConnection(&adDTO)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
 		return
