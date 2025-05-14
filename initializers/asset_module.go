@@ -85,7 +85,7 @@ func NewAssetModule(db *gorm.DB,
 	assetCriticalityMatrixRatingScaleController := controllers.NewAssetCriticalityMatrixRatingScaleController(assetCriticalityMatrixRatingScaleSvc)
 
 	assetRegisterRepo := repositories.NewAssetRegisterRepository(db)
-	assetRegisterSvc := services.NewAssetRegisterService(assetRegisterRepo, sharedModule.ActivityLogService, assetTypeSvc, assetCategorySvc, assetStatusSvc, organizationModule.UserSvc, assetCriticalityMatrixRatingScaleSvc, assetCriticalityMatrixSvc, organizationModule.UserSettingSvc)
+	assetRegisterSvc := services.NewAssetRegisterService(assetRegisterRepo, sharedModule.ActivityLogService, assetTypeSvc, assetCategorySvc, assetStatusSvc, organizationModule.UserSvc, assetCriticalityMatrixRatingScaleSvc, assetCriticalityMatrixSvc, organizationModule.UserSettingSvc, organizationModule.ControlImplementationStatusSvc, organizationModule.ControlEfficiencyStatusSvc)
 	assetRegisterController := controllers.NewAssetRegisterController(assetRegisterSvc)
 
 	vulnerabilityTypeRepo := repositories.NewVulnerabilityTypeRepository(db)

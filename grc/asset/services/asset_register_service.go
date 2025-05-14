@@ -44,6 +44,8 @@ type AssetRegisterService struct {
 	assetCriticalityMatrixRatingScaleSvc AssetCriticalityMatrixRatingScaleServiceInterface
 	assetCriticalityMatrixSvc            AssetCriticalityMatrixServiceInterface
 	userSettingSvc                       organizationServices.UserSettingServiceInterface
+	controlImplementationStatusSvc       organizationServices.ControlImplementationStatusServiceInterface
+	controlEfficiencyStatusSvc           organizationServices.ControlEfficiencyStatusServiceInterface
 }
 
 func NewAssetRegisterService(
@@ -56,6 +58,8 @@ func NewAssetRegisterService(
 	assetCriticalityMatrixRatingScaleSvc AssetCriticalityMatrixRatingScaleServiceInterface,
 	assetCriticalityMatrixSvc AssetCriticalityMatrixServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	controlImplementationStatusSvc organizationServices.ControlImplementationStatusServiceInterface,
+	controlEfficiencyStatusSvc organizationServices.ControlEfficiencyStatusServiceInterface,
 ) AssetRegisterServiceInterface {
 	return &AssetRegisterService{
 		repo:                                 repo,
@@ -67,6 +71,8 @@ func NewAssetRegisterService(
 		assetCriticalityMatrixRatingScaleSvc: assetCriticalityMatrixRatingScaleSvc,
 		assetCriticalityMatrixSvc:            assetCriticalityMatrixSvc,
 		userSettingSvc:                       userSettingSvc,
+		controlImplementationStatusSvc:       controlImplementationStatusSvc,
+		controlEfficiencyStatusSvc:           controlEfficiencyStatusSvc,
 	}
 }
 
@@ -181,12 +187,24 @@ func (ars *AssetRegisterService) Create(assetRegisterFormDTO *dtos.AssetRegister
 		return 0, err
 	}
 
+	defaultImplementationStatus, err := ars.controlImplementationStatusSvc.GetByType("not-implemented")
+	if err != nil {
+		return 0, err
+	}
+
+	defaultEfficiencyStatus, err := ars.controlEfficiencyStatusSvc.GetByType("inefficient")
+	if err != nil {
+		return 0, err
+	}
+
 	var controls []*models.AssetControl
 	for _, controlID := range assetRegisterFormDTO.ControlIds {
 		control := &models.AssetControl{
-			AssetRegisterID: assetID,
-			ControlID:       *controlID,
-			CreatedBYID:     currentUserID,
+			AssetRegisterID:               assetID,
+			ControlID:                     *controlID,
+			ControlImplementationStatusID: &defaultImplementationStatus.ID,
+			ControlEfficiencyStatusID:     &defaultEfficiencyStatus.ID,
+			CreatedBYID:                   currentUserID,
 		}
 		controls = append(controls, control)
 	}
