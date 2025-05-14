@@ -21,6 +21,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditInsightReportController := app.ReportsModule.AuditInsightReportController
 	meetingReportController := app.ReportsModule.MeetingReportController
 	documentReportController := app.ReportsModule.DocumentReportController
+	grcReportController := app.ReportsModule.GRCReportController
 
 	//Compliance
 	reportsRoutes.GET("/reports/compliance-registers", complianceReportController.GetAllComplianceRegisters)
@@ -243,4 +244,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/document-change-request-by-status", documentReportController.GetDocumentChangeRequestByStatus)
 	reportsRoutes.GET("/reports/document-updated-by-change-type", documentReportController.GetDocumentsUpdatedByChangeType) //document updated by change type, published change request
 	reportsRoutes.GET("/reports/document-archived-by-quarter", documentReportController.GetDocumentsArchivedByQuarter)
+
+	reportsRoutes.GET("/grc-reports", grcReportController.GetAllGRCReports)
+	reportsRoutes.GET("/grc-reports/:grcReportId", grcReportController.GetGRCReportDetails)
+	reportsRoutes.POST("/grc-reports", grcReportController.CreateGRCReport)
+	reportsRoutes.GET("/grc-reports/:grcReportId/sections/:sectionId", grcReportController.GetGRCReportSection)
+	reportsRoutes.PUT("/grc-reports/:grcReportId/sections/:sectionId", grcReportController.UpdateGRCReportSection)
+	reportsRoutes.DELETE("/grc-reports/:grcReportId/sections/:sectionId", grcReportController.DeleteGRCReportSection)
+	reportsRoutes.DELETE("/grc-reports/:grcReportId", grcReportController.DeleteGRCReport)
+
 }
