@@ -84,7 +84,7 @@ func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *bus
         `).
 		Joins(`
 		    LEFT JOIN processes ON processes.id = business_impact_assessments.process_id
-		    LEFT JOIN organization_units ON organization_units.id = processes.owner_unit_id
+		    LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id
 		    LEFT JOIN process_criticality_levels ON process_criticality_levels.id = processes.process_criticality_level_id
 		    LEFT JOIN asset_register ON asset_register.id = business_impact_assessments.asset_register_id
 			LEFT JOIN impact_categories ON impact_categories.id = business_impact_assessments.impact_category_id
@@ -288,9 +288,9 @@ func (repo *BusinessImpactAssessmentRepository) GetProcessDetails(id uint, tx ..
 
 	result := db.
 		Preload("ProcessGroup").
-		Preload("OwnerUnit").
-		Preload("Owner").
-		Preload("Owner.OrganizationUnit1").
+		Preload("ResponsibleUnit").
+		Preload("ResponsibleUser").
+		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("LifecycleStatus").
 		Preload("CreatedByUser").
 		Preload("CreatedByUser.OrganizationUnit1").
@@ -456,7 +456,7 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
 		Joins(`
 			INNER JOIN business_functions ON business_functions.id = business_function_processes.business_function_id
 			INNER JOIN processes ON processes.id = business_function_processes.process_id
-		    LEFT JOIN organization_units ON organization_units.id = processes.owner_unit_id
+		    LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id
 			LEFT JOIN process_criticality_levels AS pcl_bf ON pcl_bf.id = business_functions.highest_process_criticality_level_id
 			LEFT JOIN process_criticality_levels AS pcl_proc ON pcl_proc.id = processes.process_criticality_level_id
 			LEFT JOIN risk_levels ON risk_levels.id = processes.risk_level_id

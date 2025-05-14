@@ -68,7 +68,7 @@ func (repo *IncidentAssociatedItemRepository) GetAllControls(incidentID uint, pa
             LEFT JOIN control_types ON controls.control_type_id = control_types.id
             LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
             LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
-			LEFT JOIN users AS owner ON controls.owner_id = owner.id
+			LEFT JOIN users AS owner ON controls.responsible_user_id = owner.id
         `).
 		Where("incident_controls.incident_register_id = ?", incidentID)
 
@@ -354,8 +354,8 @@ func (repo *IncidentAssociatedItemRepository) GetAllProcesses(incidentID uint, p
 		Joins(`
 			LEFT JOIN processes ON processes.id = incident_processes.process_id
 			LEFT JOIN process_groups ON process_groups.id = processes.process_group_id
-			LEFT JOIN organization_units ON organization_units.id = processes.owner_unit_id
-			LEFT JOIN users AS owner ON owner.id = processes.owner_id
+			LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id
+			LEFT JOIN users AS owner ON owner.id = processes.responsible_user_id
 			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id
 		`).Where("incident_processes.incident_register_id = ?", incidentID)
 

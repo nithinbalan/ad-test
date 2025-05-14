@@ -87,7 +87,7 @@ func (repo *BusinessFunctionRepository) GetAll(params *businessContinuityDTOs.Bu
 		Joins(`
 			LEFT JOIN business_function_processes ON business_function_processes.business_function_id = business_functions.id
 			LEFT JOIN processes ON processes.id = business_function_processes.process_id
-		    LEFT JOIN organization_units ON organization_units.id = processes.owner_unit_id
+		    LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id
 		    LEFT JOIN process_criticality_levels ON process_criticality_levels.id = processes.process_criticality_level_id
 		    LEFT JOIN severity_levels ON severity_levels.id = business_functions.severity_level_id
 			LEFT JOIN review_frequencies ON review_frequencies.id = business_functions.review_frequency_id
@@ -211,8 +211,8 @@ func (repo *BusinessFunctionRepository) GetFullDetailsByID(id uint, tx ...utilit
 		Preload("Processes.Process.RtoUnit").
 		Preload("Processes.Process.ProcessGroup").
 		Preload("Processes.Process.RiskLevel").
-		Preload("Processes.Process.OwnerUnit").
-		Preload("Processes.Process.Owner").
+		Preload("Processes.Process.ResponsibleUnit").
+		Preload("Processes.Process.ResponsibleUser").
 		Preload("Processes.Process.LifecycleStatus").
 		Preload("Processes.Process.RiskMatrixRating").
 		Preload("Processes.Process.RiskMatrixRatingValue").
