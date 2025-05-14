@@ -182,6 +182,7 @@ func (repo *ThirdPartyRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("OrganizationUnit").
 		Preload("SeverityLevel").
 		Preload("ResponsibleUser").
+		Preload("ResponsibleUnit").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&entity, id).Error; err != nil {

@@ -84,27 +84,28 @@ type ThirdPartyRegisterFormDTO struct {
 }
 
 type ThirdPartyRegisterDetailDTO struct {
-	ID                     uint                             `json:"id"`
-	ReferenceNumber        string                           `json:"reference_number"`
-	Title                  string                           `json:"title"`
-	ThirdPartyType         ThirdPartyTypeDTO                `json:"third_party_type"`
-	Country                masterDTOs.CountryDTO            `json:"country"`
-	Address                *string                          `json:"address"`
-	Website                *string                          `json:"website"`
-	OrganizationUnit       settingsDTOs.OrganizationUnitDTO `json:"organization_unit"`
-	RepresentativeName     *string                          `json:"representative_name"`
-	RepresentativeRole     *string                          `json:"representative_role"`
-	Email                  *string                          `json:"email"`
-	PhoneNumber            *string                          `json:"phone_number"`
-	ResponsibleUser        *organizationDTOs.UserMinimalDTO `json:"responsible_user"`
-	OnboardingDateString   *string                          `json:"onboarding_date"`
-	ServiceStartDateString *string                          `json:"service_start_date"`
-	ServiceEndDateString   *string                          `json:"service_end_date"`
-	SeverityLevel          *masterDTOs.SeverityLevelDTO     `json:"severity_level"`
-	CreatedAt              time.Time                        `json:"created_at"`
-	UpdatedAt              *time.Time                       `json:"updated_at"`
-	CreatedBy              organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedBy              organizationDTOs.UserMinimalDTO  `json:"updated_by"`
+	ID                     uint                              `json:"id"`
+	ReferenceNumber        string                            `json:"reference_number"`
+	Title                  string                            `json:"title"`
+	ThirdPartyType         ThirdPartyTypeDTO                 `json:"third_party_type"`
+	Country                masterDTOs.CountryDTO             `json:"country"`
+	Address                *string                           `json:"address"`
+	Website                *string                           `json:"website"`
+	OrganizationUnit       settingsDTOs.OrganizationUnitDTO  `json:"organization_unit"`
+	RepresentativeName     *string                           `json:"representative_name"`
+	RepresentativeRole     *string                           `json:"representative_role"`
+	Email                  *string                           `json:"email"`
+	PhoneNumber            *string                           `json:"phone_number"`
+	ResponsibleUser        *organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
+	ResponsibleUnit        *settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
+	OnboardingDateString   *string                           `json:"onboarding_date"`
+	ServiceStartDateString *string                           `json:"service_start_date"`
+	ServiceEndDateString   *string                           `json:"service_end_date"`
+	SeverityLevel          *masterDTOs.SeverityLevelDTO      `json:"severity_level"`
+	CreatedAt              time.Time                         `json:"created_at"`
+	UpdatedAt              *time.Time                        `json:"updated_at"`
+	CreatedBy              organizationDTOs.UserMinimalDTO   `json:"created_by"`
+	UpdatedBy              organizationDTOs.UserMinimalDTO   `json:"updated_by"`
 }
 type ThirdPartyRegisterListQueryParamsDTO struct {
 	Sort        string
