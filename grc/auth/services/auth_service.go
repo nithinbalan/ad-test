@@ -59,26 +59,28 @@ func NewAuthService(
 }
 
 func (as *AuthService) Authenticate(email string, password string, ipAddress string, location string, device string, browser string) (*authDTOs.LoginResponseDTO, error) {
-	// ✅ Check if AD login is enabled/configured
-	integration, err := as.integrationSvc.GetByType("active-directory")
-	if err != nil {
-		return nil, utility.NewInternalServerError(err)
-	}
-	// ✅ Check if integration is enabled
-	if integration.IsEnable {
-		adSetting, err := as.activeDirectorySettingSvc.GetFirst()
+
+	// ✅ First, if not admin email, check AD
+	if !strings.EqualFold(email, "admin@jethur.com") {
+		integration, err := as.integrationSvc.GetByType("active-directory")
 		if err != nil {
 			return nil, utility.NewInternalServerError(err)
 		}
-		if adSetting != nil {
-			if response, err := as.LoginWithActiveDirectory(email, password, ipAddress, location, device, browser); err != nil {
-				return nil, err
-			} else if response != nil {
-				return response, nil
+		// ✅ Check if integration is enabled
+		if integration.IsEnable {
+			adSetting, err := as.activeDirectorySettingSvc.GetFirst()
+			if err != nil {
+				return nil, utility.NewInternalServerError(err)
+			}
+			if adSetting != nil {
+				if response, err := as.LoginWithActiveDirectory(email, password, ipAddress, location, device, browser); err != nil {
+					return nil, err
+				} else if response != nil {
+					return response, nil
+				}
 			}
 		}
 	}
-
 	// Get user
 	user, err := as.userService.GetByEmail(email)
 	if err != nil {
