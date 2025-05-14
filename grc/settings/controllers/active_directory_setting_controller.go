@@ -59,7 +59,7 @@ func (adsc *ActiveDirectorySettingController) CreateActiveDirectorySetting(c *gi
 
 }
 
-func (adsc *ActiveDirectorySettingController) CheckActiveDirectoryConection(ctx *gin.Context) {
+func (adsc *ActiveDirectorySettingController) CheckActiveDirectoryConnection(ctx *gin.Context) {
 	var adDTO dtos.ActiveDirectorySettingDTO
 	if err := ctx.ShouldBindJSON(&adDTO); err != nil {
 		utility.SendInvalidErrResp(ctx, err)

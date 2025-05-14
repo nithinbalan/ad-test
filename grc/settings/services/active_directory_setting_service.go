@@ -37,7 +37,7 @@ func (adss *ActiveDirectorySettingService) GetFirst() (*models.ActiveDirectorySe
 func (adss *ActiveDirectorySettingService) Create(currentUserID uint, dto dtos.ActiveDirectorySettingDTO) error {
 	// Step 1: Check connection first
 	if err := adss.CheckADConnection(&dto); err != nil {
-		return fmt.Errorf("AD connection test failed: %w", err)
+		return err
 	}
 
 	// Step 2: Encrypt passwords
@@ -106,8 +106,6 @@ func (adss *ActiveDirectorySettingService) Create(currentUserID uint, dto dtos.A
 }
 
 func (adss *ActiveDirectorySettingService) CheckADConnection(dto *dtos.ActiveDirectorySettingDTO) error {
-	// 🔐 Decrypting here not needed, since dto contains raw passwords
-
 	address := fmt.Sprintf("%s:%d", dto.Server, dto.Port)
 
 	var l *ldap.Conn
@@ -118,15 +116,21 @@ func (adss *ActiveDirectorySettingService) CheckADConnection(dto *dtos.ActiveDir
 		l, err = ldap.Dial("tcp", address)
 	}
 	if err != nil {
-		return err
-		// return fmt.Errorf("LDAP connection failed: %w", err)
+		return utility.NewValidationError(
+			fmt.Errorf("failed to connect to LDAP server: %w", err),
+			"ldap_connection_failed",
+			"server",
+		)
 	}
 	defer l.Close()
 
 	// Bind with BindDN and BindPassword
 	if err := l.Bind(dto.BindDN, dto.BindPassword); err != nil {
-		return err
-		// return fmt.Errorf("bind user failed: %w", err)
+		return utility.NewValidationError(
+			fmt.Errorf("bind failed: %w", err),
+			"ldap_bind_failed",
+			"bind_dn",
+		)
 	}
 
 	// 🔍 Search user to validate
@@ -141,16 +145,22 @@ func (adss *ActiveDirectorySettingService) CheckADConnection(dto *dtos.ActiveDir
 	)
 	sr, err := l.Search(searchReq)
 	if err != nil || len(sr.Entries) == 0 {
-		return err
-		// return fmt.Errorf("user not found: %w", err)
+		return utility.NewValidationError(
+			fmt.Errorf("no users found in base DN: %w", err),
+			"ldap_search_failed",
+			"base_dn",
+		)
 	}
 
 	userDN := sr.Entries[0].DN
 
 	// Bind with actual username and password (user login check)
 	if err := l.Bind(userDN, dto.Password); err != nil {
-		return err
-		// return fmt.Errorf("user auth failed: %w", err)
+		return utility.NewValidationError(
+			fmt.Errorf("user bind (authentication) failed: %w", err),
+			"ldap_user_auth_failed",
+			"username",
+		)
 	}
 
 	return nil

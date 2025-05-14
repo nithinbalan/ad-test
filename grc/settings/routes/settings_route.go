@@ -115,6 +115,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	settingRoutes.GET("/active-directory-settings", activeDirectorySettingController.GetActiveDirectorySettings)
 	settingRoutes.POST("/active-directory-settings", activeDirectorySettingController.CreateActiveDirectorySetting)
-	settingRoutes.POST("/active-directory-settings/check-connections", activeDirectorySettingController.CheckActiveDirectoryConection)
+	settingRoutes.POST("/active-directory-settings/check-connection", activeDirectorySettingController.CheckActiveDirectoryConnection)
 
 }
