@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	logServices "jethur/grc/logs/services"
@@ -112,6 +113,11 @@ func (tprs *ThirdPartyRegisterService) GetFullDetailsByID(id uint) (*dtos.ThirdP
 func (tprs *ThirdPartyRegisterService) Create(currentUserID uint, form *dtos.ThirdPartyRegisterFormDTO) (uint, error) {
 	tx := tprs.repo.BeginTransaction()
 
+	responsibleUnitID, err := tprs.userSvc.GetUserPrimaryUnitID(*form.ResponsibleUserID)
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "bcp communication plan responsible unit")
+	}
+
 	if err := tprs.validateForm(form); err != nil {
 		return 0, err
 	}
@@ -139,6 +145,7 @@ func (tprs *ThirdPartyRegisterService) Create(currentUserID uint, form *dtos.Thi
 		Email:              form.Email,
 		PhoneNumber:        form.PhoneNumber,
 		ResponsibleUserID:  form.ResponsibleUserID,
+		ResponsibleUnitID:  &responsibleUnitID,
 		OnboardingDate:     dates.OnboardingDate,
 		ServiceStartDate:   dates.ServiceStartDate,
 		ServiceEndDate:     dates.ServiceEndDate,
@@ -171,6 +178,14 @@ func (tprs *ThirdPartyRegisterService) Update(id uint, currentUserID uint, form 
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	if existing.ResponsibleUserID != form.ResponsibleUserID {
+		responsibleUnitID, err := tprs.userSvc.GetUserPrimaryUnitID(*form.ResponsibleUserID)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "risk responsible unit")
+		}
+		existing.ResponsibleUnitID = &responsibleUnitID
 	}
 
 	existing.Title = form.Title
