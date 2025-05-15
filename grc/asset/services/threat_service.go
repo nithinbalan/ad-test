@@ -106,7 +106,8 @@ func (ts *ThreatService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTrans
 
 	// Add additional fields as necessary for the details screen
 	// For example, setting relationship data or additional fields as required by the DTO
-
+	threatDetailDTO.CreatedAt = threat.CreatedAt
+	threatDetailDTO.UpdatedAt = threat.UpdatedAt
 	return &threatDetailDTO, nil
 }
 
