@@ -105,7 +105,11 @@ func (repo *BusinessFunctionRepository) GetAll(params *businessContinuityDTOs.Bu
 				joinedProcessTables = true // ✅ mark as joined
 			}
 
-			query = query.Where(columnName+" IN (?)", values)
+			if columnName == "responsible_unit_id" {
+				query = query.Where(columnName+" IN (?)", values)
+			} else {
+				query = query.Where("business_functions."+columnName+" IN (?)", values)
+			}
 		}
 	}
 
