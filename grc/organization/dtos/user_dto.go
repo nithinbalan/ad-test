@@ -144,6 +144,7 @@ type UserDetailsDTO struct {
 	LastLoginAt      *time.Time `json:"last_login_at"`
 	CreatedAt        time.Time  `json:"created_at"`
 	UpdatedAt        time.Time  `json:"updated_at"`
+	PrimaryUnitID    *uint      `json:"primary_unit_id"`
 
 	// Relationship DTOs
 	OrganizationUnit1 settingDTOs.OrganizationUnitDTO  `json:"organization_unit_1"`
