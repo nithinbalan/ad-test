@@ -291,9 +291,11 @@ type UpdateOrganizationUnitDTO struct {
 	OrganizationUnitID *uint `json:"organization_unit_id"` // New Organization Unit ID
 }
 type ADUserDTO struct {
-	FirstName        string  `json:"first_name"`
-	LastName         string  `json:"last_name"`
-	Email            string  `json:"email"`
-	OrganizationUnit *string `json:"organization_unit,omitempty"`
-	Designation      *string `json:"designation,omitempty"`
+	SlNo             int    `json:"sl_no"`
+	FirstName        string `json:"first_name"`
+	LastName         string `json:"last_name"`
+	Email            string `json:"email"`
+	OrganizationUnit string `json:"organization_unit"`
+	Designation      string `json:"designation"`
+	EmailExists      bool   `json:"email_exists"`
 }
