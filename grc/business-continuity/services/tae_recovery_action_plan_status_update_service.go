@@ -115,7 +115,7 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Create(TestAndExerciseID 
 		CreatedByID:                         currentUserID,
 	}
 
-	id, err := sasus.repo.Create(TaeRecoveryActionPlanUpdate)
+	id, err := sasus.repo.Create(TaeRecoveryActionPlanUpdate, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err

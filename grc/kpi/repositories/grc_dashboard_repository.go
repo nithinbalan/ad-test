@@ -175,8 +175,8 @@ func (repo *GRCDashboardRepository) GetGRCAuditSummary(params *kpiDTOs.GRCDashbo
 	}
 
 	completedAuditQuery := repo.db.Model(&models.Audit{}).
-		Joins("JOIN audit_plans ON audit_plans.id = audits.audit_plan_id").
-		Joins("JOIN audit_statuses ON audit_statuses.id = audit_plans.audit_status_id").
+		// Joins("JOIN audit_plans ON audit_plans.id = audits.audit_plan_id").
+		Joins("JOIN audit_statuses ON audit_statuses.id = audits.audit_status_id").
 		Where("audit_statuses.type = ?", "completed")
 	if params.DateFrom != "" && params.DateTo != "" {
 		completedAuditQuery = completedAuditQuery.Where("audits.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
