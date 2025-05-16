@@ -1463,11 +1463,18 @@ func (us *UserService) SyncUsersFromAD(currentUserID uint) (int, error) {
 }
 
 func (us *UserService) GetUsersFromAD() ([]*userDTOs.ADUserDTO, error) {
+	// ✅ First check AD connection using existing service
+	if err := us.activeDirectorySettingSvc.GetADConnection(); err != nil {
+		return nil, err
+	}
+
+	// ✅ Fetch AD settings after connection validated
 	adSetting, err := us.activeDirectorySettingSvc.GetFirst()
 	if err != nil || adSetting == nil {
 		return nil, fmt.Errorf("Active Directory configuration not found")
 	}
 
+	// ✅ Decrypt Bind password
 	bindPsw := []byte(adSetting.BindPassword)
 	bindPassword, err := utility.DecryptData(string(bindPsw))
 	if err != nil {
@@ -1486,10 +1493,12 @@ func (us *UserService) GetUsersFromAD() ([]*userDTOs.ADUserDTO, error) {
 	}
 	defer l.Close()
 
+	// ✅ Bind
 	if err := l.Bind(adSetting.BindDN, string(bindPassword)); err != nil {
 		return nil, fmt.Errorf("bind failed: %w", err)
 	}
 
+	// ✅ Search users
 	filter := "(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
 	searchReq := ldap.NewSearchRequest(
 		adSetting.BaseDN,
@@ -1503,7 +1512,7 @@ func (us *UserService) GetUsersFromAD() ([]*userDTOs.ADUserDTO, error) {
 	if err != nil {
 		return nil, fmt.Errorf("LDAP search failed: %w", err)
 	}
-
+	slNo := 1
 	var users []*userDTOs.ADUserDTO
 	for _, entry := range sr.Entries {
 		firstName := entry.GetAttributeValue("givenName")
@@ -1512,27 +1521,37 @@ func (us *UserService) GetUsersFromAD() ([]*userDTOs.ADUserDTO, error) {
 		distinguishedName := entry.GetAttributeValue("distinguishedName")
 		designationTitle := entry.GetAttributeValue("title")
 
+		// ✅ Skip users with missing important fields
 		if email == "" || firstName == "" || lastName == "" {
 			continue
 		}
 
-		var organizationUnitName *string
+		// ✅ Check if email already exists in your DB
+		exists, err := us.repo.ExistsByEmail(email)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check user existence: %w", err)
+		}
+
+		var organizationUnitName string
 		dnParts := strings.Split(distinguishedName, ",")
 		for _, part := range dnParts {
 			if strings.HasPrefix(strings.ToUpper(part), "OU=") {
 				ou := strings.TrimPrefix(part, "OU=")
-				organizationUnitName = &ou
+				organizationUnitName = ou
 				break
 			}
 		}
 
 		users = append(users, &userDTOs.ADUserDTO{
+			SlNo:             slNo,
 			FirstName:        firstName,
 			LastName:         lastName,
 			Email:            email,
 			OrganizationUnit: organizationUnitName,
-			Designation:      &designationTitle,
+			Designation:      designationTitle,
+			IsExist:          exists,
 		})
+		slNo++
 	}
 
 	return users, nil
