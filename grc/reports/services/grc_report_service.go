@@ -444,7 +444,7 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 				criticalCategorySet[risk.RiskCategory.TitleEn] = struct{}{}
 			}
 		}
-		if risk.CurrentRiskRating != nil {
+		if risk.CurrentRiskRating != nil && risk.RiskResponseStrategy != nil {
 			part := fmt.Sprintf("- %s risk with strategy: %s", risk.CurrentRiskRating.TitleEn, risk.RiskResponseStrategy.TitleEn)
 			riskScoreSummaryParts = append(riskScoreSummaryParts, part)
 		}
