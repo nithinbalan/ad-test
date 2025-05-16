@@ -8,6 +8,9 @@ type SwotPestelQuestionGroup struct {
 	Status   string `json:"status" binding:"required,max=10,oneof=active inactive" gorm:"type:varchar(10);not null"`
 	IsSwot   bool   `json:"is_swot" gorm:"type:tinyint(1);null;default:0"`
 	IsPestel bool   `json:"is_pestel" gorm:"type:tinyint(1);null;default:0"`
+
+	// Relationships
+	SwotPestelQuestions []*SwotPestelQuestion `gorm:"foreignKey:SwotPestelQuestionGroupID"`
 }
 
 // TableName overrides the table name used by SwotQuestionGroup to `swot_question_groups`

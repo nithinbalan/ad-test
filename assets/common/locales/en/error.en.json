@@ -158,6 +158,10 @@
   {
     "id": "default_criticality_matrix",
     "translation": "Default Criticality Matrix cannot be updated/deleted"
+  },
+  {
+    "id": "same_organization_unit",
+    "translation": "User should be under same organization unit"
   }
   
   

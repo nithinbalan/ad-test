@@ -20,6 +20,9 @@ type StrategyModule struct {
 	StrategyProfileActionPlanStatusUpdateController *controllers.StrategyProfileActionPlanStatusUpdateController
 	StrategyProfileActionPlanCommentController      *controllers.StrategyProfileActionPlanCommentController
 	StrategyProfileSettingController                *controllers.StrategyProfileSettingController
+	KpiCategoryController                           *controllers.KPICategoryController
+	KpiStatusController                             *controllers.KPIStatusController
+	KpiRegisterController                           *controllers.KPIRegisterController
 }
 
 func NewStrategyModule(db *gorm.DB,
@@ -76,6 +79,18 @@ func NewStrategyModule(db *gorm.DB,
 	strategyProfileSettingSvc := services.NewStrategyProfileSettingService(strategyProfileSettingRepo)
 	strategyProfileSettingController := controllers.NewStrategyProfileSettingController(strategyProfileSettingSvc)
 
+	kpiCategoryRepository := repositories.NewKPICategoryRepository(db)
+	kpiCategorySvc := services.NewKPICategoryService(kpiCategoryRepository, sharedModule.ActivityLogService)
+	kpiCategoryController := controllers.NewKPICategoryController(kpiCategorySvc)
+
+	kpiStatusRepo := repositories.NewKPIStatusRepository(db)
+	kpiStatusSvc := services.NewKPIStatusService(kpiStatusRepo)
+	kpiStatusController := controllers.NewKPIStatusController(kpiStatusSvc)
+
+	kpiRegisterRepo := repositories.NewKPIRegisterRepository(db)
+	kpiRegisterSvc := services.NewKPIRegisterService(kpiRegisterRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, settingsModule.OrganizationUnitSvc, kpiStatusSvc)
+	kpiRegisterController := controllers.NewKPIRegisterController(kpiRegisterSvc)
+
 	return &StrategyModule{
 		StrategyProfileController:                       strategyProfileController,
 		StrategyProfileFocusAreaController:              strategyProfileFocusAreaController,
@@ -88,5 +103,8 @@ func NewStrategyModule(db *gorm.DB,
 		StrategyProfileActionPlanStatusUpdateController: strategyProfileActionPlanStatusUpdateController,
 		StrategyProfileActionPlanCommentController:      strategyProfileActionPlanCommentController,
 		StrategyProfileSettingController:                strategyProfileSettingController,
+		KpiCategoryController:                           kpiCategoryController,
+		KpiStatusController:                             kpiStatusController,
+		KpiRegisterController:                           kpiRegisterController,
 	}
 }

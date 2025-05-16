@@ -2,6 +2,7 @@ package services
 
 import (
 	"crypto/rand"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -16,9 +17,11 @@ import (
 	"jethur/utility"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/go-ldap/ldap/v3"
 	"github.com/mitchellh/mapstructure"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -57,21 +60,26 @@ type UserServiceInterface interface {
 	ValidateUserTemplate(file io.Reader) ([]map[string]interface{}, error)
 	ValidateImportUsers(input []map[string]interface{}) ([]map[string]interface{}, error)
 	ImportUsers(input []map[string]interface{}, currentUserID uint) ([]uint, error)
+	SyncUsersFromAD(currentUserID uint) (int, error)
+	GetUsersFromAD() ([]*userDTOs.ADUserDTO, error)
+
+	UpdateUserOrganizationUnit(userID uint, departmentUpdateFormDTO userDTOs.UpdateOrganizationUnitDTO) error
 }
 
 type UserService struct {
-	repo                     organizationRepositories.UserRepositoryInterface
-	designationSvc           DesignationServiceInterface
-	userStatusSvc            UserStatusServiceInterface
-	activityLogSvc           logServices.ActivityLogServiceInterface
-	roleSvc                  settingService.RoleServiceInterface
-	userSettingSvc           UserSettingServiceInterface
-	systemPreferenceSvc      settingService.SystemPreferenceServiceInterface
-	organizationLevelSvc     settingService.OrganizationLevelServiceInterface
-	moduleSvc                settingService.ModuleServiceInterface
-	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface
-	notificationSvc          commonService.NotificationServiceInterface
-	organizationUnitSvc      settingService.OrganizationUnitServiceInterface
+	repo                      organizationRepositories.UserRepositoryInterface
+	designationSvc            DesignationServiceInterface
+	userStatusSvc             UserStatusServiceInterface
+	activityLogSvc            logServices.ActivityLogServiceInterface
+	roleSvc                   settingService.RoleServiceInterface
+	userSettingSvc            UserSettingServiceInterface
+	systemPreferenceSvc       settingService.SystemPreferenceServiceInterface
+	organizationLevelSvc      settingService.OrganizationLevelServiceInterface
+	moduleSvc                 settingService.ModuleServiceInterface
+	emailTemplateSettingsSvc  settingService.EmailTemplateSettingsServiceInterface
+	notificationSvc           commonService.NotificationServiceInterface
+	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface
+	organizationUnitSvc       settingService.OrganizationUnitServiceInterface
 }
 
 func NewUserService(
@@ -85,20 +93,22 @@ func NewUserService(
 	moduleSvc settingService.ModuleServiceInterface,
 	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface,
 	notificationSvc commonService.NotificationServiceInterface,
+	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface,
 	organizationUnitSvc settingService.OrganizationUnitServiceInterface,
 ) UserServiceInterface {
 	return &UserService{
-		repo:                     repo,
-		designationSvc:           designationSvc,
-		userStatusSvc:            userStatusSvc,
-		activityLogSvc:           activityLogSvc,
-		roleSvc:                  roleSvc,
-		systemPreferenceSvc:      systemPreferenceSvc,
-		organizationLevelSvc:     organizationLevelSvc,
-		moduleSvc:                moduleSvc,
-		emailTemplateSettingsSvc: emailTemplateSettingsSvc,
-		notificationSvc:          notificationSvc,
-		organizationUnitSvc:      organizationUnitSvc,
+		repo:                      repo,
+		designationSvc:            designationSvc,
+		userStatusSvc:             userStatusSvc,
+		activityLogSvc:            activityLogSvc,
+		roleSvc:                   roleSvc,
+		systemPreferenceSvc:       systemPreferenceSvc,
+		organizationLevelSvc:      organizationLevelSvc,
+		moduleSvc:                 moduleSvc,
+		emailTemplateSettingsSvc:  emailTemplateSettingsSvc,
+		notificationSvc:           notificationSvc,
+		activeDirectorySettingSvc: activeDirectorySettingSvc,
+		organizationUnitSvc:       organizationUnitSvc,
 	}
 }
 
@@ -198,6 +208,33 @@ func (us *UserService) GetFullDetailsByID(id uint) (*userDTOs.UserDetailsDTO, er
 	err = mapstructure.Decode(user, &userDetailsDTO)
 	if err != nil {
 		return nil, err
+	}
+
+	primaryLevel, err := us.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return nil, err
+	}
+
+	var primaryOrgUnitID *uint
+
+	switch primaryLevel.Level {
+	case 1:
+		primaryOrgUnitID = &user.OrganizationUnit1ID
+	case 2:
+		primaryOrgUnitID = user.OrganizationUnit2ID
+	case 3:
+		primaryOrgUnitID = user.OrganizationUnit3ID
+	case 4:
+		primaryOrgUnitID = user.OrganizationUnit4ID
+	case 5:
+		primaryOrgUnitID = user.OrganizationUnit5ID
+	default:
+		return nil, fmt.Errorf("invalid primary level: %d", primaryLevel.Level)
+	}
+
+	if primaryOrgUnitID != nil {
+
+		userDetailsDTO.PrimaryUnitID = primaryOrgUnitID
 	}
 
 	roles := make([]settingDTOs.RoleDTO, 0, len(*user.UserRoles))
@@ -1260,4 +1297,370 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 	}
 
 	return validatedData, nil
+}
+
+func (us *UserService) SyncUsersFromAD(currentUserID uint) (int, error) {
+	adSetting, err := us.activeDirectorySettingSvc.GetFirst()
+	if err != nil || adSetting == nil {
+		return 0, fmt.Errorf("active Directory configuration not found")
+	}
+	bindPsw := []byte(adSetting.BindPassword)
+	bindPassword, err := utility.DecryptData(string(bindPsw))
+	if err != nil {
+		return 0, fmt.Errorf("failed to decrypt bind password: %w", err)
+	}
+
+	address := fmt.Sprintf("%s:%d", adSetting.Server, adSetting.Port)
+	var l *ldap.Conn
+	if adSetting.UseSSL {
+		l, err = ldap.DialTLS("tcp", address, &tls.Config{InsecureSkipVerify: true})
+	} else {
+		l, err = ldap.Dial("tcp", address)
+	}
+	if err != nil {
+		return 0, fmt.Errorf("LDAP connection failed: %w", err)
+	}
+	defer l.Close()
+
+	if err := l.Bind(adSetting.BindDN, string(bindPassword)); err != nil {
+		return 0, fmt.Errorf("bind failed: %w", err)
+	}
+
+	filter := "(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
+
+	searchReq := ldap.NewSearchRequest(
+		adSetting.BaseDN,
+		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+		filter,
+		[]string{"cn", "displayName", "mail", "givenName", "sn", "distinguishedName", "title"},
+		nil,
+	)
+
+	sr, err := l.Search(searchReq)
+	if err != nil {
+		return 0, fmt.Errorf("LDAP search failed: %w", err)
+	}
+
+	usersSynced := 0
+	primaryLevel, err := us.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return 0, err
+	}
+	for _, entry := range sr.Entries {
+		email := entry.GetAttributeValue("mail")
+		firstName := entry.GetAttributeValue("givenName")
+		lastName := entry.GetAttributeValue("sn")
+		distinguishedName := entry.GetAttributeValue("distinguishedName")
+		designationTitle := entry.GetAttributeValue("title")
+		fmt.Println("Organization Unitsss:", designationTitle)
+
+		// Extract OU from DN
+		organizationUnitName := ""
+		dnParts := strings.Split(distinguishedName, ",")
+		for _, part := range dnParts {
+			if strings.HasPrefix(strings.ToUpper(part), "OU=") {
+				organizationUnitName = strings.TrimPrefix(part, "OU=")
+				break
+			}
+		}
+
+		// 🚨 Validation: Check required fields
+		if email == "" || firstName == "" || lastName == "" || organizationUnitName == "" || distinguishedName == "" {
+			continue // Skip this user if any important field missing
+		}
+
+		fmt.Println("----")
+		fmt.Println("email:", email)
+		fmt.Println("First Name:", firstName)
+		fmt.Println("Last Name:", lastName)
+		fmt.Println("Organization Unit:", distinguishedName)
+		fmt.Println("Designation Title:", designationTitle)
+
+		var organizationUnitID uint
+		orgUnit, err := us.organizationUnitSvc.GetByTitleEn(organizationUnitName)
+		if err != nil || orgUnit == nil {
+			continue // Skip if no matching OrgUnit found
+		}
+		organizationUnitID = orgUnit.ID
+		var organizationUnit1ID uint
+
+		// Always find top-level OrganizationUnit1ID
+		currentOrgUnit := orgUnit
+		for currentOrgUnit != nil {
+			if currentOrgUnit.OrganizationLevelID == 1 {
+				organizationUnit1ID = currentOrgUnit.ID
+				break
+			}
+			if currentOrgUnit.OrganizationUnitID != nil {
+				parent, err := us.organizationUnitSvc.GetByID(*currentOrgUnit.OrganizationUnitID)
+				if err != nil {
+					break
+				}
+				currentOrgUnit = parent
+			} else {
+				break
+			}
+		}
+
+		// 🛡️ Find Designation ID
+		var designationID uint = 1 // default
+		if designationTitle != "" {
+			designation, err := us.designationSvc.GetByTitleEn(designationTitle)
+			if err == nil && designation != nil {
+				designationID = designation.ID
+			}
+		}
+		// Prepare organization units
+		var organizationUnit2ID, organizationUnit3ID, organizationUnit4ID, organizationUnit5ID *uint
+
+		switch primaryLevel.Level {
+		case 2:
+			organizationUnit2ID = &organizationUnitID
+		case 3:
+			organizationUnit3ID = &organizationUnitID
+		case 4:
+			organizationUnit4ID = &organizationUnitID
+		case 5:
+			organizationUnit5ID = &organizationUnitID
+		}
+		dto := &userDTOs.UserFormDTO{
+			FirstNameEn:         firstName,
+			LastNameEn:          lastName,
+			FirstNameAr:         firstName,
+			LastNameAr:          lastName,
+			Email:               email,
+			MobileNumber:        nil,
+			DesignationID:       designationID,
+			RoleIDs:             []uint{1},
+			UserStatusID:        1,
+			IsSentEmail:         false,
+			OrganizationUnit1ID: organizationUnit1ID,
+			OrganizationUnit2ID: organizationUnit2ID,
+			OrganizationUnit3ID: organizationUnit3ID,
+			OrganizationUnit4ID: organizationUnit4ID,
+			OrganizationUnit5ID: organizationUnit5ID,
+		}
+
+		// Set primary level org unit
+		switch primaryLevel.Level {
+		case 2:
+			dto.OrganizationUnit2ID = &organizationUnitID
+		case 3:
+			dto.OrganizationUnit3ID = &organizationUnitID
+		case 4:
+			dto.OrganizationUnit4ID = &organizationUnitID
+		case 5:
+			dto.OrganizationUnit5ID = &organizationUnitID
+		}
+
+		// Create user
+		if _, err := us.Create(currentUserID, dto); err == nil {
+			usersSynced++
+		}
+	}
+
+	return usersSynced, nil
+}
+
+func (us *UserService) GetUsersFromAD() ([]*userDTOs.ADUserDTO, error) {
+	adSetting, err := us.activeDirectorySettingSvc.GetFirst()
+	if err != nil || adSetting == nil {
+		return nil, fmt.Errorf("Active Directory configuration not found")
+	}
+
+	bindPsw := []byte(adSetting.BindPassword)
+	bindPassword, err := utility.DecryptData(string(bindPsw))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt bind password: %w", err)
+	}
+
+	address := fmt.Sprintf("%s:%d", adSetting.Server, adSetting.Port)
+	var l *ldap.Conn
+	if adSetting.UseSSL {
+		l, err = ldap.DialTLS("tcp", address, &tls.Config{InsecureSkipVerify: true})
+	} else {
+		l, err = ldap.Dial("tcp", address)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("LDAP connection failed: %w", err)
+	}
+	defer l.Close()
+
+	if err := l.Bind(adSetting.BindDN, string(bindPassword)); err != nil {
+		return nil, fmt.Errorf("bind failed: %w", err)
+	}
+
+	filter := "(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
+	searchReq := ldap.NewSearchRequest(
+		adSetting.BaseDN,
+		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+		filter,
+		[]string{"givenName", "sn", "mail", "distinguishedName", "title"},
+		nil,
+	)
+
+	sr, err := l.Search(searchReq)
+	if err != nil {
+		return nil, fmt.Errorf("LDAP search failed: %w", err)
+	}
+
+	var users []*userDTOs.ADUserDTO
+	for _, entry := range sr.Entries {
+		firstName := entry.GetAttributeValue("givenName")
+		lastName := entry.GetAttributeValue("sn")
+		email := entry.GetAttributeValue("mail")
+		distinguishedName := entry.GetAttributeValue("distinguishedName")
+		designationTitle := entry.GetAttributeValue("title")
+
+		if email == "" || firstName == "" || lastName == "" {
+			continue
+		}
+
+		var organizationUnitName *string
+		dnParts := strings.Split(distinguishedName, ",")
+		for _, part := range dnParts {
+			if strings.HasPrefix(strings.ToUpper(part), "OU=") {
+				ou := strings.TrimPrefix(part, "OU=")
+				organizationUnitName = &ou
+				break
+			}
+		}
+
+		users = append(users, &userDTOs.ADUserDTO{
+			FirstName:        firstName,
+			LastName:         lastName,
+			Email:            email,
+			OrganizationUnit: organizationUnitName,
+			Designation:      &designationTitle,
+		})
+	}
+
+	return users, nil
+}
+
+// Handles logic when user's organization unit changes
+func (us *UserService) UpdateUserOrganizationUnit(userID uint, departmentUpdateFormDTO userDTOs.UpdateOrganizationUnitDTO) error {
+
+	// Validate DTO
+	if err := us.validateUpdateOrganizationUnitDTO(userID, departmentUpdateFormDTO); err != nil {
+		return err
+	}
+
+	tx := us.repo.BeginTransaction()
+
+	primaryLevel, err := us.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return err
+	}
+
+	orgUnitIds := make(map[string]*uint)
+
+	orgUnitIds["organization_unit_"+strconv.Itoa(int(primaryLevel.Level))+"_id"] = departmentUpdateFormDTO.OrganizationUnitID
+
+	for i := int(primaryLevel.Level); i <= 5; i++ {
+		if int(primaryLevel.Level) != i {
+			orgUnitIds["organization_unit_"+strconv.Itoa(i)+"_id"] = nil
+		}
+	}
+
+	for i := int(primaryLevel.Level); i >= 1; i-- {
+		if int(primaryLevel.Level) != i {
+			organizationUnit, err := us.organizationUnitSvc.GetFullDetailsByID(*orgUnitIds["organization_unit_"+strconv.Itoa(i+1)+"_id"])
+			if err != nil {
+				return err
+			}
+			if organizationUnit.ParentUnit != nil {
+				parentID := uint(organizationUnit.ParentUnit.ID)
+				orgUnitIds["organization_unit_"+strconv.Itoa(i)+"_id"] = &parentID
+			} else {
+				orgUnitIds["organization_unit_"+strconv.Itoa(i)+"_id"] = nil
+			}
+		}
+	}
+
+	// Update the user's department
+	err = us.repo.UpdateUserPrimaryDepartment(userID, *departmentUpdateFormDTO.OrganizationUnitID, orgUnitIds, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if departmentUpdateFormDTO.UserID == nil {
+		err = us.repo.UpdateResponsibleUnits(userID, *departmentUpdateFormDTO.OrganizationUnitID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	} else {
+		err = us.repo.UpdateResponsibleUsers(userID, *departmentUpdateFormDTO.UserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		err = us.repo.UpdateResponsibleUserTasks(userID, *departmentUpdateFormDTO.UserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	tx.Commit()
+
+	return nil
+}
+
+func (us *UserService) validateUpdateOrganizationUnitDTO(userID uint, dto userDTOs.UpdateOrganizationUnitDTO) error {
+
+	if dto.UserID == nil {
+		if dto.OrganizationUnitID == nil {
+			return utility.NewValidationError(fmt.Errorf("the organization unit ID required"), "required", "organization unit id")
+		} else {
+			if _, err := us.organizationUnitSvc.GetByID(uint(*dto.OrganizationUnitID)); err != nil {
+				return utility.NewValidationError(fmt.Errorf("organization unit does not exist"), "not_exist", "organization unit")
+			}
+		}
+	} else {
+		if _, err := us.GetByID(uint(*dto.UserID)); err != nil {
+			return utility.NewValidationError(fmt.Errorf("user does not exist"), "not_exist", "user")
+		}
+	}
+	if dto.OrganizationUnitID == nil {
+		if dto.UserID == nil {
+			return utility.NewValidationError(fmt.Errorf("the user ID required"), "required", "user id")
+		} else {
+			if _, err := us.GetByID(uint(*dto.UserID)); err != nil {
+				return utility.NewValidationError(fmt.Errorf("user does not exist"), "not_exist", "user")
+			}
+			existingUserOrganizationUnitID, err := us.GetUserPrimaryUnitID(uint(userID))
+			if err != nil {
+				return utility.NewValidationError(fmt.Errorf("organization unit not set for user"), "not_exist", "user unit")
+			}
+
+			newUserOrganizationUnitID, err := us.GetUserPrimaryUnitID(uint(*dto.UserID))
+			if err != nil {
+				return utility.NewValidationError(fmt.Errorf("organization unit not set for user"), "not_exist", "user unit")
+			}
+
+			if existingUserOrganizationUnitID != newUserOrganizationUnitID {
+				return utility.NewValidationError(fmt.Errorf("organization unit should be same"), "same_organization_unit", "organization unit")
+			}
+		}
+	} else {
+		if _, err := us.organizationUnitSvc.GetByID(uint(*dto.OrganizationUnitID)); err != nil {
+			return utility.NewValidationError(fmt.Errorf("organization unit does not exist"), "not_exist", "organization unit")
+		}
+	}
+
+	if dto.UserID != nil && dto.OrganizationUnitID != nil {
+
+		existingUserOrganizationUnitID, err := us.GetUserPrimaryUnitID(uint(userID))
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("organization unit not set for user"), "not_exist", "user unit")
+		}
+
+		if existingUserOrganizationUnitID != *dto.OrganizationUnitID {
+			return utility.NewValidationError(fmt.Errorf("organization unit should be same"), "same_organization_unit", "organization unit")
+		}
+	}
+
+	return nil
 }

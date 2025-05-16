@@ -6,6 +6,7 @@ import (
 	"jethur/grc/asset/services"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -173,4 +174,49 @@ func (aodc *AssetOtherDocumentController) DeleteDocuments(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (aodc *AssetOtherDocumentController) DownloadAssetOtherDocument(c *gin.Context) {
+	assetIDStr := c.Param("id")
+	assetID, err := strconv.ParseUint(assetIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentIDStr := c.Param("documentId")
+	documentID, err := strconv.ParseUint(documentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	filePath, err := aodc.service.GetAssetOtherDocumentPath(uint(assetID), uint(documentID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(aodc.db, c, err.Error())
+		}
+		return
+	}
+
+	filename := filepath.Base(filePath)
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	c.File(filePath)
 }

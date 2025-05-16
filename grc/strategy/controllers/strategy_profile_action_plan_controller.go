@@ -49,6 +49,7 @@ func (snec *StrategyProfileActionPlanController) GetAllStrategyProfileActionPlan
 		"strategy_profile_objective_ids",
 		"strategy_profile_initiative_ids",
 		"strategy_profile_project_ids",
+		"responsible_user_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

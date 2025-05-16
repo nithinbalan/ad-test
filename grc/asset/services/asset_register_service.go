@@ -30,6 +30,8 @@ type AssetRegisterServiceInterface interface {
 	GetControlSummary(assetID uint) (map[string]interface{}, error)
 	UpdateAssetRecoveryObjective(asset *models.AssetRegister, tx utility.DatabaseTransaction) error
 	GetDocumentPath(id uint, token string) (string, error)
+
+	ExportAsset(data []*dtos.AssetRegisterListDTO, currentUserID uint) (*os.File, error)
 }
 
 type AssetRegisterService struct {
@@ -41,6 +43,9 @@ type AssetRegisterService struct {
 	userSvc                              organizationServices.UserServiceInterface
 	assetCriticalityMatrixRatingScaleSvc AssetCriticalityMatrixRatingScaleServiceInterface
 	assetCriticalityMatrixSvc            AssetCriticalityMatrixServiceInterface
+	userSettingSvc                       organizationServices.UserSettingServiceInterface
+	controlImplementationStatusSvc       organizationServices.ControlImplementationStatusServiceInterface
+	controlEfficiencyStatusSvc           organizationServices.ControlEfficiencyStatusServiceInterface
 }
 
 func NewAssetRegisterService(
@@ -52,6 +57,9 @@ func NewAssetRegisterService(
 	userSvc organizationServices.UserServiceInterface,
 	assetCriticalityMatrixRatingScaleSvc AssetCriticalityMatrixRatingScaleServiceInterface,
 	assetCriticalityMatrixSvc AssetCriticalityMatrixServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
+	controlImplementationStatusSvc organizationServices.ControlImplementationStatusServiceInterface,
+	controlEfficiencyStatusSvc organizationServices.ControlEfficiencyStatusServiceInterface,
 ) AssetRegisterServiceInterface {
 	return &AssetRegisterService{
 		repo:                                 repo,
@@ -62,6 +70,9 @@ func NewAssetRegisterService(
 		userSvc:                              userSvc,
 		assetCriticalityMatrixRatingScaleSvc: assetCriticalityMatrixRatingScaleSvc,
 		assetCriticalityMatrixSvc:            assetCriticalityMatrixSvc,
+		userSettingSvc:                       userSettingSvc,
+		controlImplementationStatusSvc:       controlImplementationStatusSvc,
+		controlEfficiencyStatusSvc:           controlEfficiencyStatusSvc,
 	}
 }
 
@@ -110,7 +121,7 @@ func (as *AssetRegisterService) GetFullDetailsByID(id uint, tx ...utility.Databa
 	}
 	// Add additional fields as necessary for the details screen
 	// For example, setting relationship data or additional fields as required by the DTO
-
+	assetDetailDTO.CreatedAt = asset.CreatedAt
 	return &assetDetailDTO, nil
 }
 
@@ -176,12 +187,24 @@ func (ars *AssetRegisterService) Create(assetRegisterFormDTO *dtos.AssetRegister
 		return 0, err
 	}
 
+	defaultImplementationStatus, err := ars.controlImplementationStatusSvc.GetByType("not-implemented")
+	if err != nil {
+		return 0, err
+	}
+
+	defaultEfficiencyStatus, err := ars.controlEfficiencyStatusSvc.GetByType("inefficient")
+	if err != nil {
+		return 0, err
+	}
+
 	var controls []*models.AssetControl
 	for _, controlID := range assetRegisterFormDTO.ControlIds {
 		control := &models.AssetControl{
-			AssetRegisterID: assetID,
-			ControlID:       *controlID,
-			CreatedBYID:     currentUserID,
+			AssetRegisterID:               assetID,
+			ControlID:                     *controlID,
+			ControlImplementationStatusID: &defaultImplementationStatus.ID,
+			ControlEfficiencyStatusID:     &defaultEfficiencyStatus.ID,
+			CreatedBYID:                   currentUserID,
 		}
 		controls = append(controls, control)
 	}
@@ -840,4 +863,65 @@ func (ars *AssetRegisterService) GetDocumentPath(id uint, token string) (string,
 	}
 
 	return fullPath, nil
+}
+
+func (ars *AssetRegisterService) ExportAsset(data []*dtos.AssetRegisterListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := ars.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"Category",
+			"Asset Status",
+			"Location",
+			"Responsible User",
+			"Acquisition Date",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"Category",
+			"Asset Status",
+			"Location",
+			"Responsible User",
+			"Acquisition Date",
+		}
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, asset := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				asset.ReferenceNumber,
+				asset.TitleAr,
+				utility.GetStringValue(asset.AssetCategoryTitleAr),
+				asset.AssetStatusTitleAr,
+				utility.GetStringValue(asset.Location),
+				fmt.Sprintf("%s %s", asset.ResponsibleUserFirstNameAr, asset.ResponsibleUserLastNameAr),
+				asset.AcquisitionDate,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				asset.ReferenceNumber,
+				asset.TitleEn,
+				utility.GetStringValue(asset.AssetCategoryTitleEn),
+				asset.AssetStatusTitleEn,
+				utility.GetStringValue(asset.Location),
+				fmt.Sprintf("%s %s", asset.ResponsibleUserFirstNameEn, asset.ResponsibleUserLastNameEn),
+				asset.AcquisitionDate,
+			}
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }

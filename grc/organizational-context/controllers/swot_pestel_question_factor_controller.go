@@ -24,7 +24,7 @@ func NewSwotPestelQuestionFactorController(service services.SwotPestelQuestionFa
 	}
 }
 
-func (brpc *SwotPestelQuestionFactorController) GetAllSwotPestelQuestionFactors(c *gin.Context) {
+func (spqfc *SwotPestelQuestionFactorController) GetAllSwotPestelQuestionFactors(c *gin.Context) {
 
 	idStr := c.Param("questionId")
 
@@ -56,13 +56,13 @@ func (brpc *SwotPestelQuestionFactorController) GetAllSwotPestelQuestionFactors(
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
-		utility.SendInternalErrResp(brpc.db, c, "Invalid page parameter")
+		utility.SendInternalErrResp(spqfc.db, c, "Invalid page parameter")
 		return
 	}
 
 	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
 	if err != nil {
-		utility.SendInternalErrResp(brpc.db, c, "Invalid page_size parameter")
+		utility.SendInternalErrResp(spqfc.db, c, "Invalid page_size parameter")
 		return
 	}
 	sortField, valid := validSortFields[sortBy]
@@ -79,21 +79,22 @@ func (brpc *SwotPestelQuestionFactorController) GetAllSwotPestelQuestionFactors(
 		PageSize: pageSize,
 		Filters:  filters,
 	}
-	swotPestelQuestionFactors, err := brpc.service.GetAll(uint(questionId), &queryParams)
+	swotPestelQuestionFactors, err := spqfc.service.GetAll(uint(questionId), &queryParams)
 
 	if err != nil {
-		utility.SendInternalErrResp(brpc.db, c, err.Error())
+		utility.SendInternalErrResp(spqfc.db, c, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, swotPestelQuestionFactors)
 }
 
-func (brpc *SwotPestelQuestionFactorController) GetAllSwotPestelFactors(c *gin.Context) {
+func (spqfc *SwotPestelQuestionFactorController) GetAllSwotPestelFactors(c *gin.Context) {
 
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "description")
 	keyword := c.Query("keyword")
+	categoryType := c.Query("type")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -111,13 +112,13 @@ func (brpc *SwotPestelQuestionFactorController) GetAllSwotPestelFactors(c *gin.C
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
-		utility.SendInternalErrResp(brpc.db, c, "Invalid page parameter")
+		utility.SendInternalErrResp(spqfc.db, c, "Invalid page parameter")
 		return
 	}
 
 	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
 	if err != nil {
-		utility.SendInternalErrResp(brpc.db, c, "Invalid page_size parameter")
+		utility.SendInternalErrResp(spqfc.db, c, "Invalid page_size parameter")
 		return
 	}
 	sortField, valid := validSortFields[sortBy]
@@ -127,24 +128,25 @@ func (brpc *SwotPestelQuestionFactorController) GetAllSwotPestelFactors(c *gin.C
 		return
 	}
 	queryParams := organizationalContextDTOs.SwotPestelQuestionFactorListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortField,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
-		Filters:  filters,
+		Sort:         sort,
+		SortBy:       sortField,
+		Keyword:      keyword,
+		Page:         page,
+		PageSize:     pageSize,
+		Filters:      filters,
+		CategoryType: categoryType,
 	}
-	swotPestelQuestionFactors, err := brpc.service.GetAllFactors(&queryParams)
+	swotPestelQuestionFactors, err := spqfc.service.GetAllFactors(&queryParams)
 
 	if err != nil {
-		utility.SendInternalErrResp(brpc.db, c, err.Error())
+		utility.SendInternalErrResp(spqfc.db, c, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, swotPestelQuestionFactors)
 }
 
-func (brpc *SwotPestelQuestionFactorController) GetSwotPestelQuestionFactorDetails(c *gin.Context) {
+func (spqfc *SwotPestelQuestionFactorController) GetSwotPestelQuestionFactorDetails(c *gin.Context) {
 	idStr := c.Param("id")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -153,21 +155,21 @@ func (brpc *SwotPestelQuestionFactorController) GetSwotPestelQuestionFactorDetai
 		return
 	}
 
-	swotPestelQuestionFactor, err := brpc.service.GetFullDetailsByID(uint(id))
+	swotPestelQuestionFactor, err := spqfc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(brpc.db, c, e.Error())
+			utility.SendInternalErrResp(spqfc.db, c, e.Error())
 			return
 		}
 	}
 	c.JSON(http.StatusOK, swotPestelQuestionFactor)
 }
 
-func (brpc *SwotPestelQuestionFactorController) CreateSwotPestelQuestionFactor(c *gin.Context) {
+func (spqfc *SwotPestelQuestionFactorController) CreateSwotPestelQuestionFactor(c *gin.Context) {
 
 	idStr := c.Param("questionId")
 
@@ -186,11 +188,11 @@ func (brpc *SwotPestelQuestionFactorController) CreateSwotPestelQuestionFactor(c
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(brpc.db, c, err.Error())
+		utility.SendInternalErrResp(spqfc.db, c, err.Error())
 		return
 	}
 
-	id, err := brpc.service.Create(uint(questionId), currentUserID, &swotPestelQuestionFactorFormDTO)
+	id, err := spqfc.service.Create(uint(questionId), currentUserID, &swotPestelQuestionFactorFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -201,7 +203,7 @@ func (brpc *SwotPestelQuestionFactorController) CreateSwotPestelQuestionFactor(c
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(brpc.db, c, e.Error())
+			utility.SendInternalErrResp(spqfc.db, c, e.Error())
 			return
 		}
 	}
@@ -209,7 +211,7 @@ func (brpc *SwotPestelQuestionFactorController) CreateSwotPestelQuestionFactor(c
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
-func (brpc *SwotPestelQuestionFactorController) UpdateSwotPestelQuestionFactor(c *gin.Context) {
+func (spqfc *SwotPestelQuestionFactorController) UpdateSwotPestelQuestionFactor(c *gin.Context) {
 	var swotPestelQuestionFactorFormDTO organizationalContextDTOs.SwotPestelQuestionFactorFormDTO
 
 	swotPestelQuestionFactorID, err := strconv.Atoi(c.Param("id"))
@@ -225,11 +227,11 @@ func (brpc *SwotPestelQuestionFactorController) UpdateSwotPestelQuestionFactor(c
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(brpc.db, c, err.Error())
+		utility.SendInternalErrResp(spqfc.db, c, err.Error())
 		return
 	}
 
-	err = brpc.service.Update(uint(swotPestelQuestionFactorID), currentUserID, &swotPestelQuestionFactorFormDTO)
+	err = spqfc.service.Update(uint(swotPestelQuestionFactorID), currentUserID, &swotPestelQuestionFactorFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -239,7 +241,7 @@ func (brpc *SwotPestelQuestionFactorController) UpdateSwotPestelQuestionFactor(c
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(brpc.db, c, e.Error())
+			utility.SendInternalErrResp(spqfc.db, c, e.Error())
 			return
 		}
 	}
@@ -247,7 +249,7 @@ func (brpc *SwotPestelQuestionFactorController) UpdateSwotPestelQuestionFactor(c
 	c.Status(http.StatusOK)
 }
 
-func (brpc *SwotPestelQuestionFactorController) DeleteSwotPestelQuestionFactors(c *gin.Context) {
+func (spqfc *SwotPestelQuestionFactorController) DeleteSwotPestelQuestionFactors(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -259,15 +261,34 @@ func (brpc *SwotPestelQuestionFactorController) DeleteSwotPestelQuestionFactors(
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(brpc.db, c, err.Error())
+		utility.SendInternalErrResp(spqfc.db, c, err.Error())
 		return
 	}
 
-	failedIDs, err := brpc.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := spqfc.service.Delete(request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(brpc.db, c, err.Error())
+		utility.SendInternalErrResp(spqfc.db, c, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (spqfc *SwotPestelQuestionFactorController) GetSwotPestelFactorCountByCategory(c *gin.Context) {
+
+	isSwot := c.Query("is_swot")
+	isPestel := c.Query("is_pestel")
+
+	factorCounts, err := spqfc.service.GetSwotPestelFactorCountByCategory(isSwot, isPestel)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(spqfc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, factorCounts)
 }

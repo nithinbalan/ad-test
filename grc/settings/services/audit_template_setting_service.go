@@ -21,7 +21,7 @@ type AuditTemplateSettingServiceInterface interface {
 	GetByID(id uint) (*models.AuditTemplateSetting, error)
 	GetFirst() (*models.AuditTemplateSetting, error)
 	Update(id uint, currentUserID uint, updatedTemplateSettingDTO *settingsDTOs.AuditTemplateSettingFormDTO) error
-	GetImagePath(id uint, templateType string) (string, error)
+	GetImagePath(templateType string) (string, error)
 }
 
 // Service and implementations
@@ -156,13 +156,10 @@ func (atss *AuditTemplateSettingService) Update(id uint, currentUserID uint, upd
 	return nil
 }
 
-func (atss *AuditTemplateSettingService) GetImagePath(id uint, templateType string) (string, error) {
+func (atss *AuditTemplateSettingService) GetImagePath(templateType string) (string, error) {
 	// Retrieve the AuditTemplateSetting by ID
-	auditTemplateSetting, err := atss.repo.GetByID(id)
+	auditTemplateSetting, err := atss.repo.GetFirst()
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", utility.NewResourceNotFoundError(err, id)
-		}
 		return "", err
 	}
 

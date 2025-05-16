@@ -577,3 +577,63 @@ func (cc *UserController) ImportUsers(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"imported_ids": importedIDs})
 }
+
+func (uc *UserController) SyncADUsers(c *gin.Context) {
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	count, err := uc.service.SyncUsersFromAD(currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":      "User sync successful",
+		"users_synced": count,
+	})
+}
+
+func (uc *UserController) GetADUsers(c *gin.Context) {
+	users, err := uc.service.GetUsersFromAD()
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, users)
+}
+
+func (uc *UserController) UpdateUserOrganizationUnit(c *gin.Context) {
+	userID, err := strconv.Atoi(c.Param("userId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var formDTO organizationDTOs.UpdateOrganizationUnitDTO
+
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	if err := uc.service.UpdateUserOrganizationUnit(uint(userID), formDTO); err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(uc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Responsible units updated successfully"})
+}

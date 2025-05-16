@@ -17,7 +17,10 @@ func NewAuthModule(db *gorm.DB, organizationModule *OrganizationModule, settings
 		organizationModule.UserSvc,
 		organizationModule.UserSettingSvc,
 		commonModule.NotificationService,
-		settingsModule.EmailTemplateSettingsSvc)
+		settingsModule.EmailTemplateSettingsSvc,
+		settingsModule.ActiveDirectorySettingSvc,
+		settingsModule.IntegrationSvc,
+	)
 	authController := controllers.NewAuthController(db, authService)
 
 	return &AuthModule{

@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"html/template"
 	"jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
@@ -9,6 +10,9 @@ import (
 	"jethur/grc/models"
 	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
+	"sort"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -43,6 +47,51 @@ func (crs *ComplianceReportService) GetAll(queryParams *dtos.ComplianceReportLis
 		return nil, err
 	}
 	return reports, nil
+}
+
+func (crs *ComplianceReportService) calculateAverageScoreAndStatus(requirement *models.ComplianceRequirement, assessments []models.ComplianceAssessment, orgUnitAssessments map[uint][]models.ComplianceAssessment) (*float64, *uint, error) {
+	var totalScore float64
+	var scoreCount int
+
+	// Collect all scores for this requirement across all department assessments
+	for _, deptAssessments := range orgUnitAssessments {
+		for _, assessment := range deptAssessments {
+			for _, otherRequirement := range assessment.AssessmentRequirements {
+				if otherRequirement.ComplianceRequirement.ID == requirement.ID &&
+					otherRequirement.Score != nil &&
+					otherRequirement.ComplianceStatus != nil &&
+					otherRequirement.ComplianceStatus.Type != "not_applicable" {
+					totalScore += float64(*otherRequirement.Score)
+					scoreCount++
+				}
+			}
+		}
+	}
+
+	var averageScore *float64
+	var averageComplianceStatusID *uint
+
+	if scoreCount > 0 {
+		avg := totalScore / float64(scoreCount)
+		averageScore = &avg
+
+		// Get compliance status based on average score
+		statuses, err := crs.repo.GetAllComplianceStatuses()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		for _, status := range statuses {
+			if status.ScoreFrom != nil && status.ScoreTo != nil {
+				if avg >= float64(*status.ScoreFrom) && avg <= float64(*status.ScoreTo) {
+					averageComplianceStatusID = &status.ID
+					break
+				}
+			}
+		}
+	}
+
+	return averageScore, averageComplianceStatusID, nil
 }
 
 func (crs *ComplianceReportService) Create(currentUserID uint, request *dtos.ComplianceReportFormDTO) (uint, error) {
@@ -152,14 +201,22 @@ func (crs *ComplianceReportService) Create(currentUserID uint, request *dtos.Com
 		// Now create requirements
 		for _, assessment := range assessments {
 			for _, requirement := range assessment.AssessmentRequirements {
+				averageScore, averageComplianceStatusID, err := crs.calculateAverageScoreAndStatus(requirement.ComplianceRequirement, assessments, orgUnitAssessments)
+				if err != nil {
+					tx.Rollback()
+					return 0, err
+				}
+
 				complianceReportRequirement := &models.ComplianceReportRequirement{
-					ComplianceReportID:       complianceReportID,
-					ComplianceReportClauseID: clauseMap[requirement.ComplianceRequirement.ComplianceClause.ID].ID,
-					TitleEn:                  requirement.ComplianceRequirement.TitleEn,
-					TitleAr:                  requirement.ComplianceRequirement.TitleAr,
-					Score:                    requirement.Score,
-					ComplianceStatusID:       nil,
-					CreatedBYID:              currentUserID,
+					ComplianceReportID:        complianceReportID,
+					ComplianceReportClauseID:  clauseMap[requirement.ComplianceRequirement.ComplianceClause.ID].ID,
+					TitleEn:                   requirement.ComplianceRequirement.TitleEn,
+					TitleAr:                   requirement.ComplianceRequirement.TitleAr,
+					Score:                     requirement.Score,
+					AverageScore:              averageScore,
+					ComplianceStatusID:        nil,
+					AverageComplianceStatusID: averageComplianceStatusID,
+					CreatedBYID:               currentUserID,
 				}
 
 				if requirement.ComplianceStatus != nil {
@@ -181,7 +238,7 @@ func (crs *ComplianceReportService) Create(currentUserID uint, request *dtos.Com
 						Description:                   actionPlan.Description,
 						ActionPlanStatusID:            actionPlan.ActionPlanStatusID,
 						TargetDate:                    actionPlan.TargetDate,
-						SeverityLevelID:               *actionPlan.SeverityLevelID,
+						SeverityLevelID:               actionPlan.SeverityLevelID,
 						CreatedAt:                     time.Now(),
 						CreatedBYID:                   currentUserID,
 					}
@@ -238,12 +295,20 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 
 	// Map sections
 	for _, section := range complianceReport.Sections {
+		var descriptionEn template.HTML
+		if section.DescriptionEn != nil {
+			descriptionEn = template.HTML(*section.DescriptionEn)
+		}
+		var descriptionAr template.HTML
+		if section.DescriptionAr != nil {
+			descriptionAr = template.HTML(*section.DescriptionAr)
+		}
 		sectionDTO := &dtos.ComplianceReportSection{
 			ID:            section.ID,
 			TitleEn:       section.TitleEn,
 			TitleAr:       section.TitleAr,
-			DescriptionEn: section.DescriptionEn,
-			DescriptionAr: section.DescriptionAr,
+			DescriptionEn: descriptionEn,
+			DescriptionAr: descriptionAr,
 			Type:          section.Type,
 			Order:         section.OrderNum,
 		}
@@ -310,12 +375,14 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 									}
 									return actionPlan.TargetDate.Format("2006-01-02")
 								}(),
-								SeverityLevel: masterDTOs.SeverityLevelDTO{
+							}
+							if actionPlan.SeverityLevel != nil {
+								actionPlanDTO.SeverityLevel = &masterDTOs.SeverityLevelDTO{
 									ID:        actionPlan.SeverityLevel.ID,
 									TitleEn:   actionPlan.SeverityLevel.TitleEn,
 									TitleAr:   actionPlan.SeverityLevel.TitleAr,
 									ColorCode: actionPlan.SeverityLevel.ColorCode,
-								},
+								}
 							}
 							nonCompliantArea.ActionPlans = append(nonCompliantArea.ActionPlans, actionPlanDTO)
 						}
@@ -330,6 +397,10 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 		}
 
 		if section.Type == "compliance-status-by-standard" {
+			// Create maps to store unique clauses and requirements
+			uniqueClauses := make(map[string]*dtos.ComplianceReportClause)           // Use clause_no as key
+			uniqueRequirements := make(map[string]*dtos.ComplianceReportRequirement) // Track unique requirements by clause and title
+
 			for _, department := range departments {
 				if department == nil {
 					continue
@@ -339,44 +410,62 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 					if clause == nil {
 						continue
 					}
-					clauseDTO := &dtos.ComplianceReportClause{
-						ClauseNo:               clause.ClauseNo,
-						ClauseTitleEn:          clause.ClauseTitleEn,
-						ClauseTitleAr:          clause.ClauseTitleAr,
-						DescriptionEn:          clause.DescriptionEn,
-						DescriptionAr:          clause.DescriptionAr,
-						ComplianceRequirements: []*dtos.ComplianceReportRequirement{},
+
+					// If clause is not in uniqueClauses, add it
+					if _, exists := uniqueClauses[clause.ClauseNo]; !exists {
+						clauseDTO := &dtos.ComplianceReportClause{
+							ClauseNo:               clause.ClauseNo,
+							ClauseTitleEn:          clause.ClauseTitleEn,
+							ClauseTitleAr:          clause.ClauseTitleAr,
+							DescriptionEn:          clause.DescriptionEn,
+							DescriptionAr:          clause.DescriptionAr,
+							ComplianceRequirements: []*dtos.ComplianceReportRequirement{},
+						}
+						uniqueClauses[clause.ClauseNo] = clauseDTO
 					}
 
+					// Add unique requirements for this clause
 					for _, requirement := range clause.ComplianceReportRequirements {
 						if requirement == nil {
 							continue
 						}
 
-						requirementDTO := &dtos.ComplianceReportRequirement{
-							ID:          requirement.ID,
-							TitleEn:     requirement.TitleEn,
-							TitleAr:     requirement.TitleAr,
-							Score:       requirement.Score,
-							ActionPlans: []*dtos.ComplianceReportActionPlan{},
-						}
+						// Create a unique key for the requirement using clause number and title
+						requirementKey := fmt.Sprintf("%s_%s_%s", clause.ClauseNo, requirement.TitleEn, requirement.TitleAr)
 
-						if requirement.ComplianceStatus.ID != 0 {
-							requirementDTO.ComplianceStatus = &dtos.ComplianceStatusDTO{
-								ID:        int(requirement.ComplianceStatus.ID),
-								Type:      requirement.ComplianceStatus.Type,
-								TitleEn:   requirement.ComplianceStatus.TitleEn,
-								TitleAr:   requirement.ComplianceStatus.TitleAr,
-								ColorCode: requirement.ComplianceStatus.ColorCode,
-							}
+						// Get or create requirement DTO
+						var requirementDTO *dtos.ComplianceReportRequirement
+						if existingReq, exists := uniqueRequirements[requirementKey]; exists {
+							requirementDTO = existingReq
 						} else {
-							requirementDTO.ComplianceStatus = nil
+							requirementDTO = &dtos.ComplianceReportRequirement{
+								ID:          requirement.ID,
+								TitleEn:     requirement.TitleEn,
+								TitleAr:     requirement.TitleAr,
+								Score:       requirement.Score,
+								ActionPlans: []*dtos.ComplianceReportActionPlan{},
+							}
+
+							if requirement.AverageComplianceStatus.ID != 0 {
+								requirementDTO.ComplianceStatus = &dtos.ComplianceStatusDTO{
+									ID:        int(requirement.AverageComplianceStatus.ID),
+									Type:      requirement.AverageComplianceStatus.Type,
+									TitleEn:   requirement.AverageComplianceStatus.TitleEn,
+									TitleAr:   requirement.AverageComplianceStatus.TitleAr,
+									ColorCode: requirement.AverageComplianceStatus.ColorCode,
+								}
+							}
+
+							uniqueRequirements[requirementKey] = requirementDTO
+							uniqueClauses[clause.ClauseNo].ComplianceRequirements = append(uniqueClauses[clause.ClauseNo].ComplianceRequirements, requirementDTO)
 						}
 
+						// Add action plans for this requirement
 						for _, actionPlan := range requirement.ComplianceReportActionPlans {
 							if actionPlan == nil {
 								continue
 							}
+
 							actionPlanDTO := &dtos.ComplianceReportActionPlan{
 								Title:       actionPlan.Title,
 								Description: actionPlan.Description,
@@ -392,22 +481,59 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 									}
 									return actionPlan.TargetDate.Format("2006-01-02")
 								}(),
-								SeverityLevel: masterDTOs.SeverityLevelDTO{
+							}
+
+							if actionPlan.SeverityLevel != nil {
+								actionPlanDTO.SeverityLevel = &masterDTOs.SeverityLevelDTO{
 									ID:        actionPlan.SeverityLevel.ID,
 									TitleEn:   actionPlan.SeverityLevel.TitleEn,
 									TitleAr:   actionPlan.SeverityLevel.TitleAr,
 									ColorCode: actionPlan.SeverityLevel.ColorCode,
-								},
+								}
 							}
+
 							requirementDTO.ActionPlans = append(requirementDTO.ActionPlans, actionPlanDTO)
 						}
-
-						clauseDTO.ComplianceRequirements = append(clauseDTO.ComplianceRequirements, requirementDTO)
 					}
-
-					sectionDTO.ComplianceReportStandards = append(sectionDTO.ComplianceReportStandards, clauseDTO)
 				}
 			}
+
+			// Add unique clauses to the section
+			// Convert map to slice for sorting
+			var clauseSlice []*dtos.ComplianceReportClause
+			for _, clauseDTO := range uniqueClauses {
+				clauseSlice = append(clauseSlice, clauseDTO)
+			}
+
+			// Sort clauses by clause number
+			sort.Slice(clauseSlice, func(i, j int) bool {
+				// Split clause numbers into parts (e.g., "1.2" -> ["1", "2"])
+				iParts := strings.Split(clauseSlice[i].ClauseNo, ".")
+				jParts := strings.Split(clauseSlice[j].ClauseNo, ".")
+
+				// Compare each part numerically
+				for k := 0; k < len(iParts) && k < len(jParts); k++ {
+					// Convert parts to integers for comparison
+					iNum, errI := strconv.Atoi(iParts[k])
+					jNum, errJ := strconv.Atoi(jParts[k])
+
+					// If conversion fails, fall back to string comparison
+					if errI != nil || errJ != nil {
+						return iParts[k] < jParts[k]
+					}
+
+					if iNum != jNum {
+						return iNum < jNum
+					}
+				}
+
+				// If all parts are equal up to the shortest length,
+				// the shorter number comes first
+				return len(iParts) < len(jParts)
+			})
+
+			// Add sorted clauses to the section
+			sectionDTO.ComplianceReportStandards = clauseSlice
 		}
 
 		if section.Type == "action-plan-implementation" {
@@ -446,14 +572,22 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 									}
 									return actionPlan.TargetDate.Format("2006-01-02")
 								}(),
-								SeverityLevel: masterDTOs.SeverityLevelDTO{
+								OrganizationUnit: settingsDTOs.OrganizationUnitDTO{
+									ID:      int(department.OrganizationUnit.ID),
+									TitleEn: department.OrganizationUnit.TitleEn,
+									TitleAr: department.OrganizationUnit.TitleAr,
+								},
+							}
+							if actionPlan.SeverityLevel != nil {
+								actionPlanDTO.SeverityLevel = &masterDTOs.SeverityLevelDTO{
 									ID:        actionPlan.SeverityLevel.ID,
 									TitleEn:   actionPlan.SeverityLevel.TitleEn,
 									TitleAr:   actionPlan.SeverityLevel.TitleAr,
 									ColorCode: actionPlan.SeverityLevel.ColorCode,
-								},
+								}
+							} else {
+								actionPlanDTO.SeverityLevel = nil
 							}
-
 							sectionDTO.ComplianceReportActionPlans = append(sectionDTO.ComplianceReportActionPlans, actionPlanDTO)
 						}
 					}
@@ -531,12 +665,20 @@ func (crs *ComplianceReportService) GetComplianceReportSectionDetails(compliance
 		return nil, err
 	}
 
+	var descriptionEn template.HTML
+	if section.DescriptionEn != nil {
+		descriptionEn = template.HTML(*section.DescriptionEn)
+	}
+	var descriptionAr template.HTML
+	if section.DescriptionAr != nil {
+		descriptionAr = template.HTML(*section.DescriptionAr)
+	}
 	sectionDTO := &dtos.ComplianceReportSection{
 		ID:            section.ID,
 		TitleEn:       section.TitleEn,
 		TitleAr:       section.TitleAr,
-		DescriptionEn: section.DescriptionEn,
-		DescriptionAr: section.DescriptionAr,
+		DescriptionEn: descriptionEn,
+		DescriptionAr: descriptionAr,
 		Type:          section.Type,
 		Order:         section.OrderNum,
 	}
@@ -648,4 +790,23 @@ func (crs *ComplianceReportService) ExportComplianceReportToPDF(complianceReport
 	}
 
 	return pdfFileName, nil
+}
+
+func (crs *ComplianceReportService) getComplianceStatusByScore(score float64) (*uint, error) {
+	// Get all compliance statuses
+	statuses, err := crs.repo.GetAllComplianceStatuses()
+	if err != nil {
+		return nil, err
+	}
+
+	// Find the status that matches the score range
+	for _, status := range statuses {
+		if status.ScoreFrom != nil && status.ScoreTo != nil {
+			if score >= float64(*status.ScoreFrom) && score <= float64(*status.ScoreTo) {
+				return &status.ID, nil
+			}
+		}
+	}
+
+	return nil, nil
 }

@@ -12,13 +12,13 @@ type RiskHeatmapServiceInterface interface {
 	GetRiskHeatmapBySLAID(slaID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
 	GetRiskHeatmapByAssetID(assetID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
 
-	GetRiskHeatmapByResponsibleUnit() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
-	GetRiskHeatmapByRiskCategory() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
-	GetRiskHeatmapByRiskSource() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
-	GetRiskHeatmapByRiskMatrix() ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
-	GetRiskHeatmapByResponseStrategy() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
-	GetRiskHeatmapByRiskStatus() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
-	GetRiskHeatmapByReviewFrequency() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
+	GetRiskHeatmapByResponsibleUnit(params *riskDTOs.RiskHeatmapQueryParamsDTO) ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
+	GetRiskHeatmapByRiskCategory(params *riskDTOs.RiskHeatmapQueryParamsDTO) ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
+	GetRiskHeatmapByRiskSource(params *riskDTOs.RiskHeatmapQueryParamsDTO) ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
+	GetRiskHeatmapByRiskMatrix(params *riskDTOs.RiskHeatmapQueryParamsDTO) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
+	GetRiskHeatmapByResponseStrategy(params *riskDTOs.RiskHeatmapQueryParamsDTO) ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
+	GetRiskHeatmapByRiskStatus(params *riskDTOs.RiskHeatmapQueryParamsDTO) ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
+	GetRiskHeatmapByReviewFrequency(params *riskDTOs.RiskHeatmapQueryParamsDTO) ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
 
 	GetRiskHeatmap(riskRegisterIDs []uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
 }
@@ -99,8 +99,8 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapBySLAID(slaID uint) ([][]*riskDTOs.
 	return rhs.GetRiskHeatmap(riskRegisterIDs)
 }
 
-func (rhs *RiskHeatmapService) GetRiskHeatmapByResponsibleUnit() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error) {
-	riskRegisters, err := rhs.repo.GetAllRiskRegisters()
+func (rhs *RiskHeatmapService) GetRiskHeatmapByResponsibleUnit(params *riskDTOs.RiskHeatmapQueryParamsDTO) ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error) {
+	riskRegisters, err := rhs.repo.GetAllRiskRegisters(params)
 	if err != nil {
 		return nil, err
 	}
@@ -168,8 +168,8 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByResponsibleUnit() ([]*riskDTOs.Ri
 	return heatmapResponses, nil
 }
 
-func (rhs *RiskHeatmapService) GetRiskHeatmapByRiskCategory() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error) {
-	riskRegisters, err := rhs.repo.GetAllRiskRegisters()
+func (rhs *RiskHeatmapService) GetRiskHeatmapByRiskCategory(params *riskDTOs.RiskHeatmapQueryParamsDTO) ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error) {
+	riskRegisters, err := rhs.repo.GetAllRiskRegisters(params)
 	if err != nil {
 		return nil, err
 	}
@@ -237,8 +237,8 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByRiskCategory() ([]*riskDTOs.RiskH
 	return heatmapResponses, nil
 }
 
-func (rhs *RiskHeatmapService) GetRiskHeatmapByRiskSource() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error) {
-	riskRegisters, err := rhs.repo.GetAllRiskRegisters()
+func (rhs *RiskHeatmapService) GetRiskHeatmapByRiskSource(params *riskDTOs.RiskHeatmapQueryParamsDTO) ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error) {
+	riskRegisters, err := rhs.repo.GetAllRiskRegisters(params)
 	if err != nil {
 		return nil, err
 	}
@@ -308,8 +308,8 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByRiskSource() ([]*riskDTOs.RiskHea
 	return heatmapResponses, nil
 }
 
-func (rhs *RiskHeatmapService) GetRiskHeatmapByRiskMatrix() ([][]*riskDTOs.RiskHeatmapResponseDTO, error) {
-	risks, err := rhs.repo.GetAllRiskRegisters()
+func (rhs *RiskHeatmapService) GetRiskHeatmapByRiskMatrix(params *riskDTOs.RiskHeatmapQueryParamsDTO) ([][]*riskDTOs.RiskHeatmapResponseDTO, error) {
+	risks, err := rhs.repo.GetAllRiskRegisters(params)
 	if err != nil {
 		return nil, err
 	}
@@ -386,8 +386,8 @@ func (rhs *RiskHeatmapService) GetRiskHeatmap(riskRegisterIDs []uint) ([][]*risk
 	return heatmap, nil
 }
 
-func (rhs *RiskHeatmapService) GetRiskHeatmapByResponseStrategy() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error) {
-	riskRegisters, err := rhs.repo.GetAllRiskRegisters()
+func (rhs *RiskHeatmapService) GetRiskHeatmapByResponseStrategy(params *riskDTOs.RiskHeatmapQueryParamsDTO) ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error) {
+	riskRegisters, err := rhs.repo.GetAllRiskRegisters(params)
 	if err != nil {
 		return nil, err
 	}
@@ -457,8 +457,8 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByResponseStrategy() ([]*riskDTOs.R
 	return heatmapResponses, nil
 }
 
-func (rhs *RiskHeatmapService) GetRiskHeatmapByRiskStatus() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error) {
-	riskRegisters, err := rhs.repo.GetAllRiskRegisters()
+func (rhs *RiskHeatmapService) GetRiskHeatmapByRiskStatus(params *riskDTOs.RiskHeatmapQueryParamsDTO) ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error) {
+	riskRegisters, err := rhs.repo.GetAllRiskRegisters(params)
 	if err != nil {
 		return nil, err
 	}
@@ -528,8 +528,8 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByRiskStatus() ([]*riskDTOs.RiskHea
 	return heatmapResponses, nil
 }
 
-func (rhs *RiskHeatmapService) GetRiskHeatmapByReviewFrequency() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error) {
-	riskRegisters, err := rhs.repo.GetAllRiskRegisters()
+func (rhs *RiskHeatmapService) GetRiskHeatmapByReviewFrequency(params *riskDTOs.RiskHeatmapQueryParamsDTO) ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error) {
+	riskRegisters, err := rhs.repo.GetAllRiskRegisters(params)
 	if err != nil {
 		return nil, err
 	}
@@ -600,15 +600,33 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByReviewFrequency() ([]*riskDTOs.Ri
 }
 
 func (rhs *RiskHeatmapService) GetRiskHeatmapByAssetID(assetID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error) {
-	riskAssets, err := rhs.repo.GetRiskAssetByAssetID(assetID)
+	// Step 1: Get vulnerability IDs by asset
+	vulnerabilityIDs, err := rhs.repo.GetVulnerabilityIDsByAssetID(assetID)
 	if err != nil {
 		return nil, err
 	}
-
-	var riskRegisterIDs []uint
-	for _, rs := range riskAssets {
-		riskRegisterIDs = append(riskRegisterIDs, rs.RiskRegisterID)
+	if len(vulnerabilityIDs) == 0 {
+		return [][]*riskDTOs.RiskHeatmapResponseDTO{}, nil
 	}
 
+	// Step 2: Get threat IDs by vulnerabilities
+	threatIDs, err := rhs.repo.GetThreatIDsByVulnerabilityIDs(vulnerabilityIDs)
+	if err != nil {
+		return nil, err
+	}
+	if len(threatIDs) == 0 {
+		return [][]*riskDTOs.RiskHeatmapResponseDTO{}, nil
+	}
+
+	// Step 3: Get risk register IDs by threats
+	riskRegisterIDs, err := rhs.repo.GetRiskRegisterIDsByThreatIDs(threatIDs)
+	if err != nil {
+		return nil, err
+	}
+	if len(riskRegisterIDs) == 0 {
+		return [][]*riskDTOs.RiskHeatmapResponseDTO{}, nil
+	}
+
+	// Step 4: Generate heatmap using those risk IDs
 	return rhs.GetRiskHeatmap(riskRegisterIDs)
 }

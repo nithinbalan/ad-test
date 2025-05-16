@@ -27,6 +27,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyProfileActionPlanStatusUpdateController := app.StrategyModule.StrategyProfileActionPlanStatusUpdateController
 	strategyProfileActionPlanCommentController := app.StrategyModule.StrategyProfileActionPlanCommentController
 	strategyProfileSettingController := app.StrategyModule.StrategyProfileSettingController
+	kpiCategoryController := app.StrategyModule.KpiCategoryController
+	kpiStatusController := app.StrategyModule.KpiStatusController
+	kpiRegisterController := app.StrategyModule.KpiRegisterController
 
 	// strategy profile
 	strategyRoutes.GET("/strategy-profiles", strategyProfileController.GetAllStrategyProfiles)
@@ -108,5 +111,25 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.GET("/strategy-profile-setting/:settingId", strategyProfileSettingController.GetStrategyProfileSettingDetail)
 	strategyRoutes.PUT("/strategy-profile-setting/:settingId/enable", strategyProfileSettingController.EnableStrategyProfileSetting)
 	strategyRoutes.PUT("/strategy-profile-setting/:settingId/disable", strategyProfileSettingController.DisableStrategyProfileSetting)
+
+	// kpi category
+	strategyRoutes.GET("/kpi-categories", kpiCategoryController.GetAllKPICategories)
+	strategyRoutes.POST("/kpi-categories", middlewares.RolePermissionMiddleware(db, "strategy_setting", "modify"), kpiCategoryController.CreateKPICategory)
+	strategyRoutes.GET("/kpi-categories/:id", kpiCategoryController.GetKPICategoryDetails)
+	strategyRoutes.PUT("/kpi-categories/:id", middlewares.RolePermissionMiddleware(db, "strategy_setting", "modify"), kpiCategoryController.UpdateKPICategory)
+	strategyRoutes.POST("/kpi-categories/delete", middlewares.RolePermissionMiddleware(db, "strategy_setting", "modify"), kpiCategoryController.DeleteKPICategories)
+	strategyRoutes.PUT("/kpi-categories/activate", middlewares.RolePermissionMiddleware(db, "strategy_setting", "modify"), kpiCategoryController.ActivateKPICategories)
+	strategyRoutes.PUT("/kpi-categories/deactivate", middlewares.RolePermissionMiddleware(db, "strategy_setting", "modify"), kpiCategoryController.DeactivateKPICategories)
+
+	// kpi status
+	strategyRoutes.GET("/kpi-statuses", kpiStatusController.GetAllKPIStatuses)
+	strategyRoutes.GET("/kpi-statuses/:id", kpiStatusController.GetKPIStatusDetails)
+
+	// kpi register
+	strategyRoutes.GET("/kpi-register", kpiRegisterController.GetAllKPIRegister)
+	strategyRoutes.GET("/kpi-register/:kpiRegisterId", kpiRegisterController.GetKPIRegisterDetails)
+	strategyRoutes.POST("/kpi-register", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), kpiRegisterController.CreateKPIRegister)
+	strategyRoutes.PUT("/kpi-register/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), kpiRegisterController.UpdateKPIRegister)
+	strategyRoutes.POST("/kpi-register/delete", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), kpiRegisterController.DeleteKPIRegister)
 
 }

@@ -100,8 +100,8 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 					return fmt.Errorf("failed to get process: %w", err)
 				}
 				if process != nil {
-					orgUnitID = process.OwnerUnitID
-					responsibleUserID = process.OwnerID
+					orgUnitID = process.ResponsibleUnitID
+					responsibleUserID = process.ResponsibleUserID
 				}
 
 			case "control":
@@ -112,8 +112,8 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 					return fmt.Errorf("failed to get control: %w", err)
 				}
 				if control != nil {
-					orgUnitID = control.OwnerUnitID
-					responsibleUserID = control.OwnerID
+					orgUnitID = control.ResponsibleUnitID
+					responsibleUserID = control.ResponsibleUserID
 				}
 
 			case "document":
@@ -191,7 +191,6 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 		}
 		return nil
 	}
-
 
 	if err := addItems(auditUniverseFormDTO.ProcessIDs, "process"); err != nil {
 		return err

@@ -22,6 +22,8 @@ type SwotPestelQuestionFactorServiceInterface interface {
 	Create(questionId uint, currentUserID uint, organizationalContextDTOs *organizationalContextDTOs.SwotPestelQuestionFactorFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, swotPestelQuestionFactor *organizationalContextDTOs.SwotPestelQuestionFactorFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	GetSwotPestelFactorCountByCategory(isSwot string, isPestel string) ([]organizationalContextDTOs.SwotPestelCategoryCountResponseDTO, error)
 }
 
 // Service and implementations
@@ -271,4 +273,14 @@ func (spqfs *SwotPestelQuestionFactorService) Delete(ids []uint, currentUserID u
 	}
 
 	return failedIds, nil
+}
+
+func (spqfs *SwotPestelQuestionFactorService) GetSwotPestelFactorCountByCategory(isSwot string, isPestel string) ([]organizationalContextDTOs.SwotPestelCategoryCountResponseDTO, error) {
+
+	response, err := spqfs.repo.GetSwotPestelFactorCountByCategory(isSwot, isPestel)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }

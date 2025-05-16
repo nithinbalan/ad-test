@@ -144,6 +144,7 @@ type UserDetailsDTO struct {
 	LastLoginAt      *time.Time `json:"last_login_at"`
 	CreatedAt        time.Time  `json:"created_at"`
 	UpdatedAt        time.Time  `json:"updated_at"`
+	PrimaryUnitID    *uint      `json:"primary_unit_id"`
 
 	// Relationship DTOs
 	OrganizationUnit1 settingDTOs.OrganizationUnitDTO  `json:"organization_unit_1"`
@@ -283,4 +284,16 @@ type UserPrimaryDetailsDTO struct {
 	PrimaryUnit      string  `json:"primary_unit"`
 	MobileNumber     *string `json:"mobile_number"`
 	ProfileImagePath *string `json:"profile_image_path"`
+}
+
+type UpdateOrganizationUnitDTO struct {
+	UserID             *uint `json:"user_id"`
+	OrganizationUnitID *uint `json:"organization_unit_id"` // New Organization Unit ID
+}
+type ADUserDTO struct {
+	FirstName        string  `json:"first_name"`
+	LastName         string  `json:"last_name"`
+	Email            string  `json:"email"`
+	OrganizationUnit *string `json:"organization_unit,omitempty"`
+	Designation      *string `json:"designation,omitempty"`
 }

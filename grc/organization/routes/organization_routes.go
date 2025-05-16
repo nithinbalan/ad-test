@@ -73,6 +73,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/users/:userId", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.UpdateUser)
 	organizationRoutes.POST("/users/delete", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.DeleteUsers)
 	organizationRoutes.GET("/users/:userId/login-history", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUserLoginHistory)
+	organizationRoutes.PUT("/users/:userId/change-unit", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.UpdateUserOrganizationUnit)
 
 	organizationRoutes.GET("/users/me", userController.GetCurrentUserDetails)
 	organizationRoutes.GET("/users/me/permissions", userController.GetUserPermissions)
@@ -286,5 +287,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// process criticality level
 	organizationRoutes.GET("/process-criticality-levels", processCriticalityLevelController.GetAllProcessCriticalityLevels)
 	organizationRoutes.GET("/process-criticality-levels/:id", processCriticalityLevelController.GetProcessCriticalityLevelDetails)
+	organizationRoutes.POST("/ad-users-sync", userController.SyncADUsers)
+	organizationRoutes.GET("/active-directory-users", userController.GetADUsers)
 
 }

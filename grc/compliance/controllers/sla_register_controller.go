@@ -46,6 +46,7 @@ func (src *SLARegisterController) GetAllSLARegisters(c *gin.Context) {
 		"sla_category_ids",
 		"severity_level_ids",
 		"responsible_unit_ids",
+		"responsible_user_ids",
 		"lifecycle_status_ids",
 		"compliance_status_ids",
 	}

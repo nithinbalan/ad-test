@@ -1,6 +1,7 @@
 package dtos
 
 import (
+	"html/template"
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
@@ -55,8 +56,8 @@ type ComplianceReportSection struct {
 	ID                          uint                          `json:"id"`
 	TitleEn                     string                        `json:"title_en"`
 	TitleAr                     string                        `json:"title_ar"`
-	DescriptionEn               *string                       `json:"description_en"`
-	DescriptionAr               *string                       `json:"description_ar"`
+	DescriptionEn               template.HTML                 `json:"description_en"`
+	DescriptionAr               template.HTML                 `json:"description_ar"`
 	Type                        string                        `json:"type"`
 	Order                       int                           `json:"order"`
 	ComplianceReportDepartments []*ComplianceReportDepartment `json:"compliance_report_departments"`
@@ -80,15 +81,17 @@ type ComplianceReportRequirement struct {
 	TitleAr          string                        `json:"title_ar"`
 	ComplianceStatus *ComplianceStatusDTO          `json:"compliance_status"`
 	Score            *int                          `json:"score"`
+	AverageScore     *float64                      `json:"average_score"`
 	ActionPlans      []*ComplianceReportActionPlan `json:"action_plans"`
 }
 
 type ComplianceReportActionPlan struct {
-	Title            string                         `json:"title"`
-	Description      *string                        `json:"description"`
-	ActionPlanStatus masterDTOs.ActionPlanStatusDTO `json:"action_plan_status"`
-	TargetDate       string                         `json:"target_date"`
-	SeverityLevel    masterDTOs.SeverityLevelDTO    `json:"severity_level"`
+	OrganizationUnit settingsDTOs.OrganizationUnitDTO `json:"organization_unit"`
+	Title            string                           `json:"title"`
+	Description      *string                          `json:"description"`
+	ActionPlanStatus masterDTOs.ActionPlanStatusDTO   `json:"action_plan_status"`
+	TargetDate       string                           `json:"target_date"`
+	SeverityLevel    *masterDTOs.SeverityLevelDTO     `json:"severity_level"`
 }
 
 type ComplianceReportClause struct {

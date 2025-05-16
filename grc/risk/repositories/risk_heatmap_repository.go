@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"jethur/grc/models"
+	riskDTOs "jethur/grc/risk/dtos"
 
 	"gorm.io/gorm"
 )
@@ -12,9 +13,13 @@ type RiskHeatmapRepositoryInterface interface {
 	GetRiskCompliancesByComplianceID(complianceID uint) ([]models.RiskComplianceRequirement, error)
 	GetRiskSLAsBySLAID(slaID uint) ([]models.RiskSLA, error)
 	GetRiskAssetByAssetID(assetID uint) ([]models.RiskAsset, error)
-	GetAllRiskRegisters() ([]models.RiskRegister, error)
+	GetAllRiskRegisters(params *riskDTOs.RiskHeatmapQueryParamsDTO) ([]models.RiskRegister, error)
 
 	CountRiskRegistersWithLikelihoodAndImpact(riskRegisterIDs []uint, riskRatingValueID, likelihoodID, impactID uint) (int, error)
+
+	GetVulnerabilityIDsByAssetID(assetID uint) ([]uint, error)
+	GetThreatIDsByVulnerabilityIDs(vulnIDs []uint) ([]uint, error)
+	GetRiskRegisterIDsByThreatIDs(threatIDs []uint) ([]uint, error)
 }
 
 type RiskHeatmapRepository struct {
@@ -78,19 +83,55 @@ func (repo *RiskHeatmapRepository) CountRiskRegistersWithLikelihoodAndImpact(ris
 	return int(count), nil
 }
 
-func (repo *RiskHeatmapRepository) GetAllRiskRegisters() ([]models.RiskRegister, error) {
+func (repo *RiskHeatmapRepository) GetAllRiskRegisters(params *riskDTOs.RiskHeatmapQueryParamsDTO) ([]models.RiskRegister, error) {
 	var risks []models.RiskRegister
-	err := repo.db.Preload("ResponsibleUnit").
+
+	query := repo.db.Model(&models.RiskRegister{}).
+		Preload("ResponsibleUnit").
 		Preload("RiskCategory").
 		Preload("RiskSource").
 		Preload("CurrentRiskRating").
 		Preload("CurrentRiskRatingValue").
 		Preload("RiskResponseStrategy").
 		Preload("RiskStatus").
-		Preload("ReviewFrequency").
-		Find(&risks).Error
+		Preload("ReviewFrequency")
+
+	// Apply date filter if both DateFrom and DateTo are provided
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("reported_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+	}
+
+	err := query.Find(&risks).Error
 	if err != nil {
 		return nil, err
 	}
+
 	return risks, nil
+}
+
+func (repo *RiskHeatmapRepository) GetVulnerabilityIDsByAssetID(assetID uint) ([]uint, error) {
+	var ids []uint
+	err := repo.db.
+		Model(&models.VulnerabilityAsset{}).
+		Where("asset_register_id = ?", assetID).
+		Pluck("vulnerability_id", &ids).Error
+	return ids, err
+}
+
+func (repo *RiskHeatmapRepository) GetThreatIDsByVulnerabilityIDs(vulnIDs []uint) ([]uint, error) {
+	var ids []uint
+	err := repo.db.
+		Model(&models.VulnerabilityThreat{}).
+		Where("vulnerability_id IN ?", vulnIDs).
+		Pluck("threat_id", &ids).Error
+	return ids, err
+}
+
+func (repo *RiskHeatmapRepository) GetRiskRegisterIDsByThreatIDs(threatIDs []uint) ([]uint, error) {
+	var ids []uint
+	err := repo.db.
+		Model(&models.RiskThreat{}).
+		Where("threat_id IN ?", threatIDs).
+		Pluck("risk_register_id", &ids).Error
+	return ids, err
 }

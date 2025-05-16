@@ -332,7 +332,7 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":  assignedBy.LastNameEn,
 			"AssignedOn":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%s/risk/risk-mitigation?action_plan_id=%d", appURL, id),
+			"RedirectURL":           fmt.Sprintf("%s/risk/risk-register/%d/risk-response?action_plan_id=%d", appURL, riskID, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -639,7 +639,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 				"RiskTitle":             risk.Title,
 				"ActionPlanTitle":       existingRiskActionPlan.Title,
 				"ActionPlanDescription": existingRiskActionPlan.Description,
-				"RedirectURL":           fmt.Sprintf("%s/risk/risk-mitigation?action_plan_id=%d", appURL, id),
+				"RedirectURL":           fmt.Sprintf("%s/risk/risk-register/%d/risk-response?action_plan_id=%d", appURL, riskID, id),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -663,7 +663,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/risk/risk-mitigation?action_plan_id=%d", appURL, id),
+				"RedirectURL":           fmt.Sprintf("%s/risk/risk-register/%d/risk-response?action_plan_id=%d", appURL, riskID, id),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{

@@ -251,8 +251,8 @@ func (repo *RiskActionPlanRepository) GetFullDetailsByID(id uint) (*models.RiskA
 		Preload("Controls").
 		Preload("Controls.Control").
 		Preload("Controls.Control.ControlType").
-		Preload("Controls.Control.Owner").
-		Preload("Controls.Control.OwnerUnit").
+		Preload("Controls.Control.ResponsibleUser").
+		Preload("Controls.Control.ResponsibleUnit").
 		Preload("ReviewUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").

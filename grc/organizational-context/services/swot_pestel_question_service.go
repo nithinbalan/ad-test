@@ -16,7 +16,7 @@ import (
 )
 
 type SwotPestelQuestionServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*organizationalContextDTOs.SwotPestelQuestionListDTO, error)
+	GetAll(params *organizationalContextDTOs.SwotPestelQuestionListQueryParamsDTO) ([]*organizationalContextDTOs.SwotPestelQuestionListDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationalContextDTOs.SwotPestelQuestionDTO, error)
 	GetByID(id uint) (*models.SwotPestelQuestion, error)
 	Create(currentUserID uint, swotPestelQuestion *models.SwotPestelQuestion) (*models.SwotPestelQuestion, error)
@@ -28,6 +28,8 @@ type SwotPestelQuestionServiceInterface interface {
 	UpdateAnswer(id uint, currentUserID uint, answerFormDTO *organizationalContextDTOs.AnswerFormDTO) error
 	CreateInvitees(id uint, currentUserID uint, inviteeFormDTO *organizationalContextDTOs.InviteeFormDTO) error
 	DeleteInvitees(questionId uint, ids []*uint, currentUserID uint) ([]uint, error)
+
+	GetSwotPestelQuestionSummary(isSwot string, isPestel string) (*organizationalContextDTOs.SwotPestelQuestionSummaryDTO, error)
 }
 
 // Service and implementations
@@ -43,9 +45,9 @@ func NewSwotPestelQuestionService(repo repositories.SwotPestelQuestionRepository
 	}
 }
 
-func (sqs *SwotPestelQuestionService) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*organizationalContextDTOs.SwotPestelQuestionListDTO, error) {
+func (sqs *SwotPestelQuestionService) GetAll(params *organizationalContextDTOs.SwotPestelQuestionListQueryParamsDTO) ([]*organizationalContextDTOs.SwotPestelQuestionListDTO, error) {
 	// Fetch raw models from the repository
-	return sqs.repo.GetAll(sort, sortBy, keyword, status, isSwot, isPestel)
+	return sqs.repo.GetAll(params)
 }
 
 func (sqs SwotPestelQuestionService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationalContextDTOs.SwotPestelQuestionDTO, error) {
@@ -447,4 +449,18 @@ func (spqfs *SwotPestelQuestionService) DeleteInvitees(questionId uint, ids []*u
 	}
 
 	return failedIds, nil
+}
+
+func (spqfs *SwotPestelQuestionService) GetSwotPestelQuestionSummary(isSwot string, isPestel string) (*organizationalContextDTOs.SwotPestelQuestionSummaryDTO, error) {
+	unansweredCount, answeredCount, err := spqfs.repo.GetSwotPestelQuestionSummary(isSwot, isPestel)
+	if err != nil {
+		return nil, err
+	}
+
+	summary := &organizationalContextDTOs.SwotPestelQuestionSummaryDTO{
+		UnansweredCount: unansweredCount,
+		AnsweredCount:   answeredCount,
+	}
+
+	return summary, nil
 }

@@ -62,6 +62,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationalContextRoutes.PUT("/pestel-questions/activate", middlewares.RolePermissionMiddleware(db, "organizational_context_setting", "modify"), swotPestelQuestionController.ActivateSwotPestelQuestions)
 	organizationalContextRoutes.PUT("/pestel-questions/deactivate", middlewares.RolePermissionMiddleware(db, "organizational_context_setting", "modify"), swotPestelQuestionController.DeactivateSwotPestelQuestions)
 
+	organizationalContextRoutes.GET("/swot-questions/summary", middlewares.RolePermissionMiddleware(db, "swot_analysis", "view"), swotPestelQuestionController.GetSwotPestelQuestionSummary)
 	organizationalContextRoutes.PUT("/swot-questions/:questionId/answer", middlewares.RolePermissionMiddleware(db, "swot_analysis", "modify"), swotPestelQuestionController.UpdateAnswer)
 	organizationalContextRoutes.PUT("/swot-questions/:questionId/answer-invitees", middlewares.RolePermissionMiddleware(db, "swot_analysis", "modify"), swotPestelQuestionController.CreateInvitees)
 	organizationalContextRoutes.PUT("/swot-questions/:questionId/answer-invitees/delete", middlewares.RolePermissionMiddleware(db, "swot_analysis", "modify"), swotPestelQuestionController.DeleteInvitees)
@@ -77,17 +78,21 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationalContextRoutes.POST("/swot-questions/:questionId/factors", middlewares.RolePermissionMiddleware(db, "swot_analysis", "modify"), swotPestelQuestionFactorController.CreateSwotPestelQuestionFactor)
 	organizationalContextRoutes.PUT("/swot-questions/:questionId/factors/:id", middlewares.RolePermissionMiddleware(db, "swot_analysis", "modify"), swotPestelQuestionFactorController.UpdateSwotPestelQuestionFactor)
 	organizationalContextRoutes.POST("/swot-questions/:questionId/factors/delete", middlewares.RolePermissionMiddleware(db, "swot_analysis", "modify"), swotPestelQuestionFactorController.DeleteSwotPestelQuestionFactors)
+	organizationalContextRoutes.GET("/swot-questions/factor-summary", middlewares.RolePermissionMiddleware(db, "swot_analysis", "view"), swotPestelQuestionFactorController.GetSwotPestelFactorCountByCategory)
 
+	organizationalContextRoutes.GET("/pestel-questions/summary", middlewares.RolePermissionMiddleware(db, "swot_analysis", "view"), swotPestelQuestionController.GetSwotPestelQuestionSummary)
 	organizationalContextRoutes.PUT("/pestel-questions/:questionId/answer", middlewares.RolePermissionMiddleware(db, "pestel_analysis", "modify"), swotPestelQuestionController.UpdateAnswer)
 	organizationalContextRoutes.PUT("/pestel-questions/:questionId/answer-invitees", middlewares.RolePermissionMiddleware(db, "pestel_analysis", "modify"), swotPestelQuestionController.CreateInvitees)
 	organizationalContextRoutes.PUT("/pestel-questions/:questionId/answer-invitees/delete", middlewares.RolePermissionMiddleware(db, "pestel_analysis", "modify"), swotPestelQuestionController.DeleteInvitees)
 
 	// swot pestel question factor
+	organizationalContextRoutes.GET("/pestel-questions/factors", swotPestelQuestionFactorController.GetAllSwotPestelFactors)
 	organizationalContextRoutes.GET("/pestel-questions/:questionId/factors", swotPestelQuestionFactorController.GetAllSwotPestelQuestionFactors)
 	organizationalContextRoutes.GET("/pestel-questions/:questionId/factors/:id", swotPestelQuestionFactorController.GetSwotPestelQuestionFactorDetails)
 	organizationalContextRoutes.POST("/pestel-questions/:questionId/factors", middlewares.RolePermissionMiddleware(db, "pestel_analysis", "modify"), swotPestelQuestionFactorController.CreateSwotPestelQuestionFactor)
 	organizationalContextRoutes.PUT("/pestel-questions/:questionId/factors/:id", middlewares.RolePermissionMiddleware(db, "pestel_analysis", "modify"), swotPestelQuestionFactorController.UpdateSwotPestelQuestionFactor)
 	organizationalContextRoutes.POST("/pestel-questions/:questionId/factors/delete", middlewares.RolePermissionMiddleware(db, "pestel_analysis", "modify"), swotPestelQuestionFactorController.DeleteSwotPestelQuestionFactors)
+	organizationalContextRoutes.GET("/pestel-questions/factor-summary", middlewares.RolePermissionMiddleware(db, "swot_analysis", "view"), swotPestelQuestionFactorController.GetSwotPestelFactorCountByCategory)
 
 	// stakeholder
 	organizationalContextRoutes.GET("/stakeholders", stakeholderController.GetAllStakeholders)

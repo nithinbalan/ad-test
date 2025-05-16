@@ -16,6 +16,8 @@ type Integration struct {
 	UpdatedBYID           *uint      `json:"updated_by_id"`
 	CreatedAt             time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt             *time.Time `json:"updated_at" gorm:"type:datetime"`
+	Type                  string     `json:"type" binding:"required,max=100,oneof=active-directory sharepoint onedrive google-drive tenable qualys manageengine ibm oracle odoo jira chatgpt gemini notion" gorm:"type:nvarchar(100);not null"`
+	Status                string     `json:"status" binding:"required,max=10,oneof=active inactive" gorm:"type:varchar(10);not null;default:'inactive'"`
 
 	// Relationships
 	CreatedBYUser         *User                  `gorm:"foreignKey:CreatedBYID"`
