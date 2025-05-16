@@ -15,6 +15,8 @@ type TprmModule struct {
 	ThirdPartyQuestionTypeController     *controllers.ThirdPartyQuestionTypeController
 	ThirdPartyQuestionLibraryController  *controllers.ThirdPartyQuestionLibraryController
 	QuestionSetController                *controllers.QuestionSetController
+	ThirdPartyAssessmentStatusController *controllers.ThirdPartyAssessmentStatusController
+	ThirdPartyAssessmentController       *controllers.ThirdPartyAssessmentController
 
 	ThirdPartyTypeSvc             services.ThirdPartyTypeServiceInterface
 	ThirdPartyRegisterSvc         services.ThirdPartyRegisterServiceInterface
@@ -77,6 +79,25 @@ func NewTprmModule(
 	)
 	questionSetController := controllers.NewQuestionSetController(questionSetSvc)
 
+	thirdPartyAssessmentStatusRepo := repositories.NewThirdPartyAssessmentStatusRepository(db)
+	thirdPartyAssessmentStatusSvc := services.NewThirdPartyAssessmentStatusService(thirdPartyAssessmentStatusRepo)
+	thirdPartyAssessmentStatusController := controllers.NewThirdPartyAssessmentStatusController(thirdPartyAssessmentStatusSvc)
+
+	// === Third Party Register ===
+	thirdPartyAssessmentRepo := repositories.NewThirdPartyAssessmentRepository(db)
+	thirdPartyAssessmentSvc := services.NewThirdPartyAssessmentService(
+		thirdPartyAssessmentRepo,
+		sharedModule.ActivityLogService,
+		masterModule.SeverityLevelSvc,
+		organizationModule.UserSvc,
+		settingsModule.OrganizationUnitSvc,
+		thirdPartyRegisterSvc,
+		questionSetSvc,
+		thirdPartyAssessmentStatusSvc,
+		organizationModule.UserSettingSvc,
+	)
+	thirdPartyAssessmentController := controllers.NewThirdPartyAssessmentController(thirdPartyAssessmentSvc)
+
 	return &TprmModule{
 		ThirdPartyTypeController:             thirdPartyTypeController,
 		ThirdPartyRegisterController:         thirdPartyRegisterController,
@@ -84,6 +105,8 @@ func NewTprmModule(
 		ThirdPartyQuestionTypeController:     thirdPartyQuestionTypeController,
 		ThirdPartyQuestionLibraryController:  thirdPartyQuestionLibraryController,
 		QuestionSetController:                questionSetController,
+		ThirdPartyAssessmentStatusController: thirdPartyAssessmentStatusController,
+		ThirdPartyAssessmentController:       thirdPartyAssessmentController,
 
 		ThirdPartyTypeSvc:             thirdPartyTypeSvc,
 		ThirdPartyRegisterSvc:         thirdPartyRegisterSvc,
