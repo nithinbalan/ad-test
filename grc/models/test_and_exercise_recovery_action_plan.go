@@ -11,6 +11,7 @@ type TestAndExerciseRecoveryActionPlan struct {
 	ProcessID          uint       `json:"process_id" binding:"required"`
 	SeverityLevelID    *uint      `json:"severity_level_id"`
 	Title              string     `json:"title"`
+	Description        *string    `json:"description"`
 	ResponsibleUserID  uint       `json:"responsible_user_id" gorm:"not null" binding:"required"`
 	ResponsibleUnitID  uint       `json:"responsible_unit_id" gorm:"not null" binding:"required"`
 	TargetDate         *time.Time `json:"target_date"`
