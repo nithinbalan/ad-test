@@ -72,7 +72,7 @@ func (repo *SwotPestelQuestionGroupRepository) GetAll(params *organizationalCont
 	for _, result := range results {
 		var questions []*organizationalContextDTOs.QuestionDTO
 
-		repo.db.Model(&models.SwotPestelQuestion{}).Where("swot_pestel_question_group_id = ?", result.ID).Where("status = ?", "active").Find(&questions)
+		repo.db.Model(&models.SwotPestelQuestion{}).Where("swot_pestel_question_group_id = ?", result.ID).Where("status = ?", "active").Order("[order] ASC").Find(&questions)
 		result.SwotPestelQuestions = questions
 	}
 	return results, err
