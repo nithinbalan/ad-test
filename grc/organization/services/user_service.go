@@ -1328,7 +1328,7 @@ func (us *UserService) GetUsersFromAD() ([]*userDTOs.ADUserDTO, error) {
 			Email:            email,
 			OrganizationUnit: organizationUnitName,
 			Designation:      designationTitle,
-			EmailExists:      exists,
+			IsExist:          exists,
 		})
 		slNo++
 	}

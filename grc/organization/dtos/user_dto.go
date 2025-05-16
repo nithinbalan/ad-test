@@ -297,5 +297,5 @@ type ADUserDTO struct {
 	Email            string `json:"email"`
 	OrganizationUnit string `json:"organization_unit"`
 	Designation      string `json:"designation"`
-	EmailExists      bool   `json:"email_exists"`
+	IsExist          bool   `json:"is_exist"`
 }
