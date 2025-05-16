@@ -50,8 +50,8 @@ func (biac *BusinessImpactAssessmentController) GetAllProcesses(c *gin.Context) 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"process_group_ids",
-		"owner_unit_ids",
-		"owner_ids",
+		"responsible_unit_ids",
+		"responsible_user_ids",
 		"lifecycle_status_ids",
 		"risk_level_ids",
 		"process_criticality_level_ids",
@@ -393,7 +393,7 @@ func (biac *BusinessImpactAssessmentController) GetAllBIAImpactAnalysis(c *gin.C
 		"process_ids",
 		"risk_level_ids",
 		"responsible_unit_ids",
-		"owner_ids",
+		"responsible_user_ids",
 		"process_criticality_level_ids",
 	}
 
@@ -638,8 +638,8 @@ func (biac *BusinessImpactAssessmentController) GetBIAMatrix(c *gin.Context) {
 	allowedParams := []string{
 		"process_ids",
 		"risk_level_ids",
-		"owner_unit_ids",
-		"owner_ids",
+		"responsible_unit_ids",
+		"responsible_user_ids",
 		"process_criticality_level_ids",
 	}
 

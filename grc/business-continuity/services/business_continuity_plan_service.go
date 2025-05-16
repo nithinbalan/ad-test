@@ -561,7 +561,8 @@ func (bcps *BusinessContinuityPlanService) Delete(ids []uint, currentUserID uint
 			}
 			if err := bcps.repo.DeleteBcpProcesses(deleteprocessIDs, tx); err != nil {
 				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 		}
 
@@ -574,7 +575,8 @@ func (bcps *BusinessContinuityPlanService) Delete(ids []uint, currentUserID uint
 			}
 			if err := bcps.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
 				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 		}
 
