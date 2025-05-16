@@ -504,6 +504,80 @@ func (uc *UserController) GetUserPermissions(c *gin.Context) {
 	c.JSON(http.StatusOK, permissions)
 }
 
+func (cc *UserController) GenerateUserTemplate(c *gin.Context) {
+	file, err := cc.service.GenerateUserTemplate()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate template"})
+		return
+	}
+	defer file.Close()
+
+	c.Header("Content-Disposition", "attachment; filename=UserTemplate.xlsx")
+	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.File(file.Name())
+}
+
+func (cc *UserController) ValidateUserTemplate(c *gin.Context) {
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "File is required"})
+		return
+	}
+
+	openedFile, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open file"})
+		return
+	}
+	defer openedFile.Close()
+
+	validatedData, err := cc.service.ValidateUserTemplate(openedFile)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, validatedData)
+}
+
+func (cc *UserController) ValidateImportUsers(c *gin.Context) {
+	var input []map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	validatedData, err := cc.service.ValidateImportUsers(input)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, validatedData)
+}
+
+func (cc *UserController) ImportUsers(c *gin.Context) {
+	var input []map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cc.db, c, err.Error())
+		return
+	}
+
+	importedIDs, err := cc.service.ImportUsers(input, uint(currentUserID))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"imported_ids": importedIDs})
+}
+
 func (uc *UserController) SyncADUsers(c *gin.Context) {
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {

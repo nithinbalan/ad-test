@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	commonDTOs "jethur/grc/common/dtos"
 	commonService "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
@@ -54,6 +55,11 @@ type UserServiceInterface interface {
 	ExportUsers(data []*userDTOs.UserListDTO, currentUserID uint) (*os.File, error)
 
 	GetUserPermissions(userID uint, params *settingDTOs.ModuleListQueryParamsDTO) (*[]settingDTOs.ModuleListDTO, error)
+
+	GenerateUserTemplate() (*os.File, error)
+	ValidateUserTemplate(file io.Reader) ([]map[string]interface{}, error)
+	ValidateImportUsers(input []map[string]interface{}) ([]map[string]interface{}, error)
+	ImportUsers(input []map[string]interface{}, currentUserID uint) ([]uint, error)
 	SyncUsersFromAD(currentUserID uint) (int, error)
 	GetUsersFromAD() ([]*userDTOs.ADUserDTO, error)
 
@@ -1076,6 +1082,221 @@ func (us *UserService) validateLicenseKey(licenseKey string) error {
 	}
 
 	return nil
+}
+
+func (us *UserService) GenerateUserTemplate() (*os.File, error) {
+	// Headers for the first sheet (Template)
+	templateHeaders := []string{
+		"FirstNameEn", "LastNameEn", "FirstNameAr", "LastNameAr", "Email", "MobileNumber",
+		"Designation", "UserStatus", "PrimaryDepartment",
+	}
+	templateData := [][]interface{}{} // Empty template data
+
+	// Fetch Designations
+	designations, err := us.designationSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch designations: %v", err)
+	}
+	designationHeaders := []string{"Designation"}
+	designationData := [][]interface{}{}
+	for _, d := range designations {
+		designationData = append(designationData, []interface{}{d.TitleEn})
+	}
+
+	// Fetch User Statuses
+	statuses, err := us.userStatusSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user statuses: %v", err)
+	}
+	userStatusHeaders := []string{"UserStatus"}
+	userStatusData := [][]interface{}{}
+	for _, s := range statuses {
+		userStatusData = append(userStatusData, []interface{}{s.TitleEn})
+	}
+
+	// Fetch Primary Departments using GetAll
+	deptParams := &settingDTOs.OrganizationUnitListQueryParamsDTO{
+		Primary: true, // Fetch only primary departments
+		Status:  "active",
+	}
+	departments, err := us.organizationUnitSvc.GetAll(deptParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch primary departments: %v", err)
+	}
+	departmentHeaders := []string{"PrimaryDepartment"}
+	departmentData := [][]interface{}{}
+	for _, dept := range departments {
+		departmentData = append(departmentData, []interface{}{dept.TitleEn})
+	}
+
+	// Generate the Excel file with multiple sheets
+	file, err := utility.GenerateExcelFileWithSheets(map[string][][]interface{}{
+		"Template":          append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
+		"Designation":       append([][]interface{}{utility.ConvertToInterfaceSlice(designationHeaders)}, designationData...),
+		"UserStatus":        append([][]interface{}{utility.ConvertToInterfaceSlice(userStatusHeaders)}, userStatusData...),
+		"PrimaryDepartment": append([][]interface{}{utility.ConvertToInterfaceSlice(departmentHeaders)}, departmentData...),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
+}
+
+func (us *UserService) ValidateUserTemplate(file io.Reader) ([]map[string]interface{}, error) {
+	// Read Excel file
+	rows, err := utility.ReadExcelFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers and their expected format
+	inputHeaders := []string{"FirstNameEn", "LastNameEn", "FirstNameAr", "LastNameAr", "Email", "MobileNumber", "Designation", "UserStatus", "PrimaryDepartment"}
+	snakeCaseHeaders := []string{"first_name_en", "last_name_en", "first_name_ar", "last_name_ar", "email", "mobile_number", "designation", "user_status", "primary_department"}
+
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("empty Excel file")
+	}
+
+	// Validate headers
+	if !utility.ValidateHeaders(inputHeaders, rows[0]) {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid headers in the Excel file"), "invalid_header", "User Template")
+	}
+
+	// Convert rows to input format
+	var input []map[string]interface{}
+	for _, row := range rows[1:] { // Skip header row
+		record := make(map[string]interface{})
+		for i, header := range snakeCaseHeaders {
+			if i < len(row) {
+				record[header] = row[i]
+			} else {
+				record[header] = "" // Pad missing columns
+			}
+		}
+		input = append(input, record)
+	}
+
+	validatedData, err := us.validateUsers(input)
+	if err != nil {
+		return nil, err
+	}
+
+	return validatedData, nil
+}
+
+func (us *UserService) ValidateImportUsers(input []map[string]interface{}) ([]map[string]interface{}, error) {
+	validatedData, err := us.validateUsers(input)
+	if err != nil {
+		return nil, err
+	}
+	return validatedData, nil
+}
+
+func (us *UserService) ImportUsers(input []map[string]interface{}, currentUserID uint) ([]uint, error) {
+	validatedData, err := us.validateUsers(input)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check for validation errors
+	for _, record := range validatedData {
+		if errors, ok := record["errors"].(map[string]interface{}); ok && len(errors) > 0 {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid data in the import file"), "invalid_data", "Invalid Data")
+		}
+	}
+
+	// Store imported user IDs
+	var createdUserIDs []uint
+	for _, record := range validatedData {
+		user := &models.User{
+			FirstNameEn:         record["first_name_en"].(string),
+			LastNameEn:          record["last_name_en"].(string),
+			FirstNameAr:         record["first_name_ar"].(string),
+			LastNameAr:          record["last_name_ar"].(string),
+			Email:               record["email"].(string),
+			MobileNumber:        utility.GetOptionalStringValue(record["mobile_number"]),
+			DesignationID:       record["designation_id"].(uint),
+			UserStatusID:        record["user_status_id"].(uint),
+			OrganizationUnit1ID: record["primary_department_id"].(uint),
+			CreatedByID:         currentUserID,
+		}
+
+		// Save User
+		_, err := us.repo.Create(user)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create user for record: %+v, error: %v", record, err)
+		}
+
+		createdUserIDs = append(createdUserIDs, user.ID)
+	}
+
+	return createdUserIDs, nil
+}
+
+func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[string]interface{}, error) {
+	// headers := []string{"first_name_en", "last_name_en", "first_name_ar", "last_name_ar", "email", "mobile_number", "designation", "user_status", "primary_department"}
+
+	// Fetch existing designations
+	designations, err := us.designationSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching designations: %v", err)
+	}
+	designationTitles := make(map[string]uint)
+	for _, d := range designations {
+		designationTitles[strings.TrimSpace(d.TitleEn)] = d.ID
+	}
+
+	// Fetch user statuses
+	statuses, err := us.userStatusSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching user statuses: %v", err)
+	}
+	userStatusTitles := make(map[string]uint)
+	for _, s := range statuses {
+		userStatusTitles[strings.TrimSpace(s.TitleEn)] = s.ID
+	}
+
+	deptParams := &settingDTOs.OrganizationUnitListQueryParamsDTO{
+		Primary: true, // Fetch only primary departments
+		Status:  "active",
+	}
+	departments, err := us.organizationUnitSvc.GetAll(deptParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch primary departments: %v", err)
+	}
+
+	departmentNames := make(map[string]uint)
+	for _, dept := range departments {
+		departmentNames[strings.TrimSpace(dept.TitleEn)] = dept.ID
+	}
+
+	// Validate users
+	var validatedData []map[string]interface{}
+
+	for _, record := range input {
+		rowErrors := make(map[string]interface{})
+		userRecord := make(map[string]interface{})
+
+		// Copy original data
+		for key, value := range record {
+			userRecord[key] = value
+		}
+
+		// Validate fields (Similar logic as control validation)
+		// [Validation logic here for each field]
+
+		// Attach errors
+		if len(rowErrors) == 0 {
+			userRecord["errors"] = nil
+		} else {
+			userRecord["errors"] = rowErrors
+		}
+
+		validatedData = append(validatedData, userRecord)
+	}
+
+	return validatedData, nil
 }
 
 func (us *UserService) SyncUsersFromAD(currentUserID uint) (int, error) {
