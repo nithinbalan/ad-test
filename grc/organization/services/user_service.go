@@ -1235,9 +1235,12 @@ func (us *UserService) ImportUsers(input []map[string]interface{}, currentUserID
 }
 
 func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[string]interface{}, error) {
-	// headers := []string{"first_name_en", "last_name_en", "first_name_ar", "last_name_ar", "email", "mobile_number", "designation", "user_status", "primary_department"}
+	headers := []string{
+		"first_name_en", "last_name_en", "first_name_ar", "last_name_ar",
+		"email", "mobile_number", "designation", "user_status", "primary_department",
+	}
 
-	// Fetch existing designations
+	// Fetch designations
 	designations, err := us.designationSvc.GetAll("", "", "", "active")
 	if err != nil {
 		return nil, fmt.Errorf("error fetching designations: %v", err)
@@ -1257,39 +1260,92 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 		userStatusTitles[strings.TrimSpace(s.TitleEn)] = s.ID
 	}
 
+	// Fetch primary departments
 	deptParams := &settingDTOs.OrganizationUnitListQueryParamsDTO{
-		Primary: true, // Fetch only primary departments
+		Primary: true,
 		Status:  "active",
 	}
 	departments, err := us.organizationUnitSvc.GetAll(deptParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch primary departments: %v", err)
 	}
-
 	departmentNames := make(map[string]uint)
 	for _, dept := range departments {
 		departmentNames[strings.TrimSpace(dept.TitleEn)] = dept.ID
 	}
 
-	// Validate users
+	// Start validating input
 	var validatedData []map[string]interface{}
 
 	for _, record := range input {
 		rowErrors := make(map[string]interface{})
 		userRecord := make(map[string]interface{})
 
-		// Copy original data
+		// Copy original record
 		for key, value := range record {
 			userRecord[key] = value
 		}
 
-		// Validate fields (Similar logic as control validation)
-		// [Validation logic here for each field]
+		// Validate each field
+		for _, header := range headers {
+			value, _ := record[header].(string)
+			value = strings.TrimSpace(value)
 
-		// Attach errors
+			switch header {
+			case "first_name_en", "last_name_en", "first_name_ar", "last_name_ar":
+				if value == "" {
+					rowErrors[header] = "Field is required"
+				}
+
+			case "email":
+				if value == "" {
+					rowErrors[header] = "Field is required"
+				} else if !utility.IsValidEmail(value) {
+					rowErrors[header] = "Invalid email format"
+				}
+
+			case "mobile_number":
+				// Optional, no validation
+
+			case "designation":
+				if value == "" {
+					rowErrors[header] = "Field is required"
+				} else if id, exists := designationTitles[value]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid designation: %s", value)
+				} else {
+					userRecord["designation_id"] = id
+				}
+
+			case "user_status":
+				if value == "" {
+					rowErrors[header] = "Field is required"
+				} else if id, exists := userStatusTitles[value]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid user status: %s", value)
+				} else {
+					userRecord["user_status_id"] = id
+				}
+
+			case "primary_department":
+				if value == "" {
+					rowErrors[header] = "Field is required"
+				} else if id, exists := departmentNames[value]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid department: %s", value)
+				} else {
+					userRecord["primary_department_id"] = id
+				}
+			}
+		}
+
+		// Attach errors or success record
 		if len(rowErrors) == 0 {
 			userRecord["errors"] = nil
 		} else {
+			// Ensure all headers have a key in the error map
+			for _, header := range headers {
+				if _, exists := rowErrors[header]; !exists {
+					rowErrors[header] = ""
+				}
+			}
 			userRecord["errors"] = rowErrors
 		}
 
