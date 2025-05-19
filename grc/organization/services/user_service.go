@@ -1219,7 +1219,6 @@ func (us *UserService) ImportUsers(input []map[string]interface{}, currentUserID
 	if err != nil {
 		return nil, err
 	}
-
 	// Check for validation errors
 	for _, record := range validatedData {
 		if errors, ok := record["errors"].(map[string]interface{}); ok && len(errors) > 0 {
@@ -1227,28 +1226,61 @@ func (us *UserService) ImportUsers(input []map[string]interface{}, currentUserID
 		}
 	}
 
-	// Store imported user IDs
+	// Fetch org levels to know how many dynamic org unit fields to expect
+	orgLevels, err := us.organizationLevelSvc.GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching organization levels: %v", err)
+	}
+
 	var createdUserIDs []uint
 	for _, record := range validatedData {
+		initial := generateInitial(
+			record["first_name_en"].(string),
+			record["last_name_en"].(string),
+		)
+		color := utility.GenerateColorCode("user")
 		user := &models.User{
-			FirstNameEn:         record["first_name_en"].(string),
-			LastNameEn:          record["last_name_en"].(string),
-			FirstNameAr:         record["first_name_ar"].(string),
-			LastNameAr:          record["last_name_ar"].(string),
-			Email:               record["email"].(string),
-			MobileNumber:        utility.GetOptionalStringValue(record["mobile_number"]),
-			DesignationID:       record["designation_id"].(uint),
-			UserStatusID:        record["user_status_id"].(uint),
-			OrganizationUnit1ID: record["primary_department_id"].(uint),
-			CreatedByID:         currentUserID,
+			FirstNameEn:   record["first_name_en"].(string),
+			LastNameEn:    record["last_name_en"].(string),
+			FirstNameAr:   record["first_name_ar"].(string),
+			LastNameAr:    record["last_name_ar"].(string),
+			Email:         record["email"].(string),
+			MobileNumber:  utility.GetOptionalStringValue(record["mobile_number"]),
+			DesignationID: record["designation_id"].(uint),
+			UserStatusID:  record["user_status_id"].(uint),
+			CreatedByID:   currentUserID,
+			Initial:       initial,
+			Color:         color,
 		}
 
-		// Save User
+		// Dynamically set organization_unit_1_id, organization_unit_2_id, etc.
+		for _, level := range orgLevels {
+			key := fmt.Sprintf("organization_unit_%d_id", level.Level)
+			if val, ok := record[key]; ok {
+				if id, ok := val.(uint); ok {
+					switch level.Level {
+					case 1:
+						user.OrganizationUnit1ID = id
+					case 2:
+						user.OrganizationUnit2ID = &id
+					case 3:
+						user.OrganizationUnit3ID = &id
+					case 4:
+						user.OrganizationUnit4ID = &id
+					case 5:
+						user.OrganizationUnit5ID = &id
+					}
+				} else {
+					return nil, fmt.Errorf("organization_unit_%d_id is not a valid uint for user: %v", level.Level, record["email"])
+				}
+			}
+		}
+
+		// Save user
 		_, err := us.repo.Create(user)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create user for record: %+v, error: %v", record, err)
 		}
-
 		createdUserIDs = append(createdUserIDs, user.ID)
 	}
 
@@ -1281,33 +1313,38 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 		userStatusTitles[strings.TrimSpace(s.TitleEn)] = s.ID
 	}
 
-	// Fetch primary departments
-	deptParams := &settingDTOs.OrganizationUnitListQueryParamsDTO{
-		Primary: true,
-		Status:  "active",
-	}
-	departments, err := us.organizationUnitSvc.GetAll(deptParams)
+	// Fetch organization levels and units
+	orgLevels, err := us.organizationLevelSvc.GetAll()
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch primary departments: %v", err)
+		return nil, fmt.Errorf("error fetching organization levels: %v", err)
 	}
-	departmentNames := make(map[string]uint)
-	for _, dept := range departments {
-		departmentNames[strings.TrimSpace(dept.TitleEn)] = dept.ID
+	orgUnitsByLevel := make(map[int]map[string]uint)
+	for _, level := range orgLevels {
+		levelParam := &settingDTOs.OrganizationUnitListQueryParamsDTO{
+			Level:  level.ID,
+			Status: "active",
+		}
+		units, err := us.organizationUnitSvc.GetAll(levelParam)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching org units for level %d: %v", level.Level, err)
+		}
+		unitTitles := make(map[string]uint)
+		for _, u := range units {
+			unitTitles[strings.TrimSpace(u.TitleEn)] = u.ID
+		}
+		orgUnitsByLevel[int(level.Level)] = unitTitles
 	}
 
-	// Start validating input
 	var validatedData []map[string]interface{}
 
 	for _, record := range input {
 		rowErrors := make(map[string]interface{})
 		userRecord := make(map[string]interface{})
 
-		// Copy original record
 		for key, value := range record {
 			userRecord[key] = value
 		}
 
-		// Validate each field
 		for _, header := range headers {
 			value, _ := record[header].(string)
 			value = strings.TrimSpace(value)
@@ -1317,17 +1354,12 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 				if value == "" {
 					rowErrors[header] = "Field is required"
 				}
-
 			case "email":
 				if value == "" {
 					rowErrors[header] = "Field is required"
 				} else if !utility.IsValidEmail(value) {
 					rowErrors[header] = "Invalid email format"
 				}
-
-			case "mobile_number":
-				// Optional, no validation
-
 			case "designation":
 				if value == "" {
 					rowErrors[header] = "Field is required"
@@ -1336,7 +1368,6 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 				} else {
 					userRecord["designation_id"] = id
 				}
-
 			case "user_status":
 				if value == "" {
 					rowErrors[header] = "Field is required"
@@ -1345,26 +1376,36 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 				} else {
 					userRecord["user_status_id"] = id
 				}
-
-			case "primary_department":
-				if value == "" {
-					rowErrors[header] = "Field is required"
-				} else if id, exists := departmentNames[value]; !exists {
-					rowErrors[header] = fmt.Sprintf("Invalid department: %s", value)
-				} else {
-					userRecord["primary_department_id"] = id
-				}
 			}
 		}
 
-		// Attach errors or success record
+		for _, level := range orgLevels {
+			field := fmt.Sprintf("organization_unit_%d", level.Level)
+			val, _ := record[field].(string)
+			val = strings.TrimSpace(val)
+
+			if val == "" {
+				rowErrors[field] = "Field is required"
+			} else if id, ok := orgUnitsByLevel[int(level.Level)][val]; !ok {
+				rowErrors[field] = fmt.Sprintf("Invalid value: %s", val)
+			} else {
+				userRecord[field] = val
+				userRecord[fmt.Sprintf("%s_id", field)] = id
+			}
+		}
+
 		if len(rowErrors) == 0 {
 			userRecord["errors"] = nil
 		} else {
-			// Ensure all headers have a key in the error map
 			for _, header := range headers {
 				if _, exists := rowErrors[header]; !exists {
 					rowErrors[header] = ""
+				}
+			}
+			for _, level := range orgLevels {
+				field := fmt.Sprintf("organization_unit_%d_id", level.Level)
+				if _, exists := rowErrors[field]; !exists {
+					rowErrors[field] = ""
 				}
 			}
 			userRecord["errors"] = rowErrors
