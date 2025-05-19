@@ -61,7 +61,7 @@ type UserServiceInterface interface {
 	ValidateImportUsers(input []map[string]interface{}) ([]map[string]interface{}, error)
 	ImportUsers(input []map[string]interface{}, currentUserID uint) ([]uint, error)
 	SyncUsersFromAD(currentUserID uint) (int, error)
-	GetUsersFromAD() ([]*userDTOs.ADUserDTO, error)
+	GetUsersFromAD() ([]userDTOs.ADUserFlatDTO, error)
 
 	UpdateUserOrganizationUnit(userID uint, departmentUpdateFormDTO userDTOs.UpdateOrganizationUnitDTO) error
 }
@@ -1085,14 +1085,50 @@ func (us *UserService) validateLicenseKey(licenseKey string) error {
 }
 
 func (us *UserService) GenerateUserTemplate() (*os.File, error) {
-	// Headers for the first sheet (Template)
+	// Static base headers
 	templateHeaders := []string{
 		"FirstNameEn", "LastNameEn", "FirstNameAr", "LastNameAr", "Email", "MobileNumber",
-		"Designation", "UserStatus", "PrimaryDepartment",
+		"Designation", "UserStatus",
 	}
-	templateData := [][]interface{}{} // Empty template data
+	templateData := [][]interface{}{}
 
-	// Fetch Designations
+	sheets := map[string][][]interface{}{}
+
+	// 1. Get all organization levels (sorted by Level)
+	orgLevels, err := us.organizationLevelSvc.GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch organization levels: %v", err)
+	}
+
+	// 2. Loop through each level and add dynamic org_unit_id column + sheet
+	for _, level := range orgLevels {
+		rawColName := fmt.Sprintf("organization_unit_%d_id", level.Level)
+		formattedHeader := FormatOrgUnitHeader(rawColName)
+		templateHeaders = append(templateHeaders, formattedHeader)
+
+		// Fetch organization units by level (using `Level`, not FK)
+		levelID := level.ID
+		levelParam := &settingDTOs.OrganizationUnitListQueryParamsDTO{
+			Level:  levelID, // ✅ This is the foreign key to filter on
+			Status: "active",
+		}
+		units, err := us.organizationUnitSvc.GetAll(levelParam)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch organization units for level %d: %v", level.Level, err)
+		}
+
+		// Create a sheet with units under this level
+		unitSheetHeaders := []string{fmt.Sprintf("Level %d - %s", level.Level, level.TitleEn)}
+		unitSheetData := [][]interface{}{}
+		for _, u := range units {
+			unitSheetData = append(unitSheetData, []interface{}{u.TitleEn})
+		}
+
+		sheetName := fmt.Sprintf("OrgLevel%d", level.Level)
+		sheets[sheetName] = append([][]interface{}{utility.ConvertToInterfaceSlice(unitSheetHeaders)}, unitSheetData...)
+	}
+
+	// 3. Add Designation sheet
 	designations, err := us.designationSvc.GetAll("", "", "", "active")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch designations: %v", err)
@@ -1102,8 +1138,9 @@ func (us *UserService) GenerateUserTemplate() (*os.File, error) {
 	for _, d := range designations {
 		designationData = append(designationData, []interface{}{d.TitleEn})
 	}
+	sheets["Designation"] = append([][]interface{}{utility.ConvertToInterfaceSlice(designationHeaders)}, designationData...)
 
-	// Fetch User Statuses
+	// 4. Add UserStatus sheet
 	statuses, err := us.userStatusSvc.GetAll("", "", "", "active")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch user statuses: %v", err)
@@ -1113,29 +1150,13 @@ func (us *UserService) GenerateUserTemplate() (*os.File, error) {
 	for _, s := range statuses {
 		userStatusData = append(userStatusData, []interface{}{s.TitleEn})
 	}
+	sheets["UserStatus"] = append([][]interface{}{utility.ConvertToInterfaceSlice(userStatusHeaders)}, userStatusData...)
 
-	// Fetch Primary Departments using GetAll
-	deptParams := &settingDTOs.OrganizationUnitListQueryParamsDTO{
-		Primary: true, // Fetch only primary departments
-		Status:  "active",
-	}
-	departments, err := us.organizationUnitSvc.GetAll(deptParams)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch primary departments: %v", err)
-	}
-	departmentHeaders := []string{"PrimaryDepartment"}
-	departmentData := [][]interface{}{}
-	for _, dept := range departments {
-		departmentData = append(departmentData, []interface{}{dept.TitleEn})
-	}
+	// 5. Add Template sheet
+	sheets["Template"] = append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...)
 
-	// Generate the Excel file with multiple sheets
-	file, err := utility.GenerateExcelFileWithSheets(map[string][][]interface{}{
-		"Template":          append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
-		"Designation":       append([][]interface{}{utility.ConvertToInterfaceSlice(designationHeaders)}, designationData...),
-		"UserStatus":        append([][]interface{}{utility.ConvertToInterfaceSlice(userStatusHeaders)}, userStatusData...),
-		"PrimaryDepartment": append([][]interface{}{utility.ConvertToInterfaceSlice(departmentHeaders)}, departmentData...),
-	})
+	// 6. Generate Excel
+	file, err := utility.GenerateExcelFileWithSheets(sheets)
 	if err != nil {
 		return nil, err
 	}
@@ -1518,7 +1539,7 @@ func (us *UserService) SyncUsersFromAD(currentUserID uint) (int, error) {
 	return usersSynced, nil
 }
 
-func (us *UserService) GetUsersFromAD() ([]*userDTOs.ADUserDTO, error) {
+func (us *UserService) GetUsersFromAD() ([]userDTOs.ADUserFlatDTO, error) {
 	// ✅ First check AD connection using existing service
 	if err := us.activeDirectorySettingSvc.GetADConnection(); err != nil {
 		return nil, err
@@ -1569,7 +1590,12 @@ func (us *UserService) GetUsersFromAD() ([]*userDTOs.ADUserDTO, error) {
 		return nil, fmt.Errorf("LDAP search failed: %w", err)
 	}
 	slNo := 1
-	var users []*userDTOs.ADUserDTO
+	orgLevels, err := us.organizationLevelSvc.GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch organization levels: %w", err)
+	}
+	orgLevelCount := len(orgLevels)
+	var result []userDTOs.ADUserFlatDTO
 	for _, entry := range sr.Entries {
 		firstName := entry.GetAttributeValue("givenName")
 		lastName := entry.GetAttributeValue("sn")
@@ -1588,29 +1614,50 @@ func (us *UserService) GetUsersFromAD() ([]*userDTOs.ADUserDTO, error) {
 			return nil, fmt.Errorf("failed to check user existence: %w", err)
 		}
 
-		var organizationUnitName string
-		dnParts := strings.Split(distinguishedName, ",")
-		for _, part := range dnParts {
+		ouParts := []string{}
+		for _, part := range strings.Split(distinguishedName, ",") {
+			part = strings.TrimSpace(part)
 			if strings.HasPrefix(strings.ToUpper(part), "OU=") {
-				ou := strings.TrimPrefix(part, "OU=")
-				organizationUnitName = ou
-				break
+				ouParts = append([]string{strings.TrimPrefix(part, "OU=")}, ouParts...)
 			}
 		}
 
-		users = append(users, &userDTOs.ADUserDTO{
-			SlNo:             slNo,
-			FirstName:        firstName,
-			LastName:         lastName,
-			Email:            email,
-			OrganizationUnit: organizationUnitName,
-			Designation:      designationTitle,
-			IsExist:          exists,
-		})
+		user := userDTOs.ADUserFlatDTO{
+			"sl_no":         slNo,
+			"first_name_en": firstName,
+			"last_name_en":  lastName,
+			"first_name_ar": firstName,
+			"last_name_ar":  lastName,
+			"email":         email,
+			"mobile_number": "",
+			"designation":   designationTitle,
+			"user_status":   "Active",
+			"primary_department": func() string {
+				if len(ouParts) > 0 {
+					return ouParts[0]
+				}
+				return ""
+			}(),
+			"is_exists":                  exists,
+			"oraganization_level_counts": orgLevelCount,
+			"errors":                     nil,
+		}
+
+		// Add dynamic org unit fields
+		for i := 0; i < orgLevelCount; i++ {
+			key := fmt.Sprintf("organization_unit_%d", i+1)
+			if i < len(ouParts) {
+				user[key] = ouParts[i]
+			} else {
+				user[key] = ""
+			}
+		}
+
+		result = append(result, user)
 		slNo++
 	}
 
-	return users, nil
+	return result, nil
 }
 
 // Handles logic when user's organization unit changes
@@ -1738,4 +1785,20 @@ func (us *UserService) validateUpdateOrganizationUnitDTO(userID uint, dto userDT
 	}
 
 	return nil
+}
+
+func FormatOrgUnitHeader(input string) string {
+	// Remove trailing _id
+	if strings.HasSuffix(input, "_id") {
+		input = strings.TrimSuffix(input, "_id")
+	}
+
+	// Split and capitalize each part
+	parts := strings.Split(input, "_")
+	for i, part := range parts {
+		if len(part) > 0 {
+			parts[i] = strings.ToUpper(part[:1]) + part[1:]
+		}
+	}
+	return strings.Join(parts, " ")
 }
