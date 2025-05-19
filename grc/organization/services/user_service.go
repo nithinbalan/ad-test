@@ -1171,39 +1171,53 @@ func (us *UserService) ValidateUserTemplate(file io.Reader) ([]map[string]interf
 		return nil, err
 	}
 
-	// Define headers and their expected format
-	inputHeaders := []string{"FirstNameEn", "LastNameEn", "FirstNameAr", "LastNameAr", "Email", "MobileNumber", "Designation", "UserStatus", "PrimaryDepartment"}
-	snakeCaseHeaders := []string{"first_name_en", "last_name_en", "first_name_ar", "last_name_ar", "email", "mobile_number", "designation", "user_status", "primary_department"}
-
 	if len(rows) == 0 {
 		return nil, fmt.Errorf("empty Excel file")
 	}
 
-	// Validate headers
-	if !utility.ValidateHeaders(inputHeaders, rows[0]) {
+	// Build dynamic headers from organization levels
+	orgLevels, err := us.organizationLevelSvc.GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch organization levels: %v", err)
+	}
+
+	// Expected display headers (from Excel) and corresponding internal snake_case headers
+	expectedHeaders := []string{
+		"FirstNameEn", "LastNameEn", "FirstNameAr", "LastNameAr",
+		"Email", "MobileNumber", "Designation", "UserStatus",
+	}
+	snakeCaseHeaders := []string{
+		"first_name_en", "last_name_en", "first_name_ar", "last_name_ar",
+		"email", "mobile_number", "designation", "user_status",
+	}
+
+	for _, level := range orgLevels {
+		display := fmt.Sprintf("Organization Unit %d", level.Level)
+		snake := fmt.Sprintf("organization_unit_%d", level.Level)
+		expectedHeaders = append(expectedHeaders, display)
+		snakeCaseHeaders = append(snakeCaseHeaders, snake)
+	}
+
+	// Validate header row
+	if !utility.ValidateHeaders(expectedHeaders, rows[0]) {
 		return nil, utility.NewValidationError(fmt.Errorf("invalid headers in the Excel file"), "invalid_header", "User Template")
 	}
 
-	// Convert rows to input format
+	// Convert data rows to map format
 	var input []map[string]interface{}
 	for _, row := range rows[1:] { // Skip header row
 		record := make(map[string]interface{})
-		for i, header := range snakeCaseHeaders {
+		for i, key := range snakeCaseHeaders {
 			if i < len(row) {
-				record[header] = row[i]
+				record[key] = row[i]
 			} else {
-				record[header] = "" // Pad missing columns
+				record[key] = ""
 			}
 		}
 		input = append(input, record)
 	}
 
-	validatedData, err := us.validateUsers(input)
-	if err != nil {
-		return nil, err
-	}
-
-	return validatedData, nil
+	return us.validateUsers(input)
 }
 
 func (us *UserService) ValidateImportUsers(input []map[string]interface{}) ([]map[string]interface{}, error) {
