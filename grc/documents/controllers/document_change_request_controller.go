@@ -495,6 +495,12 @@ func (dcrc *DocumentChangeRequestController) GetLastEditSummary(c *gin.Context) 
 	c.JSON(http.StatusOK, lastEditSummary)
 }
 func (dcrc *DocumentChangeRequestController) PublishDocumentChangeRequest(c *gin.Context) {
+	var documentPublishFormDTO documentDTOs.DocumentPublishFormDTO
+	if err := c.ShouldBindJSON(&documentPublishFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -508,7 +514,7 @@ func (dcrc *DocumentChangeRequestController) PublishDocumentChangeRequest(c *gin
 		return
 	}
 
-	err = dcrc.service.PublishDocumentChangeRequest(uint(id), currentUserID)
+	err = dcrc.service.PublishDocumentChangeRequest(uint(id), currentUserID, documentPublishFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:

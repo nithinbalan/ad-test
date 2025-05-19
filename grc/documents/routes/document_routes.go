@@ -111,10 +111,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	documentRoutes.GET("/documents/:id/last-edit-summary", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentController.GetLastEditSummary)
 
-	documentRoutes.GET("/documents/:id/acknowledge-users", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAcknowledgeUserController.GetAllDocumentAcknowledgeUsers)
-	documentRoutes.POST("/documents/:id/acknowledge", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAcknowledgeUserController.CreateDocumentAcknowledgeUser)
-	documentRoutes.DELETE("/documents/:id/acknowledge", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAcknowledgeUserController.DeleteDocumentAcknowledgeUser)
-	documentRoutes.GET("/documents/:id/acknowledge-user-summary", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAcknowledgeUserController.GetDocumentAcknowledgmentSummary)
+	documentRoutes.GET("/documents/:id/version/:versionId/acknowledge-users", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAcknowledgeUserController.GetAllDocumentAcknowledgeUsers)
+	documentRoutes.POST("/documents/:id/version/:versionId/acknowledge", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAcknowledgeUserController.CreateDocumentAcknowledgeUser)
+	documentRoutes.DELETE("/documents/:id/version/:versionId/acknowledge", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAcknowledgeUserController.DeleteDocumentAcknowledgeUser)
+	documentRoutes.GET("/documents/:id/version/:versionId/acknowledge-user-summary", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAcknowledgeUserController.GetDocumentAcknowledgmentSummary)
 
 	documentRoutes.GET("/documents/:id/audit-logs", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAuditLogController.GetAllDocumentAuditLogs)
 
