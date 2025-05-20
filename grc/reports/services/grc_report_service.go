@@ -265,6 +265,7 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 			DocumentStatusTitleEn:   document.DocumentStatus.TitleEn,
 			DocumentStatusTitleAr:   document.DocumentStatus.TitleAr,
 			DocumentStatusColorCode: document.DocumentStatus.ColorCode,
+			AcknowledgeDueDate:      document.LatestDocumentVersion.AcknowledgeDueDate,
 			CreatedBYID:             currentUserID,
 		}
 
@@ -494,6 +495,11 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		return 0, fmt.Errorf("failed to fetch top published documents: %w", err)
 	}
 
+	risktrend, err := grs.repo.GetRiskTrend(*dates.StartDate, *dates.EndDate, tx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch risk trend: %w", err)
+	}
+
 	riskOverviewJSON, err := json.Marshal(riskOverviewChart)
 	if err != nil {
 		return 0, fmt.Errorf("failed to marshal risk overview: %w", err)
@@ -509,9 +515,15 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		return 0, fmt.Errorf("failed to marshal top risk: %w", err)
 	}
 
+	riskTrendJSON, err := json.Marshal(risktrend)
+	if err != nil {
+		return 0, fmt.Errorf("failed to marshal top risk: %w", err)
+	}
+
 	riskOverviewStr := string(riskOverviewJSON)
 	riskHeatmapStr := string(riskHeatmapJSON)
 	topRiskStr := string(topRiskJSON)
+	riskTrendStr := string(riskTrendJSON)
 
 	strPtr := func(s string) *string { return &s }
 
@@ -525,6 +537,7 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		RiskOverviewChart:   &riskOverviewStr,
 		TopRisks:            &topRiskStr,
 		RiskHeatmapChart:    &riskHeatmapStr,
+		RiskTrend:           &riskTrendStr,
 		CreatedBYID:         currentUserID,
 	}
 

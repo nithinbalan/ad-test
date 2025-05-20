@@ -87,22 +87,23 @@ type GRCGovernanceSummaryResponseDTO struct {
 }
 
 type GRCGovernanceDocumentResponseDTO struct {
-	ID                      uint   `json:"id"`
-	ReferenceNumber         string `json:"reference_number"`
-	DocumentTitleEn         string `json:"document_title_en"`
-	DocumentTitleAr         string `json:"document_title_ar"`
-	ResponsibleUserNameEn   string `json:"responsible_user_name_en"`
-	ResponsibleUserNameAr   string `json:"responsible_user_name_ar"`
-	ResponsibleUnitTitleEn  string `json:"responsible_unit_title_en"`
-	ResponsibleUnitTitleAr  string `json:"responsible_unit_title_ar"`
-	TotalEmployees          int    `json:"total_employees"`
-	AcknowledgedCount       int    `json:"acknowledged_count"`
-	PendingCount            int    `json:"pending_count"`
-	DocumentStatusTitleEn   string `json:"document_status_title_en"`
-	DocumentStatusTitleAr   string `json:"document_status_title_ar"`
-	DocumentStatusColorCode string `json:"document_status_color_code"`
-	CreatedByID             uint   `json:"created_by_id"`
-	CreatedAt               string `json:"created_at"`
+	ID                      uint    `json:"id"`
+	ReferenceNumber         string  `json:"reference_number"`
+	DocumentTitleEn         string  `json:"document_title_en"`
+	DocumentTitleAr         string  `json:"document_title_ar"`
+	ResponsibleUserNameEn   string  `json:"responsible_user_name_en"`
+	ResponsibleUserNameAr   string  `json:"responsible_user_name_ar"`
+	ResponsibleUnitTitleEn  string  `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr  string  `json:"responsible_unit_title_ar"`
+	TotalEmployees          int     `json:"total_employees"`
+	AcknowledgedCount       int     `json:"acknowledged_count"`
+	PendingCount            int     `json:"pending_count"`
+	DocumentStatusTitleEn   string  `json:"document_status_title_en"`
+	DocumentStatusTitleAr   string  `json:"document_status_title_ar"`
+	DocumentStatusColorCode string  `json:"document_status_color_code"`
+	AcknowledgeDueDate      *string `json:"acknowledge_due_date"`
+	CreatedByID             uint    `json:"created_by_id"`
+	CreatedAt               string  `json:"created_at"`
 }
 
 type GRCGovernanceTaskResponseDTO struct {
@@ -252,6 +253,7 @@ type GRCRiskSummaryResponseDTO struct {
 	RiskOverviewChart   *string `json:"risk_overview_chart"`
 	RiskHeatmapChart    *string `json:"risk_heatmap_chart"`
 	TopRisks            *string `json:"top_risks"`
+	RiskTrend           *string `json:"risk_trend"`
 }
 
 type GRCReportRiskKriResponseDTO struct {
@@ -364,4 +366,10 @@ type GRCReportSLAResponseDTO struct {
 	LifeCycleStatusColorCode      string  `json:"life_cycle_status_color_code"`
 	ExperyDate                    *string `json:"expery_date"`
 	IssueDate                     *string `json:"issue_date"`
+}
+
+type RiskTrendDTO struct {
+	Month       string `json:"month"`
+	NewRisks    int    `json:"new_risks"`
+	ClosureRate int    `json:"closure_rate"`
 }
