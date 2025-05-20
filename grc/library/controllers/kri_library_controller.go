@@ -28,6 +28,7 @@ func (klc *KRILibraryController) GetAllKRILibrary(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
+	category := c.Query("category")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -45,6 +46,7 @@ func (klc *KRILibraryController) GetAllKRILibrary(c *gin.Context) {
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
+		Category: category,
 		Page:     page,
 		PageSize: pageSize,
 	}
