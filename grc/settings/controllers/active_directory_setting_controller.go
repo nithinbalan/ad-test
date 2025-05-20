@@ -94,3 +94,28 @@ func (adsc *ActiveDirectorySettingController) CheckActiveDirectoryConnection(ctx
 
 	ctx.JSON(http.StatusOK, gin.H{"success": true, "message": "Active Directory connection successful"})
 }
+
+func (adsc *ActiveDirectorySettingController) CheckSavedADConnection(ctx *gin.Context) {
+	err := adsc.service.GetADConnection()
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(ctx)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(ctx, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(ctx, err.Error())
+			return
+		case *utility.ActiveDirectoryConnectionError:
+			utility.SendCustomErrResp(ctx, http.StatusUnprocessableEntity, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(adsc.db, ctx, e.Error())
+			return
+		}
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"success": true, "message": "Active Directory connection (from saved config) successful"})
+}
