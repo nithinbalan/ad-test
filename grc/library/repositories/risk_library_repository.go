@@ -3,6 +3,7 @@ package repositories
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	libraryDTOs "jethur/grc/library/dtos"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -50,7 +51,9 @@ func (repo *RiskLibraryRepository) GetAll(params *libraryDTOs.RiskLibraryListQue
 
 	// Filter by category
 	if params.Category != "" {
-		query = query.Where("category = ?", params.Category)
+		// query = query.Where("category = ?", params.Category)
+		query = query.Where("TRIM(LOWER(category)) = ?", strings.ToLower(strings.TrimSpace(params.Category)))
+
 	}
 
 	// Count total for pagination
