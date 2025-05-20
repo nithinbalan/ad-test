@@ -33,6 +33,13 @@ func (dauc *DocumentAcknowledgeUserController) GetAllDocumentAcknowledgeUsers(c 
 		return
 	}
 
+	versionIdStr := c.Param("versionId")
+	documentVersionId, err := strconv.ParseUint(versionIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "first_name_en")
 	keyword := c.Query("keyword")
@@ -73,7 +80,7 @@ func (dauc *DocumentAcknowledgeUserController) GetAllDocumentAcknowledgeUsers(c 
 		PageSize: pageSize,
 	}
 
-	users, err := dauc.service.GetAll(uint(documentId), &queryParams)
+	users, err := dauc.service.GetAll(uint(documentId), uint(documentVersionId), &queryParams)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -91,13 +98,20 @@ func (dauc *DocumentAcknowledgeUserController) CreateDocumentAcknowledgeUser(c *
 		return
 	}
 
+	versionIdStr := c.Param("versionId")
+	documentVersionId, err := strconv.ParseUint(versionIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(dauc.db, c, err.Error())
 		return
 	}
 
-	id, err := dauc.service.Create(uint(documentId), currentUserID)
+	id, err := dauc.service.Create(uint(documentId), uint(documentVersionId), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -127,13 +141,20 @@ func (dauc *DocumentAcknowledgeUserController) DeleteDocumentAcknowledgeUser(c *
 		return
 	}
 
+	versionIdStr := c.Param("versionId")
+	documentVersionId, err := strconv.ParseUint(versionIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(dauc.db, c, err.Error())
 		return
 	}
 
-	failedID, err := dauc.service.Delete(uint(documentId), currentUserID)
+	failedID, err := dauc.service.Delete(uint(documentId), uint(documentVersionId), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -162,7 +183,14 @@ func (dauc *DocumentAcknowledgeUserController) GetDocumentAcknowledgmentSummary(
 		return
 	}
 
-	summary, err := dauc.service.GetDocumentAcknowledgmentSummary(uint(documentId))
+	versionIdStr := c.Param("versionId")
+	documentVersionId, err := strconv.ParseUint(versionIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	summary, err := dauc.service.GetDocumentAcknowledgmentSummary(uint(documentId), uint(documentVersionId))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
