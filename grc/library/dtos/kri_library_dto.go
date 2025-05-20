@@ -21,7 +21,7 @@ type KRILibraryListQueryParamsDTO struct {
 	Sort     string
 	SortBy   string
 	Keyword  string
-	Category string
+	Category []string
 	Page     int
 	PageSize int
 }

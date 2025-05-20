@@ -49,8 +49,8 @@ func (repo *RiskLibraryRepository) GetAll(params *libraryDTOs.RiskLibraryListQue
 	}
 
 	// Filter by category
-	if params.Category != "" {
-		query = query.Where("category = ?", params.Category)
+	if len(params.Category) > 0 {
+		query = query.Where("category IN ?", params.Category)
 	}
 
 	// Count total for pagination
