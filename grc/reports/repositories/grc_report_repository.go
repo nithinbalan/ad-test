@@ -51,6 +51,7 @@ type GRCReportRepositoryInterface interface {
 	GetGRCReportRiskKRIs(grcReportID uint) ([]dtos.GRCReportRiskKriResponseDTO, error)
 	GetGRCReportRiskControls(grcReportID uint) ([]dtos.GRCReportRiskControlResponseDTO, error)
 	GetGRCReportRiskSummary(grcReportID uint) (*dtos.GRCRiskSummaryResponseDTO, error)
+	GetRiskTrend(startDate time.Time, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.RiskTrendDTO, error)
 
 	CreateGRCReportRiskSummary(summary *models.GRCReportRiskSummary, tx ...utility.DatabaseTransaction) error
 	GetRisksByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]*models.RiskRegister, error)
@@ -210,7 +211,7 @@ func (repo *GRCReportRepository) GetGRCReportGovernanceDocuments(grcReportID uin
 			responsible_user_name_en, responsible_user_name_ar,
 			responsible_unit_title_en, responsible_unit_title_ar,
 			total_employees, acknowledged_count, pending_count,
-			document_status_title_en, document_status_title_ar, document_status_color_code,
+			document_status_title_en, document_status_title_ar, document_status_color_code,acknowledge_due_date,
 			created_by_id, created_at
 		`).
 		Where("grc_report_id = ?", grcReportID).
@@ -307,14 +308,17 @@ func (repo *GRCReportRepository) GetPolicyDocumentByDateRange(startDate, endDate
 	var documents []*models.Document
 	err := db.
 		Joins("JOIN document_types dt ON dt.id = documents.document_type_id").
+		Joins("JOIN document_versions dv ON dv.document_id = documents.id").
 		Where("dt.type = ?", "policy").
-		Where("documents.created_at BETWEEN ? AND ?", startDate, endDate).
+		Where("dv.acknowledge_due_date BETWEEN ? AND ?", startDate, endDate).
+		Where("dv.is_latest_version = ?", true).
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUnit").
 		Preload("DocumentAccessType").
 		Preload("DocumentStatus").
 		Preload("DocumentType").
 		Preload("DocumentCategory").
+		Preload("LatestDocumentVersion", "is_latest_version = ?", true).
 		Find(&documents).Error
 
 	if err != nil {
@@ -861,7 +865,8 @@ func (repo *GRCReportRepository) GetGRCReportRiskSummary(grcReportID uint) (*dto
 			kris,
 			risk_overview_chart,
 			risk_heatmap_chart,
-			top_risks
+			top_risks,
+			risk_trend
 		`).
 		Where("grc_report_id = ?", grcReportID).
 		Scan(&summary).Error
@@ -1031,4 +1036,66 @@ func (repo *GRCReportRepository) GetGRCReportSLA(grcReportID uint) ([]*dtos.GRCR
 		return nil, err
 	}
 	return slas, nil
+}
+
+func (repo *GRCReportRepository) GetRiskTrend(startDate time.Time, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.RiskTrendDTO, error) {
+	type MonthlyData struct {
+		Month       int
+		NewRisks    int
+		ClosureRate int
+	}
+
+	var closedStatusIDs []uint
+	if err := repo.db.
+		Table("risk_statuses").
+		Where("type = ?", "closed").
+		Pluck("id", &closedStatusIDs).Error; err != nil {
+		return nil, err
+	}
+
+	var results []MonthlyData
+	query := `
+        SELECT 
+            MONTH(created_at) AS month,
+            SUM(CASE WHEN created_at BETWEEN ? AND ? THEN 1 ELSE 0 END) AS new_risks,
+            SUM(CASE 
+                WHEN created_at BETWEEN ? AND ? AND risk_status_id IN (?)
+                THEN 1 ELSE 0 END
+            ) AS closure_rate
+        FROM risk_register
+        WHERE created_at BETWEEN ? AND ?
+        GROUP BY MONTH(created_at)
+        ORDER BY MONTH(created_at)
+    `
+
+	if err := repo.db.
+		Raw(query,
+			startDate, endDate, // for new_risks
+			startDate, endDate, // for closure_rate
+			closedStatusIDs,    // for IN clause
+			startDate, endDate, // for WHERE clause
+		).
+		Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	// Convert numeric month to label and fill missing months
+	monthLabels := [12]string{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}
+	dataMap := make(map[int]MonthlyData)
+	for _, res := range results {
+		dataMap[res.Month] = res
+	}
+
+	var final []dtos.RiskTrendDTO
+	for i := 1; i <= 12; i++ {
+		m := dataMap[i]
+		final = append(final, dtos.RiskTrendDTO{
+			Month:       monthLabels[i-1],
+			NewRisks:    m.NewRisks,
+			ClosureRate: m.ClosureRate,
+		})
+	}
+
+	return final, nil
+
 }
