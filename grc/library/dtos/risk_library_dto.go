@@ -18,6 +18,7 @@ type RiskLibraryListQueryParamsDTO struct {
 	Category []string
 	Page     int
 	PageSize int
+	Export   bool
 }
 
 type RiskLibraryListResponseDTO struct {

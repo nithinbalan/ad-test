@@ -24,6 +24,7 @@ type KRILibraryListQueryParamsDTO struct {
 	Category []string
 	Page     int
 	PageSize int
+	Export   bool
 }
 
 type KRILibraryListResponseDTO struct {

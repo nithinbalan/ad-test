@@ -70,8 +70,12 @@ func (repo *RiskLibraryRepository) GetAll(params *libraryDTOs.RiskLibraryListQue
 	query = query.Order(sortBy + " " + sortOrder)
 
 	// Pagination
-	offset := (params.Page - 1) * params.PageSize
-	err := query.Offset(offset).Limit(params.PageSize).Find(&RiskLibrary).Error
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	err := query.Find(&RiskLibrary).Error
 	if err != nil {
 		return nil, err
 	}

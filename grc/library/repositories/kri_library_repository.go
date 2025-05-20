@@ -80,8 +80,12 @@ func (repo *KRILibraryRepository) GetAll(params *libraryDTOs.KRILibraryListQuery
 	query = query.Order(sortBy + " " + sortOrder)
 
 	// Pagination
-	offset := (params.Page - 1) * params.PageSize
-	err := query.Offset(offset).Limit(params.PageSize).Find(&kriLibrary).Error
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	err := query.Find(&kriLibrary).Error
 	if err != nil {
 		return nil, err
 	}
