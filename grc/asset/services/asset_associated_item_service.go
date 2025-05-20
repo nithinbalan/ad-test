@@ -4,8 +4,11 @@ import (
 	"fmt"
 	assetDTOs "jethur/grc/asset/dtos"
 	assetRepsitories "jethur/grc/asset/repositories"
+	commonDTOs "jethur/grc/common/dtos"
+	complianceServices "jethur/grc/compliance/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+
 	"jethur/utility"
 )
 
@@ -15,6 +18,11 @@ type AssetAssociatedItemServiceInterface interface {
 	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisks(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error)
 	GetAllVulnerabilities(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]assetDTOs.VulnerabilityDTO, error)
+	GetAllClauses(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemClauseListResponseDTO, error)
+
+	CreateAssetComplianceClauses(assetID uint, formDTO assetDTOs.AssetComplianceClauseFormDTO, currentUserID uint) error
+	DeleteAssetComplianceClauses(assetID uint, ids []uint, currentUserID uint) ([]uint, error)
+
 	CreateAssetVulnerabilities(assetID uint, formDTO assetDTOs.AssetVulnerabilitiesFormDTO, currentUserID uint) error
 	DeleteAssetVulnerabilities(assetID uint, vulnerabilityIDs []uint, currentUserID uint) ([]uint, error)
 	CreateAssetVulnerabilityThreats(vulnerabilityId uint, formDTO assetDTOs.AssetVulnerabilityThreatsFormDTO, currentUserID uint) error
@@ -32,6 +40,7 @@ type AssetAssociatedItemService struct {
 	controlEfficiencyStatusService organizationServices.ControlEfficiencyStatusServiceInterface
 	vulnerabilitySvc               VulnerabilityServiceInterface
 	threatSvc                      ThreatServiceInterface
+	complianceClauseSvc            complianceServices.ComplianceClauseServiceInterface
 }
 
 // Constructor Function
@@ -42,6 +51,7 @@ func NewAssetAssociatedItemService(
 	controlEfficiencyStatusService organizationServices.ControlEfficiencyStatusServiceInterface,
 	vulnerabilitySvc VulnerabilityServiceInterface,
 	threatSvc ThreatServiceInterface,
+	complianceClauseSvc complianceServices.ComplianceClauseServiceInterface,
 ) AssetAssociatedItemServiceInterface {
 	return &AssetAssociatedItemService{
 		repo:                           repo,
@@ -50,6 +60,7 @@ func NewAssetAssociatedItemService(
 		controlEfficiencyStatusService: controlEfficiencyStatusService,
 		vulnerabilitySvc:               vulnerabilitySvc,
 		threatSvc:                      threatSvc,
+		complianceClauseSvc:            complianceClauseSvc,
 	}
 }
 
@@ -181,10 +192,40 @@ func (aais *AssetAssociatedItemService) GetAllIncidents(assetID uint, params *as
 }
 
 func (aais *AssetAssociatedItemService) GetAllRisks(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error) {
+	// Validate asset
 	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
 		return nil, err
 	}
-	return aais.repo.GetAllRisks(assetID, params)
+
+	// Get related vulnerability IDs
+	vulnerabilityIDs, err := aais.repo.GetVulnerabilityIDsByAssetID(assetID)
+	if err != nil {
+		return nil, err
+	}
+	if len(vulnerabilityIDs) == 0 {
+		return emptyRiskListResponse(params), nil
+	}
+
+	// Get related threat IDs
+	threatIDs, err := aais.repo.GetThreatIDsByVulnerabilityIDs(vulnerabilityIDs)
+	if err != nil {
+		return nil, err
+	}
+	if len(threatIDs) == 0 {
+		return emptyRiskListResponse(params), nil
+	}
+
+	// Get related risk IDs
+	riskRegisterIDs, err := aais.repo.GetRiskRegisterIDsByThreatIDs(threatIDs)
+	if err != nil {
+		return nil, err
+	}
+	if len(riskRegisterIDs) == 0 {
+		return emptyRiskListResponse(params), nil
+	}
+
+	// Final call to fetch filtered risks
+	return aais.repo.GetAllRisksByRiskIDs(riskRegisterIDs, params)
 }
 
 func (service *AssetAssociatedItemService) GetAllVulnerabilities(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]assetDTOs.VulnerabilityDTO, error) {
@@ -312,6 +353,13 @@ func (service *AssetAssociatedItemService) GetAllVulnerabilities(assetID uint, p
 	return vulnerabilityDTOs, nil
 }
 
+func (aais *AssetAssociatedItemService) GetAllClauses(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemClauseListResponseDTO, error) {
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return nil, err
+	}
+	return aais.repo.GetAllClauses(assetID, params)
+}
+
 func (aais *AssetAssociatedItemService) CreateAssetVulnerabilities(assetID uint, formDTO assetDTOs.AssetVulnerabilitiesFormDTO, currentUserID uint) error {
 	// Fetch asset to ensure it exists
 	_, err := aais.assetRegisterSvc.GetByID(assetID)
@@ -389,6 +437,85 @@ func (aais *AssetAssociatedItemService) DeleteAssetVulnerabilities(assetID uint,
 			failedIDs = append(failedIDs, id)
 		} else {
 			successfulIDs = append(successfulIDs, id)
+		}
+	}
+
+	return failedIDs, nil
+}
+
+func (aais *AssetAssociatedItemService) CreateAssetComplianceClauses(assetID uint, formDTO assetDTOs.AssetComplianceClauseFormDTO, currentUserID uint) error {
+	// Check if asset exists
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return err
+	}
+
+	var existingClauseIDs []uint
+	var records []*models.AssetComplianceRequirement
+
+	for _, clauseID := range formDTO.ComplianceClauseIDs {
+		if clauseID == nil {
+			continue
+		}
+
+		// Validate clause exists
+		if _, err := aais.complianceClauseSvc.GetByID(*clauseID); err != nil {
+			return err
+		}
+
+		// Check if mapping already exists
+		exists, err := aais.repo.GetAssetComplianceClauseExist(assetID, *clauseID)
+		if err != nil {
+			return err
+		}
+		if exists {
+			existingClauseIDs = append(existingClauseIDs, *clauseID)
+			continue
+		}
+
+		// Add to batch for insert
+		records = append(records, &models.AssetComplianceRequirement{
+			AssetRegisterID:    assetID,
+			ComplianceClauseID: clauseID,
+			CreatedBYID:        currentUserID,
+		})
+	}
+
+	// If any existing clause mappings found, return validation error
+	if len(existingClauseIDs) > 0 {
+		return utility.NewValidationError(
+			fmt.Errorf("compliance clauses already mapped"),
+			"already_exists", "compliance_clause_ids",
+		)
+	}
+
+	// Insert new records
+	tx := aais.repo.BeginTransaction()
+	if err := aais.repo.CreateAssetComplianceClauses(records, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+
+	return nil
+}
+
+func (aais *AssetAssociatedItemService) DeleteAssetComplianceClauses(assetID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	var failedIDs []uint
+
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	for _, id := range ids {
+		// Optionally validate record exists
+		_, err := aais.repo.GetAssetComplianceClauseByID(id)
+		if err != nil {
+			failedIDs = append(failedIDs, id)
+			continue
+		}
+
+		if err := aais.repo.DeleteAssetComplianceClause(assetID, id); err != nil {
+			failedIDs = append(failedIDs, id)
 		}
 	}
 
@@ -608,4 +735,16 @@ func (aais *AssetAssociatedItemService) GetRiskAnalysis(assetID uint) ([]*assetD
 
 	// Return the structured response
 	return vulnerabilities, nil
+}
+
+func emptyRiskListResponse(params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) *assetDTOs.AssetAssociatedItemRiskListResponseDTO {
+	return &assetDTOs.AssetAssociatedItemRiskListResponseDTO{
+		Items: []*assetDTOs.AssetRiskListDTO{},
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  0,
+			TotalCount:  0,
+		},
+	}
 }

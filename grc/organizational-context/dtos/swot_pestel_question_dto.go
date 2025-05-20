@@ -48,6 +48,16 @@ type SwotPestelQuestionDTO struct {
 	SwotPestelQuestionFactors  []*SwotPestelQuestionFactorDetailDTO `json:"swot_pestel_question_factors" gorm:"foreignKey:SwotPestelQuestionID;references:ID"`
 }
 
+type SwotPestelQuestionListQueryParamsDTO struct {
+	Sort     string
+	SortBy   string
+	Keyword  string
+	Status   string
+	Filters  map[string][]string
+	IsSwot   string
+	IsPestel string
+}
+
 type AnswerFormDTO struct {
 	Answer *string `json:"answer" binding:"required"`
 }
@@ -61,4 +71,10 @@ type SwotPestelQuestionInviteeDTO struct {
 	SwotPestelQuestionID uint                            `json:"swot_pestel_question_id"`
 	UserID               uint                            `json:"user_id"`
 	User                 organizationDTOs.UserMinimalDTO `json:"user"`
+}
+
+type SwotPestelQuestionSummaryDTO struct {
+	UnansweredCount int `json:"unanswered_count"`
+	AnsweredCount   int `json:"answered_count"`
+	TotalCount      int `json:"total_count"`
 }

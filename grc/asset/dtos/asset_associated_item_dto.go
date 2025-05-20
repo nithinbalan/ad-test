@@ -74,43 +74,49 @@ type AssetIncidentListDTO struct {
 }
 
 type AssetRiskListDTO struct {
-	RiskRegisterID                  uint       `json:"risk_register_id"`
-	RiskReferenceNumber             string     `json:"risk_reference_number"`
-	RiskRegisterTitle               string     `json:"risk_register_title"`
-	RiskRegisterDescription         string     `json:"risk_register_description"`
-	RiskCategoryTitleEn             string     `json:"risk_category_title_en"`
-	RiskCategoryTitleAr             string     `json:"risk_category_title_ar"`
-	RiskSourceTitleEn               string     `json:"risk_source_title_en"`
-	RiskSourceTitleAr               string     `json:"risk_source_title_ar"`
-	ResponsibleUnitTitleEn          string     `json:"responsible_unit_title_en"`
-	ResponsibleUnitTitleAr          string     `json:"responsible_unit_title_ar"`
-	ResponsibleUserID               uint       `json:"responsible_user_id"`
-	ResponsibleUserFirstNameEn      string     `json:"responsible_user_first_name_en"`
-	ResponsibleUserFirstNameAr      string     `json:"responsible_user_first_name_ar"`
-	ResponsibleUserLastNameEn       string     `json:"responsible_user_last_name_en"`
-	ResponsibleUserLastNameAr       string     `json:"responsible_user_last_name_ar"`
-	ResponsibleUserInitial          string     `json:"responsible_user_initial"`
-	ResponsibleUserColor            string     `json:"responsible_user_color"`
-	ResponsibleUserEmail            string     `json:"responsible_user_email"`
-	ResponsibleUserProfileImagePath string     `json:"responsible_user_profile_image_path"`
-	RiskReportedAt                  *time.Time `json:"risk_reported_at"`
-	RiskReviewFrequencyTitleEn      *string    `json:"risk_review_frequency_title_en"`
-	RiskReviewFrequencyTitleAr      *string    `json:"risk_review_frequency_title_ar"`
-	RiskNextReviewDate              *string    `json:"risk_next_review_date"`
-	RiskStatusTitleEn               string     `json:"risk_status_title_en"`
-	RiskStatusTitleAr               string     `json:"risk_status_title_ar"`
-	RiskStatusColorCode             string     `json:"risk_status_color_code"`
-	RiskMatrixLikelihoodTitleEn     string     `json:"risk_matrix_likelihood_title_en"`
-	RiskMatrixLikelihoodTitleAr     string     `json:"risk_matrix_likelihood_title_ar"`
-	RiskMatrixLikelihoodColorCode   string     `json:"risk_matrix_likelihood_score"`
-	RiskMatrixImpactTitleEn         string     `json:"risk_matrix_impact_title_en"`
-	RiskMatrixImpactTitleAr         string     `json:"risk_matrix_impact_title_ar"`
-	RiskMatrixImpactColorCode       string     `json:"risk_matrix_impact_score"`
-	RiskMatrixRiskRatingTitleEn     string     `json:"risk_matrix_risk_rating_title_en"`
-	RiskMatrixRiskRatingTitleAr     string     `json:"risk_matrix_risk_rating_title_ar"`
-	RiskMatrixRiskRatingType        string     `json:"risk_matrix_risk_rating_type"`
-	RiskMatrixRiskRatingColorCode   string     `json:"risk_matrix_risk_rating_color_code"`
-	RiskMatrixRiskRatingValue       string     `json:"risk_matrix_risk_rating_value"`
+	RiskRegisterID                uint    `json:"risk_register_id"`
+	ReferenceNumber               string  `json:"reference_number"`
+	RiskCategoryTitleEn           string  `json:"risk_category_title_en"`
+	RiskCategoryTitleAr           string  `json:"risk_category_title_ar"`
+	RiskSourceTitleEn             string  `json:"risk_source_title_en"`
+	RiskSourceTitleAr             string  `json:"risk_source_title_ar"`
+	RiskStatusTitleEn             string  `json:"risk_status_title_en"`
+	RiskStatusTitleAr             string  `json:"risk_status_title_ar"`
+	RiskStatusColorCode           string  `json:"risk_status_color_code"`
+	Title                         string  `json:"title"`
+	Description                   *string `json:"description"`
+	OwnerUnitTitleEn              string  `json:"owner_unit_title_en"`
+	OwnerUnitTitleAr              string  `json:"owner_unit_title_ar"`
+	OwnerID                       uint    `json:"owner_id"`
+	OwnerFirstNameEn              string  `json:"owner_first_name_en"`
+	OwnerFirstNameAr              string  `json:"owner_first_name_ar"`
+	OwnerLastNameEn               string  `json:"owner_last_name_en"`
+	OwnerLastNameAr               string  `json:"owner_last_name_ar"`
+	OwnerInitial                  string  `json:"owner_initial"`
+	OwnerColor                    string  `json:"owner_color"`
+	OwnerEmail                    string  `json:"owner_email"`
+	OwnerProfileImagePath         string  `json:"owner_profile_image_path"`
+	RiskMatrixLikelihoodTitleEn   string  `json:"risk_matrix_likelihood_title_en"`
+	RiskMatrixLikelihoodTitleAr   string  `json:"risk_matrix_likelihood_title_ar"`
+	RiskMatrixLikelihoodColorCode string  `json:"risk_matrix_likelihood_score"`
+	RiskMatrixImpactTitleEn       string  `json:"risk_matrix_impact_title_en"`
+	RiskMatrixImpactTitleAr       string  `json:"risk_matrix_impact_title_ar"`
+	RiskMatrixImpactColorCode     string  `json:"risk_matrix_impact_score"`
+	RiskMatrixRiskRatingTitleEn   string  `json:"risk_matrix_risk_rating_title_en"`
+	RiskMatrixRiskRatingTitleAr   string  `json:"risk_matrix_risk_rating_title_ar"`
+	RiskMatrixRiskRatingType      string  `json:"risk_matrix_risk_rating_type"`
+	RiskMatrixRiskRatingColorCode string  `json:"risk_matrix_risk_rating_color_code"`
+}
+
+type AssetClauseListDTO struct {
+	ID                        uint   `json:"id"`
+	ComplianceRegisterID      uint   `json:"compliance_register_id"`
+	ComplianceRegisterTitleEn string `json:"compliance_register_title_en"`
+	ComplianceRegisterTitleAr string `json:"compliance_register_title_ar"`
+	ClauseID                  uint   `json:"clause_id"`
+	ClauseNo                  string `json:"clause_no"`
+	ClauseTitleEn             string `json:"clause_title_en"`
+	ClauseTitleAr             string `json:"clause_title_ar"`
 }
 
 type AssetAssociatedItemListQueryParamsDTO struct {
@@ -136,6 +142,11 @@ type AssetAssociatedItemIncidentListResponseDTO struct {
 
 type AssetAssociatedItemRiskListResponseDTO struct {
 	Items      []*AssetRiskListDTO          `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type AssetAssociatedItemClauseListResponseDTO struct {
+	Items      []*AssetClauseListDTO        `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
@@ -266,6 +277,11 @@ type AssetVulnerabilitiesResponseDTO struct {
 type AssetVulnerabilitiesFormDTO struct {
 	VulnerabilityIds []uint `json:"vulnerability_ids"`
 }
+
+type AssetComplianceClauseFormDTO struct {
+	ComplianceClauseIDs []*uint `json:"compliance_clause_ids"`
+}
+
 type AssetVulnerabilityThreatsFormDTO struct {
 	ThreatIds []uint `json:"threat_ids"`
 }

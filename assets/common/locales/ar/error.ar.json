@@ -154,7 +154,16 @@
 {
   "id": "module_not_allowed",
   "translation": "لا يُسمح باستخدام وحدة {{.Field}} بموجب الترخيص الحالي"
+},
+{
+  "id": "default_criticality_matrix",
+  "translation": "لا يمكن تعديل أو حذف مصفوفة الأهمية الافتراضية"
+},
+{
+  "id": "same_organization_unit",
+  "translation": "يجب أن يكون المستخدم ضمن نفس الوحدة التنظيمية"
 }
+
 
 
 

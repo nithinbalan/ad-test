@@ -16,9 +16,10 @@ import (
 
 type ProcessDependencyServiceInterface interface {
 	GetAll(processID uint, params *orgDTOs.ProcessDependencyListQueryParamsDTO) ([]*orgDTOs.ProcessDependencyListDTO, error)
+	GetFullDetailsByID(processID uint, id uint) (*orgDTOs.ProcessDependencyDetailDTO, error)
 	GetByID(processID uint, id uint) (*models.ProcessDependency, error)
 	Create(processID uint, currentUserID uint, processDependencyFormDTO *orgDTOs.ProcessDependencyFormDTO) (uint, error)
-	Update(processID uint, id uint, currentUserID uint, processDependencyFormDTO *orgDTOs.ProcessDependencyFormDTO) error
+	Update(processID uint, id uint, currentUserID uint, processDependencyFormDTO *orgDTOs.ProcessDependencyUpdateFormDTO) error
 	Delete(processID uint, ids []uint, currentUserID uint) ([]uint, error)
 
 	UpdateProcessDependencyRecoveryObjective(processDependency *models.ProcessDependency, tx utility.DatabaseTransaction) error
@@ -88,47 +89,121 @@ func (pds *ProcessDependencyService) GetFullDetailsByID(processID uint, id uint)
 	return &processDependencyDetailDTO, nil
 }
 
-func (pds *ProcessDependencyService) Create(processID uint, currentUserID uint, processDependencyFormDTO *orgDTOs.ProcessDependencyFormDTO) (uint, error) {
+func (pds *ProcessDependencyService) Create(processID uint, currentUserID uint, dto *orgDTOs.ProcessDependencyFormDTO) (uint, error) {
 	if _, err := pds.processSvc.GetByID(processID); err != nil {
 		return 0, err
 	}
 
-	if err := pds.validateProcessDependencyFormDTO(processDependencyFormDTO, nil); err != nil {
+	if err := pds.validateProcessDependencyFormDTO(dto, nil); err != nil {
 		return 0, err
 	}
 
-	processDependency := &models.ProcessDependency{
-		ProcessID:                  *processDependencyFormDTO.DependentProcessID,
-		ProcessDependencySubTypeID: processDependencyFormDTO.ProcessDependencySubTypeID,
-		DependentProcessID:         processDependencyFormDTO.DependentProcessID,
-		AssetID:                    processDependencyFormDTO.AssetID,
-		OrganizationUnitID:         processDependencyFormDTO.OrganizationUnitID,
-		Title:                      *processDependencyFormDTO.Title,
-		Description:                *processDependencyFormDTO.Description,
-		CreatedBYID:                currentUserID,
+	var createdIDs []uint
+
+	// Case 1: Dependent Process
+	if len(dto.DependentProcessIDs) > 0 {
+		for _, dependentProcessID := range dto.DependentProcessIDs {
+			processDependency := &models.ProcessDependency{
+				ProcessID:                  processID,
+				ProcessDependencySubTypeID: dto.ProcessDependencySubTypeID,
+				DependentProcessID:         dependentProcessID,
+				Title:                      dto.Title,
+				Description:                dto.Description,
+				CreatedBYID:                currentUserID,
+			}
+
+			id, err := pds.repo.Create(processDependency)
+			if err != nil {
+				return 0, err
+			}
+			createdIDs = append(createdIDs, id)
+
+			go pds.logDependencyCreation(processID, id, currentUserID)
+		}
 	}
 
-	id, err := pds.repo.Create(processDependency)
-	if err != nil {
-		return 0, err
+	// Case 2: Organization Unit
+	if len(dto.OrganizationUnitIDs) > 0 {
+		for _, unitID := range dto.OrganizationUnitIDs {
+			processDependency := &models.ProcessDependency{
+				ProcessID:                  processID,
+				ProcessDependencySubTypeID: dto.ProcessDependencySubTypeID,
+				OrganizationUnitID:         unitID,
+				Title:                      dto.Title,
+				Description:                dto.Description,
+				CreatedBYID:                currentUserID,
+			}
+
+			id, err := pds.repo.Create(processDependency)
+			if err != nil {
+				return 0, err
+			}
+			createdIDs = append(createdIDs, id)
+
+			go pds.logDependencyCreation(processID, id, currentUserID)
+		}
 	}
 
-	go func() {
-		created, _ := pds.GetByID(processID, id)
-		pds.activityLogSvc.LogActivity(
-			models.CreateAction,
-			models.ProcessDependency{}.TableName(),
-			id,
-			created,
-			currentUserID,
-			nil,
-		)
-	}()
+	// Case 3: Asset
+	if len(dto.AssetIDs) > 0 {
+		for _, assetID := range dto.AssetIDs {
+			processDependency := &models.ProcessDependency{
+				ProcessID:                  processID,
+				ProcessDependencySubTypeID: dto.ProcessDependencySubTypeID,
+				AssetID:                    assetID,
+				Title:                      dto.Title,
+				Description:                dto.Description,
+				CreatedBYID:                currentUserID,
+			}
 
-	return id, nil
+			id, err := pds.repo.Create(processDependency)
+			if err != nil {
+				return 0, err
+			}
+			createdIDs = append(createdIDs, id)
+
+			go pds.logDependencyCreation(processID, id, currentUserID)
+		}
+	}
+
+	// Case 4: Only Title & Description (no IDs)
+	if len(dto.DependentProcessIDs) == 0 && len(dto.OrganizationUnitIDs) == 0 && len(dto.AssetIDs) == 0 {
+		processDependency := &models.ProcessDependency{
+			ProcessID:                  processID,
+			ProcessDependencySubTypeID: dto.ProcessDependencySubTypeID,
+			Title:                      dto.Title,
+			Description:                dto.Description,
+			CreatedBYID:                currentUserID,
+		}
+
+		id, err := pds.repo.Create(processDependency)
+		if err != nil {
+			return 0, err
+		}
+		createdIDs = append(createdIDs, id)
+
+		go pds.logDependencyCreation(processID, id, currentUserID)
+	}
+
+	if len(createdIDs) > 0 {
+		return createdIDs[0], nil
+	}
+	return 0, nil
 }
 
-func (pds *ProcessDependencyService) Update(processID uint, id uint, currentUserID uint, dto *orgDTOs.ProcessDependencyFormDTO) error {
+func (pds *ProcessDependencyService) logDependencyCreation(processID, id, userID uint) {
+	created, _ := pds.GetByID(processID, id)
+	_ = pds.activityLogSvc.LogActivity(
+		models.CreateAction,
+		models.ProcessDependency{}.TableName(),
+		id,
+		created,
+		userID,
+		nil,
+	)
+}
+
+func (pds *ProcessDependencyService) Update(processID uint, id uint, currentUserID uint, dto *orgDTOs.ProcessDependencyUpdateFormDTO) error {
 	if _, err := pds.processSvc.GetByID(processID); err != nil {
 		return err
 	}
@@ -143,7 +218,7 @@ func (pds *ProcessDependencyService) Update(processID uint, id uint, currentUser
 		return err
 	}
 
-	if err := pds.validateProcessDependencyFormDTO(dto, &id); err != nil {
+	if err := pds.validateProcessDependencyUpdateFormDTO(dto, &id); err != nil {
 		return err
 	}
 
@@ -151,8 +226,8 @@ func (pds *ProcessDependencyService) Update(processID uint, id uint, currentUser
 	existing.DependentProcessID = dto.DependentProcessID
 	existing.OrganizationUnitID = dto.OrganizationUnitID
 	existing.AssetID = dto.AssetID
-	existing.Title = *dto.Title
-	existing.Description = *dto.Description
+	existing.Title = dto.Title
+	existing.Description = dto.Description
 	existing.UpdatedBYID = &currentUserID
 
 	err = pds.repo.Update(existing)
@@ -252,6 +327,42 @@ func (pds *ProcessDependencyService) Delete(processID uint, ids []uint, currentU
 }
 
 func (pds *ProcessDependencyService) validateProcessDependencyFormDTO(processDependencyFormDTO *orgDTOs.ProcessDependencyFormDTO, id *uint) error {
+	// Validate sub type
+	if _, err := pds.processDependencySubTypeSvc.GetByID(processDependencyFormDTO.ProcessDependencySubTypeID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("dependency sub type does not exist"), "not_exist", "process dependency sub type")
+	}
+
+	// Validate each Dependent Process ID
+	for _, processID := range processDependencyFormDTO.DependentProcessIDs {
+		if processID != nil {
+			if _, err := pds.processSvc.GetByID(*processID); err != nil {
+				return utility.NewValidationError(fmt.Errorf("dependent process does not exist"), "not_exist", "dependent process")
+			}
+		}
+	}
+
+	// Validate each Organization Unit ID
+	for _, unitID := range processDependencyFormDTO.OrganizationUnitIDs {
+		if unitID != nil {
+			if _, err := pds.organizationUnitSvc.GetByID(*unitID); err != nil {
+				return utility.NewValidationError(fmt.Errorf("organization unit does not exist"), "not_exist", "organization unit")
+			}
+		}
+	}
+
+	// Validate each Asset ID
+	for _, assetID := range processDependencyFormDTO.AssetIDs {
+		if assetID != nil {
+			if _, err := pds.GetAssetByID(*assetID); err != nil {
+				return utility.NewValidationError(fmt.Errorf("asset register does not exist"), "not_exist", "asset register")
+			}
+		}
+	}
+
+	return nil
+}
+
+func (pds *ProcessDependencyService) validateProcessDependencyUpdateFormDTO(processDependencyFormDTO *orgDTOs.ProcessDependencyUpdateFormDTO, id *uint) error {
 	if _, err := pds.processDependencySubTypeSvc.GetByID(processDependencyFormDTO.ProcessDependencySubTypeID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("dependency sub type does not exist"), "not_exist", "process dependency sub type")
 	}

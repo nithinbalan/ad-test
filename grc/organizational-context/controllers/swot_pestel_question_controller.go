@@ -30,8 +30,24 @@ func (sqc *SwotPestelQuestionController) GetAllSwotPestelQuestions(c *gin.Contex
 	status := c.Query("status")
 	isSwot := c.Query("is_swot")
 	isPestel := c.Query("is_pestel")
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"swot_pestel_question_group_ids",
+	}
 
-	swotPestelQuestions, err := sqc.service.GetAll(sort, sortBy, keyword, status, isSwot, isPestel)
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	queryParams := organizationalContextDTOs.SwotPestelQuestionListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Status:   status,
+		IsSwot:   isSwot,
+		IsPestel: isPestel,
+		Filters:  filters,
+	}
+
+	swotPestelQuestions, err := sqc.service.GetAll(&queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(sqc.db, c, err.Error())
@@ -200,7 +216,7 @@ func (sqc *SwotPestelQuestionController) DeactivateSwotPestelQuestions(c *gin.Co
 func (sqc *SwotPestelQuestionController) UpdateAnswer(c *gin.Context) {
 	var answerFormDTO organizationalContextDTOs.AnswerFormDTO
 
-	questionIDStr := c.Param("id")
+	questionIDStr := c.Param("questionId")
 
 	questionId, err := strconv.ParseUint(questionIDStr, 10, 64)
 	if err != nil {
@@ -303,4 +319,27 @@ func (sqc *SwotPestelQuestionController) DeleteInvitees(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (sqc *SwotPestelQuestionController) GetSwotPestelQuestionSummary(c *gin.Context) {
+
+	isSwot := c.Query("is_swot")
+	isPestel := c.Query("is_pestel")
+
+	summary, err := sqc.service.GetSwotPestelQuestionSummary(isSwot, isPestel)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(sqc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, summary)
 }

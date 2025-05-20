@@ -45,7 +45,7 @@ type DocumentChangeRequestServiceInterface interface {
 	CheckinDocument(id uint, currentUserID uint, documentCheckinFormDTO *documentDTOs.DocumentCheckinFormDTO) error
 	RevertDocumentCheckout(id uint, currentUserID uint) error
 	SubmitDocumentChangeRequest(id uint, currentUserID uint) error
-	PublishDocumentChangeRequest(id uint, currentUserID uint) error
+	PublishDocumentChangeRequest(id uint, currentUserID uint, documentPublishFormDTO documentDTOs.DocumentPublishFormDTO) error
 
 	GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error)
 	GetDocumentCRLastEditSummary(id uint) (*documentDTOs.DocumentLastEditSummaryDTO, error)
@@ -1574,7 +1574,7 @@ func (dcrs *DocumentChangeRequestService) GetDocumentCRLastEditSummary(id uint) 
 	return responseDTO, nil
 }
 
-func (dcrs *DocumentChangeRequestService) PublishDocumentChangeRequest(id uint, currentUserID uint) error {
+func (dcrs *DocumentChangeRequestService) PublishDocumentChangeRequest(id uint, currentUserID uint, documentPublishFormDTO documentDTOs.DocumentPublishFormDTO) error {
 	tx := dcrs.repo.BeginTransaction()
 
 	documentCRFullDetails, err := dcrs.GetFullDetailsByID(id, tx)
@@ -1660,6 +1660,11 @@ func (dcrs *DocumentChangeRequestService) PublishDocumentChangeRequest(id uint, 
 			return err
 		}
 	} else {
+		dates, err := dcrs.parseDocumentPublishDates(&documentPublishFormDTO)
+		if err != nil {
+			return err
+		}
+
 		existingLatestDocumentVersion, err := dcrs.documentSvc.GetDocumentVersionByID(documentFullDetails.LatestDocumentVersion.ID, tx)
 		if err != nil {
 			tx.Rollback()
@@ -1683,18 +1688,19 @@ func (dcrs *DocumentChangeRequestService) PublishDocumentChangeRequest(id uint, 
 		url := utility.GenerateDocumentURL("document", "published", strconv.FormatUint(uint64(documentCRFullDetails.Document.ID), 10), "documents")
 
 		documentVersion := &models.DocumentVersion{
-			DocumentID:      uint(documentCRFullDetails.Document.ID),
-			Version:         documentCRFullDetails.Version,
-			IsLatestVersion: true,
-			URL:             url,
-			Name:            documentCRFullDetails.ChangeRequestDocument.Name,
-			Size:            documentCRFullDetails.ChangeRequestDocument.Size,
-			Token:           encryptedFilename,
-			OriginalName:    &documentCRFullDetails.ChangeRequestDocument.OriginalName,
-			Type:            documentCRFullDetails.ChangeRequestDocument.Type,
-			CreatedBYID:     currentUserID,
-			PublishedBYID:   &currentUserID,
-			PublishedAt:     publishedAt,
+			DocumentID:         uint(documentCRFullDetails.Document.ID),
+			Version:            documentCRFullDetails.Version,
+			IsLatestVersion:    true,
+			URL:                url,
+			Name:               documentCRFullDetails.ChangeRequestDocument.Name,
+			Size:               documentCRFullDetails.ChangeRequestDocument.Size,
+			Token:              encryptedFilename,
+			OriginalName:       &documentCRFullDetails.ChangeRequestDocument.OriginalName,
+			Type:               documentCRFullDetails.ChangeRequestDocument.Type,
+			AcknowledgeDueDate: dates.AcknowledgeDueDate,
+			CreatedBYID:        currentUserID,
+			PublishedBYID:      &currentUserID,
+			PublishedAt:        publishedAt,
 		}
 
 		_, err = dcrs.documentSvc.CreateDocumentVersion(documentVersion, tx)
@@ -1979,4 +1985,17 @@ func (dcrs *DocumentChangeRequestService) ExportDocumentChangeRequest(data []*do
 
 	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (dcrs *DocumentChangeRequestService) parseDocumentPublishDates(dto *documentDTOs.DocumentPublishFormDTO) (*documentDTOs.DocumentPublishParsedDates, error) {
+	parsed := &documentDTOs.DocumentPublishParsedDates{}
+
+	var err error
+
+	parsed.AcknowledgeDueDate, err = utility.ParseDate(*dto.AcknowledgeDueDate)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid last review date"), "invalid_date", "last review date")
+	}
+
+	return parsed, nil
 }

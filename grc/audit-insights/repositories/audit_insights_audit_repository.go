@@ -35,6 +35,7 @@ func (repo *AuditInsightsAuditRepository) GetAll(params *auditDTOs.AuditListQuer
         audit_plans.description AS audit_plan_description,
         audit_plans.purpose AS audit_plan_purpose,
         audit_plans.objective AS audit_plan_objective,
+        audit_plans.audit_status_id AS audit_status_id,
         audit_statuses.title_en AS audit_status_title_en,
         audit_statuses.title_ar AS audit_status_title_ar,
         audit_statuses.type AS audit_status_type,
@@ -89,6 +90,7 @@ func (repo *AuditInsightsAuditRepository) GetAll(params *auditDTOs.AuditListQuer
         audit_plans.description,
         audit_plans.purpose,
         audit_plans.objective,
+        audit_plans.audit_status_id,
         audit_statuses.title_en,
         audit_statuses.title_ar,
         audit_statuses.type,
@@ -127,7 +129,14 @@ func (repo *AuditInsightsAuditRepository) GetAll(params *auditDTOs.AuditListQuer
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			//audits and audits plans using same fields as audit_status_id, so attaching table name in to the field
+			if columnName == "audit_status_id" {
+				// Prepend the table name for "audit_status_id"
+				query = query.Where("audits.audit_status_id IN (?)", values)
+			} else {
+				// Use the column name as-is for other filters
+				query = query.Where(columnName+" IN (?)", values)
+			}
 		}
 	}
 
@@ -137,6 +146,9 @@ func (repo *AuditInsightsAuditRepository) GetAll(params *auditDTOs.AuditListQuer
 	}
 	if params.EndDate != "" {
 		query = query.Where("audits.end_date <= ?", params.EndDate)
+	}
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("audits.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	// Calculate total count for pagination

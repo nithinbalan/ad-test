@@ -193,8 +193,8 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 	control := &models.Control{
 		ControlTypeID:                 controlFormDTO.ControlTypeID,
 		ControlCategoryID:             controlFormDTO.ControlCategoryID,
-		OwnerID:                       controlFormDTO.OwnerID,
-		OwnerUnitID:                   organizationUnitID,
+		ResponsibleUserID:             controlFormDTO.OwnerID,
+		ResponsibleUnitID:             organizationUnitID,
 		ControlImplementationStatusID: controlFormDTO.ControlImplementationStatusID,
 		ControlEfficiencyStatusID:     controlFormDTO.ControlEfficiencyStatusID,
 		ReferenceNumber:               referenceNumber,
@@ -331,7 +331,7 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 		return err
 	}
 
-	oldResponsibleUserID := existingControl.OwnerID
+	oldResponsibleUserID := existingControl.ResponsibleUserID
 
 	if err := cs.validateControlFormDTO(controlFormDTO); err != nil {
 		return err
@@ -342,16 +342,16 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 		return err
 	}
 
-	if existingControl.OwnerID != controlFormDTO.OwnerID {
+	if existingControl.ResponsibleUserID != controlFormDTO.OwnerID {
 		organizationUnitID, err := cs.userSvc.GetUserPrimaryUnitID(controlFormDTO.OwnerID)
 		if err != nil {
 			return utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
 		}
-		existingControl.OwnerUnitID = organizationUnitID
+		existingControl.ResponsibleUnitID = organizationUnitID
 	}
 	existingControl.ControlTypeID = controlFormDTO.ControlTypeID
 	existingControl.ControlCategoryID = controlFormDTO.ControlCategoryID
-	existingControl.OwnerID = controlFormDTO.OwnerID
+	existingControl.ResponsibleUserID = controlFormDTO.OwnerID
 	existingControl.ControlImplementationStatusID = controlFormDTO.ControlImplementationStatusID
 	existingControl.ControlEfficiencyStatusID = controlFormDTO.ControlEfficiencyStatusID
 	existingControl.Code = controlFormDTO.Code
@@ -539,7 +539,7 @@ func (cs *ControlService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 			Description     string
 			ReferenceNumber string
 		}{
-			OwnerID:         control.OwnerID,
+			OwnerID:         control.ResponsibleUserID,
 			TitleEn:         control.TitleEn,
 			TitleAr:         control.TitleAr,
 			Description:     *control.Description,

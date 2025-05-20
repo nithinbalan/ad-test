@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/services"
 	"jethur/utility"
 
@@ -131,7 +132,14 @@ func (rhc *RiskHeatmapController) GetSLARiskHeatmap(c *gin.Context) {
 }
 
 func (rhc *RiskHeatmapController) GetRiskHeatmapByResponsibleUnit(c *gin.Context) {
-	riskHeatmap, err := rhc.service.GetRiskHeatmapByResponsibleUnit()
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := riskDTOs.RiskHeatmapQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	riskHeatmap, err := rhc.service.GetRiskHeatmapByResponsibleUnit(&queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -150,7 +158,14 @@ func (rhc *RiskHeatmapController) GetRiskHeatmapByResponsibleUnit(c *gin.Context
 }
 
 func (rhc *RiskHeatmapController) GetRiskHeatmapByRiskCategory(c *gin.Context) {
-	riskHeatmap, err := rhc.service.GetRiskHeatmapByRiskCategory()
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := riskDTOs.RiskHeatmapQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	riskHeatmap, err := rhc.service.GetRiskHeatmapByRiskCategory(&queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -169,7 +184,14 @@ func (rhc *RiskHeatmapController) GetRiskHeatmapByRiskCategory(c *gin.Context) {
 }
 
 func (rhc *RiskHeatmapController) GetRiskHeatmapByRiskSource(c *gin.Context) {
-	riskHeatmap, err := rhc.service.GetRiskHeatmapByRiskSource()
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := riskDTOs.RiskHeatmapQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	riskHeatmap, err := rhc.service.GetRiskHeatmapByRiskSource(&queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -188,7 +210,14 @@ func (rhc *RiskHeatmapController) GetRiskHeatmapByRiskSource(c *gin.Context) {
 }
 
 func (rhc *RiskHeatmapController) GetRiskHeatmapByRiskMatrix(c *gin.Context) {
-	riskHeatmap, err := rhc.service.GetRiskHeatmapByRiskMatrix()
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := riskDTOs.RiskHeatmapQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	riskHeatmap, err := rhc.service.GetRiskHeatmapByRiskMatrix(&queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -207,7 +236,14 @@ func (rhc *RiskHeatmapController) GetRiskHeatmapByRiskMatrix(c *gin.Context) {
 }
 
 func (rhc *RiskHeatmapController) GetRiskHeatmapByResponseStrategy(c *gin.Context) {
-	riskHeatmap, err := rhc.service.GetRiskHeatmapByResponseStrategy()
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := riskDTOs.RiskHeatmapQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	riskHeatmap, err := rhc.service.GetRiskHeatmapByResponseStrategy(&queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -226,7 +262,14 @@ func (rhc *RiskHeatmapController) GetRiskHeatmapByResponseStrategy(c *gin.Contex
 }
 
 func (rhc *RiskHeatmapController) GetRiskHeatmapByRiskStatus(c *gin.Context) {
-	riskHeatmap, err := rhc.service.GetRiskHeatmapByRiskStatus()
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := riskDTOs.RiskHeatmapQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	riskHeatmap, err := rhc.service.GetRiskHeatmapByRiskStatus(&queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -245,7 +288,41 @@ func (rhc *RiskHeatmapController) GetRiskHeatmapByRiskStatus(c *gin.Context) {
 }
 
 func (rhc *RiskHeatmapController) GetRiskHeatmapByReviewFrequency(c *gin.Context) {
-	riskHeatmap, err := rhc.service.GetRiskHeatmapByReviewFrequency()
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := riskDTOs.RiskHeatmapQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	riskHeatmap, err := rhc.service.GetRiskHeatmapByReviewFrequency(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rhc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, riskHeatmap)
+}
+
+func (rhc *RiskHeatmapController) GetAssetRiskHeatmap(c *gin.Context) {
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	riskHeatmap, err := rhc.service.GetRiskHeatmapByAssetID(uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

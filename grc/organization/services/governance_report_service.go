@@ -10,6 +10,7 @@ import (
 	settingServices "jethur/grc/settings/services"
 	"jethur/utility"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -22,6 +23,7 @@ type GovernanceReportServiceInterface interface {
 	UpdateSection(governanceID uint, id uint, currentUserID uint, governanceReporSectionFormDTO *dtos.GovernanceReportSectionFormDTO) error
 	DeleteGovernanceReportSection(governanceReportID uint, sectionID uint, currentUserID uint) error
 	DeleteGovernanceReport(governanceReportID uint, currentUserID uint) error
+	ExportGovernanceReportToPDF(governanceReportID uint, currentUserID uint) (string, error)
 }
 
 type GovernanceReportService struct {
@@ -482,4 +484,69 @@ func (grs *GovernanceReportService) GetDocumentAcknowledgmentSummary(document *m
 	}
 
 	return grs.repo.GetDocumentAcknowledgmentSummary(document.ID, primaryOrgUnitField)
+}
+
+func (grs *GovernanceReportService) ExportGovernanceReportToPDF(governanceReportID uint, currentUserID uint) (string, error) {
+	// Fetch full report details
+	report, err := grs.GetGovernanceReportDetails(governanceReportID)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch governance report details: %w", err)
+	}
+
+	// Prepare section data with relevant content
+	var sectionData []dtos.GovernanceReportSectionWithDataDTO
+
+	for _, section := range report.Sections {
+		sectionItem := dtos.GovernanceReportSectionWithDataDTO{
+			ID:            section.ID,
+			Type:          section.Type,
+			TitleEn:       section.TitleEn,
+			TitleAr:       section.TitleAr,
+			DescriptionEn: utility.StripPTags(section.DescriptionEn),
+			DescriptionAr: utility.StripPTags(section.DescriptionAr),
+		}
+
+		switch section.Type {
+		case "policy-acknowledgement":
+			sectionItem.Documents = report.Documents
+		case "meetings":
+			sectionItem.Meetings = report.Meetings
+		case "actions":
+			sectionItem.Tasks = report.Tasks
+		}
+
+		sectionData = append(sectionData, sectionItem)
+	}
+
+	parsedCreatedAt, err := time.Parse(time.RFC3339, report.CreatedAt)
+	if err != nil {
+		return "", fmt.Errorf("invalid CreatedAt format: %w", err)
+	}
+
+	pdfDTO := dtos.GovernanceReportPDFDetailDTO{
+		ID:                     report.ID,
+		Title:                  report.Title,
+		StartDate:              report.StartDate,
+		EndDate:                report.EndDate,
+		CreatedUserFirstNameEn: report.CreatedUserFirstNameEn,
+		CreatedUserFirstNameAr: report.CreatedUserFirstNameAr,
+		CreatedUserLastNameEn:  report.CreatedUserLastNameEn,
+		CreatedUserLastNameAr:  report.CreatedUserLastNameAr,
+		CreatedAt:              parsedCreatedAt.Format("2006-01-02"),
+		Sections:               sectionData,
+	}
+
+	// Render template and generate PDF
+	templatePaths := []string{"organization/templates/pdf/governance_report.html"}
+	htmlContent, err := utility.GeneratePDFContent(pdfDTO, templatePaths, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate HTML content: %w", err)
+	}
+
+	pdfFileName := fmt.Sprintf("GovernanceReport_%d.pdf", governanceReportID)
+	if err := utility.ConvertHTMLContentToPDF(htmlContent, pdfFileName); err != nil {
+		return "", fmt.Errorf("failed to generate PDF: %w", err)
+	}
+
+	return pdfFileName, nil
 }

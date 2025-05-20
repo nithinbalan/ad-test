@@ -7,8 +7,8 @@ type ProcessDependency struct {
 	DependentProcessID         *uint   `json:"dependent_process_id"`
 	OrganizationUnitID         *uint   `json:"organization_unit_id"`
 	AssetID                    *uint   `json:"asset_id"`
-	Title                      string  `gorm:"type:nvarchar(255);not null" json:"title"`
-	Description                string  `gorm:"type:nvarchar(MAX)" json:"description"`
+	Title                      *string `gorm:"type:nvarchar(255)" json:"title"`
+	Description                *string `gorm:"type:nvarchar(MAX)" json:"description"`
 	Rto                        *int    `json:"rto" gorm:"default:null"`
 	RtoUnitId                  *uint   `json:"rto_uint_id" gorm:"default:null"`
 	Mtpd                       *int    `json:"mtpd" gorm:"default:null"`
@@ -26,6 +26,9 @@ type ProcessDependency struct {
 	DependentProcess         *Process                  `gorm:"foreignKey:DependentProcessID" json:"dependent_process,omitempty"`
 	OrganizationUnit         *OrganizationUnit         `gorm:"foreignKey:OrganizationUnitID" json:"organization_unit,omitempty"`
 	Asset                    *AssetRegister            `gorm:"foreignKey:AssetID" json:"asset,omitempty"`
+	RtoUnit                  *TimeUnit                 `gorm:"foreignKey:RtoUnitId"`
+	MtpdUnit                 *TimeUnit                 `gorm:"foreignKey:MtpdUnitId"`
+	RpoUnit                  *TimeUnit                 `gorm:"foreignKey:RpoUnitId"`
 	CreatedByUser            *User                     `gorm:"foreignKey:CreatedBYID" json:"created_by,omitempty"`
 	UpdatedByUser            *User                     `gorm:"foreignKey:UpdatedBYID" json:"updated_by,omitempty"`
 }

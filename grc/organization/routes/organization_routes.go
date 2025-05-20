@@ -63,12 +63,17 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//User
 	organizationRoutes.GET("/users/export", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUsersExport)
+	organizationRoutes.GET("/users/template", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.GenerateUserTemplate)
+	organizationRoutes.POST("/users/template/validate", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.ValidateUserTemplate)
+	organizationRoutes.POST("/users/import/validate", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.ValidateImportUsers)
+	organizationRoutes.POST("/users/import", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.ImportUsers)
 	organizationRoutes.GET("/users", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetAllUsers)
 	organizationRoutes.GET("/users/:userId", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUserDetails)
 	organizationRoutes.POST("/users", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.CreateUser)
 	organizationRoutes.PUT("/users/:userId", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.UpdateUser)
 	organizationRoutes.POST("/users/delete", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.DeleteUsers)
 	organizationRoutes.GET("/users/:userId/login-history", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUserLoginHistory)
+	organizationRoutes.PUT("/users/:userId/change-unit", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.UpdateUserOrganizationUnit)
 
 	organizationRoutes.GET("/users/me", userController.GetCurrentUserDetails)
 	organizationRoutes.GET("/users/me/permissions", userController.GetUserPermissions)
@@ -267,6 +272,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	organizationRoutes.GET("/governance-reports", governanceReportController.GetAllGovernanceReports)
 	organizationRoutes.GET("/governance-reports/:governanceReportId", governanceReportController.GetGovernanceReportDetails)
+	organizationRoutes.GET("/governance-reports/:governanceReportId/export-pdf", governanceReportController.ExportGovernanceReportToPDF)
 	organizationRoutes.POST("/governance-reports", governanceReportController.CreateGovernanceReport)
 	organizationRoutes.GET("/governance-reports/:governanceReportId/sections/:sectionId", governanceReportController.GetGovernanceReportSection)
 	organizationRoutes.PUT("/governance-reports/:governanceReportId/sections/:sectionId", governanceReportController.UpdateGovernanceReportSection)
@@ -281,5 +287,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// process criticality level
 	organizationRoutes.GET("/process-criticality-levels", processCriticalityLevelController.GetAllProcessCriticalityLevels)
 	organizationRoutes.GET("/process-criticality-levels/:id", processCriticalityLevelController.GetProcessCriticalityLevelDetails)
+	organizationRoutes.POST("/ad-users-sync", userController.SyncADUsers)
+	organizationRoutes.GET("/active-directory-users", userController.GetADUsers)
 
 }

@@ -13,10 +13,10 @@ import (
 )
 
 type DocumentAcknowledgeUserServiceInterface interface {
-	GetAll(documentID uint, params *documentDTOs.DocumentAcknowledgeListQueryParamsDTO) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error)
-	Create(docuemntID uint, currentUserID uint) (uint, error)
-	Delete(docuemntID uint, currentUserID uint) (uint, error)
-	GetDocumentAcknowledgmentSummary(documentID uint) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error)
+	GetAll(documentID uint, versionId uint, params *documentDTOs.DocumentAcknowledgeListQueryParamsDTO) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error)
+	Create(docuemntID uint, versionId uint, currentUserID uint) (uint, error)
+	Delete(docuemntID uint, versionId uint, currentUserID uint) (uint, error)
+	GetDocumentAcknowledgmentSummary(documentID uint, versionId uint) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error)
 }
 
 type DocumentAcknowledgeUserService struct {
@@ -41,7 +41,7 @@ func NewDocumentAcknowledgeUserService(repo repositories.DocumentAcknowledgeUser
 	}
 }
 
-func (daus *DocumentAcknowledgeUserService) GetAll(documentID uint, params *documentDTOs.DocumentAcknowledgeListQueryParamsDTO) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error) {
+func (daus *DocumentAcknowledgeUserService) GetAll(documentID uint, versionId uint, params *documentDTOs.DocumentAcknowledgeListQueryParamsDTO) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error) {
 	document, err := daus.documentSvc.GetFullDetailsByID(documentID, nil)
 	if err != nil {
 
@@ -77,7 +77,7 @@ func (daus *DocumentAcknowledgeUserService) GetAll(documentID uint, params *docu
 
 }
 
-func (daus *DocumentAcknowledgeUserService) Create(docuemntID uint, currentUserID uint) (uint, error) {
+func (daus *DocumentAcknowledgeUserService) Create(docuemntID uint, versionId uint, currentUserID uint) (uint, error) {
 	tx := daus.repo.BeginTransaction()
 
 	document, err := daus.documentSvc.GetFullDetailsByID(docuemntID, nil, tx)
@@ -103,6 +103,7 @@ func (daus *DocumentAcknowledgeUserService) Create(docuemntID uint, currentUserI
 
 	documentAcknowledgeUser := &models.DocumentAcknowledgeUser{
 		DocumentID:         docuemntID,
+		DocumentVersionID:  &versionId,
 		UserID:             currentUserID,
 		OrganizationUnitID: organizationUnitID,
 		CreatedBYID:        currentUserID,
@@ -147,7 +148,7 @@ func (daus *DocumentAcknowledgeUserService) Create(docuemntID uint, currentUserI
 	return id.ID, nil
 }
 
-func (daus *DocumentAcknowledgeUserService) Delete(docuemntID uint, currentUserID uint) (uint, error) {
+func (daus *DocumentAcknowledgeUserService) Delete(docuemntID uint, versionId uint, currentUserID uint) (uint, error) {
 	tx := daus.repo.BeginTransaction()
 	var failedId uint
 	var deletedUser []map[string]interface{}
@@ -194,7 +195,7 @@ func (daus *DocumentAcknowledgeUserService) Delete(docuemntID uint, currentUserI
 	return failedId, nil
 }
 
-func (daus *DocumentAcknowledgeUserService) GetDocumentAcknowledgmentSummary(documentID uint) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error) {
+func (daus *DocumentAcknowledgeUserService) GetDocumentAcknowledgmentSummary(documentID uint, versionId uint) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error) {
 	document, err := daus.documentSvc.GetFullDetailsByID(documentID, nil)
 	if err != nil {
 		return nil, err

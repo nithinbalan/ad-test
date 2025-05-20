@@ -47,3 +47,16 @@ func GetIntEnv(key string, defaultValue int) int {
 	}
 	return intValue
 }
+
+func GetBoolEnv(key string, defaultValue bool) bool {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+
+	boolValue, err := strconv.ParseBool(value)
+	if err != nil {
+		return defaultValue
+	}
+	return boolValue
+}

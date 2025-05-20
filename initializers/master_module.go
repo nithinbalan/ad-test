@@ -31,6 +31,8 @@ type MasterModule struct {
 	ReviewStatusController          *controllers.ReviewStatusController
 	ApplicabilityStatusController   *controllers.ApplicabilityStatusController
 	RequiredDocumentTitleController *controllers.RequiredDocumentTitleController
+	CountryController               *controllers.CountryController
+	CalculationTypeController       *controllers.CalculationTypeController
 
 	ReviewFrequencySvc       services.ReviewFrequencyServiceInterface
 	SeverityLevelSvc         services.SeverityLevelServiceInterface
@@ -54,6 +56,7 @@ type MasterModule struct {
 	ReviewStatusSvc          services.ReviewStatusServiceInterface
 	ApplicabilitySvc         services.ApplicabilityStatusServiceInterface
 	RequiredDocumentTitleSvc services.RequiredDocumentTitleServiceInterface
+	CountrySvc               services.CountryServiceInterface
 }
 
 func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
@@ -163,6 +166,15 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	requiredDocumentTitleSvc := services.NewRequiredDocumentTitleService(requiredDocumentTitleRepo, sharedModule.ActivityLogService)
 	requiredDocumentTitleController := controllers.NewRequiredDocumentTitleController(requiredDocumentTitleSvc)
 
+	countryRepo := repositories.NewCountryRepository(db)
+	countrySvc := services.NewCountryService(countryRepo)
+	countryController := controllers.NewCountryController(countrySvc)
+
+	//calculation type
+	calculationTypeRepo := repositories.NewCalculationTypeRepository(db)
+	calculationTypeSvc := services.NewCalculationTypeService(calculationTypeRepo)
+	calculationTypeController := controllers.NewCalculationTypeController(calculationTypeSvc)
+
 	return &MasterModule{
 		ReviewFrequencyController:       reviewFrequencyController,
 		SeverityLevelController:         severityLevelController,
@@ -186,6 +198,8 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		ReviewStatusController:          reviewStatusController,
 		ApplicabilityStatusController:   applicabilityStatusController,
 		RequiredDocumentTitleController: requiredDocumentTitleController,
+		CountryController:               countryController,
+		CalculationTypeController:       calculationTypeController,
 
 		ReviewFrequencySvc:       reviewFrequencySvc,
 		SeverityLevelSvc:         severityLevelSvc,
@@ -209,5 +223,6 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		ReviewStatusSvc:          reviewStatusSvc,
 		ApplicabilitySvc:         applicabilityStatusSvc,
 		RequiredDocumentTitleSvc: requiredDocumentTitleSvc,
+		CountrySvc:               countrySvc,
 	}
 }

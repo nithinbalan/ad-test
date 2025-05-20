@@ -38,6 +38,7 @@ func (repo *ProcessDependencySubTypeRepository) GetAll(params *orgDTOs.ProcessDe
 	query := repo.db.Table("process_dependency_sub_types").
 		Select(`
 			process_dependency_sub_types.*, 
+			process_dependency_types.type AS process_dependency_type_type,
 			process_dependency_types.title_en AS process_dependency_type_title_en, 
 			process_dependency_types.title_ar AS process_dependency_type_title_ar`).
 		Joins(`LEFT JOIN process_dependency_types ON process_dependency_types.id = process_dependency_sub_types.process_dependency_type_id`)

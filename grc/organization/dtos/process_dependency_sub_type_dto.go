@@ -3,10 +3,12 @@ package dtos
 type ProcessDependencySubTypeDTO struct {
 	ID                           int     `json:"id"`
 	ProcessDependencyTypeID      *uint   `json:"process_dependency_type_id"`
+	Type                         string  `json:"type"`
 	TitleEn                      string  `json:"title_en"`
 	TitleAr                      string  `json:"title_ar"`
 	DescriptionEn                *string `json:"description_en"`
 	DescriptionAr                *string `json:"description_ar"`
+	ProcessDependencyTypeType    string  `json:"process_dependency_type_type"`
 	ProcessDependencyTypeTitleEn string  `json:"process_dependency_type_title_en"`
 	ProcessDependencyTypeTitleAr string  `json:"process_dependency_type_title_ar"`
 	Status                       string  `json:"status"`
@@ -28,4 +30,16 @@ type ProcessDependencySubTypeListQueryParamsDTO struct {
 	Keyword string
 	Status  string
 	Filters map[string][]string
+}
+
+type ProcessDependencySubTypeDetailDTO struct {
+	ID                      int                      `json:"id"`
+	ProcessDependencyTypeID *uint                    `json:"process_dependency_type_id"`
+	Type                    string                   `json:"type"`
+	TitleEn                 string                   `json:"title_en"`
+	TitleAr                 string                   `json:"title_ar"`
+	DescriptionEn           *string                  `json:"description_en"`
+	DescriptionAr           *string                  `json:"description_ar"`
+	ProcessDependencyType   ProcessDependencyTypeDTO `json:"process_dependency_type"`
+	Status                  string                   `json:"status"`
 }

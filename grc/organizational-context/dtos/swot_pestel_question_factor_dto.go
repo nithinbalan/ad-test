@@ -43,14 +43,15 @@ type SwotPestelQuestionFactorFormDTO struct {
 }
 
 type SwotPestelQuestionFactorListQueryParamsDTO struct {
-	Sort        string
-	SortBy      string
-	Keyword     string
-	Page        int
-	PageSize    int
-	Filters     map[string][]string
-	QuickFilter []string
-	Export      bool
+	Sort         string
+	SortBy       string
+	Keyword      string
+	Page         int
+	PageSize     int
+	Filters      map[string][]string
+	QuickFilter  []string
+	Export       bool
+	CategoryType string
 }
 
 type SwotPestelQuestionFactorDetailDTO struct {
@@ -64,4 +65,13 @@ type SwotPestelQuestionFactorDetailDTO struct {
 	UpdatedAt            *time.Time                       `json:"updated_at"`
 	CreatedByUser        organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser        *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+}
+
+type SwotPestelCategoryCountResponseDTO struct {
+	ID        uint   `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Type      string `json:"type"`
+	Count     int    `json:"count"`
 }

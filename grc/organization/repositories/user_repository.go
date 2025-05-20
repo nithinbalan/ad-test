@@ -50,6 +50,11 @@ type UserRepositoryInterface interface {
 	GetPermissionsForModule(roleID, moduleID uint) (map[string]bool, error)
 	GetUserRoles(userID uint) ([]models.UserRole, error)
 	GetActiveUserCount() (int64, error)
+
+	UpdateUserPrimaryDepartment(userID, orgUnitID uint, fields map[string]*uint, tx ...utility.DatabaseTransaction) error
+	UpdateResponsibleUnits(userID, newDepartmentID uint, tx ...utility.DatabaseTransaction) error
+	UpdateResponsibleUsers(oldUserID, newUserID uint, tx ...utility.DatabaseTransaction) error
+	UpdateResponsibleUserTasks(oldUserID, newUserID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type UserRepository struct {
@@ -781,4 +786,101 @@ func (repo *UserRepository) GetActiveUserCount() (int64, error) {
 		return 0, err
 	}
 	return count, nil
+}
+
+func (repo *UserRepository) UpdateUserPrimaryDepartment(userID, orgUnitID uint, fields map[string]*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	for columnName, value := range fields {
+		updateQuery := fmt.Sprintf("UPDATE users SET %s = ? WHERE id = ?", columnName)
+		if err := db.Exec(updateQuery, value, userID).Error; err != nil {
+			return fmt.Errorf("failed to update table users: %w", err)
+		}
+	}
+	return nil
+}
+
+func (repo *UserRepository) UpdateResponsibleUnits(userID, newDepartmentID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var tables []string
+	query := `
+		SELECT table_name
+		FROM information_schema.columns
+		WHERE column_name IN ('responsible_user_id', 'responsible_unit_id')
+		GROUP BY table_name
+		HAVING COUNT(DISTINCT column_name) = 2;
+	`
+
+	err := db.Raw(query).Scan(&tables).Error
+	if err != nil {
+		return fmt.Errorf("failed to fetch table list: %w", err)
+	}
+
+	for _, table := range tables {
+		updateQuery := fmt.Sprintf("UPDATE %s SET responsible_unit_id = ? WHERE responsible_user_id = ?", table)
+		if err := db.Exec(updateQuery, newDepartmentID, userID).Error; err != nil {
+			return fmt.Errorf("failed to update table %s: %w", table, err)
+		}
+	}
+	return nil
+}
+
+func (repo *UserRepository) UpdateResponsibleUsers(oldUserID, newUserID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var tables []string
+	query := `
+		SELECT table_name
+		FROM information_schema.columns
+		WHERE column_name IN ('responsible_user_id', 'responsible_unit_id')
+		GROUP BY table_name
+		HAVING COUNT(DISTINCT column_name) = 2;
+	`
+
+	err := db.Raw(query).Scan(&tables).Error
+	if err != nil {
+		return fmt.Errorf("failed to fetch table list: %w", err)
+	}
+
+	for _, table := range tables {
+		updateQuery := fmt.Sprintf("UPDATE %s SET responsible_user_id = ? WHERE responsible_user_id = ?", table)
+		if err := db.Exec(updateQuery, newUserID, oldUserID).Error; err != nil {
+			return fmt.Errorf("failed to update table %s: %w", table, err)
+		}
+	}
+
+	return nil
+}
+
+func (repo *UserRepository) UpdateResponsibleUserTasks(oldUserID, newUserID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var statusIDs []int
+	err := db.Table("task_statuses").
+		Where("is_open = ?", true).
+		Pluck("id", &statusIDs).Error
+	if err != nil {
+		return fmt.Errorf("failed to fetch task status IDs: %w", err)
+	}
+
+	err = db.Exec(`
+		UPDATE tasks
+		SET responsible_user_id = ?
+		WHERE responsible_user_id = ? AND task_status_id IN (?)`,
+		newUserID, oldUserID, statusIDs).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to update tasks: %w", err)
+	}
+	return nil
 }

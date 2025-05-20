@@ -22,6 +22,7 @@ type OrganizationUnitServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
+	GetByTitleEn(title string) (*models.OrganizationUnit, error)
 }
 
 type OrganizationUnitService struct {
@@ -276,4 +277,16 @@ func (ous *OrganizationUnitService) validateOrganizationUnitFormDTO(orgUnitFormD
 	}
 
 	return nil
+}
+
+func (ous *OrganizationUnitService) GetByTitleEn(title string) (*models.OrganizationUnit, error) {
+	orgUnit, err := ous.repo.GetByTitleEn(title)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, title)
+		}
+		return nil, err
+	}
+	return orgUnit, nil
 }

@@ -77,7 +77,10 @@ func NewOrganizationModule(
 		settingsModule.OrganizationLevelSvc,
 		settingsModule.ModuleSvc,
 		settingsModule.EmailTemplateSettingsSvc,
-		commonModule.NotificationService)
+		commonModule.NotificationService,
+		settingsModule.ActiveDirectorySettingSvc,
+		settingsModule.OrganizationUnitSvc,
+	)
 	userSettingRepo := repositories.NewUserSettingRepository(db)
 	userSettingSvc := services.NewUserSettingService(
 		userSettingRepo,

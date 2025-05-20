@@ -11,7 +11,7 @@ import (
 // Interfaces
 type SwotPestelQuestionRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*organizationalContextDTOs.SwotPestelQuestionListDTO, error)
+	GetAll(params *organizationalContextDTOs.SwotPestelQuestionListQueryParamsDTO) ([]*organizationalContextDTOs.SwotPestelQuestionListDTO, error)
 	GetAllOrdered(swotPestelQuestionGroupId uint) ([]*models.SwotPestelQuestion, error)
 	GetByID(id uint) (*models.SwotPestelQuestion, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.SwotPestelQuestion, error)
@@ -25,6 +25,8 @@ type SwotPestelQuestionRepositoryInterface interface {
 
 	CreateSwotPestelQuestionInvitees(invitees []*models.SwotPestelQuestionInvitee, tx ...utility.DatabaseTransaction) error
 	DeleteSwotPestelQuestionInvitees(swotPestelQuestionID uint, inviteeIDs []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetSwotPestelQuestionSummary(isSwot string, isPestel string) (unansweredCount int, answeredCount int, err error)
 }
 
 // implementation
@@ -43,7 +45,7 @@ func (repo *SwotPestelQuestionRepository) BeginTransaction() utility.DatabaseTra
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *SwotPestelQuestionRepository) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*organizationalContextDTOs.SwotPestelQuestionListDTO, error) {
+func (repo *SwotPestelQuestionRepository) GetAll(params *organizationalContextDTOs.SwotPestelQuestionListQueryParamsDTO) ([]*organizationalContextDTOs.SwotPestelQuestionListDTO, error) {
 	var swotPestelQuestions []*organizationalContextDTOs.SwotPestelQuestionListDTO
 
 	query := repo.db.Table("swot_pestel_questions").
@@ -64,9 +66,15 @@ func (repo *SwotPestelQuestionRepository) GetAll(sort string, sortBy string, key
 		Joins("LEFT JOIN swot_pestel_question_groups ON swot_pestel_question_groups.id = swot_pestel_questions.swot_pestel_question_group_id").
 		Joins("LEFT JOIN users AS answered_user ON answered_user.id = swot_pestel_questions.answered_by_id")
 
+	// Apply dynamic filters to the query
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
 	// Apply search keyword if exists
-	if keyword != "" {
-		keyword := "%" + keyword + "%"
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
 			(swot_pestel_questions.title_en LIKE ? OR
 			swot_pestel_questions.title_ar LIKE ? OR
@@ -76,29 +84,29 @@ func (repo *SwotPestelQuestionRepository) GetAll(sort string, sortBy string, key
 	}
 
 	// Apply status filter
-	if status == "active" || status == "inactive" {
-		query = query.Where("swot_pestel_questions.status = ?", status)
+	if params.Status == "active" || params.Status == "inactive" {
+		query = query.Where("swot_pestel_questions.status = ?", params.Status)
 	}
 
 	// Apply is_swot filter
-	if isSwot == "true" {
+	if params.IsSwot == "true" {
 		query = query.Where("swot_pestel_questions.is_swot = ?", true)
 	}
 
 	// Apply is_pestel filter
-	if isPestel == "true" {
+	if params.IsPestel == "true" {
 		query = query.Where("swot_pestel_questions.is_pestel = ?", true)
 	}
 
 	// Sort by the specified column and order
-	if sortBy == "" {
-		sortBy = "title_en" // Default sorting
+	if params.SortBy == "" {
+		params.SortBy = "title_en" // Default sorting
 	}
-	if sort != "asc" && sort != "desc" {
-		sort = "asc"
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
 	}
 
-	query = query.Order(sortBy + " " + sort)
+	query = query.Order(params.SortBy + " " + params.Sort)
 
 	// Execute query
 	err := query.Find(&swotPestelQuestions).Error
@@ -288,4 +296,37 @@ func (repo *SwotPestelQuestionRepository) DeleteSwotPestelQuestionInvitees(swotP
 	}
 
 	return nil
+}
+
+func (repo *SwotPestelQuestionRepository) GetSwotPestelQuestionSummary(isSwot string, isPestel string) (unansweredCount int, answeredCount int, err error) {
+	var totalCount int64
+	var answered int64
+	var unanswered int64
+
+	query := repo.db.Model(&models.SwotPestelQuestion{}) // replace with your actual model if different
+
+	if isSwot == "true" {
+		query = query.Where("is_swot = ?", true)
+	}
+
+	if isPestel == "true" {
+		query = query.Where("is_pestel = ?", true)
+	}
+
+	// Count total
+	if err := query.Count(&totalCount).Error; err != nil {
+		return 0, 0, err
+	}
+
+	// Count answered (i.e. answered_by_id is NOT NULL)
+	if err := query.Where("answered_by_id IS NOT NULL").Count(&answered).Error; err != nil {
+		return 0, 0, err
+	}
+
+	unanswered = totalCount - answered
+
+	unansweredCount = int(unanswered)
+	answeredCount = int(answered)
+
+	return unansweredCount, answeredCount, nil
 }

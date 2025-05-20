@@ -41,7 +41,7 @@ func (klc *KRILibraryController) GetAllKRILibrary(c *gin.Context) {
 		Category: categories,
 		Page:     page,
 		PageSize: pageSize,
-		Export:   export, 
+		Export:   export,
 	}
 
 	result, err := klc.service.GetAll(&queryParams)

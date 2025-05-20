@@ -14,13 +14,20 @@ type AssetAssociatedItemRepositoryInterface interface {
 
 	GetAllControls(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]*assetDTOs.AssetControlListDTO, error)
 	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
-	GetAllRisks(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error)
+	GetAllRisksByRiskIDs(riskRegisterIDs []uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error)
 	GetAllVulnerabilities(assetID uint) ([]models.Vulnerability, error)
+	GetAllClauses(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemClauseListResponseDTO, error)
+
 	GetRisksByThreatID(threatID uint) ([]*assetDTOs.RiskDTO, error)
 
 	GetVulnerabilityAssetExist(assetID, vulnerabilityID uint) (bool, error)
 	CreateAssetVulnerabilities(vulnerabilities []*models.VulnerabilityAsset, tx ...utility.DatabaseTransaction) error
 	DeleteAssetVulnerability(assetID, vulnerabilityID uint) error
+
+	GetAssetComplianceClauseExist(assetID uint, clauseID uint) (bool, error)
+	CreateAssetComplianceClauses(clauses []*models.AssetComplianceRequirement, tx ...utility.DatabaseTransaction) error
+	GetAssetComplianceClauseByID(id uint) (*models.AssetComplianceRequirement, error)
+	DeleteAssetComplianceClause(assetID uint, id uint) error
 
 	GetVulnerabilityThreatExist(vulnerabilityId uint, threatID uint) (bool, error)
 	CreateAssetVulnerabilityThreats(threats []*models.VulnerabilityThreat, tx ...utility.DatabaseTransaction) error
@@ -32,6 +39,10 @@ type AssetAssociatedItemRepositoryInterface interface {
 
 	GetByRiskID(id uint) (*models.RiskRegister, error)
 	GetAssetRiskAnalysis(assetID uint) ([]*assetDTOs.VulnerabilityDTO, []*assetDTOs.ThreatDTO, []*assetDTOs.RiskDTO, error)
+
+	GetVulnerabilityIDsByAssetID(assetID uint) ([]uint, error)
+	GetThreatIDsByVulnerabilityIDs(vulnIDs []uint) ([]uint, error)
+	GetRiskRegisterIDsByThreatIDs(threatIDs []uint) ([]uint, error)
 }
 
 type AssetAssociatedItemRepository struct {
@@ -91,7 +102,7 @@ func (repo *AssetAssociatedItemRepository) GetAllControls(assetID uint, params *
             LEFT JOIN control_types ON controls.control_type_id = control_types.id
             LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
             LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
-			LEFT JOIN users AS owner ON controls.owner_id = owner.id
+			LEFT JOIN users AS owner ON controls.responsible_user_id = owner.id
         `).Where("asset_controls.asset_register_id = ?", assetID)
 
 	// Apply search keyword if exists
@@ -230,70 +241,63 @@ func (repo *AssetAssociatedItemRepository) GetAllIncidents(assetID uint, params 
 	return response, nil
 }
 
-func (repo *AssetAssociatedItemRepository) GetAllRisks(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error) {
+func (repo *AssetAssociatedItemRepository) GetAllRisksByRiskIDs(riskRegisterIDs []uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error) {
 	var totalCount int64
 	var riskList []*assetDTOs.AssetRiskListDTO
 
-	// Query: Fetch asset-associated risks using the asset IDs
-	query := repo.db.Table("risk_assets").
+	query := repo.db.Table("risk_register").
 		Select(`
-            DISTINCT risk_assets.risk_register_id AS risk_register_id,
-            risk_register.reference_number AS risk_reference_number,
-            risk_register.title AS risk_register_title,
-            risk_register.description AS risk_register_description,
-            risk_categories.title_en AS risk_category_title_en,
-            risk_categories.title_ar AS risk_category_title_ar,
-            risk_sources.title_en AS risk_source_title_en,
-            risk_sources.title_ar AS risk_source_title_ar,
-            organization_units.title_en AS responsible_unit_title_en,
-            organization_units.title_ar AS responsible_unit_title_ar,
-            users.id AS responsible_user_id,
-            users.first_name_en AS responsible_user_first_name_en,
-            users.first_name_ar AS responsible_user_first_name_ar,
-            users.last_name_en AS responsible_user_last_name_en,
-            users.last_name_ar AS responsible_user_last_name_ar,
-            users.initial AS responsible_user_initial,
-            users.color AS responsible_user_color,
-            users.email AS responsible_user_email,
-            users.profile_image_path AS responsible_user_profile_image_path,  
-            risk_statuses.title_en AS risk_status_title_en,
-            risk_statuses.title_ar AS risk_status_title_ar,
-            risk_statuses.color_code AS risk_status_color_code,
-            review_frequencies.title_en AS risk_review_frequency_title_en,
-            review_frequencies.title_ar AS risk_review_frequency_title_ar,
-            risk_matrix_likelihoods.title_en AS risk_matrix_likelihood_title_en,
-            risk_matrix_likelihoods.title_ar AS risk_matrix_likelihood_title_ar,
-            risk_matrix_likelihoods.score AS risk_matrix_likelihood_score,
-            risk_matrix_impacts.title_en AS risk_matrix_impact_title_en,
-            risk_matrix_impacts.title_ar AS risk_matrix_impact_title_ar,
-            risk_matrix_impacts.score AS risk_matrix_impact_score,
-            risk_matrix_risk_ratings.title_en AS risk_matrix_risk_rating_title_en,
-            risk_matrix_risk_ratings.title_ar AS risk_matrix_risk_rating_title_ar,
-            risk_matrix_risk_ratings.type AS risk_matrix_risk_rating_type,
-            risk_matrix_risk_ratings.color_code AS risk_matrix_risk_rating_color_code,
-            risk_matrix_risk_rating_values.value AS risk_matrix_risk_rating_value,
-            risk_register.next_review_date AS risk_next_review_date
-        `).
+			risk_register.id AS risk_register_id,
+			risk_register.reference_number,
+			risk_register.title,
+			risk_register.description,
+			risk_categories.title_en AS risk_category_title_en,
+			risk_categories.title_ar AS risk_category_title_ar,
+			risk_sources.title_en AS risk_source_title_en,
+			risk_sources.title_ar AS risk_source_title_ar,
+			organization_units.title_en AS owner_unit_title_en,
+			organization_units.title_ar AS owner_unit_title_ar,
+			users.id AS owner_id,
+			users.first_name_en AS owner_first_name_en,
+			users.first_name_ar AS owner_first_name_ar,
+			users.last_name_en AS owner_last_name_en,
+			users.last_name_ar AS owner_last_name_ar,
+			users.initial AS owner_initial,
+			users.color AS owner_color,
+			users.email AS owner_email,
+			users.profile_image_path AS owner_profile_image_path,
+			risk_matrix_likelihoods.title_en AS risk_matrix_likelihood_title_en,
+			risk_matrix_likelihoods.title_ar AS risk_matrix_likelihood_title_ar,
+			risk_matrix_likelihoods.score AS risk_matrix_likelihood_score,
+			risk_matrix_impacts.title_en AS risk_matrix_impact_title_en,
+			risk_matrix_impacts.title_ar AS risk_matrix_impact_title_ar,
+			risk_matrix_impacts.score AS risk_matrix_impact_score,
+			risk_matrix_risk_ratings.title_en AS risk_matrix_risk_rating_title_en,
+			risk_matrix_risk_ratings.title_ar AS risk_matrix_risk_rating_title_ar,
+			risk_matrix_risk_ratings.type AS risk_matrix_risk_rating_type,
+			risk_matrix_risk_ratings.color_code AS risk_matrix_risk_rating_color_code,
+			risk_statuses.title_en AS risk_status_title_en,
+			risk_statuses.title_ar AS risk_status_title_ar,
+			risk_statuses.color_code AS risk_status_color_code
+		`).
 		Joins(`
-            LEFT JOIN risk_register ON risk_register.id = risk_assets.risk_register_id
-            LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
-            LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
-            LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id
-            LEFT JOIN users ON users.id = risk_register.responsible_user_id
-            LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
-            LEFT JOIN risk_matrix_likelihoods ON risk_matrix_likelihoods.id = risk_register.current_likelihood_id
-            LEFT JOIN risk_matrix_impacts ON risk_matrix_impacts.id = risk_register.current_impact_id
-            LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id
+			LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
+			LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
+			LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id
+			LEFT JOIN users ON users.id = risk_register.responsible_user_id
+			LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
+			LEFT JOIN risk_matrix_likelihoods ON risk_matrix_likelihoods.id = risk_register.current_likelihood_id
+			LEFT JOIN risk_matrix_impacts ON risk_matrix_impacts.id = risk_register.current_impact_id
+			LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id
             LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = risk_register.current_risk_rating_value_id
             LEFT JOIN review_frequencies ON review_frequencies.id = risk_register.review_frequency_id
-        `).
-		Where("risk_assets.asset_register_id = ?", assetID)
+		`).
+		Where("risk_register.id IN ?", riskRegisterIDs)
 
 	// Count total records
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
-
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -305,30 +309,24 @@ func (repo *AssetAssociatedItemRepository) GetAllRisks(assetID uint, params *ass
 		query = query.Where("risk_matrix_risk_rating_values.value = ?", params.Value)
 	}
 
-	// Apply sorting
+	// Sorting defaults
 	if params.SortBy == "" {
 		params.SortBy = "risk_register.title"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
 	}
-
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	// Apply pagination
+	// Pagination
 	offset := (params.Page - 1) * params.PageSize
-
-	// Fetch the results
-	err := query.Offset(offset).Limit(params.PageSize).Find(&riskList).Error
-	if err != nil {
+	if err := query.Offset(offset).Limit(params.PageSize).Find(&riskList).Error; err != nil {
 		return nil, err
 	}
 
-	// Calculate total pages
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
-	// Build the response
-	response := &assetDTOs.AssetAssociatedItemRiskListResponseDTO{
+	return &assetDTOs.AssetAssociatedItemRiskListResponseDTO{
 		Items: riskList,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
@@ -336,8 +334,7 @@ func (repo *AssetAssociatedItemRepository) GetAllRisks(assetID uint, params *ass
 			TotalPages:  totalPages,
 			TotalCount:  totalCount,
 		},
-	}
-	return response, nil
+	}, nil
 }
 
 func (repo *AssetAssociatedItemRepository) GetAllVulnerabilities(assetID uint) ([]models.Vulnerability, error) {
@@ -399,6 +396,69 @@ func (repo *AssetAssociatedItemRepository) GetRisksByThreatID(threatID uint) ([]
 	}
 
 	return risks, nil
+}
+
+func (repo *AssetAssociatedItemRepository) GetAllClauses(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemClauseListResponseDTO, error) {
+	var totalCount int64
+	var clauseList []*assetDTOs.AssetClauseListDTO
+
+	query := repo.db.Table("asset_compliance_requirements").
+		Select(`
+			DISTINCT asset_compliance_requirements.id,
+			compliance_clauses.id AS clause_id,
+			compliance_clauses.clause_no,
+			compliance_clauses.title_en AS clause_title_en,
+			compliance_clauses.title_ar AS clause_title_ar,
+			compliance_register.id AS compliance_register_id,
+			compliance_register.title_en AS compliance_register_title_en,
+			compliance_register.title_ar AS compliance_register_title_ar
+		`).
+		Joins("LEFT JOIN compliance_clauses ON compliance_clauses.id = asset_compliance_requirements.compliance_clause_id").
+		Joins("LEFT JOIN compliance_register ON compliance_register.id = compliance_clauses.compliance_register_id").
+		Where("asset_compliance_requirements.asset_register_id = ?", assetID)
+
+	// Apply keyword search
+	if params.Keyword != "" {
+		kw := "%" + params.Keyword + "%"
+		query = query.Where(`
+			compliance_clauses.clause_no LIKE ? OR 
+			compliance_clauses.title_en LIKE ? OR 
+			compliance_register.title_en LIKE ?
+		`, kw, kw, kw)
+	}
+
+	// Count total
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Sorting
+	if params.SortBy == "" {
+		params.SortBy = "compliance_clauses.clause_no"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	// Pagination
+	offset := (params.Page - 1) * params.PageSize
+	err := query.Offset(offset).Limit(params.PageSize).Find(&clauseList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Pagination response
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	return &assetDTOs.AssetAssociatedItemClauseListResponseDTO{
+		Items: clauseList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}, nil
 }
 
 func (repo *AssetAssociatedItemRepository) CreateAssetVulnerabilities(vulnerabilities []*models.VulnerabilityAsset, tx ...utility.DatabaseTransaction) error {
@@ -658,6 +718,40 @@ func (repo *AssetAssociatedItemRepository) GetVulnerabilityAssetExist(assetID, v
 	return count > 0, nil
 }
 
+func (r *AssetAssociatedItemRepository) GetAssetComplianceClauseExist(assetID uint, clauseID uint) (bool, error) {
+	var count int64
+	err := r.db.Model(&models.AssetComplianceRequirement{}).
+		Where("asset_register_id = ? AND compliance_clause_id = ?", assetID, clauseID).
+		Count(&count).Error
+	return count > 0, err
+}
+
+func (repo *AssetAssociatedItemRepository) CreateAssetComplianceClauses(clauses []*models.AssetComplianceRequirement, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(clauses).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *AssetAssociatedItemRepository) GetAssetComplianceClauseByID(id uint) (*models.AssetComplianceRequirement, error) {
+	var record models.AssetComplianceRequirement
+	err := r.db.First(&record, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &record, nil
+}
+
+func (r *AssetAssociatedItemRepository) DeleteAssetComplianceClause(assetID uint, id uint) error {
+	return r.db.
+		Where("id = ? AND asset_register_id = ?", id, assetID).
+		Delete(&models.AssetComplianceRequirement{}).Error
+}
+
 func (repo *AssetAssociatedItemRepository) GetVulnerabilityThreatExist(vulnerabilityId uint, threatID uint) (bool, error) {
 	var count int64
 	err := repo.db.Model(&models.VulnerabilityThreat{}).
@@ -678,4 +772,31 @@ func (repo *AssetAssociatedItemRepository) GetThreatRiskExist(threatId uint, ris
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func (repo *AssetAssociatedItemRepository) GetVulnerabilityIDsByAssetID(assetID uint) ([]uint, error) {
+	var ids []uint
+	err := repo.db.
+		Model(&models.VulnerabilityAsset{}).
+		Where("asset_register_id = ?", assetID).
+		Pluck("vulnerability_id", &ids).Error
+	return ids, err
+}
+
+func (repo *AssetAssociatedItemRepository) GetThreatIDsByVulnerabilityIDs(vulnIDs []uint) ([]uint, error) {
+	var ids []uint
+	err := repo.db.
+		Model(&models.VulnerabilityThreat{}).
+		Where("vulnerability_id IN ?", vulnIDs).
+		Pluck("threat_id", &ids).Error
+	return ids, err
+}
+
+func (repo *AssetAssociatedItemRepository) GetRiskRegisterIDsByThreatIDs(threatIDs []uint) ([]uint, error) {
+	var ids []uint
+	err := repo.db.
+		Model(&models.RiskThreat{}).
+		Where("threat_id IN ?", threatIDs).
+		Pluck("risk_register_id", &ids).Error
+	return ids, err
 }

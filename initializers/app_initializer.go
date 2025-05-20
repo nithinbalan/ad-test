@@ -26,6 +26,8 @@ type App struct {
 	SharedModule                *SharedModule
 	BusinessContinuityModule    *BusinessContinuityModule
 	OrganizationalContextModule *OrganizationalContextModule
+	StrategyModule              *StrategyModule
+	TprmModule                  *TprmModule
 }
 
 func NewApp(db *gorm.DB) *App {
@@ -46,9 +48,11 @@ func NewApp(db *gorm.DB) *App {
 	auditModule := NewAuditModule(db, sharedModule, organizationModule, complianceModule, riskModule, incidentModule, documentModule, settingsModule, masterModule, taskModule, commonModule)
 	kpiModule := NewKPIModule(db, riskModule)
 	auditInsightsModule := NewAuditInsightsModule(db, sharedModule, organizationModule, auditModule, commonModule)
-	reportsModule := NewReportsModule(db, complianceModule, organizationModule, riskModule, auditModule, incidentModule, meetingModule, settingsModule, documentModule)
+	reportsModule := NewReportsModule(db, complianceModule, organizationModule, riskModule, auditModule, auditInsightsModule, incidentModule, meetingModule, settingsModule, documentModule, sharedModule, kpiModule)
 	businessFunctionModule := NewBusinessContinuityModule(db, sharedModule, settingsModule, masterModule, organizationModule, assetModule, documentModule, riskModule, commonModule, taskModule)
 	organizationalContextModule := NewOrganizationalContextModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
+	strategyModule := NewStrategyModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
+	tprmModule := NewTprmModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
 
 	return &App{
 		DB:                          db,
@@ -72,5 +76,7 @@ func NewApp(db *gorm.DB) *App {
 		SharedModule:                sharedModule,
 		BusinessContinuityModule:    businessFunctionModule,
 		OrganizationalContextModule: organizationalContextModule,
+		StrategyModule:              strategyModule,
+		TprmModule:                  tprmModule,
 	}
 }

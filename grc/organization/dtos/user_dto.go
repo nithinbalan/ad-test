@@ -144,6 +144,7 @@ type UserDetailsDTO struct {
 	LastLoginAt      *time.Time `json:"last_login_at"`
 	CreatedAt        time.Time  `json:"created_at"`
 	UpdatedAt        time.Time  `json:"updated_at"`
+	PrimaryUnitID    *uint      `json:"primary_unit_id"`
 
 	// Relationship DTOs
 	OrganizationUnit1 settingDTOs.OrganizationUnitDTO  `json:"organization_unit_1"`
@@ -284,3 +285,21 @@ type UserPrimaryDetailsDTO struct {
 	MobileNumber     *string `json:"mobile_number"`
 	ProfileImagePath *string `json:"profile_image_path"`
 }
+
+type UpdateOrganizationUnitDTO struct {
+	UserID             *uint `json:"user_id"`
+	OrganizationUnitID *uint `json:"organization_unit_id"` // New Organization Unit ID
+}
+type ADUserDTO struct {
+	FirstNameEn      string `json:"first_name_en"`
+	LastNameEn       string `json:"last_name_en"`
+	FirstNameAr      string `json:"first_name_ar"`
+	LastNameAr       string `json:"last_name_ar"`
+	Email            string `json:"email"`
+	MobileNumber     string `json:"mobile_number"`
+	Designation      string `json:"designation"`
+	UserStatus       string `json:"user_status"`
+	OrganizationUnit string `json:"organization_unit"`
+	IsExist          bool   `json:"is_exist"`
+}
+type ADUserFlatDTO map[string]interface{}

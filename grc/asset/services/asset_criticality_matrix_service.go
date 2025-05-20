@@ -20,6 +20,7 @@ type AssetCriticalityMatrixServiceInterface interface {
 	Update(id uint, matrixFormDTO *dtos.AssetCriticalityMatrixFormDTO, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GetCriticalityMatrixByCategoryID(assetCategoryID uint) (uint, error)
+	GetDefaultCriticalityMatrixID() (uint, error)
 }
 
 type AssetCriticalityMatrixService struct {
@@ -146,6 +147,14 @@ func (acms *AssetCriticalityMatrixService) Create(matrixFormDTO *dtos.AssetCriti
 }
 
 func (acms *AssetCriticalityMatrixService) Update(id uint, matrixFormDTO *dtos.AssetCriticalityMatrixFormDTO, currentUserID uint) error {
+	defaultID, err := acms.GetDefaultCriticalityMatrixID()
+	if err != nil {
+		return err
+	}
+	if id == defaultID {
+		return utility.NewValidationError(fmt.Errorf("default matrix cannot be updated"), "default_criticality_matrix", "default matrix")
+	}
+
 	tx := acms.repo.BeginTransaction()
 
 	oldCriticalityMatrix, err := acms.GetFullDetailsByID(id, tx)
@@ -301,6 +310,7 @@ func (acms *AssetCriticalityMatrixService) Update(id uint, matrixFormDTO *dtos.A
 }
 
 func (acms *AssetCriticalityMatrixService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+
 	var failedIds []uint
 	var successfulIds []uint
 	var deletedCriticalityMatrix []map[string]interface{}
@@ -308,10 +318,16 @@ func (acms *AssetCriticalityMatrixService) Delete(ids []uint, currentUserID uint
 	tx := acms.repo.BeginTransaction()
 
 	for _, id := range ids {
+		defaultID, err := acms.GetDefaultCriticalityMatrixID()
+		if err != nil {
+			return nil, err
+		}
+		if id == defaultID {
+			return nil, utility.NewValidationError(fmt.Errorf("default matrix cannot be deleted"), "default_criticality_matrix", "default matrix")
+		}
 
 		criticalityMatrix, err := acms.repo.GetByID(id)
 		if err != nil {
-			fmt.Print(err)
 			continue
 		}
 
@@ -379,4 +395,8 @@ func (acms *AssetCriticalityMatrixService) validateAssetCriticalityMatrixCategor
 
 func (acms *AssetCriticalityMatrixService) GetCriticalityMatrixByCategoryID(assetCategoryID uint) (uint, error) {
 	return acms.repo.GetCriticalityMatrixByCategoryID(assetCategoryID)
+}
+
+func (acms *AssetCriticalityMatrixService) GetDefaultCriticalityMatrixID() (uint, error) {
+	return acms.repo.GetDefaultCriticalityMatrixID()
 }

@@ -14,8 +14,10 @@ type ReportsModule struct {
 	RiskReportController         *controllers.RiskReportController
 	AuditReportController        *controllers.AuditReportController
 	IncidentReportController     *controllers.IncidentReportController
+	AuditInsightReportController *controllers.AuditInsightReportController
 	MeetingReportController      *controllers.MeetingReportController
 	DocumentReportController     *controllers.DocumentReportController
+	GRCReportController          *controllers.GRCReportController
 }
 
 func NewReportsModule(db *gorm.DB,
@@ -23,10 +25,14 @@ func NewReportsModule(db *gorm.DB,
 	organizationModule *OrganizationModule,
 	riskModule *RiskModule,
 	auditModule *AuditModule,
+	auditInsightsModule *AuditInsightsModule,
 	incidentModule *IncidentModule,
 	meetingModule *MeetingModule,
 	settingsModule *SettingsModule,
-	documentModule *DocumentModule) *ReportsModule {
+	documentModule *DocumentModule,
+	sharedModule *SharedModule,
+	kpiModule *KPIModule,
+) *ReportsModule {
 
 	organizationReportRepo := repositories.NewOrganizationReportRepository(db)
 	organizationReportSvc := services.NewOrganizationReportService(organizationReportRepo)
@@ -61,6 +67,16 @@ func NewReportsModule(db *gorm.DB,
 		incidentModule.IncidentRegisterSvc,
 		incidentModule.IncidentActionPlanSvc)
 
+	auditInsightReportRepo := repositories.NewAuditInsightReportRepository(db)
+	auditInsightReportSvc := services.NewAuditInsightReportService(auditInsightReportRepo, organizationModule.UserSvc)
+	auditInsightReportController := controllers.NewAuditInsightReportController(auditInsightReportSvc,
+		auditInsightsModule.AuditInsightsAuditSvc,
+		auditInsightsModule.AuditInsightsAuditFindingSvc,
+		auditInsightsModule.AuditInsightsFindingActionPlanSvc,
+		auditInsightsModule.AuditInsightsAuditPlanSvc,
+		auditInsightsModule.AuditInsightsDraftReportSvc,
+		auditInsightsModule.AuditInsightsFinalReportSvc,
+	)
 	meetingReportRepo := repositories.NewMeetingReportRepository(db)
 	meetingReportSvc := services.NewMeetingReportService(meetingReportRepo, settingsModule.OrganizationLevelSvc)
 	meetingReportController := controllers.NewMeetingReportController(meetingReportSvc,
@@ -72,13 +88,28 @@ func NewReportsModule(db *gorm.DB,
 	documentReportController := controllers.NewDocumentReportController(documentReportSvc,
 		documentModule.DocumentSvc, documentModule.DocumentChangeRequestSvc)
 
+	grcReportRepo := repositories.NewGRCReportRepository(db)
+	grcReportSvc := services.NewGRCReportService(
+		grcReportRepo,
+		sharedModule.ActivityLogService,
+		settingsModule.OrganizationLevelSvc,
+		riskModule.RiskResponseStrategySvc,
+		kpiModule.GrcDashboardSvc,
+		riskModule.RiskHeatMapSvc,
+		complianceModule.ComplianceStatusSvc,
+		settingsModule.OrganizationUnitSvc,
+	)
+	grcReportController := controllers.NewGRCReportController(grcReportSvc)
+
 	return &ReportsModule{
 		ComplianceReportController:   complianceReportController,
 		OrganizationReportController: organizationReportController,
 		RiskReportController:         riskReportController,
 		AuditReportController:        auditReportController,
 		IncidentReportController:     incidentReportController,
+		AuditInsightReportController: auditInsightReportController,
 		MeetingReportController:      meetingReportController,
 		DocumentReportController:     documentReportController,
+		GRCReportController:          grcReportController,
 	}
 }

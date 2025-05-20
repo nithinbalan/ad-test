@@ -117,6 +117,14 @@ func (ac *AuthController) LoginResendOTP(c *gin.Context) {
 }
 
 func (ac *AuthController) LoginVerifyOTP(c *gin.Context) {
+	ipAddress := c.ClientIP()
+	countryCode, err := getCountryFromIPAddress(ipAddress)
+	if err != nil {
+		fmt.Println(err)
+	}
+	device := c.Request.Header.Get("User-Agent")
+	browser := parseBrowserFromUserAgent(device)
+
 	var verifyOTPFormDTO authDTOs.VerifyOTPFormDTO
 
 	if err := c.ShouldBindJSON(&verifyOTPFormDTO); err != nil {
@@ -128,7 +136,7 @@ func (ac *AuthController) LoginVerifyOTP(c *gin.Context) {
 
 	otp := verifyOTPFormDTO.Otp
 
-	responseDTO, err := ac.service.LoginVerifyOTP(email, otp)
+	responseDTO, err := ac.service.LoginVerifyOTP(email, otp, ipAddress, countryCode, device, browser)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -283,4 +291,13 @@ func parseBrowserFromUserAgent(userAgent string) string {
 	browser := parser.Browser.Name.String()
 
 	return browser
+}
+
+func (ac *AuthController) GetLoginSettings(c *gin.Context) {
+	settings, err := ac.service.GetLoginSettings()
+	if err != nil {
+		utility.SendInternalErrResp(ac.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, settings)
 }

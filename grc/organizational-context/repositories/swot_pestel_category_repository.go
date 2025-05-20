@@ -8,7 +8,7 @@ import (
 
 // Interfaces
 type SwotPestelCategoryRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SwotPestelCategory, error)
+	GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*models.SwotPestelCategory, error)
 	GetByID(id uint) (*models.SwotPestelCategory, error)
 	GetByType(status string) (*models.SwotPestelCategory, error)
 }
@@ -24,7 +24,7 @@ func NewSwotPestelCategoryRepository(db *gorm.DB) *SwotPestelCategoryRepository 
 	}
 }
 
-func (repo *SwotPestelCategoryRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SwotPestelCategory, error) {
+func (repo *SwotPestelCategoryRepository) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*models.SwotPestelCategory, error) {
 	var swotPestelCategories []*models.SwotPestelCategory
 
 	query := repo.db
@@ -41,6 +41,14 @@ func (repo *SwotPestelCategoryRepository) GetAll(sort string, sortBy string, key
 
 	if status == "active" || status == "inactive" {
 		query = query.Where("status = ?", status)
+	}
+
+	if isSwot == "true" {
+		query = query.Where("is_swot = ?", true)
+	}
+
+	if isPestel == "true" {
+		query = query.Where("is_pestel = ?", true)
 	}
 
 	query = query.Order(sortBy + " " + sort)

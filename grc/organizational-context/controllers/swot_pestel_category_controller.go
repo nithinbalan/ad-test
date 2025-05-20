@@ -26,8 +26,10 @@ func (cesc *SwotPestelCategoryController) GetAllSwotPestelCategories(c *gin.Cont
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	isSwot := c.Query("is_swot")
+	isPestel := c.Query("is_pestel")
 
-	swotPestelCategories, err := cesc.service.GetAll(sort, sortBy, keyword, status)
+	swotPestelCategories, err := cesc.service.GetAll(sort, sortBy, keyword, status, isSwot, isPestel)
 
 	if err != nil {
 		utility.SendInternalErrResp(cesc.db, c, err.Error())

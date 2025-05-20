@@ -251,6 +251,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("controls/:controlId/risk-heatmap", middlewares.RolePermissionMiddleware(db, "controls", "view"), riskHeatmapController.GetControlRiskHeatmap)
 	riskRoutes.GET("compliances/:complianceId/risk-heatmap", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), riskHeatmapController.GetComplianceRiskHeatmap)
 	riskRoutes.GET("slas/:slaId/risk-heatmap", middlewares.RolePermissionMiddleware(db, "sla_contracts", "view"), riskHeatmapController.GetSLARiskHeatmap)
+	riskRoutes.GET("assets/:id/risk-heatmap", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), riskHeatmapController.GetAssetRiskHeatmap)
 
 	// Risk Control Analysis
 	riskRoutes.GET("risks/:riskId/inherent-control-analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskInherentControlAnalysisController.GetAllRiskControlAnalyses)
@@ -313,7 +314,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/risk-reports/:riskReportId/document-download", riskReportController.DownloadRiskReportDocument)
 	riskRoutes.GET("/risk-reports", riskReportController.GetAllRiskReports)
 	riskRoutes.GET("/risk-reports/:riskReportId", riskReportController.GetRiskReportDetails)
-	riskRoutes.GET("/risk-reports/:riskReportId/export-pdf", riskReportController.GetRiskReportExportPdf)
+	riskRoutes.GET("/risk-reports/:riskReportId/export-pdf", riskReportController.GetRiskReportExportZip)
 	riskRoutes.POST("/risk-reports", riskReportController.CreateRiskReport)
 	riskRoutes.GET("/risk-reports/:riskReportId/sections/:sectionId", riskReportController.GetRiskReportSection)
 	riskRoutes.PUT("/risk-reports/:riskReportId/sections/:sectionId", riskReportController.UpdateRiskReportSection)

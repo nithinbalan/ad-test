@@ -37,6 +37,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reviewStatusController := app.MasterModule.ReviewStatusController
 	applicabilityStatusController := app.MasterModule.ApplicabilityStatusController
 	requiredDocumentTitleController := app.MasterModule.RequiredDocumentTitleController
+	countryController := app.MasterModule.CountryController
+	calculationTypeController := app.MasterModule.CalculationTypeController
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
@@ -141,5 +143,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	masterRoutes.POST("/required-document-titles/delete", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), requiredDocumentTitleController.DeleteRequiredDocumentTitles)
 	masterRoutes.PUT("/required-document-titles/activate", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), requiredDocumentTitleController.ActivateRequiredDocumentTitles)
 	masterRoutes.PUT("/required-document-titles/deactivate", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), requiredDocumentTitleController.DeactivateRequiredDocumentTitles)
+
+	masterRoutes.GET("/countries", countryController.GetAllCountries)
+	masterRoutes.GET("/countries/:id", countryController.GetCountryDetails)
+
+	masterRoutes.GET("/calculation-types", calculationTypeController.GetAllCalculationTypes)
+	masterRoutes.GET("/calculation-types/:id", calculationTypeController.GetCalculationTypeDetails)
 
 }

@@ -367,8 +367,8 @@ func (r *ComplianceClauseRepository) GetAssociatedControls(complianceID uint, cl
 		Joins("JOIN compliance_clauses cl ON cl.id = cr.compliance_clause_id").
 		Joins("LEFT JOIN control_types ON control_types.id = controls.control_type_id").
 		Joins("LEFT JOIN control_categories ON control_categories.id = controls.control_category_id").
-		Joins("LEFT JOIN organization_units ON organization_units.id = controls.owner_unit_id").
-		Joins("LEFT JOIN users AS owner ON owner.id = controls.owner_id").
+		Joins("LEFT JOIN organization_units ON organization_units.id = controls.responsible_unit_id").
+		Joins("LEFT JOIN users AS owner ON owner.id = controls.responsible_user_id").
 		Joins("LEFT JOIN control_implementation_statuses ON control_implementation_statuses.id = controls.control_implementation_status_id").
 		Joins("LEFT JOIN control_efficiency_statuses ON control_efficiency_statuses.id = controls.control_efficiency_status_id").
 		Joins("LEFT JOIN review_frequencies ON review_frequencies.id = controls.review_frequency_id").

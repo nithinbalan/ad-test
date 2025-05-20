@@ -11,6 +11,7 @@ import (
 	"jethur/grc/risk/repositories"
 	settingsServices "jethur/grc/settings/services"
 	"jethur/utility"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -33,7 +34,7 @@ type RiskReportServiceInterface interface {
 	GetDocumentPath(id uint, token string) (string, error)
 	UploadRiskReportDocuments(riskReportID uint, currentUserID uint, riskReportDocumentFormDTO *dtos.RiskReportDocumentFormDTO) (uint, error)
 	DeleteRiskReportDocument(riskReportID uint, documentID uint, currentUserID uint) error
-	ExportRiskReportToPDF(riskReportID uint, currentUserID uint) (string, error)
+	GetRiskReportExportZip(riskReportID uint, currentUserID uint) (string, error)
 }
 
 type RiskReportService struct {
@@ -762,7 +763,7 @@ func (rrs *RiskReportService) DeleteRiskReportDocument(riskReportID uint, docume
 	return nil
 }
 
-func (rrs *RiskReportService) ExportRiskReportToPDF(riskReportID uint, currentUserID uint) (string, error) {
+func (rrs *RiskReportService) GetRiskReportExportZip(riskReportID uint, currentUserID uint) (string, error) {
 	// Fetch risk report detail
 	riskReport, err := rrs.GetRiskReportDetails(riskReportID)
 	if err != nil {
@@ -777,8 +778,8 @@ func (rrs *RiskReportService) ExportRiskReportToPDF(riskReportID uint, currentUs
 			Type:          section.Type,
 			TitleEn:       section.TitleEn,
 			TitleAr:       section.TitleAr,
-			DescriptionEn: section.DescriptionEn,
-			DescriptionAr: section.DescriptionAr,
+			DescriptionEn: utility.StripPTags(section.DescriptionEn),
+			DescriptionAr: utility.StripPTags(section.DescriptionEn),
 		}
 
 		if section.Type == "identification" {
@@ -870,10 +871,44 @@ func (rrs *RiskReportService) ExportRiskReportToPDF(riskReportID uint, currentUs
 	if err := utility.ConvertHTMLContentToPDF(htmlContent, pdfFileName); err != nil {
 		return "", fmt.Errorf("failed to generate PDF: %w", err)
 	}
+	filesToZip := []string{pdfFileName}
+	for _, doc := range riskReport.Documents {
+		path, err := rrs.GetDocumentPath(riskReport.ID, doc.Token)
+		if err != nil {
+			// Handle the error (you can log it, skip it, or return)
+			fmt.Printf("Error getting document path for ID %d: %v\n", doc.ID, err)
+			continue
+		}
+		filesToZip = append(filesToZip, path)
+	}
 
-	return pdfFileName, nil
+	// Step 4: Create ZIP archive
+	// zipFilePath := fmt.Sprintf("tmp/risk_report_%d.zip", riskReportID)
+	// filesToZip := []string{pdfFileName} // add more files if needed
+	zipDir := filepath.Join("storage", "zip")
+	zipFilePath := filepath.Join(zipDir, fmt.Sprintf("risk_report_%d.zip", riskReportID))
+
+	// Ensure the directory exists
+	if err := os.MkdirAll(zipDir, os.ModePerm); err != nil {
+		return "", fmt.Errorf("failed to create directory %s: %w", zipDir, err)
+	}
+
+	err = utility.CreateZipFile(zipFilePath, filesToZip)
+	if err != nil {
+		return "", fmt.Errorf("failed to create ZIP file: %w", err)
+	}
+	go func() {
+		time.Sleep(2 * time.Second)
+
+		// Delete the temporary file
+		if err := os.Remove(pdfFileName); err != nil {
+			log.Printf("⚠️ Failed to delete temp file %s: %v", pdfFileName, err)
+		} else {
+			log.Printf("🧹 Temp file %s deleted successfully", pdfFileName)
+		}
+	}()
+	return zipFilePath, nil
 }
-
 func copyFile(src, dst string) error {
 	input, err := os.ReadFile(src)
 	if err != nil {

@@ -1,0 +1,80 @@
+package repositories
+
+import (
+	"errors"
+	"jethur/grc/models"
+	"jethur/utility"
+
+	"gorm.io/gorm"
+)
+
+// Interfaces
+type KPIStatusRepositoryInterface interface {
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.KPIStatus, error)
+	GetByID(id uint) (*models.KPIStatus, error)
+	GetByType(status string) (*models.KPIStatus, error)
+}
+
+// implementation
+type KPIStatusRepository struct {
+	db *gorm.DB
+}
+
+func NewKPIStatusRepository(db *gorm.DB) *KPIStatusRepository {
+	return &KPIStatusRepository{
+		db: db,
+	}
+}
+
+func (repo *KPIStatusRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.KPIStatus, error) {
+
+	var kpiStatuses []*models.KPIStatus
+
+	query := repo.db
+
+	if keyword != "" {
+		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
+	}
+	if sortBy == "" {
+		sortBy = "title_en"
+	}
+	if sort != "asc" && sort != "desc" {
+		sort = "asc"
+	}
+
+	if status == "active" || status == "inactive" {
+		query = query.Where("status = ?", status)
+	}
+
+	query = query.Order(sortBy + " " + sort)
+	result := query.Find(&kpiStatuses)
+
+	return kpiStatuses, result.Error
+}
+
+func (repo *KPIStatusRepository) GetByID(id uint) (*models.KPIStatus, error) {
+	var kpiStatus *models.KPIStatus
+	result := repo.db.First(&kpiStatus, id)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, id)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return kpiStatus, result.Error
+}
+
+func (repo *KPIStatusRepository) GetByType(status string) (*models.KPIStatus, error) {
+	var kpiStatus *models.KPIStatus
+
+	result := repo.db.Where("type = ?", status).First(&kpiStatus)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, "KPI Status with status "+status)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return kpiStatus, nil
+}
