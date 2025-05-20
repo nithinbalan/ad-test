@@ -104,6 +104,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.GET("/audit-template-settings", auditTemplateSettingController.GetAllAuditTemplateSettings)
 	settingRoutes.PUT("/audit-template-settings/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), auditTemplateSettingController.UpdateAuditTemplateSetting)
 	unauthenticatedRoutes.GET("/audit-template-settings/:id/image-preview", auditTemplateSettingController.GetAuditTemplateSettingPreview)
+	unauthenticatedRoutes.GET("/audit-template-settings/image-preview", auditTemplateSettingController.GetAuditTemplateSettingPreview)
 
 	settingRoutes.GET("/risk-template-settings", riskTemplateSettingController.GetAllRiskTemplateSettings)
 	settingRoutes.PUT("/risk-template-settings/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), riskTemplateSettingController.UpdateRiskTemplateSetting)

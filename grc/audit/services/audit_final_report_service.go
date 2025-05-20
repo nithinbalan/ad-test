@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	auditDTOs "jethur/grc/audit/dtos"
@@ -575,7 +574,7 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 		PublishedAt:                publishedAt,
 		Comments:                   auditFinalReport.Comments,
 		UpdatedByUser:              updatedByUser,
-		PreparedAt:                 auditFinalReport.CreatedAt.UTC().Format("2006-01-02T15:04:05.000Z"),
+		PreparedAt:                 auditFinalReport.CreatedAt.UTC().Format("2006-01-02"),
 	}
 	// Check if AuditFinalReportRecipients exists and map them
 	if len(auditFinalReport.AuditFinalReportRecipients) > 0 {
@@ -1306,36 +1305,32 @@ func (afrs *AuditFinalReportService) ExportAuditFinalReportToPDF(auditID uint, c
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch audit report details: %w", err)
 	}
-	auditTemplateSetting, err := afrs.settingSvc.GetFirst()
-	if err != nil {
-		return "", fmt.Errorf("failed to fetch audit template details: %w", err)
-	}
-	logoImagePath, err := afrs.settingSvc.GetImagePath(auditTemplateSetting.ID, "logo")
-	if err != nil {
-		return "", fmt.Errorf("failed to fetch audit template logo Image Path: %w", err)
-	}
-	finalReportCoverPageBGImagePath, err := afrs.settingSvc.GetImagePath(auditTemplateSetting.ID, "final_report")
-	if err != nil {
-		return "", fmt.Errorf("failed to fetch audit template cover bg Image Path: %w", err)
-	}
+	// auditTemplateSetting, err := afrs.settingSvc.GetFirst()
+	// if err != nil {
+	// 	return "", fmt.Errorf("failed to fetch audit template details: %w", err)
+	// }
+	// logoImagePath, err := afrs.settingSvc.GetImagePath(auditTemplateSetting.ID, "logo")
+	// if err != nil {
+	// 	return "", fmt.Errorf("failed to fetch audit template logo Image Path: %w", err)
+	// }
+	// finalReportCoverPageBGImagePath, err := afrs.settingSvc.GetImagePath(auditTemplateSetting.ID, "final_report")
+	// if err != nil {
+	// 	return "", fmt.Errorf("failed to fetch audit template cover bg Image Path: %w", err)
+	// }
 	// Define template paths
 	templatePaths := []string{
 		"audit/templates/pdf/audit_final_report.html", // Content-specific template
 	}
 	// Ensure paths are properly formatted for use in wkhtmltopdf
-	logoImagePath = "file:///" + strings.ReplaceAll(logoImagePath, "\\", "/")
-	finalReportCoverPageBGImagePath = "file:///" + strings.ReplaceAll(finalReportCoverPageBGImagePath, "\\", "/")
+	// logoImagePath = "file:///" + strings.ReplaceAll(logoImagePath, "\\", "/")
+	// finalReportCoverPageBGImagePath = "file:///" + strings.ReplaceAll(finalReportCoverPageBGImagePath, "\\", "/")
 
-	// Encode spaces in paths to make them URL-compatible
-	logoImagePath = strings.ReplaceAll(logoImagePath, " ", "%20")
-	finalReportCoverPageBGImagePath = strings.ReplaceAll(finalReportCoverPageBGImagePath, " ", "%20")
-
-	// Debugging: Print the paths to verify
-	fmt.Println("Logo Image Path:", logoImagePath)
-	fmt.Println("Final Report Cover Page BG Image Path:", finalReportCoverPageBGImagePath)
+	// // Encode spaces in paths to make them URL-compatible
+	// logoImagePath = strings.ReplaceAll(logoImagePath, " ", "%20")
+	// finalReportCoverPageBGImagePath = strings.ReplaceAll(finalReportCoverPageBGImagePath, " ", "%20")
 
 	// Generate the HTML content
-	htmlContent, err := utility.GeneratePDFContent(auditFinalReport, templatePaths, logoImagePath, finalReportCoverPageBGImagePath)
+	htmlContent, err := utility.GeneratePDFContent(auditFinalReport, templatePaths, "", "")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate HTML content: %w", err)
 	}

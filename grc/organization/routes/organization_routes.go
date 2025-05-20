@@ -63,6 +63,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//User
 	organizationRoutes.GET("/users/export", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUsersExport)
+	organizationRoutes.GET("/users/template", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.GenerateUserTemplate)
+	organizationRoutes.POST("/users/template/validate", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.ValidateUserTemplate)
+	organizationRoutes.POST("/users/import/validate", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.ValidateImportUsers)
+	organizationRoutes.POST("/users/import", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.ImportUsers)
 	organizationRoutes.GET("/users", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetAllUsers)
 	organizationRoutes.GET("/users/:userId", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUserDetails)
 	organizationRoutes.POST("/users", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.CreateUser)

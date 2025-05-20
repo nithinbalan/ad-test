@@ -85,22 +85,34 @@ func (repo *BusinessFunctionRepository) GetAll(params *businessContinuityDTOs.Bu
             updated_user.profile_image_path AS updated_user_profile_image_path  
         `).
 		Joins(`
-			LEFT JOIN business_function_processes ON business_function_processes.business_function_id = business_functions.id
-			LEFT JOIN processes ON processes.id = business_function_processes.process_id
-		    LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id
-		    LEFT JOIN process_criticality_levels ON process_criticality_levels.id = processes.process_criticality_level_id
-		    LEFT JOIN severity_levels ON severity_levels.id = business_functions.severity_level_id
+			LEFT JOIN severity_levels ON severity_levels.id = business_functions.severity_level_id
 			LEFT JOIN review_frequencies ON review_frequencies.id = business_functions.review_frequency_id
 		    LEFT JOIN users AS responsible_user ON responsible_user.id = business_functions.responsible_user_id
 			LEFT JOIN users AS created_user ON created_user.id = business_functions.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = business_functions.updated_by_id
         `)
 	// Apply dynamic filters to the query
+	joinedProcessTables := false
+
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			// 🔥 Join only once, not on every filter
+			if (columnName == "process_id" || columnName == "responsible_unit_id" || columnName == "process_criticality_level_id") && !joinedProcessTables {
+				query = query.Joins(`LEFT JOIN business_function_processes ON business_function_processes.business_function_id = business_functions.id`)
+				query = query.Joins(`LEFT JOIN processes ON processes.id = business_function_processes.process_id`)
+				query = query.Joins(`LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id`)
+				query = query.Joins(`LEFT JOIN process_criticality_levels ON process_criticality_levels.id = processes.process_criticality_level_id`)
+				joinedProcessTables = true // ✅ mark as joined
+			}
+
+			if columnName == "responsible_unit_id" {
+				query = query.Where(columnName+" IN (?)", values)
+			} else {
+				query = query.Where("business_functions."+columnName+" IN (?)", values)
+			}
 		}
 	}
+
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
@@ -112,16 +124,25 @@ func (repo *BusinessFunctionRepository) GetAll(params *businessContinuityDTOs.Bu
 			query = query.Where("business_functions.bcp_status = ?", false)
 		case "is_bcp":
 			query = query.Where("business_functions.bcp_status = ?", true)
-		case "high":
-			query = query.Where("process_criticality_levels.type = ?", "high")
-		case "medium":
-			query = query.Where("process_criticality_levels.type = ?", "medium")
-		case "low":
-			query = query.Where("process_criticality_levels.type = ?", "low")
-		case "is_not_bcp_critical":
-			query = query.Where("process_criticality_levels.type = ? AND business_functions.bcp_status = ?", "high", false)
-		case "is_bcp_non_critical":
-			query = query.Where("process_criticality_levels.type = ? AND business_functions.bcp_status = ?", "low", true)
+		case "high", "medium", "low", "is_not_bcp_critical", "is_bcp_non_critical":
+			// ⚡ These quick filters depend on process criticality, JOIN needed
+			query = query.Joins(`LEFT JOIN business_function_processes ON business_function_processes.business_function_id = business_functions.id`)
+			query = query.Joins(`LEFT JOIN processes ON processes.id = business_function_processes.process_id`)
+			query = query.Joins(`LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id`)
+			query = query.Joins(`LEFT JOIN process_criticality_levels ON process_criticality_levels.id = processes.process_criticality_level_id`)
+
+			switch filter {
+			case "high":
+				query = query.Where("process_criticality_levels.type = ?", "high")
+			case "medium":
+				query = query.Where("process_criticality_levels.type = ?", "medium")
+			case "low":
+				query = query.Where("process_criticality_levels.type = ?", "low")
+			case "is_not_bcp_critical":
+				query = query.Where("process_criticality_levels.type = ? AND business_functions.bcp_status = ?", "high", false)
+			case "is_bcp_non_critical":
+				query = query.Where("process_criticality_levels.type = ? AND business_functions.bcp_status = ?", "low", true)
+			}
 		case "all":
 			continue
 		}

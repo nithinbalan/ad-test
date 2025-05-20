@@ -237,8 +237,8 @@ func (orc *OrganizationReportController) GetAllProcesses(c *gin.Context) {
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"process_group_ids",
-		"owner_unit_ids",
-		"owner_ids",
+		"responsible_unit_ids",
+		"responsible_user_ids",
 		"lifecycle_status_ids",
 		"risk_matrix_risk_rating_ids",
 	}
@@ -426,8 +426,8 @@ func (orc *OrganizationReportController) GetAllControls(c *gin.Context) {
 	allowedParams := []string{
 		"control_type_ids",
 		"control_category_ids",
-		"owner_unit_ids",
-		"owner_ids",
+		"responsible_unit_ids",
+		"responsible_user_ids",
 		"control_implementation_status_ids",
 		"control_efficiency_status_ids",
 		"test_responsible_user_ids",

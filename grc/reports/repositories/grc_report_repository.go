@@ -788,8 +788,8 @@ func (repo *GRCReportRepository) GetRiskControlsByDateRange(startDate, endDate t
 		`).
 		Joins("LEFT JOIN controls ON controls.id = risk_controls.control_id").
 		Joins("LEFT JOIN control_categories ON control_categories.id = controls.control_category_id").
-		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = controls.owner_id").
-		Joins("LEFT JOIN organization_units AS owner_units ON owner_units.id = controls.owner_unit_id").
+		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = controls.responsible_user_id").
+		Joins("LEFT JOIN organization_units AS owner_units ON owner_units.id = controls.responsible_unit_id").
 		Joins("LEFT JOIN control_implementation_statuses AS implementation_status ON implementation_status.id = controls.control_implementation_status_id").
 		Joins("LEFT JOIN control_efficiency_statuses AS efficiency_status ON efficiency_status.id = controls.control_efficiency_status_id").
 		Joins("LEFT JOIN review_frequencies AS test_frequency ON test_frequency.id = controls.test_frequency_id").

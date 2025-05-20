@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	commonDTOs "jethur/grc/common/dtos"
 	commonService "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
@@ -54,8 +55,13 @@ type UserServiceInterface interface {
 	ExportUsers(data []*userDTOs.UserListDTO, currentUserID uint) (*os.File, error)
 
 	GetUserPermissions(userID uint, params *settingDTOs.ModuleListQueryParamsDTO) (*[]settingDTOs.ModuleListDTO, error)
+
+	GenerateUserTemplate() (*os.File, error)
+	ValidateUserTemplate(file io.Reader) ([]map[string]interface{}, error)
+	ValidateImportUsers(input []map[string]interface{}) ([]map[string]interface{}, error)
+	ImportUsers(input []map[string]interface{}, currentUserID uint) ([]uint, error)
 	SyncUsersFromAD(currentUserID uint) (int, error)
-	GetUsersFromAD() ([]*userDTOs.ADUserDTO, error)
+	GetUsersFromAD() ([]userDTOs.ADUserFlatDTO, error)
 
 	UpdateUserOrganizationUnit(userID uint, departmentUpdateFormDTO userDTOs.UpdateOrganizationUnitDTO) error
 }
@@ -1078,6 +1084,353 @@ func (us *UserService) validateLicenseKey(licenseKey string) error {
 	return nil
 }
 
+func (us *UserService) GenerateUserTemplate() (*os.File, error) {
+	// Static base headers
+	templateHeaders := []string{
+		"FirstNameEn", "LastNameEn", "FirstNameAr", "LastNameAr", "Email", "MobileNumber",
+		"Designation", "UserStatus",
+	}
+	templateData := [][]interface{}{}
+
+	sheets := map[string][][]interface{}{}
+
+	// 1. Get all organization levels (sorted by Level)
+	orgLevels, err := us.organizationLevelSvc.GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch organization levels: %v", err)
+	}
+
+	// 2. Loop through each level and add dynamic org_unit_id column + sheet
+	for _, level := range orgLevels {
+		rawColName := fmt.Sprintf("organization_unit_%d_id", level.Level)
+		formattedHeader := FormatOrgUnitHeader(rawColName)
+		templateHeaders = append(templateHeaders, formattedHeader)
+
+		// Fetch organization units by level (using `Level`, not FK)
+		levelID := level.ID
+		levelParam := &settingDTOs.OrganizationUnitListQueryParamsDTO{
+			Level:  levelID, // ✅ This is the foreign key to filter on
+			Status: "active",
+		}
+		units, err := us.organizationUnitSvc.GetAll(levelParam)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch organization units for level %d: %v", level.Level, err)
+		}
+
+		// Create a sheet with units under this level
+		unitSheetHeaders := []string{fmt.Sprintf("Level %d - %s", level.Level, level.TitleEn)}
+		unitSheetData := [][]interface{}{}
+		for _, u := range units {
+			unitSheetData = append(unitSheetData, []interface{}{u.TitleEn})
+		}
+
+		sheetName := fmt.Sprintf("OrgLevel%d", level.Level)
+		sheets[sheetName] = append([][]interface{}{utility.ConvertToInterfaceSlice(unitSheetHeaders)}, unitSheetData...)
+	}
+
+	// 3. Add Designation sheet
+	designations, err := us.designationSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch designations: %v", err)
+	}
+	designationHeaders := []string{"Designation"}
+	designationData := [][]interface{}{}
+	for _, d := range designations {
+		designationData = append(designationData, []interface{}{d.TitleEn})
+	}
+	sheets["Designation"] = append([][]interface{}{utility.ConvertToInterfaceSlice(designationHeaders)}, designationData...)
+
+	// 4. Add UserStatus sheet
+	statuses, err := us.userStatusSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user statuses: %v", err)
+	}
+	userStatusHeaders := []string{"UserStatus"}
+	userStatusData := [][]interface{}{}
+	for _, s := range statuses {
+		userStatusData = append(userStatusData, []interface{}{s.TitleEn})
+	}
+	sheets["UserStatus"] = append([][]interface{}{utility.ConvertToInterfaceSlice(userStatusHeaders)}, userStatusData...)
+
+	// 5. Add Template sheet
+	sheets["Template"] = append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...)
+
+	// 6. Generate Excel
+	file, err := utility.GenerateExcelFileWithSheets(sheets)
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
+}
+
+func (us *UserService) ValidateUserTemplate(file io.Reader) ([]map[string]interface{}, error) {
+	// Read Excel file
+	rows, err := utility.ReadExcelFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("empty Excel file")
+	}
+
+	// Build dynamic headers from organization levels
+	orgLevels, err := us.organizationLevelSvc.GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch organization levels: %v", err)
+	}
+
+	// Expected display headers (from Excel) and corresponding internal snake_case headers
+	expectedHeaders := []string{
+		"FirstNameEn", "LastNameEn", "FirstNameAr", "LastNameAr",
+		"Email", "MobileNumber", "Designation", "UserStatus",
+	}
+	snakeCaseHeaders := []string{
+		"first_name_en", "last_name_en", "first_name_ar", "last_name_ar",
+		"email", "mobile_number", "designation", "user_status",
+	}
+
+	for _, level := range orgLevels {
+		display := fmt.Sprintf("Organization Unit %d", level.Level)
+		snake := fmt.Sprintf("organization_unit_%d", level.Level)
+		expectedHeaders = append(expectedHeaders, display)
+		snakeCaseHeaders = append(snakeCaseHeaders, snake)
+	}
+
+	// Validate header row
+	if !utility.ValidateHeaders(expectedHeaders, rows[0]) {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid headers in the Excel file"), "invalid_header", "User Template")
+	}
+
+	// Convert data rows to map format
+	var input []map[string]interface{}
+	for _, row := range rows[1:] { // Skip header row
+		record := make(map[string]interface{})
+		for i, key := range snakeCaseHeaders {
+			if i < len(row) {
+				record[key] = row[i]
+			} else {
+				record[key] = ""
+			}
+		}
+		input = append(input, record)
+	}
+
+	return us.validateUsers(input)
+}
+
+func (us *UserService) ValidateImportUsers(input []map[string]interface{}) ([]map[string]interface{}, error) {
+	validatedData, err := us.validateUsers(input)
+	if err != nil {
+		return nil, err
+	}
+	return validatedData, nil
+}
+
+func (us *UserService) ImportUsers(input []map[string]interface{}, currentUserID uint) ([]uint, error) {
+	validatedData, err := us.validateUsers(input)
+	if err != nil {
+		return nil, err
+	}
+	// Check for validation errors
+	for _, record := range validatedData {
+		if errors, ok := record["errors"].(map[string]interface{}); ok && len(errors) > 0 {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid data in the import file"), "invalid_data", "Invalid Data")
+		}
+	}
+
+	// Fetch org levels to know how many dynamic org unit fields to expect
+	orgLevels, err := us.organizationLevelSvc.GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching organization levels: %v", err)
+	}
+
+	var createdUserIDs []uint
+	for _, record := range validatedData {
+		initial := generateInitial(
+			record["first_name_en"].(string),
+			record["last_name_en"].(string),
+		)
+		color := utility.GenerateColorCode("user")
+		user := &models.User{
+			FirstNameEn:   record["first_name_en"].(string),
+			LastNameEn:    record["last_name_en"].(string),
+			FirstNameAr:   record["first_name_ar"].(string),
+			LastNameAr:    record["last_name_ar"].(string),
+			Email:         record["email"].(string),
+			MobileNumber:  utility.GetOptionalStringValue(record["mobile_number"]),
+			DesignationID: record["designation_id"].(uint),
+			UserStatusID:  record["user_status_id"].(uint),
+			CreatedByID:   currentUserID,
+			Initial:       initial,
+			Color:         color,
+		}
+
+		// Dynamically set organization_unit_1_id, organization_unit_2_id, etc.
+		for _, level := range orgLevels {
+			key := fmt.Sprintf("organization_unit_%d_id", level.Level)
+			if val, ok := record[key]; ok {
+				if id, ok := val.(uint); ok {
+					switch level.Level {
+					case 1:
+						user.OrganizationUnit1ID = id
+					case 2:
+						user.OrganizationUnit2ID = &id
+					case 3:
+						user.OrganizationUnit3ID = &id
+					case 4:
+						user.OrganizationUnit4ID = &id
+					case 5:
+						user.OrganizationUnit5ID = &id
+					}
+				} else {
+					return nil, fmt.Errorf("organization_unit_%d_id is not a valid uint for user: %v", level.Level, record["email"])
+				}
+			}
+		}
+
+		// Save user
+		_, err := us.repo.Create(user)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create user for record: %+v, error: %v", record, err)
+		}
+		createdUserIDs = append(createdUserIDs, user.ID)
+	}
+
+	return createdUserIDs, nil
+}
+
+func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[string]interface{}, error) {
+	headers := []string{
+		"first_name_en", "last_name_en", "first_name_ar", "last_name_ar",
+		"email", "mobile_number", "designation", "user_status", "primary_department",
+	}
+
+	// Fetch designations
+	designations, err := us.designationSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching designations: %v", err)
+	}
+	designationTitles := make(map[string]uint)
+	for _, d := range designations {
+		designationTitles[strings.TrimSpace(d.TitleEn)] = d.ID
+	}
+
+	// Fetch user statuses
+	statuses, err := us.userStatusSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching user statuses: %v", err)
+	}
+	userStatusTitles := make(map[string]uint)
+	for _, s := range statuses {
+		userStatusTitles[strings.TrimSpace(s.TitleEn)] = s.ID
+	}
+
+	// Fetch organization levels and units
+	orgLevels, err := us.organizationLevelSvc.GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching organization levels: %v", err)
+	}
+	orgUnitsByLevel := make(map[int]map[string]uint)
+	for _, level := range orgLevels {
+		levelParam := &settingDTOs.OrganizationUnitListQueryParamsDTO{
+			Level:  level.ID,
+			Status: "active",
+		}
+		units, err := us.organizationUnitSvc.GetAll(levelParam)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching org units for level %d: %v", level.Level, err)
+		}
+		unitTitles := make(map[string]uint)
+		for _, u := range units {
+			unitTitles[strings.TrimSpace(u.TitleEn)] = u.ID
+		}
+		orgUnitsByLevel[int(level.Level)] = unitTitles
+	}
+
+	var validatedData []map[string]interface{}
+
+	for _, record := range input {
+		rowErrors := make(map[string]interface{})
+		userRecord := make(map[string]interface{})
+
+		for key, value := range record {
+			userRecord[key] = value
+		}
+
+		for _, header := range headers {
+			value, _ := record[header].(string)
+			value = strings.TrimSpace(value)
+
+			switch header {
+			case "first_name_en", "last_name_en", "first_name_ar", "last_name_ar":
+				if value == "" {
+					rowErrors[header] = "Field is required"
+				}
+			case "email":
+				if value == "" {
+					rowErrors[header] = "Field is required"
+				} else if !utility.IsValidEmail(value) {
+					rowErrors[header] = "Invalid email format"
+				}
+			case "designation":
+				if value == "" {
+					rowErrors[header] = "Field is required"
+				} else if id, exists := designationTitles[value]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid designation: %s", value)
+				} else {
+					userRecord["designation_id"] = id
+				}
+			case "user_status":
+				if value == "" {
+					rowErrors[header] = "Field is required"
+				} else if id, exists := userStatusTitles[value]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid user status: %s", value)
+				} else {
+					userRecord["user_status_id"] = id
+				}
+			}
+		}
+
+		for _, level := range orgLevels {
+			field := fmt.Sprintf("organization_unit_%d", level.Level)
+			val, _ := record[field].(string)
+			val = strings.TrimSpace(val)
+
+			if val == "" {
+				rowErrors[field] = "Field is required"
+			} else if id, ok := orgUnitsByLevel[int(level.Level)][val]; !ok {
+				rowErrors[field] = fmt.Sprintf("Invalid value: %s", val)
+			} else {
+				userRecord[field] = val
+				userRecord[fmt.Sprintf("%s_id", field)] = id
+			}
+		}
+
+		if len(rowErrors) == 0 {
+			userRecord["errors"] = nil
+		} else {
+			for _, header := range headers {
+				if _, exists := rowErrors[header]; !exists {
+					rowErrors[header] = ""
+				}
+			}
+			for _, level := range orgLevels {
+				field := fmt.Sprintf("organization_unit_%d_id", level.Level)
+				if _, exists := rowErrors[field]; !exists {
+					rowErrors[field] = ""
+				}
+			}
+			userRecord["errors"] = rowErrors
+		}
+
+		validatedData = append(validatedData, userRecord)
+	}
+
+	return validatedData, nil
+}
+
 func (us *UserService) SyncUsersFromAD(currentUserID uint) (int, error) {
 	adSetting, err := us.activeDirectorySettingSvc.GetFirst()
 	if err != nil || adSetting == nil {
@@ -1241,12 +1594,19 @@ func (us *UserService) SyncUsersFromAD(currentUserID uint) (int, error) {
 	return usersSynced, nil
 }
 
-func (us *UserService) GetUsersFromAD() ([]*userDTOs.ADUserDTO, error) {
+func (us *UserService) GetUsersFromAD() ([]userDTOs.ADUserFlatDTO, error) {
+	// ✅ First check AD connection using existing service
+	if err := us.activeDirectorySettingSvc.GetADConnection(); err != nil {
+		return nil, err
+	}
+
+	// ✅ Fetch AD settings after connection validated
 	adSetting, err := us.activeDirectorySettingSvc.GetFirst()
 	if err != nil || adSetting == nil {
 		return nil, fmt.Errorf("Active Directory configuration not found")
 	}
 
+	// ✅ Decrypt Bind password
 	bindPsw := []byte(adSetting.BindPassword)
 	bindPassword, err := utility.DecryptData(string(bindPsw))
 	if err != nil {
@@ -1265,10 +1625,12 @@ func (us *UserService) GetUsersFromAD() ([]*userDTOs.ADUserDTO, error) {
 	}
 	defer l.Close()
 
+	// ✅ Bind
 	if err := l.Bind(adSetting.BindDN, string(bindPassword)); err != nil {
 		return nil, fmt.Errorf("bind failed: %w", err)
 	}
 
+	// ✅ Search users
 	filter := "(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
 	searchReq := ldap.NewSearchRequest(
 		adSetting.BaseDN,
@@ -1282,8 +1644,13 @@ func (us *UserService) GetUsersFromAD() ([]*userDTOs.ADUserDTO, error) {
 	if err != nil {
 		return nil, fmt.Errorf("LDAP search failed: %w", err)
 	}
-
-	var users []*userDTOs.ADUserDTO
+	slNo := 1
+	orgLevels, err := us.organizationLevelSvc.GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch organization levels: %w", err)
+	}
+	orgLevelCount := len(orgLevels)
+	var result []userDTOs.ADUserFlatDTO
 	for _, entry := range sr.Entries {
 		firstName := entry.GetAttributeValue("givenName")
 		lastName := entry.GetAttributeValue("sn")
@@ -1291,30 +1658,61 @@ func (us *UserService) GetUsersFromAD() ([]*userDTOs.ADUserDTO, error) {
 		distinguishedName := entry.GetAttributeValue("distinguishedName")
 		designationTitle := entry.GetAttributeValue("title")
 
+		// ✅ Skip users with missing important fields
 		if email == "" || firstName == "" || lastName == "" {
 			continue
 		}
 
-		var organizationUnitName *string
-		dnParts := strings.Split(distinguishedName, ",")
-		for _, part := range dnParts {
+		// ✅ Check if email already exists in your DB
+		exists, err := us.repo.ExistsByEmail(email)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check user existence: %w", err)
+		}
+
+		ouParts := []string{}
+		for _, part := range strings.Split(distinguishedName, ",") {
+			part = strings.TrimSpace(part)
 			if strings.HasPrefix(strings.ToUpper(part), "OU=") {
-				ou := strings.TrimPrefix(part, "OU=")
-				organizationUnitName = &ou
-				break
+				ouParts = append([]string{strings.TrimPrefix(part, "OU=")}, ouParts...)
 			}
 		}
 
-		users = append(users, &userDTOs.ADUserDTO{
-			FirstName:        firstName,
-			LastName:         lastName,
-			Email:            email,
-			OrganizationUnit: organizationUnitName,
-			Designation:      &designationTitle,
-		})
+		user := userDTOs.ADUserFlatDTO{
+			"sl_no":         slNo,
+			"first_name_en": firstName,
+			"last_name_en":  lastName,
+			"first_name_ar": firstName,
+			"last_name_ar":  lastName,
+			"email":         email,
+			"mobile_number": "",
+			"designation":   designationTitle,
+			"user_status":   "Active",
+			"primary_department": func() string {
+				if len(ouParts) > 0 {
+					return ouParts[0]
+				}
+				return ""
+			}(),
+			"is_exists":                  exists,
+			"oraganization_level_counts": orgLevelCount,
+			"errors":                     nil,
+		}
+
+		// Add dynamic org unit fields
+		for i := 0; i < orgLevelCount; i++ {
+			key := fmt.Sprintf("organization_unit_%d", i+1)
+			if i < len(ouParts) {
+				user[key] = ouParts[i]
+			} else {
+				user[key] = ""
+			}
+		}
+
+		result = append(result, user)
+		slNo++
 	}
 
-	return users, nil
+	return result, nil
 }
 
 // Handles logic when user's organization unit changes
@@ -1442,4 +1840,20 @@ func (us *UserService) validateUpdateOrganizationUnitDTO(userID uint, dto userDT
 	}
 
 	return nil
+}
+
+func FormatOrgUnitHeader(input string) string {
+	// Remove trailing _id
+	if strings.HasSuffix(input, "_id") {
+		input = strings.TrimSuffix(input, "_id")
+	}
+
+	// Split and capitalize each part
+	parts := strings.Split(input, "_")
+	for i, part := range parts {
+		if len(part) > 0 {
+			parts[i] = strings.ToUpper(part[:1]) + part[1:]
+		}
+	}
+	return strings.Join(parts, " ")
 }

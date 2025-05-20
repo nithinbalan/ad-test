@@ -48,7 +48,7 @@ type DocumentServiceInterface interface {
 	RevertDocumentCheckout(id uint, currentUserID uint) error
 
 	SubmitDocument(id uint, currentUserID uint) error
-	PublishDocument(id uint, currentUserID uint) error
+	PublishDocument(id uint, currentUserID uint, documentPublishFormDTO documentDTOs.DocumentPublishFormDTO) error
 
 	GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error)
 
@@ -1838,7 +1838,7 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 	return nil
 }
 
-func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
+func (ds *DocumentService) PublishDocument(id uint, currentUserID uint, documentPublishFormDTO documentDTOs.DocumentPublishFormDTO) error {
 	tx := ds.repo.BeginTransaction()
 	referenceNumber, err := ds.repo.GenerateReferenceNumber()
 	if err != nil {
@@ -1898,6 +1898,12 @@ func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
 		return err
 	}
 
+	dates, err := ds.parseDocumentPublishDates(&documentPublishFormDTO)
+	if err != nil {
+		return err
+	}
+
+	documentVersion.AcknowledgeDueDate = dates.AcknowledgeDueDate
 	documentVersion.PublishedBYID = &currentUserID
 	documentVersion.PublishedAt = publishedAt
 
@@ -2388,4 +2394,17 @@ func (ds *DocumentService) calculateNextReviewDate(baseDate time.Time, frequency
 	default:
 		return baseDate // Default to the base date if no frequency is matched
 	}
+}
+
+func (ds *DocumentService) parseDocumentPublishDates(dto *documentDTOs.DocumentPublishFormDTO) (*documentDTOs.DocumentPublishParsedDates, error) {
+	parsed := &documentDTOs.DocumentPublishParsedDates{}
+
+	var err error
+
+	parsed.AcknowledgeDueDate, err = utility.ParseDate(*dto.AcknowledgeDueDate)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid last review date"), "invalid_date", "last review date")
+	}
+
+	return parsed, nil
 }

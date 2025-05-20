@@ -42,7 +42,7 @@ func (bfc *BusinessFunctionController) GetAllBusinessFunctions(c *gin.Context) {
 		"severity_level_ids",
 		"process_ids",
 		"risk_level_ids",
-		"owner_unit_ids",
+		"responsible_unit_ids",
 		"responsible_user_ids",
 		"process_criticality_level_ids",
 	}

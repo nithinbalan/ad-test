@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	"fmt"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -163,18 +164,23 @@ func (repo *AuditFinalReportRepository) GenerateReferenceNumber() (string, error
 }
 
 func (repo *AuditFinalReportRepository) GetByAuditID(auditID uint) (*models.AuditFinalReport, error) {
-	var auditFinalReport *models.AuditFinalReport
+	var auditFinalReport models.AuditFinalReport
 
 	result := repo.db.Where("audit_id = ?", auditID).
 		Preload("Audit").
 		Preload("Audit.AuditPlan").
 		Preload("AuditFinalReportStatus").
 		First(&auditFinalReport)
-	if result.Error != nil {
-		return nil, result.Error
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil // not an error, just no record
 	}
 
-	return auditFinalReport, nil
+	if result.Error != nil {
+		return nil, result.Error // other DB errors
+	}
+
+	return &auditFinalReport, nil
 }
 
 func (repo *AuditFinalReportRepository) CreateAuditFindingActionPlans(actionPlans []*models.AuditFindingActionPlan, tx ...utility.DatabaseTransaction) error {
