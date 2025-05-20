@@ -85,3 +85,7 @@ type ComplianceClauseDetailDTO struct {
 	ObjectiveAr            *string                           `json:"objective_ar"`
 	ComplianceRequirements []*ComplianceRequirementDetailDTO `json:"compliance_requirements"`
 }
+
+type ComplianceClauseControlMapDTO struct {
+	ControlIDs []uint `json:"control_ids" binding:"required"`
+}

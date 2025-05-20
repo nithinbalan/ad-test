@@ -29,6 +29,8 @@ type ComplianceClauseRepositoryInterface interface {
 
 	GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error)
 	GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlListDTO, error)
+	CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceControlByClauseAndControl(clauseID, controlID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceClauseRepository struct {
@@ -418,4 +420,25 @@ func sortChildClauses(clause *models.ComplianceClause) {
 	for _, child := range clause.ChildClauses {
 		sortChildClauses(child)
 	}
+}
+
+func (repo *ComplianceClauseRepository) CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&controls).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceClauseRepository) DeleteComplianceControlByClauseAndControl(clauseID, controlID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("compliance_clause_id = ? AND control_id = ?", clauseID, controlID).
+		Delete(&models.ComplianceControl{}).Error
 }
