@@ -29,7 +29,6 @@ func (sss *SIEMSettingService) GetFirst() (*models.SIEMSetting, error) {
 }
 
 func (sss *SIEMSettingService) Update(currentUserID uint, dto dtos.SIEMSettingDTO) error {
-	// Step 1: Check integration
 	integration, err := sss.integrationSvc.GetByType("siem")
 	if err != nil {
 		return err
@@ -38,23 +37,22 @@ func (sss *SIEMSettingService) Update(currentUserID uint, dto dtos.SIEMSettingDT
 		return utility.NewForbiddenError("SIEM integration is disabled")
 	}
 
-	// Step 2: Get existing or create new
-	saved, err := sss.repo.GetFirst()
+	existingSiemSettings, err := sss.repo.GetFirst()
 	if err != nil {
 		return err
 	}
 
-	if saved != nil {
+	if existingSiemSettings != nil {
 		// Update
-		saved.IntegrationID = integration.ID
-		saved.SyslogServer = dto.SyslogServer
-		saved.SyslogPort = dto.SyslogPort
-		saved.SyslogProtocol = dto.SyslogProtocol
-		saved.SyslogTimezone = dto.SyslogTimezone
-		saved.SyslogDatetimeFormat = dto.SyslogDatetimeFormat
-		saved.UpdatedByID = &currentUserID
+		existingSiemSettings.IntegrationID = integration.ID
+		existingSiemSettings.SyslogServer = dto.SyslogServer
+		existingSiemSettings.SyslogPort = dto.SyslogPort
+		existingSiemSettings.SyslogProtocol = dto.SyslogProtocol
+		existingSiemSettings.SyslogTimezone = dto.SyslogTimezone
+		existingSiemSettings.SyslogDatetimeFormat = dto.SyslogDatetimeFormat
+		existingSiemSettings.UpdatedByID = &currentUserID
 
-		return sss.repo.Update(saved)
+		return sss.repo.Update(existingSiemSettings)
 	}
 
 	// Create new
@@ -65,7 +63,7 @@ func (sss *SIEMSettingService) Update(currentUserID uint, dto dtos.SIEMSettingDT
 		SyslogProtocol:       dto.SyslogProtocol,
 		SyslogTimezone:       dto.SyslogTimezone,
 		SyslogDatetimeFormat: dto.SyslogDatetimeFormat,
-		CreatedByID:          currentUserID,
+		UpdatedByID:          &currentUserID,
 	}
 
 	return sss.repo.Create(&newSetting)

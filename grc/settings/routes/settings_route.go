@@ -120,6 +120,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.POST("/active-directory-settings/check-connection", activeDirectorySettingController.CheckActiveDirectoryConnection)
 
 	settingRoutes.GET("/siem-settings", siemSettingController.GetSIEMSettings)
-	settingRoutes.POST("/siem-settings", siemSettingController.UpdateSIEMSettings)
+	settingRoutes.PUT("/siem-settings", siemSettingController.UpdateSIEMSettings)
 
 }

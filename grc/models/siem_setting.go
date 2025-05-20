@@ -12,8 +12,6 @@ type SIEMSetting struct {
 	SyslogProtocol       string     `json:"syslog_protocol" gorm:"size:10;not null"`
 	SyslogTimezone       string     `json:"syslog_timezone,omitempty" gorm:"size:50"`
 	SyslogDatetimeFormat string     `json:"syslog_datetime_format,omitempty" gorm:"size:50"`
-	CreatedByID          uint       `json:"created_by_id" binding:"required"`
-	CreatedAt            time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedByID          *uint      `json:"updated_by_id,omitempty" gorm:"default:null"`
 	UpdatedAt            *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
 

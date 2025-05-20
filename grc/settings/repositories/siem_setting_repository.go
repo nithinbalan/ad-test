@@ -30,7 +30,7 @@ func (repo *SIEMSettingRepository) GetFirst() (*models.SIEMSetting, error) {
 
 	result := repo.db.First(&setting)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, nil
+		return nil, nil // <- clean way to indicate "no existing record"
 	}
 	return &setting, result.Error
 }
