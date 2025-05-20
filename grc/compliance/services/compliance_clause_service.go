@@ -390,8 +390,13 @@ func (ccs *ComplianceClauseService) CreateComplianceClauseControls(complianceID,
 }
 
 func (ccs *ComplianceClauseService) DeleteComplianceClauseControl(clauseID, controlID uint) error {
+	if _, err := ccs.controlSvc.GetByID(controlID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlID), "not_exist", "control_id")
+	}
 	tx := ccs.repo.BeginTransaction()
-
+	if _, err := ccs.repo.GetByID(clauseID, tx); err != nil {
+		return utility.NewValidationError(fmt.Errorf("clause does not exist for ID: %d", controlID), "not_exist", "clause_id")
+	}
 	if err := ccs.repo.DeleteComplianceControlByClauseAndControl(clauseID, controlID, tx); err != nil {
 		tx.Rollback()
 		return err

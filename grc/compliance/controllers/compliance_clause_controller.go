@@ -263,9 +263,14 @@ func (ccc *ComplianceClauseController) CreateComplianceClauseControls(c *gin.Con
 }
 
 func (ccc *ComplianceClauseController) DeleteComplianceClauseControl(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
 	clauseIDStr := c.Param("clauseId")
 	controlIDStr := c.Param("controlId")
-
+	_, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendInvalidErrResp(c, fmt.Errorf("invalid complianceId"))
+		return
+	}
 	clauseID, err := strconv.ParseUint(clauseIDStr, 10, 64)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
