@@ -59,8 +59,8 @@ func (repo *KRILibraryRepository) GetAll(params *libraryDTOs.KRILibraryListQuery
 	}
 
 	// Filter by category
-	if len(params.Category) > 0 {
-		query = query.Where("kri_category IN ?", params.Category)
+	if len(params.Categories) > 0 {
+		query = query.Where("kri_category IN ?", params.Categories)
 	}
 
 	// Count total for pagination

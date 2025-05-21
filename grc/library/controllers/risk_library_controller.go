@@ -28,7 +28,12 @@ func (rlc *RiskLibraryController) GetAllRiskLibrary(c *gin.Context) {
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	categories := c.QueryArray("category")
-	export, _ := strconv.ParseBool(c.DefaultQuery("export", "false"))
+
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(rlc.db, c, "Invalid export parameter")
+		return
+	}
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -43,13 +48,13 @@ func (rlc *RiskLibraryController) GetAllRiskLibrary(c *gin.Context) {
 	}
 
 	queryParams := libraryDTOs.RiskLibraryListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortBy,
-		Keyword:  keyword,
-		Category: categories,
-		Page:     page,
-		PageSize: pageSize,
-		Export:   export,
+		Sort:       sort,
+		SortBy:     sortBy,
+		Keyword:    keyword,
+		Categories: categories,
+		Page:       page,
+		PageSize:   pageSize,
+		Export:     export,
 	}
 	RiskLibrary, err := rlc.service.GetAll(&queryParams)
 	if err != nil {

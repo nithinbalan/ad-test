@@ -28,20 +28,34 @@ func (klc *KRILibraryController) GetAllKRILibrary(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	export, _ := strconv.ParseBool(c.DefaultQuery("export", "false"))
-
 	categories := c.QueryArray("category")
-	page, _ := utility.ParseQueryParamToInt(c, "page", 1)
-	pageSize, _ := utility.ParseQueryParamToInt(c, "page_size", 10)
+
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(klc.db, c, "Invalid export parameter")
+		return
+	}
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(klc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(klc.db, c, "Invalid page_size parameter")
+		return
+	}
 
 	queryParams := libraryDTOs.KRILibraryListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortBy,
-		Keyword:  keyword,
-		Category: categories,
-		Page:     page,
-		PageSize: pageSize,
-		Export:   export,
+		Sort:       sort,
+		SortBy:     sortBy,
+		Keyword:    keyword,
+		Categories: categories,
+		Page:       page,
+		PageSize:   pageSize,
+		Export:     export,
 	}
 
 	result, err := klc.service.GetAll(&queryParams)
