@@ -12,13 +12,15 @@ type RiskLibraryDTO struct {
 }
 
 type RiskLibraryListQueryParamsDTO struct {
-	Sort       string
-	SortBy     string
-	Keyword    string
-	Categories []string
-	Page       int
-	PageSize   int
-	Export     bool
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Categories  []string
+	Likelihoods []string
+	Impacts     []string
+	Page        int
+	PageSize    int
+	Export      bool
 }
 
 type RiskLibraryListResponseDTO struct {

@@ -53,6 +53,14 @@ func (repo *RiskLibraryRepository) GetAll(params *libraryDTOs.RiskLibraryListQue
 		query = query.Where("category IN ?", params.Categories)
 	}
 
+	if len(params.Likelihoods) > 0 {
+		query = query.Where("likelihood IN ?", params.Likelihoods)
+	}
+
+	if len(params.Impacts) > 0 {
+		query = query.Where("impact IN ?", params.Impacts)
+	}
+
 	// Count total for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
