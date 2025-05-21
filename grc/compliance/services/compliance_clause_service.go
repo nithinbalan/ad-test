@@ -7,6 +7,7 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 	"strconv"
 	"strings"
@@ -24,20 +25,25 @@ type ComplianceClauseServiceInterface interface {
 
 	GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error)
 	GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlListDTO, error)
+	CreateComplianceClauseControls(complianceID, clauseID, currentUserID uint, dto *complianceDTOs.ComplianceClauseControlMapDTO) error
+	DeleteComplianceClauseControl(clauseID, controlID uint) error
 }
 
 type ComplianceClauseService struct {
 	repo           repositories.ComplianceClauseRepositoryInterface
 	activityLogSvc logServices.ActivityLogServiceInterface
+	controlSvc     organizationServices.ControlServiceInterface
 }
 
 func NewComplianceClauseService(
 	repo repositories.ComplianceClauseRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
+	controlSvc organizationServices.ControlServiceInterface,
 ) *ComplianceClauseService {
 	return &ComplianceClauseService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
+		controlSvc:     controlSvc,
 	}
 }
 
@@ -355,4 +361,64 @@ func (ccs *ComplianceClauseService) GetAssociatedControls(complianceID uint, cla
 	}
 
 	return controls, nil
+}
+
+func (ccs *ComplianceClauseService) CreateComplianceClauseControls(complianceID, clauseID, currentUserID uint, dto *complianceDTOs.ComplianceClauseControlMapDTO) error {
+	if err := ccs.validateControlIDs(dto.ControlIDs); err != nil {
+		return err
+	}
+
+	tx := ccs.repo.BeginTransaction()
+
+	var controlMappings []*models.ComplianceControl
+
+	for _, controlID := range dto.ControlIDs {
+		controlMappings = append(controlMappings, &models.ComplianceControl{
+			ComplianceRegisterID: complianceID,
+			ComplianceClauseID:   &clauseID,
+			ControlID:            controlID,
+			CreatedByID:          currentUserID,
+		})
+	}
+
+	if err := ccs.repo.CreateComplianceControls(controlMappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (ccs *ComplianceClauseService) DeleteComplianceClauseControl(clauseID, controlID uint) error {
+	if _, err := ccs.controlSvc.GetByID(controlID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlID), "not_exist", "control_id")
+	}
+	tx := ccs.repo.BeginTransaction()
+	if _, err := ccs.repo.GetByID(clauseID, tx); err != nil {
+		return utility.NewValidationError(fmt.Errorf("clause does not exist for ID: %d", controlID), "not_exist", "clause_id")
+	}
+	if err := ccs.repo.DeleteComplianceControlByClauseAndControl(clauseID, controlID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+	return nil
+}
+
+func (ccs *ComplianceClauseService) validateControlIDs(controlIDs []uint) error {
+	if len(controlIDs) == 0 {
+		return utility.NewValidationError(fmt.Errorf("no controls provided"), "required", "control_ids")
+	}
+
+	seen := make(map[uint]bool)
+	for _, id := range controlIDs {
+		if seen[id] {
+			return utility.NewValidationError(fmt.Errorf("duplicate control ID: %d", id), "duplicate", "control_ids")
+		}
+		if _, err := ccs.controlSvc.GetByID(id); err != nil {
+			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", id), "not_exist", "control_ids")
+		}
+		seen[id] = true
+	}
+	return nil
 }

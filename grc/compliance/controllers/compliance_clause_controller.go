@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -222,4 +223,71 @@ func (cc *ComplianceClauseController) GetAssociatedControls(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, controls)
+}
+
+func (ccc *ComplianceClauseController) CreateComplianceClauseControls(c *gin.Context) {
+	var input complianceDTOs.ComplianceClauseControlMapDTO
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	complianceIDStr := c.Param("complianceId")
+	clauseIDStr := c.Param("clauseId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendInvalidErrResp(c, fmt.Errorf("invalid complianceId"))
+		return
+	}
+	clauseID, err := strconv.ParseUint(clauseIDStr, 10, 64)
+	if err != nil {
+		utility.SendInvalidErrResp(c, fmt.Errorf("invalid clauseId"))
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(ccc.db, c, err.Error())
+		return
+	}
+
+	err = ccc.service.CreateComplianceClauseControls(uint(complianceID), uint(clauseID), currentUserID, &input)
+	if err != nil {
+		utility.SendInternalErrResp(ccc.db, c, err.Error())
+		return
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (ccc *ComplianceClauseController) DeleteComplianceClauseControl(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+	clauseIDStr := c.Param("clauseId")
+	controlIDStr := c.Param("controlId")
+	_, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendInvalidErrResp(c, fmt.Errorf("invalid complianceId"))
+		return
+	}
+	clauseID, err := strconv.ParseUint(clauseIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	controlID, err := strconv.ParseUint(controlIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	err = ccc.service.DeleteComplianceClauseControl(uint(clauseID), uint(controlID))
+	if err != nil {
+		utility.SendInternalErrResp(ccc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Compliance Clause control mapping deleted successfully"})
 }
