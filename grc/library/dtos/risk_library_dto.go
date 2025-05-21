@@ -32,3 +32,13 @@ type RiskCategoryCountDTO struct {
 	Category string `json:"category"`
 	Count    int    `json:"count"`
 }
+
+type RiskLikelihoodCountDTO struct {
+	Likelihood string `json:"likelihood"`
+	Count      int    `json:"count"`
+}
+
+type RiskImpactCountDTO struct {
+	Impact string `json:"impact"`
+	Count  int    `json:"count"`
+}

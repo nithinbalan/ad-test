@@ -96,3 +96,21 @@ func (rlc *RiskLibraryController) GetRiskLibraryExport(c *gin.Context) {
 	c.Request.URL.RawQuery += "&export=true"
 	rlc.GetAllRiskLibrary(c)
 }
+
+func (rlc *RiskLibraryController) RiskCountByLikelihood(c *gin.Context) {
+	result, err := rlc.service.GetRiskLikelihoodCounts()
+	if err != nil {
+		utility.SendInternalErrResp(rlc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+func (rlc *RiskLibraryController) RiskCountByImpact(c *gin.Context) {
+	result, err := rlc.service.GetRiskImpactCounts()
+	if err != nil {
+		utility.SendInternalErrResp(rlc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}

@@ -37,4 +37,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	masterRoutes.GET("/risk-library/export", RiskLibraryController.GetRiskLibraryExport)
 	masterRoutes.GET("/risk-library", RiskLibraryController.GetAllRiskLibrary)
 	masterRoutes.GET("/risk-library/category-count", RiskLibraryController.RiskCountByCategory)
+	masterRoutes.GET("/risk-library/likelihood-count", RiskLibraryController.RiskCountByLikelihood)
+	masterRoutes.GET("/risk-library/impact-count", RiskLibraryController.RiskCountByImpact)
 }

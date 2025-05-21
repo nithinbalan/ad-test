@@ -10,6 +10,8 @@ import (
 type RiskLibraryRepositoryInterface interface {
 	GetAll(params *libraryDTOs.RiskLibraryListQueryParamsDTO) (*libraryDTOs.RiskLibraryListResponseDTO, error)
 	GetRiskCategoryCounts() ([]libraryDTOs.RiskCategoryCountDTO, error)
+	GetRiskLikelihoodCounts() ([]libraryDTOs.RiskLikelihoodCountDTO, error)
+	GetRiskImpactCounts() ([]libraryDTOs.RiskImpactCountDTO, error)
 }
 
 type RiskLibraryRepository struct {
@@ -117,4 +119,28 @@ func (repo *RiskLibraryRepository) GetRiskCategoryCounts() ([]libraryDTOs.RiskCa
 	}
 
 	return results, nil
+}
+
+func (repo *RiskLibraryRepository) GetRiskLikelihoodCounts() ([]libraryDTOs.RiskLikelihoodCountDTO, error) {
+	var results []libraryDTOs.RiskLikelihoodCountDTO
+	err := repo.db.
+		Table("risk_library").
+		Select("likelihood, COUNT(*) as count").
+		Where("likelihood IS NOT NULL").
+		Group("likelihood").
+		Order("likelihood ASC").
+		Scan(&results).Error
+	return results, err
+}
+
+func (repo *RiskLibraryRepository) GetRiskImpactCounts() ([]libraryDTOs.RiskImpactCountDTO, error) {
+	var results []libraryDTOs.RiskImpactCountDTO
+	err := repo.db.
+		Table("risk_library").
+		Select("impact, COUNT(*) as count").
+		Where("impact IS NOT NULL").
+		Group("impact").
+		Order("impact ASC").
+		Scan(&results).Error
+	return results, err
 }

@@ -11,6 +11,8 @@ import (
 type RiskLibraryServiceInterface interface {
 	GetAll(params *libraryDTOs.RiskLibraryListQueryParamsDTO) (*libraryDTOs.RiskLibraryListResponseDTO, error)
 	GetRiskCategoryCounts() ([]libraryDTOs.RiskCategoryCountDTO, error)
+	GetRiskLikelihoodCounts() ([]libraryDTOs.RiskLikelihoodCountDTO, error)
+	GetRiskImpactCounts() ([]libraryDTOs.RiskImpactCountDTO, error)
 	ExportRiskLibrary(data []*libraryDTOs.RiskLibraryDTO, userID uint) (*os.File, error)
 }
 
@@ -33,6 +35,14 @@ func (rls *RiskLibraryService) GetAll(params *libraryDTOs.RiskLibraryListQueryPa
 
 func (rls *RiskLibraryService) GetRiskCategoryCounts() ([]libraryDTOs.RiskCategoryCountDTO, error) {
 	return rls.repo.GetRiskCategoryCounts()
+}
+
+func (rls *RiskLibraryService) GetRiskLikelihoodCounts() ([]libraryDTOs.RiskLikelihoodCountDTO, error) {
+	return rls.repo.GetRiskLikelihoodCounts()
+}
+
+func (rls *RiskLibraryService) GetRiskImpactCounts() ([]libraryDTOs.RiskImpactCountDTO, error) {
+	return rls.repo.GetRiskImpactCounts()
 }
 
 func (rls *RiskLibraryService) ExportRiskLibrary(data []*libraryDTOs.RiskLibraryDTO, userID uint) (*os.File, error) {
