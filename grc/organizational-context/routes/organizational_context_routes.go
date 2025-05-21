@@ -20,6 +20,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	swotPestelQuestionController := app.OrganizationalContextModule.SwotPestelQuestionController
 	swotPestelCategoryController := app.OrganizationalContextModule.SwotPestelCategoryController
 	swotPestelQuestionFactorController := app.OrganizationalContextModule.SwotPestelQuestionFactorController
+	stakeholderCategoryController := app.OrganizationalContextModule.StakeholderCategoryController
 	stakeholderController := app.OrganizationalContextModule.StakeholderController
 	evaluationStatusController := app.OrganizationalContextModule.EvaluationStatusController
 	stakeholderNeedsAndExpectationController := app.OrganizationalContextModule.StakeholderNeedsAndExpectationController
@@ -93,6 +94,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationalContextRoutes.PUT("/pestel-questions/:questionId/factors/:id", middlewares.RolePermissionMiddleware(db, "pestel_analysis", "modify"), swotPestelQuestionFactorController.UpdateSwotPestelQuestionFactor)
 	organizationalContextRoutes.POST("/pestel-questions/:questionId/factors/delete", middlewares.RolePermissionMiddleware(db, "pestel_analysis", "modify"), swotPestelQuestionFactorController.DeleteSwotPestelQuestionFactors)
 	organizationalContextRoutes.GET("/pestel-questions/factor-summary", middlewares.RolePermissionMiddleware(db, "swot_analysis", "view"), swotPestelQuestionFactorController.GetSwotPestelFactorCountByCategory)
+
+	// Evaluation Status
+	organizationalContextRoutes.GET("/stakeholder-categories", stakeholderCategoryController.GetAllStakeholderCategoryes)
+	organizationalContextRoutes.GET("/stakeholder-categories/:id", stakeholderCategoryController.GetStakeholderCategoryDetails)
 
 	// stakeholder
 	organizationalContextRoutes.GET("/stakeholders", stakeholderController.GetAllStakeholders)
