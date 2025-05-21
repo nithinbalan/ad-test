@@ -126,6 +126,14 @@ func (repo *StakeholderRepository) GetFullDetailsByID(id uint, tx ...utility.Dat
 	var stkeholder *models.Stakeholder
 
 	result := db.
+		Preload("Type").
+		Preload("StakeholderCategory").
+		Preload("InfluenceLevel").
+		Preload("ImpactLevel").
+		Preload("OrganizationUnit").
+		Preload("ThirdPartyRegister").
+		Preload("Client").
+		Preload("User").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&stkeholder, id)
