@@ -283,31 +283,32 @@ func (repo *SwotPestelQuestionFactorRepository) Delete(id uint, tx ...utility.Da
 func (repo *SwotPestelQuestionFactorRepository) GetSwotPestelFactorCountByCategory(isSwot string, isPestel string) ([]organizationalContextDTOs.SwotPestelCategoryCountResponseDTO, error) {
 	var categoryCounts []organizationalContextDTOs.SwotPestelCategoryCountResponseDTO
 
-	query := repo.db.Table("swot_pestel_question_factors").
+	query := repo.db.Table("swot_pestel_categories").
 		Select(`
 			swot_pestel_categories.id,
 			swot_pestel_categories.title_en,
 			swot_pestel_categories.title_ar,
 			swot_pestel_categories.color_code,
 			swot_pestel_categories.type,
-			COUNT(swot_pestel_question_factors.id) AS count
+			COALESCE(COUNT(swot_pestel_question_factors.id), 0) AS count
 		`).
-		Joins("JOIN swot_pestel_categories ON swot_pestel_categories.id = swot_pestel_question_factors.swot_pestel_category_id").
-		Group(`
-			swot_pestel_categories.id,
-			swot_pestel_categories.title_en,
-			swot_pestel_categories.title_ar,
-			swot_pestel_categories.color_code,
-			swot_pestel_categories.type
-		`)
+		Joins("LEFT JOIN swot_pestel_question_factors ON swot_pestel_question_factors.swot_pestel_category_id = swot_pestel_categories.id")
 
-	if isSwot == "true" {
-		query = query.Where("is_swot = ?", true)
+	// Apply filter if needed
+	if isSwot == "true" && isPestel != "true" {
+		query = query.Where("swot_pestel_categories.is_swot = ? OR swot_pestel_categories.id IS NULL", true)
+	}
+	if isPestel == "true" && isSwot != "true" {
+		query = query.Where("swot_pestel_categories.is_pestel = ? OR swot_pestel_categories.id IS NULL", true)
 	}
 
-	if isPestel == "true" {
-		query = query.Where("is_pestel = ?", true)
-	}
+	query = query.Group(`
+		swot_pestel_categories.id,
+		swot_pestel_categories.title_en,
+		swot_pestel_categories.title_ar,
+		swot_pestel_categories.color_code,
+		swot_pestel_categories.type
+	`)
 
 	err := query.Scan(&categoryCounts).Error
 	if err != nil {

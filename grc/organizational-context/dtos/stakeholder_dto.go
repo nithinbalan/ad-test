@@ -37,14 +37,14 @@ type StakeholderListDTO struct {
 	ClientID                    *uint   `json:"client_id"`
 	ClientTitle                 *string `json:"client_title"`
 	UserID                      *uint   `json:"user_id"`
-	UserFirstNameEn             string  `json:"user_first_name_en"`
-	UserFirstNameAr             string  `json:"user_first_name_ar"`
-	UserLastNameEn              string  `json:"user_last_name_en"`
-	UserLastNameAr              string  `json:"user_last_name_ar"`
-	UserInitial                 string  `json:"user_initial"`
-	UserColor                   string  `json:"user_color"`
-	UserEmail                   string  `json:"user_email"`
-	UserProfileImagePath        string  `json:"user_profile_image_path"`
+	UserFirstNameEn             *string `json:"user_first_name_en"`
+	UserFirstNameAr             *string `json:"user_first_name_ar"`
+	UserLastNameEn              *string `json:"user_last_name_en"`
+	UserLastNameAr              *string `json:"user_last_name_ar"`
+	UserInitial                 *string `json:"user_initial"`
+	UserColor                   *string `json:"user_color"`
+	UserEmail                   *string `json:"user_email"`
+	UserProfileImagePath        *string `json:"user_profile_image_path"`
 	CreatedUserID               uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn      string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string  `json:"created_user_first_name_ar"`
