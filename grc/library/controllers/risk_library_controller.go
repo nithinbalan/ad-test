@@ -27,7 +27,7 @@ func (rlc *RiskLibraryController) GetAllRiskLibrary(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	categories := c.QueryArray("category")
+	categories := c.QueryArray("categories")
 
 	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
 	if err != nil {
