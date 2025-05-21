@@ -3,7 +3,6 @@ package repositories
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	libraryDTOs "jethur/grc/library/dtos"
-	"strings"
 
 	"gorm.io/gorm"
 )
@@ -50,10 +49,8 @@ func (repo *RiskLibraryRepository) GetAll(params *libraryDTOs.RiskLibraryListQue
 	}
 
 	// Filter by category
-	if params.Category != "" {
-		// query = query.Where("category = ?", params.Category)
-		query = query.Where("TRIM(LOWER(category)) = ?", strings.ToLower(strings.TrimSpace(params.Category)))
-
+	if len(params.Categories) > 0 {
+		query = query.Where("category IN ?", params.Categories)
 	}
 
 	// Count total for pagination
@@ -73,8 +70,12 @@ func (repo *RiskLibraryRepository) GetAll(params *libraryDTOs.RiskLibraryListQue
 	query = query.Order(sortBy + " " + sortOrder)
 
 	// Pagination
-	offset := (params.Page - 1) * params.PageSize
-	err := query.Offset(offset).Limit(params.PageSize).Find(&RiskLibrary).Error
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	err := query.Find(&RiskLibrary).Error
 	if err != nil {
 		return nil, err
 	}
