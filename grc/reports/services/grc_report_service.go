@@ -33,6 +33,9 @@ type GRCReportServiceInterface interface {
 	UpdateSection(grcID uint, id uint, currentUserID uint, grcReporSectionFormDTO *dtos.GRCReportSectionFormDTO) error
 	DeleteGRCReportSection(grcReportID uint, sectionID uint, currentUserID uint) error
 	DeleteGRCReport(grcReportID uint, currentUserID uint) error
+
+	UpdateHighlights(grcID uint, currentUserID uint, grcReportHighlightChallengeFormDTO *dtos.GRCReportHighlightChallengeFormDTO) error
+	UpdateChallenges(grcID uint, currentUserID uint, grcReportHighlightChallengeFormDTO *dtos.GRCReportHighlightChallengeFormDTO) error
 }
 
 type GRCReportService struct {
@@ -204,6 +207,7 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		"executive-summary-compliance",
 		"compliance-summary-self-assessment",
 		"overall-compliance-status-by-department-self-assessment",
+		"sla-summary",
 		"conclusion-recommendations-compliance",
 		"integrated-grc-performance",
 		"risk-management-summary",
@@ -816,6 +820,8 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		var parentOrgUnitID *uint
 		if sla.ResponsibleUnit != nil && sla.ResponsibleUnit.OrganizationUnitID != nil {
 			parentOrgUnitID = sla.ResponsibleUnit.OrganizationUnitID
+		} else {
+			parentOrgUnitID = &sla.ResponsibleUnitID
 		}
 
 		grcReportSLA := &models.GRCReportSLA{
@@ -1050,6 +1056,8 @@ func formatGRCSectionTitle(sectionType string) (string, string) {
 		return "Conclusion & Recommendations", "الخاتمة والتوصيات - المخاطر"
 	case "main-conclusion":
 		return "Main Conclusion", "الخاتمة الرئيسية"
+	case "sla-summary":
+		return "SLA Summary", "ملخص الخدمات المتاحة"
 	default:
 		return sectionType, sectionType
 	}
@@ -1182,4 +1190,52 @@ func mapComplianceSummaryToDTO(complianceSummary []*models.GRCReportComplianceSu
 		complianceSummaryDTOs = append(complianceSummaryDTOs, complianceSummaryDTO)
 	}
 	return complianceSummaryDTOs
+}
+
+func (grs *GRCReportService) UpdateHighlights(grcReportID uint, currentUserID uint, grcReportHighlightChallengeFormDTO *dtos.GRCReportHighlightChallengeFormDTO) error {
+	tx := grs.repo.BeginTransaction()
+
+	existingReportGovernanceSummary, err := grs.repo.GetGRCReportGovernanceSummaryByID(grcReportID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Update highlight details
+	existingReportGovernanceSummary.Highlights = grcReportHighlightChallengeFormDTO.Description
+	existingReportGovernanceSummary.UpdatedBYID = &currentUserID
+
+	err = grs.repo.UpdateGRCReportGovernanceSummary(existingReportGovernanceSummary, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	return nil
+}
+
+func (grs *GRCReportService) UpdateChallenges(grcReportID uint, currentUserID uint, grcReportHighlightChallengeFormDTO *dtos.GRCReportHighlightChallengeFormDTO) error {
+	tx := grs.repo.BeginTransaction()
+
+	existingReportGovernanceSummary, err := grs.repo.GetGRCReportGovernanceSummaryByID(grcReportID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Update challenge details
+	existingReportGovernanceSummary.Challenges = grcReportHighlightChallengeFormDTO.Description
+	existingReportGovernanceSummary.UpdatedBYID = &currentUserID
+
+	err = grs.repo.UpdateGRCReportGovernanceSummary(existingReportGovernanceSummary, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	return nil
 }

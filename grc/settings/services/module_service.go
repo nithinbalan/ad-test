@@ -98,6 +98,12 @@ func (ms *ModuleService) EnableModule(id uint) (*models.Module, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	module, err := ms.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+
 	if existingSystemPreference.LicenseKey != nil {
 		// Extract allowed modules from the license key
 		claims, err := utility.DecryptJWTToken(*existingSystemPreference.LicenseKey)
@@ -119,9 +125,16 @@ func (ms *ModuleService) EnableModule(id uint) (*models.Module, error) {
 		// Check if the module identifier is allowed in the license
 		isAllowed := false
 		for _, allowedModule := range allowedModules {
-			if allowedModule == moduleDetail.Identifier {
-				isAllowed = true
-				break
+			if module.ModuleID == nil {
+				if allowedModule == moduleDetail.Identifier {
+					isAllowed = true
+					break
+				}
+			} else {
+				if allowedModule == moduleDetail.Parent.Identifier {
+					isAllowed = true
+					break
+				}
 			}
 		}
 
@@ -131,10 +144,6 @@ func (ms *ModuleService) EnableModule(id uint) (*models.Module, error) {
 	}
 
 	// Enable the module
-	module, err := ms.GetByID(id)
-	if err != nil {
-		return nil, err
-	}
 	module.IsEnable = true
 	_, err = ms.repo.Update(module.ID, module)
 	if err != nil {
