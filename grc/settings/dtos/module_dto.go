@@ -29,6 +29,7 @@ type ModuleDetailDTO struct {
 	Icon       string             `json:"icon"`
 	Route      string             `json:"route"`
 	IsEnable   bool               `json:"is_enable"`
+	Parent     *ModuleDetailDTO   `json:"parent"`
 	SubModules []SubModuleListDTO `json:"sub_modules"`
 }
 
