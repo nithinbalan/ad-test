@@ -813,9 +813,14 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 			expiryDate = sla.Documents[0].ExpiryDate
 		}
 
+		var parentOrgUnitID *uint
+		if sla.ResponsibleUnit != nil && sla.ResponsibleUnit.OrganizationUnitID != nil {
+			parentOrgUnitID = sla.ResponsibleUnit.OrganizationUnitID
+		}
+
 		grcReportSLA := &models.GRCReportSLA{
 			GRCReportID:              grcReportID,
-			ParentOrganizationUnitID: *sla.ResponsibleUnit.OrganizationUnitID,
+			ParentOrganizationUnitID: *parentOrgUnitID,
 			OrganizationUnitID:       sla.ResponsibleUnitID,
 			ReferenceNumber:          sla.ReferenceNumber,
 			TitleEn:                  sla.TitleEn,
