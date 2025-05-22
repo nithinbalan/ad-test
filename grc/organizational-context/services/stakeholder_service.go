@@ -91,9 +91,19 @@ func (ss *StakeholderService) Create(currentUserID uint, stakeholderFormDTO *org
 	tx := ss.repo.BeginTransaction()
 
 	stakeholder := &models.Stakeholder{
-		TitleEn:     stakeholderFormDTO.TitleEn,
-		TitleAr:     stakeholderFormDTO.TitleAr,
-		CreatedBYID: currentUserID,
+		TitleEn:               stakeholderFormDTO.TitleEn,
+		TitleAr:               stakeholderFormDTO.TitleAr,
+		TypeID:                stakeholderFormDTO.TypeID,
+		StakeholderCategoryID: stakeholderFormDTO.StakeholderCategoryID,
+		InfluenceLevelID:      stakeholderFormDTO.InfluenceLevelID,
+		ImpactLevelID:         stakeholderFormDTO.ImpactLevelID,
+		Role:                  stakeholderFormDTO.Role,
+		ContactInformation:    stakeholderFormDTO.ContactInformation,
+		OrganizationUnitID:    stakeholderFormDTO.OrganizationUnitID,
+		ThirdPartyRegisterID:  stakeholderFormDTO.ThirdPartyRegisterID,
+		ClientID:              stakeholderFormDTO.ClientID,
+		UserID:                stakeholderFormDTO.UserID,
+		CreatedBYID:           currentUserID,
 	}
 	id, err := ss.repo.Create(stakeholder, tx)
 	if err != nil {
@@ -149,6 +159,16 @@ func (ss *StakeholderService) Update(id uint, currentUserID uint, stakeholderFor
 
 	existingStakeholder.TitleEn = stakeholderFormDTO.TitleEn
 	existingStakeholder.TitleAr = stakeholderFormDTO.TitleAr
+	existingStakeholder.TypeID = stakeholderFormDTO.TypeID
+	existingStakeholder.StakeholderCategoryID = stakeholderFormDTO.StakeholderCategoryID
+	existingStakeholder.InfluenceLevelID = stakeholderFormDTO.InfluenceLevelID
+	existingStakeholder.ImpactLevelID = stakeholderFormDTO.ImpactLevelID
+	existingStakeholder.Role = stakeholderFormDTO.Role
+	existingStakeholder.ContactInformation = stakeholderFormDTO.ContactInformation
+	existingStakeholder.OrganizationUnitID = stakeholderFormDTO.OrganizationUnitID
+	existingStakeholder.ThirdPartyRegisterID = stakeholderFormDTO.ThirdPartyRegisterID
+	existingStakeholder.ClientID = stakeholderFormDTO.ClientID
+	existingStakeholder.UserID = stakeholderFormDTO.UserID
 	existingStakeholder.UpdatedBYID = &currentUserID
 
 	err = ss.repo.Update(existingStakeholder, tx)

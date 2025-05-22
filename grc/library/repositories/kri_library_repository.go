@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"errors"
-	"strings"
 
 	commonDTOs "jethur/grc/common/dtos"
 	libraryDTOs "jethur/grc/library/dtos"
@@ -60,10 +59,8 @@ func (repo *KRILibraryRepository) GetAll(params *libraryDTOs.KRILibraryListQuery
 	}
 
 	// Filter by category
-	if params.Category != "" {
-		// query = query.Where("category = ?", params.Category)
-		query = query.Where("TRIM(LOWER(category)) = ?", strings.ToLower(strings.TrimSpace(params.Category)))
-
+	if len(params.Categories) > 0 {
+		query = query.Where("kri_category IN ?", params.Categories)
 	}
 
 	// Count total for pagination
@@ -83,8 +80,12 @@ func (repo *KRILibraryRepository) GetAll(params *libraryDTOs.KRILibraryListQuery
 	query = query.Order(sortBy + " " + sortOrder)
 
 	// Pagination
-	offset := (params.Page - 1) * params.PageSize
-	err := query.Offset(offset).Limit(params.PageSize).Find(&kriLibrary).Error
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	err := query.Find(&kriLibrary).Error
 	if err != nil {
 		return nil, err
 	}

@@ -40,6 +40,29 @@ func (repo *StakeholderRepository) GetAll(params *organizationalContextDTOs.Stak
 	query := repo.db.Table("stakeholders").
 		Select(`
             stakeholders.*,
+			process_dependency_types.title_en AS type_title_en,
+			process_dependency_types.title_ar AS type_title_ar,
+			influence_level.title_en AS influence_level_title_en,
+			influence_level.title_ar AS influence_level_title_ar,
+			influence_level.type AS influence_level_type,
+			impact_level.title_en AS impact_level_title_en,
+			impact_level.title_ar AS impact_level_title_ar,
+			impact_level.type AS impact_level_type,
+			stakeholder_categories.title_en AS stakeholder_category_title_en,
+			stakeholder_categories.title_ar AS stakeholder_category_title_ar,
+			stakeholder_categories.type AS stakeholder_category_type,
+			organization_units.title_en AS organization_unit_title_en,
+			organization_units.title_ar AS organization_unit_title_ar,
+			third_party_register.title AS third_party_register_title,
+			client.title AS client_title,
+			individual_user.first_name_en AS user_first_name_en,
+            individual_user.first_name_ar AS user_first_name_ar,
+            individual_user.last_name_en AS user_last_name_en,
+            individual_user.last_name_ar AS user_last_name_ar,
+			individual_user.initial AS user_initial,
+            individual_user.color AS user_color,
+            individual_user.email AS user_email,
+            individual_user.profile_image_path AS user_profile_image_path,   
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -60,6 +83,14 @@ func (repo *StakeholderRepository) GetAll(params *organizationalContextDTOs.Stak
             updated_user.profile_image_path AS updated_user_profile_image_path  
         `).
 		Joins(`
+			LEFT JOIN process_dependency_types ON process_dependency_types.id = stakeholders.type_id
+			LEFT JOIN stakeholder_categories ON stakeholder_categories.id = stakeholders.stakeholder_category_id
+			LEFT JOIN severity_levels AS influence_level ON influence_level.id = stakeholders.influence_level_id
+			LEFT JOIN severity_levels AS impact_level ON impact_level.id = stakeholders.impact_level_id
+			LEFT JOIN organization_units ON organization_units.id = stakeholders.organization_unit_id
+			LEFT JOIN third_party_register AS third_party_register ON third_party_register.id = stakeholders.third_party_register_id
+			LEFT JOIN third_party_register AS client ON client.id = stakeholders.client_id
+			LEFT JOIN users AS individual_user ON individual_user.id = stakeholders.user_id
 			LEFT JOIN users AS created_user ON created_user.id = stakeholders.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = stakeholders.updated_by_id
         `)
@@ -126,6 +157,14 @@ func (repo *StakeholderRepository) GetFullDetailsByID(id uint, tx ...utility.Dat
 	var stkeholder *models.Stakeholder
 
 	result := db.
+		Preload("Type").
+		Preload("StakeholderCategory").
+		Preload("InfluenceLevel").
+		Preload("ImpactLevel").
+		Preload("OrganizationUnit").
+		Preload("ThirdPartyRegister").
+		Preload("Client").
+		Preload("User").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&stkeholder, id)

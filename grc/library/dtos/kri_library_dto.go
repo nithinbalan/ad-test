@@ -18,12 +18,13 @@ type KRILibraryFormDTO struct {
 }
 
 type KRILibraryListQueryParamsDTO struct {
-	Sort     string
-	SortBy   string
-	Keyword  string
-	Category string
-	Page     int
-	PageSize int
+	Sort       string
+	SortBy     string
+	Keyword    string
+	Categories []string
+	Page       int
+	PageSize   int
+	Export     bool
 }
 
 type KRILibraryListResponseDTO struct {

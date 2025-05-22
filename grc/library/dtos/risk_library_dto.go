@@ -12,12 +12,15 @@ type RiskLibraryDTO struct {
 }
 
 type RiskLibraryListQueryParamsDTO struct {
-	Sort     string
-	SortBy   string
-	Keyword  string
-	Category string
-	Page     int
-	PageSize int
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Categories  []string
+	Likelihoods []string
+	Impacts     []string
+	Page        int
+	PageSize    int
+	Export      bool
 }
 
 type RiskLibraryListResponseDTO struct {
@@ -28,4 +31,14 @@ type RiskLibraryListResponseDTO struct {
 type RiskCategoryCountDTO struct {
 	Category string `json:"category"`
 	Count    int    `json:"count"`
+}
+
+type RiskLikelihoodCountDTO struct {
+	Likelihood string `json:"likelihood"`
+	Count      int    `json:"count"`
+}
+
+type RiskImpactCountDTO struct {
+	Impact string `json:"impact"`
+	Count  int    `json:"count"`
 }

@@ -3,7 +3,6 @@ package repositories
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	libraryDTOs "jethur/grc/library/dtos"
-	"strings"
 
 	"gorm.io/gorm"
 )
@@ -11,6 +10,8 @@ import (
 type RiskLibraryRepositoryInterface interface {
 	GetAll(params *libraryDTOs.RiskLibraryListQueryParamsDTO) (*libraryDTOs.RiskLibraryListResponseDTO, error)
 	GetRiskCategoryCounts() ([]libraryDTOs.RiskCategoryCountDTO, error)
+	GetRiskLikelihoodCounts() ([]libraryDTOs.RiskLikelihoodCountDTO, error)
+	GetRiskImpactCounts() ([]libraryDTOs.RiskImpactCountDTO, error)
 }
 
 type RiskLibraryRepository struct {
@@ -50,10 +51,16 @@ func (repo *RiskLibraryRepository) GetAll(params *libraryDTOs.RiskLibraryListQue
 	}
 
 	// Filter by category
-	if params.Category != "" {
-		// query = query.Where("category = ?", params.Category)
-		query = query.Where("TRIM(LOWER(category)) = ?", strings.ToLower(strings.TrimSpace(params.Category)))
+	if len(params.Categories) > 0 {
+		query = query.Where("category IN ?", params.Categories)
+	}
 
+	if len(params.Likelihoods) > 0 {
+		query = query.Where("likelihood IN ?", params.Likelihoods)
+	}
+
+	if len(params.Impacts) > 0 {
+		query = query.Where("impact IN ?", params.Impacts)
 	}
 
 	// Count total for pagination
@@ -73,8 +80,12 @@ func (repo *RiskLibraryRepository) GetAll(params *libraryDTOs.RiskLibraryListQue
 	query = query.Order(sortBy + " " + sortOrder)
 
 	// Pagination
-	offset := (params.Page - 1) * params.PageSize
-	err := query.Offset(offset).Limit(params.PageSize).Find(&RiskLibrary).Error
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	err := query.Find(&RiskLibrary).Error
 	if err != nil {
 		return nil, err
 	}
@@ -108,4 +119,28 @@ func (repo *RiskLibraryRepository) GetRiskCategoryCounts() ([]libraryDTOs.RiskCa
 	}
 
 	return results, nil
+}
+
+func (repo *RiskLibraryRepository) GetRiskLikelihoodCounts() ([]libraryDTOs.RiskLikelihoodCountDTO, error) {
+	var results []libraryDTOs.RiskLikelihoodCountDTO
+	err := repo.db.
+		Table("risk_library").
+		Select("likelihood, COUNT(*) as count").
+		Where("likelihood IS NOT NULL").
+		Group("likelihood").
+		Order("likelihood ASC").
+		Scan(&results).Error
+	return results, err
+}
+
+func (repo *RiskLibraryRepository) GetRiskImpactCounts() ([]libraryDTOs.RiskImpactCountDTO, error) {
+	var results []libraryDTOs.RiskImpactCountDTO
+	err := repo.db.
+		Table("risk_library").
+		Select("impact, COUNT(*) as count").
+		Where("impact IS NOT NULL").
+		Group("impact").
+		Order("impact ASC").
+		Scan(&results).Error
+	return results, err
 }
