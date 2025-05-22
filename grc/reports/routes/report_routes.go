@@ -253,4 +253,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.DELETE("/grc-reports/:grcReportId/sections/:sectionId", grcReportController.DeleteGRCReportSection)
 	reportsRoutes.DELETE("/grc-reports/:grcReportId", grcReportController.DeleteGRCReport)
 
+	reportsRoutes.PUT("/grc-reports/:grcReportId/highlights", grcReportController.UpdateHighlights)
+	reportsRoutes.PUT("/grc-reports/:grcReportId/challenges", grcReportController.UpdateChallenges)
 }
