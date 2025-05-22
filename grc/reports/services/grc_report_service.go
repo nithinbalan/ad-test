@@ -207,6 +207,7 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		"executive-summary-compliance",
 		"compliance-summary-self-assessment",
 		"overall-compliance-status-by-department-self-assessment",
+		"sla-summary",
 		"conclusion-recommendations-compliance",
 		"integrated-grc-performance",
 		"risk-management-summary",
@@ -219,7 +220,6 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		"recommendations-action-plans",
 		"conclusion-recommendations-risk",
 		"main-conclusion",
-		"sla-summary",
 	}
 
 	for i, sectionType := range sectionTypes {
