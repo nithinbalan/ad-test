@@ -33,6 +33,9 @@ type GRCReportServiceInterface interface {
 	UpdateSection(grcID uint, id uint, currentUserID uint, grcReporSectionFormDTO *dtos.GRCReportSectionFormDTO) error
 	DeleteGRCReportSection(grcReportID uint, sectionID uint, currentUserID uint) error
 	DeleteGRCReport(grcReportID uint, currentUserID uint) error
+
+	UpdateHighlights(grcID uint, currentUserID uint, grcReportHighlightChallengeFormDTO *dtos.GRCReportHighlightChallengeFormDTO) error
+	UpdateChallenges(grcID uint, currentUserID uint, grcReportHighlightChallengeFormDTO *dtos.GRCReportHighlightChallengeFormDTO) error
 }
 
 type GRCReportService struct {
@@ -1182,4 +1185,52 @@ func mapComplianceSummaryToDTO(complianceSummary []*models.GRCReportComplianceSu
 		complianceSummaryDTOs = append(complianceSummaryDTOs, complianceSummaryDTO)
 	}
 	return complianceSummaryDTOs
+}
+
+func (grs *GRCReportService) UpdateHighlights(grcReportID uint, currentUserID uint, grcReportHighlightChallengeFormDTO *dtos.GRCReportHighlightChallengeFormDTO) error {
+	tx := grs.repo.BeginTransaction()
+
+	existingReportGovernanceSummary, err := grs.repo.GetGRCReportGovernanceSummaryByID(grcReportID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Update highlight details
+	existingReportGovernanceSummary.Highlights = grcReportHighlightChallengeFormDTO.Description
+	existingReportGovernanceSummary.UpdatedBYID = &currentUserID
+
+	err = grs.repo.UpdateGRCReportGovernanceSummary(existingReportGovernanceSummary, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	return nil
+}
+
+func (grs *GRCReportService) UpdateChallenges(grcReportID uint, currentUserID uint, grcReportHighlightChallengeFormDTO *dtos.GRCReportHighlightChallengeFormDTO) error {
+	tx := grs.repo.BeginTransaction()
+
+	existingReportGovernanceSummary, err := grs.repo.GetGRCReportGovernanceSummaryByID(grcReportID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Update challenge details
+	existingReportGovernanceSummary.Challenges = grcReportHighlightChallengeFormDTO.Description
+	existingReportGovernanceSummary.UpdatedBYID = &currentUserID
+
+	err = grs.repo.UpdateGRCReportGovernanceSummary(existingReportGovernanceSummary, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	return nil
 }

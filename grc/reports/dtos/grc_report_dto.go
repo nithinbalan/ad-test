@@ -368,8 +368,18 @@ type GRCReportSLAResponseDTO struct {
 	IssueDate                     *string `json:"issue_date"`
 }
 
+type MonthlyRiskTrendData struct {
+	Month       int
+	NewRisks    int
+	ClosureRate int
+}
+
 type RiskTrendDTO struct {
 	Month       string `json:"month"`
 	NewRisks    int    `json:"new_risks"`
 	ClosureRate int    `json:"closure_rate"`
+}
+
+type GRCReportHighlightChallengeFormDTO struct {
+	Description *string `json:"description" binding:"required"`
 }
