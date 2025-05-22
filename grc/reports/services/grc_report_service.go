@@ -216,6 +216,7 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		"recommendations-action-plans",
 		"conclusion-recommendations-risk",
 		"main-conclusion",
+		"sla-summary",
 	}
 
 	for i, sectionType := range sectionTypes {
@@ -816,6 +817,8 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		var parentOrgUnitID *uint
 		if sla.ResponsibleUnit != nil && sla.ResponsibleUnit.OrganizationUnitID != nil {
 			parentOrgUnitID = sla.ResponsibleUnit.OrganizationUnitID
+		} else {
+			parentOrgUnitID = &sla.ResponsibleUnitID
 		}
 
 		grcReportSLA := &models.GRCReportSLA{
@@ -1050,6 +1053,8 @@ func formatGRCSectionTitle(sectionType string) (string, string) {
 		return "Conclusion & Recommendations", "الخاتمة والتوصيات - المخاطر"
 	case "main-conclusion":
 		return "Main Conclusion", "الخاتمة الرئيسية"
+	case "sla-summary":
+		return "SLA Summary", "ملخص الخدمات المتاحة"
 	default:
 		return sectionType, sectionType
 	}
