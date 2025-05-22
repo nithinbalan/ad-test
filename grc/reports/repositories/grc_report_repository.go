@@ -23,6 +23,7 @@ type GRCReportRepositoryInterface interface {
 	GetGRCReportGovernanceDocuments(reportID uint) ([]dtos.GRCGovernanceDocumentResponseDTO, error)
 	GetGRCReportGovernanceTasks(grcReportID uint) ([]dtos.GRCGovernanceTaskResponseDTO, error)
 	GetGRCReportGovernanceSummary(grcReportID uint) (*dtos.GRCGovernanceSummaryResponseDTO, error)
+	GetGRCReportGovernanceSummaryByID(grcReportID uint, tx ...utility.DatabaseTransaction) (*models.GRCReportGovernanceSummary, error)
 
 	AllUserCount(tx ...utility.DatabaseTransaction) (int64, error)
 	GetPolicyDocumentByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]*models.Document, error)
@@ -37,6 +38,7 @@ type GRCReportRepositoryInterface interface {
 	CreateGRCReportGovernanceTask(task *models.GRCReportGovernanceTask, tx ...utility.DatabaseTransaction) error
 
 	UpdateSection(section *models.GRCReportSection, tx ...utility.DatabaseTransaction) error
+	UpdateGRCReportGovernanceSummary(governanceSummary *models.GRCReportGovernanceSummary, tx ...utility.DatabaseTransaction) error
 
 	DeleteGRCReport(grcReportID uint, tx ...utility.DatabaseTransaction) error
 	DeleteGRCReportSection(sectionID uint, tx ...utility.DatabaseTransaction) error
@@ -1039,11 +1041,6 @@ func (repo *GRCReportRepository) GetGRCReportSLA(grcReportID uint) ([]*dtos.GRCR
 }
 
 func (repo *GRCReportRepository) GetRiskTrend(startDate time.Time, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.RiskTrendDTO, error) {
-	type MonthlyData struct {
-		Month       int
-		NewRisks    int
-		ClosureRate int
-	}
 
 	var closedStatusIDs []uint
 	if err := repo.db.
@@ -1053,7 +1050,7 @@ func (repo *GRCReportRepository) GetRiskTrend(startDate time.Time, endDate time.
 		return nil, err
 	}
 
-	var results []MonthlyData
+	var results []dtos.MonthlyRiskTrendData
 	query := `
         SELECT 
             MONTH(created_at) AS month,
@@ -1081,7 +1078,7 @@ func (repo *GRCReportRepository) GetRiskTrend(startDate time.Time, endDate time.
 
 	// Convert numeric month to label and fill missing months
 	monthLabels := [12]string{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}
-	dataMap := make(map[int]MonthlyData)
+	dataMap := make(map[int]dtos.MonthlyRiskTrendData)
 	for _, res := range results {
 		dataMap[res.Month] = res
 	}
@@ -1098,4 +1095,27 @@ func (repo *GRCReportRepository) GetRiskTrend(startDate time.Time, endDate time.
 
 	return final, nil
 
+}
+
+func (repo *GRCReportRepository) GetGRCReportGovernanceSummaryByID(grcReportID uint, tx ...utility.DatabaseTransaction) (*models.GRCReportGovernanceSummary, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var grcReportGovernanceSummary models.GRCReportGovernanceSummary
+	err := db.
+		Where("grc_report_id = ?", grcReportID).First(&grcReportGovernanceSummary).Error
+	if err != nil {
+		return nil, err
+	}
+	return &grcReportGovernanceSummary, nil
+}
+
+func (repo *GRCReportRepository) UpdateGRCReportGovernanceSummary(section *models.GRCReportGovernanceSummary, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Save(section).Error
 }
