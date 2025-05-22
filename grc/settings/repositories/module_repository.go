@@ -165,6 +165,7 @@ func (repo *ModuleRepository) GetFullDetailsByID(id uint) (*models.Module, error
 
 	result := repo.db.
 		Preload("SubModules").
+		Preload("Parent").
 		First(&module, id)
 
 	if result.Error != nil {
