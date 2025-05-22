@@ -232,6 +232,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 			ComplianceRegisterID:    complianceID,
 			ComplianceRequirementID: &id,
 			ControlID:               *controlID,
+			ComplianceClauseID:      &complianceRequirementFormDTO.ComplianceClauseID,
 			CreatedByID:             currentUserID,
 		}
 		controls = append(controls, control)
@@ -500,6 +501,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 				ComplianceRegisterID:    complianceID,
 				ComplianceRequirementID: &id,
 				ControlID:               *newControlID,
+				ComplianceClauseID:      &clause.ID,
 				CreatedByID:             currentUserID,
 			}
 			controlsToAdd = append(controlsToAdd, control)

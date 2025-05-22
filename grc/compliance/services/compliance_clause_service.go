@@ -364,7 +364,7 @@ func (ccs *ComplianceClauseService) GetAssociatedControls(complianceID uint, cla
 }
 
 func (ccs *ComplianceClauseService) CreateComplianceClauseControls(complianceID, clauseID, currentUserID uint, dto *complianceDTOs.ComplianceClauseControlMapDTO) error {
-	if err := ccs.validateControlIDs(dto.ControlIDs); err != nil {
+	if err := ccs.validateControlIDs(clauseID, dto.ControlIDs); err != nil {
 		return err
 	}
 
@@ -405,13 +405,20 @@ func (ccs *ComplianceClauseService) DeleteComplianceClauseControl(clauseID, cont
 	return nil
 }
 
-func (ccs *ComplianceClauseService) validateControlIDs(controlIDs []uint) error {
+func (ccs *ComplianceClauseService) validateControlIDs(clauseID uint, controlIDs []uint) error {
 	if len(controlIDs) == 0 {
 		return utility.NewValidationError(fmt.Errorf("no controls provided"), "required", "control_ids")
 	}
 
 	seen := make(map[uint]bool)
 	for _, id := range controlIDs {
+		alreadyMapped, err := ccs.repo.IsControlMappedToClause(clauseID, id)
+		if err != nil {
+			return fmt.Errorf("failed to check existing mapping for control ID %d: %v", id, err)
+		}
+		if alreadyMapped {
+			return utility.NewValidationError(fmt.Errorf("control ID %d is already mapped to this clause", id), "duplicate", "control_ids")
+		}
 		if seen[id] {
 			return utility.NewValidationError(fmt.Errorf("duplicate control ID: %d", id), "duplicate", "control_ids")
 		}
