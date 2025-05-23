@@ -53,7 +53,9 @@ type GRCReportRepositoryInterface interface {
 	GetGRCReportRiskKRIs(grcReportID uint) ([]dtos.GRCReportRiskKriResponseDTO, error)
 	GetGRCReportRiskControls(grcReportID uint) ([]dtos.GRCReportRiskControlResponseDTO, error)
 	GetGRCReportRiskSummary(grcReportID uint) (*dtos.GRCRiskSummaryResponseDTO, error)
-	GetRiskTrend(startDate time.Time, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.RiskTrendDTO, error)
+	GetRiskTrend(startDate time.Time, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.RiskCountDTO, error)
+	GetGRCReportRiskByID(grcReportID uint, riskID uint, tx ...utility.DatabaseTransaction) (*models.GRCReportRiskTopFive, error)
+	UpdateGRCReportRisk(risk *models.GRCReportRiskTopFive, tx ...utility.DatabaseTransaction) error
 
 	CreateGRCReportRiskSummary(summary *models.GRCReportRiskSummary, tx ...utility.DatabaseTransaction) error
 	GetRisksByDateRange(startDate, endDate time.Time, tx ...utility.DatabaseTransaction) ([]*models.RiskRegister, error)
@@ -1040,60 +1042,80 @@ func (repo *GRCReportRepository) GetGRCReportSLA(grcReportID uint) ([]*dtos.GRCR
 	return slas, nil
 }
 
-func (repo *GRCReportRepository) GetRiskTrend(startDate time.Time, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.RiskTrendDTO, error) {
+func (repo *GRCReportRepository) GetRiskTrend(startDate time.Time, endDate time.Time, tx ...utility.DatabaseTransaction) ([]dtos.RiskCountDTO, error) {
 
-	var closedStatusIDs []uint
-	if err := repo.db.
-		Table("risk_statuses").
-		Where("type = ?", "closed").
-		Pluck("id", &closedStatusIDs).Error; err != nil {
-		return nil, err
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
 	}
 
-	var results []dtos.MonthlyRiskTrendData
+	// Raw query to fetch actual results
+
+	var fetched []dtos.RiskCountDTO
 	query := `
-        SELECT 
-            MONTH(created_at) AS month,
-            SUM(CASE WHEN created_at BETWEEN ? AND ? THEN 1 ELSE 0 END) AS new_risks,
-            SUM(CASE 
-                WHEN created_at BETWEEN ? AND ? AND risk_status_id IN (?)
-                THEN 1 ELSE 0 END
-            ) AS closure_rate
-        FROM risk_register
-        WHERE created_at BETWEEN ? AND ?
-        GROUP BY MONTH(created_at)
-        ORDER BY MONTH(created_at)
-    `
+		SELECT 
+			YEAR(r.created_at) AS year,
+			MONTH(r.created_at) AS month,
+			SUM(CASE 
+				WHEN r.created_at BETWEEN ? AND ? THEN 1 
+				ELSE 0 
+			END) AS new_risks,
+			SUM(CASE 
+				WHEN r.created_at BETWEEN ? AND ? AND rs.type = 'closed' THEN 1 
+				ELSE 0 
+			END) AS closed_risks
+		FROM risk_register r
+		LEFT JOIN risk_statuses rs ON r.risk_status_id = rs.id
+		WHERE r.created_at BETWEEN ? AND ?
+		GROUP BY YEAR(r.created_at), MONTH(r.created_at)
+		ORDER BY year, month
+	`
 
-	if err := repo.db.
-		Raw(query,
-			startDate, endDate, // for new_risks
-			startDate, endDate, // for closure_rate
-			closedStatusIDs,    // for IN clause
-			startDate, endDate, // for WHERE clause
-		).
-		Scan(&results).Error; err != nil {
-		return nil, err
+	err := db.Raw(query,
+		startDate, endDate, // for new_risks
+		startDate, endDate, // for closed_risks
+		startDate, endDate, // where filter
+	).Scan(&fetched).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch risk trend: %w", err)
 	}
 
-	// Convert numeric month to label and fill missing months
-	monthLabels := [12]string{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}
-	dataMap := make(map[int]dtos.MonthlyRiskTrendData)
-	for _, res := range results {
-		dataMap[res.Month] = res
+	// Map fetched data for quick lookup
+	dataMap := make(map[string]dtos.RiskCountDTO)
+	for _, item := range fetched {
+		key := fmt.Sprintf("%04d-%02d", item.Year, item.Month)
+		dataMap[key] = item
 	}
 
-	var final []dtos.RiskTrendDTO
-	for i := 1; i <= 12; i++ {
-		m := dataMap[i]
-		final = append(final, dtos.RiskTrendDTO{
-			Month:       monthLabels[i-1],
-			NewRisks:    m.NewRisks,
-			ClosureRate: m.ClosureRate,
-		})
+	// Generate full list of months and fill missing ones
+	var results []dtos.RiskCountDTO
+	current := time.Date(startDate.Year(), startDate.Month(), 1, 0, 0, 0, 0, time.UTC)
+	endMonth := time.Date(endDate.Year(), endDate.Month(), 1, 0, 0, 0, 0, time.UTC)
+
+	for !current.After(endMonth) {
+		year := current.Year()
+		month := int(current.Month())
+		monthName := current.Format("Jan")
+		key := fmt.Sprintf("%04d-%02d", year, month)
+
+		if val, ok := dataMap[key]; ok {
+			val.MonthName = monthName // assign month name from date
+			results = append(results, val)
+		} else {
+			results = append(results, dtos.RiskCountDTO{
+				Year:        year,
+				Month:       month,
+				MonthName:   monthName,
+				NewRisks:    0,
+				ClosedRisks: 0,
+			})
+		}
+
+		current = current.AddDate(0, 1, 0)
 	}
 
-	return final, nil
+	return results, nil
 
 }
 
@@ -1118,4 +1140,27 @@ func (repo *GRCReportRepository) UpdateGRCReportGovernanceSummary(section *model
 		db = tx[0].DB()
 	}
 	return db.Save(section).Error
+}
+
+func (repo *GRCReportRepository) GetGRCReportRiskByID(grcReportID uint, riskID uint, tx ...utility.DatabaseTransaction) (*models.GRCReportRiskTopFive, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var grcReportRisk models.GRCReportRiskTopFive
+	err := db.
+		Where("grc_report_id = ?", grcReportID).Where("id = ?", riskID).First(&grcReportRisk).Error
+	if err != nil {
+		return nil, err
+	}
+	return &grcReportRisk, nil
+}
+
+func (repo *GRCReportRepository) UpdateGRCReportRisk(risk *models.GRCReportRiskTopFive, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Save(risk).Error
 }

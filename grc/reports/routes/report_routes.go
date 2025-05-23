@@ -255,4 +255,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	reportsRoutes.PUT("/grc-reports/:grcReportId/highlights", grcReportController.UpdateHighlights)
 	reportsRoutes.PUT("/grc-reports/:grcReportId/challenges", grcReportController.UpdateChallenges)
+
+	reportsRoutes.PUT("/grc-reports/:grcReportId/risk/:riskId/approval-note", grcReportController.UpdateRiskApprovalNote)
 }
