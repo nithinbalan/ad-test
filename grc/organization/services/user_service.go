@@ -1398,14 +1398,16 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 			val, _ := record[field].(string)
 			val = strings.TrimSpace(val)
 
+			levelTitle := level.TitleEn
 			if val == "" {
-				rowErrors[field] = "Field is required"
+				rowErrors[field] = fmt.Sprintf("%s is required", levelTitle)
 			} else if id, ok := orgUnitsByLevel[int(level.Level)][val]; !ok {
-				rowErrors[field] = fmt.Sprintf("Invalid value: %s", val)
+				rowErrors[field] = fmt.Sprintf("Invalid %s: %s", levelTitle, val)
 			} else {
 				userRecord[field] = val
 				userRecord[fmt.Sprintf("%s_id", field)] = id
 			}
+
 		}
 
 		if len(rowErrors) == 0 {
