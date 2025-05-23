@@ -144,16 +144,26 @@ jobs:
       - name: Status NSSM Service
         run: nssm status grc-api
 
-      # Step: Restart IIS Site
-      - name: Restart IIS Site
+      # Step: Restart IIS Site and Application Pool
+      - name: Restart IIS Site and App Pool
         run: |
           $siteName = "grc-api"
 
-          # Restart the IIS site
+          # Import IIS WebAdministration module
           Import-Module WebAdministration
+
+          # Get the App Pool name associated with the site
+          $appPoolName = (Get-Item "IIS:\Sites\$siteName").applicationPool
+
+          Write-Output "Stopping site: $siteName"
           if ((Get-Website -Name $siteName).State -eq "Started") {
-              Stop-Website -Name $siteName
+          Stop-Website -Name $siteName
           }
+
+          Write-Output "Recycling app pool: $appPoolName"
+          Restart-WebAppPool -Name $appPoolName
+
+          Write-Output "Starting site: $siteName"
           Start-Website -Name $siteName
         shell: powershell
 
