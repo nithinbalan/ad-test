@@ -12,7 +12,7 @@ type Stakeholder struct {
 	InfluenceLevelID      *uint      `json:"influence_level_id"`
 	ImpactLevelID         *uint      `json:"impact_level_id"`
 	ContactInformation    *string    `json:"contact_information"`
-	OrganizationUnitID    *uint      `json:"organization_id"`
+	PrimaryUnitID         *uint      `json:"organization_unit_id" gorm:"column:organization_unit_id"`
 	ThirdPartyRegisterID  *uint      `json:"tird_party_register_id"`
 	ClientID              *uint      `json:"client_id"`
 	UserID                *uint      `json:"user_id"`
@@ -26,7 +26,7 @@ type Stakeholder struct {
 	StakeholderCategory *StakeholderCategory   `gorm:"foreignKey:StakeholderCategoryID"`
 	InfluenceLevel      *SeverityLevel         `gorm:"foreignKey:InfluenceLevelID"`
 	ImpactLevel         *SeverityLevel         `gorm:"foreignKey:ImpactLevelID"`
-	OrganizationUnit    *OrganizationUnit      `gorm:"foreignKey:OrganizationUnitID"`
+	OrganizationUnit    *OrganizationUnit      `gorm:"foreignKey:PrimaryUnitID"`
 	ThirdPartyRegister  *ThirdPartyRegister    `gorm:"foreignKey:ThirdPartyRegisterID"`
 	Client              *ThirdPartyRegister    `gorm:"foreignKey:ClientID"`
 	User                *User                  `gorm:"foreignKey:UserID"`
