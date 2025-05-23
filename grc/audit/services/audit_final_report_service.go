@@ -612,7 +612,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 
 	// If an existing report is found, rollback and return an error
 	if existingReport != nil {
-		return 0, utility.NewForbiddenError("An audit final report already exists for this audit.")
+		return 0, utility.NewForbiddenError("audit_final_report_already_exists")
 	}
 	auditDraftReport, err := afrs.auditDraftReportSvc.GetByAuditID(auditID)
 	if err != nil {
@@ -624,7 +624,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 		return 0, err
 	}
 	if auditDraftReport.AuditDraftReportStatusID != completedStatus.ID {
-		return 0, utility.NewForbiddenError("Action not allowed: Only audit draft reports with an 'Completed' status can be accepted.")
+		return 0, utility.NewForbiddenError("action_not_allowed")
 	}
 
 	tx := afrs.repo.BeginTransaction()
@@ -657,7 +657,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	// If the current user is not authorized, rollback and return forbidden error
 	if !isAuthorizedUser {
 		tx.Rollback()
-		return 0, utility.NewForbiddenError("The current user is not authorized to perform this action.")
+		return 0, utility.NewForbiddenError("user_not_authorized")
 	}
 	auditFinalReportStatus, err := afrs.auditFinalReportStatusSvc.GetByType("draft")
 	if err != nil {
