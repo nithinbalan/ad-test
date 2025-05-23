@@ -12,6 +12,7 @@ type SIEMSettingRepositoryInterface interface {
 	GetFirst() (*models.SIEMSetting, error)
 	Create(siem *models.SIEMSetting) error
 	Update(siem *models.SIEMSetting) error
+	Delete(id uint) error
 }
 
 // Implementation
@@ -41,4 +42,8 @@ func (repo *SIEMSettingRepository) Create(siem *models.SIEMSetting) error {
 
 func (repo *SIEMSettingRepository) Update(siem *models.SIEMSetting) error {
 	return repo.db.Save(siem).Error
+}
+
+func (repo *SIEMSettingRepository) Delete(id uint) error {
+	return repo.db.Delete(&models.SIEMSetting{}, id).Error
 }

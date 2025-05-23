@@ -122,5 +122,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	settingRoutes.GET("/siem-settings", siemSettingController.GetSIEMSettings)
 	settingRoutes.PUT("/siem-settings", siemSettingController.UpdateSIEMSettings)
+	settingRoutes.DELETE("/siem-settings", siemSettingController.DeleteSIEMSettings)
 
 }

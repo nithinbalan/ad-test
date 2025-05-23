@@ -60,3 +60,17 @@ func (ssc *SIEMSettingController) UpdateSIEMSettings(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+func (ssc *SIEMSettingController) DeleteSIEMSettings(c *gin.Context) {
+	err := ssc.service.Delete()
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(ssc.db, c, e.Error())
+		}
+		return
+	}
+	c.Status(http.StatusOK)
+}

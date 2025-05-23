@@ -10,6 +10,7 @@ import (
 type SIEMSettingServiceInterface interface {
 	GetFirst() (*models.SIEMSetting, error)
 	Update(currentUserID uint, dto dtos.SIEMSettingDTO) error
+	Delete() error
 }
 
 type SIEMSettingService struct {
@@ -67,4 +68,15 @@ func (sss *SIEMSettingService) Update(currentUserID uint, dto dtos.SIEMSettingDT
 	}
 
 	return sss.repo.Create(&newSetting)
+}
+
+func (sss *SIEMSettingService) Delete() error {
+	setting, err := sss.repo.GetFirst()
+	if err != nil {
+		return err
+	}
+	if setting == nil {
+		return err
+	}
+	return sss.repo.Delete(setting.ID)
 }

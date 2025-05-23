@@ -1,6 +1,7 @@
 package dtos
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"time"
@@ -26,6 +27,11 @@ type ComplianceAssessmentRequirementListDTO struct {
 	ComplianceAssessmentRequirementStatusType      string  `json:"compliance_assessment_requirement_status_type"`
 	CreatedAt                                      string  `json:"created_at"`
 	UpdatedAt                                      *string `json:"updated_at"`
+}
+
+type ComplianceAssessmentRequirementListResponseDTO struct {
+	Items      []*ComplianceAssessmentRequirementListDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO              `json:"pagination"`
 }
 
 type ComplianceAssessmentRequirementDetailDTO struct {
@@ -87,4 +93,6 @@ type ComplianceAssessmentRequirementListQueryParamsDTO struct {
 	Keyword     string
 	Filters     map[string][]string
 	QuickFilter []string
+	Page        int
+	PageSize    int
 }
