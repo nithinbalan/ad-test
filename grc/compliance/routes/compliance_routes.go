@@ -114,8 +114,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliances/:complianceId/associated-item-summary", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceAssociatedItemController.GetAllAssociatedCounts)
 	complianceRoutes.GET("/compliances/:complianceId/requirements-status-summary", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceAssociatedItemController.GetComplianceRequirementCountByStatus)
 
-	complianceRoutes.POST("/compliances/:complianceId/controls", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceAssociatedItemController.CreateControlsToCompliance)
-	complianceRoutes.DELETE("/compliances/:complianceId/controls/:controlId", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceAssociatedItemController.DeleteControlFromCompliance)
+	complianceRoutes.POST("/compliances/:complianceId/controls", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceAssociatedItemController.CreateComplianceControls)
+	complianceRoutes.DELETE("/compliances/:complianceId/controls/:controlId", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceAssociatedItemController.DeleteComplianceControl)
 
 	// SLA Register
 	unauthenticatedRoutes.GET("/sla-register/:id/document-download", SLARegisterController.DownloadSLARegisterDocument)

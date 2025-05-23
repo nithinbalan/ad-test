@@ -287,7 +287,7 @@ func (caic *ComplianceAssociatedItemController) GetComplianceRequirementCountByS
 	c.JSON(http.StatusOK, requirementCounts)
 }
 
-func (caic *ComplianceAssociatedItemController) CreateControlsToCompliance(c *gin.Context) {
+func (caic *ComplianceAssociatedItemController) CreateComplianceControls(c *gin.Context) {
 	var input complianceDTOs.ComplianceRegisterControlMapDTO
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -306,7 +306,7 @@ func (caic *ComplianceAssociatedItemController) CreateControlsToCompliance(c *gi
 		return
 	}
 
-	err = caic.service.CreateControlsToCompliance(uint(complianceID), currentUserID, &input)
+	err = caic.service.CreateComplianceControls(uint(complianceID), currentUserID, &input)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -324,11 +324,11 @@ func (caic *ComplianceAssociatedItemController) CreateControlsToCompliance(c *gi
 	c.Status(http.StatusCreated)
 }
 
-func (caic *ComplianceAssociatedItemController) DeleteControlFromCompliance(c *gin.Context) {
+func (caic *ComplianceAssociatedItemController) DeleteComplianceControl(c *gin.Context) {
 	complianceID, _ := strconv.ParseUint(c.Param("complianceId"), 10, 64)
 	controlID, _ := strconv.ParseUint(c.Param("controlId"), 10, 64)
 
-	err := caic.service.DeleteControlFromCompliance(uint(complianceID), uint(controlID))
+	err := caic.service.DeleteComplianceControl(uint(complianceID), uint(controlID))
 	if err != nil {
 		utility.SendInternalErrResp(caic.db, c, err.Error())
 		return

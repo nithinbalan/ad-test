@@ -17,8 +17,8 @@ type ComplianceAssociatedItemServiceInterface interface {
 	GetAllAssociatedCounts(complianceID uint) (*complianceDTOs.ComplianceAssociatedItemsCountResponseDTO, error)
 	GetComplianceRequirementCountByStatus(complianceID uint) ([]complianceDTOs.ComplianceRequirementStatusCountResponseDTO, error)
 	GetAllStrategicObjectives(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemStrategicObjectiveListResponseDTO, error)
-	CreateControlsToCompliance(complianceID, userID uint, dto *complianceDTOs.ComplianceRegisterControlMapDTO) error
-	DeleteControlFromCompliance(complianceID, controlID uint) error
+	CreateComplianceControls(complianceID, userID uint, dto *complianceDTOs.ComplianceRegisterControlMapDTO) error
+	DeleteComplianceControl(complianceID, controlID uint) error
 }
 
 // Service and implementations
@@ -92,7 +92,7 @@ func (cais *ComplianceAssociatedItemService) GetComplianceRequirementCountByStat
 	return response, nil
 }
 
-func (cais *ComplianceAssociatedItemService) CreateControlsToCompliance(complianceID, userID uint, dto *complianceDTOs.ComplianceRegisterControlMapDTO) error {
+func (cais *ComplianceAssociatedItemService) CreateComplianceControls(complianceID, userID uint, dto *complianceDTOs.ComplianceRegisterControlMapDTO) error {
 	if err := cais.validateControlIDs(complianceID, dto.ControlIDs); err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func (cais *ComplianceAssociatedItemService) CreateControlsToCompliance(complian
 	return tx.Commit()
 }
 
-func (cais *ComplianceAssociatedItemService) DeleteControlFromCompliance(complianceID, controlID uint) error {
+func (cais *ComplianceAssociatedItemService) DeleteComplianceControl(complianceID, controlID uint) error {
 	// Validate control existence
 	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlID), "not_exist", "control_id")
