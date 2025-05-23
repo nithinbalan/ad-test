@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -14,7 +15,7 @@ import (
 type ComplianceAssessmentRequirementRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 
-	GetAll(assessmentID uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO) ([]*complianceDTOs.ComplianceAssessmentRequirementListDTO, error)
+	GetAll(assessmentID uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentRequirementListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceAssessmentRequirement, error)
 	GetFullDetailsByID(requirementId uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessmentRequirement, error)
 	Update(complianceAssessmentRequirement *models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) error
@@ -40,8 +41,9 @@ func (repo *ComplianceAssessmentRequirementRepository) BeginTransaction() utilit
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO) ([]*complianceDTOs.ComplianceAssessmentRequirementListDTO, error) {
+func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentRequirementListResponseDTO, error) {
 	var complianceRequirements []*complianceDTOs.ComplianceAssessmentRequirementListDTO
+	var total int64
 
 	query := repo.db.Table("compliance_assessment_requirements").
 		Select(`
@@ -117,8 +119,15 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 		sort = "ASC"
 	}
 
+	if err := query.Count(&total).Error; err != nil {
+		return nil, err
+	}
+
 	// Use TRIM on the database column in the ORDER BY clause
 	query = query.Order(fmt.Sprintf("TRIM(%s) %s", sortBy, sort))
+
+	offset := (params.Page - 1) * params.PageSize
+	query = query.Offset(offset).Limit(params.PageSize)
 
 	// Execute the query
 	err := query.Find(&complianceRequirements).Error
@@ -126,7 +135,18 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 		return nil, err
 	}
 
-	return complianceRequirements, nil
+	totalPages := int((total + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &complianceDTOs.ComplianceAssessmentRequirementListResponseDTO{
+		Items: complianceRequirements,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  total,
+		},
+	}
+	return response, nil
 }
 
 func (repo *ComplianceAssessmentRequirementRepository) GetByID(id uint) (*models.ComplianceAssessmentRequirement, error) {
