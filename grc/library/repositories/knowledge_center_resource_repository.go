@@ -33,8 +33,8 @@ func (repo *KnowledgeCenterResourceRepository) GetAll() ([]*libraryDTOs.Knowledg
 			knowledge_center_resources.updated_at,
 			modules.title_en AS module_title_en,
 			modules.title_ar AS module_title_ar,
-			knowledge_center_resource_statuses.title_en AS status_title_en,
-			knowledge_center_resource_statuses.title_ar AS status_title_ar
+			knowledge_center_resource_statuses.title_en AS knowledge_center_resource_status_title_en,
+			knowledge_center_resource_statuses.title_ar AS knowledge_center_resource_status_title_ar
 		`).
 		Joins("JOIN modules ON modules.id = knowledge_center_resources.module_id").
 		Joins("JOIN knowledge_center_resource_statuses ON knowledge_center_resource_statuses.id = knowledge_center_resources.knowledge_center_resource_status_id").
