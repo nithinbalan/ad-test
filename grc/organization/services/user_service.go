@@ -1291,10 +1291,22 @@ func (us *UserService) ImportUsers(input []map[string]interface{}, currentUserID
 		}
 
 		// Save user
-		_, err := us.repo.Create(user)
+		userId, err := us.repo.Create(user)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create user for record: %+v, error: %v", record, err)
 		}
+
+		userRoles := []models.UserRole{
+			{
+				UserID: userId,
+				RoleID: 1,
+			},
+		}
+
+		if err = us.repo.CreateUserRole(userRoles); err != nil {
+			return nil, err
+		}
+
 		createdUserIDs = append(createdUserIDs, user.ID)
 	}
 
