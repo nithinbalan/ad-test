@@ -99,7 +99,7 @@ func (ss *StakeholderService) Create(currentUserID uint, stakeholderFormDTO *org
 		ImpactLevelID:         stakeholderFormDTO.ImpactLevelID,
 		Role:                  stakeholderFormDTO.Role,
 		ContactInformation:    stakeholderFormDTO.ContactInformation,
-		OrganizationUnitID:    stakeholderFormDTO.OrganizationUnitID,
+		PrimaryUnitID:         stakeholderFormDTO.OrganizationUnitID,
 		ThirdPartyRegisterID:  stakeholderFormDTO.ThirdPartyRegisterID,
 		ClientID:              stakeholderFormDTO.ClientID,
 		UserID:                stakeholderFormDTO.UserID,
@@ -165,7 +165,7 @@ func (ss *StakeholderService) Update(id uint, currentUserID uint, stakeholderFor
 	existingStakeholder.ImpactLevelID = stakeholderFormDTO.ImpactLevelID
 	existingStakeholder.Role = stakeholderFormDTO.Role
 	existingStakeholder.ContactInformation = stakeholderFormDTO.ContactInformation
-	existingStakeholder.OrganizationUnitID = stakeholderFormDTO.OrganizationUnitID
+	existingStakeholder.PrimaryUnitID = stakeholderFormDTO.OrganizationUnitID
 	existingStakeholder.ThirdPartyRegisterID = stakeholderFormDTO.ThirdPartyRegisterID
 	existingStakeholder.ClientID = stakeholderFormDTO.ClientID
 	existingStakeholder.UserID = stakeholderFormDTO.UserID

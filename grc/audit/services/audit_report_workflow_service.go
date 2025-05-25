@@ -323,7 +323,7 @@ func (arws *AuditReportWorkflowService) ValidateWorkflowBeforeCreate(workflowTyp
 		return err
 	}
 	if len(workflows) == 0 {
-		return utility.NewForbiddenError("No workflow configured for the given workflow type.")
+		return utility.NewForbiddenError("workflow_not_configured")
 	}
 
 	workflowLevels, err := arws.workflowSvc.GetWorkflowLevels(workflows[0].ID, tx...)
@@ -331,7 +331,7 @@ func (arws *AuditReportWorkflowService) ValidateWorkflowBeforeCreate(workflowTyp
 		return err
 	}
 	if len(workflowLevels.WorkflowLevels) == 0 {
-		return utility.NewForbiddenError("No workflow levels found for the workflow.")
+		return utility.NewForbiddenError("workflow_levels_not_found")
 	}
 
 	hasParticipants := false
@@ -343,7 +343,7 @@ func (arws *AuditReportWorkflowService) ValidateWorkflowBeforeCreate(workflowTyp
 	}
 
 	if !hasParticipants {
-		return utility.NewForbiddenError("No participants configured in any workflow level.")
+		return utility.NewForbiddenError("participants_not_configured")
 	}
 
 	return nil
