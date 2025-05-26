@@ -108,7 +108,9 @@ func (repo *StakeholderRepository) GetAll(params *organizationalContextDTOs.Stak
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(created_user.first_name_en LIKE ? OR
+			(stakeholders.title_en LIKE ? OR
+			stakeholders.title_ar LIKE ? OR
+			created_user.first_name_en LIKE ? OR
 			created_user.first_name_ar LIKE ? OR
 			created_user.last_name_en LIKE ? OR
 			created_user.last_name_ar LIKE ? OR
@@ -116,7 +118,7 @@ func (repo *StakeholderRepository) GetAll(params *organizationalContextDTOs.Stak
 			updated_user.first_name_ar LIKE ? OR
 			updated_user.last_name_en LIKE ? OR
 			updated_user.last_name_ar LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
