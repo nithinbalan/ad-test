@@ -1088,7 +1088,7 @@ func (us *UserService) GenerateUserTemplate() (*os.File, error) {
 	// Static base headers
 	templateHeaders := []string{
 		"FirstNameEn", "LastNameEn", "FirstNameAr", "LastNameAr", "Email", "MobileNumber",
-		"Designation", "UserStatus",
+		"Designation", "UserStatus", "Roles",
 	}
 	templateData := [][]interface{}{}
 
@@ -1152,10 +1152,22 @@ func (us *UserService) GenerateUserTemplate() (*os.File, error) {
 	}
 	sheets["UserStatus"] = append([][]interface{}{utility.ConvertToInterfaceSlice(userStatusHeaders)}, userStatusData...)
 
-	// 5. Add Template sheet
+	// 5. Add Roles sheet
+	roles, err := us.roleSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch roles: %v", err)
+	}
+	roleHeaders := []string{"Roles"}
+	roleData := [][]interface{}{}
+	for _, r := range roles {
+		roleData = append(roleData, []interface{}{r.TitleEn})
+	}
+	sheets["Roles"] = append([][]interface{}{utility.ConvertToInterfaceSlice(roleHeaders)}, roleData...)
+
+	// 6. Add Template sheet
 	sheets["Template"] = append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...)
 
-	// 6. Generate Excel
+	// 7. Generate Excel
 	file, err := utility.GenerateExcelFileWithSheets(sheets)
 	if err != nil {
 		return nil, err
@@ -1184,11 +1196,11 @@ func (us *UserService) ValidateUserTemplate(file io.Reader) ([]map[string]interf
 	// Expected display headers (from Excel) and corresponding internal snake_case headers
 	expectedHeaders := []string{
 		"FirstNameEn", "LastNameEn", "FirstNameAr", "LastNameAr",
-		"Email", "MobileNumber", "Designation", "UserStatus",
+		"Email", "MobileNumber", "Designation", "UserStatus", "Roles",
 	}
 	snakeCaseHeaders := []string{
 		"first_name_en", "last_name_en", "first_name_ar", "last_name_ar",
-		"email", "mobile_number", "designation", "user_status",
+		"email", "mobile_number", "designation", "user_status", "roles",
 	}
 
 	for _, level := range orgLevels {
@@ -1209,7 +1221,17 @@ func (us *UserService) ValidateUserTemplate(file io.Reader) ([]map[string]interf
 		record := make(map[string]interface{})
 		for i, key := range snakeCaseHeaders {
 			if i < len(row) {
-				record[key] = row[i]
+				val := row[i]
+				if key == "roles" {
+					split := strings.FieldsFunc(fmt.Sprintf("%v", val), func(r rune) bool { return r == ',' || r == ':' })
+					var roleList []string
+					for _, role := range split {
+						roleList = append(roleList, strings.TrimSpace(role))
+					}
+					record[key] = roleList
+				} else {
+					record[key] = val
+				}
 			} else {
 				record[key] = ""
 			}
@@ -1295,22 +1317,23 @@ func (us *UserService) ImportUsers(input []map[string]interface{}, currentUserID
 		if err != nil {
 			return nil, fmt.Errorf("failed to create user for record: %+v, error: %v", record, err)
 		}
-		superAdminRole, err := us.roleSvc.GetSuperAdminRole()
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch super admin role: %v", err)
+		// Assign roles from validated input
+		roleIDsRaw, ok := record["role_ids"].([]uint)
+		if !ok || len(roleIDsRaw) == 0 {
+			return nil, fmt.Errorf("no valid role IDs provided for user: %v", record["email"])
 		}
 
-		userRoles := []models.UserRole{
-			{
+		userRoles := make([]models.UserRole, len(roleIDsRaw))
+		for i, roleID := range roleIDsRaw {
+			userRoles[i] = models.UserRole{
 				UserID: userId,
-				RoleID: superAdminRole.ID,
-			},
+				RoleID: roleID,
+			}
 		}
 
 		if err = us.repo.CreateUserRole(userRoles); err != nil {
 			return nil, err
 		}
-
 		createdUserIDs = append(createdUserIDs, user.ID)
 	}
 
@@ -1320,7 +1343,7 @@ func (us *UserService) ImportUsers(input []map[string]interface{}, currentUserID
 func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[string]interface{}, error) {
 	headers := []string{
 		"first_name_en", "last_name_en", "first_name_ar", "last_name_ar",
-		"email", "mobile_number", "designation", "user_status", "primary_department",
+		"email", "mobile_number", "designation", "user_status", "primary_department", "roles",
 	}
 
 	// Fetch designations
@@ -1365,20 +1388,27 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 		orgUnitsByLevel[int(level.Level)] = unitTitles
 	}
 
+	// Fetch roles
+	roles, err := us.roleSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching roles: %v", err)
+	}
+	roleTitleToID := make(map[string]uint)
+	for _, r := range roles {
+		roleTitleToID[strings.TrimSpace(r.TitleEn)] = r.ID
+	}
+
 	var validatedData []map[string]interface{}
 
 	for _, record := range input {
 		rowErrors := make(map[string]interface{})
 		userRecord := make(map[string]interface{})
-
 		for key, value := range record {
 			userRecord[key] = value
 		}
-
 		for _, header := range headers {
 			value, _ := record[header].(string)
 			value = strings.TrimSpace(value)
-
 			switch header {
 			case "first_name_en", "last_name_en", "first_name_ar", "last_name_ar":
 				if value == "" {
@@ -1406,6 +1436,60 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 				} else {
 					userRecord["user_status_id"] = id
 				}
+			case "roles":
+				var roleIDs []uint
+				if val, ok := record[header]; ok {
+					switch v := val.(type) {
+					case string:
+						if v == "" {
+							rowErrors[header] = "Field is required"
+						} else {
+							split := strings.FieldsFunc(v, func(r rune) bool { return r == ',' || r == ':' })
+							for _, r := range split {
+								r = strings.TrimSpace(r)
+								if id, ok := roleTitleToID[r]; ok {
+									roleIDs = append(roleIDs, id)
+								} else {
+									rowErrors[header] = fmt.Sprintf("Invalid role: %s", r)
+								}
+							}
+						}
+					case []string:
+						if len(v) == 0 {
+							rowErrors[header] = "Field is required"
+						}
+						for _, r := range v {
+							r = strings.TrimSpace(r)
+							if id, ok := roleTitleToID[r]; ok {
+								roleIDs = append(roleIDs, id)
+							} else {
+								rowErrors[header] = fmt.Sprintf("Invalid role: %s", r)
+							}
+						}
+					case []interface{}:
+						if len(v) == 0 {
+							rowErrors[header] = "Field is required"
+						}
+						for _, r := range v {
+							if s, ok := r.(string); ok {
+								s = strings.TrimSpace(s)
+								if id, ok := roleTitleToID[s]; ok {
+									roleIDs = append(roleIDs, id)
+								} else {
+									rowErrors[header] = fmt.Sprintf("Invalid role: %s", s)
+								}
+							} else {
+								rowErrors[header] = "Roles must be strings"
+							}
+						}
+					default:
+						rowErrors[header] = "Invalid roles format"
+					}
+				}
+				if len(roleIDs) > 0 {
+					userRecord["role_ids"] = roleIDs
+				}
+
 			}
 		}
 
@@ -1413,7 +1497,6 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 			field := fmt.Sprintf("organization_unit_%d", level.Level)
 			val, _ := record[field].(string)
 			val = strings.TrimSpace(val)
-
 			levelTitle := level.TitleEn
 			if val == "" {
 				rowErrors[field] = fmt.Sprintf("%s is required", levelTitle)
@@ -1423,7 +1506,6 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 				userRecord[field] = val
 				userRecord[fmt.Sprintf("%s_id", field)] = id
 			}
-
 		}
 
 		if len(rowErrors) == 0 {
@@ -1705,15 +1787,15 @@ func (us *UserService) GetUsersFromAD() ([]userDTOs.ADUserFlatDTO, error) {
 			"mobile_number": "",
 			"designation":   designationTitle,
 			"user_status":   "Active",
+			"roles":         []string{},
 			"primary_department": func() string {
 				if len(ouParts) > 0 {
 					return ouParts[0]
 				}
 				return ""
 			}(),
-			"is_exists":                  exists,
-			"oraganization_level_counts": orgLevelCount,
-			"errors":                     nil,
+			"is_exists": exists,
+			"errors":    nil,
 		}
 
 		// Add dynamic org unit fields
