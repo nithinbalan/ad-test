@@ -24,6 +24,8 @@ type RoleRepositoryInterface interface {
 
 	GetPermissionsForModule(roleID, moduleID uint) (map[string]bool, error)
 	GetAllPermissionTypes() ([]string, error)
+
+	GetSuperAdminRole() (*models.Role, error)
 }
 
 type RoleRepository struct {
@@ -239,4 +241,13 @@ func (repo *RoleRepository) GetPermissionsForModule(roleID, moduleID uint) (map[
 	}
 
 	return permissions, nil
+}
+
+func (repo *RoleRepository) GetSuperAdminRole() (*models.Role, error) {
+	var role models.Role
+	err := repo.db.Where("is_super_admin = ?", true).Where("status = ?", "active").First(&role).Error
+	if err != nil {
+		return nil, err
+	}
+	return &role, nil
 }

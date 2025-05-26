@@ -1295,11 +1295,15 @@ func (us *UserService) ImportUsers(input []map[string]interface{}, currentUserID
 		if err != nil {
 			return nil, fmt.Errorf("failed to create user for record: %+v, error: %v", record, err)
 		}
+		superAdminRole, err := us.roleSvc.GetSuperAdminRole()
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch super admin role: %v", err)
+		}
 
 		userRoles := []models.UserRole{
 			{
 				UserID: userId,
-				RoleID: 1,
+				RoleID: superAdminRole.ID,
 			},
 		}
 
