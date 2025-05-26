@@ -7,7 +7,7 @@ import (
 )
 
 type KnowledgeCenterResourceRepositoryInterface interface {
-	GetAll() ([]*libraryDTOs.KnowledgeCenterResourceListDTO, error)
+	GetAll(params *libraryDTOs.KnowledgeCenterResourceListQueryParamsDTO) ([]*libraryDTOs.KnowledgeCenterResourceListDTO, error)
 }
 
 type KnowledgeCenterResourceRepository struct {
@@ -20,10 +20,10 @@ func NewKnowledgeCenterResourceRepository(db *gorm.DB) *KnowledgeCenterResourceR
 	}
 }
 
-func (repo *KnowledgeCenterResourceRepository) GetAll() ([]*libraryDTOs.KnowledgeCenterResourceListDTO, error) {
+func (repo *KnowledgeCenterResourceRepository) GetAll(params *libraryDTOs.KnowledgeCenterResourceListQueryParamsDTO) ([]*libraryDTOs.KnowledgeCenterResourceListDTO, error) {
 	var resources []*libraryDTOs.KnowledgeCenterResourceListDTO
 
-	err := repo.db.Table("knowledge_center_resources").
+	query := repo.db.Table("knowledge_center_resources").
 		Select(`
 			knowledge_center_resources.id,
 			knowledge_center_resources.title_en,
@@ -31,14 +31,26 @@ func (repo *KnowledgeCenterResourceRepository) GetAll() ([]*libraryDTOs.Knowledg
 			knowledge_center_resources.icon,
 			knowledge_center_resources.created_at,
 			knowledge_center_resources.updated_at,
+			modules.identifier AS module_identifier,
 			modules.title_en AS module_title_en,
 			modules.title_ar AS module_title_ar,
 			knowledge_center_resource_statuses.title_en AS knowledge_center_resource_status_title_en,
 			knowledge_center_resource_statuses.title_ar AS knowledge_center_resource_status_title_ar
 		`).
 		Joins("JOIN modules ON modules.id = knowledge_center_resources.module_id").
-		Joins("JOIN knowledge_center_resource_statuses ON knowledge_center_resource_statuses.id = knowledge_center_resources.knowledge_center_resource_status_id").
-		Find(&resources).Error
+		Joins("JOIN knowledge_center_resource_statuses ON knowledge_center_resource_statuses.id = knowledge_center_resources.knowledge_center_resource_status_id")
+
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			knowledge_center_resources.title_en LIKE ? OR
+			knowledge_center_resources.title_ar LIKE ? OR
+			modules.title_en LIKE ? OR
+			modules.title_ar LIKE ?
+		`, keyword, keyword, keyword, keyword)
+	}
+
+	err := query.Find(&resources).Error
 	if err != nil {
 		return nil, err
 	}

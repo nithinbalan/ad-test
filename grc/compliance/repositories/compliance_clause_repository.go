@@ -31,6 +31,8 @@ type ComplianceClauseRepositoryInterface interface {
 	GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlListDTO, error)
 	CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceControlByClauseAndControl(clauseID, controlID uint, tx ...utility.DatabaseTransaction) error
+
+	IsControlMappedToClause(clauseID, controlID uint) (bool, error)
 }
 
 type ComplianceClauseRepository struct {
@@ -441,4 +443,17 @@ func (repo *ComplianceClauseRepository) DeleteComplianceControlByClauseAndContro
 
 	return db.Where("compliance_clause_id = ? AND control_id = ?", clauseID, controlID).
 		Delete(&models.ComplianceControl{}).Error
+}
+
+func (repo *ComplianceClauseRepository) IsControlMappedToClause(clauseID, controlID uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Model(&models.ComplianceControl{}).
+		Where("compliance_clause_id = ? AND control_id = ?", clauseID, controlID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

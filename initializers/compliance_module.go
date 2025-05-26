@@ -90,7 +90,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	compilanceClauseController := controllers.NewComplianceClauseController(compilanceClauseSvc)
 
 	complianceAssociatedItemRepo := repositories.NewComplianceAssociatedItemRepository(db)
-	complianceAssociatedItemSvc := services.NewComplianceAssociatedItemService(complianceAssociatedItemRepo, complianceRegisterSvc)
+	complianceAssociatedItemSvc := services.NewComplianceAssociatedItemService(complianceAssociatedItemRepo, complianceRegisterSvc, organizationModule.ControlSvc)
 	complianceAssociatedItemController := controllers.NewComplianceAssociatedItemController(complianceAssociatedItemSvc)
 
 	complianceRequirementCategoryRepo := repositories.NewComplianceRequirementCategoryRepository(db)
