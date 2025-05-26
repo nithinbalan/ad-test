@@ -99,6 +99,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit 1 }
           .\script.bat seed
           if ($LASTEXITCODE -ne 0) { exit 1 }
+        shell: powershell
 
       # Step: Switch Back to Main Branch
       - name: Switch Back to Main Branch
