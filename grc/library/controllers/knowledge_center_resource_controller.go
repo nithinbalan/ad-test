@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 
+	libraryDTOs "jethur/grc/library/dtos"
 	"jethur/grc/library/services"
 	"jethur/utility"
 
@@ -23,7 +24,13 @@ func NewKnowledgeCenterResourceController(service services.KnowledgeCenterResour
 }
 
 func (kcrc *KnowledgeCenterResourceController) GetAllResources(c *gin.Context) {
-	resources, err := kcrc.service.GetAll()
+	keyword := c.Query("keyword")
+
+	queryParams := libraryDTOs.KnowledgeCenterResourceListQueryParamsDTO{
+		Keyword: keyword,
+	}
+
+	resources, err := kcrc.service.GetAll(&queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(kcrc.db, c, err.Error())
 		return

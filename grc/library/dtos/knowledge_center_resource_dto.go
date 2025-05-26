@@ -12,3 +12,7 @@ type KnowledgeCenterResourceListDTO struct {
 	CreatedAt                            string  `json:"created_at"`
 	UpdatedAt                            *string `json:"updated_at"`
 }
+
+type KnowledgeCenterResourceListQueryParamsDTO struct {
+	Keyword string `json:"keyword"`
+}
