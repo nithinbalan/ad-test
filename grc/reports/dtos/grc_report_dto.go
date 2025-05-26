@@ -249,7 +249,7 @@ type GRCRiskSummaryResponseDTO struct {
 	CriticalRisks       *string `json:"critical_risks"`
 	TreatmentStrategies *string `json:"treatment_strategies"`
 	RiskScoreSummary    *string `json:"risk_score_summary"`
-	KRIs                *string `json:"kris"`
+	Kris                *string `json:"kris"`
 	RiskOverviewChart   *string `json:"risk_overview_chart"`
 	RiskHeatmapChart    *string `json:"risk_heatmap_chart"`
 	TopRisks            *string `json:"top_risks"`
@@ -267,7 +267,7 @@ type GRCReportRiskKriResponseDTO struct {
 	CurrentValue             *int    `json:"current_value"`
 	RiskStatusTitleEn        string  `json:"risk_status_title_en"`
 	RiskStatusTitleAr        string  `json:"risk_status_title_ar"`
-	RiskStatusTitleColorCode string  `json:"risk_status_title_color_code"`
+	RiskStatusTitleColorCode string  `json:"risk_status_color_code"`
 }
 
 type GRCReportRiskControlResponseDTO struct {
@@ -368,16 +368,12 @@ type GRCReportSLAResponseDTO struct {
 	IssueDate                     *string `json:"issue_date"`
 }
 
-type MonthlyRiskTrendData struct {
-	Month       int
-	NewRisks    int
-	ClosureRate int
-}
-
-type RiskTrendDTO struct {
-	Month       string `json:"month"`
+type RiskCountDTO struct {
+	Year        int    `json:"year"`
+	Month       int    `json:"month"`
+	MonthName   string `json:"month_name"`
 	NewRisks    int    `json:"new_risks"`
-	ClosureRate int    `json:"closure_rate"`
+	ClosedRisks int    `json:"closed_risks"`
 }
 
 type GRCReportHighlightChallengeFormDTO struct {

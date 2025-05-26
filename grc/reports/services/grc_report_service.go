@@ -36,6 +36,7 @@ type GRCReportServiceInterface interface {
 
 	UpdateHighlights(grcID uint, currentUserID uint, grcReportHighlightChallengeFormDTO *dtos.GRCReportHighlightChallengeFormDTO) error
 	UpdateChallenges(grcID uint, currentUserID uint, grcReportHighlightChallengeFormDTO *dtos.GRCReportHighlightChallengeFormDTO) error
+	UpdateRiskApprovalNote(grcID uint, riskID uint, currentUserID uint, grcReportHighlightChallengeFormDTO *dtos.GRCReportHighlightChallengeFormDTO) error
 }
 
 type GRCReportService struct {
@@ -433,8 +434,9 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 
 	var totalRisks int
 	criticalCategorySet := make(map[string]struct{})
-	var riskScoreSummaryParts []string
 	var riskKRIs []*models.RiskKri
+	var htmlRiskSummary strings.Builder
+	var htmlRiskKriSummary strings.Builder
 	totalRisks = len(risks)
 
 	highestRatingType, err := grs.repo.GetHighestActiveRiskRatingType(tx)
@@ -443,20 +445,33 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		return 0, err
 	}
 
+	ratingCount := make(map[string]int)
+
 	for _, risk := range risks {
 		if risk.CurrentRiskRating != nil && risk.CurrentRiskRating.Type == highestRatingType {
 			if risk.RiskCategory != nil {
 				criticalCategorySet[risk.RiskCategory.TitleEn] = struct{}{}
 			}
 		}
-		if risk.CurrentRiskRating != nil && risk.RiskResponseStrategy != nil {
-			part := fmt.Sprintf("- %s risk with strategy: %s", risk.CurrentRiskRating.TitleEn, risk.RiskResponseStrategy.TitleEn)
-			riskScoreSummaryParts = append(riskScoreSummaryParts, part)
+
+		if risk.CurrentRiskRating != nil {
+			rating := risk.CurrentRiskRating.TitleEn
+			ratingCount[rating]++
 		}
 		if risk.KRIs != nil {
 			riskKRIs = append(riskKRIs, risk.KRIs...)
 		}
 	}
+	htmlRiskSummary.WriteString("<ul>\n")
+
+	for rating, count := range ratingCount {
+		line := fmt.Sprintf("<li>%d %s-rated risks</li>\n", count, rating)
+		htmlRiskSummary.WriteString(line)
+	}
+
+	htmlRiskSummary.WriteString("</ul>")
+
+	riskSummary := htmlRiskSummary.String()
 
 	strategies, err := grs.riskResponseStrategySvc.GetAll("", "", "", "active")
 	if err != nil {
@@ -473,16 +488,19 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		criticalCategories = append(criticalCategories, title)
 	}
 
-	var kriSummaries []string
+	htmlRiskKriSummary.WriteString("<ul>\n")
 	for _, rk := range riskKRIs {
 		if rk.KriRegister != nil && rk.KriRegister.Title != "" {
-			value := "- " + rk.KriRegister.Title
 			if rk.KriRegister.CurrentValue != nil {
-				value += fmt.Sprintf(" %d%%", *rk.KriRegister.CurrentValue)
+				kriLine := fmt.Sprintf("<li>%s abc %d%%</li>\n", rk.KriRegister.Title, *rk.KriRegister.CurrentValue)
+
+				htmlRiskKriSummary.WriteString(kriLine)
 			}
-			kriSummaries = append(kriSummaries, value)
 		}
 	}
+
+	htmlRiskKriSummary.WriteString("</ul>")
+	riskKriSummary := htmlRiskKriSummary.String()
 
 	riskOverviewChart, err := grs.grcDashboardSvc.GetGRCRiskOverview(&params)
 	if err != nil {
@@ -536,8 +554,8 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		RiskIdentifiedCount: totalRisks,
 		CriticalRisks:       strPtr(strings.Join(criticalCategories, ", ")),
 		TreatmentStrategies: strPtr(strings.Join(riskStrategies, ", ")),
-		RiskScoreSummary:    strPtr(strings.Join(riskScoreSummaryParts, "\n")),
-		KRIs:                strPtr(strings.Join(kriSummaries, "\n")),
+		RiskScoreSummary:    &riskSummary,
+		KRIs:                &riskKriSummary,
 		RiskOverviewChart:   &riskOverviewStr,
 		TopRisks:            &topRiskStr,
 		RiskHeatmapChart:    &riskHeatmapStr,
@@ -1230,6 +1248,29 @@ func (grs *GRCReportService) UpdateChallenges(grcReportID uint, currentUserID ui
 	existingReportGovernanceSummary.UpdatedBYID = &currentUserID
 
 	err = grs.repo.UpdateGRCReportGovernanceSummary(existingReportGovernanceSummary, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	return nil
+}
+
+func (grs *GRCReportService) UpdateRiskApprovalNote(grcReportID uint, reportID uint, currentUserID uint, grcReportHighlightChallengeFormDTO *dtos.GRCReportHighlightChallengeFormDTO) error {
+	tx := grs.repo.BeginTransaction()
+
+	existingReportRisk, err := grs.repo.GetGRCReportRiskByID(grcReportID, reportID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Update challenge details
+	existingReportRisk.ApprovalNote = grcReportHighlightChallengeFormDTO.Description
+
+	err = grs.repo.UpdateGRCReportRisk(existingReportRisk, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
