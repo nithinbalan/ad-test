@@ -31,6 +31,7 @@ func (repo *KnowledgeCenterResourceRepository) GetAll() ([]*libraryDTOs.Knowledg
 			knowledge_center_resources.icon,
 			knowledge_center_resources.created_at,
 			knowledge_center_resources.updated_at,
+			modules.identifier AS module_identifier,
 			modules.title_en AS module_title_en,
 			modules.title_ar AS module_title_ar,
 			knowledge_center_resource_statuses.title_en AS knowledge_center_resource_status_title_en,
