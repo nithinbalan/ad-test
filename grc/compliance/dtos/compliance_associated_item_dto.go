@@ -159,3 +159,7 @@ type ComplianceRequirementStatusCountResponseDTO struct {
 	ColorCode string `json:"color_code"`
 	Count     int    `json:"count"`
 }
+
+type ComplianceRegisterControlMapDTO struct {
+	ControlIDs []uint `json:"control_ids" binding:"required"`
+}

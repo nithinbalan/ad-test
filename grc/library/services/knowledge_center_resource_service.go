@@ -6,7 +6,7 @@ import (
 )
 
 type KnowledgeCenterResourceServiceInterface interface {
-	GetAll() ([]*libraryDTOs.KnowledgeCenterResourceListDTO, error)
+	GetAll(params *libraryDTOs.KnowledgeCenterResourceListQueryParamsDTO) ([]*libraryDTOs.KnowledgeCenterResourceListDTO, error)
 }
 
 // Service and implementations
@@ -22,6 +22,6 @@ func NewKnowledgeCenterResourceService(
 	}
 }
 
-func (kcrs *KnowledgeCenterResourceService) GetAll() ([]*libraryDTOs.KnowledgeCenterResourceListDTO, error) {
-	return kcrs.repo.GetAll()
+func (kcrs *KnowledgeCenterResourceService) GetAll(params *libraryDTOs.KnowledgeCenterResourceListQueryParamsDTO) ([]*libraryDTOs.KnowledgeCenterResourceListDTO, error) {
+	return kcrs.repo.GetAll(params)
 }

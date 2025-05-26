@@ -340,3 +340,46 @@ func (orc *GRCReportController) UpdateChallenges(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+func (orc *GRCReportController) UpdateRiskApprovalNote(c *gin.Context) {
+	grcReportID, err := strconv.Atoi(c.Param("grcReportId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	riskID, err := strconv.Atoi(c.Param("riskId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var formDTO dtos.GRCReportHighlightChallengeFormDTO
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, err.Error())
+		return
+	}
+
+	err = orc.service.UpdateRiskApprovalNote(uint(grcReportID), uint(riskID), currentUserID, &formDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(orc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}

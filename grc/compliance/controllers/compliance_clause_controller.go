@@ -255,8 +255,17 @@ func (ccc *ComplianceClauseController) CreateComplianceClauseControls(c *gin.Con
 
 	err = ccc.service.CreateComplianceClauseControls(uint(complianceID), uint(clauseID), currentUserID, &input)
 	if err != nil {
-		utility.SendInternalErrResp(ccc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(ccc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.Status(http.StatusCreated)
