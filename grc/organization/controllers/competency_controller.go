@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"jethur/grc/models"
+	"jethur/grc/organization/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/organization/services"
 	"jethur/utility"
@@ -24,31 +25,34 @@ func NewCompetencyController(service services.CompetencyServiceInterface) *Compe
 }
 
 func (cc *CompetencyController) GetAllCompetencies(c *gin.Context) {
-	competencyGroupId, err := strconv.Atoi(c.Param("competencyGroupId"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 
-	competencies, err := cc.service.GetAll(uint(competencyGroupId), sort, sortBy, keyword, status)
+	allowedParams := []string{
+		"competency_group_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	queryParams := dtos.CompetencyListQueryParamsDTO{
+		Sort:    sort,
+		SortBy:  sortBy,
+		Keyword: keyword,
+		Status:  status,
+		Filters: filters,
+	}
+
+	result, err := cc.service.GetAll(&queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(cc.db, c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, competencies)
+	c.JSON(http.StatusOK, result)
 }
 
 func (cc *CompetencyController) GetCompetencyDetails(c *gin.Context) {
-	competencyGroupId, err := strconv.Atoi(c.Param("competencyGroupId"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
 
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -57,7 +61,7 @@ func (cc *CompetencyController) GetCompetencyDetails(c *gin.Context) {
 		return
 	}
 
-	competency, err := cc.service.GetByID(uint(competencyGroupId), uint(id))
+	competency, err := cc.service.GetByID(uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -67,11 +71,6 @@ func (cc *CompetencyController) GetCompetencyDetails(c *gin.Context) {
 }
 
 func (cc *CompetencyController) CreateCompetency(c *gin.Context) {
-	competencyGroupId, err := strconv.Atoi(c.Param("competencyGroupId"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
 
 	var competency *organizationDTOs.CompetencyFormDTO
 
@@ -86,7 +85,7 @@ func (cc *CompetencyController) CreateCompetency(c *gin.Context) {
 		return
 	}
 
-	createdCompetency, err := cc.service.Create(uint(competencyGroupId), currentUserID, competency)
+	createdCompetency, err := cc.service.Create(currentUserID, competency)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -102,11 +101,6 @@ func (cc *CompetencyController) CreateCompetency(c *gin.Context) {
 }
 
 func (cc *CompetencyController) UpdateCompetency(c *gin.Context) {
-	competencyGroupId, err := strconv.Atoi(c.Param("competencyGroupId"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
 
 	competencyID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -126,7 +120,7 @@ func (cc *CompetencyController) UpdateCompetency(c *gin.Context) {
 		return
 	}
 
-	updatedCompetency, err = cc.service.Update(uint(competencyGroupId), uint(competencyID), currentUserID, updatedCompetency)
+	updatedCompetency, err = cc.service.Update(uint(competencyID), currentUserID, updatedCompetency)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -145,11 +139,6 @@ func (cc *CompetencyController) UpdateCompetency(c *gin.Context) {
 }
 
 func (cc *CompetencyController) DeleteCompetencies(c *gin.Context) {
-	competencyGroupId, err := strconv.Atoi(c.Param("competencyGroupId"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
 
 	var request struct {
 		IDs []uint `json:"ids"`
@@ -166,7 +155,7 @@ func (cc *CompetencyController) DeleteCompetencies(c *gin.Context) {
 		return
 	}
 
-	failedIDs, err := cc.service.Delete(uint(competencyGroupId), request.IDs, currentUserID)
+	failedIDs, err := cc.service.Delete(request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(cc.db, c, err.Error())
 		return
@@ -176,11 +165,6 @@ func (cc *CompetencyController) DeleteCompetencies(c *gin.Context) {
 }
 
 func (cc *CompetencyController) ActivateCompetencies(c *gin.Context) {
-	competencyGroupId, err := strconv.Atoi(c.Param("competencyGroupId"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
 
 	var request struct {
 		IDs []uint `json:"ids"`
@@ -197,7 +181,7 @@ func (cc *CompetencyController) ActivateCompetencies(c *gin.Context) {
 		return
 	}
 
-	err = cc.service.Activate(uint(competencyGroupId), request.IDs, currentUserID)
+	err = cc.service.Activate(request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(cc.db, c, err.Error())
 		return
@@ -207,11 +191,6 @@ func (cc *CompetencyController) ActivateCompetencies(c *gin.Context) {
 }
 
 func (cc *CompetencyController) DeactivateCompetencies(c *gin.Context) {
-	competencyGroupId, err := strconv.Atoi(c.Param("competencyGroupId"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
 
 	var request struct {
 		IDs []uint `json:"ids"`
@@ -228,7 +207,7 @@ func (cc *CompetencyController) DeactivateCompetencies(c *gin.Context) {
 		return
 	}
 
-	err = cc.service.Deactivate(uint(competencyGroupId), request.IDs, currentUserID)
+	err = cc.service.Deactivate(request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(cc.db, c, err.Error())
 		return

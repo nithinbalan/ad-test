@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"jethur/grc/models"
+	"jethur/grc/organization/dtos"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -9,7 +10,7 @@ import (
 
 // Interface
 type CompetencyRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.Competency, error)
+	GetAll(params *dtos.CompetencyListQueryParamsDTO) ([]*dtos.CompetencyWithGroupDTO, error)
 	GetByID(id uint) (*models.Competency, error)
 	Create(competency *models.Competency) (*models.Competency, error)
 	Update(id uint, updatedCompetency *models.Competency) (*models.Competency, error)
@@ -29,27 +30,42 @@ func NewCompetencyRepository(db *gorm.DB) *CompetencyRepository {
 	return &CompetencyRepository{db: db}
 }
 
-func (repo *CompetencyRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.Competency, error) {
-	var competencies []*models.Competency
-	query := repo.db
+func (repo *CompetencyRepository) GetAll(params *dtos.CompetencyListQueryParamsDTO) ([]*dtos.CompetencyWithGroupDTO, error) {
+	var result []*dtos.CompetencyWithGroupDTO
 
-	if keyword != "" {
-		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
-	}
-	if sortBy == "" {
-		sortBy = "title_en"
-	}
-	if sort != "asc" && sort != "desc" {
-		sort = "asc"
+	query := repo.db.Table("competencies").
+		Select(`
+			competencies.*, 
+			competency_groups.id AS competency_group_id, 
+			competency_groups.title_en AS competency_group_title_en, 
+			competency_groups.title_ar AS competency_group_title_ar`).
+		Joins(`LEFT JOIN competency_groups ON competency_groups.id = competencies.competency_group_id`)
+
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
 	}
 
-	if status == "active" || status == "inactive" {
-		query = query.Where("status = ?", status)
+	if params.Keyword != "" {
+		query = query.Where(`(competencies.title_en LIKE ? OR competencies.title_ar LIKE ?)`, "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
-	query = query.Order(sortBy + " " + sort)
-	err := query.Find(&competencies).Error
-	return competencies, err
+	if params.Status == "active" || params.Status == "inactive" {
+		query = query.Where("competencies.status = ?", params.Status)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "competencies.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	err := query.Find(&result).Error
+	return result, err
 }
 
 func (repo *CompetencyRepository) GetByID(id uint) (*models.Competency, error) {

@@ -14,13 +14,13 @@ import (
 )
 
 type CompetencyServiceInterface interface {
-	GetAll(competencyGroupId uint, sort string, sortBy string, keyword string, status string) ([]*models.Competency, error)
-	GetByID(competencyGroupId uint, id uint) (*models.Competency, error)
-	Create(competencyGroupId uint, currentUserID uint, competency *dtos.CompetencyFormDTO) (*models.Competency, error)
-	Update(competencyGroupId uint, id uint, currentUserID uint, competency *models.Competency) (*models.Competency, error)
-	Delete(competencyGroupId uint, ids []uint, currentUserID uint) ([]uint, error)
-	Activate(competencyGroupId uint, ids []uint, currentUserID uint) error
-	Deactivate(competencyGroupId uint, ids []uint, currentUserID uint) error
+	GetAll(params *dtos.CompetencyListQueryParamsDTO) ([]*dtos.CompetencyWithGroupDTO, error)
+	GetByID(id uint) (*models.Competency, error)
+	Create(currentUserID uint, competency *dtos.CompetencyFormDTO) (*models.Competency, error)
+	Update(id uint, currentUserID uint, competency *models.Competency) (*models.Competency, error)
+	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	Activate(ids []uint, currentUserID uint) error
+	Deactivate(ids []uint, currentUserID uint) error
 }
 
 type CompetencyService struct {
@@ -35,11 +35,11 @@ func NewCompetencyService(repo repositories.CompetencyRepositoryInterface, activ
 	}
 }
 
-func (cs *CompetencyService) GetAll(competencyGroupId uint, sort, sortBy, keyword, status string) ([]*models.Competency, error) {
-	return cs.repo.GetAll(sort, sortBy, keyword, status)
+func (cs *CompetencyService) GetAll(params *dtos.CompetencyListQueryParamsDTO) ([]*dtos.CompetencyWithGroupDTO, error) {
+	return cs.repo.GetAll(params)
 }
 
-func (cs *CompetencyService) GetByID(competencyGroupId uint, id uint) (*models.Competency, error) {
+func (cs *CompetencyService) GetByID(id uint) (*models.Competency, error) {
 	competency, err := cs.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -50,7 +50,7 @@ func (cs *CompetencyService) GetByID(competencyGroupId uint, id uint) (*models.C
 	return competency, nil
 }
 
-func (cs *CompetencyService) Create(competencyGroupId uint, currentUserID uint, dto *dtos.CompetencyFormDTO) (*models.Competency, error) {
+func (cs *CompetencyService) Create(currentUserID uint, dto *dtos.CompetencyFormDTO) (*models.Competency, error) {
 	if exists, err := cs.repo.ExistsByTitle(dto.TitleEn, dto.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
@@ -58,11 +58,10 @@ func (cs *CompetencyService) Create(competencyGroupId uint, currentUserID uint, 
 	}
 
 	competency := &models.Competency{
-		CompetencyGroupID: competencyGroupId,
+		CompetencyGroupID: dto.CompetencyGroupID,
 		TitleEn:           dto.TitleEn,
 		TitleAr:           dto.TitleAr,
 		Status:            dto.Status,
-		CreatedBYID:       currentUserID,
 	}
 
 	createdCompetency, err := cs.repo.Create(competency)
@@ -87,8 +86,8 @@ func (cs *CompetencyService) Create(competencyGroupId uint, currentUserID uint, 
 	return createdCompetency, nil
 }
 
-func (cs *CompetencyService) Update(competencyGroupId uint, id uint, currentUserID uint, updatedCompetency *models.Competency) (*models.Competency, error) {
-	existing, err := cs.GetByID(competencyGroupId, id)
+func (cs *CompetencyService) Update(id uint, currentUserID uint, updatedCompetency *models.Competency) (*models.Competency, error) {
+	existing, err := cs.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +133,7 @@ func (cs *CompetencyService) Update(competencyGroupId uint, id uint, currentUser
 	return result, nil
 }
 
-func (cs *CompetencyService) Delete(competencyGroupId uint, ids []uint, currentUserID uint) ([]uint, error) {
+func (cs *CompetencyService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds, successfulIds []uint
 	for _, id := range ids {
 		_, err := cs.repo.GetByID(id)
@@ -169,7 +168,7 @@ func (cs *CompetencyService) Delete(competencyGroupId uint, ids []uint, currentU
 	return failedIds, nil
 }
 
-func (cs *CompetencyService) Activate(competencyGroupId uint, ids []uint, currentUserID uint) error {
+func (cs *CompetencyService) Activate(ids []uint, currentUserID uint) error {
 	successfulIds, err := cs.repo.Activate(ids)
 	if len(successfulIds) > 0 {
 		go func() {
@@ -189,7 +188,7 @@ func (cs *CompetencyService) Activate(competencyGroupId uint, ids []uint, curren
 	return err
 }
 
-func (cs *CompetencyService) Deactivate(competencyGroupId uint, ids []uint, currentUserID uint) error {
+func (cs *CompetencyService) Deactivate(ids []uint, currentUserID uint) error {
 	successfulIds, err := cs.repo.Deactivate(ids)
 	if len(successfulIds) > 0 {
 		go func() {
