@@ -37,6 +37,8 @@ type OrganizationModule struct {
 	GovernanceReportController              *controllers.GovernanceReportController
 	ProcessDependencyController             *controllers.ProcessDependencyController
 	ProcessCriticalityLevelController       *controllers.ProcessCriticalityLevelController
+	CompetencyGroupController               *controllers.CompetencyGroupController
+	CompetencyController                    *controllers.CompetencyController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -201,6 +203,16 @@ func NewOrganizationModule(
 	processCriticalityLevelSvc := services.NewProcessCriticalityLevelService(processCriticalityLevelRepo)
 	processCriticalityLevelController := controllers.NewProcessCriticalityLevelController(processCriticalityLevelSvc)
 
+	// Competency Group Setup
+	competencyGroupRepo := repositories.NewCompetencyGroupRepository(db)
+	competencyGroupSvc := services.NewCompetencyGroupService(competencyGroupRepo, sharedModule.ActivityLogService)
+	competencyGroupController := controllers.NewCompetencyGroupController(competencyGroupSvc)
+
+	// Competency Setup
+	competencyRepo := repositories.NewCompetencyRepository(db)
+	competencySvc := services.NewCompetencyService(competencyRepo, sharedModule.ActivityLogService)
+	competencyController := controllers.NewCompetencyController(competencySvc)
+
 	return &OrganizationModule{
 		DesignationController:                   designationController,
 		UserStatusController:                    userStatusController,
@@ -230,6 +242,8 @@ func NewOrganizationModule(
 		GovernanceReportController:              governanceReportController,
 		ProcessDependencyController:             processDependencyController,
 		ProcessCriticalityLevelController:       processCriticalityLevelController,
+		CompetencyGroupController:               competencyGroupController,
+		CompetencyController:                    competencyController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,
