@@ -13,13 +13,13 @@ import (
 // Interfaces
 type DocumentAcknowledgeUserRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(documentID uint, primaryOrgUnitField string, params *documentDTOs.DocumentAcknowledgeListQueryParamsDTO) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error)
-	GetAllForPublicDocument(documentID uint, primaryOrgUnitField string, params *documentDTOs.DocumentAcknowledgeListQueryParamsDTO) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error)
+	GetAll(documentID uint, versionId uint, primaryOrgUnitField string, params *documentDTOs.DocumentAcknowledgeListQueryParamsDTO) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error)
+	GetAllForPublicDocument(documentID uint, versionId uint, primaryOrgUnitField string, params *documentDTOs.DocumentAcknowledgeListQueryParamsDTO) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error)
 	Create(documentAcknowledgeUser *models.DocumentAcknowledgeUser, tx ...utility.DatabaseTransaction) (*models.DocumentAcknowledgeUser, error)
 	Exists(documentID uint, userID uint, tx ...utility.DatabaseTransaction) (bool, error)
 	Delete(documentID uint, currentUserID uint, tx ...utility.DatabaseTransaction) error
-	GetDocumentAcknowledgmentSummary(documentID uint, primaryOrgUnitField string) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error)
-	GetPublicDocumentAcknowledgmentSummary(documentID uint) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error)
+	GetDocumentAcknowledgmentSummary(documentID uint, versionId uint, primaryOrgUnitField string) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error)
+	GetPublicDocumentAcknowledgmentSummary(documentID uint, versionId uint) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error)
 }
 
 // Implementation
@@ -37,7 +37,7 @@ func (repo *DocumentAcknowledgeUserRepository) BeginTransaction() utility.Databa
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *DocumentAcknowledgeUserRepository) GetAll(documentID uint, primaryOrgUnitField string, params *documentDTOs.DocumentAcknowledgeListQueryParamsDTO) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error) {
+func (repo *DocumentAcknowledgeUserRepository) GetAll(documentID uint, versionId uint, primaryOrgUnitField string, params *documentDTOs.DocumentAcknowledgeListQueryParamsDTO) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error) {
 	var acknowledgementList []documentDTOs.DocumentAcknowledgementListDTO
 	var totalCount int64
 
@@ -75,7 +75,7 @@ func (repo *DocumentAcknowledgeUserRepository) GetAll(documentID uint, primaryOr
             END AS acknowledged
         FROM document_shared_users
         JOIN users ON users.id = document_shared_users.user_id
-        LEFT JOIN document_acknowledge_users ON document_acknowledge_users.user_id = users.id AND document_acknowledge_users.document_id = ?
+        LEFT JOIN document_acknowledge_users ON document_acknowledge_users.user_id = users.id AND document_acknowledge_users.document_id = ? AND document_acknowledge_users.document_version_id = ?
         LEFT JOIN organization_units ON organization_units.id = users.%s
         WHERE document_shared_users.document_id = ? %s
         
@@ -100,12 +100,12 @@ func (repo *DocumentAcknowledgeUserRepository) GetAll(documentID uint, primaryOr
         FROM document_shared_units
         JOIN organization_units ON organization_units.id = document_shared_units.organization_unit_id
         JOIN users ON users.%s = organization_units.id
-        LEFT JOIN document_acknowledge_users ON document_acknowledge_users.user_id = users.id AND document_acknowledge_users.document_id = ?
+        LEFT JOIN document_acknowledge_users ON document_acknowledge_users.user_id = users.id AND document_acknowledge_users.document_id = ? AND document_acknowledge_users.document_version_id = ?
         WHERE document_shared_units.document_id = ? %s
     `, primaryOrgUnitField, keywordFilter, primaryOrgUnitField, keywordFilter)
 
 	countSQL := fmt.Sprintf("SELECT COUNT(*) FROM (%s) AS subquery", rawSQL)
-	err := repo.db.Raw(countSQL, documentID, documentID, documentID, documentID).Scan(&totalCount).Error
+	err := repo.db.Raw(countSQL, documentID, versionId, documentID, documentID, versionId, documentID).Scan(&totalCount).Error
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func (repo *DocumentAcknowledgeUserRepository) GetAll(documentID uint, primaryOr
 	offset := (params.Page - 1) * params.PageSize
 	paginatedSQL := fmt.Sprintf("%s ORDER BY %s %s OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", rawSQL, params.SortBy, params.Sort, offset, params.PageSize)
 
-	err = repo.db.Raw(paginatedSQL, documentID, documentID, documentID, documentID).Scan(&acknowledgementList).Error
+	err = repo.db.Raw(paginatedSQL, documentID, versionId, documentID, documentID, versionId, documentID).Scan(&acknowledgementList).Error
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +133,7 @@ func (repo *DocumentAcknowledgeUserRepository) GetAll(documentID uint, primaryOr
 	return response, nil
 }
 
-func (repo *DocumentAcknowledgeUserRepository) GetAllForPublicDocument(documentID uint, primaryOrgUnitField string, params *documentDTOs.DocumentAcknowledgeListQueryParamsDTO) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error) {
+func (repo *DocumentAcknowledgeUserRepository) GetAllForPublicDocument(documentID uint, versionId uint, primaryOrgUnitField string, params *documentDTOs.DocumentAcknowledgeListQueryParamsDTO) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error) {
 	var acknowledgementList []documentDTOs.DocumentAcknowledgementListDTO
 	var totalCount int64
 
@@ -170,13 +170,13 @@ func (repo *DocumentAcknowledgeUserRepository) GetAllForPublicDocument(documentI
                 ELSE 0 
             END AS acknowledged
         FROM users
-        LEFT JOIN document_acknowledge_users ON document_acknowledge_users.user_id = users.id AND document_acknowledge_users.document_id = ?
+        LEFT JOIN document_acknowledge_users ON document_acknowledge_users.user_id = users.id AND document_acknowledge_users.document_id = ? AND document_acknowledge_users.document_version_id = ?
         LEFT JOIN organization_units ON organization_units.id = users.%s
         WHERE 1=1 %s
     `, primaryOrgUnitField, keywordFilter)
 
 	countSQL := fmt.Sprintf("SELECT COUNT(*) FROM (%s) AS subquery", rawSQL)
-	err := repo.db.Raw(countSQL, documentID).Scan(&totalCount).Error
+	err := repo.db.Raw(countSQL, documentID, versionId).Scan(&totalCount).Error
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +184,7 @@ func (repo *DocumentAcknowledgeUserRepository) GetAllForPublicDocument(documentI
 	offset := (params.Page - 1) * params.PageSize
 	paginatedSQL := fmt.Sprintf("%s ORDER BY %s %s OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", rawSQL, params.SortBy, params.Sort, offset, params.PageSize)
 
-	err = repo.db.Raw(paginatedSQL, documentID).Scan(&acknowledgementList).Error
+	err = repo.db.Raw(paginatedSQL, documentID, versionId).Scan(&acknowledgementList).Error
 	if err != nil {
 		return nil, err
 	}
@@ -258,7 +258,7 @@ func (repo *DocumentAcknowledgeUserRepository) Delete(documentID uint, currentUs
 	return nil
 }
 
-func (repo *DocumentAcknowledgeUserRepository) GetDocumentAcknowledgmentSummary(documentID uint, primaryOrgUnitField string) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error) {
+func (repo *DocumentAcknowledgeUserRepository) GetDocumentAcknowledgmentSummary(documentID uint, versionId uint, primaryOrgUnitField string) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error) {
 	var totalUsers int64
 	var acknowledgedUsers int64
 
@@ -327,7 +327,7 @@ func (repo *DocumentAcknowledgeUserRepository) GetDocumentAcknowledgmentSummary(
 	return summary, nil
 }
 
-func (repo *DocumentAcknowledgeUserRepository) GetPublicDocumentAcknowledgmentSummary(documentID uint) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error) {
+func (repo *DocumentAcknowledgeUserRepository) GetPublicDocumentAcknowledgmentSummary(documentID uint, versionId uint) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error) {
 	var totalUsers int64
 	var acknowledgedUsers int64
 
