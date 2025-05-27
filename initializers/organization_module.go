@@ -38,6 +38,8 @@ type OrganizationModule struct {
 	ProcessDependencyController             *controllers.ProcessDependencyController
 	ProcessCriticalityLevelController       *controllers.ProcessCriticalityLevelController
 	ProcessActivityController               *controllers.ProcessActivityController
+	CompetencyGroupController               *controllers.CompetencyGroupController
+	CompetencyController                    *controllers.CompetencyController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -210,6 +212,15 @@ func NewOrganizationModule(
 		userSvc,
 	)
 	processActivityController := controllers.NewProcessActivityController(processActivitySvc)
+	// Competency Group Setup
+	competencyGroupRepo := repositories.NewCompetencyGroupRepository(db)
+	competencyGroupSvc := services.NewCompetencyGroupService(competencyGroupRepo, sharedModule.ActivityLogService)
+	competencyGroupController := controllers.NewCompetencyGroupController(competencyGroupSvc)
+
+	// Competency Setup
+	competencyRepo := repositories.NewCompetencyRepository(db)
+	competencySvc := services.NewCompetencyService(competencyRepo, sharedModule.ActivityLogService)
+	competencyController := controllers.NewCompetencyController(competencySvc)
 
 	return &OrganizationModule{
 		DesignationController:                   designationController,
@@ -241,6 +252,8 @@ func NewOrganizationModule(
 		ProcessDependencyController:             processDependencyController,
 		ProcessCriticalityLevelController:       processCriticalityLevelController,
 		ProcessActivityController:               processActivityController,
+		CompetencyGroupController:               competencyGroupController,
+		CompetencyController:                    competencyController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,

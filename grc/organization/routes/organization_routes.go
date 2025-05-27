@@ -44,6 +44,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	processDependencyController := app.OrganizationModule.ProcessDependencyController
 	processCriticalityLevelController := app.OrganizationModule.ProcessCriticalityLevelController
 	processActivityController := app.OrganizationModule.ProcessActivityController
+	competencyGroupController := app.OrganizationModule.CompetencyGroupController
+	competencyController := app.OrganizationModule.CompetencyController
 
 	//Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
@@ -296,5 +298,20 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/processes/:processId/activities", middlewares.RolePermissionMiddleware(db, "process", "modify"), processActivityController.CreateProcessActivity)
 	organizationRoutes.PUT("/processes/:processId/activities/:activityId", middlewares.RolePermissionMiddleware(db, "process", "modify"), processActivityController.UpdateProcessActivity)
 	organizationRoutes.POST("/processes/:processId/activities/delete", middlewares.RolePermissionMiddleware(db, "process", "modify"), processActivityController.DeleteProcessActivities)
+	organizationRoutes.GET("/competency-groups", competencyGroupController.GetAllCompetencyGroups)
+	organizationRoutes.GET("/competency-groups/:competencyGroupId", competencyGroupController.GetCompetencyGroupDetails)
+	organizationRoutes.POST("/competency-groups", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), competencyGroupController.CreateCompetencyGroup)
+	organizationRoutes.PUT("/competency-groups/:competencyGroupId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), competencyGroupController.UpdateCompetencyGroup)
+	organizationRoutes.POST("/competency-groups/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), competencyGroupController.DeleteCompetencyGroups)
+	organizationRoutes.PUT("/competency-groups/activate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), competencyGroupController.ActivateCompetencyGroups)
+	organizationRoutes.PUT("/competency-groups/deactivate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), competencyGroupController.DeactivateCompetencyGroups)
+
+	organizationRoutes.GET("/competencies", competencyController.GetAllCompetencies)
+	organizationRoutes.GET("/competencies/:id", competencyController.GetCompetencyDetails)
+	organizationRoutes.POST("/competencies", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), competencyController.CreateCompetency)
+	organizationRoutes.PUT("/competencies/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), competencyController.UpdateCompetency)
+	organizationRoutes.POST("/competencies/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), competencyController.DeleteCompetencies)
+	organizationRoutes.PUT("/competencies/activate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), competencyController.ActivateCompetencies)
+	organizationRoutes.PUT("/competencies/deactivate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), competencyController.DeactivateCompetencies)
 
 }
