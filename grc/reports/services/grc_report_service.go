@@ -40,14 +40,15 @@ type GRCReportServiceInterface interface {
 }
 
 type GRCReportService struct {
-	repo                    repositories.GRCReportRepositoryInterface
-	activityLogSvc          logServices.ActivityLogServiceInterface
-	organizationLevelSvc    settingServices.OrganizationLevelServiceInterface
-	riskResponseStrategySvc riskServices.RiskResponseStrategyServiceInterface
-	grcDashboardSvc         kpiServices.GRCDashboardServiceInterface
-	riskHeatMapSvc          riskServices.RiskHeatmapServiceInterface
-	complianceStatusSvc     complianceServices.ComplianceStatusServiceInterface
-	organizationUnitSvc     settingServices.OrganizationUnitServiceInterface
+	repo                       repositories.GRCReportRepositoryInterface
+	activityLogSvc             logServices.ActivityLogServiceInterface
+	organizationLevelSvc       settingServices.OrganizationLevelServiceInterface
+	riskResponseStrategySvc    riskServices.RiskResponseStrategyServiceInterface
+	grcDashboardSvc            kpiServices.GRCDashboardServiceInterface
+	riskHeatMapSvc             riskServices.RiskHeatmapServiceInterface
+	complianceStatusSvc        complianceServices.ComplianceStatusServiceInterface
+	organizationUnitSvc        settingServices.OrganizationUnitServiceInterface
+	grcReportWorkflowStatusSvc GRCReportWorkflowStatusServiceInterface
 }
 
 func NewGRCReportService(
@@ -59,16 +60,18 @@ func NewGRCReportService(
 	riskHeatMapSvc riskServices.RiskHeatmapServiceInterface,
 	complianceStatusSvc complianceServices.ComplianceStatusServiceInterface,
 	organizationUnitSvc settingServices.OrganizationUnitServiceInterface,
+	grcReportWorkflowStatusSvc GRCReportWorkflowStatusServiceInterface,
 ) GRCReportServiceInterface {
 	return &GRCReportService{
-		repo:                    repo,
-		activityLogSvc:          activityLogSvc,
-		organizationLevelSvc:    organizationLevelSvc,
-		riskResponseStrategySvc: riskResponseStrategySvc,
-		grcDashboardSvc:         grcDashboardSvc,
-		riskHeatMapSvc:          riskHeatMapSvc,
-		complianceStatusSvc:     complianceStatusSvc,
-		organizationUnitSvc:     organizationUnitSvc,
+		repo:                       repo,
+		activityLogSvc:             activityLogSvc,
+		organizationLevelSvc:       organizationLevelSvc,
+		riskResponseStrategySvc:    riskResponseStrategySvc,
+		grcDashboardSvc:            grcDashboardSvc,
+		riskHeatMapSvc:             riskHeatMapSvc,
+		complianceStatusSvc:        complianceStatusSvc,
+		organizationUnitSvc:        organizationUnitSvc,
+		grcReportWorkflowStatusSvc: grcReportWorkflowStatusSvc,
 	}
 }
 
@@ -275,6 +278,47 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		}
 
 		if err := grs.repo.CreateGRCReportGovernanceDocument(grcDocument, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	workflowStatus, err := grs.grcReportWorkflowStatusSvc.GetByType("draft")
+	if err != nil {
+		return 0, err
+	}
+	var workflows []*models.GRCReportWorkflow
+
+	governanceWorkflow := &models.GRCReportWorkflow{
+		GRCReportID:               grcReportID,
+		Type:                      "governance",
+		GRCReportWorkflowStatusID: workflowStatus.ID,
+		CreatedBYID:               currentUserID,
+	}
+
+	workflows = append(workflows, governanceWorkflow)
+
+	riskWorkflow := &models.GRCReportWorkflow{
+		GRCReportID:               grcReportID,
+		Type:                      "risk",
+		GRCReportWorkflowStatusID: workflowStatus.ID,
+		CreatedBYID:               currentUserID,
+	}
+
+	workflows = append(workflows, riskWorkflow)
+
+	complianceWorkflow := &models.GRCReportWorkflow{
+		GRCReportID:               grcReportID,
+		Type:                      "compliance",
+		GRCReportWorkflowStatusID: workflowStatus.ID,
+		CreatedBYID:               currentUserID,
+	}
+
+	workflows = append(workflows, complianceWorkflow)
+
+	if len(workflows) > 0 {
+		fmt.Println("1")
+		if err := grs.repo.CreateGRCReportSectionWorkflow(workflows, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
