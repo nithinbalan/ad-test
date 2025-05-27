@@ -432,7 +432,7 @@ func (pas *ProcessActivityService) UpdateProcessActivityUsers(processID, activit
 			if role == "responsible" && (len(added) > 0 || len(removed) > 0) {
 				existingActivity, _ := pas.GetFullDetailsByID(processID, activityID)
 				urlParam := fmt.Sprintf(`{"id":%d}`, activityID)
-				entity := "process-activity"
+				entity := "process"
 				action := "responsible-user-assign"
 
 				for _, uid := range added {
@@ -477,7 +477,7 @@ func (pas *ProcessActivityService) UpdateProcessActivityUsers(processID, activit
 					}
 
 					// Send and log
-					_ = pas.notificationSvc.SendNotification(dbNotification, emailDTO, "process-activity")
+					_ = pas.notificationSvc.SendNotification(dbNotification, emailDTO, "process")
 				}
 				// Notify removed responsible users
 				for _, uid := range removed {
@@ -521,7 +521,7 @@ func (pas *ProcessActivityService) UpdateProcessActivityUsers(processID, activit
 						CreatedByID:          &currentUserID,
 					}
 
-					_ = pas.notificationSvc.SendNotification(dbNotification, emailDTO, "process-activity")
+					_ = pas.notificationSvc.SendNotification(dbNotification, emailDTO, "process")
 				}
 			}
 
@@ -584,7 +584,7 @@ func (pas *ProcessActivityService) DeleteActivityUser(activityUserID, processID,
 
 		changedData := make(map[string]interface{})
 		roleTypes := []string{"responsible", "accountable", "consulted", "informed"}
-		entity := "process-activity"
+		entity := "process"
 		action := "responsible-user-remove"
 		for _, role := range roleTypes {
 			added := difference(newUserMap[role], oldUserMap[role])
@@ -660,7 +660,7 @@ func (pas *ProcessActivityService) DeleteActivityUser(activityUserID, processID,
 				CreatedByID:          &currentUserID,
 			}
 
-			_ = pas.notificationSvc.SendNotification(dbNotification, emailDTO, "process-activity")
+			_ = pas.notificationSvc.SendNotification(dbNotification, emailDTO, "process")
 		}
 	}()
 
