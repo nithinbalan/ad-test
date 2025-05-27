@@ -10,6 +10,9 @@ type KnowledgeCenterResourceListDTO struct {
 	ModuleIdentifier                     string  `json:"module_identifier"`
 	KnowledgeCenterResourceStatusTitleEn string  `json:"knowledge_center_resource_status_title_en"`
 	KnowledgeCenterResourceStatusTitleAr string  `json:"knowledge_center_resource_status_title_ar"`
+	KnowledgeCenterResourceStatusColorCode                            string  `json:"knowledge_center_resource_status_color_code"`
+	ItemCount                            int     `json:"item_count"`
+	Type                                 string  `json:"type"`
 	CreatedAt                            string  `json:"created_at"`
 	UpdatedAt                            *string `json:"updated_at"`
 }

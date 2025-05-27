@@ -1399,6 +1399,7 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 	}
 
 	var validatedData []map[string]interface{}
+	seenEmails := make(map[string]bool)
 
 	for _, record := range input {
 		rowErrors := make(map[string]interface{})
@@ -1419,7 +1420,20 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 					rowErrors[header] = "Field is required"
 				} else if !utility.IsValidEmail(value) {
 					rowErrors[header] = "Invalid email format"
+				} else if seenEmails[strings.ToLower(value)] {
+					rowErrors[header] = fmt.Sprintf("Duplicate email in import file: %s", value)
+				} else {
+					exists, err := us.repo.ExistsByEmail(value)
+					if err != nil {
+						rowErrors[header] = fmt.Sprintf("Failed to validate email: %v", err)
+					} else if exists {
+						rowErrors[header] = fmt.Sprintf("Email already exists: %s", value)
+					} else {
+						// Only mark as seen if no conflict
+						seenEmails[strings.ToLower(value)] = true
+					}
 				}
+
 			case "designation":
 				if value == "" {
 					rowErrors[header] = "Field is required"
