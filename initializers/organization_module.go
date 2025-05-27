@@ -210,6 +210,7 @@ func NewOrganizationModule(
 		sharedModule.ActivityLogService,
 		processSvc,
 		userSvc,
+		commonModule.NotificationService,
 	)
 	processActivityController := controllers.NewProcessActivityController(processActivitySvc)
 	// Competency Group Setup

@@ -20,10 +20,10 @@ type ProcessActivity struct {
 	UpdatedAt         *time.Time `json:"updated_at,omitempty" gorm:"type:datetime"`
 
 	// Relationships
-	Process   *Process               `gorm:"foreignKey:ProcessID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	CreatedBy *User                  `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	UpdatedBy *User                  `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Users     []*ProcessActivityUser `gorm:"foreignKey:ProcessActivityID"`
+	Process       *Process               `gorm:"foreignKey:ProcessID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	CreatedByUser *User                  `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	UpdatedByUser *User                  `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Users         []*ProcessActivityUser `gorm:"foreignKey:ProcessActivityID"`
 }
 
 func (ProcessActivity) TableName() string {

@@ -298,6 +298,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/processes/:processId/activities", middlewares.RolePermissionMiddleware(db, "process", "modify"), processActivityController.CreateProcessActivity)
 	organizationRoutes.PUT("/processes/:processId/activities/:activityId", middlewares.RolePermissionMiddleware(db, "process", "modify"), processActivityController.UpdateProcessActivity)
 	organizationRoutes.POST("/processes/:processId/activities/delete", middlewares.RolePermissionMiddleware(db, "process", "modify"), processActivityController.DeleteProcessActivities)
+	organizationRoutes.PUT("/processes/:processId/activities/:activityId/raci", middlewares.RolePermissionMiddleware(db, "process", "modify"), processActivityController.UpdateProcessActivityUsers)
+	organizationRoutes.DELETE("/processes/:processId/activities/:activityId/raci/:activityUserId", middlewares.RolePermissionMiddleware(db, "process", "modify"), processActivityController.DeleteActivityUser)
+
 	organizationRoutes.GET("/competency-groups", competencyGroupController.GetAllCompetencyGroups)
 	organizationRoutes.GET("/competency-groups/:competencyGroupId", competencyGroupController.GetCompetencyGroupDetails)
 	organizationRoutes.POST("/competency-groups", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), competencyGroupController.CreateCompetencyGroup)

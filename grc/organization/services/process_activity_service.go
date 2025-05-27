@@ -4,7 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	processDTOs "jethur/grc/organization/dtos"
@@ -22,13 +25,17 @@ type ProcessActivityServiceInterface interface {
 	Create(processID uint, currentUserID uint, form *processDTOs.ProcessActivityFormDTO) (uint, error)
 	Update(processID uint, id uint, currentUserID uint, form *processDTOs.ProcessActivityFormDTO) error
 	Delete(processID uint, ids []uint, currentUserID uint) ([]uint, error)
+
+	UpdateProcessActivityUsers(processID, activityID, currentUserID uint, form *processDTOs.ProcessActivityUserRACIDTO) error
+	DeleteActivityUser(activityUserID, processID, activityID, currentUserID uint) error
 }
 
 type ProcessActivityService struct {
-	repo           processRepositories.ProcessActivityRepositoryInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
-	processSvc     ProcessServiceInterface
-	userSvc        UserServiceInterface
+	repo            processRepositories.ProcessActivityRepositoryInterface
+	activityLogSvc  logServices.ActivityLogServiceInterface
+	processSvc      ProcessServiceInterface
+	userSvc         UserServiceInterface
+	notificationSvc commonServices.NotificationServiceInterface
 }
 
 func NewProcessActivityService(
@@ -36,12 +43,14 @@ func NewProcessActivityService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	processSvc ProcessServiceInterface,
 	userSvc UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) ProcessActivityServiceInterface {
 	return &ProcessActivityService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
-		processSvc:     processSvc,
-		userSvc:        userSvc,
+		repo:            repo,
+		activityLogSvc:  activityLogSvc,
+		processSvc:      processSvc,
+		userSvc:         userSvc,
+		notificationSvc: notificationSvc,
 	}
 }
 
@@ -88,13 +97,7 @@ func (pas *ProcessActivityService) GetFullDetailsByID(processID uint, id uint) (
 }
 
 func (pas *ProcessActivityService) Create(processID uint, currentUserID uint, form *processDTOs.ProcessActivityFormDTO) (uint, error) {
-	if err := pas.validateProcessActivityFormDTO(form); err != nil {
-		return 0, err
-	}
-	tx := pas.repo.BeginTransaction()
-
 	if _, err := pas.processSvc.GetByID(processID); err != nil {
-		tx.Rollback()
 		return 0, err
 	}
 
@@ -109,40 +112,12 @@ func (pas *ProcessActivityService) Create(processID uint, currentUserID uint, fo
 		ExpectedOutput:    form.ExpectedOutput,
 		CreatedBYID:       currentUserID,
 	}
+	tx := pas.repo.BeginTransaction()
 
 	id, err := pas.repo.Create(activity, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
-	}
-
-	var userMappings []*models.ProcessActivityUser
-	for _, responsibleID := range form.ResponsibleUserIDs {
-		userMappings = append(userMappings, &models.ProcessActivityUser{
-			ProcessActivityID: id,
-			UserID:            responsibleID,
-			RoleType:          "responsible",
-		})
-	}
-	for _, accountableID := range form.AccountableUserIDs {
-		userMappings = append(userMappings, &models.ProcessActivityUser{
-			ProcessActivityID: id,
-			UserID:            accountableID,
-			RoleType:          "accountable",
-		})
-	}
-	for _, consultedID := range form.ConsultedUserIDs {
-		userMappings = append(userMappings, &models.ProcessActivityUser{
-			ProcessActivityID: id,
-			UserID:            consultedID,
-			RoleType:          "consulted",
-		})
-	}
-	if len(userMappings) > 0 {
-		if err := pas.repo.CreateProcessActivityUsers(userMappings, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
 	}
 	tx.Commit()
 	go func() {
@@ -177,21 +152,12 @@ func (pas *ProcessActivityService) Create(processID uint, currentUserID uint, fo
 }
 
 func (pas *ProcessActivityService) Update(processID uint, id uint, currentUserID uint, form *processDTOs.ProcessActivityFormDTO) error {
-	if err := pas.validateProcessActivityFormDTO(form); err != nil {
-		return err
-	}
-
 	oldActivity, err := pas.GetFullDetailsByID(processID, id)
 	if err != nil {
 		return err
 	}
-	oldUserMap := groupUserDTOsByRole(oldActivity.Users)
-
-	tx := pas.repo.BeginTransaction()
-
 	existing, err := pas.GetByID(processID, id)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
@@ -204,82 +170,11 @@ func (pas *ProcessActivityService) Update(processID uint, id uint, currentUserID
 	existing.ExpectedOutput = form.ExpectedOutput
 	existing.UpdatedBYID = &currentUserID
 
+	tx := pas.repo.BeginTransaction()
+
 	if err := pas.repo.Update(existing, tx); err != nil {
 		tx.Rollback()
 		return err
-	}
-
-	newUserMap := map[string]map[uint]bool{
-		"responsible": make(map[uint]bool),
-		"accountable": make(map[uint]bool),
-		"consulted":   make(map[uint]bool),
-	}
-	for _, id := range form.ResponsibleUserIDs {
-		newUserMap["responsible"][id] = true
-	}
-	for _, id := range form.AccountableUserIDs {
-		newUserMap["accountable"][id] = true
-	}
-	for _, id := range form.ConsultedUserIDs {
-		newUserMap["consulted"][id] = true
-	}
-	existingMappings, err := pas.repo.GetActivityUsers(id)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	existingUserMap := make(map[string]map[uint]*uint)
-	for _, u := range existingMappings {
-		if existingUserMap[u.RoleType] == nil {
-			existingUserMap[u.RoleType] = make(map[uint]*uint)
-		}
-		existingUserMap[u.RoleType][u.UserID] = &u.ID
-	}
-
-	var toInsert []*models.ProcessActivityUser
-	var toDelete []*uint
-
-	for role, newIDs := range newUserMap {
-		existingIDs := existingUserMap[role]
-
-		// Add new users
-		for newID := range newIDs {
-			if _, exists := existingIDs[newID]; !exists {
-				toInsert = append(toInsert, &models.ProcessActivityUser{
-					ProcessActivityID: id,
-					UserID:            newID,
-					RoleType:          role,
-				})
-			}
-		}
-
-		// Delete removed users
-		for existingID, recordID := range existingIDs {
-			if _, stillExists := newIDs[existingID]; !stillExists {
-				toDelete = append(toDelete, recordID)
-			}
-		}
-	}
-	// Convert []*uint to []uint
-	var deleteIDs []uint
-	for _, idPtr := range toDelete {
-		if idPtr != nil {
-			deleteIDs = append(deleteIDs, *idPtr)
-		}
-	}
-
-	if len(deleteIDs) > 0 {
-		if err := pas.repo.DeleteProcessActivityUsers(deleteIDs, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-	if len(toInsert) > 0 {
-		if err := pas.repo.CreateProcessActivityUsers(toInsert, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
 	}
 
 	tx.Commit()
@@ -291,7 +186,6 @@ func (pas *ProcessActivityService) Update(processID uint, id uint, currentUserID
 			})
 			return
 		}
-		newUserMap := groupUserDTOsByRole(existingActivity.Users)
 		// Build oldData and newData for comparison
 		oldData := map[string]interface{}{
 			"title_en":        oldActivity.TitleEn,
@@ -325,23 +219,6 @@ func (pas *ProcessActivityService) Update(processID uint, id uint, currentUserID
 
 		// Compare and collect changed fields
 		changedData := utility.CompareFieldChanges(oldData, newData)
-
-		// Compare user mappings (if fetched)
-		if oldUserMap != nil && newUserMap != nil {
-			roleTypes := []string{"responsible", "accountable", "consulted"}
-
-			for _, role := range roleTypes {
-				added := difference(newUserMap[role], oldUserMap[role])
-				removed := difference(oldUserMap[role], newUserMap[role])
-
-				if len(added) > 0 || len(removed) > 0 {
-					changedData[role+"_user_ids"] = map[string]interface{}{
-						"added":   added,
-						"removed": removed,
-					}
-				}
-			}
-		}
 
 		// Log only if any changes exist
 		if len(changedData) > 0 {
@@ -419,6 +296,376 @@ func (pas *ProcessActivityService) Delete(processID uint, ids []uint, currentUse
 
 	return failed, nil
 }
+func (pas *ProcessActivityService) UpdateProcessActivityUsers(processID, activityID, currentUserID uint, form *processDTOs.ProcessActivityUserRACIDTO) error {
+	if err := pas.validateProcessActivityUserRACIDTO(form); err != nil {
+		return err
+	}
+
+	// Validate process and activity
+	if _, err := pas.processSvc.GetByID(processID); err != nil {
+		return err
+	}
+	oldActivity, err := pas.GetFullDetailsByID(processID, activityID)
+	if err != nil {
+		return err
+	}
+	oldUserMap := groupUserDTOsByRole(oldActivity.Users)
+
+	// Fetch existing mappings
+	existingMappings, err := pas.repo.GetActivityUsers(activityID)
+	if err != nil {
+		return err
+	}
+	tx := pas.repo.BeginTransaction()
+
+	// Build maps
+	newUserMap := map[string]map[uint]bool{
+		"responsible": make(map[uint]bool),
+		"accountable": make(map[uint]bool),
+		"consulted":   make(map[uint]bool),
+		"informed":    make(map[uint]bool),
+	}
+	for _, id := range form.ResponsibleUserIDs {
+		newUserMap["responsible"][id] = true
+	}
+	for _, id := range form.AccountableUserIDs {
+		newUserMap["accountable"][id] = true
+	}
+	for _, id := range form.ConsultedUserIDs {
+		newUserMap["consulted"][id] = true
+	}
+	for _, id := range form.InformedUserIDs {
+		newUserMap["informed"][id] = true
+	}
+
+	existingUserMap := make(map[string]map[uint]*uint)
+	for _, u := range existingMappings {
+		if existingUserMap[u.RoleType] == nil {
+			existingUserMap[u.RoleType] = make(map[uint]*uint)
+		}
+		existingUserMap[u.RoleType][u.UserID] = &u.ID
+	}
+
+	// Calculate differences
+	var toInsert []*models.ProcessActivityUser
+	var toDelete []*uint
+
+	for role, newIDs := range newUserMap {
+		existingIDs := existingUserMap[role]
+
+		// Insert
+		for newID := range newIDs {
+			if _, exists := existingIDs[newID]; !exists {
+				newEntry := &models.ProcessActivityUser{
+					ProcessActivityID: activityID,
+					UserID:            newID,
+					RoleType:          role,
+				}
+				if role == "responsible" {
+					orgID, err := pas.userSvc.GetUserPrimaryUnitID(newID)
+					if err != nil {
+						tx.Rollback()
+						return utility.NewValidationError(fmt.Errorf("organization unit not set for user ID %d", newID), "not_exist", "responsible unit")
+					}
+					newEntry.ResponsibleUnitID = &orgID
+				}
+				toInsert = append(toInsert, newEntry)
+			}
+		}
+
+		// Delete
+		for existingID, recID := range existingIDs {
+			if _, still := newIDs[existingID]; !still {
+				toDelete = append(toDelete, recID)
+			}
+		}
+	}
+
+	// Apply Deletes
+	var deleteIDs []uint
+	for _, ptr := range toDelete {
+		if ptr != nil {
+			deleteIDs = append(deleteIDs, *ptr)
+		}
+	}
+	if len(deleteIDs) > 0 {
+		if err := pas.repo.DeleteProcessActivityUsers(deleteIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Apply Inserts
+	if len(toInsert) > 0 {
+		if err := pas.repo.CreateProcessActivityUsers(toInsert, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+	go func() {
+		existingActivity, err := pas.GetFullDetailsByID(processID, activityID)
+		if err != nil {
+			utility.LogError("Failed to fetch updated activity for logging", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		newUserMap := groupUserDTOsByRole(existingActivity.Users)
+
+		changedData := make(map[string]interface{})
+		roleTypes := []string{"responsible", "accountable", "consulted", "informed"}
+
+		for _, role := range roleTypes {
+			added := difference(newUserMap[role], oldUserMap[role])
+			removed := difference(oldUserMap[role], newUserMap[role])
+
+			if len(added) > 0 || len(removed) > 0 {
+				changedData[role+"_user_ids"] = map[string]interface{}{
+					"added":   added,
+					"removed": removed,
+				}
+			}
+
+			// Send notification only for responsible role
+			if role == "responsible" && (len(added) > 0 || len(removed) > 0) {
+				existingActivity, _ := pas.GetFullDetailsByID(processID, activityID)
+				urlParam := fmt.Sprintf(`{"id":%d}`, activityID)
+				entity := "process-activity"
+				action := "responsible-user-assign"
+
+				for _, uid := range added {
+					user, err := pas.userSvc.GetByID(uid)
+					if err != nil {
+						utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+							"userID": uid, "error": err.Error(),
+						})
+						continue
+					}
+					emailTo := []string{user.Email}
+					subject := fmt.Sprintf("Process Activity/%s: Responsibility Assigned", existingActivity.TitleEn)
+					appURL := utility.GetAppURL()
+					emailData := map[string]interface{}{
+						"FirstNameEn":           user.FirstNameEn,
+						"LastNameEn":            user.LastNameEn,
+						"ProcessActivityTitle":  existingActivity.TitleEn,
+						"AssignedByFirstNameEn": existingActivity.CreatedByUser.FirstNameEN,
+						"AssignedByLastNameEn":  existingActivity.CreatedByUser.LastNameEN,
+						"AssignedOn":            existingActivity.CreatedAt.Format("2006-01-02"),
+						"RedirectURL":           fmt.Sprintf("%sorganization/process/%d/activities", appURL, processID),
+					}
+					emailDTO := &commonDTOs.EmailNotificationDTO{
+						EmailTo:              emailTo,
+						Subject:              subject,
+						TemplateRelativePath: "organization/templates/email/process_activity_assign.html",
+						EmailData:            emailData,
+					}
+					dbNotification := &commonDTOs.DBNotificationDTO{
+						UserIDs:              []uint{uid},
+						ModuleIdentifier:     "organization",
+						NotificationType:     string(commonDTOs.AssignmentType),
+						HeadingEn:            "Activity Responsibility Assigned",
+						HeadingAr:            "تعيين مسؤولية النشاط",
+						TitleEn:              existingActivity.TitleEn,
+						TitleAr:              existingActivity.TitleAr,
+						Entity:               &entity,
+						Action:               &action,
+						URLParam:             urlParam,
+						IsSystemNotification: false,
+						CreatedByID:          &currentUserID,
+					}
+
+					// Send and log
+					_ = pas.notificationSvc.SendNotification(dbNotification, emailDTO, "process-activity")
+				}
+				// Notify removed responsible users
+				for _, uid := range removed {
+					user, err := pas.userSvc.GetByID(uid)
+					if err != nil {
+						utility.LogError("Failed to fetch removed responsible user", map[string]interface{}{
+							"userID": uid, "error": err.Error(),
+						})
+						continue
+					}
+
+					emailTo := []string{user.Email}
+					subject := fmt.Sprintf("Process Activity/%s: Responsibility Removed", existingActivity.TitleEn)
+					appURL := utility.GetAppURL()
+					emailData := map[string]interface{}{
+						"FirstNameEn":          user.FirstNameEn,
+						"LastNameEn":           user.LastNameEn,
+						"ProcessActivityTitle": existingActivity.TitleEn,
+						"RemovedOn":            time.Now().Format("2006-01-02"),
+						"RedirectURL":          fmt.Sprintf("%sorganization/process/%d/activities", appURL, processID),
+					}
+
+					emailDTO := &commonDTOs.EmailNotificationDTO{
+						EmailTo:              emailTo,
+						Subject:              subject,
+						TemplateRelativePath: "organization/templates/email/process_activity_unassign.html",
+						EmailData:            emailData,
+					}
+					dbNotification := &commonDTOs.DBNotificationDTO{
+						UserIDs:              []uint{uid},
+						ModuleIdentifier:     "organization",
+						NotificationType:     string(commonDTOs.AssignmentType),
+						HeadingEn:            "Activity Responsibility Removed",
+						HeadingAr:            "تمت إزالة مسؤولية النشاط",
+						TitleEn:              existingActivity.TitleEn,
+						TitleAr:              existingActivity.TitleAr,
+						Entity:               &entity,
+						Action:               &action,
+						URLParam:             urlParam,
+						IsSystemNotification: false,
+						CreatedByID:          &currentUserID,
+					}
+
+					_ = pas.notificationSvc.SendNotification(dbNotification, emailDTO, "process-activity")
+				}
+			}
+
+		}
+
+		if len(changedData) > 0 {
+			err := pas.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.ProcessActivity{}.TableName(),
+				activityID,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log update activity", map[string]interface{}{
+					"action":   models.UpdateAction,
+					"table":    models.ProcessActivity{}.TableName(),
+					"recordID": activityID,
+					"error":    err.Error(),
+				})
+			}
+		}
+	}()
+
+	return nil
+}
+
+func (pas *ProcessActivityService) DeleteActivityUser(activityUserID, processID, activityID, currentUserID uint) error {
+	existing, err := pas.repo.GetActivityUserByID(activityUserID)
+	if err != nil {
+		return err
+	}
+	if existing == nil {
+		return utility.NewValidationError(fmt.Errorf("activity user not set for user ID %d", activityUserID), "not_exist", "activity user")
+	}
+
+	// Fetch old user map for comparison before delete
+	oldActivity, err := pas.GetFullDetailsByID(processID, activityID)
+	if err != nil {
+		return err
+	}
+	oldUserMap := groupUserDTOsByRole(oldActivity.Users)
+
+	// Delete the user
+	if err := pas.repo.DeleteProcessActivityUser(activityUserID); err != nil {
+		return err
+	}
+
+	// Fire async activity log comparison
+	go func() {
+		existingActivity, err := pas.GetFullDetailsByID(processID, activityID)
+		if err != nil {
+			utility.LogError("Failed to fetch updated activity for logging", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		newUserMap := groupUserDTOsByRole(existingActivity.Users)
+
+		changedData := make(map[string]interface{})
+		roleTypes := []string{"responsible", "accountable", "consulted", "informed"}
+		entity := "process-activity"
+		action := "responsible-user-remove"
+		for _, role := range roleTypes {
+			added := difference(newUserMap[role], oldUserMap[role])
+			removed := difference(oldUserMap[role], newUserMap[role])
+
+			if len(added) > 0 || len(removed) > 0 {
+				changedData[role+"_user_ids"] = map[string]interface{}{
+					"added":   added,
+					"removed": removed,
+				}
+			}
+		}
+
+		if len(changedData) > 0 {
+			err := pas.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.ProcessActivity{}.TableName(),
+				activityID,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log update activity", map[string]interface{}{
+					"action":   models.UpdateAction,
+					"table":    models.ProcessActivity{}.TableName(),
+					"recordID": activityID,
+					"error":    err.Error(),
+				})
+			}
+		}
+
+		removed := difference(oldUserMap["responsible"], newUserMap["responsible"])
+		for _, uid := range removed {
+			user, err := pas.userSvc.GetByID(uid)
+			if err != nil {
+				utility.LogError("Failed to fetch removed responsible user", map[string]interface{}{
+					"userID": uid, "error": err.Error(),
+				})
+				continue
+			}
+
+			emailTo := []string{user.Email}
+			subject := fmt.Sprintf("Process Activity/%s: Responsibility Removed", existingActivity.TitleEn)
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn":          user.FirstNameEn,
+				"LastNameEn":           user.LastNameEn,
+				"ProcessActivityTitle": existingActivity.TitleEn,
+				"RemovedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":          fmt.Sprintf("%sorganization/process/%d/activities", appURL, processID),
+			}
+
+			emailDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "organization/templates/email/process_activity_unassign.html",
+				EmailData:            emailData,
+			}
+
+			dbNotification := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{uid},
+				ModuleIdentifier:     "organization",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Activity Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية النشاط",
+				TitleEn:              existingActivity.TitleEn,
+				TitleAr:              existingActivity.TitleAr,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             fmt.Sprintf(`{"id":%d}`, processID),
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			_ = pas.notificationSvc.SendNotification(dbNotification, emailDTO, "process-activity")
+		}
+	}()
+
+	return nil
+}
 
 func groupUserDTOsByRole(users []*processDTOs.ProcessActivityUserDTO) map[string][]uint {
 	roleMap := map[string][]uint{}
@@ -446,7 +693,7 @@ func difference(slice1, slice2 []uint) []uint {
 	return diff
 }
 
-func (pas *ProcessActivityService) validateProcessActivityFormDTO(form *processDTOs.ProcessActivityFormDTO) error {
+func (pas *ProcessActivityService) validateProcessActivityUserRACIDTO(form *processDTOs.ProcessActivityUserRACIDTO) error {
 	userIDSet := make(map[uint]bool)
 	allUserIDs := append(append(form.ResponsibleUserIDs, form.AccountableUserIDs...), form.ConsultedUserIDs...)
 

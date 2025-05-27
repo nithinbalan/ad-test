@@ -131,8 +131,17 @@ func (pac *ProcessActivityController) CreateProcessActivity(c *gin.Context) {
 
 	id, err := pac.service.Create(uint(processID), currentUserID, &form)
 	if err != nil {
-		utility.SendInternalErrResp(pac.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(pac.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
@@ -164,8 +173,17 @@ func (pac *ProcessActivityController) UpdateProcessActivity(c *gin.Context) {
 
 	err = pac.service.Update(uint(processID), uint(activityID), currentUserID, &form)
 	if err != nil {
-		utility.SendInternalErrResp(pac.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(pac.db, c, e.Error())
+			return
+		}
 	}
 
 	c.Status(http.StatusOK)
@@ -193,9 +211,96 @@ func (pac *ProcessActivityController) DeleteProcessActivities(c *gin.Context) {
 
 	failedIDs, err := pac.service.Delete(uint(processID), req.IDs, currentUserID)
 	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(pac.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (pac *ProcessActivityController) UpdateProcessActivityUsers(c *gin.Context) {
+	var form dtos.ProcessActivityUserRACIDTO
+
+	processID, err := strconv.Atoi(c.Param("processId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	activityID, err := strconv.Atoi(c.Param("activityId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	if err := c.ShouldBindJSON(&form); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
 		utility.SendInternalErrResp(pac.db, c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+	err = pac.service.UpdateProcessActivityUsers(uint(processID), uint(activityID), currentUserID, &form)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(pac.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (pac *ProcessActivityController) DeleteActivityUser(c *gin.Context) {
+	processID, err := strconv.Atoi(c.Param("processId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	activityID, err := strconv.Atoi(c.Param("activityId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	activityUserID, err := strconv.Atoi(c.Param("activityUserId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(pac.db, c, err.Error())
+		return
+	}
+	if err := pac.service.DeleteActivityUser(uint(activityUserID), uint(processID), uint(activityID), currentUserID); err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(pac.db, c, e.Error())
+			return
+		}
+	}
+	c.Status(http.StatusOK)
 }

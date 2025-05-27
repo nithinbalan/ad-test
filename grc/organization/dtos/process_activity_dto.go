@@ -2,6 +2,7 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
 
 	"time"
 )
@@ -64,10 +65,6 @@ type ProcessActivityFormDTO struct {
 	Sequence          int     `json:"sequence" binding:"required"`
 	EstimatedDuration *string `json:"estimated_duration"`
 	ExpectedOutput    string  `json:"expected_output" binding:"required"`
-
-	ResponsibleUserIDs []uint `json:"responsible_user_ids"`
-	AccountableUserIDs []uint `json:"accountable_user_ids"`
-	ConsultedUserIDs   []uint `json:"consulted_user_ids"`
 }
 
 type ProcessActivityDetailDTO struct {
@@ -88,13 +85,21 @@ type ProcessActivityDetailDTO struct {
 }
 
 type ProcessActivityUserDTO struct {
-	ID       uint           `json:"id"`
-	UserID   uint           `json:"user_id"`
-	RoleType string         `json:"role_type"` // responsible, accountable, etc.
-	User     UserMinimalDTO `json:"user"`
+	ID              uint                             `json:"id"`
+	UserID          uint                             `json:"user_id"`
+	RoleType        string                           `json:"role_type"` // responsible, accountable, etc.
+	User            UserMinimalDTO                   `json:"user"`
+	ResponsibleUnit settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
 }
 type ProcessMinimalDTO struct {
 	ID      uint   `json:"id"`
 	TitleEn string `json:"title_en"`
 	TitleAr string `json:"title_ar"`
+}
+
+type ProcessActivityUserRACIDTO struct {
+	ResponsibleUserIDs []uint `json:"responsible_user_ids"`
+	AccountableUserIDs []uint `json:"accountable_user_ids"`
+	ConsultedUserIDs   []uint `json:"consulted_user_ids"`
+	InformedUserIDs    []uint `json:"informed_user_ids"`
 }

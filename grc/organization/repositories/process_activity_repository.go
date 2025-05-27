@@ -22,6 +22,8 @@ type ProcessActivityRepositoryInterface interface {
 	DeleteProcessActivityUsers(userIDs []uint, tx ...utility.DatabaseTransaction) error
 	DeleteProcessActivityUsersByActivityID(activityID uint) error
 	GetActivityUsers(activityID uint) ([]*models.ProcessActivityUser, error)
+	GetActivityUserByID(id uint) (*models.ProcessActivityUser, error)
+	DeleteProcessActivityUser(id uint) error
 }
 
 type ProcessActivityRepository struct {
@@ -91,19 +93,10 @@ func (repo *ProcessActivityRepository) GetAll(processID uint, params *dtos.Proce
 		return nil, err
 	}
 
-	if params.SortBy == "" {
-		params.SortBy = "process_activities.sequence"
-	} else {
-		params.SortBy = "process_activities." + params.SortBy
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc"
-	}
+	query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize
-	query = query.Order(params.SortBy + " " + params.Sort).
-		Offset(offset).
-		Limit(params.PageSize)
+	query = query.Offset(offset).Limit(params.PageSize)
 
 	if err := query.Find(&activities).Error; err != nil {
 		return nil, err
@@ -132,7 +125,12 @@ func (repo *ProcessActivityRepository) GetByID(id uint) (*models.ProcessActivity
 
 func (repo *ProcessActivityRepository) GetFullDetailsByID(id uint) (*models.ProcessActivity, error) {
 	var activity models.ProcessActivity
-	if err := repo.db.Preload("Users").Preload("CreatedByUser").Preload("UpdatedByUser").First(&activity, id).Error; err != nil {
+	if err := repo.db.Preload("Users").
+		Preload("Users.User").
+		Preload("Users.ResponsibleUnit").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&activity, id).Error; err != nil {
 		return nil, err
 	}
 	return &activity, nil
@@ -187,4 +185,16 @@ func (repo *ProcessActivityRepository) GetActivityUsers(activityID uint) ([]*mod
 		return nil, err
 	}
 	return mappings, nil
+}
+
+func (repo *ProcessActivityRepository) GetActivityUserByID(id uint) (*models.ProcessActivityUser, error) {
+	var user models.ProcessActivityUser
+	if err := repo.db.Where("id = ?", id).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (repo *ProcessActivityRepository) DeleteProcessActivityUser(id uint) error {
+	return repo.db.Delete(&models.ProcessActivityUser{}, id).Error
 }
