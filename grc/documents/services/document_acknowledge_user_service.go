@@ -71,9 +71,9 @@ func (daus *DocumentAcknowledgeUserService) GetAll(documentID uint, versionId ui
 	}
 
 	if document.DocumentAccessType.Type == "public" {
-		return daus.repo.GetAllForPublicDocument(documentID, primaryOrgUnitField, params)
+		return daus.repo.GetAllForPublicDocument(documentID, versionId, primaryOrgUnitField, params)
 	}
-	return daus.repo.GetAll(documentID, primaryOrgUnitField, params)
+	return daus.repo.GetAll(documentID, versionId, primaryOrgUnitField, params)
 
 }
 
@@ -202,7 +202,7 @@ func (daus *DocumentAcknowledgeUserService) GetDocumentAcknowledgmentSummary(doc
 	}
 
 	if document.DocumentAccessType.Type == "public" {
-		return daus.repo.GetPublicDocumentAcknowledgmentSummary(documentID)
+		return daus.repo.GetPublicDocumentAcknowledgmentSummary(documentID, versionId)
 	}
 
 	primaryLevel, err := daus.organizationLevelSvc.GetPrimaryLevel()
@@ -226,5 +226,5 @@ func (daus *DocumentAcknowledgeUserService) GetDocumentAcknowledgmentSummary(doc
 		return nil, fmt.Errorf("unsupported primary level")
 	}
 
-	return daus.repo.GetDocumentAcknowledgmentSummary(documentID, primaryOrgUnitField)
+	return daus.repo.GetDocumentAcknowledgmentSummary(documentID, versionId, primaryOrgUnitField)
 }

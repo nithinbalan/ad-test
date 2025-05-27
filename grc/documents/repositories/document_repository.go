@@ -185,7 +185,7 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 		`)
 
 	if joinAcknowledge {
-		query = query.Joins("LEFT JOIN document_acknowledge_users ON document_acknowledge_users.document_id = documents.id AND document_acknowledge_users.user_id = ?", currentUserID)
+		query = query.Joins("LEFT JOIN document_acknowledge_users ON document_acknowledge_users.document_version_id = document_versions.id AND document_acknowledge_users.user_id = ?", currentUserID)
 	}
 
 	// Filter by document types if provided
