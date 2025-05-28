@@ -36,7 +36,7 @@ func NewDesignationRepository(db *gorm.DB) *DesignationRepository {
 func (repo *DesignationRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.Designation, error) {
 	var designations []*models.Designation
 
-	query := repo.db
+	query := repo.db.Preload("JobDescription")
 
 	if keyword != "" {
 		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")

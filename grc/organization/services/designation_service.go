@@ -67,6 +67,12 @@ func (ds *DesignationService) Create(currentUserID uint, designation *models.Des
 	} else if exists {
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
+	// Optional: validate JobDescriptionID exists
+	// if designation.JobDescriptionID != nil {
+	// 	if _, err := ds.jobDescriptionSvc.GetByID(*designation.JobDescriptionID); err != nil {
+	// 		return nil, utility.NewValidationError(fmt.Errorf("invalid job_description_id"), "invalid", "job_description_id")
+	// 	}
+	// }
 
 	createdDesignation, err := ds.repo.Create(designation)
 	if err != nil {
@@ -107,7 +113,11 @@ func (ds *DesignationService) Update(id uint, currentUserID uint, updatedDesigna
 		}
 
 	}
-
+	// if updatedDesignation.JobDescriptionID != nil {
+	// 	if _, err := ds.jobDescriptionSvc.GetByID(*updatedDesignation.JobDescriptionID); err != nil {
+	// 		return nil, utility.NewValidationError(fmt.Errorf("invalid job_description_id"), "invalid", "job_description_id")
+	// 	}
+	// }
 	result, err := ds.repo.Update(id, updatedDesignation)
 
 	if err != nil {
