@@ -203,11 +203,13 @@ func (repo *GRCReportRepository) GetGRCReportByID(grcReportID uint, tx ...utilit
 			review_user.first_name_ar AS review_user_first_name_ar,
 			review_user.last_name_en AS review_user_last_name_en,
 			review_user.last_name_ar AS review_user_last_name_ar,
+			review_user.initial AS review_user_initial,
 			approve_user.id AS approve_user_id,
 			approve_user.first_name_en AS approve_user_first_name_en,
 			approve_user.first_name_ar AS approve_user_first_name_ar,
 			approve_user.last_name_en AS approve_user_last_name_en,
-			approve_user.last_name_ar AS approve_user_last_name_ar
+			approve_user.last_name_ar AS approve_user_last_name_ar,
+			approve_user.initial AS approve_user_initial
 		`).
 		Joins("LEFT JOIN users ON users.id = grc_reports.created_by_id").
 		Joins("LEFT JOIN users AS review_user ON review_user.id = grc_reports.review_user_id").
@@ -232,11 +234,13 @@ func (repo *GRCReportRepository) GetGRCReportByID(grcReportID uint, tx ...utilit
 	review_user.first_name_ar,
 	review_user.last_name_en,
 	review_user.last_name_ar,
+	review_user.initial,
 	approve_user.id,
 	approve_user.first_name_en,
 	approve_user.first_name_ar,
 	approve_user.last_name_en,
-	approve_user.last_name_ar
+	approve_user.last_name_ar,
+	approve_user.initial
 `)
 
 	if err := query.First(&report).Error; err != nil {

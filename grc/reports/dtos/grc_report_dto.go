@@ -29,10 +29,12 @@ type GRCReportListDTO struct {
 	ReviewUserFirstNameAr       *string    `json:"review_user_first_name_ar"`
 	ReviewUserLastNameEn        *string    `json:"review_user_last_name_en"`
 	ReviewUserLastNameAr        *string    `json:"review_user_last_name_ar"`
+	ReviewUserInitial           *string    `json:"review_user_initial"`
 	ApproveUserFirstNameEn      *string    `json:"approve_user_first_name_en"`
 	ApproveUserFirstNameAr      *string    `json:"approve_user_first_name_ar"`
 	ApproveUserLastNameEn       *string    `json:"approve_user_last_name_en"`
 	ApproveUserLastNameAr       *string    `json:"approve_user_last_name_ar"`
+	ApproveUserInitial          *string    `json:"approve_user_initial"`
 	ReviewedAt                  *time.Time `json:"reviewed_at"`
 	ApprovedAt                  *time.Time `json:"approved_at"`
 }

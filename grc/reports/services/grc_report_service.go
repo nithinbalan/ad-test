@@ -173,6 +173,7 @@ func (grs *GRCReportService) GetGRCReportDetails(grcReportID uint) (*dtos.GRCRep
 			FirstNameAR: *grcReport.ReviewUserFirstNameAr,
 			LastNameEN:  *grcReport.ReviewUserLastNameEn,
 			LastNameAR:  *grcReport.ReviewUserLastNameAr,
+			Initial:     *grcReport.ReviewUserInitial,
 		}
 	}
 	approveUser := &userDTOs.UserMinimalDTO{}
@@ -183,6 +184,7 @@ func (grs *GRCReportService) GetGRCReportDetails(grcReportID uint) (*dtos.GRCRep
 			FirstNameAR: *grcReport.ApproveUserFirstNameAr,
 			LastNameEN:  *grcReport.ApproveUserLastNameEn,
 			LastNameAR:  *grcReport.ApproveUserLastNameAr,
+			Initial:     *grcReport.ApproveUserInitial,
 		}
 	}
 
@@ -1423,6 +1425,7 @@ func mapSectionWorkflowToDTO(sectionWorkflows []*models.GRCReportWorkflow) []*dt
 				FirstNameAR: workflow.ReviewUser.FirstNameAr,
 				LastNameEN:  workflow.ReviewUser.LastNameEn,
 				LastNameAR:  workflow.ReviewUser.LastNameAr,
+				Initial:     workflow.ReviewUser.Initial,
 			}
 		}
 		var approveUser *userDTOs.UserMinimalDTO
@@ -1433,6 +1436,7 @@ func mapSectionWorkflowToDTO(sectionWorkflows []*models.GRCReportWorkflow) []*dt
 				FirstNameAR: workflow.ApproveUser.FirstNameAr,
 				LastNameEN:  workflow.ApproveUser.LastNameEn,
 				LastNameAR:  workflow.ApproveUser.LastNameAr,
+				Initial:     workflow.ApproveUser.Initial,
 			}
 		}
 		sectionWorkflowDTO := &dtos.GRCReportSectionWorkflowDTO{
