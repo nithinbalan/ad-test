@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceServices "jethur/grc/compliance/services"
 	kpiDTOs "jethur/grc/kpi/dtos"
@@ -11,6 +13,7 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	userDTOs "jethur/grc/organization/dtos"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/grc/reports/dtos"
 	"jethur/grc/reports/repositories"
 	riskDTOs "jethur/grc/risk/dtos"
@@ -37,6 +40,10 @@ type GRCReportServiceInterface interface {
 	UpdateHighlights(grcID uint, currentUserID uint, grcReportHighlightChallengeFormDTO *dtos.GRCReportHighlightChallengeFormDTO) error
 	UpdateChallenges(grcID uint, currentUserID uint, grcReportHighlightChallengeFormDTO *dtos.GRCReportHighlightChallengeFormDTO) error
 	UpdateRiskApprovalNote(grcID uint, riskID uint, currentUserID uint, grcReportHighlightChallengeFormDTO *dtos.GRCReportHighlightChallengeFormDTO) error
+
+	GRCReportSubmit(reportID uint, currentUserID uint) error
+	GRCReportReviewed(grcReportID uint, currentUserID uint) error
+	GRCReportApproved(grcReportID uint, currentUserID uint) error
 }
 
 type GRCReportService struct {
@@ -49,6 +56,9 @@ type GRCReportService struct {
 	complianceStatusSvc        complianceServices.ComplianceStatusServiceInterface
 	organizationUnitSvc        settingServices.OrganizationUnitServiceInterface
 	grcReportWorkflowStatusSvc GRCReportWorkflowStatusServiceInterface
+	userSvc                    organizationServices.UserServiceInterface
+	userSettingSvc             organizationServices.UserSettingServiceInterface
+	notificationSvc            commonServices.NotificationServiceInterface
 }
 
 func NewGRCReportService(
@@ -61,6 +71,9 @@ func NewGRCReportService(
 	complianceStatusSvc complianceServices.ComplianceStatusServiceInterface,
 	organizationUnitSvc settingServices.OrganizationUnitServiceInterface,
 	grcReportWorkflowStatusSvc GRCReportWorkflowStatusServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) GRCReportServiceInterface {
 	return &GRCReportService{
 		repo:                       repo,
@@ -72,6 +85,9 @@ func NewGRCReportService(
 		complianceStatusSvc:        complianceStatusSvc,
 		organizationUnitSvc:        organizationUnitSvc,
 		grcReportWorkflowStatusSvc: grcReportWorkflowStatusSvc,
+		userSvc:                    userSvc,
+		userSettingSvc:             userSettingSvc,
+		notificationSvc:            notificationSvc,
 	}
 }
 
@@ -148,6 +164,28 @@ func (grs *GRCReportService) GetGRCReportDetails(grcReportID uint) (*dtos.GRCRep
 
 	sectionWorkflowDTO := mapSectionWorkflowToDTO(sectionWorkflow)
 
+	reviewUser := &userDTOs.UserMinimalDTO{}
+
+	if grcReport.ReviewUserID != nil {
+		reviewUser = &userDTOs.UserMinimalDTO{
+			ID:          int(*grcReport.ReviewUserID),
+			FirstNameEN: *grcReport.ReviewUserFirstNameEn,
+			FirstNameAR: *grcReport.ReviewUserFirstNameAr,
+			LastNameEN:  *grcReport.ReviewUserLastNameEn,
+			LastNameAR:  *grcReport.ReviewUserLastNameAr,
+		}
+	}
+	approveUser := &userDTOs.UserMinimalDTO{}
+	if grcReport.ApproveUserID != nil {
+		approveUser = &userDTOs.UserMinimalDTO{
+			ID:          int(*grcReport.ApproveUserID),
+			FirstNameEN: *grcReport.ApproveUserFirstNameEn,
+			FirstNameAR: *grcReport.ApproveUserFirstNameAr,
+			LastNameEN:  *grcReport.ApproveUserLastNameEn,
+			LastNameAR:  *grcReport.ApproveUserLastNameAr,
+		}
+	}
+
 	// Construct Response DTO
 	response := &dtos.GRCReportDetailDTO{
 		ID:                     grcReport.ID,
@@ -170,6 +208,10 @@ func (grs *GRCReportService) GetGRCReportDetails(grcReportID uint) (*dtos.GRCRep
 		ComplianceSummary:      complianceSummaryDTO,
 		SLA:                    slas,
 		SectionWorkflow:        sectionWorkflowDTO,
+		ReviewUser:             reviewUser,
+		ApproveUser:            approveUser,
+		ReviewedAt:             grcReport.ReviewedAt,
+		ApprovedAt:             grcReport.ApprovedAt,
 	}
 
 	return response, nil
@@ -194,13 +236,19 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		return 0, err
 	}
 
+	workflowStatus, err := grs.grcReportWorkflowStatusSvc.GetByType("draft")
+	if err != nil {
+		return 0, err
+	}
+
 	grcReport := &models.GRCReport{
-		Title:         grcReportFormDTO.Title,
-		StartDate:     *dates.StartDate,
-		EndDate:       *dates.EndDate,
-		ReviewUserID:  &grcReportFormDTO.ReviewUserID,
-		ApproveUserID: &grcReportFormDTO.ApproveUserID,
-		CreatedBYID:   currentUserID,
+		Title:                     grcReportFormDTO.Title,
+		StartDate:                 *dates.StartDate,
+		EndDate:                   *dates.EndDate,
+		ReviewUserID:              &grcReportFormDTO.ReviewUserID,
+		ApproveUserID:             &grcReportFormDTO.ApproveUserID,
+		GRCReportWorkflowStatusID: &workflowStatus.ID,
+		CreatedBYID:               currentUserID,
 	}
 
 	grcReportID, err := grs.repo.Create(grcReport, tx)
@@ -291,10 +339,6 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		}
 	}
 
-	workflowStatus, err := grs.grcReportWorkflowStatusSvc.GetByType("draft")
-	if err != nil {
-		return 0, err
-	}
 	var workflows []*models.GRCReportWorkflow
 
 	governanceWorkflow := &models.GRCReportWorkflow{
@@ -540,12 +584,18 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 	}
 
 	htmlRiskKriSummary.WriteString("<ul>\n")
+	kriExist := make(map[uint]bool)
 	for _, rk := range riskKRIs {
 		if rk.KriRegister != nil && rk.KriRegister.Title != "" {
-			if rk.KriRegister.CurrentValue != nil {
-				kriLine := fmt.Sprintf("<li>%s abc %d%%</li>\n", rk.KriRegister.Title, *rk.KriRegister.CurrentValue)
+			kriKey := rk.KriRegister.ID
 
-				htmlRiskKriSummary.WriteString(kriLine)
+			if !kriExist[kriKey] {
+				kriExist[kriKey] = true
+				if rk.KriRegister.CurrentValue != nil {
+					kriLine := fmt.Sprintf("<li>%s abc %d%%</li>\n", rk.KriRegister.Title, *rk.KriRegister.CurrentValue)
+
+					htmlRiskKriSummary.WriteString(kriLine)
+				}
 			}
 		}
 	}
@@ -1037,6 +1087,14 @@ func (grs *GRCReportService) DeleteGRCReportSection(grcReportID uint, sectionID 
 func (grs *GRCReportService) DeleteGRCReport(grcReportID uint, currentUserID uint) error {
 	tx := grs.repo.BeginTransaction()
 
+	grcReportDetails, err := grs.GetGRCReportDetails(grcReportID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, grcReportID)
+		}
+		return err
+	}
+
 	existingReport, err := grs.repo.GetGRCReportByID(grcReportID, tx)
 	if err != nil {
 		tx.Rollback()
@@ -1054,6 +1112,20 @@ func (grs *GRCReportService) DeleteGRCReport(grcReportID uint, currentUserID uin
 	}
 
 	if err := grs.repo.DeleteGRCReportSections(grcReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if grcReportDetails.SectionWorkflow != nil {
+		for _, workflow := range grcReportDetails.SectionWorkflow {
+			if err := grs.repo.DeleteGRCReportWorkflowReviewComments(workflow.ID, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	if err := grs.repo.DeleteGRCReportWorkflows(grcReportID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -1426,4 +1498,255 @@ func mapSectionWorkflowToDTO(sectionWorkflows []*models.GRCReportWorkflow) []*dt
 		sectionWorkflowDTOs = append(sectionWorkflowDTOs, sectionWorkflowDTO)
 	}
 	return sectionWorkflowDTOs
+}
+
+func (grs *GRCReportService) GRCReportSubmit(grcReportID uint, currentUserID uint) error {
+
+	tx := grs.repo.BeginTransaction()
+
+	grcReport, err := grs.repo.GetByID(grcReportID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	sectionWorkflow, err := grs.repo.GetGRCReportSectionWorkflow(grcReportID)
+	if err != nil {
+		return err
+	}
+
+	approveStatus, err := grs.grcReportWorkflowStatusSvc.GetByType("approved")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	for _, section := range sectionWorkflow {
+		if section.GRCReportWorkflowStatusID != approveStatus.ID {
+			return fmt.Errorf("all sections must be approved before submission")
+		}
+	}
+
+	workflowStatus, err := grs.grcReportWorkflowStatusSvc.GetByType("in-review")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	grcReport.GRCReportWorkflowStatusID = &workflowStatus.ID
+
+	if err := grs.repo.Update(grcReport); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	// Log the action
+	go func() {
+		err := grs.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.GRCReport{}.TableName(),
+			grcReportID,
+			nil,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.GRCReport{}.TableName(),
+				"recordID":  grcReportID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+			utility.LogError("Failed to log activity", fields)
+		}
+
+		responsibleUserID := grcReport.ReviewUserID
+		responsibleUser, err := grs.userSvc.GetByID(uint(*responsibleUserID))
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"userID": responsibleUserID,
+				"error":  err.Error(),
+			})
+			return
+		}
+
+		urlParam := fmt.Sprintf(`{"grc_report_id":%d}`, grcReportID)
+		entity := "grc-report-submitted"
+		action := "review-grc-report"
+		appURL := utility.GetAppURL()
+
+		dbNotification := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{*responsibleUserID},
+			ModuleIdentifier:     "grc_report",
+			NotificationType:     string(commonDTOs.InformationType),
+			HeadingEn:            "GRC Report Submitted",
+			HeadingAr:            "تم تقديم تقرير GRC",
+			TitleEn:              grcReport.Title,
+			TitleAr:              grcReport.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		emailNotification := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              []string{responsibleUser.Email},
+			Subject:              fmt.Sprintf("GRC Report Submitted: %s", grcReport.Title),
+			TemplateRelativePath: "report/templates/email/grc_report_submitted.html",
+			EmailData: map[string]interface{}{
+				"FirstNameEn":    responsibleUser.FirstNameEn,
+				"LastNameEn":     responsibleUser.LastNameEn,
+				"GRCReportTitle": grcReport.Title,
+				"RedirectURL":    fmt.Sprintf("%sreport/grc-reports/%d/overview", appURL, grcReportID),
+			},
+		}
+
+		// Send Notifications
+		if err := grs.notificationSvc.SendNotification(dbNotification, emailNotification, "grc_report"); err != nil {
+			utility.LogError("Failed to send document request notifications", map[string]interface{}{
+				"grcReportID": grcReportID,
+				"userID":      responsibleUserID,
+				"error":       err.Error(),
+			})
+		}
+	}()
+
+	return nil
+}
+
+func (grs *GRCReportService) GRCReportReviewed(grcReportID uint, currentUserID uint) error {
+	tx := grs.repo.BeginTransaction()
+
+	reviewedStatus, err := grs.grcReportWorkflowStatusSvc.GetByType("pending-approval")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	grcReport, err := grs.repo.GetByID(grcReportID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	resolvedAt := time.Now()
+	// Update workflow status to reviewed
+	grcReport.GRCReportWorkflowStatusID = &reviewedStatus.ID
+	grcReport.ReviewedAt = &resolvedAt
+	err = grs.repo.Update(grcReport, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	// Log the action
+	go func() {
+		err := grs.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.GRCReport{}.TableName(),
+			grcReportID,
+			nil,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.GRCReport{}.TableName(),
+				"recordID":  grcReportID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+			utility.LogError("Failed to log activity", fields)
+		}
+
+		responsibleUserID := grcReport.ApproveUserID
+		responsibleUser, err := grs.userSvc.GetByID(uint(*responsibleUserID))
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"userID": responsibleUserID,
+				"error":  err.Error(),
+			})
+			return
+		}
+
+		urlParam := fmt.Sprintf(`{"grc_report_id":%d}`, grcReportID)
+		entity := "grc-report-submitted"
+		action := "approve-grc-report"
+		appURL := utility.GetAppURL()
+
+		dbNotification := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{*responsibleUserID},
+			ModuleIdentifier:     "grc_report",
+			NotificationType:     string(commonDTOs.InformationType),
+			HeadingEn:            "GRC Report Submitted",
+			HeadingAr:            "تم تقديم تقرير GRC",
+			TitleEn:              grcReport.Title,
+			TitleAr:              grcReport.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		emailNotification := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              []string{responsibleUser.Email},
+			Subject:              fmt.Sprintf("GRC Report Submitted: %s", grcReport.Title),
+			TemplateRelativePath: "report/templates/email/grc_report_submitted.html",
+			EmailData: map[string]interface{}{
+				"FirstNameEn":    responsibleUser.FirstNameEn,
+				"LastNameEn":     responsibleUser.LastNameEn,
+				"GRCReportTitle": grcReport.Title,
+				"RedirectURL":    fmt.Sprintf("%sreport/grc-reports/%d/overview", appURL, grcReportID),
+			},
+		}
+
+		// Send Notifications
+		if err := grs.notificationSvc.SendNotification(dbNotification, emailNotification, "grc_report"); err != nil {
+			utility.LogError("Failed to send document request notifications", map[string]interface{}{
+				"grcReportID": grcReportID,
+				"userID":      responsibleUserID,
+				"error":       err.Error(),
+			})
+		}
+	}()
+
+	return nil
+}
+
+func (grs *GRCReportService) GRCReportApproved(grcReportID uint, currentUserID uint) error {
+	tx := grs.repo.BeginTransaction()
+
+	approveStatus, err := grs.grcReportWorkflowStatusSvc.GetByType("approved")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	grcReport, err := grs.repo.GetByID(grcReportID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	approvedAt := time.Now()
+	// Update workflow status to approve
+	grcReport.GRCReportWorkflowStatusID = &approveStatus.ID
+	grcReport.ApprovedAt = &approvedAt
+	err = grs.repo.Update(grcReport, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	return nil
 }

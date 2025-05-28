@@ -16,6 +16,7 @@ type GRCReportRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 
 	GetAll(params *dtos.GRCReportListQueryParamsDTO) (*dtos.GRCReportListResponseDTO, error)
+	GetByID(id uint) (*models.GRCReport, error)
 
 	GetGRCReportByID(grcReportID uint, tx ...utility.DatabaseTransaction) (*dtos.GRCReportListDTO, error)
 	GetGRCReportSections(grcReportID uint) ([]dtos.GRCReportSectionResponseDTO, error)
@@ -45,6 +46,8 @@ type GRCReportRepositoryInterface interface {
 	DeleteGRCReportSections(grcReportID uint, tx ...utility.DatabaseTransaction) error
 	DeleteGRCReportGovernanceDocuments(grcReportID uint, tx ...utility.DatabaseTransaction) error
 	DeleteGRCReportGovernanceTasks(grcReportID uint, tx ...utility.DatabaseTransaction) error
+	DeleteGRCReportWorkflowReviewComments(grcReportWorkflowID uint, tx ...utility.DatabaseTransaction) error
+	DeleteGRCReportWorkflows(grcReportID uint, tx ...utility.DatabaseTransaction) error
 
 	ReorderGRCReportSections(grcReportID uint, deletedOrderNum int, tx ...utility.DatabaseTransaction) error
 
@@ -81,6 +84,8 @@ type GRCReportRepositoryInterface interface {
 
 	CreateGRCReportSectionWorkflow(workflows []*models.GRCReportWorkflow, tx ...utility.DatabaseTransaction) error
 	GetGRCReportSectionWorkflow(grcReportID uint) ([]*models.GRCReportWorkflow, error)
+
+	Update(grcReport *models.GRCReport, tx ...utility.DatabaseTransaction) error
 }
 
 type GRCReportRepository struct {
@@ -149,6 +154,17 @@ func (repo *GRCReportRepository) GetAll(params *dtos.GRCReportListQueryParamsDTO
 	return response, nil
 }
 
+func (repo *GRCReportRepository) GetByID(id uint) (*models.GRCReport, error) {
+	var grcReport *models.GRCReport
+	result := repo.db.First(&grcReport, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return grcReport, nil
+}
+
 func (repo *GRCReportRepository) GetSectionByID(sectionID uint, tx ...utility.DatabaseTransaction) (*models.GRCReportSection, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -174,16 +190,54 @@ func (repo *GRCReportRepository) GetGRCReportByID(grcReportID uint, tx ...utilit
 			CONVERT(VARCHAR, grc_reports.start_date, 23) AS start_date,
 			CONVERT(VARCHAR, grc_reports.end_date, 23) AS end_date,
 			grc_reports.created_at,
+			grc_reports.reviewed_at,
+			grc_reports.approved_at,
 			users.id AS created_by_id,
 			users.first_name_en AS created_user_first_name_en,
 			users.first_name_ar AS created_user_first_name_ar,
 			users.last_name_en AS created_user_last_name_en,
 			users.last_name_ar AS created_user_last_name_ar,
-			users.email AS created_user_email
+			users.email AS created_user_email,
+			review_user.id AS review_user_id,
+			review_user.first_name_en AS review_user_first_name_en,
+			review_user.first_name_ar AS review_user_first_name_ar,
+			review_user.last_name_en AS review_user_last_name_en,
+			review_user.last_name_ar AS review_user_last_name_ar,
+			approve_user.id AS approve_user_id,
+			approve_user.first_name_en AS approve_user_first_name_en,
+			approve_user.first_name_ar AS approve_user_first_name_ar,
+			approve_user.last_name_en AS approve_user_last_name_en,
+			approve_user.last_name_ar AS approve_user_last_name_ar
 		`).
 		Joins("LEFT JOIN users ON users.id = grc_reports.created_by_id").
+		Joins("LEFT JOIN users AS review_user ON review_user.id = grc_reports.review_user_id").
+		Joins("LEFT JOIN users AS approve_user ON approve_user.id = grc_reports.approve_user_id").
 		Where("grc_reports.id = ?", grcReportID).
-		Group("grc_reports.id, grc_reports.title, grc_reports.start_date, grc_reports.end_date, grc_reports.created_at, users.id, users.first_name_en, users.first_name_ar, users.last_name_en, users.last_name_ar, users.email")
+		Group(`
+	grc_reports.id,
+	grc_reports.title,
+	grc_reports.start_date,
+	grc_reports.end_date,
+	grc_reports.created_at,
+	grc_reports.reviewed_at,
+	grc_reports.approved_at,
+	users.id,
+	users.first_name_en,
+	users.first_name_ar,
+	users.last_name_en,
+	users.last_name_ar,
+	users.email,
+	review_user.id,
+	review_user.first_name_en,
+	review_user.first_name_ar,
+	review_user.last_name_en,
+	review_user.last_name_ar,
+	approve_user.id,
+	approve_user.first_name_en,
+	approve_user.first_name_ar,
+	approve_user.last_name_en,
+	approve_user.last_name_ar
+`)
 
 	if err := query.First(&report).Error; err != nil {
 
@@ -377,6 +431,24 @@ func (repo *GRCReportRepository) DeleteGRCReportGovernanceTasks(grcReportID uint
 	}
 
 	return db.Where("grc_report_id = ?", grcReportID).Delete(&models.GRCReportGovernanceTask{}).Error
+}
+
+func (repo *GRCReportRepository) DeleteGRCReportWorkflowReviewComments(grcReportWorkflowID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("grc_report_workflow_id = ?", grcReportWorkflowID).Delete(&models.GRCReportWorkflowReviewComment{}).Error
+}
+
+func (repo *GRCReportRepository) DeleteGRCReportWorkflows(grcReportID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("grc_report_id = ?", grcReportID).Delete(&models.GRCReportWorkflow{}).Error
 }
 
 func (repo *GRCReportRepository) DeleteGRCReport(grcReportID uint, tx ...utility.DatabaseTransaction) error {
@@ -1196,4 +1268,16 @@ func (repo *GRCReportRepository) GetGRCReportSectionWorkflow(grcReportID uint) (
 	}
 
 	return summary, nil
+}
+
+func (repo *GRCReportRepository) Update(grcReport *models.GRCReport, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(grcReport).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
