@@ -43,6 +43,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	governanceReportController := app.OrganizationModule.GovernanceReportController
 	processDependencyController := app.OrganizationModule.ProcessDependencyController
 	processCriticalityLevelController := app.OrganizationModule.ProcessCriticalityLevelController
+	processActivityController := app.OrganizationModule.ProcessActivityController
 	competencyGroupController := app.OrganizationModule.CompetencyGroupController
 	competencyController := app.OrganizationModule.CompetencyController
 
@@ -291,6 +292,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/process-criticality-levels/:id", processCriticalityLevelController.GetProcessCriticalityLevelDetails)
 	organizationRoutes.POST("/ad-users-sync", userController.SyncADUsers)
 	organizationRoutes.GET("/active-directory-users", userController.GetADUsers)
+
+	organizationRoutes.GET("/processes/:processId/activities", processActivityController.GetAllProcessActivities)
+	organizationRoutes.GET("/processes/:processId/activities/:activityId", processActivityController.GetProcessActivityDetails)
+	organizationRoutes.POST("/processes/:processId/activities", middlewares.RolePermissionMiddleware(db, "process", "modify"), processActivityController.CreateProcessActivity)
+	organizationRoutes.PUT("/processes/:processId/activities/:activityId", middlewares.RolePermissionMiddleware(db, "process", "modify"), processActivityController.UpdateProcessActivity)
+	organizationRoutes.POST("/processes/:processId/activities/delete", middlewares.RolePermissionMiddleware(db, "process", "modify"), processActivityController.DeleteProcessActivities)
+	organizationRoutes.PUT("/processes/:processId/activities/:activityId/raci", middlewares.RolePermissionMiddleware(db, "process", "modify"), processActivityController.UpdateProcessActivityUsers)
+	organizationRoutes.DELETE("/processes/:processId/activities/:activityId/raci/:activityUserId", middlewares.RolePermissionMiddleware(db, "process", "modify"), processActivityController.DeleteActivityUser)
 
 	organizationRoutes.GET("/competency-groups", competencyGroupController.GetAllCompetencyGroups)
 	organizationRoutes.GET("/competency-groups/:competencyGroupId", competencyGroupController.GetCompetencyGroupDetails)

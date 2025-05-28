@@ -37,6 +37,7 @@ type OrganizationModule struct {
 	GovernanceReportController              *controllers.GovernanceReportController
 	ProcessDependencyController             *controllers.ProcessDependencyController
 	ProcessCriticalityLevelController       *controllers.ProcessCriticalityLevelController
+	ProcessActivityController               *controllers.ProcessActivityController
 	CompetencyGroupController               *controllers.CompetencyGroupController
 	CompetencyController                    *controllers.CompetencyController
 
@@ -203,6 +204,15 @@ func NewOrganizationModule(
 	processCriticalityLevelSvc := services.NewProcessCriticalityLevelService(processCriticalityLevelRepo)
 	processCriticalityLevelController := controllers.NewProcessCriticalityLevelController(processCriticalityLevelSvc)
 
+	processActivityRepo := repositories.NewProcessActivityRepository(db)
+	processActivitySvc := services.NewProcessActivityService(
+		processActivityRepo,
+		sharedModule.ActivityLogService,
+		processSvc,
+		userSvc,
+		commonModule.NotificationService,
+	)
+	processActivityController := controllers.NewProcessActivityController(processActivitySvc)
 	// Competency Group Setup
 	competencyGroupRepo := repositories.NewCompetencyGroupRepository(db)
 	competencyGroupSvc := services.NewCompetencyGroupService(competencyGroupRepo, sharedModule.ActivityLogService)
@@ -242,6 +252,7 @@ func NewOrganizationModule(
 		GovernanceReportController:              governanceReportController,
 		ProcessDependencyController:             processDependencyController,
 		ProcessCriticalityLevelController:       processCriticalityLevelController,
+		ProcessActivityController:               processActivityController,
 		CompetencyGroupController:               competencyGroupController,
 		CompetencyController:                    competencyController,
 
