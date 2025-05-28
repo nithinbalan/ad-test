@@ -17,12 +17,13 @@ type GRCReportWorkflow struct {
 	UpdatedAt                 *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relationships
-	CreatedByUser           *User                    `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	UpdatedByUser           *User                    `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	ReviewUser              *User                    `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	ApproveUser             *User                    `gorm:"foreignKey:ApproveUserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	GRCReport               *GRCReport               `gorm:"foreignKey:GRCReportID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	GRCReportWorkflowStatus *GRCReportWorkflowStatus `gorm:"foreignKey:GRCReportWorkflowStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	CreatedByUser                   *User                            `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	UpdatedByUser                   *User                            `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	ReviewUser                      *User                            `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ApproveUser                     *User                            `gorm:"foreignKey:ApproveUserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	GRCReport                       *GRCReport                       `gorm:"foreignKey:GRCReportID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	GRCReportWorkflowStatus         *GRCReportWorkflowStatus         `gorm:"foreignKey:GRCReportWorkflowStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	GRCReportWorkflowReviewComments []GRCReportWorkflowReviewComment `gorm:"foreignKey:GRCReportWorkflowID;references:ID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 func (GRCReportWorkflow) TableName() string {

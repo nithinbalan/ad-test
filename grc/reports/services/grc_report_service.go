@@ -141,6 +141,13 @@ func (grs *GRCReportService) GetGRCReportDetails(grcReportID uint) (*dtos.GRCRep
 		return nil, err
 	}
 
+	sectionWorkflow, err := grs.repo.GetGRCReportSectionWorkflow(grcReportID)
+	if err != nil {
+		return nil, err
+	}
+
+	sectionWorkflowDTO := mapSectionWorkflowToDTO(sectionWorkflow)
+
 	// Construct Response DTO
 	response := &dtos.GRCReportDetailDTO{
 		ID:                     grcReport.ID,
@@ -162,6 +169,7 @@ func (grs *GRCReportService) GetGRCReportDetails(grcReportID uint) (*dtos.GRCRep
 		RiskControls:           riskControls,
 		ComplianceSummary:      complianceSummaryDTO,
 		SLA:                    slas,
+		SectionWorkflow:        sectionWorkflowDTO,
 	}
 
 	return response, nil
@@ -317,7 +325,6 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 	workflows = append(workflows, complianceWorkflow)
 
 	if len(workflows) > 0 {
-		fmt.Println("1")
 		if err := grs.repo.CreateGRCReportSectionWorkflow(workflows, tx); err != nil {
 			tx.Rollback()
 			return 0, err
@@ -1323,4 +1330,100 @@ func (grs *GRCReportService) UpdateRiskApprovalNote(grcReportID uint, reportID u
 	tx.Commit()
 
 	return nil
+}
+
+func mapSectionWorkflowToDTO(sectionWorkflows []*models.GRCReportWorkflow) []*dtos.GRCReportSectionWorkflowDTO {
+	sectionWorkflowDTOs := []*dtos.GRCReportSectionWorkflowDTO{}
+	for _, workflow := range sectionWorkflows {
+		workflowStatusObject := dtos.GRCReportWorkflowStatusDTO{
+			ID:        int(workflow.GRCReportWorkflowStatusID),
+			TitleEn:   workflow.GRCReportWorkflowStatus.TitleEn,
+			TitleAr:   workflow.GRCReportWorkflowStatus.TitleAr,
+			Type:      workflow.GRCReportWorkflowStatus.Type,
+			ColorCode: workflow.GRCReportWorkflowStatus.ColorCode,
+			Status:    workflow.GRCReportWorkflowStatus.Status,
+		}
+		reviewUser := &userDTOs.UserMinimalDTO{}
+		if workflow.ReviewUserID != nil {
+			reviewUser = &userDTOs.UserMinimalDTO{
+				ID:          int(workflow.ReviewUser.ID),
+				FirstNameEN: workflow.ReviewUser.FirstNameEn,
+				FirstNameAR: workflow.ReviewUser.FirstNameAr,
+				LastNameEN:  workflow.ReviewUser.LastNameEn,
+				LastNameAR:  workflow.ReviewUser.LastNameAr,
+			}
+		}
+		approveUser := &userDTOs.UserMinimalDTO{}
+		if workflow.ApproveUserID != nil {
+			approveUser = &userDTOs.UserMinimalDTO{
+				ID:          int(workflow.ApproveUser.ID),
+				FirstNameEN: workflow.ApproveUser.FirstNameEn,
+				FirstNameAR: workflow.ApproveUser.FirstNameAr,
+				LastNameEN:  workflow.ApproveUser.LastNameEn,
+				LastNameAR:  workflow.ApproveUser.LastNameAr,
+			}
+		}
+		sectionWorkflowDTO := &dtos.GRCReportSectionWorkflowDTO{
+			ID:                      workflow.ID,
+			GRCReportID:             workflow.GRCReportID,
+			Type:                    workflow.Type,
+			GRCReportWorkflowStatus: &workflowStatusObject,
+			ReviewUser:              reviewUser,
+			ApproveUser:             approveUser,
+			ReviewedAt:              workflow.ReviewedAt,
+			ApprovedAt:              workflow.ApprovedAt,
+			Comments:                []*dtos.GRCReportWorkflowReviewCommentDTO{},
+		}
+
+		for _, comment := range workflow.GRCReportWorkflowReviewComments {
+			resolvedUser := &userDTOs.UserMinimalDTO{}
+			if comment.ResolvedBYID != nil {
+				resolvedUser = &userDTOs.UserMinimalDTO{
+					ID:          int(comment.ResolvedUser.ID),
+					FirstNameEN: comment.ResolvedUser.FirstNameEn,
+					FirstNameAR: comment.ResolvedUser.FirstNameAr,
+					LastNameEN:  comment.ResolvedUser.LastNameEn,
+					LastNameAR:  comment.ResolvedUser.LastNameAr,
+				}
+			}
+			commentWorkflowStatus := &dtos.GRCReportWorkflowStatusDTO{}
+			if comment.GRCReportWorkflowStatusID != nil {
+				commentWorkflowStatus = &dtos.GRCReportWorkflowStatusDTO{
+					ID:        int(*comment.GRCReportWorkflowStatusID),
+					TitleEn:   comment.GRCReportWorkflowStatus.TitleEn,
+					TitleAr:   comment.GRCReportWorkflowStatus.TitleAr,
+					Type:      comment.GRCReportWorkflowStatus.Type,
+					ColorCode: comment.GRCReportWorkflowStatus.ColorCode,
+					Status:    comment.GRCReportWorkflowStatus.Status,
+				}
+			}
+
+			sectionWorkflowDTO.Comments = append(sectionWorkflowDTO.Comments, &dtos.GRCReportWorkflowReviewCommentDTO{
+				ID:                      comment.ID,
+				Comment:                 comment.Comment,
+				GRCReportWorkflowID:     workflow.ID,
+				GRCReportWorkflowStatus: commentWorkflowStatus,
+				GRCReportCommentStatus: &dtos.GRCReportCommentStatusDTO{
+					ID:        int(comment.GRCReportCommentStatusID),
+					TitleEn:   comment.GRCReportCommentStatus.TitleEn,
+					TitleAr:   comment.GRCReportCommentStatus.TitleAr,
+					Type:      comment.GRCReportCommentStatus.Type,
+					ColorCode: comment.GRCReportCommentStatus.ColorCode,
+					Status:    comment.GRCReportCommentStatus.Status,
+				},
+				ResolvedUser: resolvedUser,
+				CreatedAt:    comment.CreatedAt,
+				CreatedUser: &userDTOs.UserMinimalDTO{
+					ID:          int(comment.CreatedByUser.ID),
+					FirstNameEN: comment.CreatedByUser.FirstNameEn,
+					FirstNameAR: comment.CreatedByUser.FirstNameAr,
+					LastNameEN:  comment.CreatedByUser.LastNameEn,
+					LastNameAR:  comment.CreatedByUser.LastNameAr,
+				},
+			})
+		}
+
+		sectionWorkflowDTOs = append(sectionWorkflowDTOs, sectionWorkflowDTO)
+	}
+	return sectionWorkflowDTOs
 }
