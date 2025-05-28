@@ -59,6 +59,7 @@ type GRCReportDetailDTO struct {
 	RiskControls           []GRCReportRiskControlResponseDTO     `json:"risk_controls"`
 	ComplianceSummary      []*GRCReportComplianceSummaryDTO      `json:"compliance_summary"`
 	SLA                    []*GRCReportSLAResponseDTO            `json:"sla"`
+	SectionWorkflow        []*GRCReportSectionWorkflowDTO        `json:"section_workflow"`
 }
 
 type GRCReportSectionResponseDTO struct {
@@ -366,6 +367,29 @@ type GRCReportSLAResponseDTO struct {
 	LifeCycleStatusColorCode      string  `json:"life_cycle_status_color_code"`
 	ExperyDate                    *string `json:"expery_date"`
 	IssueDate                     *string `json:"issue_date"`
+}
+
+type GRCReportSectionWorkflowDTO struct {
+	ID                      uint                                 `json:"id"`
+	GRCReportID             uint                                 `json:"grc_report_id"`
+	Type                    string                               `json:"type"`
+	GRCReportWorkflowStatus *GRCReportWorkflowStatusDTO          `json:"grc_report_workflow_status"`
+	ReviewUser              *organizationDTOs.UserMinimalDTO     `json:"review_user"`
+	ApproveUser             *organizationDTOs.UserMinimalDTO     `json:"approve_user"`
+	ReviewedAt              *time.Time                           `json:"reviewed_at"`
+	ApprovedAt              *time.Time                           `json:"approved_at"`
+	Comments                []*GRCReportWorkflowReviewCommentDTO `json:"comments"`
+}
+
+type GRCReportWorkflowReviewCommentDTO struct {
+	ID                      uint                             `json:"id"`
+	Comment                 string                           `json:"comment"`
+	GRCReportWorkflowID     uint                             `json:"grc_report_workflow_id"`
+	GRCReportCommentStatus  *GRCReportCommentStatusDTO       `json:"grc_report_comment_status"`
+	GRCReportWorkflowStatus *GRCReportWorkflowStatusDTO      `json:"grc_report_workflow_status"`
+	ResolvedUser            *organizationDTOs.UserMinimalDTO `json:"resolved_user"`
+	CreatedAt               time.Time                        `json:"created_at"`
+	CreatedUser             *organizationDTOs.UserMinimalDTO `json:"created_user"`
 }
 
 type RiskCountDTO struct {

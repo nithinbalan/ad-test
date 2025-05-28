@@ -22,6 +22,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingReportController := app.ReportsModule.MeetingReportController
 	documentReportController := app.ReportsModule.DocumentReportController
 	grcReportController := app.ReportsModule.GRCReportController
+	grcReportWorkflowStatusController := app.ReportsModule.GRCReportWorkflowStatusController
+	grcReportCommentStatusController := app.ReportsModule.GRCReportCommentStatusController
+	grcReportWorkflowController := app.ReportsModule.GRCReportWorkflowController
+	grcReportWorkflowReviewCommentController := app.ReportsModule.GRCReportWorkflowReviewCommentController
 
 	//Compliance
 	reportsRoutes.GET("/reports/compliance-registers", complianceReportController.GetAllComplianceRegisters)
@@ -257,4 +261,30 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.PUT("/grc-reports/:grcReportId/challenges", grcReportController.UpdateChallenges)
 
 	reportsRoutes.PUT("/grc-reports/:grcReportId/risk/:riskId/approval-note", grcReportController.UpdateRiskApprovalNote)
+
+	// workflow status
+	reportsRoutes.GET("/grc-report-workflow-statuses", grcReportWorkflowStatusController.GetAllGRCReportWorkflowStatuses)
+	reportsRoutes.GET("/grc-report-workflow-statuses/:id", grcReportWorkflowStatusController.GetGRCReportWorkflowStatusDetails)
+
+	// comment status
+	reportsRoutes.GET("/grc-report-comment-statuses", grcReportCommentStatusController.GetAllGRCReportCommentStatuses)
+	reportsRoutes.GET("/grc-report-comment-statuses/:id", grcReportCommentStatusController.GetGRCReportCommentStatusDetails)
+
+	// report section review and approve
+	reportsRoutes.PUT("/grc-reports/:grcReportId/section-review-user", grcReportWorkflowController.UpdateGRCReportSectionWorkflowReviewUser)
+	reportsRoutes.PUT("/grc-reports/:grcReportId/section-approve-user", grcReportWorkflowController.UpdateGRCReportSectionWorkflowApproveUser)
+	reportsRoutes.PUT("/grc-reports/:grcReportId/section-submit", grcReportWorkflowController.GRCReportSectionSubmit)
+
+	// review comment
+	reportsRoutes.GET("/grc-reports/:grcReportId/comment", grcReportWorkflowReviewCommentController.GetAllComments)
+	reportsRoutes.POST("/grc-reports/:grcReportId/comment", grcReportWorkflowReviewCommentController.CreateComment)
+	reportsRoutes.GET("/grc-reports/:grcReportId/comment/:commentId", grcReportWorkflowReviewCommentController.GetCommentDetails)
+	reportsRoutes.PUT("/grc-reports/:grcReportId/comment/:commentId", grcReportWorkflowReviewCommentController.UpdateComment)
+	reportsRoutes.POST("/grc-reports/:grcReportId/comment/delete", grcReportWorkflowReviewCommentController.DeleteComment)
+
+	reportsRoutes.PUT("/grc-reports/:grcReportId/comment/:commentId/resolve", grcReportWorkflowReviewCommentController.GRCReportWorkflowReviewCommentResolve)
+	reportsRoutes.PUT("/grc-reports/:grcReportId/comment/:commentId/close", grcReportWorkflowReviewCommentController.GRCReportWorkflowReviewCommentClose)
+
+	reportsRoutes.PUT("/grc-reports/:grcReportId/section-review", grcReportWorkflowReviewCommentController.GRCReportSectionReviewed)
+	reportsRoutes.PUT("/grc-reports/:grcReportId/section-approve", grcReportWorkflowReviewCommentController.GRCReportSectionApproved)
 }
