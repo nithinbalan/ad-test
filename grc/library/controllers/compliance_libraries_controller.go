@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 
 	"jethur/grc/library/services"
 	"jethur/utility"
@@ -22,11 +23,19 @@ func NewComplianceLibraryController(service services.ComplianceLibraryServiceInt
 	}
 }
 
-func (clc *ComplianceLibraryController) GetAll(c *gin.Context) {
-	data, err := clc.service.GetAll()
+func (clc *ComplianceLibraryController) GetComplianceLibraryDetails(c *gin.Context) {
+	libraryIDStr := c.Param("libraryId")
+	libraryID, err := strconv.Atoi(libraryIDStr)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	data, err := clc.service.GetComplianceLibraryDetails(uint(libraryID))
 	if err != nil {
 		utility.SendInternalErrResp(clc.db, c, err.Error())
 		return
 	}
+
 	c.JSON(http.StatusOK, data)
 }

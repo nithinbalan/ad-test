@@ -7,7 +7,7 @@ import (
 )
 
 type ComplianceLibraryRepositoryInterface interface {
-	GetAll() ([]*libraryDTOs.ComplianceLibraryWithVersionsDTO, error)
+	GetComplianceLibraryDetails(libraryID uint) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error)
 }
 
 type ComplianceLibraryRepository struct {
@@ -20,8 +20,8 @@ func NewComplianceLibraryRepository(db *gorm.DB) *ComplianceLibraryRepository {
 	}
 }
 
-func (repo *ComplianceLibraryRepository) GetAll() ([]*libraryDTOs.ComplianceLibraryWithVersionsDTO, error) {
-	var results []*libraryDTOs.ComplianceLibraryWithVersionsDTO
+func (repo *ComplianceLibraryRepository) GetByGetComplianceLibraryDetailsID(libraryID uint) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error) {
+	var result libraryDTOs.ComplianceLibraryWithVersionsDTO
 
 	err := repo.db.
 		Table("compliance_libraries").
@@ -45,8 +45,11 @@ func (repo *ComplianceLibraryRepository) GetAll() ([]*libraryDTOs.ComplianceLibr
 			compliance_library_versions.domains
 		`).
 		Joins("LEFT JOIN compliance_library_versions ON compliance_libraries.id = compliance_library_versions.compliance_library_id").
-		Order("compliance_libraries.id, compliance_library_versions.id").
-		Scan(&results).Error
+		Where("compliance_libraries.id = ?", libraryID).
+		Scan(&result).Error
+	if err != nil {
+		return nil, err
+	}
 
-	return results, err
+	return &result, nil
 }
