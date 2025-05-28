@@ -31,7 +31,7 @@ func (clc *ComplianceLibraryController) GetComplianceLibraryDetails(c *gin.Conte
 		return
 	}
 
-	data, err := clc.service.GetComplianceLibraryDetails(uint(libraryID))
+	data, err := clc.service.GetComplianceLibraryDetailsByID(uint(libraryID))
 	if err != nil {
 		utility.SendInternalErrResp(clc.db, c, err.Error())
 		return

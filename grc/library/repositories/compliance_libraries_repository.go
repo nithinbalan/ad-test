@@ -7,7 +7,7 @@ import (
 )
 
 type ComplianceLibraryRepositoryInterface interface {
-	GetComplianceLibraryDetails(libraryID uint) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error)
+	GetComplianceLibraryDetailsByID(libraryID uint) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error)
 }
 
 type ComplianceLibraryRepository struct {
@@ -20,7 +20,7 @@ func NewComplianceLibraryRepository(db *gorm.DB) *ComplianceLibraryRepository {
 	}
 }
 
-func (repo *ComplianceLibraryRepository) GetByGetComplianceLibraryDetailsID(libraryID uint) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error) {
+func (repo *ComplianceLibraryRepository) GetComplianceLibraryDetailsByID(libraryID uint) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error) {
 	var result libraryDTOs.ComplianceLibraryWithVersionsDTO
 
 	err := repo.db.

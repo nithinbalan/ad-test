@@ -6,7 +6,7 @@ import (
 )
 
 type ComplianceLibraryServiceInterface interface {
-	GetComplianceLibraryDetails(libraryID uint) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error)
+	GetComplianceLibraryDetailsByID(libraryID uint) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error)
 }
 
 // Service and implementations
@@ -22,6 +22,6 @@ func NewComplianceLibraryService(
 	}
 }
 
-func (cls *ComplianceLibraryService) GetComplianceLibraryDetails(libraryID uint) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error) {
-	return cls.repo.GetComplianceLibraryDetails(libraryID)
+func (cls *ComplianceLibraryService) GetComplianceLibraryDetailsByID(libraryID uint) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error) {
+	return cls.repo.GetComplianceLibraryDetailsByID(libraryID)
 }
