@@ -16,6 +16,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	KRILibraryController := app.LibraryModule.KriLibraryController
 	RiskLibraryController := app.LibraryModule.RiskLibraryController
 	KnowledgeCenterResourceController := app.LibraryModule.KnowledgeCenterResourceController
+	ComplianceLibraryController := app.LibraryModule.ComplianceLibraryController
 
 	libraryRoutes.GET("/question-library", questionLibraryController.GetAllQuestionLibrary)
 	libraryRoutes.POST("/question-library", questionLibraryController.CreateQuestionLibrary)
@@ -42,4 +43,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	libraryRoutes.GET("/risk-library/impact-count", RiskLibraryController.RiskCountByImpact)
 
 	libraryRoutes.GET("/knowledge-center", KnowledgeCenterResourceController.GetAllResources)
+
+	libraryRoutes.GET("/compliance-libraries", ComplianceLibraryController.GetAll)
 }
