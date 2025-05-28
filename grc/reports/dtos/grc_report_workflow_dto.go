@@ -26,7 +26,7 @@ type GRCReportDTO struct {
 
 type GRCReportWorkflowFormDTO struct {
 	UserID uint   `json:"user_id" binding:"required"`
-	Type   string `json:"type" binding:"required"`
+	Type   string `json:"type" binding:"required,oneof=risk compliance governance"`
 }
 
 type GRCReportSectionReviewApproveFormFormDTO struct {

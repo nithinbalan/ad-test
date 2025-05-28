@@ -5,7 +5,7 @@ import "time"
 type GRCReportWorkflow struct {
 	ID                        uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	GRCReportID               uint       `json:"grc_report_id"`
-	Type                      string     `json:"type"`
+	Type                      string     `json:"type" gorm:"type:varchar(20);check:type IN ('risk', 'compliance', 'governance');not null"`
 	GRCReportWorkflowStatusID uint       `json:"grc_report_workflow_status_id"`
 	ReviewUserID              *uint      `json:"review_user_id"`
 	ApproveUserID             *uint      `json:"approve_user_id"`
