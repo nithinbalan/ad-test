@@ -1415,7 +1415,7 @@ func mapSectionWorkflowToDTO(sectionWorkflows []*models.GRCReportWorkflow) []*dt
 			ColorCode: workflow.GRCReportWorkflowStatus.ColorCode,
 			Status:    workflow.GRCReportWorkflowStatus.Status,
 		}
-		reviewUser := &userDTOs.UserMinimalDTO{}
+		var reviewUser *userDTOs.UserMinimalDTO
 		if workflow.ReviewUserID != nil {
 			reviewUser = &userDTOs.UserMinimalDTO{
 				ID:          int(workflow.ReviewUser.ID),
@@ -1425,7 +1425,7 @@ func mapSectionWorkflowToDTO(sectionWorkflows []*models.GRCReportWorkflow) []*dt
 				LastNameAR:  workflow.ReviewUser.LastNameAr,
 			}
 		}
-		approveUser := &userDTOs.UserMinimalDTO{}
+		var approveUser *userDTOs.UserMinimalDTO
 		if workflow.ApproveUserID != nil {
 			approveUser = &userDTOs.UserMinimalDTO{
 				ID:          int(workflow.ApproveUser.ID),
