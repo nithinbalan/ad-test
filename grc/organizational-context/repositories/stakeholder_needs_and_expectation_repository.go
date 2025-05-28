@@ -135,6 +135,16 @@ func (repo *StakeholderNeedsAndExpectationRepository) GetFullDetailsByID(id uint
 
 	result := db.
 		Preload("SeverityLevel").
+		Preload("Stakeholder").
+		Preload("Stakeholder.Type").
+		Preload("Stakeholder.StakeholderCategory").
+		Preload("Stakeholder.InfluenceLevel").
+		Preload("Stakeholder.ImpactLevel").
+		Preload("Stakeholder.OrganizationUnit").
+		Preload("Stakeholder.ThirdPartyRegister").
+		Preload("Stakeholder.Client").
+		Preload("Stakeholder.User").
+		Preload("Evaluations").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&stakeholderNeedsAndExpectation, id)
