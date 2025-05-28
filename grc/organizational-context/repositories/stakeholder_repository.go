@@ -45,8 +45,10 @@ func (repo *StakeholderRepository) GetAll(params *organizationalContextDTOs.Stak
 			influence_level.title_en AS influence_level_title_en,
 			influence_level.title_ar AS influence_level_title_ar,
 			influence_level.type AS influence_level_type,
+			influence_level.color_code AS influence_level_color_code,
 			impact_level.title_en AS impact_level_title_en,
 			impact_level.title_ar AS impact_level_title_ar,
+			impact_level.color_code AS impact_level_color_code,
 			impact_level.type AS impact_level_type,
 			stakeholder_categories.title_en AS stakeholder_category_title_en,
 			stakeholder_categories.title_ar AS stakeholder_category_title_ar,
@@ -97,7 +99,7 @@ func (repo *StakeholderRepository) GetAll(params *organizationalContextDTOs.Stak
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			query = query.Where("stakeholders."+columnName+" IN (?)", values)
 		}
 	}
 	// Calculate total count for pagination
@@ -119,6 +121,20 @@ func (repo *StakeholderRepository) GetAll(params *organizationalContextDTOs.Stak
 			updated_user.last_name_en LIKE ? OR
 			updated_user.last_name_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "external":
+			query = query.Where("process_dependency_types.type = ?", "external")
+		case "internal":
+			query = query.Where("process_dependency_types.type = ?", "internal")
+		case "high_influence_level":
+			query = query.Where("influence_level.type = ?", "high")
+		case "high_impact_level":
+			query = query.Where("impact_level.type = ?", "high")
+		}
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {

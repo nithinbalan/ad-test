@@ -80,7 +80,7 @@ type StakeholderNeedsAndExpectationEvaluationDTO struct {
 	Comment          string                           `json:"comment"`
 	Score            *int                             `json:"score"`
 	EvaluatedByID    uint                             `json:"evaluated_by_id"`
-	EvaluatedAt      *string                          `json:"evaluated_at" binding:"omitempty,datetime=2006-01-02"`
+	EvaluatedAt      *time.Time                       `json:"evaluated_at" binding:"omitempty,datetime=2006-01-02"`
 	CreatedAt        time.Time                        `json:"created_at"`
 	UpdatedAt        *time.Time                       `json:"updated_at"`
 	CreatedByUser    organizationDTOs.UserMinimalDTO  `json:"created_by_user"`
