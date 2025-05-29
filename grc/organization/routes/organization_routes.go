@@ -47,6 +47,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	competencyGroupController := app.OrganizationModule.CompetencyGroupController
 	competencyController := app.OrganizationModule.CompetencyController
 	jobDescriptionController := app.OrganizationModule.JobDescriptionController
+	jobDescriptionCompetencyController := app.OrganizationModule.JobDescriptionCompetencyController
 
 	//Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
@@ -325,5 +326,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/job-descriptions/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), jobDescriptionController.DeleteJobDescription)
 	organizationRoutes.PUT("/job-descriptions/activate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), jobDescriptionController.ActivateJobDescriptions)
 	organizationRoutes.PUT("/job-descriptions/deactivate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), jobDescriptionController.DeactivateJobDescriptions)
+
+	organizationRoutes.POST("/job-descriptions/:id/competencies", jobDescriptionCompetencyController.MapCompetencies)
+	organizationRoutes.PUT("/job-descriptions/:id/competencies/:cId", jobDescriptionCompetencyController.UpdateCompetencyDetails)
+	organizationRoutes.DELETE("/job-descriptions/:id/competencies/:cId", jobDescriptionCompetencyController.DeleteCompetency)
 
 }

@@ -41,6 +41,7 @@ type OrganizationModule struct {
 	CompetencyGroupController               *controllers.CompetencyGroupController
 	CompetencyController                    *controllers.CompetencyController
 	JobDescriptionController                *controllers.JobDescriptionController
+	JobDescriptionCompetencyController      *controllers.JobDescriptionCompetencyController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -229,6 +230,10 @@ func NewOrganizationModule(
 	jobDescriptionSvc := services.NewJobDescriptionService(jobDescriptionRepo, sharedModule.ActivityLogService)
 	jobDescriptionController := controllers.NewJobDescriptionController(jobDescriptionSvc)
 
+	jobDescriptionCompetencyRepo := repositories.NewJobDescriptionCompetencyRepository(db)
+	jobDescriptionCompetencySvc := services.NewJobDescriptionCompetencyService(jobDescriptionCompetencyRepo, jobDescriptionSvc)
+	jobDescriptionCompetencyController := controllers.NewJobDescriptionCompetencyController(jobDescriptionCompetencySvc)
+
 	return &OrganizationModule{
 		DesignationController:                   designationController,
 		UserStatusController:                    userStatusController,
@@ -262,6 +267,7 @@ func NewOrganizationModule(
 		CompetencyGroupController:               competencyGroupController,
 		CompetencyController:                    competencyController,
 		JobDescriptionController:                jobDescriptionController,
+		JobDescriptionCompetencyController:      jobDescriptionCompetencyController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,
