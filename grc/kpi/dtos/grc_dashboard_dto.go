@@ -33,7 +33,7 @@ type GRCIncidentSummaryDTO struct {
 type GRCComplianceOverviewDTO struct {
 	TotalComplaintsRegistered int64 `json:"total_complaints_registered"`
 	Compliant                 int64 `json:"compliant"`
-	NotCompliant              int64 `json:"not_compliant"`
+	NotImplemented            int64 `json:"not_implemented"`
 	PartiallyCompliant        int64 `json:"partially_compliant"`
 	Others                    int64 `json:"others"`
 }

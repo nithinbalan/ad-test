@@ -56,11 +56,17 @@ func (repo *GRCReportWorkflowReviewCommentRepository) GetAll(grcReportID uint, p
 			grc_report_comment_statuses.title_en AS grc_report_comment_status_title_en,
 			grc_report_comment_statuses.title_ar AS grc_report_comment_status_title_ar,
 			grc_report_comment_statuses.type AS grc_report_comment_status_type,
-			grc_report_comment_statuses.color_code AS grc_report_comment_status_color_code
+			grc_report_comment_statuses.color_code AS grc_report_comment_status_color_code,
+			grc_report_workflow_statuses.id AS grc_report_workflow_status_id,
+			grc_report_workflow_statuses.title_en AS grc_report_workflow_status_title_en,
+			grc_report_workflow_statuses.title_ar AS grc_report_workflow_status_title_ar,
+			grc_report_workflow_statuses.type AS grc_report_workflow_status_type,
+			grc_report_workflow_statuses.color_code AS grc_report_workflow_status_color_code
 		`).
 		Joins("LEFT JOIN users ON users.id = grc_report_workflow_review_comments.created_by_id").
 		Joins("LEFT JOIN grc_report_comment_statuses ON grc_report_comment_statuses.id = grc_report_workflow_review_comments.grc_report_comment_status_id").
 		Joins("LEFT JOIN grc_report_workflows ON grc_report_workflows.id = grc_report_workflow_review_comments.grc_report_workflow_id").
+		Joins("LEFT JOIN grc_report_workflow_statuses ON grc_report_workflow_statuses.id = grc_report_workflow_review_comments.grc_report_workflow_status_id").
 		Joins("LEFT JOIN grc_reports ON grc_reports.id = grc_report_workflows.grc_report_id").
 		Where("grc_reports.id = ?", grcReportID)
 
