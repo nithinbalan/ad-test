@@ -19,7 +19,7 @@ import (
 )
 
 type GRCReportWorkflowReviewCommentServiceInterface interface {
-	GetAll(grcReportID uint) ([]*dtos.GRCReportWorkflowReviewCommentListDTO, error)
+	GetAll(grcReportID uint, params *dtos.GRCReportWorkflowReviewCommentListQueryParamsDTO) ([]*dtos.GRCReportWorkflowReviewCommentListDTO, error)
 	GetByID(grcReportID uint, id uint) (*models.GRCReportWorkflowReviewComment, error)
 	GetFullDetailsByID(grcReportID uint, id uint, tx ...utility.DatabaseTransaction) (*dtos.GRCReportWorkflowReviewCommentDetailDTO, error)
 	Create(grcReportID uint, currentUserID uint, dto *dtos.GRCReportWorkflowReviewCommentFormDTO) (uint, error)
@@ -68,8 +68,8 @@ func NewGRCReportWorkflowReviewCommentService(repo repositories.GRCReportWorkflo
 	}
 }
 
-func (grwrcs *GRCReportWorkflowReviewCommentService) GetAll(grcReportID uint) ([]*dtos.GRCReportWorkflowReviewCommentListDTO, error) {
-	return grwrcs.repo.GetAll(grcReportID)
+func (grwrcs *GRCReportWorkflowReviewCommentService) GetAll(grcReportID uint, params *dtos.GRCReportWorkflowReviewCommentListQueryParamsDTO) ([]*dtos.GRCReportWorkflowReviewCommentListDTO, error) {
+	return grwrcs.repo.GetAll(grcReportID, params)
 }
 
 func (grwrcs *GRCReportWorkflowReviewCommentService) GetByID(grcReportID uint, id uint) (*models.GRCReportWorkflowReviewComment, error) {

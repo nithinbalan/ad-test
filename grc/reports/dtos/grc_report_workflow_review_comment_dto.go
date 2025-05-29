@@ -4,7 +4,7 @@ import "time"
 
 type GRCReportWorkflowReviewCommentListDTO struct {
 	ID                              uint    `json:"id"`
-	Comments                        string  `json:"comment"`
+	Comment                         string  `json:"comment"`
 	GRCReportWorkflowID             uint    `json:"grc_report_workflow_id"`
 	CreatedAt                       string  `json:"created_at"`
 	CreatedByID                     uint    `json:"created_by_id"`
@@ -20,6 +20,17 @@ type GRCReportWorkflowReviewCommentListDTO struct {
 	GRCReportCommentStatusType      *string `json:"grc_report_comment_status_type"`
 	GRCReportCommentStatusTitleAr   *string `json:"grc_report_comment_status_title_ar"`
 	GRCReportCommentStatusColorCode *string `json:"grc_report_comment_status_color_code"`
+}
+
+type GRCReportWorkflowReviewCommentListQueryParamsDTO struct {
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Page        int
+	PageSize    int
+	Filters     map[string][]string
+	QuickFilter []string
+	Section     string
 }
 
 type GRCReportWorkflowReviewCommentDetailDTO struct {
