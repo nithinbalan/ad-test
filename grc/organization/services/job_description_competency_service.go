@@ -51,32 +51,82 @@ func (jdcs *JobDescriptionCompetencyService) MapCompetencies(jobDescriptionID ui
 
 	return nil
 }
-
 func (jdcs *JobDescriptionCompetencyService) UpdateCompetencyDetails(jdcID uint, currentUserID uint, input *dtos.UpdateJDCompetencyDTO) error {
+	// Fetch existing competency
 	existing, err := jdcs.repo.GetByID(jdcID)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, jdcID)
 	}
-
-	existing.CompetencyLevelID = input.CompetencyLevelID
+	existing.CompetencyLevelID = &input.CompetencyLevelID
 	existing.UpdatedByID = &currentUserID
 
 	if err := jdcs.repo.Update(existing); err != nil {
 		return err
 	}
 
-	if err := jdcs.repo.DeleteCertifications(jdcID); err != nil {
+	// Fetch existing certifications from DB
+	existingCerts, err := jdcs.repo.GetCertificationsByCompetencyID(jdcID)
+	if err != nil {
 		return err
 	}
 
+	// Create maps for comparison
+	inputMap := make(map[string]dtos.JobDescriptionCompetencyCertFormDTO)
 	for _, cert := range input.Certifications {
-		certModel := models.JobDescriptionCompetencyCertification{
-			JobDescriptionCompetencyID: jdcID,
-			Title:                      cert.Title,
-			IsMandatory:                cert.IsMandatory,
-			CreatedByID:                currentUserID,
+		inputMap[cert.Title] = cert
+	}
+
+	existingMap := make(map[string]models.JobDescriptionCompetencyCertification)
+	for _, cert := range existingCerts {
+		existingMap[cert.Title] = cert
+	}
+
+	var toCreate []models.JobDescriptionCompetencyCertification
+	var toDeleteIDs []uint
+	var toUpdate []models.JobDescriptionCompetencyCertification
+
+	// Identify certs to create or update
+	for title, inputCert := range inputMap {
+		if existingCert, exists := existingMap[title]; exists {
+			// Update if IsMandatory changed
+			if existingCert.IsMandatory != inputCert.IsMandatory {
+				existingCert.IsMandatory = inputCert.IsMandatory
+				toUpdate = append(toUpdate, existingCert)
+			}
+			// else: do nothing (no change)
+		} else {
+			// New cert
+			toCreate = append(toCreate, models.JobDescriptionCompetencyCertification{
+				JobDescriptionCompetencyID: jdcID,
+				Title:                      inputCert.Title,
+				IsMandatory:                inputCert.IsMandatory,
+				CreatedByID:                currentUserID,
+			})
 		}
-		if err := jdcs.repo.CreateCertification(&certModel); err != nil {
+	}
+
+	// Identify certs to delete
+	for title, existingCert := range existingMap {
+		if _, stillExists := inputMap[title]; !stillExists {
+			toDeleteIDs = append(toDeleteIDs, existingCert.ID)
+		}
+	}
+
+	// Perform DB operations
+	if len(toDeleteIDs) > 0 {
+		if err := jdcs.repo.DeleteCertificationsByIDs(toDeleteIDs); err != nil {
+			return err
+		}
+	}
+
+	if len(toCreate) > 0 {
+		if err := jdcs.repo.BulkCreateCertifications(toCreate); err != nil {
+			return err
+		}
+	}
+
+	for _, cert := range toUpdate {
+		if err := jdcs.repo.UpdateCertification(&cert); err != nil {
 			return err
 		}
 	}
@@ -88,5 +138,12 @@ func (jdcs *JobDescriptionCompetencyService) DeleteCompetency(jdcID uint, curren
 	if _, err := jdcs.repo.GetByID(jdcID); err != nil {
 		return utility.NewResourceNotFoundError(err, jdcID)
 	}
+
+	// Delete certifications first to avoid FK conflict
+	if err := jdcs.repo.DeleteCertifications(jdcID); err != nil {
+		return err
+	}
+
+	// Then delete the competency
 	return jdcs.repo.Delete(jdcID)
 }

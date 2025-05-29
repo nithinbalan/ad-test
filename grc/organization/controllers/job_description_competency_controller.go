@@ -46,6 +46,9 @@ func (jdcc *JobDescriptionCompetencyController) MapCompetencies(c *gin.Context) 
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
 		default:
 			utility.SendInternalErrResp(jdcc.db, c, e.Error())
 			return
@@ -85,6 +88,9 @@ func (jdcc *JobDescriptionCompetencyController) UpdateCompetencyDetails(c *gin.C
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
 		default:
 			utility.SendInternalErrResp(jdcc.db, c, e.Error())
 			return
@@ -117,6 +123,9 @@ func (jdcc *JobDescriptionCompetencyController) DeleteCompetency(c *gin.Context)
 		switch e := err.(type) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
 			return
 		default:
 			utility.SendInternalErrResp(jdcc.db, c, e.Error())

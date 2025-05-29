@@ -40,6 +40,7 @@ type OrganizationModule struct {
 	ProcessActivityController               *controllers.ProcessActivityController
 	CompetencyGroupController               *controllers.CompetencyGroupController
 	CompetencyController                    *controllers.CompetencyController
+	CompetencyLevelController               *controllers.CompetencyLevelController
 	JobDescriptionController                *controllers.JobDescriptionController
 	JobDescriptionCompetencyController      *controllers.JobDescriptionCompetencyController
 
@@ -226,6 +227,10 @@ func NewOrganizationModule(
 	competencySvc := services.NewCompetencyService(competencyRepo, sharedModule.ActivityLogService)
 	competencyController := controllers.NewCompetencyController(competencySvc)
 
+	competencyLevelRepo := repositories.NewCompetencyLevelRepository(db)
+	competencyLevelSvc := services.NewCompetencyLevelService(competencyLevelRepo)
+	competencyLevelController := controllers.NewCompetencyLevelController(competencyLevelSvc)
+
 	jobDescriptionRepo := repositories.NewJobDescriptionRepository(db)
 	jobDescriptionSvc := services.NewJobDescriptionService(jobDescriptionRepo, sharedModule.ActivityLogService)
 	jobDescriptionController := controllers.NewJobDescriptionController(jobDescriptionSvc)
@@ -266,6 +271,7 @@ func NewOrganizationModule(
 		ProcessActivityController:               processActivityController,
 		CompetencyGroupController:               competencyGroupController,
 		CompetencyController:                    competencyController,
+		CompetencyLevelController:               competencyLevelController,
 		JobDescriptionController:                jobDescriptionController,
 		JobDescriptionCompetencyController:      jobDescriptionCompetencyController,
 
