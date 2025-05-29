@@ -216,6 +216,7 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 		"policy-approved-overview",
 		"governance-tasks",
 		"conclusion-governance",
+		"compliance-summary",
 		"executive-summary-compliance",
 		"compliance-summary-self-assessment",
 		"overall-compliance-status-by-department-self-assessment",
@@ -1095,6 +1096,8 @@ func formatGRCSectionTitle(sectionType string) (string, string) {
 		return "Governance Tasks & Action Plans", "مهام الحوكمة وخطط العمل"
 	case "conclusion-governance":
 		return "Conclusion - Governance", "الخاتمة - الحوكمة"
+	case "compliance-summary":
+		return "Compliance Summary", "ملخص الامتثال"
 	case "executive-summary-compliance":
 		return "Executive Summary Compliance", "الملخص التنفيذي - الامتثال"
 	case "compliance-summary-self-assessment":
