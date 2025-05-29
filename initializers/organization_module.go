@@ -65,8 +65,30 @@ func NewOrganizationModule(
 	taskModule *TaskModule,
 	commonModule *CommonModule) *OrganizationModule {
 
+	// Competency Group Setup
+	competencyGroupRepo := repositories.NewCompetencyGroupRepository(db)
+	competencyGroupSvc := services.NewCompetencyGroupService(competencyGroupRepo, sharedModule.ActivityLogService)
+	competencyGroupController := controllers.NewCompetencyGroupController(competencyGroupSvc)
+
+	// Competency Setup
+	competencyRepo := repositories.NewCompetencyRepository(db)
+	competencySvc := services.NewCompetencyService(competencyRepo, sharedModule.ActivityLogService)
+	competencyController := controllers.NewCompetencyController(competencySvc)
+
+	competencyLevelRepo := repositories.NewCompetencyLevelRepository(db)
+	competencyLevelSvc := services.NewCompetencyLevelService(competencyLevelRepo)
+	competencyLevelController := controllers.NewCompetencyLevelController(competencyLevelSvc)
+
+	jobDescriptionRepo := repositories.NewJobDescriptionRepository(db)
+	jobDescriptionSvc := services.NewJobDescriptionService(jobDescriptionRepo, sharedModule.ActivityLogService)
+	jobDescriptionController := controllers.NewJobDescriptionController(jobDescriptionSvc)
+
+	jobDescriptionCompetencyRepo := repositories.NewJobDescriptionCompetencyRepository(db)
+	jobDescriptionCompetencySvc := services.NewJobDescriptionCompetencyService(jobDescriptionCompetencyRepo, jobDescriptionSvc, competencyLevelSvc, competencySvc, sharedModule.ActivityLogService)
+	jobDescriptionCompetencyController := controllers.NewJobDescriptionCompetencyController(jobDescriptionCompetencySvc)
+
 	designationRepo := repositories.NewDesignationRepository(db)
-	designationSvc := services.NewDesignationService(designationRepo, sharedModule.ActivityLogService)
+	designationSvc := services.NewDesignationService(designationRepo, sharedModule.ActivityLogService, jobDescriptionSvc)
 	designationController := controllers.NewDesignationController(designationSvc)
 
 	userStatusRepo := repositories.NewUserStatusRepository(db)
@@ -217,27 +239,6 @@ func NewOrganizationModule(
 		commonModule.NotificationService,
 	)
 	processActivityController := controllers.NewProcessActivityController(processActivitySvc)
-	// Competency Group Setup
-	competencyGroupRepo := repositories.NewCompetencyGroupRepository(db)
-	competencyGroupSvc := services.NewCompetencyGroupService(competencyGroupRepo, sharedModule.ActivityLogService)
-	competencyGroupController := controllers.NewCompetencyGroupController(competencyGroupSvc)
-
-	// Competency Setup
-	competencyRepo := repositories.NewCompetencyRepository(db)
-	competencySvc := services.NewCompetencyService(competencyRepo, sharedModule.ActivityLogService)
-	competencyController := controllers.NewCompetencyController(competencySvc)
-
-	competencyLevelRepo := repositories.NewCompetencyLevelRepository(db)
-	competencyLevelSvc := services.NewCompetencyLevelService(competencyLevelRepo)
-	competencyLevelController := controllers.NewCompetencyLevelController(competencyLevelSvc)
-
-	jobDescriptionRepo := repositories.NewJobDescriptionRepository(db)
-	jobDescriptionSvc := services.NewJobDescriptionService(jobDescriptionRepo, sharedModule.ActivityLogService)
-	jobDescriptionController := controllers.NewJobDescriptionController(jobDescriptionSvc)
-
-	jobDescriptionCompetencyRepo := repositories.NewJobDescriptionCompetencyRepository(db)
-	jobDescriptionCompetencySvc := services.NewJobDescriptionCompetencyService(jobDescriptionCompetencyRepo, jobDescriptionSvc)
-	jobDescriptionCompetencyController := controllers.NewJobDescriptionCompetencyController(jobDescriptionCompetencySvc)
 
 	return &OrganizationModule{
 		DesignationController:                   designationController,

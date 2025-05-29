@@ -11,6 +11,7 @@ import (
 type JobDescriptionRepositoryInterface interface {
 	GetAll(sort, sortBy, keyword, status string) ([]*models.JobDescription, error)
 	GetByID(id uint) (*models.JobDescription, error)
+	GetFullDetailsByID(id uint) (*models.JobDescription, error)
 	Create(jobDesc *models.JobDescription) (*models.JobDescription, error)
 	Update(id uint, updatedJobDesc *models.JobDescription) (*models.JobDescription, error)
 	Delete(id uint) error
@@ -59,6 +60,20 @@ func (repo *JobDescriptionRepository) GetByID(id uint) (*models.JobDescription, 
 		return nil, err
 	}
 	return &jobDesc, nil
+}
+
+func (repo *JobDescriptionRepository) GetFullDetailsByID(id uint) (*models.JobDescription, error) {
+	var jd models.JobDescription
+	err := repo.db.
+		Preload("Competencies.Competency").
+		Preload("Competencies.Competency.CompetencyGroup").
+		Preload("Competencies.CompetencyLevel").
+		Preload("Competencies.Certifications").
+		First(&jd, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &jd, nil
 }
 
 func (repo *JobDescriptionRepository) Create(jobDesc *models.JobDescription) (*models.JobDescription, error) {

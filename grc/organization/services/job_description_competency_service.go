@@ -1,6 +1,8 @@
 package services
 
 import (
+	"fmt"
+	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/organization/dtos"
 	"jethur/grc/organization/repositories"
@@ -14,23 +16,37 @@ type JobDescriptionCompetencyServiceInterface interface {
 }
 
 type JobDescriptionCompetencyService struct {
-	repo      repositories.JobDescriptionCompetencyRepositoryInterface
-	jdService JobDescriptionServiceInterface
+	repo               repositories.JobDescriptionCompetencyRepositoryInterface
+	jdService          JobDescriptionServiceInterface
+	competencyLevelSvc CompetencyLevelServiceInterface
+	competencySvc      CompetencyServiceInterface
+	activityLogSvc     services.ActivityLogServiceInterface
 }
 
 func NewJobDescriptionCompetencyService(
 	repo repositories.JobDescriptionCompetencyRepositoryInterface,
 	jdService JobDescriptionServiceInterface,
+	competencyLevelSvc CompetencyLevelServiceInterface,
+	competencySvc CompetencyServiceInterface,
+	activityLogSvc services.ActivityLogServiceInterface,
 ) JobDescriptionCompetencyServiceInterface {
 	return &JobDescriptionCompetencyService{
-		repo:      repo,
-		jdService: jdService,
+		repo:               repo,
+		jdService:          jdService,
+		competencyLevelSvc: competencyLevelSvc,
+		competencySvc:      competencySvc,
+		activityLogSvc:     activityLogSvc,
 	}
 }
 
 func (jdcs *JobDescriptionCompetencyService) MapCompetencies(jobDescriptionID uint, currentUserID uint, input *dtos.JobDescriptionMapCompetenciesDTO) error {
 	// Validate JD existence via service
 	if _, err := jdcs.jdService.GetByID(jobDescriptionID); err != nil {
+		return err
+	}
+
+	// Validate competencies
+	if err := jdcs.validateCompetencyIDs(input.CompetencyIDs); err != nil {
 		return err
 	}
 
@@ -48,14 +64,27 @@ func (jdcs *JobDescriptionCompetencyService) MapCompetencies(jobDescriptionID ui
 			return err
 		}
 	}
-
+	go func() {
+		ids := make([]uint, len(jdCompetencies))
+		for i, jc := range jdCompetencies {
+			ids[i] = jc.ID
+		}
+		err := jdcs.activityLogSvc.LogBulkActivities(models.CreateAction, models.JobDescriptionCompetency{}.TableName(), ids, jdCompetencies, currentUserID, nil)
+		if err != nil {
+			utility.LogError("Failed to log JD Competency map activity", map[string]interface{}{"error": err})
+		}
+	}()
 	return nil
 }
+
 func (jdcs *JobDescriptionCompetencyService) UpdateCompetencyDetails(jdcID uint, currentUserID uint, input *dtos.UpdateJDCompetencyDTO) error {
 	// Fetch existing competency
 	existing, err := jdcs.repo.GetByID(jdcID)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, jdcID)
+	}
+	oldData := map[string]interface{}{
+		"competency_level_id": existing.CompetencyLevelID,
 	}
 	existing.CompetencyLevelID = &input.CompetencyLevelID
 	existing.UpdatedByID = &currentUserID
@@ -130,12 +159,20 @@ func (jdcs *JobDescriptionCompetencyService) UpdateCompetencyDetails(jdcID uint,
 			return err
 		}
 	}
-
+	changed := utility.CompareFieldChanges(oldData, map[string]interface{}{
+		"competency_level_id": input.CompetencyLevelID,
+	})
+	go func() {
+		if len(changed) > 0 {
+			_ = jdcs.activityLogSvc.LogActivity(models.UpdateAction, models.JobDescriptionCompetency{}.TableName(), jdcID, changed, currentUserID, nil)
+		}
+	}()
 	return nil
 }
 
 func (jdcs *JobDescriptionCompetencyService) DeleteCompetency(jdcID uint, currentUserID uint) error {
-	if _, err := jdcs.repo.GetByID(jdcID); err != nil {
+	existing, err := jdcs.repo.GetByID(jdcID)
+	if err != nil {
 		return utility.NewResourceNotFoundError(err, jdcID)
 	}
 
@@ -143,7 +180,30 @@ func (jdcs *JobDescriptionCompetencyService) DeleteCompetency(jdcID uint, curren
 	if err := jdcs.repo.DeleteCertifications(jdcID); err != nil {
 		return err
 	}
-
+	go func() {
+		_ = jdcs.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.JobDescriptionCompetency{}.TableName(),
+			jdcID,
+			existing,
+			currentUserID,
+			nil,
+		)
+	}()
 	// Then delete the competency
 	return jdcs.repo.Delete(jdcID)
+}
+
+func (jdcs *JobDescriptionCompetencyService) validateCompetencyIDs(competencyIDs []uint) error {
+	seen := make(map[uint]bool)
+	for _, compID := range competencyIDs {
+		if seen[compID] {
+			return utility.NewValidationError(fmt.Errorf("duplicate competency ID: %d", compID), "duplicate", "competency_ids")
+		}
+		if _, err := jdcs.competencySvc.GetByID(compID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("competency does not exist for ID: %d", compID), "not_exist", "competency_ids")
+		}
+		seen[compID] = true
+	}
+	return nil
 }

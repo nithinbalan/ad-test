@@ -33,14 +33,18 @@ type DesignationServiceInterface interface {
 
 // Service and implementations
 type DesignationService struct {
-	repo           repositories.DesignationRepositoryInterface
-	activityLogSvc services.ActivityLogServiceInterface
+	repo              repositories.DesignationRepositoryInterface
+	activityLogSvc    services.ActivityLogServiceInterface
+	jobDescriptionSvc JobDescriptionServiceInterface
 }
 
-func NewDesignationService(repo repositories.DesignationRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) DesignationServiceInterface {
+func NewDesignationService(repo repositories.DesignationRepositoryInterface,
+	activityLogSvc services.ActivityLogServiceInterface,
+	jobDescriptionSvc JobDescriptionServiceInterface) DesignationServiceInterface {
 	return &DesignationService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
+		repo:              repo,
+		activityLogSvc:    activityLogSvc,
+		jobDescriptionSvc: jobDescriptionSvc,
 	}
 }
 
@@ -68,11 +72,11 @@ func (ds *DesignationService) Create(currentUserID uint, designation *models.Des
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 	// Optional: validate JobDescriptionID exists
-	// if designation.JobDescriptionID != nil {
-	// 	if _, err := ds.jobDescriptionSvc.GetByID(*designation.JobDescriptionID); err != nil {
-	// 		return nil, utility.NewValidationError(fmt.Errorf("invalid job_description_id"), "invalid", "job_description_id")
-	// 	}
-	// }
+	if designation.JobDescriptionID != nil {
+		if _, err := ds.jobDescriptionSvc.GetByID(*designation.JobDescriptionID); err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid job_description_id"), "invalid", "job_description_id")
+		}
+	}
 
 	createdDesignation, err := ds.repo.Create(designation)
 	if err != nil {
@@ -113,11 +117,11 @@ func (ds *DesignationService) Update(id uint, currentUserID uint, updatedDesigna
 		}
 
 	}
-	// if updatedDesignation.JobDescriptionID != nil {
-	// 	if _, err := ds.jobDescriptionSvc.GetByID(*updatedDesignation.JobDescriptionID); err != nil {
-	// 		return nil, utility.NewValidationError(fmt.Errorf("invalid job_description_id"), "invalid", "job_description_id")
-	// 	}
-	// }
+	if updatedDesignation.JobDescriptionID != nil {
+		if _, err := ds.jobDescriptionSvc.GetByID(*updatedDesignation.JobDescriptionID); err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid job_description_id"), "invalid", "job_description_id")
+		}
+	}
 	result, err := ds.repo.Update(id, updatedDesignation)
 
 	if err != nil {
