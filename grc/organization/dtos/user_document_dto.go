@@ -45,6 +45,13 @@ type UserDocumentListDTO struct {
 	UpdatedAt                   *time.Time `json:"updated_at"`
 }
 
+type GroupedUserDocumentDTO struct {
+	UserDocumentTypeID      string                 `json:"document_type_id"`
+	UserDocumentTypeTitleEn string                 `json:"document_type_title_en"`
+	UserDocumentTypeTitleAr string                 `json:"document_type_title_ar"`
+	Documents               []*UserDocumentListDTO `json:"documents"`
+}
+
 type UserDocumentListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
