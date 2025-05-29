@@ -1771,9 +1771,8 @@ func (us *UserService) GetUsersFromAD() ([]userDTOs.ADUserFlatDTO, error) {
 		email := entry.GetAttributeValue("mail")
 		distinguishedName := entry.GetAttributeValue("distinguishedName")
 		designationTitle := entry.GetAttributeValue("title")
-
 		// ✅ Skip users with missing important fields
-		if email == "" || firstName == "" || lastName == "" {
+		if email == "" {
 			continue
 		}
 
