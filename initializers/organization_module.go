@@ -41,6 +41,9 @@ type OrganizationModule struct {
 	CompetencyGroupController               *controllers.CompetencyGroupController
 	CompetencyController                    *controllers.CompetencyController
 	JobDescriptionController                *controllers.JobDescriptionController
+	UserDocumentTypeController              *controllers.UserDocumentTypeController
+	UserDocumentSubTypeController           *controllers.UserDocumentSubTypeController
+	UserDocumentController                  *controllers.UserDocumentController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -229,6 +232,18 @@ func NewOrganizationModule(
 	jobDescriptionSvc := services.NewJobDescriptionService(jobDescriptionRepo, sharedModule.ActivityLogService)
 	jobDescriptionController := controllers.NewJobDescriptionController(jobDescriptionSvc)
 
+	userDocumentTypeRepo := repositories.NewUserDocumentTypeRepository(db)
+	userDocumentTypeSvc := services.NewUserDocumentTypeService(userDocumentTypeRepo, sharedModule.ActivityLogService)
+	userDocumentTypeController := controllers.NewUserDocumentTypeController(userDocumentTypeSvc)
+
+	userDocumentSubTypeRepo := repositories.NewUserDocumentSubTypeRepository(db)
+	userDocumentSubTypeSvc := services.NewUserDocumentSubTypeService(userDocumentSubTypeRepo, userDocumentTypeSvc, sharedModule.ActivityLogService)
+	userDocumentSubTypeController := controllers.NewUserDocumentSubTypeController(userDocumentSubTypeSvc)
+
+	userDocumentRepo := repositories.NewUserDocumentRepository(db)
+	userDocumentSvc := services.NewUserDocumentService(userDocumentRepo, userDocumentTypeSvc, userDocumentSubTypeSvc, sharedModule.ActivityLogService, userSvc)
+	userDocumentController := controllers.NewUserDocumentController(userDocumentSvc)
+
 	return &OrganizationModule{
 		DesignationController:                   designationController,
 		UserStatusController:                    userStatusController,
@@ -262,6 +277,9 @@ func NewOrganizationModule(
 		CompetencyGroupController:               competencyGroupController,
 		CompetencyController:                    competencyController,
 		JobDescriptionController:                jobDescriptionController,
+		UserDocumentTypeController:              userDocumentTypeController,
+		UserDocumentSubTypeController:           userDocumentSubTypeController,
+		UserDocumentController:                  userDocumentController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,
