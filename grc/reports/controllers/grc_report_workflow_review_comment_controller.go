@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/reports/dtos"
@@ -29,8 +30,38 @@ func (grwrcc *GRCReportWorkflowReviewCommentController) GetAllComments(c *gin.Co
 		utility.SendNotFoundErrResp(c)
 		return
 	}
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "comment")
+	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
+	section := c.Query("type")
 
-	comments, err := grwrcc.service.GetAll(uint(grcReportID))
+	allowedParams := []string{
+		"grc_report_workflow_ids",
+	}
+	validSortFields := map[string]string{
+		"comment": "grc_report_workflow_review_comments.comment",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	queryParams := dtos.GRCReportWorkflowReviewCommentListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortField,
+		Keyword:     keyword,
+		Filters:     filters,
+		QuickFilter: quickFilter,
+		Section:     section,
+	}
+
+	comments, err := grwrcc.service.GetAll(uint(grcReportID), &queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
