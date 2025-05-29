@@ -46,6 +46,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	processActivityController := app.OrganizationModule.ProcessActivityController
 	competencyGroupController := app.OrganizationModule.CompetencyGroupController
 	competencyController := app.OrganizationModule.CompetencyController
+	jobDescriptionController := app.OrganizationModule.JobDescriptionController
 
 	//Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
@@ -316,5 +317,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/competencies/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), competencyController.DeleteCompetencies)
 	organizationRoutes.PUT("/competencies/activate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), competencyController.ActivateCompetencies)
 	organizationRoutes.PUT("/competencies/deactivate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), competencyController.DeactivateCompetencies)
+
+	organizationRoutes.GET("/job-descriptions", jobDescriptionController.GetAllJobDescriptions)
+	organizationRoutes.GET("/job-descriptions/:id", jobDescriptionController.GetJobDescriptionDetails)
+	organizationRoutes.POST("/job-descriptions", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), jobDescriptionController.CreateJobDescription)
+	organizationRoutes.PUT("/job-descriptions/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), jobDescriptionController.UpdateJobDescription)
+	organizationRoutes.POST("/job-descriptions/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), jobDescriptionController.DeleteJobDescription)
+	organizationRoutes.PUT("/job-descriptions/activate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), jobDescriptionController.ActivateJobDescriptions)
+	organizationRoutes.PUT("/job-descriptions/deactivate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), jobDescriptionController.DeactivateJobDescriptions)
 
 }

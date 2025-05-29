@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/reports/dtos"
@@ -22,15 +23,45 @@ func NewGRCReportWorkflowReviewCommentController(service services.GRCReportWorkf
 	return &GRCReportWorkflowReviewCommentController{service: service}
 }
 
-func (grwgrwrcc *GRCReportWorkflowReviewCommentController) GetAllComments(c *gin.Context) {
+func (grwrcc *GRCReportWorkflowReviewCommentController) GetAllComments(c *gin.Context) {
 	grcReportIDStr := c.Param("grcReportId")
 	grcReportID, err := strconv.ParseUint(grcReportIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "comment")
+	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
+	section := c.Query("type")
 
-	comments, err := grwgrwrcc.service.GetAll(uint(grcReportID))
+	allowedParams := []string{
+		"grc_report_workflow_ids",
+	}
+	validSortFields := map[string]string{
+		"comment": "grc_report_workflow_review_comments.comment",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	queryParams := dtos.GRCReportWorkflowReviewCommentListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortField,
+		Keyword:     keyword,
+		Filters:     filters,
+		QuickFilter: quickFilter,
+		Section:     section,
+	}
+
+	comments, err := grwrcc.service.GetAll(uint(grcReportID), &queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -40,7 +71,7 @@ func (grwgrwrcc *GRCReportWorkflowReviewCommentController) GetAllComments(c *gin
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(grwgrwrcc.db, c, e.Error())
+			utility.SendInternalErrResp(grwrcc.db, c, e.Error())
 			return
 		}
 	}
@@ -205,7 +236,7 @@ func (grwrcc *GRCReportWorkflowReviewCommentController) DeleteComment(c *gin.Con
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (grwgrwrcc *GRCReportWorkflowReviewCommentController) GRCReportWorkflowReviewCommentResolve(c *gin.Context) {
+func (grwrcc *GRCReportWorkflowReviewCommentController) GRCReportWorkflowReviewCommentResolve(c *gin.Context) {
 
 	grcReportID, err := strconv.Atoi(c.Param("grcReportId"))
 	if err != nil {
@@ -221,11 +252,11 @@ func (grwgrwrcc *GRCReportWorkflowReviewCommentController) GRCReportWorkflowRevi
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(grwgrwrcc.db, c, err.Error())
+		utility.SendInternalErrResp(grwrcc.db, c, err.Error())
 		return
 	}
 
-	err = grwgrwrcc.service.GRCReportSectionCommentResolve(uint(grcReportID), uint(commentID), currentUserID)
+	err = grwrcc.service.GRCReportSectionCommentResolve(uint(grcReportID), uint(commentID), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -237,7 +268,7 @@ func (grwgrwrcc *GRCReportWorkflowReviewCommentController) GRCReportWorkflowRevi
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(grwgrwrcc.db, c, e.Error())
+			utility.SendInternalErrResp(grwrcc.db, c, e.Error())
 			return
 		}
 	}
@@ -245,7 +276,7 @@ func (grwgrwrcc *GRCReportWorkflowReviewCommentController) GRCReportWorkflowRevi
 	c.Status(http.StatusOK)
 }
 
-func (grwgrwrcc *GRCReportWorkflowReviewCommentController) GRCReportWorkflowReviewCommentClose(c *gin.Context) {
+func (grwrcc *GRCReportWorkflowReviewCommentController) GRCReportWorkflowReviewCommentClose(c *gin.Context) {
 
 	grcReportID, err := strconv.Atoi(c.Param("grcReportId"))
 	if err != nil {
@@ -261,11 +292,11 @@ func (grwgrwrcc *GRCReportWorkflowReviewCommentController) GRCReportWorkflowRevi
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(grwgrwrcc.db, c, err.Error())
+		utility.SendInternalErrResp(grwrcc.db, c, err.Error())
 		return
 	}
 
-	err = grwgrwrcc.service.GRCReportSectionCommentClose(uint(grcReportID), uint(commentID), currentUserID)
+	err = grwrcc.service.GRCReportSectionCommentClose(uint(grcReportID), uint(commentID), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -277,7 +308,7 @@ func (grwgrwrcc *GRCReportWorkflowReviewCommentController) GRCReportWorkflowRevi
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(grwgrwrcc.db, c, e.Error())
+			utility.SendInternalErrResp(grwrcc.db, c, e.Error())
 			return
 		}
 	}
@@ -285,7 +316,7 @@ func (grwgrwrcc *GRCReportWorkflowReviewCommentController) GRCReportWorkflowRevi
 	c.Status(http.StatusOK)
 }
 
-func (grwgrwrcc *GRCReportWorkflowReviewCommentController) GRCReportSectionReviewed(c *gin.Context) {
+func (grwrcc *GRCReportWorkflowReviewCommentController) GRCReportSectionReviewed(c *gin.Context) {
 
 	fmt.Println("123")
 	var commentForm dtos.GRCReportWorkflowReviewCommentFormDTO
@@ -303,11 +334,11 @@ func (grwgrwrcc *GRCReportWorkflowReviewCommentController) GRCReportSectionRevie
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(grwgrwrcc.db, c, err.Error())
+		utility.SendInternalErrResp(grwrcc.db, c, err.Error())
 		return
 	}
 
-	err = grwgrwrcc.service.GRCReportSectionReviewed(uint(grcReportID), currentUserID, &commentForm)
+	err = grwrcc.service.GRCReportSectionReviewed(uint(grcReportID), currentUserID, &commentForm)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -319,7 +350,7 @@ func (grwgrwrcc *GRCReportWorkflowReviewCommentController) GRCReportSectionRevie
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(grwgrwrcc.db, c, e.Error())
+			utility.SendInternalErrResp(grwrcc.db, c, e.Error())
 			return
 		}
 	}
@@ -327,7 +358,7 @@ func (grwgrwrcc *GRCReportWorkflowReviewCommentController) GRCReportSectionRevie
 	c.Status(http.StatusOK)
 }
 
-func (grwgrwrcc *GRCReportWorkflowReviewCommentController) GRCReportSectionApproved(c *gin.Context) {
+func (grwrcc *GRCReportWorkflowReviewCommentController) GRCReportSectionApproved(c *gin.Context) {
 	var commentForm dtos.GRCReportWorkflowReviewCommentFormDTO
 
 	grcReportID, err := strconv.Atoi(c.Param("grcReportId"))
@@ -343,11 +374,11 @@ func (grwgrwrcc *GRCReportWorkflowReviewCommentController) GRCReportSectionAppro
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(grwgrwrcc.db, c, err.Error())
+		utility.SendInternalErrResp(grwrcc.db, c, err.Error())
 		return
 	}
 
-	err = grwgrwrcc.service.GRCReportSectionApproved(uint(grcReportID), currentUserID, &commentForm)
+	err = grwrcc.service.GRCReportSectionApproved(uint(grcReportID), currentUserID, &commentForm)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -359,7 +390,7 @@ func (grwgrwrcc *GRCReportWorkflowReviewCommentController) GRCReportSectionAppro
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(grwgrwrcc.db, c, e.Error())
+			utility.SendInternalErrResp(grwrcc.db, c, e.Error())
 			return
 		}
 	}

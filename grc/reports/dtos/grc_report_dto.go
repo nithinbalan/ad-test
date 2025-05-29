@@ -9,20 +9,34 @@ import (
 )
 
 type GRCReportListDTO struct {
-	ID                          uint   `json:"id"`
-	Title                       string `json:"title"`
-	StartDate                   string `json:"start_date"`
-	EndDate                     string `json:"end_date"`
-	CreatedAt                   string `json:"created_at"`
-	CreatedUserID               uint   `json:"created_user_id"`
-	CreatedUserFirstNameEn      string `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr      string `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn       string `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr       string `json:"created_user_last_name_ar"`
-	CreatedUserInitial          string `json:"created_user_initial"`
-	CreatedUserColor            string `json:"created_user_color"`
-	CreatedUserEmail            string `json:"created_user_email"`
-	CreatedUserProfileImagePath string `json:"created_user_profile_image_path"`
+	ID                          uint       `json:"id"`
+	Title                       string     `json:"title"`
+	StartDate                   string     `json:"start_date"`
+	EndDate                     string     `json:"end_date"`
+	CreatedAt                   string     `json:"created_at"`
+	CreatedUserID               uint       `json:"created_user_id"`
+	CreatedUserFirstNameEn      string     `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr      string     `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn       string     `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr       string     `json:"created_user_last_name_ar"`
+	CreatedUserInitial          string     `json:"created_user_initial"`
+	CreatedUserColor            string     `json:"created_user_color"`
+	CreatedUserEmail            string     `json:"created_user_email"`
+	CreatedUserProfileImagePath string     `json:"created_user_profile_image_path"`
+	ReviewUserID                *uint      `json:"review_user_id"`
+	ApproveUserID               *uint      `json:"approve_user_id"`
+	ReviewUserFirstNameEn       *string    `json:"review_user_first_name_en"`
+	ReviewUserFirstNameAr       *string    `json:"review_user_first_name_ar"`
+	ReviewUserLastNameEn        *string    `json:"review_user_last_name_en"`
+	ReviewUserLastNameAr        *string    `json:"review_user_last_name_ar"`
+	ReviewUserInitial           *string    `json:"review_user_initial"`
+	ApproveUserFirstNameEn      *string    `json:"approve_user_first_name_en"`
+	ApproveUserFirstNameAr      *string    `json:"approve_user_first_name_ar"`
+	ApproveUserLastNameEn       *string    `json:"approve_user_last_name_en"`
+	ApproveUserLastNameAr       *string    `json:"approve_user_last_name_ar"`
+	ApproveUserInitial          *string    `json:"approve_user_initial"`
+	ReviewedAt                  *time.Time `json:"reviewed_at"`
+	ApprovedAt                  *time.Time `json:"approved_at"`
 }
 
 type GRCReportListQueryParamsDTO struct {
@@ -60,6 +74,10 @@ type GRCReportDetailDTO struct {
 	ComplianceSummary      []*GRCReportComplianceSummaryDTO      `json:"compliance_summary"`
 	SLA                    []*GRCReportSLAResponseDTO            `json:"sla"`
 	SectionWorkflow        []*GRCReportSectionWorkflowDTO        `json:"section_workflow"`
+	ReviewUser             *organizationDTOs.UserMinimalDTO      `json:"review_user"`
+	ApproveUser            *organizationDTOs.UserMinimalDTO      `json:"approve_user"`
+	ReviewedAt             *time.Time                            `json:"reviewed_at"`
+	ApprovedAt             *time.Time                            `json:"approved_at"`
 }
 
 type GRCReportSectionResponseDTO struct {

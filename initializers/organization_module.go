@@ -40,6 +40,7 @@ type OrganizationModule struct {
 	ProcessActivityController               *controllers.ProcessActivityController
 	CompetencyGroupController               *controllers.CompetencyGroupController
 	CompetencyController                    *controllers.CompetencyController
+	JobDescriptionController                *controllers.JobDescriptionController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -51,6 +52,7 @@ type OrganizationModule struct {
 	ControlEfficiencyStatusSvc     services.ControlEfficiencyStatusServiceInterface
 	ProcessAssociatedItemSvc       services.ProcessAssociatedItemServiceInterface
 	ProcessDependencySvc           services.ProcessDependencyServiceInterface
+	JobDescriptionSvc              services.JobDescriptionServiceInterface
 }
 
 func NewOrganizationModule(
@@ -223,6 +225,10 @@ func NewOrganizationModule(
 	competencySvc := services.NewCompetencyService(competencyRepo, sharedModule.ActivityLogService)
 	competencyController := controllers.NewCompetencyController(competencySvc)
 
+	jobDescriptionRepo := repositories.NewJobDescriptionRepository(db)
+	jobDescriptionSvc := services.NewJobDescriptionService(jobDescriptionRepo, sharedModule.ActivityLogService)
+	jobDescriptionController := controllers.NewJobDescriptionController(jobDescriptionSvc)
+
 	return &OrganizationModule{
 		DesignationController:                   designationController,
 		UserStatusController:                    userStatusController,
@@ -255,6 +261,7 @@ func NewOrganizationModule(
 		ProcessActivityController:               processActivityController,
 		CompetencyGroupController:               competencyGroupController,
 		CompetencyController:                    competencyController,
+		JobDescriptionController:                jobDescriptionController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,
@@ -266,5 +273,6 @@ func NewOrganizationModule(
 		ControlEfficiencyStatusSvc:     controlEfficiencyStatusSvc,
 		ProcessAssociatedItemSvc:       processAssociatedItemSvc,
 		ProcessDependencySvc:           processDependencySvc,
+		JobDescriptionSvc:              jobDescriptionSvc,
 	}
 }
