@@ -24,10 +24,12 @@ type StakeholderListDTO struct {
 	InfluenceLevelTitleEn       *string `json:"influence_level_title_en"`
 	InfluenceLevelTitleAr       *string `json:"influence_level_title_ar"`
 	InfluenceLevelType          *string `json:"influence_level_type"`
+	InfluenceLevelColorCode     *string `json:"influence_level_color_code"`
 	ImpactLevelID               *uint   `json:"impact_level_id"`
 	ImpactLevelTitleEn          *string `json:"impact_level_title_en"`
 	ImpactLevelTitleAr          *string `json:"impact_level_title_ar"`
 	ImpactLevelType             *string `json:"impact_level_type"`
+	ImpactLevelColorCode        *string `json:"impact_level_color_code"`
 	ContactInformation          *string `json:"contact_information"`
 	OrganizationUnitID          *uint   `json:"organization_unit_id"`
 	OrganizationUnitTitleEn     *string `json:"organization_unit_title_en"`

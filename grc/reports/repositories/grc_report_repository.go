@@ -78,6 +78,9 @@ type GRCReportRepositoryInterface interface {
 
 	GetGRCReportComplianceSummary(grcReportID uint) ([]*models.GRCReportComplianceSummary, error)
 	GetGRCReportSLA(grcReportID uint) ([]*dtos.GRCReportSLAResponseDTO, error)
+
+	CreateGRCReportSectionWorkflow(workflows []*models.GRCReportWorkflow, tx ...utility.DatabaseTransaction) error
+	GetGRCReportSectionWorkflow(grcReportID uint) ([]*models.GRCReportWorkflow, error)
 }
 
 type GRCReportRepository struct {
@@ -1163,4 +1166,34 @@ func (repo *GRCReportRepository) UpdateGRCReportRisk(risk *models.GRCReportRiskT
 		db = tx[0].DB()
 	}
 	return db.Save(risk).Error
+}
+
+func (repo *GRCReportRepository) CreateGRCReportSectionWorkflow(workflows []*models.GRCReportWorkflow, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	// Save all documents in a single transaction
+	if err := db.Create(&workflows).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *GRCReportRepository) GetGRCReportSectionWorkflow(grcReportID uint) ([]*models.GRCReportWorkflow, error) {
+	var summary []*models.GRCReportWorkflow
+	err := repo.db.
+		Preload("GRCReportWorkflowStatus").
+		Preload("ApproveUser").
+		Preload("ReviewUser").
+		Preload("GRCReportWorkflowReviewComments", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("GRCReportCommentStatus").Preload("GRCReportWorkflowStatus").Preload("ResolvedUser").Preload("CreatedByUser")
+		}).
+		Where("grc_report_id = ?", grcReportID).
+		Find(&summary).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return summary, nil
 }
