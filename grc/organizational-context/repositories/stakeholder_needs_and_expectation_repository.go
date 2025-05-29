@@ -145,6 +145,9 @@ func (repo *StakeholderNeedsAndExpectationRepository) GetFullDetailsByID(id uint
 		Preload("Stakeholder.Client").
 		Preload("Stakeholder.User").
 		Preload("Evaluations").
+		Preload("Evaluations.EvaluationStatus").
+		Preload("Evaluations.EvaluatedByUser").
+		Preload("Evaluations.CreatedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&stakeholderNeedsAndExpectation, id)
