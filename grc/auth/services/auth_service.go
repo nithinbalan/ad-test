@@ -519,27 +519,20 @@ func (as *AuthService) LoginWithActiveDirectory(email, password, ip, location, d
 	defer l.Close()
 
 	if err := l.Bind(adSetting.BindDN, string(decryptedBindPwd)); err != nil {
-		return nil, fmt.Errorf("Bind failed: %w", err)
+		return nil, fmt.Errorf("bind failed: %w", err)
 	}
 
 	searchReq := ldap.NewSearchRequest(
 		adSetting.BaseDN,
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		fmt.Sprintf("(mail=%s)", email),
-		[]string{"dn", "cn", "displayName", "mail"},
+		[]string{"givenName", "sn", "mail", "distinguishedName", "title"},
 		nil,
 	)
 
 	sr, err := l.Search(searchReq)
 	if err != nil || len(sr.Entries) == 0 {
 		return nil, fmt.Errorf("AD user not found: %w", err)
-	}
-
-	userDN := sr.Entries[0].DN
-
-	if err := l.Bind(userDN, password); err != nil {
-		// _ = as.userService.CreateUserLoginHistory(nil, "failed", ip, location, device, browser)
-		return nil, fmt.Errorf("AD login failed: %w", err)
 	}
 
 	user, err := as.userService.GetByEmail(email)

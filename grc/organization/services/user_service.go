@@ -1278,8 +1278,8 @@ func (us *UserService) ImportUsers(input []map[string]interface{}, currentUserID
 		user := &models.User{
 			FirstNameEn:   record["first_name_en"].(string),
 			LastNameEn:    record["last_name_en"].(string),
-			FirstNameAr:   record["first_name_ar"].(string),
-			LastNameAr:    record["last_name_ar"].(string),
+			FirstNameAr:   record["first_name_en"].(string),
+			LastNameAr:    record["last_name_en"].(string),
 			Email:         record["email"].(string),
 			MobileNumber:  utility.GetOptionalStringValue(record["mobile_number"]),
 			DesignationID: record["designation_id"].(uint),
@@ -1411,7 +1411,7 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 			value, _ := record[header].(string)
 			value = strings.TrimSpace(value)
 			switch header {
-			case "first_name_en", "last_name_en", "first_name_ar", "last_name_ar":
+			case "first_name_en", "last_name_en":
 				if value == "" {
 					rowErrors[header] = "Field is required"
 				}
@@ -1771,9 +1771,8 @@ func (us *UserService) GetUsersFromAD() ([]userDTOs.ADUserFlatDTO, error) {
 		email := entry.GetAttributeValue("mail")
 		distinguishedName := entry.GetAttributeValue("distinguishedName")
 		designationTitle := entry.GetAttributeValue("title")
-
 		// ✅ Skip users with missing important fields
-		if email == "" || firstName == "" || lastName == "" {
+		if email == "" {
 			continue
 		}
 
