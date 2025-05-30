@@ -38,9 +38,11 @@ func (grwrcc *GRCReportWorkflowReviewCommentController) GetAllComments(c *gin.Co
 
 	allowedParams := []string{
 		"grc_report_workflow_ids",
+		"created_at",
 	}
 	validSortFields := map[string]string{
-		"comment": "grc_report_workflow_review_comments.comment",
+		"comment":    "grc_report_workflow_review_comments.comment",
+		"created_at": "grc_report_workflow_review_comments.created_at",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

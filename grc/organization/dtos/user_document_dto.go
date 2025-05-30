@@ -8,10 +8,10 @@ import (
 type UserDocumentListDTO struct {
 	ID                          uint       `json:"id"`
 	UserID                      uint       `json:"user_id"`
-	UserDocumentTypeID          string     `json:"user_document_type_id"`
+	UserDocumentTypeID          uint       `json:"user_document_type_id"`
 	UserDocumentTypeTitleEn     string     `json:"user_document_type_title_en"`
 	UserDocumentTypeTitleAr     string     `json:"user_document_type_title_ar"`
-	UserDocumentSubTypeID       string     `json:"user_document_sub_type_id"`
+	UserDocumentSubTypeID       uint       `json:"user_document_sub_type_id"`
 	UserDocumentSubTypeTitleEn  string     `json:"user_document_sub_type_title_en"`
 	UserDocumentSubTypeTitleAr  string     `json:"user_document_sub_type_title_ar"`
 	ExpiryDate                  string     `json:"expiry_date"`
@@ -46,7 +46,7 @@ type UserDocumentListDTO struct {
 }
 
 type GroupedUserDocumentDTO struct {
-	UserDocumentTypeID      string                 `json:"document_type_id"`
+	UserDocumentTypeID      uint                   `json:"document_type_id"`
 	UserDocumentTypeTitleEn string                 `json:"document_type_title_en"`
 	UserDocumentTypeTitleAr string                 `json:"document_type_title_ar"`
 	Documents               []*UserDocumentListDTO `json:"documents"`

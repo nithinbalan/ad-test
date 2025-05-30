@@ -91,9 +91,10 @@ func (repo *GRCReportWorkflowReviewCommentRepository) GetAll(grcReportID uint, p
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc" // Default order is ascending if not specified
 	}
+	query = query.Order(params.SortBy + " " + params.Sort)
 
 	if params.Section != "" {
-		query = query.Where("grc_report_workflows.type >= ?", params.Section)
+		query = query.Where("grc_report_workflows.type = ?", params.Section)
 	}
 
 	if err := query.Find(&comments).Error; err != nil {
