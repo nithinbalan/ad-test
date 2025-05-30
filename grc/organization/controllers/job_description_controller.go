@@ -46,7 +46,7 @@ func (jdc *JobDescriptionController) GetJobDescriptionDetails(c *gin.Context) {
 		return
 	}
 
-	jobDescription, err := jdc.service.GetByID(uint(id))
+	jobDescription, err := jdc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return

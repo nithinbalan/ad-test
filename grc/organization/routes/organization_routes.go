@@ -49,6 +49,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	competencyGroupController := app.OrganizationModule.CompetencyGroupController
 	competencyController := app.OrganizationModule.CompetencyController
 	jobDescriptionController := app.OrganizationModule.JobDescriptionController
+	jobDescriptionCompetencyController := app.OrganizationModule.JobDescriptionCompetencyController
+	competencyLevelController := app.OrganizationModule.CompetencyLevelController
 	userDocumentTypeController := app.OrganizationModule.UserDocumentTypeController
 	userDocumentSubTypeController := app.OrganizationModule.UserDocumentSubTypeController
 	userDocumentController := app.OrganizationModule.UserDocumentController
@@ -323,6 +325,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/competencies/activate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), competencyController.ActivateCompetencies)
 	organizationRoutes.PUT("/competencies/deactivate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), competencyController.DeactivateCompetencies)
 
+	organizationRoutes.GET("/competency-levels", competencyLevelController.GetAllCompetencyLevels)
+	organizationRoutes.GET("/competency-levels/:id", competencyLevelController.GetCompetencyLevelDetails)
+
 	organizationRoutes.GET("/job-descriptions", jobDescriptionController.GetAllJobDescriptions)
 	organizationRoutes.GET("/job-descriptions/:id", jobDescriptionController.GetJobDescriptionDetails)
 	organizationRoutes.POST("/job-descriptions", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), jobDescriptionController.CreateJobDescription)
@@ -331,6 +336,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/job-descriptions/activate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), jobDescriptionController.ActivateJobDescriptions)
 	organizationRoutes.PUT("/job-descriptions/deactivate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), jobDescriptionController.DeactivateJobDescriptions)
 
+	organizationRoutes.POST("/job-descriptions/:id/competencies", jobDescriptionCompetencyController.MapCompetencies)
+	organizationRoutes.PUT("/job-descriptions/:id/competencies/:cId", jobDescriptionCompetencyController.UpdateCompetencyDetails)
+	organizationRoutes.DELETE("/job-descriptions/:id/competencies/:cId", jobDescriptionCompetencyController.DeleteCompetency)
 	// user document type
 	organizationRoutes.GET("/user-document-types", userDocumentTypeController.GetAllUserDocumentTypes)
 	organizationRoutes.GET("/user-document-types/:id", userDocumentTypeController.GetUserDocumentTypeDetails)

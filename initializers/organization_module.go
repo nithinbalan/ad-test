@@ -40,7 +40,9 @@ type OrganizationModule struct {
 	ProcessActivityController               *controllers.ProcessActivityController
 	CompetencyGroupController               *controllers.CompetencyGroupController
 	CompetencyController                    *controllers.CompetencyController
+	CompetencyLevelController               *controllers.CompetencyLevelController
 	JobDescriptionController                *controllers.JobDescriptionController
+	JobDescriptionCompetencyController      *controllers.JobDescriptionCompetencyController
 	UserDocumentTypeController              *controllers.UserDocumentTypeController
 	UserDocumentSubTypeController           *controllers.UserDocumentSubTypeController
 	UserDocumentController                  *controllers.UserDocumentController
@@ -66,8 +68,30 @@ func NewOrganizationModule(
 	taskModule *TaskModule,
 	commonModule *CommonModule) *OrganizationModule {
 
+	// Competency Group Setup
+	competencyGroupRepo := repositories.NewCompetencyGroupRepository(db)
+	competencyGroupSvc := services.NewCompetencyGroupService(competencyGroupRepo, sharedModule.ActivityLogService)
+	competencyGroupController := controllers.NewCompetencyGroupController(competencyGroupSvc)
+
+	// Competency Setup
+	competencyRepo := repositories.NewCompetencyRepository(db)
+	competencySvc := services.NewCompetencyService(competencyRepo, sharedModule.ActivityLogService)
+	competencyController := controllers.NewCompetencyController(competencySvc)
+
+	competencyLevelRepo := repositories.NewCompetencyLevelRepository(db)
+	competencyLevelSvc := services.NewCompetencyLevelService(competencyLevelRepo)
+	competencyLevelController := controllers.NewCompetencyLevelController(competencyLevelSvc)
+
+	jobDescriptionRepo := repositories.NewJobDescriptionRepository(db)
+	jobDescriptionSvc := services.NewJobDescriptionService(jobDescriptionRepo, sharedModule.ActivityLogService)
+	jobDescriptionController := controllers.NewJobDescriptionController(jobDescriptionSvc)
+
+	jobDescriptionCompetencyRepo := repositories.NewJobDescriptionCompetencyRepository(db)
+	jobDescriptionCompetencySvc := services.NewJobDescriptionCompetencyService(jobDescriptionCompetencyRepo, jobDescriptionSvc, competencyLevelSvc, competencySvc, sharedModule.ActivityLogService)
+	jobDescriptionCompetencyController := controllers.NewJobDescriptionCompetencyController(jobDescriptionCompetencySvc)
+
 	designationRepo := repositories.NewDesignationRepository(db)
-	designationSvc := services.NewDesignationService(designationRepo, sharedModule.ActivityLogService)
+	designationSvc := services.NewDesignationService(designationRepo, sharedModule.ActivityLogService, jobDescriptionSvc)
 	designationController := controllers.NewDesignationController(designationSvc)
 
 	userStatusRepo := repositories.NewUserStatusRepository(db)
@@ -218,19 +242,6 @@ func NewOrganizationModule(
 		commonModule.NotificationService,
 	)
 	processActivityController := controllers.NewProcessActivityController(processActivitySvc)
-	// Competency Group Setup
-	competencyGroupRepo := repositories.NewCompetencyGroupRepository(db)
-	competencyGroupSvc := services.NewCompetencyGroupService(competencyGroupRepo, sharedModule.ActivityLogService)
-	competencyGroupController := controllers.NewCompetencyGroupController(competencyGroupSvc)
-
-	// Competency Setup
-	competencyRepo := repositories.NewCompetencyRepository(db)
-	competencySvc := services.NewCompetencyService(competencyRepo, sharedModule.ActivityLogService)
-	competencyController := controllers.NewCompetencyController(competencySvc)
-
-	jobDescriptionRepo := repositories.NewJobDescriptionRepository(db)
-	jobDescriptionSvc := services.NewJobDescriptionService(jobDescriptionRepo, sharedModule.ActivityLogService)
-	jobDescriptionController := controllers.NewJobDescriptionController(jobDescriptionSvc)
 
 	userDocumentTypeRepo := repositories.NewUserDocumentTypeRepository(db)
 	userDocumentTypeSvc := services.NewUserDocumentTypeService(userDocumentTypeRepo, sharedModule.ActivityLogService)
@@ -276,7 +287,9 @@ func NewOrganizationModule(
 		ProcessActivityController:               processActivityController,
 		CompetencyGroupController:               competencyGroupController,
 		CompetencyController:                    competencyController,
+		CompetencyLevelController:               competencyLevelController,
 		JobDescriptionController:                jobDescriptionController,
+		JobDescriptionCompetencyController:      jobDescriptionCompetencyController,
 		UserDocumentTypeController:              userDocumentTypeController,
 		UserDocumentSubTypeController:           userDocumentSubTypeController,
 		UserDocumentController:                  userDocumentController,

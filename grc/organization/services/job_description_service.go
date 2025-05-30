@@ -5,16 +5,19 @@ import (
 	"fmt"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
+	"jethur/grc/organization/dtos"
 	"jethur/grc/organization/repositories"
 	"jethur/utility"
 	"log"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type JobDescriptionServiceInterface interface {
 	GetAll(sort, sortBy, keyword, status string) ([]*models.JobDescription, error)
 	GetByID(id uint) (*models.JobDescription, error)
+	GetFullDetailsByID(id uint) (*dtos.JobDescriptionDetailDTO, error)
 	Create(currentUserID uint, jobDesc *models.JobDescription) (*models.JobDescription, error)
 	Update(id uint, currentUserID uint, jobDesc *models.JobDescription) (*models.JobDescription, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -47,6 +50,23 @@ func (s *JobDescriptionService) GetByID(id uint) (*models.JobDescription, error)
 		return nil, err
 	}
 	return jobDesc, nil
+}
+
+func (s *JobDescriptionService) GetFullDetailsByID(id uint) (*dtos.JobDescriptionDetailDTO, error) {
+	var dto dtos.JobDescriptionDetailDTO
+
+	jd, err := s.repo.GetFullDetailsByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	err = mapstructure.Decode(jd, &dto)
+	if err != nil {
+		return nil, err
+	}
+	return &dto, nil
 }
 
 func (s *JobDescriptionService) Create(currentUserID uint, jobDesc *models.JobDescription) (*models.JobDescription, error) {
