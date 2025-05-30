@@ -7,6 +7,7 @@ import (
 
 type ComplianceLibraryServiceInterface interface {
 	GetComplianceLibraryDetailsByID(libraryID uint) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error)
+	GetClausesByVersionID(versionID uint) ([]libraryDTOs.GroupedClauseDTO, error)
 }
 
 // Service and implementations
@@ -24,4 +25,8 @@ func NewComplianceLibraryService(
 
 func (cls *ComplianceLibraryService) GetComplianceLibraryDetailsByID(libraryID uint) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error) {
 	return cls.repo.GetComplianceLibraryDetailsByID(libraryID)
+}
+
+func (cls *ComplianceLibraryService) GetClausesByVersionID(versionID uint) ([]libraryDTOs.GroupedClauseDTO, error) {
+	return cls.repo.GetClausesByVersionID(versionID)
 }
