@@ -43,6 +43,9 @@ type OrganizationModule struct {
 	CompetencyLevelController               *controllers.CompetencyLevelController
 	JobDescriptionController                *controllers.JobDescriptionController
 	JobDescriptionCompetencyController      *controllers.JobDescriptionCompetencyController
+	UserDocumentTypeController              *controllers.UserDocumentTypeController
+	UserDocumentSubTypeController           *controllers.UserDocumentSubTypeController
+	UserDocumentController                  *controllers.UserDocumentController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -240,6 +243,18 @@ func NewOrganizationModule(
 	)
 	processActivityController := controllers.NewProcessActivityController(processActivitySvc)
 
+	userDocumentTypeRepo := repositories.NewUserDocumentTypeRepository(db)
+	userDocumentTypeSvc := services.NewUserDocumentTypeService(userDocumentTypeRepo, sharedModule.ActivityLogService)
+	userDocumentTypeController := controllers.NewUserDocumentTypeController(userDocumentTypeSvc)
+
+	userDocumentSubTypeRepo := repositories.NewUserDocumentSubTypeRepository(db)
+	userDocumentSubTypeSvc := services.NewUserDocumentSubTypeService(userDocumentSubTypeRepo, userDocumentTypeSvc, sharedModule.ActivityLogService)
+	userDocumentSubTypeController := controllers.NewUserDocumentSubTypeController(userDocumentSubTypeSvc)
+
+	userDocumentRepo := repositories.NewUserDocumentRepository(db)
+	userDocumentSvc := services.NewUserDocumentService(userDocumentRepo, userDocumentTypeSvc, userDocumentSubTypeSvc, sharedModule.ActivityLogService, userSvc)
+	userDocumentController := controllers.NewUserDocumentController(userDocumentSvc)
+
 	return &OrganizationModule{
 		DesignationController:                   designationController,
 		UserStatusController:                    userStatusController,
@@ -275,6 +290,9 @@ func NewOrganizationModule(
 		CompetencyLevelController:               competencyLevelController,
 		JobDescriptionController:                jobDescriptionController,
 		JobDescriptionCompetencyController:      jobDescriptionCompetencyController,
+		UserDocumentTypeController:              userDocumentTypeController,
+		UserDocumentSubTypeController:           userDocumentSubTypeController,
+		UserDocumentController:                  userDocumentController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,
