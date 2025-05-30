@@ -212,11 +212,17 @@ func (repo *GRCReportRepository) GetGRCReportByID(grcReportID uint, tx ...utilit
 			approve_user.first_name_ar AS approve_user_first_name_ar,
 			approve_user.last_name_en AS approve_user_last_name_en,
 			approve_user.last_name_ar AS approve_user_last_name_ar,
-			approve_user.initial AS approve_user_initial
+			approve_user.initial AS approve_user_initial,
+			grc_report_workflow_statuses.id AS grc_report_workflow_status_id,
+			grc_report_workflow_statuses.title_en AS grc_report_workflow_status_title_en,
+			grc_report_workflow_statuses.title_ar AS grc_report_workflow_status_title_ar,
+			grc_report_workflow_statuses.type AS grc_report_workflow_status_type,
+			grc_report_workflow_statuses.color_code AS grc_report_workflow_status_color_code
 		`).
 		Joins("LEFT JOIN users ON users.id = grc_reports.created_by_id").
 		Joins("LEFT JOIN users AS review_user ON review_user.id = grc_reports.review_user_id").
 		Joins("LEFT JOIN users AS approve_user ON approve_user.id = grc_reports.approve_user_id").
+		Joins("LEFT JOIN grc_report_workflow_statuses ON grc_report_workflow_statuses.id = grc_reports.grc_report_workflow_status_id").
 		Where("grc_reports.id = ?", grcReportID).
 		Group(`
 	grc_reports.id,
@@ -243,7 +249,12 @@ func (repo *GRCReportRepository) GetGRCReportByID(grcReportID uint, tx ...utilit
 	approve_user.first_name_ar,
 	approve_user.last_name_en,
 	approve_user.last_name_ar,
-	approve_user.initial
+	approve_user.initial,
+	grc_report_workflow_statuses.id,
+	grc_report_workflow_statuses.title_en,
+	grc_report_workflow_statuses.title_ar,
+	grc_report_workflow_statuses.type,
+	grc_report_workflow_statuses.color_code
 `)
 
 	if err := query.First(&report).Error; err != nil {
