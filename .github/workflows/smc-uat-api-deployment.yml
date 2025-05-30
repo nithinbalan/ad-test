@@ -1,4 +1,4 @@
-name: smc-uat-api-deployment(smc-uat-api.jethur.com)
+name: smc-uat-api.jethur.com
 
 on:
   workflow_dispatch:
