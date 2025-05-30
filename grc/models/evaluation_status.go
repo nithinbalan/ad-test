@@ -11,5 +11,5 @@ type EvaluationStatus struct {
 
 // TableName overrides the table name used by EvaluationStatus to `action_plan_statuses`
 func (EvaluationStatus) TableName() string {
-	return "action_plan_statuses"
+	return "evaluation_statuses"
 }
