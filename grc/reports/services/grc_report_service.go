@@ -1114,6 +1114,21 @@ func (grs *GRCReportService) DeleteGRCReport(grcReportID uint, currentUserID uin
 		return err
 	}
 
+	if err := grs.repo.DeleteGRCReportSLA(grcReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := grs.repo.DeleteGRCReportComplianceDepartments(grcReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := grs.repo.DeleteGRCReportComplianceSummaries(grcReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	if err := grs.repo.DeleteGRCReportSections(grcReportID, tx); err != nil {
 		tx.Rollback()
 		return err

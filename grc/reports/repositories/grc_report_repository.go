@@ -46,6 +46,9 @@ type GRCReportRepositoryInterface interface {
 	DeleteGRCReportSections(grcReportID uint, tx ...utility.DatabaseTransaction) error
 	DeleteGRCReportGovernanceDocuments(grcReportID uint, tx ...utility.DatabaseTransaction) error
 	DeleteGRCReportGovernanceTasks(grcReportID uint, tx ...utility.DatabaseTransaction) error
+	DeleteGRCReportComplianceDepartments(grcReportID uint, tx ...utility.DatabaseTransaction) error
+	DeleteGRCReportComplianceSummaries(grcReportID uint, tx ...utility.DatabaseTransaction) error
+	DeleteGRCReportSLA(grcReportID uint, tx ...utility.DatabaseTransaction) error
 	DeleteGRCReportWorkflowReviewComments(grcReportWorkflowID uint, tx ...utility.DatabaseTransaction) error
 	DeleteGRCReportWorkflows(grcReportID uint, tx ...utility.DatabaseTransaction) error
 
@@ -1284,4 +1287,28 @@ func (repo *GRCReportRepository) Update(grcReport *models.GRCReport, tx ...utili
 	}
 
 	return nil
+}
+
+func (repo *GRCReportRepository) DeleteGRCReportComplianceDepartments(grcReportID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("grc_report_id = ?", grcReportID).Delete(&models.GRCReportComplianceDepartment{}).Error
+}
+
+func (repo *GRCReportRepository) DeleteGRCReportComplianceSummaries(grcReportID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("grc_report_id = ?", grcReportID).Delete(&models.GRCReportComplianceSummary{}).Error
+}
+
+func (repo *GRCReportRepository) DeleteGRCReportSLA(grcReportID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("grc_report_id = ?", grcReportID).Delete(&models.GRCReportSLA{}).Error
 }
