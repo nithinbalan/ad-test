@@ -145,6 +145,18 @@ func (repo *StakeholderEngagementRepository) GetFullDetailsByID(id uint, tx ...u
 	result := db.
 		Preload("ReviewFrequency").
 		Preload("AssignedOwner").
+		Preload("Stakeholder").
+		Preload("Stakeholder.Type").
+		Preload("Stakeholder.StakeholderCategory").
+		Preload("Stakeholder.InfluenceLevel").
+		Preload("Stakeholder.ImpactLevel").
+		Preload("Stakeholder.OrganizationUnit").
+		Preload("Stakeholder.ThirdPartyRegister").
+		Preload("Stakeholder.Client").
+		Preload("Stakeholder.User").
+		Preload("Evaluations").
+		Preload("Evaluations.EvaluatedByUser").
+		Preload("Evaluations.CreatedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&stakeholderEngagement, id)

@@ -66,17 +66,31 @@ type StakeholderEngagementListQueryParamsDTO struct {
 }
 
 type StakeholderEngagementDetailDTO struct {
-	ID                 uint                             `json:"id"`
-	Title              string                           `json:"title"`
-	ReviewFrequencyID  *uint                            `json:"review_frequency_id"`
-	EngagementStrategy *string                          `json:"engagement_strategy"`
-	Description        *string                          `json:"description"`
-	Stakeholder        StakeholderDetailDTO             `json:"stakeholder"`
-	ReviewFrequency    *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
-	AssignedOwnerID    *uint                            `json:"assigned_owner_id"`
-	AssignedOwner      *organizationDTOs.UserMinimalDTO `json:"assigned_owner"`
-	CreatedAt          time.Time                        `json:"created_at"`
-	UpdatedAt          *time.Time                       `json:"updated_at"`
-	CreatedByUser      organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedByUser      *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	ID                 uint                                  `json:"id"`
+	Title              string                                `json:"title"`
+	ReviewFrequencyID  *uint                                 `json:"review_frequency_id"`
+	EngagementStrategy *string                               `json:"engagement_strategy"`
+	Description        *string                               `json:"description"`
+	Stakeholder        StakeholderDetailDTO                  `json:"stakeholder"`
+	ReviewFrequency    *masterDTOs.ReviewFrequencyDTO        `json:"review_frequency"`
+	AssignedOwnerID    *uint                                 `json:"assigned_owner_id"`
+	AssignedOwner      *organizationDTOs.UserMinimalDTO      `json:"assigned_owner"`
+	CreatedAt          time.Time                             `json:"created_at"`
+	UpdatedAt          *time.Time                            `json:"updated_at"`
+	CreatedByUser      organizationDTOs.UserMinimalDTO       `json:"created_by"`
+	UpdatedByUser      *organizationDTOs.UserMinimalDTO      `json:"updated_by"`
+	Evaluations        []*StakeholderEngagementEvaluationDTO `json:"evaluations"`
+}
+
+type StakeholderEngagementEvaluationDTO struct {
+	ID              uint                             `json:"id"`
+	Comment         string                           `json:"comment"`
+	Score           *int                             `json:"score"`
+	EvaluatedByID   uint                             `json:"evaluated_by_id"`
+	EvaluatedByUser organizationDTOs.UserMinimalDTO  `json:"evaluated_by_user"`
+	EvaluatedAt     *time.Time                       `json:"evaluated_at" binding:"omitempty,datetime=2006-01-02"`
+	CreatedAt       time.Time                        `json:"created_at"`
+	UpdatedAt       *time.Time                       `json:"updated_at"`
+	CreatedByUser   organizationDTOs.UserMinimalDTO  `json:"created_by_user"`
+	UpdatedByUser   *organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
 }
