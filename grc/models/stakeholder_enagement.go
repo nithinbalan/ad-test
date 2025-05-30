@@ -21,12 +21,13 @@ type StakeholderEngagement struct {
 	UpdatedBYID        *uint      `json:"updated_by_id,omitempty" gorm:"default:null"`
 
 	// Relationships
-	Stakeholder     *Stakeholder     `gorm:"foreignKey:StakeholderID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ReviewFrequency *ReviewFrequency `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser   *User            `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser   *User            `gorm:"foreignKey:UpdatedBYID"`
-	EvaluatedByUser *User            `gorm:"foreignKey:EvaluatedBYID"`
-	AssignedOwner   *User            `gorm:"foreignKey:AssignedOwnerID"`
+	Stakeholder     *Stakeholder                       `gorm:"foreignKey:StakeholderID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewFrequency *ReviewFrequency                   `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser   *User                              `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser   *User                              `gorm:"foreignKey:UpdatedBYID"`
+	EvaluatedByUser *User                              `gorm:"foreignKey:EvaluatedBYID"`
+	AssignedOwner   *User                              `gorm:"foreignKey:AssignedOwnerID"`
+	Evaluations     *[]StakeholderEngagementEvaluation `gorm:"foreignKey:StakeholderEngagementID"`
 }
 
 // TableName overrides the table name used by StakeholderNeedsAndExpectation to `stakeholder_engagements`

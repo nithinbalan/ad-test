@@ -384,7 +384,13 @@ func (grwrcs *GRCReportWorkflowReviewCommentService) GRCReportSectionCommentClos
 func (grwrcs *GRCReportWorkflowReviewCommentService) GRCReportSectionReviewed(grcReportID uint, currentUserID uint, commentActionForm *dtos.GRCReportWorkflowReviewCommentFormDTO) error {
 	tx := grwrcs.repo.BeginTransaction()
 
-	reviewedStatus, err := grwrcs.grcReportWorkflowStatusSvc.GetByType("pending-approval")
+	reviewedStatus, err := grwrcs.grcReportWorkflowStatusSvc.GetByType("reviewed")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	pendingStatus, err := grwrcs.grcReportWorkflowStatusSvc.GetByType("pending-approval")
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -424,7 +430,7 @@ func (grwrcs *GRCReportWorkflowReviewCommentService) GRCReportSectionReviewed(gr
 
 	resolvedAt := time.Now()
 	// Update workflow status to reviewed
-	grcReportWorkflow.GRCReportWorkflowStatusID = reviewedStatus.ID
+	grcReportWorkflow.GRCReportWorkflowStatusID = pendingStatus.ID
 	grcReportWorkflow.ReviewedAt = &resolvedAt
 	err = grwrcs.repo.UpdateSectionWorkflowStatus(grcReportWorkflow, tx)
 	if err != nil {
