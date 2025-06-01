@@ -31,6 +31,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportTemplateSettingController := app.SettingsModule.ReportTemplateSettingController
 	activeDirectorySettingController := app.SettingsModule.ActiveDirectorySettingController
 	siemSettingController := app.SettingsModule.SIEMSettingController
+	aiSettingController := app.SettingsModule.AISettingController
 
 	//Organization Level
 	settingRoutes.GET("/organization-levels", organizationLevelController.GetAllOrganizationLevels)
@@ -122,6 +123,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	settingRoutes.GET("/siem-settings", siemSettingController.GetSIEMSettings)
 	settingRoutes.PUT("/siem-settings", siemSettingController.UpdateSIEMSettings)
-	settingRoutes.DELETE("/siem-settings", siemSettingController.DeleteSIEMSettings)
+
+	settingRoutes.PUT("/ai-settings/enable", aiSettingController.EnableAISetting)
+	settingRoutes.PUT("/ai-settings/disable", aiSettingController.DisableAISetting)
+	settingRoutes.GET("/ai-settings/modules", aiSettingController.GetAllAIModules)
+	settingRoutes.GET("/ai-settings/modules/:id", aiSettingController.GetFeaturesByModuleID)
 
 }

@@ -25,6 +25,7 @@ type SettingsModule struct {
 	ReportTemplateSettingController  *controllers.ReportTemplateSettingController
 	ActiveDirectorySettingController *controllers.ActiveDirectorySettingController
 	SIEMSettingController            *controllers.SIEMSettingController
+	AISettingController              *controllers.AISettingController
 
 	SystemPreferenceSvc       services.SystemPreferenceServiceInterface
 	OrganizationUnitSvc       services.OrganizationUnitServiceInterface
@@ -114,6 +115,11 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		siemSettingRepo, integrationSvc)
 	siemSettingController := controllers.NewSIEMSettingController(siemSettingSvc)
 
+	aiSettingRepo := repositories.NewAISettingRepository(db)
+	aiSettingSvc := services.NewAISettingService(
+		aiSettingRepo)
+	aiSettingController := controllers.NewAISettingController(aiSettingSvc)
+
 	return &SettingsModule{
 		OrganizationLevelController:      organizationLevelController,
 		SystemPreferenceController:       systemPreferenceController,
@@ -131,6 +137,7 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		ReportTemplateSettingController:  reportTemplateSettingController,
 		ActiveDirectorySettingController: activeDirectorySettingController,
 		SIEMSettingController:            siemSettingController,
+		AISettingController:              aiSettingController,
 
 		SystemPreferenceSvc:       systemPreferenceSvc,
 		OrganizationLevelSvc:      organizationLevelSvc,
