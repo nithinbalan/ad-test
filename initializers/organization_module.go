@@ -46,6 +46,7 @@ type OrganizationModule struct {
 	UserDocumentTypeController              *controllers.UserDocumentTypeController
 	UserDocumentSubTypeController           *controllers.UserDocumentSubTypeController
 	UserDocumentController                  *controllers.UserDocumentController
+	UserJobDescriptionController            *controllers.UserJobDescriptionController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -255,6 +256,10 @@ func NewOrganizationModule(
 	userDocumentSvc := services.NewUserDocumentService(userDocumentRepo, userDocumentTypeSvc, userDocumentSubTypeSvc, sharedModule.ActivityLogService, userSvc)
 	userDocumentController := controllers.NewUserDocumentController(userDocumentSvc)
 
+	userJobDescriptionRepo := repositories.NewUserJobDescriptionRepository(db)
+	userJobDescriptionSvc := services.NewUserJobDescriptionService(userJobDescriptionRepo, sharedModule.ActivityLogService, jobDescriptionSvc)
+	userJobDescriptionController := controllers.NewUserJobDescriptionController(userJobDescriptionSvc)
+
 	return &OrganizationModule{
 		DesignationController:                   designationController,
 		UserStatusController:                    userStatusController,
@@ -293,6 +298,7 @@ func NewOrganizationModule(
 		UserDocumentTypeController:              userDocumentTypeController,
 		UserDocumentSubTypeController:           userDocumentSubTypeController,
 		UserDocumentController:                  userDocumentController,
+		UserJobDescriptionController:            userJobDescriptionController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,

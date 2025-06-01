@@ -54,6 +54,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	userDocumentTypeController := app.OrganizationModule.UserDocumentTypeController
 	userDocumentSubTypeController := app.OrganizationModule.UserDocumentSubTypeController
 	userDocumentController := app.OrganizationModule.UserDocumentController
+	userJobDescriptionController := app.OrganizationModule.UserJobDescriptionController
 
 	//Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
@@ -339,6 +340,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/job-descriptions/:id/competencies", jobDescriptionCompetencyController.MapCompetencies)
 	organizationRoutes.PUT("/job-descriptions/:id/competencies/:cId", jobDescriptionCompetencyController.UpdateCompetencyDetails)
 	organizationRoutes.DELETE("/job-descriptions/:id/competencies/:cId", jobDescriptionCompetencyController.DeleteCompetency)
+	organizationRoutes.POST("/users/:userId/job-descriptions", userJobDescriptionController.AssignJobDescriptionsToUser)
+	organizationRoutes.DELETE("/users/:userId/job-descriptions/:id", userJobDescriptionController.DeleteJobDescriptionUser)
+
 	// user document type
 	organizationRoutes.GET("/user-document-types", userDocumentTypeController.GetAllUserDocumentTypes)
 	organizationRoutes.GET("/user-document-types/:id", userDocumentTypeController.GetUserDocumentTypeDetails)

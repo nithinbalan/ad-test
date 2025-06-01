@@ -303,3 +303,7 @@ type ADUserDTO struct {
 	IsExist          bool   `json:"is_exist"`
 }
 type ADUserFlatDTO map[string]interface{}
+
+type AssignJobDescriptionsDTO struct {
+	JobDescriptionIDs []uint `json:"job_description_ids" binding:"required,min=1,dive,required"`
+}
