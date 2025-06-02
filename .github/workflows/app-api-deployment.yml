@@ -1,4 +1,4 @@
-name: app-api-deployment(app-api.jethur.com)
+name: app-api.jethur.com
 
 on:
   workflow_dispatch:
