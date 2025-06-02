@@ -1,4 +1,4 @@
-name: fast-dev-api-deployment(devi-api.jethur.com)
+name: Fast(devi-api.jethur.com)
 
 on:
   workflow_dispatch:
