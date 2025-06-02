@@ -40,7 +40,7 @@ type StakeholderEngagementEvaluationListDTO struct {
 
 type StakeholderEngagementEvaluationFormDTO struct {
 	Comment       *string `json:"comment"`
-	Score         *int    `json:"score" binding:"required"`
+	Score         *int    `json:"score"`
 	EvaluatedByID uint    `json:"evaluated_by_id"`
 	EvaluatedAt   *string `json:"evaluated_at" binding:"omitempty,datetime=2006-01-02"`
 	Description   *string `json:"description"`
