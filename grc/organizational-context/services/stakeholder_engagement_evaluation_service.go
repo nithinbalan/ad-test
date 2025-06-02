@@ -81,6 +81,7 @@ func (casus *StakeholderEngagementEvaluationService) Create(StakeholderID uint, 
 
 	evaluation := &models.StakeholderEngagementEvaluation{
 		StakeholderEngagementID: EngagementID,
+		EvaluationStatusID:      evaluationFormDTO.EvaluationStatusID,
 		Comment:                 evaluationFormDTO.Comment,
 		Score:                   evaluationFormDTO.Score,
 		EvaluatedBYID:           evaluationFormDTO.EvaluatedByID,
@@ -146,6 +147,7 @@ func (casus *StakeholderEngagementEvaluationService) Update(StakeholderID uint, 
 
 	//@todo validate docuemnt form
 
+	existingStakeholderEngagementEvaluation.EvaluationStatusID = evaluationFormDTO.EvaluationStatusID
 	existingStakeholderEngagementEvaluation.Comment = evaluationFormDTO.Comment
 	existingStakeholderEngagementEvaluation.Score = evaluationFormDTO.Score
 	existingStakeholderEngagementEvaluation.UpdatedBYID = &currentUserID

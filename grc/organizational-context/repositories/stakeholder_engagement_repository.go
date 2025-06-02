@@ -155,6 +155,7 @@ func (repo *StakeholderEngagementRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("Stakeholder.Client").
 		Preload("Stakeholder.User").
 		Preload("Evaluations").
+		Preload("Evaluations.EvaluationStatus").
 		Preload("Evaluations.EvaluatedByUser").
 		Preload("Evaluations.CreatedByUser").
 		Preload("CreatedByUser").

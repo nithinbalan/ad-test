@@ -12,6 +12,7 @@ type StakeholderEngagement struct {
 	AssignedOwnerID    *uint      `json:"assigned_owner_id"`
 	EngagementStrategy *string    `json:"engagement_strategy"`
 	Description        *string    `json:"description"`
+	EvaluationStatusID *uint      `json:"evaluation_status_id" gorm:"not null"`
 	Score              *int       `json:"score" binding:"omitempty,min=0,max=100" gorm:"not null;default:0"`
 	EvaluatedAt        *time.Time `json:"evaluated_at" binding:"omitempty" gorm:"type:date,default:null"`
 	EvaluatedBYID      *uint      `json:"evaluated_by_id"`
