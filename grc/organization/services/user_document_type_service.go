@@ -13,7 +13,7 @@ import (
 )
 
 type UserDocumentTypeServiceInterface interface {
-	GetAll(params *orgDTOs.UserDocumentTypeListQueryParamsDTO) ([]*orgDTOs.UserDocumentTypeDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*orgDTOs.UserDocumentTypeDTO, error)
 	GetByID(id uint) (*models.UserDocumentType, error)
 	Create(currentUserID uint, dto *orgDTOs.UserDocumentTypeFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, dto *orgDTOs.UserDocumentTypeFormDTO) error
@@ -37,8 +37,8 @@ func NewUserDocumentTypeService(
 	}
 }
 
-func (udts *UserDocumentTypeService) GetAll(params *orgDTOs.UserDocumentTypeListQueryParamsDTO) ([]*orgDTOs.UserDocumentTypeDTO, error) {
-	return udts.repo.GetAll(params)
+func (udts *UserDocumentTypeService) GetAll(sort string, sortBy string, keyword string, status string) ([]*orgDTOs.UserDocumentTypeDTO, error) {
+	return udts.repo.GetAll(sort, sortBy, keyword, status)
 }
 
 func (udts *UserDocumentTypeService) GetByID(id uint) (*models.UserDocumentType, error) {

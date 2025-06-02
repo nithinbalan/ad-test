@@ -28,13 +28,7 @@ func (udtc *UserDocumentTypeController) GetAllUserDocumentTypes(c *gin.Context) 
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 
-	queryParams := processDTOs.UserDocumentTypeListQueryParamsDTO{
-		Sort:    sort,
-		SortBy:  sortBy,
-		Keyword: keyword,
-		Status:  status,
-	}
-	result, err := udtc.service.GetAll(&queryParams)
+	result, err := udtc.service.GetAll(sort, sortBy, keyword, status)
 
 	if err != nil {
 		utility.SendInternalErrResp(udtc.db, c, err.Error())

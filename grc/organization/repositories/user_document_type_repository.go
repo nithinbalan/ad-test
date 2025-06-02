@@ -10,7 +10,7 @@ import (
 
 // Interface
 type UserDocumentTypeRepositoryInterface interface {
-	GetAll(params *orgDTOs.UserDocumentTypeListQueryParamsDTO) ([]*orgDTOs.UserDocumentTypeDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*orgDTOs.UserDocumentTypeDTO, error)
 	GetByID(id uint) (*models.UserDocumentType, error)
 	Create(item *models.UserDocumentType) (uint, error)
 	Update(item *models.UserDocumentType) error
@@ -32,34 +32,28 @@ func NewUserDocumentTypeRepository(db *gorm.DB) *UserDocumentTypeRepository {
 	}
 }
 
-func (repo *UserDocumentTypeRepository) GetAll(params *orgDTOs.UserDocumentTypeListQueryParamsDTO) ([]*orgDTOs.UserDocumentTypeDTO, error) {
+func (repo *UserDocumentTypeRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*orgDTOs.UserDocumentTypeDTO, error) {
 	var result []*orgDTOs.UserDocumentTypeDTO
 
 	query := repo.db.Table("user_document_types").
 		Select(`
 			user_document_types.*`)
 
-	for columnName, values := range params.Filters {
-		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
-		}
-	}
-
-	if params.Keyword != "" {
+	if keyword != "" {
 		query = query.Where(`
 			(user_document_types.title_en LIKE ? OR
 			 user_document_types.title_ar LIKE ?)`,
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+keyword+"%", "%"+keyword+"%")
 	}
 
-	if params.SortBy == "" {
-		params.SortBy = "title_en"
+	if sortBy == "" {
+		sortBy = "title_en"
 	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc"
+	if sort != "asc" && sort != "desc" {
+		sort = "asc"
 	}
 
-	query = query.Order(params.SortBy + " " + params.Sort)
+	query = query.Order(sortBy + " " + sort)
 
 	err := query.Find(&result).Error
 	return result, err

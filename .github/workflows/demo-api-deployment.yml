@@ -1,4 +1,4 @@
-name: demo-api-deployment(demo-api.jethur.com)
+name: demo-api.jethur.com
 
 on:
   workflow_dispatch:
@@ -87,6 +87,11 @@ jobs:
           git fetch origin migration_new # Fetch the specific branch from the remote
           git checkout migration_new
 
+      # Step: Stop NSSM Task
+      - name: Stop NSSM Task
+        run: nssm stop demo-api
+        shell: powershell
+
       - name: Run Migrations and Seed
         run: |
           .\script.bat migrateup
@@ -108,11 +113,6 @@ jobs:
       # Step: Build API
       - name: Build API
         run: go build ./cmd/api
-
-      # Step: Stop NSSM Task
-      - name: Stop NSSM Task
-        run: nssm stop demo-api
-        shell: powershell
 
       # Step: Backup and Deploy API Executable
       - name: Backup and Deploy API Executable

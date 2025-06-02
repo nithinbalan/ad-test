@@ -46,7 +46,7 @@ type StakeholderNeedsAndExpectationEvaluationListDTO struct {
 type StakeholderNeedsAndExpectationEvaluationFormDTO struct {
 	EvaluationStatusID uint    `json:"evaluation_status_id" binding:"required"`
 	Comment            *string `json:"comment"`
-	Score              *int    `json:"score" binding:"required"`
+	Score              *int    `json:"score"`
 	EvaluatedByID      uint    `json:"evaluated_by_id"`
 	EvaluatedAt        *string `json:"evaluated_at" binding:"omitempty,datetime=2006-01-02"`
 }

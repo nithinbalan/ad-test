@@ -188,32 +188,44 @@ func (grs *GRCReportService) GetGRCReportDetails(grcReportID uint) (*dtos.GRCRep
 		}
 	}
 
+	workflowStatus := &dtos.GRCReportWorkflowStatusDTO{}
+	if grcReport.GRCReportWorkflowStatusID != nil {
+		workflowStatus = &dtos.GRCReportWorkflowStatusDTO{
+			ID:        int(*grcReport.GRCReportWorkflowStatusID),
+			TitleEn:   *grcReport.GRCReportWorkflowStatusTitleEn,
+			TitleAr:   *grcReport.GRCReportWorkflowStatusTitleAr,
+			Type:      *grcReport.GRCReportWorkflowStatusType,
+			ColorCode: *grcReport.GRCReportWorkflowStatusColorCode,
+		}
+	}
+
 	// Construct Response DTO
 	response := &dtos.GRCReportDetailDTO{
-		ID:                     grcReport.ID,
-		Title:                  grcReport.Title,
-		StartDate:              grcReport.StartDate,
-		EndDate:                grcReport.EndDate,
-		CreatedAt:              grcReport.CreatedAt,
-		CreatedUserFirstNameEn: grcReport.CreatedUserFirstNameEn,
-		CreatedUserFirstNameAr: grcReport.CreatedUserFirstNameAr,
-		CreatedUserLastNameEn:  grcReport.CreatedUserLastNameEn,
-		CreatedUserLastNameAr:  grcReport.CreatedUserLastNameAr,
-		Sections:               sections,
-		GovernanceSummary:      *governanceSummary,
-		Documents:              documents,
-		Tasks:                  tasks,
-		RiskSummary:            *riskSummary,
-		TopFiveRisks:           topFiveRisks,
-		RiskKRIs:               kris,
-		RiskControls:           riskControls,
-		ComplianceSummary:      complianceSummaryDTO,
-		SLA:                    slas,
-		SectionWorkflow:        sectionWorkflowDTO,
-		ReviewUser:             reviewUser,
-		ApproveUser:            approveUser,
-		ReviewedAt:             grcReport.ReviewedAt,
-		ApprovedAt:             grcReport.ApprovedAt,
+		ID:                      grcReport.ID,
+		Title:                   grcReport.Title,
+		StartDate:               grcReport.StartDate,
+		EndDate:                 grcReport.EndDate,
+		CreatedAt:               grcReport.CreatedAt,
+		CreatedUserFirstNameEn:  grcReport.CreatedUserFirstNameEn,
+		CreatedUserFirstNameAr:  grcReport.CreatedUserFirstNameAr,
+		CreatedUserLastNameEn:   grcReport.CreatedUserLastNameEn,
+		CreatedUserLastNameAr:   grcReport.CreatedUserLastNameAr,
+		Sections:                sections,
+		GovernanceSummary:       *governanceSummary,
+		Documents:               documents,
+		Tasks:                   tasks,
+		RiskSummary:             *riskSummary,
+		TopFiveRisks:            topFiveRisks,
+		RiskKRIs:                kris,
+		RiskControls:            riskControls,
+		ComplianceSummary:       complianceSummaryDTO,
+		SLA:                     slas,
+		SectionWorkflow:         sectionWorkflowDTO,
+		ReviewUser:              reviewUser,
+		ApproveUser:             approveUser,
+		ReviewedAt:              grcReport.ReviewedAt,
+		ApprovedAt:              grcReport.ApprovedAt,
+		GRCReportWorkflowStatus: workflowStatus,
 	}
 
 	return response, nil

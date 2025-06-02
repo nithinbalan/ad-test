@@ -96,7 +96,7 @@ func (repo *UserDocumentRepository) GetAll(userID uint, params *orgDTOs.UserDocu
 	}
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	err := query.Debug().Find(&result).Error
+	err := query.Find(&result).Error
 	return result, err
 }
 

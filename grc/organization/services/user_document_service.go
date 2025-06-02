@@ -53,25 +53,33 @@ func NewUserDocumentService(
 }
 
 func (uds *UserDocumentService) GetAll(userID uint, params *orgDTOs.UserDocumentListQueryParamsDTO) ([]*orgDTOs.GroupedUserDocumentDTO, error) {
+	// Step 1: Fetch all document types
+	documentTypes, err := uds.userDocumentTypeSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 2: Fetch all user documents
 	documents, err := uds.repo.GetAll(userID, params)
 	if err != nil {
 		return nil, err
 	}
 
-	documentTypeGroup := make(map[string]*orgDTOs.GroupedUserDocumentDTO)
+	// Step 3: Group by document type
+	documentTypeGroup := make(map[uint]*orgDTOs.GroupedUserDocumentDTO)
+	for _, docType := range documentTypes {
+		documentTypeGroup[docType.ID] = &orgDTOs.GroupedUserDocumentDTO{
+			UserDocumentTypeID:      docType.ID,
+			UserDocumentTypeTitleEn: docType.TitleEn,
+			UserDocumentTypeTitleAr: docType.TitleAr,
+			Documents:               []*orgDTOs.UserDocumentListDTO{},
+		}
+	}
 
 	for _, document := range documents {
-		key := document.UserDocumentTypeID
-
-		if _, exists := documentTypeGroup[key]; !exists {
-			documentTypeGroup[key] = &orgDTOs.GroupedUserDocumentDTO{
-				UserDocumentTypeID:      document.UserDocumentTypeID,
-				UserDocumentTypeTitleEn: document.UserDocumentTypeTitleEn,
-				UserDocumentTypeTitleAr: document.UserDocumentTypeTitleAr,
-				Documents:               []*orgDTOs.UserDocumentListDTO{},
-			}
+		if group, exists := documentTypeGroup[document.UserDocumentTypeID]; exists {
+			group.Documents = append(group.Documents, document)
 		}
-		documentTypeGroup[key].Documents = append(documentTypeGroup[key].Documents, document)
 	}
 
 	// Convert map to slice
@@ -81,7 +89,6 @@ func (uds *UserDocumentService) GetAll(userID uint, params *orgDTOs.UserDocument
 	}
 
 	return response, nil
-
 }
 
 func (uds *UserDocumentService) GetByID(userID uint, id uint) (*models.UserDocument, error) {
