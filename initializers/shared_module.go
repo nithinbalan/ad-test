@@ -9,7 +9,8 @@ import (
 )
 
 type SharedModule struct {
-	ActivityLogController *controllers.ActivityLogController
+	ActivityLogController      *controllers.ActivityLogController
+	TaskSchedularLogController *controllers.TaskSchedularLogController
 
 	ActivityLogService services.ActivityLogServiceInterface
 }
@@ -19,8 +20,12 @@ func NewSharedModule(db *gorm.DB) *SharedModule {
 	activityLogSvc := services.NewActivityLogService(activityLogRepo)
 	activityLogController := controllers.NewActivityLogController(activityLogSvc)
 
+	taskSchedularLogRepo := repositories.NewTaskSchedularLogRepository(db)
+	taskSchedularLogController := controllers.NewTaskSchedularLogController(db, taskSchedularLogRepo)
+
 	return &SharedModule{
-		ActivityLogController: activityLogController,
+		ActivityLogController:      activityLogController,
+		TaskSchedularLogController: taskSchedularLogController,
 
 		ActivityLogService: activityLogSvc,
 	}

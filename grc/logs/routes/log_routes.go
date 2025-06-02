@@ -14,9 +14,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	logRoutes.Use(middlewares.AuthMiddleware())
 
 	activityLogController := app.SharedModule.ActivityLogController
+	taskSchedularLogController := app.SharedModule.TaskSchedularLogController
 
 	//Activity Log
 	logRoutes.GET("/activity-logs", activityLogController.GetAllActivityLogs)
 	logRoutes.GET("/activity-logs/:logId", activityLogController.GetActivityLogDetails)
+
+	logRoutes.GET("/task-schedular-logs", taskSchedularLogController.GetAllTaskSchedularLogs)
 
 }
