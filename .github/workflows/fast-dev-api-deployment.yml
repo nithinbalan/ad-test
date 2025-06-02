@@ -8,22 +8,6 @@ jobs:
     runs-on: jethur-dev
     steps:
 
-      # Step: Start email notification
-      - name: Send Start Email
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.ZEPTO_HOST }} # Replace with your SMTP host
-          server_port: 587   # Replace with your SMTP port
-          username: ${{ secrets.ZEPTO_USERNAME }}
-          password: ${{ secrets.ZEPTO_PASSWORD }}
-          subject: "Pipeline Started"
-          body: |
-            GitHub Actions DEV-API(FAST) deployment has started.
-
-            Triggered by: ${{ github.actor }}
-          to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
-          from: "Jethur Notifications <info@jethur.com>"
-
 
       - name: Cleanup workspace if not empty
         run: |
@@ -47,19 +31,6 @@ jobs:
         run: |
           $env:PATH = "C:\Program Files\Go\bin;$env:PATH"
         shell: powershell
-
-      # Step: Verify Go Version
-      - name: Verify Go Version
-        run: go version
-
-      # Step: Cache Go Modules
-      - name: Cache Go Modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/go-build
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
 
 
       # Step: Download script.bat from Server
@@ -171,16 +142,3 @@ jobs:
           Remove-Item -Recurse -Force .??* -ErrorAction SilentlyContinue
           Get-ChildItem -Force
         shell: powershell
-
-       # Step: Send Completion Email
-      - name: Send Completion Email
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.ZEPTO_HOST }}
-          server_port: 587
-          username: ${{ secrets.ZEPTO_USERNAME }}
-          password: ${{ secrets.ZEPTO_PASSWORD }}
-          subject: "Pipeline Completed"
-          body: "GitHub Actions DEV-API-FAST deployment has completed successfully."
-          to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
-          from: "Jethur Notifications <info@jethur.com>"
