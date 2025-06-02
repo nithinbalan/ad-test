@@ -9,7 +9,7 @@ import (
 
 type ComplianceLibraryRepositoryInterface interface {
 	GetComplianceLibraryDetailsByID(libraryID uint) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error)
-	GetClausesByVersionID(versionID uint) ([]libraryDTOs.GroupedClauseDTO, error)
+	GetAllClausesByVersionID(versionID uint) ([]models.ComplianceLibraryClause, error)
 }
 
 type ComplianceLibraryRepository struct {
@@ -53,53 +53,18 @@ func (repo *ComplianceLibraryRepository) GetComplianceLibraryDetailsByID(library
 	return &result, nil
 }
 
-func (repo *ComplianceLibraryRepository) GetClausesByVersionID(versionID uint) ([]libraryDTOs.GroupedClauseDTO, error) {
-	var mainClauses []models.ComplianceLibraryClause
+func (repo *ComplianceLibraryRepository) GetAllClausesByVersionID(versionID uint) ([]models.ComplianceLibraryClause, error) {
+	var clauses []models.ComplianceLibraryClause
+
 	err := repo.db.
-		Where("compliance_library_version_id = ? AND compliance_library_clause_id IS NULL", versionID).
+		Where("compliance_library_version_id = ?", versionID).
 		Order(`
-			TRY_CAST(LEFT(clause_number, CHARINDEX('.', clause_number + '.') - 1) AS INT)
-		`).
-		Find(&mainClauses).Error
+    TRY_CAST(LEFT(clause_number, CHARINDEX('.', clause_number + '.') - 1) AS INT),
+    TRY_CAST(SUBSTRING(clause_number, CHARINDEX('.', clause_number + '.') + 1, LEN(clause_number)) AS INT)
+  `).
+		Find(&clauses).Error
 	if err != nil {
 		return nil, err
 	}
-
-	var result []libraryDTOs.GroupedClauseDTO
-	for _, main := range mainClauses {
-		group := libraryDTOs.GroupedClauseDTO{
-			ID:            main.ID,
-			ClauseNumber:  main.ClauseNumber,
-			ClauseTitleEn: main.ClauseTitleEn,
-			ClauseTitleAr: *main.ClauseTitleAr,
-			CreatedAt:     main.CreatedAt,
-			UpdatedAt:     *main.UpdatedAt,
-		}
-
-		var subClauses []models.ComplianceLibraryClause
-		err = repo.db.
-			Where("compliance_library_clause_id = ?", main.ID).
-			Order(`
-				TRY_CAST(SUBSTRING(clause_number, CHARINDEX('.', clause_number + '.') + 1, LEN(clause_number)) AS INT)
-			`).
-			Find(&subClauses).Error
-		if err != nil {
-			return nil, err
-		}
-
-		for _, sub := range subClauses {
-			group.SubClauses = append(group.SubClauses, libraryDTOs.SubClauseDTO{
-				ID:                  sub.ID,
-				ClauseNumber:        sub.ClauseNumber,
-				ClauseTitleEn:       sub.ClauseTitleEn,
-				ClauseTitleAr:       *sub.ClauseTitleAr,
-				ClauseDescriptionEn: *sub.ClauseDescriptionEn,
-				ClauseDescriptionAr: *sub.ClauseDescriptionAr,
-			})
-		}
-
-		result = append(result, group)
-	}
-
-	return result, nil
+	return clauses, nil
 }
