@@ -1,4 +1,4 @@
-name: qa-api-deployment(qa-api.jethur.com)
+name: qa-api.jethur.com
 
 on:
   workflow_dispatch:
