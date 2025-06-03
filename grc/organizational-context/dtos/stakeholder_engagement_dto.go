@@ -26,6 +26,10 @@ type StakeholderEngagementListDTO struct {
 	AssignedOwnerColor            string  `json:"assigned_owner_color"`
 	AssignedOwnerEmail            string  `json:"assigned_owner_email"`
 	AssignedOwnerProfileImagePath string  `json:"assigned_owner_profile_image_path"`
+	EvaluationStatusTitleEn       *string `json:"evaluation_status_title_en"`
+	EvaluationStatusTitleAr       *string `json:"evaluation_status_title_ar"`
+	EvaluationStatusColorCode     *string `json:"evaluation_status_color_code"`
+	EvaluationStatusType          *string `json:"evaluation_status_type"`
 	CreatedUserID                 uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn        string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr        string  `json:"created_user_first_name_ar"`

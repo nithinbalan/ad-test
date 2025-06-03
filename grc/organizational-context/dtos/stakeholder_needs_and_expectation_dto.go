@@ -18,6 +18,10 @@ type StakeholderNeedsAndExpectationListDTO struct {
 	SeverityLevelType           *string `json:"severity_level_type"`
 	SuccessCriteria             *string `json:"success_criteria"`
 	Challenges                  *string `json:"challenges"`
+	EvaluationStatusTitleEn     *string `json:"evaluation_status_title_en"`
+	EvaluationStatusTitleAr     *string `json:"evaluation_status_title_ar"`
+	EvaluationStatusColorCode   *string `json:"evaluation_status_color_code"`
+	EvaluationStatusType        *string `json:"evaluation_status_type"`
 	Description                 *string `json:"description"`
 	CreatedUserID               uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn      string  `json:"created_user_first_name_en"`

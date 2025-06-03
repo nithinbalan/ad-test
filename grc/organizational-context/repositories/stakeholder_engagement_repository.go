@@ -54,6 +54,10 @@ func (repo *StakeholderEngagementRepository) GetAll(stakeholderId uint, params *
         	assigned_owner.color AS assigned_owner_color,
         	assigned_owner.email AS assigned_owner_email,
         	assigned_owner.profile_image_path AS assigned_owner_profile_image_path,
+			evaluation_statuses.title_en AS evaluation_status_title_en,
+            evaluation_statuses.title_ar AS evaluation_status_title_ar,
+            evaluation_statuses.color_code AS evaluation_status_color_code,
+			evaluation_statuses.type AS evaluation_status_type,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -75,6 +79,7 @@ func (repo *StakeholderEngagementRepository) GetAll(stakeholderId uint, params *
         `).
 		Joins(`
 			LEFT JOIN stakeholders ON stakeholders.id = stakeholder_engagements.stakeholder_id
+			LEFT JOIN evaluation_statuses ON evaluation_statuses.id = stakeholder_engagements.evaluation_status_id
 			LEFT JOIN review_frequencies ON review_frequencies.id = stakeholder_engagements.review_frequency_id
 			LEFT JOIN users AS assigned_owner ON assigned_owner.id = stakeholder_engagements.assigned_owner_id
 			LEFT JOIN users AS created_user ON created_user.id = stakeholder_engagements.created_by_id

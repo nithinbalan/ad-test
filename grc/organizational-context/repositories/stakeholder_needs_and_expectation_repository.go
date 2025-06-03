@@ -46,6 +46,10 @@ func (repo *StakeholderNeedsAndExpectationRepository) GetAll(stakeholderId uint,
 			severity_levels.title_ar AS severity_level_title_ar,
 			severity_levels.color_code AS severity_level_color_code,
 			severity_levels.type AS severity_level_type,
+			evaluation_statuses.title_en AS evaluation_status_title_en,
+            evaluation_statuses.title_ar AS evaluation_status_title_ar,
+            evaluation_statuses.color_code AS evaluation_status_color_code,
+			evaluation_statuses.type AS evaluation_status_type,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -67,6 +71,7 @@ func (repo *StakeholderNeedsAndExpectationRepository) GetAll(stakeholderId uint,
         `).
 		Joins(`
 			LEFT JOIN stakeholders ON stakeholders.id = stakeholder_needs_and_expectations.stakeholder_id
+			LEFT JOIN evaluation_statuses ON evaluation_statuses.id = stakeholder_needs_and_expectations.evaluation_status_id
 			LEFT JOIN severity_levels ON severity_levels.id = stakeholder_needs_and_expectations.severity_level_id
 			LEFT JOIN users AS created_user ON created_user.id = stakeholder_needs_and_expectations.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = stakeholder_needs_and_expectations.updated_by_id
