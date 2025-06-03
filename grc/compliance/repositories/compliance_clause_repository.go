@@ -367,8 +367,9 @@ func (r *ComplianceClauseRepository) GetAssociatedControls(complianceID uint, cl
 			risk_matrix_risk_rating_values.value AS risk_rating_value
 		`).
 		Joins("JOIN controls ON controls.id = cc.control_id").
-		Joins("JOIN compliance_requirements cr ON cr.id = cc.compliance_requirement_id").
-		Joins("JOIN compliance_clauses cl ON cl.id = cr.compliance_clause_id").
+		// Joins("JOIN compliance_requirements cr ON cr.id = cc.compliance_requirement_id").
+		// Joins("JOIN compliance_clauses cl ON cl.id = cr.compliance_clause_id").
+		Joins("JOIN compliance_clauses cl ON cl.id = cc.compliance_clause_id").
 		Joins("LEFT JOIN control_types ON control_types.id = controls.control_type_id").
 		Joins("LEFT JOIN control_categories ON control_categories.id = controls.control_category_id").
 		Joins("LEFT JOIN organization_units ON organization_units.id = controls.responsible_unit_id").
