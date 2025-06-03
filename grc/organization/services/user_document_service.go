@@ -11,6 +11,7 @@ import (
 	"jethur/utility"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 
 	"github.com/mitchellh/mapstructure"
@@ -87,6 +88,10 @@ func (uds *UserDocumentService) GetAll(userID uint, params *orgDTOs.UserDocument
 	for _, group := range documentTypeGroup {
 		response = append(response, group)
 	}
+
+	sort.Slice(response, func(i, j int) bool {
+		return response[i].UserDocumentTypeID < response[j].UserDocumentTypeID
+	})
 
 	return response, nil
 }
@@ -214,28 +219,37 @@ func (uds *UserDocumentService) Update(userID uint, id uint, currentUserID uint,
 
 	url := utility.GenerateDocumentURL("organization", "users", strconv.FormatUint(uint64(userID), 10), "user-document")
 
-	dataToEncrypt := []byte(formDTO.FileName)
-	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// Define the storage path
-	storagePath := filepath.Join("organization", "users", strconv.FormatUint(uint64(userID), 10), "user-document")
-
-	// Remove the old document if exists
-	if &existing.Name != nil {
-		if err := utility.RemoveFile(existing.Name, storagePath); err != nil {
+	if formDTO.IsNewFile != nil && *formDTO.IsNewFile {
+		dataToEncrypt := []byte(formDTO.FileName)
+		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
 			tx.Rollback()
 			return err
 		}
-	}
 
-	// Store new document
-	if err := utility.StoreFile(formDTO.FileName, storagePath); err != nil {
-		tx.Rollback()
-		return err
+		// Define the storage path
+		storagePath := filepath.Join("organization", "users", strconv.FormatUint(uint64(userID), 10), "user-document")
+
+		// Remove the old document if exists
+		if &existing.Name != nil {
+			if err := utility.RemoveFile(existing.Name, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+
+		// Store new document
+		if err := utility.StoreFile(formDTO.FileName, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		existing.URL = url
+		existing.Name = formDTO.FileName
+		existing.Size = formDTO.Size
+		existing.Type = formDTO.Type
+		existing.Token = encryptedFilename
+		existing.OriginalName = formDTO.OriginalName
 	}
 
 	existing.UserDocumentTypeID = formDTO.UserDocumentTypeID
@@ -243,12 +257,6 @@ func (uds *UserDocumentService) Update(userID uint, id uint, currentUserID uint,
 	existing.IssuedBy = &formDTO.IssuedBy
 	existing.ExpiryDate = dates.ExpiryDate
 	existing.Remarks = formDTO.Remarks
-	existing.URL = url
-	existing.Name = formDTO.FileName
-	existing.Size = formDTO.Size
-	existing.Type = formDTO.Type
-	existing.Token = encryptedFilename
-	existing.OriginalName = formDTO.OriginalName
 	existing.UpdatedBYID = &currentUserID
 
 	err = uds.repo.Update(existing)
