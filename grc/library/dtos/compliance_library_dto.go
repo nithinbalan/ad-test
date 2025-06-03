@@ -1,7 +1,5 @@
 package dtos
 
-import "time"
-
 type ComplianceLibraryWithVersionsDTO struct {
 	ID                     uint    `json:"id"`
 	Icon                   *string `json:"icon"`
@@ -22,21 +20,29 @@ type ComplianceLibraryWithVersionsDTO struct {
 	Domains      *string `json:"domains"`
 }
 
-type SubClauseDTO struct {
-	ID                  uint   `json:"id"`
-	ClauseNumber        string `json:"clause_number"`
-	ClauseTitleEn       string `json:"clause_title_en"`
-	ClauseTitleAr       string `json:"clause_title_ar"`
-	ClauseDescriptionEn string `json:"clause_description_en"`
-	ClauseDescriptionAr string `json:"clause_description_ar"`
+type ClauseWithSubClausesDTO struct {
+	ID            uint                       `json:"id"`
+	ClauseNumber  string                     `json:"clause_number"`
+	ClauseTitleEn string                     `json:"clause_title_en"`
+	ClauseTitleAr string                     `json:"clause_title_ar"`
+	CreatedAt     string                     `json:"created_at"`
+	UpdatedAt     string                     `json:"updated_at"`
+	SubClauses    []SubClauseWithControlsDTO `json:"sub_clauses"`
 }
 
-type GroupedClauseDTO struct {
-	ID            uint           `json:"id"`
-	ClauseNumber  string         `json:"clause_number"`
-	ClauseTitleEn string         `json:"clause_title_en"`
-	ClauseTitleAr string         `json:"clause_title_ar"`
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
-	SubClauses    []SubClauseDTO `json:"sub_clauses"`
+type SubClauseWithControlsDTO struct {
+	ID                  uint         `json:"id"`
+	ClauseNumber        string       `json:"clause_number"`
+	ClauseTitleEn       string       `json:"clause_title_en"`
+	ClauseTitleAr       string       `json:"clause_title_ar"`
+	ClauseDescriptionEn string       `json:"clause_description_en"`
+	ClauseDescriptionAr string       `json:"clause_description_ar"`
+	Controls            []ControlDTO `json:"controls"`
+}
+
+type ControlDTO struct {
+	ID             uint   `json:"id"`
+	ControlCode    string `json:"control_code"`
+	ControlTitleEn string `json:"control_title_en"`
+	ControlTitleAr string `json:"control_title_ar"`
 }
