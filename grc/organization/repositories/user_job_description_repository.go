@@ -13,7 +13,7 @@ type UserJobDescriptionRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, userID uint) ([]*dtos.UserJobDescriptionListDTO, error)
 	GetFullDetailsByID(id uint) (*models.UserJobDescription, error)
 	CreateUserJobDescriptions(tx utility.DatabaseTransaction, userJDs []*models.UserJobDescription) error
-	CreateUserJobDescriptionCompetencies(tx utility.DatabaseTransaction, userJDCs []*models.UserJobDescriptionCompetency) error
+	CreateUserJobDescriptionCompetency(tx utility.DatabaseTransaction, ujdc *models.UserJobDescriptionCompetency) error
 	CreateUserJobDescriptionCertificates(tx utility.DatabaseTransaction, userJDCerts []*models.UserJobDescriptionCertificate) error
 
 	GetByUserAndJD(userID, jdID uint) (*models.UserJobDescription, error)
@@ -26,6 +26,7 @@ type UserJobDescriptionRepositoryInterface interface {
 	GetCertificateByID(id uint) (*models.UserJobDescriptionCertificate, error)
 	DeleteUserJobDescriptionCertificates(ids []*uint, tx utility.DatabaseTransaction) error
 	UpdateUserJobDescriptionCertificates(tx utility.DatabaseTransaction, certs []*models.UserJobDescriptionCertificate) error
+	GetCertificatesByUserJDID(userJDID uint) ([]*models.UserJobDescriptionCertificate, error)
 }
 
 type UserJobDescriptionRepository struct {
@@ -107,13 +108,12 @@ func (repo *UserJobDescriptionRepository) CreateUserJobDescriptions(tx utility.D
 	}
 	return db.Create(userJDs).Error
 }
-
-func (repo *UserJobDescriptionRepository) CreateUserJobDescriptionCompetencies(tx utility.DatabaseTransaction, userJDCs []*models.UserJobDescriptionCompetency) error {
+func (repo *UserJobDescriptionRepository) CreateUserJobDescriptionCompetency(tx utility.DatabaseTransaction, ujdc *models.UserJobDescriptionCompetency) error {
 	db := repo.db
 	if tx != nil {
 		db = tx.DB()
 	}
-	return db.Create(userJDCs).Error
+	return db.Create(ujdc).Error
 }
 
 func (repo *UserJobDescriptionRepository) CreateUserJobDescriptionCertificates(tx utility.DatabaseTransaction, userJDCerts []*models.UserJobDescriptionCertificate) error {
@@ -203,4 +203,13 @@ func (repo *UserJobDescriptionRepository) UpdateUserJobDescriptionCertificates(t
 		}
 	}
 	return nil
+}
+
+func (repo *UserJobDescriptionRepository) GetCertificatesByUserJDID(userJDID uint) ([]*models.UserJobDescriptionCertificate, error) {
+	var certs []*models.UserJobDescriptionCertificate
+	err := repo.db.
+		Where("user_job_description_competency_id IN (?)",
+			repo.db.Table("user_job_description_competencies").Select("id").Where("user_job_description_id = ?", userJDID),
+		).Find(&certs).Error
+	return certs, err
 }

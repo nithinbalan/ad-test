@@ -35,22 +35,30 @@ type UserCertificateUploadDTO struct {
 }
 
 type UserJobDescriptionDetailDTO struct {
-	ID               uint                                    `json:"id"`
-	UserID           uint                                    `json:"user_id"`
-	JobDescriptionID uint                                    `json:"job_description_id"`
-	JobDescription   *JobDescriptionDTO                      `json:"job_description"`
-	Competencies     []UserJobDescriptionCompetencyDetailDTO `json:"competencies"`
-	CreatedAt        time.Time                               `json:"created_at"`
+	ID                     uint                                    `json:"id"`
+	UserID                 uint                                    `json:"user_id"`
+	JobDescriptionID       uint                                    `json:"job_description_id"`
+	JobDescription         *JobDescriptionDTO                      `json:"job_description"`
+	Competencies           []UserJobDescriptionCompetencyDetailDTO `json:"competencies"`
+	CompetencyTitleEn      *string                                 `json:"competency_title_en"`
+	CompetencyTitleAr      *string                                 `json:"competency_title_ar"`
+	CompetencyGroupTitleEn *string                                 `json:"competency_group_title_en"`
+	CompetencyGroupTitleAr *string                                 `json:"competency_group_title_ar"`
+	CreatedAt              time.Time                               `json:"created_at"`
 }
 
 type UserJobDescriptionCompetencyDetailDTO struct {
-	ID            uint                                     `json:"id"`
-	CompetencyID  uint                                     `json:"competency_id"`
-	Competency    *CompetencyDTO                           `json:"competency"`
-	ActualLevelID uint                                     `json:"actual_level_id"`
-	ActualLevel   *CompetencyLevelDTO                      `json:"actual_level"`
-	Comments      *string                                  `json:"comments"`
-	Certificates  []UserJobDescriptionCertificateDetailDTO `json:"certificates"`
+	ID                     uint                                     `json:"id"`
+	CompetencyID           uint                                     `json:"competency_id"`
+	Competency             *CompetencyDTO                           `json:"competency"`
+	ActualLevelID          uint                                     `json:"actual_level_id"`
+	ActualLevel            *CompetencyLevelDTO                      `json:"actual_level"`
+	Comments               *string                                  `json:"comments"`
+	Certificates           []UserJobDescriptionCertificateDetailDTO `json:"certificates"`
+	CompetencyTitleEn      *string                                  `json:"competency_title_en"`
+	CompetencyTitleAr      *string                                  `json:"competency_title_ar"`
+	CompetencyGroupTitleEn *string                                  `json:"competency_group_title_en"`
+	CompetencyGroupTitleAr *string                                  `json:"competency_group_title_ar"`
 }
 
 type UserJobDescriptionCertificateDetailDTO struct {

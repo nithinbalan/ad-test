@@ -18,7 +18,7 @@ import (
 type UserJobDescriptionServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, userID uint) ([]*dtos.UserJobDescriptionListDTO, error)
 	GetFullDetailsByID(id uint) (*dtos.UserJobDescriptionDetailDTO, error)
-	Create(userID uint, input *dtos.AssignJobDescriptionsDTO, currentUserID uint) error
+	Create(userID uint, input *dtos.AssignJobDescriptionsDTO, currentUserID uint) (uint, error)
 	Delete(userID, jobDescriptionID, currentUserID uint) error
 	Update(jdcID uint, dto dtos.EvaluateUserJDCompetencyDTO, currentUserID uint) error
 }
@@ -60,11 +60,10 @@ func (ujds *UserJobDescriptionService) GetFullDetailsByID(id uint) (*dtos.UserJo
 	return &dto, nil
 }
 
-func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJobDescriptionsDTO, currentUserID uint) error {
+func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJobDescriptionsDTO, currentUserID uint) (uint, error) {
 	if err := ujds.validateJobDescriptionIDs(input.JobDescriptionIDs); err != nil {
-		return err
+		return 0, err
 	}
-
 	var userJDs []*models.UserJobDescription
 	var userJDCs []*models.UserJobDescriptionCompetency
 	var userJDCerts []*models.UserJobDescriptionCertificate
@@ -84,7 +83,7 @@ func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJob
 	// Step 2: Insert UserJobDescriptions
 	if err := ujds.repo.CreateUserJobDescriptions(tx, userJDs); err != nil {
 		tx.Rollback()
-		return err
+		return 0, err
 	}
 
 	// Step 3: For each JD, prepare Competencies and Certifications
@@ -92,20 +91,27 @@ func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJob
 		jdDetails, err := ujds.jdService.GetFullDetailsByID(userJD.JobDescriptionID)
 		if err != nil {
 			tx.Rollback()
-			return err
+			return 0, err
 		}
 
 		for _, comp := range jdDetails.Competencies {
 			ujdc := models.UserJobDescriptionCompetency{
-				UserJobDescriptionID: userJD.ID,
-				CompetencyID:         comp.CompetencyID,
+				UserJobDescriptionID:   userJD.ID,
+				CompetencyID:           comp.CompetencyID,
+				CompetencyTitleEn:      &comp.Competency.TitleEn,
+				CompetencyTitleAr:      &comp.Competency.TitleAr,
+				CompetencyGroupTitleEn: &comp.Competency.CompetencyGroup.TitleEn,
+				CompetencyGroupTitleAr: &comp.Competency.CompetencyGroup.TitleAr,
 			}
-			userJDCs = append(userJDCs, &ujdc)
+			if err := ujds.repo.CreateUserJobDescriptionCompetency(tx, &ujdc); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
 
 			// temporarily append certificates with placeholder 0 for CompetencyID (to update after insert)
 			for _, cert := range comp.Certifications {
 				ujdcert := models.UserJobDescriptionCertificate{
-					UserJobDescriptionCompetencyID:          0, // will be updated
+					UserJobDescriptionCompetencyID:          ujdc.ID,
 					JobDescriptionCompetencyCertificationID: cert.ID,
 					CertificateTitle:                        cert.Title,
 					CreatedByID:                             &currentUserID,
@@ -115,19 +121,13 @@ func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJob
 		}
 	}
 
-	// Step 4: Insert Competencies
-	if err := ujds.repo.CreateUserJobDescriptionCompetencies(tx, userJDCs); err != nil {
-		tx.Rollback()
-		return err
-	}
-
 	// Step 5: Map certificates to the correct inserted competency IDs
 	certIndex := 0
 	for _, userJD := range userJDs {
 		jdDetails, err := ujds.jdService.GetFullDetailsByID(userJD.JobDescriptionID)
 		if err != nil {
 			tx.Rollback()
-			return err
+			return 0, err
 		}
 
 		for _, comp := range jdDetails.Competencies {
@@ -145,13 +145,15 @@ func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJob
 	}
 
 	// Step 6: Insert Certifications
-	if err := ujds.repo.CreateUserJobDescriptionCertificates(tx, userJDCerts); err != nil {
-		tx.Rollback()
-		return err
+	if len(userJDCerts) > 0 {
+		if err := ujds.repo.CreateUserJobDescriptionCertificates(tx, userJDCerts); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
-
+	tx.Commit()
 	// Final step: Commit transaction
-	return tx.Commit()
+	return userID, nil
 }
 
 func (ujds *UserJobDescriptionService) Delete(userID, jobDescriptionID, currentUserID uint) error {
@@ -160,7 +162,11 @@ func (ujds *UserJobDescriptionService) Delete(userID, jobDescriptionID, currentU
 		return utility.NewResourceNotFoundError(err, jobDescriptionID)
 	}
 	tx := ujds.repo.BeginTransaction()
-
+	certs, err := ujds.repo.GetCertificatesByUserJDID(userJD.ID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 	if err := ujds.repo.DeleteUserJobDescriptionCertificatesByUserJDID(tx, userJD.ID); err != nil {
 		tx.Rollback()
 		return err
@@ -178,6 +184,13 @@ func (ujds *UserJobDescriptionService) Delete(userID, jobDescriptionID, currentU
 	tx.Commit()
 
 	go func() {
+		for _, cert := range certs {
+			if cert.Name != nil {
+				storagePath := filepath.Join("job-description", "competency", strconv.Itoa(int(userJD.ID)), "certificates")
+				_ = utility.RemoveFile(*cert.Name, storagePath)
+			}
+		}
+
 		_ = ujds.activityLogSvc.LogActivity(
 			models.DeleteAction,
 			models.UserJobDescription{}.TableName(),
@@ -282,14 +295,24 @@ func (ujds *UserJobDescriptionService) Update(jdcID uint, dto dtos.EvaluateUserJ
 
 func (ujds *UserJobDescriptionService) validateJobDescriptionIDs(jdIDs []uint) error {
 	seen := make(map[uint]bool)
+
 	for _, jdID := range jdIDs {
 		if seen[jdID] {
 			return utility.NewValidationError(fmt.Errorf("duplicate job description ID: %d", jdID), "duplicate", "job_description_ids")
 		}
-		if _, err := ujds.jdService.GetByID(jdID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("job description does not exist for ID: %d", jdID), "not_exist", "job_description_ids")
-		}
 		seen[jdID] = true
+
+		// Load full JD with Competencies and their Certifications
+		jdDetails, err := ujds.jdService.GetFullDetailsByID(jdID)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("unable to load full details for job description ID: %d", jdID), "load_error", "job_description_ids")
+		}
+
+		if len(jdDetails.Competencies) == 0 {
+			return utility.NewValidationError(fmt.Errorf("no competencies found for job description ID: %d", jdID), "no_competencies", "job_description_ids")
+		}
+
 	}
+
 	return nil
 }

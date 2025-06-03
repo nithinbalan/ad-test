@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"jethur/grc/organization/dtos"
 	"jethur/grc/organization/services"
 	"jethur/utility"
@@ -76,24 +77,28 @@ func (ujdc *UserJobDescriptionController) AssignJobDescriptionsToUser(c *gin.Con
 	userIDStr := c.Param("userId")
 	userID, err := strconv.ParseUint(userIDStr, 10, 64)
 	if err != nil {
-		utility.SendInvalidErrResp(c, utility.NewValidationError(err, "user_id", "Invalid user ID"))
+		utility.SendNotFoundErrResp(c)
 		return
 	}
 
 	var input dtos.AssignJobDescriptionsDTO
 	if err := c.ShouldBindJSON(&input); err != nil {
-		utility.SendInvalidErrResp(c, utility.NewValidationError(err, "job_description_ids", "Invalid input"))
+		utility.SendInvalidErrResp(c, err)
 		return
 	}
-
+	fmt.Println("jjjj")
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(ujdc.db, c, err.Error())
 		return
 	}
 
-	if err := ujdc.service.Create(uint(userID), &input, currentUserID); err != nil {
+	_, err = ujdc.service.Create(uint(userID), &input, currentUserID)
+	if err != nil {
 		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
