@@ -21,21 +21,27 @@ type UserJobDescriptionServiceInterface interface {
 	Create(userID uint, input *dtos.AssignJobDescriptionsDTO, currentUserID uint) (uint, error)
 	Delete(userID, jobDescriptionID, currentUserID uint) error
 	Update(jdcID uint, dto dtos.EvaluateUserJDCompetencyDTO, currentUserID uint) error
+
+	CreateUserJDFromDesignation(userID uint, designationID uint, currentUserID uint, tx utility.DatabaseTransaction) error
+	DeleteUserJDFromDesignation(userID uint, designationID uint, currentUserID uint) error
 }
 
 type UserJobDescriptionService struct {
 	repo           repositories.UserJobDescriptionRepositoryInterface
 	activityLogSvc services.ActivityLogServiceInterface
 	jdService      JobDescriptionServiceInterface
+	designationSvc DesignationServiceInterface
 }
 
 func NewUserJobDescriptionService(repo repositories.UserJobDescriptionRepositoryInterface,
 	activityLogSvc services.ActivityLogServiceInterface,
-	jdService JobDescriptionServiceInterface) UserJobDescriptionServiceInterface {
+	jdService JobDescriptionServiceInterface,
+	designationSvc DesignationServiceInterface) UserJobDescriptionServiceInterface {
 	return &UserJobDescriptionService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
 		jdService:      jdService,
+		designationSvc: designationSvc,
 	}
 }
 
@@ -64,8 +70,8 @@ func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJob
 	if err := ujds.validateJobDescriptionIDs(input.JobDescriptionIDs); err != nil {
 		return 0, err
 	}
+
 	var userJDs []*models.UserJobDescription
-	var userJDCs []*models.UserJobDescriptionCompetency
 	var userJDCerts []*models.UserJobDescriptionCertificate
 
 	// Step 1: Prepare UserJobDescriptions
@@ -86,7 +92,7 @@ func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJob
 		return 0, err
 	}
 
-	// Step 3: For each JD, prepare Competencies and Certifications
+	// Step 3: Insert competencies and prepare certificates
 	for _, userJD := range userJDs {
 		jdDetails, err := ujds.jdService.GetFullDetailsByID(userJD.JobDescriptionID)
 		if err != nil {
@@ -108,7 +114,6 @@ func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJob
 				return 0, err
 			}
 
-			// temporarily append certificates with placeholder 0 for CompetencyID (to update after insert)
 			for _, cert := range comp.Certifications {
 				ujdcert := models.UserJobDescriptionCertificate{
 					UserJobDescriptionCompetencyID:          ujdc.ID,
@@ -121,38 +126,15 @@ func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJob
 		}
 	}
 
-	// Step 5: Map certificates to the correct inserted competency IDs
-	certIndex := 0
-	for _, userJD := range userJDs {
-		jdDetails, err := ujds.jdService.GetFullDetailsByID(userJD.JobDescriptionID)
-		if err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-
-		for _, comp := range jdDetails.Competencies {
-			for _, ujdc := range userJDCs {
-				if ujdc.UserJobDescriptionID == userJD.ID && ujdc.CompetencyID == comp.CompetencyID {
-					for range comp.Certifications {
-						if certIndex < len(userJDCerts) {
-							userJDCerts[certIndex].UserJobDescriptionCompetencyID = ujdc.ID
-							certIndex++
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// Step 6: Insert Certifications
+	// Step 4: Bulk insert certificates
 	if len(userJDCerts) > 0 {
 		if err := ujds.repo.CreateUserJobDescriptionCertificates(tx, userJDCerts); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
 	}
+
 	tx.Commit()
-	// Final step: Commit transaction
 	return userID, nil
 }
 
@@ -161,6 +143,7 @@ func (ujds *UserJobDescriptionService) Delete(userID, jobDescriptionID, currentU
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, jobDescriptionID)
 	}
+
 	tx := ujds.repo.BeginTransaction()
 	certs, err := ujds.repo.GetCertificatesByUserJDID(userJD.ID)
 	if err != nil {
@@ -291,6 +274,135 @@ func (ujds *UserJobDescriptionService) Update(jdcID uint, dto dtos.EvaluateUserJ
 	}
 
 	return tx.Commit()
+}
+
+func (ujds *UserJobDescriptionService) CreateUserJDFromDesignation(userID uint, designationID uint, currentUserID uint, tx utility.DatabaseTransaction) error {
+	designation, err := ujds.designationSvc.GetByID(designationID)
+	if err != nil {
+		return err
+	}
+
+	if designation.JobDescriptionID == nil {
+		return nil // No JD attached to designation
+	}
+
+	// Step 1: Create UserJobDescription as slice (to reuse bulk insert logic)
+	userJDs := []*models.UserJobDescription{
+		{
+			UserID:           userID,
+			JobDescriptionID: *designation.JobDescriptionID,
+			CreatedByID:      currentUserID,
+		},
+	}
+
+	if err := ujds.repo.CreateUserJobDescriptions(tx, userJDs); err != nil {
+		return err
+	}
+
+	// Step 2: Fetch competencies and certifications for that JD
+	jdDetails, err := ujds.jdService.GetFullDetailsByID(*designation.JobDescriptionID)
+	if err != nil {
+		return err
+	}
+
+	var userJDCerts []*models.UserJobDescriptionCertificate
+
+	// Step 3: Prepare competencies and certificates
+	for _, comp := range jdDetails.Competencies {
+		ujdc := &models.UserJobDescriptionCompetency{
+			UserJobDescriptionID:   userJDs[0].ID,
+			CompetencyID:           comp.CompetencyID,
+			CompetencyTitleEn:      &comp.Competency.TitleEn,
+			CompetencyTitleAr:      &comp.Competency.TitleAr,
+			CompetencyGroupTitleEn: &comp.Competency.CompetencyGroup.TitleEn,
+			CompetencyGroupTitleAr: &comp.Competency.CompetencyGroup.TitleAr,
+		}
+
+		if err := ujds.repo.CreateUserJobDescriptionCompetency(tx, ujdc); err != nil {
+			return err
+		}
+
+		for _, cert := range comp.Certifications {
+			ujdcert := &models.UserJobDescriptionCertificate{
+				UserJobDescriptionCompetencyID:          ujdc.ID,
+				JobDescriptionCompetencyCertificationID: cert.ID,
+				CertificateTitle:                        cert.Title,
+				CreatedByID:                             &currentUserID,
+			}
+			userJDCerts = append(userJDCerts, ujdcert)
+		}
+	}
+
+	// Step 4: Bulk insert certificates
+	if len(userJDCerts) > 0 {
+		if err := ujds.repo.CreateUserJobDescriptionCertificates(tx, userJDCerts); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (ujds *UserJobDescriptionService) DeleteUserJDFromDesignation(userID uint, designationID uint, currentUserID uint) error {
+	designation, err := ujds.designationSvc.GetByID(designationID)
+	if err != nil {
+		return err
+	}
+
+	if designation.JobDescriptionID == nil {
+		return nil // No JD linked
+	}
+
+	userJD, err := ujds.repo.GetByUserAndJD(userID, *designation.JobDescriptionID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, *designation.JobDescriptionID)
+	}
+
+	tx := ujds.repo.BeginTransaction()
+
+	// Load certs before deletion
+	certs, err := ujds.repo.GetCertificatesByUserJDID(userJD.ID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := ujds.repo.DeleteUserJobDescriptionCertificatesByUserJDID(tx, userJD.ID); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := ujds.repo.DeleteUserJobDescriptionCompetenciesByUserJDID(tx, userJD.ID); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := ujds.repo.DeleteUserJobDescription(tx, userJD.ID); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	go func() {
+		for _, cert := range certs {
+			if cert.Name != nil {
+				storagePath := filepath.Join("job-description", "competency", strconv.Itoa(int(userJD.ID)), "certificates")
+				_ = utility.RemoveFile(*cert.Name, storagePath)
+			}
+		}
+
+		_ = ujds.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.UserJobDescription{}.TableName(),
+			userJD.ID,
+			userJD,
+			currentUserID,
+			nil,
+		)
+	}()
+
+	return nil
 }
 
 func (ujds *UserJobDescriptionService) validateJobDescriptionIDs(jdIDs []uint) error {

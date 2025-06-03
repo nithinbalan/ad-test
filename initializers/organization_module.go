@@ -95,6 +95,10 @@ func NewOrganizationModule(
 	designationSvc := services.NewDesignationService(designationRepo, sharedModule.ActivityLogService, jobDescriptionSvc)
 	designationController := controllers.NewDesignationController(designationSvc)
 
+	userJobDescriptionRepo := repositories.NewUserJobDescriptionRepository(db)
+	userJobDescriptionSvc := services.NewUserJobDescriptionService(userJobDescriptionRepo, sharedModule.ActivityLogService, jobDescriptionSvc, designationSvc)
+	userJobDescriptionController := controllers.NewUserJobDescriptionController(userJobDescriptionSvc)
+
 	userStatusRepo := repositories.NewUserStatusRepository(db)
 	userStatusSvc := services.NewUserStatusService(userStatusRepo)
 	userStatusController := controllers.NewUserStatusController(userStatusSvc)
@@ -113,6 +117,7 @@ func NewOrganizationModule(
 		commonModule.NotificationService,
 		settingsModule.ActiveDirectorySettingSvc,
 		settingsModule.OrganizationUnitSvc,
+		userJobDescriptionSvc,
 	)
 	userSettingRepo := repositories.NewUserSettingRepository(db)
 	userSettingSvc := services.NewUserSettingService(
@@ -255,10 +260,6 @@ func NewOrganizationModule(
 	userDocumentRepo := repositories.NewUserDocumentRepository(db)
 	userDocumentSvc := services.NewUserDocumentService(userDocumentRepo, userDocumentTypeSvc, userDocumentSubTypeSvc, sharedModule.ActivityLogService, userSvc)
 	userDocumentController := controllers.NewUserDocumentController(userDocumentSvc)
-
-	userJobDescriptionRepo := repositories.NewUserJobDescriptionRepository(db)
-	userJobDescriptionSvc := services.NewUserJobDescriptionService(userJobDescriptionRepo, sharedModule.ActivityLogService, jobDescriptionSvc)
-	userJobDescriptionController := controllers.NewUserJobDescriptionController(userJobDescriptionSvc)
 
 	return &OrganizationModule{
 		DesignationController:                   designationController,

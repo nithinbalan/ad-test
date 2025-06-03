@@ -55,7 +55,7 @@ func (repo *UserJobDescriptionRepository) GetAll(sort string, sortBy string, key
 			job_descriptions.description_ar AS description_ar,
 			job_descriptions.roles_and_responsibilities AS roles_and_responsibilities,
 			job_descriptions.status AS status,
-			job_descriptions.created_at AS created_at
+			user_job_descriptions.created_at AS created_at
 		`).
 		Joins(`
 			LEFT JOIN job_descriptions ON job_descriptions.id = user_job_descriptions.job_description_id
