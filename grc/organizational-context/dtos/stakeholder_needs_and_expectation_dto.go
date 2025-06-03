@@ -76,7 +76,7 @@ type StakeholderNeedsAndExpectationDetailDTO struct {
 
 type StakeholderNeedsAndExpectationEvaluationDTO struct {
 	ID               uint                             `json:"id"`
-	EvaluationStatus EvaluationStatusDTO              `json:"evaluatiom_status"`
+	EvaluationStatus EvaluationStatusDTO              `json:"evaluation_status"`
 	Comment          string                           `json:"comment"`
 	Score            *int                             `json:"score"`
 	EvaluatedByID    uint                             `json:"evaluated_by_id"`

@@ -291,6 +291,7 @@ func (ses *StakeholderEngagementService) StatusUpdate(stakeholderID uint, id uin
 		return err
 	}
 
+	existingEngagement.EvaluationStatusID = stakeholderEngagementEvaluationFormDTO.EvaluationStatusID
 	existingEngagement.Score = stakeholderEngagementEvaluationFormDTO.Score
 	existingEngagement.EvaluatedBYID = &stakeholderEngagementEvaluationFormDTO.EvaluatedByID
 	existingEngagement.EvaluatedAt = dates.EvaluatedAt

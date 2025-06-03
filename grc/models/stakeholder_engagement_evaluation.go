@@ -7,6 +7,7 @@ import (
 type StakeholderEngagementEvaluation struct {
 	ID                      uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	StakeholderEngagementID uint       `json:"stakeholder_engagement_id" binding:"required" gorm:"not null"`
+	EvaluationStatusID      *uint      `json:"evaluation_status_id" gorm:"not null"`
 	Score                   *int       `json:"score" binding:"omitempty,min=0,max=100" gorm:"not null;default:0"`
 	Comment                 *string    `json:"comment" binding:"required" gorm:"type:nvarchar(max);not null"`
 	EvaluatedAt             *time.Time `json:"evaluated_at" binding:"omitempty" gorm:"type:date,default:null"`
@@ -18,6 +19,7 @@ type StakeholderEngagementEvaluation struct {
 
 	// Relationships
 	StakeholderEngagement *StakeholderEngagement `gorm:"foreignKey:StakeholderEngagementID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	EvaluationStatus      *EvaluationStatus      `gorm:"foreignKey:EvaluationStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser         *User                  `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser         *User                  `gorm:"foreignKey:UpdatedBYID"`
 	EvaluatedByUser       *User                  `gorm:"foreignKey:EvaluatedBYID"`
