@@ -43,6 +43,10 @@ func (repo *StakeholderEngagementEvaluationRepository) GetAll(stakeholderID uint
             stakeholder_engagement_evaluations.*,
             stakeholder_engagements.title AS stakeholder_engagement_title,
 			CONVERT(VARCHAR, stakeholder_engagement_evaluations.evaluated_at, 23) AS evaluated_at,
+			evaluation_statuses.title_en AS evaluation_status_title_en,
+            evaluation_statuses.title_ar AS evaluation_status_title_ar,
+            evaluation_statuses.color_code AS evaluation_status_color_code,
+			evaluation_statuses.type AS evaluation_status_type,
 			evaluated_user.id AS evaluated_user_id,
         	evaluated_user.first_name_en AS evaluated_user_first_name_en,
         	evaluated_user.first_name_ar AS evaluated_user_first_name_ar,
@@ -73,6 +77,7 @@ func (repo *StakeholderEngagementEvaluationRepository) GetAll(stakeholderID uint
         `).
 		Joins(`
             LEFT JOIN stakeholder_engagements ON stakeholder_engagements.id = stakeholder_engagement_evaluations.stakeholder_engagement_id
+			LEFT JOIN evaluation_statuses ON evaluation_statuses.id = stakeholder_engagements.evaluation_status_id
             LEFT JOIN users AS created_user ON created_user.id = stakeholder_engagement_evaluations.created_by_id
 			LEFT JOIN users AS evaluated_user ON evaluated_user.id = stakeholder_engagement_evaluations.evaluated_by_id
             LEFT JOIN users AS updated_user ON updated_user.id = stakeholder_engagement_evaluations.updated_by_id
