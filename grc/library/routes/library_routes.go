@@ -46,5 +46,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	libraryRoutes.GET("/compliance-libraries/:libraryId", ComplianceLibraryController.GetComplianceLibraryDetails)
 
-	libraryRoutes.GET("/compliance-library-clauses/:versionID/:complianceLibraryID", ComplianceLibraryController.GetClauseControlTree)
+	libraryRoutes.GET("/compliance-library/:complianceLibraryID/versions/:versionID/clauses", ComplianceLibraryController.GetClauseControlTree)
 }

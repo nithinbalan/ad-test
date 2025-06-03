@@ -1,7 +1,5 @@
 package dtos
 
-import "time"
-
 type ComplianceLibraryWithVersionsDTO struct {
 	ID                     uint    `json:"id"`
 	Icon                   *string `json:"icon"`
@@ -20,16 +18,6 @@ type ComplianceLibraryWithVersionsDTO struct {
 	Overview     *string `json:"overview"`
 	Introduction *string `json:"introduction"`
 	Domains      *string `json:"domains"`
-}
-
-type GroupedClauseDTO struct {
-	ID            uint                       `json:"id"`
-	ClauseNumber  string                     `json:"clause_number"`
-	ClauseTitleEn string                     `json:"clause_title_en"`
-	ClauseTitleAr string                     `json:"clause_title_ar"`
-	CreatedAt     time.Time                  `json:"created_at"`
-	UpdatedAt     time.Time                  `json:"updated_at"`
-	SubClauses    []SubClauseWithControlsDTO `json:"sub_clauses"`
 }
 
 type ClauseWithSubClausesDTO struct {

@@ -40,23 +40,6 @@ func (clc *ComplianceLibraryController) GetComplianceLibraryDetails(c *gin.Conte
 	c.JSON(http.StatusOK, data)
 }
 
-// func (clc *ComplianceLibraryController) GetClausesByVersionID(c *gin.Context) {
-// 	versionIDStr := c.Param("versionID")
-// 	versionID, err := strconv.Atoi(versionIDStr)
-// 	if err != nil {
-// 		utility.SendNotFoundErrResp(c)
-// 		return
-// 	}
-
-// 	result, err := clc.service.GetClausesByVersionID(uint(versionID))
-// 	if err != nil {
-// 		utility.SendInternalErrResp(clc.db, c, err.Error())
-// 		return
-// 	}
-
-// 	c.JSON(http.StatusOK, result)
-// }
-
 func (clc *ComplianceLibraryController) GetClauseControlTree(c *gin.Context) {
 	versionIDStr := c.Param("versionID")
 	complianceIDStr := c.Param("complianceLibraryID")

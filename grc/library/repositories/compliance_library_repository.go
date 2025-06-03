@@ -9,7 +9,6 @@ import (
 
 type ComplianceLibraryRepositoryInterface interface {
 	GetComplianceLibraryDetailsByID(libraryID uint) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error)
-	GetAllClausesByVersionID(versionID uint) ([]models.ComplianceLibraryClause, error)
 	GetClauseTreeByVersion(versionID uint) ([]models.ComplianceLibraryClause, error)
 	GetControlLibraryTitle(controlLibraryID, complianceLibraryID uint) (*models.ControlLibraryTitle, error)
 }
@@ -55,31 +54,15 @@ func (repo *ComplianceLibraryRepository) GetComplianceLibraryDetailsByID(library
 	return &result, nil
 }
 
-func (repo *ComplianceLibraryRepository) GetAllClausesByVersionID(versionID uint) ([]models.ComplianceLibraryClause, error) {
-	var clauses []models.ComplianceLibraryClause
-
-	err := repo.db.
-		Where("compliance_library_version_id = ?", versionID).
-		Order(`
-    TRY_CAST(LEFT(clause_number, CHARINDEX('.', clause_number + '.') - 1) AS INT),
-    TRY_CAST(SUBSTRING(clause_number, CHARINDEX('.', clause_number + '.') + 1, LEN(clause_number)) AS INT)
-  `).
-		Find(&clauses).Error
-	if err != nil {
-		return nil, err
-	}
-	return clauses, nil
-}
-
 func (repo *ComplianceLibraryRepository) GetClauseTreeByVersion(versionID uint) ([]models.ComplianceLibraryClause, error) {
 	var clauses []models.ComplianceLibraryClause
 	err := repo.db.Preload("Controls").Where("compliance_library_version_id = ?", versionID).Find(&clauses).Error
 	return clauses, err
 }
 
-func (r *ComplianceLibraryRepository) GetControlLibraryTitle(controlLibraryID, complianceLibraryID uint) (*models.ControlLibraryTitle, error) {
+func (repo *ComplianceLibraryRepository) GetControlLibraryTitle(controlLibraryID, complianceLibraryID uint) (*models.ControlLibraryTitle, error) {
 	var title models.ControlLibraryTitle
-	err := r.db.Where("control_library_id = ? AND compliance_library_id = ?", controlLibraryID, complianceLibraryID).First(&title).Error
+	err := repo.db.Where("control_library_id = ? AND compliance_library_id = ?", controlLibraryID, complianceLibraryID).First(&title).Error
 	if err != nil {
 		return nil, err
 	}
