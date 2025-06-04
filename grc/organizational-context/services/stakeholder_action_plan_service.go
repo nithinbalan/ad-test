@@ -81,7 +81,7 @@ func (caps *StakeholderActionPlanService) GetAll(stakeholderID uint, params *org
 			return nil, err
 		}
 	}
-	return caps.repo.GetAll(stakeholderID, params, uint(0))
+	return caps.repo.GetAll(stakeholderID, params)
 }
 
 func (caps StakeholderActionPlanService) GetByID(stakeholderID uint, id uint) (*models.StakeholderActionPlan, error) {

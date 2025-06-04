@@ -26,6 +26,20 @@ type StakeholderEngagementListDTO struct {
 	AssignedOwnerColor            string  `json:"assigned_owner_color"`
 	AssignedOwnerEmail            string  `json:"assigned_owner_email"`
 	AssignedOwnerProfileImagePath string  `json:"assigned_owner_profile_image_path"`
+	EvaluationStatusTitleEn       *string `json:"evaluation_status_title_en"`
+	EvaluationStatusTitleAr       *string `json:"evaluation_status_title_ar"`
+	EvaluationStatusColorCode     *string `json:"evaluation_status_color_code"`
+	EvaluationStatusType          *string `json:"evaluation_status_type"`
+	EvaluatedAt                   string  `json:"evaluated_at"`
+	EvaluatedUserID               uint    `json:"evaluated_user_id"`
+	EvaluatedUserFirstNameEn      string  `json:"evaluated_user_first_name_en"`
+	EvaluatedUserFirstNameAr      string  `json:"evaluated_user_first_name_ar"`
+	EvaluatedUserLastNameEn       string  `json:"evaluated_user_last_name_en"`
+	EvaluatedUserLastNameAr       *string `json:"evaluated_user_last_name_ar"`
+	EvaluatedUserInitial          string  `json:"evaluated_user_initial"`
+	EvaluatedUserColor            string  `json:"evaluated_user_color"`
+	EvaluatedUserEmail            string  `json:"evaluated_user_email"`
+	EvaluatedUserProfileImagePath string  `json:"evaluated_user_profile_image_path"`
 	CreatedUserID                 uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn        string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr        string  `json:"created_user_first_name_ar"`
@@ -83,14 +97,15 @@ type StakeholderEngagementDetailDTO struct {
 }
 
 type StakeholderEngagementEvaluationDTO struct {
-	ID              uint                             `json:"id"`
-	Comment         string                           `json:"comment"`
-	Score           *int                             `json:"score"`
-	EvaluatedByID   uint                             `json:"evaluated_by_id"`
-	EvaluatedByUser organizationDTOs.UserMinimalDTO  `json:"evaluated_by_user"`
-	EvaluatedAt     *time.Time                       `json:"evaluated_at" binding:"omitempty,datetime=2006-01-02"`
-	CreatedAt       time.Time                        `json:"created_at"`
-	UpdatedAt       *time.Time                       `json:"updated_at"`
-	CreatedByUser   organizationDTOs.UserMinimalDTO  `json:"created_by_user"`
-	UpdatedByUser   *organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
+	ID               uint                             `json:"id"`
+	Comment          string                           `json:"comment"`
+	Score            *int                             `json:"score"`
+	EvaluationStatus EvaluationStatusDTO              `json:"evaluation_status"`
+	EvaluatedByID    uint                             `json:"evaluated_by_id"`
+	EvaluatedByUser  organizationDTOs.UserMinimalDTO  `json:"evaluated_by_user"`
+	EvaluatedAt      *time.Time                       `json:"evaluated_at" binding:"omitempty,datetime=2006-01-02"`
+	CreatedAt        time.Time                        `json:"created_at"`
+	UpdatedAt        *time.Time                       `json:"updated_at"`
+	CreatedByUser    organizationDTOs.UserMinimalDTO  `json:"created_by_user"`
+	UpdatedByUser    *organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
 }

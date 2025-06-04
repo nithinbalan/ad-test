@@ -72,6 +72,7 @@ type UserDocumentFormDTO struct {
 	OriginalName          string  `json:"original_name" binding:"required"`
 	Type                  string  `json:"type" binding:"required"`
 	Size                  int     `json:"size" binding:"required"`
+	IsNewFile             *bool   `json:"is_new_file"`
 }
 
 type UserDocumentDetailDTO struct {

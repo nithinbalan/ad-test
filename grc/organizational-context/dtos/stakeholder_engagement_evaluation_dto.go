@@ -5,7 +5,11 @@ import "time"
 type StakeholderEngagementEvaluationListDTO struct {
 	ID                            int     `json:"id"`
 	StakeholderEngagementID       uint    `json:"stakeholder_engagement_id"`
-	StakeholderEngagementTitle    string  `json:"stakeholder_engagement_title"`
+	StakeholderEngagementTitle    *string `json:"stakeholder_engagement_title"`
+	EvaluationStatusTitleEn       *string `json:"evaluation_status_title_en"`
+	EvaluationStatusTitleAr       *string `json:"evaluation_status_title_ar"`
+	EvaluationStatusColorCode     *string `json:"evaluation_status_color_code"`
+	EvaluationStatusType          *string `json:"evaluation_status_type"`
 	Comment                       *string `json:"comment"`
 	Score                         *int    `json:"score"`
 	EvaluatedAt                   string  `json:"evaluated_at"`
@@ -39,11 +43,12 @@ type StakeholderEngagementEvaluationListDTO struct {
 }
 
 type StakeholderEngagementEvaluationFormDTO struct {
-	Comment       *string `json:"comment"`
-	Score         *int    `json:"score"`
-	EvaluatedByID uint    `json:"evaluated_by_id"`
-	EvaluatedAt   *string `json:"evaluated_at" binding:"omitempty,datetime=2006-01-02"`
-	Description   *string `json:"description"`
+	Comment            *string `json:"comment"`
+	EvaluationStatusID *uint   `json:"evaluation_status_id" binding:"required"`
+	Score              *int    `json:"score"`
+	EvaluatedByID      uint    `json:"evaluated_by_id"`
+	EvaluatedAt        *string `json:"evaluated_at" binding:"omitempty,datetime=2006-01-02"`
+	Description        *string `json:"description"`
 }
 
 type StakeholderEngagementEvaluationParsedDates struct {

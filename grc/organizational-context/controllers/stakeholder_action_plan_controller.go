@@ -39,6 +39,18 @@ func (sapc *StakeholderActionPlanController) GetAllStakeholderActionPlans(c *gin
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(sapc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(sapc.db, c, "Invalid page_size parameter")
+		return
+	}
+
 	allowedParams := []string{
 		"bcp_phase_ids",
 		"process_ids",
@@ -77,6 +89,8 @@ func (sapc *StakeholderActionPlanController) GetAllStakeholderActionPlans(c *gin
 	queryParams := organizationalContextDTOs.StakeholderActionPlanListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortField,
+		Page:        page,
+		PageSize:    pageSize,
 		Keyword:     keyword,
 		Filters:     filters,
 		QuickFilter: quickFilter,
