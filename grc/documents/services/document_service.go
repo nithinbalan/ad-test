@@ -812,7 +812,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		}
 
 		existingDocumentFileName := documentFullDetails.LatestDocumentVersion.Name
-		// baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
+		baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
 
 		// generate token
 		dataToEncrypt := []byte(documentTemplate.Document.Name)
@@ -847,11 +847,11 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			tx.Rollback()
 			return err
 		}
-		// pdfFileName := baseFileName + ".pdf"
-		// if err := utility.RemoveFile(pdfFileName, destinationDir); err != nil {
-		// 	tx.Rollback()
-		// 	return err
-		// }
+		pdfFileName := baseFileName + ".pdf"
+		if err := utility.RemoveFile(pdfFileName, destinationDir); err != nil {
+			tx.Rollback()
+			return err
+		}
 
 		sourceDir := filepath.Join("document", "document-template", strconv.FormatUint(uint64(documentTemplate.ID), 10), "documents")
 		fileName = documentTemplate.Document.Name
@@ -882,7 +882,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 	} else {
 		if documentFormDTO.Document.IsNewFile != nil && *documentFormDTO.Document.IsNewFile {
 			existingDocumentFileName := documentFullDetails.LatestDocumentVersion.Name
-			// baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
+			baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
 
 			url := utility.GenerateDocumentURL("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
 
@@ -919,11 +919,11 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 				tx.Rollback()
 				return err
 			}
-			// pdfFileName := baseFileName + ".pdf"
-			// if err := utility.RemoveFile(pdfFileName, destinationDir); err != nil {
-			// 	tx.Rollback()
-			// 	return err
-			// }
+			pdfFileName := baseFileName + ".pdf"
+			if err := utility.RemoveFile(pdfFileName, destinationDir); err != nil {
+				tx.Rollback()
+				return err
+			}
 
 			if err := utility.StoreFile(documentFormDTO.Document.FileName, destinationDir); err != nil {
 				tx.Rollback()
@@ -1606,9 +1606,50 @@ func (ds *DocumentService) CheckinDocument(id uint, currentUserID uint, document
 
 	tx.Commit()
 
+	fileNameCopy := documentCheckinFormDTO.Document.FileName
+
 	go func() {
 		if err := utility.ConvertDocxToPDF(destinationDir, documentCheckinFormDTO.Document.FileName, destinationDir); err != nil {
 			log.Printf("Failed to convert document to PDF: %v", err)
+		}
+
+		systemPreference, err := ds.systemPreferenceSvc.GetSystemPreference()
+		if err != nil {
+			log.Printf("Failed to get system preferences: %v", err)
+			return
+		}
+
+		// Only proceed with document parsing if AI is enabled
+		if systemPreference.IsAIEnable != nil && *systemPreference.IsAIEnable {
+			// Parse document content
+			baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+			filePath := filepath.Join(baseStoragePath, destinationDir, fileNameCopy)
+			log.Printf("Attempting to parse checked in document at path: %s", filePath)
+
+			parsedContent, sampleQuestions, summary, keyPoints, faq, err := utility.ParseDocument(filePath)
+			if err != nil {
+				log.Printf("Warning: Failed to parse document content: %v", err)
+			} else {
+				documentVersion, err := ds.repo.GetDocumentVersionByID(document.LatestDocumentVersion.ID)
+				if err != nil {
+					log.Printf("Failed to get document version: %v", err)
+					return
+				}
+
+				documentVersion.ParsedContent = &parsedContent
+				documentVersion.SampleQuestions = &sampleQuestions
+				documentVersion.Summary = &summary
+				documentVersion.KeyPoints = &keyPoints
+				documentVersion.FAQ = &faq
+				err = ds.repo.UpdateDocumentVersion(documentVersion)
+				if err != nil {
+					log.Printf("Failed to update document version with parsed content: %v", err)
+					return
+				}
+				log.Printf("Successfully updated document version with parsed content")
+			}
+		} else {
+			log.Printf("Skipping document parsing as AI is not enabled in system preferences")
 		}
 	}()
 
