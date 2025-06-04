@@ -21,6 +21,11 @@ type DocumentVersion struct {
 	PublishedAt        *time.Time `json:"published_at" gorm:"type:date;default:null"`
 	NextReviewLevel    *int       `json:"next_review_level" gorm:"default:null"`
 	AcknowledgeDueDate *time.Time `json:"acknowledge_due_date" gorm:"type:date;default:null"`
+	ParsedContent      *string    `json:"parsed_content" gorm:"type:nvarchar(max)"`
+	Summary            *string    `json:"summary" gorm:"type:nvarchar(max)"`
+	KeyPoints          *string    `json:"key_points" gorm:"type:nvarchar(max)"`
+	FAQ                *string    `json:"faq" gorm:"type:nvarchar(max)"`
+	SampleQuestions    *string    `json:"sample_questions" gorm:"type:nvarchar(max)"`
 	CreatedBYID        uint       `json:"created_by_id" binding:"required" gorm:"not null"`
 	UpdatedBYID        *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt          time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`

@@ -85,6 +85,7 @@ type DocumentService struct {
 	notificationSvc           commonServices.NotificationServiceInterface
 	orgLevelSvc               settinsSvc.OrganizationLevelServiceInterface
 	reviewFrequencySvc        masterSvc.ReviewFrequencyServiceInterface
+	systemPreferenceSvc       settinsSvc.SystemPreferenceServiceInterface
 }
 
 func NewDocumentService(
@@ -104,6 +105,7 @@ func NewDocumentService(
 	notificationSvc commonServices.NotificationServiceInterface,
 	orgLevelSvc settinsSvc.OrganizationLevelServiceInterface,
 	reviewFrequencySvc masterSvc.ReviewFrequencyServiceInterface,
+	systemPreferenceSvc settinsSvc.SystemPreferenceServiceInterface,
 ) DocumentServiceInterface {
 	return &DocumentService{
 		repo:                      repo,
@@ -122,6 +124,7 @@ func NewDocumentService(
 		notificationSvc:           notificationSvc,
 		orgLevelSvc:               orgLevelSvc,
 		reviewFrequencySvc:        reviewFrequencySvc,
+		systemPreferenceSvc:       systemPreferenceSvc,
 	}
 }
 
@@ -440,7 +443,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		}
 	}(fileNameCopy)
 
-	go func() {
+	go func(fileName string) {
 		existingDocument, err := ds.GetFullDetailsByID(id, &currentUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch document", map[string]interface{}{
@@ -468,7 +471,45 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 
 			utility.LogError("Failed to log activity", fields)
 		}
-	}()
+
+		documentVersion, err := ds.repo.GetDocumentVersionByID(existingDocument.LatestDocumentVersion.ID)
+		if err != nil {
+			log.Printf("Failed to get document version: %v", err)
+			return
+		}
+
+		// Get system preferences to check AI enable status
+		systemPreference, err := ds.systemPreferenceSvc.GetSystemPreference()
+		if err != nil {
+			log.Printf("Failed to get system preferences: %v", err)
+			return
+		}
+
+		// Only proceed with document parsing if AI is enabled
+		if systemPreference.IsAIEnable != nil && *systemPreference.IsAIEnable {
+			baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+			filePath := filepath.Join(baseStoragePath, destinationDir, fileName)
+			log.Printf("Attempting to parse document at path: %s", filePath)
+
+			parsedContent, sampleQuestions, summary, keyPoints, faq, err := utility.ParseDocument(filePath)
+			if err != nil {
+				log.Printf("Warning: Failed to parse document content: %v", err)
+			} else {
+				documentVersion.ParsedContent = &parsedContent
+				documentVersion.SampleQuestions = &sampleQuestions
+				documentVersion.Summary = &summary
+				documentVersion.KeyPoints = &keyPoints
+				documentVersion.FAQ = &faq
+				err = ds.repo.UpdateDocumentVersion(documentVersion)
+				if err != nil {
+					log.Printf("Failed to update document version with parsed content: %v", err)
+					return
+				}
+			}
+		} else {
+			log.Printf("Skipping document parsing as AI is not enabled in system preferences")
+		}
+	}(fileNameCopy)
 
 	return id, nil
 }
@@ -771,7 +812,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		}
 
 		existingDocumentFileName := documentFullDetails.LatestDocumentVersion.Name
-		baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
+		// baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
 
 		// generate token
 		dataToEncrypt := []byte(documentTemplate.Document.Name)
@@ -806,11 +847,11 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			tx.Rollback()
 			return err
 		}
-		pdfFileName := baseFileName + ".pdf"
-		if err := utility.RemoveFile(pdfFileName, destinationDir); err != nil {
-			tx.Rollback()
-			return err
-		}
+		// pdfFileName := baseFileName + ".pdf"
+		// if err := utility.RemoveFile(pdfFileName, destinationDir); err != nil {
+		// 	tx.Rollback()
+		// 	return err
+		// }
 
 		sourceDir := filepath.Join("document", "document-template", strconv.FormatUint(uint64(documentTemplate.ID), 10), "documents")
 		fileName = documentTemplate.Document.Name
@@ -841,7 +882,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 	} else {
 		if documentFormDTO.Document.IsNewFile != nil && *documentFormDTO.Document.IsNewFile {
 			existingDocumentFileName := documentFullDetails.LatestDocumentVersion.Name
-			baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
+			// baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
 
 			url := utility.GenerateDocumentURL("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
 
@@ -878,11 +919,11 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 				tx.Rollback()
 				return err
 			}
-			pdfFileName := baseFileName + ".pdf"
-			if err := utility.RemoveFile(pdfFileName, destinationDir); err != nil {
-				tx.Rollback()
-				return err
-			}
+			// pdfFileName := baseFileName + ".pdf"
+			// if err := utility.RemoveFile(pdfFileName, destinationDir); err != nil {
+			// 	tx.Rollback()
+			// 	return err
+			// }
 
 			if err := utility.StoreFile(documentFormDTO.Document.FileName, destinationDir); err != nil {
 				tx.Rollback()
@@ -1047,6 +1088,39 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		if (documentFormDTO.Document != nil && documentFormDTO.Document.IsNewFile != nil && *documentFormDTO.Document.IsNewFile) || documentFormDTO.DocumentTemplateID != nil {
 			if err := utility.ConvertDocxToPDF(destinationDir, fileName, destinationDir); err != nil {
 				log.Printf("Failed to convert document to PDF: %v", err)
+			}
+
+			systemPreference, err := ds.systemPreferenceSvc.GetSystemPreference()
+			if err != nil {
+				log.Printf("Failed to get system preferences: %v", err)
+				return
+			}
+
+			// Only proceed with document parsing if AI is enabled
+			if systemPreference.IsAIEnable != nil && *systemPreference.IsAIEnable {
+				// Parse document content
+				baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+				filePath := filepath.Join(baseStoragePath, destinationDir, fileName)
+				log.Printf("Attempting to parse updated document at path: %s", filePath)
+
+				parsedContent, sampleQuestions, summary, keyPoints, faq, err := utility.ParseDocument(filePath)
+				if err != nil {
+					log.Printf("Warning: Failed to parse document content: %v", err)
+				} else {
+					existingDocumentVersion.ParsedContent = &parsedContent
+					existingDocumentVersion.SampleQuestions = &sampleQuestions
+					existingDocumentVersion.Summary = &summary
+					existingDocumentVersion.KeyPoints = &keyPoints
+					existingDocumentVersion.FAQ = &faq
+					err = ds.repo.UpdateDocumentVersion(existingDocumentVersion)
+					if err != nil {
+						log.Printf("Failed to update document version with parsed content: %v", err)
+						return
+					}
+					log.Printf("Successfully updated document version with parsed content")
+				}
+			} else {
+				log.Printf("Skipping document parsing as AI is not enabled in system preferences")
 			}
 		}
 	}(fileNameCopy)

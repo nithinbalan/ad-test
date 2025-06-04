@@ -25,6 +25,7 @@ type SystemPreferenceDTO struct {
 	LogoUploadSize      int            `json:"logo_upload_size"`
 	IdleTimeout         int            `json:"idle_timeout"`
 	IsMaintenanceModeOn *bool          `json:"is_maintenance_mode_on"`
+	IsAIEnable          *bool          `json:"is_ai_enable"`
 	CreatedByID         uint           `json:"created_by_id"`
 	UpdatedByID         *uint          `json:"updated_by_id"`
 	Timezone            TimezoneDTO    `json:"timezone"`
