@@ -94,6 +94,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/documents/:id/submit", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentController.SubmitDocument)
 	documentRoutes.POST("/documents/:id/publish", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentController.PublishDocument)
 
+	documentRoutes.GET("/documents/:id/ai-summary", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentController.GetDocumentSummary)
+
 	documentRoutes.GET("/documents/:id/shared-users", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAccessController.GetSharedUsers)
 	documentRoutes.POST("/documents/:id/shared-users", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAccessController.CreateSharedUsers)
 	documentRoutes.POST("/documents/:id/shared-users/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAccessController.DeleteSharedUsers)

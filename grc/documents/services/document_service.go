@@ -56,6 +56,7 @@ type DocumentServiceInterface interface {
 	DirectDocumentAuditLog(documentID uint, userID uint, logType string) error
 
 	GetDocumentLastEditSummary(documentID uint) (*documentDTOs.DocumentLastEditSummaryDTO, error)
+	GetAISummary(documentId uint) (*documentDTOs.DocumentAISummaryDTO, error)
 
 	ExportDocuments(data []*documentDTOs.DocumentListDTO, currentUserID uint) (*os.File, error)
 
@@ -2522,4 +2523,27 @@ func (ds *DocumentService) parseDocumentPublishDates(dto *documentDTOs.DocumentP
 	}
 
 	return parsed, nil
+}
+
+func (ds *DocumentService) GetAISummary(documentId uint) (*documentDTOs.DocumentAISummaryDTO, error) {
+	document, err := ds.GetFullDetailsByID(documentId, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if document.LatestDocumentVersion.ID == 0 {
+		return nil, fmt.Errorf("no document version found")
+	}
+
+	documentVersion, err := ds.GetDocumentVersionByID(document.LatestDocumentVersion.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	var aiSummaryDTO documentDTOs.DocumentAISummaryDTO
+	if err := mapstructure.Decode(documentVersion, &aiSummaryDTO); err != nil {
+		return nil, fmt.Errorf("error mapping document version: %w", err)
+	}
+
+	return &aiSummaryDTO, nil
 }

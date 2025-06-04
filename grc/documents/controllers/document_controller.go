@@ -554,3 +554,25 @@ func (dc *DocumentController) GetDocumentExport(c *gin.Context) {
 
 	dc.GetAllDocuments(c)
 }
+
+func (dc *DocumentController) GetDocumentSummary(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid document ID"})
+		return
+	}
+
+	summary, err := dc.service.GetAISummary(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(dc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, summary)
+}
