@@ -27,7 +27,6 @@ type DocumentParserResponse struct {
 }
 
 // ParseDocument sends the document to the AI parsing service and returns structured content.
-// Complex fields (sample questions, key points, faq) are returned as JSON strings.
 func ParseDocument(filePath string) (string, string, string, string, string, error) {
 	// Open the file
 	file, err := os.Open(filePath)
@@ -36,11 +35,9 @@ func ParseDocument(filePath string) (string, string, string, string, string, err
 	}
 	defer file.Close()
 
-	// Create a buffer for multipart form data
+	// Create multipart form data
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-
-	// Attach the file to the request
 	part, err := writer.CreateFormFile("file", filepath.Base(filePath))
 	if err != nil {
 		return "", "", "", "", "", fmt.Errorf("error creating form file: %w", err)
@@ -52,8 +49,15 @@ func ParseDocument(filePath string) (string, string, string, string, string, err
 		return "", "", "", "", "", fmt.Errorf("error closing multipart writer: %w", err)
 	}
 
-	// Build and send HTTP request
-	req, err := http.NewRequest("POST", "https://ai-dev.jethur.com/api/v1/documents-parsing", body)
+	// Get AI service base URL from environment
+	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
+	if baseURL == "" {
+		return "", "", "", "", "", fmt.Errorf("AI_SERVICE_BASE_URL is not set")
+	}
+	apiURL := fmt.Sprintf("%s/api/v1/documents-parsing", baseURL)
+
+	// Send request
+	req, err := http.NewRequest("POST", apiURL, body)
 	if err != nil {
 		return "", "", "", "", "", fmt.Errorf("error creating request: %w", err)
 	}
@@ -66,7 +70,6 @@ func ParseDocument(filePath string) (string, string, string, string, string, err
 	}
 	defer resp.Body.Close()
 
-	// Handle response errors
 	if resp.StatusCode != http.StatusOK {
 		return "", "", "", "", "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
