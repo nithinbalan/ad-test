@@ -23,7 +23,7 @@ func NewEscalationController(service services.EscalationServiceInterface) *Escal
 	}
 }
 
-func (rc *EscalationController) GetAllEscalations(c *gin.Context) {
+func (ec *EscalationController) GetAllEscalations(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -42,16 +42,16 @@ func (rc *EscalationController) GetAllEscalations(c *gin.Context) {
 		Filters: filters,
 	}
 
-	escalations, err := rc.service.GetAll(queryParams)
+	escalations, err := ec.service.GetAll(queryParams)
 
 	if err != nil {
-		utility.SendInternalErrResp(rc.db, c, err.Error())
+		utility.SendInternalErrResp(ec.db, c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, escalations)
 }
 
-func (rc *EscalationController) GetEscalationDetails(c *gin.Context) {
+func (ec *EscalationController) GetEscalationDetails(c *gin.Context) {
 	idStr := c.Param("id")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -60,7 +60,7 @@ func (rc *EscalationController) GetEscalationDetails(c *gin.Context) {
 		return
 	}
 	fmt.Println("1")
-	escalation, err := rc.service.GetFullDetailsByID(uint(id))
+	escalation, err := ec.service.GetFullDetailsByID(uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -70,7 +70,7 @@ func (rc *EscalationController) GetEscalationDetails(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(rc.db, c, e.Error())
+			utility.SendInternalErrResp(ec.db, c, e.Error())
 			return
 		}
 	}
@@ -78,8 +78,8 @@ func (rc *EscalationController) GetEscalationDetails(c *gin.Context) {
 	c.JSON(http.StatusOK, escalation)
 }
 
-func (rc *EscalationController) GetAllEnabledModules(c *gin.Context) {
-	modules, err := rc.service.GetAllEnabledModules()
+func (ec *EscalationController) GetAllEnabledModules(c *gin.Context) {
+	modules, err := ec.service.GetAllEnabledModules()
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -89,14 +89,14 @@ func (rc *EscalationController) GetAllEnabledModules(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(rc.db, c, e.Error())
+			utility.SendInternalErrResp(ec.db, c, e.Error())
 			return
 		}
 	}
 	c.JSON(http.StatusOK, modules)
 }
 
-func (rc *EscalationController) GetEscalationsByModuleID(c *gin.Context) {
+func (ec *EscalationController) GetEscalationsByModuleID(c *gin.Context) {
 	moduleIDStr := c.Param("moduleId")
 
 	moduleID, err := strconv.ParseUint(moduleIDStr, 10, 32)
@@ -105,7 +105,7 @@ func (rc *EscalationController) GetEscalationsByModuleID(c *gin.Context) {
 		return
 	}
 
-	stakeholderStatuses, err := rc.service.GetAllEscalationsByModuleID(uint(moduleID))
+	stakeholderStatuses, err := ec.service.GetAllEscalationsByModuleID(uint(moduleID))
 
 	if err != nil {
 		switch e := err.(type) {
@@ -113,7 +113,7 @@ func (rc *EscalationController) GetEscalationsByModuleID(c *gin.Context) {
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(rc.db, c, e.Error())
+			utility.SendInternalErrResp(ec.db, c, e.Error())
 			return
 		}
 	}

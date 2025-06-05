@@ -40,12 +40,12 @@ func NewEscalationLevelService(
 	}
 }
 
-func (rrs *EscalationLevelService) GetAll(params *settingDTOs.EscalationLevelListQueryParamsDTO) ([]*settingDTOs.EscalationLevelListDTO, error) {
-	return rrs.repo.GetAll(params)
+func (els *EscalationLevelService) GetAll(params *settingDTOs.EscalationLevelListQueryParamsDTO) ([]*settingDTOs.EscalationLevelListDTO, error) {
+	return els.repo.GetAll(params)
 }
 
-func (rrs *EscalationLevelService) GetByID(id uint) (*models.EscalationLevel, error) {
-	escalationRule, err := rrs.repo.GetByID(id)
+func (els *EscalationLevelService) GetByID(id uint) (*models.EscalationLevel, error) {
+	escalationRule, err := els.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -55,10 +55,10 @@ func (rrs *EscalationLevelService) GetByID(id uint) (*models.EscalationLevel, er
 	return escalationRule, nil
 }
 
-func (rrs *EscalationLevelService) GetFullDetailsByID(id uint) (*settingDTOs.EscalationLevelDetailDTO, error) {
+func (els *EscalationLevelService) GetFullDetailsByID(id uint) (*settingDTOs.EscalationLevelDetailDTO, error) {
 	var escalationRuleDetailDTO settingDTOs.EscalationLevelDetailDTO
 
-	escalationRule, err := rrs.repo.GetFullDetailsByID(id)
+	escalationRule, err := els.repo.GetFullDetailsByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -74,9 +74,9 @@ func (rrs *EscalationLevelService) GetFullDetailsByID(id uint) (*settingDTOs.Esc
 	return &escalationRuleDetailDTO, nil
 }
 
-func (rrs *EscalationLevelService) Create(currentUserID uint, dto *settingDTOs.EscalationLevelFormDTO) (uint, error) {
+func (els *EscalationLevelService) Create(currentUserID uint, dto *settingDTOs.EscalationLevelFormDTO) (uint, error) {
 
-	if err := rrs.validateEscalationLevelFormDTO(dto); err != nil {
+	if err := els.validateEscalationLevelFormDTO(dto); err != nil {
 		return 0, err
 	}
 
@@ -88,7 +88,7 @@ func (rrs *EscalationLevelService) Create(currentUserID uint, dto *settingDTOs.E
 		CreatedBYID:        currentUserID,
 	}
 
-	id, err := rrs.repo.Create(level)
+	id, err := els.repo.Create(level)
 	if err != nil {
 		return 0, err
 	}
@@ -96,19 +96,19 @@ func (rrs *EscalationLevelService) Create(currentUserID uint, dto *settingDTOs.E
 	return id, nil
 }
 
-func (rrs *EscalationLevelService) Update(id uint, currentUserID uint, dto *settingDTOs.EscalationLevelFormDTO) error {
+func (els *EscalationLevelService) Update(id uint, currentUserID uint, dto *settingDTOs.EscalationLevelFormDTO) error {
 
-	oldData, err := rrs.GetFullDetailsByID(id)
+	oldData, err := els.GetFullDetailsByID(id)
 	if err != nil {
 		return err
 	}
 
-	existing, err := rrs.GetByID(id)
+	existing, err := els.GetByID(id)
 	if err != nil {
 		return err
 	}
 
-	if err := rrs.validateEscalationLevelFormDTO(dto); err != nil {
+	if err := els.validateEscalationLevelFormDTO(dto); err != nil {
 		return err
 	}
 
@@ -118,14 +118,14 @@ func (rrs *EscalationLevelService) Update(id uint, currentUserID uint, dto *sett
 	existing.DayOffset = dto.DayOffset
 	existing.UpdatedBYID = &currentUserID
 
-	err = rrs.repo.Update(existing)
+	err = els.repo.Update(existing)
 	if err != nil {
 		return err
 	}
 
 	go func() {
 		// Fetch updated full details after update
-		newData, err := rrs.GetFullDetailsByID(id)
+		newData, err := els.GetFullDetailsByID(id)
 		if err != nil {
 			return
 		}
@@ -147,7 +147,7 @@ func (rrs *EscalationLevelService) Update(id uint, currentUserID uint, dto *sett
 		changedData := utility.CompareFieldChanges(oldFields, newFields)
 
 		if len(changedData) > 0 {
-			err := rrs.activityLogSvc.LogActivity(
+			err := els.activityLogSvc.LogActivity(
 				models.UpdateAction,
 				models.EscalationLevel{}.TableName(),
 				id,
@@ -170,19 +170,19 @@ func (rrs *EscalationLevelService) Update(id uint, currentUserID uint, dto *sett
 	return nil
 }
 
-func (rrs *EscalationLevelService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (els *EscalationLevelService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 
 	var failedIds []uint
 	var successfulIds []uint
 	var deletedItems []map[string]interface{}
 
 	for _, id := range ids {
-		item, err := rrs.repo.GetByID(id)
+		item, err := els.repo.GetByID(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue
 		}
-		if err := rrs.repo.Delete(id); err != nil {
+		if err := els.repo.Delete(id); err != nil {
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
@@ -194,7 +194,7 @@ func (rrs *EscalationLevelService) Delete(ids []uint, currentUserID uint) ([]uin
 	}
 
 	if len(successfulIds) > 0 {
-		go rrs.activityLogSvc.LogBulkActivities(
+		go els.activityLogSvc.LogBulkActivities(
 			models.DeleteAction,
 			models.EscalationLevel{}.TableName(),
 			successfulIds,
@@ -207,9 +207,9 @@ func (rrs *EscalationLevelService) Delete(ids []uint, currentUserID uint) ([]uin
 	return failedIds, nil
 }
 
-func (rrs *EscalationLevelService) validateEscalationLevelFormDTO(escalationRuleFormDTO *settingDTOs.EscalationLevelFormDTO) error {
+func (els *EscalationLevelService) validateEscalationLevelFormDTO(escalationRuleFormDTO *settingDTOs.EscalationLevelFormDTO) error {
 	// Validate escalation
-	if _, err := rrs.escalationSvc.GetByID(escalationRuleFormDTO.EscalationID); err != nil {
+	if _, err := els.escalationSvc.GetByID(escalationRuleFormDTO.EscalationID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("escalation does not exist"), "not_exist", "escalation")
 	}
 

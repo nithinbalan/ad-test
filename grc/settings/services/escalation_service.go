@@ -32,12 +32,12 @@ func NewEscalationService(repo repositories.EscalationRepositoryInterface) Escal
 	}
 }
 
-func (rs *EscalationService) GetAll(params dtos.EscalationListQueryParamsDTO) ([]*models.Escalation, error) {
-	return rs.repo.GetAll(params)
+func (es *EscalationService) GetAll(params dtos.EscalationListQueryParamsDTO) ([]*models.Escalation, error) {
+	return es.repo.GetAll(params)
 }
 
-func (rs EscalationService) GetByID(id uint) (*models.Escalation, error) {
-	escalation, err := rs.repo.GetByID(id)
+func (es EscalationService) GetByID(id uint) (*models.Escalation, error) {
+	escalation, err := es.repo.GetByID(id)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -50,10 +50,10 @@ func (rs EscalationService) GetByID(id uint) (*models.Escalation, error) {
 
 }
 
-func (rrs *EscalationService) GetFullDetailsByID(id uint) (*dtos.EscalationDetailsDTO, error) {
+func (res *EscalationService) GetFullDetailsByID(id uint) (*dtos.EscalationDetailsDTO, error) {
 	var escalationDetailDTO dtos.EscalationDetailsDTO
 
-	escalation, err := rrs.repo.GetFullDetailsByID(id)
+	escalation, err := res.repo.GetFullDetailsByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -71,12 +71,12 @@ func (rrs *EscalationService) GetFullDetailsByID(id uint) (*dtos.EscalationDetai
 	return &escalationDetailDTO, nil
 }
 
-func (rs *EscalationService) GetAllEnabledModules() ([]*dtos.ModuleListDTO, error) {
-	return rs.repo.GetAllEnabledModules()
+func (es *EscalationService) GetAllEnabledModules() ([]*dtos.ModuleListDTO, error) {
+	return es.repo.GetAllEnabledModules()
 }
 
-func (rs *EscalationService) GetAllEscalationsByModuleID(moduleID uint) ([]*dtos.GroupedEscalationDTO, error) {
-	escalations, err := rs.repo.GetEscalationByModuleID(moduleID)
+func (es *EscalationService) GetAllEscalationsByModuleID(moduleID uint) ([]*dtos.GroupedEscalationDTO, error) {
+	escalations, err := es.repo.GetEscalationByModuleID(moduleID)
 	if err != nil {
 		return nil, err
 	}

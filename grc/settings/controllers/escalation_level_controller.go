@@ -24,7 +24,7 @@ func NewEscalationLevelController(service services.EscalationLevelServiceInterfa
 	}
 }
 
-func (rrc *EscalationLevelController) GetAllEscalationLevels(c *gin.Context) {
+func (elc *EscalationLevelController) GetAllEscalationLevels(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "day_offset")
 	keyword := c.Query("keyword")
@@ -59,16 +59,16 @@ func (rrc *EscalationLevelController) GetAllEscalationLevels(c *gin.Context) {
 		Filters: filters,
 	}
 
-	escalationLevels, err := rrc.service.GetAll(&queryParams)
+	escalationLevels, err := elc.service.GetAll(&queryParams)
 	if err != nil {
-		utility.SendInternalErrResp(rrc.db, c, err.Error())
+		utility.SendInternalErrResp(elc.db, c, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, escalationLevels)
 }
 
-func (rrc *EscalationLevelController) GetEscalationLevelDetails(c *gin.Context) {
+func (elc *EscalationLevelController) GetEscalationLevelDetails(c *gin.Context) {
 	idStr := c.Param("escalationLevelId")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -77,21 +77,21 @@ func (rrc *EscalationLevelController) GetEscalationLevelDetails(c *gin.Context) 
 		return
 	}
 
-	escalationLevel, err := rrc.service.GetFullDetailsByID(uint(id))
+	escalationLevel, err := elc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(rrc.db, c, e.Error())
+			utility.SendInternalErrResp(elc.db, c, e.Error())
 			return
 		}
 	}
 	c.JSON(http.StatusOK, escalationLevel)
 }
 
-func (rrc *EscalationLevelController) CreateEscalationLevel(c *gin.Context) {
+func (elc *EscalationLevelController) CreateEscalationLevel(c *gin.Context) {
 	var escalationLevelFormDTO settingDTOs.EscalationLevelFormDTO
 
 	if err := c.ShouldBindJSON(&escalationLevelFormDTO); err != nil {
@@ -101,11 +101,11 @@ func (rrc *EscalationLevelController) CreateEscalationLevel(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(rrc.db, c, err.Error())
+		utility.SendInternalErrResp(elc.db, c, err.Error())
 		return
 	}
 
-	id, err := rrc.service.Create(currentUserID, &escalationLevelFormDTO)
+	id, err := elc.service.Create(currentUserID, &escalationLevelFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -113,7 +113,7 @@ func (rrc *EscalationLevelController) CreateEscalationLevel(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(rrc.db, c, e.Error())
+			utility.SendInternalErrResp(elc.db, c, e.Error())
 			return
 		}
 	}
@@ -121,7 +121,7 @@ func (rrc *EscalationLevelController) CreateEscalationLevel(c *gin.Context) {
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
-func (rrc *EscalationLevelController) UpdateEscalationLevel(c *gin.Context) {
+func (elc *EscalationLevelController) UpdateEscalationLevel(c *gin.Context) {
 	escalationLevelID, err := strconv.Atoi(c.Param("escalationLevelId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -136,11 +136,11 @@ func (rrc *EscalationLevelController) UpdateEscalationLevel(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(rrc.db, c, err.Error())
+		utility.SendInternalErrResp(elc.db, c, err.Error())
 		return
 	}
 
-	err = rrc.service.Update(uint(escalationLevelID), currentUserID, &escalationLevelFormDTO)
+	err = elc.service.Update(uint(escalationLevelID), currentUserID, &escalationLevelFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -150,7 +150,7 @@ func (rrc *EscalationLevelController) UpdateEscalationLevel(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(rrc.db, c, e.Error())
+			utility.SendInternalErrResp(elc.db, c, e.Error())
 			return
 		}
 	}
@@ -159,7 +159,7 @@ func (rrc *EscalationLevelController) UpdateEscalationLevel(c *gin.Context) {
 
 }
 
-func (rrc *EscalationLevelController) DeleteEscalationLevels(c *gin.Context) {
+func (elc *EscalationLevelController) DeleteEscalationLevels(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -171,13 +171,13 @@ func (rrc *EscalationLevelController) DeleteEscalationLevels(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(rrc.db, c, err.Error())
+		utility.SendInternalErrResp(elc.db, c, err.Error())
 		return
 	}
 
-	failedIDs, err := rrc.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := elc.service.Delete(request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(rrc.db, c, err.Error())
+		utility.SendInternalErrResp(elc.db, c, err.Error())
 		return
 	}
 
