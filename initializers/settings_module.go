@@ -26,6 +26,11 @@ type SettingsModule struct {
 	ActiveDirectorySettingController *controllers.ActiveDirectorySettingController
 	SIEMSettingController            *controllers.SIEMSettingController
 	AISettingController              *controllers.AISettingController
+	TriggerConditionController       *controllers.TriggerConditionController
+	ReminderController               *controllers.ReminderController
+	ReminderRuleController           *controllers.ReminderRuleController
+	EscalationController             *controllers.EscalationController
+	EscalationLevelController        *controllers.EscalationLevelController
 
 	SystemPreferenceSvc       services.SystemPreferenceServiceInterface
 	OrganizationUnitSvc       services.OrganizationUnitServiceInterface
@@ -120,6 +125,26 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		aiSettingRepo)
 	aiSettingController := controllers.NewAISettingController(aiSettingSvc)
 
+	triggerConditionRepo := repositories.NewTriggerConditionRepository(db)
+	triggerConditionSvc := services.NewTriggerConditionService(triggerConditionRepo)
+	triggerConditionController := controllers.NewTriggerConditionController(triggerConditionSvc)
+
+	reminderRepo := repositories.NewReminderRepository(db)
+	reminderSvc := services.NewReminderService(reminderRepo)
+	reminderController := controllers.NewReminderController(reminderSvc)
+
+	reminderRuleRepo := repositories.NewReminderRuleRepository(db)
+	reminderRuleSvc := services.NewReminderRuleService(reminderRuleRepo, reminderSvc, triggerConditionSvc, sharedModule.ActivityLogService)
+	reminderRuleController := controllers.NewReminderRuleController(reminderRuleSvc)
+
+	escalationRepo := repositories.NewEscalationRepository(db)
+	escalationSvc := services.NewEscalationService(escalationRepo)
+	escalationController := controllers.NewEscalationController(escalationSvc)
+
+	escalationLevelRepo := repositories.NewEscalationLevelRepository(db)
+	escalationLevelSvc := services.NewEscalationLevelService(escalationLevelRepo, escalationSvc, sharedModule.ActivityLogService)
+	escalationLevelController := controllers.NewEscalationLevelController(escalationLevelSvc)
+
 	return &SettingsModule{
 		OrganizationLevelController:      organizationLevelController,
 		SystemPreferenceController:       systemPreferenceController,
@@ -138,6 +163,11 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		ActiveDirectorySettingController: activeDirectorySettingController,
 		SIEMSettingController:            siemSettingController,
 		AISettingController:              aiSettingController,
+		TriggerConditionController:       triggerConditionController,
+		ReminderController:               reminderController,
+		ReminderRuleController:           reminderRuleController,
+		EscalationController:             escalationController,
+		EscalationLevelController:        escalationLevelController,
 
 		SystemPreferenceSvc:       systemPreferenceSvc,
 		OrganizationLevelSvc:      organizationLevelSvc,

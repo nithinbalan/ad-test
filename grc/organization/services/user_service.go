@@ -339,6 +339,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		CreatedByID:         currentUserID,
 		Initial:             initial,
 		Color:               color,
+		ReportingUserID:     userFormDTO.ReportingUserID,
 	}
 
 	userID, err := us.repo.Create(user, tx)
@@ -520,6 +521,7 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 	existingUser.Initial = initial
 	existingUser.UpdatedByID = &currentUserID
 	existingUser.UserStatusID = userFormDTO.UserStatusID
+	existingUser.ReportingUserID = userFormDTO.ReportingUserID
 
 	err = us.repo.Update(existingUser, tx)
 	if err != nil {
