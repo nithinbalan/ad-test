@@ -30,6 +30,16 @@ type StakeholderEngagementListDTO struct {
 	EvaluationStatusTitleAr       *string `json:"evaluation_status_title_ar"`
 	EvaluationStatusColorCode     *string `json:"evaluation_status_color_code"`
 	EvaluationStatusType          *string `json:"evaluation_status_type"`
+	EvaluatedAt                   string  `json:"evaluated_at"`
+	EvaluatedUserID               uint    `json:"evaluated_user_id"`
+	EvaluatedUserFirstNameEn      string  `json:"evaluated_user_first_name_en"`
+	EvaluatedUserFirstNameAr      string  `json:"evaluated_user_first_name_ar"`
+	EvaluatedUserLastNameEn       string  `json:"evaluated_user_last_name_en"`
+	EvaluatedUserLastNameAr       *string `json:"evaluated_user_last_name_ar"`
+	EvaluatedUserInitial          string  `json:"evaluated_user_initial"`
+	EvaluatedUserColor            string  `json:"evaluated_user_color"`
+	EvaluatedUserEmail            string  `json:"evaluated_user_email"`
+	EvaluatedUserProfileImagePath string  `json:"evaluated_user_profile_image_path"`
 	CreatedUserID                 uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn        string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr        string  `json:"created_user_first_name_ar"`

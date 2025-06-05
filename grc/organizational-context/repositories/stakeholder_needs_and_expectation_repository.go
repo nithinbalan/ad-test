@@ -40,6 +40,16 @@ func (repo *StakeholderNeedsAndExpectationRepository) GetAll(stakeholderId uint,
 	query := repo.db.Table("stakeholder_needs_and_expectations").
 		Select(`
             stakeholder_needs_and_expectations.*,
+			CONVERT(VARCHAR, stakeholder_needs_and_expectations.evaluated_at, 23) AS evaluated_at,
+			evaluated_user.id AS evaluated_user_id,
+        	evaluated_user.first_name_en AS evaluated_user_first_name_en,
+        	evaluated_user.first_name_ar AS evaluated_user_first_name_ar,
+        	evaluated_user.last_name_en AS evaluated_user_last_name_en,
+        	evaluated_user.last_name_ar AS evaluated_user_last_name_ar,   
+        	evaluated_user.initial AS evaluated_user_initial,
+        	evaluated_user.color AS evaluated_user_color,
+        	evaluated_user.email AS evaluated_user_email,
+        	evaluated_user.profile_image_path AS evaluated_user_profile_image_path,
 			stakeholders.title_en as stakeholder_title_en,
 			stakeholders.title_ar as stakeholder_title_ar,
 			severity_levels.title_en AS severity_level_title_en,
@@ -72,6 +82,7 @@ func (repo *StakeholderNeedsAndExpectationRepository) GetAll(stakeholderId uint,
 		Joins(`
 			LEFT JOIN stakeholders ON stakeholders.id = stakeholder_needs_and_expectations.stakeholder_id
 			LEFT JOIN evaluation_statuses ON evaluation_statuses.id = stakeholder_needs_and_expectations.evaluation_status_id
+			LEFT JOIN users AS evaluated_user ON evaluated_user.id = stakeholder_needs_and_expectations.evaluated_by_id
 			LEFT JOIN severity_levels ON severity_levels.id = stakeholder_needs_and_expectations.severity_level_id
 			LEFT JOIN users AS created_user ON created_user.id = stakeholder_needs_and_expectations.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = stakeholder_needs_and_expectations.updated_by_id

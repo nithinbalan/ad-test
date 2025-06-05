@@ -17,7 +17,9 @@ type ComplianceLibraryClause struct {
 	UpdatedByID                *uint      `json:"updated_by_id"`
 
 	// Relations
-	Version ComplianceLibraryVersion `json:"version" gorm:"foreignKey:ComplianceLibraryVersionID;references:ID"`
+	Version    ComplianceLibraryVersion         `json:"version" gorm:"foreignKey:ComplianceLibraryVersionID;references:ID"`
+	SubClauses []ComplianceLibraryClause        `json:"sub_clauses" gorm:"foreignKey:ComplianceLibraryClauseID"` // self-ref
+	Controls   []ComplianceLibraryClauseControl `json:"controls" gorm:"foreignKey:ComplianceLibraryClauseID"`
 }
 
 func (ComplianceLibraryClause) TableName() string {
