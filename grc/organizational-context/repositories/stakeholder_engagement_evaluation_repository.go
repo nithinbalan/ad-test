@@ -77,7 +77,7 @@ func (repo *StakeholderEngagementEvaluationRepository) GetAll(stakeholderID uint
         `).
 		Joins(`
             LEFT JOIN stakeholder_engagements ON stakeholder_engagements.id = stakeholder_engagement_evaluations.stakeholder_engagement_id
-			LEFT JOIN evaluation_statuses ON evaluation_statuses.id = stakeholder_engagements.evaluation_status_id
+			LEFT JOIN evaluation_statuses ON evaluation_statuses.id = stakeholder_engagement_evaluations.evaluation_status_id
             LEFT JOIN users AS created_user ON created_user.id = stakeholder_engagement_evaluations.created_by_id
 			LEFT JOIN users AS evaluated_user ON evaluated_user.id = stakeholder_engagement_evaluations.evaluated_by_id
             LEFT JOIN users AS updated_user ON updated_user.id = stakeholder_engagement_evaluations.updated_by_id
