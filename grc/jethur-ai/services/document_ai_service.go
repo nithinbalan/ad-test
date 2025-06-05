@@ -32,7 +32,6 @@ func (as *DocumentAIService) GetAISummary(documentId uint) (*aiDTOs.DocumentAISu
 		return nil, fmt.Errorf("no document version found")
 	}
 
-	// Get the latest version of the document
 	documentVersion, err := as.documentService.GetDocumentVersionByID(document.LatestDocumentVersion.ID)
 	if err != nil {
 		return nil, err
@@ -40,27 +39,41 @@ func (as *DocumentAIService) GetAISummary(documentId uint) (*aiDTOs.DocumentAISu
 
 	// Initialize DTO
 	aiSummaryDTO := &aiDTOs.DocumentAISummaryDTO{
-		Summary: documentVersion.Summary,
+		SummaryEn: documentVersion.SummaryEn,
+		SummaryAr: documentVersion.SummaryAr,
 	}
 
-	// Unmarshal sample_questions (JSON string -> []string)
-	if documentVersion.SampleQuestions != nil {
-		if err := json.Unmarshal([]byte(*documentVersion.SampleQuestions), &aiSummaryDTO.SampleQuestions); err != nil {
-			return nil, fmt.Errorf("error unmarshalling sample_questions: %w", err)
+	// Unmarshal EN
+	if documentVersion.SampleQuestionsEn != nil {
+		if err := json.Unmarshal([]byte(*documentVersion.SampleQuestionsEn), &aiSummaryDTO.SampleQuestionsEn); err != nil {
+			return nil, fmt.Errorf("error unmarshalling sample_questions_en: %w", err)
+		}
+	}
+	if documentVersion.KeyPointsEn != nil {
+		if err := json.Unmarshal([]byte(*documentVersion.KeyPointsEn), &aiSummaryDTO.KeyPointsEn); err != nil {
+			return nil, fmt.Errorf("error unmarshalling key_points_en: %w", err)
+		}
+	}
+	if documentVersion.FAQEn != nil {
+		if err := json.Unmarshal([]byte(*documentVersion.FAQEn), &aiSummaryDTO.FAQEn); err != nil {
+			return nil, fmt.Errorf("error unmarshalling faq_en: %w", err)
 		}
 	}
 
-	// Unmarshal key_points (JSON string -> []string)
-	if documentVersion.KeyPoints != nil {
-		if err := json.Unmarshal([]byte(*documentVersion.KeyPoints), &aiSummaryDTO.KeyPoints); err != nil {
-			return nil, fmt.Errorf("error unmarshalling key_points: %w", err)
+	// Unmarshal AR
+	if documentVersion.SampleQuestionsAr != nil {
+		if err := json.Unmarshal([]byte(*documentVersion.SampleQuestionsAr), &aiSummaryDTO.SampleQuestionsAr); err != nil {
+			return nil, fmt.Errorf("error unmarshalling sample_questions_ar: %w", err)
 		}
 	}
-
-	// Unmarshal faq (JSON string -> []FAQEntry)
-	if documentVersion.FAQ != nil {
-		if err := json.Unmarshal([]byte(*documentVersion.FAQ), &aiSummaryDTO.FAQ); err != nil {
-			return nil, fmt.Errorf("error unmarshalling faq: %w", err)
+	if documentVersion.KeyPointsAr != nil {
+		if err := json.Unmarshal([]byte(*documentVersion.KeyPointsAr), &aiSummaryDTO.KeyPointsAr); err != nil {
+			return nil, fmt.Errorf("error unmarshalling key_points_ar: %w", err)
+		}
+	}
+	if documentVersion.FAQAr != nil {
+		if err := json.Unmarshal([]byte(*documentVersion.FAQAr), &aiSummaryDTO.FAQAr); err != nil {
+			return nil, fmt.Errorf("error unmarshalling faq_ar: %w", err)
 		}
 	}
 

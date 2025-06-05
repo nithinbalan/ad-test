@@ -491,15 +491,20 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			filePath := filepath.Join(baseStoragePath, destinationDir, fileName)
 			log.Printf("Attempting to parse document at path: %s", filePath)
 
-			parsedContent, sampleQuestions, summary, keyPoints, faq, err := utility.ParseDocument(filePath)
+			parsedResult, err := utility.ParseDocument(filePath)
 			if err != nil {
 				log.Printf("Warning: Failed to parse document content: %v", err)
 			} else {
-				documentVersion.ParsedContent = &parsedContent
-				documentVersion.SampleQuestions = &sampleQuestions
-				documentVersion.Summary = &summary
-				documentVersion.KeyPoints = &keyPoints
-				documentVersion.FAQ = &faq
+				documentVersion.ParsedContent = &parsedResult.ParsedContent
+				documentVersion.SampleQuestionsEn = &parsedResult.SampleQuestionsEn
+				documentVersion.SampleQuestionsAr = &parsedResult.SampleQuestionsAr
+				documentVersion.SummaryEn = &parsedResult.SummaryEn
+				documentVersion.SummaryAr = &parsedResult.SummaryAr
+				documentVersion.KeyPointsEn = &parsedResult.KeyPointsEn
+				documentVersion.KeyPointsAr = &parsedResult.KeyPointsAr
+				documentVersion.FAQEn = &parsedResult.FAQEn
+				documentVersion.FAQAr = &parsedResult.FAQAr
+
 				err = ds.repo.UpdateDocumentVersion(documentVersion)
 				if err != nil {
 					log.Printf("Failed to update document version with parsed content: %v", err)
@@ -509,6 +514,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		} else {
 			log.Printf("Skipping document parsing as AI is not enabled in system preferences")
 		}
+
 	}(fileNameCopy)
 
 	return id, nil
@@ -1103,15 +1109,20 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 				filePath := filepath.Join(baseStoragePath, destinationDir, fileName)
 				log.Printf("Attempting to parse updated document at path: %s", filePath)
 
-				parsedContent, sampleQuestions, summary, keyPoints, faq, err := utility.ParseDocument(filePath)
+				parsedResult, err := utility.ParseDocument(filePath)
 				if err != nil {
 					log.Printf("Warning: Failed to parse document content: %v", err)
 				} else {
-					existingDocumentVersion.ParsedContent = &parsedContent
-					existingDocumentVersion.SampleQuestions = &sampleQuestions
-					existingDocumentVersion.Summary = &summary
-					existingDocumentVersion.KeyPoints = &keyPoints
-					existingDocumentVersion.FAQ = &faq
+					existingDocumentVersion.ParsedContent = &parsedResult.ParsedContent
+					existingDocumentVersion.SampleQuestionsEn = &parsedResult.SampleQuestionsEn
+					existingDocumentVersion.SampleQuestionsAr = &parsedResult.SampleQuestionsAr
+					existingDocumentVersion.SummaryEn = &parsedResult.SummaryEn
+					existingDocumentVersion.SummaryAr = &parsedResult.SummaryAr
+					existingDocumentVersion.KeyPointsEn = &parsedResult.KeyPointsEn
+					existingDocumentVersion.KeyPointsAr = &parsedResult.KeyPointsAr
+					existingDocumentVersion.FAQEn = &parsedResult.FAQEn
+					existingDocumentVersion.FAQAr = &parsedResult.FAQAr
+
 					err = ds.repo.UpdateDocumentVersion(existingDocumentVersion)
 					if err != nil {
 						log.Printf("Failed to update document version with parsed content: %v", err)
@@ -1122,6 +1133,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			} else {
 				log.Printf("Skipping document parsing as AI is not enabled in system preferences")
 			}
+
 		}
 	}(fileNameCopy)
 
@@ -1626,7 +1638,7 @@ func (ds *DocumentService) CheckinDocument(id uint, currentUserID uint, document
 			filePath := filepath.Join(baseStoragePath, destinationDir, fileNameCopy)
 			log.Printf("Attempting to parse checked in document at path: %s", filePath)
 
-			parsedContent, sampleQuestions, summary, keyPoints, faq, err := utility.ParseDocument(filePath)
+			parsedResult, err := utility.ParseDocument(filePath)
 			if err != nil {
 				log.Printf("Warning: Failed to parse document content: %v", err)
 			} else {
@@ -1636,11 +1648,16 @@ func (ds *DocumentService) CheckinDocument(id uint, currentUserID uint, document
 					return
 				}
 
-				documentVersion.ParsedContent = &parsedContent
-				documentVersion.SampleQuestions = &sampleQuestions
-				documentVersion.Summary = &summary
-				documentVersion.KeyPoints = &keyPoints
-				documentVersion.FAQ = &faq
+				documentVersion.ParsedContent = &parsedResult.ParsedContent
+				documentVersion.SampleQuestionsEn = &parsedResult.SampleQuestionsEn
+				documentVersion.SampleQuestionsAr = &parsedResult.SampleQuestionsAr
+				documentVersion.SummaryEn = &parsedResult.SummaryEn
+				documentVersion.SummaryAr = &parsedResult.SummaryAr
+				documentVersion.KeyPointsEn = &parsedResult.KeyPointsEn
+				documentVersion.KeyPointsAr = &parsedResult.KeyPointsAr
+				documentVersion.FAQEn = &parsedResult.FAQEn
+				documentVersion.FAQAr = &parsedResult.FAQAr
+
 				err = ds.repo.UpdateDocumentVersion(documentVersion)
 				if err != nil {
 					log.Printf("Failed to update document version with parsed content: %v", err)
@@ -1651,6 +1668,7 @@ func (ds *DocumentService) CheckinDocument(id uint, currentUserID uint, document
 		} else {
 			log.Printf("Skipping document parsing as AI is not enabled in system preferences")
 		}
+
 	}()
 
 	return nil
