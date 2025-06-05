@@ -42,3 +42,31 @@ func (ac *DocumentAIController) GetDocumentSummary(c *gin.Context) {
 
 	c.JSON(http.StatusOK, summary)
 }
+
+func (ac *DocumentAIController) GetDocumentRecommendations(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid document ID"})
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(ac.db, c, err.Error())
+		return
+	}
+
+	summary, err := ac.service.GetDocumentRecommendations(uint(id), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(ac.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, summary)
+}

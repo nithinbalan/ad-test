@@ -13,9 +13,9 @@ type JethurAIModule struct {
 	DocumentAIService services.DocumentAIServiceInterface
 }
 
-func NewJethurAIModule(db *gorm.DB, documentModule *DocumentModule) *JethurAIModule {
+func NewJethurAIModule(db *gorm.DB, documentModule *DocumentModule, organizationModule *OrganizationModule) *JethurAIModule {
 	// documentAIRepo := repositories.NewAIRepository(db)
-	documentAISvc := services.NewDocumentAIService(documentModule.DocumentSvc)
+	documentAISvc := services.NewDocumentAIService(documentModule.DocumentSvc, organizationModule.UserSvc)
 	documentAIController := controllers.NewDocumentAIController(documentAISvc)
 
 	return &JethurAIModule{
