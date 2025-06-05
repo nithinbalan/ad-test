@@ -259,11 +259,3 @@ type DocumentPublishFormDTO struct {
 type DocumentPublishParsedDates struct {
 	AcknowledgeDueDate *time.Time
 }
-
-type DocumentAISummaryDTO struct {
-	ParsedContent   *string `json:"parsed_content"`
-	Summary         *string `json:"summary"`
-	KeyPoints       *string `json:"key_points"`
-	FAQ             *string `json:"faq"`
-	SampleQuestions *string `json:"sample_questions"`
-}
