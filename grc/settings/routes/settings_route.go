@@ -141,7 +141,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//Reminder
 	settingRoutes.GET("/reminders", reminderController.GetAllReminderes)
 	settingRoutes.GET("/reminders/:id", reminderController.GetReminderDetails)
-	settingRoutes.GET("/enabled-modules", reminderController.GetAllEnabledModules)
+	settingRoutes.GET("/reminder-modules", reminderController.GetAllEnabledModules)
 	settingRoutes.GET("/modules/:moduleId/reminders", reminderController.GetReminderByModuleID)
 
 	// Reminder Rule
