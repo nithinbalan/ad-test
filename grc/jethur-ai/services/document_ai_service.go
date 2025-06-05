@@ -37,10 +37,16 @@ func (as *DocumentAIService) GetAISummary(documentId uint) (*aiDTOs.DocumentAISu
 		return nil, err
 	}
 
-	// Initialize DTO
+	// Initialize DTO with empty arrays
 	aiSummaryDTO := &aiDTOs.DocumentAISummaryDTO{
-		SummaryEn: documentVersion.SummaryEn,
-		SummaryAr: documentVersion.SummaryAr,
+		SummaryEn:         documentVersion.SummaryEn,
+		SummaryAr:         documentVersion.SummaryAr,
+		SampleQuestionsEn: []string{},
+		SampleQuestionsAr: []string{},
+		KeyPointsEn:       []string{},
+		KeyPointsAr:       []string{},
+		FAQEn:             []aiDTOs.FAQItemDTO{},
+		FAQAr:             []aiDTOs.FAQItemDTO{},
 	}
 
 	// Unmarshal EN
