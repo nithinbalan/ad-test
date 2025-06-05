@@ -101,3 +101,12 @@ type StakeholderNeedsAndExpectationEvaluationDTO struct {
 	CreatedByUser    organizationDTOs.UserMinimalDTO  `json:"created_by_user"`
 	UpdatedByUser    *organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
 }
+
+type NeedsAndExpectationStatusCountResponseDTO struct {
+	ID        uint   `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Type      string `json:"type"`
+	Count     int    `json:"count"`
+}

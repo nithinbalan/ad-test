@@ -116,6 +116,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationalContextRoutes.POST("/stakeholder/:stakeholderId/needs-and-expectations", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderNeedsAndExpectationController.CreateStakeholderNeedsAndExpectation)
 	organizationalContextRoutes.PUT("/stakeholder/:stakeholderId/needs-and-expectations/:needsAndExpectationId", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderNeedsAndExpectationController.UpdateStakeholderNeedsAndExpectation)
 	organizationalContextRoutes.POST("/stakeholder/:stakeholderId/needs-and-expectations/delete", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderNeedsAndExpectationController.DeleteStakeholderNeedsAndExpectations)
+	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/needs-and-expectation-summary", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "view"), stakeholderNeedsAndExpectationController.GetNeedsAndExpectationCountByStatus)
 
 	// Needs and expectation evaluation
 	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/needs-and-expectations/:needsAndExpectationId/evaluations", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "view"), stakeholderNeedsAndExpectationEvaluationController.GetAllStakeholderNeedsAndExpectationEvaluations)
@@ -129,6 +130,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationalContextRoutes.POST("/stakeholder/:stakeholderId/engagements", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderEngagementController.CreateStakeholderEngagement)
 	organizationalContextRoutes.PUT("/stakeholder/:stakeholderId/engagements/:engagementId", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderEngagementController.UpdateStakeholderEngagement)
 	organizationalContextRoutes.POST("/stakeholder/:stakeholderId/engagements/delete", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderEngagementController.DeleteStakeholderEngagements)
+	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/engagement-score", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "view"), stakeholderEngagementController.GetEngagementEffectivenessScore)
 
 	// Engagement evaluation
 	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/engagements/:engagementId/evaluations", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "view"), stakeholderEngagementEvaluationController.GetAllStakeholderEngagementEvaluations)

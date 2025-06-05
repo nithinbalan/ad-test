@@ -23,6 +23,7 @@ type StakeholderNeedsAndExpectationServiceInterface interface {
 	Delete(stakeholderID uint, ids []uint, currentUserID uint) ([]uint, error)
 
 	StatusUpdate(stakeholderID uint, id uint, currentUserID uint, stakeholderNeedsAndExpectationEvaluationFormDTO *organizationalContextDTOs.StakeholderNeedsAndExpectationEvaluationFormDTO, tx utility.DatabaseTransaction) error
+	GetNeedsAndExpectationCountByStatus(stakeholderID uint) ([]organizationalContextDTOs.NeedsAndExpectationStatusCountResponseDTO, error)
 }
 
 // Service and implementations
@@ -317,4 +318,14 @@ func (snes *StakeholderNeedsAndExpectationService) parseEvaluationDates(dto *org
 	}
 
 	return parsed, nil
+}
+
+func (snes *StakeholderNeedsAndExpectationService) GetNeedsAndExpectationCountByStatus(stakeholderId uint) ([]organizationalContextDTOs.NeedsAndExpectationStatusCountResponseDTO, error) {
+
+	response, err := snes.repo.GetNeedsAndExpectationCountByStatus(stakeholderId)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
