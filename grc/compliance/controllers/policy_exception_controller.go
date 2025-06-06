@@ -35,13 +35,13 @@ func (pec *PolicyExceptionController) GetAllPolicyExceptions(c *gin.Context) {
 	dateTo := c.Query("date_to")
 
 	allowedParams := []string{
-		"document_id",
-		"document_version_id",
-		"document_version_clause_id",
-		"document_requirement_group_id",
-		"requested_by_id",
-		"organization_unit_id",
-		"workflow_status_id",
+		"document_ids",
+		"document_version_ids",
+		"document_version_clause_ids",
+		"document_requirement_group_ids",
+		"requested_by_ids",
+		"organization_unit_ids",
+		"workflow_status_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -58,14 +58,11 @@ func (pec *PolicyExceptionController) GetAllPolicyExceptions(c *gin.Context) {
 	}
 
 	validSortFields := map[string]string{
-		"reference_number":              "policy_exceptions.reference_number",
-		"title_en":                      "policy_exceptions.title_en",
-		"title_ar":                      "policy_exceptions.title_ar",
-		"start_date":                    "policy_exceptions.start_date",
-		"end_date":                      "policy_exceptions.end_date",
-		"document_version_clause_id":    "policy_exceptions.document_version_clause_id",
-		"document_requirement_group_id": "policy_exceptions.document_requirement_group_id",
-		"document_version_id":           "policy_exceptions.document_version_id",
+		"reference_number": "policy_exceptions.reference_number",
+		"title_en":         "policy_exceptions.title_en",
+		"title_ar":         "policy_exceptions.title_ar",
+		"start_date":       "policy_exceptions.start_date",
+		"end_date":         "policy_exceptions.end_date",
 	}
 
 	sortField, valid := validSortFields[sortBy]

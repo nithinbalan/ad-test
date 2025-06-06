@@ -278,7 +278,13 @@ func (pes *PolicyExceptionService) Delete(ids []uint, currentUserID uint) ([]uin
 			tx.Rollback()
 			return nil, err
 		}
-
+		for _, risk := range exception.Risks {
+			err := pes.repo.DeleteSinglePolicyExceptionRisk(id, risk.RiskRegisterID, tx)
+			if err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
 		err = pes.repo.Delete(id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
@@ -452,11 +458,9 @@ func (pes *PolicyExceptionService) parsePolicyExceptionDates(dto *dtos.PolicyExc
 		return nil, utility.NewValidationError(fmt.Errorf("invalid start date"), "invalid_date", "start date")
 	}
 
-	if dto.EndDate != nil {
-		parsed.EndDate, err = utility.ParseMandatoryDate(*dto.EndDate)
-		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid end date"), "invalid_date", "end date")
-		}
+	parsed.EndDate, err = utility.ParseMandatoryDate(dto.EndDate)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid end date"), "invalid_date", "end date")
 	}
 
 	return parsed, nil

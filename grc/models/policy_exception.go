@@ -33,6 +33,7 @@ type PolicyException struct {
 	WorkflowStatus           *WorkflowStatus           `gorm:"foreignKey:WorkflowStatusID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	CreatedByUser            *User                     `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser            *User                     `gorm:"foreignKey:UpdatedByID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Risks                    []*PolicyExceptionRisk    `gorm:"foreignKey:PolicyExceptionID"`
 }
 
 // TableName overrides the default table name

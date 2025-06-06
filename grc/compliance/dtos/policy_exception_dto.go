@@ -99,6 +99,7 @@ type PolicyExceptionDetailDTO struct {
 
 	// Nested DTOs
 	Document                 *documentDTOs.DocumentDetailsDTO          `json:"document"`
+	Risks                    []PolicyExceptionRiskDTO                  `json:"risks"`
 	DocumentVersion          *documentDTOs.DocumentVersionDTO          `json:"document_version"`
 	DocumentVersionClause    *documentDTOs.DocumentClauseDetailsDTO    `json:"document_version_clause"`
 	DocumentRequirementGroup *documentDTOs.DocumentRequirementGroupDTO `json:"document_requirement_group"`
@@ -116,4 +117,19 @@ type PolicyExceptionParsedDates struct {
 
 type MapPolicyExceptionRisksDTO struct {
 	RiskIDs []uint `json:"risk_ids" binding:"required"`
+}
+
+type RiskMinimalDTO struct {
+	ID              uint   `json:"id"`
+	ReferenceNumber string `json:"reference_number"`
+	Title           string `json:"title"`
+}
+
+type PolicyExceptionRiskDTO struct {
+	ID                uint                             `json:"id"`
+	PolicyExceptionID uint                             `json:"policy_exception_id"`
+	RiskRegisterID    uint                             `json:"risk_register_id"`
+	RiskRegister      RiskMinimalDTO                   `json:"risk"`
+	CreatedAt         time.Time                        `json:"created_at"`
+	CreatedBy         *organizationDTOs.UserMinimalDTO `json:"created_by"` // nested user details
 }

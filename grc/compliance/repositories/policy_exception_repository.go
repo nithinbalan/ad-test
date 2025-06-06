@@ -168,6 +168,8 @@ func (repo *PolicyExceptionRepository) GetFullDetailsByID(id uint, tx ...utility
 		Preload("Document.LatestDocumentVersion.DocumentClauses").
 		Preload("DocumentRequirementGroup").
 		Preload("RequestedBy").
+		Preload("Risks").
+		Preload("Risks.RiskRegister").
 		Preload("OrganizationUnit").
 		Preload("WorkflowStatus").
 		Preload("CreatedByUser").
