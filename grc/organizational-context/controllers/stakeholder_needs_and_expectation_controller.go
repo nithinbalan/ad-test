@@ -245,3 +245,26 @@ func (snec *StakeholderNeedsAndExpectationController) DeleteStakeholderNeedsAndE
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (snec *StakeholderNeedsAndExpectationController) GetNeedsAndExpectationCountByStatus(c *gin.Context) {
+
+	stakeholderIDStr := c.Param("stakeholderId")
+	stakeholderID, err := strconv.ParseUint(stakeholderIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	needsAndExpectationCounts, err := snec.service.GetNeedsAndExpectationCountByStatus(uint(stakeholderID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(snec.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, needsAndExpectationCounts)
+}

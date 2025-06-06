@@ -23,6 +23,7 @@ type StakeholderEngagementServiceInterface interface {
 	Delete(stakeholderID uint, ids []uint, currentUserID uint) ([]uint, error)
 
 	StatusUpdate(stakeholderID uint, id uint, currentUserID uint, stakeholderEngagementEvaluationFormDTO *organizationalContextDTOs.StakeholderEngagementEvaluationFormDTO, tx utility.DatabaseTransaction) error
+	GetEngagementEffectivenessScore(stakeholderID uint) (*organizationalContextDTOs.EngagementEffectivenessScoreDTO, error)
 }
 
 // Service and implementations
@@ -317,4 +318,30 @@ func (ses *StakeholderEngagementService) parseEvaluationDates(dto *organizationa
 	}
 
 	return parsed, nil
+}
+
+func (ses *StakeholderEngagementService) GetEngagementEffectivenessScore(stakeholderID uint) (*organizationalContextDTOs.EngagementEffectivenessScoreDTO, error) {
+	score, err := ses.repo.GetLatestScore(stakeholderID)
+	if err != nil {
+		return nil, err
+	}
+
+	var efficiency, color string
+	switch {
+	case score >= 75:
+		efficiency = "Highly Efficient"
+		color = "#28A745" // green
+	case score >= 50:
+		efficiency = "Moderately Efficient"
+		color = "#FFA500" // yellow
+	default:
+		efficiency = "Inefficient"
+		color = "#DC3545" // red
+	}
+
+	return &organizationalContextDTOs.EngagementEffectivenessScoreDTO{
+		Score:      score,
+		Efficiency: efficiency,
+		ColorCode:  color,
+	}, nil
 }
