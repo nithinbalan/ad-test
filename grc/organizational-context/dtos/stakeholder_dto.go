@@ -107,6 +107,7 @@ type StakeholderDetailDTO struct {
 	ThirdPartyRegister  *tprmDTOs.ThirdPartyRegisterDetailDTO      `json:"third_party_register"`
 	Client              *tprmDTOs.ThirdPartyRegisterDetailDTO      `json:"client"`
 	User                *organizationDTOs.UserMinimalDTO           `json:"user"`
+	Engagements         []*StakeholderEngagementDetailDTO          `json:"engagements"`
 	CreatedAt           time.Time                                  `json:"created_at"`
 	UpdatedAt           *time.Time                                 `json:"updated_at"`
 	CreatedByUser       organizationDTOs.UserMinimalDTO            `json:"created_by"`

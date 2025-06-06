@@ -2,7 +2,6 @@ package services
 
 import (
 	"errors"
-	"fmt"
 	"jethur/grc/models"
 	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/repositories"
@@ -60,8 +59,6 @@ func (res *EscalationService) GetFullDetailsByID(id uint) (*dtos.EscalationDetai
 		}
 		return nil, err
 	}
-
-	fmt.Println("23")
 
 	err = mapstructure.Decode(escalation, &escalationDetailDTO)
 	if err != nil {

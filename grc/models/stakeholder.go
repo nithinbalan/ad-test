@@ -22,16 +22,17 @@ type Stakeholder struct {
 	UpdatedBYID           *uint      `json:"updated_by_id" gorm:"default:null" binding:"omitempty"`
 
 	// Relationships
-	Type                *ProcessDependencyType `gorm:"foreignKey:TypeID"`
-	StakeholderCategory *StakeholderCategory   `gorm:"foreignKey:StakeholderCategoryID"`
-	InfluenceLevel      *SeverityLevel         `gorm:"foreignKey:InfluenceLevelID"`
-	ImpactLevel         *SeverityLevel         `gorm:"foreignKey:ImpactLevelID"`
-	OrganizationUnit    *OrganizationUnit      `gorm:"foreignKey:PrimaryUnitID"`
-	ThirdPartyRegister  *ThirdPartyRegister    `gorm:"foreignKey:ThirdPartyRegisterID"`
-	Client              *ThirdPartyRegister    `gorm:"foreignKey:ClientID"`
-	User                *User                  `gorm:"foreignKey:UserID"`
-	CreatedByUser       *User                  `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser       *User                  `gorm:"foreignKey:UpdatedBYID"`
+	Type                *ProcessDependencyType   `gorm:"foreignKey:TypeID"`
+	StakeholderCategory *StakeholderCategory     `gorm:"foreignKey:StakeholderCategoryID"`
+	InfluenceLevel      *SeverityLevel           `gorm:"foreignKey:InfluenceLevelID"`
+	ImpactLevel         *SeverityLevel           `gorm:"foreignKey:ImpactLevelID"`
+	OrganizationUnit    *OrganizationUnit        `gorm:"foreignKey:PrimaryUnitID"`
+	ThirdPartyRegister  *ThirdPartyRegister      `gorm:"foreignKey:ThirdPartyRegisterID"`
+	Client              *ThirdPartyRegister      `gorm:"foreignKey:ClientID"`
+	User                *User                    `gorm:"foreignKey:UserID"`
+	Engagements         *[]StakeholderEngagement `gorm:"foreignKey:StakeholderID"`
+	CreatedByUser       *User                    `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser       *User                    `gorm:"foreignKey:UpdatedBYID"`
 }
 
 func (Stakeholder) TableName() string {

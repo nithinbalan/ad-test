@@ -32,6 +32,7 @@ type StakeholderEngagementService struct {
 	activityLogSvc logServices.ActivityLogServiceInterface
 	userSvc        organizationServices.UserServiceInterface
 	userSettingSvc organizationServices.UserSettingServiceInterface
+	stakeholderSvc StakeholderServiceInterface
 }
 
 func NewStakeholderEngagementService(
@@ -39,12 +40,14 @@ func NewStakeholderEngagementService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	stakeholderSvc StakeholderServiceInterface,
 ) StakeholderEngagementServiceInterface {
 	return &StakeholderEngagementService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
 		userSvc:        userSvc,
 		userSettingSvc: userSettingSvc,
+		stakeholderSvc: stakeholderSvc,
 	}
 }
 
@@ -321,27 +324,38 @@ func (ses *StakeholderEngagementService) parseEvaluationDates(dto *organizationa
 }
 
 func (ses *StakeholderEngagementService) GetEngagementEffectivenessScore(stakeholderID uint) (*organizationalContextDTOs.EngagementEffectivenessScoreDTO, error) {
-	score, err := ses.repo.GetLatestScore(stakeholderID)
+	stakeholder, err := ses.stakeholderSvc.GetFullDetailsByID(stakeholderID)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(stakeholder.Engagements)
+	if stakeholder.Engagements != nil && len(stakeholder.Engagements) > 0 {
+		fmt.Println("1")
+		score, err := ses.repo.GetLatestScore(stakeholderID)
+		if err != nil {
+			return nil, err
+		}
 
-	var efficiency, color string
-	switch {
-	case score >= 75:
-		efficiency = "Highly Efficient"
-		color = "#28A745" // green
-	case score >= 50:
-		efficiency = "Moderately Efficient"
-		color = "#FFA500" // yellow
-	default:
-		efficiency = "Inefficient"
-		color = "#DC3545" // red
+		var efficiency, color string
+		switch {
+		case score >= 75:
+			efficiency = "Highly Efficient"
+			color = "#28A745" // green
+		case score >= 50:
+			efficiency = "Moderately Efficient"
+			color = "#FFA500" // yellow
+		default:
+			efficiency = "Inefficient"
+			color = "#DC3545" // red
+		}
+
+		efficiencyScore := &organizationalContextDTOs.EngagementEffectivenessScoreDTO{
+			Score:      score,
+			Efficiency: efficiency,
+			ColorCode:  color,
+		}
+
+		return efficiencyScore, nil
 	}
-
-	return &organizationalContextDTOs.EngagementEffectivenessScoreDTO{
-		Score:      score,
-		Efficiency: efficiency,
-		ColorCode:  color,
-	}, nil
+	return nil, nil
 }
