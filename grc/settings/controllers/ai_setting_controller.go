@@ -30,8 +30,17 @@ func (asc *AISettingController) EnableAISetting(c *gin.Context) {
 
 	err = asc.moduleService.EnableAISetting(currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(asc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(asc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.Status(http.StatusOK)
