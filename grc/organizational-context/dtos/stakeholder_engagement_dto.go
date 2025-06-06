@@ -109,3 +109,9 @@ type StakeholderEngagementEvaluationDTO struct {
 	CreatedByUser    organizationDTOs.UserMinimalDTO  `json:"created_by_user"`
 	UpdatedByUser    *organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
 }
+
+type EngagementEffectivenessScoreDTO struct {
+	Score      float64 `json:"score"`      // e.g., 85
+	Efficiency string  `json:"efficiency"` // e.g., "Highly efficient"
+	ColorCode  string  `json:"color_code"` // UI color hex code
+}

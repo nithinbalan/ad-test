@@ -16,6 +16,8 @@ type StakeholderEngagementRepositoryInterface interface {
 	Create(stakeholderEngagement *models.StakeholderEngagement, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(stakeholderEngagement *models.StakeholderEngagement, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+
+	GetLatestScore(stakeholderID uint) (float64, error)
 }
 
 type StakeholderEngagementRepository struct {
@@ -220,4 +222,20 @@ func (repo *StakeholderEngagementRepository) Delete(id uint, tx ...utility.Datab
 	}
 
 	return nil
+}
+
+func (repo *StakeholderEngagementRepository) GetLatestScore(stakeholderID uint) (float64, error) {
+	var score float64
+
+	err := repo.db.
+		Table("stakeholder_engagements").
+		Select("AVG(score)").
+		Where("stakeholder_engagements.stakeholder_id = ?", stakeholderID).
+		Scan(&score).Error
+
+	if err != nil {
+		return 0, err
+	}
+
+	return score, nil
 }

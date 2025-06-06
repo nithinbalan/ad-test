@@ -39,5 +39,19 @@ func DecryptJWTToken(tokenString string) (jwt.MapClaims, error) {
 		claims["enabled_modules"] = enabledModules
 	}
 
+	if addons, exists := claims["enabled_addons"]; exists {
+		var enabledAddons []string
+		if str, ok := addons.(string); ok {
+			if err := json.Unmarshal([]byte(str), &enabledAddons); err != nil {
+				return nil, NewValidationError(fmt.Errorf("failed to parse enabled_addons"), "invalid", "enabled addons")
+			}
+		} else {
+			return nil, NewValidationError(fmt.Errorf("invalid enabled_addons format"), "invalid", "enabled addons")
+		}
+
+		// Update claims with parsed enabled_modules
+		claims["enabled_addons"] = enabledAddons
+	}
+
 	return claims, nil
 }
