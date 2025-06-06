@@ -309,7 +309,7 @@ func (ses *StakeholderEngagementService) parseEvaluationDates(dto *organizationa
 	parsed := &organizationalContextDTOs.StakeholderEngagementEvaluationParsedDates{}
 
 	var err error
-	if *dto.EvaluatedAt != "" {
+	if dto.EvaluatedAt != nil {
 		parsed.EvaluatedAt, err = utility.ParseDate(*dto.EvaluatedAt)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid evaluated date"), "invalid_date", "evaluated at")
