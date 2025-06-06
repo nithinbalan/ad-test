@@ -2,6 +2,10 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	documentDTOs "jethur/grc/documents/dtos"
+	mastersDTOs "jethur/grc/masters/dtos"
+	organizationDTOs "jethur/grc/organization/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
 	"time"
 )
 
@@ -9,16 +13,15 @@ type PolicyExceptionFormDTO struct {
 	DocumentID                 uint    `json:"document_id" binding:"required"`
 	DocumentVersionClauseID    *uint   `json:"document_version_clause_id"`
 	DocumentRequirementGroupID *uint   `json:"document_requirement_group_id"`
-	ReferenceNumber            string  `json:"reference_number"` // generated in service, not required in form
 	TitleEn                    string  `json:"title_en" binding:"required"`
 	TitleAr                    string  `json:"title_ar" binding:"required"`
 	Requirements               *string `json:"requirements"`
 	Justification              *string `json:"justification"`
-	StartDate                  string  `json:"start_date" binding:"required"` // consider using time.Time if you parse it before saving
-	EndDate                    *string `json:"end_date"`                      // same here if optional
+	StartDate                  string  `json:"start_date" binding:"required"`
+	EndDate                    string  `json:"end_date" binding:"required"`
 	RequestedByID              uint    `json:"requested_by_id" binding:"required"`
 	OrganizationUnitID         uint    `json:"organization_unit_id" binding:"required"`
-	WorkflowStatusID           *uint   `json:"workflow_status_id"` // overridden to pending in service, so optional
+	WorkflowStatusID           *uint   `json:"workflow_status_id"`
 }
 
 type PolicyExceptionListDTO struct {
@@ -41,8 +44,6 @@ type PolicyExceptionListDTO struct {
 	WorkflowStatusColor             string    `json:"workflow_status_color"`
 	DocumentRequirementGroupTitleEn string    `json:"document_requirement_group_title_en"`
 	DocumentRequirementGroupTitleAr string    `json:"document_requirement_group_title_ar"`
-	DocumentVersionTitleEn          string    `json:"document_version_title_en"`
-	DocumentVersionTitleAr          string    `json:"document_version_title_ar"`
 	CreatedAt                       time.Time `json:"created_at"`
 	CreatedByID                     uint      `json:"created_by_id"`
 	CreatedByFirstNameEn            string    `json:"created_by_first_name_en"`
@@ -85,29 +86,27 @@ type PolicyExceptionListResponseDTO struct {
 }
 
 type PolicyExceptionDetailDTO struct {
-	ID                      uint       `json:"id"`
-	DocumentID              uint       `json:"document_id"`
-	DocumentVersionClauseID *uint      `json:"document_version_clause_id"`
-	ReferenceNumber         string     `json:"reference_number"`
-	TitleEn                 string     `json:"title_en"`
-	TitleAr                 string     `json:"title_ar"`
-	Requirements            *string    `json:"requirements"`
-	Justification           *string    `json:"justification"`
-	StartDateString         string     `json:"start_date"`
-	EndDateString           string     `json:"end_date"`
-	RequestedByID           uint       `json:"requested_by_id"`
-	RequestedByName         string     `json:"requested_by_name"`
-	OrganizationUnitID      uint       `json:"organization_unit_id"`
-	OrganizationUnitName    string     `json:"organization_unit_name"`
-	WorkflowStatusID        *uint      `json:"workflow_status_id"`
-	WorkflowStatusTitleEn   string     `json:"workflow_status_title_en"`
-	WorkflowStatusColor     string     `json:"workflow_status_color"`
-	CreatedAt               time.Time  `json:"created_at"`
-	CreatedByID             uint       `json:"created_by_id"`
-	CreatedByName           string     `json:"created_by_name"`
-	UpdatedAt               *time.Time `json:"updated_at"`
-	UpdatedByID             *uint      `json:"updated_by_id"`
-	UpdatedByName           *string    `json:"updated_by_name"`
+	ID              uint       `json:"id"`
+	ReferenceNumber string     `json:"reference_number"`
+	TitleEn         string     `json:"title_en"`
+	TitleAr         string     `json:"title_ar"`
+	Requirements    *string    `json:"requirements"`
+	Justification   *string    `json:"justification"`
+	StartDateString string     `json:"start_date"`
+	EndDateString   string     `json:"end_date"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       *time.Time `json:"updated_at"`
+
+	// Nested DTOs
+	Document                 *documentDTOs.DocumentDetailsDTO          `json:"document"`
+	DocumentVersion          *documentDTOs.DocumentVersionDTO          `json:"document_version"`
+	DocumentVersionClause    *documentDTOs.DocumentClauseDetailsDTO    `json:"document_version_clause"`
+	DocumentRequirementGroup *documentDTOs.DocumentRequirementGroupDTO `json:"document_requirement_group"`
+	RequestedBy              organizationDTOs.UserMinimalDTO           `json:"requested_by"`
+	OrganizationUnit         settingsDTOs.OrganizationUnitDTO          `json:"organization_unit"`
+	WorkflowStatus           *mastersDTOs.WorkflowStatusDTO            `json:"workflow_status"`
+	CreatedByUser            organizationDTOs.UserMinimalDTO           `json:"created_by"`
+	UpdatedByUser            *organizationDTOs.UserMinimalDTO          `json:"updated_by"`
 }
 
 type PolicyExceptionParsedDates struct {

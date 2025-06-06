@@ -49,8 +49,6 @@ func (repo *PolicyExceptionRepository) GetAll(params *dtos.PolicyExceptionListQu
 		policy_exceptions.*,
 		documents.title_en AS document_title_en,
 		documents.title_ar AS document_title_ar,
-		document_versions.title_en AS document_version_title_en,
-		document_versions.title_ar AS document_version_title_ar,
 		document_requirement_groups.title_en AS document_requirement_group_title_en,
 		document_requirement_groups.title_ar AS document_requirement_group_title_ar,
 		workflow_statuses.title_en AS workflow_status_title_en,
@@ -102,8 +100,8 @@ func (repo *PolicyExceptionRepository) GetAll(params *dtos.PolicyExceptionListQu
 		kw := "%" + params.Keyword + "%"
 		query = query.Where(`
 			policy_exceptions.reference_number LIKE ? OR
-			policy_exceptions.title_en LIKE ? OR
-			policy_exceptions.title_ar LIKE ? OR
+			documents.title_en LIKE ? OR
+			documents.title_ar LIKE ? OR
 			requested_user.first_name_en LIKE ? OR
 			requested_user.first_name_ar LIKE ? OR
 			requested_user.last_name_en LIKE ? OR
@@ -166,8 +164,8 @@ func (repo *PolicyExceptionRepository) GetFullDetailsByID(id uint, tx ...utility
 	var pe *models.PolicyException
 	err := db.
 		Preload("Document").
-		Preload("DocumentVersion").
-		Preload("DocumentVersionClause").
+		Preload("Document.LatestDocumentVersion").
+		Preload("Document.LatestDocumentVersion.DocumentClauses").
 		Preload("DocumentRequirementGroup").
 		Preload("RequestedBy").
 		Preload("OrganizationUnit").
