@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"database/sql"
 	"jethur/grc/models"
 	organizationalContextDTOs "jethur/grc/organizational-context/dtos"
 	"jethur/utility"
@@ -225,7 +226,7 @@ func (repo *StakeholderEngagementRepository) Delete(id uint, tx ...utility.Datab
 }
 
 func (repo *StakeholderEngagementRepository) GetLatestScore(stakeholderID uint) (float64, error) {
-	var score float64
+	var score sql.NullFloat64
 
 	err := repo.db.
 		Table("stakeholder_engagements").
@@ -237,5 +238,9 @@ func (repo *StakeholderEngagementRepository) GetLatestScore(stakeholderID uint) 
 		return 0, err
 	}
 
-	return score, nil
+	if !score.Valid {
+		return 0, nil
+	}
+
+	return score.Float64, nil
 }

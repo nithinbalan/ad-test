@@ -111,7 +111,7 @@ type StakeholderEngagementEvaluationDTO struct {
 }
 
 type EngagementEffectivenessScoreDTO struct {
-	Score      float64 `json:"score"`      // e.g., 85
-	Efficiency string  `json:"efficiency"` // e.g., "Highly efficient"
-	ColorCode  string  `json:"color_code"` // UI color hex code
+	Score      float64 `json:"score"`
+	Efficiency string  `json:"efficiency"`
+	ColorCode  string  `json:"color_code"`
 }

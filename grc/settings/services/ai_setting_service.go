@@ -49,7 +49,6 @@ func (amc *AISettingService) EnableAISetting(currentUserID uint) error {
 			return utility.NewValidationError(fmt.Errorf("invalid enabled_addons format"), "invalid", "enabled ai")
 		}
 
-		fmt.Println(allowedAddons)
 		// Check if the addon is allowed in the license
 		isAllowed := false
 		for _, allowedAddon := range allowedAddons {
