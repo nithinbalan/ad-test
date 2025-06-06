@@ -41,6 +41,7 @@ type DocumentModule struct {
 	DocumentChangeRequestSvc    services.DocumentChangeRequestServiceInterface
 	DocumentRequirementGroupSvc services.DocumentRequirementGroupServiceInterface
 	DocumentRequirementSvc      services.DocumentRequirementServiceInterface
+	DocumentClauseSvc           services.DocumentClauseServiceInterface
 }
 
 func NewDocumentModule(db *gorm.DB,
@@ -268,5 +269,6 @@ func NewDocumentModule(db *gorm.DB,
 		DocumentChangeRequestSvc:    documentChangeRequestSvc,
 		DocumentRequirementGroupSvc: documentRequirementGroupSvc,
 		DocumentRequirementSvc:      documentRequirementSvc,
+		DocumentClauseSvc:           documentClauseSvc,
 	}
 }
