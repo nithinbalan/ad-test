@@ -21,7 +21,7 @@ jobs:
             GitHub Actions DEV-API deployment has started.
 
             Triggered by: ${{ github.actor }}
-          to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
+          to: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, aparna@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
           from: "Jethur Notifications <info@jethur.com>"
 
 
