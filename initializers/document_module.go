@@ -106,7 +106,8 @@ func NewDocumentModule(db *gorm.DB,
 		taskModule.TaskService,
 		commonModule.NotificationService,
 		settingsModule.OrganizationLevelSvc,
-		masterModule.ReviewFrequencySvc)
+		masterModule.ReviewFrequencySvc,
+		settingsModule.SystemPreferenceSvc)
 
 	documentSvc.SetDocumentWorkflowService(documentWorkflowSvc)
 

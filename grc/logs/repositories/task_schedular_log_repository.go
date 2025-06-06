@@ -28,10 +28,10 @@ func (repo *TaskSchedularLogRepository) GetAll(params *logDTOs.TaskSchedularLogL
 	query := repo.db.Table("task_schedular_logs").
 		Select(`
 			id,
-			task_name as taskName,
+			task_name,
 			status,
 			message,
-			run_at as runAt,
+			run_at,
 			completed_at as completedAt
 		`)
 

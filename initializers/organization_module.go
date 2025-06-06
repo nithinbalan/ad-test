@@ -46,6 +46,7 @@ type OrganizationModule struct {
 	UserDocumentTypeController              *controllers.UserDocumentTypeController
 	UserDocumentSubTypeController           *controllers.UserDocumentSubTypeController
 	UserDocumentController                  *controllers.UserDocumentController
+	UserJobDescriptionController            *controllers.UserJobDescriptionController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -94,6 +95,10 @@ func NewOrganizationModule(
 	designationSvc := services.NewDesignationService(designationRepo, sharedModule.ActivityLogService, jobDescriptionSvc)
 	designationController := controllers.NewDesignationController(designationSvc)
 
+	userJobDescriptionRepo := repositories.NewUserJobDescriptionRepository(db)
+	userJobDescriptionSvc := services.NewUserJobDescriptionService(userJobDescriptionRepo, sharedModule.ActivityLogService, jobDescriptionSvc, designationSvc)
+	userJobDescriptionController := controllers.NewUserJobDescriptionController(userJobDescriptionSvc)
+
 	userStatusRepo := repositories.NewUserStatusRepository(db)
 	userStatusSvc := services.NewUserStatusService(userStatusRepo)
 	userStatusController := controllers.NewUserStatusController(userStatusSvc)
@@ -112,6 +117,7 @@ func NewOrganizationModule(
 		commonModule.NotificationService,
 		settingsModule.ActiveDirectorySettingSvc,
 		settingsModule.OrganizationUnitSvc,
+		userJobDescriptionSvc,
 	)
 	userSettingRepo := repositories.NewUserSettingRepository(db)
 	userSettingSvc := services.NewUserSettingService(
@@ -293,6 +299,7 @@ func NewOrganizationModule(
 		UserDocumentTypeController:              userDocumentTypeController,
 		UserDocumentSubTypeController:           userDocumentSubTypeController,
 		UserDocumentController:                  userDocumentController,
+		UserJobDescriptionController:            userJobDescriptionController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,

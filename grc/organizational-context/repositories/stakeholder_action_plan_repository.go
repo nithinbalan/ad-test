@@ -13,7 +13,7 @@ import (
 
 type StakeholderActionPlanRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(stakeholderID uint, params *organizationalContextDTOs.StakeholderActionPlanListQueryParamsDTO, stakeholderAssessmentRequirementID uint) (*organizationalContextDTOs.StakeholderActionPlanListResponseDTO, error)
+	GetAll(stakeholderID uint, params *organizationalContextDTOs.StakeholderActionPlanListQueryParamsDTO) (*organizationalContextDTOs.StakeholderActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.StakeholderActionPlan, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StakeholderActionPlan, error)
 	Create(stakeholderActionPlan *models.StakeholderActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
@@ -42,7 +42,7 @@ func (repo *StakeholderActionPlanRepository) BeginTransaction() utility.Database
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *StakeholderActionPlanRepository) GetAll(stakeholderID uint, params *organizationalContextDTOs.StakeholderActionPlanListQueryParamsDTO, stakeholderAssessmentRequirementID uint) (*organizationalContextDTOs.StakeholderActionPlanListResponseDTO, error) {
+func (repo *StakeholderActionPlanRepository) GetAll(stakeholderID uint, params *organizationalContextDTOs.StakeholderActionPlanListQueryParamsDTO) (*organizationalContextDTOs.StakeholderActionPlanListResponseDTO, error) {
 
 	var stakeholderActionPlans []*organizationalContextDTOs.StakeholderActionPlanListDTO
 	var totalCount int64
@@ -102,18 +102,11 @@ func (repo *StakeholderActionPlanRepository) GetAll(stakeholderID uint, params *
 		LEFT JOIN users AS review_user ON review_user.id = stakeholder_action_plans.review_user_id
         LEFT JOIN users AS created_user ON created_user.id = stakeholder_action_plans.created_by_id
         LEFT JOIN users AS updated_user ON updated_user.id = stakeholder_action_plans.updated_by_id
-        LEFT JOIN stakeholder_requirements ON stakeholder_requirements.id = stakeholder_action_plans.stakeholder_requirement_id
-        LEFT JOIN stakeholder_clauses ON stakeholder_clauses.id = stakeholder_requirements.stakeholder_clause_id
     `)
 
 	// Conditionally apply stakeholder ID filter
 	if stakeholderID != 0 {
-		query = query.Where("stakeholder_action_plans.stakeholder_register_id = ?", stakeholderID)
-	}
-
-	// Conditionally apply stakeholder ID filter
-	if stakeholderAssessmentRequirementID != 0 {
-		query = query.Where("stakeholder_action_plans.stakeholder_assessment_requirement_id = ?", stakeholderAssessmentRequirementID)
+		query = query.Where("stakeholder_action_plans.stakeholder_id = ?", stakeholderID)
 	}
 
 	// Apply dynamic filters to the query
