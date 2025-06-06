@@ -162,6 +162,10 @@
 {
   "id": "same_organization_unit",
   "translation": "يجب أن يكون المستخدم ضمن نفس الوحدة التنظيمية"
+},
+{
+  "id": "ai_not_allowed",
+  "translation": "لا يُسمح بـ {{.Field}} بموجب الترخيص الحالي."
 }
 
 
