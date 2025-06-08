@@ -23,23 +23,6 @@ func NewComplianceLibraryController(service services.ComplianceLibraryServiceInt
 	}
 }
 
-// func (clc *ComplianceLibraryController) GetComplianceLibraryDetails(c *gin.Context) {
-// 	libraryIDStr := c.Param("libraryId")
-// 	libraryID, err := strconv.Atoi(libraryIDStr)
-// 	if err != nil {
-// 		utility.SendNotFoundErrResp(c)
-// 		return
-// 	}
-
-// 	data, err := clc.service.GetComplianceLibraryDetailsByID(uint(libraryID))
-// 	if err != nil {
-// 		utility.SendInternalErrResp(clc.db, c, err.Error())
-// 		return
-// 	}
-
-// 	c.JSON(http.StatusOK, data)
-// }
-
 func (clc *ComplianceLibraryController) GetComplianceLibraryDetailsByTitle(c *gin.Context) {
 	key := c.Param("title")
 
