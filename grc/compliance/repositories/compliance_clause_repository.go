@@ -2,9 +2,10 @@ package repositories
 
 import (
 	"errors"
+	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
+
 	"jethur/grc/models"
-	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
 	"sort"
 	"strconv"
@@ -28,7 +29,7 @@ type ComplianceClauseRepositoryInterface interface {
 	GetClauseWithChildren(clauseID uint, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error)
 
 	GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error)
-	GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlListDTO, error)
+	GetAssociatedControls(complianceID uint, clauseID uint) ([]commonDTOs.AssociatedControlListDTO, error)
 	CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceControlByClauseAndControl(clauseID, controlID uint, tx ...utility.DatabaseTransaction) error
 
@@ -300,8 +301,8 @@ func (repo *ComplianceClauseRepository) GetAssociatedComplianceRequirements(comp
 	return requirements, err
 }
 
-func (r *ComplianceClauseRepository) GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlListDTO, error) {
-	controls := make([]organizationDTOs.ControlListDTO, 0)
+func (r *ComplianceClauseRepository) GetAssociatedControls(complianceID uint, clauseID uint) ([]commonDTOs.AssociatedControlListDTO, error) {
+	controls := make([]commonDTOs.AssociatedControlListDTO, 0)
 
 	err := r.db.Table("compliance_controls cc").
 		Select(`

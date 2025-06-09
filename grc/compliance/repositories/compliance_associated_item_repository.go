@@ -37,7 +37,7 @@ func (repo *ComplianceAssociatedItemRepository) BeginTransaction() utility.Datab
 }
 
 func (repo *ComplianceAssociatedItemRepository) GetAllControls(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemControlListResponseDTO, error) {
-	var controlList []*complianceDTOs.ComplianceControlListDTO
+	var controlList []*commonDTOs.AssociatedControlListDTO
 	var totalCount int64
 
 	query := repo.db.Table("compliance_controls").
