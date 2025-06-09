@@ -183,6 +183,7 @@ func (repo *StakeholderRepository) GetFullDetailsByID(id uint, tx ...utility.Dat
 		Preload("ThirdPartyRegister").
 		Preload("Client").
 		Preload("User").
+		Preload("Engagements").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&stkeholder, id)

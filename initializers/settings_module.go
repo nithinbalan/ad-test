@@ -122,7 +122,7 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 
 	aiSettingRepo := repositories.NewAISettingRepository(db)
 	aiSettingSvc := services.NewAISettingService(
-		aiSettingRepo)
+		aiSettingRepo, systemPreferenceSvc)
 	aiSettingController := controllers.NewAISettingController(aiSettingSvc)
 
 	triggerConditionRepo := repositories.NewTriggerConditionRepository(db)

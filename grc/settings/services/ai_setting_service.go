@@ -1,8 +1,10 @@
 package services
 
 import (
+	"fmt"
 	"jethur/grc/models"
 	"jethur/grc/settings/repositories"
+	"jethur/utility"
 )
 
 type AISettingServiceInterface interface {
@@ -13,17 +15,54 @@ type AISettingServiceInterface interface {
 }
 
 type AISettingService struct {
-	repo repositories.AISettingRepositoryInterface
+	repo                repositories.AISettingRepositoryInterface
+	systemPreferenceSvc SystemPreferenceServiceInterface
 }
 
-func NewAISettingService(repo repositories.AISettingRepositoryInterface) AISettingServiceInterface {
+func NewAISettingService(repo repositories.AISettingRepositoryInterface, systemPreferenceSvc SystemPreferenceServiceInterface) AISettingServiceInterface {
 	return &AISettingService{
-		repo: repo,
+		repo:                repo,
+		systemPreferenceSvc: systemPreferenceSvc,
 	}
 }
 
 func (amc *AISettingService) EnableAISetting(currentUserID uint) error {
-	return amc.repo.UpdateSystemPreferenceAI(true, currentUserID)
+	existingSystemPreference, err := amc.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return err
+	}
+	if existingSystemPreference.LicenseKeyDetails != nil {
+		// Extract allowed modules from the license key
+		claims, err := utility.DecryptJWTToken(*existingSystemPreference.LicenseKeyDetails.LicenseKey)
+		if err != nil {
+			return err
+		}
+
+		// Extract allowed addons (can be a string or array)
+		rawAddons, ok := claims["enabled_addons"]
+		if !ok {
+			return fmt.Errorf("invalid or missing enabled addons in license key")
+		}
+
+		allowedAddons, ok := rawAddons.([]string)
+		if !ok {
+			return utility.NewValidationError(fmt.Errorf("invalid enabled_addons format"), "invalid", "enabled ai")
+		}
+
+		// Check if the addon is allowed in the license
+		isAllowed := false
+		for _, allowedAddon := range allowedAddons {
+			if allowedAddon == "jethur_ai" {
+				amc.repo.UpdateSystemPreferenceAI(true, currentUserID)
+			}
+		}
+
+		if !isAllowed {
+			return utility.NewValidationError(fmt.Errorf("invalid ai"), "ai_not_allowed", "Jethur AI")
+		}
+	}
+
+	return err
 }
 
 func (amc *AISettingService) DisableAISetting(currentUserID uint) error {

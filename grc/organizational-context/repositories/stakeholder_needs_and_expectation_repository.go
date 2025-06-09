@@ -16,6 +16,8 @@ type StakeholderNeedsAndExpectationRepositoryInterface interface {
 	Create(stakeholderNeedsAndExpectation *models.StakeholderNeedsAndExpectation, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(stakeholderNeedsAndExpectation *models.StakeholderNeedsAndExpectation, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+
+	GetNeedsAndExpectationCountByStatus(stakeholderId uint) ([]organizationalContextDTOs.NeedsAndExpectationStatusCountResponseDTO, error)
 }
 
 type StakeholderNeedsAndExpectationRepository struct {
@@ -210,4 +212,34 @@ func (repo *StakeholderNeedsAndExpectationRepository) Delete(id uint, tx ...util
 	}
 
 	return nil
+}
+
+func (repo *StakeholderNeedsAndExpectationRepository) GetNeedsAndExpectationCountByStatus(stakeholderId uint) ([]organizationalContextDTOs.NeedsAndExpectationStatusCountResponseDTO, error) {
+	var statusCounts []organizationalContextDTOs.NeedsAndExpectationStatusCountResponseDTO
+
+	query := repo.db.Table("evaluation_statuses").
+		Select(`
+			evaluation_statuses.id,
+			evaluation_statuses.title_en,
+			evaluation_statuses.title_ar,
+			evaluation_statuses.color_code,
+			evaluation_statuses.type,
+			COALESCE(COUNT(stakeholder_needs_and_expectations.id), 0) AS count
+		`).
+		Joins("LEFT JOIN stakeholder_needs_and_expectations ON stakeholder_needs_and_expectations.evaluation_status_id = evaluation_statuses.id AND stakeholder_needs_and_expectations.stakeholder_id = ?", stakeholderId)
+
+	query = query.Group(`
+		evaluation_statuses.id,
+		evaluation_statuses.title_en,
+		evaluation_statuses.title_ar,
+		evaluation_statuses.color_code,
+		evaluation_statuses.type
+	`)
+
+	err := query.Scan(&statusCounts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return statusCounts, nil
 }

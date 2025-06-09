@@ -245,3 +245,20 @@ func (sec *StakeholderEngagementController) DeleteStakeholderEngagements(c *gin.
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (sec *StakeholderEngagementController) GetEngagementEffectivenessScore(c *gin.Context) {
+	stakeholderIDStr := c.Param("stakeholderId")
+	stakeholderID, err := strconv.ParseUint(stakeholderIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid stakeholder ID"})
+		return
+	}
+
+	result, err := sec.service.GetEngagementEffectivenessScore(uint(stakeholderID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch score"})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
