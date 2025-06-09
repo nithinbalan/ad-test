@@ -6,7 +6,7 @@ import (
 )
 
 type ComplianceLibraryServiceInterface interface {
-	GetComplianceLibraryDetailsByID(libraryID uint) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error)
+	GetComplianceLibraryDetailsByTitle(titleEn string) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error)
 	GetClauseTreeByVersion(versionID, complianceLibraryID uint) ([]libraryDTOs.ClauseWithSubClausesDTO, error)
 }
 
@@ -23,8 +23,8 @@ func NewComplianceLibraryService(
 	}
 }
 
-func (cls *ComplianceLibraryService) GetComplianceLibraryDetailsByID(libraryID uint) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error) {
-	return cls.repo.GetComplianceLibraryDetailsByID(libraryID)
+func (cls *ComplianceLibraryService) GetComplianceLibraryDetailsByTitle(titleEn string) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error) {
+	return cls.repo.GetComplianceLibraryDetailsByTitle(titleEn)
 }
 
 func (svc *ComplianceLibraryService) GetClauseTreeByVersion(versionID, complianceLibraryID uint) ([]libraryDTOs.ClauseWithSubClausesDTO, error) {
