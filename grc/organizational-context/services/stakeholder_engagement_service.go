@@ -328,9 +328,7 @@ func (ses *StakeholderEngagementService) GetEngagementEffectivenessScore(stakeho
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(stakeholder.Engagements)
-	if stakeholder.Engagements != nil && len(stakeholder.Engagements) > 0 {
-		fmt.Println("1")
+	if &stakeholder.Engagements != nil && len(stakeholder.Engagements) > 0 {
 		score, err := ses.repo.GetLatestScore(stakeholderID)
 		if err != nil {
 			return nil, err
@@ -338,10 +336,10 @@ func (ses *StakeholderEngagementService) GetEngagementEffectivenessScore(stakeho
 
 		var efficiency, color string
 		switch {
-		case score >= 75:
+		case score >= 85:
 			efficiency = "Highly Efficient"
 			color = "#28A745" // green
-		case score >= 50:
+		case score >= 60:
 			efficiency = "Moderately Efficient"
 			color = "#FFA500" // yellow
 		default:

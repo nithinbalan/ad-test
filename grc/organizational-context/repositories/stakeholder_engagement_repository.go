@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"database/sql"
 	"jethur/grc/models"
 	organizationalContextDTOs "jethur/grc/organizational-context/dtos"
 	"jethur/utility"
@@ -226,21 +225,40 @@ func (repo *StakeholderEngagementRepository) Delete(id uint, tx ...utility.Datab
 }
 
 func (repo *StakeholderEngagementRepository) GetLatestScore(stakeholderID uint) (float64, error) {
-	var score sql.NullFloat64
+	type resultRow struct {
+		Type string
+	}
+
+	var rows []resultRow
 
 	err := repo.db.
 		Table("stakeholder_engagements").
-		Select("AVG(score)").
+		Select("evaluation_statuses.type").
+		Joins("JOIN evaluation_statuses ON evaluation_statuses.id = stakeholder_engagements.evaluation_status_id").
 		Where("stakeholder_engagements.stakeholder_id = ?", stakeholderID).
-		Scan(&score).Error
+		Find(&rows).Error
 
 	if err != nil {
 		return 0, err
 	}
 
-	if !score.Valid {
-		return 0, nil
+	if len(rows) == 0 {
+		return 0, nil // No engagement data
 	}
 
-	return score.Float64, nil
+	var total float64
+	for _, row := range rows {
+		switch row.Type {
+		case "fully-met":
+			total += 100
+		case "partially-met":
+			total += 50
+		case "not-met":
+			total += 0
+		}
+	}
+
+	avg := total / float64(len(rows))
+	return avg, nil
+
 }
