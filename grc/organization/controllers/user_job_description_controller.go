@@ -6,6 +6,7 @@ import (
 	"jethur/grc/organization/services"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -146,7 +147,12 @@ func (ctrl *UserJobDescriptionController) DeleteJobDescriptionUser(c *gin.Contex
 }
 
 func (ctrl *UserJobDescriptionController) EvaluateCompetency(c *gin.Context) {
-	_, err := strconv.Atoi(c.Param("id"))
+	userID, err := strconv.Atoi(c.Param("userId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	_, err = strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -169,10 +175,107 @@ func (ctrl *UserJobDescriptionController) EvaluateCompetency(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.service.Update(uint(competencyID), dto, currentUserID); err != nil {
+	if err := ctrl.service.Update(uint(userID), uint(competencyID), dto, currentUserID); err != nil {
 		utility.SendInternalErrResp(ctrl.db, c, err.Error())
 		return
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (ujdc *UserJobDescriptionController) DownloadUserJobDescriptionDocument(c *gin.Context) {
+	userIDStr := c.Param("userId")
+	userID, err := strconv.ParseUint(userIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	jdcIDStr := c.Param("id")
+	jdcID, err := strconv.ParseUint(jdcIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	competencyID, err := strconv.ParseUint(c.Param("cId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	docId, err := strconv.ParseUint(c.Param("docId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := ujdc.service.GetUserJobDescriptionDocumentPath(uint(userID), uint(jdcID), uint(competencyID), uint(docId), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(ujdc.db, c, err.Error())
+		}
+		return
+	}
+
+	filename := filepath.Base(documentPath)
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	c.File(documentPath)
+}
+
+func (ujdc *UserJobDescriptionController) GetUserJobDescriptionDocumentPreview(c *gin.Context) {
+	userIDStr := c.Param("userId")
+	userID, err := strconv.ParseUint(userIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	jdcIDStr := c.Param("id")
+	jdcID, err := strconv.ParseUint(jdcIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	competencyID, err := strconv.ParseUint(c.Param("cId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	docId, err := strconv.ParseUint(c.Param("docId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := ujdc.service.GetUserJobDescriptionDocumentPath(uint(userID), uint(jdcID), uint(competencyID), uint(docId), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(ujdc.db, c, err.Error())
+		}
+		return
+	}
+
+	c.File(documentPath)
 }
