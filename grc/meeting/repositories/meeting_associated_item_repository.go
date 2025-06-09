@@ -26,7 +26,7 @@ func NewMeetingAssociatedItemRepository(db *gorm.DB) *MeetingAssociatedItemRepos
 }
 
 func (repo *MeetingAssociatedItemRepository) GetAllControls(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemControlListResponseDTO, error) {
-	var controlList []*meetingDTOs.MeetingControlListDTO
+	var controlList []*commonDTOs.AssociatedControlListDTO
 	var totalCount int64
 
 	query := repo.db.Table("meeting_controls").

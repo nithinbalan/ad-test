@@ -28,7 +28,7 @@ func NewIncidentAssociatedItemRepository(db *gorm.DB) *IncidentAssociatedItemRep
 }
 
 func (repo *IncidentAssociatedItemRepository) GetAllControls(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemControlListResponseDTO, error) {
-	var controlList []*incidentDTOs.IncidentControlListDTO
+	var controlList []*commonDTOs.AssociatedControlListDTO
 	var totalCount int64
 
 	query := repo.db.Table("incident_controls").

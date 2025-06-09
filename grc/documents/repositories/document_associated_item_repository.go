@@ -28,7 +28,7 @@ func NewDocumentAssociatedItemRepository(db *gorm.DB) *DocumentAssociatedItemRep
 }
 
 func (repo *DocumentAssociatedItemRepository) GetAllControls(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemControlListResponseDTO, error) {
-	var controlList []*documentDTOs.DocumentControlListDTO
+	var controlList []*commonDTOs.AssociatedControlListDTO
 	var totalCount int64
 
 	query := repo.db.Table("control_associated_documents").

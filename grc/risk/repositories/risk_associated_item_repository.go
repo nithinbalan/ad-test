@@ -30,7 +30,7 @@ func NewRiskAssociatedItemRepository(db *gorm.DB) *RiskAssociatedItemRepository 
 }
 
 func (repo *RiskAssociatedItemRepository) GetAllControls(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemControlListResponseDTO, error) {
-	var controlList []*riskDTOs.RiskControlListDTO
+	var controlList []*commonDTOs.AssociatedControlListDTO
 	var totalCount int64
 
 	query := repo.db.Table("risk_controls").
