@@ -75,6 +75,8 @@ func (apc *AuditPlanController) GetAllAuditPlans(c *gin.Context) {
 		"audit_status_ar":         "audit_statuses.title_ar",
 		"team_lead_first_name_en": "team_lead.first_name_en",
 		"team_lead_first_name_ar": "team_lead.first_name_ar",
+		"audit_team_title_en":     "audit_teams.title_en",
+		"audit_team_title_ar":     "audit_teams.title_ar",
 	}
 
 	sortField, valid := validSortFields[sortBy]

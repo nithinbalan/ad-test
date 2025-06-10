@@ -74,7 +74,7 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
 			published_user.initial AS published_user_initial,
 			published_user.profile_image_path AS published_user_profile_image_path,
 			audit_teams.title_en AS audit_team_title_en,
-			audit_teams.title_en AS audit_team_title_en,
+			audit_teams.title_ar AS audit_team_title_ar,
 			audit_teams_team_lead.id AS audit_team_team_lead_id,
 			audit_teams_team_lead.first_name_en AS audit_team_team_lead_first_name_en,
 			audit_teams_team_lead.first_name_ar AS audit_team_team_lead_first_name_ar,
