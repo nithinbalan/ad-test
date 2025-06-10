@@ -288,6 +288,8 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(systemPreferenceFormDTO *dt
 	for _, addon := range enabledAddons {
 		if addon == "jethur_ai" {
 			*existingSystemPreference.IsAIEnable = true
+		} else {
+			*existingSystemPreference.IsAIEnable = false
 		}
 	}
 
