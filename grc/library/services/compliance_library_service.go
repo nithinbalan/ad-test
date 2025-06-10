@@ -6,7 +6,9 @@ import (
 )
 
 type ComplianceLibraryServiceInterface interface {
-	GetComplianceLibraryDetailsByTitle(titleEn string) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error)
+	GetNCADetails() (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error)
+	GetSAMADetails() (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error)
+
 	GetClauseTreeByVersion(versionID, complianceLibraryID uint) ([]libraryDTOs.ClauseWithSubClausesDTO, error)
 }
 
@@ -23,7 +25,13 @@ func NewComplianceLibraryService(
 	}
 }
 
-func (cls *ComplianceLibraryService) GetComplianceLibraryDetailsByTitle(titleEn string) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error) {
+func (cls *ComplianceLibraryService) GetNCADetails() (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error) {
+	titleEn := "Essential Cybersecurity Controls (ECC – 2: 2024)"
+	return cls.repo.GetComplianceLibraryDetailsByTitle(titleEn)
+}
+
+func (cls *ComplianceLibraryService) GetSAMADetails() (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error) {
+	titleEn := "Cyber Security Framework | Saudi Arabian Monetary Authority"
 	return cls.repo.GetComplianceLibraryDetailsByTitle(titleEn)
 }
 

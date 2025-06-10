@@ -44,9 +44,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	libraryRoutes.GET("/knowledge-center", KnowledgeCenterResourceController.GetAllResources)
 
-	// libraryRoutes.GET("/compliance-libraries/:libraryId", ComplianceLibraryController.GetComplianceLibraryDetails)
+	libraryRoutes.GET("/compliance-libraries/nc", ComplianceLibraryController.GetNCADetails)
+	libraryRoutes.GET("/compliance-libraries/sama", ComplianceLibraryController.GetSAMADetails)
 
-	libraryRoutes.GET("/compliance-libraries/:title", ComplianceLibraryController.GetComplianceLibraryDetailsByTitle)
-
-	libraryRoutes.GET("/compliance-library/:complianceLibraryID/versions/:versionID/clauses", ComplianceLibraryController.GetClauseControlTree)
+	libraryRoutes.GET("/compliance-library/:complianceLibraryID/versions/:versionID/clauses", ComplianceLibraryController.GetClauseControls)
 }
