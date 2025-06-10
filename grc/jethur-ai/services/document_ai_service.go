@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"jethur/grc/documents/services"
@@ -8,11 +9,13 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 	"os"
+	"strconv"
 )
 
 type DocumentAIServiceInterface interface {
 	GetAISummary(documentId uint) (*aiDTOs.DocumentAISummaryDTO, error)
 	GetDocumentRecommendations(documentId uint, currentUserID uint) (map[string]interface{}, error)
+	ProcessChat(ctx context.Context, content, role, documentID, contextID string) (<-chan string, error)
 }
 
 type DocumentAIService struct {
@@ -20,7 +23,8 @@ type DocumentAIService struct {
 	userService     organizationServices.UserServiceInterface
 }
 
-func NewDocumentAIService(documentService services.DocumentServiceInterface,
+func NewDocumentAIService(
+	documentService services.DocumentServiceInterface,
 	userService organizationServices.UserServiceInterface,
 ) DocumentAIServiceInterface {
 	return &DocumentAIService{
@@ -118,4 +122,98 @@ func (svc *DocumentAIService) GetDocumentRecommendations(documentId uint, curren
 	apiURL := fmt.Sprintf("%s/api/v1/policy/policy-recomendation", baseURL)
 
 	return utility.CallAIAPI(apiURL, payload)
+}
+
+type ChatMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+type ChatResponse struct {
+	Response string `json:"response"`
+	Error    string `json:"error,omitempty"`
+}
+
+func (s *DocumentAIService) ProcessChat(ctx context.Context, content, role, documentID, contextID string) (<-chan string, error) {
+	// Convert documentID from string to uint for validation
+	docIDInt, err := strconv.ParseUint(documentID, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid document ID: %w", err)
+	}
+
+	// Get document details
+	document, err := s.documentService.GetFullDetailsByID(uint(docIDInt), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get document: %w", err)
+	}
+
+	if document.LatestDocumentVersion.ID == 0 {
+		return nil, fmt.Errorf("no document version found")
+	}
+
+	// Get latest document version
+	documentVersion, err := s.documentService.GetDocumentVersionByID(document.LatestDocumentVersion.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get document version: %w", err)
+	}
+
+	if documentVersion.ParsedContent == nil {
+		return nil, fmt.Errorf("document content not available")
+	}
+
+	// Create response channel
+	responseChan := make(chan string)
+
+	go func() {
+		defer close(responseChan)
+
+		// Call AI streaming API
+		baseURL := os.Getenv("AI_SERVICE_BASE_URL")
+		if baseURL == "" {
+			response := ChatResponse{Error: "AI_SERVICE_BASE_URL is not set"}
+			jsonResp, _ := json.Marshal(response)
+			responseChan <- string(jsonResp)
+			return
+		}
+
+		apiURL := fmt.Sprintf("%s/api/v1/document-chat", baseURL)
+
+		// Corrected payload to match API expectation
+		payload := map[string]interface{}{
+			"content":     content,
+			"role":        role,
+			"document_id": documentID,
+			"context_id":  contextID,
+		}
+
+		// Call utility for streaming
+		streamChan, err := utility.StreamAIAPI(ctx, apiURL, payload)
+		if err != nil {
+			response := ChatResponse{Error: err.Error()}
+			jsonResp, _ := json.Marshal(response)
+			responseChan <- string(jsonResp)
+			return
+		}
+
+		// Forward streamed responses
+		for {
+			select {
+			case <-ctx.Done():
+				response := ChatResponse{Error: "request cancelled"}
+				jsonResp, _ := json.Marshal(response)
+				responseChan <- string(jsonResp)
+				return
+
+			case resp, ok := <-streamChan:
+				if !ok {
+					return
+				}
+				response := ChatResponse{Response: resp}
+				jsonResp, _ := json.Marshal(response)
+				responseChan <- string(jsonResp)
+			}
+		}
+	}()
+
+	return responseChan, nil
 }
