@@ -816,34 +816,18 @@ func (aps *AuditPlanService) ExportAuditPlans(data []*auditDTOs.AuditPlanListDTO
 
 	var headers []string
 	// Define headers based on the user's language setting
-	if userSetting.Language == "ar" {
-		headers = []string{
-			"SL No.",
-			"Reference Number",
-			"Title",
-			"Audit Category (AR)",
-			"Start Date",
-			"Target Date",
-			"Status (AR)",
-			"Team Lead (AR)",
-			"Audit Team (AR)",
-			"Published By (AR)",
-			"Published At",
-		}
-	} else {
-		headers = []string{
-			"SL No.",
-			"Reference Number",
-			"Title",
-			"Audit Category (EN)",
-			"Start Date",
-			"Target Date",
-			"Status (EN)",
-			"Team Lead (EN)",
-			"Audit Team (EN)",
-			"Published By (EN)",
-			"Published At",
-		}
+	headers = []string{
+		"SL No.",
+		"Reference Number",
+		"Title",
+		"Audit Category",
+		"Start Date",
+		"Target Date",
+		"Status",
+		"Team Lead",
+		"Audit Team",
+		"Published By",
+		"Published At",
 	}
 
 	// Convert data to [][]interface{} based on language preference

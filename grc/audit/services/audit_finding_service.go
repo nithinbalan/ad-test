@@ -572,38 +572,20 @@ func (afs *AuditFindingService) ExportAuditFindings(data []*auditDTOs.AuditFindi
 
 	var headers []string
 	// Define headers based on the user's language setting
-	if userSetting.Language == "ar" {
-		headers = []string{
-			"SL No.",
-			"Reference Number",
-			"Audit Title",
-			"Finding Title",
-			"Description (AR)",
-			"Recommendations (AR)",
-			"Auditable Item (AR)",
-			"Category (AR)",
-			"Severity Level (AR)",
-			"Severity Color",
-			"Status (AR)",
-			"Status Color",
-			"Created At",
-		}
-	} else {
-		headers = []string{
-			"SL No.",
-			"Reference Number",
-			"Audit Title",
-			"Finding Title",
-			"Description (EN)",
-			"Recommendations (EN)",
-			"Auditable Item (EN)",
-			"Category (EN)",
-			"Severity Level (EN)",
-			"Severity Color",
-			"Status (EN)",
-			"Status Color",
-			"Created At",
-		}
+	headers = []string{
+		"SL No.",
+		"Reference Number",
+		"Audit Title",
+		"Finding Title",
+		"Description",
+		"Recommendations",
+		"Auditable Item",
+		"Category",
+		"Severity Level",
+		"Severity Color",
+		"Status",
+		"Status Color",
+		"Created At",
 	}
 
 	// Convert data to [][]interface{} based on language preference
