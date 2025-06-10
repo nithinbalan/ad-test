@@ -3,11 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/organization/dtos"
 	"jethur/grc/organization/repositories"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -20,10 +22,12 @@ type UserJobDescriptionServiceInterface interface {
 	GetFullDetailsByID(id uint) (*dtos.UserJobDescriptionDetailDTO, error)
 	Create(userID uint, input *dtos.AssignJobDescriptionsDTO, currentUserID uint) (uint, error)
 	Delete(userID, jobDescriptionID, currentUserID uint) error
-	Update(jdcID uint, dto dtos.EvaluateUserJDCompetencyDTO, currentUserID uint) error
+	Update(userID uint, jdcID uint, dto dtos.EvaluateUserJDCompetencyDTO, currentUserID uint) error
 
 	CreateUserJDFromDesignation(userID uint, designationID uint, currentUserID uint, tx utility.DatabaseTransaction) error
 	DeleteUserJDFromDesignation(userID uint, designationID uint, currentUserID uint) error
+
+	GetUserJobDescriptionDocumentPath(userID, jdcID uint, competencyID uint, certiID uint, token string) (string, error)
 }
 
 type UserJobDescriptionService struct {
@@ -169,7 +173,7 @@ func (ujds *UserJobDescriptionService) Delete(userID, jobDescriptionID, currentU
 	go func() {
 		for _, cert := range certs {
 			if cert.Name != nil {
-				storagePath := filepath.Join("job-description", "competency", strconv.Itoa(int(userJD.ID)), "certificates")
+				storagePath := filepath.Join("user", strconv.FormatUint(uint64(userID), 10), "job-description", "competency", strconv.FormatUint(uint64(userJD.ID), 10), "certificates")
 				_ = utility.RemoveFile(*cert.Name, storagePath)
 			}
 		}
@@ -187,7 +191,7 @@ func (ujds *UserJobDescriptionService) Delete(userID, jobDescriptionID, currentU
 	return nil
 }
 
-func (ujds *UserJobDescriptionService) Update(jdcID uint, dto dtos.EvaluateUserJDCompetencyDTO, currentUserID uint) error {
+func (ujds *UserJobDescriptionService) Update(userID uint, jdcID uint, dto dtos.EvaluateUserJDCompetencyDTO, currentUserID uint) error {
 	comp, err := ujds.repo.GetCompetencyByID(jdcID)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, jdcID)
@@ -223,7 +227,7 @@ func (ujds *UserJobDescriptionService) Update(jdcID uint, dto dtos.EvaluateUserJ
 				tx.Rollback()
 				return err
 			}
-			url := utility.GenerateDocumentURL("job-description", "competency", strconv.Itoa(int(jdcID)), "certificates")
+			url := utility.GenerateDocumentURL("user", strconv.FormatUint(uint64(userID), 10), "job-description", "competency", strconv.Itoa(int(jdcID)), "certificates")
 
 			existingDoc.CertificateTitle = cert.FileName
 			existingDoc.Name = &cert.FileName
@@ -259,14 +263,14 @@ func (ujds *UserJobDescriptionService) Update(jdcID uint, dto dtos.EvaluateUserJ
 	}
 
 	for _, doc := range certFilesToStore {
-		storagePath := filepath.Join("job-description", "competency", strconv.Itoa(int(jdcID)), "certificates")
+		storagePath := filepath.Join("user", strconv.FormatUint(uint64(userID), 10), "job-description", "competency", strconv.Itoa(int(jdcID)), "certificates")
 		if err := utility.StoreFile(*doc.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
 	for _, doc := range certFilesToDelete {
-		storagePath := filepath.Join("job-description", "competency", strconv.Itoa(int(jdcID)), "certificates")
+		storagePath := filepath.Join("user", strconv.FormatUint(uint64(userID), 10), "job-description", "competency", strconv.Itoa(int(jdcID)), "certificates")
 		if err := utility.RemoveFile(*doc.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err
@@ -387,7 +391,7 @@ func (ujds *UserJobDescriptionService) DeleteUserJDFromDesignation(userID uint, 
 	go func() {
 		for _, cert := range certs {
 			if cert.Name != nil {
-				storagePath := filepath.Join("job-description", "competency", strconv.Itoa(int(userJD.ID)), "certificates")
+				storagePath := filepath.Join("user", strconv.FormatUint(uint64(userID), 10), "job-description", "competency", strconv.FormatUint(uint64(userJD.ID), 10), "certificates")
 				_ = utility.RemoveFile(*cert.Name, storagePath)
 			}
 		}
@@ -427,4 +431,34 @@ func (ujds *UserJobDescriptionService) validateJobDescriptionIDs(jdIDs []uint) e
 	}
 
 	return nil
+}
+
+func (ujds *UserJobDescriptionService) GetUserJobDescriptionDocumentPath(userID, jdcID uint, competencyID uint, certiID uint, token string) (string, error) {
+	doc, err := ujds.repo.GetCertificateByID(certiID)
+	if err != nil {
+		return "", err
+	}
+	if doc == nil || doc.Name == nil {
+		return "", fmt.Errorf("no document found")
+	}
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("user", strconv.FormatUint(uint64(userID), 10), "job-description", "competency", strconv.Itoa(int(competencyID)), "certificates")
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

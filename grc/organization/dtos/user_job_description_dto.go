@@ -69,5 +69,5 @@ type UserJobDescriptionCertificateDetailDTO struct {
 	OriginalName                            *string `json:"original_name"`
 	URL                                     *string `json:"url"`
 	Type                                    *string `json:"type"`
-	Size                                    *string `json:"size"`
+	Size                                    *int    `json:"size"`
 }
