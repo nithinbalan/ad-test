@@ -127,7 +127,6 @@ func (afaps AuditFindingActionPlanService) GetFullDetailsByID(findingID uint, id
 }
 
 func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID uint, AuditFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) (uint, error) {
-	tx := afaps.repo.BeginTransaction()
 	audit, err := afaps.auditFindingSvc.GetByID(findingID)
 	if err != nil {
 		return 0, err
@@ -160,6 +159,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedBYID:        currentUserID,
 	}
+	tx := afaps.repo.BeginTransaction()
 
 	id, err := afaps.repo.Create(auditFindingActionPlan, tx)
 	if err != nil {
@@ -304,8 +304,6 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 }
 
 func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, currentUserID uint, AuditFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) error {
-	tx := afaps.repo.BeginTransaction()
-
 	audit, err := afaps.auditFindingSvc.GetByID(findingID)
 	if err != nil {
 		return err
@@ -313,7 +311,6 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 
 	oldAuditFindingActionPlan, err := afaps.repo.GetFullDetailsByID(id)
 	if err != nil {
-		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
 	}
 
@@ -332,6 +329,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	if err != nil {
 		return err
 	}
+	tx := afaps.repo.BeginTransaction()
 
 	// Update Audit Finding ActionPlan
 	existingAuditFindingActionPlan.Title = AuditFindingActionPlanFormDTO.Title
@@ -346,6 +344,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 
 	err = afaps.repo.Update(existingAuditFindingActionPlan, tx)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
