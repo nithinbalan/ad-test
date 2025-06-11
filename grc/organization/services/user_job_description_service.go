@@ -150,12 +150,12 @@ func (ujds *UserJobDescriptionService) Delete(userID, jobDescriptionID, currentU
 		return utility.NewResourceNotFoundError(err, jobDescriptionID)
 	}
 
-	tx := ujds.repo.BeginTransaction()
 	certs, err := ujds.repo.GetCertificatesByUserJDID(jobDescriptionID)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
+	tx := ujds.repo.BeginTransaction()
+
 	if err := ujds.repo.DeleteUserJobDescriptionCertificatesByUserJDID(tx, jobDescriptionID); err != nil {
 		tx.Rollback()
 		return err
