@@ -224,6 +224,11 @@ func (ujds *UserJobDescriptionService) Update(userID uint, jdcID uint, dto dtos.
 
 		if cert.IsNewFile != nil && *cert.IsNewFile {
 			// Update existing record with new file metadata
+			if existingDoc.Token != nil && existingDoc.Name != nil {
+				// Clone the object to avoid overwriting path info
+				oldFile := *existingDoc
+				certFilesToDelete = append(certFilesToDelete, &oldFile)
+			}
 			encrypted, err := utility.EncryptData([]byte(cert.FileName))
 			if err != nil {
 				tx.Rollback()
