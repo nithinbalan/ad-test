@@ -108,6 +108,7 @@ func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJob
 			ujdc := models.UserJobDescriptionCompetency{
 				UserJobDescriptionID:   userJD.ID,
 				CompetencyID:           comp.CompetencyID,
+				ExpectedLevelID:        comp.CompetencyLevelID,
 				CompetencyTitleEn:      &comp.Competency.TitleEn,
 				CompetencyTitleAr:      &comp.Competency.TitleAr,
 				CompetencyGroupTitleEn: &comp.Competency.CompetencyGroup.TitleEn,
@@ -229,7 +230,6 @@ func (ujds *UserJobDescriptionService) Update(userID uint, jdcID uint, dto dtos.
 			}
 			url := utility.GenerateDocumentURL("user", strconv.FormatUint(uint64(userID), 10), "job-description", "competency", strconv.Itoa(int(jdcID)), "certificates")
 
-			existingDoc.CertificateTitle = cert.FileName
 			existingDoc.Name = &cert.FileName
 			existingDoc.Token = &encrypted
 			existingDoc.OriginalName = &cert.OriginalName
@@ -276,8 +276,8 @@ func (ujds *UserJobDescriptionService) Update(userID uint, jdcID uint, dto dtos.
 			return err
 		}
 	}
-
-	return tx.Commit()
+	tx.Commit()
+	return nil
 }
 
 func (ujds *UserJobDescriptionService) CreateUserJDFromDesignation(userID uint, designationID uint, currentUserID uint, tx utility.DatabaseTransaction) error {
@@ -316,6 +316,7 @@ func (ujds *UserJobDescriptionService) CreateUserJDFromDesignation(userID uint, 
 		ujdc := &models.UserJobDescriptionCompetency{
 			UserJobDescriptionID:   userJDs[0].ID,
 			CompetencyID:           comp.CompetencyID,
+			ExpectedLevelID:        comp.CompetencyLevelID,
 			CompetencyTitleEn:      &comp.Competency.TitleEn,
 			CompetencyTitleAr:      &comp.Competency.TitleAr,
 			CompetencyGroupTitleEn: &comp.Competency.CompetencyGroup.TitleEn,

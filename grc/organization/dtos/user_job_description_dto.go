@@ -54,7 +54,9 @@ type UserJobDescriptionCompetencyDetailDTO struct {
 	CompetencyID           uint                                     `json:"competency_id"`
 	Competency             *CompetencyDTO                           `json:"competency"`
 	ActualLevelID          uint                                     `json:"actual_level_id"`
+	ExpectedLevelID        uint                                     `json:"expected_level_id"`
 	ActualLevel            *CompetencyLevelDTO                      `json:"actual_level"`
+	ExpectedLevel          *CompetencyLevelDTO                      `json:"expected_level"`
 	Comments               *string                                  `json:"comments"`
 	Certificates           []UserJobDescriptionCertificateDetailDTO `json:"certificates"`
 	CompetencyTitleEn      *string                                  `json:"competency_title_en"`
