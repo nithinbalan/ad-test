@@ -69,6 +69,7 @@ type UserJobDescriptionCertificateDetailDTO struct {
 	ID                                      uint    `json:"id"`
 	JobDescriptionCompetencyCertificationID uint    `json:"certification_id"`
 	CertificateTitle                        string  `json:"certificate_title"`
+	IsMandatory                             bool    `json:"is_mandatory"`
 	Token                                   *string `json:"token"`
 	OriginalName                            *string `json:"original_name"`
 	URL                                     *string `json:"url"`
