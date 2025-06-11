@@ -582,9 +582,7 @@ func (afs *AuditFindingService) ExportAuditFindings(data []*auditDTOs.AuditFindi
 		"Auditable Item",
 		"Category",
 		"Severity Level",
-		"Severity Color",
 		"Status",
-		"Status Color",
 		"Created At",
 	}
 
@@ -602,9 +600,7 @@ func (afs *AuditFindingService) ExportAuditFindings(data []*auditDTOs.AuditFindi
 				item.AuditableItemTitleAr,
 				item.AuditFindingCategoryTitleAr,
 				item.SeverityLevelTitleAr,
-				item.SeverityLevelColorCode,
 				item.AuditFindingStatusTitleAr,
-				item.AuditFindingStatusColorCode,
 				item.CreatedAt,
 			}
 		} else {
@@ -618,9 +614,7 @@ func (afs *AuditFindingService) ExportAuditFindings(data []*auditDTOs.AuditFindi
 				item.AuditableItemTitleEn,
 				item.AuditFindingCategoryTitleEn,
 				item.SeverityLevelTitleEn,
-				item.SeverityLevelColorCode,
 				item.AuditFindingStatusTitleEn,
-				item.AuditFindingStatusColorCode,
 				item.CreatedAt,
 			}
 		}
