@@ -797,13 +797,11 @@ func (afs *AuditFindingActionPlanService) ExportAuditFindingActionPlans(data []*
 		"Action Plan Title",
 		"Action Plan Description",
 		"Severity Level",
-		"Severity Color",
 		"Responsible User",
 		"Review User",
 		"Target Date",
 		"Percentage",
 		"Status",
-		"Status Color",
 		"Created At",
 	}
 
@@ -819,13 +817,11 @@ func (afs *AuditFindingActionPlanService) ExportAuditFindingActionPlans(data []*
 				item.Title,
 				item.Description,
 				item.SeverityLevelTitleAr,
-				item.SeverityLevelColorCode,
 				item.ResponsibleUserFirstNameAr + " " + item.ResponsibleUserLastNameAr,
 				safeString(item.ReviewUserFirstNameAr) + " " + safeString(item.ReviewUserLastNameAr),
 				item.TargetDate,
 				item.Percentage,
 				item.ActionPlanStatusTitleAr,
-				item.ActionPlanStatusColorCode,
 				item.CreatedAt,
 			}
 		} else {
@@ -837,13 +833,11 @@ func (afs *AuditFindingActionPlanService) ExportAuditFindingActionPlans(data []*
 				item.Title,
 				item.Description,
 				item.SeverityLevelTitleEn,
-				item.SeverityLevelColorCode,
 				item.ResponsibleUserFirstNameEn + " " + item.ResponsibleUserLastNameEn,
 				safeString(&item.ReviewUserFirstNameEn) + " " + safeString(item.ReviewUserLastNameEn),
 				item.TargetDate,
 				item.Percentage,
 				item.ActionPlanStatusTitleEn,
-				item.ActionPlanStatusColorCode,
 				item.CreatedAt,
 			}
 		}
