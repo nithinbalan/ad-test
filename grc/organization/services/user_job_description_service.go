@@ -247,6 +247,7 @@ func (ujds *UserJobDescriptionService) Update(userID uint, jdcID uint, dto dtos.
 			certFilesToStore = append(certFilesToStore, existingDoc)
 
 		} else if cert.IsDeletedFile != nil && *cert.IsDeletedFile {
+			oldFile := *existingDoc
 			// Only clear document-related fields
 			existingDoc.Token = nil
 			existingDoc.Name = nil
@@ -256,7 +257,7 @@ func (ujds *UserJobDescriptionService) Update(userID uint, jdcID uint, dto dtos.
 			existingDoc.Size = nil
 
 			certsToUpdate = append(certsToUpdate, existingDoc)
-			certFilesToDelete = append(certFilesToDelete, existingDoc)
+			certFilesToDelete = append(certFilesToDelete, &oldFile)
 		}
 	}
 
