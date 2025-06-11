@@ -143,28 +143,28 @@ func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJob
 }
 
 func (ujds *UserJobDescriptionService) Delete(userID, jobDescriptionID, currentUserID uint) error {
-	userJD, err := ujds.repo.GetByUserAndJD(userID, jobDescriptionID)
+	userJD, err := ujds.repo.GetFullDetailsByID(jobDescriptionID)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, jobDescriptionID)
 	}
 
 	tx := ujds.repo.BeginTransaction()
-	certs, err := ujds.repo.GetCertificatesByUserJDID(userJD.ID)
+	certs, err := ujds.repo.GetCertificatesByUserJDID(jobDescriptionID)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	if err := ujds.repo.DeleteUserJobDescriptionCertificatesByUserJDID(tx, userJD.ID); err != nil {
+	if err := ujds.repo.DeleteUserJobDescriptionCertificatesByUserJDID(tx, jobDescriptionID); err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	if err := ujds.repo.DeleteUserJobDescriptionCompetenciesByUserJDID(tx, userJD.ID); err != nil {
+	if err := ujds.repo.DeleteUserJobDescriptionCompetenciesByUserJDID(tx, jobDescriptionID); err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	if err := ujds.repo.DeleteUserJobDescription(tx, userJD.ID); err != nil {
+	if err := ujds.repo.DeleteUserJobDescription(tx, jobDescriptionID); err != nil {
 		tx.Rollback()
 		return err
 	}

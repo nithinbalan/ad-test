@@ -691,7 +691,7 @@ func (aps *AuditPlanService) Publish(id uint, currentUserID uint) error {
 
 			urlParam := fmt.Sprintf(`{"audit_plan_id":%d}`, id)
 			entity := "audit-plan-publish"
-			action := "responsible-user-assign"
+			action := "audit-plan-published"
 			appURL := utility.GetAppURL()
 
 			// DB Notification

@@ -11,6 +11,8 @@ type UserJobDescriptionListDTO struct {
 	RolesAndResponsibilities string `json:"roles_and_responsibilities"`
 	Status                   string `json:"status"`
 	CreatedAt                string `json:"created_at"`
+	UserID                   uint   `json:"user_id"`
+	JobDescriptionID         uint   `json:"job_description_id"`
 }
 
 type AssignJobDescriptionsDTO struct {
