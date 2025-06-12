@@ -430,11 +430,11 @@ func (pes *PolicyExceptionService) validatePolicyExceptionFormDTO(dto *dtos.Poli
 		return utility.NewValidationError(fmt.Errorf("requested by user does not exist"), "not_exist", "requested_by")
 	}
 
-	// Check if OrganizationUnit exists
-	_, err = pes.organizationUnitSvc.GetByID(dto.OrganizationUnitID)
-	if err != nil {
-		return utility.NewValidationError(fmt.Errorf("organization unit does not exist"), "not_exist", "organization_unit")
-	}
+	// // Check if OrganizationUnit exists
+	// _, err = pes.organizationUnitSvc.GetByID(dto.OrganizationUnitID)
+	// if err != nil {
+	// 	return utility.NewValidationError(fmt.Errorf("organization unit does not exist"), "not_exist", "organization_unit")
+	// }
 
 	// Check optional DocumentVersionClauseID if provided
 	if dto.DocumentVersionClauseID != nil {
