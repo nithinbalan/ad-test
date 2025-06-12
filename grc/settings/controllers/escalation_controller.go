@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/services"
 	"jethur/utility"
@@ -59,7 +58,6 @@ func (ec *EscalationController) GetEscalationDetails(c *gin.Context) {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-	fmt.Println("1")
 	escalation, err := ec.service.GetFullDetailsByID(uint(id))
 	if err != nil {
 		switch e := err.(type) {

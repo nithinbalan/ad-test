@@ -28,6 +28,7 @@ type EscalationDetailsDTO struct {
 	TitleAr          string                     `json:"title_ar"`
 	ModuleID         uint                       `json:"module_id"`
 	Status           string                     `json:"status"`
+	Description      *string                    `json:"description"`
 	CreatedAt        time.Time                  `json:"created_at"`
 	UpdatedAt        time.Time                  `json:"updated_at"`
 	EscalationLevels []EscalationLevelDetailDTO `json:"escalation_levels"`
