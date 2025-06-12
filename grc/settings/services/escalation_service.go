@@ -85,6 +85,8 @@ func (es *EscalationService) GetAllEscalationsByModuleID(moduleID uint) ([]*dtos
 			ID:               escalation.ID,
 			TitleEn:          escalation.TitleEn,
 			TitleAr:          escalation.TitleAr,
+			Status:           escalation.Status,
+			ModuleID:         escalation.ModuleID,
 			EscalationLevels: []dtos.EscalationLevelDetailDTO{},
 		}
 

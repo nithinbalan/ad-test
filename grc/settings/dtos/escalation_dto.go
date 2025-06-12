@@ -43,9 +43,11 @@ type EscalationListQueryParamsDTO struct {
 
 type GroupedEscalationDTO struct {
 	ID               uint                       `json:"id"`
+	ModuleID         uint                       `json:"module_id"`
 	TitleEn          string                     `json:"title_en"`
 	TitleAr          string                     `json:"title_ar"`
-	Type             string                     `json:"type"`
+	Description      string                     `json:"description"`
+	Status           string                     `json:"status"`
 	CreatedAt        time.Time                  `json:"created_at"`
 	UpdatedAt        time.Time                  `json:"updated_at"`
 	EscalationLevels []EscalationLevelDetailDTO `json:"escalation_levels"`
