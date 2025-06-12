@@ -77,6 +77,7 @@ type TaskFormDTO struct {
 
 type AssociatedControlListDTO struct {
 	ID                                   uint       `json:"id"`
+	ControlID                            uint       `json:"control_id"`
 	ControlTypeTitleEn                   string     `json:"control_type_title_en"`
 	ControlTypeTitleAr                   string     `json:"control_type_title_ar"`
 	ControlCategoryTitleEn               string     `json:"control_category_title_en"`
