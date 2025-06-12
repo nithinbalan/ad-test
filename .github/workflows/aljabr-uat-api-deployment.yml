@@ -1,4 +1,4 @@
-name: ${{ env.PROJECT_NAME }}-deployment
+name: aljabr-uat-api-deployment
 
 on:
   workflow_dispatch:
