@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -180,15 +181,18 @@ func CallAIChatAPI(url string, payload map[string]interface{}) (map[string]inter
 	return result, nil
 }
 
-// StreamAIAPI makes a streaming POST request to the AI service and returns a channel for the responses
 func StreamAIAPI(ctx context.Context, url string, payload map[string]interface{}) (<-chan string, error) {
+	log.Println("🔧 Invoking StreamAIAPI")
+
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
+		log.Printf("❌ Payload marshal error: %v\n", err)
 		return nil, fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
+		log.Printf("❌ Request creation error: %v\n", err)
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -198,11 +202,16 @@ func StreamAIAPI(ctx context.Context, url string, payload map[string]interface{}
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		log.Printf("❌ HTTP request failed: %v\n", err)
 		return nil, fmt.Errorf("failed to make request: %w", err)
 	}
 
+	log.Printf("📥 AI response status: %d\n", resp.StatusCode)
+
 	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
+		log.Printf("❌ Non-200 response: %s\n", string(bodyBytes))
 		return nil, fmt.Errorf("AI service returned non-200 status code: %d", resp.StatusCode)
 	}
 
@@ -216,26 +225,28 @@ func StreamAIAPI(ctx context.Context, url string, payload map[string]interface{}
 		for {
 			select {
 			case <-ctx.Done():
+				log.Println("🛑 Context done, stopping read")
 				return
 			default:
 				line, err := reader.ReadString('\n')
 				if err != nil {
 					if err != io.EOF {
-						// Only send error if it's not EOF
+						log.Printf("❌ Stream read error: %v\n", err)
 						responseChan <- fmt.Sprintf(`{"error": "failed to read response: %s"}`, err.Error())
 					}
 					return
 				}
 
-				// Skip empty lines
 				line = strings.TrimSpace(line)
 				if line == "" {
 					continue
 				}
 
-				// Check if it's SSE data
+				log.Printf("📡 Raw line: %s\n", line)
+
 				if strings.HasPrefix(line, "data: ") {
 					data := strings.TrimPrefix(line, "data: ")
+					log.Printf("📤 Streaming data: %s\n", data)
 					responseChan <- data
 				}
 			}
@@ -244,3 +255,68 @@ func StreamAIAPI(ctx context.Context, url string, payload map[string]interface{}
 
 	return responseChan, nil
 }
+
+// StreamAIAPI makes a streaming POST request to the AI service and returns a channel for the responses
+// func StreamAIAPI(ctx context.Context, url string, payload map[string]interface{}) (<-chan string, error) {
+// 	jsonData, err := json.Marshal(payload)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to marshal payload: %w", err)
+// 	}
+
+// 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to create request: %w", err)
+// 	}
+
+// 	req.Header.Set("Content-Type", "application/json")
+// 	req.Header.Set("Accept", "text/event-stream")
+
+// 	client := &http.Client{}
+// 	resp, err := client.Do(req)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to make request: %w", err)
+// 	}
+
+// 	if resp.StatusCode != http.StatusOK {
+// 		resp.Body.Close()
+// 		return nil, fmt.Errorf("AI service returned non-200 status code: %d", resp.StatusCode)
+// 	}
+
+// 	responseChan := make(chan string)
+
+// 	go func() {
+// 		defer resp.Body.Close()
+// 		defer close(responseChan)
+
+// 		reader := bufio.NewReader(resp.Body)
+// 		for {
+// 			select {
+// 			case <-ctx.Done():
+// 				return
+// 			default:
+// 				line, err := reader.ReadString('\n')
+// 				if err != nil {
+// 					if err != io.EOF {
+// 						// Only send error if it's not EOF
+// 						responseChan <- fmt.Sprintf(`{"error": "failed to read response: %s"}`, err.Error())
+// 					}
+// 					return
+// 				}
+
+// 				// Skip empty lines
+// 				line = strings.TrimSpace(line)
+// 				if line == "" {
+// 					continue
+// 				}
+
+// 				// Check if it's SSE data
+// 				if strings.HasPrefix(line, "data: ") {
+// 					data := strings.TrimPrefix(line, "data: ")
+// 					responseChan <- data
+// 				}
+// 			}
+// 		}
+// 	}()
+
+// 	return responseChan, nil
+// }
