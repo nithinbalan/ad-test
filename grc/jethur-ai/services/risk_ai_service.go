@@ -1,0 +1,123 @@
+package services
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"jethur/grc/jethur-ai/dtos"
+	"jethur/utility"
+	"net/http"
+	"net/url"
+	"os"
+	"strings"
+)
+
+type RiskAIServiceInterface interface {
+	GetRiskAutofill(req dtos.RiskAutofillRequest) (map[string]interface{}, error)
+	GetRiskRCA(req dtos.RiskRCARequest) ([]dtos.RCAItem, error)
+}
+
+type RiskAIService struct{}
+
+func NewRiskAIService() RiskAIServiceInterface {
+	return &RiskAIService{}
+}
+
+func (s *RiskAIService) GetRiskAutofill(req dtos.RiskAutofillRequest) (map[string]interface{}, error) {
+	payload := map[string]interface{}{
+		"risk_title":      req.RiskTitle,
+		"risk_categories": req.RiskCategories,
+		"risk_sources":    req.RiskSources,
+	}
+
+	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
+	if baseURL == "" {
+		return nil, fmt.Errorf("AI_SERVICE_BASE_URL is not set")
+	}
+
+	apiURL := fmt.Sprintf("%s/api/v1/risk/risk-autofill", baseURL)
+
+	return utility.CallAIAPI(apiURL, payload)
+}
+
+func (s *RiskAIService) GetRiskRCA(req dtos.RiskRCARequest) ([]dtos.RCAItem, error) {
+	form := make(url.Values)
+	form.Set("risk_title", req.RiskTitle)
+	form.Set("consequences", req.Consequences)
+	form.Set("category", req.Category)
+	form.Set("source", req.Source)
+
+	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
+	if baseURL == "" {
+		return nil, fmt.Errorf("AI_SERVICE_BASE_URL is not set")
+	}
+	apiURL := fmt.Sprintf("%s/api/v1/risk/rca", baseURL)
+
+	reqBody := strings.NewReader(form.Encode())
+	httpReq, err := http.NewRequest("POST", apiURL, reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	client := &http.Client{}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call AI API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("AI API returned %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	var result []dtos.RCAItem
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode AI response: %w", err)
+	}
+
+	return result, nil
+}
+
+// func (s *RiskAIService) GetRiskRCA(req dtos.RiskRCARequest) (map[string]interface{}, error) {
+// 	// Build form-style payload
+// 	form := make(url.Values)
+// 	form.Set("risk_title", req.RiskTitle)
+// 	form.Set("consequences", req.Consequences)
+// 	form.Set("category", req.Category)
+// 	form.Set("source", req.Source)
+
+// 	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
+// 	if baseURL == "" {
+// 		return nil, fmt.Errorf("AI_SERVICE_BASE_URL is not set")
+// 	}
+// 	apiURL := fmt.Sprintf("%s/api/v1/risk/rca", baseURL)
+
+// 	// Build request with form-encoded body
+// 	reqBody := strings.NewReader(form.Encode())
+// 	httpReq, err := http.NewRequest("POST", apiURL, reqBody)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to create request: %w", err)
+// 	}
+// 	httpReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+// 	client := &http.Client{}
+// 	resp, err := client.Do(httpReq)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to call AI API: %w", err)
+// 	}
+// 	defer resp.Body.Close()
+
+// 	if resp.StatusCode != http.StatusOK {
+// 		bodyBytes, _ := io.ReadAll(resp.Body)
+// 		return nil, fmt.Errorf("AI API returned %d: %s", resp.StatusCode, string(bodyBytes))
+// 	}
+
+// 	var result map[string]interface{}
+// 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+// 		return nil, fmt.Errorf("failed to decode AI response: %w", err)
+// 	}
+
+// 	return result, nil
+// }
