@@ -145,8 +145,6 @@ func (pes *PolicyExceptionService) Create(currentUserID uint, dto *dtos.PolicyEx
 		DocumentVersionClauseID:    dto.DocumentVersionClauseID,
 		DocumentRequirementGroupID: dto.DocumentRequirementGroupID,
 		ReferenceNumber:            referenceNumber,
-		TitleEn:                    dto.TitleEn,
-		TitleAr:                    dto.TitleAr,
 		Requirements:               dto.Requirements,
 		Justification:              dto.Justification,
 		StartDate:                  dates.StartDate,
@@ -221,15 +219,12 @@ func (pes *PolicyExceptionService) Update(id uint, dto *dtos.PolicyExceptionForm
 	existing.DocumentVersionID = document.LatestDocumentVersion.ID
 	existing.DocumentVersionClauseID = dto.DocumentVersionClauseID
 	existing.DocumentRequirementGroupID = dto.DocumentRequirementGroupID
-	existing.TitleEn = dto.TitleEn
-	existing.TitleAr = dto.TitleAr
 	existing.Requirements = dto.Requirements
 	existing.Justification = dto.Justification
 	existing.StartDate = dates.StartDate
 	existing.EndDate = &dates.EndDate
 	existing.RequestedByID = dto.RequestedByID
 	existing.OrganizationUnitID = dto.OrganizationUnitID
-	existing.WorkflowStatusID = dto.WorkflowStatusID
 	existing.UpdatedByID = &currentUserID
 
 	if err := pes.repo.Update(existing, tx); err != nil {
@@ -295,8 +290,6 @@ func (pes *PolicyExceptionService) Delete(ids []uint, currentUserID uint) ([]uin
 		deletedPolicyExceptions = append(deletedPolicyExceptions, map[string]interface{}{
 			"id":          id,
 			"document_id": exception.Document.ID,
-			"title_en":    exception.TitleEn,
-			"title_ar":    exception.TitleAr,
 		})
 	}
 

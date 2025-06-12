@@ -21,14 +21,16 @@ type PolicyExceptionFormDTO struct {
 	EndDate                    string  `json:"end_date" binding:"required"`
 	RequestedByID              uint    `json:"requested_by_id" binding:"required"`
 	OrganizationUnitID         uint    `json:"organization_unit_id" binding:"required"`
-	WorkflowStatusID           *uint   `json:"workflow_status_id"`
 }
 
 type PolicyExceptionListDTO struct {
 	ID                              uint      `json:"id"`
+	DocumentID                      uint      `json:"document_id"`
+	DocumentVersionClauseID         uint      `json:"document_version_clause_id"`
+	DocumentRequirementGroupID      uint      `json:"document_requirement_group_id"`
 	ReferenceNumber                 string    `json:"reference_number"`
-	TitleEn                         string    `json:"title_en"`
-	TitleAr                         string    `json:"title_ar"`
+	DocumentTitleEn                 string    `json:"document_title_en"`
+	DocumentTitleAr                 string    `json:"document_title_ar"`
 	StartDate                       string    `json:"start_date"`
 	EndDate                         *string   `json:"end_date"`
 	RequestedByID                   uint      `json:"requested_by_id"`
@@ -70,7 +72,6 @@ type PolicyExceptionListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
 	Keyword     string
-	Status      string
 	Page        int
 	PageSize    int
 	Filters     map[string][]string
@@ -88,8 +89,6 @@ type PolicyExceptionListResponseDTO struct {
 type PolicyExceptionDetailDTO struct {
 	ID              uint       `json:"id"`
 	ReferenceNumber string     `json:"reference_number"`
-	TitleEn         string     `json:"title_en"`
-	TitleAr         string     `json:"title_ar"`
 	Requirements    *string    `json:"requirements"`
 	Justification   *string    `json:"justification"`
 	StartDateString string     `json:"start_date"`

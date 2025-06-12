@@ -9,8 +9,6 @@ type PolicyException struct {
 	DocumentVersionClauseID    *uint      `json:"document_version_clause_id" gorm:"default:null"`
 	DocumentRequirementGroupID *uint      `json:"document_requirement_group_id" gorm:"default:null"`
 	ReferenceNumber            string     `json:"reference_number" binding:"required" gorm:"type:varchar(45);not null"`
-	TitleEn                    string     `json:"title_en" binding:"required" gorm:"type:nvarchar(500);not null"`
-	TitleAr                    string     `json:"title_ar" binding:"required" gorm:"type:nvarchar(500);not null"`
 	Requirements               *string    `json:"requirements" gorm:"type:nvarchar(MAX);default:null"`
 	Justification              *string    `json:"justification" gorm:"type:nvarchar(MAX);default:null"`
 	StartDate                  time.Time  `json:"start_date" binding:"required" gorm:"type:date;not null"`

@@ -27,8 +27,7 @@ func NewPolicyExceptionController(service services.PolicyExceptionServiceInterfa
 
 func (pec *PolicyExceptionController) GetAllPolicyExceptions(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "title_en")
-	status := c.Query("status")
+	sortBy := c.DefaultQuery("sort_by", "document_title_en")
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 	dateFrom := c.Query("date_from")
@@ -58,11 +57,13 @@ func (pec *PolicyExceptionController) GetAllPolicyExceptions(c *gin.Context) {
 	}
 
 	validSortFields := map[string]string{
-		"reference_number": "policy_exceptions.reference_number",
-		"title_en":         "policy_exceptions.title_en",
-		"title_ar":         "policy_exceptions.title_ar",
-		"start_date":       "policy_exceptions.start_date",
-		"end_date":         "policy_exceptions.end_date",
+		"reference_number":   "policy_exceptions.reference_number",
+		"document_title_en":  "documents.title_en",
+		"documents.title_en": "documents.title_en",
+		"document_title_ar":  "documents.title_ar",
+		"documents.title_ar": "documents.title_ar",
+		"start_date":         "policy_exceptions.start_date",
+		"end_date":           "policy_exceptions.end_date",
 	}
 
 	sortField, valid := validSortFields[sortBy]
@@ -76,7 +77,6 @@ func (pec *PolicyExceptionController) GetAllPolicyExceptions(c *gin.Context) {
 		Sort:        sort,
 		SortBy:      sortField,
 		Keyword:     keyword,
-		Status:      status,
 		Page:        page,
 		PageSize:    pageSize,
 		Filters:     filters,

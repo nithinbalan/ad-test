@@ -114,18 +114,11 @@ func (repo *PolicyExceptionRepository) GetAll(params *dtos.PolicyExceptionListQu
 		)
 	}
 
-	if params.SortBy == "" {
-		params.SortBy = "policy_exceptions.reference_number"
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc"
-	}
+	query = query.Order(params.SortBy + " " + params.Sort)
 
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
-
-	query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize
 	query = query.Offset(offset).Limit(params.PageSize)
