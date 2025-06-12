@@ -67,6 +67,8 @@ func (ujds *UserJobDescriptionService) GetFullDetailsByID(id uint) (*dtos.UserJo
 	if err != nil {
 		return nil, err
 	}
+	dto.CreatedAt = model.CreatedAt
+
 	return &dto, nil
 }
 
