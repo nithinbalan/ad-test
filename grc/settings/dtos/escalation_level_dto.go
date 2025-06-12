@@ -56,6 +56,6 @@ type EscalationLevelListQueryParamsDTO struct {
 type EscalationLevelFormDTO struct {
 	EscalationID       uint   `json:"escalation_id" binding:"required"`
 	NotificationMethod string `json:"notification_method" binding:"required,oneof=app email"`
-	DayOffset          int    `json:"day_offset" binding:"required"`
+	DayOffset          int    `json:"day_offset"`
 	EscalationTo       string `json:"escalation_to" binding:"required"`
 }

@@ -70,6 +70,6 @@ type ReminderRuleFormDTO struct {
 	NotificationMethod string `json:"notification_method" binding:"required,oneof=app email"`
 	TitleEn            string `json:"title_en" binding:"required"`
 	TitleAr            string `json:"title_ar" binding:"required"`
-	DayOffset          int    `json:"day_offset" binding:"required"`
+	DayOffset          int    `json:"day_offset"`
 	Type               string `json:"type" binding:"required"`
 }
