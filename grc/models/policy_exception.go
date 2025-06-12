@@ -8,6 +8,7 @@ type PolicyException struct {
 	DocumentVersionID          uint       `json:"document_version_id" binding:"required" gorm:"not null"`
 	DocumentVersionClauseID    *uint      `json:"document_version_clause_id" gorm:"default:null"`
 	DocumentRequirementGroupID *uint      `json:"document_requirement_group_id" gorm:"default:null"`
+	DocumentRequirementID      *uint      `json:"document_requirement_id" gorm:"default:null"` // ✅ new field
 	ReferenceNumber            string     `json:"reference_number" binding:"required" gorm:"type:varchar(45);not null"`
 	Requirements               *string    `json:"requirements" gorm:"type:nvarchar(MAX);default:null"`
 	Justification              *string    `json:"justification" gorm:"type:nvarchar(MAX);default:null"`
@@ -26,6 +27,7 @@ type PolicyException struct {
 	DocumentVersion          *DocumentVersion          `gorm:"foreignKey:DocumentVersionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	DocumentVersionClause    *DocumentVersionClause    `gorm:"foreignKey:DocumentVersionClauseID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	DocumentRequirementGroup *DocumentRequirementGroup `gorm:"foreignKey:DocumentRequirementGroupID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	DocumentRequirement      *DocumentRequirement      `gorm:"foreignKey:DocumentRequirementID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	RequestedBy              *User                     `gorm:"foreignKey:RequestedByID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	OrganizationUnit         *OrganizationUnit         `gorm:"foreignKey:OrganizationUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	WorkflowStatus           *WorkflowStatus           `gorm:"foreignKey:WorkflowStatusID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`

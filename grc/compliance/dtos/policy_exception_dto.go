@@ -13,6 +13,7 @@ type PolicyExceptionFormDTO struct {
 	DocumentID                 uint    `json:"document_id" binding:"required"`
 	DocumentVersionClauseID    *uint   `json:"document_version_clause_id"`
 	DocumentRequirementGroupID *uint   `json:"document_requirement_group_id"`
+	DocumentRequirementID      *uint   `json:"document_requirement_id"`
 	TitleEn                    string  `json:"title_en" binding:"required"`
 	TitleAr                    string  `json:"title_ar" binding:"required"`
 	Requirements               *string `json:"requirements"`
@@ -28,6 +29,7 @@ type PolicyExceptionListDTO struct {
 	DocumentID                      uint      `json:"document_id"`
 	DocumentVersionClauseID         uint      `json:"document_version_clause_id"`
 	DocumentRequirementGroupID      uint      `json:"document_requirement_group_id"`
+	DocumentRequirementID           uint      `json:"document_requirement_id"`
 	ReferenceNumber                 string    `json:"reference_number"`
 	DocumentTitleEn                 string    `json:"document_title_en"`
 	DocumentTitleAr                 string    `json:"document_title_ar"`
@@ -46,6 +48,8 @@ type PolicyExceptionListDTO struct {
 	WorkflowStatusColor             string    `json:"workflow_status_color"`
 	DocumentRequirementGroupTitleEn string    `json:"document_requirement_group_title_en"`
 	DocumentRequirementGroupTitleAr string    `json:"document_requirement_group_title_ar"`
+	DocumentRequirementTitleEn      string    `json:"document_requirement_title_en"`
+	DocumentRequirementTitleAr      string    `json:"document_requirement_title_ar"`
 	CreatedAt                       time.Time `json:"created_at"`
 	CreatedByID                     uint      `json:"created_by_id"`
 	CreatedByFirstNameEn            string    `json:"created_by_first_name_en"`
@@ -102,6 +106,7 @@ type PolicyExceptionDetailDTO struct {
 	DocumentVersion          *documentDTOs.DocumentVersionDTO          `json:"document_version"`
 	DocumentVersionClause    *documentDTOs.DocumentClauseDetailsDTO    `json:"document_version_clause"`
 	DocumentRequirementGroup *documentDTOs.DocumentRequirementGroupDTO `json:"document_requirement_group"`
+	DocumentRequirement      *documentDTOs.DocumentRequirementDTO      `json:"document_requirement"`
 	RequestedBy              organizationDTOs.UserMinimalDTO           `json:"requested_by"`
 	OrganizationUnit         settingsDTOs.OrganizationUnitDTO          `json:"organization_unit"`
 	WorkflowStatus           *mastersDTOs.WorkflowStatusDTO            `json:"workflow_status"`

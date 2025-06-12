@@ -38,6 +38,7 @@ func (pec *PolicyExceptionController) GetAllPolicyExceptions(c *gin.Context) {
 		"document_version_ids",
 		"document_version_clause_ids",
 		"document_requirement_group_ids",
+		"document_requirement_ids",
 		"requested_by_ids",
 		"organization_unit_ids",
 		"workflow_status_ids",
@@ -57,13 +58,15 @@ func (pec *PolicyExceptionController) GetAllPolicyExceptions(c *gin.Context) {
 	}
 
 	validSortFields := map[string]string{
-		"reference_number":   "policy_exceptions.reference_number",
-		"document_title_en":  "documents.title_en",
-		"documents.title_en": "documents.title_en",
-		"document_title_ar":  "documents.title_ar",
-		"documents.title_ar": "documents.title_ar",
-		"start_date":         "policy_exceptions.start_date",
-		"end_date":           "policy_exceptions.end_date",
+		"reference_number":              "policy_exceptions.reference_number",
+		"document_title_en":             "documents.title_en",
+		"documents.title_en":            "documents.title_en",
+		"document_title_ar":             "documents.title_ar",
+		"documents.title_ar":            "documents.title_ar",
+		"document_requirement_title_en": "document_requirements.title_en",
+		"document_requirement_title_ar": "document_requirements.title_ar",
+		"start_date":                    "policy_exceptions.start_date",
+		"end_date":                      "policy_exceptions.end_date",
 	}
 
 	sortField, valid := validSortFields[sortBy]

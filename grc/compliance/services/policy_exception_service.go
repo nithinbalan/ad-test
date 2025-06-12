@@ -39,6 +39,7 @@ type PolicyExceptionService struct {
 	userSvc                     organizationSvc.UserServiceInterface
 	documentClauseSvc           documentSvc.DocumentClauseServiceInterface
 	documentRequirementGroupSvc documentSvc.DocumentRequirementGroupServiceInterface
+	documentRequirementSvc      documentSvc.DocumentRequirementServiceInterface
 	activityLogSvc              logServices.ActivityLogServiceInterface
 }
 
@@ -49,6 +50,7 @@ func NewPolicyExceptionService(repo repositories.PolicyExceptionRepositoryInterf
 	userSvc organizationSvc.UserServiceInterface,
 	documentClauseSvc documentSvc.DocumentClauseServiceInterface,
 	documentRequirementGroupSvc documentSvc.DocumentRequirementGroupServiceInterface,
+	documentRequirementSvc documentSvc.DocumentRequirementServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 ) *PolicyExceptionService {
 	return &PolicyExceptionService{
@@ -59,6 +61,7 @@ func NewPolicyExceptionService(repo repositories.PolicyExceptionRepositoryInterf
 		userSvc:                     userSvc,
 		documentClauseSvc:           documentClauseSvc,
 		documentRequirementGroupSvc: documentRequirementGroupSvc,
+		documentRequirementSvc:      documentRequirementSvc,
 		activityLogSvc:              activityLogSvc,
 	}
 }
@@ -144,6 +147,7 @@ func (pes *PolicyExceptionService) Create(currentUserID uint, dto *dtos.PolicyEx
 		DocumentVersionID:          document.LatestDocumentVersion.ID,
 		DocumentVersionClauseID:    dto.DocumentVersionClauseID,
 		DocumentRequirementGroupID: dto.DocumentRequirementGroupID,
+		DocumentRequirementID:      dto.DocumentRequirementID,
 		ReferenceNumber:            referenceNumber,
 		Requirements:               dto.Requirements,
 		Justification:              dto.Justification,
@@ -219,6 +223,7 @@ func (pes *PolicyExceptionService) Update(id uint, dto *dtos.PolicyExceptionForm
 	existing.DocumentVersionID = document.LatestDocumentVersion.ID
 	existing.DocumentVersionClauseID = dto.DocumentVersionClauseID
 	existing.DocumentRequirementGroupID = dto.DocumentRequirementGroupID
+	existing.DocumentRequirementID = dto.DocumentRequirementID
 	existing.Requirements = dto.Requirements
 	existing.Justification = dto.Justification
 	existing.StartDate = dates.StartDate
@@ -436,6 +441,13 @@ func (pes *PolicyExceptionService) validatePolicyExceptionFormDTO(dto *dtos.Poli
 		_, err = pes.documentRequirementGroupSvc.GetByID(dto.DocumentID, *dto.DocumentRequirementGroupID)
 		if err != nil {
 			return utility.NewValidationError(fmt.Errorf("document requirement group does not exist"), "not_exist", "document_requirement_group")
+		}
+	}
+
+	if dto.DocumentRequirementID != nil {
+		_, err = pes.documentRequirementSvc.GetByID(dto.DocumentID, *dto.DocumentRequirementGroupID, *dto.DocumentRequirementID)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("document requirement does not exist"), "not_exist", "document_requirement")
 		}
 	}
 

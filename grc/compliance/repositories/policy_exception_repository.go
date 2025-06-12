@@ -51,6 +51,8 @@ func (repo *PolicyExceptionRepository) GetAll(params *dtos.PolicyExceptionListQu
 		documents.title_ar AS document_title_ar,
 		document_requirement_groups.title_en AS document_requirement_group_title_en,
 		document_requirement_groups.title_ar AS document_requirement_group_title_ar,
+		document_requirements.title_en AS document_requirement_title_en,
+		document_requirements.title_ar AS document_requirement_title_ar,
 		workflow_statuses.title_en AS workflow_status_title_en,
 		workflow_statuses.title_ar AS workflow_status_title_ar,
 		workflow_statuses.color_code AS workflow_status_color,
@@ -81,6 +83,7 @@ func (repo *PolicyExceptionRepository) GetAll(params *dtos.PolicyExceptionListQu
 		Joins(`LEFT JOIN documents ON documents.id = policy_exceptions.document_id`).
 		Joins(`LEFT JOIN document_versions ON document_versions.id = policy_exceptions.document_version_id`).
 		Joins(`LEFT JOIN document_requirement_groups ON document_requirement_groups.id = policy_exceptions.document_requirement_group_id`).
+		Joins(`LEFT JOIN document_requirements ON document_requirements.id = policy_exceptions.document_requirement_id`).
 		Joins(`LEFT JOIN workflow_statuses ON workflow_statuses.id = policy_exceptions.workflow_status_id`).
 		Joins(`LEFT JOIN users AS requested_user ON requested_user.id = policy_exceptions.requested_by_id`).
 		Joins(`LEFT JOIN users AS created_user ON created_user.id = policy_exceptions.created_by_id`).
@@ -108,9 +111,11 @@ func (repo *PolicyExceptionRepository) GetAll(params *dtos.PolicyExceptionListQu
 			requested_user.last_name_ar LIKE ? OR
 			document_versions.title_en LIKE ? OR
 			document_versions.title_ar LIKE ? OR
+			document_requirements.title_en LIKE ? OR
+			document_requirements.title_ar LIKE ? OR
 			document_requirement_groups.title_en LIKE ? OR
 			document_requirement_groups.title_ar LIKE ?`,
-			kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw,
+			kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw,
 		)
 	}
 
@@ -160,6 +165,7 @@ func (repo *PolicyExceptionRepository) GetFullDetailsByID(id uint, tx ...utility
 		Preload("Document.LatestDocumentVersion").
 		Preload("Document.LatestDocumentVersion.DocumentClauses").
 		Preload("DocumentRequirementGroup").
+		Preload("DocumentRequirement").
 		Preload("RequestedBy").
 		Preload("Risks").
 		Preload("Risks.RiskRegister").

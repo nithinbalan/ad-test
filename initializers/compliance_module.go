@@ -267,6 +267,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		organizationModule.UserSvc,
 		documentModule.DocumentClauseSvc,
 		documentModule.DocumentRequirementGroupSvc,
+		documentModule.DocumentRequirementSvc,
 		sharedModule.ActivityLogService,
 	)
 	policyExceptionController := controllers.NewPolicyExceptionController(policyExceptionSvc)
