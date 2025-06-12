@@ -8,8 +8,8 @@ jobs:
     runs-on: ${{ env.RUNNER_NAME }}
     env:
       RUNNER_NAME: jethur-uat
-      PROJECT_NAME: app-api
-      DB_NAME: jethur_app_db
+      PROJECT_NAME: aljabr-uat-api
+      DB_NAME: jethur_aljabr_uat_db
       MIGRATION_BRANCH: migration_new
       DEPLOY_BRANCH: main
       IIS_DOC_ROOT: C:\inetpub\wwwroot\aljabr-uat\aljabr-uat-api
