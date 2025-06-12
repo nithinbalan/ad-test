@@ -21,7 +21,6 @@ type PolicyExceptionFormDTO struct {
 	StartDate                  string  `json:"start_date" binding:"required"`
 	EndDate                    string  `json:"end_date" binding:"required"`
 	RequestedByID              uint    `json:"requested_by_id" binding:"required"`
-	OrganizationUnitID         uint    `json:"organization_unit_id" binding:"required"`
 }
 
 type PolicyExceptionListDTO struct {

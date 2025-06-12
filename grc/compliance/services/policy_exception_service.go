@@ -141,7 +141,10 @@ func (pes *PolicyExceptionService) Create(currentUserID uint, dto *dtos.PolicyEx
 		tx.Rollback()
 		return 0, err
 	}
-
+	organizationUnitID, err := pes.userSvc.GetUserPrimaryUnitID(dto.RequestedByID)
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for user"), "not_exist", "organization unit")
+	}
 	model := &models.PolicyException{
 		DocumentID:                 dto.DocumentID,
 		DocumentVersionID:          document.LatestDocumentVersion.ID,
@@ -154,7 +157,7 @@ func (pes *PolicyExceptionService) Create(currentUserID uint, dto *dtos.PolicyEx
 		StartDate:                  dates.StartDate,
 		EndDate:                    &dates.EndDate,
 		RequestedByID:              dto.RequestedByID,
-		OrganizationUnitID:         dto.OrganizationUnitID,
+		OrganizationUnitID:         organizationUnitID,
 		WorkflowStatusID:           &workflowStatus.ID,
 		CreatedAt:                  time.Now(),
 		CreatedByID:                currentUserID,
@@ -217,7 +220,13 @@ func (pes *PolicyExceptionService) Update(id uint, dto *dtos.PolicyExceptionForm
 	if err != nil {
 		return err
 	}
-
+	if existing.RequestedByID != dto.RequestedByID {
+		organizationUnitID, err := pes.userSvc.GetUserPrimaryUnitID(dto.RequestedByID)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("organization unit not set for requested user "), "not_exist", "organization unit")
+		}
+		existing.OrganizationUnitID = organizationUnitID
+	}
 	// Update fields
 	existing.DocumentID = dto.DocumentID
 	existing.DocumentVersionID = document.LatestDocumentVersion.ID
@@ -229,7 +238,6 @@ func (pes *PolicyExceptionService) Update(id uint, dto *dtos.PolicyExceptionForm
 	existing.StartDate = dates.StartDate
 	existing.EndDate = &dates.EndDate
 	existing.RequestedByID = dto.RequestedByID
-	existing.OrganizationUnitID = dto.OrganizationUnitID
 	existing.UpdatedByID = &currentUserID
 
 	if err := pes.repo.Update(existing, tx); err != nil {
