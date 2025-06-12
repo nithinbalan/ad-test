@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"io"
 	"jethur/grc/jethur-ai/services"
 	"jethur/utility"
 	"net/http"
@@ -69,4 +70,46 @@ func (ac *DocumentAIController) GetDocumentRecommendations(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, summary)
+}
+
+type DocumentChatRequest struct {
+	Content    string `json:"content" binding:"required"`
+	Role       string `json:"role" binding:"required"`
+	DocumentID string `json:"document_id" binding:"required"`
+	ContextID  string `json:"context_id"`
+}
+
+func (dcc *DocumentAIController) ChatWithDocument(c *gin.Context) {
+	var chatRequest DocumentChatRequest
+	if err := c.ShouldBindJSON(&chatRequest); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	// Set headers for SSE
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Header("Transfer-Encoding", "chunked")
+
+	// Get response channel from service
+	responseChan, err := dcc.service.ProcessChat(c.Request.Context(), chatRequest.Content, chatRequest.Role, chatRequest.DocumentID, chatRequest.ContextID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(dcc.db, c, e.Error())
+		}
+		return
+	}
+
+	// Stream responses to client
+	c.Stream(func(w io.Writer) bool {
+		if msg, ok := <-responseChan; ok {
+			c.SSEvent("message", msg)
+			return true
+		}
+		return false
+	})
 }

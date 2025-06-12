@@ -11,6 +11,8 @@ type UserJobDescriptionListDTO struct {
 	RolesAndResponsibilities string `json:"roles_and_responsibilities"`
 	Status                   string `json:"status"`
 	CreatedAt                string `json:"created_at"`
+	UserID                   uint   `json:"user_id"`
+	JobDescriptionID         uint   `json:"job_description_id"`
 }
 
 type AssignJobDescriptionsDTO struct {
@@ -52,7 +54,9 @@ type UserJobDescriptionCompetencyDetailDTO struct {
 	CompetencyID           uint                                     `json:"competency_id"`
 	Competency             *CompetencyDTO                           `json:"competency"`
 	ActualLevelID          uint                                     `json:"actual_level_id"`
+	ExpectedLevelID        uint                                     `json:"expected_level_id"`
 	ActualLevel            *CompetencyLevelDTO                      `json:"actual_level"`
+	ExpectedLevel          *CompetencyLevelDTO                      `json:"expected_level"`
 	Comments               *string                                  `json:"comments"`
 	Certificates           []UserJobDescriptionCertificateDetailDTO `json:"certificates"`
 	CompetencyTitleEn      *string                                  `json:"competency_title_en"`
@@ -65,9 +69,10 @@ type UserJobDescriptionCertificateDetailDTO struct {
 	ID                                      uint    `json:"id"`
 	JobDescriptionCompetencyCertificationID uint    `json:"certification_id"`
 	CertificateTitle                        string  `json:"certificate_title"`
+	IsMandatory                             bool    `json:"is_mandatory"`
 	Token                                   *string `json:"token"`
 	OriginalName                            *string `json:"original_name"`
 	URL                                     *string `json:"url"`
 	Type                                    *string `json:"type"`
-	Size                                    *string `json:"size"`
+	Size                                    *int    `json:"size"`
 }

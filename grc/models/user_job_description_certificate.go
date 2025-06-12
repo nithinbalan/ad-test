@@ -7,6 +7,7 @@ type UserJobDescriptionCertificate struct {
 	UserJobDescriptionCompetencyID          uint      `json:"user_job_description_competency_id" gorm:"not null"`
 	JobDescriptionCompetencyCertificationID uint      `json:"job_description_competency_certification_id" gorm:"not null"`
 	CertificateTitle                        string    `json:"certificate_title" gorm:"type:nvarchar(255);not null"`
+	IsMandatory                             bool      `json:"is_mandatory" gorm:"type:bit;not null;default:0"`
 	URL                                     *string   `json:"url" gorm:"type:varchar(1000);default:null"`
 	Name                                    *string   `json:"name" gorm:"type:nvarchar(255);default:null"`
 	Size                                    *int      `json:"size" gorm:"default:null"`

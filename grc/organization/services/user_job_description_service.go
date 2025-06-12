@@ -3,11 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/organization/dtos"
 	"jethur/grc/organization/repositories"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -20,10 +22,12 @@ type UserJobDescriptionServiceInterface interface {
 	GetFullDetailsByID(id uint) (*dtos.UserJobDescriptionDetailDTO, error)
 	Create(userID uint, input *dtos.AssignJobDescriptionsDTO, currentUserID uint) (uint, error)
 	Delete(userID, jobDescriptionID, currentUserID uint) error
-	Update(jdcID uint, dto dtos.EvaluateUserJDCompetencyDTO, currentUserID uint) error
+	Update(userID uint, jdcID uint, dto dtos.EvaluateUserJDCompetencyDTO, currentUserID uint) error
 
 	CreateUserJDFromDesignation(userID uint, designationID uint, currentUserID uint, tx utility.DatabaseTransaction) error
 	DeleteUserJDFromDesignation(userID uint, designationID uint, currentUserID uint) error
+
+	GetUserJobDescriptionDocumentPath(userID, jdcID uint, competencyID uint, certiID uint, token string) (string, error)
 }
 
 type UserJobDescriptionService struct {
@@ -63,6 +67,8 @@ func (ujds *UserJobDescriptionService) GetFullDetailsByID(id uint) (*dtos.UserJo
 	if err != nil {
 		return nil, err
 	}
+	dto.CreatedAt = model.CreatedAt
+
 	return &dto, nil
 }
 
@@ -104,6 +110,7 @@ func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJob
 			ujdc := models.UserJobDescriptionCompetency{
 				UserJobDescriptionID:   userJD.ID,
 				CompetencyID:           comp.CompetencyID,
+				ExpectedLevelID:        comp.CompetencyLevelID,
 				CompetencyTitleEn:      &comp.Competency.TitleEn,
 				CompetencyTitleAr:      &comp.Competency.TitleAr,
 				CompetencyGroupTitleEn: &comp.Competency.CompetencyGroup.TitleEn,
@@ -117,6 +124,7 @@ func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJob
 			for _, cert := range comp.Certifications {
 				ujdcert := models.UserJobDescriptionCertificate{
 					UserJobDescriptionCompetencyID:          ujdc.ID,
+					IsMandatory:                             cert.IsMandatory,
 					JobDescriptionCompetencyCertificationID: cert.ID,
 					CertificateTitle:                        cert.Title,
 					CreatedByID:                             &currentUserID,
@@ -139,28 +147,28 @@ func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJob
 }
 
 func (ujds *UserJobDescriptionService) Delete(userID, jobDescriptionID, currentUserID uint) error {
-	userJD, err := ujds.repo.GetByUserAndJD(userID, jobDescriptionID)
+	userJD, err := ujds.repo.GetFullDetailsByID(jobDescriptionID)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, jobDescriptionID)
 	}
 
-	tx := ujds.repo.BeginTransaction()
-	certs, err := ujds.repo.GetCertificatesByUserJDID(userJD.ID)
+	certs, err := ujds.repo.GetCertificatesByUserJDID(jobDescriptionID)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
-	if err := ujds.repo.DeleteUserJobDescriptionCertificatesByUserJDID(tx, userJD.ID); err != nil {
+	tx := ujds.repo.BeginTransaction()
+
+	if err := ujds.repo.DeleteUserJobDescriptionCertificatesByUserJDID(tx, jobDescriptionID); err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	if err := ujds.repo.DeleteUserJobDescriptionCompetenciesByUserJDID(tx, userJD.ID); err != nil {
+	if err := ujds.repo.DeleteUserJobDescriptionCompetenciesByUserJDID(tx, jobDescriptionID); err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	if err := ujds.repo.DeleteUserJobDescription(tx, userJD.ID); err != nil {
+	if err := ujds.repo.DeleteUserJobDescription(tx, jobDescriptionID); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -169,7 +177,7 @@ func (ujds *UserJobDescriptionService) Delete(userID, jobDescriptionID, currentU
 	go func() {
 		for _, cert := range certs {
 			if cert.Name != nil {
-				storagePath := filepath.Join("job-description", "competency", strconv.Itoa(int(userJD.ID)), "certificates")
+				storagePath := filepath.Join("user", strconv.FormatUint(uint64(userID), 10), "job-description", "competency", strconv.FormatUint(uint64(userJD.ID), 10), "certificates")
 				_ = utility.RemoveFile(*cert.Name, storagePath)
 			}
 		}
@@ -187,7 +195,7 @@ func (ujds *UserJobDescriptionService) Delete(userID, jobDescriptionID, currentU
 	return nil
 }
 
-func (ujds *UserJobDescriptionService) Update(jdcID uint, dto dtos.EvaluateUserJDCompetencyDTO, currentUserID uint) error {
+func (ujds *UserJobDescriptionService) Update(userID uint, jdcID uint, dto dtos.EvaluateUserJDCompetencyDTO, currentUserID uint) error {
 	comp, err := ujds.repo.GetCompetencyByID(jdcID)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, jdcID)
@@ -218,14 +226,18 @@ func (ujds *UserJobDescriptionService) Update(jdcID uint, dto dtos.EvaluateUserJ
 
 		if cert.IsNewFile != nil && *cert.IsNewFile {
 			// Update existing record with new file metadata
+			if existingDoc.Token != nil && existingDoc.Name != nil {
+				// Clone the object to avoid overwriting path info
+				oldFile := *existingDoc
+				certFilesToDelete = append(certFilesToDelete, &oldFile)
+			}
 			encrypted, err := utility.EncryptData([]byte(cert.FileName))
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
-			url := utility.GenerateDocumentURL("job-description", "competency", strconv.Itoa(int(jdcID)), "certificates")
+			url := utility.GenerateDocumentURL("user", strconv.FormatUint(uint64(userID), 10), "job-description", "competency", strconv.Itoa(int(jdcID)), "certificates")
 
-			existingDoc.CertificateTitle = cert.FileName
 			existingDoc.Name = &cert.FileName
 			existingDoc.Token = &encrypted
 			existingDoc.OriginalName = &cert.OriginalName
@@ -237,6 +249,10 @@ func (ujds *UserJobDescriptionService) Update(jdcID uint, dto dtos.EvaluateUserJ
 			certFilesToStore = append(certFilesToStore, existingDoc)
 
 		} else if cert.IsDeletedFile != nil && *cert.IsDeletedFile {
+			if existingDoc.Token != nil && existingDoc.Name != nil {
+				oldFile := *existingDoc
+				certFilesToDelete = append(certFilesToDelete, &oldFile)
+			}
 			// Only clear document-related fields
 			existingDoc.Token = nil
 			existingDoc.Name = nil
@@ -246,7 +262,6 @@ func (ujds *UserJobDescriptionService) Update(jdcID uint, dto dtos.EvaluateUserJ
 			existingDoc.Size = nil
 
 			certsToUpdate = append(certsToUpdate, existingDoc)
-			certFilesToDelete = append(certFilesToDelete, existingDoc)
 		}
 	}
 
@@ -259,21 +274,21 @@ func (ujds *UserJobDescriptionService) Update(jdcID uint, dto dtos.EvaluateUserJ
 	}
 
 	for _, doc := range certFilesToStore {
-		storagePath := filepath.Join("job-description", "competency", strconv.Itoa(int(jdcID)), "certificates")
+		storagePath := filepath.Join("user", strconv.FormatUint(uint64(userID), 10), "job-description", "competency", strconv.Itoa(int(jdcID)), "certificates")
 		if err := utility.StoreFile(*doc.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
 	for _, doc := range certFilesToDelete {
-		storagePath := filepath.Join("job-description", "competency", strconv.Itoa(int(jdcID)), "certificates")
+		storagePath := filepath.Join("user", strconv.FormatUint(uint64(userID), 10), "job-description", "competency", strconv.Itoa(int(jdcID)), "certificates")
 		if err := utility.RemoveFile(*doc.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
-
-	return tx.Commit()
+	tx.Commit()
+	return nil
 }
 
 func (ujds *UserJobDescriptionService) CreateUserJDFromDesignation(userID uint, designationID uint, currentUserID uint, tx utility.DatabaseTransaction) error {
@@ -312,6 +327,7 @@ func (ujds *UserJobDescriptionService) CreateUserJDFromDesignation(userID uint, 
 		ujdc := &models.UserJobDescriptionCompetency{
 			UserJobDescriptionID:   userJDs[0].ID,
 			CompetencyID:           comp.CompetencyID,
+			ExpectedLevelID:        comp.CompetencyLevelID,
 			CompetencyTitleEn:      &comp.Competency.TitleEn,
 			CompetencyTitleAr:      &comp.Competency.TitleAr,
 			CompetencyGroupTitleEn: &comp.Competency.CompetencyGroup.TitleEn,
@@ -327,6 +343,7 @@ func (ujds *UserJobDescriptionService) CreateUserJDFromDesignation(userID uint, 
 				UserJobDescriptionCompetencyID:          ujdc.ID,
 				JobDescriptionCompetencyCertificationID: cert.ID,
 				CertificateTitle:                        cert.Title,
+				IsMandatory:                             cert.IsMandatory,
 				CreatedByID:                             &currentUserID,
 			}
 			userJDCerts = append(userJDCerts, ujdcert)
@@ -387,7 +404,7 @@ func (ujds *UserJobDescriptionService) DeleteUserJDFromDesignation(userID uint, 
 	go func() {
 		for _, cert := range certs {
 			if cert.Name != nil {
-				storagePath := filepath.Join("job-description", "competency", strconv.Itoa(int(userJD.ID)), "certificates")
+				storagePath := filepath.Join("user", strconv.FormatUint(uint64(userID), 10), "job-description", "competency", strconv.FormatUint(uint64(userJD.ID), 10), "certificates")
 				_ = utility.RemoveFile(*cert.Name, storagePath)
 			}
 		}
@@ -427,4 +444,34 @@ func (ujds *UserJobDescriptionService) validateJobDescriptionIDs(jdIDs []uint) e
 	}
 
 	return nil
+}
+
+func (ujds *UserJobDescriptionService) GetUserJobDescriptionDocumentPath(userID, jdcID uint, competencyID uint, certiID uint, token string) (string, error) {
+	doc, err := ujds.repo.GetCertificateByID(certiID)
+	if err != nil {
+		return "", err
+	}
+	if doc == nil || doc.Name == nil {
+		return "", fmt.Errorf("no document found")
+	}
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("user", strconv.FormatUint(uint64(userID), 10), "job-description", "competency", strconv.Itoa(int(competencyID)), "certificates")
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

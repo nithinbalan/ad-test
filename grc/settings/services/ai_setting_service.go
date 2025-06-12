@@ -53,6 +53,7 @@ func (amc *AISettingService) EnableAISetting(currentUserID uint) error {
 		isAllowed := false
 		for _, allowedAddon := range allowedAddons {
 			if allowedAddon == "jethur_ai" {
+				isAllowed = true
 				amc.repo.UpdateSystemPreferenceAI(true, currentUserID)
 			}
 		}

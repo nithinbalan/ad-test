@@ -346,6 +346,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/users/:userId/job-descriptions", userJobDescriptionController.AssignJobDescriptionsToUser)
 	organizationRoutes.PUT("/users/:userId/job-descriptions/:id/competencies/:cId", userJobDescriptionController.EvaluateCompetency)
 	organizationRoutes.DELETE("/users/:userId/job-descriptions/:id", userJobDescriptionController.DeleteJobDescriptionUser)
+	unauthenticatedRoutes.GET("/users/:userId/job-descriptions/:id/competencies/:cId/document/:docId/document-download", userJobDescriptionController.DownloadUserJobDescriptionDocument)
+	unauthenticatedRoutes.GET("/users/:userId/job-descriptions/:id/competencies/:cId/document/:docId/document-preview", userJobDescriptionController.GetUserJobDescriptionDocumentPreview)
 
 	// user document type
 	organizationRoutes.GET("/user-document-types", userDocumentTypeController.GetAllUserDocumentTypes)
