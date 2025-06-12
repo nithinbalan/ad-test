@@ -8,8 +8,9 @@ import (
 	aiDTOs "jethur/grc/jethur-ai/dtos"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"log"
 	"os"
-	"strconv"
+	// "strconv"
 )
 
 type DocumentAIServiceInterface interface {
@@ -135,41 +136,46 @@ type ChatResponse struct {
 }
 
 func (s *DocumentAIService) ProcessChat(ctx context.Context, content, role, documentID, contextID string) (<-chan string, error) {
-	// Convert documentID from string to uint for validation
-	docIDInt, err := strconv.ParseUint(documentID, 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("invalid document ID: %w", err)
-	}
+	log.Println("🔍 Starting ProcessChat")
 
-	// Get document details
-	document, err := s.documentService.GetFullDetailsByID(uint(docIDInt), nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get document: %w", err)
-	}
+	// docIDInt, err := strconv.ParseUint(documentID, 10, 64)
+	// if err != nil {
+	// 	log.Printf("❌ Invalid document ID: %v\n", err)
+	// 	return nil, fmt.Errorf("invalid document ID: %w", err)
+	// }
 
-	if document.LatestDocumentVersion.ID == 0 {
-		return nil, fmt.Errorf("no document version found")
-	}
+	// document, err := s.documentService.GetFullDetailsByID(uint(docIDInt), nil)
+	// if err != nil {
+	// 	log.Printf("❌ Failed to get document: %v\n", err)
+	// 	return nil, fmt.Errorf("failed to get document: %w", err)
+	// }
 
-	// Get latest document version
-	documentVersion, err := s.documentService.GetDocumentVersionByID(document.LatestDocumentVersion.ID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get document version: %w", err)
-	}
+	// if document.LatestDocumentVersion.ID == 0 {
+	// 	log.Println("⚠️ No latest document version found")
+	// 	return nil, fmt.Errorf("no document version found")
+	// }
 
-	if documentVersion.ParsedContent == nil {
-		return nil, fmt.Errorf("document content not available")
-	}
+	// documentVersion, err := s.documentService.GetDocumentVersionByID(document.LatestDocumentVersion.ID)
+	// if err != nil {
+	// 	log.Printf("❌ Failed to get document version: %v\n", err)
+	// 	return nil, fmt.Errorf("failed to get document version: %w", err)
+	// }
 
-	// Create response channel
+	// if documentVersion.ParsedContent == nil {
+	// 	log.Println("⚠️ Parsed content not available")
+	// 	return nil, fmt.Errorf("document content not available")
+	// }
+
+	// log.Println("✅ Document and version validated")
+
 	responseChan := make(chan string)
 
 	go func() {
 		defer close(responseChan)
 
-		// Call AI streaming API
 		baseURL := os.Getenv("AI_SERVICE_BASE_URL")
 		if baseURL == "" {
+			log.Println("❌ AI_SERVICE_BASE_URL not set")
 			response := ChatResponse{Error: "AI_SERVICE_BASE_URL is not set"}
 			jsonResp, _ := json.Marshal(response)
 			responseChan <- string(jsonResp)
@@ -177,28 +183,31 @@ func (s *DocumentAIService) ProcessChat(ctx context.Context, content, role, docu
 		}
 
 		apiURL := fmt.Sprintf("%s/api/v1/document-chat", baseURL)
+		log.Printf("🌐 Streaming from AI API at: %s\n", apiURL)
 
-		// Corrected payload to match API expectation
 		payload := map[string]interface{}{
 			"content":     content,
 			"role":        role,
-			"document_id": documentID,
+			"document_id": documentID, // must be string
 			"context_id":  contextID,
 		}
+		log.Printf("📦 Payload to AI: %+v\n", payload)
 
-		// Call utility for streaming
 		streamChan, err := utility.StreamAIAPI(ctx, apiURL, payload)
 		if err != nil {
+			log.Printf("❌ StreamAIAPI error: %v\n", err)
 			response := ChatResponse{Error: err.Error()}
 			jsonResp, _ := json.Marshal(response)
 			responseChan <- string(jsonResp)
 			return
 		}
 
-		// Forward streamed responses
+		log.Println("📡 Forwarding streamed AI responses to client...")
+
 		for {
 			select {
 			case <-ctx.Done():
+				log.Println("⛔ Request context cancelled")
 				response := ChatResponse{Error: "request cancelled"}
 				jsonResp, _ := json.Marshal(response)
 				responseChan <- string(jsonResp)
@@ -206,8 +215,10 @@ func (s *DocumentAIService) ProcessChat(ctx context.Context, content, role, docu
 
 			case resp, ok := <-streamChan:
 				if !ok {
+					log.Println("✅ AI stream channel closed")
 					return
 				}
+				log.Printf("📝 Streaming message: %s\n", resp)
 				response := ChatResponse{Response: resp}
 				jsonResp, _ := json.Marshal(response)
 				responseChan <- string(jsonResp)
