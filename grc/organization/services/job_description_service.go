@@ -9,6 +9,7 @@ import (
 	"jethur/grc/organization/repositories"
 	"jethur/utility"
 	"log"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -66,6 +67,7 @@ func (s *JobDescriptionService) GetFullDetailsByID(id uint) (*dtos.JobDescriptio
 	if err != nil {
 		return nil, err
 	}
+	dto.CreatedAt = jd.CreatedAt
 	return &dto, nil
 }
 
@@ -75,7 +77,7 @@ func (s *JobDescriptionService) Create(currentUserID uint, jobDesc *models.JobDe
 	} else if exists {
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
-
+	jobDesc.CreatedBYID = currentUserID
 	created, err := s.repo.Create(jobDesc)
 	if err != nil {
 		return nil, err
@@ -104,7 +106,9 @@ func (s *JobDescriptionService) Update(id uint, currentUserID uint, updated *mod
 			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
 	}
-
+	now := time.Now()
+	updated.UpdatedAt = &now
+	updated.UpdatedBYID = &currentUserID
 	result, err := s.repo.Update(id, updated)
 	if err != nil {
 		return nil, err
