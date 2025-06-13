@@ -31,6 +31,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiStatusController := app.StrategyModule.KpiStatusController
 	kpiRegisterController := app.StrategyModule.KpiRegisterController
 	strategicObjectiveCategoryController := app.StrategyModule.StrategicObjectiveCategoryController
+	strategicObjectiveController := app.StrategyModule.StrategicObjectiveController
 
 	// strategy profile
 	strategyRoutes.GET("/strategy-profiles", strategyProfileController.GetAllStrategyProfiles)
@@ -141,5 +142,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.POST("/strategic-objective-categories/delete", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveCategoryController.DeleteStrategicObjectiveCategories)
 	strategyRoutes.PUT("/strategic-objective-categories/activate", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveCategoryController.ActivateStrategicObjectiveCategories)
 	strategyRoutes.PUT("/strategic-objective-categories/deactivate", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveCategoryController.DeactivateStrategicObjectiveCategories)
+
+	strategyRoutes.GET("/strategic-objectives", strategicObjectiveController.GetAllStrategicObjectives)
+	strategyRoutes.GET("/strategic-objectives/:id", strategicObjectiveController.GetStrategicObjectiveDetails)
+	strategyRoutes.POST("/strategic-objectives", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveController.CreateStrategicObjective)
+	strategyRoutes.PUT("/strategic-objectives/:id", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveController.UpdateStrategicObjective)
+	strategyRoutes.POST("/strategic-objectives/delete", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveController.DeleteStrategicObjectives)
+	strategyRoutes.PUT("/strategic-objectives/activate", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveController.ActivateStrategicObjectives)
+	strategyRoutes.PUT("/strategic-objectives/deactivate", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveController.DeactivateStrategicObjectives)
 
 }
