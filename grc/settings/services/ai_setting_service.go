@@ -3,13 +3,14 @@ package services
 import (
 	"fmt"
 	"jethur/grc/models"
+	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/repositories"
 	"jethur/utility"
 )
 
 type AISettingServiceInterface interface {
 	GetAll() ([]*models.AIModule, error)
-	GetByModuleID(moduleID int) ([]*models.AIModuleFeature, error)
+	GetByModuleID(moduleID int) ([]dtos.AIModuleFeatureListDTO, error)
 	EnableAISetting(currentUserID uint) error
 	DisableAISetting(currentUserID uint) error
 }
@@ -74,6 +75,6 @@ func (amc *AISettingService) GetAll() ([]*models.AIModule, error) {
 	return amc.repo.GetAll()
 }
 
-func (amc *AISettingService) GetByModuleID(moduleID int) ([]*models.AIModuleFeature, error) {
-	return amc.repo.GetByModuleID(moduleID)
+func (amc *AISettingService) GetByModuleID(moduleID int) ([]dtos.AIModuleFeatureListDTO, error) {
+	return amc.repo.GetFeatureListByModuleID(moduleID)
 }
