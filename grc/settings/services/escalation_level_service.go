@@ -177,7 +177,7 @@ func (els *EscalationLevelService) Delete(ids []uint, currentUserID uint) ([]uin
 	var deletedItems []map[string]interface{}
 
 	for _, id := range ids {
-		item, err := els.repo.GetByID(id)
+		item, err := els.repo.GetFullDetailsByID(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue
