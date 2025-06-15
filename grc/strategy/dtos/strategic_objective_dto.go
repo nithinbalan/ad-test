@@ -47,7 +47,7 @@ type StrategicObjectiveListDTO struct {
 	ReviewFrequencyTitleEn *string `json:"review_frequency_title_en"`
 	ReviewFrequencyTitleAr *string `json:"review_frequency_title_ar"`
 
-	CreatedUserID               uint   `json:"created_user_id"`
+	CreatedByID                 uint   `json:"created_by_id"`
 	CreatedUserFirstNameEn      string `json:"created_user_first_name_en"`
 	CreatedUserLastNameEn       string `json:"created_user_last_name_en"`
 	CreatedUserFirstNameAr      string `json:"created_user_first_name_ar"`
@@ -57,7 +57,7 @@ type StrategicObjectiveListDTO struct {
 	CreatedUserEmail            string `json:"created_user_email"`
 	CreatedUserProfileImagePath string `json:"created_user_profile_image_path"`
 
-	UpdatedUserID               *uint   `json:"updated_user_id"`
+	UpdatedByID                 *uint   `json:"updated_by_id"`
 	UpdatedUserFirstNameEn      *string `json:"updated_user_first_name_en"`
 	UpdatedUserLastNameEn       *string `json:"updated_user_last_name_en"`
 	UpdatedUserFirstNameAr      *string `json:"updated_user_first_name_ar"`
@@ -117,8 +117,8 @@ type StrategicObjectiveDetailDTO struct {
 	ReviewFrequency              *masterDTOs.ReviewFrequencyDTO         `json:"review_frequency"`
 	CreatedAt                    time.Time                              `json:"created_at"`
 	UpdatedAt                    *time.Time                             `json:"updated_at"`
-	CreatedByUser                organizationDTOs.UserMinimalDTO        `json:"created_by"`
-	UpdatedByUser                *organizationDTOs.UserMinimalDTO       `json:"updated_by"`
+	CreatedByUser                organizationDTOs.UserMinimalDTO        `json:"created_by_user"`
+	UpdatedByUser                *organizationDTOs.UserMinimalDTO       `json:"updated_by_user"`
 }
 
 type StrategicObjectiveListResponseDTO struct {

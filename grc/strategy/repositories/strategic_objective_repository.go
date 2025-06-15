@@ -75,23 +75,23 @@ func (repo *StrategicObjectiveRepository) GetAll(params *dtos.StrategicObjective
 			review_frequencies.title_en AS review_frequency_title_en,
 			review_frequencies.title_ar AS review_frequency_title_ar,
 
-			created_user.first_name_en AS created_by_first_name_en,
-			created_user.first_name_ar AS created_by_first_name_ar,
-			created_user.last_name_en AS created_by_last_name_en,
-			created_user.last_name_ar AS created_by_last_name_ar,
-			created_user.initial AS created_by_initial,
-			created_user.color AS created_by_color,
-			created_user.email AS created_by_email,
-			created_user.profile_image_path AS created_by_profile_image_path,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
 
-			updated_user.first_name_en AS updated_by_first_name_en,
-			updated_user.first_name_ar AS updated_by_first_name_ar,
-			updated_user.last_name_en AS updated_by_last_name_en,
-			updated_user.last_name_ar AS updated_by_last_name_ar,
-			updated_user.initial AS updated_by_initial,
-			updated_user.color AS updated_by_color,
-			updated_user.email AS updated_by_email,
-			updated_user.profile_image_path AS updated_by_profile_image_path
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path
 		`).
 		Joins(`LEFT JOIN strategic_objective_categories ON strategic_objective_categories.id = strategic_objectives.strategic_objective_category_id`).
 		Joins(`LEFT JOIN organization_units ON organization_units.id = strategic_objectives.responsible_unit_id`).

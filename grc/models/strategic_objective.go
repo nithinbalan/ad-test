@@ -19,8 +19,8 @@ type StrategicObjective struct {
 	Status                       string     `json:"status" gorm:"type:varchar(10);not null;default:'active'" binding:"required,oneof=active inactive"`
 	CreatedAt                    time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                    *time.Time `json:"updated_at" gorm:"type:datetime" binding:"omitempty"`
-	CreatedByID                  uint       `json:"created_by_id" gorm:"not null"`
-	UpdatedByID                  *uint      `json:"updated_by_id" gorm:"default:null" binding:"omitempty"`
+	CreatedBYID                  uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBYID                  *uint      `json:"updated_by_id" gorm:"default:null" binding:"omitempty"`
 
 	// Relationships
 	StrategicObjectiveCategory *StrategicObjectiveCategory                `gorm:"foreignKey:StrategicObjectiveCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -28,8 +28,8 @@ type StrategicObjective struct {
 	ResponsibleUnit            *OrganizationUnit                          `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	ReviewUser                 *User                                      `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	ReviewFrequency            *ReviewFrequency                           `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
-	CreatedByUser              *User                                      `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser              *User                                      `gorm:"foreignKey:UpdatedByID"`
+	CreatedByUser              *User                                      `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser              *User                                      `gorm:"foreignKey:UpdatedBYID"`
 	ComplianceRequirements     []*ComplianceRequirementStrategicObjective `gorm:"foreignKey:StrategicObjectiveID"`
 }
 

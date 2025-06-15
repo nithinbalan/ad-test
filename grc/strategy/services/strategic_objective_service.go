@@ -153,7 +153,7 @@ func (sos *StrategicObjectiveService) Create(currentUserID uint, dto *dtos.Strat
 		ReviewUserID:                 dto.ReviewUserID,
 		ReviewFrequencyID:            dto.ReviewFrequencyID,
 		Status:                       dto.Status,
-		CreatedByID:                  currentUserID,
+		CreatedBYID:                  currentUserID,
 	}
 
 	// Create
@@ -232,7 +232,7 @@ func (sos *StrategicObjectiveService) Update(id uint, currentUserID uint, dto *d
 	existing.ReviewUserID = dto.ReviewUserID
 	existing.ReviewFrequencyID = dto.ReviewFrequencyID
 	existing.Status = dto.Status
-	existing.UpdatedByID = &currentUserID
+	existing.UpdatedBYID = &currentUserID
 
 	// Resolve Responsible Unit dynamically
 	if dto.ResponsibleUserID != nil {
