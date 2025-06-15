@@ -12,6 +12,7 @@ jobs:
       DB_NAME: jethur_aljabr_uat_db
       MIGRATION_BRANCH: migration_new
       DEPLOY_BRANCH: main
+      BACKUP_SCRIPT_PATH: C:\jethur-scripts\backup-for-deployment.ps1
       IIS_DOC_ROOT: C:\inetpub\wwwroot\aljabr-uat\aljabr-uat-api
       SERVICE_NAME: aljabr-uat-api
       SCRIPT_SOURCE_PATH: C:\jethur-deployment\deployment-files\script.bat
@@ -33,6 +34,15 @@ jobs:
             Triggered by: ${{ github.actor }}
           to: ${{ env.EMAIL_TO }}
           from: ${{ env.EMAIL_FROM }}
+
+      - name: Run SQL Backup Script
+        run: |
+          & "${{ env.BACKUP_SCRIPT_PATH }}"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Database backup failed. Aborting deployment."
+            exit 1
+          }
+        shell: powershell
 
       - name: Cleanup workspace if not empty
         run: |
