@@ -85,7 +85,7 @@ func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJob
 		userJD := models.UserJobDescription{
 			UserID:           userID,
 			JobDescriptionID: jdID,
-			CreatedByID:      currentUserID,
+			CreatedBYID:      currentUserID,
 		}
 		userJDs = append(userJDs, &userJD)
 	}
@@ -123,11 +123,10 @@ func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJob
 
 			for _, cert := range comp.Certifications {
 				ujdcert := models.UserJobDescriptionCertificate{
-					UserJobDescriptionCompetencyID:          ujdc.ID,
-					IsMandatory:                             cert.IsMandatory,
-					JobDescriptionCompetencyCertificationID: cert.ID,
-					CertificateTitle:                        cert.Title,
-					CreatedByID:                             &currentUserID,
+					UserJobDescriptionCompetencyID: ujdc.ID,
+					IsMandatory:                    cert.IsMandatory,
+					CertificateTitle:               cert.Title,
+					CreatedByID:                    &currentUserID,
 				}
 				userJDCerts = append(userJDCerts, &ujdcert)
 			}
@@ -306,7 +305,7 @@ func (ujds *UserJobDescriptionService) CreateUserJDFromDesignation(userID uint, 
 		{
 			UserID:           userID,
 			JobDescriptionID: *designation.JobDescriptionID,
-			CreatedByID:      currentUserID,
+			CreatedBYID:      currentUserID,
 		},
 	}
 
@@ -340,11 +339,10 @@ func (ujds *UserJobDescriptionService) CreateUserJDFromDesignation(userID uint, 
 
 		for _, cert := range comp.Certifications {
 			ujdcert := &models.UserJobDescriptionCertificate{
-				UserJobDescriptionCompetencyID:          ujdc.ID,
-				JobDescriptionCompetencyCertificationID: cert.ID,
-				CertificateTitle:                        cert.Title,
-				IsMandatory:                             cert.IsMandatory,
-				CreatedByID:                             &currentUserID,
+				UserJobDescriptionCompetencyID: ujdc.ID,
+				CertificateTitle:               cert.Title,
+				IsMandatory:                    cert.IsMandatory,
+				CreatedByID:                    &currentUserID,
 			}
 			userJDCerts = append(userJDCerts, ujdcert)
 		}

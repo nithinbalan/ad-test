@@ -95,6 +95,7 @@ func (repo *UserJobDescriptionRepository) GetFullDetailsByID(id uint) (*models.U
 		Preload("Competencies.ActualLevel").
 		Preload("Competencies.ExpectedLevel").
 		Preload("Competencies.Certificates").
+		Preload("CreatedByUser").
 		First(&model, id).Error
 	if err != nil {
 		return nil, err
