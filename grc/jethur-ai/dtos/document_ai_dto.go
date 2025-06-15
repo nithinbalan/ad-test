@@ -15,3 +15,10 @@ type DocumentAISummaryDTO struct {
 	FAQEn             []FAQItemDTO `json:"faq_en"`
 	FAQAr             []FAQItemDTO `json:"faq_ar"`
 }
+
+type DocumentChatRequest struct {
+	Content    string `json:"content" binding:"required"`
+	Role       string `json:"role" binding:"required"`
+	DocumentID string `json:"document_id" binding:"required"`
+	ContextID  string `json:"context_id"`
+}
