@@ -28,8 +28,8 @@ func (soc *StrategicObjectiveController) GetAllStrategicObjectives(c *gin.Contex
 	sortBy := c.DefaultQuery("sort_by", "reference_number")
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
-	dateFrom := c.Query("date_from")
-	dateTo := c.Query("date_to")
+	startDate := c.Query("start_date")
+	endDate := c.Query("end_date")
 
 	allowedParams := []string{
 		"responsible_user_ids",
@@ -73,8 +73,8 @@ func (soc *StrategicObjectiveController) GetAllStrategicObjectives(c *gin.Contex
 		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
-		DateFrom:    dateFrom,
-		DateTo:      dateTo,
+		StartDate:   startDate,
+		EndDate:     endDate,
 	}
 
 	list, err := soc.service.GetAll(&queryParams)
@@ -94,7 +94,7 @@ func (soc *StrategicObjectiveController) GetStrategicObjectiveDetails(c *gin.Con
 		return
 	}
 
-	strategicObjective, err := soc.service.GetByID(uint(id))
+	strategicObjective, err := soc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -116,12 +116,14 @@ func (soc *StrategicObjectiveController) CreateStrategicObjective(c *gin.Context
 		utility.SendInternalErrResp(soc.db, c, err.Error())
 		return
 	}
-
 	createdStrategicObjectiveID, err := soc.service.Create(currentUserID, strategicObjectiveFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
 			return
 		default:
 			utility.SendInternalErrResp(soc.db, c, e.Error())

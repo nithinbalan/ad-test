@@ -1,25 +1,32 @@
 package repositories
 
 import (
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/grc/strategy/dtos"
 	"jethur/utility"
+	"strconv"
+	"time"
 
 	"gorm.io/gorm"
 )
 
 // Interfaces
 type StrategicObjectiveRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
+
 	GetAll(params *dtos.StrategicObjectiveListQueryParamsDTO) (*dtos.StrategicObjectiveListResponseDTO, error)
 	GetByID(id uint) (*models.StrategicObjective, error)
-	Create(strategicObjective *models.StrategicObjective) (uint, error)
-	Update(strategicObjective *models.StrategicObjective) error
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategicObjective, error)
+	Create(strategicObjective *models.StrategicObjective, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(strategicObjective *models.StrategicObjective, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
 	ExistsByTitle(titleEn string, titleAr string) (bool, error)
 	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
+	GenerateReferenceNumber() (string, error)
 }
 
 // implementation
@@ -31,6 +38,9 @@ func NewStrategicObjectiveRepository(db *gorm.DB) *StrategicObjectiveRepository 
 	return &StrategicObjectiveRepository{
 		db: db,
 	}
+}
+func (repo *StrategicObjectiveRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *StrategicObjectiveRepository) GetAll(params *dtos.StrategicObjectiveListQueryParamsDTO) (*dtos.StrategicObjectiveListResponseDTO, error) {
@@ -148,14 +158,51 @@ func (repo *StrategicObjectiveRepository) GetByID(id uint) (*models.StrategicObj
 	return strategicObjective, nil
 }
 
-func (repo *StrategicObjectiveRepository) Create(strategicObjective *models.StrategicObjective) (uint, error) {
-	result := repo.db.Create(&strategicObjective)
+func (repo *StrategicObjectiveRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategicObjective, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 
-	return strategicObjective.ID, result.Error
+	var strategicObjective *models.StrategicObjective
+
+	result := db.
+		Preload("StrategicObjectiveCategory").
+		Preload("ResponsibleUser").
+		Preload("ResponsibleUnit").
+		Preload("ReviewUser").
+		Preload("ReviewFrequency").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&strategicObjective, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return strategicObjective, nil
 }
 
-func (repo *StrategicObjectiveRepository) Update(updatedStrategicObjective *models.StrategicObjective) error {
-	if err := repo.db.Save(updatedStrategicObjective).Error; err != nil {
+func (repo *StrategicObjectiveRepository) Create(strategicObjective *models.StrategicObjective, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(strategicObjective).Error; err != nil {
+		return 0, err
+	}
+
+	return strategicObjective.ID, nil
+}
+
+func (repo *StrategicObjectiveRepository) Update(strategicObjective *models.StrategicObjective, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Save(strategicObjective).Error; err != nil {
 		return err
 	}
 
@@ -245,4 +292,33 @@ func (repo *StrategicObjectiveRepository) ExistsByTitleExcludingID(id uint, titl
 	}
 
 	return count > 0, nil
+}
+
+func (repo *StrategicObjectiveRepository) GenerateReferenceNumber() (string, error) {
+	var lastReferenceNumber string
+
+	err := repo.db.Model(&models.StrategicObjective{}).
+		Select("reference_number").
+		Order("reference_number DESC").
+		Limit(1).
+		Pluck("reference_number", &lastReferenceNumber).
+		Error
+
+	if err != nil {
+		return "", err
+	}
+
+	lastDigits := "0000"
+	if lastReferenceNumber != "" && len(lastReferenceNumber) >= 4 {
+		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-4:]
+	}
+
+	currentYear := time.Now().Year()
+	lastReferenceID, err := strconv.ParseUint(lastDigits, 10, 64)
+	if err != nil {
+		return "", err
+	}
+
+	newReferenceNumber := fmt.Sprintf("SO-%d-%04d", currentYear, lastReferenceID+1)
+	return newReferenceNumber, nil
 }

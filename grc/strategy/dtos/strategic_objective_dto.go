@@ -80,6 +80,7 @@ type StrategicObjectiveFormDTO struct {
 	ResponsibleUnitID            *uint   `json:"responsible_unit_id"`
 	ReviewUserID                 *uint   `json:"review_user_id"`
 	ReviewFrequencyID            *uint   `json:"review_frequency_id"`
+	Status                       string  `json:"status"`
 }
 
 type StrategicObjectiveListQueryParamsDTO struct {
@@ -123,4 +124,9 @@ type StrategicObjectiveDetailDTO struct {
 type StrategicObjectiveListResponseDTO struct {
 	Items      []*StrategicObjectiveListDTO `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type StrategicObjectiveParsedDates struct {
+	StartDate *time.Time
+	EndDate   *time.Time
 }

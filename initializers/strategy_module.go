@@ -98,7 +98,13 @@ func NewStrategyModule(db *gorm.DB,
 	strategicObjectiveCategoryController := controllers.NewStrategicObjectiveCategoryController(strategicObjectiveCategorySvc)
 
 	strategicObjectiveRepository := repositories.NewStrategicObjectiveRepository(db)
-	strategicObjectiveSvc := services.NewStrategicObjectiveService(strategicObjectiveRepository, sharedModule.ActivityLogService, strategicObjectiveCategorySvc)
+	strategicObjectiveSvc := services.NewStrategicObjectiveService(strategicObjectiveRepository,
+		sharedModule.ActivityLogService,
+		strategicObjectiveCategorySvc,
+		settingsModule.OrganizationUnitSvc,
+		organizationModule.UserSvc,
+		masterModule.ReviewFrequencySvc,
+	)
 	strategicObjectiveController := controllers.NewStrategicObjectiveController(strategicObjectiveSvc)
 
 	return &StrategyModule{
