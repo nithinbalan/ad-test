@@ -172,6 +172,11 @@ func (repo *StrategicObjectiveRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("ResponsibleUnit").
 		Preload("ReviewUser").
 		Preload("ReviewFrequency").
+		Preload("StrategicObjectiveKPIs").
+		Preload("StrategicObjectiveKPIs.KPIRegister").
+		Preload("StrategicObjectiveKPIs.KPIRegister.KPICategory").
+		Preload("StrategicObjectiveKPIs.KPIRegister.KPIStatus").
+		Preload("StrategicObjectiveKPIs.KPIRegister.ResponsibleUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&strategicObjective, id)

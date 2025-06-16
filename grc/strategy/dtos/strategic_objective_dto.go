@@ -119,6 +119,14 @@ type StrategicObjectiveDetailDTO struct {
 	UpdatedAt                    *time.Time                             `json:"updated_at"`
 	CreatedByUser                organizationDTOs.UserMinimalDTO        `json:"created_by_user"`
 	UpdatedByUser                *organizationDTOs.UserMinimalDTO       `json:"updated_by_user"`
+	StrategicObjectiveKPIs       []StrategicObjectiveKPIDetailDTO       `json:"strategic_objective_kpis"`
+}
+type StrategicObjectiveKPIDetailDTO struct {
+	ID            uint                            `json:"id"`
+	KPIRegisterID uint                            `json:"kpi_register_id"`
+	KPIRegister   KPIRegisterDetailDTO            `json:"kpi_register"`
+	CreatedAt     time.Time                       `json:"created_at"`
+	CreatedBy     organizationDTOs.UserMinimalDTO `json:"created_by"`
 }
 
 type StrategicObjectiveListResponseDTO struct {
