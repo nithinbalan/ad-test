@@ -430,17 +430,13 @@ func (ujds *UserJobDescriptionService) validateJobDescriptionIDs(jdIDs []uint) e
 		seen[jdID] = true
 
 		// Load full JD with Competencies and their Certifications
-		jdDetails, err := ujds.jdService.GetFullDetailsByID(jdID)
+		_, err := ujds.jdService.GetByID(jdID)
 		if err != nil {
 			return utility.NewValidationError(fmt.Errorf("unable to load full details for job description ID: %d", jdID), "not_exist", "job_description_ids")
 		}
 
-		if len(jdDetails.Competencies) == 0 {
-			return utility.NewValidationError(fmt.Errorf("no competencies found for job description ID: %d", jdID), "not_exist", "job_description_ids")
-		}
-
 	}
-
+	fmt.Println("190")
 	return nil
 }
 
