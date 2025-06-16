@@ -154,7 +154,7 @@ func (repo *ReminderRepository) GetReminderByModuleID(moduleID uint) ([]*models.
 	err := repo.db.
 		Preload("ReminderRules").
 		Preload("ReminderRules", func(db *gorm.DB) *gorm.DB {
-			return db.Preload("TriggerCondition")
+			return db.Order("day_offset ASC").Preload("TriggerCondition")
 		}).
 		Where("module_id = ?", moduleID).
 		Find(&summary).Error

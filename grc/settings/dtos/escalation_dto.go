@@ -3,17 +3,21 @@ package dtos
 import "time"
 
 type EscalationDTO struct {
-	ID       uint   `json:"id"`
-	TitleEn  string `json:"title_en"`
-	TitleAr  string `json:"title_ar"`
-	ModuleID uint   `json:"module_id"`
-	Status   string `json:"status"`
+	ID            uint   `json:"id"`
+	TitleEn       string `json:"title_en"`
+	TitleAr       string `json:"title_ar"`
+	DescriptionEn string `json:"description_en"`
+	DescriptionAr string `json:"description_ar"`
+	ModuleID      uint   `json:"module_id"`
+	Status        string `json:"status"`
 }
 
 type CreateEscalationDTO struct {
-	TitleEn  string `json:"title_en" binding:"required"`
-	TitleAr  string `json:"title_ar" binding:"required"`
-	ModuleID uint   `json:"module_id" binding:"required"`
+	TitleEn       string `json:"title_en" binding:"required"`
+	TitleAr       string `json:"title_ar" binding:"required"`
+	DescriptionEn string `json:"description_en" binding:"required"`
+	DescriptionAr string `json:"description_ar" binding:"required"`
+	ModuleID      uint   `json:"module_id" binding:"required"`
 }
 
 type UpdateEscalationDTO struct {
@@ -28,7 +32,8 @@ type EscalationDetailsDTO struct {
 	TitleAr          string                     `json:"title_ar"`
 	ModuleID         uint                       `json:"module_id"`
 	Status           string                     `json:"status"`
-	Description      *string                    `json:"description"`
+	DescriptionEn    *string                    `json:"description_en"`
+	DescriptionAr    *string                    `json:"description_ar"`
 	CreatedAt        time.Time                  `json:"created_at"`
 	UpdatedAt        time.Time                  `json:"updated_at"`
 	EscalationLevels []EscalationLevelDetailDTO `json:"escalation_levels"`
@@ -47,7 +52,8 @@ type GroupedEscalationDTO struct {
 	ModuleID         uint                       `json:"module_id"`
 	TitleEn          string                     `json:"title_en"`
 	TitleAr          string                     `json:"title_ar"`
-	Description      string                     `json:"description"`
+	DescriptionEn    *string                    `json:"description_en"`
+	DescriptionAr    *string                    `json:"description_ar"`
 	Status           string                     `json:"status"`
 	CreatedAt        time.Time                  `json:"created_at"`
 	UpdatedAt        time.Time                  `json:"updated_at"`
