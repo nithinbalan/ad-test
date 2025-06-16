@@ -152,7 +152,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.PUT("/strategic-objectives/activate", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveController.ActivateStrategicObjectives)
 	strategyRoutes.PUT("/strategic-objectives/deactivate", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveController.DeactivateStrategicObjectives)
 
-	strategyRoutes.POST("/strategic-objectives/:id/kpi", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveKPIController.CreateStrategicObjectiveKPI)
-	strategyRoutes.DELETE("/strategic-objectives/:id/kpi/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveKPIController.DeleteStrategicObjectiveKPI)
+	strategyRoutes.POST("/strategic-objectives/:id/kpis", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveKPIController.CreateStrategicObjectiveKPI)
+	strategyRoutes.DELETE("/strategic-objectives/:id/kpis/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveKPIController.DeleteStrategicObjectiveKPI)
 
 }

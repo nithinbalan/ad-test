@@ -31,6 +31,7 @@ type StrategicObjective struct {
 	CreatedByUser              *User                                      `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser              *User                                      `gorm:"foreignKey:UpdatedBYID"`
 	ComplianceRequirements     []*ComplianceRequirementStrategicObjective `gorm:"foreignKey:StrategicObjectiveID"`
+	StrategicObjectiveKPIs     []*StrategicObjectiveKPI                   `gorm:"foreignKey:StrategicObjectiveID"`
 }
 
 func (StrategicObjective) TableName() string {
