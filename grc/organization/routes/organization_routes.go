@@ -23,7 +23,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	userSettingController := app.OrganizationModule.UserSettingController
 	strategicProfileController := app.OrganizationModule.StrategicProfileController
 	strategicProfileValueController := app.OrganizationModule.StrategicProfileValueController
-	strategicObjectiveController := app.OrganizationModule.StrategicObjectiveController
+	// strategicObjectiveController := app.OrganizationModule.StrategicObjectiveController
 	controlCategoryController := app.OrganizationModule.ControlCategoryController
 	controlTypeController := app.OrganizationModule.ControlTypeController
 	controlImplementationStatusController := app.OrganizationModule.ControlImplementationStatusController
@@ -134,13 +134,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/strategic-profiles/values/delete", middlewares.RolePermissionMiddleware(db, "strategic_profile", "modify"), strategicProfileValueController.DeleteStrategicProfileValues)
 
 	//Strategic Objective
-	organizationRoutes.GET("/strategic-objectives", strategicObjectiveController.GetAllStrategicObjectives)
-	organizationRoutes.GET("/strategic-objectives/:id", strategicObjectiveController.GetStrategicObjectiveDetails)
-	organizationRoutes.POST("/strategic-objectives", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), strategicObjectiveController.CreateStrategicObjective)
-	organizationRoutes.PUT("/strategic-objectives/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), strategicObjectiveController.UpdateStrategicObjective)
-	organizationRoutes.POST("/strategic-objectives/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), strategicObjectiveController.DeleteStrategicObjectives)
-	organizationRoutes.PUT("/strategic-objectives/activate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), strategicObjectiveController.ActivateStrategicObjectives)
-	organizationRoutes.PUT("/strategic-objectives/deactivate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), strategicObjectiveController.DeactivateStrategicObjectives)
+	// organizationRoutes.GET("/strategic-objectives", strategicObjectiveController.GetAllStrategicObjectives)
+	// organizationRoutes.GET("/strategic-objectives/:id", strategicObjectiveController.GetStrategicObjectiveDetails)
+	// organizationRoutes.POST("/strategic-objectives", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), strategicObjectiveController.CreateStrategicObjective)
+	// organizationRoutes.PUT("/strategic-objectives/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), strategicObjectiveController.UpdateStrategicObjective)
+	// organizationRoutes.POST("/strategic-objectives/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), strategicObjectiveController.DeleteStrategicObjectives)
+	// organizationRoutes.PUT("/strategic-objectives/activate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), strategicObjectiveController.ActivateStrategicObjectives)
+	// organizationRoutes.PUT("/strategic-objectives/deactivate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), strategicObjectiveController.DeactivateStrategicObjectives)
 
 	//User Settings
 	organizationRoutes.GET("/users/:userId/settings/preferences", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userSettingController.GetSetting)

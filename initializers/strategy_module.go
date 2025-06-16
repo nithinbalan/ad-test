@@ -23,6 +23,9 @@ type StrategyModule struct {
 	KpiCategoryController                           *controllers.KPICategoryController
 	KpiStatusController                             *controllers.KPIStatusController
 	KpiRegisterController                           *controllers.KPIRegisterController
+	StrategicObjectiveCategoryController            *controllers.StrategicObjectiveCategoryController
+	StrategicObjectiveController                    *controllers.StrategicObjectiveController
+	StrategicObjectiveKPIController                 *controllers.StrategicObjectiveKPIController
 }
 
 func NewStrategyModule(db *gorm.DB,
@@ -91,6 +94,28 @@ func NewStrategyModule(db *gorm.DB,
 	kpiRegisterSvc := services.NewKPIRegisterService(kpiRegisterRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, settingsModule.OrganizationUnitSvc, kpiStatusSvc)
 	kpiRegisterController := controllers.NewKPIRegisterController(kpiRegisterSvc)
 
+	strategicObjectiveCategoryRepository := repositories.NewStrategicObjectiveCategoryRepository(db)
+	strategicObjectiveCategorySvc := services.NewStrategicObjectiveCategoryService(strategicObjectiveCategoryRepository, sharedModule.ActivityLogService)
+	strategicObjectiveCategoryController := controllers.NewStrategicObjectiveCategoryController(strategicObjectiveCategorySvc)
+
+	strategicObjectiveRepository := repositories.NewStrategicObjectiveRepository(db)
+	strategicObjectiveSvc := services.NewStrategicObjectiveService(strategicObjectiveRepository,
+		sharedModule.ActivityLogService,
+		strategicObjectiveCategorySvc,
+		settingsModule.OrganizationUnitSvc,
+		organizationModule.UserSvc,
+		masterModule.ReviewFrequencySvc,
+	)
+	strategicObjectiveController := controllers.NewStrategicObjectiveController(strategicObjectiveSvc)
+
+	strategicObjectiveKPIRepository := repositories.NewStrategicObjectiveKPIRepository(db)
+	strategicObjectiveKPISvc := services.NewStrategicObjectiveKPIService(strategicObjectiveKPIRepository,
+		sharedModule.ActivityLogService,
+		strategicObjectiveSvc,
+		kpiRegisterSvc,
+	)
+	strategicObjectiveKPIController := controllers.NewStrategicObjectiveKPIController(strategicObjectiveKPISvc)
+
 	return &StrategyModule{
 		StrategyProfileController:                       strategyProfileController,
 		StrategyProfileFocusAreaController:              strategyProfileFocusAreaController,
@@ -106,5 +131,8 @@ func NewStrategyModule(db *gorm.DB,
 		KpiCategoryController:                           kpiCategoryController,
 		KpiStatusController:                             kpiStatusController,
 		KpiRegisterController:                           kpiRegisterController,
+		StrategicObjectiveCategoryController:            strategicObjectiveCategoryController,
+		StrategicObjectiveController:                    strategicObjectiveController,
+		StrategicObjectiveKPIController:                 strategicObjectiveKPIController,
 	}
 }
