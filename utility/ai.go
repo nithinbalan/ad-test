@@ -180,19 +180,14 @@ func CallAIChatAPI(url string, payload map[string]interface{}) (map[string]inter
 
 	return result, nil
 }
-
 func StreamAIAPI(ctx context.Context, url string, payload map[string]interface{}) (<-chan string, error) {
-	log.Println("🔧 Invoking StreamAIAPI")
-
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		log.Printf("❌ Payload marshal error: %v\n", err)
 		return nil, fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		log.Printf("❌ Request creation error: %v\n", err)
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -202,37 +197,31 @@ func StreamAIAPI(ctx context.Context, url string, payload map[string]interface{}
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("❌ HTTP request failed: %v\n", err)
 		return nil, fmt.Errorf("failed to make request: %w", err)
 	}
-
-	log.Printf("📥 AI response status: %d\n", resp.StatusCode)
-
 	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
-		log.Printf("❌ Non-200 response: %s\n", string(bodyBytes))
 		return nil, fmt.Errorf("AI service returned non-200 status code: %d", resp.StatusCode)
 	}
 
-	responseChan := make(chan string)
+	streamChan := make(chan string)
 
 	go func() {
 		defer resp.Body.Close()
-		defer close(responseChan)
+		defer close(streamChan)
 
 		reader := bufio.NewReader(resp.Body)
 		for {
 			select {
 			case <-ctx.Done():
-				log.Println("🛑 Context done, stopping read")
+				log.Println("⛔ Context cancelled inside stream reader")
 				return
 			default:
 				line, err := reader.ReadString('\n')
 				if err != nil {
 					if err != io.EOF {
-						log.Printf("❌ Stream read error: %v\n", err)
-						responseChan <- fmt.Sprintf(`{"error": "failed to read response: %s"}`, err.Error())
+						log.Printf("❌ Read error: %v\n", err)
+						streamChan <- fmt.Sprintf(`{"error": "%s"}`, err.Error())
 					}
 					return
 				}
@@ -242,18 +231,13 @@ func StreamAIAPI(ctx context.Context, url string, payload map[string]interface{}
 					continue
 				}
 
-				log.Printf("📡 Raw line: %s\n", line)
-
-				if strings.HasPrefix(line, "data: ") {
-					data := strings.TrimPrefix(line, "data: ")
-					log.Printf("📤 Streaming data: %s\n", data)
-					responseChan <- data
-				}
+				log.Printf("📌 Raw line: %s", line)
+				streamChan <- line
 			}
 		}
 	}()
 
-	return responseChan, nil
+	return streamChan, nil
 }
 
 // StreamAIAPI makes a streaming POST request to the AI service and returns a channel for the responses
