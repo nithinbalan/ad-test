@@ -10,6 +10,7 @@ import (
 )
 
 type StrategicObjectiveKPIServiceInterface interface {
+	GetAll(strategicObjectiveID uint, params *dtos.StrategicObjectiveKPIListQueryParamsDTO) (*dtos.StrategicObjectiveKPIListResponseDTO, error)
 	Create(strategicObjectiveID uint, currentUserID uint, input *dtos.StrategicObjectiveKPIFormDTO) error
 	DeleteStrategicObjectiveKPI(strategicObjectiveID uint, kpiRegisterID uint) error
 }
@@ -33,6 +34,10 @@ func NewStrategicObjectiveKPIService(repo repositories.StrategicObjectiveKPIRepo
 		strategicObjectiveSvc: strategicObjectiveSvc,
 		kpiRegisterSvc:        kpiRegisterSvc,
 	}
+}
+
+func (soks *StrategicObjectiveKPIService) GetAll(strategicObjectiveID uint, params *dtos.StrategicObjectiveKPIListQueryParamsDTO) (*dtos.StrategicObjectiveKPIListResponseDTO, error) {
+	return soks.repo.GetAllStrategicObjectiveKPI(strategicObjectiveID, params)
 }
 
 func (soks *StrategicObjectiveKPIService) Create(strategicObjectiveID uint, currentUserID uint, input *dtos.StrategicObjectiveKPIFormDTO) error {
