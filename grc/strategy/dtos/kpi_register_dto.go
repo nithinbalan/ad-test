@@ -56,7 +56,7 @@ type KPIRegisterFormDTO struct {
 	ReviewFrequencyID *uint               `json:"review_frequency_id" binding:"required"`
 	CalculationTypeID *uint               `json:"calculation_type_id" binding:"required"`
 	DataInputs        []*InputDataFormDTO `json:"data_inputs"`
-	Formula           *string             `json:"formula" binding:"required"`
+	Formula           *string             `json:"formula"`
 	UnitID            *uint               `json:"unit_id" binding:"required"`
 
 	TargetValue *float64 `json:"target_value" binding:"required"`
