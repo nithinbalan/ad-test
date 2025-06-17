@@ -26,6 +26,7 @@ type StrategicObjectiveServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
+	UpdateStrategicObjective(strategicObjective *models.StrategicObjective, tx ...utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -369,6 +370,15 @@ func (sos *StrategicObjectiveService) Deactivate(ids []uint, currentUserID uint)
 	}
 
 	return err
+}
+
+func (sos *StrategicObjectiveService) UpdateStrategicObjective(strategicObjective *models.StrategicObjective, tx ...utility.DatabaseTransaction) error {
+	err := sos.repo.Update(strategicObjective, tx...)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (sos *StrategicObjectiveService) validateStrategicObjectiveFormDTO(dto *dtos.StrategicObjectiveFormDTO) error {
