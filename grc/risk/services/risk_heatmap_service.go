@@ -11,6 +11,7 @@ type RiskHeatmapServiceInterface interface {
 	GetRiskHeatmapByComplianceID(complianceID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
 	GetRiskHeatmapBySLAID(slaID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
 	GetRiskHeatmapByAssetID(assetID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
+	GetRiskHeatmapByKPIID(kpiID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
 
 	GetRiskHeatmapByResponsibleUnit(params *riskDTOs.RiskHeatmapQueryParamsDTO) ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
 	GetRiskHeatmapByRiskCategory(params *riskDTOs.RiskHeatmapQueryParamsDTO) ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
@@ -628,5 +629,19 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByAssetID(assetID uint) ([][]*riskD
 	}
 
 	// Step 4: Generate heatmap using those risk IDs
+	return rhs.GetRiskHeatmap(riskRegisterIDs)
+}
+
+func (rhs *RiskHeatmapService) GetRiskHeatmapByKPIID(kpiID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error) {
+	riskSLAs, err := rhs.repo.GetRiskKPIsByKPIID(kpiID)
+	if err != nil {
+		return nil, err
+	}
+
+	var riskRegisterIDs []uint
+	for _, rs := range riskSLAs {
+		riskRegisterIDs = append(riskRegisterIDs, rs.RiskRegisterID)
+	}
+
 	return rhs.GetRiskHeatmap(riskRegisterIDs)
 }

@@ -19,6 +19,8 @@ type KPIRegisterRepositoryInterface interface {
 
 	CreateKPIRegisterInpuData(inputs []*models.KPIRegisterDataInput, tx ...utility.DatabaseTransaction) error
 	DeleteKPIRegisterInputData(kpiRegisterId uint, tx ...utility.DatabaseTransaction) error
+
+	GetTrendAnalysis(kpiId uint) ([]*models.KPIValueUpdate, error)
 }
 
 type KPIRegisterRepository struct {
@@ -152,6 +154,10 @@ func (repo *KPIRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Dat
 		Preload("KPICategory").
 		Preload("KPIStatus").
 		Preload("ResponsibleUser").
+		Preload("CalculationType").
+		Preload("ReviewFrequency").
+		Preload("Unit").
+		Preload("DataInputs").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&kpiRegister, id)
@@ -225,4 +231,18 @@ func (repo *KPIRegisterRepository) DeleteKPIRegisterInputData(kpiRegisterID uint
 	}
 
 	return nil
+}
+
+func (repo *KPIRegisterRepository) GetTrendAnalysis(kpiID uint) ([]*models.KPIValueUpdate, error) {
+	var kpiValueUpdate []*models.KPIValueUpdate
+
+	result := repo.db.Where("kpi_register_id = ?", kpiID).
+		Order("reviewed_date ASC").
+		Find(&kpiValueUpdate)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return kpiValueUpdate, nil
 }

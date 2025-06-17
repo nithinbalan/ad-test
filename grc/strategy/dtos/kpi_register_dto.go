@@ -55,15 +55,12 @@ type KPIRegisterFormDTO struct {
 
 	ReviewFrequencyID *uint               `json:"review_frequency_id" binding:"required"`
 	CalculationTypeID *uint               `json:"calculation_type_id" binding:"required"`
-	DataInputs        []*InputDataFormDTO `json:"data_inputs" binding:"required"`
+	DataInputs        []*InputDataFormDTO `json:"data_inputs"`
 	Formula           *string             `json:"formula" binding:"required"`
 	UnitID            *uint               `json:"unit_id" binding:"required"`
-	Source            *string             `json:"source"`
 
-	TargetValue     *float64 `json:"target_value" binding:"required"`
-	LowThreshold    *int     `json:"low_threshold" gorm:"type:int;null"`
-	MediumThreshold *int     `json:"medium_threshold" gorm:"type:int;null"`
-	Weightage       *float64 `json:"weightage"`
+	TargetValue *float64 `json:"target_value" binding:"required"`
+	Weightage   *float64 `json:"weightage"`
 
 	StartDate *string `json:"start_date" binding:"required"`
 	EndDate   *string `json:"end_date"`
@@ -104,15 +101,13 @@ type KPIRegisterDetailDTO struct {
 	Formula           *string                          `json:"formula"`
 	UnitID            *uint                            `json:"unit_id"`
 	Unit              *masterDTOs.UnitDTO              `json:"unit"`
-	Source            *string                          `json:"source"`
 	ActualValue       *float64                         `json:"actual_value"`
 	TargetValue       *float64                         `json:"target_value"`
-	LowThreshold      *int                             `json:"low_threshold"`
-	MediumThreshold   *int                             `json:"medium_threshold"`
 	Weightage         *float64                         `json:"weightage"`
 	StartDateString   *string                          `json:"start_date"`
 	EndDateString     *string                          `json:"end_date"`
 	Remarks           *string                          `json:"remarks"`
+	DataInputs        []*KPIRegisterDataInputDTO       `json:"data_inputs"`
 	CreatedAt         time.Time                        `json:"created_at"`
 	UpdatedAt         *time.Time                       `json:"updated_at"`
 	CreatedByUser     organizationDTOs.UserMinimalDTO  `json:"created_by"`
@@ -122,4 +117,15 @@ type KPIRegisterDetailDTO struct {
 type KPIRegisterParsedDates struct {
 	StartDate *time.Time
 	EndDate   *time.Time
+}
+
+type KPIRegisterDataInputDTO struct {
+	ID       uint   `json:"id"`
+	Variable string `json:"variable"`
+	Input    string `json:"input"`
+}
+
+type KPITrendAnalysisDTO struct {
+	ReviewedAtString string  `json:"reviewed_at"`
+	Value            float64 `json:"value"`
 }
