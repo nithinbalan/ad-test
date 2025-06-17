@@ -19,7 +19,7 @@ import (
 )
 
 type UserDocumentServiceInterface interface {
-	GetAll(userID uint, params *orgDTOs.UserDocumentListQueryParamsDTO) ([]*orgDTOs.GroupedUserDocumentDTO, error)
+	GetAll(userID uint, params *orgDTOs.UserDocumentListQueryParamsDTO) ([]orgDTOs.GroupedUserDocumentDTO, error)
 	GetFullDetailsByID(userID uint, id uint) (*orgDTOs.UserDocumentDetailDTO, error)
 	GetByID(userID uint, id uint) (*models.UserDocument, error)
 	Create(userID uint, currentUserID uint, userDocumentFormDTO *orgDTOs.UserDocumentFormDTO) (uint, error)
@@ -53,11 +53,15 @@ func NewUserDocumentService(
 	}
 }
 
-func (uds *UserDocumentService) GetAll(userID uint, params *orgDTOs.UserDocumentListQueryParamsDTO) ([]*orgDTOs.GroupedUserDocumentDTO, error) {
+func (uds *UserDocumentService) GetAll(userID uint, params *orgDTOs.UserDocumentListQueryParamsDTO) ([]orgDTOs.GroupedUserDocumentDTO, error) {
 	// Step 1: Fetch all document types
 	documentTypes, err := uds.userDocumentTypeSvc.GetAll("", "", "", "active")
 	if err != nil {
 		return nil, err
+	}
+
+	if len(documentTypes) == 0 {
+		return []orgDTOs.GroupedUserDocumentDTO{}, nil
 	}
 
 	// Step 2: Fetch all user documents
@@ -79,14 +83,14 @@ func (uds *UserDocumentService) GetAll(userID uint, params *orgDTOs.UserDocument
 
 	for _, document := range documents {
 		if group, exists := documentTypeGroup[document.UserDocumentTypeID]; exists {
-			group.Documents = append(group.Documents, document)
+			group.Documents = append(group.Documents, &document)
 		}
 	}
 
 	// Convert map to slice
-	var response []*orgDTOs.GroupedUserDocumentDTO
+	var response []orgDTOs.GroupedUserDocumentDTO
 	for _, group := range documentTypeGroup {
-		response = append(response, group)
+		response = append(response, *group)
 	}
 
 	sort.Slice(response, func(i, j int) bool {
