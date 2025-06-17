@@ -47,6 +47,8 @@ func (repo *KPIRegisterRepository) GetAll(params *strategyDTOs.KPIRegisterListQu
             kpi_register.*,
 			kpi_categories.title_en AS kpi_category_title_en,
 			kpi_categories.title_ar AS kpi_category_title_ar,
+			CONVERT(VARCHAR, kpi_register.start_date, 23) AS start_date,
+			CONVERT(VARCHAR, kpi_register.end_date, 23) AS target_date,
 			responsible_user.id AS responsible_user_id,
 			responsible_user.first_name_en AS responsible_user_first_name_en,
 			responsible_user.first_name_ar AS responsible_user_first_name_ar,
@@ -60,6 +62,17 @@ func (repo *KPIRegisterRepository) GetAll(params *strategyDTOs.KPIRegisterListQu
 			kpi_statuses.title_ar AS kpi_status_title_ar,
 			kpi_statuses.type AS kpi_status_type,
 			kpi_statuses.color_code AS kpi_status_color_code,
+			review_frequencies.title_en AS review_frequency_title_en,
+			review_frequencies.title_ar AS review_frequency_title_ar,
+			review_frequencies.type AS review_frequency_type,
+			calculation_types.title_en AS calculation_type_title_en,
+			calculation_types.title_ar AS calculation_type_title_ar,
+			calculation_types.type AS calculation_type_type,
+			units.title_en AS unit_title_en,
+			units.title_ar AS unit_title_ar,
+			units.code_en AS unit_code_en,
+			units.code_ar AS unit_code_ar,
+			units.color_code AS unit_color_code,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -82,6 +95,9 @@ func (repo *KPIRegisterRepository) GetAll(params *strategyDTOs.KPIRegisterListQu
 		Joins(`
 			LEFT JOIN kpi_categories ON kpi_categories.id = kpi_register.kpi_category_id
 			LEFT JOIN kpi_statuses ON kpi_statuses.id = kpi_register.kpi_status_id
+			LEFT JOIN calculation_types ON calculation_types.id = kpi_register.calculation_type_id
+			LEFT JOIN review_frequencies ON review_frequencies.id = kpi_register.review_frequency_id
+			LEFT JOIN units ON units.id = kpi_register.unit_id
 			LEFT JOIN users AS responsible_user ON responsible_user.id = kpi_register.responsible_user_id
 			LEFT JOIN users AS created_user ON created_user.id = kpi_register.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = kpi_register.updated_by_id
