@@ -339,3 +339,30 @@ func (rhc *RiskHeatmapController) GetAssetRiskHeatmap(c *gin.Context) {
 
 	c.JSON(http.StatusOK, riskHeatmap)
 }
+
+func (rhc *RiskHeatmapController) GetStrategicObjectiveRiskHeatmap(c *gin.Context) {
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	heatmap, err := rhc.service.GetRiskHeatmapByStrategicObjectiveID(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rhc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, heatmap)
+}
