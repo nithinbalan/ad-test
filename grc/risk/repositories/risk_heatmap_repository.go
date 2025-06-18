@@ -21,6 +21,7 @@ type RiskHeatmapRepositoryInterface interface {
 	GetVulnerabilityIDsByAssetID(assetID uint) ([]uint, error)
 	GetThreatIDsByVulnerabilityIDs(vulnIDs []uint) ([]uint, error)
 	GetRiskRegisterIDsByThreatIDs(threatIDs []uint) ([]uint, error)
+	GetRiskStrategicObjectiveByID(ID uint) ([]models.RiskStrategicObjective, error)
 }
 
 type RiskHeatmapRepository struct {
@@ -143,4 +144,12 @@ func (repo *RiskHeatmapRepository) GetRiskKPIsByKPIID(kpiID uint) ([]models.KPIR
 		return nil, err
 	}
 	return kpiRisks, nil
+}
+
+func (repo *RiskHeatmapRepository) GetRiskStrategicObjectiveByID(ID uint) ([]models.RiskStrategicObjective, error) {
+	var riskStrategicObjectives []models.RiskStrategicObjective
+	if err := repo.db.Where("strategic_objective_id = ?", ID).Find(&riskStrategicObjectives).Error; err != nil {
+		return nil, err
+	}
+	return riskStrategicObjectives, nil
 }
