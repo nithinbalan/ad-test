@@ -29,10 +29,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyProfileSettingController := app.StrategyModule.StrategyProfileSettingController
 	kpiCategoryController := app.StrategyModule.KpiCategoryController
 	kpiStatusController := app.StrategyModule.KpiStatusController
+	entryTypeController := app.StrategyModule.EntryTypeController
+	dataSourceController := app.StrategyModule.DataSourceController
 	kpiRegisterController := app.StrategyModule.KpiRegisterController
 	strategicObjectiveCategoryController := app.StrategyModule.StrategicObjectiveCategoryController
 	strategicObjectiveController := app.StrategyModule.StrategicObjectiveController
 	strategicObjectiveKPIController := app.StrategyModule.StrategicObjectiveKPIController
+	kpiValueUpdateController := app.StrategyModule.KpiValueUpdateController
+	kpiAssociatedItemController := app.StrategyModule.KpiAssociatedItemController
 
 	// strategy profile
 	strategyRoutes.GET("/strategy-profiles", strategyProfileController.GetAllStrategyProfiles)
@@ -128,13 +132,58 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.GET("/kpi-statuses", kpiStatusController.GetAllKPIStatuses)
 	strategyRoutes.GET("/kpi-statuses/:id", kpiStatusController.GetKPIStatusDetails)
 
+	// entry type
+	strategyRoutes.GET("/entry-types", entryTypeController.GetAllEntryTypees)
+	strategyRoutes.GET("/entry-types/:id", entryTypeController.GetEntryTypeDetails)
+
+	// data source
+	strategyRoutes.GET("/data-sources", dataSourceController.GetAllDataSourcees)
+	strategyRoutes.GET("/data-sources/:id", dataSourceController.GetDataSourceDetails)
+
 	// kpi register
 	strategyRoutes.GET("/kpi-register", kpiRegisterController.GetAllKPIRegister)
 	strategyRoutes.GET("/kpi-register/:kpiRegisterId", kpiRegisterController.GetKPIRegisterDetails)
-	strategyRoutes.POST("/kpi-register", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), kpiRegisterController.CreateKPIRegister)
-	strategyRoutes.PUT("/kpi-register/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), kpiRegisterController.UpdateKPIRegister)
-	strategyRoutes.POST("/kpi-register/delete", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), kpiRegisterController.DeleteKPIRegister)
+	strategyRoutes.POST("/kpi-register", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiRegisterController.CreateKPIRegister)
+	strategyRoutes.PUT("/kpi-register/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiRegisterController.UpdateKPIRegister)
+	strategyRoutes.POST("/kpi-register/delete", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiRegisterController.DeleteKPIRegister)
+	strategyRoutes.GET("/kpi-register/:kpiRegisterId/trends", middlewares.RolePermissionMiddleware(db, "kpi", "view"), kpiRegisterController.GetKPITrendAnalysis)
 
+	unauthenticatedRoutes.GET("/kpi-register/:kpiRegisterId/value-updates/:updateId/document-preview", kpiValueUpdateController.GetKPIValueUpdateDocumentPreview)
+	unauthenticatedRoutes.GET("/kpi-register/:kpiRegisterId/value-updates/:updateId/document-download", kpiValueUpdateController.DownloadKPIValueUpdateDocument)
+	strategyRoutes.GET("/kpi-register/:kpiRegisterId/value-updates", middlewares.RolePermissionMiddleware(db, "kpi", "view"), kpiValueUpdateController.GetAllKPIValueUpdates)
+	strategyRoutes.POST("/kpi-register/:kpiRegisterId/value-updates", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiValueUpdateController.CreateKPIValueUpdate)
+	strategyRoutes.GET("/kpi-register/:kpiRegisterId/value-updates/:updateId", middlewares.RolePermissionMiddleware(db, "kpi", "view"), kpiValueUpdateController.GetKPIValueUpdateDetails)
+	strategyRoutes.PUT("/kpi-register/:kpiRegisterId/value-updates/:updateId", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiValueUpdateController.UpdateKPIValueUpdate)
+	strategyRoutes.POST("/kpi-register/:kpiRegisterId/value-updates/delete", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiValueUpdateController.DeleteKPIValueUpdates)
+
+	// KPI Associated Items
+	strategyRoutes.GET("/kpi-register/:kpiRegisterId/controls", middlewares.RolePermissionMiddleware(db, "kpi", "view"), kpiAssociatedItemController.GetAllKPIControls)
+	strategyRoutes.POST("/kpi-register/:kpiRegisterId/controls", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiAssociatedItemController.CreateKPIControls)
+	strategyRoutes.DELETE("/kpi-register/:kpiRegisterId/controls/:controlId", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiAssociatedItemController.DeleteKPIControl)
+
+	strategyRoutes.GET("/kpi-register/:kpiRegisterId/processes", middlewares.RolePermissionMiddleware(db, "kpi", "view"), kpiAssociatedItemController.GetAllKPIProcesses)
+	strategyRoutes.POST("/kpi-register/:kpiRegisterId/processes", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiAssociatedItemController.CreateKPIProcesses)
+	strategyRoutes.DELETE("/kpi-register/:kpiRegisterId/processes/:processId", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiAssociatedItemController.DeleteKPIProcess)
+
+	strategyRoutes.GET("/kpi-register/:kpiRegisterId/compliances", middlewares.RolePermissionMiddleware(db, "kpi", "view"), kpiAssociatedItemController.GetAllKPICompliances)
+	strategyRoutes.POST("/kpi-register/:kpiRegisterId/compliances", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiAssociatedItemController.CreateKPICompliances)
+	strategyRoutes.DELETE("/kpi-register/:kpiRegisterId/compliances/:complianceId", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiAssociatedItemController.DeleteKPICompliance)
+
+	strategyRoutes.GET("/kpi-register/:kpiRegisterId/assets", middlewares.RolePermissionMiddleware(db, "kpi", "view"), kpiAssociatedItemController.GetAllKPIAssets)
+	strategyRoutes.POST("/kpi-register/:kpiRegisterId/assets", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiAssociatedItemController.CreateKPIAssets)
+	strategyRoutes.DELETE("/kpi-register/:kpiRegisterId/assets/:assetId", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiAssociatedItemController.DeleteKPIAsset)
+
+	strategyRoutes.GET("/kpi-register/:kpiRegisterId/risks", middlewares.RolePermissionMiddleware(db, "kpi", "view"), kpiAssociatedItemController.GetAllKPIRisks)
+	strategyRoutes.POST("/kpi-register/:kpiRegisterId/risks", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiAssociatedItemController.CreateKPIRisks)
+	strategyRoutes.DELETE("/kpi-register/:kpiRegisterId/risks/:riskId", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiAssociatedItemController.DeleteKPIRisk)
+
+	strategyRoutes.GET("/kpi-register/:kpiRegisterId/third-party-register", middlewares.RolePermissionMiddleware(db, "kpi", "view"), kpiAssociatedItemController.GetAllKPIThirdParties)
+	strategyRoutes.POST("/kpi-register/:kpiRegisterId/third-party-register", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiAssociatedItemController.CreateKPIThirdParties)
+	strategyRoutes.DELETE("/kpi-register/:kpiRegisterId/third-party-register/:thirdPartyRegisterId", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiAssociatedItemController.DeleteKPIThirdParty)
+
+	strategyRoutes.GET("/kpi-register/:kpiRegisterId/documents", middlewares.RolePermissionMiddleware(db, "kpi", "view"), kpiAssociatedItemController.GetAllKPIPolicies)
+	strategyRoutes.POST("/kpi-register/:kpiRegisterId/documents", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiAssociatedItemController.CreateKPIPolicies)
+	strategyRoutes.DELETE("/kpi-register/:kpiRegisterId/documents/:documentId", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiAssociatedItemController.DeleteKPIPolicy)
 	// strategic objective category
 	strategyRoutes.GET("/strategic-objective-categories", strategicObjectiveCategoryController.GetAllStrategicObjectiveCategories)
 	strategyRoutes.POST("/strategic-objective-categories", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveCategoryController.CreateStrategicObjectiveCategory)

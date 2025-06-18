@@ -24,7 +24,7 @@ func NewKPIRegisterController(service services.KPIRegisterServiceInterface) *KPI
 	}
 }
 
-func (spc *KPIRegisterController) GetAllKPIRegister(c *gin.Context) {
+func (krc *KPIRegisterController) GetAllKPIRegister(c *gin.Context) {
 
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title")
@@ -42,13 +42,13 @@ func (spc *KPIRegisterController) GetAllKPIRegister(c *gin.Context) {
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
-		utility.SendInternalErrResp(spc.db, c, "Invalid page parameter")
+		utility.SendInternalErrResp(krc.db, c, "Invalid page parameter")
 		return
 	}
 
 	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
 	if err != nil {
-		utility.SendInternalErrResp(spc.db, c, "Invalid page_size parameter")
+		utility.SendInternalErrResp(krc.db, c, "Invalid page_size parameter")
 		return
 	}
 	sortField, valid := validSortFields[sortBy]
@@ -65,17 +65,17 @@ func (spc *KPIRegisterController) GetAllKPIRegister(c *gin.Context) {
 		PageSize: pageSize,
 		Filters:  filters,
 	}
-	kpiRegister, err := spc.service.GetAll(&queryParams)
+	kpiRegister, err := krc.service.GetAll(&queryParams)
 
 	if err != nil {
-		utility.SendInternalErrResp(spc.db, c, err.Error())
+		utility.SendInternalErrResp(krc.db, c, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, kpiRegister)
 }
 
-func (spc *KPIRegisterController) GetKPIRegisterDetails(c *gin.Context) {
+func (krc *KPIRegisterController) GetKPIRegisterDetails(c *gin.Context) {
 	idStr := c.Param("kpiRegisterId")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -84,21 +84,21 @@ func (spc *KPIRegisterController) GetKPIRegisterDetails(c *gin.Context) {
 		return
 	}
 
-	kpiRegister, err := spc.service.GetFullDetailsByID(uint(id))
+	kpiRegister, err := krc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(spc.db, c, e.Error())
+			utility.SendInternalErrResp(krc.db, c, e.Error())
 			return
 		}
 	}
 	c.JSON(http.StatusOK, kpiRegister)
 }
 
-func (spc *KPIRegisterController) CreateKPIRegister(c *gin.Context) {
+func (krc *KPIRegisterController) CreateKPIRegister(c *gin.Context) {
 
 	var kpiRegisterFormDTO strategyDTOs.KPIRegisterFormDTO
 
@@ -109,11 +109,11 @@ func (spc *KPIRegisterController) CreateKPIRegister(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(spc.db, c, err.Error())
+		utility.SendInternalErrResp(krc.db, c, err.Error())
 		return
 	}
 
-	id, err := spc.service.Create(currentUserID, &kpiRegisterFormDTO)
+	id, err := krc.service.Create(currentUserID, &kpiRegisterFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -124,7 +124,7 @@ func (spc *KPIRegisterController) CreateKPIRegister(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(spc.db, c, e.Error())
+			utility.SendInternalErrResp(krc.db, c, e.Error())
 			return
 		}
 	}
@@ -132,7 +132,7 @@ func (spc *KPIRegisterController) CreateKPIRegister(c *gin.Context) {
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
-func (spc *KPIRegisterController) UpdateKPIRegister(c *gin.Context) {
+func (krc *KPIRegisterController) UpdateKPIRegister(c *gin.Context) {
 	var kpiRegisterFormDTO strategyDTOs.KPIRegisterFormDTO
 
 	kpiRegisterID, err := strconv.Atoi(c.Param("kpiRegisterId"))
@@ -148,11 +148,11 @@ func (spc *KPIRegisterController) UpdateKPIRegister(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(spc.db, c, err.Error())
+		utility.SendInternalErrResp(krc.db, c, err.Error())
 		return
 	}
 
-	err = spc.service.Update(uint(kpiRegisterID), currentUserID, &kpiRegisterFormDTO)
+	err = krc.service.Update(uint(kpiRegisterID), currentUserID, &kpiRegisterFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -162,7 +162,7 @@ func (spc *KPIRegisterController) UpdateKPIRegister(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(spc.db, c, e.Error())
+			utility.SendInternalErrResp(krc.db, c, e.Error())
 			return
 		}
 	}
@@ -170,7 +170,7 @@ func (spc *KPIRegisterController) UpdateKPIRegister(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (spc *KPIRegisterController) DeleteKPIRegister(c *gin.Context) {
+func (krc *KPIRegisterController) DeleteKPIRegister(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -182,15 +182,38 @@ func (spc *KPIRegisterController) DeleteKPIRegister(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(spc.db, c, err.Error())
+		utility.SendInternalErrResp(krc.db, c, err.Error())
 		return
 	}
 
-	failedIDs, err := spc.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := krc.service.Delete(request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(spc.db, c, err.Error())
+		utility.SendInternalErrResp(krc.db, c, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (krc *KPIRegisterController) GetKPITrendAnalysis(c *gin.Context) {
+	idStr := c.Param("kpiRegisterId")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	controlTrend, err := krc.service.GetTrendAnalysis(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(krc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, controlTrend)
 }

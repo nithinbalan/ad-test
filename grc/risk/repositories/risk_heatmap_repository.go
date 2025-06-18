@@ -14,6 +14,7 @@ type RiskHeatmapRepositoryInterface interface {
 	GetRiskSLAsBySLAID(slaID uint) ([]models.RiskSLA, error)
 	GetRiskAssetByAssetID(assetID uint) ([]models.RiskAsset, error)
 	GetAllRiskRegisters(params *riskDTOs.RiskHeatmapQueryParamsDTO) ([]models.RiskRegister, error)
+	GetRiskKPIsByKPIID(kpiID uint) ([]models.KPIRisk, error)
 
 	CountRiskRegistersWithLikelihoodAndImpact(riskRegisterIDs []uint, riskRatingValueID, likelihoodID, impactID uint) (int, error)
 
@@ -134,4 +135,12 @@ func (repo *RiskHeatmapRepository) GetRiskRegisterIDsByThreatIDs(threatIDs []uin
 		Where("threat_id IN ?", threatIDs).
 		Pluck("risk_register_id", &ids).Error
 	return ids, err
+}
+
+func (repo *RiskHeatmapRepository) GetRiskKPIsByKPIID(kpiID uint) ([]models.KPIRisk, error) {
+	var kpiRisks []models.KPIRisk
+	if err := repo.db.Where("kpi_register_id = ?", kpiID).Find(&kpiRisks).Error; err != nil {
+		return nil, err
+	}
+	return kpiRisks, nil
 }

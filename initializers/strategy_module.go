@@ -22,10 +22,14 @@ type StrategyModule struct {
 	StrategyProfileSettingController                *controllers.StrategyProfileSettingController
 	KpiCategoryController                           *controllers.KPICategoryController
 	KpiStatusController                             *controllers.KPIStatusController
+	EntryTypeController                             *controllers.EntryTypeController
+	DataSourceController                            *controllers.DataSourceController
 	KpiRegisterController                           *controllers.KPIRegisterController
 	StrategicObjectiveCategoryController            *controllers.StrategicObjectiveCategoryController
 	StrategicObjectiveController                    *controllers.StrategicObjectiveController
 	StrategicObjectiveKPIController                 *controllers.StrategicObjectiveKPIController
+	KpiValueUpdateController                        *controllers.KPIValueUpdateController
+	KpiAssociatedItemController                     *controllers.KPIAssociatedItemController
 }
 
 func NewStrategyModule(db *gorm.DB,
@@ -35,6 +39,11 @@ func NewStrategyModule(db *gorm.DB,
 	organizationModule *OrganizationModule,
 	taskModule *TaskModule,
 	commonModule *CommonModule,
+	riskModule *RiskModule,
+	assetModule *AssetModule,
+	tprmModule *TprmModule,
+	complianceModule *ComplianceModule,
+	documentModule *DocumentModule,
 
 ) *StrategyModule {
 
@@ -90,8 +99,16 @@ func NewStrategyModule(db *gorm.DB,
 	kpiStatusSvc := services.NewKPIStatusService(kpiStatusRepo)
 	kpiStatusController := controllers.NewKPIStatusController(kpiStatusSvc)
 
+	entryTypeRepo := repositories.NewEntryTypeRepository(db)
+	entryTypeSvc := services.NewEntryTypeService(entryTypeRepo)
+	entryTypeController := controllers.NewEntryTypeController(entryTypeSvc)
+
+	dataSourceRepo := repositories.NewDataSourceRepository(db)
+	dataSourceSvc := services.NewDataSourceService(dataSourceRepo)
+	dataSourceController := controllers.NewDataSourceController(dataSourceSvc)
+
 	kpiRegisterRepo := repositories.NewKPIRegisterRepository(db)
-	kpiRegisterSvc := services.NewKPIRegisterService(kpiRegisterRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, settingsModule.OrganizationUnitSvc, kpiStatusSvc)
+	kpiRegisterSvc := services.NewKPIRegisterService(kpiRegisterRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, settingsModule.OrganizationUnitSvc, kpiStatusSvc, entryTypeSvc, dataSourceSvc)
 	kpiRegisterController := controllers.NewKPIRegisterController(kpiRegisterSvc)
 
 	strategicObjectiveCategoryRepository := repositories.NewStrategicObjectiveCategoryRepository(db)
@@ -116,6 +133,14 @@ func NewStrategyModule(db *gorm.DB,
 	)
 	strategicObjectiveKPIController := controllers.NewStrategicObjectiveKPIController(strategicObjectiveKPISvc)
 
+	kpiValueUpdateRepo := repositories.NewKPIValueUpdateRepository(db)
+	kpiValueUpdateSvc := services.NewKPIValueUpdateService(kpiValueUpdateRepo, sharedModule.ActivityLogService, kpiRegisterSvc, masterModule.ReviewFrequencySvc, organizationModule.UserSvc, commonModule.NotificationService)
+	kpiValueUpdateController := controllers.NewKPIValueUpdateController(kpiValueUpdateSvc)
+
+	kpiAssociatedItemRepo := repositories.NewKPIAssociatedItemRepository(db)
+	kpiAssociatedItemSvc := services.NewKPIAssociatedItemService(kpiAssociatedItemRepo, kpiRegisterSvc, organizationModule.ControlSvc, organizationModule.ProcessSvc, assetModule.AssetRegisterSvc, riskModule.RiskRegisterSvc, tprmModule.ThirdPartyRegisterSvc, complianceModule.ComplianceRegisterSvc, documentModule.DocumentSvc)
+	kpiAssociatedItemController := controllers.NewKPIAssociatedItemController(kpiAssociatedItemSvc)
+
 	return &StrategyModule{
 		StrategyProfileController:                       strategyProfileController,
 		StrategyProfileFocusAreaController:              strategyProfileFocusAreaController,
@@ -130,7 +155,11 @@ func NewStrategyModule(db *gorm.DB,
 		StrategyProfileSettingController:                strategyProfileSettingController,
 		KpiCategoryController:                           kpiCategoryController,
 		KpiStatusController:                             kpiStatusController,
+		EntryTypeController:                             entryTypeController,
+		DataSourceController:                            dataSourceController,
 		KpiRegisterController:                           kpiRegisterController,
+		KpiValueUpdateController:                        kpiValueUpdateController,
+		KpiAssociatedItemController:                     kpiAssociatedItemController,
 		StrategicObjectiveCategoryController:            strategicObjectiveCategoryController,
 		StrategicObjectiveController:                    strategicObjectiveController,
 		StrategicObjectiveKPIController:                 strategicObjectiveKPIController,
