@@ -106,6 +106,7 @@ func NewStrategyModule(db *gorm.DB,
 		settingsModule.OrganizationUnitSvc,
 		organizationModule.UserSvc,
 		masterModule.ReviewFrequencySvc,
+		masterModule.ReviewStatusSvc,
 	)
 	strategicObjectiveController := controllers.NewStrategicObjectiveController(strategicObjectiveSvc)
 
@@ -122,6 +123,7 @@ func NewStrategyModule(db *gorm.DB,
 		sharedModule.ActivityLogService,
 		strategicObjectiveSvc,
 		masterModule.ReviewStatusSvc,
+		masterModule.ReviewFrequencySvc,
 	)
 	strategicObjectivePeriodicReviewController := controllers.NewStrategicObjectivePeriodicReviewController(strategicObjectivePeriodicReviewSvc)
 

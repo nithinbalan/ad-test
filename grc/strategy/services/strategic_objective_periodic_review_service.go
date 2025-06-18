@@ -34,6 +34,7 @@ type StrategicObjectivePeriodicReviewService struct {
 	activityLogSvc        services.ActivityLogServiceInterface
 	strategicObjectiveSvc StrategicObjectiveServiceInterface
 	reviewStatusSvc       masterService.ReviewStatusServiceInterface
+	reviewFrequencySvc    masterService.ReviewFrequencyServiceInterface
 }
 
 func NewStrategicObjectivePeriodicReviewService(
@@ -41,12 +42,14 @@ func NewStrategicObjectivePeriodicReviewService(
 	activityLogSvc services.ActivityLogServiceInterface,
 	strategicObjectiveSvc StrategicObjectiveServiceInterface,
 	reviewStatusSvc masterService.ReviewStatusServiceInterface,
+	reviewFrequencySvc masterService.ReviewFrequencyServiceInterface,
 ) StrategicObjectivePeriodicReviewServiceInterface {
 	return &StrategicObjectivePeriodicReviewService{
 		repo:                  repo,
 		activityLogSvc:        activityLogSvc,
 		strategicObjectiveSvc: strategicObjectiveSvc,
 		reviewStatusSvc:       reviewStatusSvc,
+		reviewFrequencySvc:    reviewFrequencySvc,
 	}
 }
 
@@ -122,6 +125,14 @@ func (soprs *StrategicObjectivePeriodicReviewService) Create(currentUserID uint,
 		tx.Rollback()
 		return 0, err
 	}
+	if strategicObjective.ReviewFrequencyID != nil {
+		reviewFrequency, err := soprs.reviewFrequencySvc.GetByID(*strategicObjective.ReviewFrequencyID)
+		if err != nil {
+			return 0, err
+		}
+		nextReviewDate := utility.CalculateNextReviewDate(reviewFrequency.Type)
+		strategicObjective.NextReviewDate = &nextReviewDate
+	}
 
 	strategicObjective.ReviewStatusID = &reviewStatus.ID
 
@@ -186,12 +197,27 @@ func (soprs *StrategicObjectivePeriodicReviewService) Update(id uint, strategicO
 	existing.ReviewDate = *dates.ReviewDate
 	existing.Description = formDTO.Description
 	// existing.UpdatedBYID = &currentUserID
+	strategicObjective, err := soprs.strategicObjectiveSvc.GetByID(strategicObjectiveID)
+	if err != nil {
+		return err
+	}
+	if strategicObjective.ReviewFrequencyID != nil {
+		reviewFrequency, err := soprs.reviewFrequencySvc.GetByID(*strategicObjective.ReviewFrequencyID)
+		if err != nil {
+			return err
+		}
+		nextReviewDate := utility.CalculateNextReviewDate(reviewFrequency.Type)
+		strategicObjective.NextReviewDate = &nextReviewDate
+	}
 
 	if err := soprs.repo.Update(existing, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
-
+	if err := soprs.strategicObjectiveSvc.UpdateStrategicObjective(strategicObjective, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
 	var documents []*models.StrategicObjectiveReviewDocument
 	for _, doc := range formDTO.SupportDocuments {
 		dataToEncrypt := []byte(doc.FileName)
