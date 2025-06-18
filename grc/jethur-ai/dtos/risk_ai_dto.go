@@ -33,5 +33,5 @@ type RiskAnalysisRequest struct {
 	RegisterTitle string  `json:"register_title" binding:"required"`
 	Description   *string `json:"description"`
 	Category      string  `json:"category" binding:"required"`
-	Source        string  `json:"source" binding:"required"`
+	Source        string  `json:"source"`
 }
