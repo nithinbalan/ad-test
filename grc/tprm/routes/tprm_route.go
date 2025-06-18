@@ -20,6 +20,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	thirdPartyQuestionTypeController := app.TprmModule.ThirdPartyQuestionTypeController
 	thirdPartyQuestionLibraryController := app.TprmModule.ThirdPartyQuestionLibraryController
 	questionSetController := app.TprmModule.QuestionSetController
+	thirdPartyAssessmentStatusController := app.TprmModule.ThirdPartyAssessmentStatusController
+	thirdPartyAssessmentController := app.TprmModule.ThirdPartyAssessmentController
 
 	tprmRoutes.GET("/third-party-types", thirdPartyTypeController.GetAllThirdPartyTypes)
 	tprmRoutes.GET("/third-party-types/:id", thirdPartyTypeController.GetThirdPartyTypeDetails)
@@ -62,5 +64,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	tprmRoutes.POST("/question-sets/delete", questionSetController.DeleteQuestionSets)
 	tprmRoutes.POST("/question-sets/:id/questions", questionSetController.AddQuestionsToSet)
 	tprmRoutes.DELETE("/question-sets/:id/questions/:questionId", questionSetController.DeleteQuestionFromSet)
+
+	// assessment status
+	tprmRoutes.GET("/third-party-assessment-statuses", thirdPartyAssessmentStatusController.GetAllThirdPartyAssessmentStatuses)
+	tprmRoutes.GET("/third-party-assessment-statuses/:id", thirdPartyAssessmentStatusController.GetThirdPartyAssessmentStatusDetails)
+
+	// === Third Party Assessment ===
+	tprmRoutes.GET("/third-party-assessments", thirdPartyAssessmentController.GetAllThirdPartyAssessment)
+	tprmRoutes.GET("/third-party-assessments/:id", thirdPartyAssessmentController.GetThirdPartyAssessmentDetails)
+	tprmRoutes.POST("/third-party-assessments", middlewares.RolePermissionMiddleware(db, "assessment", "modify"), thirdPartyAssessmentController.CreateThirdPartyAssessment)
+	tprmRoutes.PUT("/third-party-assessments/:id", middlewares.RolePermissionMiddleware(db, "assessment", "modify"), thirdPartyAssessmentController.UpdateThirdPartyAssessment)
+	tprmRoutes.POST("/third-party-assessments/delete", middlewares.RolePermissionMiddleware(db, "assessment", "modify"), thirdPartyAssessmentController.DeleteThirdPartyAssessment)
 
 }
