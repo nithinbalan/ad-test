@@ -25,6 +25,9 @@ type StrategyModule struct {
 	EntryTypeController                             *controllers.EntryTypeController
 	DataSourceController                            *controllers.DataSourceController
 	KpiRegisterController                           *controllers.KPIRegisterController
+	StrategicObjectiveCategoryController            *controllers.StrategicObjectiveCategoryController
+	StrategicObjectiveController                    *controllers.StrategicObjectiveController
+	StrategicObjectiveKPIController                 *controllers.StrategicObjectiveKPIController
 	KpiValueUpdateController                        *controllers.KPIValueUpdateController
 	KpiAssociatedItemController                     *controllers.KPIAssociatedItemController
 }
@@ -108,6 +111,28 @@ func NewStrategyModule(db *gorm.DB,
 	kpiRegisterSvc := services.NewKPIRegisterService(kpiRegisterRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, settingsModule.OrganizationUnitSvc, kpiStatusSvc, entryTypeSvc, dataSourceSvc)
 	kpiRegisterController := controllers.NewKPIRegisterController(kpiRegisterSvc)
 
+	strategicObjectiveCategoryRepository := repositories.NewStrategicObjectiveCategoryRepository(db)
+	strategicObjectiveCategorySvc := services.NewStrategicObjectiveCategoryService(strategicObjectiveCategoryRepository, sharedModule.ActivityLogService)
+	strategicObjectiveCategoryController := controllers.NewStrategicObjectiveCategoryController(strategicObjectiveCategorySvc)
+
+	strategicObjectiveRepository := repositories.NewStrategicObjectiveRepository(db)
+	strategicObjectiveSvc := services.NewStrategicObjectiveService(strategicObjectiveRepository,
+		sharedModule.ActivityLogService,
+		strategicObjectiveCategorySvc,
+		settingsModule.OrganizationUnitSvc,
+		organizationModule.UserSvc,
+		masterModule.ReviewFrequencySvc,
+	)
+	strategicObjectiveController := controllers.NewStrategicObjectiveController(strategicObjectiveSvc)
+
+	strategicObjectiveKPIRepository := repositories.NewStrategicObjectiveKPIRepository(db)
+	strategicObjectiveKPISvc := services.NewStrategicObjectiveKPIService(strategicObjectiveKPIRepository,
+		sharedModule.ActivityLogService,
+		strategicObjectiveSvc,
+		kpiRegisterSvc,
+	)
+	strategicObjectiveKPIController := controllers.NewStrategicObjectiveKPIController(strategicObjectiveKPISvc)
+
 	kpiValueUpdateRepo := repositories.NewKPIValueUpdateRepository(db)
 	kpiValueUpdateSvc := services.NewKPIValueUpdateService(kpiValueUpdateRepo, sharedModule.ActivityLogService, kpiRegisterSvc, masterModule.ReviewFrequencySvc, organizationModule.UserSvc, commonModule.NotificationService)
 	kpiValueUpdateController := controllers.NewKPIValueUpdateController(kpiValueUpdateSvc)
@@ -135,5 +160,8 @@ func NewStrategyModule(db *gorm.DB,
 		KpiRegisterController:                           kpiRegisterController,
 		KpiValueUpdateController:                        kpiValueUpdateController,
 		KpiAssociatedItemController:                     kpiAssociatedItemController,
+		StrategicObjectiveCategoryController:            strategicObjectiveCategoryController,
+		StrategicObjectiveController:                    strategicObjectiveController,
+		StrategicObjectiveKPIController:                 strategicObjectiveKPIController,
 	}
 }

@@ -11,7 +11,7 @@ import (
 // Interface
 type UserDocumentRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(userID uint, params *orgDTOs.UserDocumentListQueryParamsDTO) ([]*orgDTOs.UserDocumentListDTO, error)
+	GetAll(userID uint, params *orgDTOs.UserDocumentListQueryParamsDTO) ([]orgDTOs.UserDocumentListDTO, error)
 	GetByID(id uint) (*models.UserDocument, error)
 	GetFullDetailsByID(id uint) (*models.UserDocument, error)
 	Create(item *models.UserDocument) (uint, error)
@@ -34,8 +34,8 @@ func (repo *UserDocumentRepository) BeginTransaction() utility.DatabaseTransacti
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *UserDocumentRepository) GetAll(userID uint, params *orgDTOs.UserDocumentListQueryParamsDTO) ([]*orgDTOs.UserDocumentListDTO, error) {
-	var result []*orgDTOs.UserDocumentListDTO
+func (repo *UserDocumentRepository) GetAll(userID uint, params *orgDTOs.UserDocumentListQueryParamsDTO) ([]orgDTOs.UserDocumentListDTO, error) {
+	var result []orgDTOs.UserDocumentListDTO
 
 	query := repo.db.Table("user_documents").
 		Select(`
