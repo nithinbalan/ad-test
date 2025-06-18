@@ -28,6 +28,7 @@ type StrategyModule struct {
 	StrategicObjectiveCategoryController            *controllers.StrategicObjectiveCategoryController
 	StrategicObjectiveController                    *controllers.StrategicObjectiveController
 	StrategicObjectiveKPIController                 *controllers.StrategicObjectiveKPIController
+	StrategicObjectivePeriodicReviewController      *controllers.StrategicObjectivePeriodicReviewController
 	KpiValueUpdateController                        *controllers.KPIValueUpdateController
 	KpiAssociatedItemController                     *controllers.KPIAssociatedItemController
 }
@@ -122,6 +123,7 @@ func NewStrategyModule(db *gorm.DB,
 		settingsModule.OrganizationUnitSvc,
 		organizationModule.UserSvc,
 		masterModule.ReviewFrequencySvc,
+		masterModule.ReviewStatusSvc,
 	)
 	strategicObjectiveController := controllers.NewStrategicObjectiveController(strategicObjectiveSvc)
 
@@ -133,6 +135,14 @@ func NewStrategyModule(db *gorm.DB,
 	)
 	strategicObjectiveKPIController := controllers.NewStrategicObjectiveKPIController(strategicObjectiveKPISvc)
 
+	strategicObjectivePeriodicReviewRepository := repositories.NewStrategicObjectivePeriodicReviewRepository(db)
+	strategicObjectivePeriodicReviewSvc := services.NewStrategicObjectivePeriodicReviewService(strategicObjectivePeriodicReviewRepository,
+		sharedModule.ActivityLogService,
+		strategicObjectiveSvc,
+		masterModule.ReviewStatusSvc,
+		masterModule.ReviewFrequencySvc,
+	)
+	strategicObjectivePeriodicReviewController := controllers.NewStrategicObjectivePeriodicReviewController(strategicObjectivePeriodicReviewSvc)
 	kpiValueUpdateRepo := repositories.NewKPIValueUpdateRepository(db)
 	kpiValueUpdateSvc := services.NewKPIValueUpdateService(kpiValueUpdateRepo, sharedModule.ActivityLogService, kpiRegisterSvc, masterModule.ReviewFrequencySvc, organizationModule.UserSvc, commonModule.NotificationService)
 	kpiValueUpdateController := controllers.NewKPIValueUpdateController(kpiValueUpdateSvc)
@@ -163,5 +173,6 @@ func NewStrategyModule(db *gorm.DB,
 		StrategicObjectiveCategoryController:            strategicObjectiveCategoryController,
 		StrategicObjectiveController:                    strategicObjectiveController,
 		StrategicObjectiveKPIController:                 strategicObjectiveKPIController,
+		StrategicObjectivePeriodicReviewController:      strategicObjectivePeriodicReviewController,
 	}
 }

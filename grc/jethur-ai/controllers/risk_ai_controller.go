@@ -52,3 +52,19 @@ func (rc *RiskAIController) GetRiskRCA(c *gin.Context) {
 
 	c.JSON(http.StatusOK, result)
 }
+
+func (rc *RiskAIController) GetRiskAnalysis(c *gin.Context) {
+	var req dtos.RiskAnalysisRequest
+	if err := c.ShouldBind(&req); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	result, err := rc.service.GetRiskAnalysis(req)
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}

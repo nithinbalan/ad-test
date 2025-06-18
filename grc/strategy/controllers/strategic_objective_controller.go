@@ -52,6 +52,7 @@ func (soc *StrategicObjectiveController) GetAllStrategicObjectives(c *gin.Contex
 	}
 
 	validSortFields := map[string]string{
+		"id":               "strategic_objectives.id",
 		"reference_number": "strategic_objectives.reference_number",
 		"title_en":         "strategic_objectives.title_en",
 		"title_ar":         "strategic_objectives.title_ar",

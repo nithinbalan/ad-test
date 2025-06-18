@@ -8,10 +8,12 @@ import (
 	"jethur/grc/strategy/dtos"
 	"jethur/grc/strategy/repositories"
 	"jethur/utility"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 
+	masterService "jethur/grc/masters/services"
 	mastersSvc "jethur/grc/masters/services"
 	organizationSvc "jethur/grc/organization/services"
 	settingsSvc "jethur/grc/settings/services"
@@ -26,6 +28,7 @@ type StrategicObjectiveServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
+	UpdateStrategicObjective(strategicObjective *models.StrategicObjective, tx ...utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -36,6 +39,7 @@ type StrategicObjectiveService struct {
 	organizationUnitSvc           settingsSvc.OrganizationUnitServiceInterface
 	userSvc                       organizationSvc.UserServiceInterface
 	reviewFrequencySvc            mastersSvc.ReviewFrequencyServiceInterface
+	reviewStatusSvc               masterService.ReviewStatusServiceInterface
 }
 
 func NewStrategicObjectiveService(repo repositories.StrategicObjectiveRepositoryInterface,
@@ -44,6 +48,7 @@ func NewStrategicObjectiveService(repo repositories.StrategicObjectiveRepository
 	organizationUnitSvc settingsSvc.OrganizationUnitServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
 	reviewFrequencySvc mastersSvc.ReviewFrequencyServiceInterface,
+	reviewStatusSvc masterService.ReviewStatusServiceInterface,
 ) StrategicObjectiveServiceInterface {
 	return &StrategicObjectiveService{
 		repo:                          repo,
@@ -52,6 +57,7 @@ func NewStrategicObjectiveService(repo repositories.StrategicObjectiveRepository
 		organizationUnitSvc:           organizationUnitSvc,
 		userSvc:                       userSvc,
 		reviewFrequencySvc:            reviewFrequencySvc,
+		reviewStatusSvc:               reviewStatusSvc,
 	}
 }
 
@@ -137,7 +143,18 @@ func (sos *StrategicObjectiveService) Create(currentUserID uint, dto *dtos.Strat
 		tx.Rollback()
 		return 0, err
 	}
-
+	var nextReviewDate time.Time
+	if dto.ReviewFrequencyID != nil {
+		reviewFrequency, err := sos.reviewFrequencySvc.GetByID(*dto.ReviewFrequencyID)
+		if err != nil {
+			return 0, err
+		}
+		nextReviewDate = utility.CalculateNextReviewDate(reviewFrequency.Type)
+	}
+	reviewStatus, err := sos.reviewStatusSvc.GetByType("review-pending")
+	if err != nil {
+		return 0, err
+	}
 	// Build model
 	model := &models.StrategicObjective{
 		TitleEn:                      dto.TitleEn,
@@ -153,6 +170,8 @@ func (sos *StrategicObjectiveService) Create(currentUserID uint, dto *dtos.Strat
 		ReviewUserID:                 dto.ReviewUserID,
 		ReviewFrequencyID:            dto.ReviewFrequencyID,
 		Status:                       dto.Status,
+		NextReviewDate:               &nextReviewDate,
+		ReviewStatusID:               &reviewStatus.ID,
 		CreatedBYID:                  currentUserID,
 	}
 
@@ -219,7 +238,14 @@ func (sos *StrategicObjectiveService) Update(id uint, currentUserID uint, dto *d
 	if err != nil {
 		return err
 	}
-
+	var nextReviewDate time.Time
+	if dto.ReviewFrequencyID != nil {
+		reviewFrequency, err := sos.reviewFrequencySvc.GetByID(*dto.ReviewFrequencyID)
+		if err != nil {
+			return err
+		}
+		nextReviewDate = utility.CalculateNextReviewDate(reviewFrequency.Type)
+	}
 	// Update fields
 	existing.TitleEn = dto.TitleEn
 	existing.TitleAr = dto.TitleAr
@@ -231,6 +257,7 @@ func (sos *StrategicObjectiveService) Update(id uint, currentUserID uint, dto *d
 	existing.ResponsibleUserID = dto.ResponsibleUserID
 	existing.ReviewUserID = dto.ReviewUserID
 	existing.ReviewFrequencyID = dto.ReviewFrequencyID
+	existing.NextReviewDate = &nextReviewDate
 	existing.Status = dto.Status
 	existing.UpdatedBYID = &currentUserID
 
@@ -369,6 +396,15 @@ func (sos *StrategicObjectiveService) Deactivate(ids []uint, currentUserID uint)
 	}
 
 	return err
+}
+
+func (sos *StrategicObjectiveService) UpdateStrategicObjective(strategicObjective *models.StrategicObjective, tx ...utility.DatabaseTransaction) error {
+	err := sos.repo.Update(strategicObjective, tx...)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (sos *StrategicObjectiveService) validateStrategicObjectiveFormDTO(dto *dtos.StrategicObjectiveFormDTO) error {

@@ -35,6 +35,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategicObjectiveCategoryController := app.StrategyModule.StrategicObjectiveCategoryController
 	strategicObjectiveController := app.StrategyModule.StrategicObjectiveController
 	strategicObjectiveKPIController := app.StrategyModule.StrategicObjectiveKPIController
+	strategicObjectivePeriodicReviewController := app.StrategyModule.StrategicObjectivePeriodicReviewController
 	kpiValueUpdateController := app.StrategyModule.KpiValueUpdateController
 	kpiAssociatedItemController := app.StrategyModule.KpiAssociatedItemController
 
@@ -204,5 +205,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.GET("/strategic-objectives/:id/kpis", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveKPIController.GetAllStrategicObjectiveKPI)
 	strategyRoutes.POST("/strategic-objectives/:id/kpis", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveKPIController.CreateStrategicObjectiveKPI)
 	strategyRoutes.DELETE("/strategic-objectives/:id/kpis/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveKPIController.DeleteStrategicObjectiveKPI)
+
+	//review
+	strategyRoutes.GET("/strategic-objectives/:id/reviews", middlewares.RolePermissionMiddleware(db, "strategy_profile", "view"), strategicObjectivePeriodicReviewController.GetAllStrategicObjectivePeriodicReviews)
+	strategyRoutes.GET("/strategic-objectives/:id/reviews/:reviewId", middlewares.RolePermissionMiddleware(db, "strategy_profile", "view"), strategicObjectivePeriodicReviewController.GetStrategicObjectivePeriodicReviewDetails)
+	strategyRoutes.POST("/strategic-objectives/:id/reviews", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectivePeriodicReviewController.CreateStrategicObjectivePeriodicReview)
+	strategyRoutes.PUT("/strategic-objectives/:id/reviews/:reviewId", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectivePeriodicReviewController.UpdateStrategicObjectivePeriodicReview)
+	strategyRoutes.POST("/strategic-objectives/:id/reviews/delete", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectivePeriodicReviewController.DeleteStrategicObjectivePeriodicReview)
+
+	unauthenticatedRoutes.GET("/strategic-objectives/:id/reviews/:reviewId/document-download", strategicObjectivePeriodicReviewController.DownloadStrategicObjectivePeriodicReviewDocument)
 
 }
