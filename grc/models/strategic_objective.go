@@ -7,20 +7,22 @@ type StrategicObjective struct {
 	TitleEn                      string     `json:"title_en" gorm:"type:nvarchar(MAX);not null" binding:"required"`
 	TitleAr                      string     `json:"title_ar" gorm:"type:nvarchar(MAX);not null" binding:"required"`
 	StrategicObjectiveCategoryID uint       `json:"strategic_objective_category_id" binding:"required" gorm:"not null"`
-	ReferenceNumber              string     `json:"reference_number" gorm:"type:varchar(45);not null"`     // ✅ new
-	DescriptionEn                *string    `json:"description_en" gorm:"type:nvarchar(MAX);default:null"` // ✅ new
-	DescriptionAr                *string    `json:"description_ar" gorm:"type:nvarchar(MAX);default:null"` // ✅ new
-	StartDate                    *time.Time `json:"start_date" gorm:"type:date"`                           // ✅ new
-	EndDate                      *time.Time `json:"end_date" gorm:"type:date"`                             // ✅ new
-	ResponsibleUserID            *uint      `json:"responsible_user_id" gorm:"default:null"`               // ✅ new
-	ResponsibleUnitID            *uint      `json:"responsible_unit_id" gorm:"default:null"`               // ✅ new
-	ReviewUserID                 *uint      `json:"review_user_id" gorm:"default:null"`                    // ✅ new
-	ReviewFrequencyID            *uint      `json:"review_frequency_id" gorm:"default:null"`               // ✅ new
+	ReferenceNumber              string     `json:"reference_number" gorm:"type:varchar(45);not null"`
+	DescriptionEn                *string    `json:"description_en" gorm:"type:nvarchar(MAX);default:null"`
+	DescriptionAr                *string    `json:"description_ar" gorm:"type:nvarchar(MAX);default:null"`
+	StartDate                    *time.Time `json:"start_date" gorm:"type:date"`
+	EndDate                      *time.Time `json:"end_date" gorm:"type:date"`
+	ResponsibleUserID            *uint      `json:"responsible_user_id" gorm:"default:null"`
+	ResponsibleUnitID            *uint      `json:"responsible_unit_id" gorm:"default:null"`
+	ReviewUserID                 *uint      `json:"review_user_id" gorm:"default:null"`
+	ReviewFrequencyID            *uint      `json:"review_frequency_id" gorm:"default:null"`
 	Status                       string     `json:"status" gorm:"type:varchar(10);not null;default:'active'" binding:"required,oneof=active inactive"`
 	CreatedAt                    time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                    *time.Time `json:"updated_at" gorm:"type:datetime" binding:"omitempty"`
 	CreatedBYID                  uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBYID                  *uint      `json:"updated_by_id" gorm:"default:null" binding:"omitempty"`
+	NextReviewDate               *time.Time `json:"next_review_date,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
+	ReviewStatusID               *uint      `json:"review_status_id,omitempty" gorm:"default:null"`
 
 	// Relationships
 	StrategicObjectiveCategory *StrategicObjectiveCategory                `gorm:"foreignKey:StrategicObjectiveCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -32,6 +34,7 @@ type StrategicObjective struct {
 	UpdatedByUser              *User                                      `gorm:"foreignKey:UpdatedBYID"`
 	ComplianceRequirements     []*ComplianceRequirementStrategicObjective `gorm:"foreignKey:StrategicObjectiveID"`
 	StrategicObjectiveKPIs     []*StrategicObjectiveKPI                   `gorm:"foreignKey:StrategicObjectiveID"`
+	ReviewStatus               *ReviewStatus                              `gorm:"foreignKey:ReviewStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 func (StrategicObjective) TableName() string {
