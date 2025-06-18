@@ -109,13 +109,11 @@ func (repo *PolicyExceptionRepository) GetAll(params *dtos.PolicyExceptionListQu
 			requested_user.first_name_ar LIKE ? OR
 			requested_user.last_name_en LIKE ? OR
 			requested_user.last_name_ar LIKE ? OR
-			document_versions.title_en LIKE ? OR
-			document_versions.title_ar LIKE ? OR
 			document_requirements.title_en LIKE ? OR
 			document_requirements.title_ar LIKE ? OR
 			document_requirement_groups.title_en LIKE ? OR
 			document_requirement_groups.title_ar LIKE ?`,
-			kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw,
+			kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw,
 		)
 	}
 
