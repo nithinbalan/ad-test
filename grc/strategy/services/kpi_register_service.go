@@ -97,6 +97,15 @@ func (krs KPIRegisterService) GetFullDetailsByID(id uint, tx ...utility.Database
 		return nil, err
 	}
 
+	if kpiRegister.StartDate != nil {
+		startDate := kpiRegister.StartDate.Format("2006-01-02")
+		kpiRegisterDTO.StartDateString = &startDate
+	}
+	if kpiRegister.EndDate != nil {
+		endDate := kpiRegister.EndDate.Format("2006-01-02")
+		kpiRegisterDTO.EndDateString = &endDate
+	}
+
 	kpiRegisterDTO.CreatedAt = kpiRegister.CreatedAt
 	kpiRegisterDTO.UpdatedAt = kpiRegister.UpdatedAt
 
