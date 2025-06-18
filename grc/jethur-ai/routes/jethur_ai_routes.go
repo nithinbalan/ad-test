@@ -25,4 +25,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	jethurAIRoutes.POST("/jethur-ai/risk/autofill", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAIController.GetRiskAutofill)
 	jethurAIRoutes.POST("/jethur-ai/risk/rca", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAIController.GetRiskRCA)
+	jethurAIRoutes.POST("/jethur-ai/risk/analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAIController.GetRiskAnalysis)
 }
