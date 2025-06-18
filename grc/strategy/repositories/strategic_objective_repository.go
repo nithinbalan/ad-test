@@ -1,0 +1,329 @@
+package repositories
+
+import (
+	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
+	"jethur/grc/models"
+	"jethur/grc/strategy/dtos"
+	"jethur/utility"
+	"strconv"
+	"time"
+
+	"gorm.io/gorm"
+)
+
+// Interfaces
+type StrategicObjectiveRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
+
+	GetAll(params *dtos.StrategicObjectiveListQueryParamsDTO) (*dtos.StrategicObjectiveListResponseDTO, error)
+	GetByID(id uint) (*models.StrategicObjective, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategicObjective, error)
+	Create(strategicObjective *models.StrategicObjective, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(strategicObjective *models.StrategicObjective, tx ...utility.DatabaseTransaction) error
+	Delete(id uint) error
+	Activate(ids []uint) ([]uint, error)
+	Deactivate(ids []uint) ([]uint, error)
+	ExistsByTitle(titleEn string, titleAr string) (bool, error)
+	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
+	GenerateReferenceNumber() (string, error)
+}
+
+// implementation
+type StrategicObjectiveRepository struct {
+	db *gorm.DB
+}
+
+func NewStrategicObjectiveRepository(db *gorm.DB) *StrategicObjectiveRepository {
+	return &StrategicObjectiveRepository{
+		db: db,
+	}
+}
+func (repo *StrategicObjectiveRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
+}
+
+func (repo *StrategicObjectiveRepository) GetAll(params *dtos.StrategicObjectiveListQueryParamsDTO) (*dtos.StrategicObjectiveListResponseDTO, error) {
+	var objectives []*dtos.StrategicObjectiveListDTO
+	var totalCount int64
+
+	query := repo.db.Table("strategic_objectives").
+		Select(`
+			strategic_objectives.*,
+			strategic_objective_categories.title_en AS category_title_en,
+			strategic_objective_categories.title_ar AS category_title_ar,
+
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			review_user.first_name_en AS review_user_first_name_en,
+			review_user.first_name_ar AS review_user_first_name_ar,
+			review_user.last_name_en AS review_user_last_name_en,
+			review_user.last_name_ar AS review_user_last_name_ar,
+			review_user.initial AS review_user_initial,
+			review_user.color AS review_user_color,
+			review_user.email AS review_user_email,
+			review_user.profile_image_path AS review_user_profile_image_path,
+
+			review_frequencies.title_en AS review_frequency_title_en,
+			review_frequencies.title_ar AS review_frequency_title_ar,
+
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
+
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path
+		`).
+		Joins(`LEFT JOIN strategic_objective_categories ON strategic_objective_categories.id = strategic_objectives.strategic_objective_category_id`).
+		Joins(`LEFT JOIN organization_units ON organization_units.id = strategic_objectives.responsible_unit_id`).
+		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = strategic_objectives.responsible_user_id").
+		Joins(`LEFT JOIN users AS review_user ON review_user.id = strategic_objectives.review_user_id`).
+		Joins(`LEFT JOIN review_frequencies ON review_frequencies.id = strategic_objectives.review_frequency_id`).
+		Joins(`LEFT JOIN users AS created_user ON created_user.id = strategic_objectives.created_by_id`).
+		Joins(`LEFT JOIN users AS updated_user ON updated_user.id = strategic_objectives.updated_by_id`)
+
+	if params.Keyword != "" {
+		kw := "%" + params.Keyword + "%"
+		query = query.Where(`
+			strategic_objectives.reference_number LIKE ? OR
+			strategic_objectives.title_en LIKE ? OR
+			strategic_objectives.title_ar LIKE ? OR
+			strategic_objective_categories.title_en LIKE ? OR
+			strategic_objective_categories.title_ar LIKE ?
+		`, kw, kw, kw, kw, kw)
+	}
+
+	for col, val := range params.Filters {
+		if len(val) > 0 {
+			query = query.Where(col+" IN (?)", val)
+		}
+	}
+
+	if params.StartDate != "" && params.EndDate != "" {
+		query = query.Where("strategic_objectives.created_at BETWEEN ? AND ?", params.StartDate+" 00:00:00", params.EndDate+" 23:59:59")
+	}
+
+	// Sorting
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	// Pagination
+	query.Count(&totalCount)
+	offset := (params.Page - 1) * params.PageSize
+	query = query.Offset(offset).Limit(params.PageSize)
+
+	if err := query.Find(&objectives).Error; err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	response := &dtos.StrategicObjectiveListResponseDTO{
+		Items: objectives,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *StrategicObjectiveRepository) GetByID(id uint) (*models.StrategicObjective, error) {
+	var strategicObjective *models.StrategicObjective
+	result := repo.db.First(&strategicObjective, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return strategicObjective, nil
+}
+
+func (repo *StrategicObjectiveRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategicObjective, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var strategicObjective *models.StrategicObjective
+
+	result := db.
+		Preload("StrategicObjectiveCategory").
+		Preload("ResponsibleUser").
+		Preload("ResponsibleUnit").
+		Preload("ReviewUser").
+		Preload("ReviewFrequency").
+		Preload("StrategicObjectiveKPIs").
+		Preload("StrategicObjectiveKPIs.KPIRegister").
+		Preload("StrategicObjectiveKPIs.KPIRegister.KPICategory").
+		Preload("StrategicObjectiveKPIs.KPIRegister.KPIStatus").
+		Preload("StrategicObjectiveKPIs.KPIRegister.ResponsibleUser").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&strategicObjective, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return strategicObjective, nil
+}
+
+func (repo *StrategicObjectiveRepository) Create(strategicObjective *models.StrategicObjective, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(strategicObjective).Error; err != nil {
+		return 0, err
+	}
+
+	return strategicObjective.ID, nil
+}
+
+func (repo *StrategicObjectiveRepository) Update(strategicObjective *models.StrategicObjective, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Save(strategicObjective).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *StrategicObjectiveRepository) Delete(id uint) error {
+	var strategicObjective *models.StrategicObjective
+	if err := repo.db.First(&strategicObjective, id).Error; err != nil {
+		return err
+	}
+
+	result := repo.db.Delete(&models.StrategicObjective{}, id)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}
+
+func (repo *StrategicObjectiveRepository) Activate(ids []uint) ([]uint, error) {
+	var idsToUpdate []uint
+
+	if err := repo.db.Model(&models.StrategicObjective{}).
+		Where("id IN ? AND status = ?", ids, "inactive").
+		Pluck("id", &idsToUpdate).Error; err != nil {
+		return nil, err
+	}
+
+	if len(idsToUpdate) > 0 {
+		if err := repo.db.Model(&models.StrategicObjective{}).
+			Where("id IN ?", idsToUpdate).
+			Update("status", "active").Error; err != nil {
+			return nil, err
+		}
+	}
+
+	return idsToUpdate, nil
+}
+
+func (repo *StrategicObjectiveRepository) Deactivate(ids []uint) ([]uint, error) {
+
+	var idsToUpdate []uint
+
+	if err := repo.db.Model(&models.StrategicObjective{}).
+		Where("id IN ? AND status = ?", ids, "active").
+		Pluck("id", &idsToUpdate).Error; err != nil {
+		return nil, err
+	}
+
+	if len(idsToUpdate) > 0 {
+		if err := repo.db.Model(&models.StrategicObjective{}).
+			Where("id IN ?", idsToUpdate).
+			Update("status", "inactive").Error; err != nil {
+			return nil, err
+		}
+	}
+
+	return idsToUpdate, nil
+
+}
+
+func (repo *StrategicObjectiveRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
+	var count int64
+
+	err := repo.db.Model(&models.StrategicObjective{}).
+		Where("title_en = ? OR title_ar = ?", titleEn, titleAr).
+		Count(&count).Error
+
+	if err != nil {
+		return false, utility.NewInternalServerError(err)
+
+	}
+
+	return count > 0, nil
+}
+
+func (repo *StrategicObjectiveRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
+	var count int64
+
+	err := repo.db.Model(&models.StrategicObjective{}).
+		Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, titleEn, titleAr).
+		Count(&count).Error
+
+	if err != nil {
+		return false, utility.NewInternalServerError(err)
+	}
+
+	return count > 0, nil
+}
+
+func (repo *StrategicObjectiveRepository) GenerateReferenceNumber() (string, error) {
+	var lastReferenceNumber string
+
+	err := repo.db.Model(&models.StrategicObjective{}).
+		Select("reference_number").
+		Order("reference_number DESC").
+		Limit(1).
+		Pluck("reference_number", &lastReferenceNumber).
+		Error
+
+	if err != nil {
+		return "", err
+	}
+
+	lastDigits := "0000"
+	if lastReferenceNumber != "" && len(lastReferenceNumber) >= 4 {
+		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-4:]
+	}
+
+	currentYear := time.Now().Year()
+	lastReferenceID, err := strconv.ParseUint(lastDigits, 10, 64)
+	if err != nil {
+		return "", err
+	}
+
+	newReferenceNumber := fmt.Sprintf("SO-%d-%04d", currentYear, lastReferenceID+1)
+	return newReferenceNumber, nil
+}
