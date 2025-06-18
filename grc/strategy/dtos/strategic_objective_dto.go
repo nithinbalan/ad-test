@@ -138,7 +138,3 @@ type StrategicObjectiveParsedDates struct {
 	StartDate *time.Time
 	EndDate   *time.Time
 }
-
-type StrategicObjectiveKPIFormDTO struct {
-	KPIRegisterIDs []uint `json:"kpi_register_ids" binding:"required,min=1,dive,required"`
-}

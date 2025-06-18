@@ -8,7 +8,6 @@ import (
 
 	"jethur/grc/models"
 	"jethur/utility"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -159,7 +158,6 @@ func (pes *PolicyExceptionService) Create(currentUserID uint, dto *dtos.PolicyEx
 		RequestedByID:              dto.RequestedByID,
 		OrganizationUnitID:         organizationUnitID,
 		WorkflowStatusID:           &workflowStatus.ID,
-		CreatedAt:                  time.Now(),
 		CreatedByID:                currentUserID,
 	}
 

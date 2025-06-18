@@ -14,8 +14,6 @@ type PolicyExceptionFormDTO struct {
 	DocumentVersionClauseID    *uint   `json:"document_version_clause_id"`
 	DocumentRequirementGroupID *uint   `json:"document_requirement_group_id"`
 	DocumentRequirementID      *uint   `json:"document_requirement_id"`
-	TitleEn                    string  `json:"title_en" binding:"required"`
-	TitleAr                    string  `json:"title_ar" binding:"required"`
 	Requirements               *string `json:"requirements"`
 	Justification              *string `json:"justification"`
 	StartDate                  string  `json:"start_date" binding:"required"`
