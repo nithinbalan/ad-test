@@ -1,4 +1,4 @@
-name: aljabr-uat-api-deployment
+name: tester
 
 on:
   workflow_dispatch:
