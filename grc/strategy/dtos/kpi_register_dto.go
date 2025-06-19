@@ -80,7 +80,7 @@ type KPIRegisterFormDTO struct {
 	TargetValue *float64 `json:"target_value" binding:"required"`
 	Weightage   *float64 `json:"weightage"`
 
-	StartDate *string `json:"start_date" binding:"required"`
+	StartDate *string `json:"start_date"`
 	EndDate   *string `json:"end_date"`
 
 	Remarks *string `json:"remarks" gorm:"type:nvarchar(max)"`
