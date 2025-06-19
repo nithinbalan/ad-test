@@ -136,7 +136,13 @@ func (krs *KPIRegisterService) Create(currentUserID uint, kpiRegisterFormDTO *st
 		return 0, err
 	}
 
+	referenceNumber, err := krs.repo.GenerateReferenceNumber()
+	if err != nil {
+		return 0, err
+	}
+
 	kpiRegister := &models.KPIRegister{
+		ReferenceNumber:   &referenceNumber,
 		Title:             kpiRegisterFormDTO.Title,
 		Description:       kpiRegisterFormDTO.Description,
 		KPICategoryID:     kpiRegisterFormDTO.KPICategoryID,

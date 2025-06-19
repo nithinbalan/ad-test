@@ -6,6 +6,7 @@ import (
 
 type KPIRegister struct {
 	ID                uint    `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	ReferenceNumber   *string `json:"reference_number" gorm:"type:varchar(45);not null;unique" binding:"required"`
 	Title             string  `json:"title" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
 	Description       *string `json:"description" gorm:"type:nvarchar(max)"`
 	KPICategoryID     uint    `json:"kpi_category_id"`

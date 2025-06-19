@@ -37,6 +37,7 @@ func (spc *StrategyProfileController) GetAllStrategyProfiles(c *gin.Context) {
 	}
 	validSortFields := map[string]string{
 		"title":                          "strategy_profiles.title",
+		"reference_number":               "strategy_profiles.reference_number",
 		"start_date":                     "strategy_profiles.start_date",
 		"end_date":                       "strategy_profiles.end_date",
 		"vision":                         "strategy_profiles.vision",

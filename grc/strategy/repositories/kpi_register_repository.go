@@ -1,10 +1,13 @@
 package repositories
 
 import (
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	strategyDTOs "jethur/grc/strategy/dtos"
 	"jethur/utility"
+	"strconv"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -22,6 +25,7 @@ type KPIRegisterRepositoryInterface interface {
 	DeleteKPIRegisterInputData(kpiRegisterId uint, tx ...utility.DatabaseTransaction) error
 
 	GetTrendAnalysis(kpiId uint) ([]*models.KPIValueUpdate, error)
+	GenerateReferenceNumber() (string, error)
 }
 
 type KPIRegisterRepository struct {
@@ -277,4 +281,32 @@ func (repo *KPIRegisterRepository) GetTrendAnalysis(kpiID uint) ([]*models.KPIVa
 	}
 
 	return kpiValueUpdate, nil
+}
+
+func (repo *KPIRegisterRepository) GenerateReferenceNumber() (string, error) {
+	var lastReferenceNumber *string
+	err := repo.db.Model(&models.KPIRegister{}).
+		Select("reference_number").
+		Order("reference_number desc").
+		Limit(1).
+		Scan(&lastReferenceNumber).
+		Error
+
+	if err != nil {
+		return "", err
+	}
+
+	lastDigits := "0000"
+	if lastReferenceNumber != nil && len(*lastReferenceNumber) >= 4 {
+		lastDigits = (*lastReferenceNumber)[len(*lastReferenceNumber)-4:]
+	}
+
+	currentYear := time.Now().Year()
+	lastReferenceID, err := strconv.ParseUint(lastDigits, 10, 64)
+	if err != nil {
+		return "", err
+	}
+
+	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "KPI", currentYear, lastReferenceID+1)
+	return newReferenceNumber, nil
 }

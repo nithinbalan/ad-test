@@ -9,6 +9,7 @@ import (
 
 type KPIRegisterListDTO struct {
 	ID                              int      `json:"id"`
+	ReferenceNumber                 *string  `json:"reference_number"`
 	Title                           string   `json:"title"`
 	Description                     *string  `json:"description"`
 	KPICategoryID                   uint     `json:"kpi_category_id"`
@@ -108,6 +109,7 @@ type KPIRegisterListResponseDTO struct {
 
 type KPIRegisterDetailDTO struct {
 	ID                uint                             `json:"id"`
+	ReferenceNumber   *string                          `json:"reference_number"`
 	Title             string                           `json:"title"`
 	Description       *string                          `json:"description"`
 	KPICategoryID     uint                             `json:"kpi_category_id"`

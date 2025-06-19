@@ -40,6 +40,7 @@ func (krc *KPIRegisterController) GetAllKPIRegister(c *gin.Context) {
 		"unit_ids",
 	}
 	validSortFields := map[string]string{
+		"reference_number":               "kpi_register.reference_number",
 		"title":                          "kpi_register.title",
 		"description":                    "kpi_register.description",
 		"start_date":                     "kpi_register.start_date",
