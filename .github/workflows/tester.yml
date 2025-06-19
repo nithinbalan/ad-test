@@ -11,9 +11,10 @@ jobs:
       DB_NAME: jethur_tester_uat_db
       MIGRATION_BRANCH: migration_new
       DEPLOY_BRANCH: main
+      IIS_SITE_NAME: tester-api
       BACKUP_SCRIPT_PATH: C:\jethur-scripts\backup-for-deployment.ps1
-      IIS_DOC_ROOT: C:\inetpub\wwwroot\tester\tester-api
-      SERVICE_NAME: tester-api
+      IIS_DOC_ROOT: C:\inetpub\wwwroot\tester\tester-uat-api
+      NSSM_SERVICE_NAME: tester-api
       SCRIPT_SOURCE_PATH: C:\jethur-deployment\deployment-files\script.bat
       EMAIL_TO: nithin@jethur.com
       EMAIL_FROM: "Jethur Notifications <info@jethur.com>"
@@ -90,7 +91,7 @@ jobs:
           git checkout ${{ env.MIGRATION_BRANCH }}
 
       - name: Stop NSSM Service
-        run: nssm stop ${{ env.SERVICE_NAME }}
+        run: nssm stop ${{ env.NSSM_SERVICE_NAME }}
         shell: powershell
 
       - name: Run Migrations and Seed
@@ -124,16 +125,16 @@ jobs:
         shell: powershell
 
       - name: Start NSSM Service
-        run: nssm start ${{ env.SERVICE_NAME }}
+        run: nssm start ${{ env.NSSM_SERVICE_NAME }}
         continue-on-error: true
 
       - name: Status NSSM Service
-        run: nssm status ${{ env.SERVICE_NAME }}
+        run: nssm status ${{ env.NSSM_SERVICE_NAME }}
 
       - name: Restart IIS Site and App Pool
         run: |
           Import-Module WebAdministration
-          $siteName = "${{ env.SERVICE_NAME }}"
+          $siteName = "${{ env.IIS_SITE_NAME }}"
           $appPoolName = (Get-Item "IIS:\Sites\$siteName").applicationPool
 
           if ((Get-Website -Name $siteName).State -eq "Started") {
