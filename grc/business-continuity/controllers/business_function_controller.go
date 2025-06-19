@@ -40,6 +40,11 @@ func (bfc *BusinessFunctionController) GetAllBusinessFunctions(c *gin.Context) {
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"severity_level_ids",
+		"process_ids",
+		"risk_level_ids",
+		"responsible_unit_ids",
+		"responsible_user_ids",
+		"process_criticality_level_ids",
 	}
 	validSortFields := map[string]string{
 		"reference_number":               "business_functions.reference_number",

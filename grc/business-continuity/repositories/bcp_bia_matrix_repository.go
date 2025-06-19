@@ -63,11 +63,11 @@ func (repo *BcpBiaMatrixRepository) GetAllKeyProcess(bcpId uint, params *busines
         `).
 		Joins(`
 			LEFT JOIN processes ON processes.id = bcp_processes.process_id
-			LEFT JOIN users AS owner ON owner.id = processes.owner_id
+			LEFT JOIN users AS owner ON owner.id = processes.responsible_user_id
 			LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = processes.risk_matrix_risk_rating_id
 			LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = processes.risk_matrix_risk_rating_value_id
 			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id
-			LEFT JOIN organization_units ON organization_units.id = processes.owner_unit_id
+			LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id
         `).Where("bcp_processes.business_continuity_plan_id = ?", bcpId)
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {

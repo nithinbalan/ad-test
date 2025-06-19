@@ -29,6 +29,10 @@ type ComplianceClauseRepositoryInterface interface {
 
 	GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error)
 	GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlListDTO, error)
+	CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceControlByClauseAndControl(clauseID, controlID uint, tx ...utility.DatabaseTransaction) error
+
+	IsControlMappedToClause(clauseID, controlID uint) (bool, error)
 }
 
 type ComplianceClauseRepository struct {
@@ -363,12 +367,13 @@ func (r *ComplianceClauseRepository) GetAssociatedControls(complianceID uint, cl
 			risk_matrix_risk_rating_values.value AS risk_rating_value
 		`).
 		Joins("JOIN controls ON controls.id = cc.control_id").
-		Joins("JOIN compliance_requirements cr ON cr.id = cc.compliance_requirement_id").
-		Joins("JOIN compliance_clauses cl ON cl.id = cr.compliance_clause_id").
+		// Joins("JOIN compliance_requirements cr ON cr.id = cc.compliance_requirement_id").
+		// Joins("JOIN compliance_clauses cl ON cl.id = cr.compliance_clause_id").
+		Joins("JOIN compliance_clauses cl ON cl.id = cc.compliance_clause_id").
 		Joins("LEFT JOIN control_types ON control_types.id = controls.control_type_id").
 		Joins("LEFT JOIN control_categories ON control_categories.id = controls.control_category_id").
-		Joins("LEFT JOIN organization_units ON organization_units.id = controls.owner_unit_id").
-		Joins("LEFT JOIN users AS owner ON owner.id = controls.owner_id").
+		Joins("LEFT JOIN organization_units ON organization_units.id = controls.responsible_unit_id").
+		Joins("LEFT JOIN users AS owner ON owner.id = controls.responsible_user_id").
 		Joins("LEFT JOIN control_implementation_statuses ON control_implementation_statuses.id = controls.control_implementation_status_id").
 		Joins("LEFT JOIN control_efficiency_statuses ON control_efficiency_statuses.id = controls.control_efficiency_status_id").
 		Joins("LEFT JOIN review_frequencies ON review_frequencies.id = controls.review_frequency_id").
@@ -418,4 +423,38 @@ func sortChildClauses(clause *models.ComplianceClause) {
 	for _, child := range clause.ChildClauses {
 		sortChildClauses(child)
 	}
+}
+
+func (repo *ComplianceClauseRepository) CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&controls).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceClauseRepository) DeleteComplianceControlByClauseAndControl(clauseID, controlID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("compliance_clause_id = ? AND control_id = ?", clauseID, controlID).
+		Delete(&models.ComplianceControl{}).Error
+}
+
+func (repo *ComplianceClauseRepository) IsControlMappedToClause(clauseID, controlID uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Model(&models.ComplianceControl{}).
+		Where("compliance_clause_id = ? AND control_id = ?", clauseID, controlID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

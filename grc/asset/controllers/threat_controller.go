@@ -100,20 +100,28 @@ func (tc *ThreatController) GetAllThreats(c *gin.Context) {
 		return
 	}
 
-	// Optional export functionality
-	// if export {
-	// 	excelFile, err := tc.service.ExportThreats(threats.Items)
-	// 	if err != nil {
-	// 		utility.SendInternalErrResp(c, err.Error())
-	// 		return
-	// 	}
-	// 	defer excelFile.Close()
+	if export {
 
-	// 	c.Header("Content-Disposition", `attachment; filename="Threats.xlsx"`)
-	// 	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-	// 	c.File(excelFile.Name())
-	// 	return
-	// }
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(tc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := tc.service.ExportThreat(threats.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(tc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Threats.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
 
 	c.JSON(http.StatusOK, threats)
 }

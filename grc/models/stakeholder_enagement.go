@@ -12,6 +12,7 @@ type StakeholderEngagement struct {
 	AssignedOwnerID    *uint      `json:"assigned_owner_id"`
 	EngagementStrategy *string    `json:"engagement_strategy"`
 	Description        *string    `json:"description"`
+	EvaluationStatusID *uint      `json:"evaluation_status_id" gorm:"not null"`
 	Score              *int       `json:"score" binding:"omitempty,min=0,max=100" gorm:"not null;default:0"`
 	EvaluatedAt        *time.Time `json:"evaluated_at" binding:"omitempty" gorm:"type:date,default:null"`
 	EvaluatedBYID      *uint      `json:"evaluated_by_id"`
@@ -21,12 +22,13 @@ type StakeholderEngagement struct {
 	UpdatedBYID        *uint      `json:"updated_by_id,omitempty" gorm:"default:null"`
 
 	// Relationships
-	Stakeholder     *Stakeholder     `gorm:"foreignKey:StakeholderID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ReviewFrequency *ReviewFrequency `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser   *User            `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser   *User            `gorm:"foreignKey:UpdatedBYID"`
-	EvaluatedByUser *User            `gorm:"foreignKey:EvaluatedBYID"`
-	AssignedOwner   *User            `gorm:"foreignKey:AssignedOwnerID"`
+	Stakeholder     *Stakeholder                       `gorm:"foreignKey:StakeholderID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewFrequency *ReviewFrequency                   `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser   *User                              `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser   *User                              `gorm:"foreignKey:UpdatedBYID"`
+	EvaluatedByUser *User                              `gorm:"foreignKey:EvaluatedBYID"`
+	AssignedOwner   *User                              `gorm:"foreignKey:AssignedOwnerID"`
+	Evaluations     *[]StakeholderEngagementEvaluation `gorm:"foreignKey:StakeholderEngagementID"`
 }
 
 // TableName overrides the table name used by StakeholderNeedsAndExpectation to `stakeholder_engagements`

@@ -39,6 +39,7 @@ func (bcpc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *g
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"business_function_ids",
+		"responsible_user_ids",
 	}
 	validSortFields := map[string]string{
 		"id":                      "id",

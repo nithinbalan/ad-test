@@ -15,7 +15,7 @@ type ControlTest struct {
 	Score                         *uint      `json:"score,omitempty" gorm:"default:null" binding:"omitempty"`
 	Comments                      *string    `json:"comments,omitempty" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
 	TestedSource                  string     `json:"tested_source" gorm:"type:varchar(45);not null" binding:"required"`
-	TestedAt                      *time.Time `json:"tested_at,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
+	TestedAt                      time.Time  `json:"tested_at,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
 	TestedBy                      uint       `json:"tested_by" gorm:"not null" binding:"required"`
 	UpdatedAt                     *time.Time `json:"updated_at,omitempty" gorm:"type:datetime" binding:"omitempty"`
 	UpdatedByID                   *uint      `json:"updated_by_id,omitempty" gorm:"default:null" binding:"omitempty"`

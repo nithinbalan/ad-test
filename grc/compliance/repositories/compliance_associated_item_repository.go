@@ -4,17 +4,22 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
 
 type ComplianceAssociatedItemRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAllControls(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemControlListResponseDTO, error)
 	GetAllRisks(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemRiskListResponseDTO, error)
 	GetAllIncidents(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemIncidentListResponseDTO, error)
 	GetAllAssociatedCounts(complianceID uint) (*complianceDTOs.ComplianceAssociatedItemsCountResponseDTO, error)
 	GetComplianceRequirementCountByStatus(complianceID uint) ([]complianceDTOs.ComplianceRequirementStatusCountResponseDTO, error)
 	GetAllStrategicObjectives(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemStrategicObjectiveListResponseDTO, error)
+	CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceControlMapping(complianceID, controlID uint, tx ...utility.DatabaseTransaction) error
+	IsControlMappedToCompliance(complianceID, controlID uint) (bool, error)
 }
 
 type ComplianceAssociatedItemRepository struct {
@@ -25,6 +30,10 @@ func NewComplianceAssociatedItemRepository(db *gorm.DB) *ComplianceAssociatedIte
 	return &ComplianceAssociatedItemRepository{
 		db: db,
 	}
+}
+
+func (repo *ComplianceAssociatedItemRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *ComplianceAssociatedItemRepository) GetAllControls(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemControlListResponseDTO, error) {
@@ -68,7 +77,7 @@ func (repo *ComplianceAssociatedItemRepository) GetAllControls(complianceID uint
             LEFT JOIN control_types ON controls.control_type_id = control_types.id
             LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
             LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
-			LEFT JOIN users AS owner ON controls.owner_id = owner.id
+			LEFT JOIN users AS owner ON controls.responsible_user_id = owner.id
         `).Where("compliance_controls.compliance_register_id = ?", complianceID)
 
 	if err := query.Count(&totalCount).Error; err != nil {
@@ -458,4 +467,36 @@ func (repo *ComplianceAssociatedItemRepository) GetComplianceRequirementCountByS
 	}
 
 	return requirementStatusCounts, nil
+}
+
+func (repo *ComplianceAssociatedItemRepository) CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&controls).Error
+}
+
+func (repo *ComplianceAssociatedItemRepository) DeleteComplianceControlMapping(complianceID, controlID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("compliance_register_id = ? AND control_id = ?", complianceID, controlID).
+		Delete(&models.ComplianceControl{}).
+		Error
+}
+
+func (repo *ComplianceAssociatedItemRepository) IsControlMappedToCompliance(complianceID, controlID uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Model(&models.ComplianceControl{}).
+		Where("compliance_register_id = ? AND control_id = ?", complianceID, controlID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

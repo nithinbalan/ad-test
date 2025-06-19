@@ -48,7 +48,7 @@ type DocumentServiceInterface interface {
 	RevertDocumentCheckout(id uint, currentUserID uint) error
 
 	SubmitDocument(id uint, currentUserID uint) error
-	PublishDocument(id uint, currentUserID uint) error
+	PublishDocument(id uint, currentUserID uint, documentPublishFormDTO documentDTOs.DocumentPublishFormDTO) error
 
 	GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error)
 
@@ -85,6 +85,7 @@ type DocumentService struct {
 	notificationSvc           commonServices.NotificationServiceInterface
 	orgLevelSvc               settinsSvc.OrganizationLevelServiceInterface
 	reviewFrequencySvc        masterSvc.ReviewFrequencyServiceInterface
+	systemPreferenceSvc       settinsSvc.SystemPreferenceServiceInterface
 }
 
 func NewDocumentService(
@@ -104,6 +105,7 @@ func NewDocumentService(
 	notificationSvc commonServices.NotificationServiceInterface,
 	orgLevelSvc settinsSvc.OrganizationLevelServiceInterface,
 	reviewFrequencySvc masterSvc.ReviewFrequencyServiceInterface,
+	systemPreferenceSvc settinsSvc.SystemPreferenceServiceInterface,
 ) DocumentServiceInterface {
 	return &DocumentService{
 		repo:                      repo,
@@ -122,6 +124,7 @@ func NewDocumentService(
 		notificationSvc:           notificationSvc,
 		orgLevelSvc:               orgLevelSvc,
 		reviewFrequencySvc:        reviewFrequencySvc,
+		systemPreferenceSvc:       systemPreferenceSvc,
 	}
 }
 
@@ -440,7 +443,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		}
 	}(fileNameCopy)
 
-	go func() {
+	go func(fileName string) {
 		existingDocument, err := ds.GetFullDetailsByID(id, &currentUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch document", map[string]interface{}{
@@ -468,7 +471,51 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 
 			utility.LogError("Failed to log activity", fields)
 		}
-	}()
+
+		documentVersion, err := ds.repo.GetDocumentVersionByID(existingDocument.LatestDocumentVersion.ID)
+		if err != nil {
+			log.Printf("Failed to get document version: %v", err)
+			return
+		}
+
+		// Get system preferences to check AI enable status
+		systemPreference, err := ds.systemPreferenceSvc.GetSystemPreference()
+		if err != nil {
+			log.Printf("Failed to get system preferences: %v", err)
+			return
+		}
+
+		// Only proceed with document parsing if AI is enabled
+		if systemPreference.IsAIEnable != nil && *systemPreference.IsAIEnable {
+			baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+			filePath := filepath.Join(baseStoragePath, destinationDir, fileName)
+			log.Printf("Attempting to parse document at path: %s", filePath)
+
+			parsedResult, err := utility.ParseDocument(filePath)
+			if err != nil {
+				log.Printf("Warning: Failed to parse document content: %v", err)
+			} else {
+				documentVersion.ParsedContent = &parsedResult.ParsedContent
+				documentVersion.SampleQuestionsEn = &parsedResult.SampleQuestionsEn
+				documentVersion.SampleQuestionsAr = &parsedResult.SampleQuestionsAr
+				documentVersion.SummaryEn = &parsedResult.SummaryEn
+				documentVersion.SummaryAr = &parsedResult.SummaryAr
+				documentVersion.KeyPointsEn = &parsedResult.KeyPointsEn
+				documentVersion.KeyPointsAr = &parsedResult.KeyPointsAr
+				documentVersion.FAQEn = &parsedResult.FAQEn
+				documentVersion.FAQAr = &parsedResult.FAQAr
+
+				err = ds.repo.UpdateDocumentVersion(documentVersion)
+				if err != nil {
+					log.Printf("Failed to update document version with parsed content: %v", err)
+					return
+				}
+			}
+		} else {
+			log.Printf("Skipping document parsing as AI is not enabled in system preferences")
+		}
+
+	}(fileNameCopy)
 
 	return id, nil
 }
@@ -1048,6 +1095,45 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			if err := utility.ConvertDocxToPDF(destinationDir, fileName, destinationDir); err != nil {
 				log.Printf("Failed to convert document to PDF: %v", err)
 			}
+
+			systemPreference, err := ds.systemPreferenceSvc.GetSystemPreference()
+			if err != nil {
+				log.Printf("Failed to get system preferences: %v", err)
+				return
+			}
+
+			// Only proceed with document parsing if AI is enabled
+			if systemPreference.IsAIEnable != nil && *systemPreference.IsAIEnable {
+				// Parse document content
+				baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+				filePath := filepath.Join(baseStoragePath, destinationDir, fileName)
+				log.Printf("Attempting to parse updated document at path: %s", filePath)
+
+				parsedResult, err := utility.ParseDocument(filePath)
+				if err != nil {
+					log.Printf("Warning: Failed to parse document content: %v", err)
+				} else {
+					existingDocumentVersion.ParsedContent = &parsedResult.ParsedContent
+					existingDocumentVersion.SampleQuestionsEn = &parsedResult.SampleQuestionsEn
+					existingDocumentVersion.SampleQuestionsAr = &parsedResult.SampleQuestionsAr
+					existingDocumentVersion.SummaryEn = &parsedResult.SummaryEn
+					existingDocumentVersion.SummaryAr = &parsedResult.SummaryAr
+					existingDocumentVersion.KeyPointsEn = &parsedResult.KeyPointsEn
+					existingDocumentVersion.KeyPointsAr = &parsedResult.KeyPointsAr
+					existingDocumentVersion.FAQEn = &parsedResult.FAQEn
+					existingDocumentVersion.FAQAr = &parsedResult.FAQAr
+
+					err = ds.repo.UpdateDocumentVersion(existingDocumentVersion)
+					if err != nil {
+						log.Printf("Failed to update document version with parsed content: %v", err)
+						return
+					}
+					log.Printf("Successfully updated document version with parsed content")
+				}
+			} else {
+				log.Printf("Skipping document parsing as AI is not enabled in system preferences")
+			}
+
 		}
 	}(fileNameCopy)
 
@@ -1532,10 +1618,57 @@ func (ds *DocumentService) CheckinDocument(id uint, currentUserID uint, document
 
 	tx.Commit()
 
+	fileNameCopy := documentCheckinFormDTO.Document.FileName
+
 	go func() {
 		if err := utility.ConvertDocxToPDF(destinationDir, documentCheckinFormDTO.Document.FileName, destinationDir); err != nil {
 			log.Printf("Failed to convert document to PDF: %v", err)
 		}
+
+		systemPreference, err := ds.systemPreferenceSvc.GetSystemPreference()
+		if err != nil {
+			log.Printf("Failed to get system preferences: %v", err)
+			return
+		}
+
+		// Only proceed with document parsing if AI is enabled
+		if systemPreference.IsAIEnable != nil && *systemPreference.IsAIEnable {
+			// Parse document content
+			baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+			filePath := filepath.Join(baseStoragePath, destinationDir, fileNameCopy)
+			log.Printf("Attempting to parse checked in document at path: %s", filePath)
+
+			parsedResult, err := utility.ParseDocument(filePath)
+			if err != nil {
+				log.Printf("Warning: Failed to parse document content: %v", err)
+			} else {
+				documentVersion, err := ds.repo.GetDocumentVersionByID(document.LatestDocumentVersion.ID)
+				if err != nil {
+					log.Printf("Failed to get document version: %v", err)
+					return
+				}
+
+				documentVersion.ParsedContent = &parsedResult.ParsedContent
+				documentVersion.SampleQuestionsEn = &parsedResult.SampleQuestionsEn
+				documentVersion.SampleQuestionsAr = &parsedResult.SampleQuestionsAr
+				documentVersion.SummaryEn = &parsedResult.SummaryEn
+				documentVersion.SummaryAr = &parsedResult.SummaryAr
+				documentVersion.KeyPointsEn = &parsedResult.KeyPointsEn
+				documentVersion.KeyPointsAr = &parsedResult.KeyPointsAr
+				documentVersion.FAQEn = &parsedResult.FAQEn
+				documentVersion.FAQAr = &parsedResult.FAQAr
+
+				err = ds.repo.UpdateDocumentVersion(documentVersion)
+				if err != nil {
+					log.Printf("Failed to update document version with parsed content: %v", err)
+					return
+				}
+				log.Printf("Successfully updated document version with parsed content")
+			}
+		} else {
+			log.Printf("Skipping document parsing as AI is not enabled in system preferences")
+		}
+
 	}()
 
 	return nil
@@ -1838,7 +1971,7 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 	return nil
 }
 
-func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
+func (ds *DocumentService) PublishDocument(id uint, currentUserID uint, documentPublishFormDTO documentDTOs.DocumentPublishFormDTO) error {
 	tx := ds.repo.BeginTransaction()
 	referenceNumber, err := ds.repo.GenerateReferenceNumber()
 	if err != nil {
@@ -1898,6 +2031,12 @@ func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
 		return err
 	}
 
+	dates, err := ds.parseDocumentPublishDates(&documentPublishFormDTO)
+	if err != nil {
+		return err
+	}
+
+	documentVersion.AcknowledgeDueDate = dates.AcknowledgeDueDate
 	documentVersion.PublishedBYID = &currentUserID
 	documentVersion.PublishedAt = publishedAt
 
@@ -2388,4 +2527,17 @@ func (ds *DocumentService) calculateNextReviewDate(baseDate time.Time, frequency
 	default:
 		return baseDate // Default to the base date if no frequency is matched
 	}
+}
+
+func (ds *DocumentService) parseDocumentPublishDates(dto *documentDTOs.DocumentPublishFormDTO) (*documentDTOs.DocumentPublishParsedDates, error) {
+	parsed := &documentDTOs.DocumentPublishParsedDates{}
+
+	var err error
+
+	parsed.AcknowledgeDueDate, err = utility.ParseDate(*dto.AcknowledgeDueDate)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid last review date"), "invalid_date", "last review date")
+	}
+
+	return parsed, nil
 }

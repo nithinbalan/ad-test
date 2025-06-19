@@ -29,6 +29,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditTemplateSettingController := app.SettingsModule.AuditTemplateSettingController
 	riskTemplateSettingController := app.SettingsModule.RiskTemplateSettingController
 	reportTemplateSettingController := app.SettingsModule.ReportTemplateSettingController
+	activeDirectorySettingController := app.SettingsModule.ActiveDirectorySettingController
+	siemSettingController := app.SettingsModule.SIEMSettingController
+	aiSettingController := app.SettingsModule.AISettingController
+	triggerConditionController := app.SettingsModule.TriggerConditionController
+	reminderController := app.SettingsModule.ReminderController
+	reminderRuleController := app.SettingsModule.ReminderRuleController
+	escalationController := app.SettingsModule.EscalationController
+	escalationLevelController := app.SettingsModule.EscalationLevelController
 
 	//Organization Level
 	settingRoutes.GET("/organization-levels", organizationLevelController.GetAllOrganizationLevels)
@@ -103,6 +111,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.GET("/audit-template-settings", auditTemplateSettingController.GetAllAuditTemplateSettings)
 	settingRoutes.PUT("/audit-template-settings/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), auditTemplateSettingController.UpdateAuditTemplateSetting)
 	unauthenticatedRoutes.GET("/audit-template-settings/:id/image-preview", auditTemplateSettingController.GetAuditTemplateSettingPreview)
+	unauthenticatedRoutes.GET("/audit-template-settings/image-preview", auditTemplateSettingController.GetAuditTemplateSettingPreview)
 
 	settingRoutes.GET("/risk-template-settings", riskTemplateSettingController.GetAllRiskTemplateSettings)
 	settingRoutes.PUT("/risk-template-settings/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), riskTemplateSettingController.UpdateRiskTemplateSetting)
@@ -111,5 +120,48 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.GET("/report-template-settings", reportTemplateSettingController.GetAllReportTemplateSettings)
 	settingRoutes.PUT("/report-template-settings/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), reportTemplateSettingController.UpdateReportTemplateSetting)
 	unauthenticatedRoutes.GET("/report-template-settings/image-preview", reportTemplateSettingController.GetReportTemplateSettingPreview)
+
+	settingRoutes.GET("/active-directory-settings", activeDirectorySettingController.GetActiveDirectorySettings)
+	settingRoutes.POST("/active-directory-settings", activeDirectorySettingController.CreateActiveDirectorySetting)
+	settingRoutes.POST("/active-directory-settings/check-connection", activeDirectorySettingController.CheckActiveDirectoryConnection)
+	settingRoutes.GET("/active-directory-settings/check-saved-connection", activeDirectorySettingController.CheckSavedADConnection)
+
+	settingRoutes.GET("/siem-settings", siemSettingController.GetSIEMSettings)
+	settingRoutes.PUT("/siem-settings", siemSettingController.UpdateSIEMSettings)
+
+	settingRoutes.PUT("/ai-settings/enable", aiSettingController.EnableAISetting)
+	settingRoutes.PUT("/ai-settings/disable", aiSettingController.DisableAISetting)
+	settingRoutes.GET("/ai-settings/modules", aiSettingController.GetAllAIModules)
+	settingRoutes.GET("/ai-settings/modules/:id", aiSettingController.GetFeaturesByModuleID)
+
+	//Trigger Condition
+	settingRoutes.GET("/trigger-conditions", triggerConditionController.GetAllTriggerConditiones)
+	settingRoutes.GET("/trigger-conditions/:id", triggerConditionController.GetTriggerConditionDetails)
+
+	//Reminder
+	settingRoutes.GET("/reminders", reminderController.GetAllReminderes)
+	settingRoutes.GET("/reminders/:id", reminderController.GetReminderDetails)
+	settingRoutes.GET("/reminder-modules", reminderController.GetAllEnabledModules)
+	settingRoutes.GET("/modules/:moduleId/reminders", reminderController.GetReminderByModuleID)
+
+	// Reminder Rule
+	settingRoutes.GET("/reminder-rules", reminderRuleController.GetAllReminderRules)
+	settingRoutes.GET("/reminder-rules/:reminderRuleId", reminderRuleController.GetReminderRuleDetails)
+	settingRoutes.POST("/reminder-rules", reminderRuleController.CreateReminderRule)
+	settingRoutes.PUT("/reminder-rules/:reminderRuleId", reminderRuleController.UpdateReminderRule)
+	settingRoutes.POST("/reminder-rules/delete", reminderRuleController.DeleteReminderRules)
+
+	// Escalations
+	settingRoutes.GET("/escalations", escalationController.GetAllEscalations)
+	settingRoutes.GET("/escalations/:id", escalationController.GetEscalationDetails)
+	settingRoutes.GET("/escalation-modules", escalationController.GetAllEnabledModules)
+	settingRoutes.GET("/modules/:moduleId/escalations", escalationController.GetEscalationsByModuleID)
+
+	// Escalation Level
+	settingRoutes.GET("/escalation-levels", escalationLevelController.GetAllEscalationLevels)
+	settingRoutes.GET("/escalation-levels/:escalationLevelId", escalationLevelController.GetEscalationLevelDetails)
+	settingRoutes.POST("/escalation-levels", escalationLevelController.CreateEscalationLevel)
+	settingRoutes.PUT("/escalation-levels/:escalationLevelId", escalationLevelController.UpdateEscalationLevel)
+	settingRoutes.POST("/escalation-levels/delete", escalationLevelController.DeleteEscalationLevels)
 
 }

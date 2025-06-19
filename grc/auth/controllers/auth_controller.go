@@ -292,3 +292,12 @@ func parseBrowserFromUserAgent(userAgent string) string {
 
 	return browser
 }
+
+func (ac *AuthController) GetLoginSettings(c *gin.Context) {
+	settings, err := ac.service.GetLoginSettings()
+	if err != nil {
+		utility.SendInternalErrResp(ac.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, settings)
+}

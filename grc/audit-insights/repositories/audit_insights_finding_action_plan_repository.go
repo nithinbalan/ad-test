@@ -184,7 +184,9 @@ func (repo *AuditInsightsFindingActionPlanRepository) GetAll(params *auditDTOs.A
 	if params.TargetDateTo != "" {
 		query = query.Where("target_date <= ?", params.TargetDateTo)
 	}
-
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("audit_finding_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
@@ -194,6 +196,8 @@ func (repo *AuditInsightsFindingActionPlanRepository) GetAll(params *auditDTOs.A
 			query = query.Where("action_plan_statuses.type = ?", "completed")
 		case "in_progress":
 			query = query.Where("action_plan_statuses.type = ?", "in_progress")
+		case "open":
+			query = query.Where("action_plan_statuses.type != ?", "close")
 		}
 	}
 

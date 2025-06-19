@@ -10,6 +10,8 @@ import (
 
 type KPIModule struct {
 	GRCDashboardController *controllers.GRCDashboardController
+
+	GrcDashboardSvc services.GRCDashboardServiceInterface
 }
 
 func NewKPIModule(db *gorm.DB, riskModule *RiskModule) *KPIModule {
@@ -20,5 +22,7 @@ func NewKPIModule(db *gorm.DB, riskModule *RiskModule) *KPIModule {
 
 	return &KPIModule{
 		GRCDashboardController: grcDashboardController,
+
+		GrcDashboardSvc: grcDashboardSvc,
 	}
 }

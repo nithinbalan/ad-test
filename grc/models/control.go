@@ -8,8 +8,8 @@ type Control struct {
 	ID                            uint       `json:"id" gorm:"primaryKey;autoIncrement" binding:"-"`
 	ControlTypeID                 uint       `json:"control_type_id" gorm:"not null" binding:"required"`
 	ControlCategoryID             *uint      `json:"control_category_id" gorm:"null"`
-	OwnerUnitID                   uint       `json:"owner_unit_id" gorm:"not null" binding:"required"`
-	OwnerID                       uint       `json:"owner_id" gorm:"not null" binding:"required"`
+	ResponsibleUnitID             uint       `json:"owner_unit_id" gorm:"not null" binding:"required"`
+	ResponsibleUserID             uint       `json:"owner_id" gorm:"not null" binding:"required"`
 	ControlImplementationStatusID *uint      `json:"control_implementation_status_id" gorm:"default:null"`
 	ControlEfficiencyStatusID     *uint      `json:"control_efficiency_status_id" gorm:"default:null"`
 	ReferenceNumber               string     `json:"reference_number" gorm:"type:varchar(45);not null;unique" binding:"required"`
@@ -46,8 +46,8 @@ type Control struct {
 	// Relationships
 	ControlType                 *ControlType                 `gorm:"foreignKey:ControlTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ControlCategory             *ControlCategory             `gorm:"foreignKey:ControlCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	OwnerUnit                   *OrganizationUnit            `gorm:"foreignKey:OwnerUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Owner                       *User                        `gorm:"foreignKey:OwnerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUnit             *OrganizationUnit            `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser             *User                        `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ControlImplementationStatus *ControlImplementationStatus `gorm:"foreignKey:ControlImplementationStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ControlEfficiencyStatus     *ControlEfficiencyStatus     `gorm:"foreignKey:ControlEfficiencyStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ReviewFrequency             *ReviewFrequency             `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

@@ -92,7 +92,7 @@ type IncidentRegisterFormDTO struct {
 	ReportedBy               uint                       `json:"reported_by" binding:"required"`
 	ReportedAt               string                     `json:"reported_at" binding:"required"`
 	QuickAction              *string                    `json:"quick_action"`
-	Documents                []*IncidentDocumentFormDTO `json:"documents" binding:"required"`
+	Documents                []*IncidentDocumentFormDTO `json:"documents"`
 	ComplianceRequirementIds []*uint                    `json:"compliance_requirement_ids"`
 	ControlIds               []*uint                    `json:"control_ids"`
 	RiskIds                  []*uint                    `json:"risk_ids"`

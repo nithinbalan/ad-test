@@ -13,6 +13,7 @@ type OrganizationalContextModule struct {
 	SwotPestelQuestionController                       *controllers.SwotPestelQuestionController
 	SwotPestelCategoryController                       *controllers.SwotPestelCategoryController
 	SwotPestelQuestionFactorController                 *controllers.SwotPestelQuestionFactorController
+	StakeholderCategoryController                      *controllers.StakeholderCategoryController
 	StakeholderController                              *controllers.StakeholderController
 	EvaluationStatusController                         *controllers.EvaluationStatusController
 	StakeholderNeedsAndExpectationController           *controllers.StakeholderNeedsAndExpectationController
@@ -49,6 +50,10 @@ func NewOrganizationalContextModule(db *gorm.DB,
 	swotQuestionFactorSvc := services.NewSwotPestelQuestionFactorService(swotQuestionFactorRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc)
 	swotQuestionFactorController := controllers.NewSwotPestelQuestionFactorController(swotQuestionFactorSvc)
 
+	stakeholderCategoryRepo := repositories.NewStakeholderCategoryRepository(db)
+	stakeholderCategorySvc := services.NewStakeholderCategoryService(stakeholderCategoryRepo)
+	stakeholderCategoryController := controllers.NewStakeholderCategoryController(stakeholderCategorySvc)
+
 	stakeholderRepo := repositories.NewStakeholderRepository(db)
 	stakeholderSvc := services.NewStakeholderService(stakeholderRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc)
 	stakeholderController := controllers.NewStakeholderController(stakeholderSvc)
@@ -76,6 +81,7 @@ func NewOrganizationalContextModule(db *gorm.DB,
 		sharedModule.ActivityLogService,
 		organizationModule.UserSvc,
 		organizationModule.UserSettingSvc,
+		stakeholderSvc,
 	)
 	stakeholderEngagementController := controllers.NewStakeholderEngagementController(stakeholderEngagementSvc)
 
@@ -100,6 +106,7 @@ func NewOrganizationalContextModule(db *gorm.DB,
 		SwotPestelQuestionController:                       swotQuestionController,
 		SwotPestelCategoryController:                       swotPestelCategoryController,
 		SwotPestelQuestionFactorController:                 swotQuestionFactorController,
+		StakeholderCategoryController:                      stakeholderCategoryController,
 		StakeholderController:                              stakeholderController,
 		EvaluationStatusController:                         evaluationStatusController,
 		StakeholderNeedsAndExpectationController:           stakeholderNeedsAndExpectationController,

@@ -28,18 +28,23 @@ type DesignationServiceInterface interface {
 	ValidateDesignationTemplate(file io.Reader) ([]map[string]interface{}, error)
 	ValidateImportDesignation(input []map[string]interface{}) ([]map[string]interface{}, error)
 	ImportDesignations(input []map[string]interface{}, currentUserID uint) ([]uint, error)
+	GetByTitleEn(titleEn string) (*models.Designation, error)
 }
 
 // Service and implementations
 type DesignationService struct {
-	repo           repositories.DesignationRepositoryInterface
-	activityLogSvc services.ActivityLogServiceInterface
+	repo              repositories.DesignationRepositoryInterface
+	activityLogSvc    services.ActivityLogServiceInterface
+	jobDescriptionSvc JobDescriptionServiceInterface
 }
 
-func NewDesignationService(repo repositories.DesignationRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) DesignationServiceInterface {
+func NewDesignationService(repo repositories.DesignationRepositoryInterface,
+	activityLogSvc services.ActivityLogServiceInterface,
+	jobDescriptionSvc JobDescriptionServiceInterface) DesignationServiceInterface {
 	return &DesignationService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
+		repo:              repo,
+		activityLogSvc:    activityLogSvc,
+		jobDescriptionSvc: jobDescriptionSvc,
 	}
 }
 
@@ -65,6 +70,12 @@ func (ds *DesignationService) Create(currentUserID uint, designation *models.Des
 		return nil, err
 	} else if exists {
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+	}
+	// Optional: validate JobDescriptionID exists
+	if designation.JobDescriptionID != nil {
+		if _, err := ds.jobDescriptionSvc.GetByID(*designation.JobDescriptionID); err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid job_description_id"), "invalid", "job_description_id")
+		}
 	}
 
 	createdDesignation, err := ds.repo.Create(designation)
@@ -106,7 +117,11 @@ func (ds *DesignationService) Update(id uint, currentUserID uint, updatedDesigna
 		}
 
 	}
-
+	if updatedDesignation.JobDescriptionID != nil {
+		if _, err := ds.jobDescriptionSvc.GetByID(*updatedDesignation.JobDescriptionID); err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid job_description_id"), "invalid", "job_description_id")
+		}
+	}
 	result, err := ds.repo.Update(id, updatedDesignation)
 
 	if err != nil {
@@ -424,4 +439,17 @@ func (ds *DesignationService) validateDesignations(input []map[string]interface{
 	}
 
 	return validatedData, nil
+}
+
+func (ds *DesignationService) GetByTitleEn(titleEn string) (*models.Designation, error) {
+	designation, err := ds.repo.GetByTitleEn(titleEn)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, titleEn)
+		}
+		return nil, err
+	}
+
+	return designation, nil
 }

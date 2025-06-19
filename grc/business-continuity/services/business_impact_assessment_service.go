@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -15,11 +16,15 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	riskServices "jethur/grc/risk/services"
 	"jethur/utility"
+
+	"github.com/mitchellh/mapstructure"
+	"gorm.io/gorm"
 )
 
 type BusinessImpactAssessmentServiceInterface interface {
 	GetAllImpactAnalysis(params *businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO) ([]*businessContinuityDTOs.BusinessImpactAssessmentListDTO, error)
 	GetAllRecoveryObjectives(params *businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO) ([]*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListDTO, error)
+	GetProcessDetails(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.BIAProcessDetailDTO, error)
 	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.BusinessImpactFormDTO) (uint, error)
 	UpdateImpactAnalysis(businessImpactAssessmentFormDTO businessContinuityDTOs.BusinessImpactAssessmentFormDTO, currentUserID uint) error
 	UpdateRecoveryObjectives(businessImpactAssessmentRecoveryObjectiveFormDTO businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveFormDTO, currentUserID uint) error
@@ -71,12 +76,33 @@ func NewBusinessImpactAssessmentService(
 }
 
 func (bias *BusinessImpactAssessmentService) GetAllImpactAnalysis(params *businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO) ([]*businessContinuityDTOs.BusinessImpactAssessmentListDTO, error) {
-	fmt.Println(params)
 	return bias.repo.GetAllImpactAnalysis(params)
 }
 
 func (bias *BusinessImpactAssessmentService) GetAllRecoveryObjectives(params *businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO) ([]*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListDTO, error) {
 	return bias.repo.GetAllRecoveryObjectives(params)
+}
+
+func (bias *BusinessImpactAssessmentService) GetProcessDetails(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.BIAProcessDetailDTO, error) {
+	var processDetailDTO businessContinuityDTOs.BIAProcessDetailDTO
+
+	process, err := bias.repo.GetProcessDetails(id, tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(process, &processDetailDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	processDetailDTO.CreatedAt = process.CreatedAt
+	processDetailDTO.UpdatedAt = process.UpdatedAt
+
+	return &processDetailDTO, nil
 }
 
 func (bias *BusinessImpactAssessmentService) Create(currentUserID uint, businessImpactAssessmentFormDTO *businessContinuityDTOs.BusinessImpactFormDTO) (uint, error) {
@@ -267,10 +293,6 @@ func (bias *BusinessImpactAssessmentService) UpdateRecoveryObjectives(businessIm
 				existingDependency.Rpo = recoveryObjective.Rpo
 				existingDependency.RpoUnitId = recoveryObjective.RpoUnitId
 				existingDependency.UpdatedBYID = &currentUserID
-
-				fmt.Println(existingDependency.Rto)
-
-				fmt.Println(recoveryObjective.Rto)
 
 				err = bias.processDependencySvc.UpdateProcessDependencyRecoveryObjective(existingDependency, tx)
 				if err != nil {

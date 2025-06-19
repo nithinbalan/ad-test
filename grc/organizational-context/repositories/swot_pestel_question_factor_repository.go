@@ -17,6 +17,8 @@ type SwotPestelQuestionFactorRepositoryInterface interface {
 	Create(swotPestelQuestionFactor *models.SwotPestelQuestionFactor, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(swotPestelQuestionFactor *models.SwotPestelQuestionFactor, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+
+	GetSwotPestelFactorCountByCategory(isSwot string, isPestel string) ([]organizationalContextDTOs.SwotPestelCategoryCountResponseDTO, error)
 }
 
 type SwotPestelQuestionFactorRepository struct {
@@ -167,6 +169,11 @@ func (repo *SwotPestelQuestionFactorRepository) GetAllFactors(params *organizati
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
+
+	if params.CategoryType != "" {
+		query = query.Where("swot_pestel_categories.type = ?", params.CategoryType)
+	}
+
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -271,4 +278,42 @@ func (repo *SwotPestelQuestionFactorRepository) Delete(id uint, tx ...utility.Da
 	}
 
 	return nil
+}
+
+func (repo *SwotPestelQuestionFactorRepository) GetSwotPestelFactorCountByCategory(isSwot string, isPestel string) ([]organizationalContextDTOs.SwotPestelCategoryCountResponseDTO, error) {
+	var categoryCounts []organizationalContextDTOs.SwotPestelCategoryCountResponseDTO
+
+	query := repo.db.Table("swot_pestel_categories").
+		Select(`
+			swot_pestel_categories.id,
+			swot_pestel_categories.title_en,
+			swot_pestel_categories.title_ar,
+			swot_pestel_categories.color_code,
+			swot_pestel_categories.type,
+			COALESCE(COUNT(swot_pestel_question_factors.id), 0) AS count
+		`).
+		Joins("LEFT JOIN swot_pestel_question_factors ON swot_pestel_question_factors.swot_pestel_category_id = swot_pestel_categories.id")
+
+	// Apply filter if needed
+	if isSwot == "true" && isPestel != "true" {
+		query = query.Where("swot_pestel_categories.is_swot = ? OR swot_pestel_categories.id IS NULL", true)
+	}
+	if isPestel == "true" && isSwot != "true" {
+		query = query.Where("swot_pestel_categories.is_pestel = ? OR swot_pestel_categories.id IS NULL", true)
+	}
+
+	query = query.Group(`
+		swot_pestel_categories.id,
+		swot_pestel_categories.title_en,
+		swot_pestel_categories.title_ar,
+		swot_pestel_categories.color_code,
+		swot_pestel_categories.type
+	`)
+
+	err := query.Scan(&categoryCounts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return categoryCounts, nil
 }

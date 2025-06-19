@@ -26,7 +26,7 @@ type TestAndExerciseRepositoryInterface interface {
 	CreateTestAndExerciseProcesses(bcpProcesses []*models.TestAndExerciseProcess, tx ...utility.DatabaseTransaction) error
 	DeleteTestAndExerciseProcesses(bcpProcessIds []*uint, tx ...utility.DatabaseTransaction) error
 
-	CreateTestAndExerciseRecoveryActionPlans(bcpRecoveryActionPlans []*models.TestAndExerciseRecoveryActionPlan, tx ...utility.DatabaseTransaction) error
+	CreateTestAndExerciseRecoveryActionPlans(bcpRecoveryActionPlans *models.TestAndExerciseRecoveryActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteTestAndExerciseRecoveryActionPlans(bcpRecoveryActionPlanIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	CreateTestAndExerciseCommunicationActionPlans(bcpCommunicationActionPlans []*models.TestAndExerciseCommunicationActionPlan, tx ...utility.DatabaseTransaction) error
@@ -278,15 +278,15 @@ func (repo *TestAndExerciseRepository) DeleteTestAndExerciseProcesses(processIds
 	return nil
 }
 
-func (repo *TestAndExerciseRepository) CreateTestAndExerciseRecoveryActionPlans(recovertActionPlans []*models.TestAndExerciseRecoveryActionPlan, tx ...utility.DatabaseTransaction) error {
+func (repo *TestAndExerciseRepository) CreateTestAndExerciseRecoveryActionPlans(recovertActionPlans *models.TestAndExerciseRecoveryActionPlan, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 	if err := db.Create(&recovertActionPlans).Error; err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	return recovertActionPlans.ID, nil
 }
 
 func (repo *TestAndExerciseRepository) DeleteTestAndExerciseRecoveryActionPlans(recovertActionPlanIds []*uint, tx ...utility.DatabaseTransaction) error {

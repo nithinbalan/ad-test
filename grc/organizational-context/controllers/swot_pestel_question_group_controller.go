@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"jethur/grc/models"
+	organizationalContextDTOs "jethur/grc/organizational-context/dtos"
 	"jethur/grc/organizational-context/services"
 	"jethur/utility"
 	"net/http"
@@ -29,8 +30,18 @@ func (sqgc *SwotPestelQuestionGroupController) GetAllSwotPestelQuestionGroups(c 
 	status := c.Query("status")
 	isSwot := c.Query("is_swot")
 	isPestel := c.Query("is_pestel")
+	// Define an array of allowed parameter names
 
-	swotPestelQuestionGroups, err := sqgc.service.GetAll(sort, sortBy, keyword, status, isSwot, isPestel)
+	queryParams := organizationalContextDTOs.SwotPestelQuestionGroupListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Status:   status,
+		IsSwot:   isSwot,
+		IsPestel: isPestel,
+	}
+
+	swotPestelQuestionGroups, err := sqgc.service.GetAll(&queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(sqgc.db, c, err.Error())

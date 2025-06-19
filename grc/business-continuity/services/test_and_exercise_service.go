@@ -5,10 +5,12 @@ import (
 	"fmt"
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	TestAndExerciseRepositories "jethur/grc/business-continuity/repositories"
+	commonDTOs "jethur/grc/common/dtos"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 	"os"
 	"strconv"
@@ -41,6 +43,7 @@ type TestAndExerciseService struct {
 	communicationActionPlanStatusSvc CommunicationActionPlanStatusServiceInterface
 	actionPlanSvc                    masterServices.ActionPlanStatusServiceInterface
 	userSettingSvc                   organizationServices.UserSettingServiceInterface
+	taskSvc                          taskServices.TaskServiceInterface
 }
 
 func NewTestAndExerciseService(
@@ -53,6 +56,7 @@ func NewTestAndExerciseService(
 	communicationActionPlanStatusSvc CommunicationActionPlanStatusServiceInterface,
 	actionPlanSvc masterServices.ActionPlanStatusServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	taskSvc taskServices.TaskServiceInterface,
 ) TestAndExerciseServiceInterface {
 	return &TestAndExerciseService{
 		repo:                             repo,
@@ -64,6 +68,7 @@ func NewTestAndExerciseService(
 		communicationActionPlanStatusSvc: communicationActionPlanStatusSvc,
 		actionPlanSvc:                    actionPlanSvc,
 		userSettingSvc:                   userSettingSvc,
+		taskSvc:                          taskSvc,
 	}
 }
 
@@ -195,7 +200,6 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 		return 0, err
 	}
 	if businessContinuityPlan.BcpRecoveryPlans != nil {
-		var testAndExerciseRecoveryActionPlan []*models.TestAndExerciseRecoveryActionPlan
 
 		for _, bcpRecoveryPlan := range businessContinuityPlan.BcpRecoveryPlans {
 			if _, exists := processIds[bcpRecoveryPlan.BcpProcess.Process.ID]; !exists {
@@ -249,11 +253,25 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 				IsRecovery:         true,
 				CreatedBYID:        currentUserID,
 			}
-			testAndExerciseRecoveryActionPlan = append(testAndExerciseRecoveryActionPlan, process)
-		}
 
-		if len(testAndExerciseRecoveryActionPlan) > 0 {
-			if err := tes.repo.CreateTestAndExerciseRecoveryActionPlans(testAndExerciseRecoveryActionPlan, tx); err != nil {
+			actionPlanId, err := tes.repo.CreateTestAndExerciseRecoveryActionPlans(process, tx)
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+			urlParam := fmt.Sprintf(`{"test_and_exercise_id":%d, "recovery_action_plan_id":%d}`, id, actionPlanId)
+			taskDTO := commonDTOs.TaskFormDTO{
+				ModuleIdentifier:     "business_continuity",
+				RecoveryActionPlanID: &actionPlanId,
+				Title:                bcpRecoveryPlan.Title,
+				TargetDate:           &targetDate,
+				URLParam:             &urlParam,
+				QueryParam:           nil,
+				SeverityLevelID:      &bcpRecoveryPlan.SeverityLevel.ID,
+				ResponsibleUserID:    bcpRecoveryPlan.ResponsibleUserID,
+			}
+
+			if _, err := tes.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
 				tx.Rollback()
 				return 0, err
 			}

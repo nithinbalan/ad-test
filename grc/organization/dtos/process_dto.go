@@ -48,6 +48,7 @@ type ProcessListDTO struct {
 	RiskLevelTitleEn                 *string    `json:"risk_level_title_en"`
 	RiskLevelTitleAr                 *string    `json:"risk_level_title_ar"`
 	RiskLevelColorCode               *string    `json:"risk_level_color_code"`
+	RiskLevelType                    *string    `json:"risk_level_type"`
 	LastAssessedAt                   *time.Time `json:"last_assessed_at"`
 	LastAssessedUserID               *uint      `json:"last_assessed_user_id"`
 	LastAssessedUserFirstNameEn      *string    `json:"last_assessed_user_first_name_en"`
@@ -59,6 +60,9 @@ type ProcessListDTO struct {
 	LastAssessedUserEmail            *string    `json:"last_assessed_user_email"`
 	LastAssessedUserProfileImagePath *string    `json:"last_assessed_user_profile_image_path"`
 	IsBiaPerformed                   bool       `json:"is_bia_performed"`
+	ProcessCriticalityLevelID        uint       `json:"process_criticality_level_id"`
+	ProcessCriticalityLevelTitleEn   string     `json:"process_criticality_level_title_en"`
+	ProcessCriticalityLevelTitleAr   string     `json:"process_criticality_level_title_ar"`
 	CreatedUserID                    uint       `json:"created_user_id"`
 	CreatedUserFirstNameEn           string     `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr           string     `json:"created_user_first_name_ar"`
@@ -124,9 +128,9 @@ type ProcessDetailDTO struct {
 	TitleAr                  string                            `json:"title_ar"`
 	Description              *string                           `json:"description"`
 	ProcessGroup             *ProcessGroupDTO                  `json:"process_group"`
-	OwnerUnit                *settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
-	OwnerID                  *uint                             `json:"owner_id"`
-	Owner                    *UserMinimalDTO                   `json:"owner"`
+	ResponsibleUnit          *settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
+	ResponsibleUserID        *uint                             `json:"owner_id"`
+	ResponsibleUser          *UserMinimalDTO                   `json:"owner"`
 	CreatedByUser            UserMinimalDTO                    `json:"created_by"`
 	UpdatedByUser            *UserMinimalDTO                   `json:"updated_by"`
 	LifecycleStatus          masterDTOs.LifecycleStatusDTO     `json:"status"`
@@ -272,5 +276,6 @@ type RiskLevelDTO struct {
 	ID        uint   `json:"id"`
 	TitleEn   string `json:"title_en"`
 	TitleAr   string `json:"title_ar"`
+	Type      string `json:"type"`
 	ColorCode string `json:"color_code"`
 }

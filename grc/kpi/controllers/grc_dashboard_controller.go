@@ -3,6 +3,7 @@ package controllers
 import (
 	kpiDTOs "jethur/grc/kpi/dtos"
 	"jethur/grc/kpi/services"
+	riskDTOs "jethur/grc/risk/dtos"
 	riskServices "jethur/grc/risk/services"
 	"jethur/utility"
 	"net/http"
@@ -327,7 +328,14 @@ func (gdc *GRCDashboardController) GetGRCDocumentTypeChart(c *gin.Context) {
 }
 
 func (gdc *GRCDashboardController) GetGRCRiskHeatMap(c *gin.Context) {
-	riskHeatmap, err := gdc.riskHeatMapSvc.GetRiskHeatmapByRiskMatrix()
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := riskDTOs.RiskHeatmapQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	riskHeatmap, err := gdc.riskHeatMapSvc.GetRiskHeatmapByRiskMatrix(&queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

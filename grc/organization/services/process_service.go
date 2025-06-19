@@ -149,8 +149,8 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 
 	process := &models.Process{
 		ProcessGroupID:    processFormDTO.ProcessGroupID,
-		OwnerID:           processFormDTO.OwnerID,
-		OwnerUnitID:       organizationUnitID,
+		ResponsibleUserID: processFormDTO.OwnerID,
+		ResponsibleUnitID: organizationUnitID,
 		LifecycleStatusID: lifecycleStatus.ID,
 		ReferenceNumber:   referenceNumber,
 		TitleEn:           processFormDTO.TitleEn,
@@ -362,7 +362,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		return err
 	}
 
-	oldOwnerID := process.OwnerID
+	oldOwnerID := process.ResponsibleUserID
 
 	if err := ps.validateProcessFormDTO(processFormDTO); err != nil {
 		tx.Rollback()
@@ -370,17 +370,17 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 	}
 
 	// If owner has changed, update the OwnerUnitID
-	if process.OwnerID != processFormDTO.OwnerID {
+	if process.ResponsibleUserID != processFormDTO.OwnerID {
 		organizationUnitID, err := ps.userSvc.GetUserPrimaryUnitID(uint(processFormDTO.OwnerID))
 		if err != nil {
 			tx.Rollback()
 			return utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "process owner unit")
 		}
-		process.OwnerUnitID = organizationUnitID
+		process.ResponsibleUnitID = organizationUnitID
 	}
 
 	process.ProcessGroupID = processFormDTO.ProcessGroupID
-	process.OwnerID = processFormDTO.OwnerID
+	process.ResponsibleUserID = processFormDTO.OwnerID
 	process.TitleEn = processFormDTO.TitleEn
 	process.TitleAr = processFormDTO.TitleAr
 	process.Description = processFormDTO.Description
@@ -601,8 +601,8 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		// log changes
 		oldData := map[string]interface{}{
 			"process_group":    oldProcess.ProcessGroup.TitleEn,
-			"owner_unit":       oldProcess.OwnerUnit.TitleEn,
-			"owner":            fmt.Sprintf("%s %s", oldProcess.Owner.FirstNameEN, oldProcess.Owner.LastNameEN),
+			"owner_unit":       oldProcess.ResponsibleUnit.TitleEn,
+			"owner":            fmt.Sprintf("%s %s", oldProcess.ResponsibleUser.FirstNameEN, oldProcess.ResponsibleUser.LastNameEN),
 			"lifecycle_status": oldProcess.LifecycleStatus.TitleEn,
 			"title_en":         oldProcess.TitleEn,
 			"title_ar":         oldProcess.TitleAr,
@@ -611,8 +611,8 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 
 		newData := map[string]interface{}{
 			"process_group":    existingProcess.ProcessGroup.TitleEn,
-			"owner_unit":       existingProcess.OwnerUnit.TitleEn,
-			"owner":            fmt.Sprintf("%s %s", existingProcess.Owner.FirstNameEN, existingProcess.Owner.LastNameEN),
+			"owner_unit":       existingProcess.ResponsibleUnit.TitleEn,
+			"owner":            fmt.Sprintf("%s %s", existingProcess.ResponsibleUser.FirstNameEN, existingProcess.ResponsibleUser.LastNameEN),
 			"lifecycle_status": existingProcess.LifecycleStatus.TitleEn,
 			"title_en":         existingProcess.TitleEn,
 			"title_ar":         existingProcess.TitleAr,
@@ -799,7 +799,7 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 			ReferenceNumber string
 			ProcessGroup    string
 		}{
-			OwnerID:         process.OwnerID,
+			OwnerID:         process.ResponsibleUserID,
 			TitleEn:         process.TitleEn,
 			TitleAr:         process.TitleAr,
 			ReferenceNumber: process.ReferenceNumber,

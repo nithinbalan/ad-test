@@ -24,6 +24,9 @@ type ForbiddenError struct {
 type ResourceConflictError struct {
 	err error
 }
+type ActiveDirectoryConnectionError struct {
+	err error
+}
 
 func (e *InternalServerError) Error() string {
 	return e.err.Error()
@@ -42,6 +45,10 @@ func (e *ForbiddenError) Error() string {
 }
 
 func (e *ResourceConflictError) Error() string {
+	return e.err.Error()
+}
+
+func (e *ActiveDirectoryConnectionError) Error() string {
 	return e.err.Error()
 }
 
@@ -75,4 +82,10 @@ func IsForeignKeyConstraintError(err error) bool {
 		return true
 	}
 	return false
+}
+
+func NewActiveDirectoryConnectionError(err error) error {
+	return &ActiveDirectoryConnectionError{
+		err: err,
+	}
 }

@@ -14,6 +14,7 @@ type SystemPreference struct {
 	LogoUploadSize           int        `json:"logo_upload_size" binding:"required" gorm:"not null"`
 	IdleTimeout              int        `json:"idle_timeout" binding:"required" gorm:"not null"`
 	IsMaintenanceModeOn      *bool      `json:"is_maintenance_mode_on" gorm:"type:boolean"`
+	IsAIEnable               *bool      `json:"is_ai_enable" gorm:"type:bit;default:0"`
 	LicenseKey               *string    `json:"license_key"`
 	LicenseKeyExpiryDate     *time.Time `json:"license_key_expiry_date"`
 	BalanceLicensedUserCount *int       `json:"balance_licensed_user_count"`

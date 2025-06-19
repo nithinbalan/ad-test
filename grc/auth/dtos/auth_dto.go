@@ -41,3 +41,7 @@ type PasswordRecoverySetPasswordEmailDTO struct {
 	LastNameEn  string `json:"last_name_en"`
 	Email       string `json:"email"`
 }
+
+type LoginSettingsDTO struct {
+	ActiveDirectoryEnabled bool `json:"active_directory_enabled"`
+}

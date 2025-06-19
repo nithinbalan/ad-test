@@ -1,0 +1,29 @@
+package routes
+
+import (
+	"jethur/initializers"
+	"jethur/middlewares"
+
+	"github.com/gin-gonic/gin"
+)
+
+func RegisterRoutes(app *initializers.App, router *gin.Engine) {
+	jethurAIRoutes := router.Group("/")
+	jethurAIRoutes.Use(middlewares.AuthMiddleware())
+
+	db := app.DB
+	documentAIController := app.JethurAIModule.DocumentAIController
+	commonAIController := app.JethurAIModule.CommonAIController
+	riskAIController := app.JethurAIModule.RiskAIController
+
+	jethurAIRoutes.GET("/jethur-ai/documents/:id/summary", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAIController.GetDocumentSummary)
+	jethurAIRoutes.GET("/jethur-ai/documents/:id/recommendations", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAIController.GetDocumentRecommendations)
+	jethurAIRoutes.POST("/jethur-ai/document-chat", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAIController.ChatWithDocument)
+
+	jethurAIRoutes.POST("/jethur-ai/description-rewriter", commonAIController.RewriteDescription)
+	jethurAIRoutes.POST("/jethur-ai/language-translation", commonAIController.TranslateLanguage)
+
+	jethurAIRoutes.POST("/jethur-ai/risk/autofill", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAIController.GetRiskAutofill)
+	jethurAIRoutes.POST("/jethur-ai/risk/rca", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAIController.GetRiskRCA)
+	jethurAIRoutes.POST("/jethur-ai/risk/analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAIController.GetRiskAnalysis)
+}

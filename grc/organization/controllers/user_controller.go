@@ -503,3 +503,137 @@ func (uc *UserController) GetUserPermissions(c *gin.Context) {
 
 	c.JSON(http.StatusOK, permissions)
 }
+
+func (cc *UserController) GenerateUserTemplate(c *gin.Context) {
+	file, err := cc.service.GenerateUserTemplate()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate template"})
+		return
+	}
+	defer file.Close()
+
+	c.Header("Content-Disposition", "attachment; filename=UserTemplate.xlsx")
+	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.File(file.Name())
+}
+
+func (cc *UserController) ValidateUserTemplate(c *gin.Context) {
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "File is required"})
+		return
+	}
+
+	openedFile, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open file"})
+		return
+	}
+	defer openedFile.Close()
+
+	validatedData, err := cc.service.ValidateUserTemplate(openedFile)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, validatedData)
+}
+
+func (cc *UserController) ValidateImportUsers(c *gin.Context) {
+	var input []map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	validatedData, err := cc.service.ValidateImportUsers(input)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, validatedData)
+}
+
+func (cc *UserController) ImportUsers(c *gin.Context) {
+	var input []map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cc.db, c, err.Error())
+		return
+	}
+
+	importedIDs, err := cc.service.ImportUsers(input, uint(currentUserID))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"imported_ids": importedIDs})
+}
+
+func (uc *UserController) SyncADUsers(c *gin.Context) {
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	count, err := uc.service.SyncUsersFromAD(currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":      "User sync successful",
+		"users_synced": count,
+	})
+}
+
+func (uc *UserController) GetADUsers(c *gin.Context) {
+	users, err := uc.service.GetUsersFromAD()
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, users)
+}
+
+func (uc *UserController) UpdateUserOrganizationUnit(c *gin.Context) {
+	userID, err := strconv.Atoi(c.Param("userId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var formDTO organizationDTOs.UpdateOrganizationUnitDTO
+
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	if err := uc.service.UpdateUserOrganizationUnit(uint(userID), formDTO); err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(uc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Responsible units updated successfully"})
+}

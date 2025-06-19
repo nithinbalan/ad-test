@@ -232,6 +232,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 			ComplianceRegisterID:    complianceID,
 			ComplianceRequirementID: &id,
 			ControlID:               *controlID,
+			ComplianceClauseID:      &complianceRequirementFormDTO.ComplianceClauseID,
 			CreatedByID:             currentUserID,
 		}
 		controls = append(controls, control)
@@ -375,6 +376,10 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		emailTo := []string{responsibleUser.Email}
 		subject := fmt.Sprintf("Compliance Requirement/%s: Responsibility Assigned", complianceRequirementFormDTO.TitleEn)
 		appURL := utility.GetAppURL()
+		deadline := ""
+		if dates.Deadline != nil {
+			deadline = dates.Deadline.Format("2006-01-02")
+		}
 		emailData := map[string]interface{}{
 			"FirstNameEn":                   responsibleUser.FirstNameEn,
 			"LastNameEn":                    responsibleUser.LastNameEn,
@@ -383,7 +388,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 			"ComplianceRequirementCategory": complianceRequirementCategory.TitleEn,
 			"RequirementTitleEn":            complianceRequirementFormDTO.TitleEn,
 			"ComplianceClauseTitle":         clause.TitleEn,
-			"Deadline":                      dates.Deadline.Format("2006-01-02"),
+			"Deadline":                      deadline,
 			"AssignedByFirstNameEn":         assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":          assignedBy.LastNameEn,
 			"AssignedOn":                    time.Now().Format("2006-01-02"),
@@ -496,6 +501,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 				ComplianceRegisterID:    complianceID,
 				ComplianceRequirementID: &id,
 				ControlID:               *newControlID,
+				ComplianceClauseID:      &clause.ID,
 				CreatedByID:             currentUserID,
 			}
 			controlsToAdd = append(controlsToAdd, control)

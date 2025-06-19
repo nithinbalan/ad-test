@@ -57,8 +57,8 @@ func (repo *SLAAssociatedItemRepository) GetAllProcesses(slaID uint, params *com
 		Joins(`
 			LEFT JOIN processes ON processes.id = sla_processes.process_id
 			LEFT JOIN process_groups ON process_groups.id = processes.process_group_id
-			LEFT JOIN organization_units ON organization_units.id = processes.owner_unit_id
-			LEFT JOIN users AS owner ON owner.id = processes.owner_id
+			LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id
+			LEFT JOIN users AS owner ON owner.id = processes.responsible_user_id
 			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id
 		`).Where("sla_processes.sla_register_id = ?", slaID)
 

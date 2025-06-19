@@ -8,6 +8,8 @@ import (
 	"jethur/config"
 	"jethur/grc/common/dtos"
 
+	"crypto/tls"
+
 	"gopkg.in/gomail.v2"
 )
 
@@ -17,6 +19,7 @@ type EmailConfig struct {
 	Username string
 	Password string
 	From     string
+	TLS      bool
 }
 
 func SendTemplatedEmail(to []string, subject, templateRelativePath string, templateData interface{}, emailTemplateSettingsData *dtos.EmailTemplateAndSocialDTO, attachments []string, cc ...[]string) error {
@@ -46,6 +49,10 @@ func SendTemplatedEmail(to []string, subject, templateRelativePath string, templ
 	}
 
 	d := gomail.NewDialer(emailConfig.Host, emailConfig.Port, emailConfig.Username, emailConfig.Password)
+	if !emailConfig.TLS {
+		d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+		d.SSL = false
+	}
 	if err := d.DialAndSend(message); err != nil {
 		return err
 	}
@@ -60,6 +67,7 @@ func getEmailConfig() EmailConfig {
 		Username: config.GetEnv("EMAIL_USERNAME", ""),
 		Password: config.GetEnv("EMAIL_PASSWORD", ""),
 		From:     config.GetEnv("EMAIL_FROM", "no-reply@jethur.com"),
+		TLS:      config.GetBoolEnv("EMAIL_TLS", true),
 	}
 }
 

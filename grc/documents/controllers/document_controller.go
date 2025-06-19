@@ -441,6 +441,13 @@ func (dc *DocumentController) SubmitDocument(c *gin.Context) {
 }
 
 func (dc *DocumentController) PublishDocument(c *gin.Context) {
+
+	var documentPublishFormDTO documentDTOs.DocumentPublishFormDTO
+	if err := c.ShouldBindJSON(&documentPublishFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -454,7 +461,7 @@ func (dc *DocumentController) PublishDocument(c *gin.Context) {
 		return
 	}
 
-	err = dc.service.PublishDocument(uint(id), currentUserID)
+	err = dc.service.PublishDocument(uint(id), currentUserID, documentPublishFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:

@@ -12,7 +12,7 @@ type ComplianceReportActionPlan struct {
 	Description                   *string    `json:"description" gorm:"type:nvarchar(MAX);default:null"`
 	ActionPlanStatusID            uint       `json:"action_plan_status_id" gorm:"not null" binding:"required"`
 	TargetDate                    *time.Time `json:"target_date" gorm:"default:null;type:date"`
-	SeverityLevelID               uint       `json:"severity_level_id" gorm:"not null" binding:"required"`
+	SeverityLevelID               *uint      `json:"severity_level_id" gorm:"default:null"`
 	CreatedAt                     time.Time  `json:"created_at" gorm:"not null"`
 	CreatedBYID                   uint       `json:"created_by_id" gorm:"not null" binding:"required"`
 	UpdatedAt                     *time.Time `json:"updated_at" gorm:"default:null"`

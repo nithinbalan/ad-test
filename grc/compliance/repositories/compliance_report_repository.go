@@ -31,6 +31,7 @@ type ComplianceReportRepositoryInterface interface {
 	DeleteComplianceReportClauses(complianceReportID uint, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceReportRequirements(complianceReportID uint, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceReportActionPlans(complianceReportID uint, tx ...utility.DatabaseTransaction) error
+	GetAllComplianceStatuses() ([]*models.ComplianceStatus, error)
 }
 
 type ComplianceReportRepository struct {
@@ -125,14 +126,30 @@ func (repo *ComplianceReportRepository) GetComplianceAssessmentByComplianceRegis
 	}
 
 	var complianceAssessments []models.ComplianceAssessment
+	// First get the latest assessment IDs for each department
+	var latestAssessmentIDs []uint
+	subQuery := db.Table("compliance_assessments ca1").
+		Select("ca1.id").
+		Joins("JOIN compliance_assessment_statuses ON ca1.compliance_assessment_status_id = compliance_assessment_statuses.id").
+		Where("ca1.compliance_register_id = ? AND ca1.created_at > ? AND ca1.created_at < ?", complianceRegisterID, startDate, endDate).
+		Where("compliance_assessment_statuses.type = ?", "approved").
+		Where("ca1.created_at = (SELECT MAX(ca2.created_at) FROM compliance_assessments ca2 WHERE ca2.organization_unit_id = ca1.organization_unit_id AND ca2.compliance_register_id = ca1.compliance_register_id)").
+		Pluck("ca1.id", &latestAssessmentIDs)
+
+	if subQuery.Error != nil {
+		return nil, subQuery.Error
+	}
+
+	// Then get the full assessment data for these IDs
 	result := db.Preload("AssessmentRequirements").
 		Preload("AssessmentRequirements.ComplianceRequirement").
 		Preload("AssessmentRequirements.ActionPlans").
 		Preload("AssessmentRequirements.ComplianceRequirement.ComplianceClause").
 		Preload("AssessmentRequirements.ComplianceStatus").
-		Where("compliance_register_id = ?", complianceRegisterID).
-		Where("created_at > ? AND created_at < ?", startDate, endDate).
+		Preload("ComplianceAssessmentStatus").
+		Where("id IN ?", latestAssessmentIDs).
 		Find(&complianceAssessments)
+
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -251,11 +268,12 @@ func (repo *ComplianceReportRepository) GetComplianceReportDepartments(complianc
 		Preload("ComplianceReportClauses.ComplianceReportNonCompliantRequirements", func(db *gorm.DB) *gorm.DB {
 			return db.Where("score < ? AND compliance_status_id IS NOT NULL AND compliance_status_id NOT IN (SELECT id FROM compliance_statuses WHERE type = 'not_applicable')", 60)
 		}).
+		Preload("ComplianceReportClauses.ComplianceReportNonCompliantRequirements.ComplianceStatus").
 		Preload("ComplianceReportClauses.ComplianceReportNonCompliantRequirements.ComplianceReportActionPlans").
 		Preload("ComplianceReportClauses.ComplianceReportNonCompliantRequirements.ComplianceReportActionPlans.ActionPlanStatus").
 		Preload("ComplianceReportClauses.ComplianceReportNonCompliantRequirements.ComplianceReportActionPlans.SeverityLevel").
 		Preload("ComplianceReportClauses.ComplianceReportRequirements").
-		Preload("ComplianceReportClauses.ComplianceReportRequirements.ComplianceStatus").
+		Preload("ComplianceReportClauses.ComplianceReportRequirements.AverageComplianceStatus").
 		Preload("ComplianceReportClauses.ComplianceReportRequirements.ComplianceReportActionPlans").
 		Preload("ComplianceReportClauses.ComplianceReportRequirements.ComplianceReportActionPlans.ActionPlanStatus").
 		Preload("ComplianceReportClauses.ComplianceReportRequirements.ComplianceReportActionPlans.SeverityLevel").
@@ -351,4 +369,13 @@ func (repo *ComplianceReportRepository) DeleteComplianceReportActionPlans(compli
 
 	result := db.Where("compliance_report_id = ?", complianceReportID).Delete(&models.ComplianceReportActionPlan{})
 	return result.Error
+}
+
+func (repo *ComplianceReportRepository) GetAllComplianceStatuses() ([]*models.ComplianceStatus, error) {
+	var statuses []*models.ComplianceStatus
+	err := repo.db.Find(&statuses).Error
+	if err != nil {
+		return nil, err
+	}
+	return statuses, nil
 }

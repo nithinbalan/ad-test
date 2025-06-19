@@ -9,6 +9,8 @@ type IntegrationListDTO struct {
 	IntegrationCategoryTitleAr string     `json:"integration_category_title_ar"`
 	TitleEn                    string     `json:"title_en"`
 	TitleAr                    string     `json:"title_ar"`
+	Type                       string     `json:"type"`
+	Status                     string     `json:"status"`
 	DescriptionEn              *string    `json:"description_en"`
 	DescriptionAr              *string    `json:"description_ar"`
 	ApiBaseUrl                 *string    `json:"api_base_url"`
@@ -35,6 +37,8 @@ type IntegrationDetailDTO struct {
 	TitleAr               string                   `json:"title_ar"`
 	DescriptionEn         *string                  `json:"description_en"`
 	DescriptionAr         *string                  `json:"description_ar"`
+	Type                  string                   `json:"type"`
+	Status                string                   `json:"status"`
 	ApiBaseUrl            *string                  `json:"api_base_url"`
 	LogoUrl               *string                  `json:"logo_url"`
 	IsEnable              bool                     `json:"is_enable"`

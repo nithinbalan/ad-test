@@ -10,7 +10,7 @@ import (
 )
 
 type SwotPestelCategoryServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SwotPestelCategory, error)
+	GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*models.SwotPestelCategory, error)
 	GetByID(id uint) (*models.SwotPestelCategory, error)
 	GetByType(status string) (*models.SwotPestelCategory, error) // Renamed method
 }
@@ -26,8 +26,8 @@ func NewSwotPestelCategoryService(repo repositories.SwotPestelCategoryRepository
 	}
 }
 
-func (cess *SwotPestelCategoryService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SwotPestelCategory, error) {
-	return cess.repo.GetAll(sort, sortBy, keyword, status)
+func (cess *SwotPestelCategoryService) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*models.SwotPestelCategory, error) {
+	return cess.repo.GetAll(sort, sortBy, keyword, status, isSwot, isPestel)
 }
 
 func (cess SwotPestelCategoryService) GetByID(id uint) (*models.SwotPestelCategory, error) {

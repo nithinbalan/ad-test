@@ -127,7 +127,6 @@ func (afaps AuditFindingActionPlanService) GetFullDetailsByID(findingID uint, id
 }
 
 func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID uint, AuditFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) (uint, error) {
-	tx := afaps.repo.BeginTransaction()
 	audit, err := afaps.auditFindingSvc.GetByID(findingID)
 	if err != nil {
 		return 0, err
@@ -160,6 +159,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedBYID:        currentUserID,
 	}
+	tx := afaps.repo.BeginTransaction()
 
 	id, err := afaps.repo.Create(auditFindingActionPlan, tx)
 	if err != nil {
@@ -304,8 +304,6 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 }
 
 func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, currentUserID uint, AuditFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) error {
-	tx := afaps.repo.BeginTransaction()
-
 	audit, err := afaps.auditFindingSvc.GetByID(findingID)
 	if err != nil {
 		return err
@@ -313,7 +311,6 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 
 	oldAuditFindingActionPlan, err := afaps.repo.GetFullDetailsByID(id)
 	if err != nil {
-		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
 	}
 
@@ -332,6 +329,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	if err != nil {
 		return err
 	}
+	tx := afaps.repo.BeginTransaction()
 
 	// Update Audit Finding ActionPlan
 	existingAuditFindingActionPlan.Title = AuditFindingActionPlanFormDTO.Title
@@ -346,6 +344,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 
 	err = afaps.repo.Update(existingAuditFindingActionPlan, tx)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -790,42 +789,20 @@ func (afs *AuditFindingActionPlanService) ExportAuditFindingActionPlans(data []*
 
 	var headers []string
 	// Define headers based on the user's language setting
-	if userSetting.Language == "ar" {
-		headers = []string{
-			"SL No.",
-			"Reference Number",
-			"Finding Title (AR)",
-			"Finding Description (AR)",
-			"Action Plan Title (AR)",
-			"Action Plan Description (AR)",
-			"Severity Level (AR)",
-			"Severity Color",
-			"Responsible User (AR)",
-			"Review User (AR)",
-			"Target Date",
-			"Percentage",
-			"Status (AR)",
-			"Status Color",
-			"Created At",
-		}
-	} else {
-		headers = []string{
-			"SL No.",
-			"Reference Number",
-			"Finding Title (EN)",
-			"Finding Description (EN)",
-			"Action Plan Title (EN)",
-			"Action Plan Description (EN)",
-			"Severity Level (EN)",
-			"Severity Color",
-			"Responsible User (EN)",
-			"Review User (EN)",
-			"Target Date",
-			"Percentage",
-			"Status (EN)",
-			"Status Color",
-			"Created At",
-		}
+	headers = []string{
+		"SL No.",
+		"Reference Number",
+		"Finding Title",
+		"Finding Description",
+		"Action Plan Title",
+		"Action Plan Description",
+		"Severity Level",
+		"Responsible User",
+		"Review User",
+		"Target Date",
+		"Percentage",
+		"Status",
+		"Created At",
 	}
 
 	// Convert data to [][]interface{} based on language preference
@@ -840,13 +817,11 @@ func (afs *AuditFindingActionPlanService) ExportAuditFindingActionPlans(data []*
 				item.Title,
 				item.Description,
 				item.SeverityLevelTitleAr,
-				item.SeverityLevelColorCode,
 				item.ResponsibleUserFirstNameAr + " " + item.ResponsibleUserLastNameAr,
 				safeString(item.ReviewUserFirstNameAr) + " " + safeString(item.ReviewUserLastNameAr),
 				item.TargetDate,
 				item.Percentage,
 				item.ActionPlanStatusTitleAr,
-				item.ActionPlanStatusColorCode,
 				item.CreatedAt,
 			}
 		} else {
@@ -858,13 +833,11 @@ func (afs *AuditFindingActionPlanService) ExportAuditFindingActionPlans(data []*
 				item.Title,
 				item.Description,
 				item.SeverityLevelTitleEn,
-				item.SeverityLevelColorCode,
 				item.ResponsibleUserFirstNameEn + " " + item.ResponsibleUserLastNameEn,
 				safeString(&item.ReviewUserFirstNameEn) + " " + safeString(item.ReviewUserLastNameEn),
 				item.TargetDate,
 				item.Percentage,
 				item.ActionPlanStatusTitleEn,
-				item.ActionPlanStatusColorCode,
 				item.CreatedAt,
 			}
 		}

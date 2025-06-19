@@ -37,6 +37,16 @@ type OrganizationModule struct {
 	GovernanceReportController              *controllers.GovernanceReportController
 	ProcessDependencyController             *controllers.ProcessDependencyController
 	ProcessCriticalityLevelController       *controllers.ProcessCriticalityLevelController
+	ProcessActivityController               *controllers.ProcessActivityController
+	CompetencyGroupController               *controllers.CompetencyGroupController
+	CompetencyController                    *controllers.CompetencyController
+	CompetencyLevelController               *controllers.CompetencyLevelController
+	JobDescriptionController                *controllers.JobDescriptionController
+	JobDescriptionCompetencyController      *controllers.JobDescriptionCompetencyController
+	UserDocumentTypeController              *controllers.UserDocumentTypeController
+	UserDocumentSubTypeController           *controllers.UserDocumentSubTypeController
+	UserDocumentController                  *controllers.UserDocumentController
+	UserJobDescriptionController            *controllers.UserJobDescriptionController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -48,6 +58,7 @@ type OrganizationModule struct {
 	ControlEfficiencyStatusSvc     services.ControlEfficiencyStatusServiceInterface
 	ProcessAssociatedItemSvc       services.ProcessAssociatedItemServiceInterface
 	ProcessDependencySvc           services.ProcessDependencyServiceInterface
+	JobDescriptionSvc              services.JobDescriptionServiceInterface
 }
 
 func NewOrganizationModule(
@@ -58,9 +69,35 @@ func NewOrganizationModule(
 	taskModule *TaskModule,
 	commonModule *CommonModule) *OrganizationModule {
 
+	// Competency Group Setup
+	competencyGroupRepo := repositories.NewCompetencyGroupRepository(db)
+	competencyGroupSvc := services.NewCompetencyGroupService(competencyGroupRepo, sharedModule.ActivityLogService)
+	competencyGroupController := controllers.NewCompetencyGroupController(competencyGroupSvc)
+
+	// Competency Setup
+	competencyRepo := repositories.NewCompetencyRepository(db)
+	competencySvc := services.NewCompetencyService(competencyRepo, sharedModule.ActivityLogService)
+	competencyController := controllers.NewCompetencyController(competencySvc)
+
+	competencyLevelRepo := repositories.NewCompetencyLevelRepository(db)
+	competencyLevelSvc := services.NewCompetencyLevelService(competencyLevelRepo)
+	competencyLevelController := controllers.NewCompetencyLevelController(competencyLevelSvc)
+
+	jobDescriptionRepo := repositories.NewJobDescriptionRepository(db)
+	jobDescriptionSvc := services.NewJobDescriptionService(jobDescriptionRepo, sharedModule.ActivityLogService)
+	jobDescriptionController := controllers.NewJobDescriptionController(jobDescriptionSvc)
+
+	jobDescriptionCompetencyRepo := repositories.NewJobDescriptionCompetencyRepository(db)
+	jobDescriptionCompetencySvc := services.NewJobDescriptionCompetencyService(jobDescriptionCompetencyRepo, jobDescriptionSvc, competencyLevelSvc, competencySvc, sharedModule.ActivityLogService)
+	jobDescriptionCompetencyController := controllers.NewJobDescriptionCompetencyController(jobDescriptionCompetencySvc)
+
 	designationRepo := repositories.NewDesignationRepository(db)
-	designationSvc := services.NewDesignationService(designationRepo, sharedModule.ActivityLogService)
+	designationSvc := services.NewDesignationService(designationRepo, sharedModule.ActivityLogService, jobDescriptionSvc)
 	designationController := controllers.NewDesignationController(designationSvc)
+
+	userJobDescriptionRepo := repositories.NewUserJobDescriptionRepository(db)
+	userJobDescriptionSvc := services.NewUserJobDescriptionService(userJobDescriptionRepo, sharedModule.ActivityLogService, jobDescriptionSvc, designationSvc)
+	userJobDescriptionController := controllers.NewUserJobDescriptionController(userJobDescriptionSvc)
 
 	userStatusRepo := repositories.NewUserStatusRepository(db)
 	userStatusSvc := services.NewUserStatusService(userStatusRepo)
@@ -77,7 +114,11 @@ func NewOrganizationModule(
 		settingsModule.OrganizationLevelSvc,
 		settingsModule.ModuleSvc,
 		settingsModule.EmailTemplateSettingsSvc,
-		commonModule.NotificationService)
+		commonModule.NotificationService,
+		settingsModule.ActiveDirectorySettingSvc,
+		settingsModule.OrganizationUnitSvc,
+		userJobDescriptionSvc,
+	)
 	userSettingRepo := repositories.NewUserSettingRepository(db)
 	userSettingSvc := services.NewUserSettingService(
 		userSettingRepo,
@@ -198,6 +239,28 @@ func NewOrganizationModule(
 	processCriticalityLevelSvc := services.NewProcessCriticalityLevelService(processCriticalityLevelRepo)
 	processCriticalityLevelController := controllers.NewProcessCriticalityLevelController(processCriticalityLevelSvc)
 
+	processActivityRepo := repositories.NewProcessActivityRepository(db)
+	processActivitySvc := services.NewProcessActivityService(
+		processActivityRepo,
+		sharedModule.ActivityLogService,
+		processSvc,
+		userSvc,
+		commonModule.NotificationService,
+	)
+	processActivityController := controllers.NewProcessActivityController(processActivitySvc)
+
+	userDocumentTypeRepo := repositories.NewUserDocumentTypeRepository(db)
+	userDocumentTypeSvc := services.NewUserDocumentTypeService(userDocumentTypeRepo, sharedModule.ActivityLogService)
+	userDocumentTypeController := controllers.NewUserDocumentTypeController(userDocumentTypeSvc)
+
+	userDocumentSubTypeRepo := repositories.NewUserDocumentSubTypeRepository(db)
+	userDocumentSubTypeSvc := services.NewUserDocumentSubTypeService(userDocumentSubTypeRepo, userDocumentTypeSvc, sharedModule.ActivityLogService)
+	userDocumentSubTypeController := controllers.NewUserDocumentSubTypeController(userDocumentSubTypeSvc)
+
+	userDocumentRepo := repositories.NewUserDocumentRepository(db)
+	userDocumentSvc := services.NewUserDocumentService(userDocumentRepo, userDocumentTypeSvc, userDocumentSubTypeSvc, sharedModule.ActivityLogService, userSvc)
+	userDocumentController := controllers.NewUserDocumentController(userDocumentSvc)
+
 	return &OrganizationModule{
 		DesignationController:                   designationController,
 		UserStatusController:                    userStatusController,
@@ -227,6 +290,16 @@ func NewOrganizationModule(
 		GovernanceReportController:              governanceReportController,
 		ProcessDependencyController:             processDependencyController,
 		ProcessCriticalityLevelController:       processCriticalityLevelController,
+		ProcessActivityController:               processActivityController,
+		CompetencyGroupController:               competencyGroupController,
+		CompetencyController:                    competencyController,
+		CompetencyLevelController:               competencyLevelController,
+		JobDescriptionController:                jobDescriptionController,
+		JobDescriptionCompetencyController:      jobDescriptionCompetencyController,
+		UserDocumentTypeController:              userDocumentTypeController,
+		UserDocumentSubTypeController:           userDocumentSubTypeController,
+		UserDocumentController:                  userDocumentController,
+		UserJobDescriptionController:            userJobDescriptionController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,
@@ -238,5 +311,6 @@ func NewOrganizationModule(
 		ControlEfficiencyStatusSvc:     controlEfficiencyStatusSvc,
 		ProcessAssociatedItemSvc:       processAssociatedItemSvc,
 		ProcessDependencySvc:           processDependencySvc,
+		JobDescriptionSvc:              jobDescriptionSvc,
 	}
 }

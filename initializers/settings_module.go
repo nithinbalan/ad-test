@@ -9,33 +9,42 @@ import (
 )
 
 type SettingsModule struct {
-	OrganizationLevelController     *controllers.OrganizationLevelController
-	SystemPreferenceController      *controllers.SystemPreferenceController
-	RoleController                  *controllers.RoleController
-	OrganizationUnitController      *controllers.OrganizationUnitController
-	LogSettingsController           *controllers.LogSettingsController
-	WorkflowLevelTypeController     *controllers.WorkflowLevelTypeController
-	WorkflowController              *controllers.WorkflowController
-	RolePermissionTypeController    *controllers.RolePermissionTypeController
-	ModuleController                *controllers.ModuleController
-	EmailTemplateSettingsController *controllers.EmailTemplateSettingsController
-	IntegrationController           *controllers.IntegrationController
-	AuditTemplateSettingController  *controllers.AuditTemplateSettingController
-	RiskTemplateSettingController   *controllers.RiskTemplateSettingController
-	ReportTemplateSettingController *controllers.ReportTemplateSettingController
+	OrganizationLevelController      *controllers.OrganizationLevelController
+	SystemPreferenceController       *controllers.SystemPreferenceController
+	RoleController                   *controllers.RoleController
+	OrganizationUnitController       *controllers.OrganizationUnitController
+	LogSettingsController            *controllers.LogSettingsController
+	WorkflowLevelTypeController      *controllers.WorkflowLevelTypeController
+	WorkflowController               *controllers.WorkflowController
+	RolePermissionTypeController     *controllers.RolePermissionTypeController
+	ModuleController                 *controllers.ModuleController
+	EmailTemplateSettingsController  *controllers.EmailTemplateSettingsController
+	IntegrationController            *controllers.IntegrationController
+	AuditTemplateSettingController   *controllers.AuditTemplateSettingController
+	RiskTemplateSettingController    *controllers.RiskTemplateSettingController
+	ReportTemplateSettingController  *controllers.ReportTemplateSettingController
+	ActiveDirectorySettingController *controllers.ActiveDirectorySettingController
+	SIEMSettingController            *controllers.SIEMSettingController
+	AISettingController              *controllers.AISettingController
+	TriggerConditionController       *controllers.TriggerConditionController
+	ReminderController               *controllers.ReminderController
+	ReminderRuleController           *controllers.ReminderRuleController
+	EscalationController             *controllers.EscalationController
+	EscalationLevelController        *controllers.EscalationLevelController
 
-	SystemPreferenceSvc      services.SystemPreferenceServiceInterface
-	OrganizationUnitSvc      services.OrganizationUnitServiceInterface
-	OrganizationLevelSvc     services.OrganizationLevelServiceInterface
-	RoleSvc                  services.RoleServiceInterface
-	ModuleSvc                services.ModuleServiceInterface
-	WorkflowSvc              services.WorkflowServiceInterface
-	RolePermissionTypeSvc    services.RolePermissionTypeServiceInterface
-	EmailTemplateSettingsSvc services.EmailTemplateSettingsServiceInterface
-	IntegrationSvc           services.IntegrationServiceInterface
-	AuditTemplateSettingSvc  services.AuditTemplateSettingServiceInterface
-	RiskTemplateSettingSvc   services.RiskTemplateSettingServiceInterface
-	ReportTemplateSettingSvc services.ReportTemplateSettingServiceInterface
+	SystemPreferenceSvc       services.SystemPreferenceServiceInterface
+	OrganizationUnitSvc       services.OrganizationUnitServiceInterface
+	OrganizationLevelSvc      services.OrganizationLevelServiceInterface
+	RoleSvc                   services.RoleServiceInterface
+	ModuleSvc                 services.ModuleServiceInterface
+	WorkflowSvc               services.WorkflowServiceInterface
+	RolePermissionTypeSvc     services.RolePermissionTypeServiceInterface
+	EmailTemplateSettingsSvc  services.EmailTemplateSettingsServiceInterface
+	IntegrationSvc            services.IntegrationServiceInterface
+	AuditTemplateSettingSvc   services.AuditTemplateSettingServiceInterface
+	RiskTemplateSettingSvc    services.RiskTemplateSettingServiceInterface
+	ReportTemplateSettingSvc  services.ReportTemplateSettingServiceInterface
+	ActiveDirectorySettingSvc services.ActiveDirectorySettingServiceInterface
 }
 
 func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule) *SettingsModule {
@@ -101,33 +110,77 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		sharedModule.ActivityLogService)
 	reportTemplateSettingController := controllers.NewReportTemplateSettingController(reportTemplateSettingSvc)
 
-	return &SettingsModule{
-		OrganizationLevelController:     organizationLevelController,
-		SystemPreferenceController:      systemPreferenceController,
-		RoleController:                  roleController,
-		OrganizationUnitController:      organizationUnitController,
-		LogSettingsController:           logSettingsController,
-		WorkflowLevelTypeController:     workflowLevelTypeController,
-		WorkflowController:              workflowController,
-		RolePermissionTypeController:    rolePermissionTypeController,
-		ModuleController:                moduleController,
-		EmailTemplateSettingsController: emailTemplateSettingsController,
-		IntegrationController:           integrationController,
-		AuditTemplateSettingController:  auditTemplateSettingController,
-		RiskTemplateSettingController:   riskTemplateSettingController,
-		ReportTemplateSettingController: reportTemplateSettingController,
+	activeDirectorySettingRepo := repositories.NewActiveDirectorySettingRepository(db)
+	activeDirectorySettingSvc := services.NewActiveDirectorySettingService(
+		activeDirectorySettingRepo, integrationSvc)
+	activeDirectorySettingController := controllers.NewActiveDirectorySettingController(activeDirectorySettingSvc)
 
-		SystemPreferenceSvc:      systemPreferenceSvc,
-		OrganizationLevelSvc:     organizationLevelSvc,
-		RoleSvc:                  roleSvc,
-		ModuleSvc:                moduleSvc,
-		WorkflowSvc:              workflowSvc,
-		OrganizationUnitSvc:      organizationUnitSvc,
-		RolePermissionTypeSvc:    rolePermissionTypeSvc,
-		EmailTemplateSettingsSvc: emailTemplateSettingsService,
-		IntegrationSvc:           integrationSvc,
-		AuditTemplateSettingSvc:  auditTemplateSettingSvc,
-		RiskTemplateSettingSvc:   riskTemplateSettingSvc,
-		ReportTemplateSettingSvc: reportTemplateSettingSvc,
+	siemSettingRepo := repositories.NewSIEMSettingRepository(db)
+	siemSettingSvc := services.NewSIEMSettingService(
+		siemSettingRepo, integrationSvc)
+	siemSettingController := controllers.NewSIEMSettingController(siemSettingSvc)
+
+	aiSettingRepo := repositories.NewAISettingRepository(db)
+	aiSettingSvc := services.NewAISettingService(
+		aiSettingRepo, systemPreferenceSvc)
+	aiSettingController := controllers.NewAISettingController(aiSettingSvc)
+
+	triggerConditionRepo := repositories.NewTriggerConditionRepository(db)
+	triggerConditionSvc := services.NewTriggerConditionService(triggerConditionRepo)
+	triggerConditionController := controllers.NewTriggerConditionController(triggerConditionSvc)
+
+	reminderRepo := repositories.NewReminderRepository(db)
+	reminderSvc := services.NewReminderService(reminderRepo)
+	reminderController := controllers.NewReminderController(reminderSvc)
+
+	reminderRuleRepo := repositories.NewReminderRuleRepository(db)
+	reminderRuleSvc := services.NewReminderRuleService(reminderRuleRepo, reminderSvc, triggerConditionSvc, sharedModule.ActivityLogService)
+	reminderRuleController := controllers.NewReminderRuleController(reminderRuleSvc)
+
+	escalationRepo := repositories.NewEscalationRepository(db)
+	escalationSvc := services.NewEscalationService(escalationRepo)
+	escalationController := controllers.NewEscalationController(escalationSvc)
+
+	escalationLevelRepo := repositories.NewEscalationLevelRepository(db)
+	escalationLevelSvc := services.NewEscalationLevelService(escalationLevelRepo, escalationSvc, sharedModule.ActivityLogService)
+	escalationLevelController := controllers.NewEscalationLevelController(escalationLevelSvc)
+
+	return &SettingsModule{
+		OrganizationLevelController:      organizationLevelController,
+		SystemPreferenceController:       systemPreferenceController,
+		RoleController:                   roleController,
+		OrganizationUnitController:       organizationUnitController,
+		LogSettingsController:            logSettingsController,
+		WorkflowLevelTypeController:      workflowLevelTypeController,
+		WorkflowController:               workflowController,
+		RolePermissionTypeController:     rolePermissionTypeController,
+		ModuleController:                 moduleController,
+		EmailTemplateSettingsController:  emailTemplateSettingsController,
+		IntegrationController:            integrationController,
+		AuditTemplateSettingController:   auditTemplateSettingController,
+		RiskTemplateSettingController:    riskTemplateSettingController,
+		ReportTemplateSettingController:  reportTemplateSettingController,
+		ActiveDirectorySettingController: activeDirectorySettingController,
+		SIEMSettingController:            siemSettingController,
+		AISettingController:              aiSettingController,
+		TriggerConditionController:       triggerConditionController,
+		ReminderController:               reminderController,
+		ReminderRuleController:           reminderRuleController,
+		EscalationController:             escalationController,
+		EscalationLevelController:        escalationLevelController,
+
+		SystemPreferenceSvc:       systemPreferenceSvc,
+		OrganizationLevelSvc:      organizationLevelSvc,
+		RoleSvc:                   roleSvc,
+		ModuleSvc:                 moduleSvc,
+		WorkflowSvc:               workflowSvc,
+		OrganizationUnitSvc:       organizationUnitSvc,
+		RolePermissionTypeSvc:     rolePermissionTypeSvc,
+		EmailTemplateSettingsSvc:  emailTemplateSettingsService,
+		IntegrationSvc:            integrationSvc,
+		AuditTemplateSettingSvc:   auditTemplateSettingSvc,
+		RiskTemplateSettingSvc:    riskTemplateSettingSvc,
+		ReportTemplateSettingSvc:  reportTemplateSettingSvc,
+		ActiveDirectorySettingSvc: activeDirectorySettingSvc,
 	}
 }

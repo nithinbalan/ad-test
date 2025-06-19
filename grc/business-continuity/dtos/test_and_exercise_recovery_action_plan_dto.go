@@ -22,6 +22,7 @@ type TestAndExerciseRecoveryActionPlanListDTO struct {
 	SeverityLevelTitleAr            *string    `json:"severity_level_title_ar"`
 	SeverityLevelColorCode          *string    `json:"severity_level_color_code"`
 	Title                           string     `json:"title"`
+	Description                     *string    `json:"description"`
 	ResponsibleUserID               uint       `json:"responsible_user_id"`
 	ResponsibleUnitID               uint       `json:"responsible_unit_id"`
 	ResponsibleUnitTitleEn          string     `json:"responsible_unit_title_en"`
@@ -80,6 +81,7 @@ type TestAndExerciseRecoveryActionPlanDetailDTO struct {
 	SeverityLevelID         *uint                                    `json:"severity_level_id"`
 	SeverityLevel           *masterDTOs.SeverityLevelDTO             `json:"severity_level"`
 	Title                   string                                   `json:"title"`
+	Description             *string                                  `json:"description"`
 	ResponsibleUserID       uint                                     `json:"responsible_user_id"`
 	ResponsibleUnitID       uint                                     `json:"responsible_unit_id"`
 	ResponsibleUnit         settingsDTOs.OrganizationUnitDTO         `json:"responsible_unit"`
@@ -114,15 +116,16 @@ type TaeRecoveryActionPlanStatusUpdateDTO struct {
 }
 
 type TestAndExerciseRecoveryActionPlanFormDTO struct {
-	Title             string `json:"title"`
-	BcpPhaseID        *uint  `json:"bcp_phase_id"`
-	ProcessID         uint   `json:"process_id" binding:"required"`
-	SeverityLevelID   *uint  `json:"severity_level_id"`
-	ResponsibleUserID uint   `json:"responsible_user_id" binding:"required"`
-	TargetDate        string `json:"target_date" binding:"required"`
-	IsRecovery        bool   `json:"is_recovery"`
-	Percentage        *int   `json:"percentage"`
-	ReviewUserID      *uint  `json:"review_user_id"`
+	Title             string  `json:"title"`
+	Description       *string `json:"description"`
+	BcpPhaseID        *uint   `json:"bcp_phase_id"`
+	ProcessID         uint    `json:"process_id" binding:"required"`
+	SeverityLevelID   *uint   `json:"severity_level_id"`
+	ResponsibleUserID uint    `json:"responsible_user_id" binding:"required"`
+	TargetDate        string  `json:"target_date" binding:"required"`
+	IsRecovery        bool    `json:"is_recovery"`
+	Percentage        *int    `json:"percentage"`
+	ReviewUserID      *uint   `json:"review_user_id"`
 }
 
 type TestAndExerciseRecoveryActionPlanQueryParamsDTO struct {

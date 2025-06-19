@@ -101,14 +101,14 @@ func (repo *OrganizationReportRepository) GetProcessesByResponsibleUnit(params *
 
 	query := repo.db.Table("processes").
 		Select(`
-			processes.owner_unit_id AS owner_unit_id,
+			processes.responsible_unit_id AS owner_unit_id,
 			organization_units.title_en AS owner_unit_title_en,
 			organization_units.title_ar AS owner_unit_title_ar,
 			organization_units.color_code AS owner_unit_color_code,
 			organization_units.status AS owner_unit_status,
 			COUNT(processes.id) AS count`).
-		Joins("JOIN organization_units ON organization_units.id = processes.owner_unit_id").
-		Group("processes.owner_unit_id, organization_units.title_en, organization_units.title_ar, organization_units.color_code, organization_units.status")
+		Joins("JOIN organization_units ON organization_units.id = processes.responsible_unit_id").
+		Group("processes.responsible_unit_id, organization_units.title_en, organization_units.title_ar, organization_units.color_code, organization_units.status")
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("processes.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -161,7 +161,7 @@ func (repo *OrganizationReportRepository) GetProcessesByResponsibleUser(params *
 			users.email AS responsible_user_email,
 			users.profile_image_path AS responsible_user_profile_image_path,
 			COUNT(processes.id) AS count`).
-		Joins("JOIN users ON users.id = processes.owner_id").
+		Joins("JOIN users ON users.id = processes.responsible_user_id").
 		Group("users.id, users.first_name_en, users.first_name_ar, users.last_name_en, users.last_name_ar, users.initial, users.color, users.email, users.profile_image_path")
 
 	if params.DateFrom != "" && params.DateTo != "" {

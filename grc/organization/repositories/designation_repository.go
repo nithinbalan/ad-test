@@ -18,6 +18,8 @@ type DesignationRepositoryInterface interface {
 	Deactivate(ids []uint) ([]uint, error)
 	ExistsByTitle(titleEn string, titleAr string) (bool, error)
 	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
+
+	GetByTitleEn(titleEn string) (*models.Designation, error)
 }
 
 // implementation
@@ -34,7 +36,7 @@ func NewDesignationRepository(db *gorm.DB) *DesignationRepository {
 func (repo *DesignationRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.Designation, error) {
 	var designations []*models.Designation
 
-	query := repo.db
+	query := repo.db.Preload("JobDescription")
 
 	if keyword != "" {
 		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
@@ -57,14 +59,16 @@ func (repo *DesignationRepository) GetAll(sort string, sortBy string, keyword st
 }
 
 func (repo *DesignationRepository) GetByID(id uint) (*models.Designation, error) {
-	var designation *models.Designation
-	result := repo.db.First(&designation, id)
+	var designation models.Designation
+	err := repo.db.
+		Preload("JobDescription").
+		First(&designation, id).Error
 
-	if result.Error != nil {
-		return nil, result.Error
+	if err != nil {
+		return nil, err
 	}
 
-	return designation, nil
+	return &designation, nil
 }
 
 func (repo *DesignationRepository) Create(designation *models.Designation) (*models.Designation, error) {
@@ -178,4 +182,15 @@ func (repo *DesignationRepository) ExistsByTitleExcludingID(id uint, titleEn, ti
 	}
 
 	return count > 0, nil
+}
+
+func (repo *DesignationRepository) GetByTitleEn(titleEn string) (*models.Designation, error) {
+	var designation models.Designation
+
+	result := repo.db.Where("title_en = ?", titleEn).First(&designation)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &designation, nil
 }

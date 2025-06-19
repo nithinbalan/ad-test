@@ -4,16 +4,19 @@ import (
 	"jethur/grc/models"
 	"jethur/utility"
 
+	organizationalContextDTOs "jethur/grc/organizational-context/dtos"
+
 	"gorm.io/gorm"
 )
 
 // Interfaces
 type SwotPestelQuestionGroupRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*models.SwotPestelQuestionGroup, error)
+	GetAll(params *organizationalContextDTOs.SwotPestelQuestionGroupListQueryParamsDTO) ([]*organizationalContextDTOs.SwotPestelQuestionGroupListDTO, error)
 	GetByID(id uint) (*models.SwotPestelQuestionGroup, error)
 	Create(swotPestelQuestionGroup *models.SwotPestelQuestionGroup) (*models.SwotPestelQuestionGroup, error)
 	Update(id uint, updatedSwotPestelQuestionGroup *models.SwotPestelQuestionGroup) (*models.SwotPestelQuestionGroup, error)
 	Delete(id uint) error
+	GetAllSwotPestelQuestionGroups(isSwot string, isPestel string) ([]*models.SwotPestelQuestionGroup, error)
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
 	ExistsByTitle(titleEn string, titleAr string) (bool, error)
@@ -31,25 +34,53 @@ func NewSwotPestelQuestionGroupRepository(db *gorm.DB) *SwotPestelQuestionGroupR
 	}
 }
 
-func (repo *SwotPestelQuestionGroupRepository) GetAll(sort string, sortBy string, keyword string, status string, isSwot string, isPestel string) ([]*models.SwotPestelQuestionGroup, error) {
-	var swotPestelQuestionGroups []*models.SwotPestelQuestionGroup
+func (repo *SwotPestelQuestionGroupRepository) GetAll(params *organizationalContextDTOs.SwotPestelQuestionGroupListQueryParamsDTO) ([]*organizationalContextDTOs.SwotPestelQuestionGroupListDTO, error) {
+	var results []*organizationalContextDTOs.SwotPestelQuestionGroupListDTO
 
-	query := repo.db
+	query := repo.db.Table("swot_pestel_question_groups").Select("swot_pestel_question_groups.*")
 
-	if keyword != "" {
-		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
+	if keyword := params.Keyword; keyword != "" {
+		like := "%" + keyword + "%"
+		query = query.Where("title_en LIKE ? OR title_ar LIKE ?", like, like)
 	}
+
+	if params.Status == "active" || params.Status == "inactive" {
+		query = query.Where("status = ?", params.Status)
+	}
+
+	if params.IsSwot == "true" {
+		query = query.Where("is_swot = ?", true)
+	}
+
+	if params.IsPestel == "true" {
+		query = query.Where("is_pestel = ?", true)
+	}
+
+	sortBy := params.SortBy
 	if sortBy == "" {
 		sortBy = "title_en"
 	}
-	if sort != "asc" && sort != "desc" {
-		sort = "asc"
+	sortOrder := "asc"
+	if params.Sort == "desc" {
+		sortOrder = "desc"
 	}
 
-	if status == "active" || status == "inactive" {
-		query = query.Where("status = ?", status)
-	}
+	query = query.Order(sortBy + " " + sortOrder)
 
+	err := query.Find(&results).Error
+
+	for _, result := range results {
+		var questions []*organizationalContextDTOs.QuestionDTO
+
+		repo.db.Model(&models.SwotPestelQuestion{}).Where("swot_pestel_question_group_id = ?", result.ID).Where("status = ?", "active").Order("[order] ASC").Find(&questions)
+		result.SwotPestelQuestions = questions
+	}
+	return results, err
+}
+
+func (repo *SwotPestelQuestionGroupRepository) GetAllSwotPestelQuestionGroups(isSwot string, isPestel string) ([]*models.SwotPestelQuestionGroup, error) {
+	var swotPestelQuestionGroups []*models.SwotPestelQuestionGroup
+	query := repo.db
 	if isSwot == "true" {
 		query = query.Where("is_swot = ?", true)
 	}
@@ -58,7 +89,6 @@ func (repo *SwotPestelQuestionGroupRepository) GetAll(sort string, sortBy string
 		query = query.Where("is_pestel = ?", true)
 	}
 
-	query = query.Order(sortBy + " " + sort)
 	result := query.Find(&swotPestelQuestionGroups)
 
 	return swotPestelQuestionGroups, result.Error

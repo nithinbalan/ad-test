@@ -76,6 +76,7 @@ type UserFormDTO struct {
 	UserStatusID        uint    `json:"user_status_id" binding:"required"`
 	Password            string  `json:"password" binding:"omitempty"`
 	IsSentEmail         bool    `json:"is_sent_email"`
+	ReportingUserID     *uint   `json:"reporting_user_id"`
 }
 
 type UserUpdateDTO struct {
@@ -93,6 +94,7 @@ type UserUpdateDTO struct {
 	MobileNumber        *string    `json:"mobile_number,omitempty"`
 	ProfileImagePath    *string    `json:"profile_image_path,omitempty"`
 	LastLoginAt         *time.Time `json:"last_login_at,omitempty"`
+	ReportingUserID     *uint      `json:"reporting_user_id"`
 }
 
 type SendNewPasswordEmailDTO struct {
@@ -144,6 +146,7 @@ type UserDetailsDTO struct {
 	LastLoginAt      *time.Time `json:"last_login_at"`
 	CreatedAt        time.Time  `json:"created_at"`
 	UpdatedAt        time.Time  `json:"updated_at"`
+	PrimaryUnitID    *uint      `json:"primary_unit_id"`
 
 	// Relationship DTOs
 	OrganizationUnit1 settingDTOs.OrganizationUnitDTO  `json:"organization_unit_1"`
@@ -156,6 +159,7 @@ type UserDetailsDTO struct {
 	Roles             *[]settingDTOs.RoleDTO           `json:"roles"`
 	CreatedByUser     *UserMinimalDTO                  `json:"created_by_user"`
 	UpdatedByUser     *UserMinimalDTO                  `json:"updated_by_user"`
+	ReportingUser     *UserMinimalDTO                  `json:"reporting_user"`
 }
 
 type UserLoginHistoryListQueryParamsDTO struct {
@@ -284,3 +288,21 @@ type UserPrimaryDetailsDTO struct {
 	MobileNumber     *string `json:"mobile_number"`
 	ProfileImagePath *string `json:"profile_image_path"`
 }
+
+type UpdateOrganizationUnitDTO struct {
+	UserID             *uint `json:"user_id"`
+	OrganizationUnitID *uint `json:"organization_unit_id"` // New Organization Unit ID
+}
+type ADUserDTO struct {
+	FirstNameEn      string `json:"first_name_en"`
+	LastNameEn       string `json:"last_name_en"`
+	FirstNameAr      string `json:"first_name_ar"`
+	LastNameAr       string `json:"last_name_ar"`
+	Email            string `json:"email"`
+	MobileNumber     string `json:"mobile_number"`
+	Designation      string `json:"designation"`
+	UserStatus       string `json:"user_status"`
+	OrganizationUnit string `json:"organization_unit"`
+	IsExist          bool   `json:"is_exist"`
+}
+type ADUserFlatDTO map[string]interface{}

@@ -4,9 +4,11 @@ import (
 	"fmt"
 	assetDTOs "jethur/grc/asset/dtos"
 	assetRepsitories "jethur/grc/asset/repositories"
+	commonDTOs "jethur/grc/common/dtos"
 	complianceServices "jethur/grc/compliance/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+
 	"jethur/utility"
 )
 
@@ -190,10 +192,40 @@ func (aais *AssetAssociatedItemService) GetAllIncidents(assetID uint, params *as
 }
 
 func (aais *AssetAssociatedItemService) GetAllRisks(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error) {
+	// Validate asset
 	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
 		return nil, err
 	}
-	return aais.repo.GetAllRisks(assetID, params)
+
+	// Get related vulnerability IDs
+	vulnerabilityIDs, err := aais.repo.GetVulnerabilityIDsByAssetID(assetID)
+	if err != nil {
+		return nil, err
+	}
+	if len(vulnerabilityIDs) == 0 {
+		return emptyRiskListResponse(params), nil
+	}
+
+	// Get related threat IDs
+	threatIDs, err := aais.repo.GetThreatIDsByVulnerabilityIDs(vulnerabilityIDs)
+	if err != nil {
+		return nil, err
+	}
+	if len(threatIDs) == 0 {
+		return emptyRiskListResponse(params), nil
+	}
+
+	// Get related risk IDs
+	riskRegisterIDs, err := aais.repo.GetRiskRegisterIDsByThreatIDs(threatIDs)
+	if err != nil {
+		return nil, err
+	}
+	if len(riskRegisterIDs) == 0 {
+		return emptyRiskListResponse(params), nil
+	}
+
+	// Final call to fetch filtered risks
+	return aais.repo.GetAllRisksByRiskIDs(riskRegisterIDs, params)
 }
 
 func (service *AssetAssociatedItemService) GetAllVulnerabilities(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]assetDTOs.VulnerabilityDTO, error) {
@@ -703,4 +735,16 @@ func (aais *AssetAssociatedItemService) GetRiskAnalysis(assetID uint) ([]*assetD
 
 	// Return the structured response
 	return vulnerabilities, nil
+}
+
+func emptyRiskListResponse(params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) *assetDTOs.AssetAssociatedItemRiskListResponseDTO {
+	return &assetDTOs.AssetAssociatedItemRiskListResponseDTO{
+		Items: []*assetDTOs.AssetRiskListDTO{},
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  0,
+			TotalCount:  0,
+		},
+	}
 }

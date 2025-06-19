@@ -489,10 +489,14 @@ func (repo *MeetingReportRepository) GetMeetingCountByYear(params *reportDTOs.Re
 
 	// Convert year to English and Arabic title
 	for _, record := range rawResults {
+		startDate := fmt.Sprintf("%d-01-01", record.Year)
+		endDate := fmt.Sprintf("%d-12-31", record.Year)
 		results = append(results, &reportDTOs.MeetingCountByYearDTO{
-			TitleEn: fmt.Sprintf("%d", record.Year), // English Title (Year)
-			TitleAr: fmt.Sprintf("%d", record.Year), // Arabic Title (Same as Year)
-			Count:   record.Count,
+			TitleEn:  fmt.Sprintf("%d", record.Year), // English Title (Year)
+			TitleAr:  fmt.Sprintf("%d", record.Year), // Arabic Title (Same as Year)
+			Count:    record.Count,
+			DateFrom: startDate,
+			DateTo:   endDate,
 		})
 	}
 

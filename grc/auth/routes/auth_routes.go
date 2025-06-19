@@ -11,6 +11,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	authController := app.AuthModule.AuthController
 
+	unauthenticatedRoutes := router.Group("/")
+
 	//Login
 	authRoutes.POST("/auth/login", authController.Login)
 	authRoutes.POST("/auth/token", authController.GetTokenFromRefreshToken)
@@ -22,4 +24,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	authRoutes.POST("/auth/password-recovery/resend-otp", authController.ReSendPasswordRecoveryOTP)
 	authRoutes.POST("/auth/password-recovery/verify-otp", authController.VerifyPasswordRecoveryOTP)
 	authRoutes.PUT("/auth/password-recovery/set-password", authController.SetPassword)
+
+	//Login settings
+	unauthenticatedRoutes.GET("/login-settings", authController.GetLoginSettings)
 }

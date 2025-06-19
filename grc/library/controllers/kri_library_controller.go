@@ -28,6 +28,13 @@ func (klc *KRILibraryController) GetAllKRILibrary(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
+	categories := c.QueryArray("categories")
+
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(klc.db, c, "Invalid export parameter")
+		return
+	}
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -42,18 +49,37 @@ func (klc *KRILibraryController) GetAllKRILibrary(c *gin.Context) {
 	}
 
 	queryParams := libraryDTOs.KRILibraryListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortBy,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
+		Sort:       sort,
+		SortBy:     sortBy,
+		Keyword:    keyword,
+		Categories: categories,
+		Page:       page,
+		PageSize:   pageSize,
+		Export:     export,
 	}
-	kriLibrary, err := klc.service.GetAll(&queryParams)
+
+	result, err := klc.service.GetAll(&queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(klc.db, c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, kriLibrary)
+
+	if export {
+		currentUserID, _ := utility.GetCurrentUserID(c)
+		excelFile, err := klc.service.ExportKRILibrary(result.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(klc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Disposition", `attachment; filename="KRI_Library.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
 }
 
 func (klc *KRILibraryController) GetKRILibraryDetails(c *gin.Context) {
@@ -220,11 +246,16 @@ func (klc *KRILibraryController) DeactivateKRILibraries(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (klc *KRILibraryController) GetKRICategoryCounts(c *gin.Context) {
+func (klc *KRILibraryController) KRICountByCategory(c *gin.Context) {
 	result, err := klc.service.GetKRICategoryCounts()
 	if err != nil {
 		utility.SendInternalErrResp(klc.db, c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, result)
+}
+
+func (klc *KRILibraryController) GetKRILibraryExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+	klc.GetAllKRILibrary(c)
 }

@@ -7,6 +7,7 @@ import (
 type DocumentAcknowledgeUser struct {
 	ID                 uint      `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	DocumentID         uint      `gorm:"not null" json:"document_id"`
+	DocumentVersionID  *uint     `json:"document_version_id"`
 	UserID             uint      `gorm:"not null" json:"user_id"`
 	OrganizationUnitID uint      `gorm:"not null" json:"organization_unit_id"`
 	CreatedBYID        uint      `gorm:"not null" json:"created_by_id"`

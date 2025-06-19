@@ -19,6 +19,7 @@ import (
 type IntegrationServiceInterface interface {
 	GetAll(params *settingsDTOs.IntegrationListQueryParamsDTO) ([]*settingsDTOs.IntegrationListDTO, error)
 	GetByID(id uint) (*models.Integration, error)
+	GetByType(integrationType string) (*models.Integration, error)
 	GetFullDetailsByID(integrationID uint, tx ...utility.DatabaseTransaction) (*settingsDTOs.IntegrationDetailDTO, error)
 	EnableIntegration(integrationID uint, currentUserID uint, integrtaionCredentialFormDTO *settingsDTOs.IntegrationCredentialFormDTO) (uint, error)
 	UpdateCredential(id uint, currentUserID uint, integrationCredential *settingsDTOs.IntegrationCredentialFormDTO) (uint, error)
@@ -232,4 +233,13 @@ func (is *IntegrationService) DisableIntegration(integrationID uint, currentUser
 	}()
 
 	return id, nil
+}
+
+func (is *IntegrationService) GetByType(integrationType string) (*models.Integration, error) {
+	integration, err := is.repo.GetByType(integrationType)
+	if err != nil {
+		return nil, err
+	}
+
+	return integration, nil
 }

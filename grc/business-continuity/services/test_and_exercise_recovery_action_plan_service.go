@@ -143,6 +143,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID
 		ProcessID:          recoveryActionPlanFormDTO.ProcessID,
 		SeverityLevelID:    recoveryActionPlanFormDTO.SeverityLevelID,
 		Title:              recoveryActionPlanFormDTO.Title,
+		Description:        recoveryActionPlanFormDTO.Description,
 		ResponsibleUserID:  recoveryActionPlanFormDTO.ResponsibleUserID,
 		ResponsibleUnitID:  responsibleUnitID,
 		ReviewUserID:       recoveryActionPlanFormDTO.ReviewUserID,
@@ -337,6 +338,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 	existingRecoveryPlan.ProcessID = recoveryActionPlanFormDTO.ProcessID
 	existingRecoveryPlan.SeverityLevelID = recoveryActionPlanFormDTO.SeverityLevelID
 	existingRecoveryPlan.Title = recoveryActionPlanFormDTO.Title
+	existingRecoveryPlan.Description = recoveryActionPlanFormDTO.Description
 	existingRecoveryPlan.ResponsibleUserID = recoveryActionPlanFormDTO.ResponsibleUserID
 	existingRecoveryPlan.TargetDate = dates.TargetDate
 	existingRecoveryPlan.IsRecovery = recoveryActionPlanFormDTO.IsRecovery
@@ -351,22 +353,26 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 	}
 
 	// //update task
-	urlParam := fmt.Sprintf(`{"test_and_exercise_id":%d, "action_plan_id":%d}`, testAndExerciseID, id)
-	if recoveryActionPlanFormDTO.IsRecovery {
-		urlParam = fmt.Sprintf(`{"test_and_exercise_id":%d, "recovery_action_plan_id":%d}`, testAndExerciseID, id)
-	}
-	taskUpdateDTO := commonDTOs.TaskFormDTO{
-		Title:             recoveryActionPlanFormDTO.Title,
-		TargetDate:        dates.TargetDate,
-		URLParam:          &urlParam,
-		SeverityLevelID:   recoveryActionPlanFormDTO.SeverityLevelID,
-		ResponsibleUserID: recoveryActionPlanFormDTO.ResponsibleUserID,
-	}
+	task, _ := teraps.taskSvc.GetByResponsibleUserID("recovery_action_plan_id", id, recoveryActionPlanFormDTO.ResponsibleUserID)
 
-	err = teraps.taskSvc.Update(currentUserID, taskUpdateDTO, "recovery_action_plan_id", id, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
+	if task != nil {
+		urlParam := fmt.Sprintf(`{"test_and_exercise_id":%d, "action_plan_id":%d}`, testAndExerciseID, id)
+		if recoveryActionPlanFormDTO.IsRecovery {
+			urlParam = fmt.Sprintf(`{"test_and_exercise_id":%d, "recovery_action_plan_id":%d}`, testAndExerciseID, id)
+		}
+		taskUpdateDTO := commonDTOs.TaskFormDTO{
+			Title:             recoveryActionPlanFormDTO.Title,
+			TargetDate:        dates.TargetDate,
+			URLParam:          &urlParam,
+			SeverityLevelID:   recoveryActionPlanFormDTO.SeverityLevelID,
+			ResponsibleUserID: recoveryActionPlanFormDTO.ResponsibleUserID,
+		}
+
+		err = teraps.taskSvc.Update(currentUserID, taskUpdateDTO, "recovery_action_plan_id", id, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	tx.Commit()
@@ -762,8 +768,8 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) parseTestAndExerciseReco
 	return parsed, nil
 }
 
-func (teraps *TestAndExerciseRecoveryActionPlanService) StatusUpdate(slaID uint, id uint, currentUserID uint, testAndExerciseRecoveryActionPlanStatusUpdateFormDTO *businessContinuityDTOs.TaeRecoveryActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error {
-	existingTestAndExerciseRecoveryActionPlan, err := teraps.GetByID(slaID, id)
+func (teraps *TestAndExerciseRecoveryActionPlanService) StatusUpdate(actionPlanID uint, id uint, currentUserID uint, testAndExerciseRecoveryActionPlanStatusUpdateFormDTO *businessContinuityDTOs.TaeRecoveryActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error {
+	existingTestAndExerciseRecoveryActionPlan, err := teraps.GetByID(actionPlanID, id)
 	if err != nil {
 		return err
 	}
@@ -778,13 +784,19 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) StatusUpdate(slaID uint,
 	}
 	isReviewUserNull := existingTestAndExerciseRecoveryActionPlan.ReviewUserID == nil
 	// Fetch the corresponding task and update its status
-	existingTask, err := teraps.taskSvc.GetByFieldID("recovery_action_plan_id", id)
-	if err != nil {
-		return err
-	}
-	err = teraps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, testAndExerciseRecoveryActionPlanStatusUpdateFormDTO.ActionPlanStatusID, isReviewUserNull, tx)
-	if err != nil {
-		return err
+
+	task, _ := teraps.taskSvc.GetByResponsibleUserID("recovery_action_plan_id", actionPlanID, existingTestAndExerciseRecoveryActionPlan.ResponsibleUserID)
+
+	if task != nil {
+
+		existingTask, err := teraps.taskSvc.GetByFieldID("recovery_action_plan_id", id)
+		if err != nil {
+			return err
+		}
+		err = teraps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, testAndExerciseRecoveryActionPlanStatusUpdateFormDTO.ActionPlanStatusID, isReviewUserNull, tx)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

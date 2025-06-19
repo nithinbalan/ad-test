@@ -27,6 +27,8 @@ type App struct {
 	BusinessContinuityModule    *BusinessContinuityModule
 	OrganizationalContextModule *OrganizationalContextModule
 	StrategyModule              *StrategyModule
+	TprmModule                  *TprmModule
+	JethurAIModule              *JethurAIModule
 }
 
 func NewApp(db *gorm.DB) *App {
@@ -38,8 +40,8 @@ func NewApp(db *gorm.DB) *App {
 	libraryModule := NewLibraryModule(db, sharedModule, masterModule)
 	organizationModule := NewOrganizationModule(db, sharedModule, settingsModule, masterModule, taskModule, commonModule)
 	authModule := NewAuthModule(db, organizationModule, settingsModule, commonModule)
-	complianceModule := NewComplianceModule(db, sharedModule, masterModule, organizationModule, taskModule, settingsModule, commonModule)
 	documentModule := NewDocumentModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
+	complianceModule := NewComplianceModule(db, sharedModule, masterModule, organizationModule, taskModule, settingsModule, commonModule, documentModule)
 	assetModule := NewAssetModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule, documentModule, complianceModule)
 	riskModule := NewRiskModule(db, sharedModule, settingsModule, masterModule, libraryModule, organizationModule, complianceModule, commonModule, taskModule, assetModule)
 	incidentModule := NewIncidentModule(db, sharedModule, settingsModule, masterModule, organizationModule, complianceModule, riskModule, taskModule, commonModule, assetModule)
@@ -47,10 +49,12 @@ func NewApp(db *gorm.DB) *App {
 	auditModule := NewAuditModule(db, sharedModule, organizationModule, complianceModule, riskModule, incidentModule, documentModule, settingsModule, masterModule, taskModule, commonModule)
 	kpiModule := NewKPIModule(db, riskModule)
 	auditInsightsModule := NewAuditInsightsModule(db, sharedModule, organizationModule, auditModule, commonModule)
-	reportsModule := NewReportsModule(db, complianceModule, organizationModule, riskModule, auditModule, incidentModule, meetingModule, settingsModule, documentModule)
+	reportsModule := NewReportsModule(db, complianceModule, organizationModule, riskModule, auditModule, auditInsightsModule, incidentModule, meetingModule, settingsModule, documentModule, sharedModule, kpiModule, commonModule)
 	businessFunctionModule := NewBusinessContinuityModule(db, sharedModule, settingsModule, masterModule, organizationModule, assetModule, documentModule, riskModule, commonModule, taskModule)
 	organizationalContextModule := NewOrganizationalContextModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
-	strategyModule := NewStrategyModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
+	tprmModule := NewTprmModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
+	strategyModule := NewStrategyModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule, riskModule, assetModule, tprmModule, complianceModule, documentModule)
+	jethurAIModule := NewJethurAIModule(db, documentModule, organizationModule)
 
 	return &App{
 		DB:                          db,
@@ -75,5 +79,7 @@ func NewApp(db *gorm.DB) *App {
 		BusinessContinuityModule:    businessFunctionModule,
 		OrganizationalContextModule: organizationalContextModule,
 		StrategyModule:              strategyModule,
+		TprmModule:                  tprmModule,
+		JethurAIModule:              jethurAIModule,
 	}
 }

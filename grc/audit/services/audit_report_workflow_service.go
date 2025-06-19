@@ -31,6 +31,8 @@ type AuditReportWorkflowServiceInterface interface {
 	DeleteAuditReportWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteAuditReportReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteAuditReportWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	ValidateWorkflowBeforeCreate(workflowType string, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditReportWorkflowService struct {
@@ -313,4 +315,36 @@ func (arws *AuditReportWorkflowService) mapWorkflowStatusToDTO(status *models.Wo
 		ColorCode: status.ColorCode,
 		Status:    status.Status,
 	}
+}
+
+func (arws *AuditReportWorkflowService) ValidateWorkflowBeforeCreate(workflowType string, tx ...utility.DatabaseTransaction) error {
+	workflows, err := arws.workflowSvc.GetAllWorkflowsByType(workflowType, "audit")
+	if err != nil {
+		return err
+	}
+	if len(workflows) == 0 {
+		return utility.NewForbiddenError("workflow_not_configured")
+	}
+
+	workflowLevels, err := arws.workflowSvc.GetWorkflowLevels(workflows[0].ID, tx...)
+	if err != nil {
+		return err
+	}
+	if len(workflowLevels.WorkflowLevels) == 0 {
+		return utility.NewForbiddenError("workflow_levels_not_found")
+	}
+
+	hasParticipants := false
+	for _, level := range workflowLevels.WorkflowLevels {
+		if len(level.Participants) > 0 {
+			hasParticipants = true
+			break
+		}
+	}
+
+	if !hasParticipants {
+		return utility.NewForbiddenError("participants_not_configured")
+	}
+
+	return nil
 }

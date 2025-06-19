@@ -111,9 +111,11 @@ type MeetingWithOverdueActionPlanDTO struct {
 }
 
 type MeetingCountByYearDTO struct {
-	TitleEn string `json:"title_en"` // Year in English
-	TitleAr string `json:"title_ar"` // Year in Arabic
-	Count   uint   `json:"count"`    // Count of meetings
+	TitleEn  string `json:"title_en"` // Year in English
+	TitleAr  string `json:"title_ar"` // Year in Arabic
+	Count    uint   `json:"count"`    // Count of meetings
+	DateFrom string `json:"date_from"`
+	DateTo   string `json:"date_to"`
 }
 
 type MeetingCountByUserDTO struct {

@@ -49,8 +49,8 @@ func (cc *ControlController) GetAllControls(c *gin.Context) {
 	allowedParams := []string{
 		"control_type_ids",
 		"control_category_ids",
-		"owner_unit_ids",
-		"owner_ids",
+		"responsible_unit_ids",
+		"responsible_user_ids",
 		"control_implementation_status_ids",
 		"control_efficiency_status_ids",
 		"test_responsible_user_ids",

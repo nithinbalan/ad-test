@@ -311,8 +311,10 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
 			(compliance_clauses.clause_no LIKE ? OR
-			compliance_clauses.title LIKE ? OR
-			compliance_requirements.title LIKE ? OR
+			compliance_clauses.title_en LIKE ? OR
+			compliance_clauses.title_ar LIKE ? OR
+			compliance_requirements.title_en LIKE ? OR
+			compliance_requirements.title_ar LIKE ? OR
 			compliance_requirement_categories.title_en LIKE ? OR
 			compliance_requirement_categories.title_ar LIKE ? OR
 			severity_levels.title_en LIKE ? OR
@@ -327,7 +329,7 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
-			keyword, keyword)
+			keyword, keyword, keyword, keyword)
 	}
 
 	if params.SortBy == "" {

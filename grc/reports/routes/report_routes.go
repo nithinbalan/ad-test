@@ -18,8 +18,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskReportController := app.ReportsModule.RiskReportController
 	auditReportController := app.ReportsModule.AuditReportController
 	incidentReportController := app.ReportsModule.IncidentReportController
+	auditInsightReportController := app.ReportsModule.AuditInsightReportController
 	meetingReportController := app.ReportsModule.MeetingReportController
 	documentReportController := app.ReportsModule.DocumentReportController
+	grcReportController := app.ReportsModule.GRCReportController
+	grcReportWorkflowStatusController := app.ReportsModule.GRCReportWorkflowStatusController
+	grcReportCommentStatusController := app.ReportsModule.GRCReportCommentStatusController
+	grcReportWorkflowController := app.ReportsModule.GRCReportWorkflowController
+	grcReportWorkflowReviewCommentController := app.ReportsModule.GRCReportWorkflowReviewCommentController
 
 	//Compliance
 	reportsRoutes.GET("/reports/compliance-registers", complianceReportController.GetAllComplianceRegisters)
@@ -161,6 +167,44 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/incident-action-plan-by-responsible-user", incidentReportController.GetIncidentActionPlanByResponsibleUser)
 	reportsRoutes.GET("/reports/incident-action-plan-by-responsible-unit", incidentReportController.GetIncidentActionPlanByResponsibleUnit)
 
+	reportsRoutes.GET("/reports/audit-insight-audits", auditInsightReportController.GetAllAuditInsightsAudits)
+	reportsRoutes.GET("/reports/audit-insight-audits/export", auditInsightReportController.GetAllAuditInsightsAuditsExport)
+	reportsRoutes.GET("/reports/audit-insight-audit-by-status", auditInsightReportController.GetAuditByStatus)
+	reportsRoutes.GET("/reports/audit-insight-audit-by-year", auditInsightReportController.GetAuditByYear)
+	reportsRoutes.GET("/reports/audit-insight-audit-by-month", auditInsightReportController.GetAuditByMonth)
+
+	reportsRoutes.GET("/reports/audit-insight-audit-plans", auditInsightReportController.GetAllAuditInsightsAuditPlans)
+	reportsRoutes.GET("/reports/audit-insight-audit-plans/export", auditInsightReportController.GetAuditInsightsAuditPlansExport)
+	reportsRoutes.GET("/reports/audit-insight-audit-plan-by-category", auditInsightReportController.GetAuditPlanByCategory)
+	reportsRoutes.GET("/reports/audit-insight-audit-plan-by-team-lead", auditInsightReportController.GetAuditPlanByTeamLead)
+	reportsRoutes.GET("/reports/audit-insight-audit-plan-by-auditableitem", auditInsightReportController.GetAuditPlanByAuditableItem)
+	reportsRoutes.GET("/reports/audit-insight-audit-plan-by-month", auditInsightReportController.GetAuditPlanByMonth)
+	reportsRoutes.GET("/reports/audit-insight-audit-plans-vs-audits", auditInsightReportController.GetAuditPlanVsAudits)
+
+	reportsRoutes.GET("/reports/audit-insight-findings", auditInsightReportController.GetAllAuditInsightsAuditFindings)
+	reportsRoutes.GET("/reports/audit-insight-findings/export", auditInsightReportController.GetAuditInsightsAuditFindingsExport)
+	reportsRoutes.GET("/reports/audit-insight-finding-by-category", auditInsightReportController.GetAuditFindingByCategory)
+	reportsRoutes.GET("/reports/audit-insight-finding-by-audit-category", auditInsightReportController.GetAuditFindingByAuditCategory)
+	reportsRoutes.GET("/reports/audit-insight-finding-by-status", auditInsightReportController.GetAuditFindingByStatus)
+	reportsRoutes.GET("/reports/audit-insight-finding-by-severity-level", auditInsightReportController.GetAuditFindingBySeverityLevel)
+	reportsRoutes.GET("/reports/audit-insight-finding-by-month", auditInsightReportController.GetAuditFindingByMonth)
+	reportsRoutes.GET("/reports/audit-insight-finding-by-year", auditInsightReportController.GetAuditFindingByYear)
+
+	reportsRoutes.GET("/reports/audit-insight-action-plans", auditInsightReportController.GetAllAuditInsightsActionPlans)
+	reportsRoutes.GET("/reports/audit-insight-action-plans/export", auditInsightReportController.GetAuditInsightsActionPlanExport)
+	reportsRoutes.GET("/reports/audit-insight-action-plan-by-status", auditInsightReportController.GetAuditActionPlanByStatus)
+	reportsRoutes.GET("/reports/audit-insight-action-plan-by-responsible-user", auditInsightReportController.GetAuditActionPlanByResponsibleUser)
+	reportsRoutes.GET("/reports/audit-insight-open-action-plan-by-responsible-user", auditInsightReportController.GetOpenActionPlanByResponsibleUser)
+	reportsRoutes.GET("/reports/audit-insight-overdue-action-plan-by-responsible-user", auditInsightReportController.GetOverdueActionPlanByResponsibleUser)
+
+	reportsRoutes.GET("/reports/audit-insight-draft-report-by-status", auditInsightReportController.GetAuditDraftReportByStatus)
+	reportsRoutes.GET("/reports/audit-insight-draft-reports", auditInsightReportController.GetAllAuditInsightsDraftReports)
+	reportsRoutes.GET("/reports/audit-insight-draft-reports/export", auditInsightReportController.GetAuditInsightsDraftReportsExport)
+
+	reportsRoutes.GET("/reports/audit-insight-final-report-by-status", auditInsightReportController.GetAuditFinalReportByStatus)
+	reportsRoutes.GET("/reports/audit-insight-final-reports", auditInsightReportController.GetAllAuditInsightsFinalReports)
+	reportsRoutes.GET("/reports/audit-insight-final-reports/export", auditInsightReportController.GetAuditInsightsFinalReportsExport)
+
 	//Meetings
 	reportsRoutes.GET("/reports/meetings", meetingReportController.GetAllMeetings)
 	reportsRoutes.GET("/reports/meetings/export", meetingReportController.GetMeetingExport)
@@ -204,4 +248,47 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/document-change-request-by-status", documentReportController.GetDocumentChangeRequestByStatus)
 	reportsRoutes.GET("/reports/document-updated-by-change-type", documentReportController.GetDocumentsUpdatedByChangeType) //document updated by change type, published change request
 	reportsRoutes.GET("/reports/document-archived-by-quarter", documentReportController.GetDocumentsArchivedByQuarter)
+
+	reportsRoutes.GET("/grc-reports", grcReportController.GetAllGRCReports)
+	reportsRoutes.GET("/grc-reports/:grcReportId", grcReportController.GetGRCReportDetails)
+	reportsRoutes.POST("/grc-reports", grcReportController.CreateGRCReport)
+	reportsRoutes.GET("/grc-reports/:grcReportId/sections/:sectionId", grcReportController.GetGRCReportSection)
+	reportsRoutes.PUT("/grc-reports/:grcReportId/sections/:sectionId", grcReportController.UpdateGRCReportSection)
+	reportsRoutes.DELETE("/grc-reports/:grcReportId/sections/:sectionId", grcReportController.DeleteGRCReportSection)
+	reportsRoutes.DELETE("/grc-reports/:grcReportId", grcReportController.DeleteGRCReport)
+
+	reportsRoutes.PUT("/grc-reports/:grcReportId/highlights", grcReportController.UpdateHighlights)
+	reportsRoutes.PUT("/grc-reports/:grcReportId/challenges", grcReportController.UpdateChallenges)
+
+	reportsRoutes.PUT("/grc-reports/:grcReportId/risk/:riskId/approval-note", grcReportController.UpdateRiskApprovalNote)
+
+	// workflow status
+	reportsRoutes.GET("/grc-report-workflow-statuses", grcReportWorkflowStatusController.GetAllGRCReportWorkflowStatuses)
+	reportsRoutes.GET("/grc-report-workflow-statuses/:id", grcReportWorkflowStatusController.GetGRCReportWorkflowStatusDetails)
+
+	// comment status
+	reportsRoutes.GET("/grc-report-comment-statuses", grcReportCommentStatusController.GetAllGRCReportCommentStatuses)
+	reportsRoutes.GET("/grc-report-comment-statuses/:id", grcReportCommentStatusController.GetGRCReportCommentStatusDetails)
+
+	// report section review and approve
+	reportsRoutes.PUT("/grc-reports/:grcReportId/section-review-user", grcReportWorkflowController.UpdateGRCReportSectionWorkflowReviewUser)
+	reportsRoutes.PUT("/grc-reports/:grcReportId/section-approve-user", grcReportWorkflowController.UpdateGRCReportSectionWorkflowApproveUser)
+	reportsRoutes.PUT("/grc-reports/:grcReportId/section-submit", grcReportWorkflowController.GRCReportSectionSubmit)
+
+	// review comment
+	reportsRoutes.GET("/grc-reports/:grcReportId/comment", grcReportWorkflowReviewCommentController.GetAllComments)
+	reportsRoutes.POST("/grc-reports/:grcReportId/comment", grcReportWorkflowReviewCommentController.CreateComment)
+	reportsRoutes.GET("/grc-reports/:grcReportId/comment/:commentId", grcReportWorkflowReviewCommentController.GetCommentDetails)
+	reportsRoutes.PUT("/grc-reports/:grcReportId/comment/:commentId", grcReportWorkflowReviewCommentController.UpdateComment)
+	reportsRoutes.POST("/grc-reports/:grcReportId/comment/delete", grcReportWorkflowReviewCommentController.DeleteComment)
+
+	reportsRoutes.PUT("/grc-reports/:grcReportId/comment/:commentId/resolve", grcReportWorkflowReviewCommentController.GRCReportWorkflowReviewCommentResolve)
+	reportsRoutes.PUT("/grc-reports/:grcReportId/comment/:commentId/close", grcReportWorkflowReviewCommentController.GRCReportWorkflowReviewCommentClose)
+
+	reportsRoutes.PUT("/grc-reports/:grcReportId/section-review", grcReportWorkflowReviewCommentController.GRCReportSectionReviewed)
+	reportsRoutes.PUT("/grc-reports/:grcReportId/section-approve", grcReportWorkflowReviewCommentController.GRCReportSectionApproved)
+
+	reportsRoutes.PUT("/grc-reports/:grcReportId/submit", grcReportController.GRCReportSubmit)
+	reportsRoutes.PUT("/grc-reports/:grcReportId/review", grcReportController.GRCReportReviewed)
+	reportsRoutes.PUT("/grc-reports/:grcReportId/approve", grcReportController.GRCReportApproved)
 }

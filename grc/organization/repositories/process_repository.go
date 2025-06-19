@@ -105,6 +105,9 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		lifecycle_statuses.title_en AS lifecycle_status_title_en,
 		lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
 		lifecycle_statuses.color_code AS lifecycle_status_color_code,
+		process_criticality_levels.id AS process_criticality_level_id,
+		process_criticality_levels.title_en AS process_criticality_level_title_en,
+		process_criticality_levels.title_ar AS process_criticality_level_title_ar,
 		created_user.id AS created_user_id,
 		created_user.first_name_en AS created_user_first_name_en,
 		created_user.first_name_ar AS created_user_first_name_ar,
@@ -131,11 +134,12 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		risk_matrix_risk_rating_values.value AS risk_rating_value,
 		risk_levels.title_en AS risk_level_title_en,
         risk_levels.title_ar AS risk_level_title_ar,
-		risk_levels.color_code AS risk_level_color_code
+		risk_levels.color_code AS risk_level_color_code,
+		risk_levels.type AS risk_level_type
 	`).
 		Joins("LEFT JOIN process_groups ON process_groups.id = processes.process_group_id").
-		Joins("LEFT JOIN organization_units ON organization_units.id = processes.owner_unit_id").
-		Joins("LEFT JOIN users AS owner ON owner.id = processes.owner_id").
+		Joins("LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id").
+		Joins("LEFT JOIN users AS owner ON owner.id = processes.responsible_user_id").
 		Joins("LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = processes.created_by_id").
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = processes.updated_by_id").
@@ -145,7 +149,8 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		Joins("LEFT JOIN time_units AS rpo_time_unit ON rpo_time_unit.id = processes.rpo_unit_id").
 		Joins("LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = processes.risk_matrix_risk_rating_id").
 		Joins("LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = processes.risk_matrix_risk_rating_value_id").
-		Joins("LEFT JOIN risk_levels ON risk_levels.id = processes.risk_level_id")
+		Joins("LEFT JOIN risk_levels ON risk_levels.id = processes.risk_level_id").
+		Joins("LEFT JOIN process_criticality_levels ON process_criticality_levels.id = processes.process_criticality_level_id")
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -171,6 +176,12 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 			query = query.Where("processes.is_bia_performed = ?", true)
 		case "bia_not_performed":
 			query = query.Where("processes.is_bia_performed = ?", false)
+		case "high":
+			query = query.Where("process_criticality_levels.type = ?", "high")
+		case "medium":
+			query = query.Where("process_criticality_levels.type = ?", "medium")
+		case "low":
+			query = query.Where("process_criticality_levels.type = ?", "low")
 		}
 	}
 
@@ -251,9 +262,9 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 
 	result := db.
 		Preload("ProcessGroup").
-		Preload("OwnerUnit").
-		Preload("Owner").
-		Preload("Owner.OrganizationUnit1").
+		Preload("ResponsibleUnit").
+		Preload("ResponsibleUser").
+		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("LifecycleStatus").
 		Preload("Controls").
 		Preload("Controls.Control").

@@ -33,6 +33,11 @@ func (aifapc *AuditInsightsFindingActionPlanController) GetAllAuditInsightsFindi
 	// Check if `findingId` exists in the route
 	findingIDStr := c.Param("findingId")
 
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(aifapc.db, c, "Invalid export parameter")
+		return
+	}
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"audit_finding_ids",
@@ -86,6 +91,7 @@ func (aifapc *AuditInsightsFindingActionPlanController) GetAllAuditInsightsFindi
 		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
+		Export:      export,
 	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)
@@ -96,6 +102,27 @@ func (aifapc *AuditInsightsFindingActionPlanController) GetAllAuditInsightsFindi
 	audits, err := aifapc.service.GetAll(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(aifapc.db, c, err.Error())
+		return
+	}
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(aifapc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := aifapc.service.ExportAuditsightsFindingActionPlans(audits.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(aifapc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Audit Insights Finding Action Plans.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
 		return
 	}
 	c.JSON(http.StatusOK, audits)
@@ -276,4 +303,10 @@ func (aifapc *AuditInsightsFindingActionPlanController) GetAuditInsightsFindingA
 		}
 	}
 	c.JSON(http.StatusOK, actionPlanCounts)
+}
+
+func (aifapc *AuditInsightsFindingActionPlanController) GetAuditInsightsFindingActionPlansExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	aifapc.GetAllAuditInsightsFindingActionPlans(c)
 }

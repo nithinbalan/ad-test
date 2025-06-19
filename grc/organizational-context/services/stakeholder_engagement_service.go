@@ -23,6 +23,7 @@ type StakeholderEngagementServiceInterface interface {
 	Delete(stakeholderID uint, ids []uint, currentUserID uint) ([]uint, error)
 
 	StatusUpdate(stakeholderID uint, id uint, currentUserID uint, stakeholderEngagementEvaluationFormDTO *organizationalContextDTOs.StakeholderEngagementEvaluationFormDTO, tx utility.DatabaseTransaction) error
+	GetEngagementEffectivenessScore(stakeholderID uint) (*organizationalContextDTOs.EngagementEffectivenessScoreDTO, error)
 }
 
 // Service and implementations
@@ -31,6 +32,7 @@ type StakeholderEngagementService struct {
 	activityLogSvc logServices.ActivityLogServiceInterface
 	userSvc        organizationServices.UserServiceInterface
 	userSettingSvc organizationServices.UserSettingServiceInterface
+	stakeholderSvc StakeholderServiceInterface
 }
 
 func NewStakeholderEngagementService(
@@ -38,12 +40,14 @@ func NewStakeholderEngagementService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	stakeholderSvc StakeholderServiceInterface,
 ) StakeholderEngagementServiceInterface {
 	return &StakeholderEngagementService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
 		userSvc:        userSvc,
 		userSettingSvc: userSettingSvc,
+		stakeholderSvc: stakeholderSvc,
 	}
 }
 
@@ -291,6 +295,7 @@ func (ses *StakeholderEngagementService) StatusUpdate(stakeholderID uint, id uin
 		return err
 	}
 
+	existingEngagement.EvaluationStatusID = stakeholderEngagementEvaluationFormDTO.EvaluationStatusID
 	existingEngagement.Score = stakeholderEngagementEvaluationFormDTO.Score
 	existingEngagement.EvaluatedBYID = &stakeholderEngagementEvaluationFormDTO.EvaluatedByID
 	existingEngagement.EvaluatedAt = dates.EvaluatedAt
@@ -308,7 +313,7 @@ func (ses *StakeholderEngagementService) parseEvaluationDates(dto *organizationa
 	parsed := &organizationalContextDTOs.StakeholderEngagementEvaluationParsedDates{}
 
 	var err error
-	if *dto.EvaluatedAt != "" {
+	if dto.EvaluatedAt != nil {
 		parsed.EvaluatedAt, err = utility.ParseDate(*dto.EvaluatedAt)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid evaluated date"), "invalid_date", "evaluated at")
@@ -316,4 +321,39 @@ func (ses *StakeholderEngagementService) parseEvaluationDates(dto *organizationa
 	}
 
 	return parsed, nil
+}
+
+func (ses *StakeholderEngagementService) GetEngagementEffectivenessScore(stakeholderID uint) (*organizationalContextDTOs.EngagementEffectivenessScoreDTO, error) {
+	stakeholder, err := ses.stakeholderSvc.GetFullDetailsByID(stakeholderID)
+	if err != nil {
+		return nil, err
+	}
+	if &stakeholder.Engagements != nil && len(stakeholder.Engagements) > 0 {
+		score, err := ses.repo.GetLatestScore(stakeholderID)
+		if err != nil {
+			return nil, err
+		}
+
+		var efficiency, color string
+		switch {
+		case score >= 85:
+			efficiency = "Highly Efficient"
+			color = "#28A745" // green
+		case score >= 60:
+			efficiency = "Moderately Efficient"
+			color = "#FFA500" // yellow
+		default:
+			efficiency = "Inefficient"
+			color = "#DC3545" // red
+		}
+
+		efficiencyScore := &organizationalContextDTOs.EngagementEffectivenessScoreDTO{
+			Score:      score,
+			Efficiency: efficiency,
+			ColorCode:  color,
+		}
+
+		return efficiencyScore, nil
+	}
+	return nil, nil
 }

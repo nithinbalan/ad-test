@@ -161,10 +161,14 @@ func (repo *AuditReportRepository) GetAuditPlanByYear(params *reportDTOs.ReportL
 
 	// Convert year to English and Arabic title
 	for _, record := range rawResults {
+		startDate := fmt.Sprintf("%d-01-01", record.Year)
+		endDate := fmt.Sprintf("%d-12-31", record.Year)
 		results = append(results, &reportDTOs.AuditPlanByYearDTO{
-			TitleEn: fmt.Sprintf("%d", record.Year), // English Title (Year)
-			TitleAr: fmt.Sprintf("%d", record.Year), // Arabic Title (Same as Year)
-			Count:   record.Count,
+			TitleEn:  fmt.Sprintf("%d", record.Year), // English Title (Year)
+			TitleAr:  fmt.Sprintf("%d", record.Year), // Arabic Title (Same as Year)
+			Count:    record.Count,
+			DateFrom: startDate,
+			DateTo:   endDate,
 		})
 	}
 
@@ -291,12 +295,18 @@ func (repo *AuditReportRepository) GetAuditByMonth(params *reportDTOs.ReportList
 	last12Months := make(map[string]*reportDTOs.AuditByMonthDTO)
 	now := time.Now()
 	for i := 0; i < 12; i++ {
-		month := now.AddDate(0, -i, 0).Format("Jan 2006") // e.g., "Jan 2025"
-		monthShort := month[:3]                           // Extract short form (e.g., "Jan")
-		last12Months[month] = &reportDTOs.AuditByMonthDTO{
-			TitleEn: month,
-			TitleAr: monthTranslations[monthShort] + " " + month[4:], // Arabic + Year
-			Count:   0,                                               // Default count
+		monthTime := now.AddDate(0, -i, 0)
+		monthKey := monthTime.Format("Jan 2006") // e.g., "Jan 2025"
+		monthShort := monthTime.Format("Jan")    // e.g., "Jan"
+		startOfMonth := time.Date(monthTime.Year(), monthTime.Month(), 1, 0, 0, 0, 0, time.UTC)
+		endOfMonth := startOfMonth.AddDate(0, 1, -1)
+
+		last12Months[monthKey] = &reportDTOs.AuditByMonthDTO{
+			TitleEn:  monthKey,
+			TitleAr:  monthTranslations[monthShort] + " " + fmt.Sprintf("%d", monthTime.Year()),
+			Count:    0,
+			DateFrom: startOfMonth.Format("2006-01-02"),
+			DateTo:   endOfMonth.Format("2006-01-02"),
 		}
 	}
 
@@ -320,13 +330,13 @@ func (repo *AuditReportRepository) GetAuditByMonth(params *reportDTOs.ReportList
 	// Merge database results into the last 12 months
 	for _, record := range rawResults {
 		if dto, exists := last12Months[record.MonthEn]; exists {
-			dto.Count = record.Count // Update count for the matching month
+			dto.Count = record.Count
 		}
 	}
 
 	// Convert map to a slice in chronological order
 	for i := 11; i >= 0; i-- {
-		month := now.AddDate(0, -i, 0).Format("Jan 2006") // Same key format
+		month := now.AddDate(0, -i, 0).Format("Jan 2006")
 		results = append(results, last12Months[month])
 	}
 
@@ -467,12 +477,18 @@ func (repo *AuditReportRepository) GetAuditFindingByMonth(params *reportDTOs.Rep
 	last12Months := make(map[string]*reportDTOs.AuditFindingByMonthDTO)
 	now := time.Now()
 	for i := 0; i < 12; i++ {
-		month := now.AddDate(0, -i, 0).Format("Jan 2006") // e.g., "Jan 2025"
-		monthShort := month[:3]                           // Extract short form (e.g., "Jan")
-		last12Months[month] = &reportDTOs.AuditFindingByMonthDTO{
-			TitleEn: month,
-			TitleAr: monthTranslations[monthShort] + " " + month[4:], // Arabic + Year
-			Count:   0,                                               // Default count
+		monthTime := now.AddDate(0, -i, 0)
+		monthKey := monthTime.Format("Jan 2006") // e.g., "Jan 2025"
+		monthShort := monthTime.Format("Jan")    // e.g., "Jan"
+		startOfMonth := time.Date(monthTime.Year(), monthTime.Month(), 1, 0, 0, 0, 0, time.UTC)
+		endOfMonth := startOfMonth.AddDate(0, 1, -1)
+
+		last12Months[monthKey] = &reportDTOs.AuditFindingByMonthDTO{
+			TitleEn:  monthKey,
+			TitleAr:  monthTranslations[monthShort] + " " + fmt.Sprintf("%d", monthTime.Year()),
+			Count:    0,
+			DateFrom: startOfMonth.Format("2006-01-02"),
+			DateTo:   endOfMonth.Format("2006-01-02"),
 		}
 	}
 
@@ -502,7 +518,7 @@ func (repo *AuditReportRepository) GetAuditFindingByMonth(params *reportDTOs.Rep
 
 	// Convert map to a slice in chronological order
 	for i := 11; i >= 0; i-- {
-		month := now.AddDate(0, -i, 0).Format("Jan 2006") // Same key format
+		month := now.AddDate(0, -i, 0).Format("Jan 2006")
 		results = append(results, last12Months[month])
 	}
 

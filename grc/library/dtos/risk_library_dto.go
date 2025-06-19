@@ -11,21 +11,16 @@ type RiskLibraryDTO struct {
 	Impact      *string `json:"impact"`
 }
 
-type RiskLibraryFormDTO struct {
-	Category    string  `json:"category" binding:"required,max=255"`
-	Title       string  `json:"title" binding:"required,max=500"`
-	Description *string `json:"description"`
-	Likelihood  *string `json:"likelihood"`
-	Impact      *string `json:"impact"`
-}
-
 type RiskLibraryListQueryParamsDTO struct {
-	Sort     string
-	SortBy   string
-	Keyword  string
-	Category string
-	Page     int
-	PageSize int
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Categories  []string
+	Likelihoods []string
+	Impacts     []string
+	Page        int
+	PageSize    int
+	Export      bool
 }
 
 type RiskLibraryListResponseDTO struct {
@@ -36,4 +31,14 @@ type RiskLibraryListResponseDTO struct {
 type RiskCategoryCountDTO struct {
 	Category string `json:"category"`
 	Count    int    `json:"count"`
+}
+
+type RiskLikelihoodCountDTO struct {
+	Likelihood string `json:"likelihood"`
+	Count      int    `json:"count"`
+}
+
+type RiskImpactCountDTO struct {
+	Impact string `json:"impact"`
+	Count  int    `json:"count"`
 }

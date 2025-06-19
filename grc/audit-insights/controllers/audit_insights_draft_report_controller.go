@@ -29,6 +29,12 @@ func (aidrc *AuditInsightsDraftReportController) GetAllAuditInsightsDraftReports
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(aidrc.db, c, "Invalid export parameter")
+		return
+	}
+
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"audit_ids",
@@ -36,6 +42,7 @@ func (aidrc *AuditInsightsDraftReportController) GetAllAuditInsightsDraftReports
 		"audit_team_ids",
 		"team_lead_ids",
 		"audit_status_ids",
+		"audit_draft_report_status_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -64,6 +71,7 @@ func (aidrc *AuditInsightsDraftReportController) GetAllAuditInsightsDraftReports
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		ReportDate:  reportDate,
+		Export:      export,
 	}
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
@@ -75,7 +83,34 @@ func (aidrc *AuditInsightsDraftReportController) GetAllAuditInsightsDraftReports
 		utility.SendInternalErrResp(aidrc.db, c, err.Error())
 		return
 	}
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(aidrc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := aidrc.service.ExportAuditInsightsDraftReports(auditDraftReports.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(aidrc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Audit Insights Draf Reports.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
 	c.JSON(http.StatusOK, auditDraftReports)
+}
+
+func (aidrc *AuditInsightsDraftReportController) GetAuditInsightsDraftReportExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	aidrc.GetAllAuditInsightsDraftReports(c)
 }
 
 func (aidrc *AuditInsightsDraftReportController) GetAuditInsightsDraftReportDetails(c *gin.Context) {

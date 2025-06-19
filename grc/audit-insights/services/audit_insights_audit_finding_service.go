@@ -7,12 +7,14 @@ import (
 	logServices "jethur/grc/logs/services"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"os"
 )
 
 type AuditInsightsAuditFindingServiceInterface interface {
 	GetAll(params *auditDTOs.AuditFindingListQueryParamsDTO, currentUserID uint) (*auditDTOs.AuditFindingListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFindingDetailDTO, error)
 	GetAuditInsightFindingCountByCategory(auditId uint) ([]auditDTOs.AuditFindingCategoryCountResponseDTO, error)
+	ExportAuditInsightsAuditFindings(data []*auditDTOs.AuditFindingListDTO, currentUserID uint) (*os.File, error)
 }
 
 type AuditInsightsAuditFindingService struct {
@@ -59,4 +61,12 @@ func (aiafs *AuditInsightsAuditFindingService) GetAuditInsightFindingCountByCate
 	}
 
 	return response, nil
+}
+
+func (aiafs *AuditInsightsAuditFindingService) ExportAuditInsightsAuditFindings(data []*auditDTOs.AuditFindingListDTO, currentUserID uint) (*os.File, error) {
+	export, err := aiafs.auditFindingSvc.ExportAuditFindings(data, currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	return export, nil
 }

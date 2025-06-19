@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	auditDTOs "jethur/grc/audit/dtos"
@@ -575,7 +574,7 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 		PublishedAt:                publishedAt,
 		Comments:                   auditFinalReport.Comments,
 		UpdatedByUser:              updatedByUser,
-		PreparedAt:                 auditFinalReport.CreatedAt.UTC().Format("2006-01-02T15:04:05.000Z"),
+		PreparedAt:                 auditFinalReport.CreatedAt.UTC().Format("2006-01-02"),
 	}
 	// Check if AuditFinalReportRecipients exists and map them
 	if len(auditFinalReport.AuditFinalReportRecipients) > 0 {
@@ -606,17 +605,15 @@ func (afrs *AuditFinalReportService) GetByAuditID(auditID uint) (*models.AuditFi
 
 func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (uint, error) {
 	// Check if a final report already exists for this audit
-	// existingReport, err := afrs.repo.GetByAuditID(auditID)
-	// if err != nil {
-	//     tx.Rollback()
-	//     return 0, err
-	// }
+	existingReport, err := afrs.repo.GetByAuditID(auditID)
+	if err != nil {
+		return 0, err
+	}
 
-	// // If an existing report is found, rollback and return an error
-	// if existingReport != nil {
-	//     tx.Rollback()
-	//     return 0, utility.NewForbiddenError("An audit final report already exists for this audit.")
-	// }
+	// If an existing report is found, rollback and return an error
+	if existingReport != nil {
+		return 0, utility.NewForbiddenError("audit_final_report_already_exists")
+	}
 	auditDraftReport, err := afrs.auditDraftReportSvc.GetByAuditID(auditID)
 	if err != nil {
 		return 0, err
@@ -627,11 +624,16 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 		return 0, err
 	}
 	if auditDraftReport.AuditDraftReportStatusID != completedStatus.ID {
-		return 0, utility.NewForbiddenError("Action not allowed: Only audit draft reports with an 'Completed' status can be accepted.")
+		return 0, utility.NewForbiddenError("action_not_allowed")
 	}
 
 	tx := afrs.repo.BeginTransaction()
-
+	// validate workflow structure
+	err = afrs.auditReportWorkflowSvc.ValidateWorkflowBeforeCreate("final-report", tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	audit, err := afrs.auditSvc.GetFullDetailsByID(auditID, tx)
 	if err != nil {
 		tx.Rollback()
@@ -655,7 +657,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	// If the current user is not authorized, rollback and return forbidden error
 	if !isAuthorizedUser {
 		tx.Rollback()
-		return 0, utility.NewForbiddenError("The current user is not authorized to perform this action.")
+		return 0, utility.NewForbiddenError("user_not_authorized")
 	}
 	auditFinalReportStatus, err := afrs.auditFinalReportStatusSvc.GetByType("draft")
 	if err != nil {
@@ -1303,36 +1305,32 @@ func (afrs *AuditFinalReportService) ExportAuditFinalReportToPDF(auditID uint, c
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch audit report details: %w", err)
 	}
-	auditTemplateSetting, err := afrs.settingSvc.GetFirst()
-	if err != nil {
-		return "", fmt.Errorf("failed to fetch audit template details: %w", err)
-	}
-	logoImagePath, err := afrs.settingSvc.GetImagePath(auditTemplateSetting.ID, "logo")
-	if err != nil {
-		return "", fmt.Errorf("failed to fetch audit template logo Image Path: %w", err)
-	}
-	finalReportCoverPageBGImagePath, err := afrs.settingSvc.GetImagePath(auditTemplateSetting.ID, "final_report")
-	if err != nil {
-		return "", fmt.Errorf("failed to fetch audit template cover bg Image Path: %w", err)
-	}
+	// auditTemplateSetting, err := afrs.settingSvc.GetFirst()
+	// if err != nil {
+	// 	return "", fmt.Errorf("failed to fetch audit template details: %w", err)
+	// }
+	// logoImagePath, err := afrs.settingSvc.GetImagePath(auditTemplateSetting.ID, "logo")
+	// if err != nil {
+	// 	return "", fmt.Errorf("failed to fetch audit template logo Image Path: %w", err)
+	// }
+	// finalReportCoverPageBGImagePath, err := afrs.settingSvc.GetImagePath(auditTemplateSetting.ID, "final_report")
+	// if err != nil {
+	// 	return "", fmt.Errorf("failed to fetch audit template cover bg Image Path: %w", err)
+	// }
 	// Define template paths
 	templatePaths := []string{
 		"audit/templates/pdf/audit_final_report.html", // Content-specific template
 	}
 	// Ensure paths are properly formatted for use in wkhtmltopdf
-	logoImagePath = "file:///" + strings.ReplaceAll(logoImagePath, "\\", "/")
-	finalReportCoverPageBGImagePath = "file:///" + strings.ReplaceAll(finalReportCoverPageBGImagePath, "\\", "/")
+	// logoImagePath = "file:///" + strings.ReplaceAll(logoImagePath, "\\", "/")
+	// finalReportCoverPageBGImagePath = "file:///" + strings.ReplaceAll(finalReportCoverPageBGImagePath, "\\", "/")
 
-	// Encode spaces in paths to make them URL-compatible
-	logoImagePath = strings.ReplaceAll(logoImagePath, " ", "%20")
-	finalReportCoverPageBGImagePath = strings.ReplaceAll(finalReportCoverPageBGImagePath, " ", "%20")
-
-	// Debugging: Print the paths to verify
-	fmt.Println("Logo Image Path:", logoImagePath)
-	fmt.Println("Final Report Cover Page BG Image Path:", finalReportCoverPageBGImagePath)
+	// // Encode spaces in paths to make them URL-compatible
+	// logoImagePath = strings.ReplaceAll(logoImagePath, " ", "%20")
+	// finalReportCoverPageBGImagePath = strings.ReplaceAll(finalReportCoverPageBGImagePath, " ", "%20")
 
 	// Generate the HTML content
-	htmlContent, err := utility.GeneratePDFContent(auditFinalReport, templatePaths, logoImagePath, finalReportCoverPageBGImagePath)
+	htmlContent, err := utility.GeneratePDFContent(auditFinalReport, templatePaths, "", "")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate HTML content: %w", err)
 	}

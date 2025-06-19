@@ -157,9 +157,6 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		return 0, err
 	}
 
-	if err := irs.validateIncidentDocumentFormDTO(incidentRegisterFormDTO.Documents); err != nil {
-		return 0, err
-	}
 	// update incident status as open
 	incidentStatus, err := irs.incidentStatusSvc.GetByType("open")
 	if err != nil {
@@ -545,9 +542,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 	if err != nil {
 		return err
 	}
-	if err := irs.validateIncidentDocumentFormDTO(incidentRegisterFormDTO.Documents); err != nil {
-		return err
-	}
+
 	if existingIncidentRegister.ResponsibleUserID != incidentRegisterFormDTO.ResponsibleUserID {
 		organizationUnitID, err := irs.userSvc.GetUserPrimaryUnitID(incidentRegisterFormDTO.ResponsibleUserID)
 		if err != nil {

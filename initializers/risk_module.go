@@ -46,11 +46,12 @@ type RiskModule struct {
 	RiskCommentController                 *controllers.RiskCommentController
 	RiskReportController                  *controllers.RiskReportController
 
-	RiskRegisterSvc   services.RiskRegisterServiceInterface
-	RiskHeatMapSvc    services.RiskHeatmapServiceInterface
-	KriRegisterSvc    services.KRIRegisterServiceInterface
-	RiskActionPlanSvc services.RiskActionPlanServiceInterface
-	RiskLevelSvc      services.RiskLevelServiceInterface
+	RiskRegisterSvc         services.RiskRegisterServiceInterface
+	RiskHeatMapSvc          services.RiskHeatmapServiceInterface
+	KriRegisterSvc          services.KRIRegisterServiceInterface
+	RiskActionPlanSvc       services.RiskActionPlanServiceInterface
+	RiskLevelSvc            services.RiskLevelServiceInterface
+	RiskResponseStrategySvc services.RiskResponseStrategyServiceInterface
 }
 
 func NewRiskModule(db *gorm.DB,
@@ -347,10 +348,11 @@ func NewRiskModule(db *gorm.DB,
 		RiskCommentController:                 riskCommentController,
 		RiskReportController:                  riskReportController,
 
-		RiskRegisterSvc:   riskRegisterSvc,
-		RiskHeatMapSvc:    riskHeatmapSvc,
-		KriRegisterSvc:    kriRegisterSvc,
-		RiskActionPlanSvc: riskActionPlanSvc,
-		RiskLevelSvc:      riskLevelSvc,
+		RiskRegisterSvc:         riskRegisterSvc,
+		RiskHeatMapSvc:          riskHeatmapSvc,
+		KriRegisterSvc:          kriRegisterSvc,
+		RiskActionPlanSvc:       riskActionPlanSvc,
+		RiskLevelSvc:            riskLevelSvc,
+		RiskResponseStrategySvc: riskResponseStrategySvc,
 	}
 }

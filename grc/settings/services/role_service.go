@@ -25,6 +25,8 @@ type RoleServiceInterface interface {
 
 	UpdateRolePermissions(roleID uint, currentUserID uint, rolePermissions []*dtos.RolePermissionFormDTO) error
 	GetAllWithPermissions(params *dtos.ModuleListQueryParamsDTO, roleID uint) (*[]dtos.ModuleListDTO, error)
+
+	GetSuperAdminRole() (*models.Role, error)
 }
 
 type RoleService struct {
@@ -386,6 +388,14 @@ func (rs *RoleService) GetAllWithPermissions(params *dtos.ModuleListQueryParamsD
 	}
 
 	return &moduleList, nil
+}
+
+func (rs *RoleService) GetSuperAdminRole() (*models.Role, error) {
+	role, err := rs.repo.GetSuperAdminRole()
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve super admin role: %w", err)
+	}
+	return role, nil
 }
 
 func initializePermissionsMap(permissionTypes []string) map[string]bool {

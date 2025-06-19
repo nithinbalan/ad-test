@@ -9,6 +9,7 @@ import (
 	logServices "jethur/grc/logs/services"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"os"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -21,6 +22,7 @@ type AuditInsightsFindingActionPlanServiceInterface interface {
 	Update(findingID uint, id uint, currentUserID uint, auditFinding *auditDTOs.AuditFindingActionPlanFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GetAuditInsightsFindingActionPlanCountByStatus(findingId uint) ([]auditFindingDTOs.AuditFindingActionPlanStatusCountResponseDTO, error)
+	ExportAuditsightsFindingActionPlans(data []*auditDTOs.AuditFindingActionPlanListDTO, currentUserID uint) (*os.File, error)
 }
 
 type AuditInsightsFindingActionPlanService struct {
@@ -136,4 +138,12 @@ func (aifaps *AuditInsightsFindingActionPlanService) GetAuditInsightsFindingActi
 	}
 
 	return response, nil
+}
+
+func (aifaps *AuditInsightsFindingActionPlanService) ExportAuditsightsFindingActionPlans(data []*auditDTOs.AuditFindingActionPlanListDTO, currentUserID uint) (*os.File, error) {
+	export, err := aifaps.auditFindingActionPlanSvc.ExportAuditFindingActionPlans(data, currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	return export, nil
 }

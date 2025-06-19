@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"os"
 
 	libraryDTOs "jethur/grc/library/dtos"
 	"jethur/grc/library/repositories"
@@ -24,6 +25,7 @@ type KRILibraryServiceInterface interface {
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
 	GetKRICategoryCounts() ([]libraryDTOs.KRICategoryCountDTO, error)
+	ExportKRILibrary(data []*libraryDTOs.KRILibraryDTO, userID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -230,6 +232,32 @@ func (kls *KRILibraryService) Deactivate(ids []uint, currentUserID uint) error {
 
 func (svc *KRILibraryService) GetKRICategoryCounts() ([]libraryDTOs.KRICategoryCountDTO, error) {
 	return svc.repo.GetKRICategoryCounts()
+}
+
+func (svc *KRILibraryService) ExportKRILibrary(data []*libraryDTOs.KRILibraryDTO, userID uint) (*os.File, error) {
+
+	// Headers
+	headers := []string{
+		"SL No.",
+		"Title",
+		"Description",
+		"KRI Category",
+		"KRI Unit",
+	}
+
+	// Rows
+	rows := make([][]interface{}, len(data))
+	for i, kri := range data {
+		rows[i] = []interface{}{
+			i + 1,
+			kri.Title,
+			utility.GetStringValue(kri.Description),
+			kri.KRICategory,
+			utility.GetStringValue(kri.KRIUnit),
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }
 
 // func (kls *KRILibraryService) validateKRILibraryFormDTO(kriLibraryFormDTO *libraryDTOs.KRILibraryFormDTO, id *uint) error {

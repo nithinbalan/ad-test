@@ -20,6 +20,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	swotPestelQuestionController := app.OrganizationalContextModule.SwotPestelQuestionController
 	swotPestelCategoryController := app.OrganizationalContextModule.SwotPestelCategoryController
 	swotPestelQuestionFactorController := app.OrganizationalContextModule.SwotPestelQuestionFactorController
+	stakeholderCategoryController := app.OrganizationalContextModule.StakeholderCategoryController
 	stakeholderController := app.OrganizationalContextModule.StakeholderController
 	evaluationStatusController := app.OrganizationalContextModule.EvaluationStatusController
 	stakeholderNeedsAndExpectationController := app.OrganizationalContextModule.StakeholderNeedsAndExpectationController
@@ -62,6 +63,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationalContextRoutes.PUT("/pestel-questions/activate", middlewares.RolePermissionMiddleware(db, "organizational_context_setting", "modify"), swotPestelQuestionController.ActivateSwotPestelQuestions)
 	organizationalContextRoutes.PUT("/pestel-questions/deactivate", middlewares.RolePermissionMiddleware(db, "organizational_context_setting", "modify"), swotPestelQuestionController.DeactivateSwotPestelQuestions)
 
+	organizationalContextRoutes.GET("/swot-questions/summary", middlewares.RolePermissionMiddleware(db, "swot_analysis", "view"), swotPestelQuestionController.GetSwotPestelQuestionSummary)
 	organizationalContextRoutes.PUT("/swot-questions/:questionId/answer", middlewares.RolePermissionMiddleware(db, "swot_analysis", "modify"), swotPestelQuestionController.UpdateAnswer)
 	organizationalContextRoutes.PUT("/swot-questions/:questionId/answer-invitees", middlewares.RolePermissionMiddleware(db, "swot_analysis", "modify"), swotPestelQuestionController.CreateInvitees)
 	organizationalContextRoutes.PUT("/swot-questions/:questionId/answer-invitees/delete", middlewares.RolePermissionMiddleware(db, "swot_analysis", "modify"), swotPestelQuestionController.DeleteInvitees)
@@ -77,17 +79,25 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationalContextRoutes.POST("/swot-questions/:questionId/factors", middlewares.RolePermissionMiddleware(db, "swot_analysis", "modify"), swotPestelQuestionFactorController.CreateSwotPestelQuestionFactor)
 	organizationalContextRoutes.PUT("/swot-questions/:questionId/factors/:id", middlewares.RolePermissionMiddleware(db, "swot_analysis", "modify"), swotPestelQuestionFactorController.UpdateSwotPestelQuestionFactor)
 	organizationalContextRoutes.POST("/swot-questions/:questionId/factors/delete", middlewares.RolePermissionMiddleware(db, "swot_analysis", "modify"), swotPestelQuestionFactorController.DeleteSwotPestelQuestionFactors)
+	organizationalContextRoutes.GET("/swot-questions/factor-summary", middlewares.RolePermissionMiddleware(db, "swot_analysis", "view"), swotPestelQuestionFactorController.GetSwotPestelFactorCountByCategory)
 
+	organizationalContextRoutes.GET("/pestel-questions/summary", middlewares.RolePermissionMiddleware(db, "swot_analysis", "view"), swotPestelQuestionController.GetSwotPestelQuestionSummary)
 	organizationalContextRoutes.PUT("/pestel-questions/:questionId/answer", middlewares.RolePermissionMiddleware(db, "pestel_analysis", "modify"), swotPestelQuestionController.UpdateAnswer)
 	organizationalContextRoutes.PUT("/pestel-questions/:questionId/answer-invitees", middlewares.RolePermissionMiddleware(db, "pestel_analysis", "modify"), swotPestelQuestionController.CreateInvitees)
 	organizationalContextRoutes.PUT("/pestel-questions/:questionId/answer-invitees/delete", middlewares.RolePermissionMiddleware(db, "pestel_analysis", "modify"), swotPestelQuestionController.DeleteInvitees)
 
 	// swot pestel question factor
+	organizationalContextRoutes.GET("/pestel-questions/factors", swotPestelQuestionFactorController.GetAllSwotPestelFactors)
 	organizationalContextRoutes.GET("/pestel-questions/:questionId/factors", swotPestelQuestionFactorController.GetAllSwotPestelQuestionFactors)
 	organizationalContextRoutes.GET("/pestel-questions/:questionId/factors/:id", swotPestelQuestionFactorController.GetSwotPestelQuestionFactorDetails)
 	organizationalContextRoutes.POST("/pestel-questions/:questionId/factors", middlewares.RolePermissionMiddleware(db, "pestel_analysis", "modify"), swotPestelQuestionFactorController.CreateSwotPestelQuestionFactor)
 	organizationalContextRoutes.PUT("/pestel-questions/:questionId/factors/:id", middlewares.RolePermissionMiddleware(db, "pestel_analysis", "modify"), swotPestelQuestionFactorController.UpdateSwotPestelQuestionFactor)
 	organizationalContextRoutes.POST("/pestel-questions/:questionId/factors/delete", middlewares.RolePermissionMiddleware(db, "pestel_analysis", "modify"), swotPestelQuestionFactorController.DeleteSwotPestelQuestionFactors)
+	organizationalContextRoutes.GET("/pestel-questions/factor-summary", middlewares.RolePermissionMiddleware(db, "swot_analysis", "view"), swotPestelQuestionFactorController.GetSwotPestelFactorCountByCategory)
+
+	// Evaluation Status
+	organizationalContextRoutes.GET("/stakeholder-categories", stakeholderCategoryController.GetAllStakeholderCategoryes)
+	organizationalContextRoutes.GET("/stakeholder-categories/:id", stakeholderCategoryController.GetStakeholderCategoryDetails)
 
 	// stakeholder
 	organizationalContextRoutes.GET("/stakeholders", stakeholderController.GetAllStakeholders)
@@ -106,6 +116,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationalContextRoutes.POST("/stakeholder/:stakeholderId/needs-and-expectations", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderNeedsAndExpectationController.CreateStakeholderNeedsAndExpectation)
 	organizationalContextRoutes.PUT("/stakeholder/:stakeholderId/needs-and-expectations/:needsAndExpectationId", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderNeedsAndExpectationController.UpdateStakeholderNeedsAndExpectation)
 	organizationalContextRoutes.POST("/stakeholder/:stakeholderId/needs-and-expectations/delete", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderNeedsAndExpectationController.DeleteStakeholderNeedsAndExpectations)
+	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/needs-and-expectation-summary", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "view"), stakeholderNeedsAndExpectationController.GetNeedsAndExpectationCountByStatus)
 
 	// Needs and expectation evaluation
 	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/needs-and-expectations/:needsAndExpectationId/evaluations", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "view"), stakeholderNeedsAndExpectationEvaluationController.GetAllStakeholderNeedsAndExpectationEvaluations)
@@ -119,6 +130,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationalContextRoutes.POST("/stakeholder/:stakeholderId/engagements", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderEngagementController.CreateStakeholderEngagement)
 	organizationalContextRoutes.PUT("/stakeholder/:stakeholderId/engagements/:engagementId", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderEngagementController.UpdateStakeholderEngagement)
 	organizationalContextRoutes.POST("/stakeholder/:stakeholderId/engagements/delete", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderEngagementController.DeleteStakeholderEngagements)
+	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/engagement-score", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "view"), stakeholderEngagementController.GetEngagementEffectivenessScore)
 
 	// Engagement evaluation
 	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/engagements/:engagementId/evaluations", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "view"), stakeholderEngagementEvaluationController.GetAllStakeholderEngagementEvaluations)

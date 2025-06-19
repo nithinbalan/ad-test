@@ -286,3 +286,53 @@ func (caic *ComplianceAssociatedItemController) GetComplianceRequirementCountByS
 	}
 	c.JSON(http.StatusOK, requirementCounts)
 }
+
+func (caic *ComplianceAssociatedItemController) CreateComplianceControls(c *gin.Context) {
+	var input complianceDTOs.ComplianceRegisterControlMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	complianceID, err := strconv.ParseUint(c.Param("complianceId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	err = caic.service.CreateComplianceControls(uint(complianceID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(caic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (caic *ComplianceAssociatedItemController) DeleteComplianceControl(c *gin.Context) {
+	complianceID, _ := strconv.ParseUint(c.Param("complianceId"), 10, 64)
+	controlID, _ := strconv.ParseUint(c.Param("controlId"), 10, 64)
+
+	err := caic.service.DeleteComplianceControl(uint(complianceID), uint(controlID))
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Control unmapped from compliance successfully"})
+}

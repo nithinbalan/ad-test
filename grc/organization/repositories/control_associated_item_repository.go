@@ -57,8 +57,8 @@ func (repo *ControlAssociatedItemRepository) GetAllProcesses(controlID uint, par
 		Joins(`
 			LEFT JOIN processes ON processes.id = process_controls.process_id
 			LEFT JOIN process_groups ON process_groups.id = processes.process_group_id
-			LEFT JOIN organization_units ON organization_units.id = processes.owner_unit_id
-			LEFT JOIN users AS owner ON owner.id = processes.owner_id
+			LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id
+			LEFT JOIN users AS owner ON owner.id = processes.responsible_user_id
 			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id
 		`).Where("process_controls.control_id = ?", controlID)
 
