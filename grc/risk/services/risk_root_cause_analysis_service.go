@@ -17,6 +17,7 @@ type RiskRootCauseAnalysisServiceInterface interface {
 	GetAll(riskID uint, params *riskDTOs.RiskRootCauseAnalysisListQueryParamsDTO) ([]*riskDTOs.RiskRootCauseAnalysisListDTO, error)
 	GetByID(riskID uint, id uint) (*models.RiskRootCauseAnalysis, error)
 	Create(riskID uint, currentUserID uint, rootCauseAnalysisFormDTO *riskDTOs.RiskRootCauseAnalysisFormDTO) (uint, error)
+	CreateMultiple(riskID uint, currentUserID uint, forms []riskDTOs.RiskRootCauseAnalysisFormDTO) error
 	Update(riskID uint, id uint, currentUserID uint, rootCauseAnalysisFormDTO *riskDTOs.RiskRootCauseAnalysisFormDTO) error
 	Delete(riskID uint, id uint, currentUserID uint) (uint, error)
 	GetCountByRiskID(riskID uint) (int64, error)
@@ -156,6 +157,65 @@ func (rrcas *RiskRootCauseAnalysisService) Create(riskID uint, currentUserID uin
 	}()
 
 	return id, nil
+}
+
+func (rrcas *RiskRootCauseAnalysisService) CreateMultiple(riskID uint, currentUserID uint, forms []riskDTOs.RiskRootCauseAnalysisFormDTO) error {
+	tx := rrcas.repo.BeginTransaction()
+
+	if _, err := rrcas.riskRegisterSvc.GetByID(riskID); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Delete existing RCAs
+	if err := rrcas.repo.DeleteAllByRiskID(riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	for i, form := range forms {
+		rca := &models.RiskRootCauseAnalysis{
+			RiskRegisterID: riskID,
+			Why:            uint(i + 1),
+			Question:       form.Question,
+			Answer:         form.Answer,
+			CreatedByID:    currentUserID,
+		}
+
+		_, err := rrcas.repo.Create(rca, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+	}
+
+	// Timeline update if this is first RCA set
+	if len(forms) > 0 {
+		timelineType, err := rrcas.riskTimelineSvc.GetByType("rca")
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		timelineStatus, err := rrcas.riskTimelineSvc.GetByStatusType("completed")
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		now := time.Now()
+		timelineForm := &riskDTOs.RiskTimelineFormDTO{
+			PerformedByID:    &currentUserID,
+			TimelineStatusID: timelineStatus.ID,
+			PerformedAt:      &now,
+		}
+		if err := rrcas.riskTimelineSvc.Update(riskID, timelineForm, timelineType.ID, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+	return nil
 }
 
 func (rrcas *RiskRootCauseAnalysisService) Update(riskID uint, id uint, currentUserID uint, rootCauseAnalysisFormDTO *riskDTOs.RiskRootCauseAnalysisFormDTO) error {

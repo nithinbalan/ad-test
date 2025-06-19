@@ -176,6 +176,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	riskRoutes.GET("risks/:riskId/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskRootCauseAnalysisController.GetAllRiskRootCauseAnalyses)
 	riskRoutes.POST("risks/:riskId/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRootCauseAnalysisController.CreateRiskRootCauseAnalysis)
+	riskRoutes.POST("risks/:riskId/root-cause-analyses", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRootCauseAnalysisController.CreateRiskRootCauseAnalyses)
 	riskRoutes.PUT("risks/:riskId/root-cause-analysis/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRootCauseAnalysisController.UpdateRiskRootCauseAnalysis)
 	riskRoutes.DELETE("risks/:riskId/root-cause-analysis/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRootCauseAnalysisController.DeleteRiskRootCauseAnalysis)
 
