@@ -13,7 +13,7 @@ jobs:
       DEPLOY_BRANCH: main
       BACKUP_SCRIPT_PATH: C:\jethur-scripts\backup-for-deployment.ps1
       IIS_DOC_ROOT: C:\inetpub\wwwroot\tester-uat\tester-uat-api
-      SERVICE_NAME: tester-uat-api
+      SERVICE_NAME: tester-api
       SCRIPT_SOURCE_PATH: C:\jethur-deployment\deployment-files\script.bat
       EMAIL_TO: nithin@jethur.com
       EMAIL_FROM: "Jethur Notifications <info@jethur.com>"
