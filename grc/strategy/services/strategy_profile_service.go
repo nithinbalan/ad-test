@@ -16,7 +16,7 @@ import (
 )
 
 type StrategyProfileServiceInterface interface {
-	GetAll(params *strategyDTOs.StrategyProfileListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileListDTO, error)
+	GetAll(params *strategyDTOs.StrategyProfileListQueryParamsDTO) (*strategyDTOs.StrategyProfileListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.StrategyProfileDetailDTO, error)
 	GetByID(id uint) (*models.StrategyProfile, error)
 	Create(currentUserID uint, strategyDTOs *strategyDTOs.StrategyProfileFormDTO) (uint, error)
@@ -49,7 +49,7 @@ func NewStrategyProfileService(
 	}
 }
 
-func (sps *StrategyProfileService) GetAll(params *strategyDTOs.StrategyProfileListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileListDTO, error) {
+func (sps *StrategyProfileService) GetAll(params *strategyDTOs.StrategyProfileListQueryParamsDTO) (*strategyDTOs.StrategyProfileListResponseDTO, error) {
 	return sps.repo.GetAll(params)
 }
 

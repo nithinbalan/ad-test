@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	strategyDTOs "jethur/grc/strategy/dtos"
 	"jethur/utility"
@@ -10,7 +11,7 @@ import (
 
 type KPIRegisterRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *strategyDTOs.KPIRegisterListQueryParamsDTO) ([]*strategyDTOs.KPIRegisterListDTO, error)
+	GetAll(params *strategyDTOs.KPIRegisterListQueryParamsDTO) (*strategyDTOs.KPIRegisterListResponseDTO, error)
 	GetByID(id uint) (*models.KPIRegister, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.KPIRegister, error)
 	Create(kpiRegister *models.KPIRegister, tx ...utility.DatabaseTransaction) (uint, error)
@@ -38,7 +39,7 @@ func (repo *KPIRegisterRepository) BeginTransaction() utility.DatabaseTransactio
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *KPIRegisterRepository) GetAll(params *strategyDTOs.KPIRegisterListQueryParamsDTO) ([]*strategyDTOs.KPIRegisterListDTO, error) {
+func (repo *KPIRegisterRepository) GetAll(params *strategyDTOs.KPIRegisterListQueryParamsDTO) (*strategyDTOs.KPIRegisterListResponseDTO, error) {
 	var kpiRegister []*strategyDTOs.KPIRegisterListDTO
 	var totalCount int64
 
@@ -144,7 +145,22 @@ func (repo *KPIRegisterRepository) GetAll(params *strategyDTOs.KPIRegisterListQu
 	if err != nil {
 		return nil, err
 	}
-	return kpiRegister, nil
+
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
+
+	response := &strategyDTOs.KPIRegisterListResponseDTO{
+		Items: kpiRegister,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
 }
 
 func (repo *KPIRegisterRepository) GetByID(id uint) (*models.KPIRegister, error) {

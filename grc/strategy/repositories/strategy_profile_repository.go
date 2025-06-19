@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	strategyDTOs "jethur/grc/strategy/dtos"
 	"jethur/utility"
@@ -13,7 +14,7 @@ import (
 
 type StrategyProfileRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *strategyDTOs.StrategyProfileListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileListDTO, error)
+	GetAll(params *strategyDTOs.StrategyProfileListQueryParamsDTO) (*strategyDTOs.StrategyProfileListResponseDTO, error)
 	GetByID(id uint) (*models.StrategyProfile, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfile, error)
 	Create(strategyProfile *models.StrategyProfile, tx ...utility.DatabaseTransaction) (uint, error)
@@ -38,7 +39,7 @@ func (repo *StrategyProfileRepository) BeginTransaction() utility.DatabaseTransa
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *StrategyProfileRepository) GetAll(params *strategyDTOs.StrategyProfileListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileListDTO, error) {
+func (repo *StrategyProfileRepository) GetAll(params *strategyDTOs.StrategyProfileListQueryParamsDTO) (*strategyDTOs.StrategyProfileListResponseDTO, error) {
 	var strategyProfiles []*strategyDTOs.StrategyProfileListDTO
 	var totalCount int64
 
@@ -128,7 +129,23 @@ func (repo *StrategyProfileRepository) GetAll(params *strategyDTOs.StrategyProfi
 	if err != nil {
 		return nil, err
 	}
-	return strategyProfiles, nil
+
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
+
+	response := &strategyDTOs.StrategyProfileListResponseDTO{
+		Items: strategyProfiles,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+
 }
 
 func (repo *StrategyProfileRepository) GetByID(id uint) (*models.StrategyProfile, error) {

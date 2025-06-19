@@ -1,6 +1,7 @@
 package dtos
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"time"
@@ -98,6 +99,11 @@ type KPIRegisterListQueryParamsDTO struct {
 	Filters     map[string][]string
 	QuickFilter []string
 	Export      bool
+}
+
+type KPIRegisterListResponseDTO struct {
+	Items      []*KPIRegisterListDTO        `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
 type KPIRegisterDetailDTO struct {
