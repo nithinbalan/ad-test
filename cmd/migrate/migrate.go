@@ -7,6 +7,7 @@ import (
 	"jethur/assets"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	_ "github.com/denisenkom/go-mssqldb"
@@ -18,41 +19,55 @@ func main() {
 	_ = godotenv.Load()
 
 	if len(os.Args) < 2 {
-		log.Fatal("Usage: migrate.exe [up|down]")
+		log.Fatal("Usage: migrate.exe [up|down|seed|unseed]")
 	}
-	dir := extractMigrationsToTemp()
-	defer os.RemoveAll(dir) // Clean up after run
+	command := os.Args[1]
 
 	dsn := os.Getenv("DATABASE_DSN")
 	if dsn == "" {
 		log.Fatal("DATABASE_DSN not set")
 	}
 
+	switch command {
+	case "up", "down":
+		handleMigration(command, dsn)
+	case "seed":
+		if err := runSeederUp(dsn); err != nil {
+			log.Fatalf("Seeding failed: %v", err)
+		}
+	case "unseed":
+		if err := runSeederDown(dsn); err != nil {
+			log.Fatalf("Unseeding failed: %v", err)
+		}
+	default:
+		log.Fatal("Invalid command. Use up, down, seed, or unseed")
+	}
+
+	fmt.Printf("Migration '%s' completed successfully.\n", command)
+}
+
+func handleMigration(direction, dsn string) {
+	dir := extractMigrationsToTemp()
+	defer os.RemoveAll(dir)
+
 	db, err := sql.Open("sqlserver", dsn)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to connect to DB: %v", err)
 	}
 	defer db.Close()
 
 	goose.SetDialect("sqlserver")
 
-	var gooseErr error
-	switch os.Args[1] {
+	switch direction {
 	case "up":
-		gooseErr = goose.Up(db, dir)
+		if err := goose.Up(db, dir); err != nil {
+			log.Fatalf("Migration up failed: %v", err)
+		}
 	case "down":
-		gooseErr = goose.DownTo(db, dir, 0)
-	case "seed":
-		runSeeders(db)
-	default:
-		log.Fatal("Invalid command. Use up, down, or seed")
+		if err := goose.DownTo(db, dir, 0); err != nil {
+			log.Fatalf("Migration down failed: %v", err)
+		}
 	}
-
-	if gooseErr != nil {
-		log.Fatalf("Migration error: %v", gooseErr)
-	}
-
-	fmt.Printf("Migration '%s' completed successfully.\n", os.Args[1])
 }
 
 func extractMigrationsToTemp() string {
@@ -82,25 +97,22 @@ func extractMigrationsToTemp() string {
 	return tmpDir
 }
 
-func runSeeders(db *sql.DB) {
-	err := fs.WalkDir(assets.SeederFS, "seeders", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			return nil
-		}
-		content, err := assets.SeederFS.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		if _, err := db.Exec(string(content)); err != nil {
-			return fmt.Errorf("error executing seeder %s: %w", path, err)
-		}
-		fmt.Printf("Executed seeder: %s\n", path)
-		return nil
-	})
-	if err != nil {
-		log.Fatalf("Seeding failed: %v", err)
-	}
+func runSeederUp(dsn string) error {
+	cmd := exec.Command("goose",
+		"-table=goose_seeder_versions",
+		"-dir=assets/seeders",
+		"mssql", dsn, "up")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func runSeederDown(dsn string) error {
+	cmd := exec.Command("goose",
+		"-table=goose_seeder_versions",
+		"-dir=assets/seeders",
+		"mssql", dsn, "down")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
