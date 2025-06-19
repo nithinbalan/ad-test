@@ -13,7 +13,7 @@ jobs:
       MIGRATION_BRANCH: migration_new
       DEPLOY_BRANCH: main
       BACKUP_SCRIPT_PATH: C:\jethur-scripts\backup-for-deployment.ps1
-      IIS_DOC_ROOT: C:\inetpub\wwwroot\aljabr-uat\smc-uat-api
+      IIS_DOC_ROOT: C:\inetpub\wwwroot\smc-uat\smc-uat-api
       SERVICE_NAME: smc-uat-api
       SCRIPT_SOURCE_PATH: C:\jethur-deployment\deployment-files\script.bat
       EMAIL_TO: nithin@jethur.com
