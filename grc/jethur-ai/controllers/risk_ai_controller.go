@@ -54,13 +54,45 @@ func (rc *RiskAIController) GetRiskRCA(c *gin.Context) {
 }
 
 func (rc *RiskAIController) GetRiskAnalysis(c *gin.Context) {
-	var req dtos.RiskAnalysisRequest
+	var req dtos.RiskAIRequest
 	if err := c.ShouldBind(&req); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
 	result, err := rc.service.GetRiskAnalysis(req)
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (rc *RiskAIController) GetRiskResponseStrategyAnalysis(c *gin.Context) {
+	var req dtos.RiskAIRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	result, err := rc.service.GetRiskResponseStrategyAnalysis(req)
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (rc *RiskAIController) GetRiskControlAnalysis(c *gin.Context) {
+	var req dtos.RiskAIRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	result, err := rc.service.GetRiskControlAnalysis(req)
 	if err != nil {
 		utility.SendInternalErrResp(rc.db, c, err.Error())
 		return
