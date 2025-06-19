@@ -12,10 +12,12 @@ import (
 )
 
 type StrategyProfileSettingServiceInterface interface {
-	GetAll(paraspss *dtos.StrategyProfileSettingListQueryParamsDTO) (*[]dtos.StrategyProfileSettingListDTO, error)
+	GetAll(params *dtos.StrategyProfileSettingListQueryParamsDTO) (*[]dtos.StrategyProfileSettingListDTO, error)
 	GetFullDetailsByID(id uint) (*dtos.StrategyProfileSettingDetailDTO, error)
 	EnableStrategyProfileSetting(id uint) (*models.StrategyProfileSetting, error)
 	DisableStrategyProfileSetting(id uint) (*models.StrategyProfileSetting, error)
+
+	GetEnabledSettings() ([]dtos.StrategyProfileSettingListDTO, error)
 }
 
 type StrategyProfileSettingService struct {
@@ -95,4 +97,8 @@ func (spss *StrategyProfileSettingService) DisableStrategyProfileSetting(id uint
 	}
 
 	return strategyProfileSetting, nil
+}
+
+func (spss *StrategyProfileSettingService) GetEnabledSettings() ([]dtos.StrategyProfileSettingListDTO, error) {
+	return spss.repo.GetEnabledSettings()
 }
