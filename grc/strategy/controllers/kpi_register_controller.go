@@ -33,9 +33,29 @@ func (krc *KPIRegisterController) GetAllKPIRegister(c *gin.Context) {
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"title",
+		"kpi_category_ids",
+		"kpi_status_ids",
+		"review_frequency_ids",
+		"calculation_type_ids",
+		"unit_ids",
 	}
 	validSortFields := map[string]string{
-		"title": "kpi_register.title",
+		"title":                          "kpi_register.title",
+		"description":                    "kpi_register.description",
+		"start_date":                     "kpi_register.start_date",
+		"end_date":                       "kpi_register.end_date",
+		"kpi_category_title_en":          "kpi_categories.title_en",
+		"kpi_category_title_ar":          "kpi_categories.title_ar",
+		"responsible_user_first_name_en": "responsible_user.first_name_en",
+		"responsible_user_first_name_ar": "responsible_user.first_name_ar",
+		"kpi_status_title_en":            "kpi_statuses.title_en",
+		"kpi_status_title_ar":            "kpi_statuses.title_ar",
+		"review_frequency_title_en":      "review_frequencies.title_en",
+		"review_frequency_title_ar":      "review_frequencies.title_ar",
+		"calculation_type_title_en":      "calculation_types.title_en",
+		"calculation_type_title_ar":      "calculation_types.title_ar",
+		"unit_title_en":                  "units.title_en",
+		"unit_title_ar":                  "units.title_ar",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
