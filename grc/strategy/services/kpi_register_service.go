@@ -16,12 +16,15 @@ import (
 )
 
 type KPIRegisterServiceInterface interface {
-	GetAll(params *strategyDTOs.KPIRegisterListQueryParamsDTO) ([]*strategyDTOs.KPIRegisterListDTO, error)
+	GetAll(params *strategyDTOs.KPIRegisterListQueryParamsDTO) (*strategyDTOs.KPIRegisterListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.KPIRegisterDetailDTO, error)
 	GetByID(id uint) (*models.KPIRegister, error)
 	Create(currentUserID uint, strategyDTOs *strategyDTOs.KPIRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, kpiRegister *strategyDTOs.KPIRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	UpdateValue(kpiRegister *models.KPIRegister, tx utility.DatabaseTransaction) error
+	GetTrendAnalysis(kpiID uint) ([]*strategyDTOs.KPITrendAnalysisDTO, error)
 }
 
 // Service and implementations
@@ -32,6 +35,8 @@ type KPIRegisterService struct {
 	userSettingSvc      organizationServices.UserSettingServiceInterface
 	organizationUnitSvc settingServices.OrganizationUnitServiceInterface
 	kpiStatusSvc        KPIStatusServiceInterface
+	entryTypeSvc        EntryTypeServiceInterface
+	dataSourceSvc       DataSourceServiceInterface
 }
 
 func NewKPIRegisterService(
@@ -41,6 +46,9 @@ func NewKPIRegisterService(
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	organizationUnitSvc settingServices.OrganizationUnitServiceInterface,
 	kpiStatusSvc KPIStatusServiceInterface,
+	entryTypeSvc EntryTypeServiceInterface,
+	dataSourceSvc DataSourceServiceInterface,
+
 ) KPIRegisterServiceInterface {
 	return &KPIRegisterService{
 		repo:                repo,
@@ -49,10 +57,12 @@ func NewKPIRegisterService(
 		userSettingSvc:      userSettingSvc,
 		organizationUnitSvc: organizationUnitSvc,
 		kpiStatusSvc:        kpiStatusSvc,
+		entryTypeSvc:        entryTypeSvc,
+		dataSourceSvc:       dataSourceSvc,
 	}
 }
 
-func (krs *KPIRegisterService) GetAll(params *strategyDTOs.KPIRegisterListQueryParamsDTO) ([]*strategyDTOs.KPIRegisterListDTO, error) {
+func (krs *KPIRegisterService) GetAll(params *strategyDTOs.KPIRegisterListQueryParamsDTO) (*strategyDTOs.KPIRegisterListResponseDTO, error) {
 	return krs.repo.GetAll(params)
 }
 
@@ -87,6 +97,15 @@ func (krs KPIRegisterService) GetFullDetailsByID(id uint, tx ...utility.Database
 		return nil, err
 	}
 
+	if kpiRegister.StartDate != nil {
+		startDate := kpiRegister.StartDate.Format("2006-01-02")
+		kpiRegisterDTO.StartDateString = &startDate
+	}
+	if kpiRegister.EndDate != nil {
+		endDate := kpiRegister.EndDate.Format("2006-01-02")
+		kpiRegisterDTO.EndDateString = &endDate
+	}
+
 	kpiRegisterDTO.CreatedAt = kpiRegister.CreatedAt
 	kpiRegisterDTO.UpdatedAt = kpiRegister.UpdatedAt
 
@@ -102,12 +121,28 @@ func (krs *KPIRegisterService) Create(currentUserID uint, kpiRegisterFormDTO *st
 		return 0, err
 	}
 
+	entryType, err := krs.entryTypeSvc.GetByType("manual")
+	if err != nil {
+		return 0, err
+	}
+
+	dataSource, err := krs.dataSourceSvc.GetByType("user_input")
+	if err != nil {
+		return 0, err
+	}
+
 	kpiStatus, err := krs.kpiStatusSvc.GetByType("active")
 	if err != nil {
 		return 0, err
 	}
 
+	referenceNumber, err := krs.repo.GenerateReferenceNumber()
+	if err != nil {
+		return 0, err
+	}
+
 	kpiRegister := &models.KPIRegister{
+		ReferenceNumber:   &referenceNumber,
 		Title:             kpiRegisterFormDTO.Title,
 		Description:       kpiRegisterFormDTO.Description,
 		KPICategoryID:     kpiRegisterFormDTO.KPICategoryID,
@@ -116,7 +151,8 @@ func (krs *KPIRegisterService) Create(currentUserID uint, kpiRegisterFormDTO *st
 		CalculationTypeID: kpiRegisterFormDTO.CalculationTypeID,
 		Formula:           kpiRegisterFormDTO.Formula,
 		UnitID:            kpiRegisterFormDTO.UnitID,
-		Source:            kpiRegisterFormDTO.Source,
+		EntryTypeID:       &entryType.ID,
+		DataSourceID:      &dataSource.ID,
 		TargetValue:       kpiRegisterFormDTO.TargetValue,
 		Weightage:         kpiRegisterFormDTO.Weightage,
 		StartDate:         dates.StartDate,
@@ -210,10 +246,7 @@ func (krs *KPIRegisterService) Update(id uint, currentUserID uint, kpiRegisterFo
 	existingKPIRegister.CalculationTypeID = kpiRegisterFormDTO.CalculationTypeID
 	existingKPIRegister.Formula = kpiRegisterFormDTO.Formula
 	existingKPIRegister.UnitID = kpiRegisterFormDTO.UnitID
-	existingKPIRegister.Source = kpiRegisterFormDTO.Source
 	existingKPIRegister.TargetValue = kpiRegisterFormDTO.TargetValue
-	existingKPIRegister.LowThreshold = kpiRegisterFormDTO.LowThreshold
-	existingKPIRegister.MediumThreshold = kpiRegisterFormDTO.MediumThreshold
 	existingKPIRegister.Weightage = kpiRegisterFormDTO.Weightage
 	existingKPIRegister.StartDate = dates.StartDate
 	existingKPIRegister.EndDate = dates.EndDate
@@ -271,10 +304,7 @@ func (krs *KPIRegisterService) Update(id uint, currentUserID uint, kpiRegisterFo
 			"calculation_type": utility.GetFieldValue(oldKPIRegister.CalculationType),
 			"formula":          oldKPIRegister.Formula,
 			"unit":             utility.GetFieldValue(oldKPIRegister.Unit),
-			"source":           oldKPIRegister.Source,
 			"target_value":     oldKPIRegister.TargetValue,
-			"low_threshold":    oldKPIRegister.LowThreshold,
-			"medium_threshold": oldKPIRegister.MediumThreshold,
 			"weightage":        oldKPIRegister.Weightage,
 			"start_date":       oldKPIRegister.StartDateString,
 			"end_date":         oldKPIRegister.EndDateString,
@@ -290,10 +320,7 @@ func (krs *KPIRegisterService) Update(id uint, currentUserID uint, kpiRegisterFo
 			"calculation_type": utility.GetFieldValue(existingKPIRegister.CalculationType),
 			"formula":          existingKPIRegister.Formula,
 			"unit":             utility.GetFieldValue(existingKPIRegister.Unit),
-			"source":           existingKPIRegister.Source,
 			"target_value":     existingKPIRegister.TargetValue,
-			"low_threshold":    existingKPIRegister.LowThreshold,
-			"medium_threshold": existingKPIRegister.MediumThreshold,
 			"weightage":        existingKPIRegister.Weightage,
 			"start_date":       existingKPIRegister.StartDateString,
 			"end_date":         existingKPIRegister.EndDateString,
@@ -407,4 +434,42 @@ func (krs *KPIRegisterService) parseKPIRegisterDates(dto *strategyDTOs.KPIRegist
 	}
 
 	return parsed, nil
+}
+
+func (krs *KPIRegisterService) UpdateValue(kpiRegister *models.KPIRegister, tx utility.DatabaseTransaction) error {
+	err := krs.repo.Update(kpiRegister, tx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (krs *KPIRegisterService) GetTrendAnalysis(kpiID uint) ([]*strategyDTOs.KPITrendAnalysisDTO, error) {
+	kpiValueUpdates, err := krs.repo.GetTrendAnalysis(kpiID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(kpiValueUpdates) == 0 {
+		return []*strategyDTOs.KPITrendAnalysisDTO{}, nil
+	}
+
+	var trend []*strategyDTOs.KPITrendAnalysisDTO
+
+	for _, valueUpdate := range kpiValueUpdates {
+		var kpiUpdate strategyDTOs.KPITrendAnalysisDTO
+		err := mapstructure.Decode(valueUpdate, &kpiUpdate)
+		if err != nil {
+			return nil, err
+		}
+		kpiUpdate.Value = float64(*valueUpdate.Value)
+
+		reviewedAt := valueUpdate.ReviewedDate.Format("2006-01-02")
+		kpiUpdate.ReviewedAtString = reviewedAt
+
+		trend = append(trend, &kpiUpdate)
+	}
+
+	return trend, nil
 }

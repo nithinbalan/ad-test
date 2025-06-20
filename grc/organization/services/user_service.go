@@ -80,6 +80,7 @@ type UserService struct {
 	notificationSvc           commonService.NotificationServiceInterface
 	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface
 	organizationUnitSvc       settingService.OrganizationUnitServiceInterface
+	userJobDescriptionSvc     UserJobDescriptionServiceInterface
 }
 
 func NewUserService(
@@ -95,6 +96,7 @@ func NewUserService(
 	notificationSvc commonService.NotificationServiceInterface,
 	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface,
 	organizationUnitSvc settingService.OrganizationUnitServiceInterface,
+	userJobDescriptionSvc UserJobDescriptionServiceInterface,
 ) UserServiceInterface {
 	return &UserService{
 		repo:                      repo,
@@ -109,6 +111,7 @@ func NewUserService(
 		notificationSvc:           notificationSvc,
 		activeDirectorySettingSvc: activeDirectorySettingSvc,
 		organizationUnitSvc:       organizationUnitSvc,
+		userJobDescriptionSvc:     userJobDescriptionSvc,
 	}
 }
 
@@ -339,10 +342,16 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		CreatedByID:         currentUserID,
 		Initial:             initial,
 		Color:               color,
+		ReportingUserID:     userFormDTO.ReportingUserID,
 	}
 
 	userID, err := us.repo.Create(user, tx)
 	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	//add
+	if err := us.userJobDescriptionSvc.CreateUserJDFromDesignation(userID, userFormDTO.DesignationID, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -520,6 +529,7 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 	existingUser.Initial = initial
 	existingUser.UpdatedByID = &currentUserID
 	existingUser.UserStatusID = userFormDTO.UserStatusID
+	existingUser.ReportingUserID = userFormDTO.ReportingUserID
 
 	err = us.repo.Update(existingUser, tx)
 	if err != nil {
@@ -639,6 +649,8 @@ func (crs *UserService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 		if err != nil {
 			continue
 		}
+		// 👇 Delete JD created from designation if any
+		_ = crs.userJobDescriptionSvc.DeleteUserJDFromDesignation(user.ID, user.DesignationID, currentUserID)
 
 		err = crs.repo.Delete(id)
 		if err != nil {
@@ -1278,8 +1290,8 @@ func (us *UserService) ImportUsers(input []map[string]interface{}, currentUserID
 		user := &models.User{
 			FirstNameEn:   record["first_name_en"].(string),
 			LastNameEn:    record["last_name_en"].(string),
-			FirstNameAr:   record["first_name_ar"].(string),
-			LastNameAr:    record["last_name_ar"].(string),
+			FirstNameAr:   record["first_name_en"].(string),
+			LastNameAr:    record["last_name_en"].(string),
 			Email:         record["email"].(string),
 			MobileNumber:  utility.GetOptionalStringValue(record["mobile_number"]),
 			DesignationID: record["designation_id"].(uint),
@@ -1411,7 +1423,7 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 			value, _ := record[header].(string)
 			value = strings.TrimSpace(value)
 			switch header {
-			case "first_name_en", "last_name_en", "first_name_ar", "last_name_ar":
+			case "first_name_en", "last_name_en":
 				if value == "" {
 					rowErrors[header] = "Field is required"
 				}
@@ -1771,9 +1783,8 @@ func (us *UserService) GetUsersFromAD() ([]userDTOs.ADUserFlatDTO, error) {
 		email := entry.GetAttributeValue("mail")
 		distinguishedName := entry.GetAttributeValue("distinguishedName")
 		designationTitle := entry.GetAttributeValue("title")
-
 		// ✅ Skip users with missing important fields
-		if email == "" || firstName == "" || lastName == "" {
+		if email == "" {
 			continue
 		}
 

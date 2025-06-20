@@ -42,6 +42,7 @@ type ComplianceModule struct {
 	ComplianceAssessmentRequirementActionPlanStatusUpdateController *controllers.ComplianceAssessmentRequirementActionPlanStatusUpdateController
 	ComplianceAssessmentRequirementActionPlanCommentController      *controllers.ComplianceAssessmentRequirementActionPlanCommentController
 	ComplianceReportController                                      *controllers.ComplianceReportController
+	PolicyExceptionController                                       *controllers.PolicyExceptionController
 
 	ComplianceRegisterSvc          services.ComplianceRegisterServiceInterface
 	ComplianceRequirementSvc       services.ComplianceRequirementServiceInterface
@@ -52,7 +53,7 @@ type ComplianceModule struct {
 	ComplianceClausevc             services.ComplianceClauseServiceInterface
 }
 
-func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule, organizationModule *OrganizationModule, taskModule *TaskModule, settingsModule *SettingsModule, commonModule *CommonModule) *ComplianceModule {
+func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule, organizationModule *OrganizationModule, taskModule *TaskModule, settingsModule *SettingsModule, commonModule *CommonModule, documentModule *DocumentModule) *ComplianceModule {
 	complianceCategoryRepo := repositories.NewComplianceCategoryRepository(db)
 	complianceCategorySvc := services.NewComplianceCategoryService(complianceCategoryRepo, sharedModule.ActivityLogService)
 	complianceCategoryController := controllers.NewComplianceCategoryController(complianceCategorySvc)
@@ -257,6 +258,20 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceReportSvc := services.NewComplianceReportService(complianceReportRepo, sharedModule.ActivityLogService)
 	complianceReportController := controllers.NewComplianceReportController(complianceReportSvc)
 
+	policyExceptionRepo := repositories.NewPolicyExceptionRepository(db)
+	policyExceptionSvc := services.NewPolicyExceptionService(
+		policyExceptionRepo,
+		documentModule.DocumentSvc,
+		masterModule.WorkflowStatusSvc,
+		settingsModule.OrganizationUnitSvc,
+		organizationModule.UserSvc,
+		documentModule.DocumentClauseSvc,
+		documentModule.DocumentRequirementGroupSvc,
+		documentModule.DocumentRequirementSvc,
+		sharedModule.ActivityLogService,
+	)
+	policyExceptionController := controllers.NewPolicyExceptionController(policyExceptionSvc)
+
 	return &ComplianceModule{
 		ComplianceCategoryController:                                    complianceCategoryController,
 		ComplianceStatusController:                                      complianceStatusController,
@@ -291,6 +306,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceAssessmentRequirementActionPlanStatusUpdateController: complianceAssessmentRequirementActionPlanStatusUpdateController,
 		ComplianceAssessmentRequirementActionPlanCommentController:      complianceAssessmentRequirementActionPlanCommentController,
 		ComplianceReportController:                                      complianceReportController,
+		PolicyExceptionController:                                       policyExceptionController,
 
 		ComplianceRequirementSvc:       complianceRequirementSvc,
 		ComplianceRegisterSvc:          complianceRegisterSvc,

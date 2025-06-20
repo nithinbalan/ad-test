@@ -22,11 +22,12 @@ type StakeholderNeedsAndExpectation struct {
 	UpdatedBYID        *uint      `json:"updated_by_id,omitempty" gorm:"default:null"`
 
 	// Relationships
-	Stakeholder     *Stakeholder   `gorm:"foreignKey:StakeholderID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SeverityLevel   *SeverityLevel `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser   *User          `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser   *User          `gorm:"foreignKey:UpdatedBYID"`
-	EvaluatedByUser *User          `gorm:"foreignKey:EvaluatedBYID"`
+	Stakeholder     *Stakeholder                                `gorm:"foreignKey:StakeholderID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SeverityLevel   *SeverityLevel                              `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser   *User                                       `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser   *User                                       `gorm:"foreignKey:UpdatedBYID"`
+	EvaluatedByUser *User                                       `gorm:"foreignKey:EvaluatedBYID"`
+	Evaluations     *[]StakeholderNeedsAndExpectationEvaluation `gorm:"foreignKey:StakeholderNeedsAndExpectationID"`
 }
 
 // TableName overrides the table name used by StakeholderNeedsAndExpectation to `stakeholder_needs_and_expectations`

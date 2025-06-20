@@ -287,4 +287,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	reportsRoutes.PUT("/grc-reports/:grcReportId/section-review", grcReportWorkflowReviewCommentController.GRCReportSectionReviewed)
 	reportsRoutes.PUT("/grc-reports/:grcReportId/section-approve", grcReportWorkflowReviewCommentController.GRCReportSectionApproved)
+
+	reportsRoutes.PUT("/grc-reports/:grcReportId/submit", grcReportController.GRCReportSubmit)
+	reportsRoutes.PUT("/grc-reports/:grcReportId/review", grcReportController.GRCReportReviewed)
+	reportsRoutes.PUT("/grc-reports/:grcReportId/approve", grcReportController.GRCReportApproved)
 }

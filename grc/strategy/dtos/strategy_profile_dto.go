@@ -1,12 +1,14 @@
 package dtos
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"time"
 )
 
 type StrategyProfileListDTO struct {
 	ID                              int     `json:"id"`
+	ReferenceNumber                 string  `json:"reference_number"`
 	Title                           string  `json:"title"`
 	Description                     *string `json:"description"`
 	Vision                          *string `json:"vision"`
@@ -65,8 +67,14 @@ type StrategyProfileListQueryParamsDTO struct {
 	Export      bool
 }
 
+type StrategyProfileListResponseDTO struct {
+	Items      []*StrategyProfileListDTO    `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
 type StrategyProfileDetailDTO struct {
 	ID                uint                             `json:"id"`
+	ReferenceNumber   string                           `json:"reference_number"`
 	Title             string                           `json:"title"`
 	Description       *string                          `json:"description"`
 	Vision            *string                          `json:"vision"`

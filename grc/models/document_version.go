@@ -21,6 +21,15 @@ type DocumentVersion struct {
 	PublishedAt        *time.Time `json:"published_at" gorm:"type:date;default:null"`
 	NextReviewLevel    *int       `json:"next_review_level" gorm:"default:null"`
 	AcknowledgeDueDate *time.Time `json:"acknowledge_due_date" gorm:"type:date;default:null"`
+	ParsedContent      *string    `json:"parsed_content" gorm:"type:nvarchar(max)"`
+	SummaryEn          *string    `json:"summary_en" gorm:"type:nvarchar(max)"`
+	SummaryAr          *string    `json:"summary_ar" gorm:"type:nvarchar(max)"`
+	KeyPointsEn        *string    `json:"key_points_en" gorm:"type:nvarchar(max)"`
+	KeyPointsAr        *string    `json:"key_points_ar" gorm:"type:nvarchar(max)"`
+	FAQEn              *string    `json:"faq_en" gorm:"type:nvarchar(max)"`
+	FAQAr              *string    `json:"faq_ar" gorm:"type:nvarchar(max)"`
+	SampleQuestionsEn  *string    `json:"sample_questions_en" gorm:"type:nvarchar(max)"`
+	SampleQuestionsAr  *string    `json:"sample_questions_ar" gorm:"type:nvarchar(max)"`
 	CreatedBYID        uint       `json:"created_by_id" binding:"required" gorm:"not null"`
 	UpdatedBYID        *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt          time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
@@ -33,8 +42,9 @@ type DocumentVersion struct {
 	UpdatedByUser   *User     `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	PublishedByUser *User     `gorm:"foreignKey:PublishedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 
-	DocumentEditHistory []*DocumentEditHistory `gorm:"foreignKey:DocumentVersionID"`
-	DocumentWorkflows   []*DocumentWorkflow    `gorm:"foreignKey:DocumentVersionID"`
+	DocumentEditHistory []*DocumentEditHistory   `gorm:"foreignKey:DocumentVersionID"`
+	DocumentWorkflows   []*DocumentWorkflow      `gorm:"foreignKey:DocumentVersionID"`
+	DocumentClauses     []*DocumentVersionClause `gorm:"foreignKey:DocumentVersionID"`
 }
 
 func (DocumentVersion) TableName() string {

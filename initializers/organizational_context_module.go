@@ -81,6 +81,7 @@ func NewOrganizationalContextModule(db *gorm.DB,
 		sharedModule.ActivityLogService,
 		organizationModule.UserSvc,
 		organizationModule.UserSettingSvc,
+		stakeholderSvc,
 	)
 	stakeholderEngagementController := controllers.NewStakeholderEngagementController(stakeholderEngagementSvc)
 

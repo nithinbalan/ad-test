@@ -29,13 +29,25 @@ func (sc *StakeholderController) GetAllStakeholders(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"title_en",
+		"stakeholder_category_ids",
+		"type_ids",
+		"influence_level_ids",
+		"impact_level_ids",
+		"organization_unit_ids",
+		"third_party_register_ids",
+		"user_ids",
+		"client_ids",
 	}
 	validSortFields := map[string]string{
-		"title_en": "stakeholders.title_en",
+		"title_en":                   "stakeholders.title_en",
+		"influence_level_en":         "influence_levels.title_en",
+		"influence_level_ar":         "influence_levels.title_ar",
+		"influence_level_color_code": "influence_levels.color_code",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -58,12 +70,13 @@ func (sc *StakeholderController) GetAllStakeholders(c *gin.Context) {
 		return
 	}
 	queryParams := organizationalContextDTOs.StakeholderListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortField,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
-		Filters:  filters,
+		Sort:        sort,
+		SortBy:      sortField,
+		Keyword:     keyword,
+		Page:        page,
+		PageSize:    pageSize,
+		Filters:     filters,
+		QuickFilter: quickFilter,
 	}
 	stakeholders, err := sc.service.GetAll(&queryParams)
 

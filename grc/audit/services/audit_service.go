@@ -684,34 +684,18 @@ func (as *AuditService) ExportAudits(data []*auditDTOs.AuditListDTO, currentUser
 
 	var headers []string
 	// Define headers based on the user's language setting
-	if userSetting.Language == "ar" {
-		headers = []string{
-			"SL No.",
-			"Audit Plan Title",
-			"Audit Plan Description",
-			"Audit Plan Purpose",
-			"Audit Plan Objective",
-			"Start Date",
-			"End Date",
-			"Audit Category (AR)",
-			"Audit Status (AR)",
-			"Team Lead (AR)",
-			"Created By (AR)",
-		}
-	} else {
-		headers = []string{
-			"SL No.",
-			"Audit Plan Title",
-			"Audit Plan Description",
-			"Audit Plan Purpose",
-			"Audit Plan Objective",
-			"Start Date",
-			"End Date",
-			"Audit Category (EN)",
-			"Audit Status (EN)",
-			"Team Lead (EN)",
-			"Created By (EN)",
-		}
+	headers = []string{
+		"SL No.",
+		"Audit Plan Title",
+		"Audit Plan Description",
+		"Audit Plan Purpose",
+		"Audit Plan Objective",
+		"Start Date",
+		"End Date",
+		"Audit Category",
+		"Audit Status",
+		"Team Lead",
+		"Created By",
 	}
 
 	// Convert data to [][]interface{} based on language preference

@@ -76,6 +76,7 @@ type UserFormDTO struct {
 	UserStatusID        uint    `json:"user_status_id" binding:"required"`
 	Password            string  `json:"password" binding:"omitempty"`
 	IsSentEmail         bool    `json:"is_sent_email"`
+	ReportingUserID     *uint   `json:"reporting_user_id"`
 }
 
 type UserUpdateDTO struct {
@@ -93,6 +94,7 @@ type UserUpdateDTO struct {
 	MobileNumber        *string    `json:"mobile_number,omitempty"`
 	ProfileImagePath    *string    `json:"profile_image_path,omitempty"`
 	LastLoginAt         *time.Time `json:"last_login_at,omitempty"`
+	ReportingUserID     *uint      `json:"reporting_user_id"`
 }
 
 type SendNewPasswordEmailDTO struct {
@@ -157,6 +159,7 @@ type UserDetailsDTO struct {
 	Roles             *[]settingDTOs.RoleDTO           `json:"roles"`
 	CreatedByUser     *UserMinimalDTO                  `json:"created_by_user"`
 	UpdatedByUser     *UserMinimalDTO                  `json:"updated_by_user"`
+	ReportingUser     *UserMinimalDTO                  `json:"reporting_user"`
 }
 
 type UserLoginHistoryListQueryParamsDTO struct {

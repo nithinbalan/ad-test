@@ -108,6 +108,9 @@ func NewReportsModule(db *gorm.DB,
 		complianceModule.ComplianceStatusSvc,
 		settingsModule.OrganizationUnitSvc,
 		grcReportWorkflowStatusSvc,
+		organizationModule.UserSvc,
+		organizationModule.UserSettingSvc,
+		commonModule.NotificationService,
 	)
 	grcReportController := controllers.NewGRCReportController(grcReportSvc)
 

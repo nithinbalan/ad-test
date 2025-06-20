@@ -402,43 +402,55 @@ func (repo *GRCDashboardRepository) GetGRCIncidentSummary(params *kpiDTOs.GRCDas
 func (repo *GRCDashboardRepository) GetGRCComplianceOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCComplianceOverviewDTO, error) {
 	summary := &kpiDTOs.GRCComplianceOverviewDTO{}
 
-	complianceQuery := repo.db.Model(&models.ComplianceRegister{}).
-		Joins("JOIN compliance_statuses ON compliance_statuses.id = compliance_register.compliance_status_id")
+	// Base query builder function to avoid code duplication
+	buildBaseQuery := func() *gorm.DB {
+		query := repo.db.Model(&models.ComplianceRegister{}).
+			Joins("JOIN compliance_statuses ON compliance_statuses.id = compliance_register.compliance_status_id")
 
-	if params.DateFrom != "" && params.DateTo != "" {
-		complianceQuery = complianceQuery.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+		if params.DateFrom != "" && params.DateTo != "" {
+			query = query.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+		}
+		return query
 	}
 
+	// Get total count
 	var totalComplaintsRegistered int64
-	err := complianceQuery.Count(&totalComplaintsRegistered).Error
+	err := buildBaseQuery().Count(&totalComplaintsRegistered).Error
 	if err != nil {
 		return nil, err
 	}
 
-	var compliant, notCompliant, partiallyCompliant, others int64
-	err = complianceQuery.Select("COUNT(*)").
+	// Get compliant count
+	var compliant int64
+	err = buildBaseQuery().
 		Where("compliance_statuses.type = ?", "compliant").
 		Count(&compliant).Error
 	if err != nil {
 		return nil, err
 	}
 
-	err = complianceQuery.Select("COUNT(*)").
-		Where("compliance_statuses.type = ?", "not_compliant").
-		Count(&notCompliant).Error
+	// Get not implemented count
+	var notImplemented int64
+	err = buildBaseQuery().
+		Where("compliance_statuses.type = ?", "not_implemented").
+		Count(&notImplemented).Error
 	if err != nil {
 		return nil, err
 	}
 
-	err = complianceQuery.Select("COUNT(*)").
+	// Get partially compliant count
+	var partiallyCompliant int64
+	err = buildBaseQuery().
 		Where("compliance_statuses.type = ?", "partially_compliant").
 		Count(&partiallyCompliant).Error
 	if err != nil {
 		return nil, err
 	}
 
-	err = complianceQuery.Select("COUNT(*)").
-		Where("compliance_statuses.type NOT IN (?)", []string{"compliant", "not_compliant", "partially_compliant"}).
+	// Get others count
+	var others int64
+	err = buildBaseQuery().
+		Where("compliance_statuses.type NOT IN (?)", []string{"compliant", "not_implemented", "partially_compliant"}).
 		Count(&others).Error
 	if err != nil {
 		return nil, err
@@ -446,7 +458,7 @@ func (repo *GRCDashboardRepository) GetGRCComplianceOverview(params *kpiDTOs.GRC
 
 	summary.TotalComplaintsRegistered = totalComplaintsRegistered
 	summary.Compliant = compliant
-	summary.NotCompliant = notCompliant
+	summary.NotImplemented = notImplemented
 	summary.PartiallyCompliant = partiallyCompliant
 	summary.Others = others
 

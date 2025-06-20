@@ -19,7 +19,7 @@ import (
 )
 
 type GRCReportWorkflowReviewCommentServiceInterface interface {
-	GetAll(grcReportID uint) ([]*dtos.GRCReportWorkflowReviewCommentListDTO, error)
+	GetAll(grcReportID uint, params *dtos.GRCReportWorkflowReviewCommentListQueryParamsDTO) ([]*dtos.GRCReportWorkflowReviewCommentListDTO, error)
 	GetByID(grcReportID uint, id uint) (*models.GRCReportWorkflowReviewComment, error)
 	GetFullDetailsByID(grcReportID uint, id uint, tx ...utility.DatabaseTransaction) (*dtos.GRCReportWorkflowReviewCommentDetailDTO, error)
 	Create(grcReportID uint, currentUserID uint, dto *dtos.GRCReportWorkflowReviewCommentFormDTO) (uint, error)
@@ -68,8 +68,8 @@ func NewGRCReportWorkflowReviewCommentService(repo repositories.GRCReportWorkflo
 	}
 }
 
-func (grwrcs *GRCReportWorkflowReviewCommentService) GetAll(grcReportID uint) ([]*dtos.GRCReportWorkflowReviewCommentListDTO, error) {
-	return grwrcs.repo.GetAll(grcReportID)
+func (grwrcs *GRCReportWorkflowReviewCommentService) GetAll(grcReportID uint, params *dtos.GRCReportWorkflowReviewCommentListQueryParamsDTO) ([]*dtos.GRCReportWorkflowReviewCommentListDTO, error) {
+	return grwrcs.repo.GetAll(grcReportID, params)
 }
 
 func (grwrcs *GRCReportWorkflowReviewCommentService) GetByID(grcReportID uint, id uint) (*models.GRCReportWorkflowReviewComment, error) {
@@ -384,7 +384,13 @@ func (grwrcs *GRCReportWorkflowReviewCommentService) GRCReportSectionCommentClos
 func (grwrcs *GRCReportWorkflowReviewCommentService) GRCReportSectionReviewed(grcReportID uint, currentUserID uint, commentActionForm *dtos.GRCReportWorkflowReviewCommentFormDTO) error {
 	tx := grwrcs.repo.BeginTransaction()
 
-	reviewedStatus, err := grwrcs.grcReportWorkflowStatusSvc.GetByType("pending-approval")
+	reviewedStatus, err := grwrcs.grcReportWorkflowStatusSvc.GetByType("reviewed")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	pendingStatus, err := grwrcs.grcReportWorkflowStatusSvc.GetByType("pending-approval")
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -424,7 +430,7 @@ func (grwrcs *GRCReportWorkflowReviewCommentService) GRCReportSectionReviewed(gr
 
 	resolvedAt := time.Now()
 	// Update workflow status to reviewed
-	grcReportWorkflow.GRCReportWorkflowStatusID = reviewedStatus.ID
+	grcReportWorkflow.GRCReportWorkflowStatusID = pendingStatus.ID
 	grcReportWorkflow.ReviewedAt = &resolvedAt
 	err = grwrcs.repo.UpdateSectionWorkflowStatus(grcReportWorkflow, tx)
 	if err != nil {

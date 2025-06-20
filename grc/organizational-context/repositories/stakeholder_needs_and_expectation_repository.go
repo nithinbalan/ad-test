@@ -16,6 +16,8 @@ type StakeholderNeedsAndExpectationRepositoryInterface interface {
 	Create(stakeholderNeedsAndExpectation *models.StakeholderNeedsAndExpectation, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(stakeholderNeedsAndExpectation *models.StakeholderNeedsAndExpectation, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+
+	GetNeedsAndExpectationCountByStatus(stakeholderId uint) ([]organizationalContextDTOs.NeedsAndExpectationStatusCountResponseDTO, error)
 }
 
 type StakeholderNeedsAndExpectationRepository struct {
@@ -40,12 +42,26 @@ func (repo *StakeholderNeedsAndExpectationRepository) GetAll(stakeholderId uint,
 	query := repo.db.Table("stakeholder_needs_and_expectations").
 		Select(`
             stakeholder_needs_and_expectations.*,
+			CONVERT(VARCHAR, stakeholder_needs_and_expectations.evaluated_at, 23) AS evaluated_at,
+			evaluated_user.id AS evaluated_user_id,
+        	evaluated_user.first_name_en AS evaluated_user_first_name_en,
+        	evaluated_user.first_name_ar AS evaluated_user_first_name_ar,
+        	evaluated_user.last_name_en AS evaluated_user_last_name_en,
+        	evaluated_user.last_name_ar AS evaluated_user_last_name_ar,   
+        	evaluated_user.initial AS evaluated_user_initial,
+        	evaluated_user.color AS evaluated_user_color,
+        	evaluated_user.email AS evaluated_user_email,
+        	evaluated_user.profile_image_path AS evaluated_user_profile_image_path,
 			stakeholders.title_en as stakeholder_title_en,
 			stakeholders.title_ar as stakeholder_title_ar,
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,
 			severity_levels.color_code AS severity_level_color_code,
 			severity_levels.type AS severity_level_type,
+			evaluation_statuses.title_en AS evaluation_status_title_en,
+            evaluation_statuses.title_ar AS evaluation_status_title_ar,
+            evaluation_statuses.color_code AS evaluation_status_color_code,
+			evaluation_statuses.type AS evaluation_status_type,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -67,6 +83,8 @@ func (repo *StakeholderNeedsAndExpectationRepository) GetAll(stakeholderId uint,
         `).
 		Joins(`
 			LEFT JOIN stakeholders ON stakeholders.id = stakeholder_needs_and_expectations.stakeholder_id
+			LEFT JOIN evaluation_statuses ON evaluation_statuses.id = stakeholder_needs_and_expectations.evaluation_status_id
+			LEFT JOIN users AS evaluated_user ON evaluated_user.id = stakeholder_needs_and_expectations.evaluated_by_id
 			LEFT JOIN severity_levels ON severity_levels.id = stakeholder_needs_and_expectations.severity_level_id
 			LEFT JOIN users AS created_user ON created_user.id = stakeholder_needs_and_expectations.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = stakeholder_needs_and_expectations.updated_by_id
@@ -135,6 +153,19 @@ func (repo *StakeholderNeedsAndExpectationRepository) GetFullDetailsByID(id uint
 
 	result := db.
 		Preload("SeverityLevel").
+		Preload("Stakeholder").
+		Preload("Stakeholder.Type").
+		Preload("Stakeholder.StakeholderCategory").
+		Preload("Stakeholder.InfluenceLevel").
+		Preload("Stakeholder.ImpactLevel").
+		Preload("Stakeholder.OrganizationUnit").
+		Preload("Stakeholder.ThirdPartyRegister").
+		Preload("Stakeholder.Client").
+		Preload("Stakeholder.User").
+		Preload("Evaluations").
+		Preload("Evaluations.EvaluationStatus").
+		Preload("Evaluations.EvaluatedByUser").
+		Preload("Evaluations.CreatedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&stakeholderNeedsAndExpectation, id)
@@ -181,4 +212,34 @@ func (repo *StakeholderNeedsAndExpectationRepository) Delete(id uint, tx ...util
 	}
 
 	return nil
+}
+
+func (repo *StakeholderNeedsAndExpectationRepository) GetNeedsAndExpectationCountByStatus(stakeholderId uint) ([]organizationalContextDTOs.NeedsAndExpectationStatusCountResponseDTO, error) {
+	var statusCounts []organizationalContextDTOs.NeedsAndExpectationStatusCountResponseDTO
+
+	query := repo.db.Table("evaluation_statuses").
+		Select(`
+			evaluation_statuses.id,
+			evaluation_statuses.title_en,
+			evaluation_statuses.title_ar,
+			evaluation_statuses.color_code,
+			evaluation_statuses.type,
+			COALESCE(COUNT(stakeholder_needs_and_expectations.id), 0) AS count
+		`).
+		Joins("LEFT JOIN stakeholder_needs_and_expectations ON stakeholder_needs_and_expectations.evaluation_status_id = evaluation_statuses.id AND stakeholder_needs_and_expectations.stakeholder_id = ?", stakeholderId)
+
+	query = query.Group(`
+		evaluation_statuses.id,
+		evaluation_statuses.title_en,
+		evaluation_statuses.title_ar,
+		evaluation_statuses.color_code,
+		evaluation_statuses.type
+	`)
+
+	err := query.Scan(&statusCounts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return statusCounts, nil
 }

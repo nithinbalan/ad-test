@@ -243,12 +243,6 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(systemPreferenceFormDTO *dt
 	existingSystemPreference.BalanceLicensedUserCount = &balanceLicensedUserCount
 	existingSystemPreference.TotalLicensedUserCount = &maxUsers
 
-	// Update system preference in the repository
-	err = sps.repo.Update(existingSystemPreference)
-	if err != nil {
-		return err
-	}
-
 	modules, err := sps.moduleSvc.GetAllModules()
 	if err != nil {
 		return err
@@ -280,6 +274,29 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(systemPreferenceFormDTO *dt
 		if _, err := sps.moduleSvc.EnableModule(moduleID); err != nil {
 			return err
 		}
+	}
+
+	rawAddons, ok := claims["enabled_addons"]
+	if !ok {
+		return utility.NewValidationError(fmt.Errorf("invalid token"), "invalid", "enabled addons")
+	}
+	enabledAddons, ok := rawAddons.([]string)
+	if !ok {
+		return utility.NewValidationError(fmt.Errorf("invalid enabled_addons format"), "invalid", "enabled addons")
+	}
+
+	for _, addon := range enabledAddons {
+		if addon == "jethur_ai" {
+			*existingSystemPreference.IsAIEnable = true
+		} else {
+			*existingSystemPreference.IsAIEnable = false
+		}
+	}
+
+	// Update system preference in the repository
+	err = sps.repo.Update(existingSystemPreference)
+	if err != nil {
+		return err
 	}
 
 	go func() {

@@ -1,50 +1,68 @@
 package dtos
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"time"
 )
 
 type KPIRegisterListDTO struct {
-	ID                              int     `json:"id"`
-	Title                           string  `json:"title"`
-	Description                     *string `json:"description"`
-	KPICategoryID                   uint    `json:"kpi_category_id"`
-	KPICategoryTitleEn              string  `json:"kpi_category_title_en"`
-	KPICategoryTitleAr              string  `json:"kpi_category_title_ar"`
-	ResponsibleUserID               *uint   `json:"responsible_user_id"`
-	ResponsibleUserFirstNameEn      *string `json:"responsible_user_first_name_en"`
-	ResponsibleUserLastNameEn       *string `json:"responsible_user_last_name_en"`
-	ResponsibleUserFirstNameAr      *string `json:"responsible_user_first_name_ar"`
-	ResponsibleUserLastNameAr       *string `json:"responsible_user_last_name_ar"`
-	ResponsibleUserInitial          *string `json:"responsible_user_initial"`
-	ResponsibleUserEmail            *string `json:"responsible_user_email"`
-	ResponsibleUserColor            *string `json:"responsible_user_color"`
-	ResponsibleUserProfileImagePath *string `json:"responsible_user_profile_image_path"`
-	KPIStatusID                     uint    `json:"kpi_status_id"`
-	KPIStatusTitleEn                string  `json:"kpi_status_title_en"`
-	KPIStatusTitleAr                string  `json:"kpi_status_title_ar"`
-	KPIStatusColorCode              string  `json:"kpi_status_color_code"`
-	KPIStatusType                   string  `json:"kpi_status_type"`
-	CreatedUserID                   uint    `json:"created_user_id"`
-	CreatedUserFirstNameEn          string  `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr          string  `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn           string  `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr           string  `json:"created_user_last_name_ar"`
-	CreatedUserInitial              string  `json:"created_user_initial"`
-	CreatedUserColor                string  `json:"created_user_color"`
-	CreatedUserEmail                string  `json:"created_user_email"`
-	CreatedUserProfileImagePath     string  `json:"created_user_profile_image_path"`
-	UpdatedUserID                   *uint   `json:"updated_user_id"`
-	UpdatedUserFirstNameEn          *string `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr          *string `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn           *string `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr           *string `json:"updated_user_last_name_ar"`
-	UpdatedUserInitial              *string `json:"updated_user_initial"`
-	UpdatedUserColor                *string `json:"updated_user_color"`
-	UpdatedUserEmail                *string `json:"updated_user_email"`
-	UpdatedUserProfileImagePath     *string `json:"updated_user_profile_image_path"`
+	ID                              int      `json:"id"`
+	ReferenceNumber                 *string  `json:"reference_number"`
+	Title                           string   `json:"title"`
+	Description                     *string  `json:"description"`
+	KPICategoryID                   uint     `json:"kpi_category_id"`
+	KPICategoryTitleEn              string   `json:"kpi_category_title_en"`
+	KPICategoryTitleAr              string   `json:"kpi_category_title_ar"`
+	ResponsibleUserID               *uint    `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn      *string  `json:"responsible_user_first_name_en"`
+	ResponsibleUserLastNameEn       *string  `json:"responsible_user_last_name_en"`
+	ResponsibleUserFirstNameAr      *string  `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameAr       *string  `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          *string  `json:"responsible_user_initial"`
+	ResponsibleUserEmail            *string  `json:"responsible_user_email"`
+	ResponsibleUserColor            *string  `json:"responsible_user_color"`
+	ResponsibleUserProfileImagePath *string  `json:"responsible_user_profile_image_path"`
+	KPIStatusID                     uint     `json:"kpi_status_id"`
+	KPIStatusTitleEn                string   `json:"kpi_status_title_en"`
+	KPIStatusTitleAr                string   `json:"kpi_status_title_ar"`
+	KPIStatusColorCode              string   `json:"kpi_status_color_code"`
+	KPIStatusType                   string   `json:"kpi_status_type"`
+	ReviewFrequencyTitleEn          *string  `json:"review_frequency_title_en"`
+	ReviewFrequencyTitleAr          *string  `json:"review_frequency_title_ar"`
+	ReviewFrequencyType             *string  `json:"review_frequency_type"`
+	CalculationTypeTitleEn          *string  `json:"calculation_type_title_en"`
+	CalculationTypeTitleAr          *string  `json:"calculation_type_title_ar"`
+	CalculationTypeType             *string  `json:"calculation_type_type"`
+	TargetValue                     *float64 `json:"target_value"`
+	UnitTitleEn                     *string  `json:"unit_title_en"`
+	UnitTitleAr                     *string  `json:"unit_title_ar"`
+	UnitCodeEn                      *string  `json:"unit_code_en"`
+	UnitCodeAr                      *string  `json:"unit_code_ar"`
+	UnitColorCode                   *string  `json:"unit_color_code"`
+	Weightage                       *float64 `json:"weightage"`
+	StartDate                       *string  `json:"start_date"`
+	EndDate                         *string  `json:"end_date"`
+	Remarks                         *string  `json:"remarks"`
+	CreatedUserID                   uint     `json:"created_user_id"`
+	CreatedUserFirstNameEn          string   `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr          string   `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn           string   `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr           string   `json:"created_user_last_name_ar"`
+	CreatedUserInitial              string   `json:"created_user_initial"`
+	CreatedUserColor                string   `json:"created_user_color"`
+	CreatedUserEmail                string   `json:"created_user_email"`
+	CreatedUserProfileImagePath     string   `json:"created_user_profile_image_path"`
+	UpdatedUserID                   *uint    `json:"updated_user_id"`
+	UpdatedUserFirstNameEn          *string  `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr          *string  `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn           *string  `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr           *string  `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial              *string  `json:"updated_user_initial"`
+	UpdatedUserColor                *string  `json:"updated_user_color"`
+	UpdatedUserEmail                *string  `json:"updated_user_email"`
+	UpdatedUserProfileImagePath     *string  `json:"updated_user_profile_image_path"`
 }
 
 type KPIRegisterFormDTO struct {
@@ -55,17 +73,14 @@ type KPIRegisterFormDTO struct {
 
 	ReviewFrequencyID *uint               `json:"review_frequency_id" binding:"required"`
 	CalculationTypeID *uint               `json:"calculation_type_id" binding:"required"`
-	DataInputs        []*InputDataFormDTO `json:"data_inputs" binding:"required"`
-	Formula           *string             `json:"formula" binding:"required"`
+	DataInputs        []*InputDataFormDTO `json:"data_inputs"`
+	Formula           *string             `json:"formula"`
 	UnitID            *uint               `json:"unit_id" binding:"required"`
-	Source            *string             `json:"source"`
 
-	TargetValue     *float64 `json:"target_value" binding:"required"`
-	LowThreshold    *int     `json:"low_threshold" gorm:"type:int;null"`
-	MediumThreshold *int     `json:"medium_threshold" gorm:"type:int;null"`
-	Weightage       *float64 `json:"weightage"`
+	TargetValue *float64 `json:"target_value" binding:"required"`
+	Weightage   *float64 `json:"weightage"`
 
-	StartDate *string `json:"start_date" binding:"required"`
+	StartDate *string `json:"start_date"`
 	EndDate   *string `json:"end_date"`
 
 	Remarks *string `json:"remarks" gorm:"type:nvarchar(max)"`
@@ -87,8 +102,14 @@ type KPIRegisterListQueryParamsDTO struct {
 	Export      bool
 }
 
+type KPIRegisterListResponseDTO struct {
+	Items      []*KPIRegisterListDTO        `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
 type KPIRegisterDetailDTO struct {
 	ID                uint                             `json:"id"`
+	ReferenceNumber   *string                          `json:"reference_number"`
 	Title             string                           `json:"title"`
 	Description       *string                          `json:"description"`
 	KPICategoryID     uint                             `json:"kpi_category_id"`
@@ -104,15 +125,13 @@ type KPIRegisterDetailDTO struct {
 	Formula           *string                          `json:"formula"`
 	UnitID            *uint                            `json:"unit_id"`
 	Unit              *masterDTOs.UnitDTO              `json:"unit"`
-	Source            *string                          `json:"source"`
 	ActualValue       *float64                         `json:"actual_value"`
 	TargetValue       *float64                         `json:"target_value"`
-	LowThreshold      *int                             `json:"low_threshold"`
-	MediumThreshold   *int                             `json:"medium_threshold"`
 	Weightage         *float64                         `json:"weightage"`
 	StartDateString   *string                          `json:"start_date"`
 	EndDateString     *string                          `json:"end_date"`
 	Remarks           *string                          `json:"remarks"`
+	DataInputs        []*KPIRegisterDataInputDTO       `json:"data_inputs"`
 	CreatedAt         time.Time                        `json:"created_at"`
 	UpdatedAt         *time.Time                       `json:"updated_at"`
 	CreatedByUser     organizationDTOs.UserMinimalDTO  `json:"created_by"`
@@ -122,4 +141,15 @@ type KPIRegisterDetailDTO struct {
 type KPIRegisterParsedDates struct {
 	StartDate *time.Time
 	EndDate   *time.Time
+}
+
+type KPIRegisterDataInputDTO struct {
+	ID       uint   `json:"id"`
+	Variable string `json:"variable"`
+	Input    string `json:"input"`
+}
+
+type KPITrendAnalysisDTO struct {
+	ReviewedAtString string  `json:"reviewed_at"`
+	Value            float64 `json:"value"`
 }

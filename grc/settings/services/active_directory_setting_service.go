@@ -128,7 +128,6 @@ func (adss *ActiveDirectorySettingService) CheckADConnection(dto *dtos.ActiveDir
 			fmt.Errorf("LDAP bind failed: %w", err),
 		)
 	}
-
 	// Search user to validate
 	const userFilter = "(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
 
@@ -136,22 +135,13 @@ func (adss *ActiveDirectorySettingService) CheckADConnection(dto *dtos.ActiveDir
 		dto.BaseDN,
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		userFilter,
-		[]string{"cn", "displayName", "mail"},
+		[]string{"givenName", "sn", "mail", "distinguishedName", "title"},
 		nil,
 	)
 	sr, err := l.Search(searchReq)
 	if err != nil || len(sr.Entries) == 0 {
 		return utility.NewActiveDirectoryConnectionError(
 			fmt.Errorf("LDAP search failed or no users found: %w", err),
-		)
-	}
-
-	userDN := sr.Entries[0].DN
-
-	// Bind with actual user login details
-	if err := l.Bind(userDN, dto.Password); err != nil {
-		return utility.NewActiveDirectoryConnectionError(
-			fmt.Errorf("LDAP user authentication failed: %w", err),
 		)
 	}
 

@@ -81,6 +81,7 @@ func (casus *StakeholderEngagementEvaluationService) Create(StakeholderID uint, 
 
 	evaluation := &models.StakeholderEngagementEvaluation{
 		StakeholderEngagementID: EngagementID,
+		EvaluationStatusID:      evaluationFormDTO.EvaluationStatusID,
 		Comment:                 evaluationFormDTO.Comment,
 		Score:                   evaluationFormDTO.Score,
 		EvaluatedBYID:           evaluationFormDTO.EvaluatedByID,
@@ -146,6 +147,7 @@ func (casus *StakeholderEngagementEvaluationService) Update(StakeholderID uint, 
 
 	//@todo validate docuemnt form
 
+	existingStakeholderEngagementEvaluation.EvaluationStatusID = evaluationFormDTO.EvaluationStatusID
 	existingStakeholderEngagementEvaluation.Comment = evaluationFormDTO.Comment
 	existingStakeholderEngagementEvaluation.Score = evaluationFormDTO.Score
 	existingStakeholderEngagementEvaluation.UpdatedBYID = &currentUserID
@@ -224,7 +226,7 @@ func (taps *StakeholderEngagementEvaluationService) parseEvaluationDates(dto *or
 	parsed := &organizationalContextDTOs.StakeholderEngagementEvaluationParsedDates{}
 
 	var err error
-	if *dto.EvaluatedAt != "" {
+	if dto.EvaluatedAt != nil {
 		parsed.EvaluatedAt, err = utility.ParseDate(*dto.EvaluatedAt)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid evaluated date"), "invalid_date", "evaluated at")

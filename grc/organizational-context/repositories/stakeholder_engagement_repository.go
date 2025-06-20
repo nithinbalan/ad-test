@@ -16,6 +16,8 @@ type StakeholderEngagementRepositoryInterface interface {
 	Create(stakeholderEngagement *models.StakeholderEngagement, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(stakeholderEngagement *models.StakeholderEngagement, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+
+	GetLatestScore(stakeholderID uint) (float64, error)
 }
 
 type StakeholderEngagementRepository struct {
@@ -40,6 +42,16 @@ func (repo *StakeholderEngagementRepository) GetAll(stakeholderId uint, params *
 	query := repo.db.Table("stakeholder_engagements").
 		Select(`
             stakeholder_engagements.*,
+			CONVERT(VARCHAR, stakeholder_engagements.evaluated_at, 23) AS evaluated_at,
+			evaluated_user.id AS evaluated_user_id,
+        	evaluated_user.first_name_en AS evaluated_user_first_name_en,
+        	evaluated_user.first_name_ar AS evaluated_user_first_name_ar,
+        	evaluated_user.last_name_en AS evaluated_user_last_name_en,
+        	evaluated_user.last_name_ar AS evaluated_user_last_name_ar,   
+        	evaluated_user.initial AS evaluated_user_initial,
+        	evaluated_user.color AS evaluated_user_color,
+        	evaluated_user.email AS evaluated_user_email,
+        	evaluated_user.profile_image_path AS evaluated_user_profile_image_path,
 			stakeholders.title_en as stakeholder_title_en,
 			stakeholders.title_ar as stakeholder_title_ar,
 			review_frequencies.title_en AS review_frequency_title_en,
@@ -54,6 +66,10 @@ func (repo *StakeholderEngagementRepository) GetAll(stakeholderId uint, params *
         	assigned_owner.color AS assigned_owner_color,
         	assigned_owner.email AS assigned_owner_email,
         	assigned_owner.profile_image_path AS assigned_owner_profile_image_path,
+			evaluation_statuses.title_en AS evaluation_status_title_en,
+            evaluation_statuses.title_ar AS evaluation_status_title_ar,
+            evaluation_statuses.color_code AS evaluation_status_color_code,
+			evaluation_statuses.type AS evaluation_status_type,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -75,6 +91,8 @@ func (repo *StakeholderEngagementRepository) GetAll(stakeholderId uint, params *
         `).
 		Joins(`
 			LEFT JOIN stakeholders ON stakeholders.id = stakeholder_engagements.stakeholder_id
+			LEFT JOIN evaluation_statuses ON evaluation_statuses.id = stakeholder_engagements.evaluation_status_id
+			LEFT JOIN users AS evaluated_user ON evaluated_user.id = stakeholder_engagements.evaluated_by_id
 			LEFT JOIN review_frequencies ON review_frequencies.id = stakeholder_engagements.review_frequency_id
 			LEFT JOIN users AS assigned_owner ON assigned_owner.id = stakeholder_engagements.assigned_owner_id
 			LEFT JOIN users AS created_user ON created_user.id = stakeholder_engagements.created_by_id
@@ -145,6 +163,19 @@ func (repo *StakeholderEngagementRepository) GetFullDetailsByID(id uint, tx ...u
 	result := db.
 		Preload("ReviewFrequency").
 		Preload("AssignedOwner").
+		Preload("Stakeholder").
+		Preload("Stakeholder.Type").
+		Preload("Stakeholder.StakeholderCategory").
+		Preload("Stakeholder.InfluenceLevel").
+		Preload("Stakeholder.ImpactLevel").
+		Preload("Stakeholder.OrganizationUnit").
+		Preload("Stakeholder.ThirdPartyRegister").
+		Preload("Stakeholder.Client").
+		Preload("Stakeholder.User").
+		Preload("Evaluations").
+		Preload("Evaluations.EvaluationStatus").
+		Preload("Evaluations.EvaluatedByUser").
+		Preload("Evaluations.CreatedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&stakeholderEngagement, id)
@@ -191,4 +222,43 @@ func (repo *StakeholderEngagementRepository) Delete(id uint, tx ...utility.Datab
 	}
 
 	return nil
+}
+
+func (repo *StakeholderEngagementRepository) GetLatestScore(stakeholderID uint) (float64, error) {
+	type resultRow struct {
+		Type string
+	}
+
+	var rows []resultRow
+
+	err := repo.db.
+		Table("stakeholder_engagements").
+		Select("evaluation_statuses.type").
+		Joins("JOIN evaluation_statuses ON evaluation_statuses.id = stakeholder_engagements.evaluation_status_id").
+		Where("stakeholder_engagements.stakeholder_id = ?", stakeholderID).
+		Find(&rows).Error
+
+	if err != nil {
+		return 0, err
+	}
+
+	if len(rows) == 0 {
+		return 0, nil // No engagement data
+	}
+
+	var total float64
+	for _, row := range rows {
+		switch row.Type {
+		case "fully-met":
+			total += 100
+		case "partially-met":
+			total += 50
+		case "not-met":
+			total += 0
+		}
+	}
+
+	avg := total / float64(len(rows))
+	return avg, nil
+
 }

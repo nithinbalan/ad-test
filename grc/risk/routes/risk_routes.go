@@ -176,6 +176,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	riskRoutes.GET("risks/:riskId/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskRootCauseAnalysisController.GetAllRiskRootCauseAnalyses)
 	riskRoutes.POST("risks/:riskId/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRootCauseAnalysisController.CreateRiskRootCauseAnalysis)
+	riskRoutes.POST("risks/:riskId/root-cause-analyses", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRootCauseAnalysisController.CreateRiskRootCauseAnalyses)
 	riskRoutes.PUT("risks/:riskId/root-cause-analysis/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRootCauseAnalysisController.UpdateRiskRootCauseAnalysis)
 	riskRoutes.DELETE("risks/:riskId/root-cause-analysis/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRootCauseAnalysisController.DeleteRiskRootCauseAnalysis)
 
@@ -252,6 +253,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("compliances/:complianceId/risk-heatmap", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), riskHeatmapController.GetComplianceRiskHeatmap)
 	riskRoutes.GET("slas/:slaId/risk-heatmap", middlewares.RolePermissionMiddleware(db, "sla_contracts", "view"), riskHeatmapController.GetSLARiskHeatmap)
 	riskRoutes.GET("assets/:id/risk-heatmap", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), riskHeatmapController.GetAssetRiskHeatmap)
+	riskRoutes.GET("strategic-objectives/:id/risk-heatmap", middlewares.RolePermissionMiddleware(db, "strategy_profile", "view"), riskHeatmapController.GetStrategicObjectiveRiskHeatmap)
+	riskRoutes.GET("kpis/:id/risk-heatmap", middlewares.RolePermissionMiddleware(db, "kpi", "view"), riskHeatmapController.GetKPIRiskHeatmap)
 
 	// Risk Control Analysis
 	riskRoutes.GET("risks/:riskId/inherent-control-analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskInherentControlAnalysisController.GetAllRiskControlAnalyses)

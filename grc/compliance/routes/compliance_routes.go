@@ -49,6 +49,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceAssessmentRequirementActionPlanStatusUpdateController := app.ComplianceModule.ComplianceAssessmentRequirementActionPlanStatusUpdateController
 	complianceAssessmentRequirementActionPlanCommentController := app.ComplianceModule.ComplianceAssessmentRequirementActionPlanCommentController
 	complianceReportController := app.ComplianceModule.ComplianceReportController
+	policyExceptionController := app.ComplianceModule.PolicyExceptionController
 
 	// Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
@@ -330,5 +331,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.DELETE("/compliance-reports/:complianceReportId", complianceReportController.DeleteComplianceReport)
 	complianceRoutes.GET("/compliance-reports/:complianceReportId/sections/:sectionId", complianceReportController.GetComplianceReportSectionDetails)
 	complianceRoutes.PUT("/compliance-reports/:complianceReportId/sections/:sectionId", complianceReportController.UpdateComplianceReportSection)
+
+	complianceRoutes.GET("/policy-exceptions", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), policyExceptionController.GetAllPolicyExceptions)
+	complianceRoutes.GET("/policy-exceptions/:id", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), policyExceptionController.GetPolicyExceptionDetails)
+	complianceRoutes.POST("/policy-exceptions", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), policyExceptionController.CreatePolicyException)
+	complianceRoutes.PUT("/policy-exceptions/:id", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), policyExceptionController.UpdatePolicyException)
+	complianceRoutes.POST("/policy-exceptions/delete", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), policyExceptionController.DeletePolicyExceptions)
+	complianceRoutes.POST("/policy-exceptions/:id/risks", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), policyExceptionController.MapRisksToPolicyException)
+	complianceRoutes.DELETE("/policy-exceptions/:id/risks/:riskID", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), policyExceptionController.DeleteRisksFromPolicyException)
 
 }
