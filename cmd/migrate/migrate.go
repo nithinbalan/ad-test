@@ -7,7 +7,6 @@ import (
 	"jethur/assets"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	_ "github.com/denisenkom/go-mssqldb"
@@ -98,21 +97,66 @@ func extractMigrationsToTemp() string {
 }
 
 func runSeederUp(dsn string) error {
-	cmd := exec.Command("goose",
-		"-table=goose_seeder_versions",
-		"-dir=assets/seeders",
-		"mssql", dsn, "up")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	tmpDir, err := extractSeedersToTemp()
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	db, err := sql.Open("sqlserver", dsn)
+	if err != nil {
+		return fmt.Errorf("DB connection error: %w", err)
+	}
+	defer db.Close()
+
+	goose.SetDialect("sqlserver")
+	goose.SetTableName("goose_seeder_versions")
+
+	return goose.Up(db, tmpDir)
 }
 
 func runSeederDown(dsn string) error {
-	cmd := exec.Command("goose",
-		"-table=goose_seeder_versions",
-		"-dir=assets/seeders",
-		"mssql", dsn, "down")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	tmpDir, err := extractSeedersToTemp()
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	db, err := sql.Open("sqlserver", dsn)
+	if err != nil {
+		return fmt.Errorf("DB connection error: %w", err)
+	}
+	defer db.Close()
+
+	goose.SetDialect("sqlserver")
+	goose.SetTableName("goose_seeder_versions")
+
+	return goose.DownTo(db, tmpDir, 0)
+}
+
+func extractSeedersToTemp() (string, error) {
+	tmpDir, err := os.MkdirTemp("", "seeders")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp dir: %w", err)
+	}
+
+	err = fs.WalkDir(assets.SeederFS, "seeders", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		content, err := assets.SeederFS.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		destPath := filepath.Join(tmpDir, filepath.Base(path))
+		return os.WriteFile(destPath, content, 0644)
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to extract embedded seeders: %w", err)
+	}
+
+	return tmpDir, nil
 }
