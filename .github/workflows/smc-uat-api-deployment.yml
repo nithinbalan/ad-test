@@ -1,13 +1,13 @@
-name: smc-uat-api-deployment
+name: smc-uat-api.jethur.com
 
 on:
   workflow_dispatch:
 
 jobs:
   deploy:
-    runs-on: ${{ env.RUNNER_NAME }}
+    runs-on: jethur-uat
     env:
-      RUNNER_NAME: jethur-uat
+    
       PROJECT_NAME: smc-uat-api
       DB_NAME: jethur_smc_uat_db
       MIGRATION_BRANCH: migration_new
