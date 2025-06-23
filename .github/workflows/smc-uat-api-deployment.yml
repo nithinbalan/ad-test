@@ -15,7 +15,7 @@ jobs:
       IIS_DOC_ROOT: C:\inetpub\wwwroot\smc-uat\smc-uat-api
       SERVICE_NAME: smc-uat-api
       BACKUP_SCRIPT_PATH: C:\jethur-scripts\backup-for-deployment.ps1
-      SCRIPT_SOURCE_PATH: C:\deployment\deployment-files\.env
+      SCRIPT_SOURCE_PATH: C:\jethur-deployment\deployment-files\.env
       EMAIL_TO: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, suhaila@jethur.com
       SENDER: "Jethur Notifications <info@jethur.com>"
       EMAIL_FROM: "Jethur Notifications <info@jethur.com>"
