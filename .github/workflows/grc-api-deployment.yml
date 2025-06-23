@@ -34,18 +34,27 @@ jobs:
           to: ${{ env.EMAIL_TO }}
           from: ${{ env.EMAIL_FROM }}
 
-      - name: Cleanup workspace if not empty
-        run: |
-          $items = Get-ChildItem -Force -Recurse
-          if ($items.Count -gt 0) {
-            Remove-Item -Recurse -Force * -ErrorAction Continue
-            Remove-Item -Recurse -Force .??* -ErrorAction Continue
-          }
-          Get-ChildItem -Force
+      - name: Pre Cleanup workspace
+        if: always()
         shell: powershell
+        run: |
+          Write-Host "Cleaning workspace before checkout..."
+          Get-ChildItem -Force | ForEach-Object {
+          try {
+            Remove-Item -Recurse -Force $_.FullName -ErrorAction Stop
+            } catch {
+          Write-Warning "Could not delete: $($_.FullName) - $_"
+          }
+          }
+          Write-Host "Workspace after cleanup:"
+          Get-ChildItem -Force
 
       - name: Checkout Code
         uses: actions/checkout@v3
+        with:
+         clean: true
+         fetch-depth: 0
+        
 
       - name: Set Go Path
         run: $env:PATH = "C:\Program Files\Go\bin;$env:PATH"
@@ -68,7 +77,7 @@ jobs:
 
       - name: Modify .env for Database Name
         run: |
-          (Get-Content -Path "${{ github.workspace }}\script.bat") -replace "DatabaseName", "${{ env.DB_NAME }}" | Set-Content -Path "${{ github.workspace }}\.env"
+          (Get-Content -Path "${{ github.workspace }}\.env") -replace "DatabaseName", "${{ env.DB_NAME }}" | Set-Content -Path "${{ github.workspace }}\.env"
         shell: powershell
 
       - name: Stop NSSM Service
@@ -84,15 +93,24 @@ jobs:
 
       - name: Run Migrations and Seed
         run: |
-          migration.exe up
-          if ($LASTEXITCODE -ne 0) { exit 1 }
-          migration.exe seed
-          if ($LASTEXITCODE -ne 0) { exit 1 }
+          Write-Host "Running database migration..."
+          .\migration.exe up
+          if ($LASTEXITCODE -ne 0) {
+          Write-Error "Migration failed!"
+          exit 1
+          }
+
+          Write-Host "Running database seed..."
+          .\migration.exe seed
+          if ($LASTEXITCODE -ne 0) {
+          Write-Error "Seeding failed!"
+          exit 1
+          }
+
 
       - name: Install Dependencies
         run: |
           go mod tidy
-          go install github.com/pressly/goose/v3/cmd/goose@latest
         shell: powershell
 
       - name: Build API
@@ -130,7 +148,8 @@ jobs:
           Start-Website -Name $siteName
         shell: powershell
 
-      - name: Cleanup build
+      - name: Post Cleanup build
+        if: always()
         run: |
           Get-ChildItem -Force
           Remove-Item -Recurse -Force * -ErrorAction SilentlyContinue
