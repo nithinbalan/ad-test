@@ -27,6 +27,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyProfileActionPlanStatusUpdateController := app.StrategyModule.StrategyProfileActionPlanStatusUpdateController
 	strategyProfileActionPlanCommentController := app.StrategyModule.StrategyProfileActionPlanCommentController
 	strategyProfileSettingController := app.StrategyModule.StrategyProfileSettingController
+	strategyProfileMappingController := app.StrategyModule.StrategyProfileMappingController
 	kpiCategoryController := app.StrategyModule.KpiCategoryController
 	kpiStatusController := app.StrategyModule.KpiStatusController
 	entryTypeController := app.StrategyModule.EntryTypeController
@@ -120,6 +121,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.PUT("/strategy-profile-setting/:settingId/enable", strategyProfileSettingController.EnableStrategyProfileSetting)
 	strategyRoutes.PUT("/strategy-profile-setting/:settingId/disable", strategyProfileSettingController.DisableStrategyProfileSetting)
 
+	// mapping
+	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/mapping", strategyProfileMappingController.GetStrategyProfile)
 	// kpi category
 	strategyRoutes.GET("/kpi-categories", kpiCategoryController.GetAllKPICategories)
 	strategyRoutes.POST("/kpi-categories", middlewares.RolePermissionMiddleware(db, "strategy_setting", "modify"), kpiCategoryController.CreateKPICategory)

@@ -1,10 +1,11 @@
 package dtos
 
 type StrategyProfileSettingListDTO struct {
-	ID       int    `json:"id"`
-	TitleEn  string `json:"title_en"`
-	TitleAr  string `json:"title_ar"`
-	IsEnable bool   `json:"is_enable"`
+	ID       int     `json:"id"`
+	TitleEn  string  `json:"title_en"`
+	TitleAr  string  `json:"title_ar"`
+	Type     *string `json:"type" gorm:"column:type"`
+	IsEnable bool    `json:"is_enable"`
 }
 
 type StrategyProfileSettingListQueryParamsDTO struct {

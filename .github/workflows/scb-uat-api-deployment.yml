@@ -1,0 +1,166 @@
+name: scb-uat-api.jethur.com
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: jethur-uat
+    env:
+    
+      PROJECT_NAME: scb-uat-api
+      DB_NAME: jethur_scb_uat_db
+      MIGRATION_BRANCH: migration_new
+      DEPLOY_BRANCH: main
+      BACKUP_SCRIPT_PATH: C:\jethur-scripts\backup-for-deployment.ps1
+      IIS_DOC_ROOT: C:\inetpub\wwwroot\scb-uat\scb-uat-api
+      SERVICE_NAME: scb-uat-api
+      SCRIPT_SOURCE_PATH: C:\jethur-deployment\deployment-files\script.bat
+      EMAIL_TO: nithin@jethur.com
+      EMAIL_FROM: "Jethur Notifications <info@jethur.com>"
+
+    steps:
+      - name: Send Start Email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.ZEPTO_HOST }}
+          server_port: 587
+          username: ${{ secrets.ZEPTO_USERNAME }}
+          password: ${{ secrets.ZEPTO_PASSWORD }}
+          subject: "Pipeline Started"
+          body: |
+            GitHub Actions deployment for ${{ env.PROJECT_NAME }} has started.
+
+            Triggered by: ${{ github.actor }}
+          to: ${{ env.EMAIL_TO }}
+          from: ${{ env.EMAIL_FROM }}
+
+      - name: Run SQL Backup Script
+        shell: powershell
+        run: |
+         & "${{ env.BACKUP_SCRIPT_PATH }}" `
+         -projectName "${{ env.PROJECT_NAME }}" `
+         -projectWebPath "${{ env.IIS_DOC_ROOT }}" `
+         -projectDbName "${{ env.DB_NAME }}"
+
+         if ($LASTEXITCODE -ne 0) {
+           Write-Error "Database backup failed. Aborting deployment."
+           exit 1
+         }
+
+      - name: Cleanup workspace if not empty
+        run: |
+          $items = Get-ChildItem -Force -Recurse
+          if ($items.Count -gt 0) {
+            Remove-Item -Recurse -Force * -ErrorAction Continue
+            Remove-Item -Recurse -Force .??* -ErrorAction Continue
+          }
+          Get-ChildItem -Force
+        shell: powershell
+
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set Go Path
+        run: $env:PATH = "C:\Program Files\Go\bin;$env:PATH"
+        shell: powershell
+
+      - name: Verify Go Version
+        run: go version
+
+      - name: Cache Go Modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download script.bat
+        run: Copy-Item -Path ${{ env.SCRIPT_SOURCE_PATH }} -Destination "${{ github.workspace }}\script.bat" -Force
+        shell: powershell
+
+      - name: Modify script.bat for Database Name
+        run: |
+          (Get-Content -Path "${{ github.workspace }}\script.bat") -replace "DatabaseName", "${{ env.DB_NAME }}" | Set-Content -Path "${{ github.workspace }}\script.bat"
+        shell: powershell
+
+      - name: Switch to Migration Branch and Run Migrations
+        run: |
+          git fetch origin ${{ env.MIGRATION_BRANCH }}
+          git checkout ${{ env.MIGRATION_BRANCH }}
+
+      - name: Stop NSSM Service
+        run: nssm stop ${{ env.SERVICE_NAME }}
+        shell: powershell
+
+      - name: Run Migrations and Seed
+        run: |
+          .\script.bat migrateup
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          .\script.bat seed
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Switch Back to Deploy Branch
+        run: git checkout ${{ env.DEPLOY_BRANCH }}
+
+      - name: Install Dependencies
+        run: |
+          go mod tidy
+          go install github.com/pressly/goose/v3/cmd/goose@latest
+        shell: powershell
+
+      - name: Build API
+        run: go build ./cmd/api
+
+      - name: Backup and Deploy API Executable
+        run: |
+          $apiBackup = "$env:IIS_DOC_ROOT\api_backup.exe"
+          $apiExecutable = "$env:IIS_DOC_ROOT\api.exe"
+
+          if (Test-Path $apiBackup) { Remove-Item -Force $apiBackup }
+          if (Test-Path $apiExecutable) { Rename-Item -Path $apiExecutable -NewName "api_backup.exe" }
+
+          Copy-Item -Path "${{ github.workspace }}\api.exe" -Destination $env:IIS_DOC_ROOT
+        shell: powershell
+
+      - name: Start NSSM Service
+        run: nssm start ${{ env.SERVICE_NAME }}
+        continue-on-error: true
+
+      - name: Status NSSM Service
+        run: nssm status ${{ env.SERVICE_NAME }}
+
+      - name: Restart IIS Site and App Pool
+        run: |
+          Import-Module WebAdministration
+          $siteName = "${{ env.SERVICE_NAME }}"
+          $appPoolName = (Get-Item "IIS:\Sites\$siteName").applicationPool
+
+          if ((Get-Website -Name $siteName).State -eq "Started") {
+            Stop-Website -Name $siteName
+          }
+
+          Restart-WebAppPool -Name $appPoolName
+          Start-Website -Name $siteName
+        shell: powershell
+
+      - name: Cleanup build
+        run: |
+          Get-ChildItem -Force
+          Remove-Item -Recurse -Force * -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force .??* -ErrorAction SilentlyContinue
+          Get-ChildItem -Force
+        shell: powershell
+
+      - name: Send Completion Email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.ZEPTO_HOST }}
+          server_port: 587
+          username: ${{ secrets.ZEPTO_USERNAME }}
+          password: ${{ secrets.ZEPTO_PASSWORD }}
+          subject: "Pipeline Completed"
+          body: "GitHub Actions deployment for ${{ env.PROJECT_NAME }} completed successfully."
+          to: ${{ env.EMAIL_TO }}
+          from: ${{ env.EMAIL_FROM }}

@@ -20,6 +20,7 @@ type StrategyModule struct {
 	StrategyProfileActionPlanStatusUpdateController *controllers.StrategyProfileActionPlanStatusUpdateController
 	StrategyProfileActionPlanCommentController      *controllers.StrategyProfileActionPlanCommentController
 	StrategyProfileSettingController                *controllers.StrategyProfileSettingController
+	StrategyProfileMappingController                *controllers.StrategyProfileMappingController
 	KpiCategoryController                           *controllers.KPICategoryController
 	KpiStatusController                             *controllers.KPIStatusController
 	EntryTypeController                             *controllers.EntryTypeController
@@ -92,6 +93,10 @@ func NewStrategyModule(db *gorm.DB,
 	strategyProfileSettingSvc := services.NewStrategyProfileSettingService(strategyProfileSettingRepo)
 	strategyProfileSettingController := controllers.NewStrategyProfileSettingController(strategyProfileSettingSvc)
 
+	strategyProfileMappingRepo := repositories.NewStrategyProfileMappingRepository(db)
+	strategyProfileMappingSvc := services.NewStrategyProfileMappingService(strategyProfileMappingRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, settingsModule.OrganizationUnitSvc, strategyProfileSettingSvc)
+	strategyProfileMappingController := controllers.NewStrategyProfileMappingController(strategyProfileMappingSvc)
+
 	kpiCategoryRepository := repositories.NewKPICategoryRepository(db)
 	kpiCategorySvc := services.NewKPICategoryService(kpiCategoryRepository, sharedModule.ActivityLogService)
 	kpiCategoryController := controllers.NewKPICategoryController(kpiCategorySvc)
@@ -163,6 +168,7 @@ func NewStrategyModule(db *gorm.DB,
 		StrategyProfileActionPlanStatusUpdateController: strategyProfileActionPlanStatusUpdateController,
 		StrategyProfileActionPlanCommentController:      strategyProfileActionPlanCommentController,
 		StrategyProfileSettingController:                strategyProfileSettingController,
+		StrategyProfileMappingController:                strategyProfileMappingController,
 		KpiCategoryController:                           kpiCategoryController,
 		KpiStatusController:                             kpiStatusController,
 		EntryTypeController:                             entryTypeController,

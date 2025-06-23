@@ -16,7 +16,7 @@ import (
 )
 
 type KPIRegisterServiceInterface interface {
-	GetAll(params *strategyDTOs.KPIRegisterListQueryParamsDTO) ([]*strategyDTOs.KPIRegisterListDTO, error)
+	GetAll(params *strategyDTOs.KPIRegisterListQueryParamsDTO) (*strategyDTOs.KPIRegisterListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.KPIRegisterDetailDTO, error)
 	GetByID(id uint) (*models.KPIRegister, error)
 	Create(currentUserID uint, strategyDTOs *strategyDTOs.KPIRegisterFormDTO) (uint, error)
@@ -62,7 +62,7 @@ func NewKPIRegisterService(
 	}
 }
 
-func (krs *KPIRegisterService) GetAll(params *strategyDTOs.KPIRegisterListQueryParamsDTO) ([]*strategyDTOs.KPIRegisterListDTO, error) {
+func (krs *KPIRegisterService) GetAll(params *strategyDTOs.KPIRegisterListQueryParamsDTO) (*strategyDTOs.KPIRegisterListResponseDTO, error) {
 	return krs.repo.GetAll(params)
 }
 
@@ -136,7 +136,13 @@ func (krs *KPIRegisterService) Create(currentUserID uint, kpiRegisterFormDTO *st
 		return 0, err
 	}
 
+	referenceNumber, err := krs.repo.GenerateReferenceNumber()
+	if err != nil {
+		return 0, err
+	}
+
 	kpiRegister := &models.KPIRegister{
+		ReferenceNumber:   &referenceNumber,
 		Title:             kpiRegisterFormDTO.Title,
 		Description:       kpiRegisterFormDTO.Description,
 		KPICategoryID:     kpiRegisterFormDTO.KPICategoryID,

@@ -1,13 +1,13 @@
-name: aljabr-uat-api-deployment
+name: aljabr-uat-api.jethur.com
 
 on:
   workflow_dispatch:
 
 jobs:
   deploy:
-    runs-on: ${{ env.RUNNER_NAME }}
+    runs-on: jethur-uat
     env:
-      RUNNER_NAME: jethur-uat
+  
       PROJECT_NAME: aljabr-uat-api
       DB_NAME: jethur_aljabr_uat_db
       MIGRATION_BRANCH: migration_new
@@ -36,13 +36,17 @@ jobs:
           from: ${{ env.EMAIL_FROM }}
 
       - name: Run SQL Backup Script
-        run: |
-          & "${{ env.BACKUP_SCRIPT_PATH }}"
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "Database backup failed. Aborting deployment."
-            exit 1
-          }
         shell: powershell
+        run: |
+         & "${{ env.BACKUP_SCRIPT_PATH }}" `
+         -projectName "${{ env.PROJECT_NAME }}" `
+         -projectWebPath "${{ env.IIS_DOC_ROOT }}" `
+         -projectDbName "${{ env.DB_NAME }}"
+
+         if ($LASTEXITCODE -ne 0) {
+           Write-Error "Database backup failed. Aborting deployment."
+           exit 1
+         }
 
       - name: Cleanup workspace if not empty
         run: |

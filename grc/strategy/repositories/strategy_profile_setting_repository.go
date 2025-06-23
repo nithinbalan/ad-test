@@ -12,7 +12,9 @@ type StrategyProfileSettingRepositoryInterface interface {
 	GetAll(params *dtos.StrategyProfileSettingListQueryParamsDTO) (*[]dtos.StrategyProfileSettingListDTO, error)
 	GetByID(id uint) (*models.StrategyProfileSetting, error)
 	GetFullDetailsByID(id uint) (*models.StrategyProfileSetting, error)
-	Update(moduleId uint, module *models.StrategyProfileSetting) (uint, error)
+	Update(settingId uint, setting *models.StrategyProfileSetting) (uint, error)
+
+	GetEnabledSettings() ([]dtos.StrategyProfileSettingListDTO, error)
 }
 
 // Implementation
@@ -69,34 +71,46 @@ func (repo *StrategyProfileSettingRepository) GetAll(params *dtos.StrategyProfil
 }
 
 func (repo *StrategyProfileSettingRepository) GetByID(id uint) (*models.StrategyProfileSetting, error) {
-	var module *models.StrategyProfileSetting
-	result := repo.db.First(&module, id)
+	var setting *models.StrategyProfileSetting
+	result := repo.db.First(&setting, id)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return module, nil
+	return setting, nil
 }
 
 func (repo *StrategyProfileSettingRepository) GetFullDetailsByID(id uint) (*models.StrategyProfileSetting, error) {
-	var module *models.StrategyProfileSetting // Declare the variable inside the function
+	var setting *models.StrategyProfileSetting // Declare the variable inside the function
 
 	result := repo.db.
-		First(&module, id)
+		First(&setting, id)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return module, nil
+	return setting, nil
 }
 
-func (repo *StrategyProfileSettingRepository) Update(moduleId uint, module *models.StrategyProfileSetting) (uint, error) {
+func (repo *StrategyProfileSettingRepository) Update(settingId uint, setting *models.StrategyProfileSetting) (uint, error) {
 	db := repo.db
-	if err := db.Save(module).Error; err != nil {
+	if err := db.Save(setting).Error; err != nil {
 		return 0, err
 	}
 
-	return moduleId, nil
+	return settingId, nil
+}
+
+func (repo *StrategyProfileSettingRepository) GetEnabledSettings() ([]dtos.StrategyProfileSettingListDTO, error) {
+	var settings []dtos.StrategyProfileSettingListDTO
+
+	query := repo.db.Table("strategy_profile_settings").
+		Select(`
+            strategy_profile_settings.*`).
+		Where("is_enable = ?", true)
+	result := query.Find(&settings)
+
+	return settings, result.Error
 }

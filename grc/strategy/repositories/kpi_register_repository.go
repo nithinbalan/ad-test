@@ -1,16 +1,20 @@
 package repositories
 
 import (
+	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	strategyDTOs "jethur/grc/strategy/dtos"
 	"jethur/utility"
+	"strconv"
+	"time"
 
 	"gorm.io/gorm"
 )
 
 type KPIRegisterRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *strategyDTOs.KPIRegisterListQueryParamsDTO) ([]*strategyDTOs.KPIRegisterListDTO, error)
+	GetAll(params *strategyDTOs.KPIRegisterListQueryParamsDTO) (*strategyDTOs.KPIRegisterListResponseDTO, error)
 	GetByID(id uint) (*models.KPIRegister, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.KPIRegister, error)
 	Create(kpiRegister *models.KPIRegister, tx ...utility.DatabaseTransaction) (uint, error)
@@ -21,6 +25,7 @@ type KPIRegisterRepositoryInterface interface {
 	DeleteKPIRegisterInputData(kpiRegisterId uint, tx ...utility.DatabaseTransaction) error
 
 	GetTrendAnalysis(kpiId uint) ([]*models.KPIValueUpdate, error)
+	GenerateReferenceNumber() (string, error)
 }
 
 type KPIRegisterRepository struct {
@@ -38,7 +43,7 @@ func (repo *KPIRegisterRepository) BeginTransaction() utility.DatabaseTransactio
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *KPIRegisterRepository) GetAll(params *strategyDTOs.KPIRegisterListQueryParamsDTO) ([]*strategyDTOs.KPIRegisterListDTO, error) {
+func (repo *KPIRegisterRepository) GetAll(params *strategyDTOs.KPIRegisterListQueryParamsDTO) (*strategyDTOs.KPIRegisterListResponseDTO, error) {
 	var kpiRegister []*strategyDTOs.KPIRegisterListDTO
 	var totalCount int64
 
@@ -144,7 +149,22 @@ func (repo *KPIRegisterRepository) GetAll(params *strategyDTOs.KPIRegisterListQu
 	if err != nil {
 		return nil, err
 	}
-	return kpiRegister, nil
+
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
+
+	response := &strategyDTOs.KPIRegisterListResponseDTO{
+		Items: kpiRegister,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
 }
 
 func (repo *KPIRegisterRepository) GetByID(id uint) (*models.KPIRegister, error) {
@@ -261,4 +281,32 @@ func (repo *KPIRegisterRepository) GetTrendAnalysis(kpiID uint) ([]*models.KPIVa
 	}
 
 	return kpiValueUpdate, nil
+}
+
+func (repo *KPIRegisterRepository) GenerateReferenceNumber() (string, error) {
+	var lastReferenceNumber *string
+	err := repo.db.Model(&models.KPIRegister{}).
+		Select("reference_number").
+		Order("reference_number desc").
+		Limit(1).
+		Scan(&lastReferenceNumber).
+		Error
+
+	if err != nil {
+		return "", err
+	}
+
+	lastDigits := "0000"
+	if lastReferenceNumber != nil && len(*lastReferenceNumber) >= 4 {
+		lastDigits = (*lastReferenceNumber)[len(*lastReferenceNumber)-4:]
+	}
+
+	currentYear := time.Now().Year()
+	lastReferenceID, err := strconv.ParseUint(lastDigits, 10, 64)
+	if err != nil {
+		return "", err
+	}
+
+	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "KPI", currentYear, lastReferenceID+1)
+	return newReferenceNumber, nil
 }

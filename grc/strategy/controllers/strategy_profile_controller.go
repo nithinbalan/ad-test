@@ -33,9 +33,18 @@ func (spc *StrategyProfileController) GetAllStrategyProfiles(c *gin.Context) {
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"title",
+		"responsible_user_ids",
 	}
 	validSortFields := map[string]string{
-		"title": "strategy_profiles.title",
+		"title":                          "strategy_profiles.title",
+		"reference_number":               "strategy_profiles.reference_number",
+		"start_date":                     "strategy_profiles.start_date",
+		"end_date":                       "strategy_profiles.end_date",
+		"vision":                         "strategy_profiles.vision",
+		"mission":                        "strategy_profiles.mission",
+		"description":                    "strategry_profiles.description",
+		"responsible_user_first_name_en": "responsible_user.first_name_en",
+		"responsible_user_first_name_ar": "responsible_user.first_name_ar",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

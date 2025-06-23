@@ -1,6 +1,7 @@
 package dtos
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"time"
@@ -8,6 +9,7 @@ import (
 
 type KPIRegisterListDTO struct {
 	ID                              int      `json:"id"`
+	ReferenceNumber                 *string  `json:"reference_number"`
 	Title                           string   `json:"title"`
 	Description                     *string  `json:"description"`
 	KPICategoryID                   uint     `json:"kpi_category_id"`
@@ -78,7 +80,7 @@ type KPIRegisterFormDTO struct {
 	TargetValue *float64 `json:"target_value" binding:"required"`
 	Weightage   *float64 `json:"weightage"`
 
-	StartDate *string `json:"start_date" binding:"required"`
+	StartDate *string `json:"start_date"`
 	EndDate   *string `json:"end_date"`
 
 	Remarks *string `json:"remarks" gorm:"type:nvarchar(max)"`
@@ -100,8 +102,14 @@ type KPIRegisterListQueryParamsDTO struct {
 	Export      bool
 }
 
+type KPIRegisterListResponseDTO struct {
+	Items      []*KPIRegisterListDTO        `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
 type KPIRegisterDetailDTO struct {
 	ID                uint                             `json:"id"`
+	ReferenceNumber   *string                          `json:"reference_number"`
 	Title             string                           `json:"title"`
 	Description       *string                          `json:"description"`
 	KPICategoryID     uint                             `json:"kpi_category_id"`

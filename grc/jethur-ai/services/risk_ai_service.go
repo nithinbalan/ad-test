@@ -15,7 +15,9 @@ import (
 type RiskAIServiceInterface interface {
 	GetRiskAutofill(req dtos.RiskAutofillRequest) (map[string]interface{}, error)
 	GetRiskRCA(req dtos.RiskRCARequest) ([]dtos.RCAItem, error)
-	GetRiskAnalysis(req dtos.RiskAnalysisRequest) (map[string]interface{}, error)
+	GetRiskAnalysis(req dtos.RiskAIRequest) (map[string]interface{}, error)
+	GetRiskResponseStrategyAnalysis(req dtos.RiskAIRequest) (map[string]interface{}, error)
+	GetRiskControlAnalysis(req dtos.RiskAIRequest) (map[string]interface{}, error)
 }
 
 type RiskAIService struct{}
@@ -81,7 +83,7 @@ func (s *RiskAIService) GetRiskRCA(req dtos.RiskRCARequest) ([]dtos.RCAItem, err
 	return result, nil
 }
 
-func (s *RiskAIService) GetRiskAnalysis(req dtos.RiskAnalysisRequest) (map[string]interface{}, error) {
+func (s *RiskAIService) GetRiskAnalysis(req dtos.RiskAIRequest) (map[string]interface{}, error) {
 	payload := map[string]interface{}{
 		"risk_id":        req.RiskId,
 		"register_title": req.RegisterTitle,
@@ -97,5 +99,41 @@ func (s *RiskAIService) GetRiskAnalysis(req dtos.RiskAnalysisRequest) (map[strin
 
 	apiURL := fmt.Sprintf("%s/api/v1/risk/risk-analysis", baseURL)
 
+	return utility.CallAIAPI(apiURL, payload)
+}
+
+func (s *RiskAIService) GetRiskResponseStrategyAnalysis(req dtos.RiskAIRequest) (map[string]interface{}, error) {
+	payload := map[string]interface{}{
+		"risk_id":        req.RiskId,
+		"register_title": req.RegisterTitle,
+		"description":    req.Description,
+		"category":       req.Category,
+		"source":         req.Source,
+	}
+
+	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
+	if baseURL == "" {
+		return nil, fmt.Errorf("AI_SERVICE_BASE_URL is not set")
+	}
+
+	apiURL := fmt.Sprintf("%s/api/v1/risk/risk-response-strategy-analysis", baseURL)
+	return utility.CallAIAPI(apiURL, payload)
+}
+
+func (s *RiskAIService) GetRiskControlAnalysis(req dtos.RiskAIRequest) (map[string]interface{}, error) {
+	payload := map[string]interface{}{
+		"risk_id":        req.RiskId,
+		"register_title": req.RegisterTitle,
+		"description":    req.Description,
+		"category":       req.Category,
+		"source":         req.Source,
+	}
+
+	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
+	if baseURL == "" {
+		return nil, fmt.Errorf("AI_SERVICE_BASE_URL is not set")
+	}
+
+	apiURL := fmt.Sprintf("%s/api/v1/risk/risk-control-analysis", baseURL)
 	return utility.CallAIAPI(apiURL, payload)
 }

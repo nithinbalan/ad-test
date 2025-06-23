@@ -28,10 +28,10 @@ type RiskRCARequest struct {
 	Source       string `form:"source" binding:"required"`
 }
 
-type RiskAnalysisRequest struct {
+type RiskAIRequest struct {
 	RiskId        uint    `json:"risk_id" binding:"required"`
 	RegisterTitle string  `json:"register_title" binding:"required"`
 	Description   *string `json:"description"`
 	Category      string  `json:"category" binding:"required"`
-	Source        string  `json:"source" binding:"required"`
+	Source        string  `json:"source"`
 }
