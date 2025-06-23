@@ -47,6 +47,8 @@ func (repo *PolicyExceptionRepository) GetAll(params *dtos.PolicyExceptionListQu
 	query := repo.db.Table("policy_exceptions").
 		Select(`
 		policy_exceptions.*,
+		CONVERT(VARCHAR, policy_exceptions.start_date, 23) AS start_date,
+        CONVERT(VARCHAR, policy_exceptions.end_date, 23) AS end_date,
 		documents.title_en AS document_title_en,
 		documents.title_ar AS document_title_ar,
 		document_requirement_groups.title_en AS document_requirement_group_title_en,
