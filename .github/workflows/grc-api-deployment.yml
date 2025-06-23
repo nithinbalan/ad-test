@@ -93,10 +93,20 @@ jobs:
 
       - name: Run Migrations and Seed
         run: |
-          migration.exe up
-          if ($LASTEXITCODE -ne 0) { exit 1 }
-          migration.exe seed
-          if ($LASTEXITCODE -ne 0) { exit 1 }
+          Write-Host "Running database migration..."
+          .\migration.exe up
+          if ($LASTEXITCODE -ne 0) {
+          Write-Error "Migration failed!"
+          exit 1
+          }
+
+          Write-Host "Running database seed..."
+          .\migration.exe seed
+          if ($LASTEXITCODE -ne 0) {
+          Write-Error "Seeding failed!"
+          exit 1
+          }
+
 
       - name: Install Dependencies
         run: |
