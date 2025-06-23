@@ -111,7 +111,6 @@ jobs:
       - name: Install Dependencies
         run: |
           go mod tidy
-          go install github.com/pressly/goose/v3/cmd/goose@latest
         shell: powershell
 
       - name: Build API
