@@ -68,7 +68,7 @@ jobs:
 
       - name: Modify .env for Database Name
         run: |
-          (Get-Content -Path "${{ github.workspace }}\script.bat") -replace "DatabaseName", "${{ env.DB_NAME }}" | Set-Content -Path "${{ github.workspace }}\.env"
+          (Get-Content -Path "${{ github.workspace }}\.env") -replace "DatabaseName", "${{ env.DB_NAME }}" | Set-Content -Path "${{ github.workspace }}\.env"
         shell: powershell
 
       - name: Stop NSSM Service
