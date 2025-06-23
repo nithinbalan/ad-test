@@ -20,6 +20,7 @@ type ThirdPartyAssessment struct {
 	ThirdPartyRegister         *ThirdPartyRegister         `gorm:"foreignKey:ThirdPartyRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	QuestionSet                *QuestionSet                `gorm:"foreignKey:QuestionSetID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ThirdPartyAssessmentStatus *ThirdPartyAssessmentStatus `gorm:"foreignKey:ThirdPartyAssessmentStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Questions                  []*TprmAssessmentQuestion   `gorm:"foreignKey:ThirdPartyAssessmentID"`
 	CreatedByUser              *User                       `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser              *User                       `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }

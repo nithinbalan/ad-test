@@ -109,6 +109,11 @@ func (tpas *ThirdPartyAssessmentService) Create(currentUserID uint, form *dtos.T
 		return 0, err
 	}
 
+	questionSet, err := tpas.questionSetSvc.GetFullDetailsByID(form.QuestionSetID)
+	if err != nil {
+		return 0, err
+	}
+
 	dates, err := tpas.parseDates(form)
 	if err != nil {
 		tx.Rollback()
@@ -140,6 +145,42 @@ func (tpas *ThirdPartyAssessmentService) Create(currentUserID uint, form *dtos.T
 		tx.Rollback()
 		return 0, err
 	}
+
+	for _, category := range questionSet.Categories {
+		for _, question := range category.Questions {
+			questionDTO := &models.TprmAssessmentQuestion{
+				ThirdPartyAssessmentID:      id,
+				ThirdPartyQuestionLibraryID: question.ThirdPartyQuestionLibraryID,
+				QuestionTitleEn:             question.QuestionTitleEn,
+				QuestionTitleAr:             question.QuestionTitleAr,
+				CreatedBYID:                 currentUserID,
+			}
+			questionId, err := tpas.repo.CreateAssessmentQuestion(questionDTO, tx)
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+
+			for _, option := range question.AnswerOptions {
+				optionDTO := &models.TprmAssessmentQuestionAnswerOption{
+					TprmAssessmentQuestionID:    questionId,
+					ThirdPartyQuestionLibraryID: question.ThirdPartyQuestionLibraryID,
+					AnswerOptionTitleEn:         option.AnswerOptionTitleEn,
+					AnswerOptionTitleAr:         option.AnswerOptionTitleAr,
+					RiskLevelID:                 option.RiskLevelID,
+					RangeFrom:                   option.RangeFrom,
+					RangeTo:                     option.RangeTo,
+					CreatedBYID:                 &currentUserID,
+				}
+				_, err := tpas.repo.CreateAssessmentQuestionAnswerOption(optionDTO, tx)
+				if err != nil {
+					tx.Rollback()
+					return 0, err
+				}
+			}
+		}
+	}
+
 	tx.Commit()
 
 	return id, nil
@@ -155,11 +196,65 @@ func (tpas *ThirdPartyAssessmentService) Update(id uint, currentUserID uint, for
 	if err := tpas.validateForm(form); err != nil {
 		return err
 	}
+	existingAssessment, err := tpas.repo.GetFullDetailsByID(id)
+	if err != nil {
+		return err
+	}
+
+	questionSet, err := tpas.questionSetSvc.GetFullDetailsByID(form.QuestionSetID)
+	if err != nil {
+		return err
+	}
 
 	dates, err := tpas.parseDates(form)
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+	if existing.QuestionSetID != form.QuestionSetID {
+		for _, question := range existingAssessment.Questions {
+			if err := tpas.repo.DeleteAnswerOptionsByQuestionID(question.ID, tx); err != nil {
+				tx.Rollback()
+			}
+		}
+		if err := tpas.repo.DeleteQuestionsByAssessmentID(id, tx); err != nil {
+			tx.Rollback()
+		}
+
+		for _, category := range questionSet.Categories {
+			for _, question := range category.Questions {
+				questionDTO := &models.TprmAssessmentQuestion{
+					ThirdPartyAssessmentID:      id,
+					ThirdPartyQuestionLibraryID: question.ThirdPartyQuestionLibraryID,
+					QuestionTitleEn:             question.QuestionTitleEn,
+					QuestionTitleAr:             question.QuestionTitleAr,
+					CreatedBYID:                 currentUserID,
+				}
+				questionId, err := tpas.repo.CreateAssessmentQuestion(questionDTO, tx)
+				if err != nil {
+					tx.Rollback()
+					return err
+				}
+
+				for _, option := range question.AnswerOptions {
+					optionDTO := &models.TprmAssessmentQuestionAnswerOption{
+						TprmAssessmentQuestionID:    questionId,
+						ThirdPartyQuestionLibraryID: question.ThirdPartyQuestionLibraryID,
+						AnswerOptionTitleEn:         option.AnswerOptionTitleEn,
+						AnswerOptionTitleAr:         option.AnswerOptionTitleAr,
+						RiskLevelID:                 option.RiskLevelID,
+						RangeFrom:                   option.RangeFrom,
+						RangeTo:                     option.RangeTo,
+						CreatedBYID:                 &currentUserID,
+					}
+					_, err := tpas.repo.CreateAssessmentQuestionAnswerOption(optionDTO, tx)
+					if err != nil {
+						tx.Rollback()
+						return err
+					}
+				}
+			}
+		}
 	}
 
 	existing.Title = form.Title
@@ -181,19 +276,32 @@ func (tpas *ThirdPartyAssessmentService) Update(id uint, currentUserID uint, for
 
 func (tpas *ThirdPartyAssessmentService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIDs []uint
-
+	tx := tpas.repo.BeginTransaction()
 	for _, id := range ids {
-		_, err := tpas.GetByID(id)
-		if err != nil {
-			failedIDs = append(failedIDs, id)
-			continue
-		}
 
-		err = tpas.repo.Delete(id)
+		existingAssessment, err := tpas.repo.GetFullDetailsByID(id)
 		if err != nil {
 			failedIDs = append(failedIDs, id)
 			continue
 		}
+		for _, question := range existingAssessment.Questions {
+			if err := tpas.repo.DeleteAnswerOptionsByQuestionID(question.ID, tx); err != nil {
+				tx.Rollback()
+				failedIDs = append(failedIDs, id)
+				continue
+			}
+		}
+		if err := tpas.repo.DeleteQuestionsByAssessmentID(id, tx); err != nil {
+			tx.Rollback()
+			failedIDs = append(failedIDs, id)
+			continue
+		}
+		err = tpas.repo.Delete(id, tx)
+		if err != nil {
+			failedIDs = append(failedIDs, id)
+			continue
+		}
+		tx.Commit()
 
 	}
 
