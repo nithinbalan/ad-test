@@ -170,6 +170,17 @@ func (repo *PolicyExceptionRepository) GetFullDetailsByID(id uint, tx ...utility
 		Preload("RequestedBy").
 		Preload("Risks").
 		Preload("Risks.RiskRegister").
+		Preload("Risks.RiskRegister.RiskCategory").
+		Preload("Risks.RiskRegister.CurrentLikelihood").
+		Preload("Risks.RiskRegister.CurrentImpact").
+		Preload("Risks.RiskRegister.CurrentRiskRating").
+		Preload("Risks.RiskRegister.CurrentRiskRatingValue").
+		Preload("Risks.RiskRegister.InherentLikelihood").
+		Preload("Risks.RiskRegister.InherentImpact").
+		Preload("Risks.RiskRegister.InherentRiskRating").
+		Preload("Risks.RiskRegister.InherentRiskRatingValue").
+		Preload("Risks.RiskRegister.RiskStatus").
+		Preload("Risks.RiskRegister.RiskSource").
 		Preload("OrganizationUnit").
 		Preload("WorkflowStatus").
 		Preload("CreatedByUser").
