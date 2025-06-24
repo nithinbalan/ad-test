@@ -48,4 +48,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	libraryRoutes.GET("/compliance-libraries/sama", ComplianceLibraryController.GetSAMADetails)
 
 	libraryRoutes.GET("/compliance-library/:complianceLibraryID/versions/:versionID/clauses", ComplianceLibraryController.GetClauseControls)
+
+	libraryRoutes.GET("/control-mappings", ComplianceLibraryController.GetAllMappings)
 }

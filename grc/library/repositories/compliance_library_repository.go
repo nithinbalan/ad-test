@@ -11,6 +11,7 @@ type ComplianceLibraryRepositoryInterface interface {
 	GetComplianceLibraryDetailsByTitle(titleEn string) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error)
 	GetClauseTreeByVersion(versionID uint) ([]models.ComplianceLibraryClause, error)
 	GetControlLibraryTitle(controlLibraryID, complianceLibraryID uint) (*models.ControlLibraryTitle, error)
+	FetchRawControlMappings() ([]libraryDTOs.RawControlMapping, error)
 }
 
 type ComplianceLibraryRepository struct {
@@ -67,4 +68,26 @@ func (repo *ComplianceLibraryRepository) GetControlLibraryTitle(controlLibraryID
 		return nil, err
 	}
 	return &title, nil
+}
+
+func (repo *ComplianceLibraryRepository) FetchRawControlMappings() ([]libraryDTOs.RawControlMapping, error) {
+	var results []libraryDTOs.RawControlMapping
+
+	err := repo.db.Table("control_library_titles AS clt").
+		Select(`
+			cl.id AS generic_control_id,
+			cl.title_en AS generic_control_title_en,
+			cl.title_ar AS generic_control_title_ar,
+			clt.control_code,
+			clt.control_title_en,
+			clt.control_title_ar,
+			lib.title_en AS framework_en,
+			lib.title_ar AS framework_ar
+		`).
+		Joins("JOIN control_library AS cl ON cl.id = clt.control_library_id").
+		Joins("JOIN compliance_libraries AS lib ON lib.id = clt.compliance_library_id").
+		Order("cl.id").
+		Scan(&results).Error
+
+	return results, err
 }

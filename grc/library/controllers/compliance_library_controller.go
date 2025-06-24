@@ -66,3 +66,13 @@ func (clc *ComplianceLibraryController) GetClauseControls(c *gin.Context) {
 
 	c.JSON(http.StatusOK, result)
 }
+
+func (clc *ComplianceLibraryController) GetAllMappings(c *gin.Context) {
+	data, err := clc.service.GetGroupedControlMappings()
+	if err != nil {
+		utility.SendInternalErrResp(clc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, data)
+}

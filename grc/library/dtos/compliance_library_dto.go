@@ -46,3 +46,32 @@ type ControlDTO struct {
 	ControlTitleEn string `json:"control_title_en"`
 	ControlTitleAr string `json:"control_title_ar"`
 }
+
+type ControlItemDTO struct {
+	ControlCode    string `json:"control_code"`
+	ControlTitleEn string `json:"control_title_en"`
+	ControlTitleAr string `json:"control_title_ar"`
+}
+
+type FrameworkControlsDTO struct {
+	Framework string           `json:"framework"`
+	Controls  []ControlItemDTO `json:"controls"`
+}
+
+type ControlMappingDTO struct {
+	ID         string                 `json:"id"` // example: CTRL-001
+	TitleEn    string                 `json:"title_en"`
+	TitleAr    string                 `json:"title_ar"`
+	Frameworks []FrameworkControlsDTO `json:"frameworks"`
+}
+
+type RawControlMapping struct {
+	GenericControlID      uint
+	GenericControlTitleEn string
+	GenericControlTitleAr string
+	ControlCode           string
+	ControlTitleEn        string
+	ControlTitleAr        string
+	FrameworkEn           string
+	FrameworkAr           string
+}
