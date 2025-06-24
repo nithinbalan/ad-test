@@ -29,5 +29,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	jethurAIRoutes.POST("/jethur-ai/risk/response-strategy-analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAIController.GetRiskResponseStrategyAnalysis)
 	jethurAIRoutes.GET("/jethur-ai/risk/:riskId/control-analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAIController.GetRiskControlAnalysis)
 	jethurAIRoutes.GET("/jethur-ai/risk/:riskId/risk-kri", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAIController.GetRiskKriAnalysis)
+	jethurAIRoutes.GET("/jethur-ai/risk/:riskId/risk-residual-control-analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAIController.GetRiskResidualControlAnalysis)
 
 }

@@ -19,6 +19,7 @@ type RiskAIServiceInterface interface {
 	GetRiskResponseStrategyAnalysis(req dtos.RiskAIRequest) (map[string]interface{}, error)
 	GetRiskControlAnalysis(riskId uint) (map[string]interface{}, error)
 	GetRiskKriAnalysis(riskId uint) ([]map[string]interface{}, error)
+	GetRiskResidualControlAnalysis(riskId uint) (map[string]interface{}, error)
 }
 
 type RiskAIService struct{}
@@ -145,4 +146,17 @@ func (s *RiskAIService) GetRiskKriAnalysis(riskID uint) ([]map[string]interface{
 	fmt.Println(apiURL)
 
 	return utility.CallAIAPIArrayResponse(apiURL)
+}
+
+func (s *RiskAIService) GetRiskResidualControlAnalysis(riskID uint) (map[string]interface{}, error) {
+
+	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
+	if baseURL == "" {
+		return nil, fmt.Errorf("AI_SERVICE_BASE_URL is not set")
+	}
+
+	apiURL := fmt.Sprintf("%s/api/v1/risk/%d/risk-residual-control-analysis", baseURL, riskID)
+	fmt.Println(apiURL)
+
+	return utility.CallAIAPIObjectResponse(apiURL)
 }
