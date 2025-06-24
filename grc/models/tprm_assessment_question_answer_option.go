@@ -2,9 +2,9 @@ package models
 
 import "time"
 
-type TprmAssessmentQuestionAnswerOption struct {
+type TPRMAssessmentQuestionAnswerOption struct {
 	ID                          uint       `json:"id" gorm:"primaryKey;autoIncrement"`
-	TprmAssessmentQuestionID    uint       `json:"tprm_question_id" gorm:"not null" binding:"required"`
+	TPRMAssessmentQuestionID    uint       `json:"tprm_question_id" gorm:"not null" binding:"required"`
 	ThirdPartyQuestionLibraryID uint       `json:"third_party_question_library_id" gorm:"not null" binding:"required"`
 	AnswerOptionTitleEn         *string    `json:"answer_option_title_en" gorm:"type:nvarchar(500);default:null"`
 	AnswerOptionTitleAr         *string    `json:"answer_option_title_ar" gorm:"type:nvarchar(500);default:null"`
@@ -23,6 +23,6 @@ type TprmAssessmentQuestionAnswerOption struct {
 	UpdatedByUser   *User                      `gorm:"foreignKey:UpdatedBYID"`
 }
 
-func (TprmAssessmentQuestionAnswerOption) TableName() string {
+func (TPRMAssessmentQuestionAnswerOption) TableName() string {
 	return "tprm_assessment_question_answer_options"
 }

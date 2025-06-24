@@ -148,7 +148,7 @@ func (tpas *ThirdPartyAssessmentService) Create(currentUserID uint, form *dtos.T
 
 	for _, category := range questionSet.Categories {
 		for _, question := range category.Questions {
-			questionDTO := &models.TprmAssessmentQuestion{
+			questionDTO := &models.TPRMAssessmentQuestion{
 				ThirdPartyAssessmentID:      id,
 				ThirdPartyQuestionLibraryID: question.ThirdPartyQuestionLibraryID,
 				QuestionTitleEn:             question.QuestionTitleEn,
@@ -162,8 +162,8 @@ func (tpas *ThirdPartyAssessmentService) Create(currentUserID uint, form *dtos.T
 			}
 
 			for _, option := range question.AnswerOptions {
-				optionDTO := &models.TprmAssessmentQuestionAnswerOption{
-					TprmAssessmentQuestionID:    questionId,
+				optionDTO := &models.TPRMAssessmentQuestionAnswerOption{
+					TPRMAssessmentQuestionID:    questionId,
 					ThirdPartyQuestionLibraryID: question.ThirdPartyQuestionLibraryID,
 					AnswerOptionTitleEn:         option.AnswerOptionTitleEn,
 					AnswerOptionTitleAr:         option.AnswerOptionTitleAr,
@@ -223,7 +223,7 @@ func (tpas *ThirdPartyAssessmentService) Update(id uint, currentUserID uint, for
 
 		for _, category := range questionSet.Categories {
 			for _, question := range category.Questions {
-				questionDTO := &models.TprmAssessmentQuestion{
+				questionDTO := &models.TPRMAssessmentQuestion{
 					ThirdPartyAssessmentID:      id,
 					ThirdPartyQuestionLibraryID: question.ThirdPartyQuestionLibraryID,
 					QuestionTitleEn:             question.QuestionTitleEn,
@@ -237,8 +237,8 @@ func (tpas *ThirdPartyAssessmentService) Update(id uint, currentUserID uint, for
 				}
 
 				for _, option := range question.AnswerOptions {
-					optionDTO := &models.TprmAssessmentQuestionAnswerOption{
-						TprmAssessmentQuestionID:    questionId,
+					optionDTO := &models.TPRMAssessmentQuestionAnswerOption{
+						TPRMAssessmentQuestionID:    questionId,
 						ThirdPartyQuestionLibraryID: question.ThirdPartyQuestionLibraryID,
 						AnswerOptionTitleEn:         option.AnswerOptionTitleEn,
 						AnswerOptionTitleAr:         option.AnswerOptionTitleAr,
