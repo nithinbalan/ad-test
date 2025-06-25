@@ -133,3 +133,19 @@ func (rc *RiskAIController) GetRiskResidualControlAnalysis(c *gin.Context) {
 
 	c.JSON(http.StatusOK, result)
 }
+
+func (rc *RiskAIController) GetRiskResidualRiskAnalysis(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("riskId"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Risk ID"})
+		return
+	}
+
+	result, err := rc.service.GetRiskResidualRiskAnalysis(uint(id))
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
