@@ -5,6 +5,7 @@ import (
 	"jethur/grc/jethur-ai/services"
 	"jethur/utility"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -86,13 +87,45 @@ func (rc *RiskAIController) GetRiskResponseStrategyAnalysis(c *gin.Context) {
 }
 
 func (rc *RiskAIController) GetRiskControlAnalysis(c *gin.Context) {
-	var req dtos.RiskAIRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utility.SendInvalidErrResp(c, err)
+	id, err := strconv.ParseUint(c.Param("riskId"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Risk ID"})
 		return
 	}
 
-	result, err := rc.service.GetRiskControlAnalysis(req)
+	result, err := rc.service.GetRiskControlAnalysis(uint(id))
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (rc *RiskAIController) GetRiskKriAnalysis(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("riskId"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Risk ID"})
+		return
+	}
+
+	result, err := rc.service.GetRiskKriAnalysis(uint(id))
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (rc *RiskAIController) GetRiskResidualControlAnalysis(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("riskId"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Risk ID"})
+		return
+	}
+
+	result, err := rc.service.GetRiskResidualControlAnalysis(uint(id))
 	if err != nil {
 		utility.SendInternalErrResp(rc.db, c, err.Error())
 		return
