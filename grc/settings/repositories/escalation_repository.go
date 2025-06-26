@@ -78,7 +78,7 @@ func (repo *EscalationRepository) GetFullDetailsByID(id uint) (*models.Escalatio
 
 	result := repo.db.Preload("EscalationLevels", func(db *gorm.DB) *gorm.DB {
 		return db.Order("day_offset ASC")
-	}).
+	}).Preload("EscalationLevels.Designation").
 		First(&escalation, id)
 
 	if result.Error != nil {
