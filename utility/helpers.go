@@ -301,17 +301,31 @@ func GetStringValue(value interface{}) string {
 // retrieves a field's value from a struct if it exists and is not nil,
 func GetFieldValue(DTO interface{}) interface{} {
 	v := reflect.ValueOf(DTO)
-	if !v.IsNil() {
-		field := v.Elem()
-		if field.FieldByName("FirstNameEN").IsValid() {
-			return fmt.Sprintf("%s %s", field.FieldByName("FirstNameEN").String(), field.FieldByName("LastNameEN").String())
-		} else {
-			if field.FieldByName("Title").IsValid() {
-				return field.FieldByName("Title").String()
-			} else {
-				return field.FieldByName("TitleEn").String()
-			}
+
+	// Handle nil interface - only call IsNil() on types that can be nil
+	if v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
+		if v.IsNil() {
+			return ""
 		}
+	}
+
+	// Get the actual value (dereference if it's a pointer)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	// Check if the value is valid
+	if !v.IsValid() {
+		return ""
+	}
+
+	// Now check for the fields
+	if v.FieldByName("FirstNameEN").IsValid() {
+		return fmt.Sprintf("%s %s", v.FieldByName("FirstNameEN").String(), v.FieldByName("LastNameEN").String())
+	} else if v.FieldByName("Title").IsValid() {
+		return v.FieldByName("Title").String()
+	} else if v.FieldByName("TitleEn").IsValid() {
+		return v.FieldByName("TitleEn").String()
 	} else {
 		return ""
 	}

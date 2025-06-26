@@ -116,6 +116,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	organizationRoutes.POST("/users/me/change-password", userProfileController.ChangePassword)
 
+	organizationRoutes.GET("/users/me/documents", userProfileController.GetAllUserDocuments)
+	organizationRoutes.GET("/users/me/job-descriptions", userProfileController.GetAllUserJobDescriptions)
+
 	//Strategic Profile
 	organizationRoutes.GET("/strategic-profiles", middlewares.RolePermissionMiddleware(db, "strategic_profile", "view"), strategicProfileController.GetStrategicProfile)
 	organizationRoutes.PUT("/strategic-profiles", middlewares.RolePermissionMiddleware(db, "strategic_profile", "modify"), strategicProfileController.UpdateStrategicProfile)
