@@ -44,10 +44,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	libraryRoutes.GET("/knowledge-center", KnowledgeCenterResourceController.GetAllResources)
 
-	libraryRoutes.GET("/compliance-libraries/nc", ComplianceLibraryController.GetNCADetails)
-	libraryRoutes.GET("/compliance-libraries/sama", ComplianceLibraryController.GetSAMADetails)
+	libraryRoutes.GET("/compliance-library/nca", ComplianceLibraryController.GetNCADetails)
+	libraryRoutes.GET("/compliance-library/sama", ComplianceLibraryController.GetSAMADetails)
 
 	libraryRoutes.GET("/compliance-library/:complianceLibraryID/versions/:versionID/clauses", ComplianceLibraryController.GetClauseControls)
 
-	libraryRoutes.GET("/control-mappings", ComplianceLibraryController.GetAllMappings)
+	libraryRoutes.GET("/control-mapping", ComplianceLibraryController.GetAllMappings)
 }

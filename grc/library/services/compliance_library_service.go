@@ -12,8 +12,8 @@ type ComplianceLibraryServiceInterface interface {
 	GetNCADetails() (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error)
 	GetSAMADetails() (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error)
 
-	GetClauseTreeByVersion(versionID, complianceLibraryID uint) ([]libraryDTOs.ClauseWithSubClausesDTO, error)
-	GetGroupedControlMappings() ([]libraryDTOs.ControlMappingDTO, error)
+	GetClausesByVersion(versionID, complianceLibraryID uint) ([]libraryDTOs.ClauseWithSubClausesDTO, error)
+	GetAllControlMapping() ([]libraryDTOs.ControlMappingDTO, error)
 }
 
 // Service and implementations
@@ -39,8 +39,8 @@ func (cls *ComplianceLibraryService) GetSAMADetails() (*libraryDTOs.ComplianceLi
 	return cls.repo.GetComplianceLibraryDetailsByTitle(titleEn)
 }
 
-func (cls *ComplianceLibraryService) GetClauseTreeByVersion(versionID, complianceLibraryID uint) ([]libraryDTOs.ClauseWithSubClausesDTO, error) {
-	clauses, err := cls.repo.GetClauseTreeByVersion(versionID)
+func (cls *ComplianceLibraryService) GetClausesByVersion(versionID, complianceLibraryID uint) ([]libraryDTOs.ClauseWithSubClausesDTO, error) {
+	clauses, err := cls.repo.GetClausesByVersion(versionID)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func (cls *ComplianceLibraryService) GetClauseTreeByVersion(versionID, complianc
 	return final, nil
 }
 
-func (cls *ComplianceLibraryService) GetGroupedControlMappings() ([]libraryDTOs.ControlMappingDTO, error) {
+func (cls *ComplianceLibraryService) GetAllControlMapping() ([]libraryDTOs.ControlMappingDTO, error) {
 	rawData, err := cls.repo.FetchRawControlMappings()
 	if err != nil {
 		return nil, err
