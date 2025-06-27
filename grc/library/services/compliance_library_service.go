@@ -99,8 +99,8 @@ func (cls *ComplianceLibraryService) GetClauseTreeByVersion(versionID, complianc
 	return final, nil
 }
 
-func (svc *ComplianceLibraryService) GetGroupedControlMappings() ([]libraryDTOs.ControlMappingDTO, error) {
-	rawData, err := svc.repo.FetchRawControlMappings()
+func (cls *ComplianceLibraryService) GetGroupedControlMappings() ([]libraryDTOs.ControlMappingDTO, error) {
+	rawData, err := cls.repo.FetchRawControlMappings()
 	if err != nil {
 		return nil, err
 	}
