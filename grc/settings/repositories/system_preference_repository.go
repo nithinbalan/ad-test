@@ -11,6 +11,7 @@ type SystemPreferenceRepositoryInterface interface {
 	GetSystemPreference() (*models.SystemPreference, error)
 	GetByID(id uint) (*models.SystemPreference, error)
 	Update(systemPreference *models.SystemPreference) error
+	UpdateModule(module []models.Module) error
 
 	GetActiveUserCount() (int64, error)
 }
@@ -76,4 +77,13 @@ func (repo *SystemPreferenceRepository) GetActiveUserCount() (int64, error) {
 		return 0, err
 	}
 	return count, nil
+}
+
+func (repo *SystemPreferenceRepository) UpdateModule(module []models.Module) error {
+
+	if err := repo.db.Save(module).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
