@@ -12,7 +12,7 @@ type ProjectModule struct {
 	ProjectTypeController *controllers.ProjectTypeController
 }
 
-func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule, organizationModule *OrganizationModule, settingsModule *SettingsModule, commonModule *CommonModule) *ProjectModule {
+func NewProjectModule(db *gorm.DB, sharedModule *SharedModule) *ProjectModule {
 	projectTypeRepo := repositories.NewProjectTypeRepository(db)
 	projectTypeSvc := services.NewProjectTypeService(projectTypeRepo, sharedModule.ActivityLogService)
 	projectTypeController := controllers.NewProjectTypeController(projectTypeSvc)
