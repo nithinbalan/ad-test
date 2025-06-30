@@ -11,7 +11,7 @@ type ProjectStatus struct {
 	Status        string `json:"status" binding:"required,max=10,oneof=active inactive" gorm:"type:varchar(10);not null"`
 }
 
-// TableName overrides the table name used by ComplianceStatus to `project_statuses`
+// TableName overrides the table name used by ProjectStatus to `project_statuses`
 func (ProjectStatus) TableName() string {
 	return "project_statuses"
 }
