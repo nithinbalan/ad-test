@@ -28,6 +28,7 @@ type App struct {
 	OrganizationalContextModule *OrganizationalContextModule
 	StrategyModule              *StrategyModule
 	TprmModule                  *TprmModule
+	ProjectModule               *ProjectModule
 	JethurAIModule              *JethurAIModule
 }
 
@@ -54,6 +55,7 @@ func NewApp(db *gorm.DB) *App {
 	organizationalContextModule := NewOrganizationalContextModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
 	tprmModule := NewTprmModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
 	strategyModule := NewStrategyModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule, riskModule, assetModule, tprmModule, complianceModule, documentModule)
+	projectModule := NewProjectModule(db, sharedModule)
 	jethurAIModule := NewJethurAIModule(db, documentModule, organizationModule)
 
 	return &App{
@@ -80,6 +82,7 @@ func NewApp(db *gorm.DB) *App {
 		OrganizationalContextModule: organizationalContextModule,
 		StrategyModule:              strategyModule,
 		TprmModule:                  tprmModule,
+		ProjectModule:               projectModule,
 		JethurAIModule:              jethurAIModule,
 	}
 }

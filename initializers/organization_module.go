@@ -218,7 +218,19 @@ func NewOrganizationModule(
 	processAssociatedItemSvc := services.NewProcessAssociatedItemService(processAssociatedItemRepo, processSvc, controlImplementationStatusSvc, controlEfficiencyStatusRepo)
 	processAssociatedItemController := controllers.NewProcessAssociatedItemController(processAssociatedItemSvc)
 
-	userProfileController := controllers.NewUserProfileController(userSettingSvc, userTaskSvc, userSvc)
+	userDocumentTypeRepo := repositories.NewUserDocumentTypeRepository(db)
+	userDocumentTypeSvc := services.NewUserDocumentTypeService(userDocumentTypeRepo, sharedModule.ActivityLogService)
+	userDocumentTypeController := controllers.NewUserDocumentTypeController(userDocumentTypeSvc)
+
+	userDocumentSubTypeRepo := repositories.NewUserDocumentSubTypeRepository(db)
+	userDocumentSubTypeSvc := services.NewUserDocumentSubTypeService(userDocumentSubTypeRepo, userDocumentTypeSvc, sharedModule.ActivityLogService)
+	userDocumentSubTypeController := controllers.NewUserDocumentSubTypeController(userDocumentSubTypeSvc)
+
+	userDocumentRepo := repositories.NewUserDocumentRepository(db)
+	userDocumentSvc := services.NewUserDocumentService(userDocumentRepo, userDocumentTypeSvc, userDocumentSubTypeSvc, sharedModule.ActivityLogService, userSvc)
+	userDocumentController := controllers.NewUserDocumentController(userDocumentSvc)
+
+	userProfileController := controllers.NewUserProfileController(userSettingSvc, userTaskSvc, userSvc, userDocumentSvc, userJobDescriptionSvc)
 
 	processDependencyTypeRepo := repositories.NewProcessDependencyTypeRepository(db)
 	processDependencyTypeSvc := services.NewProcessDependencyTypeService(processDependencyTypeRepo)
@@ -248,18 +260,6 @@ func NewOrganizationModule(
 		commonModule.NotificationService,
 	)
 	processActivityController := controllers.NewProcessActivityController(processActivitySvc)
-
-	userDocumentTypeRepo := repositories.NewUserDocumentTypeRepository(db)
-	userDocumentTypeSvc := services.NewUserDocumentTypeService(userDocumentTypeRepo, sharedModule.ActivityLogService)
-	userDocumentTypeController := controllers.NewUserDocumentTypeController(userDocumentTypeSvc)
-
-	userDocumentSubTypeRepo := repositories.NewUserDocumentSubTypeRepository(db)
-	userDocumentSubTypeSvc := services.NewUserDocumentSubTypeService(userDocumentSubTypeRepo, userDocumentTypeSvc, sharedModule.ActivityLogService)
-	userDocumentSubTypeController := controllers.NewUserDocumentSubTypeController(userDocumentSubTypeSvc)
-
-	userDocumentRepo := repositories.NewUserDocumentRepository(db)
-	userDocumentSvc := services.NewUserDocumentService(userDocumentRepo, userDocumentTypeSvc, userDocumentSubTypeSvc, sharedModule.ActivityLogService, userSvc)
-	userDocumentController := controllers.NewUserDocumentController(userDocumentSvc)
 
 	return &OrganizationModule{
 		DesignationController:                   designationController,

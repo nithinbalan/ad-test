@@ -158,7 +158,7 @@ func (pes *PolicyExceptionService) Create(currentUserID uint, dto *dtos.PolicyEx
 		RequestedByID:              dto.RequestedByID,
 		OrganizationUnitID:         organizationUnitID,
 		WorkflowStatusID:           &workflowStatus.ID,
-		CreatedByID:                currentUserID,
+		CreatedBYID:                currentUserID,
 	}
 
 	id, err := pes.repo.Create(model, tx)
@@ -236,7 +236,7 @@ func (pes *PolicyExceptionService) Update(id uint, dto *dtos.PolicyExceptionForm
 	existing.StartDate = dates.StartDate
 	existing.EndDate = &dates.EndDate
 	existing.RequestedByID = dto.RequestedByID
-	existing.UpdatedByID = &currentUserID
+	existing.UpdatedBYID = &currentUserID
 
 	if err := pes.repo.Update(existing, tx); err != nil {
 		return err

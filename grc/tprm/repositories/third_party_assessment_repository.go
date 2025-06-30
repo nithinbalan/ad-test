@@ -22,6 +22,12 @@ type ThirdPartyAssessmentRepositoryInterface interface {
 	Update(assessments *models.ThirdPartyAssessment, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber() (string, error)
+
+	CreateAssessmentQuestion(question *models.TPRMAssessmentQuestion, tx ...utility.DatabaseTransaction) (uint, error)
+	CreateAssessmentQuestionAnswerOption(option *models.TPRMAssessmentQuestionAnswerOption, tx ...utility.DatabaseTransaction) (uint, error)
+
+	DeleteQuestionsByAssessmentID(assessmentID uint, tx ...utility.DatabaseTransaction) error
+	DeleteAnswerOptionsByQuestionID(questionID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ThirdPartyAssessmentRepository struct {
@@ -132,6 +138,7 @@ func (repo *ThirdPartyAssessmentRepository) GetFullDetailsByID(id uint, tx ...ut
 		Preload("ThirdPartyRegister.ResponsibleUnit").
 		Preload("ThirdPartyRegister.SeverityLevel").
 		Preload("QuestionSet").
+		Preload("Questions").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&entity, id).Error; err != nil {
@@ -187,4 +194,44 @@ func (repo *ThirdPartyAssessmentRepository) GenerateReferenceNumber() (string, e
 
 	ref := fmt.Sprintf("TPA-%d-%04d", time.Now().Year(), lastNum+1)
 	return ref, nil
+}
+
+func (repo *ThirdPartyAssessmentRepository) CreateAssessmentQuestion(question *models.TPRMAssessmentQuestion, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(question).Error; err != nil {
+		return 0, err
+	}
+	return question.ID, nil
+}
+
+func (repo *ThirdPartyAssessmentRepository) CreateAssessmentQuestionAnswerOption(option *models.TPRMAssessmentQuestionAnswerOption, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(option).Error; err != nil {
+		return 0, err
+	}
+	return option.ID, nil
+}
+
+func (repo *ThirdPartyAssessmentRepository) DeleteAnswerOptionsByQuestionID(questionID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("tprm_assessment_question_id = ?", questionID).Delete(&models.TPRMAssessmentQuestionAnswerOption{}).Error
+}
+
+func (repo *ThirdPartyAssessmentRepository) DeleteQuestionsByAssessmentID(assessmentID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("third_party_assessment_id = ?", assessmentID).Delete(&models.TPRMAssessmentQuestion{}).Error
 }

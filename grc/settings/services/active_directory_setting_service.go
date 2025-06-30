@@ -123,28 +123,38 @@ func (adss *ActiveDirectorySettingService) CheckADConnection(dto *dtos.ActiveDir
 	defer l.Close()
 
 	// Bind with BindDN and BindPassword
+	// if err := l.Bind(dto.BindDN, dto.BindPassword); err != nil {
+	// 	return utility.NewActiveDirectoryConnectionError(
+	// 		fmt.Errorf("LDAP bind failed: %w", err),
+	// 	)
+	// }
+	// Bind and perform a **light-weight health-check** instead of pulling all users.
+	// We query the LDAP *Root DSE* (base DN = ""), which always returns a single
+	// entry and never hits the AD “size-limit-exceeded” cap.
+
 	if err := l.Bind(dto.BindDN, dto.BindPassword); err != nil {
 		return utility.NewActiveDirectoryConnectionError(
 			fmt.Errorf("LDAP bind failed: %w", err),
 		)
 	}
-	// Search user to validate
-	const userFilter = "(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
 
+	// Root DSE query – proves the bind, BaseDN visibility, and overall connectivity.
 	searchReq := ldap.NewSearchRequest(
-		dto.BaseDN,
-		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
-		userFilter,
-		[]string{"givenName", "sn", "mail", "distinguishedName", "title"},
+		"",                   // empty DN → Root DSE
+		ldap.ScopeBaseObject, // just that one entry
+		ldap.NeverDerefAliases,
+		0, 0, false, // no size/time limits needed
+		"(objectClass=*)",                // standard catch-all filter
+		[]string{"defaultNamingContext"}, // return a harmless attribute
 		nil,
 	)
+
 	sr, err := l.Search(searchReq)
 	if err != nil || len(sr.Entries) == 0 {
 		return utility.NewActiveDirectoryConnectionError(
-			fmt.Errorf("LDAP search failed or no users found: %w", err),
+			fmt.Errorf("LDAP connectivity check failed: %w", err),
 		)
 	}
-
 	return nil
 }
 
