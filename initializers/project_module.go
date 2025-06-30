@@ -9,7 +9,8 @@ import (
 )
 
 type ProjectModule struct {
-	ProjectTypeController *controllers.ProjectTypeController
+	ProjectTypeController   *controllers.ProjectTypeController
+	ProjectStatusController *controllers.ProjectStatusController
 }
 
 func NewProjectModule(db *gorm.DB, sharedModule *SharedModule) *ProjectModule {
@@ -17,7 +18,12 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule) *ProjectModule {
 	projectTypeSvc := services.NewProjectTypeService(projectTypeRepo, sharedModule.ActivityLogService)
 	projectTypeController := controllers.NewProjectTypeController(projectTypeSvc)
 
+	projectStatusRepo := repositories.NewProjectStatusRepository(db)
+	projectStatusSvc := services.NewProjectStatusService(projectStatusRepo)
+	projectStatusController := controllers.NewProjectStatusController(projectStatusSvc)
+
 	return &ProjectModule{
-		ProjectTypeController: projectTypeController,
+		ProjectTypeController:   projectTypeController,
+		ProjectStatusController: projectStatusController,
 	}
 }
