@@ -10,16 +10,7 @@ import (
 
 type ProjectRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(
-		sort string,
-		sortBy string,
-		keyword string,
-		status string,
-		page int,
-		pageSize int,
-		filters map[string][]string,
-		quickFilter []string,
-	) (*dtos.ProjectListResponseDTO, error)
+	GetAll(params *dtos.ProjectListQueryParamsDTO) (*dtos.ProjectListResponseDTO, error)
 	GetByID(id uint) (*models.Project, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Project, error)
 	Create(project *models.Project, tx ...utility.DatabaseTransaction) (uint, error)
@@ -39,17 +30,7 @@ func (r *ProjectRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(r.db)
 }
 
-func (r *ProjectRepository) GetAll(
-	sort string,
-	sortBy string,
-	keyword string,
-	status string,
-	page int,
-	pageSize int,
-	filters map[string][]string,
-	quickFilter []string,
-) (*dtos.ProjectListResponseDTO, error) {
-
+func (r *ProjectRepository) GetAll(params *dtos.ProjectListQueryParamsDTO) (*dtos.ProjectListResponseDTO, error) {
 	var projects []*dtos.ProjectListDTO
 	var totalCount int64
 
@@ -60,10 +41,12 @@ func (r *ProjectRepository) GetAll(
 			projects.title_ar,
 			projects.description_en,
 			projects.description_ar,
-			projects.start_date,
-			projects.end_date,
+			CONVERT(VARCHAR, projects.start_date, 23) AS start_date,
+			CONVERT(VARCHAR, projects.end_date, 23) AS end_date,
+			project_types.id AS project_type_id,
 			project_types.title_en AS project_type_title_en,
 			project_types.title_ar AS project_type_title_ar,
+			project_statuses.id AS project_status_id,
 			project_statuses.title_en AS project_status_title_en,
 			project_statuses.title_ar AS project_status_title_ar,
 			responsible_user.id AS responsible_user_id,
@@ -76,23 +59,23 @@ func (r *ProjectRepository) GetAll(
 			responsible_user.email AS responsible_user_email,
 			responsible_user.profile_image_path AS responsible_user_profile_image_path,
 			created_user.id AS created_user_id,
-        	created_user.first_name_en AS created_user_first_name_en,
-        	created_user.first_name_ar AS created_user_first_name_ar,
-        	created_user.last_name_en AS created_user_last_name_en,
-        	created_user.last_name_ar AS created_user_last_name_ar,   
-        	created_user.initial AS created_user_initial,
-        	created_user.color AS created_user_color,
-        	created_user.email AS created_user_email,
-        	created_user.profile_image_path AS created_user_profile_image_path,   
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
 			updated_user.id AS updated_user_id,
-    		updated_user.first_name_en AS updated_user_first_name_en,
-        	updated_user.first_name_ar AS updated_user_first_name_ar,
-        	updated_user.last_name_en AS updated_user_last_name_en,
-        	updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
 			updated_user.initial AS updated_user_initial,
-        	updated_user.color AS updated_user_color,
-        	updated_user.email AS updated_user_email,
-        	updated_user.profile_image_path AS updated_user_profile_image_path    
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path
 		`).
 		Joins("LEFT JOIN project_types ON project_types.id = projects.project_type_id").
 		Joins("LEFT JOIN project_statuses ON project_statuses.id = projects.project_status_id").
@@ -101,32 +84,22 @@ func (r *ProjectRepository) GetAll(
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = projects.updated_by_id")
 
 	// Apply dynamic filters
-	for column, values := range filters {
+	for column, values := range params.Filters {
 		if len(values) > 0 {
 			query = query.Where(column+" IN (?)", values)
 		}
 	}
 
-	// Quick filters if needed (example case)
-	for _, filter := range quickFilter {
-		switch filter {
-		case "completed":
-			query = query.Where("project_statuses.type = ?", "completed")
-		case "not_started":
-			query = query.Where("project_statuses.type = ?", "not_started")
-		case "in_progress":
-			query = query.Where("project_statuses.type = ?", "in_progress")
-		}
-	}
+	// Quick filters can be implemented here if needed
 
 	// Status filter
-	if status != "" {
-		query = query.Where("project_statuses.type = ?", status)
+	if params.Status != "" {
+		query = query.Where("project_statuses.type = ?", params.Status)
 	}
 
 	// Keyword search
-	if keyword != "" {
-		like := "%" + keyword + "%"
+	if params.Keyword != "" {
+		like := "%" + params.Keyword + "%"
 		query = query.Where(`
 			projects.title_en LIKE ? OR
 			projects.title_ar LIKE ? OR
@@ -153,24 +126,24 @@ func (r *ProjectRepository) GetAll(
 	}
 
 	// Apply sorting
-	query = query.Order(sortBy + " " + sort)
+	query = query.Order(params.SortBy + " " + params.Sort)
 
 	// Apply pagination
-	offset := (page - 1) * pageSize
-	if err := query.Offset(offset).Limit(pageSize).Find(&projects).Error; err != nil {
+	offset := (params.Page - 1) * params.PageSize
+	if err := query.Offset(offset).Limit(params.PageSize).Find(&projects).Error; err != nil {
 		return nil, err
 	}
 
 	totalPages := 1
-	if pageSize > 0 {
-		totalPages = int((totalCount + int64(pageSize) - 1) / int64(pageSize))
+	if params.PageSize > 0 {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 	}
 
 	return &dtos.ProjectListResponseDTO{
 		Items: projects,
 		Pagination: dtos.ProjectPaginationInfoDTO{
-			CurrentPage: page,
-			PageSize:    pageSize,
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
 			TotalPages:  totalPages,
 			TotalCount:  totalCount,
 		},
@@ -184,6 +157,7 @@ func (r *ProjectRepository) GetByID(id uint) (*models.Project, error) {
 	}
 	return &project, nil
 }
+
 func (r *ProjectRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Project, error) {
 	db := r.db
 	if len(tx) > 0 && tx[0] != nil {

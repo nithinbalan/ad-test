@@ -2,6 +2,9 @@ package services
 
 import (
 	"errors"
+	"fmt"
+	"time"
+
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
@@ -15,7 +18,7 @@ import (
 
 type ProjectServiceInterface interface {
 	GetAll(params *dtos.ProjectListQueryParamsDTO) (*dtos.ProjectListResponseDTO, error)
-	GetByID(id uint) (*dtos.ProjectDetailDTO, error)
+	GetByID(id uint) (*models.Project, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.ProjectDetailDTO, error)
 	Create(currentUserID uint, form *dtos.ProjectFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, form *dtos.ProjectFormDTO) error
@@ -46,43 +49,37 @@ func NewProjectService(
 	}
 }
 
-func (s *ProjectService) GetAll(params *dtos.ProjectListQueryParamsDTO) (*dtos.ProjectListResponseDTO, error) {
-	return s.repo.GetAll(
-		params.Sort,
-		params.SortBy,
-		params.Keyword,
-		params.Status,
-		params.Page,
-		params.PageSize,
-		params.Filters,
-		params.QuickFilter,
-	)
+func parseProjectDates(form *dtos.ProjectFormDTO) (startDate, endDate *time.Time, err error) {
+	if form.StartDate != "" {
+		sd, err := utility.ParseDate(form.StartDate)
+		if err != nil {
+			return nil, nil, utility.NewValidationError(fmt.Errorf("invalid start date"), "invalid_date", "start_date")
+		}
+		startDate = sd
+	}
+	if form.EndDate != "" {
+		ed, err := utility.ParseDate(form.EndDate)
+		if err != nil {
+			return nil, nil, utility.NewValidationError(fmt.Errorf("invalid end date"), "invalid_date", "end_date")
+		}
+		endDate = ed
+	}
+	return startDate, endDate, nil
 }
 
-func (s *ProjectService) GetByID(id uint) (*dtos.ProjectDetailDTO, error) {
-	var projectDTO dtos.ProjectDetailDTO
+func (s *ProjectService) GetAll(params *dtos.ProjectListQueryParamsDTO) (*dtos.ProjectListResponseDTO, error) {
+	return s.repo.GetAll(params)
+}
 
-	project, err := s.repo.GetFullDetailsByID(id)
+func (s *ProjectService) GetByID(id uint) (*models.Project, error) {
+	project, err := s.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, &utility.ResourceNotFoundError{}
+			return nil, utility.NewResourceNotFoundError(err, id)
 		}
 		return nil, err
 	}
-
-	err = mapstructure.Decode(project, &projectDTO)
-	if err != nil {
-		return nil, err
-	}
-
-	// Assign date fields directly since they are already strings in the model
-	projectDTO.StartDateString = project.StartDate
-	projectDTO.EndDateString = project.EndDate
-
-	projectDTO.CreatedAt = project.CreatedAt
-	projectDTO.UpdatedAt = project.UpdatedAt
-
-	return &projectDTO, nil
+	return project, nil
 }
 
 func (s *ProjectService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.ProjectDetailDTO, error) {
@@ -101,9 +98,15 @@ func (s *ProjectService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTrans
 		return nil, err
 	}
 
-	// Assign date fields directly since they are already strings in the model
-	projectDTO.StartDateString = project.StartDate
-	projectDTO.EndDateString = project.EndDate
+	// Format date fields
+	if project.StartDate != nil {
+		str := project.StartDate.Format("2006-01-02")
+		projectDTO.StartDateString = &str
+	}
+	if project.EndDate != nil {
+		str := project.EndDate.Format("2006-01-02")
+		projectDTO.EndDateString = &str
+	}
 
 	projectDTO.CreatedAt = project.CreatedAt
 	projectDTO.UpdatedAt = project.UpdatedAt
@@ -112,14 +115,19 @@ func (s *ProjectService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTrans
 }
 
 func (s *ProjectService) Create(currentUserID uint, form *dtos.ProjectFormDTO) (uint, error) {
+	startDate, endDate, err := parseProjectDates(form)
+	if err != nil {
+		return 0, err
+	}
+
 	project := &models.Project{
 		TitleEn:           form.TitleEn,
 		TitleAr:           form.TitleAr,
 		DescriptionEn:     form.DescriptionEn,
 		DescriptionAr:     form.DescriptionAr,
 		ResponsibleUserID: form.ResponsibleUserID,
-		StartDate:         &form.StartDate,
-		EndDate:           &form.EndDate,
+		StartDate:         startDate,
+		EndDate:           endDate,
 		ProjectTypeID:     form.ProjectTypeID,
 		ProjectStatusID:   form.ProjectStatusID,
 		CreatedBYID:       currentUserID,
@@ -175,13 +183,18 @@ func (s *ProjectService) Update(id uint, currentUserID uint, form *dtos.ProjectF
 		"project_status_id":   project.ProjectStatusID,
 	}
 
+	startDate, endDate, err := parseProjectDates(form)
+	if err != nil {
+		return err
+	}
+
 	project.TitleEn = form.TitleEn
 	project.TitleAr = form.TitleAr
 	project.DescriptionEn = form.DescriptionEn
 	project.DescriptionAr = form.DescriptionAr
 	project.ResponsibleUserID = form.ResponsibleUserID
-	project.StartDate = &form.StartDate
-	project.EndDate = &form.EndDate
+	project.StartDate = startDate
+	project.EndDate = endDate
 	project.ProjectTypeID = form.ProjectTypeID
 	project.ProjectStatusID = form.ProjectStatusID
 	project.UpdatedBYID = &currentUserID

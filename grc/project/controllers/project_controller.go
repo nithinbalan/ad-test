@@ -104,7 +104,7 @@ func (pc *ProjectController) GetProjectDetails(c *gin.Context) {
 		return
 	}
 
-	project, err := pc.service.GetByID(uint(id))
+	project, err := pc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:

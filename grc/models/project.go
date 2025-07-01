@@ -6,19 +6,19 @@ import (
 
 type Project struct {
 	ID                uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	TitleEn           string     `json:"title_en" gorm:"type:varchar(255);not null"`
-	TitleAr           string     `json:"title_ar" gorm:"type:varchar(255);not null"`
-	DescriptionEn     string     `json:"description_en" gorm:"type:text"`
-	DescriptionAr     string     `json:"description_ar" gorm:"type:text"`
-	StartDate         *string    `json:"start_date" gorm:"type:varchar(45);null"`
-	EndDate           *string    `json:"end_date" gorm:"type:varchar(45);null"`
+	TitleEn           string     `json:"title_en" gorm:"type:varchar(100);not null"`
+	TitleAr           string     `json:"title_ar" gorm:"type:varchar(100);not null"`
+	DescriptionEn     *string    `json:"description_en" gorm:"type:text;null"`
+	DescriptionAr     *string    `json:"description_ar" gorm:"type:text;null"`
 	ResponsibleUserID uint       `json:"responsible_user_id" gorm:"not null"`
+	StartDate         *time.Time `json:"start_date" gorm:"type:date;not null"`
+	EndDate           *time.Time `json:"end_date" gorm:"type:date;not null"`
 	ProjectTypeID     uint       `json:"project_type_id" gorm:"not null"`
 	ProjectStatusID   uint       `json:"project_status_id" gorm:"not null"`
-	CreatedBYID       uint       `json:"created_by_id" gorm:"not null"`
-	UpdatedBYID       *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt         time.Time  `json:"created_at" gorm:"type:datetime;not null"`
-	UpdatedAt         *time.Time `json:"updated_at" gorm:"type:datetime"`
+	UpdatedAt         *time.Time `json:"updated_at" gorm:"type:datetime;null"`
+	CreatedBYID       uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBYID       *uint      `json:"updated_by_id" gorm:"null"`
 
 	// Relationships
 	ResponsibleUser *User          `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
