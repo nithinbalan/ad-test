@@ -49,24 +49,6 @@ func NewProjectService(
 	}
 }
 
-func parseProjectDates(form *dtos.ProjectFormDTO) (startDate, endDate *time.Time, err error) {
-	if form.StartDate != "" {
-		sd, err := utility.ParseDate(form.StartDate)
-		if err != nil {
-			return nil, nil, utility.NewValidationError(fmt.Errorf("invalid start date"), "invalid_date", "start_date")
-		}
-		startDate = sd
-	}
-	if form.EndDate != "" {
-		ed, err := utility.ParseDate(form.EndDate)
-		if err != nil {
-			return nil, nil, utility.NewValidationError(fmt.Errorf("invalid end date"), "invalid_date", "end_date")
-		}
-		endDate = ed
-	}
-	return startDate, endDate, nil
-}
-
 func (s *ProjectService) GetAll(params *dtos.ProjectListQueryParamsDTO) (*dtos.ProjectListResponseDTO, error) {
 	return s.repo.GetAll(params)
 }
@@ -250,4 +232,22 @@ func (s *ProjectService) Delete(ids []uint, currentUserID uint) ([]uint, error) 
 	}()
 
 	return deletedIDs, nil
+}
+
+func parseProjectDates(form *dtos.ProjectFormDTO) (startDate, endDate *time.Time, err error) {
+	if form.StartDate != "" {
+		sd, err := utility.ParseDate(form.StartDate)
+		if err != nil {
+			return nil, nil, utility.NewValidationError(fmt.Errorf("invalid start date"), "invalid_date", "start_date")
+		}
+		startDate = sd
+	}
+	if form.EndDate != "" {
+		ed, err := utility.ParseDate(form.EndDate)
+		if err != nil {
+			return nil, nil, utility.NewValidationError(fmt.Errorf("invalid end date"), "invalid_date", "end_date")
+		}
+		endDate = ed
+	}
+	return startDate, endDate, nil
 }
