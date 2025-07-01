@@ -1,0 +1,241 @@
+package repositories
+
+import (
+	"jethur/grc/models"
+	"jethur/grc/project/dtos"
+	"jethur/utility"
+
+	"gorm.io/gorm"
+)
+
+type ProjectRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
+	GetAll(
+		sort string,
+		sortBy string,
+		keyword string,
+		status string,
+		page int,
+		pageSize int,
+		filters map[string][]string,
+		quickFilter []string,
+	) (*dtos.ProjectListResponseDTO, error)
+	GetByID(id uint) (*models.Project, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Project, error)
+	Create(project *models.Project, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(project *models.Project, tx ...utility.DatabaseTransaction) error
+	Delete(ids []uint, tx ...utility.DatabaseTransaction) ([]uint, error)
+}
+
+type ProjectRepository struct {
+	db *gorm.DB
+}
+
+func NewProjectRepository(db *gorm.DB) *ProjectRepository {
+	return &ProjectRepository{db: db}
+}
+
+func (r *ProjectRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(r.db)
+}
+
+func (r *ProjectRepository) GetAll(
+	sort string,
+	sortBy string,
+	keyword string,
+	status string,
+	page int,
+	pageSize int,
+	filters map[string][]string,
+	quickFilter []string,
+) (*dtos.ProjectListResponseDTO, error) {
+
+	var projects []*dtos.ProjectListDTO
+	var totalCount int64
+
+	query := r.db.Table("projects").
+		Select(`
+			projects.id,
+			projects.title_en,
+			projects.title_ar,
+			projects.description_en,
+			projects.description_ar,
+			projects.start_date,
+			projects.end_date,
+			project_types.title_en AS project_type_title_en,
+			project_types.title_ar AS project_type_title_ar,
+			project_statuses.title_en AS project_status_title_en,
+			project_statuses.title_ar AS project_status_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+        	created_user.first_name_ar AS created_user_first_name_ar,
+        	created_user.last_name_en AS created_user_last_name_en,
+        	created_user.last_name_ar AS created_user_last_name_ar,   
+        	created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+        	updated_user.first_name_ar AS updated_user_first_name_ar,
+        	updated_user.last_name_en AS updated_user_last_name_en,
+        	updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path    
+		`).
+		Joins("LEFT JOIN project_types ON project_types.id = projects.project_type_id").
+		Joins("LEFT JOIN project_statuses ON project_statuses.id = projects.project_status_id").
+		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = projects.responsible_user_id").
+		Joins("LEFT JOIN users AS created_user ON created_user.id = projects.created_by_id").
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = projects.updated_by_id")
+
+	// Apply dynamic filters
+	for column, values := range filters {
+		if len(values) > 0 {
+			query = query.Where(column+" IN (?)", values)
+		}
+	}
+
+	// Quick filters if needed (example case)
+	for _, filter := range quickFilter {
+		switch filter {
+		case "completed":
+			query = query.Where("project_statuses.type = ?", "completed")
+		case "not_started":
+			query = query.Where("project_statuses.type = ?", "not_started")
+		case "in_progress":
+			query = query.Where("project_statuses.type = ?", "in_progress")
+		}
+	}
+
+	// Status filter
+	if status != "" {
+		query = query.Where("project_statuses.type = ?", status)
+	}
+
+	// Keyword search
+	if keyword != "" {
+		like := "%" + keyword + "%"
+		query = query.Where(`
+			projects.title_en LIKE ? OR
+			projects.title_ar LIKE ? OR
+			projects.description_en LIKE ? OR
+			projects.description_ar LIKE ? OR
+			project_types.title_en LIKE ? OR
+			project_types.title_ar LIKE ? OR
+			project_statuses.title_en LIKE ? OR
+			project_statuses.title_ar LIKE ? OR
+			responsible_user.first_name_en LIKE ? OR
+			responsible_user.first_name_ar LIKE ? OR
+			responsible_user.last_name_en LIKE ? OR
+			responsible_user.last_name_ar LIKE ? OR
+			responsible_user.email LIKE ?`,
+			like, like, like, like,
+			like, like, like, like,
+			like, like, like, like,
+			like)
+	}
+
+	// Count before pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Apply sorting
+	query = query.Order(sortBy + " " + sort)
+
+	// Apply pagination
+	offset := (page - 1) * pageSize
+	if err := query.Offset(offset).Limit(pageSize).Find(&projects).Error; err != nil {
+		return nil, err
+	}
+
+	totalPages := 1
+	if pageSize > 0 {
+		totalPages = int((totalCount + int64(pageSize) - 1) / int64(pageSize))
+	}
+
+	return &dtos.ProjectListResponseDTO{
+		Items: projects,
+		Pagination: dtos.ProjectPaginationInfoDTO{
+			CurrentPage: page,
+			PageSize:    pageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}, nil
+}
+
+func (r *ProjectRepository) GetByID(id uint) (*models.Project, error) {
+	var project models.Project
+	if err := r.db.First(&project, id).Error; err != nil {
+		return nil, err
+	}
+	return &project, nil
+}
+func (r *ProjectRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Project, error) {
+	db := r.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var project models.Project
+
+	result := db.
+		Preload("ResponsibleUser").
+		Preload("ProjectType").
+		Preload("ProjectStatus").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&project, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &project, nil
+}
+
+func (r *ProjectRepository) Create(project *models.Project, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := r.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(project).Error; err != nil {
+		return 0, err
+	}
+	return project.ID, nil
+}
+
+func (r *ProjectRepository) Update(project *models.Project, tx ...utility.DatabaseTransaction) error {
+	db := r.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(project).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *ProjectRepository) Delete(ids []uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	db := r.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Where("id IN ?", ids).Delete(&models.Project{}).Error; err != nil {
+		return nil, err
+	}
+	return ids, nil
+}

@@ -14,6 +14,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	projectTypeController := app.ProjectModule.ProjectTypeController
 	projectStatusController := app.ProjectModule.ProjectStatusController
+	projectController := app.ProjectModule.ProjectController
 
 	// Project Type
 	projectRoutes.GET("/project-types", projectTypeController.GetAllProjectTypes)
@@ -27,5 +28,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Project Status
 	projectRoutes.GET("/project-statuses", projectStatusController.GetAllProjectStatuses)
 	projectRoutes.GET("/project-statuses/:id", projectStatusController.GetProjectStatusDetails)
+
+	// Projects
+	projectRoutes.GET("/projects", projectController.GetAllProjects)
+	projectRoutes.GET("/projects/:id", projectController.GetProjectDetails)
+	projectRoutes.POST("/projects", projectController.CreateProject)
+	projectRoutes.PUT("/projects/:id", projectController.UpdateProject)
+	projectRoutes.POST("/projects/delete", projectController.DeleteProjects)
 
 }
