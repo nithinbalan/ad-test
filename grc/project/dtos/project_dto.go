@@ -16,8 +16,8 @@ type ProjectListDTO struct {
 	ProjectTypeTitleAr              string  `json:"project_type_title_ar"`
 	ProjectStatusTitleEn            string  `json:"project_status_title_en"`
 	ProjectStatusTitleAr            string  `json:"project_status_title_ar"`
-	StartDate                       *string `json:"start_date"`
-	EndDate                         *string `json:"end_date"`
+	StartDate                       string  `json:"start_date"`
+	EndDate                         string  `json:"end_date"`
 	ResponsibleUserID               uint    `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn      string  `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr      string  `json:"responsible_user_first_name_ar"`
@@ -88,8 +88,8 @@ type ProjectDetailDTO struct {
 	TitleAr         string                           `json:"title_ar"`
 	DescriptionEn   *string                          `json:"description_en"`
 	DescriptionAr   *string                          `json:"description_ar"`
-	StartDateString *string                          `json:"start_date"`
-	EndDateString   *string                          `json:"end_date"`
+	StartDateString string                           `json:"start_date"`
+	EndDateString   string                           `json:"end_date"`
 	ResponsibleUser organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
 	ProjectType     ProjectTypeDTO                   `json:"project_type"`
 	ProjectStatus   ProjectStatusDTO                 `json:"project_status"`

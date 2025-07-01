@@ -99,13 +99,13 @@ func (s *ProjectService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTrans
 	}
 
 	// Format date fields
-	if project.StartDate != nil {
+	if project.StartDate != (time.Time{}) {
 		str := project.StartDate.Format("2006-01-02")
-		projectDTO.StartDateString = &str
+		projectDTO.StartDateString = str
 	}
-	if project.EndDate != nil {
+	if project.EndDate != (time.Time{}) {
 		str := project.EndDate.Format("2006-01-02")
-		projectDTO.EndDateString = &str
+		projectDTO.EndDateString = str
 	}
 
 	projectDTO.CreatedAt = project.CreatedAt
@@ -126,8 +126,8 @@ func (s *ProjectService) Create(currentUserID uint, form *dtos.ProjectFormDTO) (
 		DescriptionEn:     form.DescriptionEn,
 		DescriptionAr:     form.DescriptionAr,
 		ResponsibleUserID: form.ResponsibleUserID,
-		StartDate:         startDate,
-		EndDate:           endDate,
+		StartDate:         *startDate,
+		EndDate:           *endDate,
 		ProjectTypeID:     form.ProjectTypeID,
 		ProjectStatusID:   form.ProjectStatusID,
 		CreatedBYID:       currentUserID,
@@ -193,8 +193,8 @@ func (s *ProjectService) Update(id uint, currentUserID uint, form *dtos.ProjectF
 	project.DescriptionEn = form.DescriptionEn
 	project.DescriptionAr = form.DescriptionAr
 	project.ResponsibleUserID = form.ResponsibleUserID
-	project.StartDate = startDate
-	project.EndDate = endDate
+	project.StartDate = *startDate
+	project.EndDate = *endDate
 	project.ProjectTypeID = form.ProjectTypeID
 	project.ProjectStatusID = form.ProjectStatusID
 	project.UpdatedBYID = &currentUserID

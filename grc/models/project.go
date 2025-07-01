@@ -11,8 +11,8 @@ type Project struct {
 	DescriptionEn     *string    `json:"description_en" gorm:"type:text;null"`
 	DescriptionAr     *string    `json:"description_ar" gorm:"type:text;null"`
 	ResponsibleUserID uint       `json:"responsible_user_id" gorm:"not null"`
-	StartDate         *time.Time `json:"start_date" gorm:"type:date;not null"`
-	EndDate           *time.Time `json:"end_date" gorm:"type:date;not null"`
+	StartDate         time.Time  `json:"start_date" gorm:"type:date;not null"`
+	EndDate           time.Time  `json:"end_date" gorm:"type:date;not null"`
 	ProjectTypeID     uint       `json:"project_type_id" gorm:"not null"`
 	ProjectStatusID   uint       `json:"project_status_id" gorm:"not null"`
 	CreatedAt         time.Time  `json:"created_at" gorm:"type:datetime;not null"`
