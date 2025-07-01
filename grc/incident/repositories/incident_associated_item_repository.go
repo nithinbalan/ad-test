@@ -33,44 +33,76 @@ func (repo *IncidentAssociatedItemRepository) GetAllControls(incidentID uint, pa
 
 	query := repo.db.Table("incident_controls").
 		Select(`
-			controls.id AS control_id,
-			controls.reference_number AS control_reference_number,
-            controls.code AS control_code,
-			CONVERT(VARCHAR, controls.last_test_date, 23) AS control_last_test_date,
-            control_categories.title_en AS control_category_title_en,
-            control_categories.title_ar AS control_category_title_ar,
-            control_types.title_en AS control_type_title_en,
-            control_types.title_ar AS control_type_title_ar,
-            controls.title_en AS control_title_en,
-            controls.title_ar AS control_title_ar,
-            controls.description AS control_description,
-            control_efficiency_statuses.title_en AS control_efficiency_status_title_en,
-            control_efficiency_statuses.title_ar AS control_efficiency_status_title_ar,
-			control_efficiency_statuses.type AS control_efficiency_status_type,
-            control_efficiency_statuses.color_code AS control_efficiency_status_color_code,
-            control_implementation_statuses.title_en AS control_implementation_status_title_en,
-            control_implementation_statuses.title_ar AS control_implementation_status_title_ar,
-			control_implementation_statuses.type AS control_implementation_status_type,
-            control_implementation_statuses.color_code AS control_implementation_status_color_code,
-			owner.id AS control_owner_id,
-			owner.first_name_en AS control_owner_first_name_en,
-			owner.first_name_ar AS control_owner_first_name_ar,
-			owner.last_name_en AS control_owner_last_name_en,
-			owner.last_name_ar AS control_owner_last_name_ar,
-			owner.initial AS control_owner_initial,
-            owner.color AS control_owner_color,
-            owner.email AS control_owner_email,
-            owner.profile_image_path AS control_owner_profile_image_path
-        `).
+		DISTINCT controls.id AS control_id,
+		controls.*,
+		CONVERT(VARCHAR, controls.last_test_date, 23) AS control_last_test_date,
+		control_types.title_en AS control_type_title_en,
+		control_types.title_ar AS control_type_title_ar,
+		control_categories.title_en AS control_category_title_en,
+		control_categories.title_ar AS control_category_title_ar,
+		organization_units.title_en AS owner_unit_title_en,
+		organization_units.title_ar AS owner_unit_title_ar,
+		owner.id AS owner_id,
+		owner.first_name_en AS owner_first_name_en,
+		owner.first_name_ar AS owner_first_name_ar,
+		owner.last_name_en AS owner_last_name_en,
+		owner.last_name_ar AS owner_last_name_ar,
+		owner.initial AS owner_initial,
+		owner.color AS owner_color,
+		owner.email AS owner_email,
+		owner.profile_image_path AS owner_profile_image_path,
+		review_frequencies.title_en AS review_frequency_title_en,
+		review_frequencies.title_ar AS review_frequency_title_ar,
+		test_responsible_user.id AS test_responsible_user_id,
+		test_responsible_user.first_name_en AS test_responsible_user_first_name_en,
+		test_responsible_user.first_name_ar AS test_responsible_user_first_name_ar,
+		test_responsible_user.last_name_en AS test_responsible_user_last_name_en,
+		test_responsible_user.last_name_ar AS test_responsible_user_last_name_ar,
+		test_responsible_user.initial AS test_responsible_user_initial,
+		test_responsible_user.color AS test_responsible_user_color,
+		test_responsible_user.email AS test_responsible_user_email,
+		test_responsible_user.profile_image_path AS test_responsible_user_profile_image_path,
+		test_frequencies.title_en AS test_frequency_title_en,
+		test_frequencies.title_ar AS test_frequency_title_ar,
+		lifecycle_statuses.title_en AS lifecycle_status_title_en,
+		lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
+		lifecycle_statuses.color_code AS lifecycle_status_color_code,
+		control_implementation_statuses.title_en AS control_implementation_status_title_en,
+		control_implementation_statuses.title_ar AS control_implementation_status_title_ar,
+		control_implementation_statuses.color_code AS control_implementation_status_color_code,
+		control_efficiency_statuses.title_en AS control_efficiency_status_title_en,
+		control_efficiency_statuses.title_ar AS control_efficiency_status_title_ar,
+		control_efficiency_statuses.color_code AS control_efficiency_status_color_code,
+		risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
+		risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
+		risk_matrix_risk_ratings.color_code AS risk_rating_color_code,
+		risk_matrix_risk_rating_values.value AS risk_rating_value,
+		created_user.id AS created_user_id,
+		created_user.first_name_en AS created_user_first_name_en,
+		created_user.first_name_ar AS created_user_first_name_ar,
+		created_user.last_name_en AS created_user_last_name_en,
+		created_user.last_name_ar AS created_user_last_name_ar,
+		created_user.initial AS created_user_initial,
+		created_user.color AS created_user_color,
+		created_user.email AS created_user_email,
+		created_user.profile_image_path AS created_user_profile_image_path
+	`).
 		Joins(`
-			LEFT JOIN controls ON controls.id = incident_controls.control_id
-            LEFT JOIN control_categories ON controls.control_category_id = control_categories.id
-            LEFT JOIN control_types ON controls.control_type_id = control_types.id
-            LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
-            LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
-			LEFT JOIN users AS owner ON controls.responsible_user_id = owner.id
-        `).
-		Where("incident_controls.incident_register_id = ?", incidentID)
+		LEFT JOIN controls ON controls.id = incident_controls.control_id
+		LEFT JOIN control_types ON controls.control_type_id = control_types.id
+		LEFT JOIN control_categories ON controls.control_category_id = control_categories.id
+		LEFT JOIN organization_units ON controls.responsible_unit_id = organization_units.id
+		LEFT JOIN users AS owner ON controls.responsible_user_id = owner.id
+		LEFT JOIN review_frequencies ON controls.review_frequency_id = review_frequencies.id
+		LEFT JOIN users AS test_responsible_user ON controls.test_responsible_user_id = test_responsible_user.id
+		LEFT JOIN review_frequencies AS test_frequencies ON controls.test_frequency_id = test_frequencies.id
+		LEFT JOIN lifecycle_statuses ON controls.lifecycle_status_id = lifecycle_statuses.id
+		LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
+		LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
+		LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = controls.risk_matrix_risk_rating_id
+		LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = controls.risk_matrix_risk_rating_value_id
+		LEFT JOIN users AS created_user ON created_user.id = controls.created_by_id
+	`).Where("incident_controls.incident_register_id = ?", incidentID)
 
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
