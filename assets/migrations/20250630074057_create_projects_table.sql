@@ -2,8 +2,8 @@
 -- +goose StatementBegin
 CREATE TABLE projects (
     id INT PRIMARY KEY IDENTITY(1, 1),
-    title_en NVARCHAR(100) NOT NULL,
-    title_ar NVARCHAR(100) NOT NULL,
+    title_en NVARCHAR(255) NOT NULL,
+    title_ar NVARCHAR(255) NOT NULL,
     description_en NVARCHAR(MAX) NULL,
     description_ar NVARCHAR(MAX) NULL,
     responsible_user_id INT NOT NULL,
