@@ -16,6 +16,7 @@ type RiskRootCauseAnalysisRepositoryInterface interface {
 	Create(riskRootCauseAnalysis *models.RiskRootCauseAnalysis, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskRootCauseAnalysis *models.RiskRootCauseAnalysis) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	DeleteAllByRiskID(riskID uint, tx ...utility.DatabaseTransaction) error
 	GetLatestWhyByRiskID(riskID uint) (uint, error)
 	UpdateWhyValuesAfterDeletion(riskID uint, deletedWhy uint, tx ...utility.DatabaseTransaction) error
 	GetCountByRiskID(riskID uint, tx ...utility.DatabaseTransaction) (int64, error)
@@ -140,6 +141,14 @@ func (repo *RiskRootCauseAnalysisRepository) Delete(id uint, tx ...utility.Datab
 	}
 
 	return nil
+}
+
+func (repo *RiskRootCauseAnalysisRepository) DeleteAllByRiskID(riskID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("risk_register_id = ?", riskID).Delete(&models.RiskRootCauseAnalysis{}).Error
 }
 
 func (repo *RiskRootCauseAnalysisRepository) GetLatestWhyByRiskID(riskID uint) (uint, error) {

@@ -83,6 +83,7 @@ func (els *EscalationLevelService) Create(currentUserID uint, dto *settingDTOs.E
 	level := &models.EscalationLevel{
 		EscalationID:       dto.EscalationID,
 		EscalationTo:       dto.EscalationTo,
+		DesignationID:      dto.DesignationID,
 		NotificationMethod: dto.NotificationMethod,
 		DayOffset:          dto.DayOffset,
 		CreatedBYID:        currentUserID,
@@ -114,6 +115,7 @@ func (els *EscalationLevelService) Update(id uint, currentUserID uint, dto *sett
 
 	existing.EscalationID = dto.EscalationID
 	existing.EscalationTo = dto.EscalationTo
+	existing.DesignationID = dto.DesignationID
 	existing.NotificationMethod = dto.NotificationMethod
 	existing.DayOffset = dto.DayOffset
 	existing.UpdatedBYID = &currentUserID
@@ -177,7 +179,7 @@ func (els *EscalationLevelService) Delete(ids []uint, currentUserID uint) ([]uin
 	var deletedItems []map[string]interface{}
 
 	for _, id := range ids {
-		item, err := els.repo.GetByID(id)
+		item, err := els.repo.GetFullDetailsByID(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue

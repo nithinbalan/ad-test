@@ -458,6 +458,7 @@ func (spqfs *SwotPestelQuestionService) GetSwotPestelQuestionSummary(isSwot stri
 	}
 
 	summary := &organizationalContextDTOs.SwotPestelQuestionSummaryDTO{
+		TotalCount:      unansweredCount + answeredCount,
 		UnansweredCount: unansweredCount,
 		AnsweredCount:   answeredCount,
 	}

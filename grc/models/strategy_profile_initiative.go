@@ -9,7 +9,7 @@ type StrategyProfileInitiative struct {
 	StrategyProfileGoalID      *uint      `json:"strategy_profile_goal_id" gorm:"null"`
 	StrategyProfileObjectiveID *uint      `json:"strategy_profile_objective_id" gorm:"null"`
 	Title                      string     `json:"title" gorm:"size:500;not null" binding:"required"`
-	Description                *string    `json:"description" binding:"omitempty"`
+	Description                *string    `json:"description" `
 	ResponsibleUserID          *uint      `json:"responsible_user_id"`
 	StartDate                  *time.Time `json:"start_date" gorm:"type:date;default:null"`
 	EndDate                    *time.Time `json:"end_date" gorm:"type:date;default:null"`
@@ -19,13 +19,16 @@ type StrategyProfileInitiative struct {
 	UpdatedAt                  *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
 	// Relationships
-	StrategyProfile          *StrategyProfile          `gorm:"foreignKey:StrategyProfileID" json:"strategy_profile,omitempty"`
-	StrategyProfileFocusArea *StrategyProfileFocusArea `gorm:"foreignKey:StrategyProfileFocusAreaID" json:"strategy_profile_focus_area,omitempty"`
-	StrategyProfileGoal      *StrategyProfileGoal      `gorm:"foreignKey:StrategyProfileGoalID" json:"strategy_profile_goal,omitempty"`
-	StrategyProfileObjective *StrategyProfileObjective `gorm:"foreignKey:StrategyProfileObjectiveID" json:"strategy_profile_objective,omitempty"`
-	ResponsibleUser          *User                     `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser            *User                     `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	UpdatedByUser            *User                     `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	StrategyProfile            *StrategyProfile            `gorm:"foreignKey:StrategyProfileID" json:"strategy_profile,omitempty"`
+	StrategyProfileFocusArea   *StrategyProfileFocusArea   `gorm:"foreignKey:StrategyProfileFocusAreaID" json:"strategy_profile_focus_area,omitempty"`
+	StrategyProfileGoal        *StrategyProfileGoal        `gorm:"foreignKey:StrategyProfileGoalID" json:"strategy_profile_goal,omitempty"`
+	StrategyProfileObjective   *StrategyProfileObjective   `gorm:"foreignKey:StrategyProfileObjectiveID" json:"strategy_profile_objective,omitempty"`
+	StrategyProfileProjects    []StrategyProfileProject    `gorm:"foreignKey:StrategyProfileInitiativeID"`
+	StrategyProfileMilestones  []StrategyProfileMilestone  `gorm:"foreignKey:StrategyProfileInitiativeID"`
+	StrategyProfileActionPlans []StrategyProfileActionPlan `gorm:"foreignKey:StrategyProfileInitiativeID"`
+	ResponsibleUser            *User                       `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser              *User                       `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	UpdatedByUser              *User                       `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 }
 
 func (StrategyProfileInitiative) TableName() string {

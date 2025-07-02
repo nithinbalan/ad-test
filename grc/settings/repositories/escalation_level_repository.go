@@ -100,6 +100,7 @@ func (repo *EscalationLevelRepository) GetFullDetailsByID(id uint) (*models.Esca
 
 	result := repo.db.
 		Preload("Escalation").
+		Preload("Designation").
 		First(&escalationLevel, id)
 
 	if result.Error != nil {

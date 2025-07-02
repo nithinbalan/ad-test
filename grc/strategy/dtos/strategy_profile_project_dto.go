@@ -53,8 +53,8 @@ type StrategyProfileProjectFormDTO struct {
 	Title                       string  `json:"title" binding:"required"`
 	Description                 *string `json:"description"`
 	ResponsibleUserID           *uint   `json:"responsible_user_id"`
-	StartDate                   string  `json:"start_date" binding:"required"`
-	EndDate                     string  `json:"end_date" binding:"required"`
+	StartDate                   string  `json:"start_date"`
+	EndDate                     string  `json:"end_date"`
 }
 
 type StrategyProfileProjectListQueryParamsDTO struct {

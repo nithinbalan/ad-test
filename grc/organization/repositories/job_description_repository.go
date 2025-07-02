@@ -69,6 +69,8 @@ func (repo *JobDescriptionRepository) GetFullDetailsByID(id uint) (*models.JobDe
 		Preload("Competencies.Competency.CompetencyGroup").
 		Preload("Competencies.CompetencyLevel").
 		Preload("Competencies.Certifications").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
 		First(&jd, id).Error
 	if err != nil {
 		return nil, err

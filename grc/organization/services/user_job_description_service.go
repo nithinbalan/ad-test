@@ -67,6 +67,8 @@ func (ujds *UserJobDescriptionService) GetFullDetailsByID(id uint) (*dtos.UserJo
 	if err != nil {
 		return nil, err
 	}
+	dto.CreatedAt = model.CreatedAt
+
 	return &dto, nil
 }
 
@@ -83,7 +85,7 @@ func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJob
 		userJD := models.UserJobDescription{
 			UserID:           userID,
 			JobDescriptionID: jdID,
-			CreatedByID:      currentUserID,
+			CreatedBYID:      currentUserID,
 		}
 		userJDs = append(userJDs, &userJD)
 	}
@@ -108,6 +110,7 @@ func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJob
 			ujdc := models.UserJobDescriptionCompetency{
 				UserJobDescriptionID:   userJD.ID,
 				CompetencyID:           comp.CompetencyID,
+				ExpectedLevelID:        comp.CompetencyLevelID,
 				CompetencyTitleEn:      &comp.Competency.TitleEn,
 				CompetencyTitleAr:      &comp.Competency.TitleAr,
 				CompetencyGroupTitleEn: &comp.Competency.CompetencyGroup.TitleEn,
@@ -120,10 +123,10 @@ func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJob
 
 			for _, cert := range comp.Certifications {
 				ujdcert := models.UserJobDescriptionCertificate{
-					UserJobDescriptionCompetencyID:          ujdc.ID,
-					JobDescriptionCompetencyCertificationID: cert.ID,
-					CertificateTitle:                        cert.Title,
-					CreatedByID:                             &currentUserID,
+					UserJobDescriptionCompetencyID: ujdc.ID,
+					IsMandatory:                    cert.IsMandatory,
+					CertificateTitle:               cert.Title,
+					CreatedByID:                    &currentUserID,
 				}
 				userJDCerts = append(userJDCerts, &ujdcert)
 			}
@@ -143,28 +146,28 @@ func (ujds *UserJobDescriptionService) Create(userID uint, input *dtos.AssignJob
 }
 
 func (ujds *UserJobDescriptionService) Delete(userID, jobDescriptionID, currentUserID uint) error {
-	userJD, err := ujds.repo.GetByUserAndJD(userID, jobDescriptionID)
+	userJD, err := ujds.repo.GetFullDetailsByID(jobDescriptionID)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, jobDescriptionID)
 	}
 
-	tx := ujds.repo.BeginTransaction()
-	certs, err := ujds.repo.GetCertificatesByUserJDID(userJD.ID)
+	certs, err := ujds.repo.GetCertificatesByUserJDID(jobDescriptionID)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
-	if err := ujds.repo.DeleteUserJobDescriptionCertificatesByUserJDID(tx, userJD.ID); err != nil {
+	tx := ujds.repo.BeginTransaction()
+
+	if err := ujds.repo.DeleteUserJobDescriptionCertificatesByUserJDID(tx, jobDescriptionID); err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	if err := ujds.repo.DeleteUserJobDescriptionCompetenciesByUserJDID(tx, userJD.ID); err != nil {
+	if err := ujds.repo.DeleteUserJobDescriptionCompetenciesByUserJDID(tx, jobDescriptionID); err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	if err := ujds.repo.DeleteUserJobDescription(tx, userJD.ID); err != nil {
+	if err := ujds.repo.DeleteUserJobDescription(tx, jobDescriptionID); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -222,6 +225,11 @@ func (ujds *UserJobDescriptionService) Update(userID uint, jdcID uint, dto dtos.
 
 		if cert.IsNewFile != nil && *cert.IsNewFile {
 			// Update existing record with new file metadata
+			if existingDoc.Token != nil && existingDoc.Name != nil {
+				// Clone the object to avoid overwriting path info
+				oldFile := *existingDoc
+				certFilesToDelete = append(certFilesToDelete, &oldFile)
+			}
 			encrypted, err := utility.EncryptData([]byte(cert.FileName))
 			if err != nil {
 				tx.Rollback()
@@ -229,7 +237,6 @@ func (ujds *UserJobDescriptionService) Update(userID uint, jdcID uint, dto dtos.
 			}
 			url := utility.GenerateDocumentURL("user", strconv.FormatUint(uint64(userID), 10), "job-description", "competency", strconv.Itoa(int(jdcID)), "certificates")
 
-			existingDoc.CertificateTitle = cert.FileName
 			existingDoc.Name = &cert.FileName
 			existingDoc.Token = &encrypted
 			existingDoc.OriginalName = &cert.OriginalName
@@ -241,6 +248,10 @@ func (ujds *UserJobDescriptionService) Update(userID uint, jdcID uint, dto dtos.
 			certFilesToStore = append(certFilesToStore, existingDoc)
 
 		} else if cert.IsDeletedFile != nil && *cert.IsDeletedFile {
+			if existingDoc.Token != nil && existingDoc.Name != nil {
+				oldFile := *existingDoc
+				certFilesToDelete = append(certFilesToDelete, &oldFile)
+			}
 			// Only clear document-related fields
 			existingDoc.Token = nil
 			existingDoc.Name = nil
@@ -250,7 +261,6 @@ func (ujds *UserJobDescriptionService) Update(userID uint, jdcID uint, dto dtos.
 			existingDoc.Size = nil
 
 			certsToUpdate = append(certsToUpdate, existingDoc)
-			certFilesToDelete = append(certFilesToDelete, existingDoc)
 		}
 	}
 
@@ -276,8 +286,8 @@ func (ujds *UserJobDescriptionService) Update(userID uint, jdcID uint, dto dtos.
 			return err
 		}
 	}
-
-	return tx.Commit()
+	tx.Commit()
+	return nil
 }
 
 func (ujds *UserJobDescriptionService) CreateUserJDFromDesignation(userID uint, designationID uint, currentUserID uint, tx utility.DatabaseTransaction) error {
@@ -295,7 +305,7 @@ func (ujds *UserJobDescriptionService) CreateUserJDFromDesignation(userID uint, 
 		{
 			UserID:           userID,
 			JobDescriptionID: *designation.JobDescriptionID,
-			CreatedByID:      currentUserID,
+			CreatedBYID:      currentUserID,
 		},
 	}
 
@@ -316,6 +326,7 @@ func (ujds *UserJobDescriptionService) CreateUserJDFromDesignation(userID uint, 
 		ujdc := &models.UserJobDescriptionCompetency{
 			UserJobDescriptionID:   userJDs[0].ID,
 			CompetencyID:           comp.CompetencyID,
+			ExpectedLevelID:        comp.CompetencyLevelID,
 			CompetencyTitleEn:      &comp.Competency.TitleEn,
 			CompetencyTitleAr:      &comp.Competency.TitleAr,
 			CompetencyGroupTitleEn: &comp.Competency.CompetencyGroup.TitleEn,
@@ -328,10 +339,10 @@ func (ujds *UserJobDescriptionService) CreateUserJDFromDesignation(userID uint, 
 
 		for _, cert := range comp.Certifications {
 			ujdcert := &models.UserJobDescriptionCertificate{
-				UserJobDescriptionCompetencyID:          ujdc.ID,
-				JobDescriptionCompetencyCertificationID: cert.ID,
-				CertificateTitle:                        cert.Title,
-				CreatedByID:                             &currentUserID,
+				UserJobDescriptionCompetencyID: ujdc.ID,
+				CertificateTitle:               cert.Title,
+				IsMandatory:                    cert.IsMandatory,
+				CreatedByID:                    &currentUserID,
 			}
 			userJDCerts = append(userJDCerts, ujdcert)
 		}
@@ -419,17 +430,13 @@ func (ujds *UserJobDescriptionService) validateJobDescriptionIDs(jdIDs []uint) e
 		seen[jdID] = true
 
 		// Load full JD with Competencies and their Certifications
-		jdDetails, err := ujds.jdService.GetFullDetailsByID(jdID)
+		_, err := ujds.jdService.GetByID(jdID)
 		if err != nil {
 			return utility.NewValidationError(fmt.Errorf("unable to load full details for job description ID: %d", jdID), "not_exist", "job_description_ids")
 		}
 
-		if len(jdDetails.Competencies) == 0 {
-			return utility.NewValidationError(fmt.Errorf("no competencies found for job description ID: %d", jdID), "not_exist", "job_description_ids")
-		}
-
 	}
-
+	fmt.Println("190")
 	return nil
 }
 

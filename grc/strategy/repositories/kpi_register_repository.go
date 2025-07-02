@@ -1,16 +1,20 @@
 package repositories
 
 import (
+	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	strategyDTOs "jethur/grc/strategy/dtos"
 	"jethur/utility"
+	"strconv"
+	"time"
 
 	"gorm.io/gorm"
 )
 
 type KPIRegisterRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *strategyDTOs.KPIRegisterListQueryParamsDTO) ([]*strategyDTOs.KPIRegisterListDTO, error)
+	GetAll(params *strategyDTOs.KPIRegisterListQueryParamsDTO) (*strategyDTOs.KPIRegisterListResponseDTO, error)
 	GetByID(id uint) (*models.KPIRegister, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.KPIRegister, error)
 	Create(kpiRegister *models.KPIRegister, tx ...utility.DatabaseTransaction) (uint, error)
@@ -19,6 +23,9 @@ type KPIRegisterRepositoryInterface interface {
 
 	CreateKPIRegisterInpuData(inputs []*models.KPIRegisterDataInput, tx ...utility.DatabaseTransaction) error
 	DeleteKPIRegisterInputData(kpiRegisterId uint, tx ...utility.DatabaseTransaction) error
+
+	GetTrendAnalysis(kpiId uint) ([]*models.KPIValueUpdate, error)
+	GenerateReferenceNumber() (string, error)
 }
 
 type KPIRegisterRepository struct {
@@ -36,7 +43,7 @@ func (repo *KPIRegisterRepository) BeginTransaction() utility.DatabaseTransactio
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *KPIRegisterRepository) GetAll(params *strategyDTOs.KPIRegisterListQueryParamsDTO) ([]*strategyDTOs.KPIRegisterListDTO, error) {
+func (repo *KPIRegisterRepository) GetAll(params *strategyDTOs.KPIRegisterListQueryParamsDTO) (*strategyDTOs.KPIRegisterListResponseDTO, error) {
 	var kpiRegister []*strategyDTOs.KPIRegisterListDTO
 	var totalCount int64
 
@@ -45,6 +52,8 @@ func (repo *KPIRegisterRepository) GetAll(params *strategyDTOs.KPIRegisterListQu
             kpi_register.*,
 			kpi_categories.title_en AS kpi_category_title_en,
 			kpi_categories.title_ar AS kpi_category_title_ar,
+			CONVERT(VARCHAR, kpi_register.start_date, 23) AS start_date,
+			CONVERT(VARCHAR, kpi_register.end_date, 23) AS target_date,
 			responsible_user.id AS responsible_user_id,
 			responsible_user.first_name_en AS responsible_user_first_name_en,
 			responsible_user.first_name_ar AS responsible_user_first_name_ar,
@@ -58,6 +67,17 @@ func (repo *KPIRegisterRepository) GetAll(params *strategyDTOs.KPIRegisterListQu
 			kpi_statuses.title_ar AS kpi_status_title_ar,
 			kpi_statuses.type AS kpi_status_type,
 			kpi_statuses.color_code AS kpi_status_color_code,
+			review_frequencies.title_en AS review_frequency_title_en,
+			review_frequencies.title_ar AS review_frequency_title_ar,
+			review_frequencies.type AS review_frequency_type,
+			calculation_types.title_en AS calculation_type_title_en,
+			calculation_types.title_ar AS calculation_type_title_ar,
+			calculation_types.type AS calculation_type_type,
+			units.title_en AS unit_title_en,
+			units.title_ar AS unit_title_ar,
+			units.code_en AS unit_code_en,
+			units.code_ar AS unit_code_ar,
+			units.color_code AS unit_color_code,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -80,6 +100,9 @@ func (repo *KPIRegisterRepository) GetAll(params *strategyDTOs.KPIRegisterListQu
 		Joins(`
 			LEFT JOIN kpi_categories ON kpi_categories.id = kpi_register.kpi_category_id
 			LEFT JOIN kpi_statuses ON kpi_statuses.id = kpi_register.kpi_status_id
+			LEFT JOIN calculation_types ON calculation_types.id = kpi_register.calculation_type_id
+			LEFT JOIN review_frequencies ON review_frequencies.id = kpi_register.review_frequency_id
+			LEFT JOIN units ON units.id = kpi_register.unit_id
 			LEFT JOIN users AS responsible_user ON responsible_user.id = kpi_register.responsible_user_id
 			LEFT JOIN users AS created_user ON created_user.id = kpi_register.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = kpi_register.updated_by_id
@@ -126,7 +149,22 @@ func (repo *KPIRegisterRepository) GetAll(params *strategyDTOs.KPIRegisterListQu
 	if err != nil {
 		return nil, err
 	}
-	return kpiRegister, nil
+
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
+
+	response := &strategyDTOs.KPIRegisterListResponseDTO{
+		Items: kpiRegister,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
 }
 
 func (repo *KPIRegisterRepository) GetByID(id uint) (*models.KPIRegister, error) {
@@ -152,6 +190,10 @@ func (repo *KPIRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Dat
 		Preload("KPICategory").
 		Preload("KPIStatus").
 		Preload("ResponsibleUser").
+		Preload("CalculationType").
+		Preload("ReviewFrequency").
+		Preload("Unit").
+		Preload("DataInputs").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&kpiRegister, id)
@@ -225,4 +267,46 @@ func (repo *KPIRegisterRepository) DeleteKPIRegisterInputData(kpiRegisterID uint
 	}
 
 	return nil
+}
+
+func (repo *KPIRegisterRepository) GetTrendAnalysis(kpiID uint) ([]*models.KPIValueUpdate, error) {
+	var kpiValueUpdate []*models.KPIValueUpdate
+
+	result := repo.db.Where("kpi_register_id = ?", kpiID).
+		Order("reviewed_date ASC").
+		Find(&kpiValueUpdate)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return kpiValueUpdate, nil
+}
+
+func (repo *KPIRegisterRepository) GenerateReferenceNumber() (string, error) {
+	var lastReferenceNumber *string
+	err := repo.db.Model(&models.KPIRegister{}).
+		Select("reference_number").
+		Order("reference_number desc").
+		Limit(1).
+		Scan(&lastReferenceNumber).
+		Error
+
+	if err != nil {
+		return "", err
+	}
+
+	lastDigits := "0000"
+	if lastReferenceNumber != nil && len(*lastReferenceNumber) >= 4 {
+		lastDigits = (*lastReferenceNumber)[len(*lastReferenceNumber)-4:]
+	}
+
+	currentYear := time.Now().Year()
+	lastReferenceID, err := strconv.ParseUint(lastDigits, 10, 64)
+	if err != nil {
+		return "", err
+	}
+
+	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "KPI", currentYear, lastReferenceID+1)
+	return newReferenceNumber, nil
 }

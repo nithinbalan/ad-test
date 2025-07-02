@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"jethur/grc/organization/dtos"
 	"jethur/grc/organization/services"
 	"jethur/utility"
@@ -87,7 +86,6 @@ func (ujdc *UserJobDescriptionController) AssignJobDescriptionsToUser(c *gin.Con
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
-	fmt.Println("jjjj")
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(ujdc.db, c, err.Error())

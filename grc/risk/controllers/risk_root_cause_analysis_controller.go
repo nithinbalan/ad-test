@@ -97,6 +97,44 @@ func (rrcac *RiskRootCauseAnalysisController) CreateRiskRootCauseAnalysis(c *gin
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
+// create multiple rca
+func (rrcac *RiskRootCauseAnalysisController) CreateRiskRootCauseAnalyses(c *gin.Context) {
+	var RCAFormDTO []riskDTOs.RiskRootCauseAnalysisFormDTO
+
+	riskIDStr := c.Param("riskId")
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&RCAFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrcac.db, c, err.Error())
+		return
+	}
+
+	err = rrcac.service.CreateMultiple(uint(riskID), currentUserID, RCAFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+		default:
+			utility.SendInternalErrResp(rrcac.db, c, e.Error())
+		}
+		return
+	}
+
+	c.Status(http.StatusCreated)
+}
+
 func (rrcac *RiskRootCauseAnalysisController) UpdateRiskRootCauseAnalysis(c *gin.Context) {
 	var RiskRootCauseAnalysisFormDTO riskDTOs.RiskRootCauseAnalysisFormDTO
 

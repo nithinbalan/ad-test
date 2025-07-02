@@ -74,7 +74,7 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
 			published_user.initial AS published_user_initial,
 			published_user.profile_image_path AS published_user_profile_image_path,
 			audit_teams.title_en AS audit_team_title_en,
-			audit_teams.title_en AS audit_team_title_en,
+			audit_teams.title_ar AS audit_team_title_ar,
 			audit_teams_team_lead.id AS audit_team_team_lead_id,
 			audit_teams_team_lead.first_name_en AS audit_team_team_lead_first_name_en,
 			audit_teams_team_lead.first_name_ar AS audit_team_team_lead_first_name_ar,
@@ -116,9 +116,24 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
-		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+		if len(values) == 0 {
+			continue
 		}
+
+		qualifiedColumn := columnName
+
+		switch columnName {
+		case "team_lead_id":
+			qualifiedColumn = "audit_plans.team_lead_id"
+		case "audit_team_id":
+			qualifiedColumn = "audit_plans.audit_team_id"
+		case "audit_category_id":
+			qualifiedColumn = "audit_plans.audit_category_id"
+		case "audit_status_id":
+			qualifiedColumn = "audit_plans.audit_status_id"
+		}
+
+		query = query.Where(qualifiedColumn+" IN (?)", values)
 	}
 
 	// Apply other filters as needed (e.g., date filters)

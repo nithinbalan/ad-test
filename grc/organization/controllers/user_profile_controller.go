@@ -13,17 +13,21 @@ import (
 )
 
 type UserProfileController struct {
-	service     services.UserSettingServiceInterface
-	taskService services.UserTaskServiceInterface
-	userService services.UserServiceInterface
-	db          *gorm.DB
+	service                   services.UserSettingServiceInterface
+	taskService               services.UserTaskServiceInterface
+	userService               services.UserServiceInterface
+	userDocumentService       services.UserDocumentServiceInterface
+	userJobDescriptionService services.UserJobDescriptionServiceInterface
+	db                        *gorm.DB
 }
 
-func NewUserProfileController(service services.UserSettingServiceInterface, taskService services.UserTaskServiceInterface, userService services.UserServiceInterface) *UserProfileController {
+func NewUserProfileController(service services.UserSettingServiceInterface, taskService services.UserTaskServiceInterface, userService services.UserServiceInterface, userDocumentService services.UserDocumentServiceInterface, userJobDescriptionService services.UserJobDescriptionServiceInterface) *UserProfileController {
 	return &UserProfileController{
-		service:     service,
-		taskService: taskService,
-		userService: userService,
+		service:                   service,
+		taskService:               taskService,
+		userService:               userService,
+		userDocumentService:       userDocumentService,
+		userJobDescriptionService: userJobDescriptionService,
 	}
 }
 
@@ -446,4 +450,62 @@ func (upc *UserProfileController) ChangePassword(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (upc *UserProfileController) GetAllUserDocuments(c *gin.Context) {
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(upc.db, c, err.Error())
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	allowedParams := []string{
+		"user_document_type_ids",
+		"user_document_sub_type_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	queryParams := organizationDTOs.UserDocumentListQueryParamsDTO{
+		Sort:    sort,
+		SortBy:  sortBy,
+		Keyword: keyword,
+		Filters: filters,
+	}
+	result, err := upc.userDocumentService.GetAll(currentUserID, &queryParams)
+
+	if err != nil {
+		utility.SendInternalErrResp(upc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+func (upc *UserProfileController) GetAllUserJobDescriptions(c *gin.Context) {
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(upc.db, c, err.Error())
+		return
+	}
+
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title_en")
+	keyword := c.Query("keyword")
+
+	dtos, err := upc.userJobDescriptionService.GetAll(sort, sortBy, keyword, currentUserID)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(upc.db, c, err.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, dtos)
 }
