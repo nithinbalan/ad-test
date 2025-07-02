@@ -15,6 +15,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectTypeController := app.ProjectModule.ProjectTypeController
 	projectStatusController := app.ProjectModule.ProjectStatusController
 	projectController := app.ProjectModule.ProjectController
+	projectMilestoneController := app.ProjectModule.ProjectMilestoneController
 
 	// Project Type
 	projectRoutes.GET("/project-types", projectTypeController.GetAllProjectTypes)
@@ -35,5 +36,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.POST("/projects", projectController.CreateProject)
 	projectRoutes.PUT("/projects/:id", projectController.UpdateProject)
 	projectRoutes.POST("/projects/delete", projectController.DeleteProjects)
+
+	// Project Milestones
+	projectRoutes.GET("/project-milestones", projectMilestoneController.GetAllProjectMilestones)
+	projectRoutes.GET("/project-milestones/:id", projectMilestoneController.GetProjectMilestoneDetails)
+	projectRoutes.POST("/project-milestones", projectMilestoneController.CreateProjectMilestone)
+	projectRoutes.PUT("/project-milestones/:id", projectMilestoneController.UpdateProjectMilestone)
+	projectRoutes.POST("/project-milestones/delete", projectMilestoneController.DeleteProjectMilestones)
 
 }
