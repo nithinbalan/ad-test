@@ -146,8 +146,8 @@ type MeetingAssociatedItemListQueryParamsDTO struct {
 }
 
 type MeetingAssociatedItemControlListResponseDTO struct {
-	Items      []*MeetingControlListDTO     `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+	Items      []*commonDTOs.AssociatedControlListDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO           `json:"pagination"`
 }
 
 type MeetingAssociatedItemComplianceRequirementListResponseDTO struct {

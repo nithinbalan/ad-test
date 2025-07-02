@@ -2,11 +2,11 @@ package services
 
 import (
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
-	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 	"strconv"
@@ -24,7 +24,7 @@ type ComplianceClauseServiceInterface interface {
 	Delete(id uint) error
 
 	GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error)
-	GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlListDTO, error)
+	GetAssociatedControls(complianceID uint, clauseID uint) ([]commonDTOs.AssociatedControlListDTO, error)
 	CreateComplianceClauseControls(complianceID, clauseID, currentUserID uint, dto *complianceDTOs.ComplianceClauseControlMapDTO) error
 	DeleteComplianceClauseControl(clauseID, controlID uint) error
 }
@@ -353,7 +353,7 @@ func (ccs *ComplianceClauseService) GetAssociatedComplianceRequirements(complian
 	return requirements, nil
 }
 
-func (ccs *ComplianceClauseService) GetAssociatedControls(complianceID uint, clauseID uint) ([]organizationDTOs.ControlListDTO, error) {
+func (ccs *ComplianceClauseService) GetAssociatedControls(complianceID uint, clauseID uint) ([]commonDTOs.AssociatedControlListDTO, error) {
 	// Fetch associated controls through requirements from repository
 	controls, err := ccs.repo.GetAssociatedControls(complianceID, clauseID)
 	if err != nil {
