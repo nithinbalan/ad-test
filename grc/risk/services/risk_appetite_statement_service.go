@@ -28,6 +28,7 @@ type RiskAppetiteStatementServiceInterface interface {
 	GetAllRiskAppetiteStatments(params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO) ([]riskDTOs.RiskAppetiteStatementSummaryDTO, error)
 	GetRiskAppetiteStatementSummary() (*riskDTOs.RiskAppetiteDashboardSummaryDTO, error)
 	GetAllRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
+	GetRiskAppetiteStatementDetailsSummary(statementID uint) (*riskDTOs.RiskAppetiteStatementSummaryCountsDTO, error)
 }
 
 // Service and implementations
@@ -350,4 +351,8 @@ func (rass *RiskAppetiteStatementService) GetRiskAppetiteStatementSummary() (*ri
 
 func (rass *RiskAppetiteStatementService) GetAllRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
 	return rass.repo.GetAllRisks(statementID, params)
+}
+
+func (rass *RiskAppetiteStatementService) GetRiskAppetiteStatementDetailsSummary(statementID uint) (*riskDTOs.RiskAppetiteStatementSummaryCountsDTO, error) {
+	return rass.repo.GetRiskAppetiteStatementDetailsSummary(statementID)
 }
