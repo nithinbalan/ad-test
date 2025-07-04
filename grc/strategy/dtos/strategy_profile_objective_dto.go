@@ -52,17 +52,17 @@ type StrategyProfileObjectiveListQueryParamsDTO struct {
 }
 
 type StrategyProfileObjectiveDetailDTO struct {
-	ID                         uint                              `json:"id"`
-	Title                      string                            `json:"title"`
-	Description                *string                           `json:"description"`
-	StrategyProfileID          uint                              `json:"strategy_profile_id"`
-	StrategyProfile            StrategyProfileDetailDTO          `json:"strategy_profile"`
-	StrategyProfileFocusAreaID *uint                             `json:"strategy_profile_focus_area_id"`
-	StrategyProfileFocusArea   StrategyProfileFocusAreaDetailDTO `json:"strategy_profile_focus_area"`
-	StrategyProfileGoalID      *uint                             `json:"strategy_profile_goal_id"`
-	StrategyProfileGoal        StrategyProfileGoalDetailDTO      `json:"strategy_profile_goal"`
-	CreatedAt                  time.Time                         `json:"created_at"`
-	UpdatedAt                  *time.Time                        `json:"updated_at"`
-	CreatedByUser              organizationDTOs.UserMinimalDTO   `json:"created_by"`
-	UpdatedByUser              *organizationDTOs.UserMinimalDTO  `json:"updated_by"`
+	ID                         uint                             `json:"id"`
+	Title                      string                           `json:"title"`
+	Description                *string                          `json:"description"`
+	StrategyProfileID          uint                             `json:"strategy_profile_id"`
+	StrategyProfile            StrategyProfileDetailDTO         `json:"strategy_profile"`
+	StrategyProfileFocusAreaID *uint                            `json:"strategy_profile_focus_area_id"`
+	StrategyProfileFocusArea   FocusAreaDetailDTO               `json:"strategy_profile_focus_area"`
+	StrategyProfileGoalID      *uint                            `json:"strategy_profile_goal_id"`
+	StrategyProfileGoal        StrategyProfileGoalDetailDTO     `json:"strategy_profile_goal"`
+	CreatedAt                  time.Time                        `json:"created_at"`
+	UpdatedAt                  *time.Time                       `json:"updated_at"`
+	CreatedByUser              organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser              *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 }

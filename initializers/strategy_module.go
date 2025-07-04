@@ -54,10 +54,6 @@ func NewStrategyModule(db *gorm.DB,
 	strategyProfileSvc := services.NewStrategyProfileService(strategyProfileRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, settingsModule.OrganizationUnitSvc)
 	strategyProfileController := controllers.NewStrategyProfileController(strategyProfileSvc)
 
-	strategyProfileFocusAreaRepo := repositories.NewStrategyProfileFocusAreaRepository(db)
-	strategyProfileFocusAreaSvc := services.NewStrategyProfileFocusAreaService(strategyProfileFocusAreaRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
-	strategyProfileFocusAreaController := controllers.NewStrategyProfileFocusAreaController(strategyProfileFocusAreaSvc)
-
 	strategyProfileGoalRepo := repositories.NewStrategyProfileGoalRepository(db)
 	strategyProfileGoalSvc := services.NewStrategyProfileGoalService(strategyProfileGoalRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
 	strategyProfileGoalController := controllers.NewStrategyProfileGoalController(strategyProfileGoalSvc)
@@ -161,6 +157,10 @@ func NewStrategyModule(db *gorm.DB,
 	focusAreaSvc := services.NewFocusAreaService(focusAreaRepository,
 		sharedModule.ActivityLogService)
 	focusAreaController := controllers.NewFocusAreaController(focusAreaSvc)
+
+	strategyProfileFocusAreaRepo := repositories.NewStrategyProfileFocusAreaRepository(db)
+	strategyProfileFocusAreaSvc := services.NewStrategyProfileFocusAreaService(strategyProfileFocusAreaRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc, focusAreaSvc)
+	strategyProfileFocusAreaController := controllers.NewStrategyProfileFocusAreaController(strategyProfileFocusAreaSvc)
 
 	return &StrategyModule{
 		StrategyProfileController:                       strategyProfileController,

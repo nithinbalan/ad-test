@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	strategyDTOs "jethur/grc/strategy/dtos"
 	"jethur/grc/strategy/services"
@@ -87,39 +88,9 @@ func (snec *StrategyProfileFocusAreaController) GetAllStrategyProfileFocusAreas(
 	c.JSON(http.StatusOK, focusArea)
 }
 
-func (snec *StrategyProfileFocusAreaController) GetStrategyProfileFocusAreaDetails(c *gin.Context) {
-	strategyProfileIDStr := c.Param("strategyProfileId")
-	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	idStr := c.Param("focusAreaId")
-
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	focusArea, err := snec.service.GetFullDetailsByID(uint(strategyProfileID), uint(id))
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		default:
-			utility.SendInternalErrResp(snec.db, c, e.Error())
-			return
-		}
-	}
-
-	c.JSON(http.StatusOK, focusArea)
-}
-
 func (snec *StrategyProfileFocusAreaController) CreateStrategyProfileFocusArea(c *gin.Context) {
-	var FormDTO strategyDTOs.StrategyProfileFocusAreaFormDTO
+	var FormDTO strategyDTOs.StrategyProfileFocusAreaBulkCreateDTO
+	fmt.Println("FormDTO", FormDTO)
 
 	strategyProfileIDStr := c.Param("strategyProfileId")
 	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
@@ -139,7 +110,8 @@ func (snec *StrategyProfileFocusAreaController) CreateStrategyProfileFocusArea(c
 		return
 	}
 
-	id, err := snec.service.Create(uint(strategyProfileID), currentUserID, &FormDTO)
+	ids, err := snec.service.Create(uint(strategyProfileID), currentUserID, &FormDTO)
+	fmt.Println("ids", ids)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -155,12 +127,10 @@ func (snec *StrategyProfileFocusAreaController) CreateStrategyProfileFocusArea(c
 		}
 	}
 
-	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
+	c.JSON(http.StatusCreated, commonDTOs.SuccessfulIDsResponse{SuccessfulIds: ids})
 }
 
-func (snec *StrategyProfileFocusAreaController) UpdateStrategyProfileFocusArea(c *gin.Context) {
-	var FormDTO strategyDTOs.StrategyProfileFocusAreaFormDTO
-
+func (snec *StrategyProfileFocusAreaController) DeleteStrategyProfileFocusArea(c *gin.Context) {
 	strategyProfileIDStr := c.Param("strategyProfileId")
 	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
 	if err != nil {
@@ -168,16 +138,10 @@ func (snec *StrategyProfileFocusAreaController) UpdateStrategyProfileFocusArea(c
 		return
 	}
 
-	idStr := c.Param("focusAreaId")
-
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	focusAreaIDStr := c.Param("focusAreaId")
+	focusAreaID, err := strconv.ParseUint(focusAreaIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	if err := c.ShouldBindJSON(&FormDTO); err != nil {
-		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
@@ -187,7 +151,7 @@ func (snec *StrategyProfileFocusAreaController) UpdateStrategyProfileFocusArea(c
 		return
 	}
 
-	err = snec.service.Update(uint(strategyProfileID), uint(id), currentUserID, &FormDTO)
+	err = snec.service.DeleteSingle(uint(strategyProfileID), uint(focusAreaID), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -203,45 +167,4 @@ func (snec *StrategyProfileFocusAreaController) UpdateStrategyProfileFocusArea(c
 	}
 
 	c.Status(http.StatusOK)
-}
-
-func (snec *StrategyProfileFocusAreaController) DeleteStrategyProfileFocusAreas(c *gin.Context) {
-	var request struct {
-		IDs []uint `json:"ids"`
-	}
-
-	strategyProfileIDStr := c.Param("strategyProfileId")
-	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	if err := c.ShouldBindJSON(&request); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(snec.db, c, err.Error())
-		return
-	}
-
-	failedIDs, err := snec.service.Delete(uint(strategyProfileID), request.IDs, currentUserID)
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		default:
-			utility.SendInternalErrResp(snec.db, c, e.Error())
-			return
-		}
-	}
-
-	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
