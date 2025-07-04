@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	strategyDTOs "jethur/grc/strategy/dtos"
 	"jethur/grc/strategy/services"
@@ -90,7 +89,6 @@ func (snec *StrategyProfileFocusAreaController) GetAllStrategyProfileFocusAreas(
 
 func (snec *StrategyProfileFocusAreaController) CreateStrategyProfileFocusArea(c *gin.Context) {
 	var FormDTO strategyDTOs.StrategyProfileFocusAreaBulkCreateDTO
-	fmt.Println("FormDTO", FormDTO)
 
 	strategyProfileIDStr := c.Param("strategyProfileId")
 	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
@@ -111,7 +109,6 @@ func (snec *StrategyProfileFocusAreaController) CreateStrategyProfileFocusArea(c
 	}
 
 	ids, err := snec.service.Create(uint(strategyProfileID), currentUserID, &FormDTO)
-	fmt.Println("ids", ids)
 
 	if err != nil {
 		switch e := err.(type) {
