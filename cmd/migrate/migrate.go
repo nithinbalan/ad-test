@@ -18,41 +18,55 @@ func main() {
 	_ = godotenv.Load()
 
 	if len(os.Args) < 2 {
-		log.Fatal("Usage: migrate.exe [up|down]")
+		log.Fatal("Usage: migrate.exe [up|down|seed|unseed]")
 	}
-	dir := extractMigrationsToTemp()
-	defer os.RemoveAll(dir) // Clean up after run
+	command := os.Args[1]
 
 	dsn := os.Getenv("DATABASE_DSN")
 	if dsn == "" {
 		log.Fatal("DATABASE_DSN not set")
 	}
 
+	switch command {
+	case "up", "down":
+		handleMigration(command, dsn)
+	case "seed":
+		if err := runSeederUp(dsn); err != nil {
+			log.Fatalf("Seeding failed: %v", err)
+		}
+	case "unseed":
+		if err := runSeederDown(dsn); err != nil {
+			log.Fatalf("Unseeding failed: %v", err)
+		}
+	default:
+		log.Fatal("Invalid command. Use up, down, seed, or unseed")
+	}
+
+	fmt.Printf("Migration '%s' completed successfully.\n", command)
+}
+
+func handleMigration(direction, dsn string) {
+	dir := extractMigrationsToTemp()
+	defer os.RemoveAll(dir)
+
 	db, err := sql.Open("sqlserver", dsn)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to connect to DB: %v", err)
 	}
 	defer db.Close()
 
 	goose.SetDialect("sqlserver")
 
-	var gooseErr error
-	switch os.Args[1] {
+	switch direction {
 	case "up":
-		gooseErr = goose.Up(db, dir)
+		if err := goose.Up(db, dir); err != nil {
+			log.Fatalf("Migration up failed: %v", err)
+		}
 	case "down":
-		gooseErr = goose.DownTo(db, dir, 0)
-	case "seed":
-		runSeeders(db)
-	default:
-		log.Fatal("Invalid command. Use up, down, or seed")
+		if err := goose.DownTo(db, dir, 0); err != nil {
+			log.Fatalf("Migration down failed: %v", err)
+		}
 	}
-
-	if gooseErr != nil {
-		log.Fatalf("Migration error: %v", gooseErr)
-	}
-
-	fmt.Printf("Migration '%s' completed successfully.\n", os.Args[1])
 }
 
 func extractMigrationsToTemp() string {
@@ -82,8 +96,51 @@ func extractMigrationsToTemp() string {
 	return tmpDir
 }
 
-func runSeeders(db *sql.DB) {
-	err := fs.WalkDir(assets.SeederFS, "seeders", func(path string, d fs.DirEntry, err error) error {
+func runSeederUp(dsn string) error {
+	tmpDir, err := extractSeedersToTemp()
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	db, err := sql.Open("sqlserver", dsn)
+	if err != nil {
+		return fmt.Errorf("DB connection error: %w", err)
+	}
+	defer db.Close()
+
+	goose.SetDialect("sqlserver")
+	goose.SetTableName("goose_seeder_versions")
+
+	return goose.Up(db, tmpDir)
+}
+
+func runSeederDown(dsn string) error {
+	tmpDir, err := extractSeedersToTemp()
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	db, err := sql.Open("sqlserver", dsn)
+	if err != nil {
+		return fmt.Errorf("DB connection error: %w", err)
+	}
+	defer db.Close()
+
+	goose.SetDialect("sqlserver")
+	goose.SetTableName("goose_seeder_versions")
+
+	return goose.DownTo(db, tmpDir, 0)
+}
+
+func extractSeedersToTemp() (string, error) {
+	tmpDir, err := os.MkdirTemp("", "seeders")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp dir: %w", err)
+	}
+
+	err = fs.WalkDir(assets.SeederFS, "seeders", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -94,13 +151,12 @@ func runSeeders(db *sql.DB) {
 		if err != nil {
 			return err
 		}
-		if _, err := db.Exec(string(content)); err != nil {
-			return fmt.Errorf("error executing seeder %s: %w", path, err)
-		}
-		fmt.Printf("Executed seeder: %s\n", path)
-		return nil
+		destPath := filepath.Join(tmpDir, filepath.Base(path))
+		return os.WriteFile(destPath, content, 0644)
 	})
 	if err != nil {
-		log.Fatalf("Seeding failed: %v", err)
+		return "", fmt.Errorf("failed to extract embedded seeders: %w", err)
 	}
+
+	return tmpDir, nil
 }

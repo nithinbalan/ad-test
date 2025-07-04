@@ -1,22 +1,23 @@
-name: smc-uat-api-deployment
+name: smc-uat-api.jethur.com
 
 on:
   workflow_dispatch:
 
 jobs:
   deploy:
-    runs-on: ${{ env.RUNNER_NAME }}
+    runs-on: jethur-uat
     env:
-      RUNNER_NAME: jethur-uat
+  
       PROJECT_NAME: smc-uat-api
       DB_NAME: jethur_smc_uat_db
-      MIGRATION_BRANCH: migration_new
       DEPLOY_BRANCH: main
-      BACKUP_SCRIPT_PATH: C:\jethur-scripts\backup-for-deployment.ps1
+      MIGRATION_BRANCH: migration
       IIS_DOC_ROOT: C:\inetpub\wwwroot\smc-uat\smc-uat-api
       SERVICE_NAME: smc-uat-api
-      SCRIPT_SOURCE_PATH: C:\jethur-deployment\deployment-files\script.bat
-      EMAIL_TO: nithin@jethur.com
+      BACKUP_SCRIPT_PATH: C:\jethur-scripts\backup-for-deployment-api.ps1
+      SCRIPT_SOURCE_PATH: C:\jethur-deployment\deployment-files\.env
+      EMAIL_TO: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, suhaila@jethur.com
+      SENDER: "Jethur Notifications <info@jethur.com>"
       EMAIL_FROM: "Jethur Notifications <info@jethur.com>"
 
     steps:
@@ -48,18 +49,27 @@ jobs:
            exit 1
          }
 
-      - name: Cleanup workspace if not empty
-        run: |
-          $items = Get-ChildItem -Force -Recurse
-          if ($items.Count -gt 0) {
-            Remove-Item -Recurse -Force * -ErrorAction Continue
-            Remove-Item -Recurse -Force .??* -ErrorAction Continue
-          }
-          Get-ChildItem -Force
+      - name: Pre Cleanup workspace
+        if: always()
         shell: powershell
+        run: |
+          Write-Host "Cleaning workspace before checkout..."
+          Get-ChildItem -Force | ForEach-Object {
+          try {
+            Remove-Item -Recurse -Force $_.FullName -ErrorAction Stop
+            } catch {
+          Write-Warning "Could not delete: $($_.FullName) - $_"
+          }
+          }
+          Write-Host "Workspace after cleanup:"
+          Get-ChildItem -Force
 
       - name: Checkout Code
         uses: actions/checkout@v3
+        with:
+         clean: true
+         fetch-depth: 0
+        
 
       - name: Set Go Path
         run: $env:PATH = "C:\Program Files\Go\bin;$env:PATH"
@@ -76,38 +86,46 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Download script.bat
-        run: Copy-Item -Path ${{ env.SCRIPT_SOURCE_PATH }} -Destination "${{ github.workspace }}\script.bat" -Force
+      - name: Download .env
+        run: Copy-Item -Path ${{ env.SCRIPT_SOURCE_PATH }} -Destination "${{ github.workspace }}\.env" -Force
         shell: powershell
 
-      - name: Modify script.bat for Database Name
+      - name: Modify .env for Database Name
         run: |
-          (Get-Content -Path "${{ github.workspace }}\script.bat") -replace "DatabaseName", "${{ env.DB_NAME }}" | Set-Content -Path "${{ github.workspace }}\script.bat"
+          (Get-Content -Path "${{ github.workspace }}\.env") -replace "DatabaseName", "${{ env.DB_NAME }}" | Set-Content -Path "${{ github.workspace }}\.env"
         shell: powershell
-
-      - name: Switch to Migration Branch and Run Migrations
-        run: |
-          git fetch origin ${{ env.MIGRATION_BRANCH }}
-          git checkout ${{ env.MIGRATION_BRANCH }}
 
       - name: Stop NSSM Service
         run: nssm stop ${{ env.SERVICE_NAME }}
         shell: powershell
 
+      - name: Merge migration Branch
+        run: git pull origin migration
+
+      - name: Build migration.exe
+        run: go build -o migration.exe .\cmd\migrate
+        shell: powershell
+
       - name: Run Migrations and Seed
         run: |
-          .\script.bat migrateup
-          if ($LASTEXITCODE -ne 0) { exit 1 }
-          .\script.bat seed
-          if ($LASTEXITCODE -ne 0) { exit 1 }
+          Write-Host "Running database migration..."
+          .\migration.exe up
+          if ($LASTEXITCODE -ne 0) {
+          Write-Error "Migration failed!"
+          exit 1
+          }
 
-      - name: Switch Back to Deploy Branch
-        run: git checkout ${{ env.DEPLOY_BRANCH }}
+          Write-Host "Running database seed..."
+          .\migration.exe seed
+          if ($LASTEXITCODE -ne 0) {
+          Write-Error "Seeding failed!"
+          exit 1
+          }
+
 
       - name: Install Dependencies
         run: |
           go mod tidy
-          go install github.com/pressly/goose/v3/cmd/goose@latest
         shell: powershell
 
       - name: Build API
@@ -145,7 +163,8 @@ jobs:
           Start-Website -Name $siteName
         shell: powershell
 
-      - name: Cleanup build
+      - name: Post Cleanup build
+        if: always()
         run: |
           Get-ChildItem -Force
           Remove-Item -Recurse -Force * -ErrorAction SilentlyContinue

@@ -75,6 +75,13 @@ func (sps SystemPreferenceService) GetSystemPreference() (*dtos.SystemPreference
 			allowedModules = enabledModules
 		}
 
+		var allowedAddons []string
+		// Extract expiry_date from claims
+		enabledAddons, ok := claims["enabled_addons"].([]string) // Check if it's a string
+		if ok {
+			allowedAddons = enabledAddons
+		}
+
 		licenseKey := *systemPreference.LicenseKey
 		licenseDTO := &dtos.LicenseKeyDTO{
 			LicenseKey:                 &licenseKey,
@@ -82,6 +89,7 @@ func (sps SystemPreferenceService) GetSystemPreference() (*dtos.SystemPreference
 			BalanceLicensedUserCount:   systemPreference.BalanceLicensedUserCount,
 			TotalLicensedUserCount:     systemPreference.TotalLicensedUserCount,
 			EnabledModules:             allowedModules,
+			EnabledAddons:              allowedAddons,
 		}
 
 		systemPreferenceDetailDTO.LicenseKeyDetails = licenseDTO
@@ -264,14 +272,43 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(systemPreferenceFormDTO *dt
 		return utility.NewValidationError(fmt.Errorf("invalid enabled_modules format"), "invalid", "enabled modules")
 	}
 	// Enable modules
+	var enableModules []models.Module
 	for _, moduleIdentifier := range enabledModules {
 		moduleID, err := sps.moduleSvc.GetModuleIDByIdentifier(moduleIdentifier)
 		if err != nil {
 			return err
 		}
+		moduleDetail, err := sps.moduleSvc.GetFullDetailsByID(moduleID)
+		if err != nil {
+			return err
+		}
+		enableModule, err := sps.moduleSvc.GetByID(moduleID)
+		if err != nil {
+			return err
+		}
 
-		// Ensure EnableModule returns an error if it fails
-		if _, err := sps.moduleSvc.EnableModule(moduleID); err != nil {
+		enableModule.IsEnable = true
+		enableModules = append(enableModules, *enableModule)
+		if enableModule.ModuleID == nil {
+			if len(moduleDetail.SubModules) > 0 {
+
+				// enabling all sub modules
+				for _, subModule := range moduleDetail.SubModules {
+					existingSubModule, err := sps.moduleSvc.GetByID(subModule.ID)
+
+					if err != nil {
+						return err
+					}
+					existingSubModule.IsEnable = true
+					enableModules = append(enableModules, *existingSubModule)
+				}
+			}
+
+		}
+	}
+
+	if len(enableModules) > 0 {
+		if err := sps.repo.UpdateModule(enableModules); err != nil {
 			return err
 		}
 	}
@@ -285,11 +322,12 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(systemPreferenceFormDTO *dt
 		return utility.NewValidationError(fmt.Errorf("invalid enabled_addons format"), "invalid", "enabled addons")
 	}
 
+	isEnable := false
+	existingSystemPreference.IsAIEnable = &isEnable
 	for _, addon := range enabledAddons {
 		if addon == "jethur_ai" {
-			*existingSystemPreference.IsAIEnable = true
-		} else {
-			*existingSystemPreference.IsAIEnable = false
+			isEnable = true
+			existingSystemPreference.IsAIEnable = &isEnable
 		}
 	}
 

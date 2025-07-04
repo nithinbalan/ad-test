@@ -240,6 +240,46 @@ func StreamAIAPI(ctx context.Context, url string, payload map[string]interface{}
 	return streamChan, nil
 }
 
+func CallAIAPIObjectResponse(apiURL string) (map[string]interface{}, error) {
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		return nil, fmt.Errorf("error making GET request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API returned non-200 status: %d - %s", resp.StatusCode, string(body))
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("error decoding API response: %w", err)
+	}
+
+	return result, nil
+}
+
+func CallAIAPIArrayResponse(apiURL string) ([]map[string]interface{}, error) {
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		return nil, fmt.Errorf("error making GET request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API returned non-200 status: %d - %s", resp.StatusCode, string(body))
+	}
+
+	var result []map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("error decoding API response: %w", err)
+	}
+
+	return result, nil
+}
+
 // StreamAIAPI makes a streaming POST request to the AI service and returns a channel for the responses
 // func StreamAIAPI(ctx context.Context, url string, payload map[string]interface{}) (<-chan string, error) {
 // 	jsonData, err := json.Marshal(payload)

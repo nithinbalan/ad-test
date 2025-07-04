@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"jethur/config"
 	logServices "jethur/grc/logs/services"
@@ -33,6 +34,7 @@ type RiskClosureService struct {
 	activityLogSvc  logServices.ActivityLogServiceInterface
 	riskRegisterSvc RiskRegisterServiceInterface
 	riskStatusSvc   RiskStatusServiceInterface
+	riskTimelineSvc RiskTimelineServiceInterface
 }
 
 func NewRiskClosureService(
@@ -40,12 +42,14 @@ func NewRiskClosureService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	riskRegisterSvc RiskRegisterServiceInterface,
 	riskStatusSvc RiskStatusServiceInterface,
+	riskTimelineSvc RiskTimelineServiceInterface,
 ) RiskClosureServiceInterface {
 	return &RiskClosureService{
 		repo:            repo,
 		activityLogSvc:  activityLogSvc,
 		riskRegisterSvc: riskRegisterSvc,
 		riskStatusSvc:   riskStatusSvc,
+		riskTimelineSvc: riskTimelineSvc,
 	}
 }
 
@@ -173,6 +177,29 @@ func (rcs *RiskClosureService) Create(riskID uint, currentUserID uint, closureFo
 				return 0, err
 			}
 		}
+	}
+
+	//update timeline performedAt as null
+	//todo
+	timelineType, err := rcs.riskTimelineSvc.GetByType("closure")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	timelineStatus, err := rcs.riskTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	currentTime := time.Now()
+	timelineFormDTO := &riskDTOs.RiskTimelineFormDTO{
+		PerformedByID:    &currentUserID,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      &currentTime,
+	}
+	if err := rcs.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
 	}
 
 	tx.Commit()

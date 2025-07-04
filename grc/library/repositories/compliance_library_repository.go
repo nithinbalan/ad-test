@@ -9,7 +9,7 @@ import (
 
 type ComplianceLibraryRepositoryInterface interface {
 	GetComplianceLibraryDetailsByTitle(titleEn string) (*libraryDTOs.ComplianceLibraryWithVersionsDTO, error)
-	GetClauseTreeByVersion(versionID uint) ([]models.ComplianceLibraryClause, error)
+	GetClausesByVersion(versionID uint) ([]models.ComplianceLibraryClause, error)
 	GetControlLibraryTitle(controlLibraryID, complianceLibraryID uint) (*models.ControlLibraryTitle, error)
 	FetchRawControlMappings() ([]libraryDTOs.RawControlMapping, error)
 	GetGenericControlMappings() ([]libraryDTOs.ControlLibraryResponseDTO, error)
@@ -56,7 +56,7 @@ func (repo *ComplianceLibraryRepository) GetComplianceLibraryDetailsByTitle(titl
 	return &result, nil
 }
 
-func (repo *ComplianceLibraryRepository) GetClauseTreeByVersion(versionID uint) ([]models.ComplianceLibraryClause, error) {
+func (repo *ComplianceLibraryRepository) GetClausesByVersion(versionID uint) ([]models.ComplianceLibraryClause, error) {
 	var clauses []models.ComplianceLibraryClause
 	err := repo.db.Preload("Controls").Where("compliance_library_version_id = ?", versionID).Find(&clauses).Error
 	return clauses, err

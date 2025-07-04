@@ -18,9 +18,9 @@ type PolicyException struct {
 	OrganizationUnitID         uint       `json:"organization_unit_id" binding:"required" gorm:"not null"`
 	WorkflowStatusID           *uint      `json:"workflow_status_id" gorm:"default:null"`
 	CreatedAt                  time.Time  `json:"created_at" gorm:"type:datetime;not null"`
-	CreatedByID                uint       `json:"created_by_id" binding:"required" gorm:"not null"`
+	CreatedBYID                uint       `json:"created_by_id" binding:"required" gorm:"not null"`
 	UpdatedAt                  *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	UpdatedByID                *uint      `json:"updated_by_id" gorm:"default:null"`
+	UpdatedBYID                *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
 	Document                 *Document                 `gorm:"foreignKey:DocumentID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -31,8 +31,8 @@ type PolicyException struct {
 	RequestedBy              *User                     `gorm:"foreignKey:RequestedByID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	OrganizationUnit         *OrganizationUnit         `gorm:"foreignKey:OrganizationUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	WorkflowStatus           *WorkflowStatus           `gorm:"foreignKey:WorkflowStatusID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
-	CreatedByUser            *User                     `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	UpdatedByUser            *User                     `gorm:"foreignKey:UpdatedByID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser            *User                     `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	UpdatedByUser            *User                     `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Risks                    []*PolicyExceptionRisk    `gorm:"foreignKey:PolicyExceptionID"`
 }
 

@@ -3,9 +3,11 @@ package dtos
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	documentDTOs "jethur/grc/documents/dtos"
+	masterDTOs "jethur/grc/masters/dtos"
 	mastersDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
+
 	"time"
 )
 
@@ -130,7 +132,72 @@ type PolicyExceptionRiskDTO struct {
 	ID                uint                             `json:"id"`
 	PolicyExceptionID uint                             `json:"policy_exception_id"`
 	RiskRegisterID    uint                             `json:"risk_register_id"`
-	RiskRegister      RiskMinimalDTO                   `json:"risk"`
+	RiskRegister      RiskRegisterDetailDTO            `json:"risk"`
 	CreatedAt         time.Time                        `json:"created_at"`
 	CreatedBy         *organizationDTOs.UserMinimalDTO `json:"created_by"` // nested user details
+}
+
+type RiskRegisterDetailDTO struct {
+	ID                      int                              `json:"id"`
+	ReferenceNumber         string                           `json:"reference_number"`
+	RiskCategory            RiskRelatedItemDTO               `json:"risk_category"`
+	RiskSource              *RiskRelatedItemDTO              `json:"risk_source"`
+	ResponsibleUnit         settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
+	ResponsibleUser         organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
+	ResponsibleUserID       uint                             `json:"responsible_user_id" binding:"required" gorm:"not null"`
+	RiskStatus              RelatedDetailItemDTO             `json:"risk_status"`
+	Title                   string                           `json:"title"`
+	Description             *string                          `json:"description"`
+	ReportedAtString        *string                          `json:"reported_at"`
+	CurrentLikelihood       *RiskMatrixLikelihoodDTO         `json:"current_likelihood"`
+	CurrentImpact           *RiskMatrixLikelihoodDTO         `json:"current_impact"`
+	CurrentRiskRating       *RiskMatrixLikelihoodDTO         `json:"current_risk_rating"`
+	CurrentRiskRatingValue  *RiskMatrixRiskRatingValueDTO    `json:"current_risk_rating_value"`
+	InherentLikelihood      *RiskMatrixLikelihoodDTO         `json:"inherent_likelihood"`
+	InherentImpact          *RiskMatrixLikelihoodDTO         `json:"inherent_impact"`
+	InherentRiskRating      *RiskMatrixLikelihoodDTO         `json:"inherent_risk_rating"`
+	InherentRiskRatingValue *RiskMatrixRiskRatingValueDTO    `json:"inherent_risk_rating_value"`
+	ReviewFrequency         *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
+	NextReviewDateString    *string                          `json:"next_review_date"`
+	LastReviewNote          *string                          `json:"last_review_note"`
+	CreatedAt               time.Time                        `json:"created_at"`
+	UpdatedAt               *time.Time                       `json:"updated_at"`
+	CreatedByUser           organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser           organizationDTOs.UserMinimalDTO  `json:"updated_by"`
+	MarkedAsAuditableItem   bool                             `json:"marked_as_auditable_item"`
+}
+
+type RiskRelatedItemDTO struct {
+	ID      int    `json:"id"`
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+	Status  string `json:"status"`
+}
+type RelatedDetailItemDTO struct {
+	ID            int    `json:"id"`
+	TitleEn       string `json:"title_en"`
+	TitleAr       string `json:"title_ar"`
+	DescriptionEn string `json:"description_en"`
+	DescriptionAr string `json:"description_ar"`
+	ColorCode     string `json:"color_code"`
+	Type          string `json:"type"`
+	Status        string `json:"status"`
+}
+
+type RiskMatrixLikelihoodDTO struct {
+	ID            uint   `json:"id"`
+	RiskMatrixID  uint   `json:"risk_matrix_id"`
+	TitleEn       string `json:"title_en"`
+	TitleAr       string `json:"title_ar"`
+	Score         uint   `json:"score"`
+	DescriptionEn string `json:"description_en"`
+	DescriptionAr string `json:"description_ar"`
+	Probability   string `json:"probability"`
+	Status        string `json:"status"`
+}
+
+type RiskMatrixRiskRatingValueDTO struct {
+	ID                     uint `json:"id"`
+	RiskMatrixRiskRatingID uint `json:"risk_matrix_risk_rating_id" binding:"required"`
+	Value                  uint `json:"value" binding:"required" gorm:"not null"`
 }

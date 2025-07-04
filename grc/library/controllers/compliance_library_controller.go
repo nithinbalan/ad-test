@@ -58,7 +58,7 @@ func (clc *ComplianceLibraryController) GetClauseControls(c *gin.Context) {
 		return
 	}
 
-	result, err := clc.service.GetClauseTreeByVersion(uint(versionID), uint(complianceID))
+	result, err := clc.service.GetClausesByVersion(uint(versionID), uint(complianceID))
 	if err != nil {
 		utility.SendInternalErrResp(clc.db, c, err.Error())
 		return
@@ -68,7 +68,7 @@ func (clc *ComplianceLibraryController) GetClauseControls(c *gin.Context) {
 }
 
 func (clc *ComplianceLibraryController) GetAllMappings(c *gin.Context) {
-	data, err := clc.service.GetGroupedControlMappings()
+	data, err := clc.service.GetAllControlMapping()
 	if err != nil {
 		utility.SendInternalErrResp(clc.db, c, err.Error())
 		return
