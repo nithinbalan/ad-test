@@ -28,7 +28,7 @@ type RiskAppetiteStatementRepositoryInterface interface {
 
 	GetRiskAppetiteSummary(params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO) ([]riskDTOs.RiskAppetiteStatementSummaryDTO, error)
 	GetDashboardSummary() (*riskDTOs.RiskAppetiteDashboardSummaryDTO, error)
-	GetMappedRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*riskDTOs.MappedRiskListResponseDTO, error)
+	GetMappedRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 }
 
 type RiskAppetiteStatementRepository struct {
@@ -473,23 +473,17 @@ func (repo *RiskAppetiteStatementRepository) GetRiskAppetiteSummary(
 		}
 	}
 
-	// Apply quick filters
-	for _, filter := range params.QuickFilter {
-		query = query.Where(
-			"rc.title_en = ? OR rc.title_ar = ?",
-			filter, filter,
-		)
-	}
-
 	// Apply search keyword
 	if params.Keyword != "" {
 		like := "%" + params.Keyword + "%"
 		query = query.Where(`
+		rc.title_en LIKE ? OR
+			rc.titlet_ar LIKE ? OR
 			ras.statement_en LIKE ? OR
 			ras.statement_ar LIKE ? OR
 			rc.title_en LIKE ? OR
 			rc.title_ar LIKE ?`,
-			like, like, like, like,
+			like, like, like, like, like, like,
 		)
 	}
 
@@ -576,114 +570,147 @@ func (repo *RiskAppetiteStatementRepository) GetDashboardSummary() (*riskDTOs.Ri
 
 	return &summary, nil
 }
+func (repo *RiskAppetiteStatementRepository) GetMappedRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
 
-func (repo *RiskAppetiteStatementRepository) GetMappedRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*riskDTOs.MappedRiskListResponseDTO, error) {
-
-	var risks []*riskDTOs.MappedRiskListDTO
+	var risks []*commonDTOs.AssociatedRiskListDTO
 	var totalCount int64
 
-	query := repo.db.Table("risk_appetite_alignments AS raa").
+	query := repo.db.Table("risk_register").
 		Select(`
-			rr.id AS risk_id,
-			rr.reference_number,
-			rr.title,
-			rr.description,
-			rc.title_en AS risk_category_title_en,
-			rc.title_ar AS risk_category_title_ar,
-			rsrc.title_en AS risk_source_title_en,
-			rsrc.title_ar AS risk_source_title_ar,
-			ou.title_en AS owner_unit_title_en,
-			ou.title_ar AS owner_unit_title_ar,
-			u.id AS owner_id,
-			u.first_name_en AS owner_first_name_en,
-			u.first_name_ar AS owner_first_name_ar,
-			u.last_name_en AS owner_last_name_en,
-			u.last_name_ar AS owner_last_name_ar,
-			u.initial AS owner_initial,
-			u.color AS owner_color,
-			u.email AS owner_email,
-			u.profile_image_path AS owner_profile_image_path,
-			rml.title_en AS risk_matrix_likelihood_title_en,
-			rml.title_ar AS risk_matrix_likelihood_title_ar,
-			rml.score AS risk_matrix_likelihood_score,
-			rmi.title_en AS risk_matrix_impact_title_en,
-			rmi.title_ar AS risk_matrix_impact_title_ar,
-			rmi.score AS risk_matrix_impact_score,
-			rmrr.title_en AS risk_matrix_risk_rating_title_en,
-			rmrr.title_ar AS risk_matrix_risk_rating_title_ar,
-			rmrr.type AS risk_matrix_risk_rating_type,
-			rmrr.color_code AS risk_matrix_risk_rating_color_code,
-			rstat.title_en AS risk_status_title_en,
-			rstat.title_ar AS risk_status_title_ar,
-			rstat.color_code AS risk_status_color_code,
+			risk_register.id,
+			risk_register.reference_number,
+			risk_register.title,
+			risk_register.description,
+			CONVERT(VARCHAR, risk_register.reported_at, 23) AS reported_at,
+			risk_register.created_at,
+			risk_register.updated_at,
+			risk_register.current_risk_rating_value_id,
+			risk_categories.title_en AS risk_category_title_en,
+			risk_categories.title_ar AS risk_category_title_ar,
+			risk_sources.title_en AS risk_source_title_en,
+			risk_sources.title_ar AS risk_source_title_ar,
+			organization_units.id AS responsible_unit_id,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			users.id AS responsible_user_id,
+			users.first_name_en AS responsible_user_first_name_en,
+			users.first_name_ar AS responsible_user_first_name_ar,
+			users.last_name_en AS responsible_user_last_name_en,
+			users.last_name_ar AS responsible_user_last_name_ar,
+			users.initial AS responsible_user_initial,
+			users.color AS responsible_user_color,
+			users.email AS responsible_user_email,
+			users.profile_image_path AS responsible_user_profile_image_path,
+			risk_statuses.title_en AS risk_status_title_en,
+			risk_statuses.title_ar AS risk_status_title_ar,
+			risk_response_strategies.title_en AS risk_response_strategy_title_en,
+			risk_response_strategies.title_ar AS risk_response_strategy_title_ar,
+			risk_statuses.color_code AS risk_status_color_code,
+			review_frequencies.title_en AS review_frequency_title_en,
+			review_frequencies.title_ar AS review_frequency_title_ar,
+			CONVERT(VARCHAR, risk_register.next_review_date, 23) AS next_review_date,
+			risk_register.last_review_note,
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
+			updated_user.id AS updated_user_id,
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path,
+			current_likelihood.title_en AS current_likelihood_title_en,
+			current_likelihood.title_ar AS current_likelihood_title_ar,
+			current_impact.title_en AS current_impact_title_en,
+			current_impact.title_ar AS current_impact_title_ar,
+			current_risk_rating.title_en AS current_risk_rating_title_en,
+			current_risk_rating.title_ar AS current_risk_rating_title_ar,
+			current_risk_rating_value.value AS current_risk_rating_value,
+			current_risk_rating.color_code AS current_risk_rating_color_code,
+			inherent_likelihood.title_en AS inherent_likelihood_title_en,
+			inherent_likelihood.title_ar AS inherent_likelihood_title_ar,
+			inherent_impact.title_en AS inherent_impact_title_en,
+			inherent_impact.title_ar AS inherent_impact_title_ar,
+			inherent_risk_rating.title_en AS inherent_risk_rating_title_en,
+			inherent_risk_rating.title_ar AS inherent_risk_rating_title_ar,
+			inherent_risk_rating_value.value AS inherent_risk_rating_value,
+			inherent_risk_rating.color_code AS inherent_risk_rating_color_code,
+			residual_likelihood.title_en AS residual_likelihood_title_en,
+			residual_likelihood.title_ar AS residual_likelihood_title_ar,
+			residual_impact.title_en AS residual_impact_title_en,
+			residual_impact.title_ar AS residual_impact_title_ar,
+			residual_risk_rating.title_en AS residual_risk_rating_title_en,
+			residual_risk_rating.title_ar AS residual_risk_rating_title_ar,
+			residual_risk_rating_value.value AS residual_risk_rating_value,
+			residual_risk_rating.color_code AS residual_risk_rating_color_code,
 			ratl.type AS appetite_alignment
 		`).
-		Joins(`INNER JOIN risk_evaluations re ON re.id = raa.risk_evaluation_id AND re.type = 'inherent'`).
-		Joins(`INNER JOIN risk_register rr ON rr.id = re.risk_register_id`).
-		Joins(`LEFT JOIN risk_categories rc ON rc.id = rr.risk_category_id`).
-		Joins(`LEFT JOIN risk_sources rsrc ON rsrc.id = rr.risk_source_id`).
-		Joins(`LEFT JOIN organization_units ou ON ou.id = rr.responsible_unit_id`).
-		Joins(`LEFT JOIN users u ON u.id = rr.responsible_user_id`).
-		Joins(`LEFT JOIN risk_matrix_likelihoods rml ON rml.id = re.risk_matrix_likelihood_id`).
-		Joins(`LEFT JOIN risk_matrix_impacts rmi ON rmi.id = re.risk_matrix_impact_id`).
-		Joins(`LEFT JOIN risk_matrix_risk_ratings rmrr ON rmrr.id = re.risk_matrix_risk_rating_id`).
-		Joins(`LEFT JOIN risk_statuses rstat ON rstat.id = rr.risk_status_id`).
-		Joins(`LEFT JOIN risk_appetite_tolerance_levels ratl ON ratl.id = raa.risk_appetite_tolerance_level_id`).
+		Joins(`
+			LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
+			LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
+			LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id
+			LEFT JOIN users ON users.id = risk_register.responsible_user_id
+			LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
+			LEFT JOIN risk_response_strategies ON risk_response_strategies.id = risk_register.risk_response_strategy_id
+			LEFT JOIN users AS created_user ON created_user.id = risk_register.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = risk_register.updated_by_id
+			LEFT JOIN review_frequencies ON review_frequencies.id = risk_register.review_frequency_id
+			LEFT JOIN risk_matrix_likelihoods AS current_likelihood ON current_likelihood.id = risk_register.current_likelihood_id
+			LEFT JOIN risk_matrix_impacts AS current_impact ON current_impact.id = risk_register.current_impact_id
+			LEFT JOIN risk_matrix_risk_ratings AS current_risk_rating ON current_risk_rating.id = risk_register.current_risk_rating_id
+			LEFT JOIN risk_matrix_risk_rating_values AS current_risk_rating_value ON current_risk_rating_value.id = risk_register.current_risk_rating_value_id
+			LEFT JOIN risk_matrix_likelihoods AS inherent_likelihood ON inherent_likelihood.id = risk_register.inherent_likelihood_id
+			LEFT JOIN risk_matrix_impacts AS inherent_impact ON inherent_impact.id = risk_register.inherent_impact_id
+			LEFT JOIN risk_matrix_risk_ratings AS inherent_risk_rating ON inherent_risk_rating.id = risk_register.inherent_risk_rating_id
+			LEFT JOIN risk_matrix_risk_rating_values AS inherent_risk_rating_value ON inherent_risk_rating_value.id = risk_register.inherent_risk_rating_value_id
+			LEFT JOIN risk_matrix_likelihoods AS residual_likelihood ON residual_likelihood.id = risk_register.residual_likelihood_id
+			LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id
+			LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = risk_register.residual_risk_rating_id
+			LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
+			INNER JOIN risk_evaluations re ON re.risk_register_id = risk_register.id AND re.type = 'inherent'
+			INNER JOIN risk_appetite_alignments raa ON raa.risk_evaluation_id = re.id
+			LEFT JOIN risk_appetite_tolerance_levels ratl ON ratl.id = raa.risk_appetite_tolerance_level_id
+		`).
 		Where("raa.risk_appetite_statement_id = ?", statementID)
 
-	// Count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
-	// Keyword search
+	// Apply filters, keyword, etc (copy same logic as in your GetAll)
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(rr.reference_number LIKE ? OR
-			rr.title LIKE ? OR
-			rr.description LIKE ? OR
-			rc.title_en LIKE ? OR
-			rc.title_ar LIKE ? OR
-			rsrc.title_en LIKE ? OR
-			rsrc.title_ar LIKE ? OR
-			ou.title_en LIKE ? OR
-			ou.title_ar LIKE ? OR
-			u.first_name_en LIKE ? OR
-			u.first_name_ar LIKE ? OR
-			u.last_name_en LIKE ? OR
-			u.last_name_ar LIKE ? OR
-			rstat.title_en LIKE ? OR
-			rstat.title_ar LIKE ? OR
-			rstat.color_code LIKE ? OR
-			ratl.type LIKE ?)
-		`,
-			keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword)
+			(risk_register.title LIKE ? OR
+			risk_register.description LIKE ? OR
+			risk_register.reference_number LIKE ?)
+		`, keyword, keyword, keyword)
 	}
 
-	// Sorting
 	if params.SortBy == "" {
-		params.SortBy = "rr.title"
+		params.SortBy = "risk_register.title"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
 	}
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	// Pagination
-	offset := (params.Page - 1) * params.PageSize
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 
-	// Execute the query
-	if err := query.Offset(offset).Limit(params.PageSize).Scan(&risks).Error; err != nil {
+	if err := query.Find(&risks).Error; err != nil {
 		return nil, err
 	}
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
-	response := &riskDTOs.MappedRiskListResponseDTO{
+	return &commonDTOs.AssociatedRiskListResponseDTO{
 		Items: risks,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
@@ -691,7 +718,5 @@ func (repo *RiskAppetiteStatementRepository) GetMappedRisks(statementID uint, pa
 			TotalPages:  totalPages,
 			TotalCount:  totalCount,
 		},
-	}
-
-	return response, nil
+	}, nil
 }
