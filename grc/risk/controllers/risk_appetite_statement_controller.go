@@ -370,3 +370,20 @@ func (rasc *RiskAppetiteStatementController) GetAllRisks(c *gin.Context) {
 
 	c.JSON(http.StatusOK, risks)
 }
+
+func (rasc *RiskAppetiteStatementController) GetRiskAppetiteStatementDetailsSummary(c *gin.Context) {
+	statementIDParam := c.Param("id")
+	statementID, err := strconv.ParseUint(statementIDParam, 10, 64)
+	if err != nil {
+		utility.SendInternalErrResp(rasc.db, c, "Invalid statement ID")
+		return
+	}
+
+	result, err := rasc.service.GetRiskAppetiteStatementDetailsSummary(uint(statementID))
+	if err != nil {
+		utility.SendInternalErrResp(rasc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}

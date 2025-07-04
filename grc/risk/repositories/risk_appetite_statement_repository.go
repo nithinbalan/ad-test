@@ -29,6 +29,7 @@ type RiskAppetiteStatementRepositoryInterface interface {
 	GetAllRiskAppetiteStatments(params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO) ([]riskDTOs.RiskAppetiteStatementSummaryDTO, error)
 	GetRiskAppetiteStatementSummary() (*riskDTOs.RiskAppetiteDashboardSummaryDTO, error)
 	GetAllRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
+	GetRiskAppetiteStatementDetailsSummary(statementID uint) (*riskDTOs.RiskAppetiteStatementSummaryCountsDTO, error)
 }
 
 type RiskAppetiteStatementRepository struct {
@@ -719,4 +720,60 @@ func (repo *RiskAppetiteStatementRepository) GetAllRisks(statementID uint, param
 			TotalCount:  totalCount,
 		},
 	}, nil
+}
+
+func (repo *RiskAppetiteStatementRepository) GetRiskAppetiteStatementDetailsSummary(statementID uint) (*riskDTOs.RiskAppetiteStatementSummaryCountsDTO, error) {
+	var counts riskDTOs.RiskAppetiteStatementSummaryCountsDTO
+
+	var total int64
+	var above int64
+	var within int64
+	var below int64
+
+	// Total
+	if err := repo.db.
+		Table("risk_appetite_alignments raa").
+		Joins(`INNER JOIN risk_evaluations re ON re.id = raa.risk_evaluation_id AND re.type = 'inherent'`).
+		Where("raa.risk_appetite_statement_id = ?", statementID).
+		Count(&total).Error; err != nil {
+		return nil, err
+	}
+
+	// Above
+	if err := repo.db.
+		Table("risk_appetite_alignments raa").
+		Joins(`INNER JOIN risk_evaluations re ON re.id = raa.risk_evaluation_id AND re.type = 'inherent'`).
+		Joins(`LEFT JOIN risk_appetite_tolerance_levels ratl ON ratl.id = raa.risk_appetite_tolerance_level_id`).
+		Where("raa.risk_appetite_statement_id = ? AND ratl.type = 'above'", statementID).
+		Count(&above).Error; err != nil {
+		return nil, err
+	}
+
+	// Within
+	if err := repo.db.
+		Table("risk_appetite_alignments raa").
+		Joins(`INNER JOIN risk_evaluations re ON re.id = raa.risk_evaluation_id AND re.type = 'inherent'`).
+		Joins(`LEFT JOIN risk_appetite_tolerance_levels ratl ON ratl.id = raa.risk_appetite_tolerance_level_id`).
+		Where("raa.risk_appetite_statement_id = ? AND ratl.type = 'within'", statementID).
+		Count(&within).Error; err != nil {
+		return nil, err
+	}
+
+	// Below
+	if err := repo.db.
+		Table("risk_appetite_alignments raa").
+		Joins(`INNER JOIN risk_evaluations re ON re.id = raa.risk_evaluation_id AND re.type = 'inherent'`).
+		Joins(`LEFT JOIN risk_appetite_tolerance_levels ratl ON ratl.id = raa.risk_appetite_tolerance_level_id`).
+		Where("raa.risk_appetite_statement_id = ? AND ratl.type = 'below'", statementID).
+		Count(&below).Error; err != nil {
+		return nil, err
+	}
+
+	// Assign after casting
+	counts.TotalMappedRisks = int(total)
+	counts.AboveCount = int(above)
+	counts.WithinCount = int(within)
+	counts.BelowCount = int(below)
+
+	return &counts, nil
 }

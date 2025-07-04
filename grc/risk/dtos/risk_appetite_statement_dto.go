@@ -121,3 +121,10 @@ type MappedRiskListQueryParamsDTO struct {
 	Page     int    `json:"page"`
 	PageSize int    `json:"page_size"`
 }
+
+type RiskAppetiteStatementSummaryCountsDTO struct {
+	TotalMappedRisks int `json:"total_mapped_risks"`
+	AboveCount       int `json:"above_count"`
+	WithinCount      int `json:"within_count"`
+	BelowCount       int `json:"below_count"`
+}
