@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
@@ -23,6 +24,11 @@ type RiskAppetiteStatementServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
+
+	GetAllRiskAppetiteStatments(params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO) ([]riskDTOs.RiskAppetiteStatementSummaryDTO, error)
+	GetRiskAppetiteStatementSummary() (*riskDTOs.RiskAppetiteDashboardSummaryDTO, error)
+	GetAllRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
+	GetRiskAppetiteStatementDetailsSummary(statementID uint) (*riskDTOs.RiskAppetiteStatementSummaryCountsDTO, error)
 }
 
 // Service and implementations
@@ -333,4 +339,20 @@ func (rass *RiskAppetiteStatementService) validateRiskAppetiteStatementFormDTO(r
 	}
 
 	return nil
+}
+
+func (rass *RiskAppetiteStatementService) GetAllRiskAppetiteStatments(params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO) ([]riskDTOs.RiskAppetiteStatementSummaryDTO, error) {
+	return rass.repo.GetAllRiskAppetiteStatments(params)
+}
+
+func (rass *RiskAppetiteStatementService) GetRiskAppetiteStatementSummary() (*riskDTOs.RiskAppetiteDashboardSummaryDTO, error) {
+	return rass.repo.GetRiskAppetiteStatementSummary()
+}
+
+func (rass *RiskAppetiteStatementService) GetAllRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
+	return rass.repo.GetAllRisks(statementID, params)
+}
+
+func (rass *RiskAppetiteStatementService) GetRiskAppetiteStatementDetailsSummary(statementID uint) (*riskDTOs.RiskAppetiteStatementSummaryCountsDTO, error) {
+	return rass.repo.GetRiskAppetiteStatementDetailsSummary(statementID)
 }
