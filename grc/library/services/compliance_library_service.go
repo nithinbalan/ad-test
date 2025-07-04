@@ -14,6 +14,7 @@ type ComplianceLibraryServiceInterface interface {
 
 	GetClauseTreeByVersion(versionID, complianceLibraryID uint) ([]libraryDTOs.ClauseWithSubClausesDTO, error)
 	GetGroupedControlMappings() ([]libraryDTOs.ControlMappingDTO, error)
+	GetGenericControlMappings() ([]libraryDTOs.ControlLibraryResponseDTO, error)
 }
 
 // Service and implementations
@@ -160,4 +161,8 @@ func (cls *ComplianceLibraryService) GetGroupedControlMappings() ([]libraryDTOs.
 	})
 
 	return result, nil
+}
+
+func (cls *ComplianceLibraryService) GetGenericControlMappings() ([]libraryDTOs.ControlLibraryResponseDTO, error) {
+	return cls.repo.GetGenericControlMappings()
 }

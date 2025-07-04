@@ -76,3 +76,13 @@ func (clc *ComplianceLibraryController) GetAllMappings(c *gin.Context) {
 
 	c.JSON(http.StatusOK, data)
 }
+
+func (clc *ComplianceLibraryController) GetGenericControlMappings(c *gin.Context) {
+	data, err := clc.service.GetGenericControlMappings()
+	if err != nil {
+		utility.SendInternalErrResp(clc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, data)
+}

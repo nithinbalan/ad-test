@@ -12,6 +12,7 @@ type ComplianceLibraryRepositoryInterface interface {
 	GetClauseTreeByVersion(versionID uint) ([]models.ComplianceLibraryClause, error)
 	GetControlLibraryTitle(controlLibraryID, complianceLibraryID uint) (*models.ControlLibraryTitle, error)
 	FetchRawControlMappings() ([]libraryDTOs.RawControlMapping, error)
+	GetGenericControlMappings() ([]libraryDTOs.ControlLibraryResponseDTO, error)
 }
 
 type ComplianceLibraryRepository struct {
@@ -90,4 +91,74 @@ func (repo *ComplianceLibraryRepository) FetchRawControlMappings() ([]libraryDTO
 		Scan(&results).Error
 
 	return results, err
+}
+
+func (repo *ComplianceLibraryRepository) GetGenericControlMappings() ([]libraryDTOs.ControlLibraryResponseDTO, error) {
+	rows, err := repo.db.
+		Table("control_library AS cl").
+		Select(`
+			cl.id AS cl_id,
+			cl.title_en,
+			cl.title_ar,
+			clt.control_code,
+			clt.control_title_en,
+			clt.control_title_ar,
+			cpl.title_en AS compliance_library_title_en
+		`).
+		Joins("LEFT JOIN control_library_titles AS clt ON cl.id = clt.control_library_id").
+		Joins("LEFT JOIN compliance_libraries AS cpl ON clt.compliance_library_id = cpl.id").
+		Order("cl.id").
+		Rows()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	controlMap := make(map[uint]*libraryDTOs.ControlLibraryResponseDTO)
+	var controlOrder []uint
+
+	for rows.Next() {
+		var (
+			clID                     uint
+			titleEn, titleAr         string
+			controlCode              *string
+			controlTitleEn           *string
+			controlTitleAr           *string
+			complianceLibraryTitleEn *string
+		)
+
+		err := rows.Scan(
+			&clID, &titleEn, &titleAr,
+			&controlCode, &controlTitleEn, &controlTitleAr,
+			&complianceLibraryTitleEn,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, exists := controlMap[clID]; !exists {
+			controlMap[clID] = &libraryDTOs.ControlLibraryResponseDTO{
+				TitleEn: titleEn,
+				TitleAr: titleAr,
+				Titles:  []libraryDTOs.ControlTitleDTO{},
+			}
+			controlOrder = append(controlOrder, clID)
+		}
+
+		if controlCode != nil || controlTitleEn != nil || controlTitleAr != nil {
+			controlMap[clID].Titles = append(controlMap[clID].Titles, libraryDTOs.ControlTitleDTO{
+				ComplianceLibraryTitleEn: *complianceLibraryTitleEn,
+				ControlCode:              *controlCode,
+				ControlTitleEn:           *controlTitleEn,
+				ControlTitleAr:           *controlTitleAr,
+			})
+		}
+	}
+
+	var result []libraryDTOs.ControlLibraryResponseDTO
+	for _, clID := range controlOrder {
+		result = append(result, *controlMap[clID])
+	}
+
+	return result, nil
 }
