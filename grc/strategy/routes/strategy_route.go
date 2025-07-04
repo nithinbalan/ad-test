@@ -39,6 +39,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategicObjectivePeriodicReviewController := app.StrategyModule.StrategicObjectivePeriodicReviewController
 	kpiValueUpdateController := app.StrategyModule.KpiValueUpdateController
 	kpiAssociatedItemController := app.StrategyModule.KpiAssociatedItemController
+	focusAreaController := app.StrategyModule.FocusAreaController
 
 	// strategy profile
 	strategyRoutes.GET("/strategy-profiles", strategyProfileController.GetAllStrategyProfiles)
@@ -217,5 +218,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.POST("/strategic-objectives/:id/reviews/delete", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectivePeriodicReviewController.DeleteStrategicObjectivePeriodicReview)
 
 	unauthenticatedRoutes.GET("/strategic-objectives/:id/reviews/:reviewId/document-download", strategicObjectivePeriodicReviewController.DownloadStrategicObjectivePeriodicReviewDocument)
+
+	strategyRoutes.GET("/focus-areas", focusAreaController.GetAllFocusAreas)
+	strategyRoutes.GET("/focus-areas/:id", focusAreaController.GetFocusAreaDetails)
+	strategyRoutes.POST("/focus-areas", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), focusAreaController.CreateFocusArea)
+	strategyRoutes.PUT("/focus-areas/:id", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), focusAreaController.UpdateFocusArea)
+	strategyRoutes.POST("/focus-areas/delete", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), focusAreaController.DeleteFocusAreas)
+	strategyRoutes.PUT("/focus-areas/activate", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), focusAreaController.ActivateFocusAreas)
+	strategyRoutes.PUT("/focus-areas/deactivate", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), focusAreaController.DeactivateFocusAreas)
 
 }

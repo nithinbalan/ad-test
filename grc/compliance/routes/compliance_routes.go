@@ -141,7 +141,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.DELETE("/compliances/:complianceId/clause/:clauseId/controls/:controlId", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.DeleteComplianceClauseControl)
 
 	complianceRoutes.GET("/compliances/:complianceId/clause/:clauseId/associated-requirements", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.GetAssociatedComplianceRequirement)
-	complianceRoutes.GET("/compliances/:complianceId/clause/:clauseId/associated-controls", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceClauseController.GetAssociatedControls)
+	complianceRoutes.GET("/compliances/:complianceId/clause/:clauseId/controls", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceClauseController.GetAssociatedControls)
 
 	// SLA Renew
 	complianceRoutes.GET("/slas/:slaId/renew-history", middlewares.RolePermissionMiddleware(db, "sla_contracts", "view"), SLARenewController.GetSLARenewHistory)

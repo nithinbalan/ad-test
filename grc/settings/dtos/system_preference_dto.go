@@ -39,6 +39,7 @@ type LicenseKeyDTO struct {
 	BalanceLicensedUserCount   *int     `json:"balance_licensed_user_count"`
 	TotalLicensedUserCount     *int     `json:"total_licensed_user_count"`
 	EnabledModules             []string `json:"enabled_modules"`
+	EnabledAddons              []string `json:"enabled_addons"`
 }
 type TimezoneDTO struct {
 	ID          int    `json:"id"`
