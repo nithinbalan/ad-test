@@ -26,9 +26,9 @@ type RiskAppetiteStatementRepositoryInterface interface {
 	ExistsByStatementExcludingID(id uint, StatementEn, StatementAr string, RiskCategoryID uint) (bool, error)
 	GenerateReferenceNumber() (string, error)
 
-	GetRiskAppetiteSummary(params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO) ([]riskDTOs.RiskAppetiteStatementSummaryDTO, error)
-	GetDashboardSummary() (*riskDTOs.RiskAppetiteDashboardSummaryDTO, error)
-	GetMappedRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
+	GetAllRiskAppetiteStatments(params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO) ([]riskDTOs.RiskAppetiteStatementSummaryDTO, error)
+	GetRiskAppetiteStatementSummary() (*riskDTOs.RiskAppetiteDashboardSummaryDTO, error)
+	GetAllRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 }
 
 type RiskAppetiteStatementRepository struct {
@@ -441,7 +441,7 @@ func (repo *RiskAppetiteStatementRepository) GenerateReferenceNumber() (string, 
 	return newReferenceNumber, nil
 }
 
-func (repo *RiskAppetiteStatementRepository) GetRiskAppetiteSummary(
+func (repo *RiskAppetiteStatementRepository) GetAllRiskAppetiteStatments(
 	params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO,
 ) ([]riskDTOs.RiskAppetiteStatementSummaryDTO, error) {
 
@@ -506,7 +506,7 @@ func (repo *RiskAppetiteStatementRepository) GetRiskAppetiteSummary(
 	return summaries, nil
 }
 
-func (repo *RiskAppetiteStatementRepository) GetDashboardSummary() (*riskDTOs.RiskAppetiteDashboardSummaryDTO, error) {
+func (repo *RiskAppetiteStatementRepository) GetRiskAppetiteStatementSummary() (*riskDTOs.RiskAppetiteDashboardSummaryDTO, error) {
 	var summary riskDTOs.RiskAppetiteDashboardSummaryDTO
 
 	var activeCount int64
@@ -570,7 +570,7 @@ func (repo *RiskAppetiteStatementRepository) GetDashboardSummary() (*riskDTOs.Ri
 
 	return &summary, nil
 }
-func (repo *RiskAppetiteStatementRepository) GetMappedRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
+func (repo *RiskAppetiteStatementRepository) GetAllRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
 
 	var risks []*commonDTOs.AssociatedRiskListDTO
 	var totalCount int64

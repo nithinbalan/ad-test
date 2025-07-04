@@ -291,7 +291,7 @@ func (rasc *RiskAppetiteStatementController) DeactivateRiskAppetiteStatements(c 
 	c.Status(http.StatusOK)
 }
 
-func (rasc *RiskAppetiteStatementController) GetRiskAppetiteSummary(c *gin.Context) {
+func (rasc *RiskAppetiteStatementController) GetAllRiskAppetiteStatments(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -310,7 +310,7 @@ func (rasc *RiskAppetiteStatementController) GetRiskAppetiteSummary(c *gin.Conte
 		QuickFilter: quickFilter,
 	}
 
-	summaries, err := rasc.service.GetRiskAppetiteSummary(&queryParams)
+	summaries, err := rasc.service.GetAllRiskAppetiteStatments(&queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(rasc.db, c, err.Error())
 		return
@@ -319,8 +319,8 @@ func (rasc *RiskAppetiteStatementController) GetRiskAppetiteSummary(c *gin.Conte
 	c.JSON(http.StatusOK, summaries)
 }
 
-func (rasc *RiskAppetiteStatementController) GetDashboardSummary(c *gin.Context) {
-	summary, err := rasc.service.GetDashboardSummary()
+func (rasc *RiskAppetiteStatementController) GetRiskAppetiteStatementSummary(c *gin.Context) {
+	summary, err := rasc.service.GetRiskAppetiteStatementSummary()
 	if err != nil {
 		utility.SendInternalErrResp(rasc.db, c, err.Error())
 		return
@@ -328,7 +328,7 @@ func (rasc *RiskAppetiteStatementController) GetDashboardSummary(c *gin.Context)
 	c.JSON(http.StatusOK, summary)
 }
 
-func (rasc *RiskAppetiteStatementController) GetMappedRisks(c *gin.Context) {
+func (rasc *RiskAppetiteStatementController) GetAllRisks(c *gin.Context) {
 	// Get the statement ID from URL
 	statementIDParam := c.Param("id")
 	statementID, err := strconv.ParseUint(statementIDParam, 10, 64)
@@ -362,7 +362,7 @@ func (rasc *RiskAppetiteStatementController) GetMappedRisks(c *gin.Context) {
 	}
 
 	// Call the service
-	risks, err := rasc.service.GetMappedRisks(uint(statementID), queryParams)
+	risks, err := rasc.service.GetAllRisks(uint(statementID), queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(rasc.db, c, err.Error())
 		return
