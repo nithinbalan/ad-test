@@ -25,10 +25,10 @@ type RiskAppetiteStatementServiceInterface interface {
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
 
-	GetAllRiskAppetiteStatments(params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO) ([]riskDTOs.RiskAppetiteStatementSummaryDTO, error)
-	GetRiskAppetiteStatementSummary() (*riskDTOs.RiskAppetiteDashboardSummaryDTO, error)
+	GetAllRiskAppetiteStatments(params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO) ([]riskDTOs.RiskAppetiteStatementSummaryListDTO, error)
+	GetRiskAppetiteStatementSummary() (*riskDTOs.RiskAppetiteStatementSummaryDTO, error)
 	GetAllRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
-	GetRiskAppetiteStatementDetailsSummary(statementID uint) (*riskDTOs.RiskAppetiteStatementSummaryCountsDTO, error)
+	GetRiskAppetiteStatementDetailsSummary(statementID uint) (*riskDTOs.RiskAppetiteStatementDetailsSummaryDTO, error)
 }
 
 // Service and implementations
@@ -341,11 +341,11 @@ func (rass *RiskAppetiteStatementService) validateRiskAppetiteStatementFormDTO(r
 	return nil
 }
 
-func (rass *RiskAppetiteStatementService) GetAllRiskAppetiteStatments(params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO) ([]riskDTOs.RiskAppetiteStatementSummaryDTO, error) {
+func (rass *RiskAppetiteStatementService) GetAllRiskAppetiteStatments(params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO) ([]riskDTOs.RiskAppetiteStatementSummaryListDTO, error) {
 	return rass.repo.GetAllRiskAppetiteStatments(params)
 }
 
-func (rass *RiskAppetiteStatementService) GetRiskAppetiteStatementSummary() (*riskDTOs.RiskAppetiteDashboardSummaryDTO, error) {
+func (rass *RiskAppetiteStatementService) GetRiskAppetiteStatementSummary() (*riskDTOs.RiskAppetiteStatementSummaryDTO, error) {
 	return rass.repo.GetRiskAppetiteStatementSummary()
 }
 
@@ -353,6 +353,6 @@ func (rass *RiskAppetiteStatementService) GetAllRisks(statementID uint, params *
 	return rass.repo.GetAllRisks(statementID, params)
 }
 
-func (rass *RiskAppetiteStatementService) GetRiskAppetiteStatementDetailsSummary(statementID uint) (*riskDTOs.RiskAppetiteStatementSummaryCountsDTO, error) {
+func (rass *RiskAppetiteStatementService) GetRiskAppetiteStatementDetailsSummary(statementID uint) (*riskDTOs.RiskAppetiteStatementDetailsSummaryDTO, error) {
 	return rass.repo.GetRiskAppetiteStatementDetailsSummary(statementID)
 }

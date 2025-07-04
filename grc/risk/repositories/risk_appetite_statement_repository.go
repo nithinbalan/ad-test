@@ -26,10 +26,10 @@ type RiskAppetiteStatementRepositoryInterface interface {
 	ExistsByStatementExcludingID(id uint, StatementEn, StatementAr string, RiskCategoryID uint) (bool, error)
 	GenerateReferenceNumber() (string, error)
 
-	GetAllRiskAppetiteStatments(params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO) ([]riskDTOs.RiskAppetiteStatementSummaryDTO, error)
-	GetRiskAppetiteStatementSummary() (*riskDTOs.RiskAppetiteDashboardSummaryDTO, error)
+	GetAllRiskAppetiteStatments(params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO) ([]riskDTOs.RiskAppetiteStatementSummaryListDTO, error)
+	GetRiskAppetiteStatementSummary() (*riskDTOs.RiskAppetiteStatementSummaryDTO, error)
 	GetAllRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
-	GetRiskAppetiteStatementDetailsSummary(statementID uint) (*riskDTOs.RiskAppetiteStatementSummaryCountsDTO, error)
+	GetRiskAppetiteStatementDetailsSummary(statementID uint) (*riskDTOs.RiskAppetiteStatementDetailsSummaryDTO, error)
 }
 
 type RiskAppetiteStatementRepository struct {
@@ -444,9 +444,9 @@ func (repo *RiskAppetiteStatementRepository) GenerateReferenceNumber() (string, 
 
 func (repo *RiskAppetiteStatementRepository) GetAllRiskAppetiteStatments(
 	params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO,
-) ([]riskDTOs.RiskAppetiteStatementSummaryDTO, error) {
+) ([]riskDTOs.RiskAppetiteStatementSummaryListDTO, error) {
 
-	var summaries []riskDTOs.RiskAppetiteStatementSummaryDTO
+	var summaries []riskDTOs.RiskAppetiteStatementSummaryListDTO
 
 	query := repo.db.
 		Table("risk_appetite_statements AS ras").
@@ -507,8 +507,8 @@ func (repo *RiskAppetiteStatementRepository) GetAllRiskAppetiteStatments(
 	return summaries, nil
 }
 
-func (repo *RiskAppetiteStatementRepository) GetRiskAppetiteStatementSummary() (*riskDTOs.RiskAppetiteDashboardSummaryDTO, error) {
-	var summary riskDTOs.RiskAppetiteDashboardSummaryDTO
+func (repo *RiskAppetiteStatementRepository) GetRiskAppetiteStatementSummary() (*riskDTOs.RiskAppetiteStatementSummaryDTO, error) {
+	var summary riskDTOs.RiskAppetiteStatementSummaryDTO
 
 	var activeCount int64
 	var totalRisks int64
@@ -722,8 +722,8 @@ func (repo *RiskAppetiteStatementRepository) GetAllRisks(statementID uint, param
 	}, nil
 }
 
-func (repo *RiskAppetiteStatementRepository) GetRiskAppetiteStatementDetailsSummary(statementID uint) (*riskDTOs.RiskAppetiteStatementSummaryCountsDTO, error) {
-	var counts riskDTOs.RiskAppetiteStatementSummaryCountsDTO
+func (repo *RiskAppetiteStatementRepository) GetRiskAppetiteStatementDetailsSummary(statementID uint) (*riskDTOs.RiskAppetiteStatementDetailsSummaryDTO, error) {
+	var counts riskDTOs.RiskAppetiteStatementDetailsSummaryDTO
 
 	var total int64
 	var above int64
