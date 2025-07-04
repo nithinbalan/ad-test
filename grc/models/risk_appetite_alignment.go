@@ -15,7 +15,7 @@ type RiskAppetiteAlignment struct {
 	UpdatedByID                  *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	RiskEvaluation             *RiskRegister               `gorm:"foreignKey:RiskEvaluationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RiskEvaluation             *RiskEvaluation             `gorm:"foreignKey:RiskEvaluationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskAppetiteStatement      *RiskAppetiteStatement      `gorm:"foreignKey:RiskAppetiteStatementID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskAppetiteToleranceLevel *RiskAppetiteToleranceLevel `gorm:"foreignKey:RiskAppetiteToleranceLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser              *User                       `gorm:"foreignKey:CreatedByID"`

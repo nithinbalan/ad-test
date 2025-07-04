@@ -23,21 +23,8 @@ func NewComplianceLibraryController(service services.ComplianceLibraryServiceInt
 	}
 }
 
-func (clc *ComplianceLibraryController) GetComplianceLibraryDetailsByTitle(c *gin.Context) {
-	key := c.Param("title")
-
-	var titleEn string
-	switch key {
-	case "sama":
-		titleEn = "Cyber Security Framework | Saudi Arabian Monetary Authority"
-	case "nca":
-		titleEn = "Essential Cybersecurity Controls (ECC – 2: 2024)"
-	default:
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	data, err := clc.service.GetComplianceLibraryDetailsByTitle(titleEn)
+func (clc *ComplianceLibraryController) GetNCADetails(c *gin.Context) {
+	data, err := clc.service.GetNCADetails()
 	if err != nil {
 		utility.SendInternalErrResp(clc.db, c, err.Error())
 		return
@@ -46,7 +33,17 @@ func (clc *ComplianceLibraryController) GetComplianceLibraryDetailsByTitle(c *gi
 	c.JSON(http.StatusOK, data)
 }
 
-func (clc *ComplianceLibraryController) GetClauseControlTree(c *gin.Context) {
+func (clc *ComplianceLibraryController) GetSAMADetails(c *gin.Context) {
+	data, err := clc.service.GetSAMADetails()
+	if err != nil {
+		utility.SendInternalErrResp(clc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, data)
+}
+
+func (clc *ComplianceLibraryController) GetClauseControls(c *gin.Context) {
 	versionIDStr := c.Param("versionID")
 	complianceIDStr := c.Param("complianceLibraryID")
 
@@ -61,11 +58,21 @@ func (clc *ComplianceLibraryController) GetClauseControlTree(c *gin.Context) {
 		return
 	}
 
-	result, err := clc.service.GetClauseTreeByVersion(uint(versionID), uint(complianceID))
+	result, err := clc.service.GetClausesByVersion(uint(versionID), uint(complianceID))
 	if err != nil {
 		utility.SendInternalErrResp(clc.db, c, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, result)
+}
+
+func (clc *ComplianceLibraryController) GetAllMappings(c *gin.Context) {
+	data, err := clc.service.GetAllControlMapping()
+	if err != nil {
+		utility.SendInternalErrResp(clc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, data)
 }

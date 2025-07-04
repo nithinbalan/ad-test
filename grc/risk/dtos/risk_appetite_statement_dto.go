@@ -83,3 +83,41 @@ type RiskAppetiteStatementDetailsDTO struct {
 	CreatedAt      time.Time       `json:"created_at"`
 	UpdatedAt      *time.Time      `json:"updated_at"`
 }
+
+type RiskAppetiteStatementSummaryDTO struct {
+	ID                           uint   `json:"id"`
+	RiskCategoryTitleEn          string `json:"risk_category_title_en"`
+	RiskCategoryTitleAr          string `json:"risk_category_title_ar"`
+	RiskAppetiteStatementTitleEn string `json:"risk_appetite_statement_title_en"`
+	RiskAppetiteStatementTitleAr string `json:"risk_appetite_statement_title_ar"`
+	RisksMapped                  int    `json:"risks_mapped"`
+	AboveCount                   int    `json:"above_count"`
+	WithinCount                  int    `json:"within_count"`
+	BelowCount                   int    `json:"below_count"`
+}
+
+type RiskAppetiteStatementSummaryQueryParamsDTO struct {
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Status      string
+	Filters     map[string][]string
+	QuickFilter []string
+}
+
+type RiskAppetiteDashboardSummaryDTO struct {
+	ActiveStatementsCount     int `json:"active_statements_count"`
+	AlignedRisksCount         int `json:"aligned_risks_count"`
+	TotalRisksCount           int `json:"total_risks_count"`
+	AboveToleranceRisksCount  int `json:"above_tolerance_risks_count"`
+	WithinToleranceRisksCount int `json:"within_tolerance_risks_count"`
+	BelowToleranceRisksCount  int `json:"below_tolerance_risks_count"`
+}
+
+type MappedRiskListQueryParamsDTO struct {
+	Sort     string `json:"sort"`
+	SortBy   string `json:"sort_by"`
+	Keyword  string `json:"keyword"`
+	Page     int    `json:"page"`
+	PageSize int    `json:"page_size"`
+}
