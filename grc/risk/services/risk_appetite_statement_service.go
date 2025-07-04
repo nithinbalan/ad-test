@@ -23,6 +23,10 @@ type RiskAppetiteStatementServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
+
+	GetRiskAppetiteSummary(params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO) ([]riskDTOs.RiskAppetiteStatementSummaryDTO, error)
+	GetDashboardSummary() (*riskDTOs.RiskAppetiteDashboardSummaryDTO, error)
+	GetMappedRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*riskDTOs.MappedRiskListResponseDTO, error)
 }
 
 // Service and implementations
@@ -333,4 +337,16 @@ func (rass *RiskAppetiteStatementService) validateRiskAppetiteStatementFormDTO(r
 	}
 
 	return nil
+}
+
+func (rass *RiskAppetiteStatementService) GetRiskAppetiteSummary(params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO) ([]riskDTOs.RiskAppetiteStatementSummaryDTO, error) {
+	return rass.repo.GetRiskAppetiteSummary(params)
+}
+
+func (rass *RiskAppetiteStatementService) GetDashboardSummary() (*riskDTOs.RiskAppetiteDashboardSummaryDTO, error) {
+	return rass.repo.GetDashboardSummary()
+}
+
+func (rass *RiskAppetiteStatementService) GetMappedRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*riskDTOs.MappedRiskListResponseDTO, error) {
+	return rass.repo.GetMappedRisks(statementID, params)
 }

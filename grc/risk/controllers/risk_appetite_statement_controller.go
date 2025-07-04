@@ -30,7 +30,6 @@ func (rasc *RiskAppetiteStatementController) GetAllRiskAppetiteStatements(c *gin
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
-	// byCategory := c.Query("by_category")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -290,4 +289,84 @@ func (rasc *RiskAppetiteStatementController) DeactivateRiskAppetiteStatements(c 
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (rasc *RiskAppetiteStatementController) GetRiskAppetiteSummary(c *gin.Context) {
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
+
+	allowedParams := []string{
+		"risk_category_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	queryParams := riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Filters:     filters,
+		QuickFilter: quickFilter,
+	}
+
+	summaries, err := rasc.service.GetRiskAppetiteSummary(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(rasc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, summaries)
+}
+
+func (rasc *RiskAppetiteStatementController) GetDashboardSummary(c *gin.Context) {
+	summary, err := rasc.service.GetDashboardSummary()
+	if err != nil {
+		utility.SendInternalErrResp(rasc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, summary)
+}
+
+func (rasc *RiskAppetiteStatementController) GetMappedRisks(c *gin.Context) {
+	// Get the statement ID from URL
+	statementIDParam := c.Param("id")
+	statementID, err := strconv.ParseUint(statementIDParam, 10, 64)
+	if err != nil {
+		utility.SendInternalErrResp(rasc.db, c, "Invalid statement ID")
+		return
+	}
+
+	// Parse query params
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(rasc.db, c, "Invalid page parameter")
+		return
+	}
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(rasc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := &riskDTOs.MappedRiskListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+
+	// Call the service
+	risks, err := rasc.service.GetMappedRisks(uint(statementID), queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(rasc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, risks)
 }

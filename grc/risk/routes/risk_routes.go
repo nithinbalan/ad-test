@@ -86,6 +86,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/risk-appetite-statements/activate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskAppetiteStatementController.ActivateRiskAppetiteStatements)
 	riskRoutes.PUT("/risk-appetite-statements/deactivate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskAppetiteStatementController.DeactivateRiskAppetiteStatements)
 
+	riskRoutes.GET("/risk-appetite-statements/summary", middlewares.RolePermissionMiddleware(db, "risk_appetite_statement", "view"), riskAppetiteStatementController.GetRiskAppetiteSummary)
+	riskRoutes.GET("/risk-appetite-statements/dashboard-summary", middlewares.RolePermissionMiddleware(db, "risk_appetite_statement", "view"), riskAppetiteStatementController.GetDashboardSummary)
+	riskRoutes.GET("/risk-appetite-statements/:id/mapped-risks", middlewares.RolePermissionMiddleware(db, "risk_appetite_statement", "view"), riskAppetiteStatementController.GetMappedRisks)
+
 	riskRoutes.GET("/kri-categories", kriCategoryController.GetAllKRICategories)
 	riskRoutes.POST("/kri-categories", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), kriCategoryController.CreateKRICategory)
 	riskRoutes.GET("/kri-categories/:id", kriCategoryController.GetKRICategoryDetails)
