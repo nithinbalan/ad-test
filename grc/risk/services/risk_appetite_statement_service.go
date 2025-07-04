@@ -25,9 +25,9 @@ type RiskAppetiteStatementServiceInterface interface {
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
 
-	GetRiskAppetiteSummary(params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO) ([]riskDTOs.RiskAppetiteStatementSummaryDTO, error)
-	GetDashboardSummary() (*riskDTOs.RiskAppetiteDashboardSummaryDTO, error)
-	GetMappedRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
+	GetAllRiskAppetiteStatments(params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO) ([]riskDTOs.RiskAppetiteStatementSummaryDTO, error)
+	GetRiskAppetiteStatementSummary() (*riskDTOs.RiskAppetiteDashboardSummaryDTO, error)
+	GetAllRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 }
 
 // Service and implementations
@@ -340,14 +340,14 @@ func (rass *RiskAppetiteStatementService) validateRiskAppetiteStatementFormDTO(r
 	return nil
 }
 
-func (rass *RiskAppetiteStatementService) GetRiskAppetiteSummary(params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO) ([]riskDTOs.RiskAppetiteStatementSummaryDTO, error) {
-	return rass.repo.GetRiskAppetiteSummary(params)
+func (rass *RiskAppetiteStatementService) GetAllRiskAppetiteStatments(params *riskDTOs.RiskAppetiteStatementSummaryQueryParamsDTO) ([]riskDTOs.RiskAppetiteStatementSummaryDTO, error) {
+	return rass.repo.GetAllRiskAppetiteStatments(params)
 }
 
-func (rass *RiskAppetiteStatementService) GetDashboardSummary() (*riskDTOs.RiskAppetiteDashboardSummaryDTO, error) {
-	return rass.repo.GetDashboardSummary()
+func (rass *RiskAppetiteStatementService) GetRiskAppetiteStatementSummary() (*riskDTOs.RiskAppetiteDashboardSummaryDTO, error) {
+	return rass.repo.GetRiskAppetiteStatementSummary()
 }
 
-func (rass *RiskAppetiteStatementService) GetMappedRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
-	return rass.repo.GetMappedRisks(statementID, params)
+func (rass *RiskAppetiteStatementService) GetAllRisks(statementID uint, params *riskDTOs.MappedRiskListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
+	return rass.repo.GetAllRisks(statementID, params)
 }
