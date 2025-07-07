@@ -293,6 +293,32 @@ type UpdateOrganizationUnitDTO struct {
 	UserID             *uint `json:"user_id"`
 	OrganizationUnitID *uint `json:"organization_unit_id"` // New Organization Unit ID
 }
+
+type ADOUFlatDTO struct {
+	Name              string `json:"name"`
+	Description       string `json:"description"`
+	DistinguishedName string `json:"distinguished_name"`
+}
+
+type ADGroupFlatDTO struct {
+	Name              string `json:"name"`
+	Description       string `json:"description"`
+	DistinguishedName string `json:"distinguished_name"`
+}
+
+// type ADUserFlatDTO struct {
+// 	FirstName         string `json:"first_name"`
+// 	LastName          string `json:"last_name"`
+// 	Email             string `json:"email"`
+// 	UserName          string `json:"user_name"`
+// 	Designation       string `json:"designation"`
+// 	DistinguishedName string `json:"distinguished_name"`
+// }
+
+type ADGroupUsersRequest struct {
+	GroupDNs []string `json:"group_dns"`
+}
+
 type ADUserDTO struct {
 	FirstNameEn      string `json:"first_name_en"`
 	LastNameEn       string `json:"last_name_en"`
@@ -305,4 +331,5 @@ type ADUserDTO struct {
 	OrganizationUnit string `json:"organization_unit"`
 	IsExist          bool   `json:"is_exist"`
 }
+
 type ADUserFlatDTO map[string]interface{}

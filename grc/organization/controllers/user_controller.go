@@ -597,6 +597,43 @@ func (uc *UserController) SyncADUsers(c *gin.Context) {
 	})
 }
 
+func (uc *UserController) ListOUs(c *gin.Context) {
+	ous, err := uc.service.ListOUs()
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, ous)
+}
+
+func (uc *UserController) ListGroupsInOU(c *gin.Context) {
+	ouDN := c.Query("ou_dn")
+	if ouDN == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ou_dn query parameter is required"})
+		return
+	}
+	groups, err := uc.service.ListSecurityGroups(ouDN)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, groups)
+}
+
+func (uc *UserController) ListUsersInGroups(c *gin.Context) {
+	var req organizationDTOs.ADGroupUsersRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+	users, err := uc.service.ListUsersInGroups(req.GroupDNs)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, users)
+}
+
 func (uc *UserController) GetADUsers(c *gin.Context) {
 	users, err := uc.service.GetUsersFromAD()
 	if err != nil {
