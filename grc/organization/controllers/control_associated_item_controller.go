@@ -271,3 +271,99 @@ func (caic *ControlAssociatedItemController) GetAllAssociatedCounts(c *gin.Conte
 	}
 	c.JSON(http.StatusOK, associatedCounts)
 }
+
+func (caic *ControlAssociatedItemController) GetAllAssociatedClauses(c *gin.Context) {
+	controlIDStr := c.Param("controlId")
+
+	controlID, err := strconv.ParseUint(controlIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+	valueStr := c.Query("value")
+	quickFilter := c.QueryArray("quick_filter")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	var value int
+	if valueStr != "" {
+		value, err = strconv.Atoi(valueStr)
+		if err != nil {
+			utility.SendInternalErrResp(caic.db, c, "Invalid value parameter")
+			return
+		}
+	}
+
+	queryParams := organizationDTOs.ControlAssociatedItemListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
+		Value:       value,
+		QuickFilter: quickFilter,
+	}
+
+	associatedClause, err := caic.service.GetAllAssociatedClauses(uint(controlID), &queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(caic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, associatedClause)
+}
+func (caic *ControlAssociatedItemController) UpdateAssociatedClause(c *gin.Context) {
+    var ControlClauseFormDTO organizationDTOs.ControlClauseFormDTO
+	controlID, err := strconv.Atoi(c.Param("controlId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	if err := c.ShouldBindJSON(&ControlClauseFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+	createdCount, err := caic.service.UpdateAssociatedClause(uint(controlID), currentUserID, &ControlClauseFormDTO)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(caic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusCreated,gin.H{"total_inserted ": createdCount})
+
+}

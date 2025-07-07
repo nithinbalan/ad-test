@@ -163,3 +163,21 @@ type ControlAssociatedItemsCountResponseDTO struct {
 	Risks                  int `json:"risks"`
 	Incidents              int `json:"incidents"`
 }
+
+type ClauseListDTO    struct {
+	ComplianceRegisterID                 uint   `json:"compliance_register_id"`
+	ComplianceRegisterTitleEn            string `json:"compliance_register_title_en"`
+	ComplianceRegisterTitleAr            string `json:"compliance_register_title_ar"`
+	ClauseTitleEn              			 string `json:"clause_title_en"`
+	ClauseTitleAr              			 string `json:"clause_title_ar"`
+	ClauseNo                  			 string `json:"clause_no"`
+	ComplianceClauseID					 uint  `json:"compliance_clause_id"`
+}
+
+type ControlAssociatedItemClauseListResponseDTO struct {
+	Items      	[]*ClauseListDTO        `json:"items"`
+	Pagination 	commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+type ControlClauseFormDTO struct {
+	ClauseIDs            	[]uint `json:"clause_ids" binding:"required"`             
+}

@@ -226,6 +226,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/controls/:controlId/risks", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlAssociatedItemController.GetAllControlRisks)
 	organizationRoutes.GET("/controls/:controlId/incidents", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlAssociatedItemController.GetAllControlIncidents)
 	organizationRoutes.GET("/controls/:controlId/associated-item-summary", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlAssociatedItemController.GetAllAssociatedCounts)
+	organizationRoutes.GET("/controls/:controlId/clauses", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlAssociatedItemController.GetAllAssociatedClauses)
+	organizationRoutes.POST("/controls/:controlId/clauses", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlAssociatedItemController.UpdateAssociatedClause)
 
 	//Process Group
 	organizationRoutes.GET("/process-groups", processGroupController.GetAllProcessGroups)
