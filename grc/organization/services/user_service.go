@@ -1784,7 +1784,7 @@ func (us *UserService) ListOUs() ([]userDTOs.ADOUFlatDTO, error) {
 }
 
 func (us *UserService) ListSecurityGroups(ouDN string) ([]userDTOs.ADGroupFlatDTO, error) {
-	// ✅ Validate AD connection
+	// Validate AD connection
 	if err := us.activeDirectorySettingSvc.GetADConnection(); err != nil {
 		return nil, err
 	}
@@ -1802,13 +1802,14 @@ func (us *UserService) ListSecurityGroups(ouDN string) ([]userDTOs.ADGroupFlatDT
 
 	address := fmt.Sprintf("%s:%d", adSetting.Server, adSetting.Port)
 	var l *ldap.Conn
+	var connErr error
 	if adSetting.UseSSL {
-		l, err = ldap.DialTLS("tcp", address, &tls.Config{InsecureSkipVerify: true})
+		l, connErr = ldap.DialTLS("tcp", address, &tls.Config{InsecureSkipVerify: true})
 	} else {
-		l, err = ldap.Dial("tcp", address)
+		l, connErr = ldap.Dial("tcp", address)
 	}
-	if err != nil {
-		return nil, fmt.Errorf("LDAP connection failed: %w", err)
+	if connErr != nil {
+		return nil, fmt.Errorf("LDAP connection failed: %w", connErr)
 	}
 	defer l.Close()
 
@@ -1816,10 +1817,20 @@ func (us *UserService) ListSecurityGroups(ouDN string) ([]userDTOs.ADGroupFlatDT
 		return nil, fmt.Errorf("bind failed: %w", err)
 	}
 
-	// ✅ Search security groups
+	// ✅ Decide base DN and scope
+	baseDN := ouDN
+	scope := ldap.ScopeSingleLevel
+	if ouDN == "" {
+		baseDN = adSetting.BaseDN
+		scope = ldap.ScopeWholeSubtree
+	}
+
+	fmt.Printf("🔍 Searching groups in baseDN: %s with scope: %d\n", baseDN, scope)
+
+	// Search security groups
 	searchReq := ldap.NewSearchRequest(
-		ouDN,
-		ldap.ScopeSingleLevel,
+		baseDN,
+		scope,
 		ldap.NeverDerefAliases,
 		0, 0, false,
 		"(&(objectCategory=group)(groupType:1.2.840.113556.1.4.803:=2147483648))",
@@ -1980,11 +1991,11 @@ func (us *UserService) ListUsersInGroups(groupDNs []string) ([]userDTOs.ADUserFl
 
 		for i := 0; i < orgLevelCount; i++ {
 			key := fmt.Sprintf("organization_unit_%d", i+1)
-			if i < len(ouParts) {
-				user[key] = ouParts[i]
-			} else {
-				user[key] = ""
-			}
+			// if i < len(ouParts) {
+			// 	user[key] = ouParts[i]
+			// } else {
+			user[key] = ""
+			// }
 		}
 
 		result = append(result, user)

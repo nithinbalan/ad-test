@@ -608,10 +608,8 @@ func (uc *UserController) ListOUs(c *gin.Context) {
 
 func (uc *UserController) ListGroupsInOU(c *gin.Context) {
 	ouDN := c.Query("ou_dn")
-	if ouDN == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ou_dn query parameter is required"})
-		return
-	}
+	// ✅ No validation needed: empty means search whole directory
+
 	groups, err := uc.service.ListSecurityGroups(ouDN)
 	if err != nil {
 		utility.SendInternalErrResp(uc.db, c, err.Error())
