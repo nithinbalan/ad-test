@@ -61,6 +61,9 @@ type UserServiceInterface interface {
 	ValidateImportUsers(input []map[string]interface{}) ([]map[string]interface{}, error)
 	ImportUsers(input []map[string]interface{}, currentUserID uint) ([]uint, error)
 	SyncUsersFromAD(currentUserID uint) (int, error)
+	ListOUs() ([]userDTOs.ADOUFlatDTO, error)
+	ListSecurityGroups(ouDN string) ([]userDTOs.ADGroupFlatDTO, error)
+	ListUsersInGroups(groupDNs []string) ([]userDTOs.ADUserFlatDTO, error)
 	GetUsersFromAD() ([]userDTOs.ADUserFlatDTO, error)
 
 	UpdateUserOrganizationUnit(userID uint, departmentUpdateFormDTO userDTOs.UpdateOrganizationUnitDTO) error
@@ -1718,6 +1721,287 @@ func (us *UserService) SyncUsersFromAD(currentUserID uint) (int, error) {
 	}
 
 	return usersSynced, nil
+}
+
+func (us *UserService) ListOUs() ([]userDTOs.ADOUFlatDTO, error) {
+	// ✅ Validate AD connection
+	if err := us.activeDirectorySettingSvc.GetADConnection(); err != nil {
+		return nil, err
+	}
+
+	adSetting, err := us.activeDirectorySettingSvc.GetFirst()
+	if err != nil || adSetting == nil {
+		return nil, fmt.Errorf("Active Directory configuration not found")
+	}
+
+	bindPsw := []byte(adSetting.BindPassword)
+	bindPassword, err := utility.DecryptData(string(bindPsw))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt bind password: %w", err)
+	}
+
+	address := fmt.Sprintf("%s:%d", adSetting.Server, adSetting.Port)
+	var l *ldap.Conn
+	if adSetting.UseSSL {
+		l, err = ldap.DialTLS("tcp", address, &tls.Config{InsecureSkipVerify: true})
+	} else {
+		l, err = ldap.Dial("tcp", address)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("LDAP connection failed: %w", err)
+	}
+	defer l.Close()
+
+	if err := l.Bind(adSetting.BindDN, string(bindPassword)); err != nil {
+		return nil, fmt.Errorf("bind failed: %w", err)
+	}
+
+	// ✅ Search OUs
+	searchReq := ldap.NewSearchRequest(
+		adSetting.BaseDN,
+		ldap.ScopeWholeSubtree,
+		ldap.NeverDerefAliases,
+		0, 0, false,
+		"(objectClass=organizationalUnit)",
+		[]string{"ou", "description", "distinguishedName"},
+		nil,
+	)
+
+	sr, err := l.Search(searchReq)
+	if err != nil {
+		return nil, fmt.Errorf("LDAP search failed: %w", err)
+	}
+
+	var result []userDTOs.ADOUFlatDTO
+	for _, entry := range sr.Entries {
+		result = append(result, userDTOs.ADOUFlatDTO{
+			Name:              entry.GetAttributeValue("ou"),
+			Description:       entry.GetAttributeValue("description"),
+			DistinguishedName: entry.GetAttributeValue("distinguishedName"),
+		})
+	}
+	return result, nil
+}
+
+func (us *UserService) ListSecurityGroups(ouDN string) ([]userDTOs.ADGroupFlatDTO, error) {
+	// Validate AD connection
+	if err := us.activeDirectorySettingSvc.GetADConnection(); err != nil {
+		return nil, err
+	}
+
+	adSetting, err := us.activeDirectorySettingSvc.GetFirst()
+	if err != nil || adSetting == nil {
+		return nil, fmt.Errorf("Active Directory configuration not found")
+	}
+
+	bindPsw := []byte(adSetting.BindPassword)
+	bindPassword, err := utility.DecryptData(string(bindPsw))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt bind password: %w", err)
+	}
+
+	address := fmt.Sprintf("%s:%d", adSetting.Server, adSetting.Port)
+	var l *ldap.Conn
+	var connErr error
+	if adSetting.UseSSL {
+		l, connErr = ldap.DialTLS("tcp", address, &tls.Config{InsecureSkipVerify: true})
+	} else {
+		l, connErr = ldap.Dial("tcp", address)
+	}
+	if connErr != nil {
+		return nil, fmt.Errorf("LDAP connection failed: %w", connErr)
+	}
+	defer l.Close()
+
+	if err := l.Bind(adSetting.BindDN, string(bindPassword)); err != nil {
+		return nil, fmt.Errorf("bind failed: %w", err)
+	}
+
+	// ✅ Decide base DN and scope
+	baseDN := ouDN
+	scope := ldap.ScopeSingleLevel
+	if ouDN == "" {
+		baseDN = adSetting.BaseDN
+		scope = ldap.ScopeWholeSubtree
+	}
+
+	fmt.Printf("🔍 Searching groups in baseDN: %s with scope: %d\n", baseDN, scope)
+
+	// Search security groups
+	searchReq := ldap.NewSearchRequest(
+		baseDN,
+		scope,
+		ldap.NeverDerefAliases,
+		0, 0, false,
+		"(&(objectCategory=group)(groupType:1.2.840.113556.1.4.803:=2147483648))",
+		[]string{"cn", "description", "distinguishedName"},
+		nil,
+	)
+
+	sr, err := l.Search(searchReq)
+	if err != nil {
+		return nil, fmt.Errorf("LDAP search failed: %w", err)
+	}
+
+	var result []userDTOs.ADGroupFlatDTO
+	for _, entry := range sr.Entries {
+		result = append(result, userDTOs.ADGroupFlatDTO{
+			Name:              entry.GetAttributeValue("cn"),
+			Description:       entry.GetAttributeValue("description"),
+			DistinguishedName: entry.GetAttributeValue("distinguishedName"),
+		})
+	}
+	return result, nil
+}
+
+func (us *UserService) ListUsersInGroups(groupDNs []string) ([]userDTOs.ADUserFlatDTO, error) {
+	// ✅ Validate AD connection
+	if err := us.activeDirectorySettingSvc.GetADConnection(); err != nil {
+		return nil, err
+	}
+
+	adSetting, err := us.activeDirectorySettingSvc.GetFirst()
+	if err != nil || adSetting == nil {
+		return nil, fmt.Errorf("Active Directory configuration not found")
+	}
+
+	bindPsw := []byte(adSetting.BindPassword)
+	bindPassword, err := utility.DecryptData(string(bindPsw))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt bind password: %w", err)
+	}
+
+	address := fmt.Sprintf("%s:%d", adSetting.Server, adSetting.Port)
+	var l *ldap.Conn
+	if adSetting.UseSSL {
+		l, err = ldap.DialTLS("tcp", address, &tls.Config{InsecureSkipVerify: true})
+	} else {
+		l, err = ldap.Dial("tcp", address)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("LDAP connection failed: %w", err)
+	}
+	defer l.Close()
+
+	if err := l.Bind(adSetting.BindDN, string(bindPassword)); err != nil {
+		return nil, fmt.Errorf("bind failed: %w", err)
+	}
+
+	// ✅ Collect user DNs from all groups
+	userDNMap := map[string]struct{}{}
+	for _, groupDN := range groupDNs {
+		searchReq := ldap.NewSearchRequest(
+			groupDN,
+			ldap.ScopeBaseObject,
+			ldap.NeverDerefAliases,
+			0, 0, false,
+			"(objectClass=group)",
+			[]string{"member"},
+			nil,
+		)
+		sr, err := l.Search(searchReq)
+		if err != nil {
+			return nil, fmt.Errorf("LDAP search for group %s failed: %w", groupDN, err)
+		}
+		for _, entry := range sr.Entries {
+			for _, m := range entry.GetAttributeValues("member") {
+				userDNMap[m] = struct{}{}
+			}
+		}
+	}
+
+	if len(userDNMap) == 0 {
+		return []userDTOs.ADUserFlatDTO{}, nil
+	}
+
+	var filters []string
+	for dn := range userDNMap {
+		filters = append(filters, fmt.Sprintf("(distinguishedName=%s)", ldap.EscapeFilter(dn)))
+	}
+	filter := fmt.Sprintf("(|%s)", strings.Join(filters, ""))
+
+	// ✅ Search for users
+	searchReq := ldap.NewSearchRequest(
+		adSetting.BaseDN,
+		ldap.ScopeWholeSubtree,
+		ldap.NeverDerefAliases,
+		0, 0, false,
+		filter,
+		[]string{"givenName", "sn", "mail", "sAMAccountName", "distinguishedName", "title"},
+		nil,
+	)
+
+	sr, err := l.SearchWithPaging(searchReq, 500)
+	if err != nil {
+		return nil, fmt.Errorf("LDAP search failed: %w", err)
+	}
+
+	slNo := 1
+	orgLevels, err := us.organizationLevelSvc.GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch organization levels: %w", err)
+	}
+	orgLevelCount := len(orgLevels)
+
+	var result []userDTOs.ADUserFlatDTO
+	for _, entry := range sr.Entries {
+		firstName := entry.GetAttributeValue("givenName")
+		lastName := entry.GetAttributeValue("sn")
+		email := entry.GetAttributeValue("mail")
+		distinguishedName := entry.GetAttributeValue("distinguishedName")
+		designationTitle := entry.GetAttributeValue("title")
+
+		if email == "" {
+			continue
+		}
+
+		exists, err := us.repo.ExistsByEmail(email)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check user existence: %w", err)
+		}
+
+		ouParts := []string{}
+		for _, part := range strings.Split(distinguishedName, ",") {
+			part = strings.TrimSpace(part)
+			if strings.HasPrefix(strings.ToUpper(part), "OU=") {
+				ouParts = append([]string{strings.TrimPrefix(part, "OU=")}, ouParts...)
+			}
+		}
+
+		user := userDTOs.ADUserFlatDTO{
+			"sl_no":         slNo,
+			"first_name_en": firstName,
+			"last_name_en":  lastName,
+			"first_name_ar": firstName,
+			"last_name_ar":  lastName,
+			"email":         email,
+			"mobile_number": "",
+			"designation":   designationTitle,
+			"user_status":   "Active",
+			"roles":         []string{},
+			"primary_department": func() string {
+				if len(ouParts) > 0 {
+					return ouParts[0]
+				}
+				return ""
+			}(),
+			"is_exists": exists,
+			"errors":    nil,
+		}
+
+		for i := 0; i < orgLevelCount; i++ {
+			key := fmt.Sprintf("organization_unit_%d", i+1)
+			// if i < len(ouParts) {
+			// 	user[key] = ouParts[i]
+			// } else {
+			user[key] = ""
+			// }
+		}
+
+		result = append(result, user)
+		slNo++
+	}
+	return result, nil
 }
 
 func (us *UserService) GetUsersFromAD() ([]userDTOs.ADUserFlatDTO, error) {

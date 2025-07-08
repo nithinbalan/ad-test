@@ -84,7 +84,7 @@ type RiskAppetiteStatementDetailsDTO struct {
 	UpdatedAt      *time.Time      `json:"updated_at"`
 }
 
-type RiskAppetiteStatementSummaryDTO struct {
+type RiskAppetiteStatementSummaryListDTO struct {
 	ID                           uint   `json:"id"`
 	RiskCategoryTitleEn          string `json:"risk_category_title_en"`
 	RiskCategoryTitleAr          string `json:"risk_category_title_ar"`
@@ -105,7 +105,7 @@ type RiskAppetiteStatementSummaryQueryParamsDTO struct {
 	QuickFilter []string
 }
 
-type RiskAppetiteDashboardSummaryDTO struct {
+type RiskAppetiteStatementSummaryDTO struct {
 	ActiveStatementsCount     int `json:"active_statements_count"`
 	AlignedRisksCount         int `json:"aligned_risks_count"`
 	TotalRisksCount           int `json:"total_risks_count"`
@@ -122,7 +122,7 @@ type MappedRiskListQueryParamsDTO struct {
 	PageSize int    `json:"page_size"`
 }
 
-type RiskAppetiteStatementSummaryCountsDTO struct {
+type RiskAppetiteStatementDetailsSummaryDTO struct {
 	TotalMappedRisks int `json:"total_mapped_risks"`
 	AboveCount       int `json:"above_count"`
 	WithinCount      int `json:"within_count"`

@@ -307,6 +307,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/process-criticality-levels", processCriticalityLevelController.GetAllProcessCriticalityLevels)
 	organizationRoutes.GET("/process-criticality-levels/:id", processCriticalityLevelController.GetProcessCriticalityLevelDetails)
 	organizationRoutes.POST("/ad-users-sync", userController.SyncADUsers)
+
+	organizationRoutes.GET("/active-directory/ous", userController.ListOUs)
+	organizationRoutes.GET("/active-directory/ou-groups", userController.ListGroupsInOU)
+	organizationRoutes.POST("/active-directory/ou-group-users", userController.ListUsersInGroups)
 	organizationRoutes.GET("/active-directory-users", userController.GetADUsers)
 
 	organizationRoutes.GET("/processes/:processId/activities", processActivityController.GetAllProcessActivities)
