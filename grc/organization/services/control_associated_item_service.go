@@ -2,9 +2,11 @@ package services
 
 import (
 	"fmt"
+	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/utility"
+	"time"
 )
 
 type ControlAssociatedItemServiceInterface interface {
@@ -141,23 +143,70 @@ func (cais *ControlAssociatedItemService) UpdateClauses(controlID uint, currentU
 
 	if len(ControlClauseFormDTO.ClauseIDs) == 0 {
 		return 0, utility.NewValidationError(
-			fmt.Errorf("clause_ids must not be empty"),
-			"required",
-			"clause_ids",
-		)
+			fmt.Errorf("clause_ids must not be empty"), "required", "clause_ids")
 	}
 	tx := cais.repo.BeginTransaction()
 	if _, err := cais.controlSvc.GetByID(controlID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
-	InsertedCount, err := cais.repo.UpdateClauses(controlID, currentUserID, ControlClauseFormDTO, tx)
+	clauses, err := cais.repo.GetClausesByIDs(ControlClauseFormDTO.ClauseIDs, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
+	if len(clauses) != len(ControlClauseFormDTO.ClauseIDs) {
+		tx.Rollback()
+		return 0, utility.NewValidationError(fmt.Errorf("one or more clause_ids are invalid"), "not_exist", "clause_id")
+	}
+	existingControlClauses, err := cais.repo.GetClausesByControlID(controlID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	existingClauses := make(map[uint]bool) // clauseID => exists
+	for _, clauseID := range existingControlClauses {
+		existingClauses[clauseID] = true
+	}
+
+	newClauses := make(map[uint]*models.ComplianceClause)
+	for _, clause := range clauses {
+		newClauses[clause.ID] = clause
+	}
+	var clausesToAdd []*models.ComplianceControl
+	now := time.Now()
+	for id, clause := range newClauses {
+		if !existingClauses[id] {
+			clausesToAdd = append(clausesToAdd, &models.ComplianceControl{
+				ControlID:            controlID,
+				ComplianceRegisterID: clause.ComplianceRegisterID,
+				ComplianceClauseID:   &clause.ID,
+				CreatedByID:          currentUserID,
+				CreatedAt:            now,
+			})
+		}
+	}
+	if len(clausesToAdd) > 0 {
+		if err := cais.repo.CreateControlClauses(clausesToAdd, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+	var deleteClauseIDs []uint
+	for existingID := range existingClauses {
+		if _, found := newClauses[existingID]; !found {
+			deleteClauseIDs = append(deleteClauseIDs, existingID)
+		}
+	}
+	if len(deleteClauseIDs) > 0 {
+		if err := cais.repo.DeleteControlClauses(controlID, deleteClauseIDs, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return 0, err
 	}
-	return InsertedCount, nil
+
+	return uint(len(clausesToAdd)), nil
 }

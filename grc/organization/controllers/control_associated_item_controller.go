@@ -284,7 +284,6 @@ func (caic *ControlAssociatedItemController) GetAllClauses(c *gin.Context) {
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
-	valueStr := c.Query("value")
 	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
@@ -298,16 +297,6 @@ func (caic *ControlAssociatedItemController) GetAllClauses(c *gin.Context) {
 		utility.SendInternalErrResp(caic.db, c, "Invalid page_size parameter")
 		return
 	}
-
-	var value int
-	if valueStr != "" {
-		value, err = strconv.Atoi(valueStr)
-		if err != nil {
-			utility.SendInternalErrResp(caic.db, c, "Invalid value parameter")
-			return
-		}
-	}
-
 	queryParams := organizationDTOs.ControlAssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
@@ -315,11 +304,10 @@ func (caic *ControlAssociatedItemController) GetAllClauses(c *gin.Context) {
 		Status:      status,
 		Page:        page,
 		PageSize:    pageSize,
-		Value:       value,
 		QuickFilter: quickFilter,
 	}
 
-	associatedClause, err := caic.service.GetAllClauses(uint(controlID), &queryParams)
+	associatedClauses, err := caic.service.GetAllClauses(uint(controlID), &queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -330,7 +318,7 @@ func (caic *ControlAssociatedItemController) GetAllClauses(c *gin.Context) {
 			return
 		}
 	}
-	c.JSON(http.StatusOK, associatedClause)
+	c.JSON(http.StatusOK, associatedClauses)
 }
 func (caic *ControlAssociatedItemController) UpdateClauses(c *gin.Context) {
 	var ControlClauseFormDTO organizationDTOs.ControlClauseFormDTO

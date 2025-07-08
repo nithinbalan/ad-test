@@ -1,12 +1,10 @@
 package repositories
 
 import (
-	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -19,10 +17,11 @@ type ControlAssociatedItemRepositoryInterface interface {
 	GetAllIncidents(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemIncidentListResponseDTO, error)
 	GetAllAssociatedCounts(controlID uint) (*organizationDTOs.ControlAssociatedItemsCountResponseDTO, error)
 	GetAllClauses(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemClauseListResponseDTO, error)
-	UpdateClauses(controlID uint, currentUserID uint, ControlClauseFormDTO *organizationDTOs.ControlClauseFormDTO, tx ...utility.DatabaseTransaction) (uint, error)
-	GetClauseByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error)
+	GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error)
+	GetClausesByControlID(controlID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
+	CreateControlClauses(clauses []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error
+	DeleteControlClauses(controlID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 }
-
 type ControlAssociatedItemRepository struct {
 	db *gorm.DB
 }
@@ -450,13 +449,13 @@ func (repo *ControlAssociatedItemRepository) GetAllClauses(controlID uint, param
 	var totalCount int64
 	query := repo.db.Table("compliance_controls").
 		Select(`
-			compliance_register.title_en  AS compliance_register_title_en ,
-			compliance_register.title_ar AS compliance_register_title_ar,
-			compliance_controls.compliance_register_id,
 			compliance_clauses.title_en  AS clause_title_en,
 			compliance_clauses.title_ar AS  clause_title_ar,
+			compliance_clauses.clause_no,
+			compliance_controls.compliance_register_id,
 			compliance_controls.compliance_clause_id,
-			compliance_clauses.clause_no
+			compliance_register.title_en  AS compliance_register_title_en ,
+			compliance_register.title_ar AS compliance_register_title_ar
 		`).
 		Joins(`
 			LEFT JOIN compliance_clauses ON compliance_controls.compliance_clause_id = compliance_clauses.id
@@ -509,102 +508,62 @@ func (repo *ControlAssociatedItemRepository) GetAllClauses(controlID uint, param
 	return response, nil
 }
 
-func (repo *ControlAssociatedItemRepository) UpdateClauses(controlID uint, currentUserID uint, ControlClauseFormDTO *organizationDTOs.ControlClauseFormDTO, tx ...utility.DatabaseTransaction) (uint, error) {
+func (repo *ControlAssociatedItemRepository) GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	var controlClauses []*models.ComplianceControl
-	now := time.Now()
-	//  Fix: Fetch all clauses in a single query:TODO
-	for _, clauseID := range ControlClauseFormDTO.ClauseIDs {
-		clause, err := repo.GetClauseByID(clauseID)
-		if err != nil {
-			return 0, err
-		}
-		controlClauses = append(controlClauses, &models.ComplianceControl{
-			ControlID:            controlID,
-			ComplianceRegisterID: clause.ComplianceRegisterID,
-			ComplianceClauseID:   &clause.ID,
-			CreatedByID:          currentUserID,
-			CreatedAt:            now,
-		})
-	}
-	// Extract all compliance_clause_ids from input
-	newClauseIDs := make([]uint, 0, len(controlClauses))
-	clauseMap := map[uint]*models.ComplianceControl{}
-	for _, clause := range controlClauses {
-		if clause.ComplianceClauseID != nil {
-			id := *clause.ComplianceClauseID
-			newClauseIDs = append(newClauseIDs, id)
-			clauseMap[id] = clause
-		}
-	}
 
-	if len(newClauseIDs) == 0 {
-		// If no clause_ids are sent, delete everything for this control_id
-		if err := db.
-			Where("control_id = ?", controlID).
-			Delete(&models.ComplianceControl{}).Error; err != nil {
-			return 0, err
-		}
-		return 0, nil
-	}
-
-	// Delete clauses not in the new list for this control
+	var clauses []*models.ComplianceClause
 	if err := db.
-		Where("control_id = ? AND compliance_clause_id NOT IN ?", controlID, newClauseIDs).
-		Delete(&models.ComplianceControl{}).Error; err != nil {
-		return 0, err
+		Select("id, compliance_register_id").
+		Where("id IN ?", ids).
+		Find(&clauses).Error; err != nil {
+		return nil, err
 	}
 
-	// Check which clause_ids already exist
-	var existing []uint
-	if err := db.Model(&models.ComplianceControl{}).
-		Where("control_id = ? AND compliance_clause_id IN ?", controlID, newClauseIDs).
-		Pluck("compliance_clause_id", &existing).Error; err != nil {
-		return 0, err
-	}
-
-	existingSet := map[uint]bool{}
-	for _, id := range existing {
-		existingSet[id] = true
-	}
-
-	// Prepare clauses to insert
-	var toInsert []*models.ComplianceControl
-	for _, id := range newClauseIDs {
-		if !existingSet[id] {
-			toInsert = append(toInsert, clauseMap[id])
-		}
-	}
-
-	if len(toInsert) > 0 {
-		if err := db.Create(&toInsert).Error; err != nil {
-			return 0, err
-		}
-	}
-
-	return uint(len(toInsert)), nil
+	return clauses, nil
 }
 
-func (repo *ControlAssociatedItemRepository) GetClauseByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error) {
+func (repo *ControlAssociatedItemRepository) GetClausesByControlID(controlID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	var complianceClause models.ComplianceClause
-	result := db.First(&complianceClause, id)
-
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			// Return an error instead of nil to indicate record not found
-			return nil, errors.New("compliance clause not found")
-
-		}
-		return nil, result.Error
+	var clauseIDs []uint
+	if err := db.
+		Model(&models.ComplianceControl{}).
+		Where("control_id = ?", controlID).
+		Pluck("compliance_clause_id", &clauseIDs).Error; err != nil {
+		return nil, err
 	}
 
-	return &complianceClause, nil
+	return clauseIDs, nil
+}
+func (repo *ControlAssociatedItemRepository) CreateControlClauses(clauses []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(&clauses).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ControlAssociatedItemRepository) DeleteControlClauses(controlID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.
+		Where("control_id = ? AND compliance_clause_id IN ?", controlID, clauseIDs).
+		Delete(&models.ComplianceControl{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
