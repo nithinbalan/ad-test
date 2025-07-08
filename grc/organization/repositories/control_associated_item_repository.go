@@ -5,8 +5,10 @@ import (
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 
-	"gorm.io/gorm"
 	"jethur/utility"
+
+	"gorm.io/gorm"
+
 	// "gorm.io/gorm/clause"
 	"errors"
 )
@@ -447,7 +449,7 @@ func (repo *ControlAssociatedItemRepository) GetAllAssociatedCounts(controlID ui
 
 func (repo *ControlAssociatedItemRepository) GetAllAssociatedClauses(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemClauseListResponseDTO, error) {
 	var clauseList []*organizationDTOs.ClauseListDTO
-    var totalCount int64
+	var totalCount int64
 	query := repo.db.Table("control_clauses").
 		Select(`
 			compliance_register.title_en  AS compliance_register_title_en ,
@@ -509,7 +511,7 @@ func (repo *ControlAssociatedItemRepository) GetAllAssociatedClauses(controlID u
 	return response, nil
 }
 
-func (repo *ControlAssociatedItemRepository) BulkInsertClauses(controlClauses []*models.ControlClause,tx ...utility.DatabaseTransaction,) (uint, error) {
+func (repo *ControlAssociatedItemRepository) BulkInsertClauses(controlClauses []*models.ControlClause, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -525,8 +527,8 @@ func (repo *ControlAssociatedItemRepository) BulkInsertClauses(controlClauses []
 	newClauseIDs := make([]uint, 0, len(controlClauses))
 	clauseMap := map[uint]*models.ControlClause{}
 	for _, clause := range controlClauses {
-		if clause.ComplianceClauseID != nil {
-			id := *clause.ComplianceClauseID
+		if clause.ComplianceClauseID != 0 {
+			id := clause.ComplianceClauseID
 			newClauseIDs = append(newClauseIDs, id)
 			clauseMap[id] = clause
 		}

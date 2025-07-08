@@ -1,16 +1,16 @@
 package services
 
 import (
-	"time"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
+	"time"
+
 	// complianceDTOs "jethur/grc/compliance/dtos"
 	// complianceRepo "jethur/grc/compliance/repositories"
-	"jethur/utility"
 	"fmt"
+	"jethur/utility"
 	// "github.com/mitchellh/mapstructure"
-	
 )
 
 type ControlAssociatedItemServiceInterface interface {
@@ -20,7 +20,7 @@ type ControlAssociatedItemServiceInterface interface {
 	GetAllIncidents(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemIncidentListResponseDTO, error)
 	GetAllAssociatedCounts(controlID uint) (*organizationDTOs.ControlAssociatedItemsCountResponseDTO, error)
 	GetAllAssociatedClauses(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemClauseListResponseDTO, error)
-	UpdateAssociatedClause(controlID uint, currentUserID uint,formDTO *organizationDTOs.ControlClauseFormDTO) (uint, error)
+	UpdateAssociatedClause(controlID uint, currentUserID uint, formDTO *organizationDTOs.ControlClauseFormDTO) (uint, error)
 }
 
 type ControlAssociatedItemService struct {
@@ -28,7 +28,7 @@ type ControlAssociatedItemService struct {
 	controlSvc                     ControlServiceInterface
 	controlImplementationStatusSvc ControlImplementationStatusServiceInterface
 	controlEfficiencyStatusService ControlEfficiencyStatusServiceInterface
-	// complianceRepo  complianceRepo.ComplianceClauseRepositoryInterface 
+	// complianceRepo  complianceRepo.ComplianceClauseRepositoryInterface
 }
 
 func NewControlAssociatedItemService(
@@ -135,11 +135,11 @@ func (cais *ControlAssociatedItemService) GetAllAssociatedCounts(controlID uint)
 	return response, nil
 }
 
-func (cais *ControlAssociatedItemService) GetAllAssociatedClauses(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemClauseListResponseDTO, error)  {
+func (cais *ControlAssociatedItemService) GetAllAssociatedClauses(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemClauseListResponseDTO, error) {
 	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
 		return nil, err
 	}
-	response, err := cais.repo.GetAllAssociatedClauses(controlID,params)
+	response, err := cais.repo.GetAllAssociatedClauses(controlID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +169,7 @@ func (cais *ControlAssociatedItemService) UpdateAssociatedClause(controlID uint,
 	return insertedCount, nil
 }
 
-func (cais *ControlAssociatedItemService) buildControlClausesFromDTO(controlID uint, currentUserID uint, ControlClauseFormDTO *organizationDTOs.ControlClauseFormDTO,) ([]*models.ControlClause, error) {
+func (cais *ControlAssociatedItemService) buildControlClausesFromDTO(controlID uint, currentUserID uint, ControlClauseFormDTO *organizationDTOs.ControlClauseFormDTO) ([]*models.ControlClause, error) {
 	if len(ControlClauseFormDTO.ClauseIDs) == 0 {
 		return nil, utility.NewValidationError(
 			fmt.Errorf("clause_ids must not be empty"),
@@ -192,7 +192,7 @@ func (cais *ControlAssociatedItemService) buildControlClausesFromDTO(controlID u
 		controlClauses = append(controlClauses, &models.ControlClause{
 			ControlID:            controlID,
 			ComplianceRegisterID: clause.ComplianceRegisterID,
-			ComplianceClauseID:   &clause.ID,
+			ComplianceClauseID:   clause.ID,
 			CreatedByID:          currentUserID,
 			CreatedAt:            now,
 		})
