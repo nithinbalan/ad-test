@@ -452,6 +452,7 @@ func (repo *RiskAppetiteStatementRepository) GetAllRiskAppetiteStatments(
 		Table("risk_appetite_statements AS ras").
 		Select(`
 			ras.id AS id,
+			rc.id AS risk_category_id,
 			rc.title_en AS risk_category_title_en,
 			rc.title_ar AS risk_category_title_ar,
 			ras.statement_en AS risk_appetite_statement_title_en,
@@ -465,7 +466,7 @@ func (repo *RiskAppetiteStatementRepository) GetAllRiskAppetiteStatments(
 		Joins(`LEFT JOIN risk_appetite_alignments raa ON raa.risk_appetite_statement_id = ras.id`).
 		Joins(`LEFT JOIN risk_evaluations re ON re.id = raa.risk_evaluation_id AND re.type = 'inherent'`).
 		Joins(`LEFT JOIN risk_appetite_tolerance_levels ratl ON ratl.id = raa.risk_appetite_tolerance_level_id`).
-		Group(`ras.id, rc.title_en, rc.title_ar, ras.statement_en, ras.statement_ar`)
+		Group(`ras.id, rc.id, rc.title_en, rc.title_ar, ras.statement_en, ras.statement_ar`)
 
 	// Apply dynamic filters
 	for columnName, values := range params.Filters {

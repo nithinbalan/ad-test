@@ -86,6 +86,7 @@ type RiskAppetiteStatementDetailsDTO struct {
 
 type RiskAppetiteStatementSummaryListDTO struct {
 	ID                           uint   `json:"id"`
+	RiskCategoryID               uint   `json:"risk_category_id"`
 	RiskCategoryTitleEn          string `json:"risk_category_title_en"`
 	RiskCategoryTitleAr          string `json:"risk_category_title_ar"`
 	RiskAppetiteStatementTitleEn string `json:"risk_appetite_statement_title_en"`
