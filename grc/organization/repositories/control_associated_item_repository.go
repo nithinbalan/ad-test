@@ -448,21 +448,21 @@ func (repo *ControlAssociatedItemRepository) GetAllAssociatedCounts(controlID ui
 func (repo *ControlAssociatedItemRepository) GetAllClauses(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemClauseListResponseDTO, error) {
 	var clauseList []*organizationDTOs.ClauseListDTO
 	var totalCount int64
-	query := repo.db.Table("control_clauses").
+	query := repo.db.Table("compliance_controls").
 		Select(`
 			compliance_register.title_en  AS compliance_register_title_en ,
 			compliance_register.title_ar AS compliance_register_title_ar,
-			control_clauses.compliance_register_id,
+			compliance_controls.compliance_register_id,
 			compliance_clauses.title_en  AS clause_title_en,
 			compliance_clauses.title_ar AS  clause_title_ar,
-			control_clauses.compliance_clause_id,
+			compliance_controls.compliance_clause_id,
 			compliance_clauses.clause_no
 		`).
 		Joins(`
-			LEFT JOIN compliance_clauses ON control_clauses.compliance_clause_id = compliance_clauses.id
-			LEFT JOIN compliance_register ON control_clauses.compliance_register_id = compliance_register.id
+			LEFT JOIN compliance_clauses ON compliance_controls.compliance_clause_id = compliance_clauses.id
+			LEFT JOIN compliance_register ON compliance_controls.compliance_register_id = compliance_register.id
 		`).
-		Where("control_clauses.control_id = ?", controlID)
+		Where("compliance_controls.control_id = ?", controlID)
 
 	if params.Keyword != "" {
 		query = query.Where(`
