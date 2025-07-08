@@ -1865,8 +1865,7 @@ func (us *UserService) ListUsersInGroups(groupDNs []string) ([]userDTOs.ADUserFl
 		return nil, fmt.Errorf("Active Directory configuration not found")
 	}
 
-	bindPsw := []byte(adSetting.BindPassword)
-	bindPassword, err := utility.DecryptData(string(bindPsw))
+	bindPassword, err := utility.DecryptData(adSetting.BindPassword)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt bind password: %w", err)
 	}
@@ -1887,40 +1886,47 @@ func (us *UserService) ListUsersInGroups(groupDNs []string) ([]userDTOs.ADUserFl
 		return nil, fmt.Errorf("bind failed: %w", err)
 	}
 
-	// ✅ Collect user DNs from all groups
-	userDNMap := map[string]struct{}{}
-	for _, groupDN := range groupDNs {
-		searchReq := ldap.NewSearchRequest(
-			groupDN,
-			ldap.ScopeBaseObject,
-			ldap.NeverDerefAliases,
-			0, 0, false,
-			"(objectClass=group)",
-			[]string{"member"},
-			nil,
-		)
-		sr, err := l.Search(searchReq)
-		if err != nil {
-			return nil, fmt.Errorf("LDAP search for group %s failed: %w", groupDN, err)
-		}
-		for _, entry := range sr.Entries {
-			for _, m := range entry.GetAttributeValues("member") {
-				userDNMap[m] = struct{}{}
+	var filter string
+	// ✅ Case 1: groupDNs provided
+	if len(groupDNs) > 0 {
+		userDNMap := map[string]struct{}{}
+		for _, groupDN := range groupDNs {
+			searchReq := ldap.NewSearchRequest(
+				groupDN,
+				ldap.ScopeBaseObject,
+				ldap.NeverDerefAliases,
+				0, 0, false,
+				"(objectClass=group)",
+				[]string{"member"},
+				nil,
+			)
+			sr, err := l.Search(searchReq)
+			if err != nil {
+				return nil, fmt.Errorf("LDAP search for group %s failed: %w", groupDN, err)
+			}
+			for _, entry := range sr.Entries {
+				for _, m := range entry.GetAttributeValues("member") {
+					userDNMap[m] = struct{}{}
+				}
 			}
 		}
+
+		if len(userDNMap) == 0 {
+			return []userDTOs.ADUserFlatDTO{}, nil
+		}
+
+		var filters []string
+		for dn := range userDNMap {
+			filters = append(filters, fmt.Sprintf("(distinguishedName=%s)", ldap.EscapeFilter(dn)))
+		}
+		filter = fmt.Sprintf("(|%s)", strings.Join(filters, ""))
+
+	} else {
+		// ✅ Case 2: no groupDNs—list all active users
+		filter = "(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
 	}
 
-	if len(userDNMap) == 0 {
-		return []userDTOs.ADUserFlatDTO{}, nil
-	}
-
-	var filters []string
-	for dn := range userDNMap {
-		filters = append(filters, fmt.Sprintf("(distinguishedName=%s)", ldap.EscapeFilter(dn)))
-	}
-	filter := fmt.Sprintf("(|%s)", strings.Join(filters, ""))
-
-	// ✅ Search for users
+	// ✅ Search users
 	searchReq := ldap.NewSearchRequest(
 		adSetting.BaseDN,
 		ldap.ScopeWholeSubtree,
@@ -1991,11 +1997,7 @@ func (us *UserService) ListUsersInGroups(groupDNs []string) ([]userDTOs.ADUserFl
 
 		for i := 0; i < orgLevelCount; i++ {
 			key := fmt.Sprintf("organization_unit_%d", i+1)
-			// if i < len(ouParts) {
-			// 	user[key] = ouParts[i]
-			// } else {
 			user[key] = ""
-			// }
 		}
 
 		result = append(result, user)
