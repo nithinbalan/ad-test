@@ -107,8 +107,8 @@ func buildEnabledSettingsMap(settings []strategyDTOs.StrategyProfileSettingListD
 
 func buildFocusDTO(focus models.StrategyProfileFocusArea, enabled map[string]bool) strategyDTOs.StrategyProfileFocusAreaDTO {
 	focusDTO := strategyDTOs.StrategyProfileFocusAreaDTO{
-		ID:    focus.ID,
-		Title: focus.Title,
+		ID: focus.ID,
+		// Title: focus.Title,
 	}
 	if enabled["goal"] {
 		for _, goal := range focus.StrategyProfileGoals {
@@ -181,8 +181,8 @@ func buildGoalDTO(goal models.StrategyProfileGoal, enabled map[string]bool) stra
 
 func buildObjectiveDTO(objective models.StrategyProfileObjective, enabled map[string]bool) strategyDTOs.StrategyProfileObjectiveDTO {
 	objectiveDTO := strategyDTOs.StrategyProfileObjectiveDTO{
-		ID:    objective.ID,
-		Title: objective.Title,
+		ID: objective.ID,
+		// Title: objective.Title,
 	}
 	if enabled["initiative"] {
 		for _, initiative := range objective.StrategyProfileInitiatives {

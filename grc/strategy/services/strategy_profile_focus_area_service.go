@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
@@ -8,10 +9,13 @@ import (
 	strategyDTOs "jethur/grc/strategy/dtos"
 	strategyProfileFocusAreaRepositories "jethur/grc/strategy/repositories"
 	"jethur/utility"
+
+	"gorm.io/gorm"
 )
 
 type StrategyProfileFocusAreaServiceInterface interface {
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileFocusAreaListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileFocusAreaListDTO, error)
+	GetByID(id uint) (*models.StrategyProfileFocusArea, error)
 	Create(strategyProfileID uint, currentUserID uint, strategyDTOs *strategyDTOs.StrategyProfileFocusAreaFormDTO) ([]uint, error)
 	Delete(strategyProfileID uint, focusAreaID uint, currentUserID uint) error
 }
@@ -45,7 +49,22 @@ func NewStrategyProfileFocusAreaService(
 }
 
 func (sps *StrategyProfileFocusAreaService) GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileFocusAreaListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileFocusAreaListDTO, error) {
+	if _, err := sps.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
+		return nil, err
+	}
 	return sps.repo.GetAll(strategyProfileID, params)
+}
+
+func (sps StrategyProfileFocusAreaService) GetByID(id uint) (*models.StrategyProfileFocusArea, error) {
+	strategyProfileFocusArea, err := sps.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return strategyProfileFocusArea, nil
 }
 
 func (sps *StrategyProfileFocusAreaService) Create(strategyProfileID uint, currentUserID uint, strategyProfileFocusAreaFormDTO *strategyDTOs.StrategyProfileFocusAreaFormDTO) ([]uint, error) {
@@ -105,7 +124,7 @@ func (sps *StrategyProfileFocusAreaService) Create(strategyProfileID uint, curre
 	return createdIds, nil
 }
 
-func (sps *StrategyProfileFocusAreaService) Delete(strategyProfileID uint, focusAreaID uint, currentUserID uint) error {
+func (sps *StrategyProfileFocusAreaService) Delete(strategyProfileID uint, id uint, currentUserID uint) error {
 	if _, err := sps.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
 		return err
 	}
@@ -113,20 +132,20 @@ func (sps *StrategyProfileFocusAreaService) Delete(strategyProfileID uint, focus
 	tx := sps.repo.BeginTransaction()
 
 	// Find the strategy profile focus area record
-	strategyProfileFocusArea, err := sps.repo.GetByID(focusAreaID)
+	strategyProfileFocusArea, err := sps.GetByID(id)
 	if err != nil {
 		tx.Rollback()
-		return utility.NewResourceNotFoundError(err, focusAreaID)
+		return err
 	}
 
 	// Verify it belongs to the correct strategy profile
 	if strategyProfileFocusArea.StrategyProfileID != strategyProfileID {
 		tx.Rollback()
-		return utility.NewResourceNotFoundError(fmt.Errorf("focus area not found in strategy profile"), focusAreaID)
+		return utility.NewResourceNotFoundError(fmt.Errorf("focus area not found in strategy profile"), id)
 	}
 
 	// Delete the record
-	if err := sps.repo.Delete(focusAreaID, tx); err != nil {
+	if err := sps.repo.Delete(id, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -138,7 +157,7 @@ func (sps *StrategyProfileFocusAreaService) Delete(strategyProfileID uint, focus
 		err := sps.activityLogSvc.LogActivity(
 			models.DeleteAction,
 			models.StrategyProfileFocusArea{}.TableName(),
-			focusAreaID,
+			id,
 			map[string]interface{}{
 				"strategy_profile_id": strategyProfileID,
 				"focus_area_id":       strategyProfileFocusArea.FocusAreaID,
@@ -151,7 +170,7 @@ func (sps *StrategyProfileFocusAreaService) Delete(strategyProfileID uint, focus
 			fields := map[string]interface{}{
 				"action":    models.DeleteAction,
 				"tableName": models.StrategyProfileFocusArea{}.TableName(),
-				"recordID":  focusAreaID,
+				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			}

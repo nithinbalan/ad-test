@@ -58,10 +58,6 @@ func NewStrategyModule(db *gorm.DB,
 	strategyProfileGoalSvc := services.NewStrategyProfileGoalService(strategyProfileGoalRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
 	strategyProfileGoalController := controllers.NewStrategyProfileGoalController(strategyProfileGoalSvc)
 
-	strategyProfileObjectiveRepo := repositories.NewStrategyProfileObjectiveRepository(db)
-	strategyProfileObjectiveSvc := services.NewStrategyProfileObjectiveService(strategyProfileObjectiveRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
-	strategyProfileObjectiveController := controllers.NewStrategyProfileObjectiveController(strategyProfileObjectiveSvc)
-
 	strategyProfileInitiativeRepo := repositories.NewStrategyProfileInitiativeRepository(db)
 	strategyProfileInitiativeSvc := services.NewStrategyProfileInitiativeService(strategyProfileInitiativeRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
 	strategyProfileInitiativeController := controllers.NewStrategyProfileInitiativeController(strategyProfileInitiativeSvc)
@@ -161,6 +157,10 @@ func NewStrategyModule(db *gorm.DB,
 	strategyProfileFocusAreaRepo := repositories.NewStrategyProfileFocusAreaRepository(db)
 	strategyProfileFocusAreaSvc := services.NewStrategyProfileFocusAreaService(strategyProfileFocusAreaRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc, focusAreaSvc)
 	strategyProfileFocusAreaController := controllers.NewStrategyProfileFocusAreaController(strategyProfileFocusAreaSvc)
+
+	strategyProfileObjectiveRepo := repositories.NewStrategyProfileObjectiveRepository(db)
+	strategyProfileObjectiveSvc := services.NewStrategyProfileObjectiveService(strategyProfileObjectiveRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc, strategyProfileFocusAreaSvc, strategyProfileGoalSvc, strategicObjectiveSvc)
+	strategyProfileObjectiveController := controllers.NewStrategyProfileObjectiveController(strategyProfileObjectiveSvc)
 
 	return &StrategyModule{
 		StrategyProfileController:                       strategyProfileController,

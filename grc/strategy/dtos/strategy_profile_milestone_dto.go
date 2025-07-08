@@ -66,7 +66,7 @@ type StrategyProfileMilestoneDetailDTO struct {
 	StrategyProfileGoalID       *uint                              `json:"strategy_profile_goal_id"`
 	StrategyProfileGoal         StrategyProfileGoalDetailDTO       `json:"strategy_profile_goal"`
 	StrategyProfileObjectiveID  *uint                              `json:"strategy_profile_objective_id"`
-	StrategyProfileObjective    StrategyProfileObjectiveDetailDTO  `json:"strategy_profile_objective"`
+	StrategyProfileObjective    StrategicObjectiveDetailDTO        `json:"strategy_profile_objective"`
 	StrategyProfileInitiativeID *uint                              `json:"strategy_profile_initiative_id"`
 	StrategyProfileInitiative   StrategyProfileInitiativeDetailDTO `json:"strategy_profile_initiative"`
 	StrategyProfileProjectID    *uint                              `json:"strategy_profile_project_id"`

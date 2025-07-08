@@ -55,13 +55,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.PUT("/strategy-profiles/:strategyProfileId/goals/:goalId", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileGoalController.UpdateStrategyProfileGoal)
 	strategyRoutes.POST("/strategy-profiles/:strategyProfileId/goals/delete", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileGoalController.DeleteStrategyProfileGoals)
 
-	// objective
-	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/objectives", strategyProfileObjectiveController.GetAllStrategyProfileObjectives)
-	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/objectives/:objectiveId", strategyProfileObjectiveController.GetStrategyProfileObjectiveDetails)
-	strategyRoutes.POST("/strategy-profiles/:strategyProfileId/objectives", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileObjectiveController.CreateStrategyProfileObjective)
-	strategyRoutes.PUT("/strategy-profiles/:strategyProfileId/objectives/:objectiveId", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileObjectiveController.UpdateStrategyProfileObjective)
-	strategyRoutes.POST("/strategy-profiles/:strategyProfileId/objectives/delete", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileObjectiveController.DeleteStrategyProfileObjectives)
-
 	// initiative
 	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/initiatives", strategyProfileInitiativeController.GetAllStrategyProfileInitiatives)
 	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/initiatives/:initiativeId", strategyProfileInitiativeController.GetStrategyProfileInitiativeDetails)
@@ -223,6 +216,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// focus area
 	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/focus-areas", strategyProfileFocusAreaController.GetAllStrategyProfileFocusAreas)
 	strategyRoutes.POST("/strategy-profiles/:strategyProfileId/focus-areas", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileFocusAreaController.CreateStrategyProfileFocusArea)
-	strategyRoutes.DELETE("/strategy-profiles/:strategyProfileId/focus-areas/:focusAreaId", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileFocusAreaController.DeleteStrategyProfileFocusArea)
+	strategyRoutes.DELETE("/strategy-profiles/:strategyProfileId/focus-areas/:id", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileFocusAreaController.DeleteStrategyProfileFocusArea)
+
+	// objective
+	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/strategic-objectives", strategyProfileObjectiveController.GetAllStrategyProfileObjectives)
+	strategyRoutes.POST("/strategy-profiles/:strategyProfileId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileObjectiveController.CreateStrategyProfileObjective)
+	strategyRoutes.DELETE("/strategy-profiles/:strategyProfileId/strategic-objectives/:id", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileObjectiveController.DeleteStrategyProfileObjectives)
 
 }

@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	commonDTOs "jethur/grc/common/dtos"
 	strategyDTOs "jethur/grc/strategy/dtos"
 	"jethur/grc/strategy/services"
 	"jethur/utility"
@@ -32,20 +31,13 @@ func (snec *StrategyProfileObjectiveController) GetAllStrategyProfileObjectives(
 	}
 
 	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "title")
+	sortBy := c.DefaultQuery("sort_by", "id")
 	keyword := c.Query("keyword")
-	quickFilter := c.QueryArray("quick_filter")
-
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(snec.db, c, "Invalid export parameter")
-		return
-	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
+		"strategy_profile_ids",
 		"strategy_profile_focus_area_ids",
-		"strategy_profile_goal_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -63,17 +55,15 @@ func (snec *StrategyProfileObjectiveController) GetAllStrategyProfileObjectives(
 	}
 
 	queryParams := strategyDTOs.StrategyProfileObjectiveListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Page:        page,
-		PageSize:    pageSize,
-		Filters:     filters,
-		QuickFilter: quickFilter,
-		Export:      export,
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Filters:  filters,
 	}
 
-	objective, err := snec.service.GetAll(uint(strategyProfileID), &queryParams)
+	objectives, err := snec.service.GetAll(uint(strategyProfileID), &queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -85,38 +75,7 @@ func (snec *StrategyProfileObjectiveController) GetAllStrategyProfileObjectives(
 		}
 	}
 
-	c.JSON(http.StatusOK, objective)
-}
-
-func (snec *StrategyProfileObjectiveController) GetStrategyProfileObjectiveDetails(c *gin.Context) {
-	strategyProfileIDStr := c.Param("strategyProfileId")
-	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	idStr := c.Param("objectiveId")
-
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	objective, err := snec.service.GetFullDetailsByID(uint(strategyProfileID), uint(id))
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		default:
-			utility.SendInternalErrResp(snec.db, c, e.Error())
-			return
-		}
-	}
-
-	c.JSON(http.StatusOK, objective)
+	c.JSON(http.StatusOK, objectives)
 }
 
 func (snec *StrategyProfileObjectiveController) CreateStrategyProfileObjective(c *gin.Context) {
@@ -127,6 +86,17 @@ func (snec *StrategyProfileObjectiveController) CreateStrategyProfileObjective(c
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
+	}
+
+	// Parse optional focus_area_id from query params
+	var focusAreaID *uint
+	focusAreaIDStr := c.Query("strategy_profile_focus_area_id")
+	if focusAreaIDStr != "" {
+		parsed, err := strconv.ParseUint(focusAreaIDStr, 10, 32)
+		if err == nil {
+			val := uint(parsed)
+			focusAreaID = &val
+		}
 	}
 
 	if err := c.ShouldBindJSON(&FormDTO); err != nil {
@@ -140,7 +110,7 @@ func (snec *StrategyProfileObjectiveController) CreateStrategyProfileObjective(c
 		return
 	}
 
-	id, err := snec.service.Create(uint(strategyProfileID), currentUserID, &FormDTO)
+	ids, err := snec.service.Create(uint(strategyProfileID), currentUserID, &FormDTO, focusAreaID)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -156,12 +126,10 @@ func (snec *StrategyProfileObjectiveController) CreateStrategyProfileObjective(c
 		}
 	}
 
-	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
+	c.JSON(http.StatusCreated, gin.H{"successful_ids": ids})
 }
 
-func (snec *StrategyProfileObjectiveController) UpdateStrategyProfileObjective(c *gin.Context) {
-	var FormDTO strategyDTOs.StrategyProfileObjectiveFormDTO
-
+func (snec *StrategyProfileObjectiveController) DeleteStrategyProfileObjectives(c *gin.Context) {
 	strategyProfileIDStr := c.Param("strategyProfileId")
 	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
 	if err != nil {
@@ -169,16 +137,10 @@ func (snec *StrategyProfileObjectiveController) UpdateStrategyProfileObjective(c
 		return
 	}
 
-	idStr := c.Param("objectiveId")
-
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	objectiveIDStr := c.Param("id")
+	objectiveID, err := strconv.ParseUint(objectiveIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	if err := c.ShouldBindJSON(&FormDTO); err != nil {
-		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
@@ -188,7 +150,7 @@ func (snec *StrategyProfileObjectiveController) UpdateStrategyProfileObjective(c
 		return
 	}
 
-	err = snec.service.Update(uint(strategyProfileID), uint(id), currentUserID, &FormDTO)
+	err = snec.service.Delete(uint(strategyProfileID), uint(objectiveID), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -204,45 +166,4 @@ func (snec *StrategyProfileObjectiveController) UpdateStrategyProfileObjective(c
 	}
 
 	c.Status(http.StatusOK)
-}
-
-func (snec *StrategyProfileObjectiveController) DeleteStrategyProfileObjectives(c *gin.Context) {
-	var request struct {
-		IDs []uint `json:"ids"`
-	}
-
-	strategyProfileIDStr := c.Param("strategyProfileId")
-	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	if err := c.ShouldBindJSON(&request); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(snec.db, c, err.Error())
-		return
-	}
-
-	failedIDs, err := snec.service.Delete(uint(strategyProfileID), request.IDs, currentUserID)
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		default:
-			utility.SendInternalErrResp(snec.db, c, e.Error())
-			return
-		}
-	}
-
-	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }

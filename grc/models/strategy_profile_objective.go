@@ -7,8 +7,7 @@ type StrategyProfileObjective struct {
 	StrategyProfileID          uint       `json:"strategy_profile_id" binding:"required" gorm:"not null"`
 	StrategyProfileFocusAreaID *uint      `json:"strategy_profile_focus_area_id" gorm:"null"`
 	StrategyProfileGoalID      *uint      `json:"strategy_profile_goal_id" gorm:"null"`
-	Title                      string     `json:"title" gorm:"size:500;not null" binding:"required"`
-	Description                *string    `json:"description"`
+	StrategicObjectiveID       *uint      `json:"strategic_objective_id" gorm:"null"`
 	CreatedBYID                uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBYID                *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt                  time.Time  `json:"created_at" gorm:"type:datetime;not null"`
@@ -18,6 +17,7 @@ type StrategyProfileObjective struct {
 	StrategyProfile            *StrategyProfile            `gorm:"foreignKey:StrategyProfileID" json:"strategy_profile,omitempty"`
 	StrategyProfileFocusArea   *StrategyProfileFocusArea   `gorm:"foreignKey:StrategyProfileFocusAreaID" json:"strategy_profile_focus_area,omitempty"`
 	StrategyProfileGoal        *StrategyProfileGoal        `gorm:"foreignKey:StrategyProfileGoalID" json:"strategy_profile_goal,omitempty"`
+	StrategicObjective         *StrategicObjective         `gorm:"foreignKey:StrategicObjectiveID" json:"strategic_objective,omitempty"`
 	StrategyProfileInitiatives []StrategyProfileInitiative `gorm:"foreignKey:StrategyProfileObjectiveID"`
 	StrategyProfileProjects    []StrategyProfileProject    `gorm:"foreignKey:StrategyProfileObjectiveID"`
 	StrategyProfileMilestones  []StrategyProfileMilestone  `gorm:"foreignKey:StrategyProfileObjectiveID"`
