@@ -272,7 +272,7 @@ func (caic *ControlAssociatedItemController) GetAllAssociatedCounts(c *gin.Conte
 	c.JSON(http.StatusOK, associatedCounts)
 }
 
-func (caic *ControlAssociatedItemController) GetAllAssociatedClauses(c *gin.Context) {
+func (caic *ControlAssociatedItemController) GetAllClauses(c *gin.Context) {
 	controlIDStr := c.Param("controlId")
 
 	controlID, err := strconv.ParseUint(controlIDStr, 10, 64)
@@ -319,7 +319,7 @@ func (caic *ControlAssociatedItemController) GetAllAssociatedClauses(c *gin.Cont
 		QuickFilter: quickFilter,
 	}
 
-	associatedClause, err := caic.service.GetAllAssociatedClauses(uint(controlID), &queryParams)
+	associatedClause, err := caic.service.GetAllClauses(uint(controlID), &queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -332,8 +332,8 @@ func (caic *ControlAssociatedItemController) GetAllAssociatedClauses(c *gin.Cont
 	}
 	c.JSON(http.StatusOK, associatedClause)
 }
-func (caic *ControlAssociatedItemController) UpdateAssociatedClause(c *gin.Context) {
-    var ControlClauseFormDTO organizationDTOs.ControlClauseFormDTO
+func (caic *ControlAssociatedItemController) UpdateClauses(c *gin.Context) {
+	var ControlClauseFormDTO organizationDTOs.ControlClauseFormDTO
 	controlID, err := strconv.Atoi(c.Param("controlId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -348,8 +348,7 @@ func (caic *ControlAssociatedItemController) UpdateAssociatedClause(c *gin.Conte
 		utility.SendInternalErrResp(caic.db, c, err.Error())
 		return
 	}
-	createdCount, err := caic.service.UpdateAssociatedClause(uint(controlID), currentUserID, &ControlClauseFormDTO)
-
+	createdCount, err := caic.service.UpdateClauses(uint(controlID), currentUserID, &ControlClauseFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -364,6 +363,5 @@ func (caic *ControlAssociatedItemController) UpdateAssociatedClause(c *gin.Conte
 		}
 	}
 
-	c.JSON(http.StatusCreated,gin.H{"total_inserted ": createdCount})
-
+	c.JSON(http.StatusCreated, gin.H{"total_inserted": createdCount})
 }
