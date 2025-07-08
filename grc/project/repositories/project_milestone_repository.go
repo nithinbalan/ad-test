@@ -157,8 +157,14 @@ func (repo *ProjectMilestoneRepository) Update(milestone *models.ProjectMileston
 }
 
 func (repo *ProjectMilestoneRepository) Delete(id uint) error {
+	var milestone *models.ProjectMilestone
+	if err := repo.db.First(&milestone, id).Error; err != nil {
+		return err
+	}
+
 	if err := repo.db.Delete(&models.ProjectMilestone{}, id).Error; err != nil {
 		return err
 	}
+
 	return nil
 }

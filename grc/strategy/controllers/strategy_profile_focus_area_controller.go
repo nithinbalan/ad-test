@@ -34,13 +34,6 @@ func (snec *StrategyProfileFocusAreaController) GetAllStrategyProfileFocusAreas(
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
-	quickFilter := c.QueryArray("quick_filter")
-
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(snec.db, c, "Invalid export parameter")
-		return
-	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -62,14 +55,12 @@ func (snec *StrategyProfileFocusAreaController) GetAllStrategyProfileFocusAreas(
 	}
 
 	queryParams := strategyDTOs.StrategyProfileFocusAreaListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Page:        page,
-		PageSize:    pageSize,
-		Filters:     filters,
-		QuickFilter: quickFilter,
-		Export:      export,
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Filters:  filters,
 	}
 
 	focusArea, err := snec.service.GetAll(uint(strategyProfileID), &queryParams)
@@ -148,7 +139,7 @@ func (snec *StrategyProfileFocusAreaController) DeleteStrategyProfileFocusArea(c
 		return
 	}
 
-	err = snec.service.DeleteSingle(uint(strategyProfileID), uint(focusAreaID), currentUserID)
+	err = snec.service.Delete(uint(strategyProfileID), uint(focusAreaID), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	masterServices "jethur/grc/masters/services"
@@ -89,16 +90,6 @@ func (s *ProjectMilestoneService) GetFullDetailsByID(id uint) (*dtos.ProjectMile
 	if milestone.ActualDate != nil {
 		str := milestone.ActualDate.Format("2006-01-02")
 		milestoneDTO.ActualDateString = &str
-	}
-
-	// Format date fields for nullable *time.Time
-	if milestone.Project.StartDate != (time.Time{}) {
-		str := milestone.Project.StartDate.Format("2006-01-02")
-		milestoneDTO.Project.StartDateString = str
-	}
-	if milestone.Project.EndDate != (time.Time{}) {
-		str := milestone.Project.EndDate.Format("2006-01-02")
-		milestoneDTO.Project.EndDateString = str
 	}
 
 	milestoneDTO.CreatedAt = milestone.CreatedAt
@@ -222,27 +213,52 @@ func (s *ProjectMilestoneService) Update(id uint, currentUserID uint, form *dtos
 }
 
 func (s *ProjectMilestoneService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
-	var deletedIDs []uint
+	var failedIds []uint
+	var successfulIds []uint
+	var deletedMilestones []map[string]interface{}
+
 	for _, id := range ids {
-		err := s.repo.Delete(id)
-		if err == nil {
-			deletedIDs = append(deletedIDs, id)
+		milestone, err := s.repo.GetByID(id)
+		if err != nil {
+			fmt.Print(err)
+			failedIds = append(failedIds, id)
+			continue
 		}
+
+		err = s.repo.Delete(id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+		} else {
+			successfulIds = append(successfulIds, id)
+		}
+
+		deletedMilestones = append(deletedMilestones, map[string]interface{}{
+			"id":       id,
+			"title_en": milestone.TitleEn,
+			"title_ar": milestone.TitleAr,
+		})
 	}
 
-	go func() {
-		if len(deletedIDs) > 0 {
-			err := s.activityLog.LogBulkActivities(models.DeleteAction, models.ProjectMilestone{}.TableName(), deletedIDs, nil, currentUserID, nil)
+	if len(successfulIds) > 0 {
+		go func() {
+			err := s.activityLog.LogBulkActivities(
+				models.DeleteAction,
+				models.ProjectMilestone{}.TableName(),
+				successfulIds,
+				deletedMilestones,
+				currentUserID,
+				nil,
+			)
 			if err != nil {
 				utility.LogError("Failed to log bulk delete milestone activity", map[string]interface{}{
-					"recordIDs": deletedIDs,
+					"recordIDs": successfulIds,
 					"error":     err.Error(),
 				})
 			}
-		}
-	}()
+		}()
+	}
 
-	return deletedIDs, nil
+	return failedIds, nil
 }
 
 func timePtr(t time.Time) *time.Time {

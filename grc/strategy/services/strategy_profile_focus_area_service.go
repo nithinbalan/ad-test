@@ -13,7 +13,7 @@ import (
 type StrategyProfileFocusAreaServiceInterface interface {
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileFocusAreaListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileFocusAreaListDTO, error)
 	Create(strategyProfileID uint, currentUserID uint, strategyDTOs *strategyDTOs.StrategyProfileFocusAreaFormDTO) ([]uint, error)
-	DeleteSingle(strategyProfileID uint, focusAreaID uint, currentUserID uint) error
+	Delete(strategyProfileID uint, focusAreaID uint, currentUserID uint) error
 }
 
 // Service and implementations
@@ -105,7 +105,7 @@ func (sps *StrategyProfileFocusAreaService) Create(strategyProfileID uint, curre
 	return createdIds, nil
 }
 
-func (sps *StrategyProfileFocusAreaService) DeleteSingle(strategyProfileID uint, focusAreaID uint, currentUserID uint) error {
+func (sps *StrategyProfileFocusAreaService) Delete(strategyProfileID uint, focusAreaID uint, currentUserID uint) error {
 	if _, err := sps.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
 		return err
 	}

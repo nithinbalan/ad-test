@@ -11,7 +11,7 @@ import (
 type StrategyProfileFocusAreaRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileFocusAreaListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileFocusAreaListDTO, error)
-	GetByID(id uint) (*models.StrategyProfileFocusArea, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileFocusArea, error)
 	Create(strategyProfileFocusArea *models.StrategyProfileFocusArea, tx ...utility.DatabaseTransaction) (uint, error)
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 }
@@ -103,11 +103,6 @@ func (repo *StrategyProfileFocusAreaRepository) GetAll(strategyProfileID uint, p
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	if !params.Export {
-		offset := (params.Page - 1) * params.PageSize
-		query = query.Offset(offset).Limit(params.PageSize)
-	}
-
 	err := query.Find(&strategyProfileFocusAreas).Error
 	if err != nil {
 		return nil, err
@@ -115,10 +110,15 @@ func (repo *StrategyProfileFocusAreaRepository) GetAll(strategyProfileID uint, p
 	return strategyProfileFocusAreas, nil
 }
 
-func (repo *StrategyProfileFocusAreaRepository) GetByID(id uint) (*models.StrategyProfileFocusArea, error) {
+func (repo *StrategyProfileFocusAreaRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileFocusArea, error) {
 	var strategyProfileFocusArea *models.StrategyProfileFocusArea
 
-	result := repo.db.First(&strategyProfileFocusArea, id)
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.First(&strategyProfileFocusArea, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}

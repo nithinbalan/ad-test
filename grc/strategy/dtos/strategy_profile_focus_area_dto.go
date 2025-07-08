@@ -33,12 +33,10 @@ type StrategyProfileFocusAreaFormDTO struct {
 }
 
 type StrategyProfileFocusAreaListQueryParamsDTO struct {
-	Sort        string
-	SortBy      string
-	Keyword     string
-	Page        int
-	PageSize    int
-	Filters     map[string][]string
-	QuickFilter []string
-	Export      bool
+	Sort     string
+	SortBy   string
+	Keyword  string
+	Page     int
+	PageSize int
+	Filters  map[string][]string
 }

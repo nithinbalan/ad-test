@@ -15,7 +15,7 @@ type ProjectRepositoryInterface interface {
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Project, error)
 	Create(project *models.Project, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(project *models.Project, tx ...utility.DatabaseTransaction) error
-	Delete(ids []uint, tx ...utility.DatabaseTransaction) ([]uint, error)
+	Delete(id uint) error
 }
 
 type ProjectRepository struct {
@@ -203,13 +203,15 @@ func (r *ProjectRepository) Update(project *models.Project, tx ...utility.Databa
 	return nil
 }
 
-func (r *ProjectRepository) Delete(ids []uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
-	db := r.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
+func (r *ProjectRepository) Delete(id uint) error {
+	var project *models.Project
+	if err := r.db.First(&project, id).Error; err != nil {
+		return err
 	}
-	if err := db.Where("id IN ?", ids).Delete(&models.Project{}).Error; err != nil {
-		return nil, err
+
+	if err := r.db.Delete(&models.Project{}, id).Error; err != nil {
+		return err
 	}
-	return ids, nil
+
+	return nil
 }
