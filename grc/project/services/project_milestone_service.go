@@ -176,7 +176,7 @@ func (s *ProjectMilestoneService) Update(id uint, currentUserID uint, form *dtos
 
 	plannedDate, actualDate, err := parseMilestoneDates(form)
 	if err != nil {
-		return utility.NewValidationError(err, "invalid_date", "planned_date/actual_date")
+		return err
 	}
 
 	milestone.ProjectID = form.ProjectID
@@ -265,8 +265,4 @@ func parseMilestoneDates(form *dtos.ProjectMilestoneFormDTO) (plannedDate, actua
 		actualDate = ad
 	}
 	return plannedDate, actualDate, nil
-}
-
-func stringPtr(s string) *string {
-	return &s
 }

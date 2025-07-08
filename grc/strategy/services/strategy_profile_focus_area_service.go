@@ -12,7 +12,7 @@ import (
 
 type StrategyProfileFocusAreaServiceInterface interface {
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileFocusAreaListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileFocusAreaListDTO, error)
-	Create(strategyProfileID uint, currentUserID uint, strategyDTOs *strategyDTOs.StrategyProfileFocusAreaBulkCreateDTO) ([]uint, error)
+	Create(strategyProfileID uint, currentUserID uint, strategyDTOs *strategyDTOs.StrategyProfileFocusAreaFormDTO) ([]uint, error)
 	DeleteSingle(strategyProfileID uint, focusAreaID uint, currentUserID uint) error
 }
 
@@ -48,7 +48,7 @@ func (sps *StrategyProfileFocusAreaService) GetAll(strategyProfileID uint, param
 	return sps.repo.GetAll(strategyProfileID, params)
 }
 
-func (sps *StrategyProfileFocusAreaService) Create(strategyProfileID uint, currentUserID uint, strategyProfileFocusAreaFormDTO *strategyDTOs.StrategyProfileFocusAreaBulkCreateDTO) ([]uint, error) {
+func (sps *StrategyProfileFocusAreaService) Create(strategyProfileID uint, currentUserID uint, strategyProfileFocusAreaFormDTO *strategyDTOs.StrategyProfileFocusAreaFormDTO) ([]uint, error) {
 
 	if _, err := sps.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
 		return nil, err
@@ -64,7 +64,6 @@ func (sps *StrategyProfileFocusAreaService) Create(strategyProfileID uint, curre
 			CreatedBYID:       currentUserID,
 		}
 		id, err := sps.repo.Create(strategyProfileFocusArea, tx)
-		fmt.Println("h2222")
 		if err != nil {
 			tx.Rollback()
 			return nil, err

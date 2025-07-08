@@ -28,7 +28,7 @@ type StrategyProfileFocusAreaListDTO struct {
 	UpdatedUserProfileImagePath *string `json:"updated_user_profile_image_path"`
 }
 
-type StrategyProfileFocusAreaBulkCreateDTO struct {
+type StrategyProfileFocusAreaFormDTO struct {
 	FocusAreaIDs []uint `json:"focus_area_ids" binding:"required,min=1"`
 }
 

@@ -88,7 +88,7 @@ func (snec *StrategyProfileFocusAreaController) GetAllStrategyProfileFocusAreas(
 }
 
 func (snec *StrategyProfileFocusAreaController) CreateStrategyProfileFocusArea(c *gin.Context) {
-	var FormDTO strategyDTOs.StrategyProfileFocusAreaBulkCreateDTO
+	var FormDTO strategyDTOs.StrategyProfileFocusAreaFormDTO
 
 	strategyProfileIDStr := c.Param("strategyProfileId")
 	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
