@@ -479,8 +479,8 @@ func (repo *RiskAppetiteStatementRepository) GetAllRiskAppetiteStatments(
 	if params.Keyword != "" {
 		like := "%" + params.Keyword + "%"
 		query = query.Where(`
-		rc.title_en LIKE ? OR
-			rc.titlet_ar LIKE ? OR
+			rc.title_en LIKE ? OR
+			rc.title_ar LIKE ? OR
 			ras.statement_en LIKE ? OR
 			ras.statement_ar LIKE ? OR
 			rc.title_en LIKE ? OR
