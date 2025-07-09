@@ -213,17 +213,29 @@ func (cais *ControlAssociatedItemService) UpdateClauses(controlID uint, currentU
 }
 
 func (cais *ControlAssociatedItemService) validateClauseIDs(clauseIDs []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error) {
-	clauses, err := cais.repo.GetClausesByIDs(clauseIDs, tx...)
-	if err != nil {
-		return nil, err
+	seen := make(map[uint]bool)
+	for _, id := range clauseIDs {
+		if seen[id] {
+			return nil, utility.NewValidationError(fmt.Errorf("duplicate clause ID: %d", id), "duplicate", "clause_id")
+		}
+		seen[id] = true
 	}
 
-	if len(clauses) != len(clauseIDs) {
-		return nil, utility.NewValidationError(
-			fmt.Errorf("one or more clause_ids are invalid"),
-			"not_exist",
-			"clause_id",
-		)
+	clauses, err := cais.repo.GetClausesByIDs(clauseIDs, tx...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch clauses: %w", err)
+	}
+
+	foundClauseIDs := make(map[uint]bool)
+	for _, clause := range clauses {
+		foundClauseIDs[clause.ID] = true
+	}
+
+	for _, id := range clauseIDs {
+		if !foundClauseIDs[id] {
+			return nil, utility.NewValidationError(
+				fmt.Errorf("clause does not exist for ID: %d", id), "not_exist", "clause_id")
+		}
 	}
 
 	return clauses, nil
