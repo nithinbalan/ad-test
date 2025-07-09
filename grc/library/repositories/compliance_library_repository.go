@@ -12,7 +12,7 @@ type ComplianceLibraryRepositoryInterface interface {
 	GetClausesByVersion(versionID uint) ([]models.ComplianceLibraryClause, error)
 	GetControlLibraryTitle(controlLibraryID, complianceLibraryID uint) (*models.ControlLibraryTitle, error)
 	FetchRawControlMappings() ([]libraryDTOs.RawControlMapping, error)
-	GetGenericControlMappings() ([]libraryDTOs.ControlLibraryResponseDTO, error)
+	GetControlMappings() ([]libraryDTOs.ControlLibraryResponseDTO, error)
 }
 
 type ComplianceLibraryRepository struct {
@@ -93,7 +93,7 @@ func (repo *ComplianceLibraryRepository) FetchRawControlMappings() ([]libraryDTO
 	return results, err
 }
 
-func (repo *ComplianceLibraryRepository) GetGenericControlMappings() ([]libraryDTOs.ControlLibraryResponseDTO, error) {
+func (repo *ComplianceLibraryRepository) GetControlMappings() ([]libraryDTOs.ControlLibraryResponseDTO, error) {
 	var genericControls []libraryDTOs.ControlLibraryResponseDTO
 	if err := repo.db.
 		Table("control_library").
@@ -113,7 +113,8 @@ func (repo *ComplianceLibraryRepository) GetGenericControlMappings() ([]libraryD
 				clt.control_code,
 				clt.control_title_en,
 				clt.control_title_ar,
-				cpl.title_en AS compliance_library_title_en
+				cpl.title_en AS compliance_library_title_en,
+				cpl.title_ar AS compliance_library_title_ar
 			`).
 			Joins("LEFT JOIN compliance_libraries AS cpl ON clt.compliance_library_id = cpl.id").
 			Where("clt.control_library_id = ?", genericControls[i].ID).
