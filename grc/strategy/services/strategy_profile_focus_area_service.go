@@ -15,7 +15,7 @@ import (
 
 type StrategyProfileFocusAreaServiceInterface interface {
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileFocusAreaListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileFocusAreaListDTO, error)
-	GetByID(id uint) (*models.StrategyProfileFocusArea, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileFocusArea, error)
 	Create(strategyProfileID uint, currentUserID uint, strategyDTOs *strategyDTOs.StrategyProfileFocusAreaFormDTO) ([]uint, error)
 	Delete(strategyProfileID uint, focusAreaID uint, currentUserID uint) error
 }
@@ -55,8 +55,8 @@ func (sps *StrategyProfileFocusAreaService) GetAll(strategyProfileID uint, param
 	return sps.repo.GetAll(strategyProfileID, params)
 }
 
-func (sps StrategyProfileFocusAreaService) GetByID(id uint) (*models.StrategyProfileFocusArea, error) {
-	strategyProfileFocusArea, err := sps.repo.GetByID(id)
+func (sps StrategyProfileFocusAreaService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileFocusArea, error) {
+	strategyProfileFocusArea, err := sps.repo.GetByID(id, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -132,7 +132,7 @@ func (sps *StrategyProfileFocusAreaService) Delete(strategyProfileID uint, id ui
 	tx := sps.repo.BeginTransaction()
 
 	// Find the strategy profile focus area record
-	strategyProfileFocusArea, err := sps.GetByID(id)
+	strategyProfileFocusArea, err := sps.GetByID(id, tx)
 	if err != nil {
 		tx.Rollback()
 		return err

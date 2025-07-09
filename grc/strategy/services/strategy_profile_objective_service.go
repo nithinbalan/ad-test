@@ -60,8 +60,8 @@ func (sps *StrategyProfileObjectiveService) GetAll(strategyProfileID uint, param
 	return sps.repo.GetAll(strategyProfileID, params)
 }
 
-func (sps StrategyProfileObjectiveService) GetByID(id uint) (*models.StrategyProfileObjective, error) {
-	strategyProfileObjective, err := sps.repo.GetByID(id)
+func (sps StrategyProfileObjectiveService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileObjective, error) {
+	strategyProfileObjective, err := sps.repo.GetByID(id, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -190,7 +190,7 @@ func (sps *StrategyProfileObjectiveService) Delete(strategyProfileID uint, id ui
 	tx := sps.repo.BeginTransaction()
 
 	// Find the strategy profile focus area record
-	strategyProfileObjective, err := sps.GetByID(id)
+	strategyProfileObjective, err := sps.GetByID(id, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
