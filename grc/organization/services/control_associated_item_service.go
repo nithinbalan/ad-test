@@ -132,6 +132,7 @@ func (cais *ControlAssociatedItemService) GetAllClauses(controlID uint, params *
 	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
 		return nil, err
 	}
+
 	response, err := cais.repo.GetAllClauses(controlID, params)
 	if err != nil {
 		return nil, err
@@ -139,31 +140,33 @@ func (cais *ControlAssociatedItemService) GetAllClauses(controlID uint, params *
 
 	return response, nil
 }
+
 func (cais *ControlAssociatedItemService) UpdateClauses(controlID uint, currentUserID uint, ControlClauseFormDTO *organizationDTOs.ControlClauseFormDTO) (uint, error) {
 
-	if len(ControlClauseFormDTO.ClauseIDs) == 0 {
-		return 0, utility.NewValidationError(
-			fmt.Errorf("clause_ids must not be empty"), "required", "clause_ids")
-	}
 	tx := cais.repo.BeginTransaction()
+
 	if _, err := cais.controlSvc.GetByID(controlID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
+
 	clauses, err := cais.repo.GetClausesByIDs(ControlClauseFormDTO.ClauseIDs, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
+
 	if len(clauses) != len(ControlClauseFormDTO.ClauseIDs) {
 		tx.Rollback()
 		return 0, utility.NewValidationError(fmt.Errorf("one or more clause_ids are invalid"), "not_exist", "clause_id")
 	}
+
 	existingControlClauses, err := cais.repo.GetClausesByControlID(controlID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
+
 	existingClauses := make(map[uint]bool) // clauseID => exists
 	for _, clauseID := range existingControlClauses {
 		existingClauses[clauseID] = true
@@ -173,6 +176,7 @@ func (cais *ControlAssociatedItemService) UpdateClauses(controlID uint, currentU
 	for _, clause := range clauses {
 		newClauses[clause.ID] = clause
 	}
+
 	var clausesToAdd []*models.ComplianceControl
 	now := time.Now()
 	for id, clause := range newClauses {
@@ -186,27 +190,29 @@ func (cais *ControlAssociatedItemService) UpdateClauses(controlID uint, currentU
 			})
 		}
 	}
+
 	if len(clausesToAdd) > 0 {
 		if err := cais.repo.CreateControlClauses(clausesToAdd, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
 	}
+
 	var deleteClauseIDs []uint
 	for existingID := range existingClauses {
 		if _, found := newClauses[existingID]; !found {
 			deleteClauseIDs = append(deleteClauseIDs, existingID)
 		}
 	}
+
 	if len(deleteClauseIDs) > 0 {
 		if err := cais.repo.DeleteControlClauses(controlID, deleteClauseIDs, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
 	}
-	if err := tx.Commit(); err != nil {
-		return 0, err
-	}
+
+	tx.Commit()
 
 	return uint(len(clausesToAdd)), nil
 }

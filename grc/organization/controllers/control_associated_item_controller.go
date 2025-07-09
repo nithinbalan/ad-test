@@ -280,6 +280,7 @@ func (caic *ControlAssociatedItemController) GetAllClauses(c *gin.Context) {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
+
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -297,6 +298,7 @@ func (caic *ControlAssociatedItemController) GetAllClauses(c *gin.Context) {
 		utility.SendInternalErrResp(caic.db, c, "Invalid page_size parameter")
 		return
 	}
+
 	queryParams := organizationDTOs.ControlAssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
@@ -320,22 +322,27 @@ func (caic *ControlAssociatedItemController) GetAllClauses(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, associatedClauses)
 }
+
 func (caic *ControlAssociatedItemController) UpdateClauses(c *gin.Context) {
 	var ControlClauseFormDTO organizationDTOs.ControlClauseFormDTO
+
 	controlID, err := strconv.Atoi(c.Param("controlId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
+
 	if err := c.ShouldBindJSON(&ControlClauseFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(caic.db, c, err.Error())
 		return
 	}
+
 	createdCount, err := caic.service.UpdateClauses(uint(controlID), currentUserID, &ControlClauseFormDTO)
 	if err != nil {
 		switch e := err.(type) {
