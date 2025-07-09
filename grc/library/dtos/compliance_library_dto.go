@@ -75,3 +75,19 @@ type RawControlMapping struct {
 	FrameworkEn           string
 	FrameworkAr           string
 }
+
+type ControlLibraryResponseDTO struct {
+	ID      uint              `json:"id"`
+	TitleEn string            `json:"title_en"`
+	TitleAr string            `json:"title_ar"`
+	Titles  []ControlTitleDTO `json:"titles,omitempty" gorm:"-"`
+}
+
+type ControlTitleDTO struct {
+	ControlLibraryID         uint   `json:"control_library_id"`
+	ComplianceLibraryTitleEn string `json:"compliance_library_title_en"`
+	ComplianceLibraryTitleAr string `json:"compliance_library_title_ar"`
+	ControlCode              string `json:"control_code"`
+	ControlTitleEn           string `json:"control_title_en"`
+	ControlTitleAr           string `json:"control_title_ar"`
+}
