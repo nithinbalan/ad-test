@@ -343,7 +343,7 @@ func (caic *ControlAssociatedItemController) UpdateClauses(c *gin.Context) {
 		return
 	}
 
-	createdCount, err := caic.service.UpdateClauses(uint(controlID), currentUserID, &ControlClauseFormDTO)
+	err = caic.service.UpdateClauses(uint(controlID), currentUserID, &ControlClauseFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -358,5 +358,5 @@ func (caic *ControlAssociatedItemController) UpdateClauses(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"total_inserted": createdCount})
+	c.JSON(http.StatusCreated, gin.H{"message": "Clauses against control updated successfully"})
 }

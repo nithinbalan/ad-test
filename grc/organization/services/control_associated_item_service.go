@@ -16,7 +16,7 @@ type ControlAssociatedItemServiceInterface interface {
 	GetAllIncidents(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemIncidentListResponseDTO, error)
 	GetAllAssociatedCounts(controlID uint) (*organizationDTOs.ControlAssociatedItemsCountResponseDTO, error)
 	GetAllClauses(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemClauseListResponseDTO, error)
-	UpdateClauses(controlID uint, currentUserID uint, formDTO *organizationDTOs.ControlClauseFormDTO) (uint, error)
+	UpdateClauses(controlID uint, currentUserID uint, formDTO *organizationDTOs.ControlClauseFormDTO) error
 }
 
 type ControlAssociatedItemService struct {
@@ -141,30 +141,25 @@ func (cais *ControlAssociatedItemService) GetAllClauses(controlID uint, params *
 	return response, nil
 }
 
-func (cais *ControlAssociatedItemService) UpdateClauses(controlID uint, currentUserID uint, ControlClauseFormDTO *organizationDTOs.ControlClauseFormDTO) (uint, error) {
+func (cais *ControlAssociatedItemService) UpdateClauses(controlID uint, currentUserID uint, ControlClauseFormDTO *organizationDTOs.ControlClauseFormDTO) error {
 
 	tx := cais.repo.BeginTransaction()
 
 	if _, err := cais.controlSvc.GetByID(controlID, tx); err != nil {
 		tx.Rollback()
-		return 0, err
+		return err
 	}
 
-	clauses, err := cais.repo.GetClausesByIDs(ControlClauseFormDTO.ClauseIDs, tx)
+	clauses, err := cais.validateClauseIDs(ControlClauseFormDTO.ClauseIDs, tx)
 	if err != nil {
 		tx.Rollback()
-		return 0, err
-	}
-
-	if len(clauses) != len(ControlClauseFormDTO.ClauseIDs) {
-		tx.Rollback()
-		return 0, utility.NewValidationError(fmt.Errorf("one or more clause_ids are invalid"), "not_exist", "clause_id")
+		return err
 	}
 
 	existingControlClauses, err := cais.repo.GetClausesByControlID(controlID, tx)
 	if err != nil {
 		tx.Rollback()
-		return 0, err
+		return err
 	}
 
 	existingClauses := make(map[uint]bool) // clauseID => exists
@@ -194,7 +189,7 @@ func (cais *ControlAssociatedItemService) UpdateClauses(controlID uint, currentU
 	if len(clausesToAdd) > 0 {
 		if err := cais.repo.CreateControlClauses(clausesToAdd, tx); err != nil {
 			tx.Rollback()
-			return 0, err
+			return err
 		}
 	}
 
@@ -208,11 +203,28 @@ func (cais *ControlAssociatedItemService) UpdateClauses(controlID uint, currentU
 	if len(deleteClauseIDs) > 0 {
 		if err := cais.repo.DeleteControlClauses(controlID, deleteClauseIDs, tx); err != nil {
 			tx.Rollback()
-			return 0, err
+			return err
 		}
 	}
 
 	tx.Commit()
 
-	return uint(len(clausesToAdd)), nil
+	return nil
+}
+
+func (cais *ControlAssociatedItemService) validateClauseIDs(clauseIDs []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error) {
+	clauses, err := cais.repo.GetClausesByIDs(clauseIDs, tx...)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(clauses) != len(clauseIDs) {
+		return nil, utility.NewValidationError(
+			fmt.Errorf("one or more clause_ids are invalid"),
+			"not_exist",
+			"clause_id",
+		)
+	}
+
+	return clauses, nil
 }

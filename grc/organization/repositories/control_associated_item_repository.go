@@ -452,8 +452,8 @@ func (repo *ControlAssociatedItemRepository) GetAllClauses(controlID uint, param
 			compliance_clauses.title_en  AS clause_title_en,
 			compliance_clauses.title_ar AS  clause_title_ar,
 			compliance_clauses.clause_no,
-			compliance_controls.compliance_register_id,
-			compliance_controls.compliance_clause_id,
+			compliance_clauses.compliance_register_id,
+			compliance_clauses.id as compliance_clause_id,
 			compliance_register.title_en  AS compliance_register_title_en ,
 			compliance_register.title_ar AS compliance_register_title_ar
 		`).
