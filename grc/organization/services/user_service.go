@@ -469,7 +469,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		}
 
 		appURL := utility.GetAppURL()
-		redirectURL := fmt.Sprintf("%sauth/login", appURL)
+		redirectURL := fmt.Sprintf("%s/auth/login", appURL)
 
 		emailData := userDTOs.SendNewPasswordEmailDTO{
 			FirstNameEn: userFormDTO.FirstNameEn,
