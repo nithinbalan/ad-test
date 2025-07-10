@@ -2,10 +2,12 @@ package services
 
 import (
 	"fmt"
+	"os"
 	"sort"
 
 	libraryDTOs "jethur/grc/library/dtos"
 	"jethur/grc/library/repositories"
+	"jethur/utility"
 )
 
 type ComplianceLibraryServiceInterface interface {
@@ -14,7 +16,8 @@ type ComplianceLibraryServiceInterface interface {
 
 	GetClausesByVersion(versionID, complianceLibraryID uint) ([]libraryDTOs.ClauseWithSubClausesDTO, error)
 	GetAllControlMapping() ([]libraryDTOs.ControlMappingDTO, error)
-	GetControlMappings() ([]libraryDTOs.ControlLibraryResponseDTO, error)
+	GetControlMappings(params *libraryDTOs.ControlMappingListQueryParamsDTO) (*libraryDTOs.ControlMappingListResponseDTO, error)
+	ExportControlMappings(data []*libraryDTOs.ControlLibraryResponseDTO, userID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -163,6 +166,51 @@ func (cls *ComplianceLibraryService) GetAllControlMapping() ([]libraryDTOs.Contr
 	return result, nil
 }
 
-func (cls *ComplianceLibraryService) GetControlMappings() ([]libraryDTOs.ControlLibraryResponseDTO, error) {
-	return cls.repo.GetControlMappings()
+func (cls *ComplianceLibraryService) GetControlMappings(params *libraryDTOs.ControlMappingListQueryParamsDTO) (*libraryDTOs.ControlMappingListResponseDTO, error) {
+	return cls.repo.GetControlMappings(params)
+}
+
+func (cls *ComplianceLibraryService) ExportControlMappings(data []*libraryDTOs.ControlLibraryResponseDTO, userID uint) (*os.File, error) {
+	headers := []string{
+		"SL No.",
+		"Title EN",
+		"Title AR",
+		"Compliance Library",
+		"Control Code",
+		"Control Title EN",
+		"Control Title AR",
+	}
+
+	var rows [][]interface{}
+	for i, item := range data {
+		slNo := i + 1
+
+		// Loop through SAMA controls
+		for _, sama := range item.SAMA {
+			rows = append(rows, []interface{}{
+				slNo,
+				item.TitleEn,
+				item.TitleAr,
+				sama.ComplianceLibraryTitleEn,
+				sama.ControlCode,
+				sama.ControlTitleEn,
+				sama.ControlTitleAr,
+			})
+		}
+
+		// Loop through NCA controls
+		for _, nca := range item.NCA {
+			rows = append(rows, []interface{}{
+				slNo,
+				item.TitleEn,
+				item.TitleAr,
+				nca.ComplianceLibraryTitleEn,
+				nca.ControlCode,
+				nca.ControlTitleEn,
+				nca.ControlTitleAr,
+			})
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }
