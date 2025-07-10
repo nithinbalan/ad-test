@@ -11,7 +11,7 @@ SELECT @strategyModuleID = id FROM modules WHERE identifier = 'strategy';
 
 -- Insert Strategy Intiative module under Strategy
 INSERT INTO modules (identifier, title_en, title_ar, module_id, [order], icon, route)
-VALUES ('strategy_intiative', 'Strategy Intiative', 'المشاريع', @strategyModuleID, 5, NULL, '/strategy/strategy-intiativeS');
+VALUES ('strategy_intiative', 'Strategy Intiative', 'المشاريع', @strategyModuleID, 5, NULL, '/strategy/strategy-intiatives');
 
 -- Ensure KPI is order 6
 UPDATE modules SET [order] = 6 WHERE identifier = 'kpi' AND module_id = @strategyModuleID;
