@@ -11,10 +11,8 @@ import (
 type StrategyProfileFocusAreaRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileFocusAreaListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileFocusAreaListDTO, error)
-	GetByID(id uint) (*models.StrategyProfileFocusArea, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileFocusArea, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileFocusArea, error)
 	Create(strategyProfileFocusArea *models.StrategyProfileFocusArea, tx ...utility.DatabaseTransaction) (uint, error)
-	Update(strategyProfileFocusArea *models.StrategyProfileFocusArea, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 }
 
@@ -41,6 +39,10 @@ func (repo *StrategyProfileFocusAreaRepository) GetAll(strategyProfileID uint, p
 		Select(`
             strategy_profile_focus_areas.*,
 			strategy_profiles.title AS strategy_profile_title,
+			focus_areas.title_en AS focus_area_title_en,
+			focus_areas.title_ar AS focus_area_title_ar,
+			focus_areas.description_en AS focus_area_description_en,
+			focus_areas.description_ar AS focus_area_description_ar,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -62,6 +64,7 @@ func (repo *StrategyProfileFocusAreaRepository) GetAll(strategyProfileID uint, p
         `).
 		Joins(`
 			LEFT JOIN strategy_profiles ON strategy_profiles.id = strategy_profile_focus_areas.strategy_profile_id
+			LEFT JOIN focus_areas ON focus_areas.id = strategy_profile_focus_areas.focus_area_id
 			LEFT JOIN users AS created_user ON created_user.id = strategy_profile_focus_areas.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = strategy_profile_focus_areas.updated_by_id
         `).Where("strategy_profile_focus_areas.strategy_profile_id = ?", strategyProfileID)
@@ -79,7 +82,10 @@ func (repo *StrategyProfileFocusAreaRepository) GetAll(strategyProfileID uint, p
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(strategy_profile_focus_areas.title LIKE ? OR
+			(focus_areas.title_en LIKE ? OR
+			focus_areas.title_ar LIKE ? OR
+			focus_areas.description_en LIKE ? OR
+			focus_areas.description_ar LIKE ? OR
 			created_user.first_name_en LIKE ? OR
 			created_user.first_name_ar LIKE ? OR
 			created_user.last_name_en LIKE ? OR
@@ -88,7 +94,7 @@ func (repo *StrategyProfileFocusAreaRepository) GetAll(strategyProfileID uint, p
 			updated_user.first_name_ar LIKE ? OR
 			updated_user.last_name_en LIKE ? OR
 			updated_user.last_name_ar LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
@@ -97,11 +103,6 @@ func (repo *StrategyProfileFocusAreaRepository) GetAll(strategyProfileID uint, p
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	if !params.Export {
-		offset := (params.Page - 1) * params.PageSize
-		query = query.Offset(offset).Limit(params.PageSize)
-	}
-
 	err := query.Find(&strategyProfileFocusAreas).Error
 	if err != nil {
 		return nil, err
@@ -109,32 +110,15 @@ func (repo *StrategyProfileFocusAreaRepository) GetAll(strategyProfileID uint, p
 	return strategyProfileFocusAreas, nil
 }
 
-func (repo *StrategyProfileFocusAreaRepository) GetByID(id uint) (*models.StrategyProfileFocusArea, error) {
+func (repo *StrategyProfileFocusAreaRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileFocusArea, error) {
 	var strategyProfileFocusArea *models.StrategyProfileFocusArea
 
-	result := repo.db.First(&strategyProfileFocusArea, id)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	return strategyProfileFocusArea, nil
-
-}
-
-func (repo *StrategyProfileFocusAreaRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileFocusArea, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	var strategyProfileFocusArea *models.StrategyProfileFocusArea
 
-	result := db.
-		Preload("StrategyProfile").
-		Preload("StrategyProfile.ResponsibleUser").
-		Preload("CreatedByUser").
-		Preload("UpdatedByUser").
-		First(&strategyProfileFocusArea, id)
-
+	result := db.First(&strategyProfileFocusArea, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -152,18 +136,6 @@ func (repo *StrategyProfileFocusAreaRepository) Create(strategyProfileFocusArea 
 	}
 
 	return strategyProfileFocusArea.ID, nil
-}
-
-func (repo *StrategyProfileFocusAreaRepository) Update(strategyProfileFocusArea *models.StrategyProfileFocusArea, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Save(strategyProfileFocusArea).Error; err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (repo *StrategyProfileFocusAreaRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {

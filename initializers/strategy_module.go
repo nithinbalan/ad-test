@@ -33,6 +33,7 @@ type StrategyModule struct {
 	KpiValueUpdateController                        *controllers.KPIValueUpdateController
 	KpiAssociatedItemController                     *controllers.KPIAssociatedItemController
 	FocusAreaController                             *controllers.FocusAreaController
+	StrategicIntiativeController                    *controllers.StrategicIntiativeController
 }
 
 func NewStrategyModule(db *gorm.DB,
@@ -54,17 +55,9 @@ func NewStrategyModule(db *gorm.DB,
 	strategyProfileSvc := services.NewStrategyProfileService(strategyProfileRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, settingsModule.OrganizationUnitSvc)
 	strategyProfileController := controllers.NewStrategyProfileController(strategyProfileSvc)
 
-	strategyProfileFocusAreaRepo := repositories.NewStrategyProfileFocusAreaRepository(db)
-	strategyProfileFocusAreaSvc := services.NewStrategyProfileFocusAreaService(strategyProfileFocusAreaRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
-	strategyProfileFocusAreaController := controllers.NewStrategyProfileFocusAreaController(strategyProfileFocusAreaSvc)
-
 	strategyProfileGoalRepo := repositories.NewStrategyProfileGoalRepository(db)
 	strategyProfileGoalSvc := services.NewStrategyProfileGoalService(strategyProfileGoalRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
 	strategyProfileGoalController := controllers.NewStrategyProfileGoalController(strategyProfileGoalSvc)
-
-	strategyProfileObjectiveRepo := repositories.NewStrategyProfileObjectiveRepository(db)
-	strategyProfileObjectiveSvc := services.NewStrategyProfileObjectiveService(strategyProfileObjectiveRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
-	strategyProfileObjectiveController := controllers.NewStrategyProfileObjectiveController(strategyProfileObjectiveSvc)
 
 	strategyProfileInitiativeRepo := repositories.NewStrategyProfileInitiativeRepository(db)
 	strategyProfileInitiativeSvc := services.NewStrategyProfileInitiativeService(strategyProfileInitiativeRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
@@ -162,6 +155,18 @@ func NewStrategyModule(db *gorm.DB,
 		sharedModule.ActivityLogService)
 	focusAreaController := controllers.NewFocusAreaController(focusAreaSvc)
 
+	strategyProfileFocusAreaRepo := repositories.NewStrategyProfileFocusAreaRepository(db)
+	strategyProfileFocusAreaSvc := services.NewStrategyProfileFocusAreaService(strategyProfileFocusAreaRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc, focusAreaSvc)
+	strategyProfileFocusAreaController := controllers.NewStrategyProfileFocusAreaController(strategyProfileFocusAreaSvc)
+
+	strategyProfileObjectiveRepo := repositories.NewStrategyProfileObjectiveRepository(db)
+	strategyProfileObjectiveSvc := services.NewStrategyProfileObjectiveService(strategyProfileObjectiveRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc, strategyProfileFocusAreaSvc, strategyProfileGoalSvc, strategicObjectiveSvc)
+	strategyProfileObjectiveController := controllers.NewStrategyProfileObjectiveController(strategyProfileObjectiveSvc)
+
+	strategicIntiativeRepo := repositories.NewStrategicIntiativeRepository(db)
+	strategicIntiativeSvc := services.NewStrategicIntiativeService(strategicIntiativeRepo, sharedModule.ActivityLogService, settingsModule.OrganizationUnitSvc, organizationModule.UserSvc)
+	strategicIntiativeController := controllers.NewStrategicIntiativeController(strategicIntiativeSvc)
+
 	return &StrategyModule{
 		StrategyProfileController:                       strategyProfileController,
 		StrategyProfileFocusAreaController:              strategyProfileFocusAreaController,
@@ -187,5 +192,6 @@ func NewStrategyModule(db *gorm.DB,
 		StrategicObjectiveKPIController:                 strategicObjectiveKPIController,
 		StrategicObjectivePeriodicReviewController:      strategicObjectivePeriodicReviewController,
 		FocusAreaController:                             focusAreaController,
+		StrategicIntiativeController:                    strategicIntiativeController,
 	}
 }

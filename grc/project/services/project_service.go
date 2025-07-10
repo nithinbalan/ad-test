@@ -214,24 +214,50 @@ func (s *ProjectService) Update(id uint, currentUserID uint, form *dtos.ProjectF
 }
 
 func (s *ProjectService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
-	deletedIDs, err := s.repo.Delete(ids)
-	if err != nil {
-		return nil, err
-	}
+	var failedIds []uint
+	var successfulIds []uint
+	var deletedProjects []map[string]interface{}
 
-	go func() {
-		if len(deletedIDs) > 0 {
-			err := s.activityLog.LogBulkActivities(models.DeleteAction, models.Project{}.TableName(), deletedIDs, nil, currentUserID, nil)
+	for _, id := range ids {
+		project, err := s.repo.GetByID(id)
+		if err != nil {
+			fmt.Print(err)
+			failedIds = append(failedIds, id)
+			continue
+		}
+		err = s.repo.Delete(id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+		} else {
+			successfulIds = append(successfulIds, id)
+		}
+
+		deletedProjects = append(deletedProjects, map[string]interface{}{
+			"id":       id,
+			"title_en": project.TitleEn,
+			"title_ar": project.TitleAr,
+		})
+	}
+	if len(successfulIds) > 0 {
+		go func() {
+			err := s.activityLog.LogBulkActivities(
+				models.DeleteAction,
+				models.Project{}.TableName(),
+				successfulIds,
+				deletedProjects,
+				currentUserID,
+				nil,
+			)
 			if err != nil {
 				utility.LogError("Failed to log bulk delete activity", map[string]interface{}{
-					"recordIDs": deletedIDs,
+					"recordIDs": successfulIds,
 					"error":     err.Error(),
 				})
 			}
-		}
-	}()
+		}()
+	}
 
-	return deletedIDs, nil
+	return failedIds, nil
 }
 
 func parseProjectDates(form *dtos.ProjectFormDTO) (startDate, endDate *time.Time, err error) {

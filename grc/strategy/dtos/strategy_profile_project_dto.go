@@ -77,11 +77,11 @@ type StrategyProfileProjectDetailDTO struct {
 	StrategyProfileID           uint                               `json:"strategy_profile_id"`
 	StrategyProfile             StrategyProfileDetailDTO           `json:"strategy_profile"`
 	StrategyProfileFocusAreaID  *uint                              `json:"strategy_profile_focus_area_id"`
-	StrategyProfileFocusArea    StrategyProfileFocusAreaDetailDTO  `json:"strategy_profile_focus_area"`
+	StrategyProfileFocusArea    FocusAreaDetailDTO                 `json:"strategy_profile_focus_area"`
 	StrategyProfileGoalID       *uint                              `json:"strategy_profile_goal_id"`
 	StrategyProfileGoal         StrategyProfileGoalDetailDTO       `json:"strategy_profile_goal"`
 	StrategyProfileObjectiveID  *uint                              `json:"strategy_profile_objective_id"`
-	StrategyProfileObjective    StrategyProfileObjectiveDetailDTO  `json:"strategy_profile_objective"`
+	StrategyProfileObjective    StrategicObjectiveDetailDTO        `json:"strategy_profile_objective"`
 	StrategyProfileInitiativeID *uint                              `json:"strategy_profile_initiative_id"`
 	StrategyProfileInitiative   StrategyProfileInitiativeDetailDTO `json:"strategy_profile_initiative"`
 	StartDateString             string                             `json:"start_date"`
