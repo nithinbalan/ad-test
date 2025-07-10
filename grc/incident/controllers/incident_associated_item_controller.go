@@ -379,3 +379,97 @@ func (iaic *IncidentAssociatedItemController) GetAllIncidentAssets(c *gin.Contex
 	}
 	c.JSON(http.StatusOK, incidents)
 }
+
+func (iaic *IncidentAssociatedItemController) GetAllIncidentClauses(c *gin.Context) {
+
+	incidentIDStr := c.Param("incidentID")
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(iaic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(iaic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := incidentDTOs.IncidentAssociatedItemListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
+		QuickFilter: quickFilter,
+	}
+
+	incidents, err := iaic.service.GetAllClauses(uint(incidentID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(iaic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, incidents)
+}
+
+func (iaic *IncidentAssociatedItemController) UpdateClauses(c *gin.Context) {
+	var ControlClauseFormDTO incidentDTOs.IncidentClauseFormDTO
+
+	incidentID, err := strconv.Atoi(c.Param("incidentID"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&ControlClauseFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(iaic.db, c, err.Error())
+		return
+	}
+
+	err = iaic.service.UpdateClauses(uint(incidentID), currentUserID, &ControlClauseFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(iaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Clauses against incident updated successfully"})
+}

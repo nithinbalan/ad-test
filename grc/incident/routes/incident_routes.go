@@ -141,6 +141,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.GET("/incidents/:incidentID/slas", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentAssociatedItemController.GetAllIncidentSLAs)
 	incidentRoutes.GET("/incidents/:incidentID/documents", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentAssociatedItemController.GetAllIncidentDocuments)
 	incidentRoutes.GET("/incidents/:incidentID/assets", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentAssociatedItemController.GetAllIncidentAssets)
+	incidentRoutes.GET("/incidents/:incidentID/clauses", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentAssociatedItemController.GetAllIncidentClauses)
+	incidentRoutes.PUT("/incidents/:incidentID/clauses", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentAssociatedItemController.UpdateClauses)
 
 	//Incident timelines
 	incidentRoutes.GET("/incidents/:incidentID/timelines", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentTimelineController.GetAllIncidentTimelines)

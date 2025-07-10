@@ -563,7 +563,7 @@ func (rc *RiskAssociatedItemController) GetAllClauses(c *gin.Context) {
 func (rc *RiskAssociatedItemController) UpdateClauses(c *gin.Context) {
 	var ControlClauseFormDTO riskDTOs.RiskClauseFormDTO
 
-	controlID, err := strconv.Atoi(c.Param("riskId"))
+	riskID, err := strconv.Atoi(c.Param("riskId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -580,7 +580,7 @@ func (rc *RiskAssociatedItemController) UpdateClauses(c *gin.Context) {
 		return
 	}
 
-	err = rc.service.UpdateClauses(uint(controlID), currentUserID, &ControlClauseFormDTO)
+	err = rc.service.UpdateClauses(uint(riskID), currentUserID, &ControlClauseFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

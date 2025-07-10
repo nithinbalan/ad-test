@@ -390,7 +390,7 @@ func (daic *DocumentAssociatedItemController) GetAllDocumentClauses(c *gin.Conte
 func (daic *DocumentAssociatedItemController) UpdateClauses(c *gin.Context) {
 	var ControlClauseFormDTO documentDTOs.DocumentAssociatedItemClauseFormDTO
 
-	controlID, err := strconv.Atoi(c.Param("id"))
+	documentID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -407,7 +407,7 @@ func (daic *DocumentAssociatedItemController) UpdateClauses(c *gin.Context) {
 		return
 	}
 
-	err = daic.service.UpdateClauses(uint(controlID), currentUserID, &ControlClauseFormDTO)
+	err = daic.service.UpdateClauses(uint(documentID), currentUserID, &ControlClauseFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
