@@ -12,6 +12,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	projectRoutes.Use(middlewares.AuthMiddleware())
 
+	db := app.DB
+
 	projectTypeController := app.ProjectModule.ProjectTypeController
 	projectStatusController := app.ProjectModule.ProjectStatusController
 	projectController := app.ProjectModule.ProjectController
@@ -21,11 +23,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Project Type
 	projectRoutes.GET("/project-types", projectTypeController.GetAllProjectTypes)
 	projectRoutes.GET("/project-types/:id", projectTypeController.GetProjectTypeDetails)
-	projectRoutes.POST("/project-types", projectTypeController.CreateProjectType)
-	projectRoutes.PUT("/project-types/:id", projectTypeController.UpdateProjectType)
-	projectRoutes.POST("/project-types/delete", projectTypeController.DeleteProjectTypes)
-	projectRoutes.PUT("/project-types/activate", projectTypeController.ActivateProjectTypes)
-	projectRoutes.PUT("/project-types/deactivate", projectTypeController.DeactivateProjectTypes)
+	projectRoutes.POST("/project-types", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectTypeController.CreateProjectType)
+	projectRoutes.PUT("/project-types/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectTypeController.UpdateProjectType)
+	projectRoutes.POST("/project-types/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectTypeController.DeleteProjectTypes)
+	projectRoutes.PUT("/project-types/activate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectTypeController.ActivateProjectTypes)
+	projectRoutes.PUT("/project-types/deactivate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectTypeController.DeactivateProjectTypes)
 
 	// Project Status
 	projectRoutes.GET("/project-statuses", projectStatusController.GetAllProjectStatuses)

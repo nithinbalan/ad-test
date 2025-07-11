@@ -534,6 +534,7 @@ func (bfs *BusinessFunctionService) ExportBusinessFunction(data []*businessConti
 			"SL No.",
 			"Reference Number",
 			"Title",
+			"Desctiption",
 			"Severity Level",
 			"Responsible User",
 		}
@@ -542,6 +543,7 @@ func (bfs *BusinessFunctionService) ExportBusinessFunction(data []*businessConti
 			"SL No.",
 			"Reference Number",
 			"Title",
+			"Description",
 			"Severity Level",
 			"Responsible User",
 		}
@@ -554,6 +556,7 @@ func (bfs *BusinessFunctionService) ExportBusinessFunction(data []*businessConti
 				i + 1,
 				businessFunction.ReferenceNumber,
 				businessFunction.Title,
+				businessFunction.Description,
 				businessFunction.SeverityLevelTitleAr,
 				fmt.Sprintf("%s %s", businessFunction.ResponsibleUserFirstNameAr, businessFunction.ResponsibleUserLastNameAr),
 			}
@@ -562,6 +565,7 @@ func (bfs *BusinessFunctionService) ExportBusinessFunction(data []*businessConti
 				i + 1,
 				businessFunction.ReferenceNumber,
 				businessFunction.Title,
+				businessFunction.Description,
 				businessFunction.SeverityLevelTitleEn,
 				fmt.Sprintf("%s %s", businessFunction.ResponsibleUserFirstNameEn, businessFunction.ResponsibleUserLastNameEn),
 			}
