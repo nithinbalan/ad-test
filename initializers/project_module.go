@@ -9,10 +9,11 @@ import (
 )
 
 type ProjectModule struct {
-	ProjectTypeController      *controllers.ProjectTypeController
-	ProjectStatusController    *controllers.ProjectStatusController
-	ProjectController          *controllers.ProjectController
-	ProjectMilestoneController *controllers.ProjectMilestoneController
+	ProjectTypeController       *controllers.ProjectTypeController
+	ProjectStatusController     *controllers.ProjectStatusController
+	ProjectController           *controllers.ProjectController
+	ProjectMilestoneController  *controllers.ProjectMilestoneController
+	ProjectActionPlanController *controllers.ProjectActionPlanController
 }
 
 func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule) *ProjectModule {
@@ -44,10 +45,21 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	)
 	projectMilestoneController := controllers.NewProjectMilestoneController(projectMilestoneSvc)
 
+	projectActionPlanRepo := repositories.NewProjectActionPlanRepository(db)
+	projectActionPlanSvc := services.NewProjectActionPlanService(
+		projectActionPlanRepo,
+		sharedModule.ActivityLogService,
+		masterModule.ActionPlanStatusSvc,
+		organizationModule.UserSvc,
+		projectMilestoneSvc,
+	)
+	projectActionPlanController := controllers.NewProjectActionPlanController(projectActionPlanSvc)
+
 	return &ProjectModule{
-		ProjectTypeController:      projectTypeController,
-		ProjectStatusController:    projectStatusController,
-		ProjectController:          projectController,
-		ProjectMilestoneController: projectMilestoneController,
+		ProjectTypeController:       projectTypeController,
+		ProjectStatusController:     projectStatusController,
+		ProjectController:           projectController,
+		ProjectMilestoneController:  projectMilestoneController,
+		ProjectActionPlanController: projectActionPlanController,
 	}
 }
