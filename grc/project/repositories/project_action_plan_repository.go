@@ -89,11 +89,6 @@ func (repo *ProjectActionPlanRepository) GetAll(currentUserID uint, params *proj
         LEFT JOIN project_milestones ON project_milestones.id = project_action_plans.project_milestone_id
     `)
 
-	// Conditionally apply compliance ID filter
-	if currentUserID != 0 {
-		query = query.Where("project_action_plans.project_milestone_id = ?", currentUserID)
-	}
-
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
