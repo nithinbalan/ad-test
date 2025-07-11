@@ -50,8 +50,8 @@ func (repo *StrategicObjectiveRepository) GetAll(params *dtos.StrategicObjective
 	query := repo.db.Table("strategic_objectives").
 		Select(`
 			strategic_objectives.*,
-			strategic_objective_categories.title_en AS category_title_en,
-			strategic_objective_categories.title_ar AS category_title_ar,
+			strategic_objective_categories.title_en AS strategic_objective_category_title_en,
+			strategic_objective_categories.title_ar AS strategic_objective_category_title_ar,
 
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
