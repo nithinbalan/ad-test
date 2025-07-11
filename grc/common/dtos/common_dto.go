@@ -240,3 +240,33 @@ type AssociatedRiskListResponseDTO struct {
 	Items      []*AssociatedRiskListDTO `json:"items"`
 	Pagination PaginationInfoDTO        `json:"pagination"`
 }
+
+type AssociatedClauseDTO struct {
+	ComplianceClauseID uint   `json:"compliance_clause_id"`
+	ClauseNo           string `json:"clause_no"`
+	ClauseTitleEn      string `json:"clause_title_en"`
+	ClauseTitleAr      string `json:"clause_title_ar"`
+}
+
+type AssociatedClauseListDTO struct {
+	ComplianceRegisterID      uint                  `json:"compliance_register_id"`
+	ComplianceRegisterTitleEn string                `json:"compliance_register_title_en"`
+	ComplianceRegisterTitleAr string                `json:"compliance_register_title_ar"`
+	Clauses                   []AssociatedClauseDTO `json:"clauses"`
+}
+type AssociatedClauseRowDTO struct {
+	ComplianceRegisterID      uint
+	ComplianceRegisterTitleEn string
+	ComplianceRegisterTitleAr string
+	ComplianceClauseID        uint
+	ClauseNo                  string
+	ClauseTitleEn             string
+	ClauseTitleAr             string
+}
+type AssociatedItemClauseListResponseDTO struct {
+	Items      []*AssociatedClauseListDTO `json:"items"`
+	Pagination PaginationInfoDTO          `json:"pagination"`
+}
+type AssociatedClauseFormDTO struct {
+	ClauseIDs []uint `json:"clause_ids" binding:"required"`
+}
