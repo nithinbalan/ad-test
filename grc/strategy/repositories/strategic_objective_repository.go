@@ -303,6 +303,7 @@ func (repo *StrategicObjectiveRepository) GenerateReferenceNumber() (string, err
 	var lastReferenceNumber string
 
 	err := repo.db.Model(&models.StrategicObjective{}).
+		Where("reference_number IS NOT NULL").
 		Select("reference_number").
 		Order("reference_number DESC").
 		Limit(1).
@@ -324,6 +325,6 @@ func (repo *StrategicObjectiveRepository) GenerateReferenceNumber() (string, err
 		return "", err
 	}
 
-	newReferenceNumber := fmt.Sprintf("SO-%d-%04d", currentYear, lastReferenceID+1)
+	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "SO", currentYear, lastReferenceID+1)
 	return newReferenceNumber, nil
 }
