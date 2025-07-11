@@ -7,7 +7,7 @@ type StrategicObjective struct {
 	TitleEn                      string     `json:"title_en" gorm:"type:nvarchar(MAX);not null" binding:"required"`
 	TitleAr                      string     `json:"title_ar" gorm:"type:nvarchar(MAX);not null" binding:"required"`
 	StrategicObjectiveCategoryID uint       `json:"strategic_objective_category_id" binding:"required" gorm:"not null"`
-	ReferenceNumber              string     `json:"reference_number" gorm:"type:varchar(45);not null"`
+	ReferenceNumber              string     `json:"reference_number" binding:"omitempty,max=45" gorm:"size:45"`
 	DescriptionEn                *string    `json:"description_en" gorm:"type:nvarchar(MAX);default:null"`
 	DescriptionAr                *string    `json:"description_ar" gorm:"type:nvarchar(MAX);default:null"`
 	StartDate                    *time.Time `json:"start_date" gorm:"type:date"`
