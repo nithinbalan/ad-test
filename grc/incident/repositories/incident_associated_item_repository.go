@@ -872,23 +872,6 @@ func (repo *IncidentAssociatedItemRepository) GetAllClauses(incidentID uint, par
 	return response, nil
 }
 
-func (repo *IncidentAssociatedItemRepository) GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error) {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-
-	var clauses []*models.ComplianceClause
-	if err := db.
-		Select("id, compliance_register_id").
-		Where("id IN ?", ids).
-		Find(&clauses).Error; err != nil {
-		return nil, err
-	}
-
-	return clauses, nil
-}
-
 func (repo *IncidentAssociatedItemRepository) GetClausesByIncidentID(incidentID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
