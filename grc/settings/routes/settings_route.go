@@ -88,23 +88,23 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	settingRoutes.GET("/workflows", workflowController.GetAllWorkflows)
 	settingRoutes.GET("/workflows/:workflowId/levels", workflowController.GetWorkflowlevels)
-	settingRoutes.POST("/workflows/:workflowId/levels", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), workflowController.CreateWorkflowLevel)
-	settingRoutes.DELETE("/workflows/:workflowId/levels/:levelId", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), workflowController.DeleteWorkflowLevel)
+	settingRoutes.POST("/workflows/:workflowId/levels", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), workflowController.CreateWorkflowLevel)
+	settingRoutes.DELETE("/workflows/:workflowId/levels/:levelId", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), workflowController.DeleteWorkflowLevel)
 
 	settingRoutes.GET("/modules", moduleController.GetAllModules)
 	settingRoutes.GET("/modules/:moduleId", moduleController.GetModuleDetail)
-	settingRoutes.POST("/modules/:moduleId/enable", moduleController.EnableModule)
-	settingRoutes.POST("/modules/:moduleId/disable", moduleController.DisableModule)
-	settingRoutes.PUT("/modules/reorder", moduleController.ReorderModule)
-	settingRoutes.PUT("/modules/:moduleId/reorder", moduleController.ReorderSubModule)
-	settingRoutes.PUT("/modules/:moduleId", moduleController.UpdateModule)
-	settingRoutes.PUT("/modules/:moduleId/submodule/:subModuleId", moduleController.UpdateSubModule)
+	settingRoutes.POST("/modules/:moduleId/enable", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), moduleController.EnableModule)
+	settingRoutes.POST("/modules/:moduleId/disable", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), moduleController.DisableModule)
+	settingRoutes.PUT("/modules/reorder", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), moduleController.ReorderModule)
+	settingRoutes.PUT("/modules/:moduleId/reorder", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), moduleController.ReorderSubModule)
+	settingRoutes.PUT("/modules/:moduleId", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), moduleController.UpdateModule)
+	settingRoutes.PUT("/modules/:moduleId/submodule/:subModuleId", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), moduleController.UpdateSubModule)
 
 	settingRoutes.GET("/integrations", integrationController.GetAllIntegrations)
 	settingRoutes.GET("/integrations/:integrationId/credential", integrationController.GetIntegrationDetails)
-	settingRoutes.POST("/integrations/:integrationId/credential", integrationController.EnableIntegration)
-	settingRoutes.PUT("/integrations/:integrationId/credential", integrationController.UpdateCredential)
-	settingRoutes.DELETE("/integrations/:integrationId/credential", integrationController.DisableIntegration)
+	settingRoutes.POST("/integrations/:integrationId/credential", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), integrationController.EnableIntegration)
+	settingRoutes.PUT("/integrations/:integrationId/credential", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), integrationController.UpdateCredential)
+	settingRoutes.DELETE("/integrations/:integrationId/credential", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), integrationController.DisableIntegration)
 
 	settingRoutes.GET("/organization-preferences", systemPreferenceController.GetOrganizationPreference)
 
@@ -122,15 +122,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/report-template-settings/image-preview", reportTemplateSettingController.GetReportTemplateSettingPreview)
 
 	settingRoutes.GET("/active-directory-settings", activeDirectorySettingController.GetActiveDirectorySettings)
-	settingRoutes.POST("/active-directory-settings", activeDirectorySettingController.CreateActiveDirectorySetting)
-	settingRoutes.POST("/active-directory-settings/check-connection", activeDirectorySettingController.CheckActiveDirectoryConnection)
+	settingRoutes.POST("/active-directory-settings", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), activeDirectorySettingController.CreateActiveDirectorySetting)
+	settingRoutes.POST("/active-directory-settings/check-connection", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), activeDirectorySettingController.CheckActiveDirectoryConnection)
 	settingRoutes.GET("/active-directory-settings/check-saved-connection", activeDirectorySettingController.CheckSavedADConnection)
 
 	settingRoutes.GET("/siem-settings", siemSettingController.GetSIEMSettings)
-	settingRoutes.PUT("/siem-settings", siemSettingController.UpdateSIEMSettings)
+	settingRoutes.PUT("/siem-settings", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), siemSettingController.UpdateSIEMSettings)
 
-	settingRoutes.PUT("/ai-settings/enable", aiSettingController.EnableAISetting)
-	settingRoutes.PUT("/ai-settings/disable", aiSettingController.DisableAISetting)
+	settingRoutes.PUT("/ai-settings/enable", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), aiSettingController.EnableAISetting)
+	settingRoutes.PUT("/ai-settings/disable", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), aiSettingController.DisableAISetting)
 	settingRoutes.GET("/ai-settings/modules", aiSettingController.GetAllAIModules)
 	settingRoutes.GET("/ai-settings/modules/:id", aiSettingController.GetFeaturesByModuleID)
 
@@ -139,29 +139,29 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.GET("/trigger-conditions/:id", triggerConditionController.GetTriggerConditionDetails)
 
 	//Reminder
-	settingRoutes.GET("/reminders", reminderController.GetAllReminderes)
-	settingRoutes.GET("/reminders/:id", reminderController.GetReminderDetails)
-	settingRoutes.GET("/reminder-modules", reminderController.GetAllEnabledModules)
-	settingRoutes.GET("/modules/:moduleId/reminders", reminderController.GetReminderByModuleID)
+	settingRoutes.GET("/reminders", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), reminderController.GetAllReminderes)
+	settingRoutes.GET("/reminders/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), reminderController.GetReminderDetails)
+	settingRoutes.GET("/reminder-modules", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), reminderController.GetAllEnabledModules)
+	settingRoutes.GET("/modules/:moduleId/reminders", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), reminderController.GetReminderByModuleID)
 
 	// Reminder Rule
 	settingRoutes.GET("/reminder-rules", reminderRuleController.GetAllReminderRules)
 	settingRoutes.GET("/reminder-rules/:reminderRuleId", reminderRuleController.GetReminderRuleDetails)
-	settingRoutes.POST("/reminder-rules", reminderRuleController.CreateReminderRule)
-	settingRoutes.PUT("/reminder-rules/:reminderRuleId", reminderRuleController.UpdateReminderRule)
-	settingRoutes.POST("/reminder-rules/delete", reminderRuleController.DeleteReminderRules)
+	settingRoutes.POST("/reminder-rules", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), reminderRuleController.CreateReminderRule)
+	settingRoutes.PUT("/reminder-rules/:reminderRuleId", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), reminderRuleController.UpdateReminderRule)
+	settingRoutes.POST("/reminder-rules/delete", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), reminderRuleController.DeleteReminderRules)
 
 	// Escalations
-	settingRoutes.GET("/escalations", escalationController.GetAllEscalations)
-	settingRoutes.GET("/escalations/:id", escalationController.GetEscalationDetails)
-	settingRoutes.GET("/escalation-modules", escalationController.GetAllEnabledModules)
-	settingRoutes.GET("/modules/:moduleId/escalations", escalationController.GetEscalationsByModuleID)
+	settingRoutes.GET("/escalations", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), escalationController.GetAllEscalations)
+	settingRoutes.GET("/escalations/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), escalationController.GetEscalationDetails)
+	settingRoutes.GET("/escalation-modules", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), escalationController.GetAllEnabledModules)
+	settingRoutes.GET("/modules/:moduleId/escalations", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), escalationController.GetEscalationsByModuleID)
 
 	// Escalation Level
 	settingRoutes.GET("/escalation-levels", escalationLevelController.GetAllEscalationLevels)
 	settingRoutes.GET("/escalation-levels/:escalationLevelId", escalationLevelController.GetEscalationLevelDetails)
-	settingRoutes.POST("/escalation-levels", escalationLevelController.CreateEscalationLevel)
-	settingRoutes.PUT("/escalation-levels/:escalationLevelId", escalationLevelController.UpdateEscalationLevel)
-	settingRoutes.POST("/escalation-levels/delete", escalationLevelController.DeleteEscalationLevels)
+	settingRoutes.POST("/escalation-levels", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), escalationLevelController.CreateEscalationLevel)
+	settingRoutes.PUT("/escalation-levels/:escalationLevelId", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), escalationLevelController.UpdateEscalationLevel)
+	settingRoutes.POST("/escalation-levels/delete", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), escalationLevelController.DeleteEscalationLevels)
 
 }

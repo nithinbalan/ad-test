@@ -368,28 +368,28 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.GET("/audit-final-report-statuses/:id", auditFinalReportStatusController.GetAuditFinalReportStatusDetails)
 
 	//Audit Final Reports
-	auditRoutes.GET("/audits/:auditId/final-reports", auditFinalReportController.GetAuditFinalReportDetails)
-	auditRoutes.POST("/audits/:auditId/final-reports", auditFinalReportController.CreateAuditFinalReport)
-	auditRoutes.POST("/audits/:auditId/final-reports/delete", auditFinalReportController.DeleteAuditFinalReport)
-	auditRoutes.GET("/audits/:auditId/final-reports/last-edit-summary", auditFinalReportController.GetLastEditSummary)
-	auditRoutes.GET("/audits/:auditId/final-reports/export-pdf", auditFinalReportController.ExportAuditFinalReportPDF)
-	auditRoutes.POST("/audits/:auditId/final-reports/publish", auditFinalReportController.PublishAuditFinalReport)
+	auditRoutes.GET("/audits/:auditId/final-reports", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditFinalReportController.GetAuditFinalReportDetails)
+	auditRoutes.POST("/audits/:auditId/final-reports", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditFinalReportController.CreateAuditFinalReport)
+	auditRoutes.POST("/audits/:auditId/final-reports/delete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditFinalReportController.DeleteAuditFinalReport)
+	auditRoutes.GET("/audits/:auditId/final-reports/last-edit-summary", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditFinalReportController.GetLastEditSummary)
+	auditRoutes.GET("/audits/:auditId/final-reports/export-pdf", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditFinalReportController.ExportAuditFinalReportPDF)
+	auditRoutes.POST("/audits/:auditId/final-reports/publish", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditFinalReportController.PublishAuditFinalReport)
 
 	//Audit Final Report Section
-	auditRoutes.GET("/audits/:auditId/final-report-sections/:id", auditFinalReportSectionController.GetAuditFinalReportSectionDetails)
-	auditRoutes.PUT("/audits/:auditId/final-report-sections/:id", auditFinalReportSectionController.UpdateAuditFinalReportSection)
-	auditRoutes.DELETE("/audits/:auditId/final-report-sections/:id", auditFinalReportSectionController.DeleteAuditFinalReportSection)
+	auditRoutes.GET("/audits/:auditId/final-report-sections/:id", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditFinalReportSectionController.GetAuditFinalReportSectionDetails)
+	auditRoutes.PUT("/audits/:auditId/final-report-sections/:id", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditFinalReportSectionController.UpdateAuditFinalReportSection)
+	auditRoutes.DELETE("/audits/:auditId/final-report-sections/:id", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditFinalReportSectionController.DeleteAuditFinalReportSection)
 
 	//workflow
 	auditRoutes.GET("/audits/:auditId/final-reports/workflow-list", auditReportWorkflowController.GetWorkflowList)
 
-	auditRoutes.POST("/audits/:auditId/final-reports/submit", auditReportReviewController.SubmitAuditFinalReport)
-	auditRoutes.GET("/audits/:auditId/final-reports/comments", auditReportReviewController.GetComments)
-	auditRoutes.POST("/audits/:auditId/final-reports/comments", auditReportReviewController.AddComment)
+	auditRoutes.POST("/audits/:auditId/final-reports/submit", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditReportReviewController.SubmitAuditFinalReport)
+	auditRoutes.GET("/audits/:auditId/final-reports/comments", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditReportReviewController.GetComments)
+	auditRoutes.POST("/audits/:auditId/final-reports/comments", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditReportReviewController.AddComment)
 
-	auditRoutes.GET("/audits/:auditId/final-reports/:finalReportId/appendices/:id", auditFinalReportAppendixController.GetAuditFinalReportAppendixDetails)
-	auditRoutes.POST("/audits/:auditId/final-reports/:finalReportId/appendices", auditFinalReportAppendixController.CreateAuditFinalReportAppendix)
-	auditRoutes.DELETE("/audits/:auditId/final-reports/:finalReportId/appendices/:id", auditFinalReportAppendixController.DeleteAuditFinalReportAppendix)
+	auditRoutes.GET("/audits/:auditId/final-reports/:finalReportId/appendices/:id", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditFinalReportAppendixController.GetAuditFinalReportAppendixDetails)
+	auditRoutes.POST("/audits/:auditId/final-reports/:finalReportId/appendices", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditFinalReportAppendixController.CreateAuditFinalReportAppendix)
+	auditRoutes.DELETE("/audits/:auditId/final-reports/:finalReportId/appendices/:id", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditFinalReportAppendixController.DeleteAuditFinalReportAppendix)
 	unauthenticatedRoutes.GET("/audits/:auditId/final-reports/:finalReportId/appendices/:id/document-download", auditFinalReportAppendixController.DownloadFinalReportAppendixDocument)
 
 }
