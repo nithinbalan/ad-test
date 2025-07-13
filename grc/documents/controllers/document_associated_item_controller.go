@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
+	commonDTOs "jethur/grc/common/dtos"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -346,8 +348,6 @@ func (daic *DocumentAssociatedItemController) GetAllDocumentClauses(c *gin.Conte
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -362,15 +362,13 @@ func (daic *DocumentAssociatedItemController) GetAllDocumentClauses(c *gin.Conte
 	}
 
 	queryParams := documentDTOs.DocumentAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
-	incidents, err := daic.service.GetAllClauses(uint(documentID), &queryParams)
+	clauses, err := daic.service.GetAllClauses(uint(documentID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -385,10 +383,10 @@ func (daic *DocumentAssociatedItemController) GetAllDocumentClauses(c *gin.Conte
 			return
 		}
 	}
-	c.JSON(http.StatusOK, incidents)
+	c.JSON(http.StatusOK, clauses)
 }
 func (daic *DocumentAssociatedItemController) UpdateClauses(c *gin.Context) {
-	var ControlClauseFormDTO documentDTOs.DocumentAssociatedItemClauseFormDTO
+	var clauseFormDTO commonDTOs.AssociatedClauseFormDTO
 
 	documentID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -396,7 +394,7 @@ func (daic *DocumentAssociatedItemController) UpdateClauses(c *gin.Context) {
 		return
 	}
 
-	if err := c.ShouldBindJSON(&ControlClauseFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&clauseFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -407,7 +405,7 @@ func (daic *DocumentAssociatedItemController) UpdateClauses(c *gin.Context) {
 		return
 	}
 
-	err = daic.service.UpdateClauses(uint(documentID), currentUserID, &ControlClauseFormDTO)
+	err = daic.service.UpdateClauses(uint(documentID), currentUserID, &clauseFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

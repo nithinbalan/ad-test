@@ -20,8 +20,7 @@ type RiskAssociatedItemRepositoryInterface interface {
 	GetAllDocuments(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemDocumentListResponseDTO, error)
 	GetAllAssets(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemAssetListResponseDTO, error)
 	GetAllThreats(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemThreatListResponseDTO, error)
-	GetAllClauses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemClauseListResponseDTO, error)
-	// GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error)
+	GetAllClauses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	CreateRiskClauses(clauses []*models.RiskClause, tx ...utility.DatabaseTransaction) error
 	DeleteRiskClauses(riskID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 	GetClausesByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
@@ -934,9 +933,9 @@ func (repo *RiskAssociatedItemRepository) GetAllThreats(riskID uint, params *ris
 	return response, nil
 }
 
-func (repo *RiskAssociatedItemRepository) GetAllClauses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemClauseListResponseDTO, error) {
+func (repo *RiskAssociatedItemRepository) GetAllClauses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 
-	var clauseList []riskDTOs.ClauseRowDTO
+	var clauseList []commonDTOs.AssociatedClauseRowDTO
 	var totalCount int64
 	query := repo.db.Table("risk_clauses").
 		Select(`
@@ -980,17 +979,17 @@ func (repo *RiskAssociatedItemRepository) GetAllClauses(riskID uint, params *ris
 		return nil, err
 	}
 
-	clausesByComplianceRegister := make(map[uint]*riskDTOs.ClauseListDTO)
+	clausesByComplianceRegister := make(map[uint]*commonDTOs.AssociatedClauseListDTO)
 	for _, row := range clauseList {
 		if _, exists := clausesByComplianceRegister[row.ComplianceRegisterID]; !exists {
-			clausesByComplianceRegister[row.ComplianceRegisterID] = &riskDTOs.ClauseListDTO{
+			clausesByComplianceRegister[row.ComplianceRegisterID] = &commonDTOs.AssociatedClauseListDTO{
 				ComplianceRegisterID:      row.ComplianceRegisterID,
 				ComplianceRegisterTitleEn: row.ComplianceRegisterTitleEn,
 				ComplianceRegisterTitleAr: row.ComplianceRegisterTitleAr,
-				Clauses:                   []riskDTOs.ClauseDTO{},
+				Clauses:                   []commonDTOs.AssociatedClauseDTO{},
 			}
 		}
-		clausesByComplianceRegister[row.ComplianceRegisterID].Clauses = append(clausesByComplianceRegister[row.ComplianceRegisterID].Clauses, riskDTOs.ClauseDTO{
+		clausesByComplianceRegister[row.ComplianceRegisterID].Clauses = append(clausesByComplianceRegister[row.ComplianceRegisterID].Clauses, commonDTOs.AssociatedClauseDTO{
 			ComplianceClauseID: row.ComplianceClauseID,
 			ClauseNo:           row.ClauseNo,
 			ClauseTitleEn:      row.ClauseTitleEn,
@@ -998,13 +997,13 @@ func (repo *RiskAssociatedItemRepository) GetAllClauses(riskID uint, params *ris
 		})
 	}
 
-	var groupedClauses []*riskDTOs.ClauseListDTO
+	var groupedClauses []*commonDTOs.AssociatedClauseListDTO
 	for _, v := range clausesByComplianceRegister {
 		groupedClauses = append(groupedClauses, v)
 	}
 
 	if groupedClauses == nil {
-		groupedClauses = []*riskDTOs.ClauseListDTO{}
+		groupedClauses = []*commonDTOs.AssociatedClauseListDTO{}
 	}
 
 	totalCount = int64(len(groupedClauses))
@@ -1020,7 +1019,7 @@ func (repo *RiskAssociatedItemRepository) GetAllClauses(riskID uint, params *ris
 	}
 
 	pagedClauses := groupedClauses[start:end]
-	response := &riskDTOs.RiskAssociatedItemClauseListResponseDTO{
+	response := &commonDTOs.AssociatedItemClauseListResponseDTO{
 		Items: pagedClauses,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
@@ -1032,23 +1031,6 @@ func (repo *RiskAssociatedItemRepository) GetAllClauses(riskID uint, params *ris
 
 	return response, nil
 }
-
-// func (repo *RiskAssociatedItemRepository) GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error) {
-// 	db := repo.db
-// 	if len(tx) > 0 && tx[0] != nil {
-// 		db = tx[0].DB()
-// 	}
-
-// 	var clauses []*models.ComplianceClause
-// 	if err := db.
-// 		Select("id, compliance_register_id").
-// 		Where("id IN ?", ids).
-// 		Find(&clauses).Error; err != nil {
-// 		return nil, err
-// 	}
-
-// 	return clauses, nil
-// }
 
 func (repo *RiskAssociatedItemRepository) GetClausesByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
 	db := repo.db

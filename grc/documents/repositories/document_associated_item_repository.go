@@ -18,7 +18,7 @@ type DocumentAssociatedItemRepositoryInterface interface {
 	GetAllSLAs(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemSLAListResponseDTO, error)
 	GetAllIncidents(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisks(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemRiskListResponseDTO, error)
-	GetAllClauses(controlID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(controlID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	GetClausesByDocumentID(controlID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 	CreateDocumentClauses(clauses []*models.DocumentClause, tx ...utility.DatabaseTransaction) error
 	DeleteControlClauses(controlID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
@@ -643,9 +643,9 @@ func (repo *DocumentAssociatedItemRepository) GetAllRisks(documentID uint, param
 	return response, nil
 }
 
-func (repo *DocumentAssociatedItemRepository) GetAllClauses(controlID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemClauseListResponseDTO, error) {
+func (repo *DocumentAssociatedItemRepository) GetAllClauses(controlID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 
-	var clauseList []documentDTOs.ClauseRowDTO
+	var clauseList []commonDTOs.AssociatedClauseRowDTO
 	var totalCount int64
 	query := repo.db.Table("document_clauses").
 		Select(`
@@ -689,17 +689,17 @@ func (repo *DocumentAssociatedItemRepository) GetAllClauses(controlID uint, para
 		return nil, err
 	}
 
-	clausesByComplianceRegister := make(map[uint]*documentDTOs.ClauseListDTO)
+	clausesByComplianceRegister := make(map[uint]*commonDTOs.AssociatedClauseListDTO)
 	for _, row := range clauseList {
 		if _, exists := clausesByComplianceRegister[row.ComplianceRegisterID]; !exists {
-			clausesByComplianceRegister[row.ComplianceRegisterID] = &documentDTOs.ClauseListDTO{
+			clausesByComplianceRegister[row.ComplianceRegisterID] = &commonDTOs.AssociatedClauseListDTO{
 				ComplianceRegisterID:      row.ComplianceRegisterID,
 				ComplianceRegisterTitleEn: row.ComplianceRegisterTitleEn,
 				ComplianceRegisterTitleAr: row.ComplianceRegisterTitleAr,
-				Clauses:                   []documentDTOs.ClauseDTO{},
+				Clauses:                   []commonDTOs.AssociatedClauseDTO{},
 			}
 		}
-		clausesByComplianceRegister[row.ComplianceRegisterID].Clauses = append(clausesByComplianceRegister[row.ComplianceRegisterID].Clauses, documentDTOs.ClauseDTO{
+		clausesByComplianceRegister[row.ComplianceRegisterID].Clauses = append(clausesByComplianceRegister[row.ComplianceRegisterID].Clauses, commonDTOs.AssociatedClauseDTO{
 			ComplianceClauseID: row.ComplianceClauseID,
 			ClauseNo:           row.ClauseNo,
 			ClauseTitleEn:      row.ClauseTitleEn,
@@ -707,13 +707,13 @@ func (repo *DocumentAssociatedItemRepository) GetAllClauses(controlID uint, para
 		})
 	}
 
-	var groupedClauses []*documentDTOs.ClauseListDTO
+	var groupedClauses []*commonDTOs.AssociatedClauseListDTO
 	for _, v := range clausesByComplianceRegister {
 		groupedClauses = append(groupedClauses, v)
 	}
 
 	if groupedClauses == nil {
-		groupedClauses = []*documentDTOs.ClauseListDTO{}
+		groupedClauses = []*commonDTOs.AssociatedClauseListDTO{}
 	}
 
 	totalCount = int64(len(groupedClauses))
@@ -729,7 +729,7 @@ func (repo *DocumentAssociatedItemRepository) GetAllClauses(controlID uint, para
 	}
 
 	pagedClauses := groupedClauses[start:end]
-	response := &documentDTOs.DocumentAssociatedItemClauseListResponseDTO{
+	response := &commonDTOs.AssociatedItemClauseListResponseDTO{
 		Items: pagedClauses,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,

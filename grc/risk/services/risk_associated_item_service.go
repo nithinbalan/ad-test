@@ -22,8 +22,8 @@ type RiskAssociatedItemServiceInterface interface {
 	GetAllDocuments(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemDocumentListResponseDTO, error)
 	GetAllAssets(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemAssetListResponseDTO, error)
 	GetAllThreats(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemThreatListResponseDTO, error)
-	GetAllClauses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemClauseListResponseDTO, error)
-	UpdateClauses(riskID uint, currentUserID uint, ControlClauseFormDTO *riskDTOs.RiskClauseFormDTO) error
+	GetAllClauses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	UpdateClauses(riskID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 }
 
 // Service and implementations
@@ -163,7 +163,7 @@ func (rais *RiskAssociatedItemService) GetAllThreats(riskID uint, params *riskDT
 	return rais.repo.GetAllThreats(riskID, params)
 }
 
-func (rais *RiskAssociatedItemService) GetAllClauses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemClauseListResponseDTO, error) {
+func (rais *RiskAssociatedItemService) GetAllClauses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
 		return nil, err
 	}
@@ -176,7 +176,7 @@ func (rais *RiskAssociatedItemService) GetAllClauses(riskID uint, params *riskDT
 	return response, nil
 }
 
-func (rais *RiskAssociatedItemService) UpdateClauses(riskID uint, currentUserID uint, RiskClauseFormDTO *riskDTOs.RiskClauseFormDTO) error {
+func (rais *RiskAssociatedItemService) UpdateClauses(riskID uint, currentUserID uint, RiskClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error {
 
 	tx := rais.repo.BeginTransaction()
 

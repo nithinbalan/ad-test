@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
 	"jethur/grc/incident/services"
 	"jethur/utility"
@@ -393,8 +394,6 @@ func (iaic *IncidentAssociatedItemController) GetAllIncidentClauses(c *gin.Conte
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -409,16 +408,14 @@ func (iaic *IncidentAssociatedItemController) GetAllIncidentClauses(c *gin.Conte
 	}
 
 	queryParams := incidentDTOs.IncidentAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
 
-	incidents, err := iaic.service.GetAllClauses(uint(incidentID), &queryParams)
+	clauses, err := iaic.service.GetAllClauses(uint(incidentID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -433,11 +430,11 @@ func (iaic *IncidentAssociatedItemController) GetAllIncidentClauses(c *gin.Conte
 			return
 		}
 	}
-	c.JSON(http.StatusOK, incidents)
+	c.JSON(http.StatusOK, clauses)
 }
 
 func (iaic *IncidentAssociatedItemController) UpdateClauses(c *gin.Context) {
-	var ControlClauseFormDTO incidentDTOs.IncidentClauseFormDTO
+	var clauseFormDTO commonDTOs.AssociatedClauseFormDTO
 
 	incidentID, err := strconv.Atoi(c.Param("incidentID"))
 	if err != nil {
@@ -445,7 +442,7 @@ func (iaic *IncidentAssociatedItemController) UpdateClauses(c *gin.Context) {
 		return
 	}
 
-	if err := c.ShouldBindJSON(&ControlClauseFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&clauseFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -456,7 +453,7 @@ func (iaic *IncidentAssociatedItemController) UpdateClauses(c *gin.Context) {
 		return
 	}
 
-	err = iaic.service.UpdateClauses(uint(incidentID), currentUserID, &ControlClauseFormDTO)
+	err = iaic.service.UpdateClauses(uint(incidentID), currentUserID, &clauseFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

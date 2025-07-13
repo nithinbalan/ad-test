@@ -19,8 +19,8 @@ type DocumentAssociatedItemServiceInterface interface {
 	GetAllSLAs(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemSLAListResponseDTO, error)
 	GetAllIncidents(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisks(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemRiskListResponseDTO, error)
-	GetAllClauses(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemClauseListResponseDTO, error)
-	UpdateClauses(documentID uint, currentUserID uint, ControlClauseFormDTO *documentDTOs.DocumentAssociatedItemClauseFormDTO) error
+	GetAllClauses(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	UpdateClauses(documentID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 }
 
 // Service Implementation
@@ -135,7 +135,7 @@ func (dais *DocumentAssociatedItemService) GetAllRisks(documentID uint, params *
 	return dais.repo.GetAllRisks(documentID, params)
 }
 
-func (dais *DocumentAssociatedItemService) GetAllClauses(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemClauseListResponseDTO, error) {
+func (dais *DocumentAssociatedItemService) GetAllClauses(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func (dais *DocumentAssociatedItemService) GetAllClauses(documentID uint, params
 	return response, nil
 }
 
-func (dais *DocumentAssociatedItemService) UpdateClauses(documentID uint, currentUserID uint, ControlClauseFormDTO *documentDTOs.DocumentAssociatedItemClauseFormDTO) error {
+func (dais *DocumentAssociatedItemService) UpdateClauses(documentID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error {
 
 	tx := dais.repo.BeginTransaction()
 

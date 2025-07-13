@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	complianceServices "jethur/grc/compliance/services"
 	incidentDTOs "jethur/grc/incident/dtos"
 	incidentRepositories "jethur/grc/incident/repositories"
@@ -18,8 +19,8 @@ type IncidentAssociatedItemServiceInterface interface {
 	GetAllSLAs(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemSLAListResponseDTO, error)
 	GetAllDocuments(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemDocumentListResponseDTO, error)
 	GetAllAssets(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemAssetListResponseDTO, error)
-	GetAllClauses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemClauseListResponseDTO, error)
-	UpdateClauses(incidentID uint, currentUserID uint, ControlClauseFormDTO *incidentDTOs.IncidentClauseFormDTO) error
+	GetAllClauses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	UpdateClauses(incidentID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 }
 
 // Service and implementations
@@ -91,7 +92,7 @@ func (iais *IncidentAssociatedItemService) GetAllAssets(incidentID uint, params 
 	return iais.repo.GetAllAssets(incidentID, params)
 }
 
-func (iais *IncidentAssociatedItemService) GetAllClauses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemClauseListResponseDTO, error) {
+func (iais *IncidentAssociatedItemService) GetAllClauses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return nil, err
 	}
@@ -104,7 +105,7 @@ func (iais *IncidentAssociatedItemService) GetAllClauses(incidentID uint, params
 	return response, nil
 }
 
-func (iais *IncidentAssociatedItemService) UpdateClauses(incidentID uint, currentUserID uint, ControlClauseFormDTO *incidentDTOs.IncidentClauseFormDTO) error {
+func (iais *IncidentAssociatedItemService) UpdateClauses(incidentID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error {
 
 	tx := iais.repo.BeginTransaction()
 

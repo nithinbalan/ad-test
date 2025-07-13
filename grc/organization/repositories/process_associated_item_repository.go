@@ -19,7 +19,7 @@ type ProcessAssociatedItemRepositoryInterface interface {
 	GetAllDocuments(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemDocumentListResponseDTO, error)
 	GetAllAssets(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemAssetListResponseDTO, error)
 	GetAllAssociatedCounts(processID uint) (*organizationDTOs.ProcessAssociatedItemsCountResponseDTO, error)
-	GetAllClauses(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error)
 	GetClausesByProcessID(processID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 	CreateProcessClauses(clauses []*models.ProcessClause, tx ...utility.DatabaseTransaction) error
@@ -642,9 +642,9 @@ func (repo *ProcessAssociatedItemRepository) GetAllControlsWithPagination(proces
 
 }
 
-func (repo *ProcessAssociatedItemRepository) GetAllClauses(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemClauseListResponseDTO, error) {
+func (repo *ProcessAssociatedItemRepository) GetAllClauses(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 
-	var clauseList []organizationDTOs.ClauseRowDTO
+	var clauseList []commonDTOs.AssociatedClauseRowDTO
 	var totalCount int64
 	query := repo.db.Table("process_clauses").
 		Select(`
@@ -688,17 +688,17 @@ func (repo *ProcessAssociatedItemRepository) GetAllClauses(processID uint, param
 		return nil, err
 	}
 
-	clausesByComplianceRegister := make(map[uint]*organizationDTOs.ClauseListDTO)
+	clausesByComplianceRegister := make(map[uint]*commonDTOs.AssociatedClauseListDTO)
 	for _, row := range clauseList {
 		if _, exists := clausesByComplianceRegister[row.ComplianceRegisterID]; !exists {
-			clausesByComplianceRegister[row.ComplianceRegisterID] = &organizationDTOs.ClauseListDTO{
+			clausesByComplianceRegister[row.ComplianceRegisterID] = &commonDTOs.AssociatedClauseListDTO{
 				ComplianceRegisterID:      row.ComplianceRegisterID,
 				ComplianceRegisterTitleEn: row.ComplianceRegisterTitleEn,
 				ComplianceRegisterTitleAr: row.ComplianceRegisterTitleAr,
-				Clauses:                   []organizationDTOs.ClauseDTO{},
+				Clauses:                   []commonDTOs.AssociatedClauseDTO{},
 			}
 		}
-		clausesByComplianceRegister[row.ComplianceRegisterID].Clauses = append(clausesByComplianceRegister[row.ComplianceRegisterID].Clauses, organizationDTOs.ClauseDTO{
+		clausesByComplianceRegister[row.ComplianceRegisterID].Clauses = append(clausesByComplianceRegister[row.ComplianceRegisterID].Clauses, commonDTOs.AssociatedClauseDTO{
 			ComplianceClauseID: row.ComplianceClauseID,
 			ClauseNo:           row.ClauseNo,
 			ClauseTitleEn:      row.ClauseTitleEn,
@@ -706,13 +706,13 @@ func (repo *ProcessAssociatedItemRepository) GetAllClauses(processID uint, param
 		})
 	}
 
-	var groupedClauses []*organizationDTOs.ClauseListDTO
+	var groupedClauses []*commonDTOs.AssociatedClauseListDTO
 	for _, v := range clausesByComplianceRegister {
 		groupedClauses = append(groupedClauses, v)
 	}
 
 	if groupedClauses == nil {
-		groupedClauses = []*organizationDTOs.ClauseListDTO{}
+		groupedClauses = []*commonDTOs.AssociatedClauseListDTO{}
 	}
 
 	totalCount = int64(len(groupedClauses))
@@ -728,7 +728,7 @@ func (repo *ProcessAssociatedItemRepository) GetAllClauses(processID uint, param
 	}
 
 	pagedClauses := groupedClauses[start:end]
-	response := &organizationDTOs.ProcessAssociatedItemClauseListResponseDTO{
+	response := &commonDTOs.AssociatedItemClauseListResponseDTO{
 		Items: pagedClauses,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,

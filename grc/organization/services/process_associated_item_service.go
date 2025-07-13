@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
@@ -17,8 +18,8 @@ type ProcessAssociatedItemServiceInterface interface {
 	GetAllDocuments(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemDocumentListResponseDTO, error)
 	GetAllAssociatedCounts(processID uint) (*organizationDTOs.ProcessAssociatedItemsCountResponseDTO, error)
 	GetAllAssets(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemAssetListResponseDTO, error)
-	GetAllClauses(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemClauseListResponseDTO, error)
-	UpdateClauses(processID uint, currentUserID uint, ProcessClauseFormDTO *organizationDTOs.ProcessClauseFormDTO) error
+	GetAllClauses(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	UpdateClauses(processID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 }
 
 type ProcessAssociatedItemService struct {
@@ -208,7 +209,7 @@ func (pais *ProcessAssociatedItemService) GetAllAssociatedCounts(processID uint)
 
 	return response, nil
 }
-func (pais *ProcessAssociatedItemService) GetAllClauses(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemClauseListResponseDTO, error) {
+func (pais *ProcessAssociatedItemService) GetAllClauses(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 	if _, err := pais.processSvc.GetByID(processID); err != nil {
 		return nil, err
 	}
@@ -221,7 +222,7 @@ func (pais *ProcessAssociatedItemService) GetAllClauses(processID uint, params *
 	return response, nil
 }
 
-func (pais *ProcessAssociatedItemService) UpdateClauses(processID uint, currentUserID uint, ProcessClauseFormDTO *organizationDTOs.ProcessClauseFormDTO) error {
+func (pais *ProcessAssociatedItemService) UpdateClauses(processID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error {
 
 	tx := pais.repo.BeginTransaction()
 
@@ -230,7 +231,7 @@ func (pais *ProcessAssociatedItemService) UpdateClauses(processID uint, currentU
 		return err
 	}
 
-	clauses, err := pais.validateClauseIDs(ProcessClauseFormDTO.ClauseIDs, tx)
+	clauses, err := pais.validateClauseIDs(ClauseFormDTO.ClauseIDs, tx)
 	if err != nil {
 		tx.Rollback()
 		return err

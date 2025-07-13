@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/services"
 	"jethur/utility"
@@ -519,8 +520,6 @@ func (rc *RiskAssociatedItemController) GetAllClauses(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -535,15 +534,13 @@ func (rc *RiskAssociatedItemController) GetAllClauses(c *gin.Context) {
 	}
 
 	queryParams := riskDTOs.RiskAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
-	documents, err := rc.service.GetAllClauses(uint(riskID), &queryParams)
+	clauses, err := rc.service.GetAllClauses(uint(riskID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -558,10 +555,10 @@ func (rc *RiskAssociatedItemController) GetAllClauses(c *gin.Context) {
 			return
 		}
 	}
-	c.JSON(http.StatusOK, documents)
+	c.JSON(http.StatusOK, clauses)
 }
 func (rc *RiskAssociatedItemController) UpdateClauses(c *gin.Context) {
-	var ControlClauseFormDTO riskDTOs.RiskClauseFormDTO
+	var clauseFormDTO commonDTOs.AssociatedClauseFormDTO
 
 	riskID, err := strconv.Atoi(c.Param("riskId"))
 	if err != nil {
@@ -569,7 +566,7 @@ func (rc *RiskAssociatedItemController) UpdateClauses(c *gin.Context) {
 		return
 	}
 
-	if err := c.ShouldBindJSON(&ControlClauseFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&clauseFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -580,7 +577,7 @@ func (rc *RiskAssociatedItemController) UpdateClauses(c *gin.Context) {
 		return
 	}
 
-	err = rc.service.UpdateClauses(uint(riskID), currentUserID, &ControlClauseFormDTO)
+	err = rc.service.UpdateClauses(uint(riskID), currentUserID, &clauseFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

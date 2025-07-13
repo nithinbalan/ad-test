@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/organization/services"
 	"jethur/utility"
@@ -325,9 +326,6 @@ func (paic *ProcessAssociatedItemController) GetAllClauses(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	valueStr := c.Query("value")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -342,25 +340,16 @@ func (paic *ProcessAssociatedItemController) GetAllClauses(c *gin.Context) {
 	}
 
 	var value int
-	if valueStr != "" {
-		value, err = strconv.Atoi(valueStr)
-		if err != nil {
-			utility.SendInternalErrResp(paic.db, c, "Invalid value parameter")
-			return
-		}
-	}
 
 	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
-		Value:       value,
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Value:    value,
 	}
-	risks, err := paic.service.GetAllClauses(uint(processID), &queryParams)
+	clauses, err := paic.service.GetAllClauses(uint(processID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -375,17 +364,17 @@ func (paic *ProcessAssociatedItemController) GetAllClauses(c *gin.Context) {
 			return
 		}
 	}
-	c.JSON(http.StatusOK, risks)
+	c.JSON(http.StatusOK, clauses)
 }
 func (paic *ProcessAssociatedItemController) UpdateClauses(c *gin.Context) {
-	var ProcessClauseFormDTO organizationDTOs.ProcessClauseFormDTO
+	var clauseFormDTO commonDTOs.AssociatedClauseFormDTO
 	processIDStr := c.Param("processId")
 	processID, err := strconv.ParseUint(processIDStr, 10, 64)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-	if err := c.ShouldBindJSON(&ProcessClauseFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&clauseFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -396,7 +385,7 @@ func (paic *ProcessAssociatedItemController) UpdateClauses(c *gin.Context) {
 		return
 	}
 
-	err = paic.service.UpdateClauses(uint(processID), currentUserID, &ProcessClauseFormDTO)
+	err = paic.service.UpdateClauses(uint(processID), currentUserID, &clauseFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
