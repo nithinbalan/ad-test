@@ -193,3 +193,7 @@ type ControlAssociatedItemClauseListResponseDTO struct {
 type ControlClauseFormDTO struct {
 	ClauseIDs []uint `json:"clause_ids" binding:"required"`
 }
+
+type AssociatedRiskMapDTO struct {
+	RiskIDs []uint `json:"risk_ids" binding:"required"`
+}

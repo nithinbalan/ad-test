@@ -21,6 +21,9 @@ type ControlAssociatedItemRepositoryInterface interface {
 	GetClausesByControlID(controlID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 	CreateControlClauses(clauses []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error
 	DeleteControlClauses(controlID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
+	CreateControlRisk(risks []*models.RiskControl, tx ...utility.DatabaseTransaction) error
+	DeleteControlRisk(controlID uint, riskID uint, tx ...utility.DatabaseTransaction) error
+	IsRiskMappedToControl(controlID uint, riskID uint) (bool, error)
 }
 type ControlAssociatedItemRepository struct {
 	db *gorm.DB
@@ -601,4 +604,36 @@ func (repo *ControlAssociatedItemRepository) DeleteControlClauses(controlID uint
 	}
 
 	return nil
+}
+
+func (repo *ControlAssociatedItemRepository) CreateControlRisk(risks []*models.RiskControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&risks).Error
+}
+
+func (repo *ControlAssociatedItemRepository) DeleteControlRisk(controlID uint, riskId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("risk_register_id = ? AND control_id = ?", riskId, controlID).
+		Delete(&models.RiskControl{}).
+		Error
+}
+
+func (repo *ControlAssociatedItemRepository) IsRiskMappedToControl(controlID uint, riskId uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Model(&models.RiskControl{}).
+		Where("risk_register_id = ? AND control_id = ?", riskId, controlID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

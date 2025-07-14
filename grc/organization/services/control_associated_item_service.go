@@ -17,6 +17,8 @@ type ControlAssociatedItemServiceInterface interface {
 	GetAllAssociatedCounts(controlID uint) (*organizationDTOs.ControlAssociatedItemsCountResponseDTO, error)
 	GetAllClauses(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(controlID uint, currentUserID uint, formDTO *organizationDTOs.ControlClauseFormDTO) error
+	CreateControlRisk(controlID uint, userID uint, dto *organizationDTOs.AssociatedRiskMapDTO) error
+	DeleteControlRisk(controlID uint, riskID uint) error
 }
 
 type ControlAssociatedItemService struct {
@@ -239,4 +241,70 @@ func (cais *ControlAssociatedItemService) validateClauseIDs(clauseIDs []uint, tx
 	}
 
 	return clauses, nil
+}
+
+func (cais *ControlAssociatedItemService) CreateControlRisk(controlID, userID uint, dto *organizationDTOs.AssociatedRiskMapDTO) error {
+	if err := cais.validateControlIDs(controlID, dto.RiskIDs); err != nil {
+		return err
+	}
+
+	tx := cais.repo.BeginTransaction()
+	var mappings []*models.RiskControl
+	currentTime := time.Now()
+
+	for _, riskID := range dto.RiskIDs {
+		mappings = append(mappings, &models.RiskControl{
+			RiskRegisterID: riskID,
+			ControlID:      controlID,
+			CreatedByID:    userID,
+			CreatedAt:      currentTime,
+		})
+	}
+
+	if err := cais.repo.CreateControlRisk(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (cais *ControlAssociatedItemService) DeleteControlRisk(controlID uint, riskID uint) error {
+	// Validate control existence
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlID), "not_exist", "control_id")
+	}
+
+	tx := cais.repo.BeginTransaction()
+
+	if err := cais.repo.DeleteControlRisk(controlID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (cais *ControlAssociatedItemService) validateControlIDs(complianceID uint, controlIDs []uint) error {
+	if len(controlIDs) == 0 {
+		return utility.NewValidationError(fmt.Errorf("no controls provided"), "required", "control_ids")
+	}
+
+	seen := make(map[uint]bool)
+	for _, id := range controlIDs {
+		alreadyMapped, err := cais.repo.IsRiskMappedToControl(complianceID, id)
+		if err != nil {
+			return fmt.Errorf("failed to check existing mapping: %v", err)
+		}
+		if alreadyMapped {
+			return utility.NewValidationError(fmt.Errorf("risk ID %d already mapped to this control", id), "duplicate", "risk_ids")
+		}
+		if seen[id] {
+			return utility.NewValidationError(fmt.Errorf("duplicate risk ID: %d", id), "duplicate", "risk_ids")
+		}
+		if _, err := cais.controlSvc.GetByID(id); err != nil {
+			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", id), "not_exist", "control_ids")
+		}
+		seen[id] = true
+	}
+	return nil
 }

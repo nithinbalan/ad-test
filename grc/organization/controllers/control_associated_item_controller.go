@@ -356,3 +356,52 @@ func (caic *ControlAssociatedItemController) UpdateClauses(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Clauses against control updated successfully"})
 }
+
+func (caic *ControlAssociatedItemController) CreateControlRisk(c *gin.Context) {
+	var input organizationDTOs.AssociatedRiskMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	controlID, err := strconv.ParseUint(c.Param("controlId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	err = caic.service.CreateControlRisk(uint(controlID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(caic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (caic *ControlAssociatedItemController) DeleteControlRisk(c *gin.Context) {
+	controlID, _ := strconv.ParseUint(c.Param("controlId"), 10, 64)
+	riskID, _ := strconv.ParseUint(c.Param("riskId"), 10, 64)
+	err := caic.service.DeleteControlRisk(uint(controlID), uint(riskID))
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Risk unmapped from control successfully"})
+}
