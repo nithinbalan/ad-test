@@ -19,7 +19,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyProfileController := app.StrategyModule.StrategyProfileController
 	strategyProfileFocusAreaController := app.StrategyModule.StrategyProfileFocusAreaController
 	strategyProfileGoalController := app.StrategyModule.StrategyProfileGoalController
-	strategyProfileObjectiveController := app.StrategyModule.StrategyProfileObjectiveController
+	strategyProfileStrategicObjectiveController := app.StrategyModule.StrategyProfileStrategicObjectiveController
 	strategyProfileInitiativeController := app.StrategyModule.StrategyProfileInitiativeController
 	strategyProfileProjectController := app.StrategyModule.StrategyProfileProjectController
 	strategyProfileMilestoneController := app.StrategyModule.StrategyProfileMilestoneController
@@ -220,9 +220,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.DELETE("/strategy-profiles/:strategyProfileId/focus-areas/:id", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileFocusAreaController.DeleteStrategyProfileFocusArea)
 
 	// objective
-	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/strategic-objectives", strategyProfileObjectiveController.GetAllStrategyProfileObjectives)
-	strategyRoutes.POST("/strategy-profiles/:strategyProfileId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileObjectiveController.CreateStrategyProfileObjective)
-	strategyRoutes.DELETE("/strategy-profiles/:strategyProfileId/strategic-objectives/:id", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileObjectiveController.DeleteStrategyProfileObjectives)
+	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/strategic-objectives", strategyProfileStrategicObjectiveController.GetAllStrategyProfileStrategicObjectives)
+	strategyRoutes.POST("/strategy-profiles/:strategyProfileId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileStrategicObjectiveController.CreateStrategyProfileStrategicObjective)
+	strategyRoutes.DELETE("/strategy-profiles/:strategyProfileId/strategic-objectives/:id", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileStrategicObjectiveController.DeleteStrategyProfileStrategicObjectives)
 
 	// strategic intiative
 	strategyRoutes.GET("/strategic-intiatives", strategicIntiativeController.GetAllStrategicIntiatives)

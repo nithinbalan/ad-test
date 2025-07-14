@@ -11,18 +11,18 @@ import (
 	"gorm.io/gorm"
 )
 
-type StrategyProfileObjectiveController struct {
-	service services.StrategyProfileObjectiveServiceInterface
+type StrategyProfileStrategicObjectiveController struct {
+	service services.StrategyProfileStrategicObjectiveServiceInterface
 	db      *gorm.DB
 }
 
-func NewStrategyProfileObjectiveController(service services.StrategyProfileObjectiveServiceInterface) *StrategyProfileObjectiveController {
-	return &StrategyProfileObjectiveController{
+func NewStrategyProfileStrategicObjectiveController(service services.StrategyProfileStrategicObjectiveServiceInterface) *StrategyProfileStrategicObjectiveController {
+	return &StrategyProfileStrategicObjectiveController{
 		service: service,
 	}
 }
 
-func (snec *StrategyProfileObjectiveController) GetAllStrategyProfileObjectives(c *gin.Context) {
+func (snec *StrategyProfileStrategicObjectiveController) GetAllStrategyProfileStrategicObjectives(c *gin.Context) {
 	strategyProfileIDStr := c.Param("strategyProfileId")
 	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
 	if err != nil {
@@ -37,7 +37,7 @@ func (snec *StrategyProfileObjectiveController) GetAllStrategyProfileObjectives(
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"strategy_profile_ids",
-		"strategy_profile_focus_area_ids",
+		"focus_area_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -54,7 +54,7 @@ func (snec *StrategyProfileObjectiveController) GetAllStrategyProfileObjectives(
 		return
 	}
 
-	queryParams := strategyDTOs.StrategyProfileObjectiveListQueryParamsDTO{
+	queryParams := strategyDTOs.StrategyProfileStrategicObjectiveListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
@@ -78,25 +78,14 @@ func (snec *StrategyProfileObjectiveController) GetAllStrategyProfileObjectives(
 	c.JSON(http.StatusOK, objectives)
 }
 
-func (snec *StrategyProfileObjectiveController) CreateStrategyProfileObjective(c *gin.Context) {
-	var FormDTO strategyDTOs.StrategyProfileObjectiveFormDTO
+func (snec *StrategyProfileStrategicObjectiveController) CreateStrategyProfileStrategicObjective(c *gin.Context) {
+	var FormDTO strategyDTOs.StrategyProfileStrategicObjectiveFormDTO
 
 	strategyProfileIDStr := c.Param("strategyProfileId")
 	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
-	}
-
-	// Parse optional focus_area_id from query params
-	var focusAreaID *uint
-	focusAreaIDStr := c.Query("strategy_profile_focus_area_id")
-	if focusAreaIDStr != "" {
-		parsed, err := strconv.ParseUint(focusAreaIDStr, 10, 32)
-		if err == nil {
-			val := uint(parsed)
-			focusAreaID = &val
-		}
 	}
 
 	if err := c.ShouldBindJSON(&FormDTO); err != nil {
@@ -110,7 +99,7 @@ func (snec *StrategyProfileObjectiveController) CreateStrategyProfileObjective(c
 		return
 	}
 
-	ids, err := snec.service.Create(uint(strategyProfileID), currentUserID, &FormDTO, focusAreaID)
+	ids, err := snec.service.Create(uint(strategyProfileID), currentUserID, &FormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -129,7 +118,7 @@ func (snec *StrategyProfileObjectiveController) CreateStrategyProfileObjective(c
 	c.JSON(http.StatusCreated, gin.H{"successful_ids": ids})
 }
 
-func (snec *StrategyProfileObjectiveController) DeleteStrategyProfileObjectives(c *gin.Context) {
+func (snec *StrategyProfileStrategicObjectiveController) DeleteStrategyProfileStrategicObjectives(c *gin.Context) {
 	strategyProfileIDStr := c.Param("strategyProfileId")
 	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
 	if err != nil {

@@ -105,10 +105,10 @@ func (sps *StrategyProfileMilestoneService) Create(strategyProfileID uint, curre
 	tx := sps.repo.BeginTransaction()
 
 	strategyProfileMilestone := &models.StrategyProfileMilestone{
-		StrategyProfileID:           strategyProfileID,
-		StrategyProfileFocusAreaID:  strategyProfileMilestoneFormDTO.StrategyProfileFocusAreaID,
-		StrategyProfileGoalID:       strategyProfileMilestoneFormDTO.StrategyProfileGoalID,
-		StrategyProfileObjectiveID:  strategyProfileMilestoneFormDTO.StrategyProfileObjectiveID,
+		StrategyProfileID:          strategyProfileID,
+		StrategyProfileFocusAreaID: strategyProfileMilestoneFormDTO.StrategyProfileFocusAreaID,
+		StrategyProfileGoalID:      strategyProfileMilestoneFormDTO.StrategyProfileGoalID,
+		//StrategyProfileObjectiveID:  strategyProfileMilestoneFormDTO.StrategyProfileObjectiveID,
 		StrategyProfileInitiativeID: strategyProfileMilestoneFormDTO.StrategyProfileInitiativeID,
 		StrategyProfileProjectID:    strategyProfileMilestoneFormDTO.StrategyProfileProjectID,
 		Title:                       strategyProfileMilestoneFormDTO.Title,
