@@ -281,6 +281,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/processes/:processId/assets", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllProcessAssets)
 	organizationRoutes.GET("/processes/:processId/documents", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllProcessDocuments)
 	organizationRoutes.GET("/processes/:processId/associated-item-summary", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllAssociatedCounts)
+	organizationRoutes.GET("/processes/:processId/clauses", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllClauses)
+	organizationRoutes.PUT("/processes/:processId/clauses", middlewares.RolePermissionMiddleware(db, "process", "modify"), processAssociatedItemController.UpdateClauses)
 
 	// process dependency type
 	organizationRoutes.GET("/process-dependency-types", processDependencyTypeController.GetAllProcessDependencyTypes)

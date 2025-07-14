@@ -27,6 +27,7 @@ type ComplianceClauseServiceInterface interface {
 	GetAssociatedControls(complianceID uint, clauseID uint) ([]commonDTOs.AssociatedControlListDTO, error)
 	CreateComplianceClauseControls(complianceID, clauseID, currentUserID uint, dto *complianceDTOs.ComplianceClauseControlMapDTO) error
 	DeleteComplianceClauseControl(clauseID, controlID uint) error
+	GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error)
 }
 
 type ComplianceClauseService struct {
@@ -428,4 +429,11 @@ func (ccs *ComplianceClauseService) validateControlIDs(clauseID uint, controlIDs
 		seen[id] = true
 	}
 	return nil
+}
+func (ccs *ComplianceClauseService) GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error) {
+	clauses, err := ccs.repo.GetClausesByIDs(ids, tx...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch compliance clauses: %v", err)
+	}
+	return clauses, nil
 }

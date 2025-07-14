@@ -41,6 +41,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiAssociatedItemController := app.StrategyModule.KpiAssociatedItemController
 	focusAreaController := app.StrategyModule.FocusAreaController
 	strategicIntiativeController := app.StrategyModule.StrategicIntiativeController
+	strategicObjectiveAssociatedItemController := app.StrategyModule.StrategicObjectiveAssociatedItemController
 
 	// strategy profile
 	strategyRoutes.GET("/strategy-profiles", strategyProfileController.GetAllStrategyProfiles)
@@ -230,5 +231,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.POST("/strategic-intiatives", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicIntiativeController.CreateStrategicIntiative)
 	strategyRoutes.PUT("/strategic-intiatives/:id", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicIntiativeController.UpdateStrategicIntiative)
 	strategyRoutes.POST("/strategic-intiatives/delete", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicIntiativeController.DeleteStrategicIntiatives)
+
+	// strategic objective associated item
+	strategyRoutes.GET("/strategic-objectives/:id/clauses", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveAssociatedItemController.GetAllClauses)
+	strategyRoutes.PUT("/strategic-objectives/:id/clauses", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveAssociatedItemController.UpdateClauses)
 
 }

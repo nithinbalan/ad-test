@@ -1,10 +1,14 @@
 package services
 
 import (
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	documentDTOs "jethur/grc/documents/dtos"
 	documentRepsitories "jethur/grc/documents/repositories"
+	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
+	"jethur/utility"
+	"time"
 )
 
 // Service Interface
@@ -15,6 +19,8 @@ type DocumentAssociatedItemServiceInterface interface {
 	GetAllSLAs(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemSLAListResponseDTO, error)
 	GetAllIncidents(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisks(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemRiskListResponseDTO, error)
+	GetAllClauses(documentID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	UpdateClauses(documentID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 }
 
 // Service Implementation
@@ -127,4 +133,117 @@ func (dais *DocumentAssociatedItemService) GetAllRisks(documentID uint, params *
 		return nil, err
 	}
 	return dais.repo.GetAllRisks(documentID, params)
+}
+
+func (dais *DocumentAssociatedItemService) GetAllClauses(documentID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return nil, err
+	}
+
+	response, err := dais.repo.GetAllClauses(documentID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (dais *DocumentAssociatedItemService) UpdateClauses(documentID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error {
+
+	tx := dais.repo.BeginTransaction()
+
+	if _, err := dais.documentSvc.GetByID(documentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	clauses, err := dais.validateClauseIDs(ControlClauseFormDTO.ClauseIDs, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingControlClauses, err := dais.repo.GetClausesByDocumentID(documentID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingClauses := make(map[uint]bool) // clauseID => exists
+	for _, clauseID := range existingControlClauses {
+		existingClauses[clauseID] = true
+	}
+
+	newClauses := make(map[uint]*models.ComplianceClause)
+	for _, clause := range clauses {
+		newClauses[clause.ID] = clause
+	}
+
+	var clausesToAdd []*models.DocumentClause
+	now := time.Now()
+	for id, clause := range newClauses {
+		if !existingClauses[id] {
+			clausesToAdd = append(clausesToAdd, &models.DocumentClause{
+				DocumentID:           documentID,
+				ComplianceRegisterID: clause.ComplianceRegisterID,
+				ComplianceClauseID:   clause.ID,
+				CreatedByID:          currentUserID,
+				CreatedAt:            now,
+			})
+		}
+	}
+
+	if len(clausesToAdd) > 0 {
+		if err := dais.repo.CreateDocumentClauses(clausesToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteClauseIDs []uint
+	for existingID := range existingClauses {
+		if _, found := newClauses[existingID]; !found {
+			deleteClauseIDs = append(deleteClauseIDs, existingID)
+		}
+	}
+
+	if len(deleteClauseIDs) > 0 {
+		if err := dais.repo.DeleteDocumentClauses(documentID, deleteClauseIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+
+	return nil
+}
+
+func (dais *DocumentAssociatedItemService) validateClauseIDs(clauseIDs []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error) {
+	seen := make(map[uint]bool)
+	for _, id := range clauseIDs {
+		if seen[id] {
+			return nil, utility.NewValidationError(fmt.Errorf("duplicate clause ID: %d", id), "duplicate", "clause_id")
+		}
+		seen[id] = true
+	}
+
+	clauses, err := dais.repo.GetClausesByIDs(clauseIDs, tx...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch clauses: %w", err)
+	}
+
+	foundClauseIDs := make(map[uint]bool)
+	for _, clause := range clauses {
+		foundClauseIDs[clause.ID] = true
+	}
+
+	for _, id := range clauseIDs {
+		if !foundClauseIDs[id] {
+			return nil, utility.NewValidationError(
+				fmt.Errorf("clause does not exist for ID: %d", id), "not_exist", "clause_id")
+		}
+	}
+
+	return clauses, nil
 }

@@ -16,7 +16,7 @@ type AssetAssociatedItemRepositoryInterface interface {
 	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisksByRiskIDs(riskRegisterIDs []uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error)
 	GetAllVulnerabilities(assetID uint) ([]models.Vulnerability, error)
-	GetAllClauses(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(assetID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 
 	GetRisksByThreatID(threatID uint) ([]*assetDTOs.RiskDTO, error)
 
@@ -43,6 +43,10 @@ type AssetAssociatedItemRepositoryInterface interface {
 	GetVulnerabilityIDsByAssetID(assetID uint) ([]uint, error)
 	GetThreatIDsByVulnerabilityIDs(vulnIDs []uint) ([]uint, error)
 	GetRiskRegisterIDsByThreatIDs(threatIDs []uint) ([]uint, error)
+
+	CreateAssetClauses(clauses []*models.AssetComplianceRequirement, tx ...utility.DatabaseTransaction) error
+	DeleteAssetClauses(assetID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
+	GetClausesByAssetId(assetID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 }
 
 type AssetAssociatedItemRepository struct {
@@ -398,10 +402,10 @@ func (repo *AssetAssociatedItemRepository) GetRisksByThreatID(threatID uint) ([]
 	return risks, nil
 }
 
-func (repo *AssetAssociatedItemRepository) GetAllClauses(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemClauseListResponseDTO, error) {
-	var totalCount int64
-	var clauseList []*assetDTOs.AssetClauseListDTO
+func (repo *AssetAssociatedItemRepository) GetAllClauses(assetID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 
+	var clauseList []commonDTOs.AssociatedClauseRowDTO
+	var totalCount int64
 	query := repo.db.Table("asset_compliance_requirements").
 		Select(`
 			DISTINCT asset_compliance_requirements.id,
@@ -417,48 +421,83 @@ func (repo *AssetAssociatedItemRepository) GetAllClauses(assetID uint, params *a
 		Joins("LEFT JOIN compliance_register ON compliance_register.id = compliance_clauses.compliance_register_id").
 		Where("asset_compliance_requirements.asset_register_id = ?", assetID)
 
-	// Apply keyword search
 	if params.Keyword != "" {
-		kw := "%" + params.Keyword + "%"
+		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			compliance_clauses.clause_no LIKE ? OR 
-			compliance_clauses.title_en LIKE ? OR 
-			compliance_register.title_en LIKE ?
-		`, kw, kw, kw)
+			compliance_register.title_en LIKE ? OR
+			compliance_register.title_ar LIKE ? OR
+			compliance_clauses.clause_no LIKE ? OR
+			compliance_clauses.title_en  LIKE ? OR
+			compliance_clauses.title_ar  LIKE ?`,
+			keyword, keyword, keyword, keyword, keyword,
+		)
 	}
 
-	// Count total
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
-	// Sorting
 	if params.SortBy == "" {
-		params.SortBy = "compliance_clauses.clause_no"
+		params.SortBy = "compliance_register.title_en"
 	}
+
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
 	}
+
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	// Pagination
-	offset := (params.Page - 1) * params.PageSize
-	err := query.Offset(offset).Limit(params.PageSize).Find(&clauseList).Error
-	if err != nil {
+	if err := query.Find(&clauseList).Error; err != nil {
 		return nil, err
 	}
 
-	// Pagination response
+	clausesByComplianceRegister := make(map[uint]*commonDTOs.AssociatedClauseListDTO)
+	for _, row := range clauseList {
+		if _, exists := clausesByComplianceRegister[row.ComplianceRegisterID]; !exists {
+			clausesByComplianceRegister[row.ComplianceRegisterID] = &commonDTOs.AssociatedClauseListDTO{
+				ComplianceRegisterID:      row.ComplianceRegisterID,
+				ComplianceRegisterTitleEn: row.ComplianceRegisterTitleEn,
+				ComplianceRegisterTitleAr: row.ComplianceRegisterTitleAr,
+				Clauses:                   []commonDTOs.AssociatedClauseDTO{},
+			}
+		}
+		clausesByComplianceRegister[row.ComplianceRegisterID].Clauses = append(clausesByComplianceRegister[row.ComplianceRegisterID].Clauses, commonDTOs.AssociatedClauseDTO{
+			ComplianceClauseID: row.ComplianceClauseID,
+			ClauseNo:           row.ClauseNo,
+			ClauseTitleEn:      row.ClauseTitleEn,
+			ClauseTitleAr:      row.ClauseTitleAr,
+		})
+	}
+
+	var groupedClauses []*commonDTOs.AssociatedClauseListDTO
+	for _, v := range clausesByComplianceRegister {
+		groupedClauses = append(groupedClauses, v)
+	}
+
+	if groupedClauses == nil {
+		groupedClauses = []*commonDTOs.AssociatedClauseListDTO{}
+	}
+
+	totalCount = int64(len(groupedClauses))
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-	return &assetDTOs.AssetAssociatedItemClauseListResponseDTO{
-		Items: clauseList,
+	start := (params.Page - 1) * params.PageSize
+	if start > int(totalCount) {
+		start = int(totalCount)
+	}
+
+	end := start + params.PageSize
+	if end > int(totalCount) {
+		end = int(totalCount)
+	}
+
+	pagedClauses := groupedClauses[start:end]
+	response := &commonDTOs.AssociatedItemClauseListResponseDTO{
+		Items: pagedClauses,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
 			PageSize:    params.PageSize,
 			TotalPages:  totalPages,
 			TotalCount:  totalCount,
 		},
-	}, nil
+	}
+
+	return response, nil
 }
 
 func (repo *AssetAssociatedItemRepository) CreateAssetVulnerabilities(vulnerabilities []*models.VulnerabilityAsset, tx ...utility.DatabaseTransaction) error {
@@ -799,4 +838,48 @@ func (repo *AssetAssociatedItemRepository) GetRiskRegisterIDsByThreatIDs(threatI
 		Where("threat_id IN ?", threatIDs).
 		Pluck("risk_register_id", &ids).Error
 	return ids, err
+}
+
+func (repo *AssetAssociatedItemRepository) GetClausesByAssetId(assetID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var clauseIDs []uint
+	if err := db.
+		Model(&models.AssetComplianceRequirement{}).
+		Where("asset_register_id = ?", assetID).
+		Pluck("compliance_clause_id", &clauseIDs).Error; err != nil {
+		return nil, err
+	}
+
+	return clauseIDs, nil
+}
+
+func (repo *AssetAssociatedItemRepository) CreateAssetClauses(clauses []*models.AssetComplianceRequirement, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(&clauses).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AssetAssociatedItemRepository) DeleteAssetClauses(assetID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.
+		Where("asset_register_id = ? AND compliance_clause_id IN ?", assetID, clauseIDs).
+		Delete(&models.AssetComplianceRequirement{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

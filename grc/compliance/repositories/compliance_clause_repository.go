@@ -34,6 +34,7 @@ type ComplianceClauseRepositoryInterface interface {
 	DeleteComplianceControlByClauseAndControl(clauseID, controlID uint, tx ...utility.DatabaseTransaction) error
 
 	IsControlMappedToClause(clauseID, controlID uint) (bool, error)
+	GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error)
 }
 
 type ComplianceClauseRepository struct {
@@ -458,4 +459,21 @@ func (repo *ComplianceClauseRepository) IsControlMappedToClause(clauseID, contro
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func (repo *ComplianceClauseRepository) GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var clauses []*models.ComplianceClause
+	if err := db.
+		Select("id, compliance_register_id").
+		Where("id IN ?", ids).
+		Find(&clauses).Error; err != nil {
+		return nil, err
+	}
+
+	return clauses, nil
 }

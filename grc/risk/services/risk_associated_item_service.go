@@ -1,10 +1,15 @@
 package services
 
 import (
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
+	complianceServices "jethur/grc/compliance/services"
+	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
+	"jethur/utility"
+	"time"
 )
 
 type RiskAssociatedItemServiceInterface interface {
@@ -17,22 +22,27 @@ type RiskAssociatedItemServiceInterface interface {
 	GetAllDocuments(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemDocumentListResponseDTO, error)
 	GetAllAssets(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemAssetListResponseDTO, error)
 	GetAllThreats(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemThreatListResponseDTO, error)
+	GetAllClauses(riskID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	UpdateClauses(riskID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 }
 
 // Service and implementations
 type RiskAssociatedItemService struct {
 	repo            riskRepositories.RiskAssociatedItemRepositoryInterface
 	riskRegisterSvc RiskRegisterServiceInterface
+	clauseSvc       complianceServices.ComplianceClauseServiceInterface
 }
 
 func NewRiskAssociatedItemService(
 	repo riskRepositories.RiskAssociatedItemRepositoryInterface,
 	riskRegisterSvc RiskRegisterServiceInterface,
+	clauseSvc complianceServices.ComplianceClauseServiceInterface,
 
 ) RiskAssociatedItemServiceInterface {
 	return &RiskAssociatedItemService{
 		repo:            repo,
 		riskRegisterSvc: riskRegisterSvc,
+		clauseSvc:       clauseSvc,
 	}
 }
 
@@ -151,4 +161,117 @@ func (rais *RiskAssociatedItemService) GetAllThreats(riskID uint, params *riskDT
 		return nil, err
 	}
 	return rais.repo.GetAllThreats(riskID, params)
+}
+
+func (rais *RiskAssociatedItemService) GetAllClauses(riskID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
+		return nil, err
+	}
+
+	response, err := rais.repo.GetAllClauses(riskID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (rais *RiskAssociatedItemService) UpdateClauses(riskID uint, currentUserID uint, RiskClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error {
+
+	tx := rais.repo.BeginTransaction()
+
+	if _, err := rais.riskRegisterSvc.GetByID(riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	clauses, err := rais.validateClauseIDs(RiskClauseFormDTO.ClauseIDs, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingControlClauses, err := rais.repo.GetClausesByRiskID(riskID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingClauses := make(map[uint]bool) // clauseID => exists
+	for _, clauseID := range existingControlClauses {
+		existingClauses[clauseID] = true
+	}
+
+	newClauses := make(map[uint]*models.ComplianceClause)
+	for _, clause := range clauses {
+		newClauses[clause.ID] = clause
+	}
+
+	var clausesToAdd []*models.RiskClause
+	now := time.Now()
+	for id, clause := range newClauses {
+		if !existingClauses[id] {
+			clausesToAdd = append(clausesToAdd, &models.RiskClause{
+				RiskRegisterID:       riskID,
+				ComplianceRegisterID: clause.ComplianceRegisterID,
+				ComplianceClauseID:   clause.ID,
+				CreatedByID:          currentUserID,
+				CreatedAt:            now,
+			})
+		}
+	}
+
+	if len(clausesToAdd) > 0 {
+		if err := rais.repo.CreateRiskClauses(clausesToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteClauseIDs []uint
+	for existingID := range existingClauses {
+		if _, found := newClauses[existingID]; !found {
+			deleteClauseIDs = append(deleteClauseIDs, existingID)
+		}
+	}
+
+	if len(deleteClauseIDs) > 0 {
+		if err := rais.repo.DeleteRiskClauses(riskID, deleteClauseIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+
+	return nil
+}
+
+func (rais *RiskAssociatedItemService) validateClauseIDs(clauseIDs []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error) {
+	seen := make(map[uint]bool)
+	for _, id := range clauseIDs {
+		if seen[id] {
+			return nil, utility.NewValidationError(fmt.Errorf("duplicate clause ID: %d", id), "duplicate", "clause_id")
+		}
+		seen[id] = true
+	}
+
+	clauses, err := rais.clauseSvc.GetClausesByIDs(clauseIDs, tx...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch clauses: %w", err)
+	}
+
+	foundClauseIDs := make(map[uint]bool)
+	for _, clause := range clauses {
+		foundClauseIDs[clause.ID] = true
+	}
+
+	for _, id := range clauseIDs {
+		if !foundClauseIDs[id] {
+			return nil, utility.NewValidationError(
+				fmt.Errorf("clause does not exist for ID: %d", id), "not_exist", "clause_id")
+		}
+	}
+
+	return clauses, nil
 }
