@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
+	commonDTOs "jethur/grc/common/dtos"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -632,4 +634,42 @@ func (aaic *AssetAssociatedItemController) GetRiskAnalysis(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusOK, results)
+}
+
+func (aaic *AssetAssociatedItemController) UpdateClauses(c *gin.Context) {
+	var clauseFormDTO commonDTOs.AssociatedClauseFormDTO
+
+	assetID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&clauseFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, err.Error())
+		return
+	}
+
+	err = aaic.service.UpdateClauses(uint(assetID), currentUserID, &clauseFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(aaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Clauses against the risk updated successfully"})
 }

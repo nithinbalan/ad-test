@@ -30,15 +30,16 @@ func NewstrategicObjectiveAssociatedItemService(
 
 ) StrategicObjectiveAssociatedItemServiceInterface {
 	return &StrategicObjectiveAssociatedItemService{
-		repo:      repo,
-		clauseSvc: clauseSvc,
+		repo:                  repo,
+		strategicObjectiveSvc: strategicObjectiveSvc,
+		clauseSvc:             clauseSvc,
 	}
 }
 
 func (rais *StrategicObjectiveAssociatedItemService) GetAllClauses(strategicObjectiveID uint, params *strategyDTOs.StrategicObjectiveAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
-	// if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
-	// 	return nil, err
-	// }
+	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+		return nil, err
+	}
 
 	response, err := rais.repo.GetAllClauses(strategicObjectiveID, params)
 	if err != nil {
@@ -52,10 +53,9 @@ func (rais *StrategicObjectiveAssociatedItemService) UpdateClauses(strategicObje
 
 	tx := rais.repo.BeginTransaction()
 
-	// if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
-	// 	tx.Rollback()
-	// 	return err
-	// }
+	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+		return err
+	}
 
 	clauses, err := rais.validateClauseIDs(ClauseFormDTO.ClauseIDs, tx)
 	if err != nil {

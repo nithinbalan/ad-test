@@ -8,6 +8,7 @@ import (
 	complianceServices "jethur/grc/compliance/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+	"time"
 
 	"jethur/utility"
 )
@@ -18,7 +19,7 @@ type AssetAssociatedItemServiceInterface interface {
 	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisks(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error)
 	GetAllVulnerabilities(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]assetDTOs.VulnerabilityDTO, error)
-	GetAllClauses(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 
 	CreateAssetComplianceClauses(assetID uint, formDTO assetDTOs.AssetComplianceClauseFormDTO, currentUserID uint) error
 	DeleteAssetComplianceClauses(assetID uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -30,6 +31,7 @@ type AssetAssociatedItemServiceInterface interface {
 	CreateAssetThreatRisks(threatId uint, formDTO assetDTOs.AssetThreatRisksFormDTO, currentUserID uint) error
 	DeleteAssetThreatRisks(threatId uint, riskIDs []uint, currentUserID uint) ([]uint, error)
 	GetRiskAnalysis(assetID uint) ([]*assetDTOs.VulnerabilityDTO, error)
+	UpdateClauses(riskID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 }
 
 // Service Implementation
@@ -353,7 +355,7 @@ func (service *AssetAssociatedItemService) GetAllVulnerabilities(assetID uint, p
 	return vulnerabilityDTOs, nil
 }
 
-func (aais *AssetAssociatedItemService) GetAllClauses(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemClauseListResponseDTO, error) {
+func (aais *AssetAssociatedItemService) GetAllClauses(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
 		return nil, err
 	}
@@ -747,4 +749,102 @@ func emptyRiskListResponse(params *assetDTOs.AssetAssociatedItemListQueryParamsD
 			TotalCount:  0,
 		},
 	}
+}
+
+func (aais *AssetAssociatedItemService) UpdateClauses(assetID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error {
+
+	tx := aais.repo.BeginTransaction()
+
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return err
+	}
+
+	clauses, err := aais.validateClauseIDs(ClauseFormDTO.ClauseIDs, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingControlClauses, err := aais.repo.GetClausesByAssetId(assetID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingClauses := make(map[uint]bool) // clauseID => exists
+	for _, clauseID := range existingControlClauses {
+		existingClauses[clauseID] = true
+	}
+
+	newClauses := make(map[uint]*models.ComplianceClause)
+	for _, clause := range clauses {
+		newClauses[clause.ID] = clause
+	}
+
+	var clausesToAdd []*models.AssetComplianceRequirement
+	now := time.Now()
+	for id, clause := range newClauses {
+		if !existingClauses[id] {
+			clausesToAdd = append(clausesToAdd, &models.AssetComplianceRequirement{
+				AssetRegisterID:    assetID,
+				ComplianceClauseID: &clause.ID,
+				CreatedBYID:        currentUserID,
+				CreatedAt:          now,
+			})
+		}
+	}
+
+	if len(clausesToAdd) > 0 {
+		if err := aais.repo.CreateAssetClauses(clausesToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteClauseIDs []uint
+	for existingID := range existingClauses {
+		if _, found := newClauses[existingID]; !found {
+			deleteClauseIDs = append(deleteClauseIDs, existingID)
+		}
+	}
+
+	if len(deleteClauseIDs) > 0 {
+		if err := aais.repo.DeleteAssetClauses(assetID, deleteClauseIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+
+	return nil
+}
+
+func (aais *AssetAssociatedItemService) validateClauseIDs(clauseIDs []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error) {
+	seen := make(map[uint]bool)
+	for _, id := range clauseIDs {
+		if seen[id] {
+			return nil, utility.NewValidationError(fmt.Errorf("duplicate clause ID: %d", id), "duplicate", "clause_id")
+		}
+		seen[id] = true
+	}
+
+	clauses, err := aais.complianceClauseSvc.GetClausesByIDs(clauseIDs, tx...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch clauses: %w", err)
+	}
+
+	foundClauseIDs := make(map[uint]bool)
+	for _, clause := range clauses {
+		foundClauseIDs[clause.ID] = true
+	}
+
+	for _, id := range clauseIDs {
+		if !foundClauseIDs[id] {
+			return nil, utility.NewValidationError(
+				fmt.Errorf("clause does not exist for ID: %d", id), "not_exist", "clause_id")
+		}
+	}
+
+	return clauses, nil
 }
