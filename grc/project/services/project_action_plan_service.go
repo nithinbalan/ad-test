@@ -17,12 +17,12 @@ import (
 )
 
 type ProjectActionPlanServiceInterface interface {
-	GetAll(id uint, params *projectDTOs.ProjectActionPlanListQueryParamsDTO) (*projectDTOs.ProjectActionPlanListResponseDTO, error)
-	GetByID(id uint) (*models.ProjectActionPlan, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*projectDTOs.ProjectActionPlanDetailDTO, error)
-	Create(currentUserID uint, ProjectActionPlanFormDTO *projectDTOs.ProjectActionPlanFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, project *projectDTOs.ProjectActionPlanFormDTO) error
-	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	GetAll(projectID uint, params *projectDTOs.ProjectActionPlanListQueryParamsDTO) (*projectDTOs.ProjectActionPlanListResponseDTO, error)
+	GetByID(projectID uint, id uint) (*models.ProjectActionPlan, error)
+	GetFullDetailsByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*projectDTOs.ProjectActionPlanDetailDTO, error)
+	Create(projectID uint, currentUserID uint, ProjectActionPlanFormDTO *projectDTOs.ProjectActionPlanFormDTO) (uint, error)
+	Update(projectID uint, id uint, currentUserID uint, project *projectDTOs.ProjectActionPlanFormDTO) error
+	Delete(projectID uint, ids []uint, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
@@ -31,6 +31,7 @@ type ProjectActionPlanService struct {
 	activityLogSvc      logServices.ActivityLogServiceInterface
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 	userSvc             organizationServices.UserServiceInterface
+	projectSvc          ProjectServiceInterface
 	projectMilestoneSvc ProjectMilestoneServiceInterface
 }
 
@@ -39,6 +40,7 @@ func NewProjectActionPlanService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	projectSvc ProjectServiceInterface,
 	projectMilestoneSvc ProjectMilestoneServiceInterface,
 ) ProjectActionPlanServiceInterface {
 	return &ProjectActionPlanService{
@@ -46,21 +48,22 @@ func NewProjectActionPlanService(
 		activityLogSvc:      activityLogSvc,
 		actionPlanStatusSvc: actionPlanStatusSvc,
 		userSvc:             userSvc,
+		projectSvc:          projectSvc,
 		projectMilestoneSvc: projectMilestoneSvc,
 	}
 }
 
-func (paps *ProjectActionPlanService) GetAll(id uint, params *projectDTOs.ProjectActionPlanListQueryParamsDTO) (*projectDTOs.ProjectActionPlanListResponseDTO, error) {
-	if id != 0 {
-		if _, err := paps.projectMilestoneSvc.GetByID(id); err != nil {
+func (paps *ProjectActionPlanService) GetAll(projectID uint, params *projectDTOs.ProjectActionPlanListQueryParamsDTO) (*projectDTOs.ProjectActionPlanListResponseDTO, error) {
+	if projectID != 0 {
+		if _, err := paps.projectSvc.GetByID(projectID); err != nil {
 			return nil, err
 		}
 	}
-	return paps.repo.GetAll(id, params)
+	return paps.repo.GetAll(projectID, params)
 }
 
-func (paps ProjectActionPlanService) GetByID(id uint) (*models.ProjectActionPlan, error) {
-	if _, err := paps.projectMilestoneSvc.GetByID(id); err != nil {
+func (paps ProjectActionPlanService) GetByID(projectID uint, id uint) (*models.ProjectActionPlan, error) {
+	if _, err := paps.projectSvc.GetByID(projectID); err != nil {
 		return nil, err
 	}
 
@@ -74,11 +77,11 @@ func (paps ProjectActionPlanService) GetByID(id uint) (*models.ProjectActionPlan
 	return projectActionPlan, nil
 }
 
-func (paps ProjectActionPlanService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*projectDTOs.ProjectActionPlanDetailDTO, error) {
+func (paps ProjectActionPlanService) GetFullDetailsByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*projectDTOs.ProjectActionPlanDetailDTO, error) {
 	var projectActionPlanDTO projectDTOs.ProjectActionPlanDetailDTO
 
 	// Check if the compliance register exists
-	if _, err := paps.projectMilestoneSvc.GetByID(id); err != nil {
+	if _, err := paps.projectSvc.GetByID(projectID); err != nil {
 		return nil, err
 	}
 
@@ -109,13 +112,13 @@ func (paps ProjectActionPlanService) GetFullDetailsByID(id uint, tx ...utility.D
 	return &projectActionPlanDTO, nil
 }
 
-func (paps *ProjectActionPlanService) Create(currentUserID uint, ProjectActionPlanFormDTO *projectDTOs.ProjectActionPlanFormDTO) (uint, error) {
+func (paps *ProjectActionPlanService) Create(projectID uint, currentUserID uint, ProjectActionPlanFormDTO *projectDTOs.ProjectActionPlanFormDTO) (uint, error) {
 	tx := paps.repo.BeginTransaction()
 
-	if err := paps.validateProjectActionPlanFormDTO(ProjectActionPlanFormDTO.ProjectMilestoneID, ProjectActionPlanFormDTO); err != nil {
+	project, err := paps.projectSvc.GetByID(projectID)
+	if err != nil {
 		return 0, err
 	}
-
 	dates, err := paps.parseProjectActionPlanDates(ProjectActionPlanFormDTO)
 	if err != nil {
 		return 0, err
@@ -127,7 +130,8 @@ func (paps *ProjectActionPlanService) Create(currentUserID uint, ProjectActionPl
 	}
 
 	projectActionPlan := &models.ProjectActionPlan{
-		ProjectMilestoneID: &ProjectActionPlanFormDTO.ProjectMilestoneID,
+		ProjectID:          &project.ID,
+		ProjectMilestoneID: ProjectActionPlanFormDTO.ProjectMilestoneID,
 		Title:              ProjectActionPlanFormDTO.Title,
 		Description:        ProjectActionPlanFormDTO.Description,
 		ResponsibleUserID:  ProjectActionPlanFormDTO.ResponsibleUserID,
@@ -135,7 +139,7 @@ func (paps *ProjectActionPlanService) Create(currentUserID uint, ProjectActionPl
 		TargetDate:         dates.TargetDate,
 		Percentage:         &ProjectActionPlanFormDTO.Percentage,
 		ActionPlanStatusID: actionPlanStatus.ID,
-		CreatedByID:        currentUserID,
+		CreatedBYID:        currentUserID,
 	}
 
 	id, err := paps.repo.Create(projectActionPlan, tx)
@@ -148,6 +152,7 @@ func (paps *ProjectActionPlanService) Create(currentUserID uint, ProjectActionPl
 
 	go func() {
 		activityData := map[string]interface{}{
+			"project_id":           projectID,
 			"title":                ProjectActionPlanFormDTO.Title,
 			"description":          ProjectActionPlanFormDTO.Description,
 			"responsible_user_id":  ProjectActionPlanFormDTO.ResponsibleUserID,
@@ -173,20 +178,27 @@ func (paps *ProjectActionPlanService) Create(currentUserID uint, ProjectActionPl
 	return id, nil
 }
 
-func (paps *ProjectActionPlanService) Update(id uint, currentUserID uint, ProjectActionPlanFormDTO *projectDTOs.ProjectActionPlanFormDTO) error {
+func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUserID uint, ProjectActionPlanFormDTO *projectDTOs.ProjectActionPlanFormDTO) error {
 	tx := paps.repo.BeginTransaction()
 
 	// Validate project milestone exists
-	if _, err := paps.projectMilestoneSvc.GetByID(ProjectActionPlanFormDTO.ProjectMilestoneID); err != nil {
-		return err
+	if ProjectActionPlanFormDTO.ProjectMilestoneID != nil {
+		if _, err := paps.projectMilestoneSvc.GetByID(*ProjectActionPlanFormDTO.ProjectMilestoneID); err != nil {
+			return err
+		}
 	}
 
-	existingProjectActionPlan, err := paps.GetByID(id)
+	existingProjectActionPlan, err := paps.GetByID(projectID, id)
 	if err != nil {
 		return err
 	}
 
-	if err := paps.validateProjectActionPlanFormDTO(ProjectActionPlanFormDTO.ProjectMilestoneID, ProjectActionPlanFormDTO); err != nil {
+	project, err := paps.projectSvc.GetByID(projectID)
+	if err != nil {
+		return err
+	}
+
+	if err := paps.validateProjectActionPlanFormDTO(&project.ID, ProjectActionPlanFormDTO); err != nil {
 		return err
 	}
 
@@ -198,12 +210,13 @@ func (paps *ProjectActionPlanService) Update(id uint, currentUserID uint, Projec
 	// Update Project ActionPlan
 	existingProjectActionPlan.Title = ProjectActionPlanFormDTO.Title
 	existingProjectActionPlan.Description = ProjectActionPlanFormDTO.Description
+	existingProjectActionPlan.ProjectMilestoneID = ProjectActionPlanFormDTO.ProjectMilestoneID
 	existingProjectActionPlan.Comments = ProjectActionPlanFormDTO.Comments
 	existingProjectActionPlan.ResponsibleUserID = ProjectActionPlanFormDTO.ResponsibleUserID
 	existingProjectActionPlan.TargetDate = dates.TargetDate
 	existingProjectActionPlan.Percentage = &ProjectActionPlanFormDTO.Percentage
 	existingProjectActionPlan.ActionPlanStatusID = ProjectActionPlanFormDTO.ActionPlanStatusID
-	existingProjectActionPlan.UpdatedByID = &currentUserID
+	existingProjectActionPlan.UpdatedBYID = &currentUserID
 
 	err = paps.repo.Update(existingProjectActionPlan, tx)
 	if err != nil {
@@ -219,6 +232,7 @@ func (paps *ProjectActionPlanService) Update(id uint, currentUserID uint, Projec
 			"responsible_user_id":   ProjectActionPlanFormDTO.ResponsibleUserID,
 			"target_date":           dates.TargetDate,
 			"percentage":            ProjectActionPlanFormDTO.Percentage,
+			"project_id":            projectID,
 			"project_milestone_id":  ProjectActionPlanFormDTO.ProjectMilestoneID,
 			"action_plan_status_id": ProjectActionPlanFormDTO.ActionPlanStatusID,
 		}
@@ -237,7 +251,11 @@ func (paps *ProjectActionPlanService) Update(id uint, currentUserID uint, Projec
 	return nil
 }
 
-func (paps *ProjectActionPlanService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (paps *ProjectActionPlanService) Delete(projectID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	if _, err := paps.projectSvc.GetByID(projectID); err != nil {
+		return nil, err
+	}
+
 	var failedIds []uint
 	var successfulIds []uint
 	var deletedProjectActionPlans []map[string]interface{}
@@ -285,7 +303,7 @@ func (paps *ProjectActionPlanService) Delete(ids []uint, currentUserID uint) ([]
 	return failedIds, nil
 }
 
-func (paps *ProjectActionPlanService) validateProjectActionPlanFormDTO(projectMilestoneID uint, ProjectActionPlanFormDTO *projectDTOs.ProjectActionPlanFormDTO) error {
+func (paps *ProjectActionPlanService) validateProjectActionPlanFormDTO(projectID *uint, ProjectActionPlanFormDTO *projectDTOs.ProjectActionPlanFormDTO) error {
 	// Validate responsible user exists
 	if _, err := paps.userSvc.GetByID(ProjectActionPlanFormDTO.ResponsibleUserID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("responsible user does not exist"), "not_exist", "responsible user")

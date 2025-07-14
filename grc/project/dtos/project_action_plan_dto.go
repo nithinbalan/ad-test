@@ -13,6 +13,9 @@ type ProjectActionPlanListDTO struct {
 	ID                              uint    `json:"id"`
 	Title                           string  `json:"title"`
 	Description                     *string `json:"description"`
+	ProjectID                       *uint   `json:"project_id"`
+	ProjectTitleEn                  *string `json:"project_title_en"`
+	ProjectTitleAr                  *string `json:"project_title_ar"`
 	ProjectMilestoneID              *uint   `json:"project_milestone_id"`
 	ProjectMilestoneTitleEn         *string `json:"project_milestone_title_en"`
 	ProjectMilestoneTitleAr         *string `json:"project_milestone_title_ar"`
@@ -71,7 +74,7 @@ type ProjectActionPlanListResponseDTO struct {
 }
 
 type ProjectActionPlanFormDTO struct {
-	ProjectMilestoneID uint    `json:"project_milestone_id"`
+	ProjectMilestoneID *uint   `json:"project_milestone_id"`
 	Title              string  `json:"title" binding:"required"`
 	Description        *string `json:"description" binding:"omitempty"`
 	ResponsibleUserID  uint    `json:"responsible_user_id" binding:"required"`
@@ -87,7 +90,8 @@ type ProjectActionPlanParsedDates struct {
 
 type ProjectActionPlanDetailDTO struct {
 	ID                    int                               `json:"id"`
-	ProjectMilestone      ProjectMilestoneDetailDTO         `json:"project_milestone"`
+	Project               *ProjectDetailDTO                 `json:"project"`
+	ProjectMilestone      *ProjectMilestoneDetailDTO        `json:"project_milestone"`
 	Title                 string                            `json:"title"`
 	Description           *string                           `json:"description"`
 	ResponsibleUserID     uint                              `json:"responsible_user_id" binding:"required" gorm:"not null"`
