@@ -127,7 +127,7 @@ func (paps *ProjectActionPlanService) Create(currentUserID uint, ProjectActionPl
 	}
 
 	projectActionPlan := &models.ProjectActionPlan{
-		ProjectMilestoneID: ProjectActionPlanFormDTO.ProjectMilestoneID,
+		ProjectMilestoneID: &ProjectActionPlanFormDTO.ProjectMilestoneID,
 		Title:              ProjectActionPlanFormDTO.Title,
 		Description:        ProjectActionPlanFormDTO.Description,
 		ResponsibleUserID:  ProjectActionPlanFormDTO.ResponsibleUserID,
