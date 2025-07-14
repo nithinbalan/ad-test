@@ -7,21 +7,21 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	strategyDTOs "jethur/grc/strategy/dtos"
-	strategyProfileObjectiveRepositories "jethur/grc/strategy/repositories"
+	strategyProfileStrategicObjectiveRepositories "jethur/grc/strategy/repositories"
 	"jethur/utility"
 
 	"gorm.io/gorm"
 )
 
-type StrategyProfileObjectiveServiceInterface interface {
-	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileObjectiveListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileObjectiveListDTO, error)
-	Create(strategyProfileID uint, currentUserID uint, strategyDTOs *strategyDTOs.StrategyProfileObjectiveFormDTO, focusAreaID *uint) ([]uint, error)
+type StrategyProfileStrategicObjectiveServiceInterface interface {
+	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileStrategicObjectiveListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileStrategicObjectiveListDTO, error)
+	Create(strategyProfileID uint, currentUserID uint, strategyDTOs *strategyDTOs.StrategyProfileStrategicObjectiveFormDTO) ([]uint, error)
 	Delete(strategyProfileID uint, objectiveID uint, currentUserID uint) error
 }
 
 // Service and implementations
-type StrategyProfileObjectiveService struct {
-	repo                        strategyProfileObjectiveRepositories.StrategyProfileObjectiveRepositoryInterface
+type StrategyProfileStrategicObjectiveService struct {
+	repo                        strategyProfileStrategicObjectiveRepositories.StrategyProfileStrategicObjectiveRepositoryInterface
 	activityLogSvc              logServices.ActivityLogServiceInterface
 	userSvc                     organizationServices.UserServiceInterface
 	userSettingSvc              organizationServices.UserSettingServiceInterface
@@ -31,8 +31,8 @@ type StrategyProfileObjectiveService struct {
 	strategicObjectiveSvc       StrategicObjectiveServiceInterface
 }
 
-func NewStrategyProfileObjectiveService(
-	repo strategyProfileObjectiveRepositories.StrategyProfileObjectiveRepositoryInterface,
+func NewStrategyProfileStrategicObjectiveService(
+	repo strategyProfileStrategicObjectiveRepositories.StrategyProfileStrategicObjectiveRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
@@ -40,8 +40,8 @@ func NewStrategyProfileObjectiveService(
 	strategyProfileFocusAreaSvc StrategyProfileFocusAreaServiceInterface,
 	strategyProfileGoalSvc StrategyProfileGoalServiceInterface,
 	strategicObjectiveSvc StrategicObjectiveServiceInterface,
-) StrategyProfileObjectiveServiceInterface {
-	return &StrategyProfileObjectiveService{
+) StrategyProfileStrategicObjectiveServiceInterface {
+	return &StrategyProfileStrategicObjectiveService{
 		repo:                        repo,
 		activityLogSvc:              activityLogSvc,
 		userSvc:                     userSvc,
@@ -53,15 +53,15 @@ func NewStrategyProfileObjectiveService(
 	}
 }
 
-func (sps *StrategyProfileObjectiveService) GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileObjectiveListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileObjectiveListDTO, error) {
+func (sps *StrategyProfileStrategicObjectiveService) GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileStrategicObjectiveListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileStrategicObjectiveListDTO, error) {
 	if _, err := sps.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
 		return nil, err
 	}
 	return sps.repo.GetAll(strategyProfileID, params)
 }
 
-func (sps StrategyProfileObjectiveService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileObjective, error) {
-	strategyProfileObjective, err := sps.repo.GetByID(id, tx...)
+func (sps StrategyProfileStrategicObjectiveService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileStrategicObjective, error) {
+	strategyProfileStrategicObjective, err := sps.repo.GetByID(id, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -69,10 +69,10 @@ func (sps StrategyProfileObjectiveService) GetByID(id uint, tx ...utility.Databa
 		}
 		return nil, err
 	}
-	return strategyProfileObjective, nil
+	return strategyProfileStrategicObjective, nil
 }
 
-func (sps *StrategyProfileObjectiveService) Create(strategyProfileID uint, currentUserID uint, strategyProfileObjectiveFormDTO *strategyDTOs.StrategyProfileObjectiveFormDTO, focusAreaID *uint) ([]uint, error) {
+func (sps *StrategyProfileStrategicObjectiveService) Create(strategyProfileID uint, currentUserID uint, strategyProfileStrategicObjectiveFormDTO *strategyDTOs.StrategyProfileStrategicObjectiveFormDTO) ([]uint, error) {
 
 	if _, err := sps.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
 		return nil, err
@@ -81,17 +81,18 @@ func (sps *StrategyProfileObjectiveService) Create(strategyProfileID uint, curre
 	tx := sps.repo.BeginTransaction()
 	var createdIds []uint
 
-	for _, strategicObjectiveID := range strategyProfileObjectiveFormDTO.StrategicObjectiveIDs {
-		if strategyProfileObjectiveFormDTO.StrategyProfileGoalIDs != nil && len(*strategyProfileObjectiveFormDTO.StrategyProfileGoalIDs) > 0 {
-			for _, goalID := range *strategyProfileObjectiveFormDTO.StrategyProfileGoalIDs {
-				strategyProfileObjective := &models.StrategyProfileObjective{
+	for _, strategicObjectiveID := range strategyProfileStrategicObjectiveFormDTO.StrategicObjectiveIDs {
+		if strategyProfileStrategicObjectiveFormDTO.StrategyProfileGoalIDs != nil && len(*strategyProfileStrategicObjectiveFormDTO.StrategyProfileGoalIDs) > 0 {
+			for _, goalID := range *strategyProfileStrategicObjectiveFormDTO.StrategyProfileGoalIDs {
+				strategyProfileStrategicObjective := &models.StrategyProfileStrategicObjective{
 					StrategyProfileID:          strategyProfileID,
-					StrategyProfileFocusAreaID: focusAreaID,
+					StrategyProfileFocusAreaID: strategyProfileStrategicObjectiveFormDTO.StrategyProfileFocusAreaID,
 					StrategyProfileGoalID:      &goalID,
 					StrategicObjectiveID:       &strategicObjectiveID,
+					Score:                      strategyProfileStrategicObjectiveFormDTO.Score,
 					CreatedBYID:                currentUserID,
 				}
-				id, err := sps.repo.Create(strategyProfileObjective, tx)
+				id, err := sps.repo.Create(strategyProfileStrategicObjective, tx)
 				if err != nil {
 					tx.Rollback()
 					return nil, err
@@ -99,14 +100,15 @@ func (sps *StrategyProfileObjectiveService) Create(strategyProfileID uint, curre
 				createdIds = append(createdIds, id)
 			}
 		} else {
-			strategyProfileObjective := &models.StrategyProfileObjective{
+			strategyProfileStrategicObjective := &models.StrategyProfileStrategicObjective{
 				StrategyProfileID:          strategyProfileID,
-				StrategyProfileFocusAreaID: focusAreaID,
+				StrategyProfileFocusAreaID: strategyProfileStrategicObjectiveFormDTO.StrategyProfileFocusAreaID,
 				StrategyProfileGoalID:      nil,
 				StrategicObjectiveID:       &strategicObjectiveID,
+				Score:                      strategyProfileStrategicObjectiveFormDTO.Score,
 				CreatedBYID:                currentUserID,
 			}
-			id, err := sps.repo.Create(strategyProfileObjective, tx)
+			id, err := sps.repo.Create(strategyProfileStrategicObjective, tx)
 			if err != nil {
 				tx.Rollback()
 				return nil, err
@@ -120,19 +122,20 @@ func (sps *StrategyProfileObjectiveService) Create(strategyProfileID uint, curre
 	// Log bulk create activities
 	go func() {
 		idx := 0
-		for _, strategicObjectiveID := range strategyProfileObjectiveFormDTO.StrategicObjectiveIDs {
-			if strategyProfileObjectiveFormDTO.StrategyProfileGoalIDs != nil && len(*strategyProfileObjectiveFormDTO.StrategyProfileGoalIDs) > 0 {
-				for _, goalID := range *strategyProfileObjectiveFormDTO.StrategyProfileGoalIDs {
+		for _, strategicObjectiveID := range strategyProfileStrategicObjectiveFormDTO.StrategicObjectiveIDs {
+			if strategyProfileStrategicObjectiveFormDTO.StrategyProfileGoalIDs != nil && len(*strategyProfileStrategicObjectiveFormDTO.StrategyProfileGoalIDs) > 0 {
+				for _, goalID := range *strategyProfileStrategicObjectiveFormDTO.StrategyProfileGoalIDs {
 					id := createdIds[idx]
 					err := sps.activityLogSvc.LogActivity(
 						models.CreateAction,
-						models.StrategyProfileObjective{}.TableName(),
+						models.StrategyProfileStrategicObjective{}.TableName(),
 						id,
 						map[string]interface{}{
 							"strategy_profile_id":            strategyProfileID,
 							"strategic_objective_id":         strategicObjectiveID,
 							"strategy_profile_goal_id":       goalID,
-							"strategy_profile_focus_area_id": focusAreaID,
+							"strategy_profile_focus_area_id": strategyProfileStrategicObjectiveFormDTO.StrategyProfileFocusAreaID,
+							"score":                          strategyProfileStrategicObjectiveFormDTO.Score,
 						},
 						currentUserID,
 						nil,
@@ -140,7 +143,7 @@ func (sps *StrategyProfileObjectiveService) Create(strategyProfileID uint, curre
 					if err != nil {
 						fields := map[string]interface{}{
 							"action":    models.CreateAction,
-							"tableName": models.StrategyProfileObjective{}.TableName(),
+							"tableName": models.StrategyProfileStrategicObjective{}.TableName(),
 							"recordID":  id,
 							"userID":    currentUserID,
 							"error":     err.Error(),
@@ -153,13 +156,14 @@ func (sps *StrategyProfileObjectiveService) Create(strategyProfileID uint, curre
 				id := createdIds[idx]
 				err := sps.activityLogSvc.LogActivity(
 					models.CreateAction,
-					models.StrategyProfileObjective{}.TableName(),
+					models.StrategyProfileStrategicObjective{}.TableName(),
 					id,
 					map[string]interface{}{
 						"strategy_profile_id":            strategyProfileID,
 						"strategic_objective_id":         strategicObjectiveID,
 						"strategy_profile_goal_id":       nil,
-						"strategy_profile_focus_area_id": focusAreaID,
+						"strategy_profile_focus_area_id": strategyProfileStrategicObjectiveFormDTO.StrategyProfileFocusAreaID,
+						"score":                          strategyProfileStrategicObjectiveFormDTO.Score,
 					},
 					currentUserID,
 					nil,
@@ -167,7 +171,7 @@ func (sps *StrategyProfileObjectiveService) Create(strategyProfileID uint, curre
 				if err != nil {
 					fields := map[string]interface{}{
 						"action":    models.CreateAction,
-						"tableName": models.StrategyProfileObjective{}.TableName(),
+						"tableName": models.StrategyProfileStrategicObjective{}.TableName(),
 						"recordID":  id,
 						"userID":    currentUserID,
 						"error":     err.Error(),
@@ -182,7 +186,7 @@ func (sps *StrategyProfileObjectiveService) Create(strategyProfileID uint, curre
 	return createdIds, nil
 }
 
-func (sps *StrategyProfileObjectiveService) Delete(strategyProfileID uint, id uint, currentUserID uint) error {
+func (sps *StrategyProfileStrategicObjectiveService) Delete(strategyProfileID uint, id uint, currentUserID uint) error {
 	if _, err := sps.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
 		return err
 	}
@@ -190,14 +194,14 @@ func (sps *StrategyProfileObjectiveService) Delete(strategyProfileID uint, id ui
 	tx := sps.repo.BeginTransaction()
 
 	// Find the strategy profile focus area record
-	strategyProfileObjective, err := sps.GetByID(id, tx)
+	strategyProfileStrategicObjective, err := sps.GetByID(id, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	// Verify it belongs to the correct strategy profile
-	if strategyProfileObjective.StrategyProfileID != strategyProfileID {
+	if strategyProfileStrategicObjective.StrategyProfileID != strategyProfileID {
 		tx.Rollback()
 		return utility.NewResourceNotFoundError(fmt.Errorf("objective not found in strategy profile"), id)
 	}
@@ -214,11 +218,12 @@ func (sps *StrategyProfileObjectiveService) Delete(strategyProfileID uint, id ui
 	go func() {
 		err := sps.activityLogSvc.LogActivity(
 			models.DeleteAction,
-			models.StrategyProfileObjective{}.TableName(),
+			models.StrategyProfileStrategicObjective{}.TableName(),
 			id,
 			map[string]interface{}{
 				"strategy_profile_id":    strategyProfileID,
-				"strategic_objective_id": strategyProfileObjective.StrategicObjectiveID,
+				"strategic_objective_id": strategyProfileStrategicObjective.StrategicObjectiveID,
+				"score":                  strategyProfileStrategicObjective.Score,
 			},
 			currentUserID,
 			nil,
@@ -227,7 +232,7 @@ func (sps *StrategyProfileObjectiveService) Delete(strategyProfileID uint, id ui
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.DeleteAction,
-				"tableName": models.StrategyProfileObjective{}.TableName(),
+				"tableName": models.StrategyProfileStrategicObjective{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),

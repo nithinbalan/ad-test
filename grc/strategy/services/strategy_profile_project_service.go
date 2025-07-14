@@ -118,10 +118,10 @@ func (sps *StrategyProfileProjectService) Create(strategyProfileID uint, current
 	}
 
 	strategyProfileProject := &models.StrategyProfileProject{
-		StrategyProfileID:           strategyProfileID,
-		StrategyProfileFocusAreaID:  strategyProfileProjectFormDTO.StrategyProfileFocusAreaID,
-		StrategyProfileGoalID:       strategyProfileProjectFormDTO.StrategyProfileGoalID,
-		StrategyProfileObjectiveID:  strategyProfileProjectFormDTO.StrategyProfileObjectiveID,
+		StrategyProfileID:          strategyProfileID,
+		StrategyProfileFocusAreaID: strategyProfileProjectFormDTO.StrategyProfileFocusAreaID,
+		StrategyProfileGoalID:      strategyProfileProjectFormDTO.StrategyProfileGoalID,
+		//StrategyProfileObjectiveID:  strategyProfileProjectFormDTO.StrategyProfileObjectiveID,
 		StrategyProfileInitiativeID: strategyProfileProjectFormDTO.StrategyProfileInitiativeID,
 		Title:                       strategyProfileProjectFormDTO.Title,
 		Description:                 strategyProfileProjectFormDTO.Description,

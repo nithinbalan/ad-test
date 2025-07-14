@@ -8,37 +8,37 @@ import (
 	"gorm.io/gorm"
 )
 
-type StrategyProfileObjectiveRepositoryInterface interface {
+type StrategyProfileStrategicObjectiveRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileObjectiveListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileObjectiveListDTO, error)
-	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileObjective, error)
-	Create(objective *models.StrategyProfileObjective, tx ...utility.DatabaseTransaction) (uint, error)
+	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileStrategicObjectiveListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileStrategicObjectiveListDTO, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileStrategicObjective, error)
+	Create(objective *models.StrategyProfileStrategicObjective, tx ...utility.DatabaseTransaction) (uint, error)
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 }
 
-type StrategyProfileObjectiveRepository struct {
+type StrategyProfileStrategicObjectiveRepository struct {
 	db *gorm.DB
 }
 
-func NewStrategyProfileObjectiveRepository(db *gorm.DB) *StrategyProfileObjectiveRepository {
-	return &StrategyProfileObjectiveRepository{
+func NewStrategyProfileStrategicObjectiveRepository(db *gorm.DB) *StrategyProfileStrategicObjectiveRepository {
+	return &StrategyProfileStrategicObjectiveRepository{
 		db: db,
 	}
 }
 
 // BeginTransaction starts a new transaction
-func (repo *StrategyProfileObjectiveRepository) BeginTransaction() utility.DatabaseTransaction {
+func (repo *StrategyProfileStrategicObjectiveRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 // GetAll returns list of objectives with focus area titles and user info
-func (repo *StrategyProfileObjectiveRepository) GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileObjectiveListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileObjectiveListDTO, error) {
-	var objectives []*strategyDTOs.StrategyProfileObjectiveListDTO
+func (repo *StrategyProfileStrategicObjectiveRepository) GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileStrategicObjectiveListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileStrategicObjectiveListDTO, error) {
+	var objectives []*strategyDTOs.StrategyProfileStrategicObjectiveListDTO
 	var totalCount int64
 
-	query := repo.db.Table("strategy_profile_objectives").
+	query := repo.db.Table("strategy_profile_strategic_objectives").
 		Select(`
-			strategy_profile_objectives.*,
+			strategy_profile_strategic_objectives.*,
 			strategy_profiles.title AS strategy_profile_title,
 			strategy_profile_focus_areas.id AS strategy_profile_focus_area_id,
 			focus_areas.title_en AS strategy_profile_focus_area_title_en,
@@ -48,6 +48,7 @@ func (repo *StrategyProfileObjectiveRepository) GetAll(strategyProfileID uint, p
 			strategic_objectives.id AS strategic_objective_id,
 			strategic_objectives.title_en AS strategic_objective_title_en,
 			strategic_objectives.title_ar AS strategic_objective_title_ar,
+			strategy_profile_strategic_objectives.score AS score,
 			created_user.id AS created_user_id,
 			created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
@@ -68,21 +69,21 @@ func (repo *StrategyProfileObjectiveRepository) GetAll(strategyProfileID uint, p
 			updated_user.profile_image_path AS updated_user_profile_image_path
 		`).
 		Joins(`
-			LEFT JOIN strategy_profiles ON strategy_profiles.id = strategy_profile_objectives.strategy_profile_id
-			LEFT JOIN strategy_profile_focus_areas ON strategy_profile_focus_areas.id = strategy_profile_objectives.strategy_profile_focus_area_id
+			LEFT JOIN strategy_profiles ON strategy_profiles.id = strategy_profile_strategic_objectives.strategy_profile_id
+			LEFT JOIN strategy_profile_focus_areas ON strategy_profile_focus_areas.id = strategy_profile_strategic_objectives.strategy_profile_focus_area_id
 			LEFT JOIN focus_areas ON focus_areas.id = strategy_profile_focus_areas.focus_area_id
-			LEFT JOIN strategy_profile_goals ON strategy_profile_goals.id = strategy_profile_objectives.strategy_profile_goal_id
-			LEFT JOIN strategic_objectives ON strategic_objectives.id = strategy_profile_objectives.strategic_objective_id
-			LEFT JOIN users AS created_user ON created_user.id = strategy_profile_objectives.created_by_id
-			LEFT JOIN users AS updated_user ON updated_user.id = strategy_profile_objectives.updated_by_id
+			LEFT JOIN strategy_profile_goals ON strategy_profile_goals.id = strategy_profile_strategic_objectives.strategy_profile_goal_id
+			LEFT JOIN strategic_objectives ON strategic_objectives.id = strategy_profile_strategic_objectives.strategic_objective_id
+			LEFT JOIN users AS created_user ON created_user.id = strategy_profile_strategic_objectives.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = strategy_profile_strategic_objectives.updated_by_id
 		`).
-		Where("strategy_profile_objectives.strategy_profile_id = ?", strategyProfileID)
+		Where("strategy_profile_strategic_objectives.strategy_profile_id = ?", strategyProfileID)
 
 	// Apply filters
 	for column, values := range params.Filters {
 		// Map API param to DB column
-		if column == "strategy_profile_focus_area_id" {
-			column = "strategy_profile_objectives.strategy_profile_focus_area_id"
+		if column == "focus_area_id" {
+			column = "strategy_profile_strategic_objectives.strategy_profile_focus_area_id"
 		}
 		if len(values) > 0 {
 			query = query.Where(column+" IN (?)", values)
@@ -128,8 +129,8 @@ func (repo *StrategyProfileObjectiveRepository) GetAll(strategyProfileID uint, p
 }
 
 // GetByID fetches a single objective by ID
-func (repo *StrategyProfileObjectiveRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileObjective, error) {
-	var objective *models.StrategyProfileObjective
+func (repo *StrategyProfileStrategicObjectiveRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileStrategicObjective, error) {
+	var objective *models.StrategyProfileStrategicObjective
 
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -145,7 +146,7 @@ func (repo *StrategyProfileObjectiveRepository) GetByID(id uint, tx ...utility.D
 }
 
 // Create inserts a new objective record
-func (repo *StrategyProfileObjectiveRepository) Create(objective *models.StrategyProfileObjective, tx ...utility.DatabaseTransaction) (uint, error) {
+func (repo *StrategyProfileStrategicObjectiveRepository) Create(objective *models.StrategyProfileStrategicObjective, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -159,13 +160,13 @@ func (repo *StrategyProfileObjectiveRepository) Create(objective *models.Strateg
 }
 
 // Delete removes an objective record by ID
-func (repo *StrategyProfileObjectiveRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+func (repo *StrategyProfileStrategicObjectiveRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	if err := db.Delete(&models.StrategyProfileObjective{}, id).Error; err != nil {
+	if err := db.Delete(&models.StrategyProfileStrategicObjective{}, id).Error; err != nil {
 		return err
 	}
 	return nil

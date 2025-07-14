@@ -12,10 +12,10 @@ type StrategyProfileFocusArea struct {
 	UpdatedAt         *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
 	// Relationships
-	StrategyProfile            *StrategyProfile            `gorm:"foreignKey:StrategyProfileID" json:"strategy_profile,omitempty"`
-	FocusArea                  *FocusArea                  `gorm:"foreignKey:FocusAreaID" json:"focus_area,omitempty"`
-	StrategyProfileGoals       []StrategyProfileGoal       `gorm:"foreignKey:StrategyProfileFocusAreaID"`
-	StrategyProfileObjectives  []StrategyProfileObjective  `gorm:"foreignKey:StrategyProfileFocusAreaID"`
+	StrategyProfile      *StrategyProfile      `gorm:"foreignKey:StrategyProfileID" json:"strategy_profile,omitempty"`
+	FocusArea            *FocusArea            `gorm:"foreignKey:FocusAreaID" json:"focus_area,omitempty"`
+	StrategyProfileGoals []StrategyProfileGoal `gorm:"foreignKey:StrategyProfileFocusAreaID"`
+	//StrategyProfileStrategicObjectives []StrategyProfileStrategicObjective `gorm:"foreignKey:StrategyProfileFocusAreaID"`
 	StrategyProfileInitiatives []StrategyProfileInitiative `gorm:"foreignKey:StrategyProfileFocusAreaID"`
 	StrategyProfileProjects    []StrategyProfileProject    `gorm:"foreignKey:StrategyProfileFocusAreaID"`
 	StrategyProfileMilestones  []StrategyProfileMilestone  `gorm:"foreignKey:StrategyProfileFocusAreaID"`
