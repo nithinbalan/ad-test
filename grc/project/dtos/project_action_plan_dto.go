@@ -13,11 +13,11 @@ type ProjectActionPlanListDTO struct {
 	ID                              uint    `json:"id"`
 	Title                           string  `json:"title"`
 	Description                     *string `json:"description"`
-	ProjectMilestoneID              uint    `json:"project_milestone_id"`
-	ProjectMilestoneTitleEn         string  `json:"project_milestone_title_en"`
-	ProjectMilestoneTitleAr         string  `json:"project_milestone_title_ar"`
-	ProjectMilestoneStartDate       string  `json:"project_milestone_start_date"`
-	ProjectMilestoneEndDate         string  `json:"project_milestone_end_date"`
+	ProjectMilestoneID              *uint   `json:"project_milestone_id"`
+	ProjectMilestoneTitleEn         *string `json:"project_milestone_title_en"`
+	ProjectMilestoneTitleAr         *string `json:"project_milestone_title_ar"`
+	ProjectMilestoneStartDate       *string `json:"project_milestone_start_date"`
+	ProjectMilestoneEndDate         *string `json:"project_milestone_end_date"`
 	Comments                        *string `json:"comments"`
 	ResponsibleUserID               uint    `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn      string  `json:"responsible_user_first_name_en"`

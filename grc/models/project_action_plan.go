@@ -6,7 +6,7 @@ import (
 
 type ProjectActionPlan struct {
 	ID                 uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	ProjectMilestoneID uint       `json:"project_milestone_id" binding:"required" gorm:"not null"`
+	ProjectMilestoneID *uint      `json:"project_milestone_id" gorm:"null"`
 	Title              string     `json:"title" gorm:"type:nvarchar(255);not null"`
 	Description        *string    `json:"description" gorm:"type:nvarchar(max);null"`
 	ResponsibleUserID  uint       `json:"responsible_user_id" binding:"required" gorm:"not null"`
@@ -22,7 +22,7 @@ type ProjectActionPlan struct {
 
 	// Relationships
 
-	ProjectMilestone ProjectMilestone  `gorm:"foreignKey:ProjectMilestoneID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ProjectMilestone *ProjectMilestone `gorm:"foreignKey:ProjectMilestoneID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUser  *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatus *ActionPlanStatus `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser    *User             `gorm:"foreignKey:CreatedByID"`
