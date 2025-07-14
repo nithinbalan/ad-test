@@ -6,7 +6,8 @@ import (
 
 type ProjectActionPlan struct {
 	ID                 uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	ProjectMilestoneID uint       `json:"project_milestone_id" binding:"required" gorm:"not null"`
+	ProjectID          *uint      `json:"project_id" gorm:"null"`
+	ProjectMilestoneID *uint      `json:"project_milestone_id" gorm:"null"`
 	Title              string     `json:"title" gorm:"type:nvarchar(255);not null"`
 	Description        *string    `json:"description" gorm:"type:nvarchar(max);null"`
 	ResponsibleUserID  uint       `json:"responsible_user_id" binding:"required" gorm:"not null"`
@@ -17,16 +18,16 @@ type ProjectActionPlan struct {
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 
 	UpdatedAt   *time.Time `json:"updated_at" gorm:"type:datetime"`
-	CreatedByID uint       `json:"created_by_id" gorm:"not null"`
-	UpdatedByID *uint      `json:"updated_by_id" gorm:"default:null"`
+	CreatedBYID uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBYID *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-
-	ProjectMilestone ProjectMilestone  `gorm:"foreignKey:ProjectMilestoneID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Project          *Project          `gorm:"foreignKey:ProjectID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ProjectMilestone *ProjectMilestone `gorm:"foreignKey:ProjectMilestoneID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUser  *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatus *ActionPlanStatus `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser    *User             `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedByID"`
+	CreatedByUser    *User             `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 }
 
 // TableName overrides the table name used by ComplianceActionPlan to `project_action_plans`

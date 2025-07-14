@@ -35,9 +35,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// Projects
 	projectRoutes.GET("/projects", projectController.GetAllProjects)
-	projectRoutes.GET("/projects/:id", projectController.GetProjectDetails)
+	projectRoutes.GET("/projects/:projectId", projectController.GetProjectDetails)
 	projectRoutes.POST("/projects", projectController.CreateProject)
-	projectRoutes.PUT("/projects/:id", projectController.UpdateProject)
+	projectRoutes.PUT("/projects/:projectId", projectController.UpdateProject)
 	projectRoutes.POST("/projects/delete", projectController.DeleteProjects)
 
 	// Project Milestones
@@ -48,10 +48,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.POST("/project-milestones/delete", projectMilestoneController.DeleteProjectMilestones)
 
 	// Project Action Plans
-	projectRoutes.GET("/project-action-plans", projectActionPlanController.GetAllProjectActionPlans)
-	projectRoutes.GET("/project-action-plans/:id", projectActionPlanController.GetProjectActionPlanDetails)
-	projectRoutes.POST("/project-action-plans", projectActionPlanController.CreateProjectActionPlan)
-	projectRoutes.PUT("/project-action-plans/:id", projectActionPlanController.UpdateProjectActionPlan)
-	projectRoutes.POST("/project-action-plans/delete", projectActionPlanController.DeleteProjectActionPlans)
+	projectRoutes.GET("/projects/:projectId/action-plans", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), projectActionPlanController.GetAllProjectActionPlans)
+	projectRoutes.GET("/projects/:projectId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), projectActionPlanController.GetProjectActionPlanDetails)
+	projectRoutes.POST("/projects/:projectId/action-plans", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), projectActionPlanController.CreateProjectActionPlan)
+	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), projectActionPlanController.UpdateProjectActionPlan)
+	projectRoutes.POST("/projects/:projectId/action-plans/delete", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), projectActionPlanController.DeleteProjectActionPlans)
 
 }
