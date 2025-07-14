@@ -208,7 +208,7 @@ func (dais *DocumentAssociatedItemService) UpdateClauses(documentID uint, curren
 	}
 
 	if len(deleteClauseIDs) > 0 {
-		if err := dais.repo.DeleteControlClauses(documentID, deleteClauseIDs, tx); err != nil {
+		if err := dais.repo.DeleteDocumentClauses(documentID, deleteClauseIDs, tx); err != nil {
 			tx.Rollback()
 			return err
 		}

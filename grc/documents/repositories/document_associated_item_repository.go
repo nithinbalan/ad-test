@@ -21,7 +21,7 @@ type DocumentAssociatedItemRepositoryInterface interface {
 	GetAllClauses(controlID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	GetClausesByDocumentID(controlID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 	CreateDocumentClauses(clauses []*models.DocumentClause, tx ...utility.DatabaseTransaction) error
-	DeleteControlClauses(controlID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
+	DeleteDocumentClauses(controlID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 	GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error)
 }
 
@@ -771,7 +771,7 @@ func (repo *DocumentAssociatedItemRepository) CreateDocumentClauses(clauses []*m
 	return nil
 }
 
-func (repo *DocumentAssociatedItemRepository) DeleteControlClauses(controlID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error {
+func (repo *DocumentAssociatedItemRepository) DeleteDocumentClauses(controlID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
