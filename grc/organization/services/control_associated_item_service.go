@@ -284,14 +284,16 @@ func (cais *ControlAssociatedItemService) DeleteControlRisk(controlID uint, risk
 	return tx.Commit()
 }
 
-func (cais *ControlAssociatedItemService) validateControlIDs(complianceID uint, controlIDs []uint) error {
-	if len(controlIDs) == 0 {
-		return utility.NewValidationError(fmt.Errorf("no controls provided"), "required", "control_ids")
+func (cais *ControlAssociatedItemService) validateControlIDs(controlID uint, riskIDs []uint) error {
+	if len(riskIDs) == 0 {
+		return utility.NewValidationError(fmt.Errorf("no risks provided"), "required", "risk_ids")
 	}
-
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlID), "not_exist", "control_id")
+	}
 	seen := make(map[uint]bool)
-	for _, id := range controlIDs {
-		alreadyMapped, err := cais.repo.IsRiskMappedToControl(complianceID, id)
+	for _, id := range riskIDs {
+		alreadyMapped, err := cais.repo.IsRiskMappedToControl(controlID, id)
 		if err != nil {
 			return fmt.Errorf("failed to check existing mapping: %v", err)
 		}
