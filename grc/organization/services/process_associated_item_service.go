@@ -18,7 +18,7 @@ type ProcessAssociatedItemServiceInterface interface {
 	GetAllDocuments(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemDocumentListResponseDTO, error)
 	GetAllAssociatedCounts(processID uint) (*organizationDTOs.ProcessAssociatedItemsCountResponseDTO, error)
 	GetAllAssets(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemAssetListResponseDTO, error)
-	GetAllClauses(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(processID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(processID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 }
 
@@ -209,7 +209,7 @@ func (pais *ProcessAssociatedItemService) GetAllAssociatedCounts(processID uint)
 
 	return response, nil
 }
-func (pais *ProcessAssociatedItemService) GetAllClauses(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+func (pais *ProcessAssociatedItemService) GetAllClauses(processID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 	if _, err := pais.processSvc.GetByID(processID); err != nil {
 		return nil, err
 	}

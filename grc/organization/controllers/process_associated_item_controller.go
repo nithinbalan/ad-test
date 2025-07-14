@@ -339,15 +339,12 @@ func (paic *ProcessAssociatedItemController) GetAllClauses(c *gin.Context) {
 		return
 	}
 
-	var value int
-
-	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
+	queryParams := commonDTOs.AssociatedItemClauseListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
 		Page:     page,
 		PageSize: pageSize,
-		Value:    value,
 	}
 	clauses, err := paic.service.GetAllClauses(uint(processID), &queryParams)
 

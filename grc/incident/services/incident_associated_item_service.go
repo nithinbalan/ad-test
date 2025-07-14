@@ -19,7 +19,7 @@ type IncidentAssociatedItemServiceInterface interface {
 	GetAllSLAs(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemSLAListResponseDTO, error)
 	GetAllDocuments(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemDocumentListResponseDTO, error)
 	GetAllAssets(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemAssetListResponseDTO, error)
-	GetAllClauses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(incidentID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(incidentID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 }
 
@@ -92,7 +92,7 @@ func (iais *IncidentAssociatedItemService) GetAllAssets(incidentID uint, params 
 	return iais.repo.GetAllAssets(incidentID, params)
 }
 
-func (iais *IncidentAssociatedItemService) GetAllClauses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+func (iais *IncidentAssociatedItemService) GetAllClauses(incidentID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return nil, err
 	}

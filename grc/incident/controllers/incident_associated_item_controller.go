@@ -407,7 +407,7 @@ func (iaic *IncidentAssociatedItemController) GetAllIncidentClauses(c *gin.Conte
 		return
 	}
 
-	queryParams := incidentDTOs.IncidentAssociatedItemListQueryParamsDTO{
+	queryParams := commonDTOs.AssociatedItemClauseListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,

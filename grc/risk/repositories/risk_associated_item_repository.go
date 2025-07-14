@@ -20,7 +20,7 @@ type RiskAssociatedItemRepositoryInterface interface {
 	GetAllDocuments(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemDocumentListResponseDTO, error)
 	GetAllAssets(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemAssetListResponseDTO, error)
 	GetAllThreats(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemThreatListResponseDTO, error)
-	GetAllClauses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(riskID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	CreateRiskClauses(clauses []*models.RiskClause, tx ...utility.DatabaseTransaction) error
 	DeleteRiskClauses(riskID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 	GetClausesByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
@@ -933,7 +933,7 @@ func (repo *RiskAssociatedItemRepository) GetAllThreats(riskID uint, params *ris
 	return response, nil
 }
 
-func (repo *RiskAssociatedItemRepository) GetAllClauses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+func (repo *RiskAssociatedItemRepository) GetAllClauses(riskID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 
 	var clauseList []commonDTOs.AssociatedClauseRowDTO
 	var totalCount int64

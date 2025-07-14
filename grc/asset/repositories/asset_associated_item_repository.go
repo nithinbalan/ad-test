@@ -16,7 +16,7 @@ type AssetAssociatedItemRepositoryInterface interface {
 	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisksByRiskIDs(riskRegisterIDs []uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error)
 	GetAllVulnerabilities(assetID uint) ([]models.Vulnerability, error)
-	GetAllClauses(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(assetID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 
 	GetRisksByThreatID(threatID uint) ([]*assetDTOs.RiskDTO, error)
 
@@ -402,7 +402,7 @@ func (repo *AssetAssociatedItemRepository) GetRisksByThreatID(threatID uint) ([]
 	return risks, nil
 }
 
-func (repo *AssetAssociatedItemRepository) GetAllClauses(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+func (repo *AssetAssociatedItemRepository) GetAllClauses(assetID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 
 	var clauseList []commonDTOs.AssociatedClauseRowDTO
 	var totalCount int64

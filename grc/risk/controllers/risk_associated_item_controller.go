@@ -533,7 +533,7 @@ func (rc *RiskAssociatedItemController) GetAllClauses(c *gin.Context) {
 		return
 	}
 
-	queryParams := riskDTOs.RiskAssociatedItemListQueryParamsDTO{
+	queryParams := commonDTOs.AssociatedItemClauseListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,

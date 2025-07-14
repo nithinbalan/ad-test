@@ -270,3 +270,10 @@ type AssociatedItemClauseListResponseDTO struct {
 type AssociatedClauseFormDTO struct {
 	ClauseIDs []uint `json:"clause_ids" binding:"required"`
 }
+type AssociatedItemClauseListQueryParamsDTO struct {
+	Sort     string
+	SortBy   string
+	Keyword  string
+	Page     int
+	PageSize int
+}

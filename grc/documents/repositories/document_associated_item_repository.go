@@ -18,7 +18,7 @@ type DocumentAssociatedItemRepositoryInterface interface {
 	GetAllSLAs(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemSLAListResponseDTO, error)
 	GetAllIncidents(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisks(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemRiskListResponseDTO, error)
-	GetAllClauses(controlID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(controlID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	GetClausesByDocumentID(controlID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 	CreateDocumentClauses(clauses []*models.DocumentClause, tx ...utility.DatabaseTransaction) error
 	DeleteControlClauses(controlID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
@@ -643,7 +643,7 @@ func (repo *DocumentAssociatedItemRepository) GetAllRisks(documentID uint, param
 	return response, nil
 }
 
-func (repo *DocumentAssociatedItemRepository) GetAllClauses(controlID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+func (repo *DocumentAssociatedItemRepository) GetAllClauses(controlID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 
 	var clauseList []commonDTOs.AssociatedClauseRowDTO
 	var totalCount int64

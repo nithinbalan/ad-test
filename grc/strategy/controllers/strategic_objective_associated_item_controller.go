@@ -2,7 +2,6 @@ package controllers
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
-	strategyDTOs "jethur/grc/strategy/dtos"
 	"jethur/grc/strategy/services"
 	"jethur/utility"
 	"net/http"
@@ -35,8 +34,6 @@ func (soai *StrategicObjectiveAssociatedItemController) GetAllClauses(c *gin.Con
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -50,14 +47,12 @@ func (soai *StrategicObjectiveAssociatedItemController) GetAllClauses(c *gin.Con
 		return
 	}
 
-	queryParams := strategyDTOs.StrategicObjectiveAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemClauseListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	documents, err := soai.service.GetAllClauses(uint(strategicObjectiveID), &queryParams)
 

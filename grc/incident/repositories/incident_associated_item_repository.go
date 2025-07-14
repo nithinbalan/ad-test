@@ -20,7 +20,7 @@ type IncidentAssociatedItemRepositoryInterface interface {
 	GetAllSLAs(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemSLAListResponseDTO, error)
 	GetAllDocuments(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemDocumentListResponseDTO, error)
 	GetAllAssets(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemAssetListResponseDTO, error)
-	GetAllClauses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(incidentID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	GetClausesByIncidentID(incidentID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 	CreateIncidentClauses(clauses []*models.IncidentClause, tx ...utility.DatabaseTransaction) error
 	DeleteIncidentClauses(incidentID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
@@ -773,7 +773,7 @@ func (repo *IncidentAssociatedItemRepository) GetAllAssets(incidentID uint, para
 	return response, nil
 }
 
-func (repo *IncidentAssociatedItemRepository) GetAllClauses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+func (repo *IncidentAssociatedItemRepository) GetAllClauses(incidentID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 
 	var clauseList []commonDTOs.AssociatedClauseRowDTO
 	var totalCount int64

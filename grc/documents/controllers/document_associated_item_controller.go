@@ -361,7 +361,7 @@ func (daic *DocumentAssociatedItemController) GetAllDocumentClauses(c *gin.Conte
 		return
 	}
 
-	queryParams := documentDTOs.DocumentAssociatedItemListQueryParamsDTO{
+	queryParams := commonDTOs.AssociatedItemClauseListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,

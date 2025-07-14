@@ -22,7 +22,7 @@ type RiskAssociatedItemServiceInterface interface {
 	GetAllDocuments(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemDocumentListResponseDTO, error)
 	GetAllAssets(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemAssetListResponseDTO, error)
 	GetAllThreats(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemThreatListResponseDTO, error)
-	GetAllClauses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(riskID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(riskID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 }
 
@@ -163,7 +163,7 @@ func (rais *RiskAssociatedItemService) GetAllThreats(riskID uint, params *riskDT
 	return rais.repo.GetAllThreats(riskID, params)
 }
 
-func (rais *RiskAssociatedItemService) GetAllClauses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+func (rais *RiskAssociatedItemService) GetAllClauses(riskID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
 		return nil, err
 	}

@@ -5,14 +5,13 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	complianceServices "jethur/grc/compliance/services"
 	"jethur/grc/models"
-	strategyDTOs "jethur/grc/strategy/dtos"
 	"jethur/grc/strategy/repositories"
 	"jethur/utility"
 	"time"
 )
 
 type StrategicObjectiveAssociatedItemServiceInterface interface {
-	GetAllClauses(strategicObjectiveID uint, params *strategyDTOs.StrategicObjectiveAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(strategicObjectiveID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 }
 
@@ -36,7 +35,7 @@ func NewstrategicObjectiveAssociatedItemService(
 	}
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) GetAllClauses(strategicObjectiveID uint, params *strategyDTOs.StrategicObjectiveAssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+func (rais *StrategicObjectiveAssociatedItemService) GetAllClauses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return nil, err
 	}
