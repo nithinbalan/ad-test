@@ -19,6 +19,8 @@ type ProjectMilestoneListDTO struct {
 	ProjectMilestoneStatusID    uint    `json:"project_milestone_status_id"`
 	ProjectMilestoneStatusEn    string  `json:"project_milestone_status_en"`
 	ProjectMilestoneStatusAr    string  `json:"project_milestone_status_ar"`
+	ProjectMilestoneStatusType  string  `json:"project_milestone_status_type"`
+	ProjectMilestoneStatusColor string  `json:"project_milestone_status_color"`
 	CreatedUserID               uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn      string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string  `json:"created_user_first_name_ar"`

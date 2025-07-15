@@ -42,6 +42,8 @@ func (repo *ProjectMilestoneRepository) GetAll(projectID uint, params *dtos.Proj
 			project_milestones.project_milestone_status_id,
 			status.title_en AS project_milestone_status_en,
 			status.title_ar AS project_milestone_status_ar,
+			status.type AS project_milestone_status_type,
+			status.color_code AS project_milestone_status_color,
 			created_user.id AS created_user_id,
 			created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
