@@ -627,7 +627,7 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 				"ApprovedByFirstName": createdBy.FirstNameEn,
 				"ApprovedByLastName":  createdBy.LastNameEn,
 				"ApprovalDate":        time.Now().Format("2006-01-02"),
-				"RedirectURL":         fmt.Sprintf("%scompliance/assessment/%d/overview", utility.GetAppURL(), assessmentID),
+				"RedirectURL":         fmt.Sprintf("%s/compliance/assessment/%d/overview", utility.GetAppURL(), assessmentID),
 			},
 		}
 
@@ -782,7 +782,7 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 				"RevertedByFirstName": createdBy.FirstNameEn,
 				"RevertedByLastName":  createdBy.LastNameEn,
 				"ReversionDate":       time.Now().Format("2006-01-02"),
-				"RedirectURL":         fmt.Sprintf("%scompliance/assessment/%d/overview", utility.GetAppURL(), assessmentID),
+				"RedirectURL":         fmt.Sprintf("%s/compliance/assessment/%d/overview", utility.GetAppURL(), assessmentID),
 			},
 		}
 
@@ -940,7 +940,7 @@ func (cars *ComplianceAssessmentRequirementService) ResubmitComplianceRequiremen
 				"ResubmittedByFirstName": createdBy.FirstNameEn,
 				"ResubmittedByLastName":  createdBy.LastNameEn,
 				"ResubmissionDate":       time.Now().Format("2006-01-02"),
-				"RedirectURL":            fmt.Sprintf("%scompliance/assessment/%d/overview", utility.GetAppURL(), assessmentID),
+				"RedirectURL":            fmt.Sprintf("%s/compliance/assessment/%d/overview", utility.GetAppURL(), assessmentID),
 			},
 		}
 

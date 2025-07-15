@@ -225,7 +225,7 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Create(TestAndExerciseID 
 			// prepare notification
 			appURL := utility.GetAppURL()
 			urlParam := fmt.Sprintf(`{"test_and_exercise_id":%d, "action_plan_id":%d}`, TestAndExerciseID, TaeRecoveryActionPlanID)
-			redirectUrl := fmt.Sprintf("%sbusiness-continuity/test-and-exercise/%d/action-plans?action_plan_id=%d", appURL, TestAndExerciseID, TaeRecoveryActionPlanID)
+			redirectUrl := fmt.Sprintf("%s/business-continuity/test-and-exercise/%d/action-plans?action_plan_id=%d", appURL, TestAndExerciseID, TaeRecoveryActionPlanID)
 			if actionPlan.IsRecovery {
 				urlParam = fmt.Sprintf(`{"test_and_exercise_id":%d, "recovery_action_plan_id":%d}`, TestAndExerciseID, TaeRecoveryActionPlanID)
 				redirectUrl = fmt.Sprintf("%sbusiness-continuity/test-and-exercise/%d/recovery-action-plans?action_plan_id=%d", appURL, TestAndExerciseID, TaeRecoveryActionPlanID)
@@ -602,7 +602,7 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Approve(testAndExerciseID
 		action := "close-action-plan"
 		notificationHeadingEn = "Test And Exercise Action Plan Status Update"
 		notificationHeadingAr = "تحديث حالة خطة عمل الاختبار والتمرين"
-		redirectUrl := fmt.Sprintf("%sbusiness-continuity/test-and-exercise/%d/action-plans?action_plan_id=%d", appURL, testAndExerciseID, id)
+		redirectUrl := fmt.Sprintf("%s/business-continuity/test-and-exercise/%d/action-plans?action_plan_id=%d", appURL, testAndExerciseID, id)
 
 		if existingActionPlan.IsRecovery {
 			urlParam = fmt.Sprintf(`{"test_and_exercise_id":%d, "recovery_action_plan_id":%d}`, testAndExerciseID, actionPlanID)
@@ -766,7 +766,7 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Revert(testAndExerciseID 
 		action := "reopen-action-plan"
 		notificationHeadingEn = "Test And Exercise Action Plan Status Update"
 		notificationHeadingAr = "تحديث حالة خطة عمل الاختبار والتمرين"
-		redirectUrl := fmt.Sprintf("%sbusiness-continuity/test-and-exercise/%d/action-plans?action_plan_id=%d", appURL, testAndExerciseID, id)
+		redirectUrl := fmt.Sprintf("%s/business-continuity/test-and-exercise/%d/action-plans?action_plan_id=%d", appURL, testAndExerciseID, id)
 
 		if existingActionPlan.IsRecovery {
 			urlParam = fmt.Sprintf(`{"test_and_exercise_id":%d, "recovery_action_plan_id":%d}`, testAndExerciseID, actionPlanID)

@@ -262,7 +262,7 @@ func (caps *StakeholderActionPlanCommentService) Create(stakeholderID uint, acti
 					"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 					"CommentedByLastNameEn":  assignedBy.LastNameEn,
 					"CommentedOn":            time.Now().Format("2006-01-02"),
-					"RedirectURL":            fmt.Sprintf("%sstakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, actionPlanID),
+					"RedirectURL":            fmt.Sprintf("%s/stakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, actionPlanID),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -331,7 +331,7 @@ func (caps *StakeholderActionPlanCommentService) Create(stakeholderID uint, acti
 				"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":             time.Now().Format("2006-01-02"),
-				"RedirectURL":            fmt.Sprintf("%sstakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, actionPlanID),
+				"RedirectURL":            fmt.Sprintf("%s/stakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, actionPlanID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -399,7 +399,7 @@ func (caps *StakeholderActionPlanCommentService) Create(stakeholderID uint, acti
 				"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":             time.Now().Format("2006-01-02"),
-				"RedirectURL":            fmt.Sprintf("%sstakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, actionPlanID),
+				"RedirectURL":            fmt.Sprintf("%s/stakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, actionPlanID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -466,7 +466,7 @@ func (caps *StakeholderActionPlanCommentService) Create(stakeholderID uint, acti
 					"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 					"CommentedByLastNameEn":  assignedBy.LastNameEn,
 					"AssignedOn":             time.Now().Format("2006-01-02"),
-					"RedirectURL":            fmt.Sprintf("%sstakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, actionPlanID),
+					"RedirectURL":            fmt.Sprintf("%s/stakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, actionPlanID),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -536,7 +536,7 @@ func (caps *StakeholderActionPlanCommentService) Create(stakeholderID uint, acti
 		// 	"AssignedByFirstNameEn":     assignedBy.FirstNameEn,
 		// 	"AssignedByLastNameEn":      assignedBy.LastNameEn,
 		// 	"AssignedOn":                time.Now().Format("2006-01-02"),
-		// 	"RedirectURL":               fmt.Sprintf("%sstakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
+		// 	"RedirectURL":               fmt.Sprintf("%s/stakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
 		// }
 
 		// emailNotificationDTO := &commonDTOs.EmailNotificationDTO{

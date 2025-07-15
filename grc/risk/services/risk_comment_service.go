@@ -392,7 +392,7 @@ func (rcs *RiskCommentService) SubmitRisk(riskID uint, currentUserID uint) error
 				"SubmittedByFirstName": createdBy.FirstNameEn,
 				"SubmittedByLastName":  createdBy.LastNameEn,
 				"SubmissionDate":       time.Now().Format("2006-01-02"),
-				"RedirectURL":          fmt.Sprintf("%srisk/risk-register/%d/overview", utility.GetAppURL(), riskID),
+				"RedirectURL":          fmt.Sprintf("%s/risk/risk-register/%d/overview", utility.GetAppURL(), riskID),
 			},
 		}
 
@@ -538,7 +538,7 @@ func (rcs *RiskCommentService) RevertRisk(riskID uint, currentUserID uint, comme
 				"RevertedByFirstName": createdBy.FirstNameEn,
 				"RevertedByLastName":  createdBy.LastNameEn,
 				"ReversionDate":       time.Now().Format("2006-01-02"),
-				"RedirectURL":         fmt.Sprintf("%srisk/risk-register/%d/overview", utility.GetAppURL(), riskID),
+				"RedirectURL":         fmt.Sprintf("%s/risk/risk-register/%d/overview", utility.GetAppURL(), riskID),
 			},
 		}
 
@@ -684,7 +684,7 @@ func (rcs *RiskCommentService) RejectRisk(riskID uint, currentUserID uint, comme
 				"RejectedByFirstName": createdBy.FirstNameEn,
 				"RejectedByLastName":  createdBy.LastNameEn,
 				"RejectionDate":       time.Now().Format("2006-01-02"),
-				"RedirectURL":         fmt.Sprintf("%srisk/risk-register/%d/overview", utility.GetAppURL(), riskID),
+				"RedirectURL":         fmt.Sprintf("%s/risk/risk-register/%d/overview", utility.GetAppURL(), riskID),
 			},
 		}
 
@@ -836,7 +836,7 @@ func (rcs *RiskCommentService) ApproveRisk(riskID uint, currentUserID uint, comm
 				"ApprovedByFirstName": createdBy.FirstNameEn,
 				"ApprovedByLastName":  createdBy.LastNameEn,
 				"ApprovalDate":        time.Now().Format("2006-01-02"),
-				"RedirectURL":         fmt.Sprintf("%srisk/risk-register/%d/overview", utility.GetAppURL(), riskID),
+				"RedirectURL":         fmt.Sprintf("%s/risk/risk-register/%d/overview", utility.GetAppURL(), riskID),
 			},
 		}
 
@@ -1015,7 +1015,7 @@ func (rcs *RiskCommentService) ResubmitRisk(riskID uint, currentUserID uint, com
 				"ResubmittedByFirstName": createdBy.FirstNameEn,
 				"ResubmittedByLastName":  createdBy.LastNameEn,
 				"ResubmissionDate":       time.Now().Format("2006-01-02"),
-				"RedirectURL":            fmt.Sprintf("%srisk/risk-register/%d/overview", utility.GetAppURL(), riskID),
+				"RedirectURL":            fmt.Sprintf("%s/risk/risk-register/%d/overview", utility.GetAppURL(), riskID),
 			},
 		}
 
