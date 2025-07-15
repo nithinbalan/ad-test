@@ -135,11 +135,11 @@ func (iais *IncidentAssociatedItemService) UpdateClauses(incidentID uint, curren
 		newClauses[clause.ID] = clause
 	}
 
-	var clausesToAdd []*models.IncidentClause
+	var clausesToAdd []*models.IncidentComplianceRequirement
 	now := time.Now()
 	for id, clause := range newClauses {
 		if !existingClauses[id] {
-			clausesToAdd = append(clausesToAdd, &models.IncidentClause{
+			clausesToAdd = append(clausesToAdd, &models.IncidentComplianceRequirement{
 				IncidentRegisterID:   incidentID,
 				ComplianceRegisterID: clause.ComplianceRegisterID,
 				ComplianceClauseID:   clause.ID,

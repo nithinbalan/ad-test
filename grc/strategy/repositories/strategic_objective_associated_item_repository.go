@@ -11,7 +11,7 @@ import (
 type StrategicObjectiveAssociatedItemRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAllClauses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
-	CreateStrategicObjectiveClauses(clauses []*models.StrategicObjectiveClause, tx ...utility.DatabaseTransaction) error
+	CreateStrategicObjectiveClauses(clauses []*models.ComplianceRequirementStrategicObjective, tx ...utility.DatabaseTransaction) error
 	DeleteStrategicObjectiveClauses(strategicObjectiveID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 	GetClausesByStrategicObjectiveID(strategicObjectiveID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 }
@@ -34,7 +34,7 @@ func (repo *StrategicObectiveAssociatedItemRepository) GetAllClauses(strategicOb
 
 	var clauseList []commonDTOs.AssociatedClauseRowDTO
 	var totalCount int64
-	query := repo.db.Table("strategic_objective_clauses").
+	query := repo.db.Table("compliance_requirement_strategic_objectives").
 		Select(`
 			compliance_clauses.title_en AS clause_title_en,
 			compliance_clauses.title_ar AS clause_title_ar,
@@ -45,10 +45,10 @@ func (repo *StrategicObectiveAssociatedItemRepository) GetAllClauses(strategicOb
 			compliance_register.title_ar AS compliance_register_title_ar
 		`).
 		Joins(`
-			LEFT JOIN compliance_clauses ON strategic_objective_clauses.compliance_clause_id = compliance_clauses.id
-			LEFT JOIN compliance_register ON strategic_objective_clauses.compliance_register_id = compliance_register.id
+			LEFT JOIN compliance_clauses ON compliance_requirement_strategic_objectives.compliance_clause_id = compliance_clauses.id
+			LEFT JOIN compliance_register ON compliance_requirement_strategic_objectives.compliance_register_id = compliance_register.id
 		`).
-		Where("strategic_objective_clauses.strategic_objective_id = ?", strategicObjectiveID)
+		Where("compliance_requirement_strategic_objectives.strategic_objective_id = ?", strategicObjectiveID)
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -137,7 +137,7 @@ func (repo *StrategicObectiveAssociatedItemRepository) GetClausesByStrategicObje
 
 	var clauseIDs []uint
 	if err := db.
-		Model(&models.StrategicObjectiveClause{}).
+		Model(&models.ComplianceRequirementStrategicObjective{}).
 		Where("strategic_objective_id = ?", strategicObjectiveID).
 		Pluck("compliance_clause_id", &clauseIDs).Error; err != nil {
 		return nil, err
@@ -146,7 +146,7 @@ func (repo *StrategicObectiveAssociatedItemRepository) GetClausesByStrategicObje
 	return clauseIDs, nil
 }
 
-func (repo *StrategicObectiveAssociatedItemRepository) CreateStrategicObjectiveClauses(clauses []*models.StrategicObjectiveClause, tx ...utility.DatabaseTransaction) error {
+func (repo *StrategicObectiveAssociatedItemRepository) CreateStrategicObjectiveClauses(clauses []*models.ComplianceRequirementStrategicObjective, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -166,7 +166,7 @@ func (repo *StrategicObectiveAssociatedItemRepository) DeleteStrategicObjectiveC
 	}
 	if err := db.
 		Where("strategic_objective_id = ? AND compliance_clause_id IN ?", strategicObjectiveID, clauseIDs).
-		Delete(&models.StrategicObjectiveClause{}).Error; err != nil {
+		Delete(&models.ComplianceRequirementStrategicObjective{}).Error; err != nil {
 		return err
 	}
 

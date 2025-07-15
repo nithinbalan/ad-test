@@ -22,7 +22,7 @@ type IncidentAssociatedItemRepositoryInterface interface {
 	GetAllAssets(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemAssetListResponseDTO, error)
 	GetAllClauses(incidentID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	GetClausesByIncidentID(incidentID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
-	CreateIncidentClauses(clauses []*models.IncidentClause, tx ...utility.DatabaseTransaction) error
+	CreateIncidentClauses(clauses []*models.IncidentComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	DeleteIncidentClauses(incidentID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 }
 
@@ -777,7 +777,7 @@ func (repo *IncidentAssociatedItemRepository) GetAllClauses(incidentID uint, par
 
 	var clauseList []commonDTOs.AssociatedClauseRowDTO
 	var totalCount int64
-	query := repo.db.Table("incident_clauses").
+	query := repo.db.Table("incident_compliance_requirements").
 		Select(`
 			compliance_clauses.title_en AS clause_title_en,
 			compliance_clauses.title_ar AS clause_title_ar,
@@ -788,10 +788,10 @@ func (repo *IncidentAssociatedItemRepository) GetAllClauses(incidentID uint, par
 			compliance_register.title_ar AS compliance_register_title_ar
 		`).
 		Joins(`
-			LEFT JOIN compliance_clauses ON incident_clauses.compliance_clause_id = compliance_clauses.id
-			LEFT JOIN compliance_register ON incident_clauses.compliance_register_id = compliance_register.id
+			LEFT JOIN compliance_clauses ON incident_compliance_requirements.compliance_clause_id = compliance_clauses.id
+			LEFT JOIN compliance_register ON incident_compliance_requirements.compliance_register_id = compliance_register.id
 		`).
-		Where("incident_clauses.incident_register_id = ?", incidentID)
+		Where("incident_compliance_requirements.incident_register_id = ?", incidentID)
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -880,7 +880,7 @@ func (repo *IncidentAssociatedItemRepository) GetClausesByIncidentID(incidentID 
 
 	var clauseIDs []uint
 	if err := db.
-		Model(&models.IncidentClause{}).
+		Model(&models.IncidentComplianceRequirement{}).
 		Where("incident_register_id = ?", incidentID).
 		Pluck("compliance_clause_id", &clauseIDs).Error; err != nil {
 		return nil, err
@@ -888,7 +888,7 @@ func (repo *IncidentAssociatedItemRepository) GetClausesByIncidentID(incidentID 
 
 	return clauseIDs, nil
 }
-func (repo *IncidentAssociatedItemRepository) CreateIncidentClauses(clauses []*models.IncidentClause, tx ...utility.DatabaseTransaction) error {
+func (repo *IncidentAssociatedItemRepository) CreateIncidentClauses(clauses []*models.IncidentComplianceRequirement, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -908,7 +908,7 @@ func (repo *IncidentAssociatedItemRepository) DeleteIncidentClauses(incidentID u
 	}
 	if err := db.
 		Where("incident_register_id = ? AND compliance_clause_id IN ?", incidentID, clauseIDs).
-		Delete(&models.IncidentClause{}).Error; err != nil {
+		Delete(&models.IncidentComplianceRequirement{}).Error; err != nil {
 		return err
 	}
 

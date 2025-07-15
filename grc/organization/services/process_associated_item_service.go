@@ -255,11 +255,11 @@ func (pais *ProcessAssociatedItemService) UpdateClauses(processID uint, currentU
 		newClauses[clause.ID] = clause
 	}
 
-	var clausesToAdd []*models.ProcessClause
+	var clausesToAdd []*models.ProcessComplianceRequirement
 	now := time.Now()
 	for id, clause := range newClauses {
 		if !existingClauses[id] {
-			clausesToAdd = append(clausesToAdd, &models.ProcessClause{
+			clausesToAdd = append(clausesToAdd, &models.ProcessComplianceRequirement{
 				ProcessID:            processID,
 				ComplianceRegisterID: clause.ComplianceRegisterID,
 				ComplianceClauseID:   clause.ID,

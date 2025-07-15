@@ -78,11 +78,11 @@ func (rais *StrategicObjectiveAssociatedItemService) UpdateClauses(strategicObje
 		newClauses[clause.ID] = clause
 	}
 
-	var clausesToAdd []*models.StrategicObjectiveClause
+	var clausesToAdd []*models.ComplianceRequirementStrategicObjective
 	now := time.Now()
 	for id, clause := range newClauses {
 		if !existingClauses[id] {
-			clausesToAdd = append(clausesToAdd, &models.StrategicObjectiveClause{
+			clausesToAdd = append(clausesToAdd, &models.ComplianceRequirementStrategicObjective{
 				StrategicObjectiveID: strategicObjectiveID,
 				ComplianceRegisterID: clause.ComplianceRegisterID,
 				ComplianceClauseID:   clause.ID,

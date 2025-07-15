@@ -207,11 +207,11 @@ func (rais *RiskAssociatedItemService) UpdateClauses(riskID uint, currentUserID 
 		newClauses[clause.ID] = clause
 	}
 
-	var clausesToAdd []*models.RiskClause
+	var clausesToAdd []*models.RiskComplianceRequirement
 	now := time.Now()
 	for id, clause := range newClauses {
 		if !existingClauses[id] {
-			clausesToAdd = append(clausesToAdd, &models.RiskClause{
+			clausesToAdd = append(clausesToAdd, &models.RiskComplianceRequirement{
 				RiskRegisterID:       riskID,
 				ComplianceRegisterID: clause.ComplianceRegisterID,
 				ComplianceClauseID:   clause.ID,

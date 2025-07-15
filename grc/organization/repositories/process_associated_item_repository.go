@@ -22,7 +22,7 @@ type ProcessAssociatedItemRepositoryInterface interface {
 	GetAllClauses(processID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error)
 	GetClausesByProcessID(processID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
-	CreateProcessClauses(clauses []*models.ProcessClause, tx ...utility.DatabaseTransaction) error
+	CreateProcessClauses(clauses []*models.ProcessComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	DeleteProcessClauses(processID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 	CreateProcessRisk(risks []*models.RiskProcess, tx ...utility.DatabaseTransaction) error
 	DeleteProcessRisk(processID uint, riskID uint, tx ...utility.DatabaseTransaction) error
@@ -649,7 +649,7 @@ func (repo *ProcessAssociatedItemRepository) GetAllClauses(processID uint, param
 
 	var clauseList []commonDTOs.AssociatedClauseRowDTO
 	var totalCount int64
-	query := repo.db.Table("process_clauses").
+	query := repo.db.Table("process_compliance_requirements").
 		Select(`
 			compliance_clauses.title_en AS clause_title_en,
 			compliance_clauses.title_ar AS clause_title_ar,
@@ -660,10 +660,10 @@ func (repo *ProcessAssociatedItemRepository) GetAllClauses(processID uint, param
 			compliance_register.title_ar AS compliance_register_title_ar
 		`).
 		Joins(`
-			LEFT JOIN compliance_clauses ON process_clauses.compliance_clause_id = compliance_clauses.id
-			LEFT JOIN compliance_register ON process_clauses.compliance_register_id = compliance_register.id
+			LEFT JOIN compliance_clauses ON process_compliance_requirements.compliance_clause_id = compliance_clauses.id
+			LEFT JOIN compliance_register ON process_compliance_requirements.compliance_register_id = compliance_register.id
 		`).
-		Where("process_clauses.process_id = ?", processID)
+		Where("process_compliance_requirements.process_id = ?", processID)
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -769,7 +769,7 @@ func (repo *ProcessAssociatedItemRepository) GetClausesByProcessID(processID uin
 
 	var clauseIDs []uint
 	if err := db.
-		Model(&models.ProcessClause{}).
+		Model(&models.ProcessComplianceRequirement{}).
 		Where("process_id = ?", processID).
 		Pluck("compliance_clause_id", &clauseIDs).Error; err != nil {
 		return nil, err
@@ -777,7 +777,7 @@ func (repo *ProcessAssociatedItemRepository) GetClausesByProcessID(processID uin
 
 	return clauseIDs, nil
 }
-func (repo *ProcessAssociatedItemRepository) CreateProcessClauses(clauses []*models.ProcessClause, tx ...utility.DatabaseTransaction) error {
+func (repo *ProcessAssociatedItemRepository) CreateProcessClauses(clauses []*models.ProcessComplianceRequirement, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -797,7 +797,7 @@ func (repo *ProcessAssociatedItemRepository) DeleteProcessClauses(processID uint
 	}
 	if err := db.
 		Where("process_id = ? AND compliance_clause_id IN ?", processID, clauseIDs).
-		Delete(&models.ComplianceControl{}).Error; err != nil {
+		Delete(&models.ProcessComplianceRequirement{}).Error; err != nil {
 		return err
 	}
 
