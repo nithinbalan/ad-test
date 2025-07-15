@@ -179,11 +179,11 @@ func (dais *DocumentAssociatedItemService) UpdateClauses(documentID uint, curren
 		newClauses[clause.ID] = clause
 	}
 
-	var clausesToAdd []*models.DocumentClause
+	var clausesToAdd []*models.DocumentComplianceRequirement
 	now := time.Now()
 	for id, clause := range newClauses {
 		if !existingClauses[id] {
-			clausesToAdd = append(clausesToAdd, &models.DocumentClause{
+			clausesToAdd = append(clausesToAdd, &models.DocumentComplianceRequirement{
 				DocumentID:           documentID,
 				ComplianceRegisterID: clause.ComplianceRegisterID,
 				ComplianceClauseID:   clause.ID,

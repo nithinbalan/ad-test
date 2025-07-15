@@ -409,7 +409,7 @@ func (repo *AssetAssociatedItemRepository) GetAllClauses(assetID uint, params *c
 	query := repo.db.Table("asset_compliance_requirements").
 		Select(`
 			DISTINCT asset_compliance_requirements.id,
-			compliance_clauses.id AS clause_id,
+			compliance_clauses.id AS compliance_clause_id,
 			compliance_clauses.clause_no,
 			compliance_clauses.title_en AS clause_title_en,
 			compliance_clauses.title_ar AS clause_title_ar,

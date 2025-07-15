@@ -201,7 +201,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		requirement := &models.IncidentComplianceRequirement{
 			IncidentRegisterID:      id,
 			ComplianceRegisterID:    complianceRequirement.ComplianceClause.ComplianceRegisterID,
-			ComplianceRequirementID: *reqId,
+			ComplianceRequirementID: reqId,
 			CreatedByID:             currentUserID,
 		}
 		complianceRequirements = append(complianceRequirements, requirement)
@@ -643,7 +643,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 			// Create a new incident compliance requirement record
 			requirement := &models.IncidentComplianceRequirement{
 				IncidentRegisterID:      id,
-				ComplianceRequirementID: *newRequirementID,
+				ComplianceRequirementID: newRequirementID,
 				CreatedByID:             currentUserID,
 			}
 			requirementsToAdd = append(requirementsToAdd, requirement)

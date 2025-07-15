@@ -786,10 +786,11 @@ func (aais *AssetAssociatedItemService) UpdateClauses(assetID uint, currentUserI
 	for id, clause := range newClauses {
 		if !existingClauses[id] {
 			clausesToAdd = append(clausesToAdd, &models.AssetComplianceRequirement{
-				AssetRegisterID:    assetID,
-				ComplianceClauseID: &clause.ID,
-				CreatedBYID:        currentUserID,
-				CreatedAt:          now,
+				AssetRegisterID:      assetID,
+				ComplianceClauseID:   &clause.ID,
+				ComplianceRegisterID: clause.ComplianceRegisterID,
+				CreatedBYID:          currentUserID,
+				CreatedAt:            now,
 			})
 		}
 	}

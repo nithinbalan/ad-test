@@ -267,7 +267,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		requirement := &models.RiskComplianceRequirement{
 			RiskRegisterID:          id,
 			ComplianceRegisterID:    complianceRequirement.ComplianceClause.ComplianceRegisterID,
-			ComplianceRequirementID: *requirementID,
+			ComplianceRequirementID: requirementID,
 			CreatedByID:             currentUserID,
 		}
 		complianceRequirements = append(complianceRequirements, requirement)
@@ -832,7 +832,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			complianceRequirement := &models.RiskComplianceRequirement{
 				RiskRegisterID:          id,
 				ComplianceRegisterID:    req.ComplianceClause.ComplianceRegisterID,
-				ComplianceRequirementID: *newComplianceRequirementID,
+				ComplianceRequirementID: newComplianceRequirementID,
 				CreatedByID:             currentUserID,
 			}
 			complianceRequirementsToAdd = append(complianceRequirementsToAdd, complianceRequirement)

@@ -20,7 +20,7 @@ type DocumentAssociatedItemRepositoryInterface interface {
 	GetAllRisks(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemRiskListResponseDTO, error)
 	GetAllClauses(controlID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	GetClausesByDocumentID(controlID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
-	CreateDocumentClauses(clauses []*models.DocumentClause, tx ...utility.DatabaseTransaction) error
+	CreateDocumentClauses(clauses []*models.DocumentComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	DeleteDocumentClauses(controlID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 	GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error)
 }
@@ -647,7 +647,7 @@ func (repo *DocumentAssociatedItemRepository) GetAllClauses(controlID uint, para
 
 	var clauseList []commonDTOs.AssociatedClauseRowDTO
 	var totalCount int64
-	query := repo.db.Table("document_clauses").
+	query := repo.db.Table("document_compliance_requirements").
 		Select(`
 			compliance_clauses.title_en AS clause_title_en,
 			compliance_clauses.title_ar AS clause_title_ar,
@@ -658,10 +658,10 @@ func (repo *DocumentAssociatedItemRepository) GetAllClauses(controlID uint, para
 			compliance_register.title_ar AS compliance_register_title_ar
 		`).
 		Joins(`
-			LEFT JOIN compliance_clauses ON document_clauses.compliance_clause_id = compliance_clauses.id
-			LEFT JOIN compliance_register ON document_clauses.compliance_register_id = compliance_register.id
+			LEFT JOIN compliance_clauses ON document_compliance_requirements.compliance_clause_id = compliance_clauses.id
+			LEFT JOIN compliance_register ON document_compliance_requirements.compliance_register_id = compliance_register.id
 		`).
-		Where("document_clauses.document_id = ?", controlID)
+		Where("document_compliance_requirements.document_id = ?", controlID)
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -750,7 +750,7 @@ func (repo *DocumentAssociatedItemRepository) GetClausesByDocumentID(controlID u
 
 	var clauseIDs []uint
 	if err := db.
-		Model(&models.DocumentClause{}).
+		Model(&models.DocumentComplianceRequirement{}).
 		Where("document_id = ?", controlID).
 		Pluck("compliance_clause_id", &clauseIDs).Error; err != nil {
 		return nil, err
@@ -758,7 +758,7 @@ func (repo *DocumentAssociatedItemRepository) GetClausesByDocumentID(controlID u
 
 	return clauseIDs, nil
 }
-func (repo *DocumentAssociatedItemRepository) CreateDocumentClauses(clauses []*models.DocumentClause, tx ...utility.DatabaseTransaction) error {
+func (repo *DocumentAssociatedItemRepository) CreateDocumentClauses(clauses []*models.DocumentComplianceRequirement, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -778,7 +778,7 @@ func (repo *DocumentAssociatedItemRepository) DeleteDocumentClauses(controlID ui
 	}
 	if err := db.
 		Where("document_id = ? AND compliance_clause_id IN ?", controlID, clauseIDs).
-		Delete(&models.DocumentClause{}).Error; err != nil {
+		Delete(&models.DocumentComplianceRequirement{}).Error; err != nil {
 		return err
 	}
 

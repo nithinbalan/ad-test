@@ -21,7 +21,7 @@ type RiskAssociatedItemRepositoryInterface interface {
 	GetAllAssets(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemAssetListResponseDTO, error)
 	GetAllThreats(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemThreatListResponseDTO, error)
 	GetAllClauses(riskID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
-	CreateRiskClauses(clauses []*models.RiskClause, tx ...utility.DatabaseTransaction) error
+	CreateRiskClauses(clauses []*models.RiskComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	DeleteRiskClauses(riskID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 	GetClausesByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 }
@@ -937,7 +937,7 @@ func (repo *RiskAssociatedItemRepository) GetAllClauses(riskID uint, params *com
 
 	var clauseList []commonDTOs.AssociatedClauseRowDTO
 	var totalCount int64
-	query := repo.db.Table("risk_clauses").
+	query := repo.db.Table("risk_compliance_requirements").
 		Select(`
 			compliance_clauses.title_en AS clause_title_en,
 			compliance_clauses.title_ar AS clause_title_ar,
@@ -948,10 +948,10 @@ func (repo *RiskAssociatedItemRepository) GetAllClauses(riskID uint, params *com
 			compliance_register.title_ar AS compliance_register_title_ar
 		`).
 		Joins(`
-			LEFT JOIN compliance_clauses ON risk_clauses.compliance_clause_id = compliance_clauses.id
-			LEFT JOIN compliance_register ON risk_clauses.compliance_register_id = compliance_register.id
+			LEFT JOIN compliance_clauses ON risk_compliance_requirements.compliance_clause_id = compliance_clauses.id
+			LEFT JOIN compliance_register ON risk_compliance_requirements.compliance_register_id = compliance_register.id
 		`).
-		Where("risk_clauses.risk_register_id = ?", riskID)
+		Where("risk_compliance_requirements.risk_register_id = ?", riskID)
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -1040,7 +1040,7 @@ func (repo *RiskAssociatedItemRepository) GetClausesByRiskID(riskID uint, tx ...
 
 	var clauseIDs []uint
 	if err := db.
-		Model(&models.RiskClause{}).
+		Model(&models.RiskComplianceRequirement{}).
 		Where("risk_register_id = ?", riskID).
 		Pluck("compliance_clause_id", &clauseIDs).Error; err != nil {
 		return nil, err
@@ -1049,7 +1049,7 @@ func (repo *RiskAssociatedItemRepository) GetClausesByRiskID(riskID uint, tx ...
 	return clauseIDs, nil
 }
 
-func (repo *RiskAssociatedItemRepository) CreateRiskClauses(clauses []*models.RiskClause, tx ...utility.DatabaseTransaction) error {
+func (repo *RiskAssociatedItemRepository) CreateRiskClauses(clauses []*models.RiskComplianceRequirement, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -1069,7 +1069,7 @@ func (repo *RiskAssociatedItemRepository) DeleteRiskClauses(riskID uint, clauseI
 	}
 	if err := db.
 		Where("risk_register_id = ? AND compliance_clause_id IN ?", riskID, clauseIDs).
-		Delete(&models.RiskClause{}).Error; err != nil {
+		Delete(&models.RiskComplianceRequirement{}).Error; err != nil {
 		return err
 	}
 

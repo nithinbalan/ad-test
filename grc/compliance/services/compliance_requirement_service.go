@@ -250,7 +250,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	for _, strategicObjectiveID := range complianceRequirementFormDTO.StrategicObjectiveIDs {
 		strategicObjective := &models.ComplianceRequirementStrategicObjective{
 			ComplianceRegisterID:    complianceID,
-			ComplianceRequirementID: id,
+			ComplianceRequirementID: &id,
 			StrategicObjectiveID:    *strategicObjectiveID,
 			CreatedByID:             currentUserID,
 		}
@@ -552,7 +552,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		if _, exists := existingStrategicObjectiveIDs[*newStrategicObjectiveID]; !exists {
 			// Create a new compliance strategic objective record
 			strategicObjective := &models.ComplianceRequirementStrategicObjective{
-				ComplianceRequirementID: id,
+				ComplianceRequirementID: &id,
 				StrategicObjectiveID:    *newStrategicObjectiveID,
 				CreatedByID:             currentUserID,
 			}
