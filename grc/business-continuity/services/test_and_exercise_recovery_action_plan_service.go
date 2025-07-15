@@ -230,7 +230,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID
 		redirectUrl := fmt.Sprintf("%s/business-continuity/test-and-exercise/%d/action-plans?action_plan_id=%d", appURL, testAndExerciseID, id)
 		if recoveryActionPlanFormDTO.IsRecovery {
 			urlParam = fmt.Sprintf(`{"test_and_exercise_id":%d, "recovery_action_plan_id":%d}`, testAndExerciseID, id)
-			redirectUrl = fmt.Sprintf("%sbusiness-continuity/test-and-exercise/%d/recovery-action-plans?action_plan_id=%d", appURL, testAndExerciseID, id)
+			redirectUrl = fmt.Sprintf("%s/business-continuity/test-and-exercise/%d/recovery-action-plans?action_plan_id=%d", appURL, testAndExerciseID, id)
 		}
 		queryParam := ""
 		entity := "test-and-exercise-action-plan"
@@ -433,7 +433,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 		redirectUrl := fmt.Sprintf("%s/business-continuity/test-and-exercise/%d/action-plans?action_plan_id=%d", appURL, testAndExerciseID, id)
 		if recoveryActionPlanFormDTO.IsRecovery {
 			urlParam = fmt.Sprintf(`{"test_and_exercise_id":%d, "recovery_action_plan_id":%d}`, testAndExerciseID, id)
-			redirectUrl = fmt.Sprintf("%sbusiness-continuity/test-and-exercise/%d/recovery-action-plans?action_plan_id=%d", appURL, testAndExerciseID, id)
+			redirectUrl = fmt.Sprintf("%s/business-continuity/test-and-exercise/%d/recovery-action-plans?action_plan_id=%d", appURL, testAndExerciseID, id)
 		}
 
 		// sends notification if responsible user has changed

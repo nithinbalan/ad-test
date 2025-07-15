@@ -228,7 +228,7 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Create(TestAndExerciseID 
 			redirectUrl := fmt.Sprintf("%s/business-continuity/test-and-exercise/%d/action-plans?action_plan_id=%d", appURL, TestAndExerciseID, TaeRecoveryActionPlanID)
 			if actionPlan.IsRecovery {
 				urlParam = fmt.Sprintf(`{"test_and_exercise_id":%d, "recovery_action_plan_id":%d}`, TestAndExerciseID, TaeRecoveryActionPlanID)
-				redirectUrl = fmt.Sprintf("%sbusiness-continuity/test-and-exercise/%d/recovery-action-plans?action_plan_id=%d", appURL, TestAndExerciseID, TaeRecoveryActionPlanID)
+				redirectUrl = fmt.Sprintf("%s/business-continuity/test-and-exercise/%d/recovery-action-plans?action_plan_id=%d", appURL, TestAndExerciseID, TaeRecoveryActionPlanID)
 			}
 			queryParam := ""
 			entity := "test-and-exercise-action-plan"
@@ -608,7 +608,7 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Approve(testAndExerciseID
 			urlParam = fmt.Sprintf(`{"test_and_exercise_id":%d, "recovery_action_plan_id":%d}`, testAndExerciseID, actionPlanID)
 			notificationHeadingEn = "Test And Exercise Recovery Action Plan Status Update"
 			notificationHeadingAr = "تحديث حالة خطة عمل التعافي من الاختبار والتمرين"
-			redirectUrl = fmt.Sprintf("%sbusiness-continuity/test-and-exercise/%d/recovery-action-plans?action_plan_id=%d", appURL, testAndExerciseID, id)
+			redirectUrl = fmt.Sprintf("%s/business-continuity/test-and-exercise/%d/recovery-action-plans?action_plan_id=%d", appURL, testAndExerciseID, id)
 		}
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
@@ -772,7 +772,7 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Revert(testAndExerciseID 
 			urlParam = fmt.Sprintf(`{"test_and_exercise_id":%d, "recovery_action_plan_id":%d}`, testAndExerciseID, actionPlanID)
 			notificationHeadingEn = "Test And Exercise Recovery Action Plan Status Update"
 			notificationHeadingAr = "تحديث حالة خطة عمل التعافي من الاختبار والتمرين"
-			redirectUrl = fmt.Sprintf("%sbusiness-continuity/test-and-exercise/%d/recovery-action-plans?action_plan_id=%d", appURL, testAndExerciseID, id)
+			redirectUrl = fmt.Sprintf("%s/business-continuity/test-and-exercise/%d/recovery-action-plans?action_plan_id=%d", appURL, testAndExerciseID, id)
 		}
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
