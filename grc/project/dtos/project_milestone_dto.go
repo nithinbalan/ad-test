@@ -10,10 +10,6 @@ import (
 type ProjectMilestoneListDTO struct {
 	ID                          uint    `json:"id"`
 	ProjectID                   uint    `json:"project_id"`
-	ProjectTitleEn              string  `json:"project_title_en"`
-	ProjectTitleAr              string  `json:"project_title_ar"`
-	ProjectDescriptionEn        *string `json:"project_description_en"`
-	ProjectDescriptionAr        *string `json:"project_description_ar"`
 	TitleEn                     string  `json:"title_en"`
 	TitleAr                     string  `json:"title_ar"`
 	DescriptionEn               *string `json:"description_en"`
@@ -78,7 +74,6 @@ type ProjectMilestoneDetailDTO struct {
 }
 
 type ProjectMilestoneFormDTO struct {
-	ProjectID                uint    `json:"project_id" binding:"required"`
 	TitleEn                  string  `json:"title_en" binding:"required"`
 	TitleAr                  string  `json:"title_ar" binding:"required"`
 	DescriptionEn            *string `json:"description_en"`
