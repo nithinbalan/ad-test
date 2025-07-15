@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
+	commonDTOs "jethur/grc/common/dtos"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -358,7 +360,7 @@ func (caic *ControlAssociatedItemController) UpdateClauses(c *gin.Context) {
 }
 
 func (caic *ControlAssociatedItemController) CreateControlRisk(c *gin.Context) {
-	var input organizationDTOs.AssociatedRiskMapDTO
+	var input commonDTOs.AssociatedRiskMapDTO
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return

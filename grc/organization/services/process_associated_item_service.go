@@ -20,6 +20,8 @@ type ProcessAssociatedItemServiceInterface interface {
 	GetAllAssets(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemAssetListResponseDTO, error)
 	GetAllClauses(processID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(processID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
+	CreateProcessRisk(processID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
+	DeleteProcessRisk(processID uint, riskID uint) error
 }
 
 type ProcessAssociatedItemService struct {
@@ -320,4 +322,73 @@ func (pais *ProcessAssociatedItemService) validateClauseIDs(clauseIDs []uint, tx
 	}
 
 	return clauses, nil
+}
+
+func (pais *ProcessAssociatedItemService) CreateProcessRisk(processID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
+	if err := pais.validateRiskIDs(processID, dto.RiskIDs); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.RiskProcess
+	currentTime := time.Now()
+
+	for _, riskID := range dto.RiskIDs {
+		mappings = append(mappings, &models.RiskProcess{
+			RiskRegisterID: riskID,
+			ProcessID:      processID,
+			CreatedByID:    userID,
+			CreatedAt:      currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateProcessRisk(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *ProcessAssociatedItemService) DeleteProcessRisk(processID uint, riskID uint) error {
+	// Validate control existence
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", processID), "not_exist", "control_id")
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteProcessRisk(processID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *ProcessAssociatedItemService) validateRiskIDs(processID uint, riskIDs []uint) error {
+	if len(riskIDs) == 0 {
+		return utility.NewValidationError(fmt.Errorf("no risks provided"), "required", "risk_ids")
+	}
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", processID), "not_exist", "control_id")
+	}
+	seen := make(map[uint]bool)
+	for _, id := range riskIDs {
+		alreadyMapped, err := pais.repo.IsRiskMappedToProcess(processID, id)
+		if err != nil {
+			return fmt.Errorf("failed to check existing mapping: %v", err)
+		}
+		if alreadyMapped {
+			return utility.NewValidationError(fmt.Errorf("risk ID %d already mapped to this control", id), "duplicate", "risk_ids")
+		}
+		if seen[id] {
+			return utility.NewValidationError(fmt.Errorf("duplicate risk ID: %d", id), "duplicate", "risk_ids")
+		}
+		//need to update
+		if _, err := pais.processSvc.GetByID(id); err != nil {
+			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", id), "not_exist", "control_ids")
+		}
+		seen[id] = true
+	}
+	return nil
 }

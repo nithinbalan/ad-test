@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	"jethur/grc/models"
@@ -19,6 +20,8 @@ type ComplianceAssociatedItemServiceInterface interface {
 	GetAllStrategicObjectives(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemStrategicObjectiveListResponseDTO, error)
 	CreateComplianceControls(complianceID, userID uint, dto *complianceDTOs.ComplianceRegisterControlMapDTO) error
 	DeleteComplianceControl(complianceID, controlID uint) error
+	CreateComplianceRisk(complianceID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
+	DeleteComplianceRisk(complianceID uint, riskID uint) error
 }
 
 // Service and implementations
@@ -150,6 +153,76 @@ func (cais *ComplianceAssociatedItemService) validateControlIDs(complianceID uin
 		if seen[id] {
 			return utility.NewValidationError(fmt.Errorf("duplicate control ID: %d", id), "duplicate", "control_ids")
 		}
+		if _, err := cais.controlSvc.GetByID(id); err != nil {
+			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", id), "not_exist", "control_ids")
+		}
+		seen[id] = true
+	}
+	return nil
+}
+
+func (cais *ComplianceAssociatedItemService) CreateComplianceRisk(complianceID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
+	if err := cais.validateRiskIDs(complianceID, dto.RiskIDs); err != nil {
+		return err
+	}
+
+	tx := cais.repo.BeginTransaction()
+	var mappings []*models.RiskComplianceRequirement
+	currentTime := time.Now()
+
+	for _, riskID := range dto.RiskIDs {
+		mappings = append(mappings, &models.RiskComplianceRequirement{
+			RiskRegisterID:          riskID,
+			ComplianceRegisterID:    complianceID,
+			ComplianceRequirementID: complianceID, // need to make null
+			CreatedByID:             userID,
+			CreatedAt:               currentTime,
+		})
+	}
+
+	if err := cais.repo.CreateComplianceRisk(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (cais *ComplianceAssociatedItemService) DeleteComplianceRisk(complianceID uint, riskID uint) error {
+	// Validate control existence
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_id")
+	}
+
+	tx := cais.repo.BeginTransaction()
+
+	if err := cais.repo.DeleteComplianceRisk(complianceID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (cais *ComplianceAssociatedItemService) validateRiskIDs(complianceID uint, riskIDs []uint) error {
+	if len(riskIDs) == 0 {
+		return utility.NewValidationError(fmt.Errorf("no risks provided"), "required", "risk_ids")
+	}
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_id")
+	}
+	seen := make(map[uint]bool)
+	for _, id := range riskIDs {
+		alreadyMapped, err := cais.repo.IsRiskMappedToCompliance(complianceID, id)
+		if err != nil {
+			return fmt.Errorf("failed to check existing mapping: %v", err)
+		}
+		if alreadyMapped {
+			return utility.NewValidationError(fmt.Errorf("risk ID %d already mapped to this control", id), "duplicate", "risk_ids")
+		}
+		if seen[id] {
+			return utility.NewValidationError(fmt.Errorf("duplicate risk ID: %d", id), "duplicate", "risk_ids")
+		}
+		// need to change
 		if _, err := cais.controlSvc.GetByID(id); err != nil {
 			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", id), "not_exist", "control_ids")
 		}

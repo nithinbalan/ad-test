@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
@@ -17,7 +18,7 @@ type ControlAssociatedItemServiceInterface interface {
 	GetAllAssociatedCounts(controlID uint) (*organizationDTOs.ControlAssociatedItemsCountResponseDTO, error)
 	GetAllClauses(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(controlID uint, currentUserID uint, formDTO *organizationDTOs.ControlClauseFormDTO) error
-	CreateControlRisk(controlID uint, userID uint, dto *organizationDTOs.AssociatedRiskMapDTO) error
+	CreateControlRisk(controlID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
 	DeleteControlRisk(controlID uint, riskID uint) error
 }
 
@@ -243,8 +244,8 @@ func (cais *ControlAssociatedItemService) validateClauseIDs(clauseIDs []uint, tx
 	return clauses, nil
 }
 
-func (cais *ControlAssociatedItemService) CreateControlRisk(controlID, userID uint, dto *organizationDTOs.AssociatedRiskMapDTO) error {
-	if err := cais.validateControlIDs(controlID, dto.RiskIDs); err != nil {
+func (cais *ControlAssociatedItemService) CreateControlRisk(controlID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
+	if err := cais.validateRiskIDs(controlID, dto.RiskIDs); err != nil {
 		return err
 	}
 
@@ -284,7 +285,7 @@ func (cais *ControlAssociatedItemService) DeleteControlRisk(controlID uint, risk
 	return tx.Commit()
 }
 
-func (cais *ControlAssociatedItemService) validateControlIDs(controlID uint, riskIDs []uint) error {
+func (cais *ControlAssociatedItemService) validateRiskIDs(controlID uint, riskIDs []uint) error {
 	if len(riskIDs) == 0 {
 		return utility.NewValidationError(fmt.Errorf("no risks provided"), "required", "risk_ids")
 	}

@@ -277,3 +277,6 @@ type AssociatedItemClauseListQueryParamsDTO struct {
 	Page     int
 	PageSize int
 }
+type AssociatedRiskMapDTO struct {
+	RiskIDs []uint `json:"risk_ids" binding:"required"`
+}

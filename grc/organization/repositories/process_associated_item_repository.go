@@ -24,6 +24,9 @@ type ProcessAssociatedItemRepositoryInterface interface {
 	GetClausesByProcessID(processID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 	CreateProcessClauses(clauses []*models.ProcessClause, tx ...utility.DatabaseTransaction) error
 	DeleteProcessClauses(processID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
+	CreateProcessRisk(risks []*models.RiskProcess, tx ...utility.DatabaseTransaction) error
+	DeleteProcessRisk(processID uint, riskID uint, tx ...utility.DatabaseTransaction) error
+	IsRiskMappedToProcess(processID uint, riskID uint) (bool, error)
 }
 
 type ProcessAssociatedItemRepository struct {
@@ -799,4 +802,36 @@ func (repo *ProcessAssociatedItemRepository) DeleteProcessClauses(processID uint
 	}
 
 	return nil
+}
+
+func (repo *ProcessAssociatedItemRepository) CreateProcessRisk(risks []*models.RiskProcess, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&risks).Error
+}
+
+func (repo *ProcessAssociatedItemRepository) DeleteProcessRisk(processID uint, riskId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("risk_register_id = ? AND process_id = ?", riskId, processID).
+		Delete(&models.RiskProcess{}).
+		Error
+}
+
+func (repo *ProcessAssociatedItemRepository) IsRiskMappedToProcess(processID uint, riskId uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Model(&models.RiskProcess{}).
+		Where("risk_register_id = ? AND process_id = ?", riskId, processID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

@@ -20,6 +20,9 @@ type ComplianceAssociatedItemRepositoryInterface interface {
 	CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceControlMapping(complianceID, controlID uint, tx ...utility.DatabaseTransaction) error
 	IsControlMappedToCompliance(complianceID, controlID uint) (bool, error)
+	CreateComplianceRisk(risks []*models.RiskComplianceRequirement, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceRisk(complianceID uint, riskID uint, tx ...utility.DatabaseTransaction) error
+	IsRiskMappedToCompliance(complianceID uint, riskID uint) (bool, error)
 }
 
 type ComplianceAssociatedItemRepository struct {
@@ -526,6 +529,38 @@ func (repo *ComplianceAssociatedItemRepository) IsControlMappedToCompliance(comp
 	err := repo.db.
 		Model(&models.ComplianceControl{}).
 		Where("compliance_register_id = ? AND control_id = ?", complianceID, controlID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *ComplianceAssociatedItemRepository) CreateComplianceRisk(risks []*models.RiskComplianceRequirement, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&risks).Error
+}
+
+func (repo *ComplianceAssociatedItemRepository) DeleteComplianceRisk(complianceID uint, riskId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("risk_register_id = ? AND compliance_register_id = ?", riskId, complianceID).
+		Delete(&models.RiskComplianceRequirement{}).
+		Error
+}
+
+func (repo *ComplianceAssociatedItemRepository) IsRiskMappedToCompliance(complianceID uint, riskId uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Model(&models.RiskComplianceRequirement{}).
+		Where("risk_register_id = ? AND compliance_register_id = ?", riskId, complianceID).
 		Count(&count).Error
 
 	if err != nil {
