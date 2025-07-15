@@ -18,13 +18,13 @@ type StrategyProfile struct {
 	UpdatedAt         *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
 	// Relationships
-	StrategyProfileFocusAreas  []StrategyProfileFocusArea  `gorm:"foreignKey:StrategyProfileID"`
-	StrategyProfileGoals       []StrategyProfileGoal       `gorm:"foreignKey:StrategyProfileID"`
-	StrategyProfileObjectives  []StrategyProfileObjective  `gorm:"foreignKey:StrategyProfileID"`
-	StrategyProfileInitiatives []StrategyProfileInitiative `gorm:"foreignKey:StrategyProfileID"`
-	StrategyProfileProjects    []StrategyProfileProject    `gorm:"foreignKey:StrategyProfileID"`
-	StrategyProfileMilestones  []StrategyProfileMilestone  `gorm:"foreignKey:StrategyProfileID"`
-	StrategyProfileActionPlans []StrategyProfileActionPlan `gorm:"foreignKey:StrategyProfileID"`
+	StrategyProfileFocusAreas          []StrategyProfileFocusArea          `gorm:"foreignKey:StrategyProfileID"`
+	StrategyProfileGoals               []StrategyProfileGoal               `gorm:"foreignKey:StrategyProfileID"`
+	StrategyProfileStrategicObjectives []StrategyProfileStrategicObjective `gorm:"foreignKey:StrategyProfileID"`
+	StrategyProfileInitiatives         []StrategyProfileInitiative         `gorm:"foreignKey:StrategyProfileID"`
+	StrategyProfileProjects            []StrategyProfileProject            `gorm:"foreignKey:StrategyProfileID"`
+	StrategyProfileMilestones          []StrategyProfileMilestone          `gorm:"foreignKey:StrategyProfileID"`
+	StrategyProfileActionPlans         []StrategyProfileActionPlan         `gorm:"foreignKey:StrategyProfileID"`
 
 	ResponsibleUser *User `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser   *User `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`

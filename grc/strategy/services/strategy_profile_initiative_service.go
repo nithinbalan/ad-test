@@ -121,13 +121,13 @@ func (sps *StrategyProfileInitiativeService) Create(strategyProfileID uint, curr
 		StrategyProfileID:          strategyProfileID,
 		StrategyProfileFocusAreaID: strategyProfileInitiativeFormDTO.StrategyProfileFocusAreaID,
 		StrategyProfileGoalID:      strategyProfileInitiativeFormDTO.StrategyProfileGoalID,
-		StrategyProfileObjectiveID: strategyProfileInitiativeFormDTO.StrategyProfileObjectiveID,
-		Title:                      strategyProfileInitiativeFormDTO.Title,
-		Description:                strategyProfileInitiativeFormDTO.Description,
-		StartDate:                  dates.StartDate,
-		EndDate:                    dates.EndDate,
-		ResponsibleUserID:          strategyProfileInitiativeFormDTO.ResponsibleUserID,
-		CreatedBYID:                currentUserID,
+		//StrategyProfileObjectiveID: strategyProfileInitiativeFormDTO.StrategyProfileObjectiveID,
+		Title:             strategyProfileInitiativeFormDTO.Title,
+		Description:       strategyProfileInitiativeFormDTO.Description,
+		StartDate:         dates.StartDate,
+		EndDate:           dates.EndDate,
+		ResponsibleUserID: strategyProfileInitiativeFormDTO.ResponsibleUserID,
+		CreatedBYID:       currentUserID,
 	}
 	id, err := sps.repo.Create(strategyProfileInitiative, tx)
 	if err != nil {

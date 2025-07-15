@@ -13,7 +13,7 @@ import (
 
 type ProjectActionPlanRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(currentUserID uint, params *projectDTOs.ProjectActionPlanListQueryParamsDTO) (*projectDTOs.ProjectActionPlanListResponseDTO, error)
+	GetAll(projectID uint, params *projectDTOs.ProjectActionPlanListQueryParamsDTO) (*projectDTOs.ProjectActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.ProjectActionPlan, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectActionPlan, error)
 	Create(projectActionPlan *models.ProjectActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
@@ -36,7 +36,7 @@ func (repo *ProjectActionPlanRepository) BeginTransaction() utility.DatabaseTran
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *ProjectActionPlanRepository) GetAll(currentUserID uint, params *projectDTOs.ProjectActionPlanListQueryParamsDTO) (*projectDTOs.ProjectActionPlanListResponseDTO, error) {
+func (repo *ProjectActionPlanRepository) GetAll(projectID uint, params *projectDTOs.ProjectActionPlanListQueryParamsDTO) (*projectDTOs.ProjectActionPlanListResponseDTO, error) {
 
 	var projectActionPlans []*projectDTOs.ProjectActionPlanListDTO
 	var totalCount int64
@@ -45,6 +45,8 @@ func (repo *ProjectActionPlanRepository) GetAll(currentUserID uint, params *proj
 		Select(`
         project_action_plans.*,
 		CONVERT(VARCHAR, project_action_plans.target_date, 23) AS target_date,
+		projects.title_en AS project_title_en,
+		projects.title_ar AS project_title_ar,
         project_milestones.title_en AS project_milestone_title_en,
         project_milestones.title_ar AS project_milestone_title_ar,
 		project_milestones.description_en AS project_milestone_description_en,
@@ -87,7 +89,13 @@ func (repo *ProjectActionPlanRepository) GetAll(currentUserID uint, params *proj
         LEFT JOIN users AS created_user ON created_user.id = project_action_plans.created_by_id
         LEFT JOIN users AS updated_user ON updated_user.id = project_action_plans.updated_by_id
         LEFT JOIN project_milestones ON project_milestones.id = project_action_plans.project_milestone_id
+		LEFT JOIN projects ON projects.id = project_action_plans.project_id
     `)
+
+		// Conditionally apply compliance ID filter
+	if projectID != 0 {
+		query = query.Where("project_action_plans.project_id = ?", projectID)
+	}
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -185,6 +193,7 @@ func (repo *ProjectActionPlanRepository) GetFullDetailsByID(id uint, tx ...utili
 
 	// Load the compliance action plan with all related data
 	result := db.
+		Preload("Project").
 		Preload("ProjectMilestone").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").

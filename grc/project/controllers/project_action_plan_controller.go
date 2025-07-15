@@ -24,20 +24,20 @@ func NewProjectActionPlanController(service services.ProjectActionPlanServiceInt
 }
 
 func (papc *ProjectActionPlanController) GetAllProjectActionPlans(c *gin.Context) {
-	projectMilestoneIDStr := c.Param("projectMilestoneId")
+	projectIDStr := c.Param("projectId")
 
-	var projectMilestoneID uint64
+	var projectID uint64
 	var err error
 
-	// Check if complianceID is provided in the URL
-	if projectMilestoneIDStr != "" {
-		projectMilestoneID, err = strconv.ParseUint(projectMilestoneIDStr, 10, 64)
+	// Check if projectID is provided in the URL
+	if projectIDStr != "" {
+		projectID, err = strconv.ParseUint(projectIDStr, 10, 64)
 		if err != nil {
 			utility.SendNotFoundErrResp(c)
 			return
 		}
 	} else {
-		projectMilestoneID = 0
+		projectID = 0
 	}
 
 	sort := c.Query("sort_order")
@@ -77,7 +77,7 @@ func (papc *ProjectActionPlanController) GetAllProjectActionPlans(c *gin.Context
 		QuickFilter: quickFilter,
 	}
 
-	projectActionPlans, err := papc.service.GetAll(uint(projectMilestoneID), &queryParams)
+	projectActionPlans, err := papc.service.GetAll(uint(projectID), &queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -93,7 +93,15 @@ func (papc *ProjectActionPlanController) GetAllProjectActionPlans(c *gin.Context
 }
 
 func (papc *ProjectActionPlanController) GetProjectActionPlanDetails(c *gin.Context) {
-	idStr := c.Param("id")
+	projectIDStr := c.Param("projectId")
+
+	projectID, err := strconv.ParseUint(projectIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	idStr := c.Param("actionPlanId")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -101,7 +109,7 @@ func (papc *ProjectActionPlanController) GetProjectActionPlanDetails(c *gin.Cont
 		return
 	}
 
-	projectActionPlan, err := papc.service.GetByID(uint(id))
+	projectActionPlan, err := papc.service.GetFullDetailsByID(uint(projectID), uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -119,6 +127,12 @@ func (papc *ProjectActionPlanController) GetProjectActionPlanDetails(c *gin.Cont
 func (papc *ProjectActionPlanController) CreateProjectActionPlan(c *gin.Context) {
 	var ProjectActionPlanFormDTO projectDTOs.ProjectActionPlanFormDTO
 
+	projectID, err := strconv.ParseUint(c.Param("projectId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	if err := c.ShouldBindJSON(&ProjectActionPlanFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -130,8 +144,7 @@ func (papc *ProjectActionPlanController) CreateProjectActionPlan(c *gin.Context)
 		return
 	}
 
-	id, err := papc.service.Create(currentUserID, &ProjectActionPlanFormDTO)
-
+	id, err := papc.service.Create(uint(projectID), currentUserID, &ProjectActionPlanFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -152,9 +165,13 @@ func (papc *ProjectActionPlanController) CreateProjectActionPlan(c *gin.Context)
 func (papc *ProjectActionPlanController) UpdateProjectActionPlan(c *gin.Context) {
 	var ProjectActionPlanFormDTO projectDTOs.ProjectActionPlanFormDTO
 
-	idStr := c.Param("id")
+	projectID, err := strconv.ParseUint(c.Param("projectId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	id, err := strconv.ParseUint(c.Param("actionPlanId"), 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -171,7 +188,7 @@ func (papc *ProjectActionPlanController) UpdateProjectActionPlan(c *gin.Context)
 		return
 	}
 
-	err = papc.service.Update(uint(id), currentUserID, &ProjectActionPlanFormDTO)
+	err = papc.service.Update(uint(projectID), uint(id), currentUserID, &ProjectActionPlanFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -194,6 +211,12 @@ func (papc *ProjectActionPlanController) DeleteProjectActionPlans(c *gin.Context
 		IDs []uint `json:"ids"`
 	}
 
+	projectID, err := strconv.ParseUint(c.Param("projectId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	if err := c.ShouldBindJSON(&request); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -205,7 +228,7 @@ func (papc *ProjectActionPlanController) DeleteProjectActionPlans(c *gin.Context
 		return
 	}
 
-	failedIDs, err := papc.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := papc.service.Delete(uint(projectID), request.IDs, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

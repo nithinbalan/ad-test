@@ -97,7 +97,7 @@ func (pc *ProjectController) GetAllProjects(c *gin.Context) {
 }
 
 func (pc *ProjectController) GetProjectDetails(c *gin.Context) {
-	idStr := c.Param("id")
+	idStr := c.Param("projectId")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -147,7 +147,7 @@ func (pc *ProjectController) CreateProject(c *gin.Context) {
 
 func (pc *ProjectController) UpdateProject(c *gin.Context) {
 	var form dtos.ProjectFormDTO
-	projectID, err := strconv.Atoi(c.Param("id"))
+	projectID, err := strconv.ParseUint(c.Param("projectId"), 10, 64)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return

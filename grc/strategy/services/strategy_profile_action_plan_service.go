@@ -138,10 +138,10 @@ func (spaps *StrategyProfileActionPlanService) Create(strategyProfileID uint, cu
 	}
 
 	actionPlan := &models.StrategyProfileActionPlan{
-		StrategyProfileID:           strategyProfileID,
-		StrategyProfileFocusAreaID:  strategyProfileActionPlanFormDTO.StrategyProfileFocusAreaID,
-		StrategyProfileGoalID:       strategyProfileActionPlanFormDTO.StrategyProfileGoalID,
-		StrategyProfileObjectiveID:  strategyProfileActionPlanFormDTO.StrategyProfileObjectiveID,
+		StrategyProfileID:          strategyProfileID,
+		StrategyProfileFocusAreaID: strategyProfileActionPlanFormDTO.StrategyProfileFocusAreaID,
+		StrategyProfileGoalID:      strategyProfileActionPlanFormDTO.StrategyProfileGoalID,
+		//StrategyProfileObjectiveID:  strategyProfileActionPlanFormDTO.StrategyProfileObjectiveID,
 		StrategyProfileInitiativeID: strategyProfileActionPlanFormDTO.StrategyProfileInitiativeID,
 		StrategyProfileProjectID:    strategyProfileActionPlanFormDTO.StrategyProfileProjectID,
 		StrategyProfileMilestoneID:  strategyProfileActionPlanFormDTO.StrategyProfileMilestoneID,
