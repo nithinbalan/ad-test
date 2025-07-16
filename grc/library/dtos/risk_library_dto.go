@@ -42,3 +42,26 @@ type RiskImpactCountDTO struct {
 	Impact string `json:"impact"`
 	Count  int    `json:"count"`
 }
+
+type KPILibraryDTO struct {
+	ID          uint    `json:"id"`
+	Category    string  `json:"category"`
+	Title       string  `json:"title"`
+	Description *string `json:"description"`
+	Unit        string  `json:"unit"`
+	Frequency   string  `json:"frequency"`
+}
+
+type KPILibraryListQueryParamsDTO struct {
+	Sort     string
+	SortBy   string
+	Keyword  string
+	Page     int
+	PageSize int
+	Export   bool
+}
+
+type KPILibraryListResponseDTO struct {
+	Items      []*KPILibraryDTO             `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
