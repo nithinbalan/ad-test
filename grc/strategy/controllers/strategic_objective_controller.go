@@ -34,6 +34,7 @@ func (soc *StrategicObjectiveController) GetAllStrategicObjectives(c *gin.Contex
 	allowedParams := []string{
 		"responsible_user_ids",
 		"responsible_unit_ids",
+		"strategic_objective_category_ids",
 		"review_user_ids",
 		"review_frequency_ids",
 	}
