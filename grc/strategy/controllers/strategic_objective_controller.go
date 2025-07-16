@@ -245,3 +245,18 @@ func (soc *StrategicObjectiveController) DeactivateStrategicObjectives(c *gin.Co
 
 	c.Status(http.StatusOK)
 }
+
+func (soc *StrategicObjectiveController) GetFocusAreasByStrategicObjectiveID(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	focusAreas, err := soc.service.GetFocusAreasByStrategicObjectiveID(uint(id))
+	if err != nil {
+		utility.SendInternalErrResp(soc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, focusAreas)
+}

@@ -27,6 +27,7 @@ type StrategicObjectiveRepositoryInterface interface {
 	ExistsByTitle(titleEn string, titleAr string) (bool, error)
 	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
 	GenerateReferenceNumber() (string, error)
+	GetFocusAreasByStrategicObjectiveID(strategicObjectiveID uint) ([]*dtos.StrategicObjectiveFocusAreaDTO, error)
 }
 
 // implementation
@@ -327,4 +328,18 @@ func (repo *StrategicObjectiveRepository) GenerateReferenceNumber() (string, err
 
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "SO", currentYear, lastReferenceID+1)
 	return newReferenceNumber, nil
+}
+
+func (repo *StrategicObjectiveRepository) GetFocusAreasByStrategicObjectiveID(strategicObjectiveID uint) ([]*dtos.StrategicObjectiveFocusAreaDTO, error) {
+	var focusAreas []*dtos.StrategicObjectiveFocusAreaDTO
+	err := repo.db.Table("strategy_profile_strategic_objectives as spso").
+		Select(`DISTINCT fa.id, fa.title_en, fa.title_ar, fa.status`).
+		Joins(`LEFT JOIN strategy_profile_focus_areas spfa ON spfa.id = spso.strategy_profile_focus_area_id`).
+		Joins(`LEFT JOIN focus_areas fa ON fa.id = spfa.focus_area_id`).
+		Where("spso.strategic_objective_id = ? AND fa.id IS NOT NULL", strategicObjectiveID).
+		Scan(&focusAreas).Error
+	if err != nil {
+		return nil, err
+	}
+	return focusAreas, nil
 }
