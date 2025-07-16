@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
@@ -29,6 +30,7 @@ type ProcessAssociatedItemService struct {
 	processSvc                     ProcessServiceInterface
 	controlImplementationStatusSvc ControlImplementationStatusServiceInterface
 	controlEfficiencyStatusService ControlEfficiencyStatusServiceInterface
+	riskValidationSvc              commonServices.RiskMappingServiceInterface
 }
 
 func NewProcessAssociatedItemService(
@@ -36,12 +38,14 @@ func NewProcessAssociatedItemService(
 	processSvc ProcessServiceInterface,
 	controlImplementationStatusSvc ControlImplementationStatusServiceInterface,
 	controlEfficiencyStatusService ControlEfficiencyStatusServiceInterface,
+	riskValidationSvc commonServices.RiskMappingServiceInterface,
 ) ProcessAssociatedItemServiceInterface {
 	return &ProcessAssociatedItemService{
 		repo:                           repo,
 		processSvc:                     processSvc,
 		controlImplementationStatusSvc: controlImplementationStatusSvc,
 		controlEfficiencyStatusService: controlEfficiencyStatusService,
+		riskValidationSvc:              riskValidationSvc,
 	}
 }
 
@@ -325,10 +329,12 @@ func (pais *ProcessAssociatedItemService) validateClauseIDs(clauseIDs []uint, tx
 }
 
 func (pais *ProcessAssociatedItemService) CreateProcessRisk(processID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
-	if err := pais.validateRiskIDs(processID, dto.RiskIDs); err != nil {
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", processID), "not_exist", "process_id")
+	}
+	if err := pais.riskValidationSvc.ValidateRiskMapping(processID, dto.RiskIDs, "risk_processes", "process_id"); err != nil {
 		return err
 	}
-
 	tx := pais.repo.BeginTransaction()
 	var mappings []*models.RiskProcess
 	currentTime := time.Now()
@@ -352,7 +358,7 @@ func (pais *ProcessAssociatedItemService) CreateProcessRisk(processID, userID ui
 func (pais *ProcessAssociatedItemService) DeleteProcessRisk(processID uint, riskID uint) error {
 	// Validate control existence
 	if _, err := pais.processSvc.GetByID(processID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", processID), "not_exist", "control_id")
+		return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", processID), "not_exist", "process_id")
 	}
 
 	tx := pais.repo.BeginTransaction()
@@ -363,32 +369,4 @@ func (pais *ProcessAssociatedItemService) DeleteProcessRisk(processID uint, risk
 	}
 
 	return tx.Commit()
-}
-
-func (pais *ProcessAssociatedItemService) validateRiskIDs(processID uint, riskIDs []uint) error {
-	if len(riskIDs) == 0 {
-		return utility.NewValidationError(fmt.Errorf("no risks provided"), "required", "risk_ids")
-	}
-	if _, err := pais.processSvc.GetByID(processID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", processID), "not_exist", "control_id")
-	}
-	seen := make(map[uint]bool)
-	for _, id := range riskIDs {
-		alreadyMapped, err := pais.repo.IsRiskMappedToProcess(processID, id)
-		if err != nil {
-			return fmt.Errorf("failed to check existing mapping: %v", err)
-		}
-		if alreadyMapped {
-			return utility.NewValidationError(fmt.Errorf("risk ID %d already mapped to this control", id), "duplicate", "risk_ids")
-		}
-		if seen[id] {
-			return utility.NewValidationError(fmt.Errorf("duplicate risk ID: %d", id), "duplicate", "risk_ids")
-		}
-		//need to update
-		if _, err := pais.processSvc.GetByID(id); err != nil {
-			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", id), "not_exist", "control_ids")
-		}
-		seen[id] = true
-	}
-	return nil
 }

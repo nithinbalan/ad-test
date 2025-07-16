@@ -10,6 +10,7 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	"time"
 
+	commonServices "jethur/grc/common/services"
 	"jethur/utility"
 )
 
@@ -32,6 +33,8 @@ type AssetAssociatedItemServiceInterface interface {
 	DeleteAssetThreatRisks(threatId uint, riskIDs []uint, currentUserID uint) ([]uint, error)
 	GetRiskAnalysis(assetID uint) ([]*assetDTOs.VulnerabilityDTO, error)
 	UpdateClauses(riskID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
+	CreateAssetRisk(assetID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
+	DeleteAssetRisk(assetID uint, riskID uint) error
 }
 
 // Service Implementation
@@ -43,6 +46,7 @@ type AssetAssociatedItemService struct {
 	vulnerabilitySvc               VulnerabilityServiceInterface
 	threatSvc                      ThreatServiceInterface
 	complianceClauseSvc            complianceServices.ComplianceClauseServiceInterface
+	riskValidationSvc              commonServices.RiskMappingServiceInterface
 }
 
 // Constructor Function
@@ -54,6 +58,7 @@ func NewAssetAssociatedItemService(
 	vulnerabilitySvc VulnerabilityServiceInterface,
 	threatSvc ThreatServiceInterface,
 	complianceClauseSvc complianceServices.ComplianceClauseServiceInterface,
+	riskValidationSvc commonServices.RiskMappingServiceInterface,
 ) AssetAssociatedItemServiceInterface {
 	return &AssetAssociatedItemService{
 		repo:                           repo,
@@ -63,6 +68,7 @@ func NewAssetAssociatedItemService(
 		vulnerabilitySvc:               vulnerabilitySvc,
 		threatSvc:                      threatSvc,
 		complianceClauseSvc:            complianceClauseSvc,
+		riskValidationSvc:              riskValidationSvc,
 	}
 }
 
@@ -848,4 +854,47 @@ func (aais *AssetAssociatedItemService) validateClauseIDs(clauseIDs []uint, tx .
 	}
 
 	return clauses, nil
+}
+
+func (aais *AssetAssociatedItemService) CreateAssetRisk(assetID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("asset does not exist for ID: %d", assetID), "not_exist", "asset_id")
+	}
+	if err := aais.riskValidationSvc.ValidateRiskMapping(assetID, dto.RiskIDs, "risk_assets", "asset_register_id"); err != nil {
+		return err
+	}
+	tx := aais.repo.BeginTransaction()
+	var mappings []*models.RiskAsset
+	currentTime := time.Now()
+
+	for _, riskID := range dto.RiskIDs {
+		mappings = append(mappings, &models.RiskAsset{
+			RiskRegisterID:  riskID,
+			AssetRegisterID: assetID,
+			CreatedByID:     userID,
+			CreatedAt:       currentTime,
+		})
+	}
+
+	if err := aais.repo.CreateAssetRisk(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (aais *AssetAssociatedItemService) DeleteAssetRisk(assetID uint, riskID uint) error {
+	// Validate control existence
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("asset does not exist for ID: %d", assetID), "not_exist", "asset_register_id")
+	}
+
+	tx := aais.repo.BeginTransaction()
+
+	if err := aais.repo.DeleteAssetRisk(assetID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }

@@ -24,6 +24,8 @@ type IncidentAssociatedItemRepositoryInterface interface {
 	GetClausesByIncidentID(incidentID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 	CreateIncidentClauses(clauses []*models.IncidentComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	DeleteIncidentClauses(incidentID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
+	CreateIncidentRisk(risks []*models.IncidentRisk, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentRisk(processID uint, riskID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type IncidentAssociatedItemRepository struct {
@@ -913,4 +915,23 @@ func (repo *IncidentAssociatedItemRepository) DeleteIncidentClauses(incidentID u
 	}
 
 	return nil
+}
+
+func (repo *IncidentAssociatedItemRepository) CreateIncidentRisk(risks []*models.IncidentRisk, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&risks).Error
+}
+
+func (repo *IncidentAssociatedItemRepository) DeleteIncidentRisk(incidentID uint, riskId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("risk_register_id = ? AND incident_register_id = ?", riskId, incidentID).
+		Delete(&models.IncidentRisk{}).
+		Error
 }

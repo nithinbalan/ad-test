@@ -22,7 +22,6 @@ type ComplianceAssociatedItemRepositoryInterface interface {
 	IsControlMappedToCompliance(complianceID, controlID uint) (bool, error)
 	CreateComplianceRisk(risks []*models.RiskComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceRisk(complianceID uint, riskID uint, tx ...utility.DatabaseTransaction) error
-	IsRiskMappedToCompliance(complianceID uint, riskID uint) (bool, error)
 }
 
 type ComplianceAssociatedItemRepository struct {
@@ -554,17 +553,4 @@ func (repo *ComplianceAssociatedItemRepository) DeleteComplianceRisk(complianceI
 		Where("risk_register_id = ? AND compliance_register_id = ?", riskId, complianceID).
 		Delete(&models.RiskComplianceRequirement{}).
 		Error
-}
-
-func (repo *ComplianceAssociatedItemRepository) IsRiskMappedToCompliance(complianceID uint, riskId uint) (bool, error) {
-	var count int64
-	err := repo.db.
-		Model(&models.RiskComplianceRequirement{}).
-		Where("risk_register_id = ? AND compliance_register_id = ?", riskId, complianceID).
-		Count(&count).Error
-
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
 }

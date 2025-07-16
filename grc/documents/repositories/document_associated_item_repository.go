@@ -23,6 +23,8 @@ type DocumentAssociatedItemRepositoryInterface interface {
 	CreateDocumentClauses(clauses []*models.DocumentComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	DeleteDocumentClauses(controlID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 	GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error)
+	CreateDocumentRisk(risks []*models.RiskAssociatedDocument, tx ...utility.DatabaseTransaction) error
+	DeleteDocumentRisk(documentID uint, riskID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type DocumentAssociatedItemRepository struct {
@@ -800,4 +802,22 @@ func (repo *DocumentAssociatedItemRepository) GetClausesByIDs(ids []uint, tx ...
 	}
 
 	return clauses, nil
+}
+func (repo *DocumentAssociatedItemRepository) CreateDocumentRisk(risks []*models.RiskAssociatedDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&risks).Error
+}
+
+func (repo *DocumentAssociatedItemRepository) DeleteDocumentRisk(documentID uint, riskId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("risk_register_id = ? AND document_id = ?", riskId, documentID).
+		Delete(&models.RiskAssociatedDocument{}).
+		Error
 }

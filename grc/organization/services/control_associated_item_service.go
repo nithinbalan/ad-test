@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
@@ -27,6 +28,7 @@ type ControlAssociatedItemService struct {
 	controlSvc                     ControlServiceInterface
 	controlImplementationStatusSvc ControlImplementationStatusServiceInterface
 	controlEfficiencyStatusService ControlEfficiencyStatusServiceInterface
+	riskValidationSvc              commonServices.RiskMappingServiceInterface
 }
 
 func NewControlAssociatedItemService(
@@ -34,12 +36,14 @@ func NewControlAssociatedItemService(
 	controlSvc ControlServiceInterface,
 	controlImplementationStatusSvc ControlImplementationStatusServiceInterface,
 	controlEfficiencyStatusService ControlEfficiencyStatusServiceInterface,
+	riskValidationSvc commonServices.RiskMappingServiceInterface,
 ) ControlAssociatedItemServiceInterface {
 	return &ControlAssociatedItemService{
 		repo:                           repo,
 		controlSvc:                     controlSvc,
 		controlImplementationStatusSvc: controlImplementationStatusSvc,
 		controlEfficiencyStatusService: controlEfficiencyStatusService,
+		riskValidationSvc:              riskValidationSvc,
 	}
 }
 
@@ -245,10 +249,12 @@ func (cais *ControlAssociatedItemService) validateClauseIDs(clauseIDs []uint, tx
 }
 
 func (cais *ControlAssociatedItemService) CreateControlRisk(controlID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
-	if err := cais.validateRiskIDs(controlID, dto.RiskIDs); err != nil {
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlID), "not_exist", "control_id")
+	}
+	if err := cais.riskValidationSvc.ValidateRiskMapping(controlID, dto.RiskIDs, "risk_controls", "control_id"); err != nil {
 		return err
 	}
-
 	tx := cais.repo.BeginTransaction()
 	var mappings []*models.RiskControl
 	currentTime := time.Now()
@@ -285,29 +291,29 @@ func (cais *ControlAssociatedItemService) DeleteControlRisk(controlID uint, risk
 	return tx.Commit()
 }
 
-func (cais *ControlAssociatedItemService) validateRiskIDs(controlID uint, riskIDs []uint) error {
-	if len(riskIDs) == 0 {
-		return utility.NewValidationError(fmt.Errorf("no risks provided"), "required", "risk_ids")
-	}
-	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlID), "not_exist", "control_id")
-	}
-	seen := make(map[uint]bool)
-	for _, id := range riskIDs {
-		alreadyMapped, err := cais.repo.IsRiskMappedToControl(controlID, id)
-		if err != nil {
-			return fmt.Errorf("failed to check existing mapping: %v", err)
-		}
-		if alreadyMapped {
-			return utility.NewValidationError(fmt.Errorf("risk ID %d already mapped to this control", id), "duplicate", "risk_ids")
-		}
-		if seen[id] {
-			return utility.NewValidationError(fmt.Errorf("duplicate risk ID: %d", id), "duplicate", "risk_ids")
-		}
-		if _, err := cais.controlSvc.GetByID(id); err != nil {
-			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", id), "not_exist", "control_ids")
-		}
-		seen[id] = true
-	}
-	return nil
-}
+// func (cais *ControlAssociatedItemService) validateRiskIDs(controlID uint, riskIDs []uint) error {
+// 	if len(riskIDs) == 0 {
+// 		return utility.NewValidationError(fmt.Errorf("no risks provided"), "required", "risk_ids")
+// 	}
+// 	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+// 		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlID), "not_exist", "control_id")
+// 	}
+// 	seen := make(map[uint]bool)
+// 	for _, id := range riskIDs {
+// 		alreadyMapped, err := cais.repo.IsRiskMappedToControl(controlID, id)
+// 		if err != nil {
+// 			return fmt.Errorf("failed to check existing mapping: %v", err)
+// 		}
+// 		if alreadyMapped {
+// 			return utility.NewValidationError(fmt.Errorf("risk ID %d already mapped to this control", id), "duplicate", "risk_ids")
+// 		}
+// 		if seen[id] {
+// 			return utility.NewValidationError(fmt.Errorf("duplicate risk ID: %d", id), "duplicate", "risk_ids")
+// 		}
+// 		if _, err := cais.controlSvc.GetByID(id); err != nil {
+// 			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", id), "not_exist", "control_ids")
+// 		}
+// 		seen[id] = true
+// 	}
+// 	return nil
+// }

@@ -187,7 +187,7 @@ func NewOrganizationModule(
 	controlTestController := controllers.NewControlTestController(controlTestSvc)
 
 	controlAssociatedItemRepo := repositories.NewControlAssociatedItemRepository(db)
-	controlAssociatedItemSvc := services.NewControlAssociatedItemService(controlAssociatedItemRepo, controlSvc, controlImplementationStatusSvc, controlEfficiencyStatusRepo)
+	controlAssociatedItemSvc := services.NewControlAssociatedItemService(controlAssociatedItemRepo, controlSvc, controlImplementationStatusSvc, controlEfficiencyStatusRepo, commonModule.RiskMappingValidationService)
 	controlAssociatedItemController := controllers.NewControlAssociatedItemController(controlAssociatedItemSvc)
 
 	controlReviewRepo := repositories.NewControlReviewRepository(db)
@@ -215,7 +215,7 @@ func NewOrganizationModule(
 	userTaskController := controllers.NewUserTaskController(userTaskSvc)
 
 	processAssociatedItemRepo := repositories.NewProcessAssociatedItemRepository(db)
-	processAssociatedItemSvc := services.NewProcessAssociatedItemService(processAssociatedItemRepo, processSvc, controlImplementationStatusSvc, controlEfficiencyStatusRepo)
+	processAssociatedItemSvc := services.NewProcessAssociatedItemService(processAssociatedItemRepo, processSvc, controlImplementationStatusSvc, controlEfficiencyStatusRepo, commonModule.RiskMappingValidationService)
 	processAssociatedItemController := controllers.NewProcessAssociatedItemController(processAssociatedItemSvc)
 
 	userDocumentTypeRepo := repositories.NewUserDocumentTypeRepository(db)

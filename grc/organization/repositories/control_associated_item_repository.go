@@ -23,7 +23,6 @@ type ControlAssociatedItemRepositoryInterface interface {
 	DeleteControlClauses(controlID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 	CreateControlRisk(risks []*models.RiskControl, tx ...utility.DatabaseTransaction) error
 	DeleteControlRisk(controlID uint, riskID uint, tx ...utility.DatabaseTransaction) error
-	IsRiskMappedToControl(controlID uint, riskID uint) (bool, error)
 }
 type ControlAssociatedItemRepository struct {
 	db *gorm.DB
@@ -623,17 +622,4 @@ func (repo *ControlAssociatedItemRepository) DeleteControlRisk(controlID uint, r
 		Where("risk_register_id = ? AND control_id = ?", riskId, controlID).
 		Delete(&models.RiskControl{}).
 		Error
-}
-
-func (repo *ControlAssociatedItemRepository) IsRiskMappedToControl(controlID uint, riskId uint) (bool, error) {
-	var count int64
-	err := repo.db.
-		Model(&models.RiskControl{}).
-		Where("risk_register_id = ? AND control_id = ?", riskId, controlID).
-		Count(&count).Error
-
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
 }

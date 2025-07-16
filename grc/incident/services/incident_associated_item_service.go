@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceServices "jethur/grc/compliance/services"
 	incidentDTOs "jethur/grc/incident/dtos"
 	incidentRepositories "jethur/grc/incident/repositories"
@@ -21,6 +22,8 @@ type IncidentAssociatedItemServiceInterface interface {
 	GetAllAssets(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemAssetListResponseDTO, error)
 	GetAllClauses(incidentID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(incidentID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
+	CreateIncidentRisk(incidentID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
+	DeleteIncidentRisk(incidentID uint, riskID uint) error
 }
 
 // Service and implementations
@@ -28,18 +31,21 @@ type IncidentAssociatedItemService struct {
 	repo                incidentRepositories.IncidentAssociatedItemRepositoryInterface
 	incidentRegisterSvc IncidentRegisterServiceInterface
 	clauseSvc           complianceServices.ComplianceClauseServiceInterface
+	riskValidationSvc   commonServices.RiskMappingServiceInterface
 }
 
 func NewIncidentAssociatedItemService(
 	repo incidentRepositories.IncidentAssociatedItemRepositoryInterface,
 	incidentRegisterSvc IncidentRegisterServiceInterface,
 	clauseSvc complianceServices.ComplianceClauseServiceInterface,
+	riskValidationSvc commonServices.RiskMappingServiceInterface,
 
 ) IncidentAssociatedItemServiceInterface {
 	return &IncidentAssociatedItemService{
 		repo:                repo,
 		incidentRegisterSvc: incidentRegisterSvc,
 		clauseSvc:           clauseSvc,
+		riskValidationSvc:   riskValidationSvc,
 	}
 }
 
@@ -202,4 +208,47 @@ func (iais *IncidentAssociatedItemService) validateClauseIDs(clauseIDs []uint, t
 	}
 
 	return clauses, nil
+}
+
+func (iais *IncidentAssociatedItemService) CreateIncidentRisk(incidentID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("Incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
+	}
+	if err := iais.riskValidationSvc.ValidateRiskMapping(incidentID, dto.RiskIDs, "incident_risks", "incident_register_id"); err != nil {
+		return err
+	}
+	tx := iais.repo.BeginTransaction()
+	var mappings []*models.IncidentRisk
+	currentTime := time.Now()
+
+	for _, riskID := range dto.RiskIDs {
+		mappings = append(mappings, &models.IncidentRisk{
+			RiskRegisterID:     riskID,
+			IncidentRegisterID: incidentID,
+			CreatedByID:        userID,
+			CreatedAt:          currentTime,
+		})
+	}
+
+	if err := iais.repo.CreateIncidentRisk(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (iais *IncidentAssociatedItemService) DeleteIncidentRisk(incidentID uint, riskID uint) error {
+	// Validate control existence
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("Incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
+	}
+
+	tx := iais.repo.BeginTransaction()
+
+	if err := iais.repo.DeleteIncidentRisk(incidentID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }

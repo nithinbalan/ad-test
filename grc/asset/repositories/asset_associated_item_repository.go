@@ -47,6 +47,8 @@ type AssetAssociatedItemRepositoryInterface interface {
 	CreateAssetClauses(clauses []*models.AssetComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	DeleteAssetClauses(assetID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 	GetClausesByAssetId(assetID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
+	CreateAssetRisk(risks []*models.RiskAsset, tx ...utility.DatabaseTransaction) error
+	DeleteAssetRisk(assetID uint, riskID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type AssetAssociatedItemRepository struct {
@@ -882,4 +884,22 @@ func (repo *AssetAssociatedItemRepository) DeleteAssetClauses(assetID uint, clau
 	}
 
 	return nil
+}
+func (repo *AssetAssociatedItemRepository) CreateAssetRisk(risks []*models.RiskAsset, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&risks).Error
+}
+
+func (repo *AssetAssociatedItemRepository) DeleteAssetRisk(assetID uint, riskId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("risk_register_id = ? AND asset_register_id = ?", riskId, assetID).
+		Delete(&models.RiskAsset{}).
+		Error
 }
