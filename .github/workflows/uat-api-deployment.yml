@@ -5,7 +5,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: smc-uat
+    runs-on: jethur-uat
     env:
   
       PROJECT_NAME: uat-api
