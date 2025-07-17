@@ -28,21 +28,21 @@ type DocumentAssociatedItemServiceInterface interface {
 
 // Service Implementation
 type DocumentAssociatedItemService struct {
-	repo              documentRepsitories.DocumentAssociatedItemRepositoryInterface
-	documentSvc       DocumentServiceInterface
-	riskValidationSvc commonServices.RiskMappingServiceInterface
+	repo          documentRepsitories.DocumentAssociatedItemRepositoryInterface
+	documentSvc   DocumentServiceInterface
+	validationSvc commonServices.AssociatedItemValidationServiceInterface
 }
 
 // Constructor Function
 func NewDocumentAssociatedItemService(
 	repo documentRepsitories.DocumentAssociatedItemRepositoryInterface,
 	documentSvc DocumentServiceInterface,
-	riskValidationSvc commonServices.RiskMappingServiceInterface,
+	validationSvc commonServices.AssociatedItemValidationServiceInterface,
 ) DocumentAssociatedItemServiceInterface {
 	return &DocumentAssociatedItemService{
-		repo:              repo,
-		documentSvc:       documentSvc,
-		riskValidationSvc: riskValidationSvc,
+		repo:          repo,
+		documentSvc:   documentSvc,
+		validationSvc: validationSvc,
 	}
 }
 
@@ -258,7 +258,7 @@ func (dais *DocumentAssociatedItemService) CreateDocumentRisk(documentID, userID
 	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", documentID), "not_exist", "document_id")
 	}
-	if err := dais.riskValidationSvc.ValidateRiskMapping(documentID, dto.RiskIDs, "risk_associated_documents", "document_id"); err != nil {
+	if err := dais.validationSvc.ValidateRiskMapping(documentID, dto.RiskIDs, "risk_associated_documents", "document_id"); err != nil {
 		return err
 	}
 	tx := dais.repo.BeginTransaction()

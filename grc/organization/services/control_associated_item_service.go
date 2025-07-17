@@ -28,7 +28,7 @@ type ControlAssociatedItemService struct {
 	controlSvc                     ControlServiceInterface
 	controlImplementationStatusSvc ControlImplementationStatusServiceInterface
 	controlEfficiencyStatusService ControlEfficiencyStatusServiceInterface
-	riskValidationSvc              commonServices.RiskMappingServiceInterface
+	validationSvc                  commonServices.AssociatedItemValidationServiceInterface
 }
 
 func NewControlAssociatedItemService(
@@ -36,14 +36,14 @@ func NewControlAssociatedItemService(
 	controlSvc ControlServiceInterface,
 	controlImplementationStatusSvc ControlImplementationStatusServiceInterface,
 	controlEfficiencyStatusService ControlEfficiencyStatusServiceInterface,
-	riskValidationSvc commonServices.RiskMappingServiceInterface,
+	validationSvc commonServices.AssociatedItemValidationServiceInterface,
 ) ControlAssociatedItemServiceInterface {
 	return &ControlAssociatedItemService{
 		repo:                           repo,
 		controlSvc:                     controlSvc,
 		controlImplementationStatusSvc: controlImplementationStatusSvc,
 		controlEfficiencyStatusService: controlEfficiencyStatusService,
-		riskValidationSvc:              riskValidationSvc,
+		validationSvc:                  validationSvc,
 	}
 }
 
@@ -252,7 +252,7 @@ func (cais *ControlAssociatedItemService) CreateControlRisk(controlID, userID ui
 	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlID), "not_exist", "control_id")
 	}
-	if err := cais.riskValidationSvc.ValidateRiskMapping(controlID, dto.RiskIDs, "risk_controls", "control_id"); err != nil {
+	if err := cais.validationSvc.ValidateRiskMapping(controlID, dto.RiskIDs, "risk_controls", "control_id"); err != nil {
 		return err
 	}
 	tx := cais.repo.BeginTransaction()

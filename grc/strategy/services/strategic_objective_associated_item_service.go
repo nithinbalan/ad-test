@@ -25,21 +25,21 @@ type StrategicObjectiveAssociatedItemService struct {
 	repo                  repositories.StrategicObjectiveAssociatedItemRepositoryInterface
 	strategicObjectiveSvc StrategicObjectiveServiceInterface
 	clauseSvc             complianceServices.ComplianceClauseServiceInterface
-	riskValidationSvc     commonServices.RiskMappingServiceInterface
+	validationSvc         commonServices.AssociatedItemValidationServiceInterface
 }
 
 func NewstrategicObjectiveAssociatedItemService(
 	repo repositories.StrategicObjectiveAssociatedItemRepositoryInterface,
 	strategicObjectiveSvc StrategicObjectiveServiceInterface,
 	clauseSvc complianceServices.ComplianceClauseServiceInterface,
-	riskValidationSvc commonServices.RiskMappingServiceInterface,
+	validationSvc commonServices.AssociatedItemValidationServiceInterface,
 
 ) StrategicObjectiveAssociatedItemServiceInterface {
 	return &StrategicObjectiveAssociatedItemService{
 		repo:                  repo,
 		strategicObjectiveSvc: strategicObjectiveSvc,
 		clauseSvc:             clauseSvc,
-		riskValidationSvc:     riskValidationSvc,
+		validationSvc:         validationSvc,
 	}
 }
 
@@ -165,7 +165,7 @@ func (rais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveRis
 	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveID), "not_exist", "strategic_objective_id")
 	}
-	if err := rais.riskValidationSvc.ValidateRiskMapping(strategicObjectiveID, dto.RiskIDs, "risk_strategic_objectives", "strategic_objective_id"); err != nil {
+	if err := rais.validationSvc.ValidateRiskMapping(strategicObjectiveID, dto.RiskIDs, "risk_strategic_objectives", "strategic_objective_id"); err != nil {
 		return err
 	}
 	tx := rais.repo.BeginTransaction()

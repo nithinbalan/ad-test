@@ -30,7 +30,7 @@ type ProcessAssociatedItemService struct {
 	processSvc                     ProcessServiceInterface
 	controlImplementationStatusSvc ControlImplementationStatusServiceInterface
 	controlEfficiencyStatusService ControlEfficiencyStatusServiceInterface
-	riskValidationSvc              commonServices.RiskMappingServiceInterface
+	validationSvc                  commonServices.AssociatedItemValidationServiceInterface
 }
 
 func NewProcessAssociatedItemService(
@@ -38,14 +38,14 @@ func NewProcessAssociatedItemService(
 	processSvc ProcessServiceInterface,
 	controlImplementationStatusSvc ControlImplementationStatusServiceInterface,
 	controlEfficiencyStatusService ControlEfficiencyStatusServiceInterface,
-	riskValidationSvc commonServices.RiskMappingServiceInterface,
+	validationSvc commonServices.AssociatedItemValidationServiceInterface,
 ) ProcessAssociatedItemServiceInterface {
 	return &ProcessAssociatedItemService{
 		repo:                           repo,
 		processSvc:                     processSvc,
 		controlImplementationStatusSvc: controlImplementationStatusSvc,
 		controlEfficiencyStatusService: controlEfficiencyStatusService,
-		riskValidationSvc:              riskValidationSvc,
+		validationSvc:                  validationSvc,
 	}
 }
 
@@ -332,7 +332,7 @@ func (pais *ProcessAssociatedItemService) CreateProcessRisk(processID, userID ui
 	if _, err := pais.processSvc.GetByID(processID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", processID), "not_exist", "process_id")
 	}
-	if err := pais.riskValidationSvc.ValidateRiskMapping(processID, dto.RiskIDs, "risk_processes", "process_id"); err != nil {
+	if err := pais.validationSvc.ValidateRiskMapping(processID, dto.RiskIDs, "risk_processes", "process_id"); err != nil {
 		return err
 	}
 	tx := pais.repo.BeginTransaction()

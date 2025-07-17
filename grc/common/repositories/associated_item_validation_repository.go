@@ -6,25 +6,25 @@ import (
 	"gorm.io/gorm"
 )
 
-type RiskMappingRepositoryInterface interface {
+type AssociatedItemValidationRepositoryInterface interface {
 	IsRiskMapped(tableName string, masterColumn string, riskID, masterID uint) (bool, error)
 	RiskExists(id uint) (*models.RiskRegister, error)
 }
 
-type RiskMappingRepository struct {
+type AssociatedItemValidationRepository struct {
 	db *gorm.DB
 }
 
-func NewRiskMappingRepository(db *gorm.DB) RiskMappingRepositoryInterface {
-	return &RiskMappingRepository{
+func NewRiskMappingRepository(db *gorm.DB) AssociatedItemValidationRepositoryInterface {
+	return &AssociatedItemValidationRepository{
 		db: db,
 	}
 }
 
 // Generic function to check if a risk is already mapped to a master entity
-func (r *RiskMappingRepository) IsRiskMapped(masterName string, columnName string, riskID, masterID uint) (bool, error) {
+func (repo *AssociatedItemValidationRepository) IsRiskMapped(masterName string, columnName string, riskID, masterID uint) (bool, error) {
 	var count int64
-	err := r.db.
+	err := repo.db.
 		Table(masterName).
 		Where("risk_register_id = ? AND "+columnName+" = ?", riskID, masterID).
 		Count(&count).Error
@@ -35,7 +35,7 @@ func (r *RiskMappingRepository) IsRiskMapped(masterName string, columnName strin
 	return count > 0, nil
 }
 
-func (repo *RiskMappingRepository) RiskExists(id uint) (*models.RiskRegister, error) {
+func (repo *AssociatedItemValidationRepository) RiskExists(id uint) (*models.RiskRegister, error) {
 	db := repo.db
 
 	var risk *models.RiskRegister

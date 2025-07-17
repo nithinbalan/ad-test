@@ -46,7 +46,7 @@ type AssetAssociatedItemService struct {
 	vulnerabilitySvc               VulnerabilityServiceInterface
 	threatSvc                      ThreatServiceInterface
 	complianceClauseSvc            complianceServices.ComplianceClauseServiceInterface
-	riskValidationSvc              commonServices.RiskMappingServiceInterface
+	validationSvc                  commonServices.AssociatedItemValidationServiceInterface
 }
 
 // Constructor Function
@@ -58,7 +58,7 @@ func NewAssetAssociatedItemService(
 	vulnerabilitySvc VulnerabilityServiceInterface,
 	threatSvc ThreatServiceInterface,
 	complianceClauseSvc complianceServices.ComplianceClauseServiceInterface,
-	riskValidationSvc commonServices.RiskMappingServiceInterface,
+	validationSvc commonServices.AssociatedItemValidationServiceInterface,
 ) AssetAssociatedItemServiceInterface {
 	return &AssetAssociatedItemService{
 		repo:                           repo,
@@ -68,7 +68,7 @@ func NewAssetAssociatedItemService(
 		vulnerabilitySvc:               vulnerabilitySvc,
 		threatSvc:                      threatSvc,
 		complianceClauseSvc:            complianceClauseSvc,
-		riskValidationSvc:              riskValidationSvc,
+		validationSvc:                  validationSvc,
 	}
 }
 
@@ -860,7 +860,7 @@ func (aais *AssetAssociatedItemService) CreateAssetRisk(assetID, userID uint, dt
 	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("asset does not exist for ID: %d", assetID), "not_exist", "asset_id")
 	}
-	if err := aais.riskValidationSvc.ValidateRiskMapping(assetID, dto.RiskIDs, "risk_assets", "asset_register_id"); err != nil {
+	if err := aais.validationSvc.ValidateRiskMapping(assetID, dto.RiskIDs, "risk_assets", "asset_register_id"); err != nil {
 		return err
 	}
 	tx := aais.repo.BeginTransaction()

@@ -7,24 +7,24 @@ import (
 )
 
 // Interface definition
-type RiskMappingServiceInterface interface {
+type AssociatedItemValidationServiceInterface interface {
 	ValidateRiskMapping(masterID uint, riskIDs []uint, masterName string, columnName string) error
 }
 
 // Service struct
-type RiskMappingService struct {
-	repo repositories.RiskMappingRepositoryInterface
+type AssociatedItemValidationService struct {
+	repo repositories.AssociatedItemValidationRepositoryInterface
 }
 
 // Constructor
-func NewMappingService(repo repositories.RiskMappingRepositoryInterface) RiskMappingServiceInterface {
-	return &RiskMappingService{
+func NewAssociatedItemValidationService(repo repositories.AssociatedItemValidationRepositoryInterface) AssociatedItemValidationServiceInterface {
+	return &AssociatedItemValidationService{
 		repo: repo,
 	}
 }
 
 // Main validation logic
-func (rms *RiskMappingService) ValidateRiskMapping(masterID uint, riskIDs []uint, masterName string, columnName string) error {
+func (rms *AssociatedItemValidationService) ValidateRiskMapping(masterID uint, riskIDs []uint, masterName string, columnName string) error {
 	if len(riskIDs) == 0 {
 		return utility.NewValidationError(fmt.Errorf("no risks provided"), "required", "risk_ids")
 	}

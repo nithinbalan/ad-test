@@ -8,23 +8,23 @@ import (
 )
 
 type CommonModule struct {
-	NotificationService          commonServices.NotificationServiceInterface
-	FileRepo                     commonRepositories.FileRepositoryInterface
-	RiskMappingValidationService commonServices.RiskMappingServiceInterface
+	NotificationService             commonServices.NotificationServiceInterface
+	FileRepo                        commonRepositories.FileRepositoryInterface
+	AssociatedItemValidationService commonServices.AssociatedItemValidationServiceInterface
 }
 
 func NewCommonModule(db *gorm.DB, settingsModule *SettingsModule) *CommonModule {
 
 	notificationRepo := commonRepositories.NewNotificationRepository(db)
-	riskValidationRepo := commonRepositories.NewRiskMappingRepository(db)
 	notificationSvc := commonServices.NewNotificationService(notificationRepo, settingsModule.ModuleSvc, settingsModule.EmailTemplateSettingsSvc)
-	riskMappingValidationSvc := commonServices.NewMappingService(riskValidationRepo)
+	associatedItemValidationRepo := commonRepositories.NewRiskMappingRepository(db)
+	associatedItemValidationSvc := commonServices.NewAssociatedItemValidationService(associatedItemValidationRepo)
 
 	fileRepo := commonRepositories.NewFileRepository()
 
 	return &CommonModule{
-		NotificationService:          notificationSvc,
-		FileRepo:                     fileRepo,
-		RiskMappingValidationService: riskMappingValidationSvc,
+		NotificationService:             notificationSvc,
+		FileRepo:                        fileRepo,
+		AssociatedItemValidationService: associatedItemValidationSvc,
 	}
 }

@@ -31,21 +31,21 @@ type IncidentAssociatedItemService struct {
 	repo                incidentRepositories.IncidentAssociatedItemRepositoryInterface
 	incidentRegisterSvc IncidentRegisterServiceInterface
 	clauseSvc           complianceServices.ComplianceClauseServiceInterface
-	riskValidationSvc   commonServices.RiskMappingServiceInterface
+	validationSvc       commonServices.AssociatedItemValidationServiceInterface
 }
 
 func NewIncidentAssociatedItemService(
 	repo incidentRepositories.IncidentAssociatedItemRepositoryInterface,
 	incidentRegisterSvc IncidentRegisterServiceInterface,
 	clauseSvc complianceServices.ComplianceClauseServiceInterface,
-	riskValidationSvc commonServices.RiskMappingServiceInterface,
+	validationSvc commonServices.AssociatedItemValidationServiceInterface,
 
 ) IncidentAssociatedItemServiceInterface {
 	return &IncidentAssociatedItemService{
 		repo:                repo,
 		incidentRegisterSvc: incidentRegisterSvc,
 		clauseSvc:           clauseSvc,
-		riskValidationSvc:   riskValidationSvc,
+		validationSvc:       validationSvc,
 	}
 }
 
@@ -214,7 +214,7 @@ func (iais *IncidentAssociatedItemService) CreateIncidentRisk(incidentID, userID
 	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("Incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
 	}
-	if err := iais.riskValidationSvc.ValidateRiskMapping(incidentID, dto.RiskIDs, "incident_risks", "incident_register_id"); err != nil {
+	if err := iais.validationSvc.ValidateRiskMapping(incidentID, dto.RiskIDs, "incident_risks", "incident_register_id"); err != nil {
 		return err
 	}
 	tx := iais.repo.BeginTransaction()

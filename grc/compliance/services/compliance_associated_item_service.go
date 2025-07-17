@@ -30,20 +30,20 @@ type ComplianceAssociatedItemService struct {
 	repo                  complianceRepositories.ComplianceAssociatedItemRepositoryInterface
 	complianceRegisterSvc ComplianceRegisterServiceInterface
 	controlSvc            organizationServices.ControlServiceInterface
-	riskValidationSvc     commonServices.RiskMappingServiceInterface
+	validationSvc         commonServices.AssociatedItemValidationServiceInterface
 }
 
 func NewComplianceAssociatedItemService(
 	repo complianceRepositories.ComplianceAssociatedItemRepositoryInterface,
 	complianceRegisterSvc ComplianceRegisterServiceInterface,
 	controlSvc organizationServices.ControlServiceInterface,
-	riskValidationSvc commonServices.RiskMappingServiceInterface,
+	validationSvc commonServices.AssociatedItemValidationServiceInterface,
 ) ComplianceAssociatedItemServiceInterface {
 	return &ComplianceAssociatedItemService{
 		repo:                  repo,
 		complianceRegisterSvc: complianceRegisterSvc,
 		controlSvc:            controlSvc,
-		riskValidationSvc:     riskValidationSvc,
+		validationSvc:         validationSvc,
 	}
 }
 
@@ -169,7 +169,7 @@ func (cais *ComplianceAssociatedItemService) CreateComplianceRisk(complianceID, 
 	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_register_id")
 	}
-	if err := cais.riskValidationSvc.ValidateRiskMapping(complianceID, dto.RiskIDs, "risk_compliance_requirements", "compliance_register_id"); err != nil {
+	if err := cais.validationSvc.ValidateRiskMapping(complianceID, dto.RiskIDs, "risk_compliance_requirements", "compliance_register_id"); err != nil {
 		return err
 	}
 
