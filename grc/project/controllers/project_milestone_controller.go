@@ -25,6 +25,21 @@ func NewProjectMilestoneController(service services.ProjectMilestoneServiceInter
 }
 
 func (pmc *ProjectMilestoneController) GetAllProjectMilestones(c *gin.Context) {
+	projectIDStr := c.Param("projectId")
+
+	var projectID uint64
+	var err error
+
+	// Check if projectID is provided in the URL
+	if projectIDStr != "" {
+		projectID, err = strconv.ParseUint(projectIDStr, 10, 64)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		projectID = 0
+	}
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "planned_date")
 	keyword := c.Query("keyword")
@@ -84,23 +99,7 @@ func (pmc *ProjectMilestoneController) GetAllProjectMilestones(c *gin.Context) {
 		DateTo:      dateTo,
 	}
 
-	milestones, err := pmc.service.GetAll(&queryParams)
-	if err != nil {
-		utility.SendInternalErrResp(pmc.db, c, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, milestones)
-}
-
-func (pmc *ProjectMilestoneController) GetProjectMilestoneDetails(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-	milestone, err := pmc.service.GetFullDetailsByID(uint(id))
+	projectMilestones, err := pmc.service.GetAll(uint(projectID), &queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -111,11 +110,46 @@ func (pmc *ProjectMilestoneController) GetProjectMilestoneDetails(c *gin.Context
 			return
 		}
 	}
-	c.JSON(http.StatusOK, milestone)
+
+	c.JSON(http.StatusOK, projectMilestones)
+}
+
+func (pmc *ProjectMilestoneController) GetProjectMilestoneDetails(c *gin.Context) {
+	projectIDStr := c.Param("projectId")
+
+	projectID, err := strconv.ParseUint(projectIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	idStr := c.Param("milestoneId")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	projectMilestone, err := pmc.service.GetFullDetailsByID(uint(projectID), uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(pmc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, projectMilestone)
 }
 
 func (pmc *ProjectMilestoneController) CreateProjectMilestone(c *gin.Context) {
 	var milestoneFormDTO projectDTOs.ProjectMilestoneFormDTO
+	projectID, err := strconv.ParseUint(c.Param("projectId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 	if err := c.ShouldBindJSON(&milestoneFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -125,7 +159,7 @@ func (pmc *ProjectMilestoneController) CreateProjectMilestone(c *gin.Context) {
 		utility.SendInternalErrResp(pmc.db, c, err.Error())
 		return
 	}
-	id, err := pmc.service.Create(currentUserID, &milestoneFormDTO)
+	id, err := pmc.service.Create(uint(projectID), currentUserID, &milestoneFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -141,7 +175,12 @@ func (pmc *ProjectMilestoneController) CreateProjectMilestone(c *gin.Context) {
 
 func (pmc *ProjectMilestoneController) UpdateProjectMilestone(c *gin.Context) {
 	var milestoneFormDTO projectDTOs.ProjectMilestoneFormDTO
-	milestoneID, err := strconv.Atoi(c.Param("id"))
+	projectID, err := strconv.ParseUint(c.Param("projectId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	milestoneID, err := strconv.Atoi(c.Param("milestoneId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -155,7 +194,7 @@ func (pmc *ProjectMilestoneController) UpdateProjectMilestone(c *gin.Context) {
 		utility.SendInternalErrResp(pmc.db, c, err.Error())
 		return
 	}
-	err = pmc.service.Update(uint(milestoneID), currentUserID, &milestoneFormDTO)
+	err = pmc.service.Update(uint(projectID), uint(milestoneID), currentUserID, &milestoneFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -176,6 +215,12 @@ func (pmc *ProjectMilestoneController) DeleteProjectMilestones(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
+
+	projectID, err := strconv.ParseUint(c.Param("projectId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 	if err := c.ShouldBindJSON(&request); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -185,7 +230,7 @@ func (pmc *ProjectMilestoneController) DeleteProjectMilestones(c *gin.Context) {
 		utility.SendInternalErrResp(pmc.db, c, err.Error())
 		return
 	}
-	failedIDs, err := pmc.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := pmc.service.Delete(uint(projectID), request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(pmc.db, c, err.Error())
 		return

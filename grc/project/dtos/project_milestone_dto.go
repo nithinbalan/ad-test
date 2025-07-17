@@ -8,39 +8,37 @@ import (
 )
 
 type ProjectMilestoneListDTO struct {
-	ID                          uint    `json:"id"`
-	ProjectID                   uint    `json:"project_id"`
-	ProjectTitleEn              string  `json:"project_title_en"`
-	ProjectTitleAr              string  `json:"project_title_ar"`
-	ProjectDescriptionEn        *string `json:"project_description_en"`
-	ProjectDescriptionAr        *string `json:"project_description_ar"`
-	TitleEn                     string  `json:"title_en"`
-	TitleAr                     string  `json:"title_ar"`
-	DescriptionEn               *string `json:"description_en"`
-	DescriptionAr               *string `json:"description_ar"`
-	PlannedDate                 *string `json:"planned_date"`
-	ActualDate                  *string `json:"actual_date"`
-	ProjectMilestoneStatusID    uint    `json:"project_milestone_status_id"`
-	ProjectMilestoneStatusEn    string  `json:"project_milestone_status_en"`
-	ProjectMilestoneStatusAr    string  `json:"project_milestone_status_ar"`
-	CreatedUserID               uint    `json:"created_user_id"`
-	CreatedUserFirstNameEn      string  `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr      string  `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn       string  `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr       string  `json:"created_user_last_name_ar"`
-	CreatedUserInitial          string  `json:"created_user_initial"`
-	CreatedUserColor            string  `json:"created_user_color"`
-	CreatedUserEmail            string  `json:"created_user_email"`
-	CreatedUserProfileImagePath string  `json:"created_user_profile_image_path"`
-	UpdatedUserID               *uint   `json:"updated_user_id"`
-	UpdatedUserFirstNameEn      *string `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr      *string `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn       *string `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr       *string `json:"updated_user_last_name_ar"`
-	UpdatedUserInitial          *string `json:"updated_user_initial"`
-	UpdatedUserColor            *string `json:"updated_user_color"`
-	UpdatedUserEmail            *string `json:"updated_user_email"`
-	UpdatedUserProfileImagePath *string `json:"updated_user_profile_image_path"`
+	ID                              uint    `json:"id"`
+	ProjectID                       uint    `json:"project_id"`
+	TitleEn                         string  `json:"title_en"`
+	TitleAr                         string  `json:"title_ar"`
+	DescriptionEn                   *string `json:"description_en"`
+	DescriptionAr                   *string `json:"description_ar"`
+	PlannedDate                     *string `json:"planned_date"`
+	ActualDate                      *string `json:"actual_date"`
+	ProjectMilestoneStatusID        uint    `json:"project_milestone_status_id"`
+	ProjectMilestoneStatusTitleEn   string  `json:"project_milestone_status_title_en"`
+	ProjectMilestoneStatusTitleAr   string  `json:"project_milestone_status_title_ar"`
+	ProjectMilestoneStatusType      string  `json:"project_milestone_status_type"`
+	ProjectMilestoneStatusColorCode string  `json:"project_milestone_status_color_code"`
+	CreatedUserID                   uint    `json:"created_user_id"`
+	CreatedUserFirstNameEn          string  `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr          string  `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn           string  `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr           string  `json:"created_user_last_name_ar"`
+	CreatedUserInitial              string  `json:"created_user_initial"`
+	CreatedUserColor                string  `json:"created_user_color"`
+	CreatedUserEmail                string  `json:"created_user_email"`
+	CreatedUserProfileImagePath     string  `json:"created_user_profile_image_path"`
+	UpdatedUserID                   *uint   `json:"updated_user_id"`
+	UpdatedUserFirstNameEn          *string `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr          *string `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn           *string `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr           *string `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial              *string `json:"updated_user_initial"`
+	UpdatedUserColor                *string `json:"updated_user_color"`
+	UpdatedUserEmail                *string `json:"updated_user_email"`
+	UpdatedUserProfileImagePath     *string `json:"updated_user_profile_image_path"`
 }
 
 type ProjectMilestoneListQueryParamsDTO struct {
@@ -78,7 +76,6 @@ type ProjectMilestoneDetailDTO struct {
 }
 
 type ProjectMilestoneFormDTO struct {
-	ProjectID                uint    `json:"project_id" binding:"required"`
 	TitleEn                  string  `json:"title_en" binding:"required"`
 	TitleAr                  string  `json:"title_ar" binding:"required"`
 	DescriptionEn            *string `json:"description_en"`

@@ -281,7 +281,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 			"AssignedByFirstNameEn":       assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":        assignedBy.LastNameEn,
 			"AssignedOn":                  time.Now().Format("2006-01-02"),
-			"RedirectURL":                 fmt.Sprintf("%saudit/audit-findings/%d/action-plans", appURL, findingID),
+			"RedirectURL":                 fmt.Sprintf("%s/audit/audit-findings/%d/action-plans", appURL, findingID),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -502,7 +502,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 				"AuditFindingTitle":           audit.Title,
 				"ActionPlanTitle":             existingAuditFindingActionPlan.Title,
 				"ActionPlanDescription":       existingAuditFindingActionPlan.Description,
-				"RedirectURL":                 fmt.Sprintf("%saudit/audit-findings/%d/action-plans", appURL, findingID),
+				"RedirectURL":                 fmt.Sprintf("%s/audit/audit-findings/%d/action-plans", appURL, findingID),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -526,7 +526,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 				"AssignedByFirstNameEn":       assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":        assignedBy.LastNameEn,
 				"AssignedOn":                  time.Now().Format("2006-01-02"),
-				"RedirectURL":                 fmt.Sprintf("%saudit/audit-findings/%d/action-plans", appURL, findingID),
+				"RedirectURL":                 fmt.Sprintf("%s/audit/audit-findings/%d/action-plans", appURL, findingID),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{

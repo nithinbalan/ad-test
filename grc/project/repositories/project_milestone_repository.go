@@ -9,7 +9,7 @@ import (
 )
 
 type ProjectMilestoneRepositoryInterface interface {
-	GetAll(currentUserID uint, params *dtos.ProjectMilestoneListQueryParamsDTO) (*dtos.ProjectMilestoneListResponseDTO, error)
+	GetAll(projectID uint, params *dtos.ProjectMilestoneListQueryParamsDTO) (*dtos.ProjectMilestoneListResponseDTO, error)
 	GetByID(id uint) (*models.ProjectMilestone, error)
 	GetFullDetailsByID(id uint) (*models.ProjectMilestone, error)
 	Create(milestone *models.ProjectMilestone) (uint, error)
@@ -25,7 +25,7 @@ func NewProjectMilestoneRepository(db *gorm.DB) *ProjectMilestoneRepository {
 	return &ProjectMilestoneRepository{db: db}
 }
 
-func (repo *ProjectMilestoneRepository) GetAll(currentUserID uint, params *dtos.ProjectMilestoneListQueryParamsDTO) (*dtos.ProjectMilestoneListResponseDTO, error) {
+func (repo *ProjectMilestoneRepository) GetAll(projectID uint, params *dtos.ProjectMilestoneListQueryParamsDTO) (*dtos.ProjectMilestoneListResponseDTO, error) {
 	var milestones []*dtos.ProjectMilestoneListDTO
 	var totalCount int64
 
@@ -33,10 +33,6 @@ func (repo *ProjectMilestoneRepository) GetAll(currentUserID uint, params *dtos.
 		Select(`
 			project_milestones.id,
 			project_milestones.project_id,
-			projects.title_en AS project_title_en,
-			projects.title_ar AS project_title_ar,
-			projects.description_en AS project_description_en,
-			projects.description_ar AS project_description_ar,
 			project_milestones.title_en,
 			project_milestones.title_ar,
 			project_milestones.description_en,
@@ -44,8 +40,10 @@ func (repo *ProjectMilestoneRepository) GetAll(currentUserID uint, params *dtos.
 			CONVERT(VARCHAR, project_milestones.planned_date, 23) AS planned_date,
 			CONVERT(VARCHAR, project_milestones.actual_date, 23) AS actual_date,
 			project_milestones.project_milestone_status_id,
-			status.title_en AS project_milestone_status_en,
-			status.title_ar AS project_milestone_status_ar,
+			status.title_en AS project_milestone_status_title_en,
+			status.title_ar AS project_milestone_status_title_ar,
+			status.type AS project_milestone_status_type,
+			status.color_code AS project_milestone_status_color_code,
 			created_user.id AS created_user_id,
 			created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
@@ -69,6 +67,11 @@ func (repo *ProjectMilestoneRepository) GetAll(currentUserID uint, params *dtos.
 		Joins(`LEFT JOIN project_milestone_statuses AS status ON project_milestones.project_milestone_status_id = status.id`).
 		Joins(`LEFT JOIN users AS created_user ON project_milestones.created_by_id = created_user.id`).
 		Joins(`LEFT JOIN users AS updated_user ON project_milestones.updated_by_id = updated_user.id`)
+
+	// Filter by project_id if provided
+	if projectID != 0 {
+		query = query.Where("project_milestones.project_id = ?", projectID)
+	}
 
 	// Apply filters
 	for columnName, values := range params.Filters {
@@ -127,11 +130,7 @@ func (repo *ProjectMilestoneRepository) GetByID(id uint) (*models.ProjectMilesto
 func (repo *ProjectMilestoneRepository) GetFullDetailsByID(id uint) (*models.ProjectMilestone, error) {
 	var milestone models.ProjectMilestone
 	result := repo.db.
-		Preload("Project.ResponsibleUser").
-		Preload("Project.ProjectType").
-		Preload("Project.ProjectStatus").
-		Preload("Project.CreatedByUser").
-		Preload("Project.UpdatedByUser").
+		Preload("Project").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("ProjectMilestoneStatus").

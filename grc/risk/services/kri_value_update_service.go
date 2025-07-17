@@ -248,7 +248,7 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 					"RiskDescription":     existingRisk.Description,
 					"CurrentValue":        kriValue,
 					"AssignedOn":          time.Now().Format("2006-01-02"),
-					"RedirectURL":         fmt.Sprintf("%srisk/kri-register/%d/overview", appURL, kriRegisterID),
+					"RedirectURL":         fmt.Sprintf("%s/risk/kri-register/%d/overview", appURL, kriRegisterID),
 				}
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 					EmailTo:              emailTo,
@@ -516,7 +516,7 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 					"RiskDescription":     existingRisk.Description,
 					"CurrentValue":        kriValue,
 					"AssignedOn":          time.Now().Format("2006-01-02"),
-					"RedirectURL":         fmt.Sprintf("%srisk/kri-register/%d/overview", appURL, kriRegisterID),
+					"RedirectURL":         fmt.Sprintf("%s/risk/kri-register/%d/overview", appURL, kriRegisterID),
 				}
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 					EmailTo:              emailTo,
@@ -703,7 +703,7 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 						"RiskDescription":     existingRisk.Description,
 						"CurrentValue":        &nextValueUpdate.Value,
 						"AssignedOn":          time.Now().Format("2006-01-02"),
-						"RedirectURL":         fmt.Sprintf("%srisk/kri-register/%d/overview", appURL, kriRegisterID),
+						"RedirectURL":         fmt.Sprintf("%s/risk/kri-register/%d/overview", appURL, kriRegisterID),
 					}
 
 					emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -803,7 +803,7 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 						"RiskDescription":     existingRisk.Description,
 						"CurrentValue":        currentValue,
 						"AssignedOn":          time.Now().Format("2006-01-02"),
-						"RedirectURL":         fmt.Sprintf("%srisk/kri-register/%d/overview", appURL, kriRegisterID),
+						"RedirectURL":         fmt.Sprintf("%s/risk/kri-register/%d/overview", appURL, kriRegisterID),
 					}
 
 					emailNotificationDTO := &commonDTOs.EmailNotificationDTO{

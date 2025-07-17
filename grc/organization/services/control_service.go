@@ -282,7 +282,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 			"CreatedByFirstNameEn": createdBy.FirstNameEn,
 			"CreatedByLastNameEn":  createdBy.LastNameEn,
 			"AssignedOn":           time.Now().Format("2006-01-02"),
-			"RedirectURL":          fmt.Sprintf("%scompliance/controls/%d/overview", appURL, id),
+			"RedirectURL":          fmt.Sprintf("%s/compliance/controls/%d/overview", appURL, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -459,7 +459,7 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 				"TitleEn":         existingControl.TitleEn,
 				"TitleAr":         existingControl.TitleAr,
 				"Description":     existingControl.Description,
-				"RedirectURL":     fmt.Sprintf("%scompliance/controls/%d/overview", appURL, id),
+				"RedirectURL":     fmt.Sprintf("%s/compliance/controls/%d/overview", appURL, id),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -482,7 +482,7 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 				"AssignedByFirstNameEn": updatedByUser.FirstNameEn,
 				"AssignedByLastNameEn":  updatedByUser.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%scompliance/controls/%d/overview", appURL, id),
+				"RedirectURL":           fmt.Sprintf("%s/compliance/controls/%d/overview", appURL, id),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{

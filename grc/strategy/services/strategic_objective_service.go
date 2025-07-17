@@ -14,7 +14,6 @@ import (
 	"gorm.io/gorm"
 
 	masterService "jethur/grc/masters/services"
-	mastersSvc "jethur/grc/masters/services"
 	organizationSvc "jethur/grc/organization/services"
 	settingsSvc "jethur/grc/settings/services"
 )
@@ -29,6 +28,7 @@ type StrategicObjectiveServiceInterface interface {
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
 	UpdateStrategicObjective(strategicObjective *models.StrategicObjective, tx ...utility.DatabaseTransaction) error
+	GetFocusAreasByStrategicObjectiveID(strategicObjectiveID uint) ([]*dtos.StrategicObjectiveFocusAreaDTO, error)
 }
 
 // Service and implementations
@@ -38,7 +38,7 @@ type StrategicObjectiveService struct {
 	strategicObjectiveCategorySvc StrategicObjectiveCategoryServiceInterface
 	organizationUnitSvc           settingsSvc.OrganizationUnitServiceInterface
 	userSvc                       organizationSvc.UserServiceInterface
-	reviewFrequencySvc            mastersSvc.ReviewFrequencyServiceInterface
+	reviewFrequencySvc            masterService.ReviewFrequencyServiceInterface
 	reviewStatusSvc               masterService.ReviewStatusServiceInterface
 }
 
@@ -47,7 +47,7 @@ func NewStrategicObjectiveService(repo repositories.StrategicObjectiveRepository
 	strategicObjectiveCategorySvc StrategicObjectiveCategoryServiceInterface,
 	organizationUnitSvc settingsSvc.OrganizationUnitServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
-	reviewFrequencySvc mastersSvc.ReviewFrequencyServiceInterface,
+	reviewFrequencySvc masterService.ReviewFrequencyServiceInterface,
 	reviewStatusSvc masterService.ReviewStatusServiceInterface,
 ) StrategicObjectiveServiceInterface {
 	return &StrategicObjectiveService{
@@ -98,12 +98,14 @@ func (sos *StrategicObjectiveService) GetFullDetailsByID(id uint, tx ...utility.
 		return nil, err
 	}
 
-	// Format date fields safely
+	// Format date fields
 	if strategicObjective.StartDate != nil {
-		strategicObjectiveDTO.StartDateString = strategicObjective.StartDate.Format("2006-01-02")
+		str := strategicObjective.StartDate.Format("2006-01-02")
+		strategicObjectiveDTO.StartDateString = &str
 	}
 	if strategicObjective.EndDate != nil {
-		strategicObjectiveDTO.EndDateString = strategicObjective.EndDate.Format("2006-01-02")
+		str := strategicObjective.EndDate.Format("2006-01-02")
+		strategicObjectiveDTO.EndDateString = &str
 	}
 
 	strategicObjectiveDTO.CreatedAt = strategicObjective.CreatedAt
@@ -437,9 +439,11 @@ func (sos *StrategicObjectiveService) validateStrategicObjectiveFormDTO(dto *dto
 			return utility.NewValidationError(fmt.Errorf("review frequency does not exist"), "not_exist", "review_frequency")
 		}
 	}
-	_, err = sos.organizationUnitSvc.GetByID(*dto.ResponsibleUnitID)
-	if err != nil {
-		return utility.NewValidationError(fmt.Errorf("organization unit does not exist"), "not_exist", "organization_unit")
+	if dto.ResponsibleUnitID != nil {
+		_, err = sos.organizationUnitSvc.GetByID(*dto.ResponsibleUnitID)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("organization unit does not exist"), "not_exist", "organization_unit")
+		}
 	}
 
 	return nil
@@ -448,18 +452,24 @@ func (sos *StrategicObjectiveService) validateStrategicObjectiveFormDTO(dto *dto
 func (sos *StrategicObjectiveService) parseStrategicObjectiveDates(dto *dtos.StrategicObjectiveFormDTO) (*dtos.StrategicObjectiveParsedDates, error) {
 	parsed := &dtos.StrategicObjectiveParsedDates{}
 
-	startDate, err := utility.ParseMandatoryDate(dto.StartDate)
-	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid start date"), "invalid_date", "start_date")
+	if dto.StartDate != nil {
+		sd, err := utility.ParseDate(*dto.StartDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid start date"), "invalid_date", "start_date")
+		}
+		parsed.StartDate = sd
 	}
-
-	endDate, err := utility.ParseMandatoryDate(dto.EndDate)
-	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid end date"), "invalid_date", "end_date")
+	if dto.EndDate != nil {
+		ed, err := utility.ParseDate(*dto.EndDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid end date"), "invalid_date", "end_date")
+		}
+		parsed.EndDate = ed
 	}
-
-	parsed.StartDate = &startDate
-	parsed.EndDate = &endDate
 
 	return parsed, nil
+}
+
+func (sos *StrategicObjectiveService) GetFocusAreasByStrategicObjectiveID(strategicObjectiveID uint) ([]*dtos.StrategicObjectiveFocusAreaDTO, error) {
+	return sos.repo.GetFocusAreasByStrategicObjectiveID(strategicObjectiveID)
 }

@@ -262,7 +262,7 @@ func (caps *TaeRecoveryActionPlanCommentService) Create(testAndExerciseID uint, 
 					"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 					"CommentedByLastNameEn":  assignedBy.LastNameEn,
 					"CommentedOn":            time.Now().Format("2006-01-02"),
-					"RedirectURL":            fmt.Sprintf("%sbusiness-continuity/test-and-exercise/%d/action-plans?action_plan_id=%d", appURL, testAndExerciseID, id),
+					"RedirectURL":            fmt.Sprintf("%s/business-continuity/test-and-exercise/%d/action-plans?action_plan_id=%d", appURL, testAndExerciseID, id),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -331,7 +331,7 @@ func (caps *TaeRecoveryActionPlanCommentService) Create(testAndExerciseID uint, 
 				"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":             time.Now().Format("2006-01-02"),
-				"RedirectURL":            fmt.Sprintf("%sbusiness-continuity/test-and-exercise/%d/action-plans?action_plan_id=%d", appURL, testAndExerciseID, id),
+				"RedirectURL":            fmt.Sprintf("%s/business-continuity/test-and-exercise/%d/action-plans?action_plan_id=%d", appURL, testAndExerciseID, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -399,7 +399,7 @@ func (caps *TaeRecoveryActionPlanCommentService) Create(testAndExerciseID uint, 
 				"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":             time.Now().Format("2006-01-02"),
-				"RedirectURL":            fmt.Sprintf("%sbusiness-continuity/test-and-exercise/%d/action-plans?action_plan_id=%d", appURL, testAndExerciseID, id),
+				"RedirectURL":            fmt.Sprintf("%s/business-continuity/test-and-exercise/%d/action-plans?action_plan_id=%d", appURL, testAndExerciseID, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -466,7 +466,7 @@ func (caps *TaeRecoveryActionPlanCommentService) Create(testAndExerciseID uint, 
 					"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 					"CommentedByLastNameEn":  assignedBy.LastNameEn,
 					"AssignedOn":             time.Now().Format("2006-01-02"),
-					"RedirectURL":            fmt.Sprintf("%sbusiness-continuity/test-and-exercise/%d/action-plans?action_plan_id=%d", appURL, testAndExerciseID, id),
+					"RedirectURL":            fmt.Sprintf("%s/business-continuity/test-and-exercise/%d/action-plans?action_plan_id=%d", appURL, testAndExerciseID, id),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{

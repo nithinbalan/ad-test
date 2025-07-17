@@ -1635,7 +1635,7 @@ func (grs *GRCReportService) GRCReportSubmit(grcReportID uint, currentUserID uin
 				"FirstNameEn":    responsibleUser.FirstNameEn,
 				"LastNameEn":     responsibleUser.LastNameEn,
 				"GRCReportTitle": grcReport.Title,
-				"RedirectURL":    fmt.Sprintf("%sreport/grc-reports/%d/overview", appURL, grcReportID),
+				"RedirectURL":    fmt.Sprintf("%s/report/grc-reports/%d/overview", appURL, grcReportID),
 			},
 		}
 
@@ -1738,7 +1738,7 @@ func (grs *GRCReportService) GRCReportReviewed(grcReportID uint, currentUserID u
 				"FirstNameEn":    responsibleUser.FirstNameEn,
 				"LastNameEn":     responsibleUser.LastNameEn,
 				"GRCReportTitle": grcReport.Title,
-				"RedirectURL":    fmt.Sprintf("%sreport/grc-reports/%d/overview", appURL, grcReportID),
+				"RedirectURL":    fmt.Sprintf("%s/report/grc-reports/%d/overview", appURL, grcReportID),
 			},
 		}
 

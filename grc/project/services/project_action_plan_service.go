@@ -183,7 +183,7 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 
 	// Validate project milestone exists
 	if ProjectActionPlanFormDTO.ProjectMilestoneID != nil {
-		if _, err := paps.projectMilestoneSvc.GetByID(*ProjectActionPlanFormDTO.ProjectMilestoneID); err != nil {
+		if _, err := paps.projectMilestoneSvc.GetByID(projectID, *ProjectActionPlanFormDTO.ProjectMilestoneID); err != nil {
 			return err
 		}
 	}
