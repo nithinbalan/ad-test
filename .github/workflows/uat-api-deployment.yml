@@ -13,7 +13,7 @@ jobs:
       DEPLOY_BRANCH: main
       MIGRATION_BRANCH: migration
       IIS_DOC_ROOT: C:\inetpub\wwwroot\uat\uat-api
-      SERVICE_NAME: uat-api
+      SERVICE_NAME: jethur-uat-api
       SCRIPT_SOURCE_PATH: C:\jethur-deployment\deployment-files\.env
       EMAIL_TO: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, aparna@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
       SENDER: "Jethur Notifications <info@jethur.com>"
