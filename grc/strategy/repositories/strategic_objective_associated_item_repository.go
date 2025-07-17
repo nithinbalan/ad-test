@@ -16,7 +16,7 @@ type StrategicObjectiveAssociatedItemRepositoryInterface interface {
 	CreateStrategicObjectiveClauses(clauses []*models.ComplianceRequirementStrategicObjective, tx ...utility.DatabaseTransaction) error
 	DeleteStrategicObjectiveClauses(strategicObjectiveID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 	GetClausesByStrategicObjectiveID(strategicObjectiveID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
-	GetAllRisks(processID uint, params *stategicDTOs.StrategicObjectiveAssociatedItemListQueryParamsDTO) (*stategicDTOs.StrategicObjectiveRiskListDTO, error)
+	GetAllRisks(strategicObjectiveID uint, params *stategicDTOs.StrategicObjectiveAssociatedItemListQueryParamsDTO) (*stategicDTOs.StrategicObjectiveAssociatedItemRiskListDTO, error)
 	CreateStrategicObjectiveRisk(risks []*models.RiskStrategicObjective, tx ...utility.DatabaseTransaction) error
 	DeleteStrategicObjectiveRisk(strategicObjectiveID uint, riskID uint, tx ...utility.DatabaseTransaction) error
 }
@@ -178,15 +178,15 @@ func (repo *StrategicObectiveAssociatedItemRepository) DeleteStrategicObjectiveC
 	return nil
 }
 
-func (repo *StrategicObectiveAssociatedItemRepository) GetAllRisks(processID uint, params *stategicDTOs.ProcessAssociatedItemListQueryParamsDTO) (*stategicDTOs.ProcessAssociatedItemRiskListResponseDTO, error) {
-	var riskList []*stategicDTOs.ProcessRiskListDTO
+func (repo *StrategicObectiveAssociatedItemRepository) GetAllRisks(strategicObjectiveID uint, params *stategicDTOs.StrategicObjectiveAssociatedItemListQueryParamsDTO) (*stategicDTOs.StrategicObjectiveAssociatedItemRiskListDTO, error) {
+	var riskList []*stategicDTOs.StrategicObjectiveRiskListDTO
 	var totalCount int64
 
-	query := repo.db.Table("risk_processes").
+	query := repo.db.Table("risk_strategic_objectives").
 		Select(`
-			risk_processes.id,
-			risk_processes.risk_register_id,
-			risk_processes.process_id,
+			risk_strategic_objectives.id,
+			risk_strategic_objectives.risk_register_id,
+			risk_strategic_objectives.strategic_objective_id,
 			risk_register.reference_number,
 			risk_register.title,
 			risk_register.description,
@@ -221,7 +221,7 @@ func (repo *StrategicObectiveAssociatedItemRepository) GetAllRisks(processID uin
 			risk_statuses.color_code AS risk_status_color_code
 		`).
 		Joins(`
-			LEFT JOIN risk_register ON risk_register.id = risk_processes.risk_register_id
+			LEFT JOIN risk_register ON risk_register.id = risk_strategic_objectives.risk_register_id
 			LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
 			LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
 			LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id
@@ -231,7 +231,7 @@ func (repo *StrategicObectiveAssociatedItemRepository) GetAllRisks(processID uin
             LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id
 			LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = risk_register.current_risk_rating_value_id
 			LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
-		`).Where("risk_processes.process_id = ?", processID)
+		`).Where("risk_strategic_objectives.strategic_objective_id = ?", strategicObjectiveID)
 
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
@@ -281,7 +281,7 @@ func (repo *StrategicObectiveAssociatedItemRepository) GetAllRisks(processID uin
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
-	response := &stategicDTOs.ProcessAssociatedItemRiskListResponseDTO{
+	response := &stategicDTOs.StrategicObjectiveAssociatedItemRiskListDTO{
 		Items: riskList,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,

@@ -1,5 +1,9 @@
 package dtos
 
+import (
+	commonDTOs "jethur/grc/common/dtos"
+)
+
 type StrategicObjectiveAssociatedItemListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
@@ -13,7 +17,7 @@ type StrategicObjectiveAssociatedItemListQueryParamsDTO struct {
 type StrategicObjectiveRiskListDTO struct {
 	ID                              uint    `json:"id"`
 	RiskRegisterID                  uint    `json:"risk_register_id"`
-	StrategicObjectiveID            uint    `json:"process_id"`
+	StrategicObjectiveID            uint    `json:"strategic_objective_id"`
 	ReferenceNumber                 string  `json:"reference_number"`
 	RiskCategoryTitleEn             string  `json:"risk_category_title_en"`
 	RiskCategoryTitleAr             string  `json:"risk_category_title_ar"`
@@ -46,4 +50,9 @@ type StrategicObjectiveRiskListDTO struct {
 	RiskMatrixRiskRatingType        string  `json:"risk_matrix_risk_rating_type"`
 	RiskMatrixRiskRatingColorCode   string  `json:"risk_matrix_risk_rating_color_code"`
 	RiskMatrixRiskRatingValue       string  `json:"risk_matrix_risk_rating_value"`
+}
+
+type StrategicObjectiveAssociatedItemRiskListDTO struct {
+	Items      []*StrategicObjectiveRiskListDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO     `json:"pagination"`
 }
