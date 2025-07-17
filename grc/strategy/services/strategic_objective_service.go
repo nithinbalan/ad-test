@@ -439,9 +439,11 @@ func (sos *StrategicObjectiveService) validateStrategicObjectiveFormDTO(dto *dto
 			return utility.NewValidationError(fmt.Errorf("review frequency does not exist"), "not_exist", "review_frequency")
 		}
 	}
-	_, err = sos.organizationUnitSvc.GetByID(*dto.ResponsibleUnitID)
-	if err != nil {
-		return utility.NewValidationError(fmt.Errorf("organization unit does not exist"), "not_exist", "organization_unit")
+	if dto.ResponsibleUnitID != nil {
+		_, err = sos.organizationUnitSvc.GetByID(*dto.ResponsibleUnitID)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("organization unit does not exist"), "not_exist", "organization_unit")
+		}
 	}
 
 	return nil
