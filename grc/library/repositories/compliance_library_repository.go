@@ -100,35 +100,54 @@ func (repo *ComplianceLibraryRepository) GetControlMappings(params *libraryDTOs.
 	var items []*libraryDTOs.ControlLibraryResponseDTO
 	var totalCount int64
 
-	// Base query from control_library table
 	query := repo.db.
 		Table("control_library").
-		Select("id, title_en, title_ar")
+		Select("control_library.id, control_library.title_en, control_library.title_ar")
 
-	// Filtering
+	// JOIN + Keyword search
 	if params.Keyword != "" {
-		kw := "%" + params.Keyword + "%"
-		query = query.Where("title_en LIKE ? OR title_ar LIKE ?", kw, kw)
-	}
-	if len(params.TitleEnList) > 0 {
-		query = query.Where("title_en IN ?", params.TitleEnList)
+		keyword := "%" + params.Keyword + "%"
+		query = query.Joins(`
+			LEFT JOIN control_library_titles AS clt ON clt.control_library_id = control_library.id
+			LEFT JOIN compliance_libraries AS cpl ON cpl.id = clt.compliance_library_id
+		`).Where(`
+			control_library.title_en LIKE ? OR 
+			control_library.title_ar LIKE ? OR 
+			clt.control_title_en LIKE ? OR 
+			clt.control_title_ar LIKE ? OR 
+			cpl.title_en LIKE ? OR 
+			cpl.title_ar LIKE ?
+		`, keyword, keyword, keyword, keyword, keyword, keyword).
+			Group("control_library.id, control_library.title_en, control_library.title_ar")
 	}
 
-	// Count total
+	// Count
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
-	// Sorting
+	// Sorting (safe with whitelist)
+	validSortFields := map[string]string{
+		"id":       "control_library.id",
+		"title_en": "control_library.title_en",
+		"title_ar": "control_library.title_ar",
+	}
+
 	sortBy := params.SortBy
 	if sortBy == "" {
 		sortBy = "id"
 	}
+	sortField, ok := validSortFields[sortBy]
+	if !ok {
+		sortField = "control_library.id"
+	}
+
 	sortOrder := "asc"
 	if params.Sort == "desc" {
 		sortOrder = "desc"
 	}
-	query = query.Order(sortBy + " " + sortOrder)
+
+	query = query.Order(sortField + " " + sortOrder)
 
 	// Pagination
 	if !params.Export {
@@ -136,12 +155,12 @@ func (repo *ComplianceLibraryRepository) GetControlMappings(params *libraryDTOs.
 		query = query.Offset(offset).Limit(params.PageSize)
 	}
 
-	// Execute base query
+	// Fetch main items
 	if err := query.Find(&items).Error; err != nil {
 		return nil, err
 	}
 
-	// Attach mapped controls per framework (SAMA/NCA) as arrays
+	// Attach mapped SAMA/NCA controls
 	for i := range items {
 		var titles []libraryDTOs.ControlTitleDTO
 		subQuery := repo.db.
@@ -157,18 +176,10 @@ func (repo *ComplianceLibraryRepository) GetControlMappings(params *libraryDTOs.
 			Joins("LEFT JOIN compliance_libraries AS cpl ON cpl.id = clt.compliance_library_id").
 			Where("clt.control_library_id = ?", items[i].ID)
 
-		if len(params.ControlTitleEnList) > 0 {
-			subQuery = subQuery.Where("clt.control_title_en IN ?", params.ControlTitleEnList)
-		}
-		if len(params.ComplianceLibraryTitlesEn) > 0 {
-			subQuery = subQuery.Where("cpl.title_en IN ?", params.ComplianceLibraryTitlesEn)
-		}
-
 		if err := subQuery.Find(&titles).Error; err != nil {
 			return nil, err
 		}
 
-		// Assign multiple mapped controls by framework
 		for _, t := range titles {
 			switch strings.ToLower(t.ComplianceLibraryTitleEn) {
 			case "cyber security framework | saudi arabian monetary authority":

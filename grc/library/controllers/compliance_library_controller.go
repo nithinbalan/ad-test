@@ -83,25 +83,18 @@ func (clc *ComplianceLibraryController) GetControlMappings(c *gin.Context) {
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 
-	titleEnList := c.QueryArray("title_en")
-	controlTitleEnList := c.QueryArray("control_title_en")
-	complianceTitles := c.QueryArray("compliance_library_title_en")
-
 	export, _ := strconv.ParseBool(c.DefaultQuery("export", "false"))
 
 	page, _ := utility.ParseQueryParamToInt(c, "page", 1)
 	pageSize, _ := utility.ParseQueryParamToInt(c, "page_size", 10)
 
 	params := libraryDTOs.ControlMappingListQueryParamsDTO{
-		Sort:                      sort,
-		SortBy:                    sortBy,
-		Keyword:                   keyword,
-		TitleEnList:               titleEnList,
-		ControlTitleEnList:        controlTitleEnList,
-		ComplianceLibraryTitlesEn: complianceTitles,
-		Page:                      page,
-		PageSize:                  pageSize,
-		Export:                    export,
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Export:   export,
 	}
 
 	result, err := clc.service.GetControlMappings(&params)

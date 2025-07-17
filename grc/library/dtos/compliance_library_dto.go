@@ -96,15 +96,12 @@ type ControlTitleDTO struct {
 }
 
 type ControlMappingListQueryParamsDTO struct {
-	Sort                      string
-	SortBy                    string
-	Keyword                   string
-	ComplianceLibraryTitlesEn []string
-	TitleEnList               []string
-	ControlTitleEnList        []string
-	Page                      int
-	PageSize                  int
-	Export                    bool
+	Sort     string
+	SortBy   string
+	Keyword  string
+	Page     int
+	PageSize int
+	Export   bool
 }
 
 type ControlMappingListResponseDTO struct {
