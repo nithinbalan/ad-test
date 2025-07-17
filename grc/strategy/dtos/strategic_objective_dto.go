@@ -74,8 +74,8 @@ type StrategicObjectiveFormDTO struct {
 	StrategicObjectiveCategoryID uint    `json:"strategic_objective_category_id" binding:"required"`
 	DescriptionEn                *string `json:"description_en"`
 	DescriptionAr                *string `json:"description_ar"`
-	StartDate                    string  `json:"start_date" binding:"required"`
-	EndDate                      string  `json:"end_date" binding:"required"`
+	StartDate                    *string `json:"start_date"`
+	EndDate                      *string `json:"end_date"`
 	ResponsibleUserID            *uint   `json:"responsible_user_id"`
 	ResponsibleUnitID            *uint   `json:"responsible_unit_id"`
 	ReviewUserID                 *uint   `json:"review_user_id"`
@@ -102,8 +102,8 @@ type StrategicObjectiveDetailDTO struct {
 	ReferenceNumber              string                                 `json:"reference_number"`
 	DescriptionEn                *string                                `json:"description_en"`
 	DescriptionAr                *string                                `json:"description_ar"`
-	StartDateString              string                                 `json:"start_date"`
-	EndDateString                string                                 `json:"end_date"`
+	StartDateString              *string                                `json:"start_date"`
+	EndDateString                *string                                `json:"end_date"`
 	Status                       string                                 `json:"status"`
 	StrategicObjectiveCategoryID uint                                   `json:"strategic_objective_category_id"`
 	StrategicObjectiveCategory   *StrategicObjectiveCategoryDTO         `json:"strategic_objective_category"`

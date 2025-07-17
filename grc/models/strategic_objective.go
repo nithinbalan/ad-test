@@ -10,8 +10,8 @@ type StrategicObjective struct {
 	ReferenceNumber              string     `json:"reference_number" binding:"omitempty,max=45" gorm:"size:45"`
 	DescriptionEn                *string    `json:"description_en" gorm:"type:nvarchar(MAX);default:null"`
 	DescriptionAr                *string    `json:"description_ar" gorm:"type:nvarchar(MAX);default:null"`
-	StartDate                    *time.Time `json:"start_date" gorm:"type:date"`
-	EndDate                      *time.Time `json:"end_date" gorm:"type:date"`
+	StartDate                    *time.Time `json:"start_date" gorm:"type:date;default:null"`
+	EndDate                      *time.Time `json:"end_date" gorm:"type:date;default:null"`
 	ResponsibleUserID            *uint      `json:"responsible_user_id" gorm:"default:null"`
 	ResponsibleUnitID            *uint      `json:"responsible_unit_id" gorm:"default:null"`
 	ReviewUserID                 *uint      `json:"review_user_id" gorm:"default:null"`
