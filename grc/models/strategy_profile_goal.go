@@ -19,8 +19,8 @@ type StrategyProfileGoal struct {
 	StrategyProfile          *StrategyProfile          `gorm:"foreignKey:StrategyProfileID" json:"strategy_profile,omitempty"`
 	StrategyProfileFocusArea *StrategyProfileFocusArea `gorm:"foreignKey:StrategyProfileFocusAreaID" json:"strategy_profile_focus_area,omitempty"`
 	//StrategyProfileStrategicObjectives []StrategyProfileStrategicObjective `gorm:"foreignKey:StrategyProfileGoalID"`
-	StrategyProfileInitiatives []StrategyProfileInitiative `gorm:"foreignKey:StrategyProfileGoalID"`
-	StrategyProfileProjects    []StrategyProfileProject    `gorm:"foreignKey:StrategyProfileGoalID"`
+	//StrategyProfileStrategicIntiatives []StrategyProfileStrategicIntiative `gorm:"foreignKey:StrategyProfileGoalID"`
+	//StrategyProfileProjects    []StrategyProfileProject    `gorm:"foreignKey:StrategyProfileGoalID"`
 	StrategyProfileMilestones  []StrategyProfileMilestone  `gorm:"foreignKey:StrategyProfileGoalID"`
 	StrategyProfileActionPlans []StrategyProfileActionPlan `gorm:"foreignKey:StrategyProfileGoalID"`
 	ResponsibleUser            *User                       `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
