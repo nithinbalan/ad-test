@@ -71,6 +71,10 @@ func (repo *StrategyProfileFocusAreaRepository) GetAll(strategyProfileID uint, p
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
+			// Map API param to DB column
+			if columnName == "focus_area_ids" {
+				columnName = "strategy_profile_focus_areas.focus_area_id"
+			}
 			query = query.Where(columnName+" IN (?)", values)
 		}
 	}

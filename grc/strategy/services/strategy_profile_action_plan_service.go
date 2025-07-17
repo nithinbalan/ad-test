@@ -138,10 +138,10 @@ func (spaps *StrategyProfileActionPlanService) Create(strategyProfileID uint, cu
 	}
 
 	actionPlan := &models.StrategyProfileActionPlan{
-		StrategyProfileID:           strategyProfileID,
-		StrategyProfileFocusAreaID:  strategyProfileActionPlanFormDTO.StrategyProfileFocusAreaID,
-		StrategyProfileGoalID:       strategyProfileActionPlanFormDTO.StrategyProfileGoalID,
-		StrategyProfileObjectiveID:  strategyProfileActionPlanFormDTO.StrategyProfileObjectiveID,
+		StrategyProfileID:          strategyProfileID,
+		StrategyProfileFocusAreaID: strategyProfileActionPlanFormDTO.StrategyProfileFocusAreaID,
+		StrategyProfileGoalID:      strategyProfileActionPlanFormDTO.StrategyProfileGoalID,
+		//StrategyProfileObjectiveID:  strategyProfileActionPlanFormDTO.StrategyProfileObjectiveID,
 		StrategyProfileInitiativeID: strategyProfileActionPlanFormDTO.StrategyProfileInitiativeID,
 		StrategyProfileProjectID:    strategyProfileActionPlanFormDTO.StrategyProfileProjectID,
 		StrategyProfileMilestoneID:  strategyProfileActionPlanFormDTO.StrategyProfileMilestoneID,
@@ -225,7 +225,7 @@ func (spaps *StrategyProfileActionPlanService) Create(strategyProfileID uint, cu
 		// prepare notification
 		appURL := utility.GetAppURL()
 		urlParam := fmt.Sprintf(`{"strategy_profile_id":%d, "action_plan_id":%d}`, strategyProfileID, id)
-		redirectUrl := fmt.Sprintf("%sstrategy/strategy-profile/%d/action-plans?action_plan_id=%d", appURL, strategyProfileID, id)
+		redirectUrl := fmt.Sprintf("%s/strategy/strategy-profile/%d/action-plans?action_plan_id=%d", appURL, strategyProfileID, id)
 		queryParam := ""
 		entity := "strategy-profile-action-plan"
 		action := "responsible-user-assign"
@@ -408,7 +408,7 @@ func (spaps *StrategyProfileActionPlanService) Update(strategyProfileID uint, id
 
 		appURL := utility.GetAppURL()
 		urlParam := fmt.Sprintf(`{"strategy_profile_id":%d, "action_plan_id":%d}`, strategyProfileID, id)
-		redirectUrl := fmt.Sprintf("%sstrategy/strategy-profile/%d/action-plans?action_plan_id=%d", appURL, strategyProfileID, id)
+		redirectUrl := fmt.Sprintf("%s/strategy/strategy-profile/%d/action-plans?action_plan_id=%d", appURL, strategyProfileID, id)
 
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingActionPlan.ResponsibleUserID {

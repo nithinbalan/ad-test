@@ -263,7 +263,7 @@ func (caps *ComplianceActionPlanCommentService) Create(complianceID uint, action
 					"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
 					"CommentedByLastNameEn":     assignedBy.LastNameEn,
 					"CommentedOn":               time.Now().Format("2006-01-02"),
-					"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+					"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -333,7 +333,7 @@ func (caps *ComplianceActionPlanCommentService) Create(complianceID uint, action
 				"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":     assignedBy.LastNameEn,
 				"AssignedOn":                time.Now().Format("2006-01-02"),
-				"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+				"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -402,7 +402,7 @@ func (caps *ComplianceActionPlanCommentService) Create(complianceID uint, action
 				"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":     assignedBy.LastNameEn,
 				"AssignedOn":                time.Now().Format("2006-01-02"),
-				"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+				"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -470,7 +470,7 @@ func (caps *ComplianceActionPlanCommentService) Create(complianceID uint, action
 					"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
 					"CommentedByLastNameEn":     assignedBy.LastNameEn,
 					"AssignedOn":                time.Now().Format("2006-01-02"),
-					"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+					"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{

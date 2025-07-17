@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	strategyDTOs "jethur/grc/strategy/dtos"
 	"jethur/grc/strategy/services"
 	"jethur/utility"
@@ -11,18 +12,18 @@ import (
 	"gorm.io/gorm"
 )
 
-type StrategyProfileObjectiveController struct {
-	service services.StrategyProfileObjectiveServiceInterface
+type StrategyProfileKpiController struct {
+	service services.StrategyProfileKpiServiceInterface
 	db      *gorm.DB
 }
 
-func NewStrategyProfileObjectiveController(service services.StrategyProfileObjectiveServiceInterface) *StrategyProfileObjectiveController {
-	return &StrategyProfileObjectiveController{
+func NewStrategyProfileKpiController(service services.StrategyProfileKpiServiceInterface) *StrategyProfileKpiController {
+	return &StrategyProfileKpiController{
 		service: service,
 	}
 }
 
-func (snec *StrategyProfileObjectiveController) GetAllStrategyProfileObjectives(c *gin.Context) {
+func (snec *StrategyProfileKpiController) GetAllStrategyProfileKpis(c *gin.Context) {
 	strategyProfileIDStr := c.Param("strategyProfileId")
 	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
 	if err != nil {
@@ -37,7 +38,7 @@ func (snec *StrategyProfileObjectiveController) GetAllStrategyProfileObjectives(
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"strategy_profile_ids",
-		"strategy_profile_focus_area_ids",
+		"strategic_objective_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -54,7 +55,7 @@ func (snec *StrategyProfileObjectiveController) GetAllStrategyProfileObjectives(
 		return
 	}
 
-	queryParams := strategyDTOs.StrategyProfileObjectiveListQueryParamsDTO{
+	queryParams := strategyDTOs.StrategyProfileKpiListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
@@ -63,7 +64,7 @@ func (snec *StrategyProfileObjectiveController) GetAllStrategyProfileObjectives(
 		Filters:  filters,
 	}
 
-	objectives, err := snec.service.GetAll(uint(strategyProfileID), &queryParams)
+	kpi, err := snec.service.GetAll(uint(strategyProfileID), &queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -75,28 +76,17 @@ func (snec *StrategyProfileObjectiveController) GetAllStrategyProfileObjectives(
 		}
 	}
 
-	c.JSON(http.StatusOK, objectives)
+	c.JSON(http.StatusOK, kpi)
 }
 
-func (snec *StrategyProfileObjectiveController) CreateStrategyProfileObjective(c *gin.Context) {
-	var FormDTO strategyDTOs.StrategyProfileObjectiveFormDTO
+func (snec *StrategyProfileKpiController) CreateStrategyProfileKpi(c *gin.Context) {
+	var FormDTO strategyDTOs.StrategyProfileKpiFormDTO
 
 	strategyProfileIDStr := c.Param("strategyProfileId")
 	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
-	}
-
-	// Parse optional focus_area_id from query params
-	var focusAreaID *uint
-	focusAreaIDStr := c.Query("strategy_profile_focus_area_id")
-	if focusAreaIDStr != "" {
-		parsed, err := strconv.ParseUint(focusAreaIDStr, 10, 32)
-		if err == nil {
-			val := uint(parsed)
-			focusAreaID = &val
-		}
 	}
 
 	if err := c.ShouldBindJSON(&FormDTO); err != nil {
@@ -110,7 +100,7 @@ func (snec *StrategyProfileObjectiveController) CreateStrategyProfileObjective(c
 		return
 	}
 
-	ids, err := snec.service.Create(uint(strategyProfileID), currentUserID, &FormDTO, focusAreaID)
+	ids, err := snec.service.Create(uint(strategyProfileID), currentUserID, &FormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -126,10 +116,10 @@ func (snec *StrategyProfileObjectiveController) CreateStrategyProfileObjective(c
 		}
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"successful_ids": ids})
+	c.JSON(http.StatusCreated, commonDTOs.SuccessfulIDsResponse{SuccessfulIds: ids})
 }
 
-func (snec *StrategyProfileObjectiveController) DeleteStrategyProfileObjectives(c *gin.Context) {
+func (snec *StrategyProfileKpiController) DeleteStrategyProfileKpi(c *gin.Context) {
 	strategyProfileIDStr := c.Param("strategyProfileId")
 	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
 	if err != nil {
@@ -137,8 +127,8 @@ func (snec *StrategyProfileObjectiveController) DeleteStrategyProfileObjectives(
 		return
 	}
 
-	objectiveIDStr := c.Param("id")
-	objectiveID, err := strconv.ParseUint(objectiveIDStr, 10, 32)
+	kpiIDStr := c.Param("id")
+	kpiID, err := strconv.ParseUint(kpiIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -150,7 +140,7 @@ func (snec *StrategyProfileObjectiveController) DeleteStrategyProfileObjectives(
 		return
 	}
 
-	err = snec.service.Delete(uint(strategyProfileID), uint(objectiveID), currentUserID)
+	err = snec.service.Delete(uint(strategyProfileID), uint(kpiID), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

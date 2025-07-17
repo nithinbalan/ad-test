@@ -273,7 +273,7 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Cre
 				"ResolvedByFirstNameEn": resolvedBy.FirstNameEn,
 				"ResolvedByLastNameEn":  resolvedBy.LastNameEn,
 				"ResolvedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%scompliance/assessment/%d/action-plans?action_plan_id=%d", appURL, AssessmentID, id),
+				"RedirectURL":           fmt.Sprintf("%s/compliance/assessment/%d/action-plans?action_plan_id=%d", appURL, AssessmentID, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -643,7 +643,7 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) App
 			"ResolvedByFirstNameEn": resolvedBy.FirstNameEn,
 			"ResolvedByLastNameEn":  resolvedBy.LastNameEn,
 			"ResolvedOn":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%scompliance/assessment/%d/action-plans?action_plan_id=%d", appURL, assessmentID, id),
+			"RedirectURL":           fmt.Sprintf("%s/compliance/assessment/%d/action-plans?action_plan_id=%d", appURL, assessmentID, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -803,7 +803,7 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Rev
 			"ResolvedByFirstNameEn": resolvedBy.FirstNameEn,
 			"ResolvedByLastNameEn":  resolvedBy.LastNameEn,
 			"ResolvedOn":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%scompliance/assessment/%d/action-plans?action_plan_id=%d", appURL, assessmentID, id),
+			"RedirectURL":           fmt.Sprintf("%s/compliance/assessment/%d/action-plans?action_plan_id=%d", appURL, assessmentID, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{

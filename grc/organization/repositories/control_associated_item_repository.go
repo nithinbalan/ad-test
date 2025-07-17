@@ -4,18 +4,24 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
 
 type ControlAssociatedItemRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAllProcesses(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemProcessListResponseDTO, error)
 	GetAllComplianceRequirements(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) ([]organizationDTOs.ControlComplianceRequirementListDTO, error)
 	GetAllRisks(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemRiskListResponseDTO, error)
 	GetAllIncidents(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemIncidentListResponseDTO, error)
 	GetAllAssociatedCounts(controlID uint) (*organizationDTOs.ControlAssociatedItemsCountResponseDTO, error)
+	GetAllClauses(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemClauseListResponseDTO, error)
+	GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error)
+	GetClausesByControlID(controlID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
+	CreateControlClauses(clauses []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error
+	DeleteControlClauses(controlID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 }
-
 type ControlAssociatedItemRepository struct {
 	db *gorm.DB
 }
@@ -25,7 +31,9 @@ func NewControlAssociatedItemRepository(db *gorm.DB) *ControlAssociatedItemRepos
 		db: db,
 	}
 }
-
+func (repo *ControlAssociatedItemRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
+}
 func (repo *ControlAssociatedItemRepository) GetAllProcesses(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemProcessListResponseDTO, error) {
 	var processList []*organizationDTOs.ControlProcessListDTO
 	var totalCount int64
@@ -434,4 +442,163 @@ func (repo *ControlAssociatedItemRepository) GetAllAssociatedCounts(controlID ui
 		Risks:                  int(risksCount),
 		Incidents:              int(incidentsCount),
 	}, nil
+}
+
+func (repo *ControlAssociatedItemRepository) GetAllClauses(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemClauseListResponseDTO, error) {
+
+	var clauseList []organizationDTOs.ClauseRowDTO
+	var totalCount int64
+	query := repo.db.Table("compliance_controls").
+		Select(`
+			compliance_clauses.title_en AS clause_title_en,
+			compliance_clauses.title_ar AS clause_title_ar,
+			compliance_clauses.clause_no,
+			compliance_clauses.compliance_register_id,
+			compliance_clauses.id AS compliance_clause_id,
+			compliance_register.title_en AS compliance_register_title_en,
+			compliance_register.title_ar AS compliance_register_title_ar
+		`).
+		Joins(`
+			LEFT JOIN compliance_clauses ON compliance_controls.compliance_clause_id = compliance_clauses.id
+			LEFT JOIN compliance_register ON compliance_controls.compliance_register_id = compliance_register.id
+		`).
+		Where("compliance_controls.control_id = ?", controlID)
+
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			compliance_register.title_en LIKE ? OR
+			compliance_register.title_ar LIKE ? OR
+			compliance_clauses.clause_no LIKE ? OR
+			compliance_clauses.title_en  LIKE ? OR
+			compliance_clauses.title_ar  LIKE ?`,
+			keyword, keyword, keyword, keyword, keyword,
+		)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "compliance_register.title_en"
+	}
+
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	if err := query.Find(&clauseList).Error; err != nil {
+		return nil, err
+	}
+
+	clausesByComplianceRegister := make(map[uint]*organizationDTOs.ClauseListDTO)
+	for _, row := range clauseList {
+		if _, exists := clausesByComplianceRegister[row.ComplianceRegisterID]; !exists {
+			clausesByComplianceRegister[row.ComplianceRegisterID] = &organizationDTOs.ClauseListDTO{
+				ComplianceRegisterID:      row.ComplianceRegisterID,
+				ComplianceRegisterTitleEn: row.ComplianceRegisterTitleEn,
+				ComplianceRegisterTitleAr: row.ComplianceRegisterTitleAr,
+				Clauses:                   []organizationDTOs.ClauseDTO{},
+			}
+		}
+		clausesByComplianceRegister[row.ComplianceRegisterID].Clauses = append(clausesByComplianceRegister[row.ComplianceRegisterID].Clauses, organizationDTOs.ClauseDTO{
+			ComplianceClauseID: row.ComplianceClauseID,
+			ClauseNo:           row.ClauseNo,
+			ClauseTitleEn:      row.ClauseTitleEn,
+			ClauseTitleAr:      row.ClauseTitleAr,
+		})
+	}
+
+	var groupedClauses []*organizationDTOs.ClauseListDTO
+	for _, v := range clausesByComplianceRegister {
+		groupedClauses = append(groupedClauses, v)
+	}
+
+	if groupedClauses == nil {
+		groupedClauses = []*organizationDTOs.ClauseListDTO{}
+	}
+
+	totalCount = int64(len(groupedClauses))
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	start := (params.Page - 1) * params.PageSize
+	if start > int(totalCount) {
+		start = int(totalCount)
+	}
+
+	end := start + params.PageSize
+	if end > int(totalCount) {
+		end = int(totalCount)
+	}
+
+	pagedClauses := groupedClauses[start:end]
+	response := &organizationDTOs.ControlAssociatedItemClauseListResponseDTO{
+		Items: pagedClauses,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+}
+
+func (repo *ControlAssociatedItemRepository) GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var clauses []*models.ComplianceClause
+	if err := db.
+		Select("id, compliance_register_id").
+		Where("id IN ?", ids).
+		Find(&clauses).Error; err != nil {
+		return nil, err
+	}
+
+	return clauses, nil
+}
+
+func (repo *ControlAssociatedItemRepository) GetClausesByControlID(controlID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var clauseIDs []uint
+	if err := db.
+		Model(&models.ComplianceControl{}).
+		Where("control_id = ?", controlID).
+		Pluck("compliance_clause_id", &clauseIDs).Error; err != nil {
+		return nil, err
+	}
+
+	return clauseIDs, nil
+}
+func (repo *ControlAssociatedItemRepository) CreateControlClauses(clauses []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(&clauses).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ControlAssociatedItemRepository) DeleteControlClauses(controlID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.
+		Where("control_id = ? AND compliance_clause_id IN ?", controlID, clauseIDs).
+		Delete(&models.ComplianceControl{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

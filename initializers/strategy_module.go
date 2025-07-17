@@ -12,7 +12,7 @@ type StrategyModule struct {
 	StrategyProfileController                       *controllers.StrategyProfileController
 	StrategyProfileFocusAreaController              *controllers.StrategyProfileFocusAreaController
 	StrategyProfileGoalController                   *controllers.StrategyProfileGoalController
-	StrategyProfileObjectiveController              *controllers.StrategyProfileObjectiveController
+	StrategyProfileStrategicObjectiveController     *controllers.StrategyProfileStrategicObjectiveController
 	StrategyProfileInitiativeController             *controllers.StrategyProfileInitiativeController
 	StrategyProfileProjectController                *controllers.StrategyProfileProjectController
 	StrategyProfileMilestoneController              *controllers.StrategyProfileMilestoneController
@@ -35,6 +35,7 @@ type StrategyModule struct {
 	FocusAreaController                             *controllers.FocusAreaController
 	StrategicIntiativeController                    *controllers.StrategicIntiativeController
 	StrategicObjectiveAssociatedItemController      *controllers.StrategicObjectiveAssociatedItemController
+	StrategyProfileKpiController                    *controllers.StrategyProfileKpiController
 }
 
 func NewStrategyModule(db *gorm.DB,
@@ -160,9 +161,9 @@ func NewStrategyModule(db *gorm.DB,
 	strategyProfileFocusAreaSvc := services.NewStrategyProfileFocusAreaService(strategyProfileFocusAreaRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc, focusAreaSvc)
 	strategyProfileFocusAreaController := controllers.NewStrategyProfileFocusAreaController(strategyProfileFocusAreaSvc)
 
-	strategyProfileObjectiveRepo := repositories.NewStrategyProfileObjectiveRepository(db)
-	strategyProfileObjectiveSvc := services.NewStrategyProfileObjectiveService(strategyProfileObjectiveRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc, strategyProfileFocusAreaSvc, strategyProfileGoalSvc, strategicObjectiveSvc)
-	strategyProfileObjectiveController := controllers.NewStrategyProfileObjectiveController(strategyProfileObjectiveSvc)
+	strategyProfileStrategicObjectiveRepo := repositories.NewStrategyProfileStrategicObjectiveRepository(db)
+	strategyProfileStrategicObjectiveSvc := services.NewStrategyProfileStrategicObjectiveService(strategyProfileStrategicObjectiveRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc, strategyProfileFocusAreaSvc, strategyProfileGoalSvc, strategicObjectiveSvc)
+	strategyProfileStrategicObjectiveController := controllers.NewStrategyProfileStrategicObjectiveController(strategyProfileStrategicObjectiveSvc)
 
 	strategicIntiativeRepo := repositories.NewStrategicIntiativeRepository(db)
 	strategicIntiativeSvc := services.NewStrategicIntiativeService(strategicIntiativeRepo, sharedModule.ActivityLogService, settingsModule.OrganizationUnitSvc, organizationModule.UserSvc)
@@ -171,11 +172,15 @@ func NewStrategyModule(db *gorm.DB,
 	strategicObjectiveAssociatedItemSvc := services.NewstrategicObjectiveAssociatedItemService(strategicObjectiveAssociatedItemRepo, strategicObjectiveSvc, complianceModule.ComplianceClausevc)
 	strategicObjectiveAssociatedItemController := controllers.NewStrategicObjectiveAssociatedItemController(strategicObjectiveAssociatedItemSvc)
 
+	strategyProfileKpiRepo := repositories.NewStrategyProfileKpiRepository(db)
+	strategyProfileKpiSvc := services.NewStrategyProfileKpiService(strategyProfileKpiRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc, strategyProfileStrategicObjectiveSvc, kpiRegisterSvc)
+	strategyProfileKpiController := controllers.NewStrategyProfileKpiController(strategyProfileKpiSvc)
+
 	return &StrategyModule{
 		StrategyProfileController:                       strategyProfileController,
 		StrategyProfileFocusAreaController:              strategyProfileFocusAreaController,
 		StrategyProfileGoalController:                   strategyProfileGoalController,
-		StrategyProfileObjectiveController:              strategyProfileObjectiveController,
+		StrategyProfileStrategicObjectiveController:     strategyProfileStrategicObjectiveController,
 		StrategyProfileInitiativeController:             strategyProfileInitiativeController,
 		StrategyProfileProjectController:                strategyProfileProjectController,
 		StrategyProfileMilestoneController:              strategyProfileMilestoneController,
@@ -198,5 +203,6 @@ func NewStrategyModule(db *gorm.DB,
 		FocusAreaController:                             focusAreaController,
 		StrategicIntiativeController:                    strategicIntiativeController,
 		StrategicObjectiveAssociatedItemController:      strategicObjectiveAssociatedItemController,
+		StrategyProfileKpiController:                    strategyProfileKpiController,
 	}
 }

@@ -1,6 +1,9 @@
 package repositories
 
 import (
+	"strings"
+
+	commonDTOs "jethur/grc/common/dtos"
 	libraryDTOs "jethur/grc/library/dtos"
 	"jethur/grc/models"
 
@@ -12,7 +15,7 @@ type ComplianceLibraryRepositoryInterface interface {
 	GetClausesByVersion(versionID uint) ([]models.ComplianceLibraryClause, error)
 	GetControlLibraryTitle(controlLibraryID, complianceLibraryID uint) (*models.ControlLibraryTitle, error)
 	FetchRawControlMappings() ([]libraryDTOs.RawControlMapping, error)
-	GetControlMappings() ([]libraryDTOs.ControlLibraryResponseDTO, error)
+	GetControlMappings(params *libraryDTOs.ControlMappingListQueryParamsDTO) (*libraryDTOs.ControlMappingListResponseDTO, error)
 }
 
 type ComplianceLibraryRepository struct {
@@ -93,37 +96,109 @@ func (repo *ComplianceLibraryRepository) FetchRawControlMappings() ([]libraryDTO
 	return results, err
 }
 
-func (repo *ComplianceLibraryRepository) GetControlMappings() ([]libraryDTOs.ControlLibraryResponseDTO, error) {
-	var genericControls []libraryDTOs.ControlLibraryResponseDTO
-	if err := repo.db.
+func (repo *ComplianceLibraryRepository) GetControlMappings(params *libraryDTOs.ControlMappingListQueryParamsDTO) (*libraryDTOs.ControlMappingListResponseDTO, error) {
+	var items []*libraryDTOs.ControlLibraryResponseDTO
+	var totalCount int64
+
+	query := repo.db.
 		Table("control_library").
-		Select("id, title_en, title_ar").
-		Order("id").
-		Find(&genericControls).Error; err != nil {
+		Select("control_library.id, control_library.title_en, control_library.title_ar")
+
+	// JOIN + Keyword search
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Joins(`
+			LEFT JOIN control_library_titles AS clt ON clt.control_library_id = control_library.id
+			LEFT JOIN compliance_libraries AS cpl ON cpl.id = clt.compliance_library_id
+		`).Where(`
+			control_library.title_en LIKE ? OR 
+			control_library.title_ar LIKE ? OR 
+			clt.control_title_en LIKE ? OR 
+			clt.control_title_ar LIKE ? OR 
+			cpl.title_en LIKE ? OR 
+			cpl.title_ar LIKE ?
+		`, keyword, keyword, keyword, keyword, keyword, keyword).
+			Group("control_library.id, control_library.title_en, control_library.title_ar")
+	}
+
+	// Count
+	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
-	for i := range genericControls {
-		var titles []libraryDTOs.ControlTitleDTO
+	// Sorting (safe with whitelist)
+	validSortFields := map[string]string{
+		"id":       "control_library.id",
+		"title_en": "control_library.title_en",
+		"title_ar": "control_library.title_ar",
+	}
 
-		if err := repo.db.
+	sortBy := params.SortBy
+	if sortBy == "" {
+		sortBy = "id"
+	}
+	sortField, ok := validSortFields[sortBy]
+	if !ok {
+		sortField = "control_library.id"
+	}
+
+	sortOrder := "asc"
+	if params.Sort == "desc" {
+		sortOrder = "desc"
+	}
+
+	query = query.Order(sortField + " " + sortOrder)
+
+	// Pagination
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	// Fetch main items
+	if err := query.Find(&items).Error; err != nil {
+		return nil, err
+	}
+
+	// Attach mapped SAMA/NCA controls
+	for i := range items {
+		var titles []libraryDTOs.ControlTitleDTO
+		subQuery := repo.db.
 			Table("control_library_titles AS clt").
 			Select(`
 				clt.control_library_id,
+				cpl.title_en AS compliance_library_title_en,
+				cpl.title_ar AS compliance_library_title_ar,
 				clt.control_code,
 				clt.control_title_en,
-				clt.control_title_ar,
-				cpl.title_en AS compliance_library_title_en,
-				cpl.title_ar AS compliance_library_title_ar
+				clt.control_title_ar
 			`).
-			Joins("LEFT JOIN compliance_libraries AS cpl ON clt.compliance_library_id = cpl.id").
-			Where("clt.control_library_id = ?", genericControls[i].ID).
-			Find(&titles).Error; err != nil {
+			Joins("LEFT JOIN compliance_libraries AS cpl ON cpl.id = clt.compliance_library_id").
+			Where("clt.control_library_id = ?", items[i].ID)
+
+		if err := subQuery.Find(&titles).Error; err != nil {
 			return nil, err
 		}
 
-		genericControls[i].Titles = titles
+		for _, t := range titles {
+			switch strings.ToLower(t.ComplianceLibraryTitleEn) {
+			case "cyber security framework | saudi arabian monetary authority":
+				items[i].SAMA = append(items[i].SAMA, t)
+			case "essential cybersecurity controls (ecc – 2: 2024)":
+				items[i].NCA = append(items[i].NCA, t)
+			}
+		}
 	}
 
-	return genericControls, nil
+	// Final response
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	return &libraryDTOs.ControlMappingListResponseDTO{
+		Items: items,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}, nil
 }

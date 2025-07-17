@@ -220,7 +220,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 					"CommentedByFirstNameEn": commentedBy.FirstNameEn,
 					"CommentedByLastNameEn":  commentedBy.LastNameEn,
 					"CommentedOn":            time.Now().Format("2006-01-02"),
-					"RedirectURL":            fmt.Sprintf("%scompliance/assessments/%d/overview", appURL, complianceAssessmentID),
+					"RedirectURL":            fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, complianceAssessmentID),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -289,7 +289,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 					"CommentedByFirstNameEn": commentedBy.FirstNameEn,
 					"CommentedByLastNameEn":  commentedBy.LastNameEn,
 					"CommentedOn":            time.Now().Format("2006-01-02"),
-					"RedirectURL":            fmt.Sprintf("%scompliance/assessments/%d/overview", appURL, complianceAssessmentID),
+					"RedirectURL":            fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, complianceAssessmentID),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -359,7 +359,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 						"CommentedByFirstNameEn": commentedBy.FirstNameEn,
 						"CommentedByLastNameEn":  commentedBy.LastNameEn,
 						"CommentedOn":            time.Now().Format("2006-01-02"),
-						"RedirectURL":            fmt.Sprintf("%scompliance/assessments/%d/overview", appURL, complianceAssessmentID),
+						"RedirectURL":            fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, complianceAssessmentID),
 					}
 
 					emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -427,7 +427,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 					"CommentedByFirstNameEn": commentedBy.FirstNameEn,
 					"CommentedByLastNameEn":  commentedBy.LastNameEn,
 					"CommentedOn":            time.Now().Format("2006-01-02"),
-					"RedirectURL":            fmt.Sprintf("%scompliance/assessments/%d/overview", appURL, complianceAssessmentID),
+					"RedirectURL":            fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, complianceAssessmentID),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{

@@ -19,12 +19,12 @@ import (
 )
 
 type ProjectMilestoneServiceInterface interface {
-	GetAll(params *dtos.ProjectMilestoneListQueryParamsDTO) (*dtos.ProjectMilestoneListResponseDTO, error)
-	GetByID(id uint) (*models.ProjectMilestone, error)
-	GetFullDetailsByID(id uint) (*dtos.ProjectMilestoneDetailDTO, error)
-	Create(currentUserID uint, form *dtos.ProjectMilestoneFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, form *dtos.ProjectMilestoneFormDTO) error
-	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	GetAll(projectID uint, params *dtos.ProjectMilestoneListQueryParamsDTO) (*dtos.ProjectMilestoneListResponseDTO, error)
+	GetByID(projectID uint, id uint) (*models.ProjectMilestone, error)
+	GetFullDetailsByID(projectID uint, id uint) (*dtos.ProjectMilestoneDetailDTO, error)
+	Create(projectID uint, currentUserID uint, form *dtos.ProjectMilestoneFormDTO) (uint, error)
+	Update(projectID uint, id uint, currentUserID uint, form *dtos.ProjectMilestoneFormDTO) error
+	Delete(projectID uint, ids []uint, currentUserID uint) ([]uint, error)
 }
 
 type ProjectMilestoneService struct {
@@ -51,12 +51,15 @@ func NewProjectMilestoneService(
 	}
 }
 
-func (s *ProjectMilestoneService) GetAll(params *dtos.ProjectMilestoneListQueryParamsDTO) (*dtos.ProjectMilestoneListResponseDTO, error) {
-	return s.repo.GetAll(0, params)
+func (pms *ProjectMilestoneService) GetAll(projectID uint, params *dtos.ProjectMilestoneListQueryParamsDTO) (*dtos.ProjectMilestoneListResponseDTO, error) {
+	return pms.repo.GetAll(projectID, params)
 }
 
-func (s *ProjectMilestoneService) GetByID(id uint) (*models.ProjectMilestone, error) {
-	milestone, err := s.repo.GetByID(id)
+func (pms *ProjectMilestoneService) GetByID(projectID uint, id uint) (*models.ProjectMilestone, error) {
+	if _, err := pms.projectSvc.GetByID(projectID); err != nil {
+		return nil, err
+	}
+	milestone, err := pms.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -66,10 +69,15 @@ func (s *ProjectMilestoneService) GetByID(id uint) (*models.ProjectMilestone, er
 	return milestone, nil
 }
 
-func (s *ProjectMilestoneService) GetFullDetailsByID(id uint) (*dtos.ProjectMilestoneDetailDTO, error) {
+func (pms *ProjectMilestoneService) GetFullDetailsByID(projectID uint, id uint) (*dtos.ProjectMilestoneDetailDTO, error) {
 	var milestoneDTO dtos.ProjectMilestoneDetailDTO
 
-	milestone, err := s.repo.GetFullDetailsByID(id)
+	// Check if the compliance register exists
+	if _, err := pms.projectSvc.GetByID(projectID); err != nil {
+		return nil, err
+	}
+
+	milestone, err := pms.repo.GetFullDetailsByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, &utility.ResourceNotFoundError{}
@@ -98,14 +106,18 @@ func (s *ProjectMilestoneService) GetFullDetailsByID(id uint) (*dtos.ProjectMile
 	return &milestoneDTO, nil
 }
 
-func (s *ProjectMilestoneService) Create(currentUserID uint, form *dtos.ProjectMilestoneFormDTO) (uint, error) {
+func (pms *ProjectMilestoneService) Create(projectID uint, currentUserID uint, form *dtos.ProjectMilestoneFormDTO) (uint, error) {
+	project, err := pms.projectSvc.GetByID(projectID)
+	if err != nil {
+		return 0, err
+	}
 	plannedDate, actualDate, err := parseMilestoneDates(form)
 	if err != nil {
 		return 0, err
 	}
 
 	milestone := &models.ProjectMilestone{
-		ProjectID:                form.ProjectID,
+		ProjectID:                project.ID,
 		TitleEn:                  form.TitleEn,
 		TitleAr:                  form.TitleAr,
 		DescriptionEn:            form.DescriptionEn,
@@ -117,14 +129,14 @@ func (s *ProjectMilestoneService) Create(currentUserID uint, form *dtos.ProjectM
 		CreatedAt:                time.Now(),
 	}
 
-	id, err := s.repo.Create(milestone)
+	id, err := pms.repo.Create(milestone)
 	if err != nil {
 		return 0, err
 	}
 
 	go func() {
 		activityData := map[string]interface{}{
-			"project_id":                  form.ProjectID,
+			"project_id":                  projectID,
 			"title_en":                    form.TitleEn,
 			"title_ar":                    form.TitleAr,
 			"description_en":              form.DescriptionEn,
@@ -133,7 +145,7 @@ func (s *ProjectMilestoneService) Create(currentUserID uint, form *dtos.ProjectM
 			"actual_date":                 form.ActualDate,
 			"project_milestone_status_id": form.ProjectMilestoneStatusID,
 		}
-		err := s.activityLog.LogActivity(models.CreateAction, models.ProjectMilestone{}.TableName(), id, activityData, currentUserID, nil)
+		err := pms.activityLog.LogActivity(models.CreateAction, models.ProjectMilestone{}.TableName(), id, activityData, currentUserID, nil)
 		if err != nil {
 			utility.LogError("Failed to log create milestone activity", map[string]interface{}{
 				"recordID": id,
@@ -145,8 +157,9 @@ func (s *ProjectMilestoneService) Create(currentUserID uint, form *dtos.ProjectM
 	return id, nil
 }
 
-func (s *ProjectMilestoneService) Update(id uint, currentUserID uint, form *dtos.ProjectMilestoneFormDTO) error {
-	milestone, err := s.repo.GetByID(id)
+func (pms *ProjectMilestoneService) Update(projectID uint, id uint, currentUserID uint, form *dtos.ProjectMilestoneFormDTO) error {
+
+	milestone, err := pms.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &utility.ResourceNotFoundError{}
@@ -155,7 +168,6 @@ func (s *ProjectMilestoneService) Update(id uint, currentUserID uint, form *dtos
 	}
 
 	oldData := map[string]interface{}{
-		"project_id":                  milestone.ProjectID,
 		"title_en":                    milestone.TitleEn,
 		"title_ar":                    milestone.TitleAr,
 		"description_en":              milestone.DescriptionEn,
@@ -170,7 +182,6 @@ func (s *ProjectMilestoneService) Update(id uint, currentUserID uint, form *dtos
 		return err
 	}
 
-	milestone.ProjectID = form.ProjectID
 	milestone.TitleEn = form.TitleEn
 	milestone.TitleAr = form.TitleAr
 	milestone.DescriptionEn = form.DescriptionEn
@@ -181,14 +192,13 @@ func (s *ProjectMilestoneService) Update(id uint, currentUserID uint, form *dtos
 	milestone.UpdatedBYID = &currentUserID
 	milestone.UpdatedAt = timePtr(time.Now())
 
-	err = s.repo.Update(milestone)
+	err = pms.repo.Update(milestone)
 	if err != nil {
 		return err
 	}
 
 	go func() {
 		newData := map[string]interface{}{
-			"project_id":                  form.ProjectID,
 			"title_en":                    form.TitleEn,
 			"title_ar":                    form.TitleAr,
 			"description_en":              form.DescriptionEn,
@@ -199,7 +209,7 @@ func (s *ProjectMilestoneService) Update(id uint, currentUserID uint, form *dtos
 		}
 		changes := utility.CompareFieldChanges(oldData, newData)
 		if len(changes) > 0 {
-			err := s.activityLog.LogActivity(models.UpdateAction, models.ProjectMilestone{}.TableName(), id, changes, currentUserID, nil)
+			err := pms.activityLog.LogActivity(models.UpdateAction, models.ProjectMilestone{}.TableName(), id, changes, currentUserID, nil)
 			if err != nil {
 				utility.LogError("Failed to log update milestone activity", map[string]interface{}{
 					"recordID": id,
@@ -212,20 +222,24 @@ func (s *ProjectMilestoneService) Update(id uint, currentUserID uint, form *dtos
 	return nil
 }
 
-func (s *ProjectMilestoneService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (pms *ProjectMilestoneService) Delete(projectID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	if _, err := pms.projectSvc.GetByID(projectID); err != nil {
+		return nil, err
+	}
+
 	var failedIds []uint
 	var successfulIds []uint
 	var deletedMilestones []map[string]interface{}
 
 	for _, id := range ids {
-		milestone, err := s.repo.GetByID(id)
+		milestone, err := pms.repo.GetByID(id)
 		if err != nil {
 			fmt.Print(err)
 			failedIds = append(failedIds, id)
 			continue
 		}
 
-		err = s.repo.Delete(id)
+		err = pms.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
@@ -241,7 +255,7 @@ func (s *ProjectMilestoneService) Delete(ids []uint, currentUserID uint) ([]uint
 
 	if len(successfulIds) > 0 {
 		go func() {
-			err := s.activityLog.LogBulkActivities(
+			err := pms.activityLog.LogBulkActivities(
 				models.DeleteAction,
 				models.ProjectMilestone{}.TableName(),
 				successfulIds,

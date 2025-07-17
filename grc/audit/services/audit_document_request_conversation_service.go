@@ -261,7 +261,7 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 					"ResponsibleUnit": audit.ResponsibleUnit.TitleEn,
 					"ResponsibleUser": fmt.Sprintf("%s %s", audit.ResponsibleUser.FirstNameEN, audit.ResponsibleUser.LastNameEN),
 					"CommenttedAt":    time.Now().Format("2006-01-02"),
-					"RedirectURL":     fmt.Sprintf("%saudit-insight/document-requests", appURL),
+					"RedirectURL":     fmt.Sprintf("%s/audit-insight/document-requests", appURL),
 				},
 			}
 
@@ -327,7 +327,7 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 					"ResponsibleUnit": audit.ResponsibleUnit.TitleEn,
 					"RequestedUser":   fmt.Sprintf("%s %s", audit.RequestedByUser.FirstNameEN, audit.RequestedByUser.LastNameEN),
 					"CommenttedAt":    time.Now().Format("2006-01-02"),
-					"RedirectURL":     fmt.Sprintf("%saudit/audits/%d/document-request", appURL, auditID),
+					"RedirectURL":     fmt.Sprintf("%s/audit/audits/%d/document-request", appURL, auditID),
 				},
 			}
 

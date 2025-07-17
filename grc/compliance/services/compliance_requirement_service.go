@@ -392,7 +392,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 			"AssignedByFirstNameEn":         assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":          assignedBy.LastNameEn,
 			"AssignedOn":                    time.Now().Format("2006-01-02"),
-			"RedirectURL":                   fmt.Sprintf("%scompliance/register/%d/requirements?requirements=%d", appURL, complianceID, id),
+			"RedirectURL":                   fmt.Sprintf("%s/compliance/register/%d/requirements?requirements=%d", appURL, complianceID, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -916,7 +916,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 				"UpdatedByFirstNameEn":          updatedByUser.FirstNameEn,
 				"UpdatedByLastNameEn":           updatedByUser.LastNameEn,
 				"AssignedOn":                    time.Now().Format("2006-01-02"),
-				"RedirectURL":                   fmt.Sprintf("%scompliance/register/%d/requirements?requirements=%d", appURL, complianceID, id),
+				"RedirectURL":                   fmt.Sprintf("%s/compliance/register/%d/requirements?requirements=%d", appURL, complianceID, id),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -941,7 +941,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 				"UpdatedByFirstNameEn":          updatedByUser.FirstNameEn,
 				"UpdatedByLastNameEn":           updatedByUser.LastNameEn,
 				"AssignedOn":                    time.Now().Format("2006-01-02"),
-				"RedirectURL":                   fmt.Sprintf("%scompliance/register/%d/requirements?requirements=%d", appURL, complianceID, id),
+				"RedirectURL":                   fmt.Sprintf("%s/compliance/register/%d/requirements?requirements=%d", appURL, complianceID, id),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{

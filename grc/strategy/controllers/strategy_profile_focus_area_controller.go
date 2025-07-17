@@ -37,7 +37,7 @@ func (snec *StrategyProfileFocusAreaController) GetAllStrategyProfileFocusAreas(
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
-		"strategy_profile_ids",
+		"focus_area_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

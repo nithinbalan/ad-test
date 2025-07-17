@@ -34,6 +34,7 @@ func (soc *StrategicObjectiveController) GetAllStrategicObjectives(c *gin.Contex
 	allowedParams := []string{
 		"responsible_user_ids",
 		"responsible_unit_ids",
+		"strategic_objective_category_ids",
 		"review_user_ids",
 		"review_frequency_ids",
 	}
@@ -244,4 +245,19 @@ func (soc *StrategicObjectiveController) DeactivateStrategicObjectives(c *gin.Co
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (soc *StrategicObjectiveController) GetFocusAreasByStrategicObjectiveID(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	focusAreas, err := soc.service.GetFocusAreasByStrategicObjectiveID(uint(id))
+	if err != nil {
+		utility.SendInternalErrResp(soc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, focusAreas)
 }

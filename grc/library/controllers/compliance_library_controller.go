@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	libraryDTOs "jethur/grc/library/dtos"
 	"jethur/grc/library/services"
 	"jethur/utility"
 
@@ -78,11 +79,49 @@ func (clc *ComplianceLibraryController) GetAllMappings(c *gin.Context) {
 }
 
 func (clc *ComplianceLibraryController) GetControlMappings(c *gin.Context) {
-	data, err := clc.service.GetControlMappings()
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	export, _ := strconv.ParseBool(c.DefaultQuery("export", "false"))
+
+	page, _ := utility.ParseQueryParamToInt(c, "page", 1)
+	pageSize, _ := utility.ParseQueryParamToInt(c, "page_size", 10)
+
+	params := libraryDTOs.ControlMappingListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Export:   export,
+	}
+
+	result, err := clc.service.GetControlMappings(&params)
 	if err != nil {
 		utility.SendInternalErrResp(clc.db, c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, data)
+	if export {
+		currentUserID, _ := utility.GetCurrentUserID(c)
+		file, err := clc.service.ExportControlMappings(result.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(clc.db, c, err.Error())
+			return
+		}
+		defer file.Close()
+
+		c.Header("Content-Disposition", `attachment; filename="Control_Mapping.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(file.Name())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (clc *ComplianceLibraryController) GetControlMappingsExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+	clc.GetControlMappings(c)
 }

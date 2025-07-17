@@ -27,6 +27,7 @@ type StrategicObjectiveRepositoryInterface interface {
 	ExistsByTitle(titleEn string, titleAr string) (bool, error)
 	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
 	GenerateReferenceNumber() (string, error)
+	GetFocusAreasByStrategicObjectiveID(strategicObjectiveID uint) ([]*dtos.StrategicObjectiveFocusAreaDTO, error)
 }
 
 // implementation
@@ -50,8 +51,8 @@ func (repo *StrategicObjectiveRepository) GetAll(params *dtos.StrategicObjective
 	query := repo.db.Table("strategic_objectives").
 		Select(`
 			strategic_objectives.*,
-			strategic_objective_categories.title_en AS category_title_en,
-			strategic_objective_categories.title_ar AS category_title_ar,
+			strategic_objective_categories.title_en AS strategic_objective_category_title_en,
+			strategic_objective_categories.title_ar AS strategic_objective_category_title_ar,
 
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
@@ -303,6 +304,7 @@ func (repo *StrategicObjectiveRepository) GenerateReferenceNumber() (string, err
 	var lastReferenceNumber string
 
 	err := repo.db.Model(&models.StrategicObjective{}).
+		Where("reference_number IS NOT NULL").
 		Select("reference_number").
 		Order("reference_number DESC").
 		Limit(1).
@@ -324,6 +326,20 @@ func (repo *StrategicObjectiveRepository) GenerateReferenceNumber() (string, err
 		return "", err
 	}
 
-	newReferenceNumber := fmt.Sprintf("SO-%d-%04d", currentYear, lastReferenceID+1)
+	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "SO", currentYear, lastReferenceID+1)
 	return newReferenceNumber, nil
+}
+
+func (repo *StrategicObjectiveRepository) GetFocusAreasByStrategicObjectiveID(strategicObjectiveID uint) ([]*dtos.StrategicObjectiveFocusAreaDTO, error) {
+	var focusAreas []*dtos.StrategicObjectiveFocusAreaDTO
+	err := repo.db.Table("strategy_profile_strategic_objectives as spso").
+		Select(`DISTINCT fa.id, fa.title_en, fa.title_ar, fa.status`).
+		Joins(`LEFT JOIN strategy_profile_focus_areas spfa ON spfa.id = spso.strategy_profile_focus_area_id`).
+		Joins(`LEFT JOIN focus_areas fa ON fa.id = spfa.focus_area_id`).
+		Where("spso.strategic_objective_id = ? AND fa.id IS NOT NULL", strategicObjectiveID).
+		Scan(&focusAreas).Error
+	if err != nil {
+		return nil, err
+	}
+	return focusAreas, nil
 }

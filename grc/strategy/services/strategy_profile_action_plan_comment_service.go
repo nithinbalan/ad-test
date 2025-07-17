@@ -261,7 +261,7 @@ func (spaps *StrategyProfileActionPlanCommentService) Create(strategyProfileID u
 					"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 					"CommentedByLastNameEn":  assignedBy.LastNameEn,
 					"CommentedOn":            time.Now().Format("2006-01-02"),
-					"RedirectURL":            fmt.Sprintf("%sstrategy/strategy-profile/%d/action-plans?action_plan_id=%d", appURL, strategyProfileID, id),
+					"RedirectURL":            fmt.Sprintf("%s/strategy/strategy-profile/%d/action-plans?action_plan_id=%d", appURL, strategyProfileID, id),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -329,7 +329,7 @@ func (spaps *StrategyProfileActionPlanCommentService) Create(strategyProfileID u
 				"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":  assignedBy.LastNameEn,
 				"CommentedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":            fmt.Sprintf("%sstrategy/strategy-profile/%d/action-plans?action_plan_id=%d", appURL, strategyProfileID, id),
+				"RedirectURL":            fmt.Sprintf("%s/strategy/strategy-profile/%d/action-plans?action_plan_id=%d", appURL, strategyProfileID, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -396,7 +396,7 @@ func (spaps *StrategyProfileActionPlanCommentService) Create(strategyProfileID u
 				"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":  assignedBy.LastNameEn,
 				"CommentedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":            fmt.Sprintf("%sstrategy/strategy-profile/%d/action-plans?action_plan_id=%d", appURL, strategyProfileID, id),
+				"RedirectURL":            fmt.Sprintf("%s/strategy/strategy-profile/%d/action-plans?action_plan_id=%d", appURL, strategyProfileID, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -462,7 +462,7 @@ func (spaps *StrategyProfileActionPlanCommentService) Create(strategyProfileID u
 					"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 					"CommentedByLastNameEn":  assignedBy.LastNameEn,
 					"CommentedOn":            time.Now().Format("2006-01-02"),
-					"RedirectURL":            fmt.Sprintf("%sstrategy/strategy-profile/%d/action-plans?action_plan_id=%d", appURL, strategyProfileID, id),
+					"RedirectURL":            fmt.Sprintf("%s/strategy/strategy-profile/%d/action-plans?action_plan_id=%d", appURL, strategyProfileID, id),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
