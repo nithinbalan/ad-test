@@ -14,6 +14,7 @@ type LibraryModule struct {
 	RiskLibraryController             *controllers.RiskLibraryController
 	KnowledgeCenterResourceController *controllers.KnowledgeCenterResourceController
 	ComplianceLibraryController       *controllers.ComplianceLibraryController
+	KpiLibraryController              *controllers.KpiLibraryController
 
 	KriLibrarySvc services.KRILibraryServiceInterface
 }
@@ -41,6 +42,10 @@ func NewLibraryModule(db *gorm.DB, sharedModule *SharedModule, MasterModule *Mas
 	ComplianceLibrarySvc := services.NewComplianceLibraryService(ComplianceLibraryRepository)
 	ComplianceLibraryController := controllers.NewComplianceLibraryController(ComplianceLibrarySvc, db)
 
+	KpiLibraryRepository := repositories.NewKpiLibraryRepository(db)
+	KpiLibrarySvc := services.NewKpiLibraryService(KpiLibraryRepository)
+	KpiLibraryController := controllers.NewKpiLibraryController(KpiLibrarySvc)
+
 	return &LibraryModule{
 		QuestionLibraryController: questionLibraryController,
 		KriLibraryController:      kriLibraryController,
@@ -49,5 +54,6 @@ func NewLibraryModule(db *gorm.DB, sharedModule *SharedModule, MasterModule *Mas
 		RiskLibraryController:             RiskLibraryController,
 		KnowledgeCenterResourceController: knowledgeCenterResourceController,
 		ComplianceLibraryController:       ComplianceLibraryController,
+		KpiLibraryController:              KpiLibraryController,
 	}
 }
