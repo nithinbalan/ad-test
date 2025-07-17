@@ -453,7 +453,7 @@ func (pas *ProcessActivityService) UpdateProcessActivityUsers(processID, activit
 						"AssignedByFirstNameEn": existingActivity.CreatedByUser.FirstNameEN,
 						"AssignedByLastNameEn":  existingActivity.CreatedByUser.LastNameEN,
 						"AssignedOn":            existingActivity.CreatedAt.Format("2006-01-02"),
-						"RedirectURL":           fmt.Sprintf("%sorganization/process/%d/activities", appURL, processID),
+						"RedirectURL":           fmt.Sprintf("%s/organization/process/%d/activities", appURL, processID),
 					}
 					emailDTO := &commonDTOs.EmailNotificationDTO{
 						EmailTo:              emailTo,
@@ -497,7 +497,7 @@ func (pas *ProcessActivityService) UpdateProcessActivityUsers(processID, activit
 						"LastNameEn":           user.LastNameEn,
 						"ProcessActivityTitle": existingActivity.TitleEn,
 						"RemovedOn":            time.Now().Format("2006-01-02"),
-						"RedirectURL":          fmt.Sprintf("%sorganization/process/%d/activities", appURL, processID),
+						"RedirectURL":          fmt.Sprintf("%s/organization/process/%d/activities", appURL, processID),
 					}
 
 					emailDTO := &commonDTOs.EmailNotificationDTO{
@@ -635,7 +635,7 @@ func (pas *ProcessActivityService) DeleteActivityUser(activityUserID, processID,
 				"LastNameEn":           user.LastNameEn,
 				"ProcessActivityTitle": existingActivity.TitleEn,
 				"RemovedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":          fmt.Sprintf("%sorganization/process/%d/activities", appURL, processID),
+				"RedirectURL":          fmt.Sprintf("%s/organization/process/%d/activities", appURL, processID),
 			}
 
 			emailDTO := &commonDTOs.EmailNotificationDTO{

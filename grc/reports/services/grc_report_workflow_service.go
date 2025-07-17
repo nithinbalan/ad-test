@@ -223,7 +223,7 @@ func (grws *GRCReportWorkflowService) GRCReportSectionSubmit(grcReportID uint, c
 				"LastNameEn":     responsibleUser.LastNameEn,
 				"GRCReportTitle": grcReportWorkflowDetails.GRCReport.Title,
 				"Type":           existingReportWorkflow.Type,
-				"RedirectURL":    fmt.Sprintf("%sreport/grc-reports/%d/overview", appURL, grcReportID),
+				"RedirectURL":    fmt.Sprintf("%s/report/grc-reports/%d/overview", appURL, grcReportID),
 			},
 		}
 

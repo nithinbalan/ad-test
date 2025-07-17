@@ -294,7 +294,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 			"AssignedByFirstNameEn":  assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":   assignedBy.LastNameEn,
 			"AssignedOn":             time.Now().Format("2006-01-02"),
-			"RedirectURL":            fmt.Sprintf("%sreview-meeting/action-plan-list?action_plan_id=%d", appURL, id),
+			"RedirectURL":            fmt.Sprintf("%s/review-meeting/action-plan-list?action_plan_id=%d", appURL, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -516,7 +516,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 				"MeetingTitle":           meeting.Title,
 				"ActionPlanTitle":        existingMeetingActionPlan.Title,
 				"ActionPlanDescription":  existingMeetingActionPlan.Description,
-				"RedirectURL":            fmt.Sprintf("%sreview-meeting/action-plan-list?action_plan_id=%d", appURL, id),
+				"RedirectURL":            fmt.Sprintf("%s/review-meeting/action-plan-list?action_plan_id=%d", appURL, id),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -540,7 +540,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 				"AssignedByFirstNameEn":  assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":   assignedBy.LastNameEn,
 				"AssignedOn":             time.Now().Format("2006-01-02"),
-				"RedirectURL":            fmt.Sprintf("%sreview-meeting/action-plan-list?action_plan_id=%d", appURL, id),
+				"RedirectURL":            fmt.Sprintf("%s/review-meeting/action-plan-list?action_plan_id=%d", appURL, id),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{

@@ -319,7 +319,7 @@ func (caps *StakeholderActionPlanService) Create(stakeholderID uint, currentUser
 			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":  assignedBy.LastNameEn,
 			"AssignedOn":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%sstakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
+			"RedirectURL":           fmt.Sprintf("%s/stakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -532,7 +532,7 @@ func (caps *StakeholderActionPlanService) Update(stakeholderID uint, id uint, cu
 				"StakeholderTitle":      stakeholder.TitleEn,
 				"ActionPlanTitle":       existingStakeholderActionPlan.Title,
 				"ActionPlanDescription": existingStakeholderActionPlan.Description,
-				"RedirectURL":           fmt.Sprintf("%sstakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
+				"RedirectURL":           fmt.Sprintf("%s/stakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -555,7 +555,7 @@ func (caps *StakeholderActionPlanService) Update(stakeholderID uint, id uint, cu
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%sstakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
+				"RedirectURL":           fmt.Sprintf("%s/stakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, id),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
