@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
+	stategicDTOs "jethur/grc/strategy/dtos"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -107,4 +109,118 @@ func (soai *StrategicObjectiveAssociatedItemController) UpdateClauses(c *gin.Con
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Clauses against the stategic objective updated successfully"})
+}
+
+func (soai *StrategicObjectiveAssociatedItemController) GetAllStrategicObjectiveRisks(c *gin.Context) {
+	strategyIDStr := c.Param("id")
+
+	strategicObjectiveID, err := strconv.ParseUint(strategyIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+	valueStr := c.Query("value")
+	quickFilter := c.QueryArray("quick_filter")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(soai.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(soai.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	var value int
+	if valueStr != "" {
+		value, err = strconv.Atoi(valueStr)
+		if err != nil {
+			utility.SendInternalErrResp(soai.db, c, "Invalid value parameter")
+			return
+		}
+	}
+
+	queryParams := stategicDTOs.StrategicObjectiveAssociatedItemListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
+		QuickFilter: quickFilter,
+		Value:       value,
+	}
+	risks, err := soai.service.GetAllRisks(uint(strategicObjectiveID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(soai.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, risks)
+}
+
+func (soai *StrategicObjectiveAssociatedItemController) CreateStrategicObjectiveRisk(c *gin.Context) {
+	var input commonDTOs.AssociatedRiskMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	strategicObjectiveID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(soai.db, c, err.Error())
+		return
+	}
+
+	err = soai.service.CreateStrategicObjectiveRisk(uint(strategicObjectiveID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(soai.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (soai *StrategicObjectiveAssociatedItemController) DeleteStrategicObjectiveRisk(c *gin.Context) {
+	strategicObjectiveID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+	riskID, _ := strconv.ParseUint(c.Param("riskId"), 10, 64)
+	err := soai.service.DeleteStrategicObjectiveRisk(uint(strategicObjectiveID), uint(riskID))
+	if err != nil {
+		utility.SendInternalErrResp(soai.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Risk unmapped from strategic objective successfully"})
 }
