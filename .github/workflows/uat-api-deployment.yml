@@ -14,6 +14,7 @@ jobs:
       MIGRATION_BRANCH: migration
       IIS_DOC_ROOT: C:\inetpub\wwwroot\uat\uat-api
       SERVICE_NAME: jethur-uat-api
+      BACKUP_SCRIPT_PATH: C:\jethur-scripts\backup-for-deployment-api.ps1
       SCRIPT_SOURCE_PATH: C:\jethur-deployment\deployment-files\.env
       EMAIL_TO: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, aparna@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
       SENDER: "Jethur Notifications <info@jethur.com>"
@@ -34,6 +35,19 @@ jobs:
             Triggered by: ${{ github.actor }}
           to: ${{ env.EMAIL_TO }}
           from: ${{ env.EMAIL_FROM }}
+
+      - name: Run SQL Backup Script
+        shell: powershell
+        run: |
+         & "${{ env.BACKUP_SCRIPT_PATH }}" `
+         -projectName "${{ env.PROJECT_NAME }}" `
+         -projectWebPath "${{ env.IIS_DOC_ROOT }}"\ `
+         -projectDbName "${{ env.DB_NAME }}"
+
+         if ($LASTEXITCODE -ne 0) {
+           Write-Error "Database backup failed. Aborting deployment."
+           exit 1
+         }
 
       - name: Pre Cleanup workspace
         if: always()
