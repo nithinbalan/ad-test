@@ -29,6 +29,7 @@ type StrategicObjectiveServiceInterface interface {
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
 	UpdateStrategicObjective(strategicObjective *models.StrategicObjective, tx ...utility.DatabaseTransaction) error
+	GetFocusAreasByStrategicObjectiveID(strategicObjectiveID uint) ([]*dtos.StrategicObjectiveFocusAreaDTO, error)
 }
 
 // Service and implementations
@@ -462,4 +463,8 @@ func (sos *StrategicObjectiveService) parseStrategicObjectiveDates(dto *dtos.Str
 	parsed.EndDate = &endDate
 
 	return parsed, nil
+}
+
+func (sos *StrategicObjectiveService) GetFocusAreasByStrategicObjectiveID(strategicObjectiveID uint) ([]*dtos.StrategicObjectiveFocusAreaDTO, error) {
+	return sos.repo.GetFocusAreasByStrategicObjectiveID(strategicObjectiveID)
 }
