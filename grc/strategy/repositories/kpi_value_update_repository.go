@@ -10,6 +10,7 @@ import (
 )
 
 type KPIValueUpdateRepositoryInterface interface {
+	SetAllIsLatestFalse(kpiRegisterID uint, tx ...utility.DatabaseTransaction) error
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(kpiRegisterID uint, params *riskDTOs.KPIValueUpdateListQueryParamsDTO) (*riskDTOs.KPIValueUpdateListResponseDTO, error)
 	Create(kpiValueUpdate *models.KPIValueUpdate, tx ...utility.DatabaseTransaction) (uint, error)
@@ -285,6 +286,16 @@ func (repo *KPIValueUpdateRepository) GetNextKPIValueUpdate(kpiRegisterID uint, 
 	}
 
 	return &nextValueUpdate, nil
+}
+
+func (repo *KPIValueUpdateRepository) SetAllIsLatestFalse(kpiRegisterID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Model(&models.KPIValueUpdate{}).
+		Where("kpi_register_id = ? AND is_latest = 1", kpiRegisterID).
+		Update("is_latest", false).Error
 }
 
 func (repo *KPIValueUpdateRepository) CreateKPIValueUpdateInputData(inputDatas []*models.KPIValueUpdateDataInput, tx ...utility.DatabaseTransaction) error {

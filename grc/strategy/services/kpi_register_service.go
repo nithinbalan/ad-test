@@ -465,9 +465,9 @@ func (krs *KPIRegisterService) GetTrendAnalysis(kpiID uint) ([]*strategyDTOs.KPI
 		return []*strategyDTOs.KPITrendAnalysisDTO{}, nil
 	}
 
-	// Sort by CreatedAt ascending
+	// Sort by CreatedAt descending (most recent first)
 	sort.SliceStable(kpiValueUpdates, func(i, j int) bool {
-		return kpiValueUpdates[i].CreatedAt.Before(kpiValueUpdates[j].CreatedAt)
+		return kpiValueUpdates[i].CreatedAt.After(kpiValueUpdates[j].CreatedAt)
 	})
 
 	// Take only the latest 6

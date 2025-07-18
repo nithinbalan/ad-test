@@ -86,7 +86,13 @@ func (kvus *KPIValueUpdateService) Create(kpiRegisterID, currentUserID uint, kpi
 	if err != nil {
 		return 0, err
 	}
-	kpiValueUpdate := &models.KPIValueUpdate{
+	// Set all previous value updates for this KPIRegister to IsLatest = false
+if err := kvus.repo.SetAllIsLatestFalse(kpiRegisterID, tx); err != nil {
+	tx.Rollback()
+	return 0, err
+}
+
+kpiValueUpdate := &models.KPIValueUpdate{
 		KPIRegisterID: kpiRegisterID,
 		ReviewUserID:  kpiValueUpdateFormDTO.ReviewUserID,
 		UnitID:        *existingKPIRegister.UnitID,
