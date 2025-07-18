@@ -99,14 +99,6 @@ func (krs KPIRegisterService) GetFullDetailsByID(id uint, tx ...utility.Database
 		return nil, err
 	}
 
-	// KPI Achievement Calculation
-	var achievement *float64
-	if kpiRegister.ActualValue != nil && kpiRegister.TargetValue != nil && *kpiRegister.TargetValue != 0 {
-		val := (*kpiRegister.ActualValue / *kpiRegister.TargetValue) * 100
-		achievement = &val
-	}
-	kpiRegisterDTO.AchievementPercentage = achievement
-
 	if kpiRegister.StartDate != nil {
 		startDate := kpiRegister.StartDate.Format("2006-01-02")
 		kpiRegisterDTO.StartDateString = &startDate
