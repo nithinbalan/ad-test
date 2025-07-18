@@ -9,6 +9,12 @@ import (
 type AssociatedItemValidationRepositoryInterface interface {
 	IsRiskMapped(tableName string, masterColumn string, riskID, masterID uint) (bool, error)
 	RiskExists(id uint) (*models.RiskRegister, error)
+	IsDocumentMapped(masterName string, columnName string, documentID, masterID uint) (bool, error)
+	DocumentExists(id uint) (*models.Document, error)
+	IsIncidentMapped(masterName string, columnName string, incidentID, masterID uint) (bool, error)
+	IncidentExists(id uint) (*models.IncidentRegister, error)
+	IsstrategicObjectiveMapped(masterName string, columnName string, strategicObjectiveID, masterID uint) (bool, error)
+	StrategicObjectiveExists(id uint) (*models.StrategicObjective, error)
 }
 
 type AssociatedItemValidationRepository struct {
@@ -47,5 +53,89 @@ func (repo *AssociatedItemValidationRepository) RiskExists(id uint) (*models.Ris
 	}
 
 	return risk, nil
+
+}
+
+func (repo *AssociatedItemValidationRepository) IsDocumentMapped(masterName string, columnName string, documentID, masterID uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Table(masterName).
+		Where("document_id = ? AND "+columnName+" = ?", documentID, masterID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *AssociatedItemValidationRepository) DocumentExists(id uint) (*models.Document, error) {
+	db := repo.db
+
+	var document *models.Document
+
+	result := db.
+		First(&document, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return document, nil
+
+}
+
+func (repo *AssociatedItemValidationRepository) IsIncidentMapped(masterName string, columnName string, incidentID, masterID uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Table(masterName).
+		Where("incident_register_id = ? AND "+columnName+" = ?", incidentID, masterID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *AssociatedItemValidationRepository) IncidentExists(id uint) (*models.IncidentRegister, error) {
+	db := repo.db
+
+	var incident *models.IncidentRegister
+
+	result := db.
+		First(&incident, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return incident, nil
+
+}
+
+func (repo *AssociatedItemValidationRepository) IsstrategicObjectiveMapped(masterName string, columnName string, strategicObjectiveID, masterID uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Table(masterName).
+		Where("strategic_objective_id = ? AND "+columnName+" = ?", strategicObjectiveID, masterID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *AssociatedItemValidationRepository) StrategicObjectiveExists(id uint) (*models.StrategicObjective, error) {
+	db := repo.db
+
+	var strategicObj *models.StrategicObjective
+
+	result := db.
+		First(&strategicObj, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return strategicObj, nil
 
 }

@@ -280,3 +280,97 @@ type AssociatedItemClauseListQueryParamsDTO struct {
 type AssociatedRiskMapDTO struct {
 	RiskIDs []uint `json:"risk_ids" binding:"required"`
 }
+
+type AssociatedDocumentMapDTO struct {
+	DoumentIDs []uint `json:"document_ids" binding:"required"`
+}
+
+type AssociatedIncidentMapDTO struct {
+	IncidentIDs []uint `json:"incident_ids" binding:"required"`
+}
+
+type AssociatedStrategicObjectiveMapDTO struct {
+	StrategicObjectiveIDs []uint `json:"strategic_objective_ids" binding:"required"`
+}
+
+type AssociatedDocumentListDTO struct {
+	ID                         uint       `json:"id"`
+	ReferenceNumber            string     `json:"reference_number"`
+	TitleEn                    string     `json:"title_en"`
+	TitleAr                    string     `json:"title_ar"`
+	DescriptionEn              *string    `json:"description_en"`
+	DescriptionAr              *string    `json:"description_ar"`
+	DocumentCategoryTitleEn    string     `json:"document_category_title_en"`
+	DocumentCategoryTitleAr    string     `json:"document_category_title_ar"`
+	ResponsibleUserFirstNameEn string     `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr string     `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn  string     `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr  string     `json:"responsible_user_last_name_ar"`
+	ResponsibleUnitTitleEn     string     `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr     string     `json:"responsible_unit_title_ar"`
+	DocumentStatusTitleEn      string     `json:"document_status_title_en"`
+	DocumentStatusTitleAr      string     `json:"document_status_title_ar"`
+	DocumentStatusColorCode    string     `json:"document_status_color_code"`
+	LastCheckoutAt             *time.Time `json:"last_checkout_at"`
+	LastCheckinAt              *time.Time `json:"last_checkin_at"`
+	IsLocked                   bool       `json:"is_locked"`
+}
+
+type AssociatedDocumentListResponseDTO struct {
+	Items      []*AssociatedDocumentListDTO `json:"items"`
+	Pagination PaginationInfoDTO            `json:"pagination"`
+}
+
+type AssociatedItemListQueryParamsDTO struct {
+	Sort     string
+	SortBy   string
+	Keyword  string
+	Status   string
+	Page     int
+	PageSize int
+}
+
+type AssociatedIncidentListDTO struct {
+	IncidentRegisterID                   uint   `json:"incident_register_id"`
+	IncidentReferenceNumber              string `json:"incident_reference_number"`
+	IncidentRegisterTitle                string `json:"incident_register_title"`
+	IncidentRegisterDescription          string `json:"incident_register_description"`
+	IncidentCategoryTitleEn              string `json:"incident_category_title_en"`
+	IncidentCategoryTitleAr              string `json:"incident_category_title_ar"`
+	IncidentSubCategoryTitleEn           string `json:"incident_sub_category_title_en"`
+	IncidentSubCategoryTitleAr           string `json:"incident_sub_category_title_ar"`
+	IncidentTypeTitleEn                  string `json:"incident_type_title_en"`
+	IncidentTypeTitleAr                  string `json:"incident_type_title_ar"`
+	IncidentSeverityLevelTitleEn         string `json:"incident_severity_level_title_en"`
+	IncidentSeverityLevelTitleAr         string `json:"incident_severity_level_title_ar"`
+	IncidentSeverityLevelColorCode       string `json:"incident_severity_level_color_code"`
+	IncidentStatusTitleEn                string `json:"incident_status_title_en"`
+	IncidentStatusTitleAr                string `json:"incident_status_title_ar"`
+	IncidentStatusColorCode              string `json:"incident_status_color_code"`
+	IncidentReportedUserID               uint   `json:"incident_reported_user_id"`
+	IncidentReportedUserFirstNameEn      string `json:"incident_reported_user_first_name_en"`
+	IncidentReportedUserFirstNameAr      string `json:"incident_reported_user_first_name_ar"`
+	IncidentReportedUserLastNameEn       string `json:"incident_reported_user_last_name_en"`
+	IncidentReportedUserLastNameAr       string `json:"incident_reported_user_last_name_ar"`
+	IncidentReportedUserInitial          string `json:"incident_reported_user_initial"`
+	IncidentReportedUserColor            string `json:"incident_reported_user_color"`
+	IncidentReportedUserEmail            string `json:"incident_reported_user_email"`
+	IncidentReportedUserProfileImagePath string `json:"incident_reported_user_profile_image_path"`
+}
+
+type AssociatedIncidentListResponseDTO struct {
+	Items      []*AssociatedIncidentListDTO `json:"items"`
+	Pagination PaginationInfoDTO            `json:"pagination"`
+}
+
+type AssociatedStrategicObjectiveListDTO struct {
+	StrategicObjectiveID      uint    `json:"strategic_objective_id"`
+	StrategicObjectiveTitleEn string  `json:"strategic_objective_title_en"`
+	StrategicObjectiveTitleAr *string `json:"strategic_objective_title_ar"`
+	StrategicObjectiveStatus  *string `json:"strategic_objective_status"`
+}
+
+type AssociatedItemStrategicObjectiveListResponseDTO struct {
+	Items      []*AssociatedStrategicObjectiveListDTO `json:"items"`
+	Pagination PaginationInfoDTO                      `json:"pagination"`
+}

@@ -9,6 +9,9 @@ import (
 // Interface definition
 type AssociatedItemValidationServiceInterface interface {
 	ValidateRiskMapping(masterID uint, riskIDs []uint, masterName string, columnName string) error
+	ValidateDocumentMapping(masterID uint, documentIDs []uint, tableName string, columnName string) error
+	ValidateIncidentMapping(masterID uint, incidentIDs []uint, tableName string, columnName string) error
+	ValidateStrtegicObjectiveMapping(masterID uint, strategicObjectiveIds []uint, tableName string, columnName string) error
 }
 
 // Service struct
@@ -24,7 +27,7 @@ func NewAssociatedItemValidationService(repo repositories.AssociatedItemValidati
 }
 
 // Main validation logic
-func (rms *AssociatedItemValidationService) ValidateRiskMapping(masterID uint, riskIDs []uint, masterName string, columnName string) error {
+func (aivs *AssociatedItemValidationService) ValidateRiskMapping(masterID uint, riskIDs []uint, masterName string, columnName string) error {
 	if len(riskIDs) == 0 {
 		return utility.NewValidationError(fmt.Errorf("no risks provided"), "required", "risk_ids")
 	}
@@ -35,12 +38,12 @@ func (rms *AssociatedItemValidationService) ValidateRiskMapping(masterID uint, r
 			return utility.NewValidationError(fmt.Errorf("duplicate risk ID: %d", id), "duplicate", "risk_ids")
 		}
 
-		_, err := rms.repo.RiskExists(id)
+		_, err := aivs.repo.RiskExists(id)
 		if err != nil {
 			return utility.NewValidationError(fmt.Errorf("risk does not exist: %d", id), "not_exist", "risk_ids")
 		}
 
-		alreadyMapped, err := rms.repo.IsRiskMapped(masterName, columnName, id, masterID)
+		alreadyMapped, err := aivs.repo.IsRiskMapped(masterName, columnName, id, masterID)
 		if err != nil {
 			return fmt.Errorf("failed to check mapping: %v", err)
 		}
@@ -48,6 +51,102 @@ func (rms *AssociatedItemValidationService) ValidateRiskMapping(masterID uint, r
 			return utility.NewValidationError(
 				fmt.Errorf("risk ID %d already mapped to this %s", id, masterName),
 				"duplicate", "risk_ids")
+		}
+
+		seen[id] = true
+	}
+
+	return nil
+}
+
+func (aivs *AssociatedItemValidationService) ValidateDocumentMapping(masterID uint, documentIDs []uint, tableName string, columnName string) error {
+	if len(documentIDs) == 0 {
+		return utility.NewValidationError(fmt.Errorf("no document provided"), "required", "document_ids")
+	}
+
+	seen := make(map[uint]bool)
+	for _, id := range documentIDs {
+		if seen[id] {
+			return utility.NewValidationError(fmt.Errorf("duplicate document ID: %d", id), "duplicate", "document_ids")
+		}
+
+		_, err := aivs.repo.DocumentExists(id)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("document does not exist: %d", id), "not_exist", "document_ids")
+		}
+
+		alreadyMapped, err := aivs.repo.IsDocumentMapped(tableName, columnName, id, masterID)
+		if err != nil {
+			return fmt.Errorf("failed to check mapping: %v", err)
+		}
+		if alreadyMapped {
+			return utility.NewValidationError(
+				fmt.Errorf("document ID %d already mapped to this %s", id, tableName),
+				"duplicate", "document")
+		}
+
+		seen[id] = true
+	}
+
+	return nil
+}
+
+func (aivs *AssociatedItemValidationService) ValidateIncidentMapping(masterID uint, incidentIDs []uint, tableName string, columnName string) error {
+	if len(incidentIDs) == 0 {
+		return utility.NewValidationError(fmt.Errorf("no incidents provided"), "required", "incident_ids")
+	}
+
+	seen := make(map[uint]bool)
+	for _, id := range incidentIDs {
+		if seen[id] {
+			return utility.NewValidationError(fmt.Errorf("duplicate incident ID: %d", id), "duplicate", "incident_ids")
+		}
+
+		_, err := aivs.repo.IncidentExists(id)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("incident does not exist: %d", id), "not_exist", "incident_ids")
+		}
+
+		alreadyMapped, err := aivs.repo.IsIncidentMapped(tableName, columnName, id, masterID)
+		if err != nil {
+			return fmt.Errorf("failed to check mapping: %v", err)
+		}
+		if alreadyMapped {
+			return utility.NewValidationError(
+				fmt.Errorf("document ID %d already mapped to this %s", id, tableName),
+				"duplicate", "incident")
+		}
+
+		seen[id] = true
+	}
+
+	return nil
+}
+
+func (aivs *AssociatedItemValidationService) ValidateStrtegicObjectiveMapping(masterID uint, strategicObjectiveIds []uint, tableName string, columnName string) error {
+	if len(strategicObjectiveIds) == 0 {
+		return utility.NewValidationError(fmt.Errorf("no strategic objective provided"), "required", "strategic_objective_id")
+	}
+
+	seen := make(map[uint]bool)
+	for _, id := range strategicObjectiveIds {
+		if seen[id] {
+			return utility.NewValidationError(fmt.Errorf("duplicate strategic objective ID: %d", id), "duplicate", "strategic_objective_id")
+		}
+
+		_, err := aivs.repo.StrategicObjectiveExists(id)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("strategic objective does not exist: %d", id), "not_exist", "strategic_objective_id")
+		}
+
+		alreadyMapped, err := aivs.repo.IsstrategicObjectiveMapped(tableName, columnName, id, masterID)
+		if err != nil {
+			return fmt.Errorf("failed to check mapping: %v", err)
+		}
+		if alreadyMapped {
+			return utility.NewValidationError(
+				fmt.Errorf("strategic objective ID %d already mapped to this %s", id, tableName),
+				"duplicate", "strategic objective")
 		}
 
 		seen[id] = true
