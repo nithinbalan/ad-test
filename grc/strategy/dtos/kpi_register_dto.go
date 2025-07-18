@@ -153,3 +153,7 @@ type KPITrendAnalysisDTO struct {
 	ReviewedAtString string  `json:"reviewed_at"`
 	Value            float64 `json:"value"`
 }
+
+type KPIChartDetailsDTO struct {
+	AchievementPercentage *float64 `json:"achievement_percentage"`
+}
