@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 ALTER TABLE asset_compliance_requirements
-ADD compliance_register_id INT NOT NULL;
+ADD compliance_register_id INT ;
 
 ALTER TABLE asset_compliance_requirements
 ADD CONSTRAINT FK_asset_compliance_requirement_compliance_register

@@ -7,7 +7,7 @@ ALTER COLUMN compliance_requirement_id INT NULL;
 
 -- Add new NOT NULL column
 ALTER TABLE risk_compliance_requirements
-ADD compliance_clause_id INT NOT NULL;
+ADD compliance_clause_id INT;
 
 ALTER TABLE risk_compliance_requirements
 ADD CONSTRAINT FK_risk_compliance_requirement_compliance_clauses
