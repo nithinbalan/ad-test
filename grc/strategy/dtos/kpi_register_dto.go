@@ -108,35 +108,35 @@ type KPIRegisterListResponseDTO struct {
 }
 
 type KPIRegisterDetailDTO struct {
-	ID                uint                             `json:"id"`
-	ReferenceNumber   *string                          `json:"reference_number"`
-	Title             string                           `json:"title"`
-	Description       *string                          `json:"description"`
-	KPICategoryID     uint                             `json:"kpi_category_id"`
-	KPICategory       *KPICategoryDTO                  `json:"kpi_category"`
-	ResponsibleUserID *uint                            `json:"responsible_user_id"`
-	ResponsibleUser   *organizationDTOs.UserMinimalDTO `json:"responsible_user"`
-	KPIStatusID       uint                             `json:"kpi_status_id"`
-	KPIStatus         KPIStatusDTO                     `json:"kpi_status"`
-	ReviewFrequencyID *uint                            `json:"review_frequency_id"`
-	ReviewFrequency   *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
-	CalculationTypeID *uint                            `json:"calculation_type_id"`
-	CalculationType   *masterDTOs.CalculationTypeDTO   `json:"calculation_type"`
-	Formula           *string                          `json:"formula"`
-	UnitID            *uint                            `json:"unit_id"`
-	Unit              *masterDTOs.UnitDTO              `json:"unit"`
-	ActualValue       *float64                         `json:"actual_value"`
-	TargetValue       *float64                         `json:"target_value"`
-	Weightage         *float64                         `json:"weightage"`
-	AchievementPercentage *float64                     `json:"achievement_percentage"`
-	StartDateString   *string                          `json:"start_date"`
-	EndDateString     *string                          `json:"end_date"`
-	Remarks           *string                          `json:"remarks"`
-	DataInputs        []*KPIRegisterDataInputDTO       `json:"data_inputs"`
-	CreatedAt         time.Time                        `json:"created_at"`
-	UpdatedAt         *time.Time                       `json:"updated_at"`
-	CreatedByUser     organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedByUser     *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	ID                    uint                             `json:"id"`
+	ReferenceNumber       *string                          `json:"reference_number"`
+	Title                 string                           `json:"title"`
+	Description           *string                          `json:"description"`
+	KPICategoryID         uint                             `json:"kpi_category_id"`
+	KPICategory           *KPICategoryDTO                  `json:"kpi_category"`
+	ResponsibleUserID     *uint                            `json:"responsible_user_id"`
+	ResponsibleUser       *organizationDTOs.UserMinimalDTO `json:"responsible_user"`
+	KPIStatusID           uint                             `json:"kpi_status_id"`
+	KPIStatus             KPIStatusDTO                     `json:"kpi_status"`
+	ReviewFrequencyID     *uint                            `json:"review_frequency_id"`
+	ReviewFrequency       *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
+	CalculationTypeID     *uint                            `json:"calculation_type_id"`
+	CalculationType       *masterDTOs.CalculationTypeDTO   `json:"calculation_type"`
+	Formula               *string                          `json:"formula"`
+	UnitID                *uint                            `json:"unit_id"`
+	Unit                  *masterDTOs.UnitDTO              `json:"unit"`
+	ActualValue           *float64                         `json:"actual_value"`
+	TargetValue           *float64                         `json:"target_value"`
+	Weightage             *float64                         `json:"weightage"`
+	AchievementPercentage *float64                         `json:"achievement_percentage"`
+	StartDateString       *string                          `json:"start_date"`
+	EndDateString         *string                          `json:"end_date"`
+	Remarks               *string                          `json:"remarks"`
+	DataInputs            []*KPIRegisterDataInputDTO       `json:"data_inputs"`
+	CreatedAt             time.Time                        `json:"created_at"`
+	UpdatedAt             *time.Time                       `json:"updated_at"`
+	CreatedByUser         organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser         *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 }
 
 type KPIRegisterParsedDates struct {
@@ -153,4 +153,8 @@ type KPIRegisterDataInputDTO struct {
 type KPITrendAnalysisDTO struct {
 	ReviewedAtString string  `json:"reviewed_at"`
 	Value            float64 `json:"value"`
+}
+
+type KPIChartDetailsDTO struct {
+	AchievementPercentage *float64 `json:"achievement_percentage"`
 }

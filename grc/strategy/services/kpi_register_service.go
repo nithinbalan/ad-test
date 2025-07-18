@@ -10,7 +10,6 @@ import (
 	strategyDTOs "jethur/grc/strategy/dtos"
 	kpiRegisterRepositories "jethur/grc/strategy/repositories"
 	"jethur/utility"
-	"sort"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -25,8 +24,9 @@ type KPIRegisterServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	UpdateValue(kpiRegister *models.KPIRegister, tx utility.DatabaseTransaction) error
-	GetTrendAnalysis(kpiID uint) ([]*strategyDTOs.KPITrendAnalysisDTO, error)
+	GetTrendAnalysis(kpiID uint, limit int) ([]*strategyDTOs.KPITrendAnalysisDTO, error)
 	GetLatestValueUpdateByKPIRegisterID(kpiRegisterID uint) (*strategyDTOs.KPIValueUpdateDetailsDTO, error)
+	GetKPIChartDetails(kpiRegisterID uint) (*strategyDTOs.KPIChartDetailsDTO, error)
 }
 
 // Service and implementations
@@ -455,8 +455,8 @@ func (krs *KPIRegisterService) UpdateValue(kpiRegister *models.KPIRegister, tx u
 	return nil
 }
 
-func (krs *KPIRegisterService) GetTrendAnalysis(kpiID uint) ([]*strategyDTOs.KPITrendAnalysisDTO, error) {
-	kpiValueUpdates, err := krs.repo.GetTrendAnalysis(kpiID)
+func (krs *KPIRegisterService) GetTrendAnalysis(kpiID uint, limit int) ([]*strategyDTOs.KPITrendAnalysisDTO, error) {
+	kpiValueUpdates, err := krs.repo.GetTrendAnalysis(kpiID, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -465,20 +465,9 @@ func (krs *KPIRegisterService) GetTrendAnalysis(kpiID uint) ([]*strategyDTOs.KPI
 		return []*strategyDTOs.KPITrendAnalysisDTO{}, nil
 	}
 
-	// Sort by CreatedAt descending (most recent first)
-	sort.SliceStable(kpiValueUpdates, func(i, j int) bool {
-		return kpiValueUpdates[i].CreatedAt.After(kpiValueUpdates[j].CreatedAt)
-	})
-
-	// Take only the latest 6
-	limit := 6
-	if len(kpiValueUpdates) < limit {
-		limit = len(kpiValueUpdates)
-	}
-	latestUpdates := kpiValueUpdates[:limit]
-
+	// Already sorted and limited in repo (DESC), so just map to DTOs
 	var trend []*strategyDTOs.KPITrendAnalysisDTO
-	for _, valueUpdate := range latestUpdates {
+	for _, valueUpdate := range kpiValueUpdates {
 		var kpiUpdate strategyDTOs.KPITrendAnalysisDTO
 		err := mapstructure.Decode(valueUpdate, &kpiUpdate)
 		if err != nil {
@@ -509,4 +498,22 @@ func (krs *KPIRegisterService) GetLatestValueUpdateByKPIRegisterID(kpiRegisterID
 	// Map additional fields if needed
 
 	return &dto, nil
+}
+
+// In services/kpi_register_service.go
+func (krs *KPIRegisterService) GetKPIChartDetails(kpiRegisterID uint) (*strategyDTOs.KPIChartDetailsDTO, error) {
+	kpi, err := krs.repo.GetKPIChartDetails(kpiRegisterID)
+	if err != nil {
+		return nil, err
+	}
+
+	var achievement *float64
+	if kpi.TargetValue != nil && *kpi.TargetValue != 0 && kpi.ActualValue != nil {
+		val := (*kpi.ActualValue / *kpi.TargetValue) * 100
+		achievement = &val
+	}
+
+	return &strategyDTOs.KPIChartDetailsDTO{
+		AchievementPercentage: achievement,
+	}, nil
 }
