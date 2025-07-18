@@ -45,6 +45,14 @@ type ComplianceClauseServiceInterface interface {
 	GetAssociatedStrategicObjective(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
 	CreateComplianceClauseStrategicObjective(complianceID, clauseID, currentUserID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
 	DeleteComplianceClausStrategicObjective(clauseID, strategicObjectiveID uint) error
+
+	GetAssociatedAssets(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	CreateComplianceClauseAssets(complianceID, clauseID, currentUserID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
+	DeleteComplianceAssets(clauseID, assetID uint) error
+
+	GetAssociatedProcesses(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
+	CreateComplianceClausProcesses(complianceID, clauseID, currentUserID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
+	DeleteComplianceClausProcesses(clauseID, processID uint) error
 }
 
 type ComplianceClauseService struct {
@@ -661,6 +669,110 @@ func (ccs *ComplianceClauseService) DeleteComplianceClausStrategicObjective(clau
 		return utility.NewValidationError(fmt.Errorf("clause does not exist for ID: %d", clauseID), "not_exist", "clause_id")
 	}
 	if err := ccs.repo.DeleteComplianceClausStrategicObjective(clauseID, strategicObjectiveId, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+	return nil
+}
+
+func (ccs *ComplianceClauseService) GetAssociatedAssets(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+	// Fetch associated controls through requirements from repository
+	strategicObjectives, err := ccs.repo.GetAssociatedAssets(complianceID, clauseID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return strategicObjectives, nil
+}
+
+func (ccs *ComplianceClauseService) CreateComplianceClauseAssets(complianceID, clauseID, currentUserID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {
+	if err := ccs.validationSvc.ValidateAssetMapping(clauseID, dto.AssetIDs, "asset_compliance_requirements", "compliance_clause_id"); err != nil {
+		return err
+	}
+	tx := ccs.repo.BeginTransaction()
+	_, err := ccs.repo.GetByID(clauseID, tx)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("clause does not exist for ID: %d", clauseID), "not_exist", "clause_id")
+	}
+	var assetMappings []*models.AssetComplianceRequirement
+
+	for _, assetID := range dto.AssetIDs {
+		assetMappings = append(assetMappings, &models.AssetComplianceRequirement{
+			ComplianceRegisterID: complianceID,
+			ComplianceClauseID:   &clauseID,
+			AssetRegisterID:      assetID,
+			CreatedBYID:          currentUserID,
+		})
+	}
+
+	if err := ccs.repo.CreateComplianceClauseAssets(assetMappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (ccs *ComplianceClauseService) DeleteComplianceAssets(clauseID, assetID uint) error {
+	tx := ccs.repo.BeginTransaction()
+	if _, err := ccs.repo.GetByID(clauseID, tx); err != nil {
+		return utility.NewValidationError(fmt.Errorf("clause does not exist for ID: %d", clauseID), "not_exist", "clause_id")
+	}
+	if err := ccs.repo.DeleteComplianceAssets(clauseID, assetID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+	return nil
+}
+
+func (ccs *ComplianceClauseService) GetAssociatedProcesses(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error) {
+	// Fetch associated controls through requirements from repository
+	strategicObjectives, err := ccs.repo.GetAssociatedProcesses(complianceID, clauseID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return strategicObjectives, nil
+}
+
+func (ccs *ComplianceClauseService) CreateComplianceClausProcesses(complianceID, clauseID, currentUserID uint, dto *commonDTOs.AssociatedProcessMapDTO) error {
+	if err := ccs.validationSvc.ValidateProcessMapping(clauseID, dto.ProcessIDs, "process_compliance_requirements", "compliance_clause_id"); err != nil {
+		return err
+	}
+	tx := ccs.repo.BeginTransaction()
+	_, err := ccs.repo.GetByID(clauseID, tx)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("clause does not exist for ID: %d", clauseID), "not_exist", "clause_id")
+	}
+	var processMappings []*models.ProcessComplianceRequirement
+
+	for _, processID := range dto.ProcessIDs {
+		processMappings = append(processMappings, &models.ProcessComplianceRequirement{
+			ComplianceRegisterID: complianceID,
+			ComplianceClauseID:   clauseID,
+			ProcessID:            processID,
+			CreatedByID:          currentUserID,
+		})
+	}
+
+	if err := ccs.repo.CreateComplianceClausProcesses(processMappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (ccs *ComplianceClauseService) DeleteComplianceClausProcesses(clauseID, processID uint) error {
+	tx := ccs.repo.BeginTransaction()
+	if _, err := ccs.repo.GetByID(clauseID, tx); err != nil {
+		return utility.NewValidationError(fmt.Errorf("clause does not exist for ID: %d", clauseID), "not_exist", "clause_id")
+	}
+	if err := ccs.repo.DeleteComplianceClausProcesses(clauseID, processID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

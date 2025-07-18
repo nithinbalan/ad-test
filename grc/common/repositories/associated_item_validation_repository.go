@@ -15,6 +15,10 @@ type AssociatedItemValidationRepositoryInterface interface {
 	IncidentExists(id uint) (*models.IncidentRegister, error)
 	IsstrategicObjectiveMapped(masterName string, columnName string, strategicObjectiveID, masterID uint) (bool, error)
 	StrategicObjectiveExists(id uint) (*models.StrategicObjective, error)
+	IsAssetMapped(masterName string, columnName string, assetID, masterID uint) (bool, error)
+	AssetExists(id uint) (*models.AssetRegister, error)
+	IsProcessMapped(masterName string, columnName string, processID, masterID uint) (bool, error)
+	ProcessExists(id uint) (*models.Process, error)
 }
 
 type AssociatedItemValidationRepository struct {
@@ -137,5 +141,61 @@ func (repo *AssociatedItemValidationRepository) StrategicObjectiveExists(id uint
 	}
 
 	return strategicObj, nil
+
+}
+
+func (repo *AssociatedItemValidationRepository) IsAssetMapped(masterName string, columnName string, assetID, masterID uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Table(masterName).
+		Where("asset_register_id = ? AND "+columnName+" = ?", assetID, masterID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *AssociatedItemValidationRepository) AssetExists(id uint) (*models.AssetRegister, error) {
+	db := repo.db
+
+	var asset *models.AssetRegister
+
+	result := db.
+		First(&asset, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return asset, nil
+
+}
+
+func (repo *AssociatedItemValidationRepository) IsProcessMapped(masterName string, columnName string, processID, masterID uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Table(masterName).
+		Where("process_id = ? AND "+columnName+" = ?", processID, masterID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *AssociatedItemValidationRepository) ProcessExists(id uint) (*models.Process, error) {
+	db := repo.db
+
+	var process *models.Process
+
+	result := db.
+		First(&process, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return process, nil
 
 }

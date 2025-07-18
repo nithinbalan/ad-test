@@ -51,6 +51,14 @@ type ComplianceClauseRepositoryInterface interface {
 	GetAssociatedStrategicObjective(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
 	CreateComplianceClauseStrategicObjective(strategicObjectives []*models.ComplianceRequirementStrategicObjective, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceClausStrategicObjective(clauseID, strategicObjectiveId uint, tx ...utility.DatabaseTransaction) error
+
+	GetAssociatedAssets(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	CreateComplianceClauseAssets(assets []*models.AssetComplianceRequirement, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceAssets(clauseID, assetID uint, tx ...utility.DatabaseTransaction) error
+
+	GetAssociatedProcesses(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
+	CreateComplianceClausProcesses(assets []*models.ProcessComplianceRequirement, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceClausProcesses(clauseID, processID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceClauseRepository struct {
@@ -916,4 +924,248 @@ func (repo *ComplianceClauseRepository) DeleteComplianceClausStrategicObjective(
 
 	return db.Where("compliance_clause_id = ? AND strategic_objective_id = ?", clauseID, strategicObjectiveId).
 		Delete(&models.ComplianceRequirementStrategicObjective{}).Error
+}
+
+func (repo *ComplianceClauseRepository) GetAssociatedAssets(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+	var riskAssets []*commonDTOs.AssociatedAssetListDTO
+	var totalCount int64
+
+	query := repo.db.Table("asset_compliance_requirements").
+		Select(`
+		asset_compliance_requirements.id,
+		asset_register.reference_number,
+		asset_register.title_en,
+		asset_register.title_ar,
+		asset_register.location,
+		asset_register.description,
+		CONVERT(VARCHAR, asset_register.acquisition_date, 23) AS acquisition_date,
+		asset_categories.title_en AS asset_category_title_en,
+		asset_categories.title_ar AS asset_category_title_ar,
+		asset_statuses.title_en AS asset_status_title_en,
+		asset_statuses.title_ar AS asset_status_title_ar,
+		asset_statuses.color_code AS asset_status_color_code,
+		organization_units.title_en AS responsible_unit_title_en,
+		organization_units.title_ar AS responsible_unit_title_ar,
+		responsible_user.id AS responsible_user_id,
+		responsible_user.first_name_en AS responsible_user_first_name_en,
+		responsible_user.first_name_ar AS responsible_user_first_name_ar,
+		responsible_user.last_name_en AS responsible_user_last_name_en,
+		responsible_user.last_name_ar AS responsible_user_last_name_ar,
+		responsible_user.initial AS responsible_user_initial,
+		responsible_user.color AS responsible_user_color,
+		responsible_user.email AS responsible_user_email,
+		responsible_user.profile_image_path AS responsible_user_profile_image_path,
+		created_user.id AS created_user_id,
+		created_user.first_name_en AS created_user_first_name_en,
+		created_user.first_name_ar AS created_user_first_name_ar,
+		created_user.last_name_en AS created_user_last_name_en,
+		created_user.last_name_ar AS created_user_last_name_ar,
+		created_user.initial AS created_user_initial,
+		created_user.color AS created_user_color,
+		created_user.email AS created_user_email,
+		created_user.profile_image_path AS created_user_profile_image_path,
+		updated_user.id AS updated_user_id,
+		updated_user.first_name_en AS updated_user_first_name_en,
+		updated_user.first_name_ar AS updated_user_first_name_ar,
+		updated_user.last_name_en AS updated_user_last_name_en,
+		updated_user.last_name_ar AS updated_user_last_name_ar,
+		updated_user.initial AS updated_user_initial,
+		updated_user.color AS updated_user_color,
+		updated_user.email AS updated_user_email,
+		updated_user.profile_image_path AS updated_user_profile_image_path
+	`).
+		Joins("LEFT JOIN asset_register ON asset_register.id = asset_compliance_requirements.asset_register_id").
+		Joins("LEFT JOIN asset_categories ON asset_categories.id = asset_register.asset_category_id").
+		Joins("LEFT JOIN asset_statuses ON asset_statuses.id = asset_register.asset_status_id").
+		Joins("LEFT JOIN organization_units ON organization_units.id = asset_register.responsible_unit_id").
+		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = asset_register.responsible_user_id").
+		Joins("LEFT JOIN users AS created_user ON created_user.id = asset_register.created_by_id").
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = asset_register.updated_by_id").
+		Where("asset_compliance_requirements.compliance_register_id = ? AND asset_compliance_requirements.compliance_clause_id = ?", complianceID, clauseID)
+
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		query = query.Where(`
+			(asset_register.title_en LIKE ? OR
+			asset_register.title_ar LIKE ? OR
+			asset_register.reference_number LIKE ? OR
+			asset_register.description LIKE ? OR
+			asset_categories.title_en LIKE ? OR
+			asset_categories.title_ar LIKE ? OR
+			asset_statuses.title_en LIKE ? OR
+			asset_statuses.title_ar LIKE ?)`,
+
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "asset_register.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&riskAssets).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedItemAssetListResponseDTO{
+		Items: riskAssets,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+}
+
+func (repo *ComplianceClauseRepository) CreateComplianceClauseAssets(assets []*models.AssetComplianceRequirement, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&assets).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceClauseRepository) DeleteComplianceAssets(clauseID, assetID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("compliance_clause_id = ? AND asset_register_id = ?", clauseID, assetID).
+		Delete(&models.AssetComplianceRequirement{}).Error
+}
+
+func (repo *ComplianceClauseRepository) GetAssociatedProcesses(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error) {
+	var processList []*commonDTOs.AssociatedProcessListDTO
+	var totalCount int64
+
+	query := repo.db.Table("process_compliance_requirements").
+		Select(`
+			processes.id,
+			processes.reference_number,
+			processes.title_en,
+			processes.title_ar,
+			processes.description,
+			process_groups.title_en AS process_group_title_en,
+			process_groups.title_ar AS process_group_title_ar,
+			organization_units.title_en AS owner_unit_title_en,
+			organization_units.title_ar AS owner_unit_title_ar,
+			owner.first_name_en AS owner_first_name_en,
+			owner.first_name_ar AS owner_first_name_ar,
+			owner.last_name_en AS owner_last_name_en,
+			owner.last_name_ar AS owner_last_name_ar,
+			owner.initial AS control_owner_initial,
+            owner.color AS control_owner_color,
+            owner.email AS control_owner_email,
+            owner.profile_image_path AS control_owner_profile_image_path,
+			lifecycle_statuses.title_en AS lifecycle_status_title_en,
+			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
+			lifecycle_statuses.color_code AS lifecycle_status_color_code
+		`).
+		Joins(`
+			LEFT JOIN processes ON processes.id = process_compliance_requirements.process_id
+			LEFT JOIN process_groups ON process_groups.id = processes.process_group_id
+			LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id
+			LEFT JOIN users AS owner ON owner.id = processes.responsible_user_id
+			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id
+		`).Where("process_compliance_requirements.compliance_register_id = ? AND process_compliance_requirements.compliance_clause_id = ?", complianceID, clauseID)
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(processes.title_en LIKE ? OR
+			processes.title_ar LIKE ? OR
+			processes.reference_number LIKE ? OR
+			process_groups.title_en LIKE ? OR
+			process_groups.title_ar LIKE ? OR
+			organization_units.title_en LIKE ? OR
+			organization_units.title_ar LIKE ? OR
+			owner.first_name_en LIKE ? OR
+			owner.first_name_ar LIKE ? OR
+			owner.last_name_en LIKE ? OR
+			owner.last_name_ar LIKE ? OR
+			lifecycle_statuses.title_en LIKE ? OR
+			lifecycle_statuses.title_ar LIKE ? OR
+			lifecycle_statuses.color_code LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "processes.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&processList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedItemProcessListResponseDTO{
+		Items: processList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *ComplianceClauseRepository) CreateComplianceClausProcesses(processes []*models.ProcessComplianceRequirement, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&processes).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceClauseRepository) DeleteComplianceClausProcesses(clauseID, processID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("compliance_clause_id = ? AND process_id = ?", clauseID, processID).
+		Delete(&models.ProcessComplianceRequirement{}).Error
 }

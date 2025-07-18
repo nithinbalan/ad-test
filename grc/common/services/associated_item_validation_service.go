@@ -12,6 +12,8 @@ type AssociatedItemValidationServiceInterface interface {
 	ValidateDocumentMapping(masterID uint, documentIDs []uint, tableName string, columnName string) error
 	ValidateIncidentMapping(masterID uint, incidentIDs []uint, tableName string, columnName string) error
 	ValidateStrtegicObjectiveMapping(masterID uint, strategicObjectiveIds []uint, tableName string, columnName string) error
+	ValidateAssetMapping(masterID uint, assetIDs []uint, tableName string, columnName string) error
+	ValidateProcessMapping(masterID uint, processIds []uint, tableName string, columnName string) error
 }
 
 // Service struct
@@ -147,6 +149,70 @@ func (aivs *AssociatedItemValidationService) ValidateStrtegicObjectiveMapping(ma
 			return utility.NewValidationError(
 				fmt.Errorf("strategic objective ID %d already mapped to this %s", id, tableName),
 				"duplicate", "strategic objective")
+		}
+
+		seen[id] = true
+	}
+
+	return nil
+}
+
+func (aivs *AssociatedItemValidationService) ValidateAssetMapping(masterID uint, assetIDs []uint, tableName string, columnName string) error {
+	if len(assetIDs) == 0 {
+		return utility.NewValidationError(fmt.Errorf("no asset provided"), "required", "asset_id")
+	}
+
+	seen := make(map[uint]bool)
+	for _, id := range assetIDs {
+		if seen[id] {
+			return utility.NewValidationError(fmt.Errorf("duplicate asset ID: %d", id), "duplicate", "asset_id")
+		}
+
+		_, err := aivs.repo.AssetExists(id)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("asset does not exist: %d", id), "not_exist", "asset_id")
+		}
+
+		alreadyMapped, err := aivs.repo.IsAssetMapped(tableName, columnName, id, masterID)
+		if err != nil {
+			return fmt.Errorf("failed to check mapping: %v", err)
+		}
+		if alreadyMapped {
+			return utility.NewValidationError(
+				fmt.Errorf("asset ID %d already mapped to this %s", id, tableName),
+				"duplicate", "asset")
+		}
+
+		seen[id] = true
+	}
+
+	return nil
+}
+
+func (aivs *AssociatedItemValidationService) ValidateProcessMapping(masterID uint, processIds []uint, tableName string, columnName string) error {
+	if len(processIds) == 0 {
+		return utility.NewValidationError(fmt.Errorf("no process provided"), "required", "procees_id")
+	}
+
+	seen := make(map[uint]bool)
+	for _, id := range processIds {
+		if seen[id] {
+			return utility.NewValidationError(fmt.Errorf("duplicate process ID: %d", id), "duplicate", "procees_id")
+		}
+
+		_, err := aivs.repo.ProcessExists(id)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("process does not exist: %d", id), "not_exist", "procees_id")
+		}
+
+		alreadyMapped, err := aivs.repo.IsProcessMapped(tableName, columnName, id, masterID)
+		if err != nil {
+			return fmt.Errorf("failed to check mapping: %v", err)
+		}
+		if alreadyMapped {
+			return utility.NewValidationError(
+				fmt.Errorf("process ID %d already mapped to this %s", id, tableName),
+				"duplicate", "process")
 		}
 
 		seen[id] = true

@@ -293,6 +293,14 @@ type AssociatedStrategicObjectiveMapDTO struct {
 	StrategicObjectiveIDs []uint `json:"strategic_objective_ids" binding:"required"`
 }
 
+type AssociatedAssetMapDTO struct {
+	AssetIDs []uint `json:"asset_register_ids" binding:"required"`
+}
+
+type AssociatedProcessMapDTO struct {
+	ProcessIDs []uint `json:"process_ids" binding:"required"`
+}
+
 type AssociatedDocumentListDTO struct {
 	ID                         uint       `json:"id"`
 	ReferenceNumber            string     `json:"reference_number"`
@@ -373,4 +381,85 @@ type AssociatedStrategicObjectiveListDTO struct {
 type AssociatedItemStrategicObjectiveListResponseDTO struct {
 	Items      []*AssociatedStrategicObjectiveListDTO `json:"items"`
 	Pagination PaginationInfoDTO                      `json:"pagination"`
+}
+
+type AssociatedAssetListDTO struct {
+	ID                              uint       `json:"id"`
+	ReferenceNumber                 string     `json:"reference_number"`
+	TitleEn                         string     `json:"title_en"`
+	TitleAr                         string     `json:"title_ar"`
+	AssetTypeTitleEn                *string    `json:"asset_type_title_en"`
+	AssetTypeTitleAr                *string    `json:"asset_type_title_ar"`
+	AssetCategoryTitleEn            *string    `json:"asset_category_title_en"`
+	AssetCategoryTitleAr            *string    `json:"asset_category_title_ar"`
+	AssetStatusTitleEn              string     `json:"asset_status_title_en"`
+	AssetStatusTitleAr              string     `json:"asset_status_title_ar"`
+	AssetStatusColorCode            string     `json:"asset_status_color_code"`
+	ResponsibleUnitTitleEn          string     `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr          string     `json:"responsible_unit_title_ar"`
+	ResponsibleUserID               uint       `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn      string     `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string     `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string     `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string     `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          string     `json:"responsible_user_initial"`
+	ResponsibleUserColor            string     `json:"responsible_user_color"`
+	ResponsibleUserEmail            string     `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath string     `json:"responsible_user_profile_image_path"`
+	Location                        *string    `json:"location"`
+	Description                     *string    `json:"description"`
+	AcquisitionDate                 string     `json:"acquisition_date"`
+	CreatedUserID                   uint       `json:"created_user_id"`
+	CreatedUserFirstNameEn          string     `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr          string     `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn           string     `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr           string     `json:"created_user_last_name_ar"`
+	CreatedUserInitial              string     `json:"created_user_initial"`
+	CreatedUserColor                string     `json:"created_user_color"`
+	CreatedUserEmail                string     `json:"created_user_email"`
+	CreatedUserProfileImagePath     string     `json:"created_user_profile_image_path"`
+	CreatedAt                       time.Time  `json:"created_at"`
+	UpdatedUserID                   *uint      `json:"updated_user_id"`
+	UpdatedUserFirstNameEn          *string    `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr          *string    `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn           *string    `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr           *string    `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial              string     `json:"updated_user_initial"`
+	UpdatedUserColor                string     `json:"updated_user_color"`
+	UpdatedUserEmail                string     `json:"updated_user_email"`
+	UpdatedUserProfileImagePath     string     `json:"updated_user_profile_image_path"`
+	UpdatedAt                       *time.Time `json:"updated_at"`
+}
+
+type AssociatedItemAssetListResponseDTO struct {
+	Items      []*AssociatedAssetListDTO `json:"items"`
+	Pagination PaginationInfoDTO         `json:"pagination"`
+}
+
+type AssociatedProcessListDTO struct {
+	ProcessGroupTitleEn      string  `json:"process_group_title_en"`
+	ProcessGroupTitleAr      string  `json:"process_group_title_ar"`
+	OwnerUnitTitleEn         *string `json:"owner_unit_title_en"`
+	OwnerUnitTitleAr         *string `json:"owner_unit_title_ar"`
+	OwnerID                  *uint   `json:"owner_id"`
+	OwnerFirstNameEn         *string `json:"owner_first_name_en"`
+	OwnerFirstNameAr         *string `json:"owner_first_name_ar"`
+	OwnerLastNameEn          *string `json:"owner_last_name_en"`
+	OwnerLastNameAr          *string `json:"owner_last_name_ar"`
+	OwnerInitial             string  `json:"owner_initial"`
+	OwnerColor               string  `json:"owner_color"`
+	OwnerEmail               string  `json:"owner_email"`
+	OwnerProfileImagePath    string  `json:"owner_profile_image_path"`
+	LifecycleStatusTitleEn   string  `json:"lifecycle_status_title_en"`
+	LifecycleStatusTitleAr   string  `json:"lifecycle_status_title_ar"`
+	LifecycleStatusColorCode string  `json:"lifecycle_status_color_code"`
+	ReferenceNumber          string  `json:"reference_number"`
+	TitleEn                  string  `json:"title_en"`
+	TitleAr                  string  `json:"title_ar"`
+	Description              *string `json:"description"`
+}
+
+type AssociatedItemProcessListResponseDTO struct {
+	Items      []*AssociatedProcessListDTO `json:"items"`
+	Pagination PaginationInfoDTO           `json:"pagination"`
 }

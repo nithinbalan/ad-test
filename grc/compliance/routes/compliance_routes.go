@@ -162,6 +162,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/compliances/:complianceId/clause/:clauseId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.CreateComplianceClauseStrategicObjective)
 	complianceRoutes.DELETE("/compliances/:complianceId/clause/:clauseId/strategic-objectives/:strategicObjectiveId", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.DeleteComplianceClausStrategicObjective)
 
+	complianceRoutes.GET("/compliances/:complianceId/clause/:clauseId/assets", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceClauseController.GetAssociatedAssets)
+	complianceRoutes.POST("/compliances/:complianceId/clause/:clauseId/assets", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.CreateComplianceClauseAssets)
+	complianceRoutes.DELETE("/compliances/:complianceId/clause/:clauseId/assets/:assetId", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.DeleteComplianceAssets)
+
+	complianceRoutes.GET("/compliances/:complianceId/clause/:clauseId/processes", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceClauseController.GetAssociatedProcesses)
+	complianceRoutes.POST("/compliances/:complianceId/clause/:clauseId/processes", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.CreateComplianceClausProcesses)
+	complianceRoutes.DELETE("/compliances/:complianceId/clause/:clauseId/processes/:processId", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.DeleteComplianceClausProcesses)
+
 	// SLA Renew
 	complianceRoutes.GET("/slas/:slaId/renew-history", middlewares.RolePermissionMiddleware(db, "sla_contracts", "view"), SLARenewController.GetSLARenewHistory)
 	complianceRoutes.PUT("/slas/:slaId/renew", middlewares.RolePermissionMiddleware(db, "sla_contracts", "modify"), SLARenewController.Renew)
