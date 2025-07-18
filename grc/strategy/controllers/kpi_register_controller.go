@@ -238,3 +238,26 @@ func (krc *KPIRegisterController) GetKPITrendAnalysis(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, controlTrend)
 }
+
+func (krc *KPIRegisterController) GetKPILatestValueUpdate(c *gin.Context) {
+	idStr := c.Param("kpiRegisterId")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	latestValueUpdate, err := krc.service.GetLatestValueUpdateByKPIRegisterID(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(krc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, latestValueUpdate)
+}

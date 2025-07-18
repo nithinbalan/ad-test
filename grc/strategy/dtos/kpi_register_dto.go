@@ -128,6 +128,7 @@ type KPIRegisterDetailDTO struct {
 	ActualValue       *float64                         `json:"actual_value"`
 	TargetValue       *float64                         `json:"target_value"`
 	Weightage         *float64                         `json:"weightage"`
+	AchievementPercentage *float64                     `json:"achievement_percentage"`
 	StartDateString   *string                          `json:"start_date"`
 	EndDateString     *string                          `json:"end_date"`
 	Remarks           *string                          `json:"remarks"`

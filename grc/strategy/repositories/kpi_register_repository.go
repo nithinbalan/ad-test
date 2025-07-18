@@ -25,6 +25,7 @@ type KPIRegisterRepositoryInterface interface {
 	DeleteKPIRegisterInputData(kpiRegisterId uint, tx ...utility.DatabaseTransaction) error
 
 	GetTrendAnalysis(kpiId uint) ([]*models.KPIValueUpdate, error)
+	GetLatestValueUpdate(kpiId uint) (*models.KPIValueUpdate, error)
 	GenerateReferenceNumber() (string, error)
 }
 
@@ -275,6 +276,19 @@ func (repo *KPIRegisterRepository) GetTrendAnalysis(kpiID uint) ([]*models.KPIVa
 	result := repo.db.Where("kpi_register_id = ?", kpiID).
 		Order("reviewed_date ASC").
 		Find(&kpiValueUpdate)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return kpiValueUpdate, nil
+}
+
+func (repo *KPIRegisterRepository) GetLatestValueUpdate(kpiID uint) (*models.KPIValueUpdate, error) {
+	var kpiValueUpdate *models.KPIValueUpdate
+
+	result := repo.db.Preload("ReviewUser").Preload("Documents").Preload("Unit").Preload("DataInputs").Where("kpi_register_id = ? AND is_latest = 1", kpiID).
+		First(&kpiValueUpdate)
 
 	if result.Error != nil {
 		return nil, result.Error

@@ -10,6 +10,7 @@ import (
 	strategyDTOs "jethur/grc/strategy/dtos"
 	kpiRegisterRepositories "jethur/grc/strategy/repositories"
 	"jethur/utility"
+	"sort"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -25,6 +26,7 @@ type KPIRegisterServiceInterface interface {
 
 	UpdateValue(kpiRegister *models.KPIRegister, tx utility.DatabaseTransaction) error
 	GetTrendAnalysis(kpiID uint) ([]*strategyDTOs.KPITrendAnalysisDTO, error)
+	GetLatestValueUpdateByKPIRegisterID(kpiRegisterID uint) (*strategyDTOs.KPIValueUpdateDetailsDTO, error)
 }
 
 // Service and implementations
@@ -96,6 +98,14 @@ func (krs KPIRegisterService) GetFullDetailsByID(id uint, tx ...utility.Database
 	if err != nil {
 		return nil, err
 	}
+
+	// KPI Achievement Calculation
+	var achievement *float64
+	if kpiRegister.ActualValue != nil && kpiRegister.TargetValue != nil && *kpiRegister.TargetValue != 0 {
+		val := (*kpiRegister.ActualValue / *kpiRegister.TargetValue) * 100
+		achievement = &val
+	}
+	kpiRegisterDTO.AchievementPercentage = achievement
 
 	if kpiRegister.StartDate != nil {
 		startDate := kpiRegister.StartDate.Format("2006-01-02")
@@ -455,21 +465,48 @@ func (krs *KPIRegisterService) GetTrendAnalysis(kpiID uint) ([]*strategyDTOs.KPI
 		return []*strategyDTOs.KPITrendAnalysisDTO{}, nil
 	}
 
-	var trend []*strategyDTOs.KPITrendAnalysisDTO
+	// Sort by CreatedAt ascending
+	sort.SliceStable(kpiValueUpdates, func(i, j int) bool {
+		return kpiValueUpdates[i].CreatedAt.Before(kpiValueUpdates[j].CreatedAt)
+	})
 
-	for _, valueUpdate := range kpiValueUpdates {
+	// Take only the latest 6
+	limit := 6
+	if len(kpiValueUpdates) < limit {
+		limit = len(kpiValueUpdates)
+	}
+	latestUpdates := kpiValueUpdates[:limit]
+
+	var trend []*strategyDTOs.KPITrendAnalysisDTO
+	for _, valueUpdate := range latestUpdates {
 		var kpiUpdate strategyDTOs.KPITrendAnalysisDTO
 		err := mapstructure.Decode(valueUpdate, &kpiUpdate)
 		if err != nil {
 			return nil, err
 		}
 		kpiUpdate.Value = float64(*valueUpdate.Value)
-
 		reviewedAt := valueUpdate.ReviewedDate.Format("2006-01-02")
 		kpiUpdate.ReviewedAtString = reviewedAt
-
 		trend = append(trend, &kpiUpdate)
 	}
 
 	return trend, nil
+}
+
+func (krs *KPIRegisterService) GetLatestValueUpdateByKPIRegisterID(kpiRegisterID uint) (*strategyDTOs.KPIValueUpdateDetailsDTO, error) {
+	valueUpdate, err := krs.repo.GetLatestValueUpdate(kpiRegisterID)
+	if err != nil {
+		return nil, err
+	}
+
+	var dto strategyDTOs.KPIValueUpdateDetailsDTO
+	reviewedDate := valueUpdate.ReviewedDate.Format("2006-01-02")
+	dto.ReviewedDateString = &reviewedDate
+	err = mapstructure.Decode(valueUpdate, &dto)
+	if err != nil {
+		return nil, err
+	}
+	// Map additional fields if needed
+
+	return &dto, nil
 }

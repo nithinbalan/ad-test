@@ -93,6 +93,7 @@ func (kvus *KPIValueUpdateService) Create(kpiRegisterID, currentUserID uint, kpi
 		ReviewedDate:  *dates.ReviewedDate,
 		Value:         &kpiValueUpdateFormDTO.Value,
 		Remarks:       kpiValueUpdateFormDTO.Remarks,
+		IsLatest:      true, // Always set to true (1) when creating
 		CreatedByID:   currentUserID,
 	}
 
