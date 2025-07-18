@@ -9,12 +9,13 @@ import (
 )
 
 type LibraryModule struct {
-	QuestionLibraryController         *controllers.QuestionLibraryController
-	KriLibraryController              *controllers.KRILibraryController
-	RiskLibraryController             *controllers.RiskLibraryController
-	KnowledgeCenterResourceController *controllers.KnowledgeCenterResourceController
-	ComplianceLibraryController       *controllers.ComplianceLibraryController
-	KpiLibraryController              *controllers.KpiLibraryController
+	QuestionLibraryController           *controllers.QuestionLibraryController
+	KriLibraryController                *controllers.KRILibraryController
+	RiskLibraryController               *controllers.RiskLibraryController
+	KnowledgeCenterResourceController   *controllers.KnowledgeCenterResourceController
+	ComplianceLibraryController         *controllers.ComplianceLibraryController
+	KpiLibraryController                *controllers.KpiLibraryController
+	StrategicObjectiveLibraryController *controllers.StrategicObjectiveLibraryController
 
 	KriLibrarySvc services.KRILibraryServiceInterface
 }
@@ -46,14 +47,19 @@ func NewLibraryModule(db *gorm.DB, sharedModule *SharedModule, MasterModule *Mas
 	KpiLibrarySvc := services.NewKpiLibraryService(KpiLibraryRepository)
 	KpiLibraryController := controllers.NewKpiLibraryController(KpiLibrarySvc)
 
+	StrategicObjectiveLibraryRepository := repositories.NewStrategicObjectiveLibraryRepository(db)
+	StrategicObjectiveLibrarySvc := services.NewStrategicObjectiveLibraryService(StrategicObjectiveLibraryRepository)
+	StrategicObjectiveLibraryController := controllers.NewStrategicObjectiveLibraryController(StrategicObjectiveLibrarySvc)
+
 	return &LibraryModule{
 		QuestionLibraryController: questionLibraryController,
 		KriLibraryController:      kriLibraryController,
 
-		KriLibrarySvc:                     kriLibrarySvc,
-		RiskLibraryController:             RiskLibraryController,
-		KnowledgeCenterResourceController: knowledgeCenterResourceController,
-		ComplianceLibraryController:       ComplianceLibraryController,
-		KpiLibraryController:              KpiLibraryController,
+		KriLibrarySvc:                       kriLibrarySvc,
+		RiskLibraryController:               RiskLibraryController,
+		KnowledgeCenterResourceController:   knowledgeCenterResourceController,
+		ComplianceLibraryController:         ComplianceLibraryController,
+		KpiLibraryController:                KpiLibraryController,
+		StrategicObjectiveLibraryController: StrategicObjectiveLibraryController,
 	}
 }
