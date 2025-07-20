@@ -149,3 +149,25 @@ func (rc *RiskAIController) GetRiskResidualRiskAnalysis(c *gin.Context) {
 
 	c.JSON(http.StatusOK, result)
 }
+
+func (rc *RiskAIController) ChatWithRisk(c *gin.Context) {
+	var req dtos.RiskAIChatRequest
+	if err := c.ShouldBind(&req); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	result, err := rc.service.ChatWithRisk(req, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}

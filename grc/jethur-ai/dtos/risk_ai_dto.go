@@ -35,3 +35,9 @@ type RiskAIRequest struct {
 	Category      string  `json:"category" binding:"required"`
 	Source        string  `json:"source"`
 }
+
+type RiskAIChatRequest struct {
+	Content   string `json:"content" binding:"required"`
+	Role      string `json:"role" binding:"required"`
+	ContextID string `json:"context_id"`
+}
