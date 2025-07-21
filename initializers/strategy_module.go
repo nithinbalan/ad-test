@@ -174,7 +174,7 @@ func NewStrategyModule(db *gorm.DB,
 	strategyProfileStrategicIntiativeController := controllers.NewStrategyProfileStrategicIntiativeController(strategyProfileStrategicIntiativeSvc)
 
 	strategyProfileProjectRepo := repositories.NewStrategyProfileProjectRepository(db)
-	strategyProfileProjectSvc := services.NewStrategyProfileProjectService(strategyProfileProjectRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc, projectModule.ProjectSvc)
+	strategyProfileProjectSvc := services.NewStrategyProfileProjectService(strategyProfileProjectRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc, projectModule.projectSvc, strategyProfileStrategicObjectiveSvc, strategyProfileStrategicIntiativeSvc)
 	strategyProfileProjectController := controllers.NewStrategyProfileProjectController(strategyProfileProjectSvc)
 
 	return &StrategyModule{

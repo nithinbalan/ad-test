@@ -23,12 +23,14 @@ type StrategyProfileProjectServiceInterface interface {
 
 // Service and implementations
 type StrategyProfileProjectService struct {
-	repo               strategyProfileProjectRepositories.StrategyProfileProjectRepositoryInterface
-	activityLogSvc     logServices.ActivityLogServiceInterface
-	userSvc            organizationServices.UserServiceInterface
-	userSettingSvc     organizationServices.UserSettingServiceInterface
-	strategyProfileSvc StrategyProfileServiceInterface
-	projectSvc         projectServices.ProjectServiceInterface
+	repo                                 strategyProfileProjectRepositories.StrategyProfileProjectRepositoryInterface
+	activityLogSvc                       logServices.ActivityLogServiceInterface
+	userSvc                              organizationServices.UserServiceInterface
+	userSettingSvc                       organizationServices.UserSettingServiceInterface
+	strategyProfileSvc                   StrategyProfileServiceInterface
+	projectSvc                           projectServices.ProjectServiceInterface
+	strategyProfileStrategicObjectiveSvc StrategyProfileStrategicObjectiveServiceInterface
+	strategyProfileStrategicIntiativeSvc StrategyProfileStrategicIntiativeServiceInterface
 }
 
 func NewStrategyProfileProjectService(
@@ -38,14 +40,18 @@ func NewStrategyProfileProjectService(
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	strategyProfileSvc StrategyProfileServiceInterface,
 	projectSvc projectServices.ProjectServiceInterface,
+	strategyProfileStrategicObjectiveSvc StrategyProfileStrategicObjectiveServiceInterface,
+	strategyProfileStrategicIntiativeSvc StrategyProfileStrategicIntiativeServiceInterface,
 ) StrategyProfileProjectServiceInterface {
 	return &StrategyProfileProjectService{
-		repo:               repo,
-		activityLogSvc:     activityLogSvc,
-		userSvc:            userSvc,
-		userSettingSvc:     userSettingSvc,
-		strategyProfileSvc: strategyProfileSvc,
-		projectSvc:         projectSvc,
+		repo:                                 repo,
+		activityLogSvc:                       activityLogSvc,
+		userSvc:                              userSvc,
+		userSettingSvc:                       userSettingSvc,
+		strategyProfileSvc:                   strategyProfileSvc,
+		projectSvc:                           projectSvc,
+		strategyProfileStrategicObjectiveSvc: strategyProfileStrategicObjectiveSvc,
+		strategyProfileStrategicIntiativeSvc: strategyProfileStrategicIntiativeSvc,
 	}
 }
 
@@ -79,9 +85,11 @@ func (ssp *StrategyProfileProjectService) Create(strategyProfileID uint, current
 
 	for _, projectID := range strategyProfileProjectFormDTO.ProjectIDs {
 		strategyProfileProject := &models.StrategyProfileProject{
-			StrategyProfileID: strategyProfileID,
-			ProjectID:         &projectID,
-			CreatedBYID:       currentUserID,
+			StrategyProfileID:                   strategyProfileID,
+			ProjectID:                           &projectID,
+			StrategyProfileStrategicObjectiveID: strategyProfileProjectFormDTO.StrategyProfileStrategicObjectiveID,
+			StrategyProfileStrategicIntiativeID: strategyProfileProjectFormDTO.StrategyProfileStrategicIntiativeID,
+			CreatedBYID:                         currentUserID,
 		}
 		id, err := ssp.repo.Create(strategyProfileProject, tx)
 		if err != nil {
@@ -103,6 +111,8 @@ func (ssp *StrategyProfileProjectService) Create(strategyProfileID uint, current
 				map[string]interface{}{
 					"strategy_profile_id": strategyProfileID,
 					"project_id":          strategyProfileProjectFormDTO.ProjectIDs[i],
+					"strategy_profile_strategic_objective_id": strategyProfileProjectFormDTO.StrategyProfileStrategicObjectiveID,
+					"strategy_profile_strategic_intiative_id": strategyProfileProjectFormDTO.StrategyProfileStrategicIntiativeID,
 				},
 				currentUserID,
 				nil,
@@ -162,6 +172,8 @@ func (ssp *StrategyProfileProjectService) Delete(strategyProfileID uint, id uint
 			map[string]interface{}{
 				"strategy_profile_id": strategyProfileID,
 				"project_id":          strategyProfileProject.ProjectID,
+				"strategy_profile_strategic_objective_id": strategyProfileProject.StrategyProfileStrategicObjectiveID,
+				"strategy_profile_strategic_intiative_id": strategyProfileProject.StrategyProfileStrategicIntiativeID,
 			},
 			currentUserID,
 			nil,
