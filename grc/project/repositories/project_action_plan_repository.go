@@ -106,7 +106,7 @@ func (repo *ProjectActionPlanRepository) GetAll(projectID uint, params *projectD
 		LEFT JOIN projects ON projects.id = project_action_plans.project_id
     `)
 
-		// Conditionally apply compliance ID filter
+		// Conditionally apply project ID filter
 	if projectID != 0 {
 		query = query.Where("project_action_plans.project_id = ?", projectID)
 	}
@@ -205,7 +205,7 @@ func (repo *ProjectActionPlanRepository) GetFullDetailsByID(id uint, tx ...utili
 
 	var projectActionPlan models.ProjectActionPlan
 
-	// Load the compliance action plan with all related data
+	// Load the project action plan with all related data
 	result := db.
 		Preload("Project").
 		Preload("ProjectMilestone").
@@ -215,6 +215,7 @@ func (repo *ProjectActionPlanRepository) GetFullDetailsByID(id uint, tx ...utili
 		Preload("ReviewUser").
 		Preload("ReviewUser.OrganizationUnit1").
 		Preload("ActionPlanStatus").
+		Preload("ActionPlanStatusUpdates").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&projectActionPlan, id)

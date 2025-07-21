@@ -103,27 +103,28 @@ type ProjectActionPlanParsedDates struct {
 }
 
 type ProjectActionPlanDetailDTO struct {
-	ID                    int                               `json:"id"`
-	Project               *ProjectDetailDTO                 `json:"project"`
-	ProjectMilestone      *ProjectMilestoneDetailDTO        `json:"project_milestone"`
-	Title                 string                            `json:"title"`
-	Description           *string                           `json:"description"`
-	ResponsibleUserID     uint                              `json:"responsible_user_id" binding:"required" gorm:"not null"`
-	ResponsibleUser       organizationDTOs.UserMinimalDTO   `json:"responsible_user"`
-	ResponsibleUserUnitID *uint                             `json:"responsible_user_unit_id"`
-	ResponsibleUserUnit   *settingsDTOs.OrganizationUnitDTO `json:"responsible_user_unit"`
-	ActionPlanStatus      masterDTOs.ActionPlanStatusDTO    `json:"action_plan_status"`
-	Percentage            *int                              `json:"percentage"`
-	SeverityLevel         *masterDTOs.SeverityLevelDTO      `json:"severity_level"`
-	ReviewUser            *organizationDTOs.UserMinimalDTO  `json:"review_user"`
-	ReviewUserUnitID      *uint                             `json:"review_user_unit_id"`
-	ReviewUserUnit        *settingsDTOs.OrganizationUnitDTO `json:"review_user_unit"`
-	TargetDateString      *string                           `json:"target_date"`
-	Comments              *string                           `json:"comments"`
-	CreatedAt             time.Time                         `json:"created_at"`
-	UpdatedAt             *time.Time                        `json:"updated_at"`
-	CreatedByUser         organizationDTOs.UserMinimalDTO   `json:"created_by_user"`
-	UpdatedByUser         *organizationDTOs.UserMinimalDTO  `json:"updated_by_user"`
+	ID                      int                                     `json:"id"`
+	Project                 *ProjectDetailDTO                       `json:"project"`
+	ProjectMilestone        *ProjectMilestoneDetailDTO              `json:"project_milestone"`
+	Title                   string                                  `json:"title"`
+	Description             *string                                 `json:"description"`
+	ResponsibleUserID       uint                                    `json:"responsible_user_id" binding:"required" gorm:"not null"`
+	ResponsibleUser         organizationDTOs.UserMinimalDTO         `json:"responsible_user"`
+	ResponsibleUserUnitID   *uint                                   `json:"responsible_user_unit_id"`
+	ResponsibleUserUnit     *settingsDTOs.OrganizationUnitDTO       `json:"responsible_user_unit"`
+	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO          `json:"action_plan_status"`
+	Percentage              *int                                    `json:"percentage"`
+	SeverityLevel           *masterDTOs.SeverityLevelDTO            `json:"severity_level"`
+	ReviewUser              *organizationDTOs.UserMinimalDTO        `json:"review_user"`
+	ReviewUserUnitID        *uint                                   `json:"review_user_unit_id"`
+	ActionPlanStatusUpdates []*ProjectActionPlanStatusUpdateListDTO `json:"action_plan_status_updates"`
+	ReviewUserUnit          *settingsDTOs.OrganizationUnitDTO       `json:"review_user_unit"`
+	TargetDateString        *string                                 `json:"target_date"`
+	Comments                *string                                 `json:"comments"`
+	CreatedAt               time.Time                               `json:"created_at"`
+	UpdatedAt               *time.Time                              `json:"updated_at"`
+	CreatedByUser           organizationDTOs.UserMinimalDTO         `json:"created_by_user"`
+	UpdatedByUser           *organizationDTOs.UserMinimalDTO        `json:"updated_by_user"`
 }
 
 type ProjectActionPlanStatusUpdateDTO struct {

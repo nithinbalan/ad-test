@@ -24,14 +24,16 @@ type ProjectActionPlan struct {
 	UpdatedBYID *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	Project          *Project          `gorm:"foreignKey:ProjectID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ProjectMilestone *ProjectMilestone `gorm:"foreignKey:ProjectMilestoneID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser  *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ReviewUser       *User             `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SeverityLevel    *SeverityLevel    `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ActionPlanStatus *ActionPlanStatus `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser    *User             `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
-	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	Project                      *Project                         `gorm:"foreignKey:ProjectID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ProjectMilestone             *ProjectMilestone                `gorm:"foreignKey:ProjectMilestoneID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser              *User                            `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewUser                   *User                            `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SeverityLevel                *SeverityLevel                   `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatus             *ActionPlanStatus                `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatusUpdates      []*ProjectActionPlanStatusUpdate `gorm:"foreignKey:ProjectActionPlanID"`
+	LatestActionPlanStatusUpdate *ProjectActionPlanStatusUpdate   `gorm:"foreignKey:ProjectActionPlanID"`
+	CreatedByUser                *User                            `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	UpdatedByUser                *User                            `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 }
 
 // TableName overrides the table name used by ComplianceActionPlan to `project_action_plans`
