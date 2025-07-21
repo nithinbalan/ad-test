@@ -19,7 +19,7 @@ type ProcessAssociatedItemRepositoryInterface interface {
 	GetAllDocuments(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemDocumentListResponseDTO, error)
 	GetAllAssets(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemAssetListResponseDTO, error)
 	GetAllAssociatedCounts(processID uint) (*organizationDTOs.ProcessAssociatedItemsCountResponseDTO, error)
-	GetAllClauses(processID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error)
 	GetClausesByProcessID(processID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 	CreateProcessClauses(clauses []*models.ProcessComplianceRequirement, tx ...utility.DatabaseTransaction) error
@@ -699,7 +699,7 @@ func (repo *ProcessAssociatedItemRepository) GetAllControlsWithPagination(proces
 
 }
 
-func (repo *ProcessAssociatedItemRepository) GetAllClauses(processID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+func (repo *ProcessAssociatedItemRepository) GetAllClauses(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 
 	var clauseList []commonDTOs.AssociatedClauseRowDTO
 	var totalCount int64

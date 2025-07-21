@@ -145,7 +145,6 @@ func (caic *ControlAssociatedItemController) GetAllControlRisks(c *gin.Context) 
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	valueStr := c.Query("value")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -169,13 +168,12 @@ func (caic *ControlAssociatedItemController) GetAllControlRisks(c *gin.Context) 
 	}
 
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Page:        page,
-		PageSize:    pageSize,
-		Value:       value,
-		QuickFilter: quickFilter,
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Value:    value,
 	}
 	risks, err := caic.service.GetAllRisks(uint(controlID), &queryParams)
 

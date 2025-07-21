@@ -316,7 +316,6 @@ func (cc *ComplianceClauseController) GetAssociatedRisks(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(cc.db, c, "Invalid page parameter")
@@ -333,7 +332,6 @@ func (cc *ComplianceClauseController) GetAssociatedRisks(c *gin.Context) {
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
-		Status:   status,
 		Page:     page,
 		PageSize: pageSize,
 	}
@@ -437,7 +435,6 @@ func (cc *ComplianceClauseController) GetAssociatedDocuments(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(cc.db, c, "Invalid page parameter")
@@ -454,7 +451,6 @@ func (cc *ComplianceClauseController) GetAssociatedDocuments(c *gin.Context) {
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
-		Status:   status,
 		Page:     page,
 		PageSize: pageSize,
 	}
@@ -557,7 +553,6 @@ func (cc *ComplianceClauseController) GetAssociatedIncident(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(cc.db, c, "Invalid page parameter")
@@ -574,7 +569,6 @@ func (cc *ComplianceClauseController) GetAssociatedIncident(c *gin.Context) {
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
-		Status:   status,
 		Page:     page,
 		PageSize: pageSize,
 	}
@@ -678,7 +672,6 @@ func (cc *ComplianceClauseController) GetAssociatedStrategicObjective(c *gin.Con
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(cc.db, c, "Invalid page parameter")
@@ -695,7 +688,6 @@ func (cc *ComplianceClauseController) GetAssociatedStrategicObjective(c *gin.Con
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
-		Status:   status,
 		Page:     page,
 		PageSize: pageSize,
 	}
@@ -799,7 +791,6 @@ func (cc *ComplianceClauseController) GetAssociatedAssets(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(cc.db, c, "Invalid page parameter")
@@ -816,7 +807,6 @@ func (cc *ComplianceClauseController) GetAssociatedAssets(c *gin.Context) {
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
-		Status:   status,
 		Page:     page,
 		PageSize: pageSize,
 	}
@@ -920,7 +910,6 @@ func (cc *ComplianceClauseController) GetAssociatedProcesses(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(cc.db, c, "Invalid page parameter")
@@ -937,7 +926,6 @@ func (cc *ComplianceClauseController) GetAssociatedProcesses(c *gin.Context) {
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
-		Status:   status,
 		Page:     page,
 		PageSize: pageSize,
 	}

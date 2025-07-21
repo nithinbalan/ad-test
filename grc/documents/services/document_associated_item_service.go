@@ -20,7 +20,7 @@ type DocumentAssociatedItemServiceInterface interface {
 	GetAllSLAs(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemSLAListResponseDTO, error)
 	GetAllIncidents(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisks(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
-	GetAllClauses(documentID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(documentID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 	CreateDocumentRisk(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
 	DeleteDocumentRisk(documentID uint, riskID uint) error
@@ -141,7 +141,7 @@ func (dais *DocumentAssociatedItemService) GetAllRisks(documentID uint, params *
 	return dais.repo.GetAllRisks(documentID, params)
 }
 
-func (dais *DocumentAssociatedItemService) GetAllClauses(documentID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+func (dais *DocumentAssociatedItemService) GetAllClauses(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
 		return nil, err
 	}

@@ -20,10 +20,14 @@ type RiskAssociatedItemRepositoryInterface interface {
 	GetAllDocuments(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemDocumentListResponseDTO, error)
 	GetAllAssets(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemAssetListResponseDTO, error)
 	GetAllThreats(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemThreatListResponseDTO, error)
-	GetAllClauses(riskID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(riskID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	CreateRiskClauses(clauses []*models.RiskComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	DeleteRiskClauses(riskID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 	GetClausesByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
+	CreatRiskStrategicObjective(strategicObjectives []*models.RiskStrategicObjective, tx ...utility.DatabaseTransaction) error
+	DeletetRiskStrategicObjective(strategicObjectiveID uint, riskID uint, tx ...utility.DatabaseTransaction) error
+	CreatRiskKPI(kpiS []*models.KPIRisk, tx ...utility.DatabaseTransaction) error
+	DeletetRiskKPI(kpiID uint, riskID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskAssociatedItemRepository struct {
@@ -933,7 +937,7 @@ func (repo *RiskAssociatedItemRepository) GetAllThreats(riskID uint, params *ris
 	return response, nil
 }
 
-func (repo *RiskAssociatedItemRepository) GetAllClauses(riskID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+func (repo *RiskAssociatedItemRepository) GetAllClauses(riskID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 
 	var clauseList []commonDTOs.AssociatedClauseRowDTO
 	var totalCount int64
@@ -1074,4 +1078,42 @@ func (repo *RiskAssociatedItemRepository) DeleteRiskClauses(riskID uint, clauseI
 	}
 
 	return nil
+}
+
+func (repo *RiskAssociatedItemRepository) CreatRiskStrategicObjective(strategicObjectives []*models.RiskStrategicObjective, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&strategicObjectives).Error
+}
+
+func (repo *RiskAssociatedItemRepository) DeletetRiskStrategicObjective(strategicObjectiveID uint, riskId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("risk_register_id = ? AND strategic_objective_id = ?", riskId, strategicObjectiveID).
+		Delete(&models.RiskStrategicObjective{}).
+		Error
+}
+
+func (repo *RiskAssociatedItemRepository) CreatRiskKPI(kpiS []*models.KPIRisk, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&kpiS).Error
+}
+
+func (repo *RiskAssociatedItemRepository) DeletetRiskKPI(kpiID uint, riskId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("risk_register_id = ? AND kpi_register_id = ?", riskId, kpiID).
+		Delete(&models.KPIRisk{}).
+		Error
 }

@@ -10,7 +10,7 @@ import (
 
 type StrategicObjectiveAssociatedItemRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAllClauses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	CreateStrategicObjectiveClauses(clauses []*models.ComplianceRequirementStrategicObjective, tx ...utility.DatabaseTransaction) error
 	DeleteStrategicObjectiveClauses(strategicObjectiveID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 	GetClausesByStrategicObjectiveID(strategicObjectiveID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
@@ -33,7 +33,7 @@ func (repo *StrategicObectiveAssociatedItemRepository) BeginTransaction() utilit
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *StrategicObectiveAssociatedItemRepository) GetAllClauses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+func (repo *StrategicObectiveAssociatedItemRepository) GetAllClauses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 
 	var clauseList []commonDTOs.AssociatedClauseRowDTO
 	var totalCount int64

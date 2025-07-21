@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceServices "jethur/grc/compliance/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
@@ -22,8 +23,12 @@ type RiskAssociatedItemServiceInterface interface {
 	GetAllDocuments(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemDocumentListResponseDTO, error)
 	GetAllAssets(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemAssetListResponseDTO, error)
 	GetAllThreats(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemThreatListResponseDTO, error)
-	GetAllClauses(riskID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(riskID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(riskID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
+	CreatRiskStrategicObjective(riskID uint, currentUserID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
+	DeletetRiskStrategicObjective(riskID uint, strategicObjectiveID uint) error
+	CreatRiskKPI(riskID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
+	DeletetRiskKPI(riskID uint, kpiID uint) error
 }
 
 // Service and implementations
@@ -31,18 +36,21 @@ type RiskAssociatedItemService struct {
 	repo            riskRepositories.RiskAssociatedItemRepositoryInterface
 	riskRegisterSvc RiskRegisterServiceInterface
 	clauseSvc       complianceServices.ComplianceClauseServiceInterface
+	validationSvc   commonServices.AssociatedItemValidationServiceInterface
 }
 
 func NewRiskAssociatedItemService(
 	repo riskRepositories.RiskAssociatedItemRepositoryInterface,
 	riskRegisterSvc RiskRegisterServiceInterface,
 	clauseSvc complianceServices.ComplianceClauseServiceInterface,
+	validationSvc commonServices.AssociatedItemValidationServiceInterface,
 
 ) RiskAssociatedItemServiceInterface {
 	return &RiskAssociatedItemService{
 		repo:            repo,
 		riskRegisterSvc: riskRegisterSvc,
 		clauseSvc:       clauseSvc,
+		validationSvc:   validationSvc,
 	}
 }
 
@@ -163,7 +171,7 @@ func (rais *RiskAssociatedItemService) GetAllThreats(riskID uint, params *riskDT
 	return rais.repo.GetAllThreats(riskID, params)
 }
 
-func (rais *RiskAssociatedItemService) GetAllClauses(riskID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+func (rais *RiskAssociatedItemService) GetAllClauses(riskID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
 		return nil, err
 	}
@@ -274,4 +282,90 @@ func (rais *RiskAssociatedItemService) validateClauseIDs(clauseIDs []uint, tx ..
 	}
 
 	return clauses, nil
+}
+
+func (rais *RiskAssociatedItemService) CreatRiskStrategicObjective(riskID, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error {
+	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("risk does not exist for ID: %d", riskID), "not_exist", "risk_id")
+	}
+	if err := rais.validationSvc.ValidateRiskMapping(riskID, dto.StrategicObjectiveIDs, "risk_strategic_objectives", "strategic_objective_id"); err != nil {
+		return err
+	}
+	tx := rais.repo.BeginTransaction()
+	var mappings []*models.RiskStrategicObjective
+	currentTime := time.Now()
+
+	for _, strategicObID := range dto.StrategicObjectiveIDs {
+		mappings = append(mappings, &models.RiskStrategicObjective{
+			RiskRegisterID:       riskID,
+			StrategicObjectiveID: strategicObID,
+			CreatedByID:          userID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := rais.repo.CreatRiskStrategicObjective(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (rais *RiskAssociatedItemService) DeletetRiskStrategicObjective(strategicObjectiveID uint, riskID uint) error {
+	// Validate control existence
+	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("risk does not exist for ID: %d", riskID), "not_exist", "risk_id")
+	}
+
+	tx := rais.repo.BeginTransaction()
+
+	if err := rais.repo.DeletetRiskStrategicObjective(strategicObjectiveID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (rais *RiskAssociatedItemService) CreatRiskKPI(riskID, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error {
+	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("risk does not exist for ID: %d", riskID), "not_exist", "risk_id")
+	}
+	if err := rais.validationSvc.ValidateRiskMapping(riskID, dto.KpiIDs, "kpi_risks", "kpi_register_id"); err != nil {
+		return err
+	}
+	tx := rais.repo.BeginTransaction()
+	var mappings []*models.KPIRisk
+	currentTime := time.Now()
+
+	for _, kpiID := range dto.KpiIDs {
+		mappings = append(mappings, &models.KPIRisk{
+			RiskRegisterID: riskID,
+			KPIRegisterID:  kpiID,
+			CreatedByID:    userID,
+			CreatedAt:      currentTime,
+		})
+	}
+
+	if err := rais.repo.CreatRiskKPI(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (rais *RiskAssociatedItemService) DeletetRiskKPI(kpiID uint, riskID uint) error {
+	// Validate control existence
+	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("risk does not exist for ID: %d", riskID), "not_exist", "risk_id")
+	}
+
+	tx := rais.repo.BeginTransaction()
+
+	if err := rais.repo.DeletetRiskKPI(kpiID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }

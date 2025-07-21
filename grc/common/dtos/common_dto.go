@@ -463,12 +463,14 @@ type AssociatedItemProcessListResponseDTO struct {
 	Pagination PaginationInfoDTO           `json:"pagination"`
 }
 type AssociatedItemListQueryParamsDTO struct {
-	Sort        string
-	SortBy      string
-	Keyword     string
-	Page        int
-	PageSize    int
-	Value       int
-	Status      string
-	QuickFilter []string
+	Sort     string
+	SortBy   string
+	Keyword  string
+	Page     int
+	PageSize int
+	Value    int
+}
+
+type AssociatedKPIMapDTO struct {
+	KpiIDs []uint `json:"kpi_ids" binding:"required"`
 }

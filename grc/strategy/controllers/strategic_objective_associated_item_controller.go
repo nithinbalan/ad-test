@@ -47,7 +47,7 @@ func (soai *StrategicObjectiveAssociatedItemController) GetAllClauses(c *gin.Con
 		return
 	}
 
-	queryParams := commonDTOs.AssociatedItemClauseListQueryParamsDTO{
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,

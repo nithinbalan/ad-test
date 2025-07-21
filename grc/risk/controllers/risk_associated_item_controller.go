@@ -533,7 +533,7 @@ func (rc *RiskAssociatedItemController) GetAllClauses(c *gin.Context) {
 		return
 	}
 
-	queryParams := commonDTOs.AssociatedItemClauseListQueryParamsDTO{
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
@@ -593,4 +593,102 @@ func (rc *RiskAssociatedItemController) UpdateClauses(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Clauses against the risk updated successfully"})
+}
+
+func (rc *RiskAssociatedItemController) CreatRiskStrategicObjective(c *gin.Context) {
+	var input commonDTOs.AssociatedStrategicObjectiveMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	riskID, err := strconv.ParseUint(c.Param("riskId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	err = rc.service.CreatRiskStrategicObjective(uint(riskID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (rc *RiskAssociatedItemController) DeletetRiskStrategicObjective(c *gin.Context) {
+	riskID, _ := strconv.ParseUint(c.Param("riskId"), 10, 64)
+	strategicObjectiveID, _ := strconv.ParseUint(c.Param("strategicObjectiveId"), 10, 64)
+	err := rc.service.DeletetRiskStrategicObjective(uint(strategicObjectiveID), uint(riskID))
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Strategic objective unmapped from risk successfully"})
+}
+
+func (rc *RiskAssociatedItemController) CreatRiskKPI(c *gin.Context) {
+	var input commonDTOs.AssociatedKPIMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	riskID, err := strconv.ParseUint(c.Param("riskId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	err = rc.service.CreatRiskKPI(uint(riskID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (rc *RiskAssociatedItemController) DeletetRiskKPI(c *gin.Context) {
+	riskID, _ := strconv.ParseUint(c.Param("riskId"), 10, 64)
+	kpiID, _ := strconv.ParseUint(c.Param("kpiId"), 10, 64)
+	err := rc.service.DeletetRiskKPI(uint(kpiID), uint(riskID))
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "KPI unmapped from risk successfully"})
 }
