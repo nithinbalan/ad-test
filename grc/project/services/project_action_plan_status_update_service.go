@@ -425,12 +425,12 @@ func (pasus *ProjectActionPlanStatusUpdateService) Approve(projectID uint, proje
 
 	tx := pasus.repo.BeginTransaction()
 
-	if existingProjectActionPlan.ActionPlanStatusID != projectActionPlanStatusResolved.ID {
+	if existingProjectActionPlan.ActionPlanStatusID != &projectActionPlanStatusResolved.ID {
 		tx.Rollback()
 		return utility.NewForbiddenError("The project action plan status must be resolved.")
 	}
 
-	existingProjectActionPlan.ActionPlanStatusID = projectActionPlanClosedStatus.ID
+	existingProjectActionPlan.ActionPlanStatusID = &projectActionPlanClosedStatus.ID
 
 	if err := pasus.repo.ProjectActionPlanUpdateStatus(existingProjectActionPlan); err != nil {
 		tx.Rollback()
@@ -501,12 +501,12 @@ func (pasus *ProjectActionPlanStatusUpdateService) Revert(projectID uint, projec
 
 	tx := pasus.repo.BeginTransaction()
 
-	if existingProjectActionPlan.ActionPlanStatusID != projectActionPlanStatusResolved.ID {
+	if existingProjectActionPlan.ActionPlanStatusID != &projectActionPlanStatusResolved.ID {
 		tx.Rollback()
 		return utility.NewForbiddenError("The project action plan status must be resolved.")
 	}
 
-	existingProjectActionPlan.ActionPlanStatusID = projectActionPlanReopenStatus.ID
+	existingProjectActionPlan.ActionPlanStatusID = &projectActionPlanReopenStatus.ID
 
 	if err := pasus.repo.ProjectActionPlanUpdateStatus(existingProjectActionPlan); err != nil {
 		tx.Rollback()
