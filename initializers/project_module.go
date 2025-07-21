@@ -9,11 +9,13 @@ import (
 )
 
 type ProjectModule struct {
-	ProjectTypeController       *controllers.ProjectTypeController
-	ProjectStatusController     *controllers.ProjectStatusController
-	ProjectController           *controllers.ProjectController
-	ProjectMilestoneController  *controllers.ProjectMilestoneController
-	ProjectActionPlanController *controllers.ProjectActionPlanController
+	ProjectTypeController                   *controllers.ProjectTypeController
+	ProjectStatusController                 *controllers.ProjectStatusController
+	ProjectController                       *controllers.ProjectController
+	ProjectMilestoneController              *controllers.ProjectMilestoneController
+	ProjectActionPlanController             *controllers.ProjectActionPlanController
+	ProjectActionPlanStatusUpdateController *controllers.ProjectActionPlanStatusUpdateController
+	ProjectActionPlanCommentController      *controllers.ProjectActionPlanCommentController
 }
 
 func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule) *ProjectModule {
@@ -53,14 +55,37 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		organizationModule.UserSvc,
 		projectSvc,
 		projectMilestoneSvc,
+		masterModule.SeverityLevelSvc,
 	)
 	projectActionPlanController := controllers.NewProjectActionPlanController(projectActionPlanSvc)
 
+	projectActionPlanStatusUpdateRepo := repositories.NewProjectActionPlanStatusUpdateRepository(db)
+	projectActionPlanStatusUpdateSvc := services.NewProjectActionPlanStatusUpdateService(
+		projectActionPlanStatusUpdateRepo,
+		sharedModule.ActivityLogService,
+		projectSvc,
+		projectActionPlanSvc,
+		masterModule.ActionPlanStatusSvc,
+		organizationModule.UserSvc,
+	)
+	projectActionPlanStatusUpdateController := controllers.NewProjectActionPlanStatusUpdateController(projectActionPlanStatusUpdateSvc)
+
+	projectActionPlanCommentRepo := repositories.NewProjectActionPlanCommentRepository(db)
+	projectActionPlanCommentSvc := services.NewProjectActionPlanCommentService(
+		projectActionPlanCommentRepo,
+		organizationModule.UserSvc,
+		sharedModule.ActivityLogService,
+		projectActionPlanSvc,
+	)
+	projectActionPlanCommentController := controllers.NewProjectActionPlanCommentController(projectActionPlanCommentSvc)
+
 	return &ProjectModule{
-		ProjectTypeController:       projectTypeController,
-		ProjectStatusController:     projectStatusController,
-		ProjectController:           projectController,
-		ProjectMilestoneController:  projectMilestoneController,
-		ProjectActionPlanController: projectActionPlanController,
+		ProjectTypeController:                   projectTypeController,
+		ProjectStatusController:                 projectStatusController,
+		ProjectController:                       projectController,
+		ProjectMilestoneController:              projectMilestoneController,
+		ProjectActionPlanController:             projectActionPlanController,
+		ProjectActionPlanStatusUpdateController: projectActionPlanStatusUpdateController,
+		ProjectActionPlanCommentController:      projectActionPlanCommentController,
 	}
 }
