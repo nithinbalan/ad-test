@@ -956,17 +956,14 @@ func (repo *RiskAssociatedItemRepository) GetAllClauses(riskID uint, params *com
 			LEFT JOIN compliance_register ON risk_compliance_requirements.compliance_register_id = compliance_register.id
 		`).
 		Where("risk_compliance_requirements.risk_register_id = ?", riskID)
-
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
-		query = query.Where(`
-			compliance_register.title_en LIKE ? OR
-			compliance_register.title_ar LIKE ? OR
-			compliance_clauses.clause_no LIKE ? OR
-			compliance_clauses.title_en  LIKE ? OR
-			compliance_clauses.title_ar  LIKE ?`,
-			keyword, keyword, keyword, keyword, keyword,
-		)
+		query = query.Where(`(
+		compliance_register.title_en LIKE ? OR
+		compliance_register.title_ar LIKE ? OR
+		compliance_clauses.clause_no LIKE ? OR
+		compliance_clauses.title_en LIKE ? OR
+		compliance_clauses.title_ar LIKE ?)`, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	if params.SortBy == "" {

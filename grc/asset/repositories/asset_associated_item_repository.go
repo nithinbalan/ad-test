@@ -425,12 +425,12 @@ func (repo *AssetAssociatedItemRepository) GetAllClauses(assetID uint, params *c
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
-		query = query.Where(`
+		query = query.Where(`(
 			compliance_register.title_en LIKE ? OR
 			compliance_register.title_ar LIKE ? OR
 			compliance_clauses.clause_no LIKE ? OR
 			compliance_clauses.title_en  LIKE ? OR
-			compliance_clauses.title_ar  LIKE ?`,
+			compliance_clauses.title_ar  LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword,
 		)
 	}
