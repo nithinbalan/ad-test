@@ -128,13 +128,9 @@ func (paps *ProjectActionPlanService) Create(projectID uint, currentUserID uint,
 		return 0, err
 	}
 
-	var actionPlanStatusID *uint
-	if ProjectActionPlanFormDTO.ActionPlanStatusID != nil {
-		actionPlanStatus, err := paps.actionPlanStatusSvc.GetByID(*ProjectActionPlanFormDTO.ActionPlanStatusID)
-		if err != nil {
-			return 0, err
-		}
-		actionPlanStatusID = &actionPlanStatus.ID
+	actionPlanStatus, err := paps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
 	}
 
 	projectActionPlan := &models.ProjectActionPlan{
@@ -148,7 +144,7 @@ func (paps *ProjectActionPlanService) Create(projectID uint, currentUserID uint,
 		Comments:           ProjectActionPlanFormDTO.Comments,
 		TargetDate:         dates.TargetDate,
 		Percentage:         &ProjectActionPlanFormDTO.Percentage,
-		ActionPlanStatusID: actionPlanStatusID,
+		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedBYID:        currentUserID,
 	}
 
@@ -229,7 +225,6 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 	existingProjectActionPlan.ReviewUserID = ProjectActionPlanFormDTO.ReviewUserID
 	existingProjectActionPlan.TargetDate = dates.TargetDate
 	existingProjectActionPlan.Percentage = &ProjectActionPlanFormDTO.Percentage
-	existingProjectActionPlan.ActionPlanStatusID = ProjectActionPlanFormDTO.ActionPlanStatusID
 	existingProjectActionPlan.UpdatedBYID = &currentUserID
 
 	err = paps.repo.Update(existingProjectActionPlan, tx)
@@ -360,7 +355,7 @@ func (paps *ProjectActionPlanService) StatusUpdate(projectID uint, id uint, curr
 		return err
 	}
 
-	existingProjectActionPlan.ActionPlanStatusID = &projectActionPlanStatusUpdateFormDTO.ActionPlanStatusID
+	existingProjectActionPlan.ActionPlanStatusID = projectActionPlanStatusUpdateFormDTO.ActionPlanStatusID
 	existingProjectActionPlan.Comments = &projectActionPlanStatusUpdateFormDTO.Comment
 	existingProjectActionPlan.Percentage = projectActionPlanStatusUpdateFormDTO.Percentage
 	existingProjectActionPlan.UpdatedBYID = &currentUserID

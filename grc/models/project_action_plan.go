@@ -15,7 +15,7 @@ type ProjectActionPlan struct {
 	SeverityLevelID    *uint      `json:"severity_level_id" binding:"omitempty" gorm:"not null"`
 	ReviewUserID       *uint      `json:"review_user_id" gorm:"default:null"`
 	TargetDate         *time.Time `json:"target_date" binding:"omitempty" gorm:"type:date,default:null"`
-	ActionPlanStatusID *uint      `json:"action_plan_status_id" gorm:"default:null"`
+	ActionPlanStatusID uint       `json:"action_plan_status_id" binding:"required" gorm:"not null"`
 	Percentage         *int       `json:"percentage" binding:"omitempty,min=0,max=100" gorm:"not null;default:0"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 
@@ -29,7 +29,7 @@ type ProjectActionPlan struct {
 	ResponsibleUser              *User                            `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ReviewUser                   *User                            `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SeverityLevel                *SeverityLevel                   `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ActionPlanStatus             *ActionPlanStatus                `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatus             ActionPlanStatus                 `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatusUpdates      []*ProjectActionPlanStatusUpdate `gorm:"foreignKey:ProjectActionPlanID"`
 	LatestActionPlanStatusUpdate *ProjectActionPlanStatusUpdate   `gorm:"foreignKey:ProjectActionPlanID"`
 	CreatedByUser                *User                            `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`

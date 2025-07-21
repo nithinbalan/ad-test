@@ -45,10 +45,10 @@ type ProjectActionPlanListDTO struct {
 	ReviewUserProfileImagePath      *string `json:"review_user_profile_image_path"`
 	TargetDate                      *string `json:"target_date"`
 	Percentage                      int     `json:"percentage"`
-	ActionPlanStatusTitleEn         *string `json:"action_plan_status_title_en"`
-	ActionPlanStatusTitleAr         *string `json:"action_plan_status_title_ar"`
-	ActionPlanStatusColorCode       *string `json:"action_plan_status_color_code"`
-	ActionPlanStatusType            *string `json:"action_plan_status_type"`
+	ActionPlanStatusTitleEn         string  `json:"action_plan_status_title_en"`
+	ActionPlanStatusTitleAr         string  `json:"action_plan_status_title_ar"`
+	ActionPlanStatusColorCode       string  `json:"action_plan_status_color_code"`
+	ActionPlanStatusType            string  `json:"action_plan_status_type"`
 	CreatedUserID                   uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn          string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string  `json:"created_user_first_name_ar"`
@@ -95,7 +95,7 @@ type ProjectActionPlanFormDTO struct {
 	Comments           *string `json:"comments" binding:"omitempty"`
 	TargetDate         *string `json:"target_date"`
 	Percentage         int     `json:"percentage" binding:"omitempty"`
-	ActionPlanStatusID *uint   `json:"action_plan_status_id"`
+	ActionPlanStatusID uint    `json:"action_plan_status_id"`
 }
 
 type ProjectActionPlanParsedDates struct {
@@ -112,7 +112,7 @@ type ProjectActionPlanDetailDTO struct {
 	ResponsibleUser         organizationDTOs.UserMinimalDTO     `json:"responsible_user"`
 	ResponsibleUserUnitID   *uint                               `json:"responsible_user_unit_id"`
 	ResponsibleUserUnit     *settingsDTOs.OrganizationUnitDTO   `json:"responsible_user_unit"`
-	ActionPlanStatus        *masterDTOs.ActionPlanStatusDTO     `json:"action_plan_status"`
+	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO      `json:"action_plan_status"`
 	Percentage              *int                                `json:"percentage"`
 	SeverityLevel           *masterDTOs.SeverityLevelDTO        `json:"severity_level"`
 	ReviewUser              *organizationDTOs.UserMinimalDTO    `json:"review_user"`
