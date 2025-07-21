@@ -18,7 +18,7 @@ import (
 type AssetAssociatedItemServiceInterface interface {
 	GetAllControls(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error)
 	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
-	GetAllRisks(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error)
+	GetAllRisks(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllVulnerabilities(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]assetDTOs.VulnerabilityDTO, error)
 	GetAllClauses(assetID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 
@@ -199,7 +199,7 @@ func (aais *AssetAssociatedItemService) GetAllIncidents(assetID uint, params *as
 	return aais.repo.GetAllIncidents(assetID, params)
 }
 
-func (aais *AssetAssociatedItemService) GetAllRisks(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error) {
+func (aais *AssetAssociatedItemService) GetAllRisks(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
 	// Validate asset
 	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
 		return nil, err
@@ -745,9 +745,9 @@ func (aais *AssetAssociatedItemService) GetRiskAnalysis(assetID uint) ([]*assetD
 	return vulnerabilities, nil
 }
 
-func emptyRiskListResponse(params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) *assetDTOs.AssetAssociatedItemRiskListResponseDTO {
-	return &assetDTOs.AssetAssociatedItemRiskListResponseDTO{
-		Items: []*assetDTOs.AssetRiskListDTO{},
+func emptyRiskListResponse(params *commonDTOs.AssociatedItemListQueryParamsDTO) *commonDTOs.AssociatedRiskListResponseDTO {
+	return &commonDTOs.AssociatedRiskListResponseDTO{
+		Items: []*commonDTOs.AssociatedRiskListDTO{},
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
 			PageSize:    params.PageSize,
@@ -857,12 +857,15 @@ func (aais *AssetAssociatedItemService) validateClauseIDs(clauseIDs []uint, tx .
 }
 
 func (aais *AssetAssociatedItemService) CreateAssetRisk(assetID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
+
 	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("asset does not exist for ID: %d", assetID), "not_exist", "asset_id")
 	}
+
 	if err := aais.validationSvc.ValidateRiskMapping(assetID, dto.RiskIDs, "risk_assets", "asset_register_id"); err != nil {
 		return err
 	}
+
 	tx := aais.repo.BeginTransaction()
 	var mappings []*models.RiskAsset
 	currentTime := time.Now()

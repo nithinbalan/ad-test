@@ -303,7 +303,6 @@ func (daic *DocumentAssociatedItemController) GetAllDocumentRisks(c *gin.Context
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
@@ -318,11 +317,10 @@ func (daic *DocumentAssociatedItemController) GetAllDocumentRisks(c *gin.Context
 		return
 	}
 
-	queryParams := documentDTOs.DocumentAssociatedItemListQueryParamsDTO{
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
-		Status:      status,
 		Page:        page,
 		PageSize:    pageSize,
 		QuickFilter: quickFilter,

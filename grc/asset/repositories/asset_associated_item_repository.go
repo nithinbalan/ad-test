@@ -14,7 +14,7 @@ type AssetAssociatedItemRepositoryInterface interface {
 
 	GetAllControls(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]*assetDTOs.AssetControlListDTO, error)
 	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
-	GetAllRisksByRiskIDs(riskRegisterIDs []uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error)
+	GetAllRisksByRiskIDs(riskRegisterIDs []uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllVulnerabilities(assetID uint) ([]models.Vulnerability, error)
 	GetAllClauses(assetID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 
@@ -247,9 +247,9 @@ func (repo *AssetAssociatedItemRepository) GetAllIncidents(assetID uint, params 
 	return response, nil
 }
 
-func (repo *AssetAssociatedItemRepository) GetAllRisksByRiskIDs(riskRegisterIDs []uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error) {
+func (repo *AssetAssociatedItemRepository) GetAllRisksByRiskIDs(riskRegisterIDs []uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
 	var totalCount int64
-	var riskList []*assetDTOs.AssetRiskListDTO
+	var riskList []*commonDTOs.AssociatedRiskListDTO
 
 	query := repo.db.Table("risk_register").
 		Select(`
@@ -332,7 +332,7 @@ func (repo *AssetAssociatedItemRepository) GetAllRisksByRiskIDs(riskRegisterIDs 
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
-	return &assetDTOs.AssetAssociatedItemRiskListResponseDTO{
+	return &commonDTOs.AssociatedRiskListResponseDTO{
 		Items: riskList,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,

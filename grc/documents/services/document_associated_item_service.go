@@ -19,10 +19,10 @@ type DocumentAssociatedItemServiceInterface interface {
 	GetAllProcesses(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemProcessListResponseDTO, error)
 	GetAllSLAs(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemSLAListResponseDTO, error)
 	GetAllIncidents(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemIncidentListResponseDTO, error)
-	GetAllRisks(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemRiskListResponseDTO, error)
+	GetAllRisks(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllClauses(documentID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(documentID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
-	CreateDocumentRisk(documentID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
+	CreateDocumentRisk(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
 	DeleteDocumentRisk(documentID uint, riskID uint) error
 }
 
@@ -134,7 +134,7 @@ func (dais *DocumentAssociatedItemService) GetAllIncidents(documentID uint, para
 	return dais.repo.GetAllIncidents(documentID, params)
 }
 
-func (dais *DocumentAssociatedItemService) GetAllRisks(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemRiskListResponseDTO, error) {
+func (dais *DocumentAssociatedItemService) GetAllRisks(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
 	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
 		return nil, err
 	}
@@ -254,7 +254,7 @@ func (dais *DocumentAssociatedItemService) validateClauseIDs(clauseIDs []uint, t
 	return clauses, nil
 }
 
-func (dais *DocumentAssociatedItemService) CreateDocumentRisk(documentID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
+func (dais *DocumentAssociatedItemService) CreateDocumentRisk(documentID, currentUserID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
 	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", documentID), "not_exist", "document_id")
 	}
@@ -269,7 +269,7 @@ func (dais *DocumentAssociatedItemService) CreateDocumentRisk(documentID, userID
 		mappings = append(mappings, &models.RiskAssociatedDocument{
 			RiskRegisterID: riskID,
 			DocumentID:     documentID,
-			CreatedByID:    userID,
+			CreatedByID:    currentUserID,
 			CreatedAt:      currentTime,
 		})
 	}

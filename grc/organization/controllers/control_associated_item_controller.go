@@ -144,7 +144,6 @@ func (caic *ControlAssociatedItemController) GetAllControlRisks(c *gin.Context) 
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
 	valueStr := c.Query("value")
 	quickFilter := c.QueryArray("quick_filter")
 
@@ -169,11 +168,10 @@ func (caic *ControlAssociatedItemController) GetAllControlRisks(c *gin.Context) 
 		}
 	}
 
-	queryParams := organizationDTOs.ControlAssociatedItemListQueryParamsDTO{
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
-		Status:      status,
 		Page:        page,
 		PageSize:    pageSize,
 		Value:       value,
