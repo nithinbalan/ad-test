@@ -12,6 +12,7 @@ type RiskLibraryRepositoryInterface interface {
 	GetRiskCategoryCounts() ([]libraryDTOs.RiskCategoryCountDTO, error)
 	GetRiskLikelihoodCounts() ([]libraryDTOs.RiskLikelihoodCountDTO, error)
 	GetRiskImpactCounts() ([]libraryDTOs.RiskImpactCountDTO, error)
+	GetAllKpi(params *libraryDTOs.KPILibraryListQueryParamsDTO) (*libraryDTOs.KPILibraryListResponseDTO, error)
 }
 
 type RiskLibraryRepository struct {
@@ -143,4 +144,56 @@ func (repo *RiskLibraryRepository) GetRiskImpactCounts() ([]libraryDTOs.RiskImpa
 		Order("impact ASC").
 		Scan(&results).Error
 	return results, err
+}
+
+func (repo *RiskLibraryRepository) GetAllKpi(params *libraryDTOs.KPILibraryListQueryParamsDTO) (*libraryDTOs.KPILibraryListResponseDTO, error) {
+	var KPIs []*libraryDTOs.KPILibraryDTO
+	var totalCount int64
+
+	query := repo.db.Table("kpi_library").
+		Select("id, category, title, description, unit, frequency")
+
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			title LIKE ? OR
+			description LIKE ? OR
+			category LIKE ?
+		`, keyword, keyword, keyword)
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	sortBy := params.SortBy
+	if sortBy == "" {
+		sortBy = "title"
+	}
+	sortOrder := params.Sort
+	if sortOrder != "desc" {
+		sortOrder = "asc"
+	}
+	query = query.Order(sortBy + " " + sortOrder)
+
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	err := query.Find(&KPIs).Error
+	if err != nil {
+		return nil, err
+	}
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	response := &libraryDTOs.KPILibraryListResponseDTO{
+		Items: KPIs,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
 }

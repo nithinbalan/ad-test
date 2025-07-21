@@ -202,6 +202,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("/risks/:riskId/documents", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAssociatedItemController.GetAllRiskDocuments)
 	riskRoutes.GET("/risks/:riskId/assets", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAssociatedItemController.GetAllRiskAssets)
 	riskRoutes.GET("/risks/:riskId/threats", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAssociatedItemController.GetAllRiskThreats)
+	riskRoutes.GET("/risks/:riskId/clauses", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAssociatedItemController.GetAllClauses)
+	riskRoutes.PUT("/risks/:riskId/clauses", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskAssociatedItemController.UpdateClauses)
 
 	riskRoutes.PUT("/risks/:riskId/response-strategy", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRegisterController.UpdateResponseStrategy)
 	riskRoutes.DELETE("/risks/:riskId/response-strategy", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRegisterController.DeleteResponseStrategy)

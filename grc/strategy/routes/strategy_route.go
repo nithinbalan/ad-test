@@ -41,6 +41,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiAssociatedItemController := app.StrategyModule.KpiAssociatedItemController
 	focusAreaController := app.StrategyModule.FocusAreaController
 	strategicIntiativeController := app.StrategyModule.StrategicIntiativeController
+	strategicObjectiveAssociatedItemController := app.StrategyModule.StrategicObjectiveAssociatedItemController
 	strategyProfileKpiController := app.StrategyModule.StrategyProfileKpiController
 
 	// strategy profile
@@ -126,6 +127,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.PUT("/kpi-register/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiRegisterController.UpdateKPIRegister)
 	strategyRoutes.POST("/kpi-register/delete", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiRegisterController.DeleteKPIRegister)
 	strategyRoutes.GET("/kpi-register/:kpiRegisterId/trends", middlewares.RolePermissionMiddleware(db, "kpi", "view"), kpiRegisterController.GetKPITrendAnalysis)
+	strategyRoutes.GET("/kpi-register/:kpiRegisterId/latest-value-details", middlewares.RolePermissionMiddleware(db, "kpi", "view"), kpiRegisterController.GetKPILatestValueUpdate)
+	strategyRoutes.GET("/kpi-register/:kpiRegisterId/chart-details", middlewares.RolePermissionMiddleware(db, "kpi", "view"), kpiRegisterController.GetKPIChartDetails)
 
 	unauthenticatedRoutes.GET("/kpi-register/:kpiRegisterId/value-updates/:updateId/document-preview", kpiValueUpdateController.GetKPIValueUpdateDocumentPreview)
 	unauthenticatedRoutes.GET("/kpi-register/:kpiRegisterId/value-updates/:updateId/document-download", kpiValueUpdateController.DownloadKPIValueUpdateDocument)
@@ -219,6 +222,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.PUT("/strategic-intiatives/:id", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicIntiativeController.UpdateStrategicIntiative)
 	strategyRoutes.POST("/strategic-intiatives/delete", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicIntiativeController.DeleteStrategicIntiatives)
 
+	// strategic objective associated item
+	strategyRoutes.GET("/strategic-objectives/:id/clauses", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveAssociatedItemController.GetAllClauses)
+	strategyRoutes.PUT("/strategic-objectives/:id/clauses", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveAssociatedItemController.UpdateClauses)
 	//kpi
 	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/kpis", strategyProfileKpiController.GetAllStrategyProfileKpis)
 	strategyRoutes.POST("/strategy-profiles/:strategyProfileId/kpis", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileKpiController.CreateStrategyProfileKpi)

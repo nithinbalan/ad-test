@@ -24,7 +24,9 @@ type KPIRegisterRepositoryInterface interface {
 	CreateKPIRegisterInpuData(inputs []*models.KPIRegisterDataInput, tx ...utility.DatabaseTransaction) error
 	DeleteKPIRegisterInputData(kpiRegisterId uint, tx ...utility.DatabaseTransaction) error
 
-	GetTrendAnalysis(kpiId uint) ([]*models.KPIValueUpdate, error)
+	GetTrendAnalysis(kpiId uint, limit int) ([]*models.KPIValueUpdate, error)
+	GetLatestValueUpdate(kpiId uint) (*models.KPIValueUpdate, error)
+	GetKPIChartDetails(kpiId uint) (*models.KPIRegister, error)
 	GenerateReferenceNumber() (string, error)
 }
 
@@ -269,11 +271,12 @@ func (repo *KPIRegisterRepository) DeleteKPIRegisterInputData(kpiRegisterID uint
 	return nil
 }
 
-func (repo *KPIRegisterRepository) GetTrendAnalysis(kpiID uint) ([]*models.KPIValueUpdate, error) {
+func (repo *KPIRegisterRepository) GetTrendAnalysis(kpiID uint, limit int) ([]*models.KPIValueUpdate, error) {
 	var kpiValueUpdate []*models.KPIValueUpdate
 
 	result := repo.db.Where("kpi_register_id = ?", kpiID).
-		Order("reviewed_date ASC").
+		Order("reviewed_date DESC").
+		Limit(limit).
 		Find(&kpiValueUpdate)
 
 	if result.Error != nil {
@@ -281,6 +284,33 @@ func (repo *KPIRegisterRepository) GetTrendAnalysis(kpiID uint) ([]*models.KPIVa
 	}
 
 	return kpiValueUpdate, nil
+}
+
+func (repo *KPIRegisterRepository) GetLatestValueUpdate(kpiID uint) (*models.KPIValueUpdate, error) {
+	var kpiValueUpdate *models.KPIValueUpdate
+
+	result := repo.db.Preload("ReviewUser").
+		Preload("Documents").
+		Preload("Unit").
+		Preload("DataInputs").
+		Where("kpi_register_id = ? AND is_latest = 1", kpiID).
+		First(&kpiValueUpdate)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return kpiValueUpdate, nil
+}
+
+// In repositories/kpi_register_repository.go
+func (repo *KPIRegisterRepository) GetKPIChartDetails(kpiId uint) (*models.KPIRegister, error) {
+	var kpi models.KPIRegister
+	err := repo.db.Select("actual_value", "target_value").First(&kpi, kpiId).Error
+	if err != nil {
+		return nil, err
+	}
+	return &kpi, nil
 }
 
 func (repo *KPIRegisterRepository) GenerateReferenceNumber() (string, error) {
