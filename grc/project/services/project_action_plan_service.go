@@ -128,7 +128,7 @@ func (paps *ProjectActionPlanService) Create(projectID uint, currentUserID uint,
 		return 0, err
 	}
 
-	actionPlanStatus, err := paps.actionPlanStatusSvc.GetByID(ProjectActionPlanFormDTO.ActionPlanStatusID)
+	actionPlanStatus, err := paps.actionPlanStatusSvc.GetByType("new")
 	if err != nil {
 		return 0, err
 	}
@@ -225,7 +225,6 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 	existingProjectActionPlan.ReviewUserID = ProjectActionPlanFormDTO.ReviewUserID
 	existingProjectActionPlan.TargetDate = dates.TargetDate
 	existingProjectActionPlan.Percentage = &ProjectActionPlanFormDTO.Percentage
-	existingProjectActionPlan.ActionPlanStatusID = ProjectActionPlanFormDTO.ActionPlanStatusID
 	existingProjectActionPlan.UpdatedBYID = &currentUserID
 
 	err = paps.repo.Update(existingProjectActionPlan, tx)

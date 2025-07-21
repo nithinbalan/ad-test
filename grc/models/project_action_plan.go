@@ -29,7 +29,7 @@ type ProjectActionPlan struct {
 	ResponsibleUser              *User                            `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ReviewUser                   *User                            `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SeverityLevel                *SeverityLevel                   `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ActionPlanStatus             *ActionPlanStatus                `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatus             ActionPlanStatus                 `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatusUpdates      []*ProjectActionPlanStatusUpdate `gorm:"foreignKey:ProjectActionPlanID"`
 	LatestActionPlanStatusUpdate *ProjectActionPlanStatusUpdate   `gorm:"foreignKey:ProjectActionPlanID"`
 	CreatedByUser                *User                            `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
