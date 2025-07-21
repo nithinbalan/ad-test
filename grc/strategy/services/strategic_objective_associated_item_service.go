@@ -6,7 +6,6 @@ import (
 	commonServices "jethur/grc/common/services"
 	complianceServices "jethur/grc/compliance/services"
 	"jethur/grc/models"
-	stategicDTOs "jethur/grc/strategy/dtos"
 	"jethur/grc/strategy/repositories"
 	"jethur/utility"
 	"time"
@@ -15,7 +14,7 @@ import (
 type StrategicObjectiveAssociatedItemServiceInterface interface {
 	GetAllClauses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(strategicObjectiveID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
-	GetAllRisks(processID uint, params *stategicDTOs.StrategicObjectiveAssociatedItemListQueryParamsDTO) (*stategicDTOs.StrategicObjectiveAssociatedItemRiskListDTO, error)
+	GetAllRisks(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	CreateStrategicObjectiveRisk(strategicObjectiveID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
 	DeleteStrategicObjectiveRisk(strategicObjectiveID uint, riskID uint) error
 }
@@ -154,7 +153,7 @@ func (rais *StrategicObjectiveAssociatedItemService) validateClauseIDs(clauseIDs
 
 	return clauses, nil
 }
-func (rais *StrategicObjectiveAssociatedItemService) GetAllRisks(processID uint, params *stategicDTOs.StrategicObjectiveAssociatedItemListQueryParamsDTO) (*stategicDTOs.StrategicObjectiveAssociatedItemRiskListDTO, error) {
+func (rais *StrategicObjectiveAssociatedItemService) GetAllRisks(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
 	if _, err := rais.strategicObjectiveSvc.GetByID(processID); err != nil {
 		return nil, err
 	}

@@ -147,7 +147,6 @@ func (aaic *AssetAssociatedItemController) GetAllAssetRisks(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 	valueStr := c.Query("value")
 
@@ -172,11 +171,10 @@ func (aaic *AssetAssociatedItemController) GetAllAssetRisks(c *gin.Context) {
 		}
 	}
 
-	queryParams := assetDTOs.AssetAssociatedItemListQueryParamsDTO{
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
-		Status:      status,
 		Value:       value,
 		Page:        page,
 		PageSize:    pageSize,

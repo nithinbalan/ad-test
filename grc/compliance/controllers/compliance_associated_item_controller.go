@@ -91,7 +91,6 @@ func (caic *ComplianceAssociatedItemController) GetAllComplianceRisks(c *gin.Con
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 	valueStr := c.Query("value")
 
@@ -116,11 +115,10 @@ func (caic *ComplianceAssociatedItemController) GetAllComplianceRisks(c *gin.Con
 		}
 	}
 
-	queryParams := complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO{
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
-		Status:      status,
 		Page:        page,
 		PageSize:    pageSize,
 		Value:       value,

@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	assetServices "jethur/grc/asset/services"
+	commonDTOs "jethur/grc/common/dtos"
 	complianceServices "jethur/grc/compliance/services"
 	documentServices "jethur/grc/documents/services"
 	"jethur/grc/models"
@@ -32,7 +33,7 @@ type KPIAssociatedItemServiceInterface interface {
 	CreateKPIAssets(kpiID, userID uint, dto *strategyDTOs.KPIAssetMapDTO) error
 	DeleteKPIAsset(kpiID, assetID uint) error
 
-	GetAllRisks(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemRiskListResponseDTO, error)
+	GetAllRisks(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	CreateKPIRisks(kpiID, userID uint, dto *strategyDTOs.KPIRiskMapDTO) error
 	DeleteKPIRisk(kpiID, riskID uint) error
 
@@ -379,7 +380,7 @@ func (kais *KPIAssociatedItemService) validateAssetIDs(kpiID uint, assetIDs []ui
 }
 
 // Risks
-func (kais *KPIAssociatedItemService) GetAllRisks(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemRiskListResponseDTO, error) {
+func (kais *KPIAssociatedItemService) GetAllRisks(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
 	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
 		return nil, err
 	}

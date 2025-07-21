@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"strconv"
 
-	stategicDTOs "jethur/grc/strategy/dtos"
-
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -123,9 +121,7 @@ func (soai *StrategicObjectiveAssociatedItemController) GetAllStrategicObjective
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
 	valueStr := c.Query("value")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -148,15 +144,13 @@ func (soai *StrategicObjectiveAssociatedItemController) GetAllStrategicObjective
 		}
 	}
 
-	queryParams := stategicDTOs.StrategicObjectiveAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
-		Value:       value,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Value:    value,
 	}
 	risks, err := soai.service.GetAllRisks(uint(strategicObjectiveID), &queryParams)
 

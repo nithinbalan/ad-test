@@ -12,7 +12,7 @@ import (
 type ComplianceAssociatedItemRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAllControls(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemControlListResponseDTO, error)
-	GetAllRisks(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemRiskListResponseDTO, error)
+	GetAllRisks(complianceID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllIncidents(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemIncidentListResponseDTO, error)
 	GetAllAssociatedCounts(complianceID uint) (*complianceDTOs.ComplianceAssociatedItemsCountResponseDTO, error)
 	GetComplianceRequirementCountByStatus(complianceID uint) ([]complianceDTOs.ComplianceRequirementStatusCountResponseDTO, error)
@@ -175,14 +175,15 @@ func (repo *ComplianceAssociatedItemRepository) GetAllControls(complianceID uint
 	return response, nil
 }
 
-func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemRiskListResponseDTO, error) {
+func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
 	var totalCount int64
-	var riskList []*complianceDTOs.ComplianceRiskListDTO
+	var riskList []*commonDTOs.AssociatedRiskListDTO
 
 	// Second Query: Fetch compliance requirement risks using the compliance requirement IDs
 	query := repo.db.Table("risk_compliance_requirements").
 		Select(`
             DISTINCT risk_compliance_requirements.risk_register_id AS risk_register_id,
+			risk_compliance_requirements .compliance_register_id,
             risk_register.reference_number AS risk_reference_number,
             risk_register.title AS risk_register_title,
             risk_register.description AS risk_register_description,
@@ -218,9 +219,45 @@ func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, p
             risk_matrix_risk_ratings.color_code AS risk_matrix_risk_rating_color_code,
 			risk_matrix_risk_rating_values.value AS risk_matrix_risk_rating_value,
             risk_register.next_review_date AS risk_next_review_date,
-            risk_statuses.title_en AS risk_status_title_en,
-            risk_statuses.title_ar AS risk_status_title_ar,
-            risk_statuses.color_code AS risk_status_color_code
+            created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,
+			risk_response_strategies.title_en AS risk_response_strategy_title_en,
+            risk_response_strategies.title_ar AS risk_response_strategy_title_ar,
+			CONVERT(VARCHAR, risk_register.reported_at, 23) AS reported_at,
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path,
+			inherent_likelihood.title_en AS inherent_likelihood_title_en,
+            inherent_likelihood.title_ar AS inherent_likelihood_title_ar,
+            inherent_impact.title_en AS inherent_impact_title_en,
+            inherent_impact.title_ar AS inherent_impact_title_ar,
+            inherent_risk_rating.title_en AS inherent_risk_rating_title_en,
+            inherent_risk_rating.title_ar AS inherent_risk_rating_title_ar,
+            inherent_risk_rating_value.value AS inherent_risk_rating_value,
+            inherent_risk_rating.color_code AS inherent_risk_rating_color_code,
+            residual_likelihood.title_en AS residual_likelihood_title_en,
+            residual_likelihood.title_ar AS residual_likelihood_title_ar,
+            residual_impact.title_en AS residual_impact_title_en,
+            residual_impact.title_ar AS residual_impact_title_ar,
+            residual_risk_rating.title_en AS residual_risk_rating_title_en,
+            residual_risk_rating.title_ar AS residual_risk_rating_title_ar,
+            residual_risk_rating_value.value AS residual_risk_rating_value,
+            residual_risk_rating.color_code AS residual_risk_rating_color_code,
+			risk_register.created_at,
+            risk_register.updated_at
         `).
 		Joins(`
             LEFT JOIN risk_register ON risk_register.id = risk_compliance_requirements.risk_register_id
@@ -234,6 +271,17 @@ func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, p
             LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id
 			LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = risk_register.current_risk_rating_value_id
             LEFT JOIN review_frequencies ON review_frequencies.id = risk_register.review_frequency_id
+			LEFT JOIN users AS created_user ON created_user.id = risk_register.created_by_id
+			LEFT JOIN risk_response_strategies ON risk_response_strategies.id = risk_register.risk_response_strategy_id
+			LEFT JOIN users AS updated_user ON updated_user.id = risk_register.updated_by_id
+			LEFT JOIN risk_matrix_likelihoods AS inherent_likelihood ON inherent_likelihood.id = risk_register.inherent_likelihood_id
+            LEFT JOIN risk_matrix_impacts AS inherent_impact ON inherent_impact.id = risk_register.inherent_impact_id
+            LEFT JOIN risk_matrix_risk_ratings AS inherent_risk_rating ON inherent_risk_rating.id = risk_register.inherent_risk_rating_id
+            LEFT JOIN risk_matrix_risk_rating_values AS inherent_risk_rating_value ON inherent_risk_rating_value.id = risk_register.inherent_risk_rating_value_id
+            LEFT JOIN risk_matrix_likelihoods AS residual_likelihood ON residual_likelihood.id = risk_register.residual_likelihood_id
+            LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id
+            LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = risk_register.residual_risk_rating_id
+            LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
         `).
 		Where("risk_compliance_requirements.compliance_register_id = ?", complianceID)
 
@@ -271,7 +319,7 @@ func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, p
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
-	response := &complianceDTOs.ComplianceAssociatedItemRiskListResponseDTO{
+	response := &commonDTOs.AssociatedRiskListResponseDTO{
 		Items: riskList,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,

@@ -159,6 +159,7 @@ type AssociatedControlListDTO struct {
 
 type AssociatedRiskListDTO struct {
 	ID                              uint    `json:"id"`
+	RiskRegisterID                  uint    `json:"risk_register_id"`
 	ReferenceNumber                 string  `json:"reference_number"`
 	RiskCategoryTitleEn             string  `json:"risk_category_title_en"`
 	RiskCategoryTitleAr             string  `json:"risk_category_title_ar"`
@@ -234,6 +235,13 @@ type AssociatedRiskListDTO struct {
 	ResidualRiskRatingValue         *uint   `json:"residual_risk_rating_value"`
 	ResidualRiskRatingColorCode     *string `json:"residual_risk_rating_color_code"`
 	AppetiteAlignment               *string `json:"appetite_alignment"`
+	ProcessID                       *uint   `json:"process_id"`
+	ComplianceRegisterID            *uint   `json:"compliance_register_id"`
+	ControlID                       *uint   `json:"control_id"`
+	DocumentID                      *uint   `json:"document_id"`
+	IncidentRegisterID              *uint   `json:"incident_register_id"`
+	StrategicObjectiveId            *uint   `json:"strategic_objective_id"`
+	KPIRegisterID                   *uint   `json:"kpi_register_id"`
 }
 
 type AssociatedRiskListResponseDTO struct {
@@ -327,15 +335,6 @@ type AssociatedDocumentListDTO struct {
 type AssociatedDocumentListResponseDTO struct {
 	Items      []*AssociatedDocumentListDTO `json:"items"`
 	Pagination PaginationInfoDTO            `json:"pagination"`
-}
-
-type AssociatedItemListQueryParamsDTO struct {
-	Sort     string
-	SortBy   string
-	Keyword  string
-	Status   string
-	Page     int
-	PageSize int
 }
 
 type AssociatedIncidentListDTO struct {
@@ -462,4 +461,14 @@ type AssociatedProcessListDTO struct {
 type AssociatedItemProcessListResponseDTO struct {
 	Items      []*AssociatedProcessListDTO `json:"items"`
 	Pagination PaginationInfoDTO           `json:"pagination"`
+}
+type AssociatedItemListQueryParamsDTO struct {
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Page        int
+	PageSize    int
+	Value       int
+	Status      string
+	QuickFilter []string
 }

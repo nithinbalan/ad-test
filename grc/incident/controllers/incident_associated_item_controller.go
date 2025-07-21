@@ -138,7 +138,6 @@ func (iaic *IncidentAssociatedItemController) GetAllIncidentRisks(c *gin.Context
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
@@ -153,11 +152,10 @@ func (iaic *IncidentAssociatedItemController) GetAllIncidentRisks(c *gin.Context
 		return
 	}
 
-	queryParams := incidentDTOs.IncidentAssociatedItemListQueryParamsDTO{
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
-		Status:      status,
 		Page:        page,
 		PageSize:    pageSize,
 		QuickFilter: quickFilter,
