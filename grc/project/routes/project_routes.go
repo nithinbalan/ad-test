@@ -36,22 +36,22 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Projects
 	projectRoutes.GET("/projects", projectController.GetAllProjects)
 	projectRoutes.GET("/projects/:projectId", projectController.GetProjectDetails)
-	projectRoutes.POST("/projects", projectController.CreateProject)
-	projectRoutes.PUT("/projects/:projectId", projectController.UpdateProject)
-	projectRoutes.POST("/projects/delete", projectController.DeleteProjects)
+	projectRoutes.POST("/projects", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectController.CreateProject)
+	projectRoutes.PUT("/projects/:projectId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectController.UpdateProject)
+	projectRoutes.POST("/projects/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectController.DeleteProjects)
 
 	// Project Milestones
-	projectRoutes.GET("/project-milestones", projectMilestoneController.GetAllProjectMilestones)
-	projectRoutes.GET("/project-milestones/:id", projectMilestoneController.GetProjectMilestoneDetails)
-	projectRoutes.POST("/project-milestones", projectMilestoneController.CreateProjectMilestone)
-	projectRoutes.PUT("/project-milestones/:id", projectMilestoneController.UpdateProjectMilestone)
-	projectRoutes.POST("/project-milestones/delete", projectMilestoneController.DeleteProjectMilestones)
+	projectRoutes.GET("/projects/:projectId/milestones", projectMilestoneController.GetAllProjectMilestones)
+	projectRoutes.GET("/projects/:projectId/milestones/:milestoneId", projectMilestoneController.GetProjectMilestoneDetails)
+	projectRoutes.POST("/projects/:projectId/milestones", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectMilestoneController.CreateProjectMilestone)
+	projectRoutes.PUT("/projects/:projectId/milestones/:milestoneId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectMilestoneController.UpdateProjectMilestone)
+	projectRoutes.POST("/projects/:projectId/milestones/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectMilestoneController.DeleteProjectMilestones)
 
 	// Project Action Plans
-	projectRoutes.GET("/projects/:projectId/action-plans", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), projectActionPlanController.GetAllProjectActionPlans)
-	projectRoutes.GET("/projects/:projectId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), projectActionPlanController.GetProjectActionPlanDetails)
-	projectRoutes.POST("/projects/:projectId/action-plans", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), projectActionPlanController.CreateProjectActionPlan)
-	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), projectActionPlanController.UpdateProjectActionPlan)
-	projectRoutes.POST("/projects/:projectId/action-plans/delete", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), projectActionPlanController.DeleteProjectActionPlans)
+	projectRoutes.GET("/projects/:projectId/action-plans", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), projectActionPlanController.GetAllProjectActionPlans)
+	projectRoutes.GET("/projects/:projectId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), projectActionPlanController.GetProjectActionPlanDetails)
+	projectRoutes.POST("/projects/:projectId/action-plans", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectActionPlanController.CreateProjectActionPlan)
+	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectActionPlanController.UpdateProjectActionPlan)
+	projectRoutes.POST("/projects/:projectId/action-plans/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectActionPlanController.DeleteProjectActionPlans)
 
 }

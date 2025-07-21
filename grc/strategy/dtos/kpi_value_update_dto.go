@@ -23,6 +23,7 @@ type KPIValueUpdateListDTO struct {
 	ReviewUserEmail             *string                      `json:"review_user_email"`
 	ReviewUserColor             *string                      `json:"review_user_color"`
 	ReviewUserProfileImagePath  *string                      `json:"review_user_profile_image_path"`
+	IsLatest                    bool                         `json:"is_latest"`
 	CreatedAt                   string                       `json:"created_at"`
 	UpdatedAt                   string                       `json:"updated_at"`
 	CreatedUserID               uint                         `json:"created_user_id"`
@@ -51,6 +52,7 @@ type KPIValueUpdateFormDTO struct {
 	ReviewUserID uint                             `json:"review_user_id"`
 	Value        float64                          `json:"value" binding:"required" gorm:"type:int;not null"`
 	Remarks      *string                          `json:"remarks" gorm:"type:nvarchar(max)"`
+	IsLatest     bool                             `json:"is_latest" gorm:"type:bit;not null"`
 	Documents    []*KPIValueUpdateDocumentFormDTO `json:"documents"`
 	DataInputs   []*ValueUpdateInputDataFormDTO   `json:"data_inputs"`
 }
@@ -85,6 +87,7 @@ type KPIValueUpdateDetailsDTO struct {
 	Remarks            string                           `json:"remarks"`
 	Unit               *masterDTOs.UnitDTO              `json:"unit"`
 	ReviewUser         *organizationDTOs.UserMinimalDTO `json:"review_user"`
+	IsLatest           bool                             `json:"is_latest"`
 	CreatedAt          time.Time                        `json:"created_at"`
 	UpdatedAt          *time.Time                       `json:"updated_at"`
 	Documents          []*KPIValueUpdateDocumentDTO     `json:"documents"`

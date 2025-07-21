@@ -321,7 +321,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 			"AssignedByFirstNameEn":     assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":      assignedBy.LastNameEn,
 			"AssignedOn":                time.Now().Format("2006-01-02"),
-			"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+			"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -541,7 +541,7 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 				"ComplianceTitle":           compliance.TitleEn,
 				"ActionPlanTitle":           existingComplianceActionPlan.Title,
 				"ActionPlanDescription":     existingComplianceActionPlan.Description,
-				"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+				"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -565,7 +565,7 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 				"AssignedByFirstNameEn":     assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":      assignedBy.LastNameEn,
 				"AssignedOn":                time.Now().Format("2006-01-02"),
-				"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+				"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{

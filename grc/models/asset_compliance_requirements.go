@@ -9,6 +9,7 @@ type AssetComplianceRequirement struct {
 	AssetRegisterID         uint      `json:"asset_register_id" gorm:"not null"`
 	ComplianceClauseID      *uint     `json:"compliance_clause_id"`
 	ComplianceRequirementID *uint     `json:"compliance_requirement_id"`
+	ComplianceRegisterID    uint      `json:"compliance_register_id" binding:"required"`
 	CreatedBYID             uint      `json:"created_by_id" gorm:"not null"`
 	CreatedAt               time.Time `json:"created_at" gorm:"type:datetime;not null"`
 
@@ -16,6 +17,7 @@ type AssetComplianceRequirement struct {
 	AssetRegister         *AssetRegister         `gorm:"foreignKey:AssetRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceClause      *ComplianceClause      `gorm:"foreignKey:ComplianceClauseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceRequirement *ComplianceRequirement `gorm:"foreignKey:ComplianceRequirementID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceRegister    *ComplianceRegister    `gorm:"foreignKey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser         *User                  `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 

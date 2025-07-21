@@ -34,6 +34,8 @@ type StrategyModule struct {
 	KpiAssociatedItemController                     *controllers.KPIAssociatedItemController
 	FocusAreaController                             *controllers.FocusAreaController
 	StrategicIntiativeController                    *controllers.StrategicIntiativeController
+	StrategicObjectiveAssociatedItemController      *controllers.StrategicObjectiveAssociatedItemController
+	StrategyProfileKpiController                    *controllers.StrategyProfileKpiController
 }
 
 func NewStrategyModule(db *gorm.DB,
@@ -166,6 +168,13 @@ func NewStrategyModule(db *gorm.DB,
 	strategicIntiativeRepo := repositories.NewStrategicIntiativeRepository(db)
 	strategicIntiativeSvc := services.NewStrategicIntiativeService(strategicIntiativeRepo, sharedModule.ActivityLogService, settingsModule.OrganizationUnitSvc, organizationModule.UserSvc)
 	strategicIntiativeController := controllers.NewStrategicIntiativeController(strategicIntiativeSvc)
+	strategicObjectiveAssociatedItemRepo := repositories.NewStrategicObectiveAssociatedItemRepository(db)
+	strategicObjectiveAssociatedItemSvc := services.NewstrategicObjectiveAssociatedItemService(strategicObjectiveAssociatedItemRepo, strategicObjectiveSvc, complianceModule.ComplianceClausevc)
+	strategicObjectiveAssociatedItemController := controllers.NewStrategicObjectiveAssociatedItemController(strategicObjectiveAssociatedItemSvc)
+
+	strategyProfileKpiRepo := repositories.NewStrategyProfileKpiRepository(db)
+	strategyProfileKpiSvc := services.NewStrategyProfileKpiService(strategyProfileKpiRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc, strategyProfileStrategicObjectiveSvc, kpiRegisterSvc)
+	strategyProfileKpiController := controllers.NewStrategyProfileKpiController(strategyProfileKpiSvc)
 
 	return &StrategyModule{
 		StrategyProfileController:                       strategyProfileController,
@@ -193,5 +202,7 @@ func NewStrategyModule(db *gorm.DB,
 		StrategicObjectivePeriodicReviewController:      strategicObjectivePeriodicReviewController,
 		FocusAreaController:                             focusAreaController,
 		StrategicIntiativeController:                    strategicIntiativeController,
+		StrategicObjectiveAssociatedItemController:      strategicObjectiveAssociatedItemController,
+		StrategyProfileKpiController:                    strategyProfileKpiController,
 	}
 }

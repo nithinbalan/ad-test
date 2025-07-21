@@ -267,7 +267,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		requirement := &models.RiskComplianceRequirement{
 			RiskRegisterID:          id,
 			ComplianceRegisterID:    complianceRequirement.ComplianceClause.ComplianceRegisterID,
-			ComplianceRequirementID: *requirementID,
+			ComplianceRequirementID: requirementID,
 			CreatedByID:             currentUserID,
 		}
 		complianceRequirements = append(complianceRequirements, requirement)
@@ -604,7 +604,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			"CreatedByFirstNameEn": createdBy.FirstNameEn,
 			"CreatedByLastNameEn":  createdBy.LastNameEn,
 			"AssignedOn":           time.Now().Format("2006-01-02"),
-			"RedirectURL":          fmt.Sprintf("%srisk/risk-register/%d/overview", appURL, id),
+			"RedirectURL":          fmt.Sprintf("%s/risk/risk-register/%d/overview", appURL, id),
 		}
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
@@ -693,7 +693,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 				"CreatedByFirstNameEn": createdBy.FirstNameEn,
 				"CreatedByLastNameEn":  createdBy.LastNameEn,
 				"AssignedOn":           time.Now().Format("2006-01-02"),
-				"RedirectURL":          fmt.Sprintf("%srisk/risk-register/%d/overview", utility.GetAppURL(), riskRegister.ID),
+				"RedirectURL":          fmt.Sprintf("%s/risk/risk-register/%d/overview", utility.GetAppURL(), riskRegister.ID),
 			},
 		}
 
@@ -832,7 +832,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			complianceRequirement := &models.RiskComplianceRequirement{
 				RiskRegisterID:          id,
 				ComplianceRegisterID:    req.ComplianceClause.ComplianceRegisterID,
-				ComplianceRequirementID: *newComplianceRequirementID,
+				ComplianceRequirementID: newComplianceRequirementID,
 				CreatedByID:             currentUserID,
 			}
 			complianceRequirementsToAdd = append(complianceRequirementsToAdd, complianceRequirement)
@@ -1505,7 +1505,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 				"RiskDescription":      existingRiskRegister.Description,
 				"UpdatedByFirstNameEn": updatedByUser.FirstNameEn,
 				"UpdatedByLastNameEn":  updatedByUser.LastNameEn,
-				"RedirectURL":          fmt.Sprintf("%srisk/risk-register/%d/overview", appURL, id),
+				"RedirectURL":          fmt.Sprintf("%s/risk/risk-register/%d/overview", appURL, id),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -1527,7 +1527,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 				"AssignedByFirstNameEn": updatedByUser.FirstNameEn,
 				"AssignedByLastNameEn":  updatedByUser.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%srisk/risk-register/%d/overview", appURL, id),
+				"RedirectURL":           fmt.Sprintf("%s/risk/risk-register/%d/overview", appURL, id),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{

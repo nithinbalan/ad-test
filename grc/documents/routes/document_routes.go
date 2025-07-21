@@ -131,6 +131,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.GET("documents/:id/slas", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAssociatedItemController.GetAllDocumentSLAs)
 	documentRoutes.GET("documents/:id/incidents", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAssociatedItemController.GetAllDocumentIncidents)
 	documentRoutes.GET("documents/:id/risks", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAssociatedItemController.GetAllDocumentRisks)
+	documentRoutes.GET("documents/:id/associated-item/clauses", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAssociatedItemController.GetAllDocumentClauses)
+	documentRoutes.PUT("documents/:id/associated-item/clauses", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.UpdateClauses)
 
 	documentRoutes.GET("/document-change-request-initiate-types", documentChangeRequestInitiateTypeController.GetAllDocumentChangeRequestInitiateTypes)
 	documentRoutes.GET("/document-change-request-initiate-types/:id", documentChangeRequestInitiateTypeController.GetDocumentChangeRequestInitiateTypeDetails)

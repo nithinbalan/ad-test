@@ -273,7 +273,7 @@ func (casus *StakeholderActionPlanStatusUpdateService) Create(StakeholderID uint
 				"ResolvedByFirstNameEn": resolvedBy.FirstNameEn,
 				"ResolvedByLastNameEn":  resolvedBy.LastNameEn,
 				"ResolvedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%sstakeholder/%d/action-plans?action_plan_id=%d", appURL, StakeholderID, StakeholderActionPlanID),
+				"RedirectURL":           fmt.Sprintf("%s/stakeholder/%d/action-plans?action_plan_id=%d", appURL, StakeholderID, StakeholderActionPlanID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -642,7 +642,7 @@ func (capus *StakeholderActionPlanStatusUpdateService) Approve(stakeholderID uin
 			"ResolvedByFirstNameEn": resolvedBy.FirstNameEn,
 			"ResolvedByLastNameEn":  resolvedBy.LastNameEn,
 			"ResolvedOn":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%sstakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, stakeholderActionPlanID),
+			"RedirectURL":           fmt.Sprintf("%s/stakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, stakeholderActionPlanID),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -801,7 +801,7 @@ func (capus *StakeholderActionPlanStatusUpdateService) Revert(stakeholderID uint
 			"ResolvedByFirstNameEn": resolvedBy.FirstNameEn,
 			"ResolvedByLastNameEn":  resolvedBy.LastNameEn,
 			"ResolvedOn":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%sstakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, stakeholderActionPlanID),
+			"RedirectURL":           fmt.Sprintf("%s/stakeholder/%d/action-plans?action_plan_id=%d", appURL, stakeholderID, stakeholderActionPlanID),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{

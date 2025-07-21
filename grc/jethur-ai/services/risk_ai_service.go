@@ -21,6 +21,7 @@ type RiskAIServiceInterface interface {
 	GetRiskKriAnalysis(riskId uint) ([]map[string]interface{}, error)
 	GetRiskResidualControlAnalysis(riskId uint) (map[string]interface{}, error)
 	GetRiskResidualRiskAnalysis(riskId uint) (map[string]interface{}, error)
+	ChatWithRisk(req dtos.RiskAIChatRequest, currentUserID uint) (map[string]interface{}, error)
 }
 
 type RiskAIService struct{}
@@ -173,4 +174,22 @@ func (s *RiskAIService) GetRiskResidualRiskAnalysis(riskID uint) (map[string]int
 	fmt.Println(apiURL)
 
 	return utility.CallAIAPIObjectResponse(apiURL)
+}
+
+func (s *RiskAIService) ChatWithRisk(req dtos.RiskAIChatRequest, currentUserID uint) (map[string]interface{}, error) {
+	payload := map[string]interface{}{
+		"content":         req.Content,
+		"role":            req.Role,
+		"current_user_id": string(currentUserID),
+		"context_id":      req.ContextID,
+	}
+
+	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
+	if baseURL == "" {
+		return nil, fmt.Errorf("AI_SERVICE_BASE_URL is not set")
+	}
+
+	apiURL := fmt.Sprintf("%s/api/v1/risk/risk-chat", baseURL)
+
+	return utility.CallAIAPI(apiURL, payload)
 }
