@@ -9,6 +9,7 @@ import (
 
 type KpiLibraryRepositoryInterface interface {
 	GetAllKpi(params *libraryDTOs.KPILibraryListQueryParamsDTO) (*libraryDTOs.KPILibraryListResponseDTO, error)
+	KPIGetCategoryCounts() ([]libraryDTOs.KPICategoryCountDTO, error)
 }
 
 type KpiLibraryRepository struct {
@@ -71,4 +72,19 @@ func (repo *KpiLibraryRepository) GetAllKpi(params *libraryDTOs.KPILibraryListQu
 		},
 	}
 	return response, nil
+}
+
+func (repo *KpiLibraryRepository) KPIGetCategoryCounts() ([]libraryDTOs.KPICategoryCountDTO, error) {
+	var results []libraryDTOs.KPICategoryCountDTO
+
+	err := repo.db.
+		Table("kpi_library").
+		Select("category, COUNT(*) as count").
+		Group("category").
+		Order("category ASC").
+		Scan(&results).Error
+	if err != nil {
+		return nil, err
+	}
+	return results, nil
 }

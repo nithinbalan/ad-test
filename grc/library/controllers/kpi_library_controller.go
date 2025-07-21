@@ -66,3 +66,12 @@ func (klc *KpiLibraryController) GetKpiExport(c *gin.Context) {
 	c.Request.URL.RawQuery += "&export=true"
 	klc.GetAllKpi(c)
 }
+
+func (klc *KpiLibraryController) KPICountByCategory(c *gin.Context) {
+	result, err := klc.service.KPIGetCategoryCounts()
+	if err != nil {
+		utility.SendInternalErrResp(klc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
