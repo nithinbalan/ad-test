@@ -51,6 +51,9 @@ func (repo *ProjectActionPlanRepository) GetAll(projectID uint, params *projectD
         project_milestones.title_ar AS project_milestone_title_ar,
 		project_milestones.description_en AS project_milestone_description_en,
         project_milestones.description_ar AS project_milestone_description_ar,
+		severity_levels.title_en AS severity_level_title_en,
+        severity_levels.title_ar AS severity_level_title_ar,
+        severity_levels.color_code AS severity_level_color_code,
         action_plan_statuses.title_en AS action_plan_status_title_en,
         action_plan_statuses.title_ar AS action_plan_status_title_ar,
 		action_plan_statuses.color_code AS action_plan_status_color_code,
@@ -64,6 +67,15 @@ func (repo *ProjectActionPlanRepository) GetAll(projectID uint, params *projectD
         responsible_user.color AS responsible_user_color,
         responsible_user.email AS responsible_user_email,
         responsible_user.profile_image_path AS responsible_user_profile_image_path,
+        review_user.id AS review_user_id,
+    	review_user.first_name_en AS review_user_first_name_en,
+		review_user.first_name_ar AS review_user_first_name_ar,
+		review_user.last_name_en AS review_user_last_name_en,
+		review_user.last_name_ar AS review_user_last_name_ar,
+		review_user.initial AS review_user_initial,
+        review_user.color AS review_user_color,
+        review_user.email AS review_user_email,
+        review_user.profile_image_path AS review_user_profile_image_path,
         created_user.id AS created_user_id,
         created_user.first_name_en AS created_user_first_name_en,
         created_user.first_name_ar AS created_user_first_name_ar,
@@ -86,13 +98,15 @@ func (repo *ProjectActionPlanRepository) GetAll(projectID uint, params *projectD
 		Joins(`
         LEFT JOIN action_plan_statuses ON action_plan_statuses.id = project_action_plans.action_plan_status_id
         LEFT JOIN users AS responsible_user ON responsible_user.id = project_action_plans.responsible_user_id
+        LEFT JOIN users AS review_user ON review_user.id = project_action_plans.review_user_id
+		LEFT JOIN severity_levels ON severity_levels.id = project_action_plans.severity_level_id
         LEFT JOIN users AS created_user ON created_user.id = project_action_plans.created_by_id
         LEFT JOIN users AS updated_user ON updated_user.id = project_action_plans.updated_by_id
         LEFT JOIN project_milestones ON project_milestones.id = project_action_plans.project_milestone_id
 		LEFT JOIN projects ON projects.id = project_action_plans.project_id
     `)
 
-		// Conditionally apply compliance ID filter
+		// Conditionally apply project ID filter
 	if projectID != 0 {
 		query = query.Where("project_action_plans.project_id = ?", projectID)
 	}
@@ -191,13 +205,17 @@ func (repo *ProjectActionPlanRepository) GetFullDetailsByID(id uint, tx ...utili
 
 	var projectActionPlan models.ProjectActionPlan
 
-	// Load the compliance action plan with all related data
+	// Load the project action plan with all related data
 	result := db.
 		Preload("Project").
 		Preload("ProjectMilestone").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
+		Preload("SeverityLevel").
+		Preload("ReviewUser").
+		Preload("ReviewUser.OrganizationUnit1").
 		Preload("ActionPlanStatus").
+		Preload("ActionPlanStatusUpdates").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&projectActionPlan, id)
