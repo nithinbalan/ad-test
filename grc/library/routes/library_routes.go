@@ -18,6 +18,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	KnowledgeCenterResourceController := app.LibraryModule.KnowledgeCenterResourceController
 	ComplianceLibraryController := app.LibraryModule.ComplianceLibraryController
 	KpiLibraryController := app.LibraryModule.KpiLibraryController
+	StrategicObjectiveLibraryController := app.LibraryModule.StrategicObjectiveLibraryController
 
 	libraryRoutes.GET("/question-library", questionLibraryController.GetAllQuestionLibrary)
 	libraryRoutes.POST("/question-library", questionLibraryController.CreateQuestionLibrary)
@@ -56,4 +57,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	libraryRoutes.GET("/kpi-library/export", KpiLibraryController.GetKpiExport)
 	libraryRoutes.GET("/kpi-library", KpiLibraryController.GetAllKpi)
+
+	libraryRoutes.GET("/strategic-objective/export", StrategicObjectiveLibraryController.Export)
+	libraryRoutes.GET("/strategic-objective", StrategicObjectiveLibraryController.GetAll)
 }
