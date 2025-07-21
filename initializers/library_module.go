@@ -20,7 +20,7 @@ type LibraryModule struct {
 	KriLibrarySvc services.KRILibraryServiceInterface
 }
 
-func NewLibraryModule(db *gorm.DB, sharedModule *SharedModule, MasterModule *MasterModule) *LibraryModule {
+func NewLibraryModule(db *gorm.DB, sharedModule *SharedModule, MasterModule *MasterModule, organizationModule *OrganizationModule) *LibraryModule {
 	// Question Library
 	questionLibraryRepo := repositories.NewQuestionLibraryRepository(db)
 	questionLibrarySvc := services.NewQuestionLibraryService(questionLibraryRepo, sharedModule.ActivityLogService, MasterModule.QuestionGroupService)
@@ -40,7 +40,7 @@ func NewLibraryModule(db *gorm.DB, sharedModule *SharedModule, MasterModule *Mas
 	knowledgeCenterResourceController := controllers.NewKnowledgeCenterResourceController(knowledgeCenterResourceSvc, db)
 
 	ComplianceLibraryRepository := repositories.NewComplianceLibraryRepository(db)
-	ComplianceLibrarySvc := services.NewComplianceLibraryService(ComplianceLibraryRepository)
+	ComplianceLibrarySvc := services.NewComplianceLibraryService(ComplianceLibraryRepository, organizationModule.UserSettingSvc)
 	ComplianceLibraryController := controllers.NewComplianceLibraryController(ComplianceLibrarySvc, db)
 
 	KpiLibraryRepository := repositories.NewKpiLibraryRepository(db)
