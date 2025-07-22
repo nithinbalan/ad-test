@@ -8,7 +8,6 @@ import (
 	"jethur/utility"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 )
 
@@ -37,14 +36,7 @@ func (s *RiskAIService) GetRiskAutofill(req dtos.RiskAutofillRequest) (map[strin
 		"risk_sources":    req.RiskSources,
 	}
 
-	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
-	if baseURL == "" {
-		return nil, fmt.Errorf("AI_SERVICE_BASE_URL is not set")
-	}
-
-	apiURL := fmt.Sprintf("%s/api/v1/risk/risk-autofill", baseURL)
-
-	return utility.CallAIAPI(apiURL, payload)
+	return utility.CallAIAPI("/api/v1/risk/risk-autofill", payload)
 }
 
 func (s *RiskAIService) GetRiskRCA(req dtos.RiskRCARequest) ([]dtos.RCAItem, error) {
@@ -54,11 +46,10 @@ func (s *RiskAIService) GetRiskRCA(req dtos.RiskRCARequest) ([]dtos.RCAItem, err
 	form.Set("category", req.Category)
 	form.Set("source", req.Source)
 
-	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
-	if baseURL == "" {
-		return nil, fmt.Errorf("AI_SERVICE_BASE_URL is not set")
+	apiURL, err := utility.GetAIEndpoint("/api/v1/risk/rca")
+	if err != nil {
+		return nil, err
 	}
-	apiURL := fmt.Sprintf("%s/api/v1/risk/rca", baseURL)
 
 	reqBody := strings.NewReader(form.Encode())
 	httpReq, err := http.NewRequest("POST", apiURL, reqBody)
@@ -96,14 +87,7 @@ func (s *RiskAIService) GetRiskAnalysis(req dtos.RiskAIRequest) (map[string]inte
 		"source":         req.Source,
 	}
 
-	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
-	if baseURL == "" {
-		return nil, fmt.Errorf("AI_SERVICE_BASE_URL is not set")
-	}
-
-	apiURL := fmt.Sprintf("%s/api/v1/risk/risk-analysis", baseURL)
-
-	return utility.CallAIAPI(apiURL, payload)
+	return utility.CallAIAPI("/api/v1/risk/risk-analysis", payload)
 }
 
 func (s *RiskAIService) GetRiskResponseStrategyAnalysis(req dtos.RiskAIRequest) (map[string]interface{}, error) {
@@ -115,81 +99,36 @@ func (s *RiskAIService) GetRiskResponseStrategyAnalysis(req dtos.RiskAIRequest) 
 		"source":         req.Source,
 	}
 
-	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
-	if baseURL == "" {
-		return nil, fmt.Errorf("AI_SERVICE_BASE_URL is not set")
-	}
-
-	apiURL := fmt.Sprintf("%s/api/v1/risk/risk-response-strategy-analysis", baseURL)
-	return utility.CallAIAPI(apiURL, payload)
+	return utility.CallAIAPI("/api/v1/risk/risk-response-strategy-analysis", payload)
 }
 
 func (s *RiskAIService) GetRiskControlAnalysis(riskID uint) (map[string]interface{}, error) {
-
-	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
-	if baseURL == "" {
-		return nil, fmt.Errorf("AI_SERVICE_BASE_URL is not set")
-	}
-
-	apiURL := fmt.Sprintf("%s/api/v1/risk/%d/control-summary", baseURL, riskID)
-	fmt.Println(apiURL)
-
-	return utility.CallAIAPIObjectResponse(apiURL)
+	path := fmt.Sprintf("/api/v1/risk/%d/control-summary", riskID)
+	return utility.CallAIAPIObjectResponse(path)
 }
 
 func (s *RiskAIService) GetRiskKriAnalysis(riskID uint) ([]map[string]interface{}, error) {
-
-	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
-	if baseURL == "" {
-		return nil, fmt.Errorf("AI_SERVICE_BASE_URL is not set")
-	}
-
-	apiURL := fmt.Sprintf("%s/api/v1/risk/%d/risk-kri", baseURL, riskID)
-	fmt.Println(apiURL)
-
-	return utility.CallAIAPIArrayResponse(apiURL)
+	path := fmt.Sprintf("/api/v1/risk/%d/risk-kri", riskID)
+	return utility.CallAIAPIArrayResponse(path)
 }
 
 func (s *RiskAIService) GetRiskResidualControlAnalysis(riskID uint) (map[string]interface{}, error) {
-
-	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
-	if baseURL == "" {
-		return nil, fmt.Errorf("AI_SERVICE_BASE_URL is not set")
-	}
-
-	apiURL := fmt.Sprintf("%s/api/v1/risk/%d/risk-residual-control-analysis", baseURL, riskID)
-	fmt.Println(apiURL)
-
-	return utility.CallAIAPIObjectResponse(apiURL)
+	path := fmt.Sprintf("/api/v1/risk/%d/risk-residual-control-analysis", riskID)
+	return utility.CallAIAPIObjectResponse(path)
 }
 
 func (s *RiskAIService) GetRiskResidualRiskAnalysis(riskID uint) (map[string]interface{}, error) {
-
-	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
-	if baseURL == "" {
-		return nil, fmt.Errorf("AI_SERVICE_BASE_URL is not set")
-	}
-
-	apiURL := fmt.Sprintf("%s/api/v1/risk/%d/residual-risk-analysis", baseURL, riskID)
-	fmt.Println(apiURL)
-
-	return utility.CallAIAPIObjectResponse(apiURL)
+	path := fmt.Sprintf("/api/v1/risk/%d/residual-risk-analysis", riskID)
+	return utility.CallAIAPIObjectResponse(path)
 }
 
 func (s *RiskAIService) ChatWithRisk(req dtos.RiskAIChatRequest, currentUserID uint) (map[string]interface{}, error) {
 	payload := map[string]interface{}{
 		"content":         req.Content,
 		"role":            req.Role,
-		"current_user_id": string(currentUserID),
+		"current_user_id": fmt.Sprintf("%d", currentUserID),
 		"context_id":      req.ContextID,
 	}
 
-	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
-	if baseURL == "" {
-		return nil, fmt.Errorf("AI_SERVICE_BASE_URL is not set")
-	}
-
-	apiURL := fmt.Sprintf("%s/api/v1/risk/risk-chat", baseURL)
-
-	return utility.CallAIAPI(apiURL, payload)
+	return utility.CallAIAPI("/api/v1/risk/risk-chat", payload)
 }
