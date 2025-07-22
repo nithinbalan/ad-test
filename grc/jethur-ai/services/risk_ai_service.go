@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,7 +21,7 @@ type RiskAIServiceInterface interface {
 	GetRiskKriAnalysis(riskId uint) ([]map[string]interface{}, error)
 	GetRiskResidualControlAnalysis(riskId uint) (map[string]interface{}, error)
 	GetRiskResidualRiskAnalysis(riskId uint) (map[string]interface{}, error)
-	ChatWithRisk(req dtos.RiskAIChatRequest, currentUserID uint) (map[string]interface{}, error)
+	ChatWithRisk(ctx context.Context, req dtos.RiskAIChatRequest, currentUserID uint) (<-chan string, error)
 }
 
 type RiskAIService struct{}
@@ -122,7 +123,7 @@ func (s *RiskAIService) GetRiskResidualRiskAnalysis(riskID uint) (map[string]int
 	return utility.CallAIAPIObjectResponse(path)
 }
 
-func (s *RiskAIService) ChatWithRisk(req dtos.RiskAIChatRequest, currentUserID uint) (map[string]interface{}, error) {
+func (s *RiskAIService) ChatWithRisk(ctx context.Context, req dtos.RiskAIChatRequest, currentUserID uint) (<-chan string, error) {
 	payload := map[string]interface{}{
 		"content":         req.Content,
 		"role":            req.Role,
@@ -130,5 +131,5 @@ func (s *RiskAIService) ChatWithRisk(req dtos.RiskAIChatRequest, currentUserID u
 		"context_id":      req.ContextID,
 	}
 
-	return utility.CallAIAPI("/api/v1/risk/risk-chat", payload)
+	return utility.StreamAIAPI(ctx, "/api/v1/risk/risk-chat", payload)
 }
