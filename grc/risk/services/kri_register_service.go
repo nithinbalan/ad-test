@@ -816,7 +816,7 @@ func (krs *KRIRegisterService) ExportKriRegister(data []*riskDTOs.KRIRegisterLis
 
 		rows[i] = []interface{}{
 			i + 1,
-			kri.ReferenceNumber,
+			utility.GetStringValue(kri.ReferenceNumber),
 			kri.Title,
 			utility.GetStringValue(kri.Description),
 			category,
@@ -829,7 +829,7 @@ func (krs *KRIRegisterService) ExportKriRegister(data []*riskDTOs.KRIRegisterLis
 			unit,
 			riskLevel,
 			reviewFrequency,
-			kri.LastReviewedDate,
+			utility.GetStringValue(kri.LastReviewedDate),
 			kri.NextReviewDate,
 		}
 	}
