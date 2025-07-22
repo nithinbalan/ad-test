@@ -102,6 +102,7 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 			risk_response_strategies.title_en AS risk_response_strategy_title_en,
             risk_response_strategies.title_ar AS risk_response_strategy_title_ar,
             risk_statuses.color_code AS risk_status_color_code,
+			risk_statuses.type AS risk_status_type,
             review_frequencies.title_en AS review_frequency_title_en,
             review_frequencies.title_ar AS review_frequency_title_ar,
 			CONVERT(VARCHAR, risk_register.next_review_date, 23) AS next_review_date,
