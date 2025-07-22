@@ -11,6 +11,7 @@ import (
 type StrategicObjectiveLibraryServiceInterface interface {
 	GetAll(params *libraryDTOs.StrategicObjectiveLibraryListQueryParamsDTO) (*libraryDTOs.StrategicObjectiveLibraryListResponseDTO, error)
 	Export(data []*libraryDTOs.StrategicObjectiveLibraryDTO, userID uint) (*os.File, error)
+	GetCategoryCounts() ([]libraryDTOs.StrategicCategoryCountDTO, error)
 }
 
 // Service and implementations
@@ -37,4 +38,8 @@ func (sols *StrategicObjectiveLibraryService) Export(data []*libraryDTOs.Strateg
 		rows[i] = []interface{}{i + 1, k.Title, k.Category}
 	}
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (sols *StrategicObjectiveLibraryService) GetCategoryCounts() ([]libraryDTOs.StrategicCategoryCountDTO, error) {
+	return sols.repo.GetCategoryCounts()
 }

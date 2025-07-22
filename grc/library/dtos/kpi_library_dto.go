@@ -24,3 +24,8 @@ type KPILibraryListResponseDTO struct {
 	Items      []*KPILibraryDTO             `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
+
+type KPICategoryCountDTO struct {
+	Category string `json:"category"`
+	Count    int    `json:"count"`
+}

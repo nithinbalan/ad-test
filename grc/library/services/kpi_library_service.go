@@ -11,6 +11,7 @@ import (
 type KpiLibraryServiceInterface interface {
 	GetAllKpi(params *libraryDTOs.KPILibraryListQueryParamsDTO) (*libraryDTOs.KPILibraryListResponseDTO, error)
 	Export(data []*libraryDTOs.KPILibraryDTO, userID uint) (*os.File, error)
+	KPIGetCategoryCounts() ([]libraryDTOs.KPICategoryCountDTO, error)
 }
 
 // Service and implementations
@@ -37,4 +38,8 @@ func (kls *KpiLibraryService) Export(data []*libraryDTOs.KPILibraryDTO, userID u
 		rows[i] = []interface{}{i + 1, k.Title, utility.GetStringValue(k.Description), k.Category, k.Unit, k.Frequency}
 	}
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (s *KpiLibraryService) KPIGetCategoryCounts() ([]libraryDTOs.KPICategoryCountDTO, error) {
+	return s.repo.KPIGetCategoryCounts()
 }

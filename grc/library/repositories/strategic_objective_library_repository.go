@@ -9,6 +9,7 @@ import (
 
 type StrategicObjectiveLibraryRepositoryInterface interface {
 	GetAll(params *libraryDTOs.StrategicObjectiveLibraryListQueryParamsDTO) (*libraryDTOs.StrategicObjectiveLibraryListResponseDTO, error)
+	GetCategoryCounts() ([]libraryDTOs.StrategicCategoryCountDTO, error)
 }
 
 type StrategicObjectiveLibraryRepository struct {
@@ -70,4 +71,19 @@ func (repo *StrategicObjectiveLibraryRepository) GetAll(params *libraryDTOs.Stra
 		},
 	}
 	return response, nil
+}
+
+func (repo *StrategicObjectiveLibraryRepository) GetCategoryCounts() ([]libraryDTOs.StrategicCategoryCountDTO, error) {
+	var results []libraryDTOs.StrategicCategoryCountDTO
+
+	err := repo.db.
+		Table("strategic_objective_library").
+		Select("category, COUNT(*) as count").
+		Group("category").
+		Order("category ASC").
+		Scan(&results).Error
+	if err != nil {
+		return nil, err
+	}
+	return results, nil
 }

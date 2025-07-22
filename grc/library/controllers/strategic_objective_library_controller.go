@@ -66,3 +66,12 @@ func (solc *StrategicObjectiveLibraryController) Export(c *gin.Context) {
 	c.Request.URL.RawQuery += "&export=true"
 	solc.GetAll(c)
 }
+
+func (solc *StrategicObjectiveLibraryController) CountByCategory(c *gin.Context) {
+	result, err := solc.service.GetCategoryCounts()
+	if err != nil {
+		utility.SendInternalErrResp(solc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}

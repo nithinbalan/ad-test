@@ -57,7 +57,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	libraryRoutes.GET("/kpi-library/export", KpiLibraryController.GetKpiExport)
 	libraryRoutes.GET("/kpi-library", KpiLibraryController.GetAllKpi)
+	libraryRoutes.GET("/kpi-library/category-count", KpiLibraryController.KPICountByCategory)
 
 	libraryRoutes.GET("/strategic-objective/export", StrategicObjectiveLibraryController.Export)
 	libraryRoutes.GET("/strategic-objective", StrategicObjectiveLibraryController.GetAll)
+	libraryRoutes.GET("/strategic-library/category-count", StrategicObjectiveLibraryController.CountByCategory)
 }
