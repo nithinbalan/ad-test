@@ -19,6 +19,10 @@ type AssociatedItemValidationRepositoryInterface interface {
 	AssetExists(id uint) (*models.AssetRegister, error)
 	IsProcessMapped(masterName string, columnName string, processID, masterID uint) (bool, error)
 	ProcessExists(id uint) (*models.Process, error)
+	IsKPIMapped(masterName string, columnName string, kpiID, masterID uint) (bool, error)
+	KpiExists(id uint) (*models.KPIRegister, error)
+	IsControlMapped(masterName string, columnName string, controlId, masterID uint) (bool, error)
+	ControlExists(id uint) (*models.Control, error)
 }
 
 type AssociatedItemValidationRepository struct {
@@ -197,5 +201,61 @@ func (repo *AssociatedItemValidationRepository) ProcessExists(id uint) (*models.
 	}
 
 	return process, nil
+
+}
+
+func (repo *AssociatedItemValidationRepository) IsKPIMapped(masterName string, columnName string, kpiID, masterID uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Table(masterName).
+		Where("kpi_register_id = ? AND "+columnName+" = ?", kpiID, masterID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *AssociatedItemValidationRepository) KpiExists(id uint) (*models.KPIRegister, error) {
+	db := repo.db
+
+	var kpi *models.KPIRegister
+
+	result := db.
+		First(&kpi, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return kpi, nil
+
+}
+
+func (repo *AssociatedItemValidationRepository) IsControlMapped(masterName string, columnName string, controlId, masterID uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Table(masterName).
+		Where("control_id = ? AND "+columnName+" = ?", controlId, masterID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *AssociatedItemValidationRepository) ControlExists(id uint) (*models.Control, error) {
+	db := repo.db
+
+	var contol *models.Control
+
+	result := db.
+		First(&contol, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return contol, nil
 
 }

@@ -14,6 +14,8 @@ type AssociatedItemValidationServiceInterface interface {
 	ValidateStrtegicObjectiveMapping(masterID uint, strategicObjectiveIds []uint, tableName string, columnName string) error
 	ValidateAssetMapping(masterID uint, assetIDs []uint, tableName string, columnName string) error
 	ValidateProcessMapping(masterID uint, processIds []uint, tableName string, columnName string) error
+	ValidateKPIMapping(masterID uint, kpiIds []uint, tableName string, columnName string) error
+	ValidateControlMapping(masterID uint, controlIds []uint, tableName string, columnName string) error
 }
 
 // Service struct
@@ -213,6 +215,70 @@ func (aivs *AssociatedItemValidationService) ValidateProcessMapping(masterID uin
 			return utility.NewValidationError(
 				fmt.Errorf("process ID %d already mapped to this %s", id, tableName),
 				"duplicate", "process")
+		}
+
+		seen[id] = true
+	}
+
+	return nil
+}
+
+func (aivs *AssociatedItemValidationService) ValidateKPIMapping(masterID uint, kpiIds []uint, tableName string, columnName string) error {
+	if len(kpiIds) == 0 {
+		return utility.NewValidationError(fmt.Errorf("no kpi provided"), "required", "kpi_id")
+	}
+
+	seen := make(map[uint]bool)
+	for _, id := range kpiIds {
+		if seen[id] {
+			return utility.NewValidationError(fmt.Errorf("duplicate kpi ID: %d", id), "duplicate", "kpi_id")
+		}
+
+		_, err := aivs.repo.KpiExists(id)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("kpi does not exist: %d", id), "not_exist", "kpi_id")
+		}
+
+		alreadyMapped, err := aivs.repo.IsKPIMapped(tableName, columnName, id, masterID)
+		if err != nil {
+			return fmt.Errorf("failed to check mapping: %v", err)
+		}
+		if alreadyMapped {
+			return utility.NewValidationError(
+				fmt.Errorf("kpi ID %d already mapped to this %s", id, tableName),
+				"duplicate", "KPI")
+		}
+
+		seen[id] = true
+	}
+
+	return nil
+}
+
+func (aivs *AssociatedItemValidationService) ValidateControlMapping(masterID uint, controlIds []uint, tableName string, columnName string) error {
+	if len(controlIds) == 0 {
+		return utility.NewValidationError(fmt.Errorf("no controls provided"), "required", "control_id")
+	}
+
+	seen := make(map[uint]bool)
+	for _, id := range controlIds {
+		if seen[id] {
+			return utility.NewValidationError(fmt.Errorf("duplicate contol ID: %d", id), "duplicate", "control_id")
+		}
+
+		_, err := aivs.repo.ControlExists(id)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("control does not exist: %d", id), "not_exist", "control_id")
+		}
+
+		alreadyMapped, err := aivs.repo.IsControlMapped(tableName, columnName, id, masterID)
+		if err != nil {
+			return fmt.Errorf("failed to check mapping: %v", err)
+		}
+		if alreadyMapped {
+			return utility.NewValidationError(
+				fmt.Errorf("control ID %d already mapped to this %s", id, tableName),
+				"duplicate", "Control")
 		}
 
 		seen[id] = true
