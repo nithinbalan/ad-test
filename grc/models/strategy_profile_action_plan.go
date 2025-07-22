@@ -30,17 +30,17 @@ type StrategyProfileActionPlan struct {
 	StrategyProfileFocusArea *StrategyProfileFocusArea `gorm:"foreignKey:StrategyProfileFocusAreaID" json:"strategy_profile_focus_area,omitempty"`
 	StrategyProfileGoal      *StrategyProfileGoal      `gorm:"foreignKey:StrategyProfileGoalID" json:"strategy_profile_goal,omitempty"`
 	//StrategyProfileStrategicObjective *StrategyProfileStrategicObjective       `gorm:"foreignKey:StrategyProfileStrategicObjectiveID" json:"strategy_profile_strategic_objective,omitempty"`
-	StrategyProfileInitiative *StrategyProfileInitiative               `gorm:"foreignKey:StrategyProfileInitiativeID" json:"strategy_profile_initiative,omitempty"`
-	StrategyProfileProject    *StrategyProfileProject                  `gorm:"foreignKey:StrategyProfileProjectID" json:"strategy_profile_project,omitempty"`
-	StrategyProfileMilestone  *StrategyProfileMilestone                `gorm:"foreignKey:StrategyProfileMilestoneID" json:"strategy_profile_milestone,omitempty"`
-	ResponsibleUser           *User                                    `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SeverityLevel             *SeverityLevel                           `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ActionPlanStatus          *ActionPlanStatus                        `gorm:"foreignKey:ActionPlanStatusId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUnit           *OrganizationUnit                        `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ReviewUser                *User                                    `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"` // New foreign key relationship
-	ActionPlanStatusUpdates   []*StrategyProfileActionPlanStatusUpdate `gorm:"foreignKey:StrategyProfileActionPlanID"`
-	CreatedByUser             *User                                    `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	UpdatedByUser             *User                                    `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	//StrategyProfileStrategicIntiative *StrategyProfileStrategicIntiative       `gorm:"foreignKey:StrategyProfileStrategicIntiativeID" json:"strategy_profile_strategic_intiative,omitempty"`
+	//StrategyProfileProject   *StrategyProfileProject                  `gorm:"foreignKey:StrategyProfileProjectID" json:"strategy_profile_project,omitempty"`
+	StrategyProfileMilestone *StrategyProfileMilestone                `gorm:"foreignKey:StrategyProfileMilestoneID" json:"strategy_profile_milestone,omitempty"`
+	ResponsibleUser          *User                                    `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SeverityLevel            *SeverityLevel                           `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatus         *ActionPlanStatus                        `gorm:"foreignKey:ActionPlanStatusId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUnit          *OrganizationUnit                        `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewUser               *User                                    `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"` // New foreign key relationship
+	ActionPlanStatusUpdates  []*StrategyProfileActionPlanStatusUpdate `gorm:"foreignKey:StrategyProfileActionPlanID"`
+	CreatedByUser            *User                                    `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	UpdatedByUser            *User                                    `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 }
 
 func (StrategyProfileActionPlan) TableName() string {

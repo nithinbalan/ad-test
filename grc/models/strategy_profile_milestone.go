@@ -21,8 +21,8 @@ type StrategyProfileMilestone struct {
 	StrategyProfileFocusArea *StrategyProfileFocusArea `gorm:"foreignKey:StrategyProfileFocusAreaID" json:"strategy_profile_focus_area,omitempty"`
 	StrategyProfileGoal      *StrategyProfileGoal      `gorm:"foreignKey:StrategyProfileGoalID" json:"strategy_profile_goal,omitempty"`
 	//StrategyProfileStrategicObjective *StrategyProfileStrategicObjective `gorm:"foreignKey:StrategyProfileStrategicObjectiveID" json:"strategy_profile_strategic_objective,omitempty"`
-	StrategyProfileInitiative  *StrategyProfileInitiative  `gorm:"foreignKey:StrategyProfileInitiativeID" json:"strategy_profile_initiative,omitempty"`
-	StrategyProfileProject     *StrategyProfileProject     `gorm:"foreignKey:StrategyProfileProjectID" json:"strategy_profile_project,omitempty"`
+	//StrategyProfileStrategicIntiative *StrategyProfileStrategicIntiative `gorm:"foreignKey:StrategyProfileStrategicIntiativeID" json:"strategy_profile_strategic_intiative,omitempty"`
+	//StrategyProfileProject     *StrategyProfileProject     `gorm:"foreignKey:StrategyProfileProjectID" json:"strategy_profile_project,omitempty"`
 	StrategyProfileActionPlans []StrategyProfileActionPlan `gorm:"foreignKey:StrategyProfileMilestoneID"`
 	CreatedByUser              *User                       `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	UpdatedByUser              *User                       `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
