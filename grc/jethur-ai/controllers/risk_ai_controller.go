@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"jethur/grc/jethur-ai/dtos"
 	"jethur/grc/jethur-ai/services"
 	"jethur/utility"
@@ -151,9 +152,20 @@ func (rc *RiskAIController) GetRiskResidualRiskAnalysis(c *gin.Context) {
 }
 
 func (rc *RiskAIController) ChatWithRisk(c *gin.Context) {
-	var req dtos.RiskAIChatRequest
-	if err := c.ShouldBind(&req); err != nil {
+	var chatRequest dtos.RiskAIChatRequest
+	if err := c.ShouldBindJSON(&chatRequest); err != nil {
 		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("Transfer-Encoding", "chunked")
+
+	flusher, ok := c.Writer.(http.Flusher)
+	if !ok {
+		http.Error(c.Writer, "Streaming unsupported!", http.StatusInternalServerError)
 		return
 	}
 
@@ -163,11 +175,15 @@ func (rc *RiskAIController) ChatWithRisk(c *gin.Context) {
 		return
 	}
 
-	result, err := rc.service.ChatWithRisk(req, currentUserID)
+	streamChan, err := rc.service.ChatWithRisk(c.Request.Context(), chatRequest, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(rc.db, c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, result)
+	// Stream each full JSON line
+	for msg := range streamChan {
+		fmt.Fprintf(c.Writer, "data: %s\n\n", msg)
+		flusher.Flush()
+	}
 }

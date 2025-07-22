@@ -1,10 +1,8 @@
 package services
 
 import (
-	"fmt"
 	"jethur/grc/jethur-ai/dtos"
 	"jethur/utility"
-	"os"
 )
 
 type CommonAIServiceInterface interface {
@@ -19,11 +17,9 @@ func NewCommonAIService() CommonAIServiceInterface {
 }
 
 func (s *CommonAIService) RewriteDescription(req dtos.DescriptionRewriteRequest) (map[string]interface{}, error) {
-	apiURL := fmt.Sprintf("%s/api/v1/description-rewriter", os.Getenv("AI_SERVICE_BASE_URL"))
-	return utility.CallAIAPI(apiURL, req)
+	return utility.CallAIAPI("/api/v1/description-rewriter", req)
 }
 
 func (s *CommonAIService) TranslateLanguage(req dtos.LanguageTranslationRequest) (map[string]interface{}, error) {
-	apiURL := fmt.Sprintf("%s/api/v1/language-translation", os.Getenv("AI_SERVICE_BASE_URL"))
-	return utility.CallAIAPI(apiURL, req)
+	return utility.CallAIAPI("/api/v1/language-translation", req)
 }
