@@ -34,6 +34,7 @@ type RiskRegisterListDTO struct {
 	RiskStatusTitleAr               string  `json:"risk_status_title_ar"`
 	RiskResponseStrategyTitleEn     string  `json:"risk_response_strategy_title_en"`
 	RiskResponseStrategyTitleAr     string  `json:"risk_response_strategy_title_ar"`
+	RiskStatusType                  string  `json:"risk_status_type"`
 	RiskStatusColorCode             string  `json:"risk_status_color_code"`
 	Title                           string  `json:"title"`
 	Description                     *string `json:"description"`
