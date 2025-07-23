@@ -26,6 +26,8 @@ type ProcessAssociatedItemRepositoryInterface interface {
 	DeleteProcessClauses(processID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 	CreateProcessRisk(risks []*models.RiskProcess, tx ...utility.DatabaseTransaction) error
 	DeleteProcessRisk(processID uint, riskID uint, tx ...utility.DatabaseTransaction) error
+	CreateProcessDocument(documents []*models.ProcessAssociatedDocument, tx ...utility.DatabaseTransaction) error
+	DeleteProcessDocument(processID uint, documentID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ProcessAssociatedItemRepository struct {
@@ -877,15 +879,21 @@ func (repo *ProcessAssociatedItemRepository) DeleteProcessRisk(processID uint, r
 		Error
 }
 
-// func (repo *ProcessAssociatedItemRepository) IsRiskMappedToProcess(processID uint, riskId uint) (bool, error) {
-// 	var count int64
-// 	err := repo.db.
-// 		Model(&models.RiskProcess{}).
-// 		Where("risk_register_id = ? AND process_id = ?", riskId, processID).
-// 		Count(&count).Error
+func (repo *ProcessAssociatedItemRepository) CreateProcessDocument(documents []*models.ProcessAssociatedDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&documents).Error
+}
 
-// 	if err != nil {
-// 		return false, err
-// 	}
-// 	return count > 0, nil
-// }
+func (repo *ProcessAssociatedItemRepository) DeleteProcessDocument(processID uint, documentId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("document_id = ? AND process_id = ?", documentId, processID).
+		Delete(&models.ProcessAssociatedDocument{}).
+		Error
+}
