@@ -269,7 +269,7 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 			"CreatedByFirstNameEn": createdBy.FirstNameEn,
 			"CreatedByLastNameEn":  createdBy.LastNameEn,
 			"AssignedOn":           time.Now().Format("2006-01-02"),
-			"RedirectURL":          fmt.Sprintf("%srisk/kri-register/%d/overview", appURL, id),
+			"RedirectURL":          fmt.Sprintf("%s/risk/kri-register/%d/overview", appURL, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -486,7 +486,7 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 				"KriDescription":       existingKRIRegister.Description,
 				"UpdatedByFirstNameEn": updatedByUser.FirstNameEn,
 				"UpdatedByLastNameEn":  updatedByUser.LastNameEn,
-				"RedirectURL":          fmt.Sprintf("%srisk/kri-register/%d/overview", appURL, id),
+				"RedirectURL":          fmt.Sprintf("%s/risk/kri-register/%d/overview", appURL, id),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -508,7 +508,7 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 				"AssignedByFirstNameEn": updatedByUser.FirstNameEn,
 				"AssignedByLastNameEn":  updatedByUser.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%srisk/kri-register/%d/overview", appURL, id),
+				"RedirectURL":           fmt.Sprintf("%s/risk/kri-register/%d/overview", appURL, id),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -816,7 +816,7 @@ func (krs *KRIRegisterService) ExportKriRegister(data []*riskDTOs.KRIRegisterLis
 
 		rows[i] = []interface{}{
 			i + 1,
-			kri.ReferenceNumber,
+			utility.GetStringValue(kri.ReferenceNumber),
 			kri.Title,
 			utility.GetStringValue(kri.Description),
 			category,
@@ -829,7 +829,7 @@ func (krs *KRIRegisterService) ExportKriRegister(data []*riskDTOs.KRIRegisterLis
 			unit,
 			riskLevel,
 			reviewFrequency,
-			kri.LastReviewedDate,
+			utility.GetStringValue(kri.LastReviewedDate),
 			kri.NextReviewDate,
 		}
 	}

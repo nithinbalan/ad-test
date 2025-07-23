@@ -1,5 +1,7 @@
 package dtos
 
+import commonDTOs "jethur/grc/common/dtos"
+
 type ComplianceLibraryWithVersionsDTO struct {
 	ID                     uint    `json:"id"`
 	Icon                   *string `json:"icon"`
@@ -80,7 +82,8 @@ type ControlLibraryResponseDTO struct {
 	ID      uint              `json:"id"`
 	TitleEn string            `json:"title_en"`
 	TitleAr string            `json:"title_ar"`
-	Titles  []ControlTitleDTO `json:"titles,omitempty" gorm:"-"`
+	SAMA    []ControlTitleDTO `json:"sama,omitempty" gorm:"-"`
+	NCA     []ControlTitleDTO `json:"nca,omitempty" gorm:"-"`
 }
 
 type ControlTitleDTO struct {
@@ -90,4 +93,18 @@ type ControlTitleDTO struct {
 	ControlCode              string `json:"control_code"`
 	ControlTitleEn           string `json:"control_title_en"`
 	ControlTitleAr           string `json:"control_title_ar"`
+}
+
+type ControlMappingListQueryParamsDTO struct {
+	Sort     string
+	SortBy   string
+	Keyword  string
+	Page     int
+	PageSize int
+	Export   bool
+}
+
+type ControlMappingListResponseDTO struct {
+	Items      []*ControlLibraryResponseDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }

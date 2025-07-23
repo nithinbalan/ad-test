@@ -12,6 +12,7 @@ type KPIValueUpdate struct {
 	UnitID        uint       `json:"unit_id" binding:"required" gorm:"not null"`
 	Value         *float64   `json:"value" gorm:"type:int;not null"`
 	Remarks       *string    `json:"remarks" gorm:"type:nvarchar(max)"`
+	IsLatest      bool       `json:"is_latest" gorm:"type:bit;not null"`
 	CreatedAt     time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt     *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedByID   uint       `json:"created_by_id" gorm:"not null"`

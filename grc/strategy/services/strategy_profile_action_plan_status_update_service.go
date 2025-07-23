@@ -3,6 +3,11 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
@@ -14,10 +19,6 @@ import (
 	"jethur/grc/strategy/repositories"
 	taskServices "jethur/grc/task/services"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -83,7 +84,6 @@ func (sasus StrategyProfileActionPlanStatusUpdateService) GetByID(StrategyProfil
 	}
 
 	StrategyProfileActionPlanStatusUpdate, err := sasus.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -159,7 +159,7 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Create(StrategyProfil
 			tx.Rollback()
 			return 0, err
 		}
-		//move file to storage
+		// move file to storage
 		for _, doc := range documents {
 			storagePath := filepath.Join("strategy", "strategy-profile", strconv.FormatUint(uint64(StrategyProfileID), 10), "strategy_profile-action-plans", strconv.FormatUint(uint64(StrategyProfileActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
@@ -206,7 +206,6 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Create(StrategyProfil
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -222,7 +221,7 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Create(StrategyProfil
 			// prepare notification
 			appURL := utility.GetAppURL()
 			urlParam := fmt.Sprintf(`{"strategy_profile_id":%d, "action_plan_id":%d}`, StrategyProfileID, StrategyProfileActionPlanID)
-			redirectUrl := fmt.Sprintf("%sstrategy/strategy-profile/%d/action-plans?action_plan_id=%d", appURL, StrategyProfileID, StrategyProfileActionPlanID)
+			redirectUrl := fmt.Sprintf("%s/strategy/strategy-profile/%d/action-plans?action_plan_id=%d", appURL, StrategyProfileID, StrategyProfileActionPlanID)
 			queryParam := ""
 			entity := "strategy-profile-action-plan"
 			action := "review-user"
@@ -300,13 +299,11 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Update(StrategyProfil
 	}
 
 	oldStrategyProfileActionPlanStatusUpdate, err := sasus.GetByID(StrategyProfileID, StrategyProfileActionPlanID, id)
-
 	if err != nil {
 		return err
 	}
 
 	existingStrategyProfileActionPlanStatusUpdate, err := sasus.GetByID(StrategyProfileID, StrategyProfileActionPlanID, id)
-
 	if err != nil {
 		return err
 	}
@@ -333,18 +330,16 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Update(StrategyProfil
 	var documentsToDelete []*models.StrategyProfileActionPlanStatusUpdateDocument
 
 	for _, doc := range StrategyProfileActionPlanStatusUpdateFormDTO.Documents {
-
 		if doc.IsNewFile != nil && *doc.IsNewFile {
 			// Encrypt the filename
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
 
-			//genereate URL
+			// genereate URL
 			url := utility.GenerateDocumentURL("strategy", "strategy-profile", strconv.FormatUint(uint64(StrategyProfileID), 10), "strategy_profile-action-plans", strconv.FormatUint(uint64(StrategyProfileActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			// Create a new Control test Document instance
 			document := &models.StrategyProfileActionPlanStatusUpdateDocument{
@@ -415,7 +410,7 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Update(StrategyProfil
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"comment":    oldStrategyProfileActionPlanStatusUpdate.Comment,
@@ -441,7 +436,6 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Update(StrategyProfil
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -460,7 +454,6 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Update(StrategyProfil
 }
 
 func (sasus *StrategyProfileActionPlanStatusUpdateService) validateStrategyProfileActionPlanStatusUpdateFormDTO(StrategyProfileActionPlanStatusUpdateFormDTO *strategyDTOs.StrategyProfileActionPlanStatusUpdateFormDTO) error {
-
 	if _, err := sasus.actionPlanStatusSvc.GetByID(StrategyProfileActionPlanStatusUpdateFormDTO.ActionPlanStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
@@ -477,7 +470,6 @@ func (sasus StrategyProfileActionPlanStatusUpdateService) GetLatestStrategyProfi
 }
 
 func (sasus *StrategyProfileActionPlanStatusUpdateService) GetDocumentPath(strategyProfileID, ActionPlanID, id uint, token string) (string, error) {
-
 	existingStrategyProfileActionplanStatusUpdate, err := sasus.GetByID(strategyProfileID, ActionPlanID, id)
 	if err != nil {
 		return "", err
@@ -594,7 +586,7 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Approve(strategyProfi
 		action := "close-action-plan"
 		notificationHeadingEn = "Test And Exercise Action Plan Status Update"
 		notificationHeadingAr = "تحديث حالة خطة عمل الاختبار والتمرين"
-		redirectUrl := fmt.Sprintf("%sstrategy/strategy-profile/%d/action-plans?action_plan_id=%d", appURL, strategyProfileID, id)
+		redirectUrl := fmt.Sprintf("%s/strategy/strategy-profile/%d/action-plans?action_plan_id=%d", appURL, strategyProfileID, id)
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{*existingActionPlan.ResponsibleUserID},
@@ -751,7 +743,7 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Revert(strategyProfil
 		action := "reopen-action-plan"
 		notificationHeadingEn = "Test And Exercise Action Plan Status Update"
 		notificationHeadingAr = "تحديث حالة خطة عمل الاختبار والتمرين"
-		redirectUrl := fmt.Sprintf("%sstrategy/strategy-profile/%d/action-plans?action_plan_id=%d", appURL, strategyProfileID, id)
+		redirectUrl := fmt.Sprintf("%s/strategy/strategy-profile/%d/action-plans?action_plan_id=%d", appURL, strategyProfileID, id)
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{*existingActionPlan.ResponsibleUserID},

@@ -201,7 +201,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		requirement := &models.IncidentComplianceRequirement{
 			IncidentRegisterID:      id,
 			ComplianceRegisterID:    complianceRequirement.ComplianceClause.ComplianceRegisterID,
-			ComplianceRequirementID: *reqId,
+			ComplianceRequirementID: reqId,
 			CreatedByID:             currentUserID,
 		}
 		complianceRequirements = append(complianceRequirements, requirement)
@@ -498,7 +498,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 			"CreatedByFirstNameEn":    createdBy.FirstNameEn,
 			"CreatedByLastNameEn":     createdBy.LastNameEn,
 			"AssignedOn":              time.Now().Format("2006-01-02"),
-			"RedirectURL":             fmt.Sprintf("%sincident/register/%d/overview", appURL, id),
+			"RedirectURL":             fmt.Sprintf("%s/incident/register/%d/overview", appURL, id),
 		}
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
@@ -643,7 +643,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 			// Create a new incident compliance requirement record
 			requirement := &models.IncidentComplianceRequirement{
 				IncidentRegisterID:      id,
-				ComplianceRequirementID: *newRequirementID,
+				ComplianceRequirementID: newRequirementID,
 				CreatedByID:             currentUserID,
 			}
 			requirementsToAdd = append(requirementsToAdd, requirement)
@@ -1308,7 +1308,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 				"IncidentDescription":     existingIncidentRegister.Description,
 				"UpdatedByFirstNameEn":    updatedByUser.FirstNameEn,
 				"UpdatedByLastNameEn":     updatedByUser.LastNameEn,
-				"RedirectURL":             fmt.Sprintf("%sincident/register/%d/overview", appURL, id),
+				"RedirectURL":             fmt.Sprintf("%s/incident/register/%d/overview", appURL, id),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -1330,7 +1330,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 				"AssignedByFirstNameEn":   updatedByUser.FirstNameEn,
 				"AssignedByLastNameEn":    updatedByUser.LastNameEn,
 				"AssignedOn":              time.Now().Format("2006-01-02"),
-				"RedirectURL":             fmt.Sprintf("%sincident/register/%d/overview", appURL, id),
+				"RedirectURL":             fmt.Sprintf("%s/incident/register/%d/overview", appURL, id),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{

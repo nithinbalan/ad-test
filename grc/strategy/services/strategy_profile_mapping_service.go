@@ -69,13 +69,13 @@ func (spms *StrategyProfileMappingService) GetStrategyProfile(profileID uint) (*
 		}
 
 	} else if enabled["objective"] {
-		for _, objective := range profile.StrategyProfileObjectives {
-			response.StrategyProfileObjectives = append(response.StrategyProfileObjectives, buildObjectiveDTO(objective, enabled))
-		}
+		// for _, objective := range profile.StrategyProfileStrategicObjectives {
+		// 	response.StrategyProfileStrategicObjectives = append(response.StrategyProfileStrategicObjectives, buildStrategicObjectiveDTO(objective, enabled))
+		// }
 	} else if enabled["initiative"] {
-		for _, initiative := range profile.StrategyProfileInitiatives {
-			response.StrategyProfileInitiatives = append(response.StrategyProfileInitiatives, buildInitiativeDTO(initiative, enabled))
-		}
+		// for _, initiative := range profile.StrategyProfileInitiatives {
+		// 	response.StrategyProfileInitiatives = append(response.StrategyProfileInitiatives, buildInitiativeDTO(initiative, enabled))
+		// }
 
 	} else if enabled["project"] {
 		for _, project := range profile.StrategyProfileProjects {
@@ -107,28 +107,28 @@ func buildEnabledSettingsMap(settings []strategyDTOs.StrategyProfileSettingListD
 
 func buildFocusDTO(focus models.StrategyProfileFocusArea, enabled map[string]bool) strategyDTOs.StrategyProfileFocusAreaDTO {
 	focusDTO := strategyDTOs.StrategyProfileFocusAreaDTO{
-		ID:    focus.ID,
-		Title: focus.Title,
+		ID: focus.ID,
+		// Title: focus.Title,
 	}
 	if enabled["goal"] {
 		for _, goal := range focus.StrategyProfileGoals {
 			focusDTO.StrategyProfileGoals = append(focusDTO.StrategyProfileGoals, buildGoalDTO(goal, enabled))
 		}
 	} else if enabled["objective"] {
-		for _, objective := range focus.StrategyProfileObjectives {
-			objectiveDTO := buildObjectiveDTO(objective, enabled)
-			focusDTO.StrategyProfileObjectives = append(focusDTO.StrategyProfileObjectives, objectiveDTO)
-		}
+		// for _, objective := range focus.StrategyProfileObjectives {
+		// 	objectiveDTO := buildObjectiveDTO(objective, enabled)
+		// 	focusDTO.StrategyProfileObjectives = append(focusDTO.StrategyProfileObjectives, objectiveDTO)
+		// }
 	} else if enabled["initiative"] {
-		for _, initiative := range focus.StrategyProfileInitiatives {
-			initiativeDTO := buildInitiativeDTO(initiative, enabled)
-			focusDTO.StrategyProfileInitiatives = append(focusDTO.StrategyProfileInitiatives, initiativeDTO)
-		}
+		// for _, initiative := range focus.StrategyProfileInitiatives {
+		// 	initiativeDTO := buildInitiativeDTO(initiative, enabled)
+		// 	focusDTO.StrategyProfileInitiatives = append(focusDTO.StrategyProfileInitiatives, initiativeDTO)
+		// }
 	} else if enabled["project"] {
-		for _, project := range focus.StrategyProfileProjects {
-			projectDTO := buildProjectDTO(project, enabled)
-			focusDTO.StrategyProfileProjects = append(focusDTO.StrategyProfileProjects, projectDTO)
-		}
+		// for _, project := range focus.StrategyProfileProjects {
+		// 	projectDTO := buildProjectDTO(project, enabled)
+		// 	focusDTO.StrategyProfileProjects = append(focusDTO.StrategyProfileProjects, projectDTO)
+		// }
 	} else if enabled["milestone"] {
 		for _, milestone := range focus.StrategyProfileMilestones {
 			milestoneDTO := buildMilestoneDTO(milestone, enabled)
@@ -151,19 +151,19 @@ func buildGoalDTO(goal models.StrategyProfileGoal, enabled map[string]bool) stra
 	}
 
 	if enabled["objective"] {
-		for _, objective := range goal.StrategyProfileObjectives {
-			goalDTO.StrategyProfileObjectives = append(goalDTO.StrategyProfileObjectives, buildObjectiveDTO(objective, enabled))
-		}
+		// for _, objective := range goal.StrategyProfileObjectives {
+		// 	goalDTO.StrategyProfileObjectives = append(goalDTO.StrategyProfileObjectives, buildObjectiveDTO(objective, enabled))
+		// }
 	} else if enabled["initiative"] {
-		for _, initiative := range goal.StrategyProfileInitiatives {
-			initiativeDTO := buildInitiativeDTO(initiative, enabled)
-			goalDTO.StrategyProfileInitiatives = append(goalDTO.StrategyProfileInitiatives, initiativeDTO)
-		}
+		// for _, initiative := range goal.StrategyProfileInitiatives {
+		// 	initiativeDTO := buildInitiativeDTO(initiative, enabled)
+		// 	goalDTO.StrategyProfileInitiatives = append(goalDTO.StrategyProfileInitiatives, initiativeDTO)
+		// }
 	} else if enabled["project"] {
-		for _, project := range goal.StrategyProfileProjects {
-			projectDTO := buildProjectDTO(project, enabled)
-			goalDTO.StrategyProfileProjects = append(goalDTO.StrategyProfileProjects, projectDTO)
-		}
+		// for _, project := range goal.StrategyProfileProjects {
+		// 	projectDTO := buildProjectDTO(project, enabled)
+		// 	goalDTO.StrategyProfileProjects = append(goalDTO.StrategyProfileProjects, projectDTO)
+		// }
 	} else if enabled["milestone"] {
 		for _, milestone := range goal.StrategyProfileMilestones {
 			milestoneDTO := buildMilestoneDTO(milestone, enabled)
@@ -179,72 +179,72 @@ func buildGoalDTO(goal models.StrategyProfileGoal, enabled map[string]bool) stra
 	return goalDTO
 }
 
-func buildObjectiveDTO(objective models.StrategyProfileObjective, enabled map[string]bool) strategyDTOs.StrategyProfileObjectiveDTO {
-	objectiveDTO := strategyDTOs.StrategyProfileObjectiveDTO{
-		ID:    objective.ID,
-		Title: objective.Title,
-	}
-	if enabled["initiative"] {
-		for _, initiative := range objective.StrategyProfileInitiatives {
-			objectiveDTO.StrategyProfileInitiatives = append(objectiveDTO.StrategyProfileInitiatives, buildInitiativeDTO(initiative, enabled))
-		}
-	} else if enabled["project"] {
-		for _, project := range objective.StrategyProfileProjects {
-			objectiveDTO.StrategyProfileProjects = append(objectiveDTO.StrategyProfileProjects, buildProjectDTO(project, enabled))
-		}
-	} else if enabled["milestone"] {
-		for _, milestone := range objective.StrategyProfileMilestones {
-			milestoneDTO := buildMilestoneDTO(milestone, enabled)
-			objectiveDTO.StrategyProfileMilestones = append(objectiveDTO.StrategyProfileMilestones, milestoneDTO)
-		}
-	} else if enabled["action-plan"] {
-		for _, actionPlan := range objective.StrategyProfileActionPlans {
-			actionPlanDTO := buildActionPlanDTO(actionPlan)
-			objectiveDTO.StrategyProfileActionPlans = append(objectiveDTO.StrategyProfileActionPlans, actionPlanDTO)
-		}
-	}
-	return objectiveDTO
-}
+// func buildStrategicObjectiveDTO(objective models.StrategyProfileStrategicObjective, enabled map[string]bool) strategyDTOs.StrategyProfileObjectiveDTO {
+// 	objectiveDTO := strategyDTOs.StrategyProfileObjectiveDTO{
+// 		ID: objective.ID,
+// 		// Title: objective.Title,
+// 	}
+// 	if enabled["initiative"] {
+// 		for _, initiative := range objective.StrategyProfileInitiatives {
+// 			objectiveDTO.StrategyProfileInitiatives = append(objectiveDTO.StrategyProfileInitiatives, buildInitiativeDTO(initiative, enabled))
+// 		}
+// 	} else if enabled["project"] {
+// 		for _, project := range objective.StrategyProfileProjects {
+// 			objectiveDTO.StrategyProfileProjects = append(objectiveDTO.StrategyProfileProjects, buildProjectDTO(project, enabled))
+// 		}
+// 	} else if enabled["milestone"] {
+// 		for _, milestone := range objective.StrategyProfileMilestones {
+// 			milestoneDTO := buildMilestoneDTO(milestone, enabled)
+// 			objectiveDTO.StrategyProfileMilestones = append(objectiveDTO.StrategyProfileMilestones, milestoneDTO)
+// 		}
+// 	} else if enabled["action-plan"] {
+// 		for _, actionPlan := range objective.StrategyProfileActionPlans {
+// 			actionPlanDTO := buildActionPlanDTO(actionPlan)
+// 			objectiveDTO.StrategyProfileActionPlans = append(objectiveDTO.StrategyProfileActionPlans, actionPlanDTO)
+// 		}
+// 	}
+// 	return objectiveDTO
+// }
 
-func buildInitiativeDTO(initiative models.StrategyProfileInitiative, enabled map[string]bool) strategyDTOs.StrategyProfileInitiativeDTO {
-	initiativeDTO := strategyDTOs.StrategyProfileInitiativeDTO{
-		ID:    initiative.ID,
-		Title: initiative.Title,
-	}
+// func buildInitiativeDTO(initiative models.StrategyProfileInitiative, enabled map[string]bool) strategyDTOs.StrategyProfileInitiativeDTO {
+// 	initiativeDTO := strategyDTOs.StrategyProfileInitiativeDTO{
+// 		ID:    initiative.ID,
+// 		Title: initiative.Title,
+// 	}
 
-	if enabled["project"] {
-		for _, project := range initiative.StrategyProfileProjects {
-			initiativeDTO.StrategyProfileProjects = append(initiativeDTO.StrategyProfileProjects, buildProjectDTO(project, enabled))
-		}
-	} else if enabled["milestone"] {
-		for _, milestone := range initiative.StrategyProfileMilestones {
-			milestoneDTO := buildMilestoneDTO(milestone, enabled)
-			initiativeDTO.StrategyProfileMilestones = append(initiativeDTO.StrategyProfileMilestones, milestoneDTO)
-		}
-	} else if enabled["action-plan"] {
-		for _, actionPlan := range initiative.StrategyProfileActionPlans {
-			actionPlanDTO := buildActionPlanDTO(actionPlan)
-			initiativeDTO.StrategyProfileActionPlans = append(initiativeDTO.StrategyProfileActionPlans, actionPlanDTO)
-		}
-	}
-	return initiativeDTO
-}
+// 	if enabled["project"] {
+// 		for _, project := range initiative.StrategyProfileProjects {
+// 			initiativeDTO.StrategyProfileProjects = append(initiativeDTO.StrategyProfileProjects, buildProjectDTO(project, enabled))
+// 		}
+// 	} else if enabled["milestone"] {
+// 		for _, milestone := range initiative.StrategyProfileMilestones {
+// 			milestoneDTO := buildMilestoneDTO(milestone, enabled)
+// 			initiativeDTO.StrategyProfileMilestones = append(initiativeDTO.StrategyProfileMilestones, milestoneDTO)
+// 		}
+// 	} else if enabled["action-plan"] {
+// 		for _, actionPlan := range initiative.StrategyProfileActionPlans {
+// 			actionPlanDTO := buildActionPlanDTO(actionPlan)
+// 			initiativeDTO.StrategyProfileActionPlans = append(initiativeDTO.StrategyProfileActionPlans, actionPlanDTO)
+// 		}
+// 	}
+// 	return initiativeDTO
+// }
 
 func buildProjectDTO(project models.StrategyProfileProject, enabled map[string]bool) strategyDTOs.StrategyProfileProjectDTO {
 	projectDTO := strategyDTOs.StrategyProfileProjectDTO{
-		ID:    project.ID,
-		Title: project.Title,
+		ID: project.ID,
+		// Title: project.Title,
 	}
 
 	if enabled["milestone"] {
-		for _, milestone := range project.StrategyProfileMilestones {
-			projectDTO.StrategyProfileMilestones = append(projectDTO.StrategyProfileMilestones, buildMilestoneDTO(milestone, enabled))
-		}
+		// for _, milestone := range project.StrategyProfileMilestones {
+		// 	projectDTO.StrategyProfileMilestones = append(projectDTO.StrategyProfileMilestones, buildMilestoneDTO(milestone, enabled))
+		// }
 	} else if enabled["action-plan"] {
-		for _, actionPlan := range project.StrategyProfileActionPlans {
-			actionPlanDTO := buildActionPlanDTO(actionPlan)
-			projectDTO.StrategyProfileActionPlans = append(projectDTO.StrategyProfileActionPlans, actionPlanDTO)
-		}
+		// for _, actionPlan := range project.StrategyProfileActionPlans {
+		// 	actionPlanDTO := buildActionPlanDTO(actionPlan)
+		// 	projectDTO.StrategyProfileActionPlans = append(projectDTO.StrategyProfileActionPlans, actionPlanDTO)
+		// }
 	}
 	return projectDTO
 }

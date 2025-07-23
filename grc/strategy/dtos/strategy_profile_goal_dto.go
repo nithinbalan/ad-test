@@ -62,20 +62,20 @@ type StrategyProfileGoalListQueryParamsDTO struct {
 }
 
 type StrategyProfileGoalDetailDTO struct {
-	ID                         uint                              `json:"id"`
-	Title                      string                            `json:"title"`
-	Description                *string                           `json:"description"`
-	StrategyProfileID          uint                              `json:"strategy_profile_id"`
-	StrategyProfile            StrategyProfileDetailDTO          `json:"strategy_profile"`
-	StrategyProfileFocusAreaID *uint                             `json:"strategy_profile_focus_area_id"`
-	StrategyProfileFocusArea   StrategyProfileFocusAreaDetailDTO `json:"strategy_profile_focus_area"`
-	TargetDateString           string                            `json:"target_date"`
-	ResponsibleUserID          *uint                             `json:"responsible_user_id"`
-	ResponsibleUser            *organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
-	CreatedAt                  time.Time                         `json:"created_at"`
-	UpdatedAt                  *time.Time                        `json:"updated_at"`
-	CreatedByUser              organizationDTOs.UserMinimalDTO   `json:"created_by"`
-	UpdatedByUser              *organizationDTOs.UserMinimalDTO  `json:"updated_by"`
+	ID                         uint                             `json:"id"`
+	Title                      string                           `json:"title"`
+	Description                *string                          `json:"description"`
+	StrategyProfileID          uint                             `json:"strategy_profile_id"`
+	StrategyProfile            StrategyProfileDetailDTO         `json:"strategy_profile"`
+	StrategyProfileFocusAreaID *uint                            `json:"strategy_profile_focus_area_id"`
+	StrategyProfileFocusArea   FocusAreaDetailDTO               `json:"strategy_profile_focus_area"`
+	TargetDateString           string                           `json:"target_date"`
+	ResponsibleUserID          *uint                            `json:"responsible_user_id"`
+	ResponsibleUser            *organizationDTOs.UserMinimalDTO `json:"responsible_user"`
+	CreatedAt                  time.Time                        `json:"created_at"`
+	UpdatedAt                  *time.Time                       `json:"updated_at"`
+	CreatedByUser              organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser              *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 }
 
 type StrategyProfileGoalParsedDates struct {

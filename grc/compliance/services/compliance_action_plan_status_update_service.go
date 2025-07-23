@@ -274,7 +274,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 				"ResolvedByFirstNameEn":     resolvedBy.FirstNameEn,
 				"ResolvedByLastNameEn":      resolvedBy.LastNameEn,
 				"ResolvedOn":                time.Now().Format("2006-01-02"),
-				"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, ComplianceID, id),
+				"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d/action-plans?action_plan_id=%d", appURL, ComplianceID, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -644,7 +644,7 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 			"ResolvedByFirstNameEn":     resolvedBy.FirstNameEn,
 			"ResolvedByLastNameEn":      resolvedBy.LastNameEn,
 			"ResolvedOn":                time.Now().Format("2006-01-02"),
-			"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+			"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -804,7 +804,7 @@ func (capus *ComplianceActionPlanStatusUpdateService) Revert(complianceID uint, 
 			"ResolvedByFirstNameEn":     resolvedBy.FirstNameEn,
 			"ResolvedByLastNameEn":      resolvedBy.LastNameEn,
 			"ResolvedOn":                time.Now().Format("2006-01-02"),
-			"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+			"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{

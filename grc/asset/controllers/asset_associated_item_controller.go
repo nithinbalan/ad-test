@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
+	commonDTOs "jethur/grc/common/dtos"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -279,9 +281,6 @@ func (aaic *AssetAssociatedItemController) GetAllAssetClauses(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
-	valueStr := c.Query("value")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -295,24 +294,12 @@ func (aaic *AssetAssociatedItemController) GetAllAssetClauses(c *gin.Context) {
 		return
 	}
 
-	var value int
-	if valueStr != "" {
-		value, err = strconv.Atoi(valueStr)
-		if err != nil {
-			utility.SendInternalErrResp(aaic.db, c, "Invalid value parameter")
-			return
-		}
-	}
-
-	queryParams := assetDTOs.AssetAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Value:       value,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemClauseListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
 
 	// Update method to GetAllVulnerabilities
@@ -632,4 +619,42 @@ func (aaic *AssetAssociatedItemController) GetRiskAnalysis(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusOK, results)
+}
+
+func (aaic *AssetAssociatedItemController) UpdateClauses(c *gin.Context) {
+	var clauseFormDTO commonDTOs.AssociatedClauseFormDTO
+
+	assetID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&clauseFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, err.Error())
+		return
+	}
+
+	err = aaic.service.UpdateClauses(uint(assetID), currentUserID, &clauseFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(aaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Clauses against the risk updated successfully"})
 }

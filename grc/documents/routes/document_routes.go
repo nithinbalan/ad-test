@@ -131,6 +131,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.GET("documents/:id/slas", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAssociatedItemController.GetAllDocumentSLAs)
 	documentRoutes.GET("documents/:id/incidents", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAssociatedItemController.GetAllDocumentIncidents)
 	documentRoutes.GET("documents/:id/risks", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAssociatedItemController.GetAllDocumentRisks)
+	documentRoutes.GET("documents/:id/associated-item/clauses", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAssociatedItemController.GetAllDocumentClauses)
+	documentRoutes.PUT("documents/:id/associated-item/clauses", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.UpdateClauses)
 
 	documentRoutes.GET("/document-change-request-initiate-types", documentChangeRequestInitiateTypeController.GetAllDocumentChangeRequestInitiateTypes)
 	documentRoutes.GET("/document-change-request-initiate-types/:id", documentChangeRequestInitiateTypeController.GetDocumentChangeRequestInitiateTypeDetails)
@@ -187,18 +189,18 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	unauthenticatedRoutes.GET("/documents/:id/reviews/:reviewId/document-download", documentPeriodicReviewController.DownloadDocumentPeriodicReviewDocument)
 
-	documentRoutes.GET("/documents/:id/requirement-groups", documentRequirementGroupController.GetAllDocumentRequirementGroups)
-	documentRoutes.GET("/documents/:id/requirement-groups/:requirementGroupId", documentRequirementGroupController.GetDocumentRequirementGroupDetails)
-	documentRoutes.POST("/documents/:id/requirement-groups", documentRequirementGroupController.CreateDocumentRequirementGroup)
-	documentRoutes.PUT("/documents/:id/requirement-groups/:requirementGroupId", documentRequirementGroupController.UpdateDocumentRequirementGroup)
-	documentRoutes.POST("/documents/:id/requirement-groups/delete", documentRequirementGroupController.DeleteDocumentRequirementGroups)
-	documentRoutes.PUT("/documents/:id/requirement-groups/activate", documentRequirementGroupController.ActivateDocumentRequirementGroups)
-	documentRoutes.PUT("/documents/:id/requirement-groups/deactivate", documentRequirementGroupController.DeactivateDocumentRequirementGroups)
+	documentRoutes.GET("/documents/:id/requirement-groups", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentRequirementGroupController.GetAllDocumentRequirementGroups)
+	documentRoutes.GET("/documents/:id/requirement-groups/:requirementGroupId", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentRequirementGroupController.GetDocumentRequirementGroupDetails)
+	documentRoutes.POST("/documents/:id/requirement-groups", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentRequirementGroupController.CreateDocumentRequirementGroup)
+	documentRoutes.PUT("/documents/:id/requirement-groups/:requirementGroupId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentRequirementGroupController.UpdateDocumentRequirementGroup)
+	documentRoutes.POST("/documents/:id/requirement-groups/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentRequirementGroupController.DeleteDocumentRequirementGroups)
+	documentRoutes.PUT("/documents/:id/requirement-groups/activate", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentRequirementGroupController.ActivateDocumentRequirementGroups)
+	documentRoutes.PUT("/documents/:id/requirement-groups/deactivate", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentRequirementGroupController.DeactivateDocumentRequirementGroups)
 
-	documentRoutes.GET("/documents/:id/requirement-groups/:requirementGroupId/requirements", documentRequirementController.GetAllDocumentRequirements)
-	documentRoutes.GET("/documents/:id/requirement-groups/:requirementGroupId/requirements/:requirementId", documentRequirementController.GetDocumentRequirementDetails)
-	documentRoutes.POST("/documents/:id/requirement-groups/:requirementGroupId/requirements", documentRequirementController.CreateDocumentRequirement)
-	documentRoutes.PUT("/documents/:id/requirement-groups/:requirementGroupId/requirements/:requirementId", documentRequirementController.UpdateDocumentRequirement)
-	documentRoutes.POST("/documents/:id/requirement-groups/:requirementGroupId/requirements/delete", documentRequirementController.DeleteDocumentRequirements)
+	documentRoutes.GET("/documents/:id/requirement-groups/:requirementGroupId/requirements", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentRequirementController.GetAllDocumentRequirements)
+	documentRoutes.GET("/documents/:id/requirement-groups/:requirementGroupId/requirements/:requirementId", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentRequirementController.GetDocumentRequirementDetails)
+	documentRoutes.POST("/documents/:id/requirement-groups/:requirementGroupId/requirements", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentRequirementController.CreateDocumentRequirement)
+	documentRoutes.PUT("/documents/:id/requirement-groups/:requirementGroupId/requirements/:requirementId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentRequirementController.UpdateDocumentRequirement)
+	documentRoutes.POST("/documents/:id/requirement-groups/:requirementGroupId/requirements/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentRequirementController.DeleteDocumentRequirements)
 
 }

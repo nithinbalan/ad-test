@@ -11,10 +11,8 @@ import (
 type StrategyProfileProjectRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileProjectListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileProjectListDTO, error)
-	GetByID(id uint) (*models.StrategyProfileProject, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileProject, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileProject, error)
 	Create(strategyProfileProject *models.StrategyProfileProject, tx ...utility.DatabaseTransaction) (uint, error)
-	Update(strategyProfileProject *models.StrategyProfileProject, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 }
 
@@ -41,21 +39,14 @@ func (repo *StrategyProfileProjectRepository) GetAll(strategyProfileID uint, par
 		Select(`
             strategy_profile_projects.*,
 			strategy_profiles.title AS strategy_profile_title,
-			strategy_profile_focus_areas.title AS strategy_profile_focus_area_title,
-			strategy_profile_goals.title AS strategy_profile_goal_title,
-			strategy_profile_objectives.title AS strategy_profile_objective_title,
-			strategy_profile_projects.title AS strategy_profile_project_title,
-			CONVERT(VARCHAR, strategy_profile_projects.start_date, 23) AS start_date,
-			CONVERT(VARCHAR, strategy_profile_projects.end_date, 23) AS end_date,
-			responsible_user.id AS responsible_user_id,
-			responsible_user.first_name_en AS responsible_user_first_name_en,
-			responsible_user.first_name_ar AS responsible_user_first_name_ar,
-			responsible_user.last_name_en AS responsible_user_last_name_en,
-			responsible_user.last_name_ar AS responsible_user_last_name_ar,
-			responsible_user.initial AS responsible_user_initial,
-			responsible_user.color AS responsible_user_color,
-			responsible_user.email AS responsible_user_email,
-			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			projects.title_en AS project_title_en,
+			projects.title_ar AS project_title_ar,
+			projects.description_en AS project_description_en,
+			projects.description_ar AS project_description_ar,
+			strategy_profile_strategic_objectives.title_en AS strategy_profile_strategic_objective_title_en,
+			strategy_profile_strategic_objectives.title_ar AS strategy_profile_strategic_objective_title_ar,
+			strategy_profile_strategic_intiatives.title_en AS strategy_profile_strategic_intiative_title_en,
+			strategy_profile_strategic_intiatives.title_ar AS strategy_profile_strategic_intiative_title_ar,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -76,19 +67,27 @@ func (repo *StrategyProfileProjectRepository) GetAll(strategyProfileID uint, par
             updated_user.profile_image_path AS updated_user_profile_image_path  
         `).
 		Joins(`
-			LEFT JOIN users AS responsible_user ON responsible_user.id = strategy_profile_projects.responsible_user_id
-			LEFT JOIN strategy_profile_goals ON strategy_profile_goals.id = strategy_profile_projects.strategy_profile_goal_id
 			LEFT JOIN strategy_profiles ON strategy_profiles.id = strategy_profile_projects.strategy_profile_id
-			LEFT JOIN strategy_profile_focus_areas ON strategy_profile_focus_areas.id = strategy_profile_projects.strategy_profile_focus_area_id
-			LEFT JOIN strategy_profile_objectives ON strategy_profile_objectives.id = strategy_profile_projects.strategy_profile_objective_id
-			LEFT JOIN strategy_profile_initiatives ON strategy_profile_initiatives.id = strategy_profile_projects.strategy_profile_initiative_id
+			LEFT JOIN projects ON projects.id = strategy_profile_projects.project_id
+			LEFT JOIN strategy_profile_strategic_objectives ON strategy_profile_strategic_objectives.id = strategy_profile_projects.strategy_profile_strategic_objective_id
+			LEFT JOIN strategy_profile_strategic_intiatives ON strategy_profile_strategic_intiatives.id = strategy_profile_projects.strategy_profile_strategic_intiative_id
 			LEFT JOIN users AS created_user ON created_user.id = strategy_profile_projects.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = strategy_profile_projects.updated_by_id
         `).Where("strategy_profile_projects.strategy_profile_id = ?", strategyProfileID)
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where("strategy_profile_projects."+columnName+" IN (?)", values)
+			// Map API param to DB column
+			if columnName == "project_id" {
+				columnName = "strategy_profile_projects.project_id"
+			}
+			if columnName == "strategy_profile_strategic_objective_id" {
+				columnName = "strategy_profile_projects.strategy_profile_strategic_objective_id"
+			}
+			if columnName == "strategy_profile_strategic_intiative_id" {
+				columnName = "strategy_profile_projects.strategy_profile_strategic_intiative_id"
+			}
+			query = query.Where(columnName+" IN (?)", values)
 		}
 	}
 	// Calculate total count for pagination
@@ -99,7 +98,10 @@ func (repo *StrategyProfileProjectRepository) GetAll(strategyProfileID uint, par
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(strategy_profile_projects.title LIKE ? OR
+			(projects.title_en LIKE ? OR
+			projects.title_ar LIKE ? OR
+			projects.description_en LIKE ? OR
+			projects.description_ar LIKE ? OR
 			created_user.first_name_en LIKE ? OR
 			created_user.first_name_ar LIKE ? OR
 			created_user.last_name_en LIKE ? OR
@@ -108,7 +110,7 @@ func (repo *StrategyProfileProjectRepository) GetAll(strategyProfileID uint, par
 			updated_user.first_name_ar LIKE ? OR
 			updated_user.last_name_en LIKE ? OR
 			updated_user.last_name_ar LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
@@ -117,11 +119,6 @@ func (repo *StrategyProfileProjectRepository) GetAll(strategyProfileID uint, par
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	if !params.Export {
-		offset := (params.Page - 1) * params.PageSize
-		query = query.Offset(offset).Limit(params.PageSize)
-	}
-
 	err := query.Find(&strategyProfileProjects).Error
 	if err != nil {
 		return nil, err
@@ -129,37 +126,15 @@ func (repo *StrategyProfileProjectRepository) GetAll(strategyProfileID uint, par
 	return strategyProfileProjects, nil
 }
 
-func (repo *StrategyProfileProjectRepository) GetByID(id uint) (*models.StrategyProfileProject, error) {
+func (repo *StrategyProfileProjectRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileProject, error) {
 	var strategyProfileProject *models.StrategyProfileProject
 
-	result := repo.db.First(&strategyProfileProject, id)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	return strategyProfileProject, nil
-
-}
-
-func (repo *StrategyProfileProjectRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileProject, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	var strategyProfileProject *models.StrategyProfileProject
 
-	result := db.
-		Preload("StrategyProfile").
-		Preload("StrategyProfile.ResponsibleUser").
-		Preload("StrategyProfileFocusArea").
-		Preload("StrategyProfileGoal").
-		Preload("StrategyProfileObjective").
-		Preload("StrategyProfileInitiative").
-		Preload("ResponsibleUser").
-		Preload("CreatedByUser").
-		Preload("UpdatedByUser").
-		First(&strategyProfileProject, id)
-
+	result := db.First(&strategyProfileProject, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -177,18 +152,6 @@ func (repo *StrategyProfileProjectRepository) Create(strategyProfileProject *mod
 	}
 
 	return strategyProfileProject.ID, nil
-}
-
-func (repo *StrategyProfileProjectRepository) Update(strategyProfileProject *models.StrategyProfileProject, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Save(strategyProfileProject).Error; err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (repo *StrategyProfileProjectRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {

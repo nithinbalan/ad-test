@@ -309,7 +309,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":  assignedBy.LastNameEn,
 			"AssignedOn":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%scompliance/assessments/%d/overview", appURL, complianceAssessmentID),
+			"RedirectURL":           fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, complianceAssessmentID),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -523,7 +523,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 				"LastNameEn":            oldResponsibleUser.LastNameEn,
 				"ActionPlanTitle":       existingComplianceAssessmentRequirementActionPlan.Title,
 				"ActionPlanDescription": existingComplianceAssessmentRequirementActionPlan.Description,
-				"RedirectURL":           fmt.Sprintf("%scompliance/assessments/%d/overview", appURL, complianceAssessmentID),
+				"RedirectURL":           fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, complianceAssessmentID),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -545,7 +545,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%scompliance/assessments/%d/overview", appURL, complianceAssessmentID),
+				"RedirectURL":           fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, complianceAssessmentID),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{

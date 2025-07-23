@@ -225,7 +225,7 @@ func (krc *KPIRegisterController) GetKPITrendAnalysis(c *gin.Context) {
 		return
 	}
 
-	controlTrend, err := krc.service.GetTrendAnalysis(uint(id))
+	controlTrend, err := krc.service.GetTrendAnalysis(uint(id), 10)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -237,4 +237,42 @@ func (krc *KPIRegisterController) GetKPITrendAnalysis(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusOK, controlTrend)
+}
+
+func (krc *KPIRegisterController) GetKPIChartDetails(c *gin.Context) {
+	idStr := c.Param("kpiRegisterId")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	chartDetails, err := krc.service.GetKPIChartDetails(uint(id))
+	if err != nil {
+		utility.SendInternalErrResp(krc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, chartDetails)
+}
+
+func (krc *KPIRegisterController) GetKPILatestValueUpdate(c *gin.Context) {
+	idStr := c.Param("kpiRegisterId")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	latestValueUpdate, err := krc.service.GetLatestValueUpdateByKPIRegisterID(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(krc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, latestValueUpdate)
 }

@@ -230,6 +230,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/controls/:controlId/risks", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlAssociatedItemController.GetAllControlRisks)
 	organizationRoutes.GET("/controls/:controlId/incidents", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlAssociatedItemController.GetAllControlIncidents)
 	organizationRoutes.GET("/controls/:controlId/associated-item-summary", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlAssociatedItemController.GetAllAssociatedCounts)
+	organizationRoutes.GET("/controls/:controlId/clauses", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlAssociatedItemController.GetAllClauses)
+	organizationRoutes.PUT("/controls/:controlId/clauses", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.UpdateClauses)
 
 	//Process Group
 	organizationRoutes.GET("/process-groups", processGroupController.GetAllProcessGroups)
@@ -276,6 +278,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/processes/:processId/assets", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllProcessAssets)
 	organizationRoutes.GET("/processes/:processId/documents", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllProcessDocuments)
 	organizationRoutes.GET("/processes/:processId/associated-item-summary", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllAssociatedCounts)
+	organizationRoutes.GET("/processes/:processId/clauses", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllClauses)
+	organizationRoutes.PUT("/processes/:processId/clauses", middlewares.RolePermissionMiddleware(db, "process", "modify"), processAssociatedItemController.UpdateClauses)
 
 	// process dependency type
 	organizationRoutes.GET("/process-dependency-types", processDependencyTypeController.GetAllProcessDependencyTypes)
@@ -348,15 +352,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/job-descriptions/activate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), jobDescriptionController.ActivateJobDescriptions)
 	organizationRoutes.PUT("/job-descriptions/deactivate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), jobDescriptionController.DeactivateJobDescriptions)
 
-	organizationRoutes.POST("/job-descriptions/:id/competencies", jobDescriptionCompetencyController.MapCompetencies)
-	organizationRoutes.PUT("/job-descriptions/:id/competencies/:cId", jobDescriptionCompetencyController.UpdateCompetencyDetails)
-	organizationRoutes.DELETE("/job-descriptions/:id/competencies/:cId", jobDescriptionCompetencyController.DeleteCompetency)
+	organizationRoutes.POST("/job-descriptions/:id/competencies", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), jobDescriptionCompetencyController.MapCompetencies)
+	organizationRoutes.PUT("/job-descriptions/:id/competencies/:cId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), jobDescriptionCompetencyController.UpdateCompetencyDetails)
+	organizationRoutes.DELETE("/job-descriptions/:id/competencies/:cId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), jobDescriptionCompetencyController.DeleteCompetency)
 
 	organizationRoutes.GET("/users/:userId/job-descriptions", userJobDescriptionController.GetAllUserJobDescriptions)
 	organizationRoutes.GET("/users/:userId/job-descriptions/:id", userJobDescriptionController.GetUserJobDescriptionDetailsByID)
-	organizationRoutes.POST("/users/:userId/job-descriptions", userJobDescriptionController.AssignJobDescriptionsToUser)
-	organizationRoutes.PUT("/users/:userId/job-descriptions/:id/competencies/:cId", userJobDescriptionController.EvaluateCompetency)
-	organizationRoutes.DELETE("/users/:userId/job-descriptions/:id", userJobDescriptionController.DeleteJobDescriptionUser)
+	organizationRoutes.POST("/users/:userId/job-descriptions", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userJobDescriptionController.AssignJobDescriptionsToUser)
+	organizationRoutes.PUT("/users/:userId/job-descriptions/:id/competencies/:cId", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userJobDescriptionController.EvaluateCompetency)
+	organizationRoutes.DELETE("/users/:userId/job-descriptions/:id", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userJobDescriptionController.DeleteJobDescriptionUser)
 	unauthenticatedRoutes.GET("/users/:userId/job-descriptions/:id/competencies/:cId/document/:docId/document-download", userJobDescriptionController.DownloadUserJobDescriptionDocument)
 	unauthenticatedRoutes.GET("/users/:userId/job-descriptions/:id/competencies/:cId/document/:docId/document-preview", userJobDescriptionController.GetUserJobDescriptionDocumentPreview)
 

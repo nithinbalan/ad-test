@@ -1,14 +1,12 @@
 package dtos
 
-import (
-	organizationDTOs "jethur/grc/organization/dtos"
-	"time"
-)
-
 type StrategyProfileFocusAreaListDTO struct {
 	ID                          int     `json:"id"`
-	Title                       string  `json:"title"`
-	Description                 *string `json:"description"`
+	FocusAreaID                 *uint   `json:"focus_area_id"`
+	FocusAreaTitleEn            *string `json:"focus_area_title_en"`
+	FocusAreaTitleAr            *string `json:"focus_area_title_ar"`
+	FocusAreaDescriptionEn      *string `json:"focus_area_description_en"`
+	FocusAreaDescriptionAr      *string `json:"focus_area_description_ar"`
 	StrategyProfileTitle        string  `json:"strategy_profile_title"`
 	CreatedUserID               uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn      string  `json:"created_user_first_name_en"`
@@ -31,29 +29,14 @@ type StrategyProfileFocusAreaListDTO struct {
 }
 
 type StrategyProfileFocusAreaFormDTO struct {
-	Title       string  `json:"title" binding:"required"`
-	Description *string `json:"description"`
+	FocusAreaIDs []uint `json:"focus_area_ids" binding:"required,min=1"`
 }
 
 type StrategyProfileFocusAreaListQueryParamsDTO struct {
-	Sort        string
-	SortBy      string
-	Keyword     string
-	Page        int
-	PageSize    int
-	Filters     map[string][]string
-	QuickFilter []string
-	Export      bool
-}
-
-type StrategyProfileFocusAreaDetailDTO struct {
-	ID                uint                             `json:"id"`
-	Title             string                           `json:"title"`
-	Description       *string                          `json:"description"`
-	StrategyProfileID uint                             `json:"strategy_profile_id"`
-	StrategyProfile   StrategyProfileDetailDTO         `json:"strategy_profile"`
-	CreatedAt         time.Time                        `json:"created_at"`
-	UpdatedAt         *time.Time                       `json:"updated_at"`
-	CreatedByUser     organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedByUser     *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	Sort     string
+	SortBy   string
+	Keyword  string
+	Page     int
+	PageSize int
+	Filters  map[string][]string
 }

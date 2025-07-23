@@ -2,10 +2,14 @@ package services
 
 import (
 	"fmt"
+	"os"
 	"sort"
+	"strings"
 
 	libraryDTOs "jethur/grc/library/dtos"
 	"jethur/grc/library/repositories"
+	organizationServices "jethur/grc/organization/services"
+	"jethur/utility"
 )
 
 type ComplianceLibraryServiceInterface interface {
@@ -14,19 +18,23 @@ type ComplianceLibraryServiceInterface interface {
 
 	GetClausesByVersion(versionID, complianceLibraryID uint) ([]libraryDTOs.ClauseWithSubClausesDTO, error)
 	GetAllControlMapping() ([]libraryDTOs.ControlMappingDTO, error)
-	GetControlMappings() ([]libraryDTOs.ControlLibraryResponseDTO, error)
+	GetControlMappings(params *libraryDTOs.ControlMappingListQueryParamsDTO) (*libraryDTOs.ControlMappingListResponseDTO, error)
+	ExportControlMappings(data []*libraryDTOs.ControlLibraryResponseDTO, userID uint) (*os.File, error)
 }
 
 // Service and implementations
 type ComplianceLibraryService struct {
-	repo repositories.ComplianceLibraryRepositoryInterface
+	repo           repositories.ComplianceLibraryRepositoryInterface
+	userSettingSvc organizationServices.UserSettingServiceInterface
 }
 
 func NewComplianceLibraryService(
 	repo repositories.ComplianceLibraryRepositoryInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) ComplianceLibraryServiceInterface {
 	return &ComplianceLibraryService{
-		repo: repo,
+		repo:           repo,
+		userSettingSvc: userSettingSvc,
 	}
 }
 
@@ -163,6 +171,77 @@ func (cls *ComplianceLibraryService) GetAllControlMapping() ([]libraryDTOs.Contr
 	return result, nil
 }
 
-func (cls *ComplianceLibraryService) GetControlMappings() ([]libraryDTOs.ControlLibraryResponseDTO, error) {
-	return cls.repo.GetControlMappings()
+func (cls *ComplianceLibraryService) GetControlMappings(params *libraryDTOs.ControlMappingListQueryParamsDTO) (*libraryDTOs.ControlMappingListResponseDTO, error) {
+	return cls.repo.GetControlMappings(params)
+}
+
+func (cls *ComplianceLibraryService) ExportControlMappings(data []*libraryDTOs.ControlLibraryResponseDTO, userID uint) (*os.File, error) {
+	userSetting, err := cls.userSettingSvc.GetUserSettingsByUserID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers based on language
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"الرقم التسلسلي",
+			"العنوان",
+			"مؤسسة النقد العربي السعودي",
+			"الهيئة الوطنية للأمن السيبراني",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Title",
+			"SAMA CSF",
+			"NCA ECC",
+		}
+	}
+
+	var rows [][]interface{}
+	for i, item := range data {
+		slNo := i + 1
+
+		var samaText string
+		var ncaText string
+
+		if userSetting.Language == "ar" {
+			for _, sama := range item.SAMA {
+				if sama.ControlCode != "" {
+					samaText += fmt.Sprintf("%s %s\n", sama.ControlCode, sama.ControlTitleAr)
+				}
+			}
+			for _, nca := range item.NCA {
+				if nca.ControlCode != "" {
+					ncaText += fmt.Sprintf("%s %s\n", nca.ControlCode, nca.ControlTitleAr)
+				}
+			}
+			rows = append(rows, []interface{}{
+				slNo,
+				item.TitleAr,
+				strings.TrimSpace(samaText),
+				strings.TrimSpace(ncaText),
+			})
+		} else {
+			for _, sama := range item.SAMA {
+				if sama.ControlCode != "" {
+					samaText += fmt.Sprintf("%s %s\n", sama.ControlCode, sama.ControlTitleEn)
+				}
+			}
+			for _, nca := range item.NCA {
+				if nca.ControlCode != "" {
+					ncaText += fmt.Sprintf("%s %s\n", nca.ControlCode, nca.ControlTitleEn)
+				}
+			}
+			rows = append(rows, []interface{}{
+				slNo,
+				item.TitleEn,
+				strings.TrimSpace(samaText),
+				strings.TrimSpace(ncaText),
+			})
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }
