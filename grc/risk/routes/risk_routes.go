@@ -221,6 +221,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.POST("risks/:riskId/kpis", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskAssociatedItemController.CreatRiskKPI)
 	riskRoutes.DELETE("risks/:riskId/kpis/:kpiId", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskAssociatedItemController.DeletetRiskKPI)
 
+	riskRoutes.GET("risks/:riskId/bcp", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAssociatedItemController.GetAllRiskBCP)
+	riskRoutes.POST("risks/:riskId/bcp", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskAssociatedItemController.CreatRiskBCP)
+	riskRoutes.DELETE("risks/:riskId/bcp/:bcpId", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskAssociatedItemController.DeletetRiskBCP)
+
+	riskRoutes.GET("risks/:riskId/projects", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAssociatedItemController.GetAllRiskProject)
+	riskRoutes.POST("risks/:riskId/projects", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskAssociatedItemController.CreatRiskProject)
+	riskRoutes.DELETE("risks/:riskId/projects/:projectId", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskAssociatedItemController.DeletetRiskProject)
+
 	riskRoutes.POST("risks/:riskId/controls", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskAssociatedItemController.CreatRiskControl)
 	riskRoutes.DELETE("risks/:riskId/controls/:controlId", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskAssociatedItemController.DeletetRiskControl)
 

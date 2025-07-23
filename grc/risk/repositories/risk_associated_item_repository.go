@@ -39,6 +39,14 @@ type RiskAssociatedItemRepositoryInterface interface {
 	DeletetRiskControl(riskID uint, controlID uint, tx ...utility.DatabaseTransaction) error
 	CreatRiskAsset(incidents []*models.RiskAsset, tx ...utility.DatabaseTransaction) error
 	DeletetRiskAsset(riskID uint, assetID uint, tx ...utility.DatabaseTransaction) error
+
+	GetAllRiskBCP(riskID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedBusinessContinuityPlanListResponseDTO, error)
+	CreatRiskBCP(incidents []*models.BcpRisk, tx ...utility.DatabaseTransaction) error
+	DeletetRiskBCP(riskID uint, assetID uint, tx ...utility.DatabaseTransaction) error
+
+	GetAllRiskProject(riskID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedProjectListResponseDTO, error)
+	CreatRiskProject(incidents []*models.ProjectRisk, tx ...utility.DatabaseTransaction) error
+	DeletetRiskProject(riskID uint, assetID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskAssociatedItemRepository struct {
@@ -1490,5 +1498,265 @@ func (repo *RiskAssociatedItemRepository) DeletetRiskAsset(riskID uint, assetID 
 	return db.
 		Where("risk_register_id = ? AND asset_register_id = ?", riskID, assetID).
 		Delete(&models.RiskAsset{}).
+		Error
+}
+
+func (repo *RiskAssociatedItemRepository) GetAllRiskBCP(riskID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedBusinessContinuityPlanListResponseDTO, error) {
+	var businessContinuityPlans []*commonDTOs.AssociatedBusinessContinuityPlanListDTO
+	var totalCount int64
+
+	query := repo.db.Table("bcp_risks").
+		Select(`
+            business_continuity_plans.*,
+			business_functions.title AS business_function_title,
+			bcp_statuses.title_en AS bcp_status_title_en,
+			bcp_statuses.title_ar AS bcp_status_title_ar,
+			bcp_statuses.color_code AS bcp_status_color_code,
+			bcp_statuses.type AS bcp_status_type,
+			rto_time_unit.title_en AS rto_unit_title_en,
+			rto_time_unit.title_ar AS rto_unit_title_ar,
+			mtpd_time_unit.title_en AS mtpd_unit_title_en,
+			mtpd_time_unit.title_ar AS mtpd_unit_title_ar,
+			rpo_time_unit.title_en AS rpo_unit_title_en,
+			rpo_time_unit.title_ar AS rpo_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+            responsible_user.first_name_ar AS responsible_user_first_name_ar,
+            responsible_user.last_name_en AS responsible_user_last_name_en,
+            responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+            responsible_user.color AS responsible_user_color,
+            responsible_user.email AS responsible_user_email,
+            responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+            created_user.color AS created_user_color,
+            created_user.email AS created_user_email,
+            created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+            updated_user.color AS updated_user_color,
+            updated_user.email AS updated_user_email,
+            updated_user.profile_image_path AS updated_user_profile_image_path  
+        `).
+		Joins(`
+		    LEFT JOIN business_continuity_plans ON business_continuity_plans.id = bcp_risks.business_continuity_plan_id
+		    LEFT JOIN business_functions ON business_functions.id = business_continuity_plans.business_function_id
+			LEFT JOIN bcp_statuses ON bcp_statuses.id = business_continuity_plans.bcp_status_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = business_continuity_plans.responsible_user_id
+			LEFT JOIN time_units AS rto_time_unit ON rto_time_unit.id = business_continuity_plans.rto_unit_id
+			LEFT JOIN time_units AS mtpd_time_unit ON mtpd_time_unit.id = business_continuity_plans.mtpd_unit_id
+			LEFT JOIN time_units AS rpo_time_unit ON rpo_time_unit.id = business_continuity_plans.rpo_unit_id
+			LEFT JOIN users AS created_user ON created_user.id = business_continuity_plans.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = business_continuity_plans.updated_by_id
+        `).Where("bcp_risks.risk_register_id = ?", riskID)
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(business_continuity_plans.reference_number LIKE ? OR
+			business_functions.title LIKE ? OR
+			created_user.first_name_en LIKE ? OR
+			created_user.first_name_ar LIKE ? OR
+			created_user.last_name_en LIKE ? OR
+			created_user.last_name_ar LIKE ? OR
+    		updated_user.first_name_en LIKE ? OR
+			updated_user.first_name_ar LIKE ? OR
+			updated_user.last_name_en LIKE ? OR
+			updated_user.last_name_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "business_functions.title"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&businessContinuityPlans).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedBusinessContinuityPlanListResponseDTO{
+		Items: businessContinuityPlans,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *RiskAssociatedItemRepository) CreatRiskBCP(bcps []*models.BcpRisk, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&bcps).Error
+}
+
+func (repo *RiskAssociatedItemRepository) DeletetRiskBCP(riskID uint, bcpID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("risk_register_id = ? AND business_continuity_plan_id = ?", riskID, bcpID).
+		Delete(&models.BcpRisk{}).
+		Error
+}
+func (repo *RiskAssociatedItemRepository) GetAllRiskProject(riskID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedProjectListResponseDTO, error) {
+	var projects []*commonDTOs.AssociatedProjectListDTO
+	var totalCount int64
+
+	query := repo.db.Table("project_risks").
+		Select(`
+			projects.id,
+			projects.title_en,
+			projects.title_ar,
+			projects.description_en,
+			projects.description_ar,
+			CONVERT(VARCHAR, projects.start_date, 23) AS start_date,
+			CONVERT(VARCHAR, projects.end_date, 23) AS end_date,
+			project_types.id AS project_type_id,
+			project_types.title_en AS project_type_title_en,
+			project_types.title_ar AS project_type_title_ar,
+			project_statuses.id AS project_status_id,
+			project_statuses.title_en AS project_status_title_en,
+			project_statuses.title_ar AS project_status_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
+			updated_user.id AS updated_user_id,
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path
+		`).
+		Joins("LEFT JOIN projects ON projects.id = project_risks.project_id").
+		Joins("LEFT JOIN project_types ON project_types.id = projects.project_type_id").
+		Joins("LEFT JOIN project_statuses ON project_statuses.id = projects.project_status_id").
+		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = projects.responsible_user_id").
+		Joins("LEFT JOIN users AS created_user ON created_user.id = projects.created_by_id").
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = projects.updated_by_id").
+		Where("project_risks.risk_register_id = ?", riskID)
+
+	// Keyword search
+	if params.Keyword != "" {
+		like := "%" + params.Keyword + "%"
+		query = query.Where(`
+			projects.title_en LIKE ? OR
+			projects.title_ar LIKE ? OR
+			projects.description_en LIKE ? OR
+			projects.description_ar LIKE ? OR
+			project_types.title_en LIKE ? OR
+			project_types.title_ar LIKE ? OR
+			project_statuses.title_en LIKE ? OR
+			project_statuses.title_ar LIKE ? OR
+			responsible_user.first_name_en LIKE ? OR
+			responsible_user.first_name_ar LIKE ? OR
+			responsible_user.last_name_en LIKE ? OR
+			responsible_user.last_name_ar LIKE ? OR
+			responsible_user.email LIKE ?`,
+			like, like, like, like,
+			like, like, like, like,
+			like, like, like, like,
+			like)
+	}
+	if params.SortBy == "" {
+		params.SortBy = "projects.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&projects).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedProjectListResponseDTO{
+		Items: projects,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+
+}
+
+func (repo *RiskAssociatedItemRepository) CreatRiskProject(projects []*models.ProjectRisk, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&projects).Error
+}
+
+func (repo *RiskAssociatedItemRepository) DeletetRiskProject(riskID uint, projectID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("risk_register_id = ? AND project_id = ?", riskID, projectID).
+		Delete(&models.ProjectRisk{}).
 		Error
 }

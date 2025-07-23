@@ -965,3 +965,198 @@ func (rc *RiskAssociatedItemController) DeletetRiskAsset(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Asset unmapped from risk successfully"})
 }
+func (raic *RiskAssociatedItemController) GetAllRiskBCP(c *gin.Context) {
+
+	riskIDStr := c.Param("riskId")
+
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(raic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(raic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	risks, err := raic.service.GetAllRiskBCP(uint(riskID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(raic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, risks)
+}
+func (rc *RiskAssociatedItemController) CreatRiskBCP(c *gin.Context) {
+	var input commonDTOs.AssociatedBCPMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	riskID, err := strconv.ParseUint(c.Param("riskId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	err = rc.service.CreatRiskBCP(uint(riskID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (rc *RiskAssociatedItemController) DeletetRiskBCP(c *gin.Context) {
+	riskID, _ := strconv.ParseUint(c.Param("riskId"), 10, 64)
+	bcpID, _ := strconv.ParseUint(c.Param("bcpId"), 10, 64)
+	err := rc.service.DeletetRiskBCP(uint(riskID), uint(bcpID))
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "BCP unmapped from risk successfully"})
+}
+
+func (raic *RiskAssociatedItemController) GetAllRiskProject(c *gin.Context) {
+
+	riskIDStr := c.Param("riskId")
+
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(raic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(raic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	risks, err := raic.service.GetAllRiskProject(uint(riskID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(raic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, risks)
+}
+func (rc *RiskAssociatedItemController) CreatRiskProject(c *gin.Context) {
+	var input commonDTOs.AssociatedProjectMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	riskID, err := strconv.ParseUint(c.Param("riskId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	err = rc.service.CreatRiskProject(uint(riskID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (rc *RiskAssociatedItemController) DeletetRiskProject(c *gin.Context) {
+	riskID, _ := strconv.ParseUint(c.Param("riskId"), 10, 64)
+	projectID, _ := strconv.ParseUint(c.Param("projectId"), 10, 64)
+	err := rc.service.DeletetRiskProject(uint(riskID), uint(projectID))
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Project unmapped from risk successfully"})
+}

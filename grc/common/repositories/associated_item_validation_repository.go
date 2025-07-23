@@ -23,6 +23,10 @@ type AssociatedItemValidationRepositoryInterface interface {
 	KpiExists(id uint) (*models.KPIRegister, error)
 	IsControlMapped(masterName string, columnName string, controlId, masterID uint) (bool, error)
 	ControlExists(id uint) (*models.Control, error)
+	IsProjectMapped(masterName string, columnName string, projectId, masterID uint) (bool, error)
+	ProjectExists(id uint) (*models.Project, error)
+	IsBCPMapped(masterName string, columnName string, bcpId, masterID uint) (bool, error)
+	BCPExists(id uint) (*models.BusinessContinuityPlan, error)
 }
 
 type AssociatedItemValidationRepository struct {
@@ -257,5 +261,61 @@ func (repo *AssociatedItemValidationRepository) ControlExists(id uint) (*models.
 	}
 
 	return contol, nil
+
+}
+
+func (repo *AssociatedItemValidationRepository) IsProjectMapped(masterName string, columnName string, projectId, masterID uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Table(masterName).
+		Where("project_id = ? AND "+columnName+" = ?", projectId, masterID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *AssociatedItemValidationRepository) ProjectExists(id uint) (*models.Project, error) {
+	db := repo.db
+
+	var project *models.Project
+
+	result := db.
+		First(&project, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return project, nil
+
+}
+
+func (repo *AssociatedItemValidationRepository) IsBCPMapped(masterName string, columnName string, bcpId, masterID uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Table(masterName).
+		Where("business_continuity_plan_id = ? AND "+columnName+" = ?", bcpId, masterID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *AssociatedItemValidationRepository) BCPExists(id uint) (*models.BusinessContinuityPlan, error) {
+	db := repo.db
+
+	var bcp *models.BusinessContinuityPlan
+
+	result := db.
+		First(&bcp, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return bcp, nil
 
 }

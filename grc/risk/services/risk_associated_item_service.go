@@ -40,6 +40,14 @@ type RiskAssociatedItemServiceInterface interface {
 	DeletetRiskControl(riskID uint, controlID uint) error
 	CreatRiskAsset(riskID uint, currentUserID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
 	DeletetRiskAsset(riskID uint, controlID uint) error
+
+	GetAllRiskBCP(riskID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedBusinessContinuityPlanListResponseDTO, error)
+	CreatRiskBCP(riskID uint, currentUserID uint, dto *commonDTOs.AssociatedBCPMapDTO) error
+	DeletetRiskBCP(riskID uint, bcpID uint) error
+
+	GetAllRiskProject(riskID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedProjectListResponseDTO, error)
+	CreatRiskProject(riskID uint, currentUserID uint, dto *commonDTOs.AssociatedProjectMapDTO) error
+	DeletetRiskProject(riskID uint, projectID uint) error
 }
 
 // Service and implementations
@@ -602,6 +610,106 @@ func (rais *RiskAssociatedItemService) DeletetRiskAsset(riskID uint, assetID uin
 	tx := rais.repo.BeginTransaction()
 
 	if err := rais.repo.DeletetRiskAsset(riskID, assetID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (rais *RiskAssociatedItemService) GetAllRiskBCP(riskID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedBusinessContinuityPlanListResponseDTO, error) {
+	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
+		return nil, err
+	}
+	return rais.repo.GetAllRiskBCP(riskID, params)
+}
+
+func (rais *RiskAssociatedItemService) CreatRiskBCP(riskID uint, currentUserID uint, dto *commonDTOs.AssociatedBCPMapDTO) error {
+	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("risk does not exist for ID: %d", riskID), "not_exist", "risk_id")
+	}
+	if err := rais.validationSvc.ValidateBCPMapping(riskID, dto.BcpIDs, "bcp_risks", "risk_register_id"); err != nil {
+		return err
+	}
+	tx := rais.repo.BeginTransaction()
+	var mappings []*models.BcpRisk
+	currentTime := time.Now()
+
+	for _, bcpID := range dto.BcpIDs {
+		mappings = append(mappings, &models.BcpRisk{
+			RiskRegisterID:           riskID,
+			BusinessContinuityPlanID: bcpID,
+			CreatedBYID:              currentUserID,
+			CreatedAt:                currentTime,
+		})
+	}
+
+	if err := rais.repo.CreatRiskBCP(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (rais *RiskAssociatedItemService) DeletetRiskBCP(riskID uint, bcpID uint) error {
+	// Validate control existence
+	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("risk does not exist for ID: %d", riskID), "not_exist", "risk_id")
+	}
+
+	tx := rais.repo.BeginTransaction()
+
+	if err := rais.repo.DeletetRiskBCP(riskID, bcpID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (rais *RiskAssociatedItemService) GetAllRiskProject(riskID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedProjectListResponseDTO, error) {
+	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
+		return nil, err
+	}
+	return rais.repo.GetAllRiskProject(riskID, params)
+}
+
+func (rais *RiskAssociatedItemService) CreatRiskProject(riskID uint, currentUserID uint, dto *commonDTOs.AssociatedProjectMapDTO) error {
+	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("risk does not exist for ID: %d", riskID), "not_exist", "risk_id")
+	}
+	if err := rais.validationSvc.ValidateProjectMapping(riskID, dto.ProjectIDs, "project_risks", "risk_register_id"); err != nil {
+		return err
+	}
+	tx := rais.repo.BeginTransaction()
+	var mappings []*models.ProjectRisk
+	currentTime := time.Now()
+
+	for _, projectID := range dto.ProjectIDs {
+		mappings = append(mappings, &models.ProjectRisk{
+			RiskRegisterID: riskID,
+			ProjectID:      projectID,
+			CreatedByID:    currentUserID,
+			CreatedAt:      currentTime,
+		})
+	}
+
+	if err := rais.repo.CreatRiskProject(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (rais *RiskAssociatedItemService) DeletetRiskProject(riskID uint, projectId uint) error {
+	// Validate control existence
+	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("risk does not exist for ID: %d", riskID), "not_exist", "risk_id")
+	}
+
+	tx := rais.repo.BeginTransaction()
+
+	if err := rais.repo.DeletetRiskProject(riskID, projectId, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

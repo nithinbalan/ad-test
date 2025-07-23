@@ -16,6 +16,8 @@ type AssociatedItemValidationServiceInterface interface {
 	ValidateProcessMapping(masterID uint, processIds []uint, tableName string, columnName string) error
 	ValidateKPIMapping(masterID uint, kpiIds []uint, tableName string, columnName string) error
 	ValidateControlMapping(masterID uint, controlIds []uint, tableName string, columnName string) error
+	ValidateProjectMapping(masterID uint, projectIds []uint, tableName string, columnName string) error
+	ValidateBCPMapping(masterID uint, bcppIds []uint, tableName string, columnName string) error
 }
 
 // Service struct
@@ -279,6 +281,70 @@ func (aivs *AssociatedItemValidationService) ValidateControlMapping(masterID uin
 			return utility.NewValidationError(
 				fmt.Errorf("control ID %d already mapped to this %s", id, tableName),
 				"duplicate", "Control")
+		}
+
+		seen[id] = true
+	}
+
+	return nil
+}
+
+func (aivs *AssociatedItemValidationService) ValidateProjectMapping(masterID uint, projectIds []uint, tableName string, columnName string) error {
+	if len(projectIds) == 0 {
+		return utility.NewValidationError(fmt.Errorf("no projects provided"), "required", "project_id")
+	}
+
+	seen := make(map[uint]bool)
+	for _, id := range projectIds {
+		if seen[id] {
+			return utility.NewValidationError(fmt.Errorf("duplicate project ID: %d", id), "duplicate", "project_id")
+		}
+
+		_, err := aivs.repo.ProjectExists(id)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("project does not exist: %d", id), "not_exist", "project_id")
+		}
+
+		alreadyMapped, err := aivs.repo.IsProjectMapped(tableName, columnName, id, masterID)
+		if err != nil {
+			return fmt.Errorf("failed to check mapping: %v", err)
+		}
+		if alreadyMapped {
+			return utility.NewValidationError(
+				fmt.Errorf("project ID %d already mapped to this %s", id, tableName),
+				"duplicate", "Project")
+		}
+
+		seen[id] = true
+	}
+
+	return nil
+}
+
+func (aivs *AssociatedItemValidationService) ValidateBCPMapping(masterID uint, bcppIds []uint, tableName string, columnName string) error {
+	if len(bcppIds) == 0 {
+		return utility.NewValidationError(fmt.Errorf("no bcp provided"), "required", "bcp_id")
+	}
+
+	seen := make(map[uint]bool)
+	for _, id := range bcppIds {
+		if seen[id] {
+			return utility.NewValidationError(fmt.Errorf("duplicate bcp ID: %d", id), "duplicate", "bcp_id")
+		}
+
+		_, err := aivs.repo.BCPExists(id)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("bcp does not exist: %d", id), "not_exist", "bcp_id")
+		}
+
+		alreadyMapped, err := aivs.repo.IsBCPMapped(tableName, columnName, id, masterID)
+		if err != nil {
+			return fmt.Errorf("failed to check mapping: %v", err)
+		}
+		if alreadyMapped {
+			return utility.NewValidationError(
+				fmt.Errorf("bcp ID %d already mapped to this %s", id, tableName),
+				"duplicate", "BCP")
 		}
 
 		seen[id] = true

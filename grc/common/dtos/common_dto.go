@@ -704,3 +704,119 @@ type AssociatedControlListResponseDTO struct {
 	Items      []*AssociatedControlListDTO `json:"items"`
 	Pagination PaginationInfoDTO           `json:"pagination"`
 }
+
+type AssociatedBCPMapDTO struct {
+	BcpIDs []uint `json:"business_continuity_plan_ids" binding:"required"`
+}
+
+type AssociatedProjectMapDTO struct {
+	ProjectIDs []uint `json:"project_ids" binding:"required"`
+}
+
+type AssociatedBusinessContinuityPlanListDTO struct {
+	ID                              uint    `json:"id"`
+	ReferenceNumber                 string  `json:"reference_number"`
+	BusinessFunctionID              uint    `json:"business_function_id"`
+	BusinessFunctionTitle           string  `json:"business_function_title"`
+	Version                         *int    `json:"version"`
+	IsLatestVersion                 *bool   `json:"is_latest_version"`
+	Purpose                         *string `json:"purpose"`
+	Scope                           *string `json:"scope"`
+	Objectives                      *string `json:"objectives"`
+	Assumptions                     *string `json:"assumptions"`
+	ResponsibleUserFirstNameEn      string  `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string  `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string  `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string  `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          string  `json:"responsible_user_initial"`
+	ResponsibleUserColor            string  `json:"responsible_user_color"`
+	ResponsibleUserEmail            string  `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath string  `json:"responsible_user_profile_image_path"`
+	BcpStatusTitleEn                string  `json:"bcp_status_title_en"`
+	BcpStatusTitleAr                string  `json:"bcp_status_title_ar"`
+	BcpStatusColorCode              string  `json:"bcp_status_color_code"`
+	BcpStatusType                   string  `json:"bcp_status_type"`
+	Rto                             *int    `json:"rto"`
+	RtoUnitId                       *uint   `json:"rto_unit_id"`
+	RtoUnitTitleEn                  *string `json:"rto_unit_title_en"`
+	RtoUnitTitleAr                  *string `json:"rto_unit_title_ar"`
+	Mtpd                            *int    `json:"mtpd"`
+	MtpdUnitId                      *uint   `json:"mtpd_unit_id"`
+	MtpdUnitTitleEn                 *string `json:"mtpd_unit_title_en"`
+	MtpdUnitTitleAr                 *string `json:"mtpd_unit_title_ar"`
+	Rpo                             *int    `json:"rpo"`
+	RpoUnitId                       *uint   `json:"rpo_unit_id"`
+	RpoUnitTitleEn                  *string `json:"rpo_unit_title_en"`
+	RpoUnitTitleAr                  *string `json:"rpo_unit_title_ar"`
+	CreatedAt                       string  `json:"created_at"`
+	UpdatedAt                       string  `json:"updated_at"`
+	CreatedUserID                   uint    `json:"created_user_id"`
+	CreatedUserFirstNameEn          string  `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr          string  `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn           string  `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr           string  `json:"created_user_last_name_ar"`
+	CreatedUserInitial              string  `json:"created_user_initial"`
+	CreatedUserColor                string  `json:"created_user_color"`
+	CreatedUserEmail                string  `json:"created_user_email"`
+	CreatedUserProfileImagePath     string  `json:"created_user_profile_image_path"`
+	UpdatedUserID                   *uint   `json:"updated_user_id"`
+	UpdatedUserFirstNameEn          *string `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr          *string `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn           *string `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr           *string `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial              *string `json:"updated_user_initial"`
+	UpdatedUserColor                *string `json:"updated_user_color"`
+	UpdatedUserEmail                *string `json:"updated_user_email"`
+	UpdatedUserProfileImagePath     *string `json:"updated_user_profile_image_path"`
+}
+
+type AssociatedBusinessContinuityPlanListResponseDTO struct {
+	Items      []*AssociatedBusinessContinuityPlanListDTO `json:"items"`
+	Pagination PaginationInfoDTO                          `json:"pagination"`
+}
+
+type AssociatedProjectListDTO struct {
+	ID                              uint    `json:"id"`
+	TitleEn                         string  `json:"title_en"`
+	TitleAr                         string  `json:"title_ar"`
+	DescriptionEn                   *string `json:"description_en"`
+	DescriptionAr                   *string `json:"description_ar"`
+	ProjectTypeTitleEn              string  `json:"project_type_title_en"`
+	ProjectTypeTitleAr              string  `json:"project_type_title_ar"`
+	ProjectStatusTitleEn            string  `json:"project_status_title_en"`
+	ProjectStatusTitleAr            string  `json:"project_status_title_ar"`
+	StartDate                       string  `json:"start_date"`
+	EndDate                         string  `json:"end_date"`
+	ResponsibleUserID               uint    `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn      string  `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string  `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string  `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string  `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          string  `json:"responsible_user_initial"`
+	ResponsibleUserColor            string  `json:"responsible_user_color"`
+	ResponsibleUserEmail            string  `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath string  `json:"responsible_user_profile_image_path"`
+	CreatedUserID                   uint    `json:"created_user_id"`
+	CreatedUserFirstNameEn          string  `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr          string  `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn           string  `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr           string  `json:"created_user_last_name_ar"`
+	CreatedUserInitial              string  `json:"created_user_initial"`
+	CreatedUserColor                string  `json:"created_user_color"`
+	CreatedUserEmail                string  `json:"created_user_email"`
+	CreatedUserProfileImagePath     string  `json:"created_user_profile_image_path"`
+	UpdatedUserID                   *uint   `json:"updated_user_id"`
+	UpdatedUserFirstNameEn          *string `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr          *string `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn           *string `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr           *string `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial              *string `json:"updated_user_initial"`
+	UpdatedUserColor                *string `json:"updated_user_color"`
+	UpdatedUserEmail                *string `json:"updated_user_email"`
+	UpdatedUserProfileImagePath     *string `json:"updated_user_profile_image_path"`
+}
+
+type AssociatedProjectListResponseDTO struct {
+	Items      []*AssociatedProjectListDTO `json:"items"`
+	Pagination PaginationInfoDTO           `json:"pagination"`
+}
