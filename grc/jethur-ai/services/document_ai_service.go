@@ -7,32 +7,44 @@ import (
 	"jethur/grc/documents/services"
 	aiDTOs "jethur/grc/jethur-ai/dtos"
 	organizationServices "jethur/grc/organization/services"
+	settingsServices "jethur/grc/settings/services"
 	"jethur/utility"
-	"log"
 )
 
 type DocumentAIServiceInterface interface {
 	GetAISummary(documentId uint) (*aiDTOs.DocumentAISummaryDTO, error)
 	GetDocumentRecommendations(documentId uint, currentUserID uint) (map[string]interface{}, error)
 	ProcessChat(ctx context.Context, content, role, documentID, contextID string) (<-chan string, error)
+	GetDocumentRequirements(documentID uint) (map[string]interface{}, error)
 }
 
 type DocumentAIService struct {
-	documentService services.DocumentServiceInterface
-	userService     organizationServices.UserServiceInterface
+	documentService     services.DocumentServiceInterface
+	userService         organizationServices.UserServiceInterface
+	systemPreferenceSvc settingsServices.SystemPreferenceServiceInterface
 }
 
 func NewDocumentAIService(
 	documentService services.DocumentServiceInterface,
 	userService organizationServices.UserServiceInterface,
+	systemPreferenceSvc settingsServices.SystemPreferenceServiceInterface,
 ) DocumentAIServiceInterface {
 	return &DocumentAIService{
-		documentService: documentService,
-		userService:     userService,
+		documentService:     documentService,
+		userService:         userService,
+		systemPreferenceSvc: systemPreferenceSvc,
 	}
 }
 
 func (as *DocumentAIService) GetAISummary(documentId uint) (*aiDTOs.DocumentAISummaryDTO, error) {
+	systemPreference, err := as.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
 	// Get full document details
 	document, err := as.documentService.GetFullDetailsByID(documentId, nil)
 	if err != nil {
@@ -97,8 +109,16 @@ func (as *DocumentAIService) GetAISummary(documentId uint) (*aiDTOs.DocumentAISu
 	return aiSummaryDTO, nil
 }
 
-func (svc *DocumentAIService) GetDocumentRecommendations(documentId uint, currentUserID uint) (map[string]interface{}, error) {
-	userDetails, err := svc.userService.GetCurrentUserDetails(currentUserID)
+func (dai *DocumentAIService) GetDocumentRecommendations(documentId uint, currentUserID uint) (map[string]interface{}, error) {
+	systemPreference, err := dai.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+	userDetails, err := dai.userService.GetCurrentUserDetails(currentUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -117,8 +137,15 @@ func (svc *DocumentAIService) GetDocumentRecommendations(documentId uint, curren
 	return utility.CallAIAPI("/api/v1/policy/policy-recomendation", payload)
 }
 
-func (s *DocumentAIService) ProcessChat(ctx context.Context, content, role, documentID, contextID string) (<-chan string, error) {
-	log.Println("🔍 ProcessChat started")
+func (dai *DocumentAIService) ProcessChat(ctx context.Context, content, role, documentID, contextID string) (<-chan string, error) {
+	systemPreference, err := dai.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
 
 	payload := map[string]interface{}{
 		"content":     content,
@@ -128,4 +155,18 @@ func (s *DocumentAIService) ProcessChat(ctx context.Context, content, role, docu
 	}
 
 	return utility.StreamAIAPI(ctx, "/api/v1/document-chat", payload)
+}
+
+func (dai *DocumentAIService) GetDocumentRequirements(documentID uint) (map[string]interface{}, error) {
+	systemPreference, err := dai.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
+	path := fmt.Sprintf("/api/v1/policy/%d/requirements-extracting", documentID)
+	return utility.CallAIAPIObjectResponse(path)
 }
