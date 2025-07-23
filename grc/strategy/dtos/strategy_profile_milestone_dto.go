@@ -57,22 +57,22 @@ type StrategyProfileMilestoneListQueryParamsDTO struct {
 }
 
 type StrategyProfileMilestoneDetailDTO struct {
-	ID                          uint                               `json:"id"`
-	Title                       string                             `json:"title"`
-	StrategyProfileID           uint                               `json:"strategy_profile_id"`
-	StrategyProfile             StrategyProfileDetailDTO           `json:"strategy_profile"`
-	StrategyProfileFocusAreaID  *uint                              `json:"strategy_profile_focus_area_id"`
-	StrategyProfileFocusArea    FocusAreaDetailDTO                 `json:"strategy_profile_focus_area"`
-	StrategyProfileGoalID       *uint                              `json:"strategy_profile_goal_id"`
-	StrategyProfileGoal         StrategyProfileGoalDetailDTO       `json:"strategy_profile_goal"`
-	StrategyProfileObjectiveID  *uint                              `json:"strategy_profile_objective_id"`
-	StrategyProfileObjective    StrategicObjectiveDetailDTO        `json:"strategy_profile_objective"`
-	StrategyProfileInitiativeID *uint                              `json:"strategy_profile_initiative_id"`
-	StrategyProfileInitiative   StrategyProfileInitiativeDetailDTO `json:"strategy_profile_initiative"`
-	StrategyProfileProjectID    *uint                              `json:"strategy_profile_project_id"`
-	StrategyProfileProject      StrategyProfileProjectDetailDTO    `json:"strategy_profile_project"`
-	CreatedAt                   time.Time                          `json:"created_at"`
-	UpdatedAt                   *time.Time                         `json:"updated_at"`
-	CreatedByUser               organizationDTOs.UserMinimalDTO    `json:"created_by"`
-	UpdatedByUser               *organizationDTOs.UserMinimalDTO   `json:"updated_by"`
+	ID                          uint                         `json:"id"`
+	Title                       string                       `json:"title"`
+	StrategyProfileID           uint                         `json:"strategy_profile_id"`
+	StrategyProfile             StrategyProfileDetailDTO     `json:"strategy_profile"`
+	StrategyProfileFocusAreaID  *uint                        `json:"strategy_profile_focus_area_id"`
+	StrategyProfileFocusArea    FocusAreaDetailDTO           `json:"strategy_profile_focus_area"`
+	StrategyProfileGoalID       *uint                        `json:"strategy_profile_goal_id"`
+	StrategyProfileGoal         StrategyProfileGoalDetailDTO `json:"strategy_profile_goal"`
+	StrategyProfileObjectiveID  *uint                        `json:"strategy_profile_objective_id"`
+	StrategyProfileObjective    StrategicObjectiveDetailDTO  `json:"strategy_profile_objective"`
+	StrategyProfileInitiativeID *uint                        `json:"strategy_profile_initiative_id"`
+	//StrategyProfileInitiative   StrategyProfileInitiativeDetailDTO `json:"strategy_profile_initiative"`
+	StrategyProfileProjectID *uint `json:"strategy_profile_project_id"`
+	//rategyProfileProject      StrategyProfileProjectDetailDTO    `json:"strategy_profile_project"`
+	CreatedAt     time.Time                        `json:"created_at"`
+	UpdatedAt     *time.Time                       `json:"updated_at"`
+	CreatedByUser organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 }

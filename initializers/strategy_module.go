@@ -13,7 +13,7 @@ type StrategyModule struct {
 	StrategyProfileFocusAreaController              *controllers.StrategyProfileFocusAreaController
 	StrategyProfileGoalController                   *controllers.StrategyProfileGoalController
 	StrategyProfileStrategicObjectiveController     *controllers.StrategyProfileStrategicObjectiveController
-	StrategyProfileInitiativeController             *controllers.StrategyProfileInitiativeController
+	StrategyProfileStrategicIntiativeController     *controllers.StrategyProfileStrategicIntiativeController
 	StrategyProfileProjectController                *controllers.StrategyProfileProjectController
 	StrategyProfileMilestoneController              *controllers.StrategyProfileMilestoneController
 	StrategyProfileActionPlanController             *controllers.StrategyProfileActionPlanController
@@ -50,6 +50,7 @@ func NewStrategyModule(db *gorm.DB,
 	tprmModule *TprmModule,
 	complianceModule *ComplianceModule,
 	documentModule *DocumentModule,
+	projectModule *ProjectModule,
 
 ) *StrategyModule {
 
@@ -60,14 +61,6 @@ func NewStrategyModule(db *gorm.DB,
 	strategyProfileGoalRepo := repositories.NewStrategyProfileGoalRepository(db)
 	strategyProfileGoalSvc := services.NewStrategyProfileGoalService(strategyProfileGoalRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
 	strategyProfileGoalController := controllers.NewStrategyProfileGoalController(strategyProfileGoalSvc)
-
-	strategyProfileInitiativeRepo := repositories.NewStrategyProfileInitiativeRepository(db)
-	strategyProfileInitiativeSvc := services.NewStrategyProfileInitiativeService(strategyProfileInitiativeRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
-	strategyProfileInitiativeController := controllers.NewStrategyProfileInitiativeController(strategyProfileInitiativeSvc)
-
-	strategyProfileProjectRepo := repositories.NewStrategyProfileProjectRepository(db)
-	strategyProfileProjectSvc := services.NewStrategyProfileProjectService(strategyProfileProjectRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
-	strategyProfileProjectController := controllers.NewStrategyProfileProjectController(strategyProfileProjectSvc)
 
 	strategyProfileMilestoneRepo := repositories.NewStrategyProfileMilestoneRepository(db)
 	strategyProfileMilestoneSvc := services.NewStrategyProfileMilestoneService(strategyProfileMilestoneRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc)
@@ -176,12 +169,20 @@ func NewStrategyModule(db *gorm.DB,
 	strategyProfileKpiSvc := services.NewStrategyProfileKpiService(strategyProfileKpiRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc, strategyProfileStrategicObjectiveSvc, kpiRegisterSvc)
 	strategyProfileKpiController := controllers.NewStrategyProfileKpiController(strategyProfileKpiSvc)
 
+	strategyProfileStrategicIntiativeRepo := repositories.NewStrategyProfileStrategicIntiativeRepository(db)
+	strategyProfileStrategicIntiativeSvc := services.NewStrategyProfileStrategicIntiativeService(strategyProfileStrategicIntiativeRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc, strategyProfileStrategicObjectiveSvc, strategicIntiativeSvc)
+	strategyProfileStrategicIntiativeController := controllers.NewStrategyProfileStrategicIntiativeController(strategyProfileStrategicIntiativeSvc)
+
+	strategyProfileProjectRepo := repositories.NewStrategyProfileProjectRepository(db)
+	strategyProfileProjectSvc := services.NewStrategyProfileProjectService(strategyProfileProjectRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc, projectModule.projectSvc, strategyProfileStrategicObjectiveSvc, strategyProfileStrategicIntiativeSvc)
+	strategyProfileProjectController := controllers.NewStrategyProfileProjectController(strategyProfileProjectSvc)
+
 	return &StrategyModule{
 		StrategyProfileController:                       strategyProfileController,
 		StrategyProfileFocusAreaController:              strategyProfileFocusAreaController,
 		StrategyProfileGoalController:                   strategyProfileGoalController,
 		StrategyProfileStrategicObjectiveController:     strategyProfileStrategicObjectiveController,
-		StrategyProfileInitiativeController:             strategyProfileInitiativeController,
+		StrategyProfileStrategicIntiativeController:     strategyProfileStrategicIntiativeController,
 		StrategyProfileProjectController:                strategyProfileProjectController,
 		StrategyProfileMilestoneController:              strategyProfileMilestoneController,
 		StrategyProfileActionPlanController:             strategyProfileActionPlanController,

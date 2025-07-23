@@ -50,6 +50,8 @@ func (papc *ProjectActionPlanController) GetAllProjectActionPlans(c *gin.Context
 	allowedParams := []string{
 		"action_plan_status_ids",
 		"responsible_user_ids",
+		"review_user_ids",
+		"severity_level_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

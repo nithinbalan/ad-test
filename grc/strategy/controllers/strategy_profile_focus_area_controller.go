@@ -126,7 +126,7 @@ func (snec *StrategyProfileFocusAreaController) DeleteStrategyProfileFocusArea(c
 		return
 	}
 
-	focusAreaIDStr := c.Param("focusAreaId")
+	focusAreaIDStr := c.Param("id")
 	focusAreaID, err := strconv.ParseUint(focusAreaIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)

@@ -80,7 +80,7 @@ type ProjectMilestoneFormDTO struct {
 	TitleAr                  string  `json:"title_ar" binding:"required"`
 	DescriptionEn            *string `json:"description_en"`
 	DescriptionAr            *string `json:"description_ar"`
-	PlannedDate              *string `json:"planned_date" binding:"required,datetime=2006-01-02"`
-	ActualDate               *string `json:"actual_date" binding:"required,datetime=2006-01-02"`
+	PlannedDate              *string `json:"planned_date"`
+	ActualDate               *string `json:"actual_date"`
 	ProjectMilestoneStatusID uint    `json:"project_milestone_status_id" binding:"required"`
 }

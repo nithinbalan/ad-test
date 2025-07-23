@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 
 	libraryDTOs "jethur/grc/library/dtos"
 	"jethur/grc/library/repositories"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 )
 
@@ -22,14 +24,17 @@ type ComplianceLibraryServiceInterface interface {
 
 // Service and implementations
 type ComplianceLibraryService struct {
-	repo repositories.ComplianceLibraryRepositoryInterface
+	repo           repositories.ComplianceLibraryRepositoryInterface
+	userSettingSvc organizationServices.UserSettingServiceInterface
 }
 
 func NewComplianceLibraryService(
 	repo repositories.ComplianceLibraryRepositoryInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) ComplianceLibraryServiceInterface {
 	return &ComplianceLibraryService{
-		repo: repo,
+		repo:           repo,
+		userSettingSvc: userSettingSvc,
 	}
 }
 
@@ -171,43 +176,69 @@ func (cls *ComplianceLibraryService) GetControlMappings(params *libraryDTOs.Cont
 }
 
 func (cls *ComplianceLibraryService) ExportControlMappings(data []*libraryDTOs.ControlLibraryResponseDTO, userID uint) (*os.File, error) {
-	headers := []string{
-		"SL No.",
-		"Title EN",
-		"Title AR",
-		"Compliance Library",
-		"Control Code",
-		"Control Title EN",
-		"Control Title AR",
+	userSetting, err := cls.userSettingSvc.GetUserSettingsByUserID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers based on language
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"الرقم التسلسلي",
+			"العنوان",
+			"مؤسسة النقد العربي السعودي",
+			"الهيئة الوطنية للأمن السيبراني",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Title",
+			"SAMA CSF",
+			"NCA ECC",
+		}
 	}
 
 	var rows [][]interface{}
 	for i, item := range data {
 		slNo := i + 1
 
-		// Loop through SAMA controls
-		for _, sama := range item.SAMA {
-			rows = append(rows, []interface{}{
-				slNo,
-				item.TitleEn,
-				item.TitleAr,
-				sama.ComplianceLibraryTitleEn,
-				sama.ControlCode,
-				sama.ControlTitleEn,
-				sama.ControlTitleAr,
-			})
-		}
+		var samaText string
+		var ncaText string
 
-		// Loop through NCA controls
-		for _, nca := range item.NCA {
+		if userSetting.Language == "ar" {
+			for _, sama := range item.SAMA {
+				if sama.ControlCode != "" {
+					samaText += fmt.Sprintf("%s %s\n", sama.ControlCode, sama.ControlTitleAr)
+				}
+			}
+			for _, nca := range item.NCA {
+				if nca.ControlCode != "" {
+					ncaText += fmt.Sprintf("%s %s\n", nca.ControlCode, nca.ControlTitleAr)
+				}
+			}
+			rows = append(rows, []interface{}{
+				slNo,
+				item.TitleAr,
+				strings.TrimSpace(samaText),
+				strings.TrimSpace(ncaText),
+			})
+		} else {
+			for _, sama := range item.SAMA {
+				if sama.ControlCode != "" {
+					samaText += fmt.Sprintf("%s %s\n", sama.ControlCode, sama.ControlTitleEn)
+				}
+			}
+			for _, nca := range item.NCA {
+				if nca.ControlCode != "" {
+					ncaText += fmt.Sprintf("%s %s\n", nca.ControlCode, nca.ControlTitleEn)
+				}
+			}
 			rows = append(rows, []interface{}{
 				slNo,
 				item.TitleEn,
-				item.TitleAr,
-				nca.ComplianceLibraryTitleEn,
-				nca.ControlCode,
-				nca.ControlTitleEn,
-				nca.ControlTitleAr,
+				strings.TrimSpace(samaText),
+				strings.TrimSpace(ncaText),
 			})
 		}
 	}

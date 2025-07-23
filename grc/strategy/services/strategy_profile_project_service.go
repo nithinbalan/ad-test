@@ -6,30 +6,31 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+	projectServices "jethur/grc/project/services"
 	strategyDTOs "jethur/grc/strategy/dtos"
 	strategyProfileProjectRepositories "jethur/grc/strategy/repositories"
 	"jethur/utility"
 
-	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type StrategyProfileProjectServiceInterface interface {
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileProjectListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileProjectListDTO, error)
-	GetFullDetailsByID(strategyProfileID uint, id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.StrategyProfileProjectDetailDTO, error)
-	GetByID(id uint) (*models.StrategyProfileProject, error)
-	Create(strategyProfileID uint, currentUserID uint, strategyDTOs *strategyDTOs.StrategyProfileProjectFormDTO) (uint, error)
-	Update(strategyProfileID uint, id uint, currentUserID uint, strategyProfileProject *strategyDTOs.StrategyProfileProjectFormDTO) error
-	Delete(strategyProfileID uint, ids []uint, currentUserID uint) ([]uint, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileProject, error)
+	Create(strategyProfileID uint, currentUserID uint, strategyDTOs *strategyDTOs.StrategyProfileProjectFormDTO) ([]uint, error)
+	Delete(strategyProfileID uint, projectID uint, currentUserID uint) error
 }
 
 // Service and implementations
 type StrategyProfileProjectService struct {
-	repo               strategyProfileProjectRepositories.StrategyProfileProjectRepositoryInterface
-	activityLogSvc     logServices.ActivityLogServiceInterface
-	userSvc            organizationServices.UserServiceInterface
-	userSettingSvc     organizationServices.UserSettingServiceInterface
-	strategyProfileSvc StrategyProfileServiceInterface
+	repo                                 strategyProfileProjectRepositories.StrategyProfileProjectRepositoryInterface
+	activityLogSvc                       logServices.ActivityLogServiceInterface
+	userSvc                              organizationServices.UserServiceInterface
+	userSettingSvc                       organizationServices.UserSettingServiceInterface
+	strategyProfileSvc                   StrategyProfileServiceInterface
+	projectSvc                           projectServices.ProjectServiceInterface
+	strategyProfileStrategicObjectiveSvc StrategyProfileStrategicObjectiveServiceInterface
+	strategyProfileStrategicIntiativeSvc StrategyProfileStrategicIntiativeServiceInterface
 }
 
 func NewStrategyProfileProjectService(
@@ -38,22 +39,31 @@ func NewStrategyProfileProjectService(
 	userSvc organizationServices.UserServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	strategyProfileSvc StrategyProfileServiceInterface,
+	projectSvc projectServices.ProjectServiceInterface,
+	strategyProfileStrategicObjectiveSvc StrategyProfileStrategicObjectiveServiceInterface,
+	strategyProfileStrategicIntiativeSvc StrategyProfileStrategicIntiativeServiceInterface,
 ) StrategyProfileProjectServiceInterface {
 	return &StrategyProfileProjectService{
-		repo:               repo,
-		activityLogSvc:     activityLogSvc,
-		userSvc:            userSvc,
-		userSettingSvc:     userSettingSvc,
-		strategyProfileSvc: strategyProfileSvc,
+		repo:                                 repo,
+		activityLogSvc:                       activityLogSvc,
+		userSvc:                              userSvc,
+		userSettingSvc:                       userSettingSvc,
+		strategyProfileSvc:                   strategyProfileSvc,
+		projectSvc:                           projectSvc,
+		strategyProfileStrategicObjectiveSvc: strategyProfileStrategicObjectiveSvc,
+		strategyProfileStrategicIntiativeSvc: strategyProfileStrategicIntiativeSvc,
 	}
 }
 
-func (sps *StrategyProfileProjectService) GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileProjectListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileProjectListDTO, error) {
-	return sps.repo.GetAll(strategyProfileID, params)
+func (ssp *StrategyProfileProjectService) GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileProjectListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileProjectListDTO, error) {
+	if _, err := ssp.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
+		return nil, err
+	}
+	return ssp.repo.GetAll(strategyProfileID, params)
 }
 
-func (sps StrategyProfileProjectService) GetByID(id uint) (*models.StrategyProfileProject, error) {
-	strategyProfileProject, err := sps.repo.GetByID(id)
+func (ssp *StrategyProfileProjectService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileProject, error) {
+	strategyProfileProject, err := ssp.repo.GetByID(id, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -64,191 +74,53 @@ func (sps StrategyProfileProjectService) GetByID(id uint) (*models.StrategyProfi
 	return strategyProfileProject, nil
 }
 
-func (sps StrategyProfileProjectService) GetFullDetailsByID(strategyProfileID uint, id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.StrategyProfileProjectDetailDTO, error) {
-	// Initialize your DTO
-	var strategyProfileProjectDTO strategyDTOs.StrategyProfileProjectDetailDTO
+func (ssp *StrategyProfileProjectService) Create(strategyProfileID uint, currentUserID uint, strategyProfileProjectFormDTO *strategyDTOs.StrategyProfileProjectFormDTO) ([]uint, error) {
 
-	if _, err := sps.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
+	if _, err := ssp.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
 		return nil, err
 	}
 
-	strategyProfileProject, err := sps.repo.GetFullDetailsByID(id, tx...)
+	tx := ssp.repo.BeginTransaction()
+	var createdIds []uint
 
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, id)
+	for _, projectID := range strategyProfileProjectFormDTO.ProjectIDs {
+		strategyProfileProject := &models.StrategyProfileProject{
+			StrategyProfileID:                   strategyProfileID,
+			ProjectID:                           &projectID,
+			StrategyProfileStrategicObjectiveID: strategyProfileProjectFormDTO.StrategyProfileStrategicObjectiveID,
+			StrategyProfileStrategicIntiativeID: strategyProfileProjectFormDTO.StrategyProfileStrategicIntiativeID,
+			CreatedBYID:                         currentUserID,
 		}
-		return nil, err
-	}
-
-	// Map the result to your DTO
-	err = mapstructure.Decode(strategyProfileProject, &strategyProfileProjectDTO)
-	if err != nil {
-		return nil, err
-	}
-
-	if strategyProfileProject.StartDate != nil {
-		strategyProfileProjectDTO.StartDateString = strategyProfileProject.StartDate.Format("2006-01-02")
-	}
-
-	if strategyProfileProject.EndDate != nil {
-		strategyProfileProjectDTO.EndDateString = strategyProfileProject.EndDate.Format("2006-01-02")
-	}
-
-	strategyProfileProjectDTO.StrategyProfile.StartDateString = strategyProfileProject.StrategyProfile.StartDate.Format("2006-01-02")
-	strategyProfileProjectDTO.StrategyProfile.EndDateString = strategyProfileProject.StrategyProfile.EndDate.Format("2006-01-02")
-
-	strategyProfileProjectDTO.CreatedAt = strategyProfileProject.CreatedAt
-	strategyProfileProjectDTO.UpdatedAt = strategyProfileProject.UpdatedAt
-
-	return &strategyProfileProjectDTO, nil
-}
-
-func (sps *StrategyProfileProjectService) Create(strategyProfileID uint, currentUserID uint, strategyProfileProjectFormDTO *strategyDTOs.StrategyProfileProjectFormDTO) (uint, error) {
-
-	if _, err := sps.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
-		return 0, err
-	}
-
-	tx := sps.repo.BeginTransaction()
-
-	dates, err := sps.parseStrategyProfileProjectDates(strategyProfileProjectFormDTO)
-	if err != nil {
-		return 0, err
-	}
-
-	strategyProfileProject := &models.StrategyProfileProject{
-		StrategyProfileID:          strategyProfileID,
-		StrategyProfileFocusAreaID: strategyProfileProjectFormDTO.StrategyProfileFocusAreaID,
-		StrategyProfileGoalID:      strategyProfileProjectFormDTO.StrategyProfileGoalID,
-		//StrategyProfileObjectiveID:  strategyProfileProjectFormDTO.StrategyProfileObjectiveID,
-		StrategyProfileInitiativeID: strategyProfileProjectFormDTO.StrategyProfileInitiativeID,
-		Title:                       strategyProfileProjectFormDTO.Title,
-		Description:                 strategyProfileProjectFormDTO.Description,
-		StartDate:                   dates.StartDate,
-		EndDate:                     dates.EndDate,
-		ResponsibleUserID:           strategyProfileProjectFormDTO.ResponsibleUserID,
-		CreatedBYID:                 currentUserID,
-	}
-	id, err := sps.repo.Create(strategyProfileProject, tx)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
+		id, err := ssp.repo.Create(strategyProfileProject, tx)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		createdIds = append(createdIds, id)
 	}
 
 	tx.Commit()
+
+	// Log bulk create activities
 	go func() {
-		existingStrategyProfileProject, err := sps.GetFullDetailsByID(strategyProfileID, id)
-		if err != nil {
-			utility.LogError("Failed to fetch strategy profile project", map[string]interface{}{
-				"error": err.Error(),
-			})
-			return
-		}
-		err = sps.activityLogSvc.LogActivity(
-			models.CreateAction,
-			models.StrategyProfileProject{}.TableName(),
-			id,
-			existingStrategyProfileProject,
-			currentUserID,
-			nil,
-		)
-
-		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.CreateAction,
-				"tableName": models.StrategyProfileProject{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
-
-			utility.LogError("Failed to log activity", fields)
-		}
-	}()
-	return id, nil
-}
-func (sps *StrategyProfileProjectService) Update(strategyProfileID uint, id uint, currentUserID uint, strategyProfileProjectFormDTO *strategyDTOs.StrategyProfileProjectFormDTO) error {
-	if _, err := sps.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
-		return err
-	}
-
-	tx := sps.repo.BeginTransaction()
-
-	dates, err := sps.parseStrategyProfileProjectDates(strategyProfileProjectFormDTO)
-	if err != nil {
-		return err
-	}
-
-	existingStrategyProfileProject, err := sps.repo.GetByID(id)
-	if err != nil {
-		return utility.NewResourceNotFoundError(err, id)
-	}
-
-	oldStrategyProfileProject, err := sps.GetFullDetailsByID(strategyProfileID, id, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	existingStrategyProfileProject.Title = strategyProfileProjectFormDTO.Title
-	existingStrategyProfileProject.Description = strategyProfileProjectFormDTO.Description
-	existingStrategyProfileProject.StartDate = dates.StartDate
-	existingStrategyProfileProject.EndDate = dates.EndDate
-	existingStrategyProfileProject.ResponsibleUserID = strategyProfileProjectFormDTO.ResponsibleUserID
-	existingStrategyProfileProject.UpdatedBYID = &currentUserID
-
-	err = sps.repo.Update(existingStrategyProfileProject, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	tx.Commit()
-	go func() {
-		existingStrategyProfileProject, err := sps.GetFullDetailsByID(strategyProfileID, id)
-		if err != nil {
-			return
-		}
-
-		// Prepare log data
-		changedData := make(map[string]interface{})
-
-		//log changes
-		oldData := map[string]interface{}{
-			"title":            oldStrategyProfileProject.Title,
-			"description":      oldStrategyProfileProject.Description,
-			"start_date":       oldStrategyProfileProject.StartDateString,
-			"end_date":         oldStrategyProfileProject.EndDateString,
-			"responsible_user": utility.GetFieldValue(oldStrategyProfileProject.ResponsibleUser),
-		}
-
-		newData := map[string]interface{}{
-			"title":            existingStrategyProfileProject.Title,
-			"description":      existingStrategyProfileProject.Description,
-			"start_date":       existingStrategyProfileProject.StartDateString,
-			"end_date":         existingStrategyProfileProject.EndDateString,
-			"responsible_user": utility.GetFieldValue(existingStrategyProfileProject.ResponsibleUser),
-		}
-		// Compare other fields and add them to changedData
-		fieldChanges := utility.CompareFieldChanges(oldData, newData)
-		for k, v := range fieldChanges {
-			changedData[k] = v
-		}
-		// Log activity if there are any changes
-		if len(changedData) > 0 {
-			err := sps.activityLogSvc.LogActivity(
-				models.UpdateAction,
+		for i, id := range createdIds {
+			err := ssp.activityLogSvc.LogActivity(
+				models.CreateAction,
 				models.StrategyProfileProject{}.TableName(),
 				id,
-				changedData,
+				map[string]interface{}{
+					"strategy_profile_id": strategyProfileID,
+					"project_id":          strategyProfileProjectFormDTO.ProjectIDs[i],
+					"strategy_profile_strategic_objective_id": strategyProfileProjectFormDTO.StrategyProfileStrategicObjectiveID,
+					"strategy_profile_strategic_intiative_id": strategyProfileProjectFormDTO.StrategyProfileStrategicIntiativeID,
+				},
 				currentUserID,
 				nil,
 			)
 
 			if err != nil {
 				fields := map[string]interface{}{
-					"action":    models.UpdateAction,
+					"action":    models.CreateAction,
 					"tableName": models.StrategyProfileProject{}.TableName(),
 					"recordID":  id,
 					"userID":    currentUserID,
@@ -260,85 +132,65 @@ func (sps *StrategyProfileProjectService) Update(strategyProfileID uint, id uint
 		}
 	}()
 
-	return nil
+	return createdIds, nil
 }
 
-func (sps *StrategyProfileProjectService) Delete(strategyProfileID uint, ids []uint, currentUserID uint) ([]uint, error) {
-	if _, err := sps.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
-		return nil, err
+func (ssp *StrategyProfileProjectService) Delete(strategyProfileID uint, id uint, currentUserID uint) error {
+	if _, err := ssp.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
+		return err
 	}
 
-	tx := sps.repo.BeginTransaction()
-	var failedIds []uint
-	var successfulIds []uint
-	var deletedStrategyProfileProject []map[string]interface{}
+	tx := ssp.repo.BeginTransaction()
 
-	for _, id := range ids {
-		strategyProfileProject, err := sps.GetFullDetailsByID(strategyProfileID, id, tx)
-		if err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-
-		deletedStrategyProfileProject = append(deletedStrategyProfileProject, map[string]interface{}{
-			"id":       id,
-			"title_en": strategyProfileProject.Title,
-		})
-
-		// Delete the business
-		if err := sps.repo.Delete(id, tx); err != nil {
-			failedIds = append(failedIds, id)
-			continue
-		} else {
-			successfulIds = append(successfulIds, id)
-		}
-	}
-	if len(failedIds) > 0 {
+	// Find the strategy profile focus area record
+	strategyProfileProject, err := ssp.GetByID(id, tx)
+	if err != nil {
 		tx.Rollback()
-		return failedIds, nil
+		return err
+	}
+
+	// Verify it belongs to the correct strategy profile
+	if strategyProfileProject.StrategyProfileID != strategyProfileID {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(fmt.Errorf("project not found in strategy profile"), id)
+	}
+
+	// Delete the record
+	if err := ssp.repo.Delete(id, tx); err != nil {
+		tx.Rollback()
+		return err
 	}
 
 	tx.Commit()
 
-	// Log bulk delete activities for successful deletions
-	if len(successfulIds) > 0 {
-		go func() {
-			err := sps.activityLogSvc.LogBulkActivities(
-				models.DeleteAction, // Make sure this action constant is defined appropriately
-				models.StrategyProfileProject{}.TableName(),
-				successfulIds,
-				deletedStrategyProfileProject,
-				currentUserID,
-				nil,
-			)
-			if err != nil {
-				// @todo - save to log file
-				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+	// Log the deletion
+	go func() {
+		err := ssp.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.StrategyProfileProject{}.TableName(),
+			id,
+			map[string]interface{}{
+				"strategy_profile_id": strategyProfileID,
+				"project_id":          strategyProfileProject.ProjectID,
+				"strategy_profile_strategic_objective_id": strategyProfileProject.StrategyProfileStrategicObjectiveID,
+				"strategy_profile_strategic_intiative_id": strategyProfileProject.StrategyProfileStrategicIntiativeID,
+			},
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.DeleteAction,
+				"tableName": models.StrategyProfileProject{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
 			}
 
-		}()
-	}
-
-	return failedIds, nil
-}
-
-func (sps *StrategyProfileProjectService) parseStrategyProfileProjectDates(dto *strategyDTOs.StrategyProfileProjectFormDTO) (*strategyDTOs.StrategyProfileProjectParsedDates, error) {
-	parsed := &strategyDTOs.StrategyProfileProjectParsedDates{}
-
-	var err error
-	if dto.StartDate != "" {
-		parsed.StartDate, err = utility.ParseDate(dto.StartDate)
-		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid start date"), "invalid_date", "start date")
+			utility.LogError("Failed to log activity", fields)
 		}
-	}
+	}()
 
-	if dto.EndDate != "" {
-		parsed.EndDate, err = utility.ParseDate(dto.EndDate)
-		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid end date"), "invalid_date", "end date")
-		}
-	}
-
-	return parsed, nil
+	return nil
 }

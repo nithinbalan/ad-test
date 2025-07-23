@@ -23,6 +23,7 @@ type ProjectActionPlanServiceInterface interface {
 	Create(projectID uint, currentUserID uint, ProjectActionPlanFormDTO *projectDTOs.ProjectActionPlanFormDTO) (uint, error)
 	Update(projectID uint, id uint, currentUserID uint, project *projectDTOs.ProjectActionPlanFormDTO) error
 	Delete(projectID uint, ids []uint, currentUserID uint) ([]uint, error)
+	StatusUpdate(projectID uint, id uint, currentUserID uint, projectActionPlanStatusUpdateFormDTO *projectDTOs.ProjectActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -33,6 +34,7 @@ type ProjectActionPlanService struct {
 	userSvc             organizationServices.UserServiceInterface
 	projectSvc          ProjectServiceInterface
 	projectMilestoneSvc ProjectMilestoneServiceInterface
+	severityLevelSvc    masterServices.SeverityLevelServiceInterface
 }
 
 func NewProjectActionPlanService(
@@ -42,6 +44,7 @@ func NewProjectActionPlanService(
 	userSvc organizationServices.UserServiceInterface,
 	projectSvc ProjectServiceInterface,
 	projectMilestoneSvc ProjectMilestoneServiceInterface,
+	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 ) ProjectActionPlanServiceInterface {
 	return &ProjectActionPlanService{
 		repo:                repo,
@@ -50,6 +53,7 @@ func NewProjectActionPlanService(
 		userSvc:             userSvc,
 		projectSvc:          projectSvc,
 		projectMilestoneSvc: projectMilestoneSvc,
+		severityLevelSvc:    severityLevelSvc,
 	}
 }
 
@@ -80,12 +84,12 @@ func (paps ProjectActionPlanService) GetByID(projectID uint, id uint) (*models.P
 func (paps ProjectActionPlanService) GetFullDetailsByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*projectDTOs.ProjectActionPlanDetailDTO, error) {
 	var projectActionPlanDTO projectDTOs.ProjectActionPlanDetailDTO
 
-	// Check if the compliance register exists
+	// Check if the PROJECT register exists
 	if _, err := paps.projectSvc.GetByID(projectID); err != nil {
 		return nil, err
 	}
 
-	// Get full details of the compliance action plan
+	// Get full details of the PROJECT action plan
 	projectActionPlan, err := paps.repo.GetFullDetailsByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -94,7 +98,7 @@ func (paps ProjectActionPlanService) GetFullDetailsByID(projectID uint, id uint,
 		return nil, err
 	}
 
-	// Decode the compliance action plan into the DTO
+	// Decode the PROJECT action plan into the DTO
 	err = mapstructure.Decode(projectActionPlan, &projectActionPlanDTO)
 	if err != nil {
 		return nil, err
@@ -124,7 +128,7 @@ func (paps *ProjectActionPlanService) Create(projectID uint, currentUserID uint,
 		return 0, err
 	}
 
-	actionPlanStatus, err := paps.actionPlanStatusSvc.GetByID(ProjectActionPlanFormDTO.ActionPlanStatusID)
+	actionPlanStatus, err := paps.actionPlanStatusSvc.GetByType("new")
 	if err != nil {
 		return 0, err
 	}
@@ -135,6 +139,8 @@ func (paps *ProjectActionPlanService) Create(projectID uint, currentUserID uint,
 		Title:              ProjectActionPlanFormDTO.Title,
 		Description:        ProjectActionPlanFormDTO.Description,
 		ResponsibleUserID:  ProjectActionPlanFormDTO.ResponsibleUserID,
+		SeverityLevelID:    ProjectActionPlanFormDTO.SeverityLevelID,
+		ReviewUserID:       ProjectActionPlanFormDTO.ReviewUserID,
 		Comments:           ProjectActionPlanFormDTO.Comments,
 		TargetDate:         dates.TargetDate,
 		Percentage:         &ProjectActionPlanFormDTO.Percentage,
@@ -156,6 +162,8 @@ func (paps *ProjectActionPlanService) Create(projectID uint, currentUserID uint,
 			"title":                ProjectActionPlanFormDTO.Title,
 			"description":          ProjectActionPlanFormDTO.Description,
 			"responsible_user_id":  ProjectActionPlanFormDTO.ResponsibleUserID,
+			"severity_level_id":    ProjectActionPlanFormDTO.SeverityLevelID,
+			"review_user_id":       ProjectActionPlanFormDTO.ReviewUserID,
 			"target_date":          dates.TargetDate,
 			"comments":             ProjectActionPlanFormDTO.Comments,
 			"percentage":           ProjectActionPlanFormDTO.Percentage,
@@ -213,9 +221,10 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 	existingProjectActionPlan.ProjectMilestoneID = ProjectActionPlanFormDTO.ProjectMilestoneID
 	existingProjectActionPlan.Comments = ProjectActionPlanFormDTO.Comments
 	existingProjectActionPlan.ResponsibleUserID = ProjectActionPlanFormDTO.ResponsibleUserID
+	existingProjectActionPlan.SeverityLevelID = ProjectActionPlanFormDTO.SeverityLevelID
+	existingProjectActionPlan.ReviewUserID = ProjectActionPlanFormDTO.ReviewUserID
 	existingProjectActionPlan.TargetDate = dates.TargetDate
 	existingProjectActionPlan.Percentage = &ProjectActionPlanFormDTO.Percentage
-	existingProjectActionPlan.ActionPlanStatusID = ProjectActionPlanFormDTO.ActionPlanStatusID
 	existingProjectActionPlan.UpdatedBYID = &currentUserID
 
 	err = paps.repo.Update(existingProjectActionPlan, tx)
@@ -230,6 +239,8 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 			"description":           ProjectActionPlanFormDTO.Description,
 			"comments":              ProjectActionPlanFormDTO.Comments,
 			"responsible_user_id":   ProjectActionPlanFormDTO.ResponsibleUserID,
+			"severity_level_id":     ProjectActionPlanFormDTO.SeverityLevelID,
+			"review_user_id":        ProjectActionPlanFormDTO.ReviewUserID,
 			"target_date":           dates.TargetDate,
 			"percentage":            ProjectActionPlanFormDTO.Percentage,
 			"project_id":            projectID,
@@ -309,6 +320,18 @@ func (paps *ProjectActionPlanService) validateProjectActionPlanFormDTO(projectID
 		return utility.NewValidationError(fmt.Errorf("responsible user does not exist"), "not_exist", "responsible user")
 	}
 
+	if ProjectActionPlanFormDTO.SeverityLevelID != nil {
+		if _, err := paps.severityLevelSvc.GetByID(*ProjectActionPlanFormDTO.SeverityLevelID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
+		}
+	}
+
+	if ProjectActionPlanFormDTO.ReviewUserID != nil {
+		if ProjectActionPlanFormDTO.ResponsibleUserID == *ProjectActionPlanFormDTO.ReviewUserID {
+			return utility.NewValidationError(fmt.Errorf("review user and responsible user must be distinct"), "distinct_review_user", "project action plan distinct review user")
+		}
+	}
+
 	return nil
 }
 
@@ -324,4 +347,23 @@ func (paps *ProjectActionPlanService) parseProjectActionPlanDates(dto *projectDT
 	}
 
 	return parsed, nil
+}
+
+func (paps *ProjectActionPlanService) StatusUpdate(projectID uint, id uint, currentUserID uint, projectActionPlanStatusUpdateFormDTO *projectDTOs.ProjectActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error {
+	existingProjectActionPlan, err := paps.GetByID(projectID, id)
+	if err != nil {
+		return err
+	}
+
+	existingProjectActionPlan.ActionPlanStatusID = projectActionPlanStatusUpdateFormDTO.ActionPlanStatusID
+	existingProjectActionPlan.Comments = &projectActionPlanStatusUpdateFormDTO.Comment
+	existingProjectActionPlan.Percentage = projectActionPlanStatusUpdateFormDTO.Percentage
+	existingProjectActionPlan.UpdatedBYID = &currentUserID
+
+	err = paps.repo.Update(existingProjectActionPlan, tx)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
