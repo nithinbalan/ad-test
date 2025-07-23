@@ -53,6 +53,10 @@ type ComplianceClauseServiceInterface interface {
 	GetAssociatedProcesses(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
 	CreateComplianceClausProcesses(complianceID, clauseID, currentUserID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
 	DeleteComplianceClausProcesses(clauseID, processID uint) error
+
+	GetAssociatedKPI(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+	CreateComplianceClausKPI(complianceID, clauseID, currentUserID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
+	DeleteComplianceClausKPI(clauseID, kpiID uint) error
 }
 
 type ComplianceClauseService struct {
@@ -773,6 +777,58 @@ func (ccs *ComplianceClauseService) DeleteComplianceClausProcesses(clauseID, pro
 		return utility.NewValidationError(fmt.Errorf("clause does not exist for ID: %d", clauseID), "not_exist", "clause_id")
 	}
 	if err := ccs.repo.DeleteComplianceClausProcesses(clauseID, processID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+	return nil
+}
+
+func (ccs *ComplianceClauseService) GetAssociatedKPI(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+
+	kpis, err := ccs.repo.GetAssociatedKPI(complianceID, clauseID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return kpis, nil
+}
+
+func (ccs *ComplianceClauseService) CreateComplianceClausKPI(complianceID, clauseID, currentUserID uint, dto *commonDTOs.AssociatedKPIMapDTO) error {
+	if err := ccs.validationSvc.ValidateKPIMapping(clauseID, dto.KpiIDs, "kpi_compliances", "compliance_clause_id"); err != nil {
+		return err
+	}
+	tx := ccs.repo.BeginTransaction()
+	_, err := ccs.repo.GetByID(clauseID, tx)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("clause does not exist for ID: %d", clauseID), "not_exist", "clause_id")
+	}
+	var mappings []*models.KPICompliance
+
+	for _, kpiID := range dto.KpiIDs {
+		mappings = append(mappings, &models.KPICompliance{
+			ComplianceRegisterID: complianceID,
+			ComplianceClauseID:   &clauseID,
+			KPIRegisterID:        kpiID,
+			CreatedByID:          currentUserID,
+		})
+	}
+
+	if err := ccs.repo.CreateComplianceClausKPI(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (ccs *ComplianceClauseService) DeleteComplianceClausKPI(clauseID, kpiID uint) error {
+	tx := ccs.repo.BeginTransaction()
+	if _, err := ccs.repo.GetByID(clauseID, tx); err != nil {
+		return utility.NewValidationError(fmt.Errorf("clause does not exist for ID: %d", clauseID), "not_exist", "clause_id")
+	}
+	if err := ccs.repo.DeleteComplianceClausKPI(clauseID, kpiID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

@@ -1013,3 +1013,122 @@ func (ccc *ComplianceClauseController) DeleteComplianceClausProcesses(c *gin.Con
 
 	c.JSON(http.StatusOK, gin.H{"message": "Compliance Clause process  mapping deleted successfully"})
 }
+
+func (cc *ComplianceClauseController) GetAssociatedKPI(c *gin.Context) {
+	complianceID, err := strconv.Atoi(c.Param("complianceId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	clauseID, err := strconv.Atoi(c.Param("clauseId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(cc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(cc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	risks, err := cc.service.GetAssociatedKPI(uint(complianceID), uint(clauseID), &queryParams)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, risks)
+}
+
+func (ccc *ComplianceClauseController) CreateComplianceClausKPI(c *gin.Context) {
+	var input commonDTOs.AssociatedKPIMapDTO
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	complianceIDStr := c.Param("complianceId")
+	clauseIDStr := c.Param("clauseId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendInvalidErrResp(c, fmt.Errorf("invalid complianceId"))
+		return
+	}
+	clauseID, err := strconv.ParseUint(clauseIDStr, 10, 64)
+	if err != nil {
+		utility.SendInvalidErrResp(c, fmt.Errorf("invalid clauseId"))
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(ccc.db, c, err.Error())
+		return
+	}
+
+	err = ccc.service.CreateComplianceClausKPI(uint(complianceID), uint(clauseID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(ccc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (ccc *ComplianceClauseController) DeleteComplianceClausKPI(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+	clauseIDStr := c.Param("clauseId")
+	kpiStr := c.Param("kpiId")
+	_, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendInvalidErrResp(c, fmt.Errorf("invalid complianceId"))
+		return
+	}
+	clauseID, err := strconv.ParseUint(clauseIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	kpiID, err := strconv.ParseUint(kpiStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	err = ccc.service.DeleteComplianceClausKPI(uint(clauseID), uint(kpiID))
+	if err != nil {
+		utility.SendInternalErrResp(ccc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Compliance Clause process  mapping deleted successfully"})
+}
