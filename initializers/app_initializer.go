@@ -56,7 +56,7 @@ func NewApp(db *gorm.DB) *App {
 	tprmModule := NewTprmModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
 	strategyModule := NewStrategyModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule, riskModule, assetModule, tprmModule, complianceModule, documentModule)
 	projectModule := NewProjectModule(db, sharedModule, organizationModule)
-	jethurAIModule := NewJethurAIModule(db, documentModule, organizationModule)
+	jethurAIModule := NewJethurAIModule(db, documentModule, organizationModule, settingsModule)
 
 	return &App{
 		DB:                          db,

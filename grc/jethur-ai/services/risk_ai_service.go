@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"jethur/grc/jethur-ai/dtos"
+	"jethur/grc/settings/services"
 	"jethur/utility"
 	"net/http"
 	"net/url"
@@ -24,13 +25,26 @@ type RiskAIServiceInterface interface {
 	ChatWithRisk(ctx context.Context, req dtos.RiskAIChatRequest, currentUserID uint) (<-chan string, error)
 }
 
-type RiskAIService struct{}
+type RiskAIService struct {
+	systemPreferenceSvc services.SystemPreferenceServiceInterface
+}
 
-func NewRiskAIService() RiskAIServiceInterface {
-	return &RiskAIService{}
+func NewRiskAIService(systemPreferenceSvc services.SystemPreferenceServiceInterface) RiskAIServiceInterface {
+	return &RiskAIService{
+		systemPreferenceSvc: systemPreferenceSvc,
+	}
 }
 
 func (s *RiskAIService) GetRiskAutofill(req dtos.RiskAutofillRequest) (map[string]interface{}, error) {
+	systemPreference, err := s.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
 	payload := map[string]interface{}{
 		"risk_title":      req.RiskTitle,
 		"risk_categories": req.RiskCategories,
@@ -41,6 +55,15 @@ func (s *RiskAIService) GetRiskAutofill(req dtos.RiskAutofillRequest) (map[strin
 }
 
 func (s *RiskAIService) GetRiskRCA(req dtos.RiskRCARequest) ([]dtos.RCAItem, error) {
+	systemPreference, err := s.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
 	form := make(url.Values)
 	form.Set("risk_title", req.RiskTitle)
 	form.Set("consequences", req.Consequences)
@@ -80,6 +103,15 @@ func (s *RiskAIService) GetRiskRCA(req dtos.RiskRCARequest) ([]dtos.RCAItem, err
 }
 
 func (s *RiskAIService) GetRiskAnalysis(req dtos.RiskAIRequest) (map[string]interface{}, error) {
+	systemPreference, err := s.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
 	payload := map[string]interface{}{
 		"risk_id":        req.RiskId,
 		"register_title": req.RegisterTitle,
@@ -92,6 +124,15 @@ func (s *RiskAIService) GetRiskAnalysis(req dtos.RiskAIRequest) (map[string]inte
 }
 
 func (s *RiskAIService) GetRiskResponseStrategyAnalysis(req dtos.RiskAIRequest) (map[string]interface{}, error) {
+	systemPreference, err := s.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
 	payload := map[string]interface{}{
 		"risk_id":        req.RiskId,
 		"register_title": req.RegisterTitle,
@@ -104,26 +145,71 @@ func (s *RiskAIService) GetRiskResponseStrategyAnalysis(req dtos.RiskAIRequest) 
 }
 
 func (s *RiskAIService) GetRiskControlAnalysis(riskID uint) (map[string]interface{}, error) {
+	systemPreference, err := s.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
 	path := fmt.Sprintf("/api/v1/risk/%d/control-summary", riskID)
 	return utility.CallAIAPIObjectResponse(path)
 }
 
 func (s *RiskAIService) GetRiskKriAnalysis(riskID uint) ([]map[string]interface{}, error) {
+	systemPreference, err := s.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
 	path := fmt.Sprintf("/api/v1/risk/%d/risk-kri", riskID)
 	return utility.CallAIAPIArrayResponse(path)
 }
 
 func (s *RiskAIService) GetRiskResidualControlAnalysis(riskID uint) (map[string]interface{}, error) {
+	systemPreference, err := s.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
 	path := fmt.Sprintf("/api/v1/risk/%d/risk-residual-control-analysis", riskID)
 	return utility.CallAIAPIObjectResponse(path)
 }
 
 func (s *RiskAIService) GetRiskResidualRiskAnalysis(riskID uint) (map[string]interface{}, error) {
+	systemPreference, err := s.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
 	path := fmt.Sprintf("/api/v1/risk/%d/residual-risk-analysis", riskID)
 	return utility.CallAIAPIObjectResponse(path)
 }
 
 func (s *RiskAIService) ChatWithRisk(ctx context.Context, req dtos.RiskAIChatRequest, currentUserID uint) (<-chan string, error) {
+	systemPreference, err := s.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
 	payload := map[string]interface{}{
 		"content":         req.Content,
 		"role":            req.Role,
