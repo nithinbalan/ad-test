@@ -29,7 +29,6 @@ func (cafc *ComplianceAssessmentFrameworkController) GetAllComplianceAssessmentF
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
-	quickFilter := c.QueryArray("quick_filter")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -66,13 +65,12 @@ func (cafc *ComplianceAssessmentFrameworkController) GetAllComplianceAssessmentF
 		return
 	}
 	queryParams := complianceDTOs.ComplianceAssessmentFrameworkListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortField,
-		Keyword:     keyword,
-		Page:        page,
-		PageSize:    pageSize,
-		Filters:     filters,
-		QuickFilter: quickFilter,
+		Sort:     sort,
+		SortBy:   sortField,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Filters:  filters,
 	}
 	complianceAssessmentFramework, err := cafc.service.GetAll(&queryParams)
 

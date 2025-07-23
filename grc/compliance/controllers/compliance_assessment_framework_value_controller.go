@@ -26,25 +26,14 @@ func NewComplianceAssessmentFrameworkValueController(service services.Compliance
 
 func (cafc *ComplianceAssessmentFrameworkValueController) GetAllComplianceAssessmentFrameworkValues(c *gin.Context) {
 	complianceAssessmentFrameworkIDStr := c.Param("complianceAssessmentFrameworkId")
-
-	var complianceAssessmentFrameworkID uint64
-	var err error
-
-	// Check if projectID is provided in the URL
-	if complianceAssessmentFrameworkIDStr != "" {
-		complianceAssessmentFrameworkID, err = strconv.ParseUint(complianceAssessmentFrameworkIDStr, 10, 64)
-		if err != nil {
-			utility.SendNotFoundErrResp(c)
-			return
-		}
-	} else {
-		complianceAssessmentFrameworkID = 0
+	complianceAssessmentFrameworkID, err := strconv.ParseUint(complianceAssessmentFrameworkIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
 	}
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	allowedParams := []string{
 		"compliance_assessment_framework_ids",
@@ -85,14 +74,12 @@ func (cafc *ComplianceAssessmentFrameworkValueController) GetAllComplianceAssess
 	}
 
 	queryParams := complianceDTOs.ComplianceAssessmentFrameworkValueListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      dbField,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		Filters:     filters,
-		QuickFilter: quickFilter,
+		Sort:     sort,
+		SortBy:   dbField,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Filters:  filters,
 	}
 
 	complianceAssessmentFrameworkValues, err := cafc.service.GetAll(uint(complianceAssessmentFrameworkID), &queryParams)

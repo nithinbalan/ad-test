@@ -69,12 +69,8 @@ func (repo *ComplianceAssessmentFrameworkValueRepository) GetAll(complianceAsses
 		Joins(`LEFT JOIN compliance_assessment_frameworks AS frameworks ON compliance_assessment_framework_values.compliance_assessment_framework_id = frameworks.id`).
 		Joins(`LEFT JOIN compliance_statuses AS status ON compliance_assessment_framework_values.compliance_status_id = status.id`).
 		Joins(`LEFT JOIN users AS created_user ON compliance_assessment_framework_values.created_by_id = created_user.id`).
-		Joins(`LEFT JOIN users AS updated_user ON compliance_assessment_framework_values.updated_by_id = updated_user.id`)
-
-	// Filter by project_id if provided
-	if complianceAssessmentFrameworkID != 0 {
-		query = query.Where("compliance_assessment_framework_values.compliance_assessment_framework_id = ?", complianceAssessmentFrameworkID)
-	}
+		Joins(`LEFT JOIN users AS updated_user ON compliance_assessment_framework_values.updated_by_id = updated_user.id`).
+		Where("compliance_assessment_framework_values.compliance_assessment_framework_id = ?", complianceAssessmentFrameworkID)
 
 	// Apply filters
 	for columnName, values := range params.Filters {
