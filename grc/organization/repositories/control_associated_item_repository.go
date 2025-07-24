@@ -16,7 +16,7 @@ type ControlAssociatedItemRepositoryInterface interface {
 	GetAllRisks(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllIncidents(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemIncidentListResponseDTO, error)
 	GetAllAssociatedCounts(controlID uint) (*organizationDTOs.ControlAssociatedItemsCountResponseDTO, error)
-	GetAllClauses(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error)
 	GetClausesByControlID(controlID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 	CreateControlClauses(clauses []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error
@@ -499,7 +499,7 @@ func (repo *ControlAssociatedItemRepository) GetAllAssociatedCounts(controlID ui
 	}, nil
 }
 
-func (repo *ControlAssociatedItemRepository) GetAllClauses(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemClauseListResponseDTO, error) {
+func (repo *ControlAssociatedItemRepository) GetAllClauses(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 
 	var clauseList []organizationDTOs.ClauseRowDTO
 	var totalCount int64
@@ -517,7 +517,8 @@ func (repo *ControlAssociatedItemRepository) GetAllClauses(controlID uint, param
 			LEFT JOIN compliance_clauses ON compliance_controls.compliance_clause_id = compliance_clauses.id
 			LEFT JOIN compliance_register ON compliance_controls.compliance_register_id = compliance_register.id
 		`).
-		Where("compliance_controls.control_id = ?", controlID)
+		Where("compliance_controls.control_id = ?", controlID).
+		Where("compliance_controls.compliance_clause_id IS NOT NULL")
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -545,17 +546,17 @@ func (repo *ControlAssociatedItemRepository) GetAllClauses(controlID uint, param
 		return nil, err
 	}
 
-	clausesByComplianceRegister := make(map[uint]*organizationDTOs.ClauseListDTO)
+	clausesByComplianceRegister := make(map[uint]*commonDTOs.AssociatedClauseListDTO)
 	for _, row := range clauseList {
 		if _, exists := clausesByComplianceRegister[row.ComplianceRegisterID]; !exists {
-			clausesByComplianceRegister[row.ComplianceRegisterID] = &organizationDTOs.ClauseListDTO{
+			clausesByComplianceRegister[row.ComplianceRegisterID] = &commonDTOs.AssociatedClauseListDTO{
 				ComplianceRegisterID:      row.ComplianceRegisterID,
 				ComplianceRegisterTitleEn: row.ComplianceRegisterTitleEn,
 				ComplianceRegisterTitleAr: row.ComplianceRegisterTitleAr,
-				Clauses:                   []organizationDTOs.ClauseDTO{},
+				Clauses:                   []commonDTOs.AssociatedClauseDTO{},
 			}
 		}
-		clausesByComplianceRegister[row.ComplianceRegisterID].Clauses = append(clausesByComplianceRegister[row.ComplianceRegisterID].Clauses, organizationDTOs.ClauseDTO{
+		clausesByComplianceRegister[row.ComplianceRegisterID].Clauses = append(clausesByComplianceRegister[row.ComplianceRegisterID].Clauses, commonDTOs.AssociatedClauseDTO{
 			ComplianceClauseID: row.ComplianceClauseID,
 			ClauseNo:           row.ClauseNo,
 			ClauseTitleEn:      row.ClauseTitleEn,
@@ -563,13 +564,13 @@ func (repo *ControlAssociatedItemRepository) GetAllClauses(controlID uint, param
 		})
 	}
 
-	var groupedClauses []*organizationDTOs.ClauseListDTO
+	var groupedClauses []*commonDTOs.AssociatedClauseListDTO
 	for _, v := range clausesByComplianceRegister {
 		groupedClauses = append(groupedClauses, v)
 	}
 
 	if groupedClauses == nil {
-		groupedClauses = []*organizationDTOs.ClauseListDTO{}
+		groupedClauses = []*commonDTOs.AssociatedClauseListDTO{}
 	}
 
 	totalCount = int64(len(groupedClauses))
@@ -585,7 +586,7 @@ func (repo *ControlAssociatedItemRepository) GetAllClauses(controlID uint, param
 	}
 
 	pagedClauses := groupedClauses[start:end]
-	response := &organizationDTOs.ControlAssociatedItemClauseListResponseDTO{
+	response := &commonDTOs.AssociatedItemClauseListResponseDTO{
 		Items: pagedClauses,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,

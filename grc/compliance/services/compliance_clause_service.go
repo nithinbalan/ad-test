@@ -99,16 +99,17 @@ func (ccs *ComplianceClauseService) GetAll(complianceID uint) ([]*complianceDTOs
 	// Convert all clauses into DTOs and map them by ID
 	for _, clause := range clauses {
 		dto := &complianceDTOs.ComplianceClauseListDTO{
-			ID:             clause.ID,
-			ClauseNo:       clause.ClauseNo,
-			ParentClauseID: clause.ParentClauseID,
-			TitleEn:        clause.TitleEn,
-			TitleAr:        clause.TitleAr,
-			ScopeEn:        clause.ScopeEn,
-			ScopeAr:        clause.ScopeAr,
-			ObjectiveEn:    clause.ObjectiveEn,
-			ObjectiveAr:    clause.ObjectiveAr,
-			ChildClauses:   []*complianceDTOs.ComplianceClauseListDTO{},
+			ID:                   clause.ID,
+			ClauseNo:             clause.ClauseNo,
+			ComplianceRegisterID: clause.ComplianceRegisterID,
+			ParentClauseID:       clause.ParentClauseID,
+			TitleEn:              clause.TitleEn,
+			TitleAr:              clause.TitleAr,
+			ScopeEn:              clause.ScopeEn,
+			ScopeAr:              clause.ScopeAr,
+			ObjectiveEn:          clause.ObjectiveEn,
+			ObjectiveAr:          clause.ObjectiveAr,
+			ChildClauses:         []*complianceDTOs.ComplianceClauseListDTO{},
 		}
 		clauseMap[clause.ID] = dto
 	}

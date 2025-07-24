@@ -295,7 +295,7 @@ func (caic *ControlAssociatedItemController) GetAllClauses(c *gin.Context) {
 		return
 	}
 
-	queryParams := organizationDTOs.ControlAssociatedItemListQueryParamsDTO{
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
