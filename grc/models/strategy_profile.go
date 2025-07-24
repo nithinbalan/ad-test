@@ -23,8 +23,8 @@ type StrategyProfile struct {
 	StrategyProfileStrategicObjectives []StrategyProfileStrategicObjective `gorm:"foreignKey:StrategyProfileID"`
 	StrategyProfileStrategicIntiatives []StrategyProfileStrategicIntiative `gorm:"foreignKey:StrategyProfileID"`
 	StrategyProfileProjects            []StrategyProfileProject            `gorm:"foreignKey:StrategyProfileID"`
-	StrategyProfileMilestones          []StrategyProfileMilestone          `gorm:"foreignKey:StrategyProfileID"`
-	StrategyProfileActionPlans         []StrategyProfileActionPlan         `gorm:"foreignKey:StrategyProfileID"`
+	StrategyProfileProjectMilestones   []StrategyProfileProjectMilestone   `gorm:"foreignKey:StrategyProfileID"`
+	StrategyProfileProjectActionPlans  []StrategyProfileProjectActionPlan  `gorm:"foreignKey:StrategyProfileID"`
 
 	ResponsibleUser *User `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser   *User `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`

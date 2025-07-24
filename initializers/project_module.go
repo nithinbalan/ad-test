@@ -17,7 +17,9 @@ type ProjectModule struct {
 	ProjectActionPlanStatusUpdateController *controllers.ProjectActionPlanStatusUpdateController
 	ProjectActionPlanCommentController      *controllers.ProjectActionPlanCommentController
 
-	projectSvc services.ProjectServiceInterface
+	projectSvc           services.ProjectServiceInterface
+	projectMilestoneSvc  services.ProjectMilestoneServiceInterface
+	projectActionPlanSvc services.ProjectActionPlanServiceInterface
 }
 
 func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule) *ProjectModule {
@@ -90,6 +92,8 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		ProjectActionPlanStatusUpdateController: projectActionPlanStatusUpdateController,
 		ProjectActionPlanCommentController:      projectActionPlanCommentController,
 
-		projectSvc: projectSvc,
+		projectSvc:           projectSvc,
+		projectMilestoneSvc:  projectMilestoneSvc,
+		projectActionPlanSvc: projectActionPlanSvc,
 	}
 }

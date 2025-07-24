@@ -18,7 +18,7 @@ type StrategyProfileFocusArea struct {
 	//StrategyProfileStrategicObjectives []StrategyProfileStrategicObjective `gorm:"foreignKey:StrategyProfileFocusAreaID"`
 	//StrategyProfileStrategicIntiatives []StrategyProfileStrategicIntiative `gorm:"foreignKey:StrategyProfileFocusAreaID"`
 	//StrategyProfileProjects    []StrategyProfileProject    `gorm:"foreignKey:StrategyProfileFocusAreaID"`
-	StrategyProfileMilestones  []StrategyProfileMilestone  `gorm:"foreignKey:StrategyProfileFocusAreaID"`
+	//StrategyProfileMilestones  []StrategyProfileMilestone  `gorm:"foreignKey:StrategyProfileFocusAreaID"`
 	StrategyProfileActionPlans []StrategyProfileActionPlan `gorm:"foreignKey:StrategyProfileFocusAreaID"`
 
 	CreatedByUser *User `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`

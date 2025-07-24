@@ -21,7 +21,7 @@ type StrategyProfileGoal struct {
 	//StrategyProfileStrategicObjectives []StrategyProfileStrategicObjective `gorm:"foreignKey:StrategyProfileGoalID"`
 	//StrategyProfileStrategicIntiatives []StrategyProfileStrategicIntiative `gorm:"foreignKey:StrategyProfileGoalID"`
 	//StrategyProfileProjects    []StrategyProfileProject    `gorm:"foreignKey:StrategyProfileGoalID"`
-	StrategyProfileMilestones  []StrategyProfileMilestone  `gorm:"foreignKey:StrategyProfileGoalID"`
+	//StrategyProfileMilestones  []StrategyProfileMilestone  `gorm:"foreignKey:StrategyProfileGoalID"`
 	StrategyProfileActionPlans []StrategyProfileActionPlan `gorm:"foreignKey:StrategyProfileGoalID"`
 	ResponsibleUser            *User                       `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser              *User                       `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
