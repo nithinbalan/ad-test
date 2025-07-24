@@ -727,9 +727,7 @@ func (repo *ComplianceClauseRepository) GetAssociatedDocuments(complianceID uint
 			LEFT JOIN users AS updated_user ON updated_user.id = documents.updated_by_id
 			LEFT JOIN users AS published_user ON published_user.id = documents.published_by_id
 		`).Where("document_compliance_requirements.compliance_register_id = ? AND document_compliance_requirements.compliance_clause_id = ?", complianceID, clauseID)
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
+
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -747,7 +745,7 @@ func (repo *ComplianceClauseRepository) GetAssociatedDocuments(complianceID uint
 			organization_units.title_ar LIKE ? OR
 			document_statuses.title_en LIKE ? OR
 			document_statuses.title_ar LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	if params.SortBy == "" {
@@ -756,7 +754,9 @@ func (repo *ComplianceClauseRepository) GetAssociatedDocuments(complianceID uint
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
 	}
-
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize

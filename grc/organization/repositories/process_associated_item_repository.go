@@ -501,7 +501,7 @@ func (repo *ProcessAssociatedItemRepository) GetAllDocuments(processID uint, par
 				organization_units.title_ar LIKE ? OR
 				document_statuses.title_en LIKE ? OR
 				document_statuses.title_ar LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	if params.SortBy == "" {
