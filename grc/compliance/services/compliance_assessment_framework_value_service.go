@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"jethur/grc/compliance/dtos"
@@ -99,6 +100,18 @@ func (cavs *ComplianceAssessmentFrameworkValueService) Create(complianceAssessme
 		return 0, err
 	}
 
+	// Validate form data
+	if err := cavs.validateComplianceAssessmentFrameworkValue(form); err != nil {
+		return 0, err
+	}
+
+	// Validate duplicate value only if value is provided
+	if form.Value != nil {
+		if err := cavs.validateDuplicateValue(complianceAssessmentFrameworkID, nil, *form.Value); err != nil {
+			return 0, err
+		}
+	}
+
 	// Handle IsApplicable with proper default value
 	var isApplicable *bool
 	if form.IsApplicable != nil {
@@ -159,6 +172,18 @@ func (cavs *ComplianceAssessmentFrameworkValueService) Update(complianceAssessme
 			return &utility.ResourceNotFoundError{}
 		}
 		return err
+	}
+
+	// Validate form data
+	if err := cavs.validateComplianceAssessmentFrameworkValue(form); err != nil {
+		return err
+	}
+
+	// Validate duplicate value only if value is provided
+	if form.Value != nil {
+		if err := cavs.validateDuplicateValue(complianceAssessmentFrameworkID, nil, *form.Value); err != nil {
+			return err
+		}
 	}
 
 	// Store old data for activity logging
@@ -280,4 +305,106 @@ func (cavs *ComplianceAssessmentFrameworkValueService) Delete(complianceAssessme
 
 func timePtr(t time.Time) *time.Time {
 	return &t
+}
+
+// validateComplianceAssessmentFrameworkValue validates the form data according to business rules
+func (cavs *ComplianceAssessmentFrameworkValueService) validateComplianceAssessmentFrameworkValue(form *dtos.ComplianceAssessmentFrameworkValueFormDTO) error {
+
+	// IsApplicable-based validation
+	if form.IsApplicable != nil && *form.IsApplicable {
+		// If IsApplicable is true, value, score_min, and score_max are required
+		if form.Value == nil {
+			return utility.NewValidationError(
+				fmt.Errorf("value is required when is_applicable is true"),
+				"required",
+				"value",
+			)
+		}
+		if form.ScoreMin == nil {
+			return utility.NewValidationError(
+				fmt.Errorf("score_min is required when is_applicable is true"),
+				"required",
+				"ScoreMin",
+			)
+		}
+		if form.ScoreMax == nil {
+			return utility.NewValidationError(
+				fmt.Errorf("score_max is required when is_applicable is true"),
+				"required",
+				"ScoreMax",
+			)
+		}
+
+		// Validate score_min is between 0-100
+		if *form.ScoreMin < 0 || *form.ScoreMin > 100 {
+			return utility.NewValidationError(
+				fmt.Errorf("score_min must be between 0 and 100"),
+				"invalid_range",
+				"ScoreMin",
+			)
+		}
+
+		// Validate score_max is between 0-100
+		if *form.ScoreMax < 0 || *form.ScoreMax > 100 {
+			return utility.NewValidationError(
+				fmt.Errorf("score_max must be between 0 and 100"),
+				"invalid_range",
+				"ScoreMax",
+			)
+		}
+		// Validate score_min is less than score_max
+		if *form.ScoreMin >= *form.ScoreMax {
+			return utility.NewValidationError(
+				fmt.Errorf("score_min must be less than score_max"),
+				"invalid_range",
+				"ScoreMin",
+			)
+		}
+	}
+
+	return nil
+}
+
+// validateDuplicateValue checks if the value already exists for the framework
+func (cavs *ComplianceAssessmentFrameworkValueService) validateDuplicateValue(complianceAssessmentFrameworkID uint, currentValueID *uint, value int) error {
+	// Get existing framework values
+	existingValues, err := cavs.getExistingFrameworkValues(complianceAssessmentFrameworkID, currentValueID)
+	if err != nil {
+		return err
+	}
+
+	// Check for duplicate values
+	for _, existing := range existingValues {
+		if existing.Value != nil && *existing.Value == value {
+			return utility.NewValidationError(
+				fmt.Errorf("value %d already exists. Each value must be unique", value),
+				"duplicate",
+				"value",
+			)
+		}
+	}
+
+	return nil
+}
+
+// getExistingFrameworkValues retrieves existing values for validation
+func (cavs *ComplianceAssessmentFrameworkValueService) getExistingFrameworkValues(complianceAssessmentFrameworkID uint, excludeID *uint) ([]*models.ComplianceAssessmentFrameworkValue, error) {
+	// Get all values for this framework directly from repository
+	values, err := cavs.repo.GetByFrameworkID(complianceAssessmentFrameworkID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Filter out the excluded ID if provided
+	if excludeID != nil {
+		var filteredValues []*models.ComplianceAssessmentFrameworkValue
+		for _, value := range values {
+			if value.ID != *excludeID {
+				filteredValues = append(filteredValues, value)
+			}
+		}
+		return filteredValues, nil
+	}
+
+	return values, nil
 }

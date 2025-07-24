@@ -15,6 +15,7 @@ type ComplianceAssessmentFrameworkValueRepositoryInterface interface {
 	Create(value *models.ComplianceAssessmentFrameworkValue) (uint, error)
 	Update(value *models.ComplianceAssessmentFrameworkValue) error
 	Delete(id uint) error
+	GetByFrameworkID(complianceAssessmentFrameworkID uint) ([]*models.ComplianceAssessmentFrameworkValue, error)
 }
 
 type ComplianceAssessmentFrameworkValueRepository struct {
@@ -163,4 +164,12 @@ func (repo *ComplianceAssessmentFrameworkValueRepository) Delete(id uint) error 
 	}
 
 	return nil
+}
+
+func (repo *ComplianceAssessmentFrameworkValueRepository) GetByFrameworkID(complianceAssessmentFrameworkID uint) ([]*models.ComplianceAssessmentFrameworkValue, error) {
+	var values []*models.ComplianceAssessmentFrameworkValue
+	if err := repo.db.Where("compliance_assessment_framework_id = ?", complianceAssessmentFrameworkID).Find(&values).Error; err != nil {
+		return nil, err
+	}
+	return values, nil
 }
