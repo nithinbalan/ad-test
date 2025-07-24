@@ -23,7 +23,7 @@ ON UPDATE NO ACTION;
 -- +goose StatementBegin
 
 ALTER TABLE incident_compliance_requirements
-DROP CONSTRAINT FK_risk_clause_compliance_clauses;
+DROP CONSTRAINT FK_incident_compliance_requirement_compliance_clauses;
 
 -- Revert compliance_requirement_id to NOT NULL
 ALTER TABLE incident_compliance_requirements

@@ -5,7 +5,7 @@
 ALTER TABLE risk_compliance_requirements
 ALTER COLUMN compliance_requirement_id INT NULL;
 
--- Add new NOT NULL column
+
 ALTER TABLE risk_compliance_requirements
 ADD compliance_clause_id INT NULL;
 
@@ -23,7 +23,7 @@ ON UPDATE NO ACTION;
 -- +goose StatementBegin
 
 ALTER TABLE risk_compliance_requirements
-DROP CONSTRAINT FK_risk_clause_compliance_clauses;
+DROP CONSTRAINT FK_risk_compliance_requirement_compliance_clauses;
 
 -- Revert compliance_requirement_id to NOT NULL
 ALTER TABLE risk_compliance_requirements
