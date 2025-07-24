@@ -15,8 +15,11 @@ type StrategicObjectiveAssociatedItemServiceInterface interface {
 	GetAllClauses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(strategicObjectiveID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 	GetAllRisks(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
-	CreateStrategicObjectiveRisk(strategicObjectiveID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
+	CreateStrategicObjectiveRisk(strategicObjectiveID uint, currentUserID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
 	DeleteStrategicObjectiveRisk(strategicObjectiveID uint, riskID uint) error
+	GetAllStrategicObjectiveDocuments(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
+	CreateStrategicObjectiveDocuments(strategicObjectiveID uint, currentUserID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
+	DeleteStrategicObjectiveDocument(strategicObjectiveID uint, documentID uint) error
 }
 
 // Service and implementations
@@ -160,7 +163,7 @@ func (rais *StrategicObjectiveAssociatedItemService) GetAllRisks(processID uint,
 	return rais.repo.GetAllRisks(processID, params)
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveRisk(strategicObjectiveID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
+func (rais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveRisk(strategicObjectiveID, currentUserID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
 	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveID), "not_exist", "strategic_objective_id")
 	}
@@ -175,7 +178,7 @@ func (rais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveRis
 		mappings = append(mappings, &models.RiskStrategicObjective{
 			RiskRegisterID:       riskID,
 			StrategicObjectiveID: strategicObjectiveID,
-			CreatedByID:          userID,
+			CreatedByID:          currentUserID,
 			CreatedAt:            currentTime,
 		})
 	}
@@ -196,6 +199,56 @@ func (rais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveRis
 	tx := rais.repo.BeginTransaction()
 
 	if err := rais.repo.DeleteStrategicObjectiveRisk(strategicObjectiveID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (rais *StrategicObjectiveAssociatedItemService) GetAllStrategicObjectiveDocuments(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
+	if _, err := rais.strategicObjectiveSvc.GetByID(processID); err != nil {
+		return nil, err
+	}
+	return rais.repo.GetAllStrategicObjectiveDocuments(processID, params)
+}
+
+func (rais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveDocuments(strategicObjectiveID, currentUserID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error {
+	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveID), "not_exist", "strategic_objective_id")
+	}
+	if err := rais.validationSvc.ValidateDocumentMapping(strategicObjectiveID, dto.DoumentIDs, "strategic_objective_associated_documents", "strategic_objective_id"); err != nil {
+		return err
+	}
+	tx := rais.repo.BeginTransaction()
+	var mappings []*models.StrategicObjectiveAssociatedDocument
+	currentTime := time.Now()
+
+	for _, documentID := range dto.DoumentIDs {
+		mappings = append(mappings, &models.StrategicObjectiveAssociatedDocument{
+			DocumentID:           documentID,
+			StrategicObjectiveID: strategicObjectiveID,
+			CreatedByID:          currentUserID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := rais.repo.CreateStrategicObjectiveDocuments(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (rais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveDocument(strategicObjectiveID uint, documentID uint) error {
+	// Validate control existence
+	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveID), "not_exist", "strategic_objective_id")
+	}
+
+	tx := rais.repo.BeginTransaction()
+
+	if err := rais.repo.DeleteStrategicObjectiveDocument(strategicObjectiveID, documentID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
