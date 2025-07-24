@@ -23,6 +23,8 @@ type ControlAssociatedItemRepositoryInterface interface {
 	DeleteControlClauses(controlID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 	CreateControlRisk(risks []*models.RiskControl, tx ...utility.DatabaseTransaction) error
 	DeleteControlRisk(controlID uint, riskID uint, tx ...utility.DatabaseTransaction) error
+	CreateControlDocument(documents []*models.DocumentControl, tx ...utility.DatabaseTransaction) error
+	DeleteControlDocument(controlID uint, documentID uint, tx ...utility.DatabaseTransaction) error
 }
 type ControlAssociatedItemRepository struct {
 	db *gorm.DB
@@ -674,5 +676,24 @@ func (repo *ControlAssociatedItemRepository) DeleteControlRisk(controlID uint, r
 	return db.
 		Where("risk_register_id = ? AND control_id = ?", riskId, controlID).
 		Delete(&models.RiskControl{}).
+		Error
+}
+
+func (repo *ControlAssociatedItemRepository) CreateControlDocument(documents []*models.DocumentControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&documents).Error
+}
+
+func (repo *ControlAssociatedItemRepository) DeleteControlDocument(controlID uint, documentId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("document_id = ? AND control_id = ?", documentId, controlID).
+		Delete(&models.DocumentControl{}).
 		Error
 }
