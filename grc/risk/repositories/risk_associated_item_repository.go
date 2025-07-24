@@ -766,44 +766,88 @@ func (repo *RiskAssociatedItemRepository) GetAllDocuments(riskID uint, params *c
 
 	query := repo.db.Table("risk_associated_documents").
 		Select(`
-			documents.id AS id,
+			risk_associated_documents.id AS id,
+			risk_associated_documents.document_id,
 			documents.reference_number AS reference_number,
+			documents.document_type_id AS document_type_id,
 			documents.title_en AS title_en,
 			documents.title_ar AS title_ar,
+			documents.last_checkout_at AS last_checkout_at,
+			documents.last_checkin_at AS last_checkin_at,
+			documents.is_locked AS is_locked,
 			documents.description_en AS description_en,
 			documents.description_ar AS description_ar,
+			documents.responsible_user_id,
+			documents.created_at,
+			documents.updated_at,
+			documents.published_at,
 			document_categories.title_en AS document_category_title_en,
 			document_categories.title_ar AS document_category_title_ar,
 			document_types.title_en AS document_type_title_en,
 			document_types.title_ar AS document_type_title_ar,
 			document_access_types.title_en AS document_access_type_title_en,
-			document_access_types.title_ar AS document_access_type_title_ar,
-			responsible_user.id AS responsible_user_id,
-			responsible_user.first_name_en AS responsible_user_first_name_en,
-            responsible_user.first_name_ar AS responsible_user_first_name_ar,
-            responsible_user.last_name_en AS responsible_user_last_name_en,
-            responsible_user.last_name_ar AS responsible_user_last_name_ar,
-			responsible_user.initial AS responsible_user_initial,
-            responsible_user.color AS responsible_user_color,
-            responsible_user.email AS responsible_user_email,
-            responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			document_access_types.title_ar AS document_type_access_title_ar,
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			document_versions.url AS document_url,
+			document_versions.name AS document_name,
+			document_versions.size AS document_size,
+			document_versions.token AS document_token,
+			document_versions.original_name AS document_original_name,
+			document_versions.type AS document_type,
+			document_versions.version AS document_version,
 			document_statuses.title_en AS document_status_title_en,
 			document_statuses.title_ar AS document_status_title_ar,
 			document_statuses.color_code AS document_status_color_code,
-			documents.last_checkout_at AS last_checkout_at,
-			documents.last_checkin_at AS last_checkin_at,
-			documents.is_locked AS is_locked
+			document_statuses.type AS document_status_type,
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
+			updated_user.id AS updated_user_id,
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path,
+			published_user.first_name_en AS published_user_first_name_en,
+			published_user.first_name_ar AS published_user_first_name_ar,
+			published_user.last_name_en AS published_user_last_name_en,
+			published_user.last_name_ar AS published_user_last_name_ar,
+			published_user.initial AS published_user_initial,
+			published_user.color AS published_user_color,
+			published_user.email AS published_user_email,
+			published_user.profile_image_path AS published_user_profile_image_path
 		`).
 		Joins(`
 			LEFT JOIN documents ON documents.id = risk_associated_documents.document_id
+			LEFT JOIN document_categories ON document_categories.id = documents.document_category_id
+			LEFT JOIN document_types ON document_types.id = documents.document_type_id
 			LEFT JOIN document_access_types ON document_access_types.id = documents.document_access_type_id
-			LEFT JOIN document_categories ON documents.document_category_id = document_categories.id
-			LEFT JOIN users AS responsible_user ON documents.responsible_user_id = responsible_user.id
-			LEFT JOIN organization_units ON documents.responsible_unit_id = organization_units.id
-			LEFT JOIN document_statuses ON documents.document_status_id = document_statuses.id
-			LEFT JOIN document_types ON documents.document_type_id = document_types.id
+			LEFT JOIN organization_units ON organization_units.id = documents.responsible_unit_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = documents.responsible_user_id
+			LEFT JOIN document_versions ON document_versions.document_id = documents.id AND document_versions.is_latest_version = 1
+			LEFT JOIN document_statuses ON document_statuses.id = documents.document_status_id
+			LEFT JOIN users AS created_user ON created_user.id = documents.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = documents.updated_by_id
+			LEFT JOIN users AS published_user ON published_user.id = documents.published_by_id
 		`).
 		Where("risk_associated_documents.risk_register_id = ?", riskID)
 
