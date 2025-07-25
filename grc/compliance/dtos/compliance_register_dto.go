@@ -106,30 +106,31 @@ type ComplianceRegisterListResponseDTO struct {
 }
 
 type ComplianceRegisterFormDTO struct {
-	ComplianceCategoryID     uint                      `json:"compliance_category_id" binding:"required"`
-	ComplianceStatusID       uint                      `json:"compliance_status_id" binding:"required"`
-	ResponsibleUserID        uint                      `json:"responsible_user_id" binding:"required"`
-	ReviewFrequencyID        *uint                     `json:"review_frequency_id"`
-	ReviewResponsibleUserID  *uint                     `json:"review_responsible_user_id"`
-	SeverityLevelID          *uint                     `json:"severity_level_id"`
-	TitleEn                  string                    `json:"title_en" binding:"required,max=255"`
-	TitleAr                  string                    `json:"title_ar" binding:"required,max=255"`
-	DescriptionEn            *string                   `json:"description_en"`
-	DescriptionAr            *string                   `json:"description_ar"`
-	Version                  *string                   `json:"version" binding:"omitempty,max=45"`
-	Deadline                 *string                   `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
-	IssueDate                *string                   `json:"issue_date" binding:"omitempty,datetime=2006-01-02"`
-	ExpiryDate               *string                   `json:"expiry_date" binding:"omitempty,datetime=2006-01-02"`
-	NextReviewDate           *string                   `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
-	LastReviewedDate         *string                   `json:"last_reviewed_date" binding:"omitempty,datetime=2006-01-02"`
-	LastReviewedUserID       *uint                     `json:"last_reviewed_user_id" binding:"omitempty"`
-	ComplianceReviewStatusID *uint                     `json:"compliance_review_status_id"`
-	LastReviewNote           *string                   `json:"last_review_note"`
-	StandardCode             *string                   `json:"standard_code" binding:"omitempty,max=45"`
-	DocumentEn               ComplianceDocumentFormDTO `json:"document_en" binding:"required"`
-	DocumentAr               ComplianceDocumentFormDTO `json:"document_ar" binding:"required"`
-	ControlIDs               []*uint                   `json:"control_ids"`
-	ComplianceFolderID       *uint                     `json:"compliance_folder_id"`
+	ComplianceCategoryID            uint                      `json:"compliance_category_id" binding:"required"`
+	ComplianceStatusID              uint                      `json:"compliance_status_id" binding:"required"`
+	ResponsibleUserID               uint                      `json:"responsible_user_id" binding:"required"`
+	ReviewFrequencyID               *uint                     `json:"review_frequency_id"`
+	ReviewResponsibleUserID         *uint                     `json:"review_responsible_user_id"`
+	SeverityLevelID                 *uint                     `json:"severity_level_id"`
+	TitleEn                         string                    `json:"title_en" binding:"required,max=255"`
+	TitleAr                         string                    `json:"title_ar" binding:"required,max=255"`
+	DescriptionEn                   *string                   `json:"description_en"`
+	DescriptionAr                   *string                   `json:"description_ar"`
+	Version                         *string                   `json:"version" binding:"omitempty,max=45"`
+	Deadline                        *string                   `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
+	IssueDate                       *string                   `json:"issue_date" binding:"omitempty,datetime=2006-01-02"`
+	ExpiryDate                      *string                   `json:"expiry_date" binding:"omitempty,datetime=2006-01-02"`
+	NextReviewDate                  *string                   `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
+	LastReviewedDate                *string                   `json:"last_reviewed_date" binding:"omitempty,datetime=2006-01-02"`
+	LastReviewedUserID              *uint                     `json:"last_reviewed_user_id" binding:"omitempty"`
+	ComplianceReviewStatusID        *uint                     `json:"compliance_review_status_id"`
+	ComplianceAssessmentFrameworkID *uint                     `json:"compliance_assessment_framework_id" gorm:"default:null"`
+	LastReviewNote                  *string                   `json:"last_review_note"`
+	StandardCode                    *string                   `json:"standard_code" binding:"omitempty,max=45"`
+	DocumentEn                      ComplianceDocumentFormDTO `json:"document_en" binding:"required"`
+	DocumentAr                      ComplianceDocumentFormDTO `json:"document_ar" binding:"required"`
+	ControlIDs                      []*uint                   `json:"control_ids"`
+	ComplianceFolderID              *uint                     `json:"compliance_folder_id"`
 }
 
 type ComplianceDocumentFormDTO struct {

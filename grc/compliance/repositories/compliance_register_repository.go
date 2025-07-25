@@ -39,6 +39,7 @@ type ComplianceRegisterRepositoryInterface interface {
 	DeleteComplianceStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 
 	UpdateComplianceTotalScore(complianceRegisterID uint, totalScore float64, tx utility.DatabaseTransaction) error
+	HasComplianceAssessments(registerID uint, tx ...utility.DatabaseTransaction) (bool, error)
 }
 
 type ComplianceRegisterRepository struct {
@@ -512,4 +513,17 @@ func (repo *ComplianceRegisterRepository) UpdateComplianceTotalScore(complianceR
 	}
 
 	return nil
+}
+func (repo *ComplianceRegisterRepository) HasComplianceAssessments(registerID uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	var count int64
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	query := db.Table("compliance_assessments").Where("compliance_register_id = ?", registerID)
+	if err := query.Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

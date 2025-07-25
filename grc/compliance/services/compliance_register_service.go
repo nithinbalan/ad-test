@@ -46,18 +46,19 @@ type ComplianceRegisterServiceInterface interface {
 
 // Service and implementations
 type ComplianceRegisterService struct {
-	repo                  complianceRepositories.ComplianceRegisterRepositoryInterface
-	activityLogSvc        logServices.ActivityLogServiceInterface
-	lifecycleStatusSvc    masterServices.LifecycleStatusServiceInterface
-	complianceCategorySvc ComplianceCategoryServiceInterface
-	complianceStatusSvc   ComplianceStatusServiceInterface
-	reviewFrequencySvc    masterServices.ReviewFrequencyServiceInterface
-	severityLevelSvc      masterServices.SeverityLevelServiceInterface
-	controlSvc            organizationServices.ControlServiceInterface
-	userSettingSvc        organizationServices.UserSettingServiceInterface
-	userSvc               organizationServices.UserServiceInterface
-	notificationSvc       commonServices.NotificationServiceInterface
-	complianceFolderSvc   ComplianceFolderServiceInterface
+	repo                             complianceRepositories.ComplianceRegisterRepositoryInterface
+	activityLogSvc                   logServices.ActivityLogServiceInterface
+	lifecycleStatusSvc               masterServices.LifecycleStatusServiceInterface
+	complianceCategorySvc            ComplianceCategoryServiceInterface
+	complianceStatusSvc              ComplianceStatusServiceInterface
+	reviewFrequencySvc               masterServices.ReviewFrequencyServiceInterface
+	severityLevelSvc                 masterServices.SeverityLevelServiceInterface
+	controlSvc                       organizationServices.ControlServiceInterface
+	userSettingSvc                   organizationServices.UserSettingServiceInterface
+	userSvc                          organizationServices.UserServiceInterface
+	notificationSvc                  commonServices.NotificationServiceInterface
+	complianceFolderSvc              ComplianceFolderServiceInterface
+	complianceAssessmentFrameworkSvc ComplianceAssessmentFrameworkServiceInterface
 }
 
 func NewComplianceRegisterService(
@@ -73,20 +74,22 @@ func NewComplianceRegisterService(
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	complianceFolderSvc ComplianceFolderServiceInterface,
+	complianceAssessmentFrameworkSvc ComplianceAssessmentFrameworkServiceInterface,
 ) ComplianceRegisterServiceInterface {
 	return &ComplianceRegisterService{
-		repo:                  repo,
-		activityLogSvc:        activityLogSvc,
-		lifecycleStatusSvc:    lifecycleStatusSvc,
-		complianceCategorySvc: complianceCategorySvc,
-		complianceStatusSvc:   complianceStatusSvc,
-		reviewFrequencySvc:    reviewFrequencySvc,
-		severityLevelSvc:      severityLevelSvc,
-		controlSvc:            controlSvc,
-		userSettingSvc:        userSettingSvc,
-		userSvc:               userSvc,
-		notificationSvc:       notificationSvc,
-		complianceFolderSvc:   complianceFolderSvc,
+		repo:                             repo,
+		activityLogSvc:                   activityLogSvc,
+		lifecycleStatusSvc:               lifecycleStatusSvc,
+		complianceCategorySvc:            complianceCategorySvc,
+		complianceStatusSvc:              complianceStatusSvc,
+		reviewFrequencySvc:               reviewFrequencySvc,
+		severityLevelSvc:                 severityLevelSvc,
+		controlSvc:                       controlSvc,
+		userSettingSvc:                   userSettingSvc,
+		userSvc:                          userSvc,
+		notificationSvc:                  notificationSvc,
+		complianceFolderSvc:              complianceFolderSvc,
+		complianceAssessmentFrameworkSvc: complianceAssessmentFrameworkSvc,
 	}
 }
 
@@ -416,7 +419,17 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		}
 		existingComplianceRegister.ResponsibleUnitID = responsibleUnitID
 	}
+	hasAssessments, err := crs.repo.HasComplianceAssessments(id, tx)
+	if err != nil {
+		return err
+	}
 
+	if hasAssessments && existingComplianceRegister.ComplianceAssessmentFrameworkID != nil &&
+		complianceRegisterFormDTO.ComplianceAssessmentFrameworkID != nil &&
+		*existingComplianceRegister.ComplianceAssessmentFrameworkID != *complianceRegisterFormDTO.ComplianceAssessmentFrameworkID {
+
+		return utility.NewValidationError(fmt.Errorf("compliance assessment framework cannot be changed when assessments exist"), "not_allowed", "Compliance assessment framework")
+	}
 	existingComplianceRegister.ComplianceCategoryID = complianceRegisterFormDTO.ComplianceCategoryID
 	existingComplianceRegister.ComplianceStatusID = complianceRegisterFormDTO.ComplianceStatusID
 	existingComplianceRegister.ResponsibleUserID = complianceRegisterFormDTO.ResponsibleUserID
@@ -439,6 +452,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	existingComplianceRegister.LastReviewNote = complianceRegisterFormDTO.LastReviewNote
 	existingComplianceRegister.UpdatedByID = &currentUserID
 	existingComplianceRegister.ComplianceFolderID = complianceRegisterFormDTO.ComplianceFolderID
+	existingComplianceRegister.ComplianceAssessmentFrameworkID = complianceRegisterFormDTO.ComplianceAssessmentFrameworkID
 
 	err = crs.repo.Update(existingComplianceRegister, tx)
 	if err != nil {
@@ -1115,7 +1129,11 @@ func (crs *ComplianceRegisterService) validateComplianceRegisterFormDTO(complian
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 		}
 	}
-
+	if complianceRegisterFormDTO.ComplianceAssessmentFrameworkID != nil {
+		if _, err := crs.complianceAssessmentFrameworkSvc.GetByID(*complianceRegisterFormDTO.ComplianceAssessmentFrameworkID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("compliance assessment framework does not exist"), "not_exist", "compliance assessment framework")
+		}
+	}
 	// Controls exist
 	controls := complianceRegisterFormDTO.ControlIDs
 
