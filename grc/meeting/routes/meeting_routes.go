@@ -96,6 +96,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingRoutes.GET("/meetings/:id/processes", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingAssociatedItemController.GetAllMeetingProcesses)
 	meetingRoutes.GET("/meetings/:id/incidents", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingAssociatedItemController.GetAllMeetingIncidents)
 
+	meetingRoutes.GET("/meetings/:id/documents", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingAssociatedItemController.GetAllMeetingDocuments)
+	meetingRoutes.POST("/meetings/:id/documents", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingAssociatedItemController.CreateMeetingDocument)
+	meetingRoutes.DELETE("/meetings/:id/documents/:documentId", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingAssociatedItemController.DeleteMeetingDocument)
+
 	// Meeting Minute Status
 	meetingRoutes.GET("/meeting-minute-statuses", meetingMinuteStatusController.GetAllMeetingMinuteStatuses)
 	meetingRoutes.GET("/meeting-minute-statuses/:id", meetingMinuteStatusController.GetMeetingMinuteStatusDetails)

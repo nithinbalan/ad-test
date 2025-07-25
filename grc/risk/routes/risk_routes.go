@@ -52,6 +52,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskClosureController := app.RiskModule.RiskClosureController
 	riskCommentController := app.RiskModule.RiskCommentController
 	riskReportController := app.RiskModule.RiskReportController
+	kriAssociatedItemController := app.RiskModule.KRIAssociatedItemController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -367,5 +368,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.POST("/risks/template/validate", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskRegisterController.ValidateRiskTemplate)
 	riskRoutes.POST("/risks/import/validate", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskRegisterController.ValidateImportRisks)
 	riskRoutes.POST("/risks/import", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskRegisterController.ImportRisks)
+
+	riskRoutes.GET("/kri-register/:id/documents", middlewares.RolePermissionMiddleware(db, "kri", "view"), kriAssociatedItemController.GetAllKRIDocuments)
+	riskRoutes.POST("/kri-register/:id/documents", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.CreateKRIDocument)
+	riskRoutes.DELETE("/kri-register/:id/documents/:documentId", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.DeleteKRIDocument)
 
 }
