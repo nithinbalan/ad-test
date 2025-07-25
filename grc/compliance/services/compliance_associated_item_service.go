@@ -23,6 +23,9 @@ type ComplianceAssociatedItemServiceInterface interface {
 	DeleteComplianceControl(complianceID, controlID uint) error
 	CreateComplianceRisk(complianceID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
 	DeleteComplianceRisk(complianceID uint, riskID uint) error
+	GetAllDocuments(complianceID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
+	CreateComplianceDocument(complianceID uint, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
+	DeleteComplianceDocument(complianceID uint, riskID uint) error
 }
 
 // Service and implementations
@@ -209,30 +212,53 @@ func (cais *ComplianceAssociatedItemService) DeleteComplianceRisk(complianceID u
 	return tx.Commit()
 }
 
-// func (cais *ComplianceAssociatedItemService) validateRiskIDs(complianceID uint, riskIDs []uint) error {
-// 	if len(riskIDs) == 0 {
-// 		return utility.NewValidationError(fmt.Errorf("no risks provided"), "required", "risk_ids")
-// 	}
-// 	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
-// 		return utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_id")
-// 	}
-// 	seen := make(map[uint]bool)
-// 	for _, id := range riskIDs {
-// 		alreadyMapped, err := cais.repo.IsRiskMappedToCompliance(complianceID, id)
-// 		if err != nil {
-// 			return fmt.Errorf("failed to check existing mapping: %v", err)
-// 		}
-// 		if alreadyMapped {
-// 			return utility.NewValidationError(fmt.Errorf("risk ID %d already mapped to this control", id), "duplicate", "risk_ids")
-// 		}
-// 		if seen[id] {
-// 			return utility.NewValidationError(fmt.Errorf("duplicate risk ID: %d", id), "duplicate", "risk_ids")
-// 		}
-// 		// need to change
-// 		if _, err := cais.controlSvc.GetByID(id); err != nil {
-// 			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", id), "not_exist", "control_ids")
-// 		}
-// 		seen[id] = true
-// 	}
-// 	return nil
-// }
+func (cais *ComplianceAssociatedItemService) GetAllDocuments(complianceID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil, err
+	}
+	return cais.repo.GetAllDocuments(complianceID, params)
+}
+
+func (cais *ComplianceAssociatedItemService) CreateComplianceDocument(complianceID, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error {
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_register_id")
+	}
+	if err := cais.validationSvc.ValidateDocumentMapping(complianceID, dto.DoumentIDs, "document_compliance_requirements", "compliance_register_id"); err != nil {
+		return err
+	}
+
+	tx := cais.repo.BeginTransaction()
+	var mappings []*models.DocumentComplianceRequirement
+	currentTime := time.Now()
+
+	for _, documentID := range dto.DoumentIDs {
+		mappings = append(mappings, &models.DocumentComplianceRequirement{
+			DocumentID:           documentID,
+			ComplianceRegisterID: complianceID,
+			CreatedByID:          userID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := cais.repo.CreateComplianceDocument(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (cais *ComplianceAssociatedItemService) DeleteComplianceDocument(complianceID uint, documentID uint) error {
+	// Validate control existence
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_register_id")
+	}
+
+	tx := cais.repo.BeginTransaction()
+
+	if err := cais.repo.DeleteComplianceDocument(complianceID, documentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}

@@ -192,7 +192,7 @@ func (dais *DocumentAssociatedItemService) UpdateClauses(documentID uint, curren
 			clausesToAdd = append(clausesToAdd, &models.DocumentComplianceRequirement{
 				DocumentID:           documentID,
 				ComplianceRegisterID: clause.ComplianceRegisterID,
-				ComplianceClauseID:   clause.ID,
+				ComplianceClauseID:   &clause.ID,
 				CreatedByID:          currentUserID,
 				CreatedAt:            now,
 			})

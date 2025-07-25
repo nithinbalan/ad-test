@@ -549,7 +549,7 @@ func (ccs *ComplianceClauseService) CreateComplianceClauseDocument(complianceID,
 	for _, documentID := range dto.DoumentIDs {
 		documentMappings = append(documentMappings, &models.DocumentComplianceRequirement{
 			ComplianceRegisterID: complianceID,
-			ComplianceClauseID:   clauseID,
+			ComplianceClauseID:   &clauseID,
 			DocumentID:           documentID,
 			CreatedByID:          currentUserID,
 		})
