@@ -35,6 +35,9 @@ type AssetAssociatedItemServiceInterface interface {
 	UpdateClauses(riskID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 	CreateAssetRisk(assetID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
 	DeleteAssetRisk(assetID uint, riskID uint) error
+	GetAllAssetDocuments(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
+	CreateAssetDocument(assetID uint, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
+	DeleteAssetDocument(assetID uint, documentID uint) error
 }
 
 // Service Implementation
@@ -895,6 +898,59 @@ func (aais *AssetAssociatedItemService) DeleteAssetRisk(assetID uint, riskID uin
 	tx := aais.repo.BeginTransaction()
 
 	if err := aais.repo.DeleteAssetRisk(assetID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (aais *AssetAssociatedItemService) GetAllAssetDocuments(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return nil, err
+	}
+	return aais.repo.GetAllAssetDocuments(assetID, params)
+}
+
+func (aais *AssetAssociatedItemService) CreateAssetDocument(assetID, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error {
+
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("asset does not exist for ID: %d", assetID), "not_exist", "asset_id")
+	}
+
+	if err := aais.validationSvc.ValidateDocumentMapping(assetID, dto.DoumentIDs, "asset_associated_documents", "asset_register_id"); err != nil {
+		return err
+	}
+
+	tx := aais.repo.BeginTransaction()
+	var mappings []*models.AssetAssociatedDocument
+	currentTime := time.Now()
+
+	for _, documentID := range dto.DoumentIDs {
+		mappings = append(mappings, &models.AssetAssociatedDocument{
+			DocumentID:      documentID,
+			AssetRegisterID: assetID,
+			CreatedByID:     userID,
+			CreatedAt:       currentTime,
+		})
+	}
+
+	if err := aais.repo.CreateAssetDocument(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (aais *AssetAssociatedItemService) DeleteAssetDocument(assetID uint, documentID uint) error {
+	// Validate control existence
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("asset does not exist for ID: %d", assetID), "not_exist", "asset_register_id")
+	}
+
+	tx := aais.repo.BeginTransaction()
+
+	if err := aais.repo.DeleteAssetDocument(assetID, documentID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
