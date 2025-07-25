@@ -23,6 +23,7 @@ type ControlAssociatedItemServiceInterface interface {
 	DeleteControlRisk(controlID uint, riskID uint) error
 	CreateControlDocument(controlID uint, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
 	DeleteControlDocument(controlID uint, documentID uint) error
+	GetAllDocuments(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 }
 
 type ControlAssociatedItemService struct {
@@ -334,4 +335,11 @@ func (cais *ControlAssociatedItemService) DeleteControlDocument(controlID uint, 
 	}
 
 	return tx.Commit()
+}
+
+func (cais *ControlAssociatedItemService) GetAllDocuments(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return nil, err
+	}
+	return cais.repo.GetAllDocuments(controlID, params)
 }
