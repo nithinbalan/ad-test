@@ -50,6 +50,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceAssessmentRequirementActionPlanCommentController := app.ComplianceModule.ComplianceAssessmentRequirementActionPlanCommentController
 	complianceReportController := app.ComplianceModule.ComplianceReportController
 	policyExceptionController := app.ComplianceModule.PolicyExceptionController
+	complianceAssessmentFrameworkTypeController := app.ComplianceModule.ComplianceAssessmentFrameworkTypeController
+	complianceAssessmentFrameworkController := app.ComplianceModule.ComplianceAssessmentFrameworkController
+	complianceAssessmentFrameworkValueController := app.ComplianceModule.ComplianceAssessmentFrameworkValueController
 
 	// Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
@@ -371,4 +374,21 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/policy-exceptions/:id/risks", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), policyExceptionController.MapRisksToPolicyException)
 	complianceRoutes.DELETE("/policy-exceptions/:id/risks/:riskID", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), policyExceptionController.DeleteRisksFromPolicyException)
 
+	// Compliance Assessment Framework Type
+	complianceRoutes.GET("/compliance-assessment-framework-types", complianceAssessmentFrameworkTypeController.GetAllComplianceAssessmentFrameworkTypes)
+	complianceRoutes.GET("/compliance-assessment-framework-types/:id", complianceAssessmentFrameworkTypeController.GetComplianceAssessmentFrameworkTypeDetails)
+
+	// Compliance Assessment Framework
+	complianceRoutes.GET("/compliance-assessment-frameworks", complianceAssessmentFrameworkController.GetAllComplianceAssessmentFrameworks)
+	complianceRoutes.GET("/compliance-assessment-frameworks/:complianceAssessmentFrameworkId", complianceAssessmentFrameworkController.GetComplianceAssessmentFrameworkDetails)
+	complianceRoutes.POST("/compliance-assessment-frameworks", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceAssessmentFrameworkController.CreateComplianceAssessmentFramework)
+	complianceRoutes.PUT("/compliance-assessment-frameworks/:complianceAssessmentFrameworkId", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceAssessmentFrameworkController.UpdateComplianceAssessmentFramework)
+	complianceRoutes.POST("/compliance-assessment-frameworks/delete", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceAssessmentFrameworkController.DeleteComplianceAssessmentFramework)
+
+	// Compliance Assessment Framework Values
+	complianceRoutes.GET("/compliance-assessment-frameworks/:complianceAssessmentFrameworkId/values", complianceAssessmentFrameworkValueController.GetAllComplianceAssessmentFrameworkValues)
+	complianceRoutes.GET("/compliance-assessment-frameworks/:complianceAssessmentFrameworkId/values/:complianceAssessmentFrameworkValueId", complianceAssessmentFrameworkValueController.GetComplianceAssessmentFrameworkValueDetails)
+	complianceRoutes.POST("/compliance-assessment-frameworks/:complianceAssessmentFrameworkId/values", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceAssessmentFrameworkValueController.CreateComplianceAssessmentFrameworkValue)
+	complianceRoutes.PUT("/compliance-assessment-frameworks/:complianceAssessmentFrameworkId/values/:complianceAssessmentFrameworkValueId", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceAssessmentFrameworkValueController.UpdateComplianceAssessmentFrameworkValue)
+	complianceRoutes.POST("/compliance-assessment-frameworks/:complianceAssessmentFrameworkId/values/delete", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceAssessmentFrameworkValueController.DeleteComplianceAssessmentFrameworkValues)
 }

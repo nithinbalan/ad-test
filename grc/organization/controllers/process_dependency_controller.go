@@ -105,6 +105,8 @@ func (p *ProcessDependencyController) CreateProcessDependency(c *gin.Context) {
 
 	if err != nil {
 		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 		default:
