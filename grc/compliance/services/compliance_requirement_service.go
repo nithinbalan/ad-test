@@ -225,6 +225,24 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		tx.Rollback()
 		return 0, err
 	}
+	// Add Responsible Departments (compliance_requirement_responsible_units)
+	var responsibleUnits []*models.ComplianceRequirementResponsibleUnit
+	for _, deptID := range complianceRequirementFormDTO.ResponsibleUnitIDs {
+		unit := &models.ComplianceRequirementResponsibleUnit{
+			ComplianceRequirementID: id,
+			ResponsibleUnitID:       *deptID,
+			CreatedByID:             currentUserID,
+		}
+		responsibleUnits = append(responsibleUnits, unit)
+	}
+
+	if len(responsibleUnits) > 0 {
+		if err := crs.repo.CreateComplianceRequirementResponsibleUnits(responsibleUnits, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	// Add Controls
 	var controls []*models.ComplianceControl
 	for _, controlID := range complianceRequirementFormDTO.ControlIDs {
@@ -479,6 +497,52 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+	// Get existing responsible unit IDs
+	existingUnitIDs := make(map[uint]uint) // map[unitID]recordID
+	for _, unit := range complianceRequirement.ResponsibleUnits {
+		if unit.ID != 0 {
+			existingUnitIDs[unit.ID] = unit.ID
+		}
+	}
+
+	// Get new unit IDs from form
+	newUnitIDs := make(map[uint]bool)
+	for _, unitID := range complianceRequirementFormDTO.ResponsibleUnitIDs {
+		newUnitIDs[*unitID] = true
+	}
+
+	// Add new responsible units
+	var unitsToAdd []*models.ComplianceRequirementResponsibleUnit
+	for _, unitID := range complianceRequirementFormDTO.ResponsibleUnitIDs {
+		if _, exists := existingUnitIDs[*unitID]; !exists {
+			unitsToAdd = append(unitsToAdd, &models.ComplianceRequirementResponsibleUnit{
+				ComplianceRequirementID: id,
+				ResponsibleUnitID:       *unitID,
+				CreatedByID:             currentUserID,
+			})
+		}
+	}
+	if len(unitsToAdd) > 0 {
+		if err := crs.repo.CreateComplianceRequirementResponsibleUnits(unitsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Delete removed responsible units
+	var unitIDsToDelete []*uint
+	for unitID, recordID := range existingUnitIDs {
+		if _, exists := newUnitIDs[unitID]; !exists {
+			idToDelete := uint(recordID)
+			unitIDsToDelete = append(unitIDsToDelete, &idToDelete)
+		}
+	}
+	if len(unitIDsToDelete) > 0 {
+		if err := crs.repo.DeleteComplianceRequirementResponsibleUnits(unitIDsToDelete, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	existingControlIDs := make(map[uint]bool)
@@ -1014,6 +1078,16 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 			RequirementTitle: requirement.TitleEn,
 			ReferenceNumber:  compliance.ReferenceNumber,
 		})
+		if len(requirement.ResponsibleUnits) > 0 {
+			var deleteUnitIDs []*uint
+			for _, unit := range requirement.ResponsibleUnits {
+				deleteUnitIDs = append(deleteUnitIDs, &unit.ID)
+			}
+			if err := crs.repo.DeleteComplianceRequirementResponsibleUnits(deleteUnitIDs, tx); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
 
 		// Check if controls exist
 		if len(requirement.Controls) > 0 {

@@ -311,6 +311,10 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("Controls.Control.ControlCategory").
 		Preload("Controls.Control.ControlType").
 		Preload("ComplianceStatusUpdates").
+		Preload("ComplianceAssessmentFramework").
+		Preload("ComplianceAssessmentFramework.AssessmentFrameworkType").
+		Preload("ComplianceAssessmentFramework.Values").
+		Preload("ComplianceAssessmentFramework.Values.ComplianceStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&compliance, id)
