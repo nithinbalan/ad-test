@@ -47,7 +47,7 @@ func (pais *BcpAssociatedItemService) CreateBcpDocument(BcpID, userID uint, dto 
 		return utility.NewValidationError(fmt.Errorf("bcp does not exist for ID: %d", BcpID), "not_exist", "business_continuity_plan_id")
 	}
 
-	if err := pais.validationSvc.ValidateDocumentMapping(BcpID, dto.DoumentIDs, "bcp_associated_documents", "business_continuity_plan_id"); err != nil {
+	if err := pais.validationSvc.ValidateDocumentMapping(BcpID, dto.DocumentIDs, "bcp_associated_documents", "business_continuity_plan_id"); err != nil {
 		return err
 	}
 
@@ -55,7 +55,7 @@ func (pais *BcpAssociatedItemService) CreateBcpDocument(BcpID, userID uint, dto 
 	var mappings []*models.BCPAssociatedDocument
 	currentTime := time.Now()
 
-	for _, documentID := range dto.DoumentIDs {
+	for _, documentID := range dto.DocumentIDs {
 		mappings = append(mappings, &models.BCPAssociatedDocument{
 			DocumentID:               documentID,
 			BusinessContinuityPlanID: BcpID,

@@ -549,14 +549,14 @@ func (kais *KPIAssociatedItemService) CreateKPIPolicies(kpiID, userID uint, dto 
 	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", kpiID), "not_exist", "process_id")
 	}
-	if err := kais.validationSvc.ValidateDocumentMapping(kpiID, dto.DoumentIDs, "kpi_associated_documents", "kpi_register_id"); err != nil {
+	if err := kais.validationSvc.ValidateDocumentMapping(kpiID, dto.DocumentIDs, "kpi_associated_documents", "kpi_register_id"); err != nil {
 		return err
 	}
 	tx := kais.repo.BeginTransaction()
 	var mappings []*models.KPIAssociatedDocument
 	currentTime := time.Now()
 
-	for _, documentID := range dto.DoumentIDs {
+	for _, documentID := range dto.DocumentIDs {
 		mappings = append(mappings, &models.KPIAssociatedDocument{
 			KPIRegisterID: kpiID,
 			DocumentID:    documentID,

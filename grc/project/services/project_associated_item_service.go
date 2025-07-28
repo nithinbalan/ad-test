@@ -47,7 +47,7 @@ func (pais *ProjectAssociatedItemService) CreateProjectDocument(projectID, userI
 		return utility.NewValidationError(fmt.Errorf("project does not exist for ID: %d", projectID), "not_exist", "asset_id")
 	}
 
-	if err := pais.validationSvc.ValidateDocumentMapping(projectID, dto.DoumentIDs, "project_associated_documents", "project_id"); err != nil {
+	if err := pais.validationSvc.ValidateDocumentMapping(projectID, dto.DocumentIDs, "project_associated_documents", "project_id"); err != nil {
 		return err
 	}
 
@@ -55,7 +55,7 @@ func (pais *ProjectAssociatedItemService) CreateProjectDocument(projectID, userI
 	var mappings []*models.ProjectAssociatedDocument
 	currentTime := time.Now()
 
-	for _, documentID := range dto.DoumentIDs {
+	for _, documentID := range dto.DocumentIDs {
 		mappings = append(mappings, &models.ProjectAssociatedDocument{
 			DocumentID:  documentID,
 			ProjectID:   projectID,

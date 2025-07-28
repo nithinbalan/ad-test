@@ -47,7 +47,7 @@ func (afais *AuditFindingAssociatedItemService) CreateAuditFindingDocument(findi
 		return utility.NewValidationError(fmt.Errorf("AuditFinding does not exist for ID: %d", findingID), "not_exist", "audit_finding_id")
 	}
 
-	if err := afais.validationSvc.ValidateDocumentMapping(findingID, dto.DoumentIDs, "audit_finding_associated_documents", "audit_finding_id"); err != nil {
+	if err := afais.validationSvc.ValidateDocumentMapping(findingID, dto.DocumentIDs, "audit_finding_associated_documents", "audit_finding_id"); err != nil {
 		return err
 	}
 
@@ -55,7 +55,7 @@ func (afais *AuditFindingAssociatedItemService) CreateAuditFindingDocument(findi
 	var mappings []*models.AuditFindingAssociatedDocument
 	currentTime := time.Now()
 
-	for _, documentID := range dto.DoumentIDs {
+	for _, documentID := range dto.DocumentIDs {
 		mappings = append(mappings, &models.AuditFindingAssociatedDocument{
 			DocumentID:     documentID,
 			AuditFindingID: findingID,

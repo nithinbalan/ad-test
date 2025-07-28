@@ -377,14 +377,14 @@ func (pais *ProcessAssociatedItemService) CreateProcessDocument(processID, userI
 	if _, err := pais.processSvc.GetByID(processID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", processID), "not_exist", "process_id")
 	}
-	if err := pais.validationSvc.ValidateDocumentMapping(processID, dto.DoumentIDs, "process_associated_documents", "process_id"); err != nil {
+	if err := pais.validationSvc.ValidateDocumentMapping(processID, dto.DocumentIDs, "process_associated_documents", "process_id"); err != nil {
 		return err
 	}
 	tx := pais.repo.BeginTransaction()
 	var mappings []*models.ProcessAssociatedDocument
 	currentTime := time.Now()
 
-	for _, documentID := range dto.DoumentIDs {
+	for _, documentID := range dto.DocumentIDs {
 		mappings = append(mappings, &models.ProcessAssociatedDocument{
 			DocumentID:  documentID,
 			ProcessID:   processID,

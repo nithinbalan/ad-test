@@ -290,7 +290,7 @@ type AssociatedRiskMapDTO struct {
 }
 
 type AssociatedDocumentMapDTO struct {
-	DoumentIDs []uint `json:"document_ids" binding:"required"`
+	DocumentIDs []uint `json:"document_ids" binding:"required"`
 }
 
 type AssociatedIncidentMapDTO struct {

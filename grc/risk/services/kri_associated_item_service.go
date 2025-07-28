@@ -47,7 +47,7 @@ func (pais *KRIAssociatedItemService) CreateKRIDocument(kriID, userID uint, dto 
 		return utility.NewValidationError(fmt.Errorf("KRI does not exist for ID: %d", kriID), "not_exist", "kri_register_id")
 	}
 
-	if err := pais.validationSvc.ValidateDocumentMapping(kriID, dto.DoumentIDs, "kri_associated_documents", "kri_register_id"); err != nil {
+	if err := pais.validationSvc.ValidateDocumentMapping(kriID, dto.DocumentIDs, "kri_associated_documents", "kri_register_id"); err != nil {
 		return err
 	}
 
@@ -55,7 +55,7 @@ func (pais *KRIAssociatedItemService) CreateKRIDocument(kriID, userID uint, dto 
 	var mappings []*models.KRIAssociatedDocument
 	currentTime := time.Now()
 
-	for _, documentID := range dto.DoumentIDs {
+	for _, documentID := range dto.DocumentIDs {
 		mappings = append(mappings, &models.KRIAssociatedDocument{
 			DocumentID:    documentID,
 			KRIRegisterID: kriID,

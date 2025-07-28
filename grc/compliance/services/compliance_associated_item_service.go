@@ -223,7 +223,7 @@ func (cais *ComplianceAssociatedItemService) CreateComplianceDocument(compliance
 	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_register_id")
 	}
-	if err := cais.validationSvc.ValidateDocumentMapping(complianceID, dto.DoumentIDs, "document_compliance_requirements", "compliance_register_id"); err != nil {
+	if err := cais.validationSvc.ValidateDocumentMapping(complianceID, dto.DocumentIDs, "document_compliance_requirements", "compliance_register_id"); err != nil {
 		return err
 	}
 
@@ -231,7 +231,7 @@ func (cais *ComplianceAssociatedItemService) CreateComplianceDocument(compliance
 	var mappings []*models.DocumentComplianceRequirement
 	currentTime := time.Now()
 
-	for _, documentID := range dto.DoumentIDs {
+	for _, documentID := range dto.DocumentIDs {
 		mappings = append(mappings, &models.DocumentComplianceRequirement{
 			DocumentID:           documentID,
 			ComplianceRegisterID: complianceID,

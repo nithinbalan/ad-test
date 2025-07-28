@@ -298,14 +298,14 @@ func (cais *ControlAssociatedItemService) CreateControlDocument(controlID, userI
 	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlID), "not_exist", "control_id")
 	}
-	if err := cais.validationSvc.ValidateDocumentMapping(controlID, dto.DoumentIDs, "document_controls", "control_id"); err != nil {
+	if err := cais.validationSvc.ValidateDocumentMapping(controlID, dto.DocumentIDs, "document_controls", "control_id"); err != nil {
 		return err
 	}
 	tx := cais.repo.BeginTransaction()
 	var mappings []*models.DocumentControl
 	currentTime := time.Now()
 
-	for _, documentID := range dto.DoumentIDs {
+	for _, documentID := range dto.DocumentIDs {
 		mappings = append(mappings, &models.DocumentControl{
 			DocumentID:  documentID,
 			ControlID:   &controlID,

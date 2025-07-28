@@ -217,14 +217,14 @@ func (rais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveDoc
 	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveID), "not_exist", "strategic_objective_id")
 	}
-	if err := rais.validationSvc.ValidateDocumentMapping(strategicObjectiveID, dto.DoumentIDs, "strategic_objective_associated_documents", "strategic_objective_id"); err != nil {
+	if err := rais.validationSvc.ValidateDocumentMapping(strategicObjectiveID, dto.DocumentIDs, "strategic_objective_associated_documents", "strategic_objective_id"); err != nil {
 		return err
 	}
 	tx := rais.repo.BeginTransaction()
 	var mappings []*models.StrategicObjectiveAssociatedDocument
 	currentTime := time.Now()
 
-	for _, documentID := range dto.DoumentIDs {
+	for _, documentID := range dto.DocumentIDs {
 		mappings = append(mappings, &models.StrategicObjectiveAssociatedDocument{
 			DocumentID:           documentID,
 			StrategicObjectiveID: strategicObjectiveID,

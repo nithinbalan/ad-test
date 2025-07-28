@@ -259,14 +259,14 @@ func (iais *IncidentAssociatedItemService) CreateIncidentDocument(incidentID, cu
 	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
 	}
-	if err := iais.validationSvc.ValidateDocumentMapping(incidentID, dto.DoumentIDs, "incident_associated_documents", "incident_register_id"); err != nil {
+	if err := iais.validationSvc.ValidateDocumentMapping(incidentID, dto.DocumentIDs, "incident_associated_documents", "incident_register_id"); err != nil {
 		return err
 	}
 	tx := iais.repo.BeginTransaction()
 	var mappings []*models.IncidentAssociatedDocument
 	currentTime := time.Now()
 
-	for _, documentID := range dto.DoumentIDs {
+	for _, documentID := range dto.DocumentIDs {
 		mappings = append(mappings, &models.IncidentAssociatedDocument{
 			DocumentID:         documentID,
 			IncidentRegisterID: incidentID,

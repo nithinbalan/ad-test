@@ -918,7 +918,7 @@ func (aais *AssetAssociatedItemService) CreateAssetDocument(assetID, userID uint
 		return utility.NewValidationError(fmt.Errorf("asset does not exist for ID: %d", assetID), "not_exist", "asset_id")
 	}
 
-	if err := aais.validationSvc.ValidateDocumentMapping(assetID, dto.DoumentIDs, "asset_associated_documents", "asset_register_id"); err != nil {
+	if err := aais.validationSvc.ValidateDocumentMapping(assetID, dto.DocumentIDs, "asset_associated_documents", "asset_register_id"); err != nil {
 		return err
 	}
 
@@ -926,7 +926,7 @@ func (aais *AssetAssociatedItemService) CreateAssetDocument(assetID, userID uint
 	var mappings []*models.AssetAssociatedDocument
 	currentTime := time.Now()
 
-	for _, documentID := range dto.DoumentIDs {
+	for _, documentID := range dto.DocumentIDs {
 		mappings = append(mappings, &models.AssetAssociatedDocument{
 			DocumentID:      documentID,
 			AssetRegisterID: assetID,

@@ -145,7 +145,7 @@ func (mais *MeetingAssociatedItemService) CreateMeetingDocument(meetingID, userI
 		return utility.NewValidationError(fmt.Errorf("meeting does not exist for ID: %d", meetingID), "not_exist", "meeting_id")
 	}
 
-	if err := mais.validationSvc.ValidateDocumentMapping(meetingID, dto.DoumentIDs, "meeting_associated_documents", "meeting_id"); err != nil {
+	if err := mais.validationSvc.ValidateDocumentMapping(meetingID, dto.DocumentIDs, "meeting_associated_documents", "meeting_id"); err != nil {
 		return err
 	}
 
@@ -153,7 +153,7 @@ func (mais *MeetingAssociatedItemService) CreateMeetingDocument(meetingID, userI
 	var mappings []*models.MeetingAssociatedDocument
 	currentTime := time.Now()
 
-	for _, documentID := range dto.DoumentIDs {
+	for _, documentID := range dto.DocumentIDs {
 		mappings = append(mappings, &models.MeetingAssociatedDocument{
 			DocumentID:  documentID,
 			MeetingID:   meetingID,
