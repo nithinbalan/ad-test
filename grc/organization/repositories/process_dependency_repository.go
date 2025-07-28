@@ -18,6 +18,7 @@ type ProcessDependencyRepositoryInterface interface {
 	Delete(id uint) error
 
 	GetAssetByID(id uint) (*models.AssetRegister, error)
+	GetThirdPartRegisterByID(id uint) (*models.ThirdPartyRegister, error)
 	UpdateProcessDependencyRecoveryObjective(processDependency *models.ProcessDependency, tx ...utility.DatabaseTransaction) error
 }
 
@@ -62,6 +63,9 @@ func (repo *ProcessDependencyRepository) GetAll(processID uint, params *orgDTOs.
 			asset_register.title_en AS asset_title_en,
 			asset_register.title_ar AS asset_title_ar,
 
+			process_dependencies.third_party_register_id,
+			third_party_register.title AS third_party_register_title,
+
 			process_dependencies.title,
 			process_dependencies.description
 		`).
@@ -71,6 +75,7 @@ func (repo *ProcessDependencyRepository) GetAll(processID uint, params *orgDTOs.
 		Joins(`LEFT JOIN processes AS dependent_process ON dependent_process.id = process_dependencies.dependent_process_id`).
 		Joins(`LEFT JOIN organization_units ON organization_units.id = process_dependencies.organization_unit_id`).
 		Joins(`LEFT JOIN asset_register ON asset_register.id = process_dependencies.asset_id`).
+		Joins(`LEFT JOIN third_party_register ON third_party_register.id = process_dependencies.third_party_register_id`).
 		Where("process_dependencies.process_id = ?", processID)
 
 	for columnName, values := range params.Filters {
@@ -120,6 +125,7 @@ func (repo *ProcessDependencyRepository) GetFullDetailsByID(id uint) (*models.Pr
 		Preload("ProcessDependencySubType").
 		Preload("DependentProcess").
 		Preload("OrganizationUnit").
+		Preload("ThirdPartyRegister").
 		Preload("Asset").
 		First(&processDependency, id)
 
@@ -155,6 +161,15 @@ func (repo *ProcessDependencyRepository) GetAssetByID(id uint) (*models.AssetReg
 		return nil, result.Error
 	}
 	return assetRegister, nil
+}
+
+func (repo *ProcessDependencyRepository) GetThirdPartRegisterByID(id uint) (*models.ThirdPartyRegister, error) {
+	var thirdPartyRegister *models.ThirdPartyRegister
+	result := repo.db.First(&thirdPartyRegister, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return thirdPartyRegister, nil
 }
 
 func (repo *ProcessDependencyRepository) UpdateProcessDependencyRecoveryObjective(processDependency *models.ProcessDependency, tx ...utility.DatabaseTransaction) error {
