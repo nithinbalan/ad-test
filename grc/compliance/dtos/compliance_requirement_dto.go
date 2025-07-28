@@ -100,7 +100,6 @@ type ComplianceRequirementFormDTO struct {
 	TitleAr                         string  `json:"title_ar" binding:"required"`
 	ComplianceRequirementCategoryID uint    `json:"compliance_requirement_category_id" binding:"omitempty"`
 	SeverityLevelID                 uint    `json:"severity_level_id" binding:"omitempty"`
-	ResponsibleUserID               uint    `json:"responsible_user_id" binding:"required"`
 	Deadline                        string  `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
 	ComplianceStatusID              uint    `json:"compliance_status_id" binding:"required"`
 	ControlIDs                      []*uint `json:"control_ids"`

@@ -183,7 +183,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	complianceRequirement := &models.ComplianceRequirement{
 		ComplianceRequirementCategoryID: complianceRequirementFormDTO.ComplianceRequirementCategoryID,
 		ComplianceStatusID:              complianceRequirementFormDTO.ComplianceStatusID,
-		ResponsibleUserID:               complianceRequirementFormDTO.ResponsibleUserID,
+		ResponsibleUserID:               currentUserID,
 		SeverityLevelID:                 complianceRequirementFormDTO.SeverityLevelID,
 		TitleEn:                         complianceRequirementFormDTO.TitleEn,
 		TitleAr:                         complianceRequirementFormDTO.TitleAr,
@@ -355,7 +355,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserIDs:              []uint{complianceRequirementFormDTO.ResponsibleUserID},
+			UserIDs:              []uint{currentUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Requirement Responsiblity Assigned",
@@ -371,7 +371,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 			CreatedByID:          &currentUserID,
 		}
 
-		responsibleUser, err := crs.userSvc.GetByID(complianceRequirementFormDTO.ResponsibleUserID)
+		responsibleUser, err := crs.userSvc.GetByID(currentUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 				"error": err.Error(),
@@ -477,7 +477,6 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	existingComplianceRequirement.ComplianceClauseID = clause.ID
 	existingComplianceRequirement.ComplianceRequirementCategoryID = complianceRequirementFormDTO.ComplianceRequirementCategoryID
 	existingComplianceRequirement.ComplianceStatusID = complianceRequirementFormDTO.ComplianceStatusID
-	existingComplianceRequirement.ResponsibleUserID = complianceRequirementFormDTO.ResponsibleUserID
 	existingComplianceRequirement.SeverityLevelID = complianceRequirementFormDTO.SeverityLevelID
 	existingComplianceRequirement.TitleEn = complianceRequirementFormDTO.TitleEn
 	existingComplianceRequirement.TitleAr = complianceRequirementFormDTO.TitleAr
@@ -916,7 +915,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 			// New responsible user notification (Assignment)
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserIDs:              []uint{complianceRequirementFormDTO.ResponsibleUserID},
+				UserIDs:              []uint{currentUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Compliance Requirement Responsibility Assigned",
@@ -941,7 +940,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 				return
 			}
 
-			newResponsibleUser, err := crs.userSvc.GetByID(complianceRequirementFormDTO.ResponsibleUserID)
+			newResponsibleUser, err := crs.userSvc.GetByID(currentUserID)
 			if err != nil {
 				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
 					"error": err.Error(),
