@@ -185,6 +185,28 @@ func (pds *ProcessDependencyService) Create(processID uint, currentUserID uint, 
 		go pds.logDependencyCreation(processID, id, currentUserID)
 	}
 
+	// Case 5: Third Party
+	if len(dto.ThirdPartyRegisterIDs) > 0 {
+		for _, thirdPartyID := range dto.ThirdPartyRegisterIDs {
+			processDependency := &models.ProcessDependency{
+				ProcessID:                  processID,
+				ProcessDependencySubTypeID: dto.ProcessDependencySubTypeID,
+				ThirdPartyRegisterID:       thirdPartyID,
+				Title:                      dto.Title,
+				Description:                dto.Description,
+				CreatedBYID:                currentUserID,
+			}
+
+			id, err := pds.repo.Create(processDependency)
+			if err != nil {
+				return 0, err
+			}
+			createdIDs = append(createdIDs, id)
+
+			go pds.logDependencyCreation(processID, id, currentUserID)
+		}
+	}
+
 	if len(createdIDs) > 0 {
 		return createdIDs[0], nil
 	}
@@ -226,6 +248,7 @@ func (pds *ProcessDependencyService) Update(processID uint, id uint, currentUser
 	existing.DependentProcessID = dto.DependentProcessID
 	existing.OrganizationUnitID = dto.OrganizationUnitID
 	existing.AssetID = dto.AssetID
+	existing.ThirdPartyRegisterID = dto.ThirdPartyRegisterID
 	existing.Title = dto.Title
 	existing.Description = dto.Description
 	existing.UpdatedBYID = &currentUserID
@@ -247,6 +270,7 @@ func (pds *ProcessDependencyService) Update(processID uint, id uint, currentUser
 			"dependent_process_en":       utility.GetFieldValue(oldData.DependentProcess).(string),
 			"organization_unit_title_en": utility.GetFieldValue(oldData.OrganizationUnit).(string),
 			"asset_title_en":             utility.GetFieldValue(oldData.Asset).(string),
+			"third_party_title":          utility.GetFieldValue(oldData.ThirdPartyRegister).(string),
 			"title":                      oldData.Title,
 			"description":                oldData.Description,
 		}
@@ -256,6 +280,7 @@ func (pds *ProcessDependencyService) Update(processID uint, id uint, currentUser
 			"dependent_process_en":       utility.GetFieldValue(newData.DependentProcess).(string),
 			"organization_unit_title_en": utility.GetFieldValue(newData.OrganizationUnit).(string),
 			"asset_title_en":             utility.GetFieldValue(newData.Asset).(string),
+			"third_party_title":          utility.GetFieldValue(newData.ThirdPartyRegister).(string),
 			"title":                      newData.Title,
 			"description":                newData.Description,
 		}
@@ -359,6 +384,14 @@ func (pds *ProcessDependencyService) validateProcessDependencyFormDTO(processDep
 		}
 	}
 
+	for _, thirdPartyID := range processDependencyFormDTO.ThirdPartyRegisterIDs {
+		if thirdPartyID != nil {
+			if _, err := pds.GetThirdPartyRegisterByID(*thirdPartyID); err != nil {
+				return utility.NewValidationError(fmt.Errorf("third party does not exist"), "not_exist", "third party register")
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -384,6 +417,13 @@ func (pds *ProcessDependencyService) validateProcessDependencyUpdateFormDTO(proc
 			return utility.NewValidationError(fmt.Errorf("asset register does not exist"), "not_exist", "asset register")
 		}
 	}
+
+	if processDependencyFormDTO.ThirdPartyRegisterID != nil {
+		if _, err := pds.GetThirdPartyRegisterByID(*processDependencyFormDTO.ThirdPartyRegisterID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("third party does not exist"), "not_exist", "third party register")
+		}
+	}
+
 	return nil
 }
 
@@ -396,6 +436,17 @@ func (pds *ProcessDependencyService) GetAssetByID(id uint) (*models.AssetRegiste
 		return nil, err
 	}
 	return asset, nil
+}
+
+func (pds *ProcessDependencyService) GetThirdPartyRegisterByID(id uint) (*models.ThirdPartyRegister, error) {
+	thirdPartyRegister, err := pds.repo.GetThirdPartRegisterByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return thirdPartyRegister, nil
 }
 
 func (pds *ProcessDependencyService) UpdateProcessDependencyRecoveryObjective(processDependency *models.ProcessDependency, tx utility.DatabaseTransaction) error {
