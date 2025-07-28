@@ -5,7 +5,6 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
-	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
 	"math"
 	"time"
@@ -16,7 +15,7 @@ import (
 type ComplianceRequirementRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
-	GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error)
+	GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementListDTO, int64, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error)
 	Create(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) (uint, error)
@@ -44,6 +43,8 @@ type ComplianceRequirementRepositoryInterface interface {
 
 	CreateComplianceRequirmentRequiredDocumentTitles(requiredDocumentTitle []*models.ComplianceRequirementRequiredDocumentTitle, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceRequirmentRequiredDocumentTitles(requiredDocumentTitleIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetResponsibleUnitRows(reqID uint, dest *[]complianceDTOs.ComplianceRequirementResponsibleUnitRowDTO) error
 }
 
 type ComplianceRequirementRepository struct {
@@ -194,60 +195,6 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 	if err != nil {
 		return nil, err
 	}
-	for _, req := range complianceRequirements {
-		var rows []struct {
-			ID                                   uint
-			ComplianceRequirementID              uint
-			ResponsibleUnitID                    uint
-			ComplianceAssessmentFrameworkValueID *uint
-			UnitID                               int
-			TitleEn                              string
-			TitleAr                              string
-			Status                               string
-			ColorCode                            string
-		}
-
-		err := repo.db.Table("compliance_requirement_responsible_units").
-			Select(`
-			compliance_requirement_responsible_units.id,
-			compliance_requirement_responsible_units.compliance_requirement_id,
-			compliance_requirement_responsible_units.responsible_unit_id,
-			compliance_requirement_responsible_units.compliance_assessment_framework_value_id,
-			ou.id AS unit_id,
-			ou.title_en,
-			ou.title_ar,
-			ou.status,
-			ou.color_code,
-			ou.organization_unit_id as parent_id
-		`).
-			Joins("JOIN organization_units ou ON ou.id = compliance_requirement_responsible_units.responsible_unit_id").
-			Where("compliance_requirement_responsible_units.compliance_requirement_id = ?", req.ID).
-			Scan(&rows).Error
-
-		if err != nil {
-			return nil, err
-		}
-
-		var mappings []*complianceDTOs.ComplianceRequirementResponsibleUnitListDTO
-		for _, row := range rows {
-			unit := &settingsDTOs.OrganizationUnitDTO{
-				ID:        row.UnitID,
-				TitleEn:   row.TitleEn,
-				TitleAr:   row.TitleAr,
-				Status:    row.Status,
-				ColorCode: row.ColorCode,
-			}
-			mappings = append(mappings, &complianceDTOs.ComplianceRequirementResponsibleUnitListDTO{
-				ID:                                   row.ID,
-				ComplianceRequirementID:              row.ComplianceRequirementID,
-				ResponsibleUnitID:                    row.ResponsibleUnitID,
-				ComplianceAssessmentFrameworkValueID: row.ComplianceAssessmentFrameworkValueID,
-				ResponsibleUnit:                      unit,
-			})
-		}
-
-		req.ResponsibleUnits = mappings
-	}
 
 	totalPages := 1
 	if !params.Export {
@@ -266,8 +213,8 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 	return response, nil
 }
 
-func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error) {
-	var response []*complianceDTOs.ComplianceRequirementByComplianceIDListDTO
+func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementListDTO, int64, error) {
+	var results []*complianceDTOs.ComplianceRequirementListDTO
 	var totalCount int64
 
 	query := repo.db.Table("compliance_requirements").
@@ -348,10 +295,6 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 		}
 	}
 
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
@@ -380,120 +323,22 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 	}
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
-	query = query.Offset(offset).Limit(params.PageSize)
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, 0, err
+	}
 
-	rows, err := query.Rows()
+	// pagination
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	err := query.Scan(&results).Error
 	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	clauseRequirements := make(map[uint]*complianceDTOs.ComplianceRequirementByComplianceIDListDTO)
-
-	for rows.Next() {
-		var complianceReq complianceDTOs.ComplianceRequirementListDTO
-		err := repo.db.ScanRows(rows, &complianceReq)
-		if err != nil {
-			return nil, err
-		}
-
-		// Fetch responsible units (with parent) for each requirement
-		var rows []struct {
-			ID                                   uint
-			ComplianceRequirementID              uint
-			ResponsibleUnitID                    uint
-			ComplianceAssessmentFrameworkValueID *uint
-			TitleEn                              string
-			TitleAr                              string
-			Status                               string
-			ColorCode                            string
-			ParentID                             *uint
-		}
-
-		err = repo.db.Table("compliance_requirement_responsible_units").
-			Select(`
-			compliance_requirement_responsible_units.id,
-			compliance_requirement_responsible_units.compliance_requirement_id,
-			compliance_requirement_responsible_units.compliance_assessment_framework_value_id,
-			ou.id as responsible_unit_id,
-			ou.title_en,
-			ou.title_ar,
-			ou.status,
-			ou.color_code,
-			ou.organization_unit_id as parent_id
-		`).
-			Joins("JOIN organization_units ou ON ou.id = compliance_requirement_responsible_units.responsible_unit_id").
-			Where("compliance_requirement_responsible_units.compliance_requirement_id = ?", complianceReq.ID).
-			Scan(&rows).Error
-		if err != nil {
-			return nil, err
-		}
-
-		var mappings []*complianceDTOs.ComplianceRequirementResponsibleUnitListDTO
-		for _, row := range rows {
-			unit := &settingsDTOs.OrganizationUnitDTO{
-				ID:        int(row.ID),
-				TitleEn:   row.TitleEn,
-				TitleAr:   row.TitleAr,
-				Status:    row.Status,
-				ColorCode: row.ColorCode,
-			}
-			if row.ParentID != nil {
-				unit.ParentUnit = &settingsDTOs.OrganizationUnitDTO{
-					ID: int(*row.ParentID),
-				}
-			}
-
-			mappings = append(mappings, &complianceDTOs.ComplianceRequirementResponsibleUnitListDTO{
-				ID:                                   row.ID,
-				ComplianceRequirementID:              row.ComplianceRequirementID,
-				ResponsibleUnitID:                    row.ResponsibleUnitID,
-				ComplianceAssessmentFrameworkValueID: row.ComplianceAssessmentFrameworkValueID,
-				ResponsibleUnit:                      unit,
-			})
-		}
-
-		complianceReq.ResponsibleUnits = mappings
-
-		// Group by Clause
-		if _, ok := clauseRequirements[complianceReq.ClauseID]; !ok {
-			clauseRequirements[complianceReq.ClauseID] = &complianceDTOs.ComplianceRequirementByComplianceIDListDTO{
-				ClauseID:      complianceReq.ClauseID,
-				ClauseNo:      complianceReq.ComplianceClauseNo,
-				ClauseTitleEn: complianceReq.ComplianceClauseTitleEn,
-				ClauseTitleAr: complianceReq.ComplianceClauseTitleAr,
-			}
-		}
-
-		clauseRequirements[complianceReq.ClauseID].Requirements = append(clauseRequirements[complianceReq.ClauseID].Requirements, &complianceReq)
+		return nil, 0, err
 	}
 
-	for _, v := range clauseRequirements {
-		response = append(response, v)
-	}
-
-	// Ensure response is not null
-	if response == nil {
-		response = []*complianceDTOs.ComplianceRequirementByComplianceIDListDTO{}
-	}
-
-	// Calculate total pages for pagination
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
-	// Create pagination info
-	paginationInfo := commonDTOs.PaginationInfoDTO{
-		CurrentPage: params.Page,
-		PageSize:    params.PageSize,
-		TotalPages:  totalPages,
-		TotalCount:  totalCount,
-	}
-
-	// Wrap response and pagination info in a single DTO
-	return &complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO{
-		Items:      response,
-		Pagination: paginationInfo,
-	}, nil
+	return results, totalCount, nil
 }
 
 func (repo *ComplianceRequirementRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error) {
@@ -837,4 +682,22 @@ func (repo *ComplianceRequirementRepository) DeleteComplianceRequirmentRequiredD
 	}
 
 	return nil
+}
+
+func (repo *ComplianceRequirementRepository) GetResponsibleUnitRows(requirementID uint, out *[]complianceDTOs.ComplianceRequirementResponsibleUnitRowDTO) error {
+	return repo.db.Table("compliance_requirement_responsible_units").
+		Select(`
+			compliance_requirement_responsible_units.id,
+			compliance_requirement_responsible_units.compliance_requirement_id,
+			compliance_requirement_responsible_units.responsible_unit_id,
+			compliance_requirement_responsible_units.compliance_assessment_framework_value_id,
+			ou.title_en,
+			ou.title_ar,
+			ou.status,
+			ou.color_code,
+			ou.organization_unit_id as parent_id
+		`).
+		Joins("JOIN organization_units ou ON ou.id = compliance_requirement_responsible_units.responsible_unit_id").
+		Where("compliance_requirement_responsible_units.compliance_requirement_id = ?", requirementID).
+		Scan(out).Error
 }

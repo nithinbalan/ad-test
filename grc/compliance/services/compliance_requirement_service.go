@@ -15,6 +15,7 @@ import (
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -93,7 +94,73 @@ func (crs *ComplianceRequirementService) GetAll(complianceID uint, params *compl
 }
 
 func (crs *ComplianceRequirementService) GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error) {
-	return crs.repo.GetRequirementsByComplianceID(complianceID, params)
+	complianceRequirements, totalCount, err := crs.repo.GetRequirementsByComplianceID(complianceID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	clauseRequirements := make(map[uint]*complianceDTOs.ComplianceRequirementByComplianceIDListDTO)
+
+	for _, complianceReq := range complianceRequirements {
+		var unitRows []complianceDTOs.ComplianceRequirementResponsibleUnitRowDTO
+		err := crs.repo.GetResponsibleUnitRows(complianceReq.ID, &unitRows)
+		if err != nil {
+			return nil, err
+		}
+
+		mappings := make([]*complianceDTOs.ComplianceRequirementResponsibleUnitListDTO, 0)
+
+		for _, row := range unitRows {
+			unit := &settingsDTOs.OrganizationUnitDTO{
+				ID:        int(row.ResponsibleUnitID),
+				TitleEn:   row.TitleEn,
+				TitleAr:   row.TitleAr,
+				Status:    row.Status,
+				ColorCode: row.ColorCode,
+			}
+			if row.ParentID != nil {
+				unit.ParentUnit = &settingsDTOs.OrganizationUnitDTO{ID: int(*row.ParentID)}
+			}
+
+			mappings = append(mappings, &complianceDTOs.ComplianceRequirementResponsibleUnitListDTO{
+				ID:                                   row.ID,
+				ComplianceRequirementID:              row.ComplianceRequirementID,
+				ResponsibleUnitID:                    row.ResponsibleUnitID,
+				ComplianceAssessmentFrameworkValueID: row.ComplianceAssessmentFrameworkValueID,
+				ResponsibleUnit:                      unit,
+			})
+		}
+
+		complianceReq.ResponsibleUnits = mappings
+
+		if _, ok := clauseRequirements[complianceReq.ClauseID]; !ok {
+			clauseRequirements[complianceReq.ClauseID] = &complianceDTOs.ComplianceRequirementByComplianceIDListDTO{
+				ClauseID:      complianceReq.ClauseID,
+				ClauseNo:      complianceReq.ComplianceClauseNo,
+				ClauseTitleEn: complianceReq.ComplianceClauseTitleEn,
+				ClauseTitleAr: complianceReq.ComplianceClauseTitleAr,
+			}
+		}
+		clauseRequirements[complianceReq.ClauseID].Requirements = append(clauseRequirements[complianceReq.ClauseID].Requirements, complianceReq)
+	}
+
+	var response []*complianceDTOs.ComplianceRequirementByComplianceIDListDTO
+	for _, v := range clauseRequirements {
+		response = append(response, v)
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	paginationInfo := commonDTOs.PaginationInfoDTO{
+		CurrentPage: params.Page,
+		PageSize:    params.PageSize,
+		TotalPages:  totalPages,
+		TotalCount:  totalCount,
+	}
+
+	return &complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO{
+		Items:      response,
+		Pagination: paginationInfo,
+	}, nil
 }
 
 func (crs ComplianceRequirementService) GetByID(complianceID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error) {
@@ -225,12 +292,11 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		tx.Rollback()
 		return 0, err
 	}
-	// Add Responsible Departments (compliance_requirement_responsible_units)
 	var responsibleUnits []*models.ComplianceRequirementResponsibleUnit
-	for _, deptID := range complianceRequirementFormDTO.ResponsibleUnitIDs {
+	for _, resUnitID := range complianceRequirementFormDTO.ResponsibleUnitIDs {
 		unit := &models.ComplianceRequirementResponsibleUnit{
 			ComplianceRequirementID: id,
-			ResponsibleUnitID:       *deptID,
+			ResponsibleUnitID:       *resUnitID,
 			CreatedByID:             currentUserID,
 		}
 		responsibleUnits = append(responsibleUnits, unit)
@@ -482,6 +548,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	existingComplianceRequirement.TitleAr = complianceRequirementFormDTO.TitleAr
 	existingComplianceRequirement.Deadline = dates.Deadline
 	existingComplianceRequirement.Score = score
+	existingComplianceRequirement.ResponsibleUserID = currentUserID
 	existingComplianceRequirement.UpdatedByID = &currentUserID
 
 	existingComplianceRequirement.ComplianceClause = nil // Reset preloaded association

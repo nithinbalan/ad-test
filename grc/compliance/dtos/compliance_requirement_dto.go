@@ -196,3 +196,14 @@ type ComplianceRequirementResponsibleUnitListDTO struct {
 	ComplianceAssessmentFrameworkValueID *uint                             `json:"compliance_assessment_framework_value_id"`
 	ResponsibleUnit                      *settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
 }
+type ComplianceRequirementResponsibleUnitRowDTO struct {
+	ID                                   uint   `json:"id"`
+	ComplianceRequirementID              uint   `json:"compliance_requirement_id"`
+	ResponsibleUnitID                    uint   `json:"responsible_unit_id"`
+	ComplianceAssessmentFrameworkValueID *uint  `json:"compliance_assessment_framework_value_id"`
+	TitleEn                              string `json:"title_en"`
+	TitleAr                              string `json:"title_ar"`
+	Status                               string `json:"status"`
+	ColorCode                            string `json:"color_code"`
+	ParentID                             *uint  `json:"parent_id"`
+}
