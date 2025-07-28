@@ -61,5 +61,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	libraryRoutes.GET("/strategic-objective/export", StrategicObjectiveLibraryController.Export)
 	libraryRoutes.GET("/strategic-objective", StrategicObjectiveLibraryController.GetAll)
-	libraryRoutes.GET("/strategic-library/category-count", StrategicObjectiveLibraryController.CountByCategory)
+	libraryRoutes.GET("/strategic-objective/category-count", StrategicObjectiveLibraryController.CountByCategory)
 }

@@ -1,6 +1,9 @@
 package dtos
 
-import masterDTOs "jethur/grc/masters/dtos"
+import (
+	masterDTOs "jethur/grc/masters/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
+)
 
 type ProcessDependencyListDTO struct {
 	ID             uint    `json:"id"`
@@ -27,6 +30,9 @@ type ProcessDependencyListDTO struct {
 	AssetTitleEn *string `json:"asset_title_en"`
 	AssetTitleAr *string `json:"asset_title_ar"`
 
+	ThirdPartyRegisterID    *uint   `json:"third_party_register_id"`
+	ThirdPartyRegisterTitle *string `json:"third_party_register_title"`
+
 	Title       string  `json:"title"`
 	Description *string `json:"description"`
 }
@@ -42,6 +48,8 @@ type ProcessDependencyDetailDTO struct {
 	OrganizationUnit           *OrganizationUnit1DTO             `json:"organization_unit"`
 	AssetID                    *uint                             `json:"asset_id"`
 	Asset                      *AssetMinimalDTO                  `json:"asset"`
+	ThirdPartyRegisterID       *uint                             `json:"third_party_register_id"`
+	ThirdPartyRegister         *ThirdPartyMinimalDTO             `json:"third_party_register"`
 	Title                      string                            `json:"title"`
 	Description                *string                           `json:"description"`
 	Rto                        *int                              `json:"rto"`
@@ -60,6 +68,7 @@ type ProcessDependencyFormDTO struct {
 	DependentProcessIDs        []*uint `json:"dependent_process_ids"`
 	OrganizationUnitIDs        []*uint `json:"organization_unit_ids"`
 	AssetIDs                   []*uint `json:"asset_ids"`
+	ThirdPartyRegisterIDs      []*uint `json:"third_party_register_ids"`
 	Title                      *string `json:"title"`
 	Description                *string `json:"description"`
 }
@@ -69,6 +78,7 @@ type ProcessDependencyUpdateFormDTO struct {
 	DependentProcessID         *uint   `json:"dependent_process_id"`
 	OrganizationUnitID         *uint   `json:"organization_unit_id"`
 	AssetID                    *uint   `json:"asset_id"`
+	ThirdPartyRegisterID       *uint   `json:"third_party_register_id"`
 	Title                      *string `json:"title" binding:"max=255"`
 	Description                *string `json:"description"`
 }
@@ -78,4 +88,18 @@ type ProcessDependencyListQueryParamsDTO struct {
 	SortBy  string              `json:"sort_by"`
 	Keyword string              `json:"keyword"`
 	Filters map[string][]string `json:"filters"`
+}
+
+type ThirdPartyMinimalDTO struct {
+	ID                 uint                             `json:"id"`
+	ReferenceNumber    string                           `json:"reference_number"`
+	Title              string                           `json:"title"`
+	Country            masterDTOs.CountryDTO            `json:"country"`
+	Address            *string                          `json:"address"`
+	Website            *string                          `json:"website"`
+	OrganizationUnit   settingsDTOs.OrganizationUnitDTO `json:"organization_unit"`
+	RepresentativeName *string                          `json:"representative_name"`
+	RepresentativeRole *string                          `json:"representative_role"`
+	Email              *string                          `json:"email"`
+	PhoneNumber        *string                          `json:"phone_number"`
 }
