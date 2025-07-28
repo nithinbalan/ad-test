@@ -17,7 +17,7 @@ type BcpRiskAnalysisServiceInterface interface {
 	GetAllRisksByBcpId(bcpId uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	AddRiskToBcp(bcpId uint, bcpRiskForm dtos.BcpRiskForm, currentUserID uint) error
 	DeleteRiskFromBcp(bcpId uint, bcpRiskForm dtos.BcpRiskForm) error
-	GetAllProcessRisks(bcpId uint, params *dtos.BcpRiskListQueryParamsDTO) (*dtos.BcpRiskListResponseDTO, error)
+	GetAllProcessRisks(bcpId uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 }
 
 type BcpRiskAnalysisService struct {
@@ -72,6 +72,6 @@ func (bras *BcpRiskAnalysisService) DeleteRiskFromBcp(bcpId uint, bcpRiskForm dt
 	return bras.repo.DeleteRiskFromBcp(bcpId, bcpRiskForm)
 }
 
-func (bras *BcpRiskAnalysisService) GetAllProcessRisks(bcpId uint, params *dtos.BcpRiskListQueryParamsDTO) (*dtos.BcpRiskListResponseDTO, error) {
+func (bras *BcpRiskAnalysisService) GetAllProcessRisks(bcpId uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
 	return bras.repo.GetAllProcessRisks(bcpId, params)
 }
