@@ -82,7 +82,8 @@ func (aivs *AssociatedItemValidationService) ValidateDocumentMapping(masterID ui
 		}
 
 		if status != "published" {
-			return fmt.Errorf("Document is not published")
+			return utility.NewValidationError(fmt.Errorf("document not published : %d", id), "document_not_published", "document_id")
+
 		}
 
 		alreadyMapped, err := aivs.repo.IsDocumentMapped(tableName, columnName, id, masterID)
