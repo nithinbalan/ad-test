@@ -306,6 +306,12 @@ func (crc *ComplianceReportController) GetAllComplianceRequirements(c *gin.Conte
 		return
 	}
 
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Invalid export parameter")
+		return
+	}
+
 	queryParams := complianceDTOs.ComplianceRequirementListQueryParamsDTO{
 		Sort:         sort,
 		SortBy:       sortBy,
@@ -319,6 +325,7 @@ func (crc *ComplianceReportController) GetAllComplianceRequirements(c *gin.Conte
 		DeadlineTo:   deadlineTo,
 		DateFrom:     dateFrom,
 		DateTo:       dateTo,
+		Export:       export,
 	}
 
 	//complianceID is given as 0 to reuse GetAll function
@@ -336,7 +343,37 @@ func (crc *ComplianceReportController) GetAllComplianceRequirements(c *gin.Conte
 			return
 		}
 	}
+
+	// If export is true, generate and return the Excel file
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := crc.complianceRequirementSvc.ExportComplianceRequirements(complianceRequirements.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Compliance Requirement.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+
 	c.JSON(http.StatusOK, complianceRequirements)
+}
+
+func (crc *ComplianceReportController) ComplianceRequirementReportExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	crc.GetAllComplianceRequirements(c)
 }
 
 func (crc *ComplianceReportController) GetComplianceRequirementByComplianceStatus(c *gin.Context) {
