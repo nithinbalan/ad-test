@@ -16,7 +16,7 @@ import (
 
 // Service Interface
 type AssetAssociatedItemServiceInterface interface {
-	GetAllControls(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error)
+	GetAllControls(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error)
 	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisks(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllVulnerabilities(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]assetDTOs.VulnerabilityDTO, error)
@@ -38,6 +38,8 @@ type AssetAssociatedItemServiceInterface interface {
 	GetAllAssetDocuments(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	CreateAssetDocument(assetID uint, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
 	DeleteAssetDocument(assetID uint, documentID uint) error
+	CreateAssetControl(assetID uint, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error
+	DeleteAssetControl(assetID uint, controlID uint) error
 }
 
 // Service Implementation
@@ -75,7 +77,7 @@ func NewAssetAssociatedItemService(
 	}
 }
 
-func (aais *AssetAssociatedItemService) GetAllControls(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error) {
+func (aais *AssetAssociatedItemService) GetAllControls(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error) {
 	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
 		return nil, err
 	}
@@ -951,6 +953,52 @@ func (aais *AssetAssociatedItemService) DeleteAssetDocument(assetID uint, docume
 	tx := aais.repo.BeginTransaction()
 
 	if err := aais.repo.DeleteAssetDocument(assetID, documentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (aais *AssetAssociatedItemService) CreateAssetControl(assetID, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error {
+
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("asset does not exist for ID: %d", assetID), "not_exist", "asset_id")
+	}
+
+	if err := aais.validationSvc.ValidateControlMapping(assetID, dto.ControlIDs, "asset_controls", "asset_register_id"); err != nil {
+		return err
+	}
+
+	tx := aais.repo.BeginTransaction()
+	var mappings []*models.AssetControl
+	currentTime := time.Now()
+
+	for _, controlID := range dto.ControlIDs {
+		mappings = append(mappings, &models.AssetControl{
+			ControlID:       controlID,
+			AssetRegisterID: assetID,
+			CreatedBYID:     userID,
+			CreatedAt:       currentTime,
+		})
+	}
+
+	if err := aais.repo.CreateAssetControl(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (aais *AssetAssociatedItemService) DeleteAssetControl(assetID uint, controlID uint) error {
+	// Validate control existence
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("asset does not exist for ID: %d", assetID), "not_exist", "asset_register_id")
+	}
+
+	tx := aais.repo.BeginTransaction()
+
+	if err := aais.repo.DeleteAssetControl(assetID, controlID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

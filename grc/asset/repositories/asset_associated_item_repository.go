@@ -12,7 +12,7 @@ import (
 type AssetAssociatedItemRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 
-	GetAllControls(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]*assetDTOs.AssetControlListDTO, error)
+	GetAllControls(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) ([]*assetDTOs.AssetControlListDTO, error)
 	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisksByRiskIDs(riskRegisterIDs []uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllVulnerabilities(assetID uint) ([]models.Vulnerability, error)
@@ -53,6 +53,9 @@ type AssetAssociatedItemRepositoryInterface interface {
 	GetAllAssetDocuments(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	CreateAssetDocument(risks []*models.AssetAssociatedDocument, tx ...utility.DatabaseTransaction) error
 	DeleteAssetDocument(assetID uint, documentID uint, tx ...utility.DatabaseTransaction) error
+
+	CreateAssetControl(controls []*models.AssetControl, tx ...utility.DatabaseTransaction) error
+	DeleteAssetControl(assetID uint, controlID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type AssetAssociatedItemRepository struct {
@@ -70,7 +73,7 @@ func (repo *AssetAssociatedItemRepository) BeginTransaction() utility.DatabaseTr
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *AssetAssociatedItemRepository) GetAllControls(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]*assetDTOs.AssetControlListDTO, error) {
+func (repo *AssetAssociatedItemRepository) GetAllControls(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) ([]*assetDTOs.AssetControlListDTO, error) {
 	var controlList []*assetDTOs.AssetControlListDTO
 
 	query := repo.db.Table("asset_controls").
@@ -1124,5 +1127,24 @@ func (repo *AssetAssociatedItemRepository) DeleteAssetDocument(assetID uint, doc
 	return db.
 		Where("document_id = ? AND asset_register_id = ?", documentId, assetID).
 		Delete(&models.AssetAssociatedDocument{}).
+		Error
+}
+
+func (repo *AssetAssociatedItemRepository) CreateAssetControl(controls []*models.AssetControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&controls).Error
+}
+
+func (repo *AssetAssociatedItemRepository) DeleteAssetControl(assetID uint, controlId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("control_id = ? AND asset_register_id = ?", controlId, assetID).
+		Delete(&models.AssetControl{}).
 		Error
 }
