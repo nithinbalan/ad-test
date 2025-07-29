@@ -13,7 +13,7 @@ import (
 
 type IncidentAssociatedItemRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAllControls(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemControlListResponseDTO, error)
+	GetAllControls(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	GetAllComplianceRequirements(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemComplianceRequirementListResponseDTO, error)
 	GetAllRisks(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllProcesses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemProcessListResponseDTO, error)
@@ -28,6 +28,8 @@ type IncidentAssociatedItemRepositoryInterface interface {
 	DeleteIncidentRisk(processID uint, riskID uint, tx ...utility.DatabaseTransaction) error
 	CreateIncidentDocument(documents []*models.IncidentAssociatedDocument, tx ...utility.DatabaseTransaction) error
 	DeleteIncidentDocument(processID uint, documentID uint, tx ...utility.DatabaseTransaction) error
+	CreateIncidentControl(controls []*models.IncidentControl, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentControl(processID uint, controlID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type IncidentAssociatedItemRepository struct {
@@ -42,7 +44,7 @@ func NewIncidentAssociatedItemRepository(db *gorm.DB) *IncidentAssociatedItemRep
 func (repo *IncidentAssociatedItemRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
-func (repo *IncidentAssociatedItemRepository) GetAllControls(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemControlListResponseDTO, error) {
+func (repo *IncidentAssociatedItemRepository) GetAllControls(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error) {
 	var controlList []*commonDTOs.AssociatedControlListDTO
 	var totalCount int64
 
@@ -168,7 +170,7 @@ func (repo *IncidentAssociatedItemRepository) GetAllControls(incidentID uint, pa
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
-	response := &incidentDTOs.IncidentAssociatedItemControlListResponseDTO{
+	response := &commonDTOs.AssociatedControlListResponseDTO{
 		Items: controlList,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
@@ -1067,5 +1069,23 @@ func (repo *IncidentAssociatedItemRepository) DeleteIncidentDocument(incidentID 
 	return db.
 		Where("document_id = ? AND incident_register_id = ?", documentId, incidentID).
 		Delete(&models.IncidentAssociatedDocument{}).
+		Error
+}
+func (repo *IncidentAssociatedItemRepository) CreateIncidentControl(controls []*models.IncidentControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&controls).Error
+}
+
+func (repo *IncidentAssociatedItemRepository) DeleteIncidentControl(incidentID uint, controlId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("control_id = ? AND incident_register_id = ?", controlId, incidentID).
+		Delete(&models.IncidentControl{}).
 		Error
 }
