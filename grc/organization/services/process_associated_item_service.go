@@ -12,7 +12,7 @@ import (
 )
 
 type ProcessAssociatedItemServiceInterface interface {
-	GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error)
+	GetAllControls(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error)
 	GetAllControlsWithPagination(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemControlListResponseDTO, error)
 	GetAllRisks(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllIncidents(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error)
@@ -25,6 +25,8 @@ type ProcessAssociatedItemServiceInterface interface {
 	DeleteProcessRisk(processID uint, riskID uint) error
 	CreateProcessDocument(processID uint, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
 	DeleteProcessDocument(processID uint, riskID uint) error
+	CreateProcessControl(processID uint, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error
+	DeleteProcessControl(processID uint, controlID uint) error
 }
 
 type ProcessAssociatedItemService struct {
@@ -51,7 +53,7 @@ func NewProcessAssociatedItemService(
 	}
 }
 
-func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error) {
+func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error) {
 	if _, err := pais.processSvc.GetByID(processID); err != nil {
 		return nil, err
 	}
@@ -409,6 +411,49 @@ func (pais *ProcessAssociatedItemService) DeleteProcessDocument(processID uint, 
 	tx := pais.repo.BeginTransaction()
 
 	if err := pais.repo.DeleteProcessDocument(processID, documentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *ProcessAssociatedItemService) CreateProcessControl(processID, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error {
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", processID), "not_exist", "process_id")
+	}
+	if err := pais.validationSvc.ValidateControlMapping(processID, dto.ControlIDs, "process_controls", "process_id"); err != nil {
+		return err
+	}
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.ProcessControl
+	currentTime := time.Now()
+
+	for _, controlID := range dto.ControlIDs {
+		mappings = append(mappings, &models.ProcessControl{
+			ControlID:   controlID,
+			ProcessID:   processID,
+			CreatedByID: userID,
+			CreatedAt:   currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateProcessControl(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *ProcessAssociatedItemService) DeleteProcessControl(processID uint, controlID uint) error {
+	// Validate control existence
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", processID), "not_exist", "process_id")
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteProcessControl(processID, controlID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

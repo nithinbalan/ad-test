@@ -12,7 +12,7 @@ import (
 
 type ProcessAssociatedItemRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]*organizationDTOs.ProcessControlListDTO, error)
+	GetAllControls(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) ([]*organizationDTOs.ProcessControlListDTO, error)
 	GetAllControlsWithPagination(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemControlListResponseDTO, error)
 	GetAllRisks(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllIncidents(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error)
@@ -28,6 +28,8 @@ type ProcessAssociatedItemRepositoryInterface interface {
 	DeleteProcessRisk(processID uint, riskID uint, tx ...utility.DatabaseTransaction) error
 	CreateProcessDocument(documents []*models.ProcessAssociatedDocument, tx ...utility.DatabaseTransaction) error
 	DeleteProcessDocument(processID uint, documentID uint, tx ...utility.DatabaseTransaction) error
+	CreateProcessControl(controls []*models.ProcessControl, tx ...utility.DatabaseTransaction) error
+	DeleteProcessControl(processID uint, controlID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ProcessAssociatedItemRepository struct {
@@ -42,7 +44,7 @@ func NewProcessAssociatedItemRepository(db *gorm.DB) *ProcessAssociatedItemRepos
 func (repo *ProcessAssociatedItemRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
-func (repo *ProcessAssociatedItemRepository) GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]*organizationDTOs.ProcessControlListDTO, error) {
+func (repo *ProcessAssociatedItemRepository) GetAllControls(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) ([]*organizationDTOs.ProcessControlListDTO, error) {
 	var controlList []*organizationDTOs.ProcessControlListDTO
 
 	query := repo.db.Table("process_controls").
@@ -953,5 +955,24 @@ func (repo *ProcessAssociatedItemRepository) DeleteProcessDocument(processID uin
 	return db.
 		Where("document_id = ? AND process_id = ?", documentId, processID).
 		Delete(&models.ProcessAssociatedDocument{}).
+		Error
+}
+
+func (repo *ProcessAssociatedItemRepository) CreateProcessControl(controls []*models.ProcessControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&controls).Error
+}
+
+func (repo *ProcessAssociatedItemRepository) DeleteProcessControl(processID uint, controlId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("control_id = ? AND process_id = ?", controlId, processID).
+		Delete(&models.ProcessControl{}).
 		Error
 }
