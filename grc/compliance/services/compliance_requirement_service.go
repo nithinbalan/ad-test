@@ -94,72 +94,108 @@ func (crs *ComplianceRequirementService) GetAll(complianceID uint, params *compl
 }
 
 func (crs *ComplianceRequirementService) GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error) {
-	complianceRequirements, totalCount, err := crs.repo.GetRequirementsByComplianceID(complianceID, params)
+
+	// Step 1: Fetch raw data from repository
+	requirements, err := crs.repo.GetRequirementsByComplianceID(complianceID, params)
+	if err != nil {
+		return nil, err
+	}
+	if len(requirements) == 0 {
+		return &complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO{
+			Items:      []*complianceDTOs.ComplianceRequirementByComplianceIDListDTO{},
+			Pagination: commonDTOs.PaginationInfoDTO{CurrentPage: params.Page, PageSize: params.PageSize},
+		}, nil
+	}
+
+	// Step 2: Collect requirement IDs for bulk fetch of responsible units
+	reqIDs := make([]uint, 0, len(requirements))
+	for _, r := range requirements {
+		reqIDs = append(reqIDs, r.ID)
+	}
+
+	// Step 3: Fetch all responsible units in a single query
+	var unitRows []complianceDTOs.ComplianceRequirementResponsibleUnitRowDTO
+	err = crs.repo.GetResponsibleUnitRowsByRequirementIDs(reqIDs, &unitRows)
 	if err != nil {
 		return nil, err
 	}
 
-	clauseRequirements := make(map[uint]*complianceDTOs.ComplianceRequirementByComplianceIDListDTO)
-
-	for _, complianceReq := range complianceRequirements {
-		var unitRows []complianceDTOs.ComplianceRequirementResponsibleUnitRowDTO
-		err := crs.repo.GetResponsibleUnitRows(complianceReq.ID, &unitRows)
-		if err != nil {
-			return nil, err
+	// Step 4: Map responsible units by requirement ID
+	unitMap := make(map[uint][]*complianceDTOs.ComplianceRequirementResponsibleUnitListDTO)
+	for _, row := range unitRows {
+		unit := &settingsDTOs.OrganizationUnitDTO{
+			ID:        int(row.ResponsibleUnitID),
+			TitleEn:   row.TitleEn,
+			TitleAr:   row.TitleAr,
+			Status:    row.Status,
+			ColorCode: row.ColorCode,
+		}
+		if row.ParentID != nil {
+			unit.ParentUnit = &settingsDTOs.OrganizationUnitDTO{ID: int(*row.ParentID)}
 		}
 
-		mappings := make([]*complianceDTOs.ComplianceRequirementResponsibleUnitListDTO, 0)
-
-		for _, row := range unitRows {
-			unit := &settingsDTOs.OrganizationUnitDTO{
-				ID:        int(row.ResponsibleUnitID),
-				TitleEn:   row.TitleEn,
-				TitleAr:   row.TitleAr,
-				Status:    row.Status,
-				ColorCode: row.ColorCode,
-			}
-			if row.ParentID != nil {
-				unit.ParentUnit = &settingsDTOs.OrganizationUnitDTO{ID: int(*row.ParentID)}
-			}
-
-			mappings = append(mappings, &complianceDTOs.ComplianceRequirementResponsibleUnitListDTO{
-				ID:                                   row.ID,
-				ComplianceRequirementID:              row.ComplianceRequirementID,
-				ResponsibleUnitID:                    row.ResponsibleUnitID,
-				ComplianceAssessmentFrameworkValueID: row.ComplianceAssessmentFrameworkValueID,
-				ResponsibleUnit:                      unit,
-			})
+		unitDTO := &complianceDTOs.ComplianceRequirementResponsibleUnitListDTO{
+			ID:                                   row.ID,
+			ComplianceRequirementID:              row.ComplianceRequirementID,
+			ResponsibleUnitID:                    row.ResponsibleUnitID,
+			ComplianceAssessmentFrameworkValueID: row.ComplianceAssessmentFrameworkValueID,
+			ResponsibleUnit:                      unit,
 		}
-
-		complianceReq.ResponsibleUnits = mappings
-
-		if _, ok := clauseRequirements[complianceReq.ClauseID]; !ok {
-			clauseRequirements[complianceReq.ClauseID] = &complianceDTOs.ComplianceRequirementByComplianceIDListDTO{
-				ClauseID:      complianceReq.ClauseID,
-				ClauseNo:      complianceReq.ComplianceClauseNo,
-				ClauseTitleEn: complianceReq.ComplianceClauseTitleEn,
-				ClauseTitleAr: complianceReq.ComplianceClauseTitleAr,
-			}
-		}
-		clauseRequirements[complianceReq.ClauseID].Requirements = append(clauseRequirements[complianceReq.ClauseID].Requirements, complianceReq)
+		unitMap[row.ComplianceRequirementID] = append(unitMap[row.ComplianceRequirementID], unitDTO)
 	}
 
-	var response []*complianceDTOs.ComplianceRequirementByComplianceIDListDTO
-	for _, v := range clauseRequirements {
-		response = append(response, v)
+	// Step 5: Assign responsible units to each requirement
+	for _, r := range requirements {
+		if units, ok := unitMap[r.ID]; ok {
+			r.ResponsibleUnits = units
+		} else {
+			// Return empty array instead of null
+			r.ResponsibleUnits = []*complianceDTOs.ComplianceRequirementResponsibleUnitListDTO{}
+		}
+	}
+	// Step 6: Group by clause ID
+	clauseMap := make(map[uint]*complianceDTOs.ComplianceRequirementByComplianceIDListDTO)
+	for _, r := range requirements {
+		if _, exists := clauseMap[r.ClauseID]; !exists {
+			clauseMap[r.ClauseID] = &complianceDTOs.ComplianceRequirementByComplianceIDListDTO{
+				ClauseID:      r.ClauseID,
+				ClauseNo:      r.ComplianceClauseNo,
+				ClauseTitleEn: r.ComplianceClauseTitleEn,
+				ClauseTitleAr: r.ComplianceClauseTitleAr,
+				Requirements:  []*complianceDTOs.ComplianceRequirementListDTO{},
+			}
+		}
+		clauseMap[r.ClauseID].Requirements = append(clauseMap[r.ClauseID].Requirements, r)
 	}
 
+	// Step 7: Convert map to list
+	var clauseList []*complianceDTOs.ComplianceRequirementByComplianceIDListDTO
+	for _, v := range clauseMap {
+		clauseList = append(clauseList, v)
+	}
+
+	// Step 8: In-memory pagination
+	totalCount := int64(len(clauseList))
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-	paginationInfo := commonDTOs.PaginationInfoDTO{
-		CurrentPage: params.Page,
-		PageSize:    params.PageSize,
-		TotalPages:  totalPages,
-		TotalCount:  totalCount,
+	start := (params.Page - 1) * params.PageSize
+	if start > int(totalCount) {
+		start = int(totalCount)
 	}
+	end := start + params.PageSize
+	if end > int(totalCount) {
+		end = int(totalCount)
+	}
+	pagedClauses := clauseList[start:end]
 
+	// Step 9: Return response
 	return &complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO{
-		Items:      response,
-		Pagination: paginationInfo,
+		Items: pagedClauses,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
 	}, nil
 }
 

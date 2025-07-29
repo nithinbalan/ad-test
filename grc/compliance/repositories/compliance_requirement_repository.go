@@ -15,7 +15,7 @@ import (
 type ComplianceRequirementRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
-	GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementListDTO, int64, error)
+	GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementListDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error)
 	Create(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) (uint, error)
@@ -44,7 +44,7 @@ type ComplianceRequirementRepositoryInterface interface {
 	CreateComplianceRequirmentRequiredDocumentTitles(requiredDocumentTitle []*models.ComplianceRequirementRequiredDocumentTitle, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceRequirmentRequiredDocumentTitles(requiredDocumentTitleIds []*uint, tx ...utility.DatabaseTransaction) error
 
-	GetResponsibleUnitRows(reqID uint, dest *[]complianceDTOs.ComplianceRequirementResponsibleUnitRowDTO) error
+	GetResponsibleUnitRowsByRequirementIDs(requirementIDs []uint, out *[]complianceDTOs.ComplianceRequirementResponsibleUnitRowDTO) error
 }
 
 type ComplianceRequirementRepository struct {
@@ -213,9 +213,9 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 	return response, nil
 }
 
-func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementListDTO, int64, error) {
-	var results []*complianceDTOs.ComplianceRequirementListDTO
-	var totalCount int64
+func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementListDTO, error) {
+
+	var allRows []*complianceDTOs.ComplianceRequirementListDTO
 
 	query := repo.db.Table("compliance_requirements").
 		Select(`
@@ -235,31 +235,31 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 			compliance_statuses.color_code AS compliance_status_color_code,
 			responsible_user.id AS responsible_user_id,
 			responsible_user.first_name_en AS responsible_user_first_name_en,
-            responsible_user.first_name_ar AS responsible_user_first_name_ar,
-            responsible_user.last_name_en AS responsible_user_last_name_en,
-            responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
 			responsible_user.initial AS responsible_user_initial,
-            responsible_user.color AS responsible_user_color,
-            responsible_user.email AS responsible_user_email,
-            responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
 			created_user.id AS created_user_id,
-        	created_user.first_name_en AS created_user_first_name_en,
-            created_user.first_name_ar AS created_user_first_name_ar,
-            created_user.last_name_en AS created_user_last_name_en,
-            created_user.last_name_ar AS created_user_last_name_ar,   
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
 			created_user.initial AS created_user_initial,
-            created_user.color AS created_user_color,
-            created_user.email AS created_user_email,
-            created_user.profile_image_path AS created_user_profile_image_path,   
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
 			updated_user.id AS updated_user_id,
-    		updated_user.first_name_en AS updated_user_first_name_en,
-            updated_user.first_name_ar AS updated_user_first_name_ar,
-            updated_user.last_name_en AS updated_user_last_name_en,
-            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
 			updated_user.initial AS updated_user_initial,
-            updated_user.color AS updated_user_color,
-            updated_user.email AS updated_user_email,
-            updated_user.profile_image_path AS updated_user_profile_image_path 
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path
 		`).
 		Joins(`
 			LEFT JOIN compliance_requirement_categories ON compliance_requirement_categories.id = compliance_requirements.compliance_requirement_category_id
@@ -269,21 +269,24 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 			LEFT JOIN users AS created_user ON created_user.id = compliance_requirements.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by_id
 			LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
-		`).Where(`compliance_clauses.compliance_register_id = ?`, complianceID)
+		`).
+		Where("compliance_clauses.compliance_register_id = ?", complianceID)
 
-	for columnName, values := range params.Filters {
+	// Apply filters
+	for column, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			query = query.Where(column+" IN (?)", values)
 		}
 	}
-
 	if params.DeadlineFrom != "" {
-		query = query.Where("deadline >= ?", params.DeadlineFrom)
+		query = query.Where("compliance_requirements.deadline >= ?", params.DeadlineFrom)
 	}
 	if params.DeadlineTo != "" {
-		query = query.Where("deadline <= ?", params.DeadlineTo)
+		query = query.Where("compliance_requirements.deadline <= ?", params.DeadlineTo)
 	}
-
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("compliance_requirements.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
 	for _, filter := range params.QuickFilter {
 		switch filter {
 		case "severe":
@@ -295,6 +298,7 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 		}
 	}
 
+	// Keyword search
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
@@ -307,14 +311,17 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 			compliance_requirement_categories.title_ar LIKE ? OR
 			severity_levels.title_en LIKE ? OR
 			severity_levels.title_ar LIKE ? OR
-			compliance_requirements.deadline LIKE ? OR
+			CAST(compliance_requirements.deadline AS VARCHAR) LIKE ? OR
 			compliance_statuses.title_en LIKE ? OR
 			compliance_statuses.title_ar LIKE ?)`,
-			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword,
+			keyword, keyword,
+			keyword, keyword,
+			keyword, keyword,
+			keyword, keyword, keyword)
 	}
 
+	// Sorting
 	if params.SortBy == "" {
 		params.SortBy = "compliance_clauses.clause_no"
 	}
@@ -323,22 +330,12 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 	}
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, 0, err
+	// Execute
+	if err := query.Find(&allRows).Error; err != nil {
+		return nil, err
 	}
 
-	// pagination
-	if !params.Export {
-		offset := (params.Page - 1) * params.PageSize
-		query = query.Offset(offset).Limit(params.PageSize)
-	}
-
-	err := query.Scan(&results).Error
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return results, totalCount, nil
+	return allRows, nil
 }
 
 func (repo *ComplianceRequirementRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error) {
@@ -684,7 +681,10 @@ func (repo *ComplianceRequirementRepository) DeleteComplianceRequirmentRequiredD
 	return nil
 }
 
-func (repo *ComplianceRequirementRepository) GetResponsibleUnitRows(requirementID uint, out *[]complianceDTOs.ComplianceRequirementResponsibleUnitRowDTO) error {
+func (repo *ComplianceRequirementRepository) GetResponsibleUnitRowsByRequirementIDs(requirementIDs []uint, out *[]complianceDTOs.ComplianceRequirementResponsibleUnitRowDTO) error {
+	if len(requirementIDs) == 0 {
+		return nil
+	}
 	return repo.db.Table("compliance_requirement_responsible_units").
 		Select(`
 			compliance_requirement_responsible_units.id,
@@ -698,6 +698,6 @@ func (repo *ComplianceRequirementRepository) GetResponsibleUnitRows(requirementI
 			ou.organization_unit_id as parent_id
 		`).
 		Joins("JOIN organization_units ou ON ou.id = compliance_requirement_responsible_units.responsible_unit_id").
-		Where("compliance_requirement_responsible_units.compliance_requirement_id = ?", requirementID).
+		Where("compliance_requirement_responsible_units.compliance_requirement_id IN ?", requirementIDs).
 		Scan(out).Error
 }
