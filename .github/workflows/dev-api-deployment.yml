@@ -23,7 +23,7 @@ jobs:
     steps:
 
       - name: Notify Start on Teams
-        shell: pwsh
+        shell: powershell
         run: |
             $headers = @{ "Content-Type" = "application/json" }
             $body = @{
