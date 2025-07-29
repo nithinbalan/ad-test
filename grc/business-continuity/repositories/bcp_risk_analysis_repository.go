@@ -12,7 +12,7 @@ type BcpRiskAnalysisRepositoryInterface interface {
 	GetAllRisksByBcpId(bcpId uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	AddRiskToBcp(bcpRisks []models.BcpRisk) error
 	DeleteRiskFromBcp(bcpId uint, bcpRiskForm dtos.BcpRiskForm) error
-	GetAllProcessRisks(bcpId uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
+	GetAllProcessRisks(bcpId uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 }
 
 type BcpRiskAnalysisRepository struct {
@@ -202,8 +202,8 @@ func (bpr *BcpRiskAnalysisRepository) DeleteRiskFromBcp(bcpId uint, bcpRiskForm 
 	return bpr.db.Where("business_continuity_plan_id = ? AND risk_register_id IN (?)", bcpId, bcpRiskForm.RiskRegisterIDs).Delete(&models.BcpRisk{}).Error
 }
 
-func (repo *BcpRiskAnalysisRepository) GetAllProcessRisks(bcpId uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
-	var riskList []*commonDTOs.AssociatedDocumentListDTO
+func (repo *BcpRiskAnalysisRepository) GetAllProcessRisks(bcpId uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
+	var riskList []*commonDTOs.AssociatedRiskListDTO
 	var totalCount int64
 
 	query := repo.db.Table("bcp_processes").
@@ -365,7 +365,7 @@ func (repo *BcpRiskAnalysisRepository) GetAllProcessRisks(bcpId uint, params *co
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
-	response := &commonDTOs.AssociatedDocumentListResponseDTO{
+	response := &commonDTOs.AssociatedRiskListResponseDTO{
 		Items: riskList,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
