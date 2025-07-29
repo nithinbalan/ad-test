@@ -12,14 +12,16 @@ import (
 
 type MeetingAssociatedItemRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAllControls(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemControlListResponseDTO, error)
+	GetAllControls(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	GetAllComplianceRequirements(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) ([]meetingDTOs.MeetingComplianceRequirementListDTO, int64, error)
 	GetAllRisks(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemRiskListResponseDTO, error)
 	GetAllProcesses(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemProcessListResponseDTO, error)
 	GetAllIncidents(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemIncidentListResponseDTO, error)
 	GetAllMeetingDocuments(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
-	CreateMeetingDocument(risks []*models.MeetingAssociatedDocument, tx ...utility.DatabaseTransaction) error
+	CreateMeetingDocument(documents []*models.MeetingAssociatedDocument, tx ...utility.DatabaseTransaction) error
 	DeleteMeetingDocument(meetingID uint, documentID uint, tx ...utility.DatabaseTransaction) error
+	CreateMeetingControl(controls []*models.MeetingControl, tx ...utility.DatabaseTransaction) error
+	DeleteMeetingControl(meetingID uint, documentID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type MeetingAssociatedItemRepository struct {
@@ -36,7 +38,7 @@ func (repo *MeetingAssociatedItemRepository) BeginTransaction() utility.Database
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *MeetingAssociatedItemRepository) GetAllControls(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemControlListResponseDTO, error) {
+func (repo *MeetingAssociatedItemRepository) GetAllControls(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error) {
 	var controlList []*commonDTOs.AssociatedControlListDTO
 	var totalCount int64
 
@@ -160,7 +162,7 @@ func (repo *MeetingAssociatedItemRepository) GetAllControls(meetingID uint, para
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
-	response := &meetingDTOs.MeetingAssociatedItemControlListResponseDTO{
+	response := &commonDTOs.AssociatedControlListResponseDTO{
 		Items: controlList,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
@@ -686,5 +688,24 @@ func (repo *MeetingAssociatedItemRepository) DeleteMeetingDocument(meetingID uin
 	return db.
 		Where("document_id = ? AND meeting_id = ?", documentId, meetingID).
 		Delete(&models.MeetingAssociatedDocument{}).
+		Error
+}
+
+func (repo *MeetingAssociatedItemRepository) CreateMeetingControl(controls []*models.MeetingControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&controls).Error
+}
+
+func (repo *MeetingAssociatedItemRepository) DeleteMeetingControl(meetingID uint, controlId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("control_id = ? AND meeting_id = ?", controlId, meetingID).
+		Delete(&models.MeetingControl{}).
 		Error
 }

@@ -36,8 +36,6 @@ func (maic *MeetingAssociatedItemController) GetAllMeetingControls(c *gin.Contex
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -51,14 +49,12 @@ func (maic *MeetingAssociatedItemController) GetAllMeetingControls(c *gin.Contex
 		return
 	}
 
-	queryParams := meetingDTOs.MeetingAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	meetings, err := maic.service.GetAllControls(uint(meetingID), &queryParams)
 
