@@ -27,13 +27,9 @@ jobs:
           $headers = @{ "Content-Type" = "application/json" }
           $body = @{
               title = "🔄 Deployment Started"
-              text  = "**${{ env.PROJECT_NAME }}** deployment started by `${{ github.actor }}` on `${{ github.ref_name }}`"
+              text  = "**${{ env.PROJECT_NAME }}** deployment started by `${{ github.actor }}` on branch `${{ github.ref_name }}`"
           } | ConvertTo-Json -Depth 10
-          Invoke-WebRequest `
-              -Uri "${{ secrets.TEAMS_WEBHOOK_URL }}" `
-              -Method Post `
-              -Headers $headers `
-              -Body $body
+          Invoke-WebRequest -Uri "${{ secrets.TEAMS_WEBHOOK_URL }}" -Method Post -Headers $headers -Body $body
 
 
       - name: Pre Cleanup workspace
@@ -166,13 +162,9 @@ jobs:
           $headers = @{ "Content-Type" = "application/json" }
           $body = @{
               title = "✅ Deployment Succeeded"
-              text  = "**${{ env.PROJECT_NAME }}** deployment completed successfully by `${{ github.actor }}`"
+              text  = "**${{ env.PROJECT_NAME }}** deployment succeeded 🎉 by `${{ github.actor }}`"
           } | ConvertTo-Json -Depth 10
-          Invoke-WebRequest `
-              -Uri "${{ secrets.TEAMS_WEBHOOK_URL }}" `
-              -Method Post `
-              -Headers $headers `
-              -Body $body
+          Invoke-WebRequest -Uri "${{ secrets.TEAMS_WEBHOOK_URL }}" -Method Post -Headers $headers -Body $body
 
       - name: Notify Failure on Teams
         if: failure()
@@ -181,10 +173,6 @@ jobs:
           $headers = @{ "Content-Type" = "application/json" }
           $body = @{
               title = "❌ Deployment Failed"
-              text  = "**${{ env.PROJECT_NAME }}** deployment failed. Triggered by `${{ github.actor }}`"
+              text  = "**${{ env.PROJECT_NAME }}** deployment failed 💥 by `${{ github.actor }}`"
           } | ConvertTo-Json -Depth 10
-          Invoke-WebRequest `
-              -Uri "${{ secrets.TEAMS_WEBHOOK_URL }}" `
-              -Method Post `
-              -Headers $headers `
-              -Body $body
+          Invoke-WebRequest -Uri "${{ secrets.TEAMS_WEBHOOK_URL }}" -Method Post -Headers $headers -Body $body
