@@ -23,13 +23,14 @@ jobs:
     steps:
 
       - name: Notify Start on Teams
+        shell: pwsh
         run: |
-          curl -H 'Content-Type: application/json' \
-          -d '{
-                "title": "Deployment Started",
-                "text": "**${{ env.PROJECT_NAME }}** deployment started by `${{ github.actor }}` on `${{ github.ref_name }}`"
-              }' \
-          "${{ env.TEAMS_WEBHOOK_URL }}"
+            $headers = @{ "Content-Type" = "application/json" }
+            $body = @{
+                title = "Deployment Started"
+                text  = "**${{ env.PROJECT_NAME }}** deployment started by `${{ github.actor }}` on `${{ github.ref_name }}`"
+            } | ConvertTo-Json -Depth 10
+            Invoke-RestMethod -Uri "${{ secrets.TEAMS_WEBHOOK_URL }}" -Method POST -Headers $headers -Body $body
  
       - name: Pre Cleanup workspace
         if: always()
