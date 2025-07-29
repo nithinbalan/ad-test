@@ -6,54 +6,56 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
 )
 
 type ComplianceRequirementListDTO struct {
-	ID                                   uint    `json:"id"`
-	ClauseID                             uint    `json:"clause_id"`
-	ComplianceClauseNo                   string  `json:"compliance_clause_no"`
-	ComplianceClauseTitleEn              string  `json:"compliance_clause_title_en"`
-	ComplianceClauseTitleAr              string  `json:"compliance_clause_title_ar"`
-	TitleEn                              string  `json:"title_en"`
-	TitleAr                              string  `json:"title_ar"`
-	ComplianceRequirementCategoryTitleEn string  `json:"compliance_requirement_category_title_en"`
-	ComplianceRequirementCategoryTitleAr string  `json:"compliance_requirement_category_title_ar"`
-	SeverityLevelTitleEn                 string  `json:"severity_level_title_en"`
-	SeverityLevelTitleAr                 string  `json:"severity_level_title_ar"`
-	SeverityLevelColorCode               string  `json:"severity_level_color_code"`
-	ResponsibleUserID                    uint    `json:"responsible_user_id"`
-	ResponsibleUserFirstNameEn           string  `json:"responsible_user_first_name_en"`
-	ResponsibleUserFirstNameAr           string  `json:"responsible_user_first_name_ar"`
-	ResponsibleUserLastNameEn            string  `json:"responsible_user_last_name_en"`
-	ResponsibleUserLastNameAr            string  `json:"responsible_user_last_name_ar"`
-	ResponsibleUserInitial               string  `json:"responsible_user_initial"`
-	ResponsibleUserColor                 string  `json:"responsible_user_color"`
-	ResponsibleUserEmail                 string  `json:"responsible_user_email"`
-	ResponsibleUserProfileImagePath      string  `json:"responsible_user_profile_image_path"`
-	Deadline                             string  `json:"deadline"`
-	ComplianceStatusTitleEn              string  `json:"compliance_status_title_en"`
-	ComplianceStatusTitleAr              string  `json:"compliance_status_title_ar"`
-	ComplianceStatusColorCode            string  `json:"compliance_status_color_code"`
-	CreatedAt                            string  `json:"created_at"`
-	UpdatedAt                            string  `json:"updated_at"`
-	CreatedUserID                        uint    `json:"created_user_id"`
-	CreatedUserFirstNameEn               string  `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr               string  `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn                string  `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr                string  `json:"created_user_last_name_ar"`
-	CreatedUserInitial                   string  `json:"created_user_initial"`
-	CreatedUserColor                     string  `json:"created_user_color"`
-	CreatedUserEmail                     string  `json:"created_user_email"`
-	CreatedUserProfileImagePath          string  `json:"created_user_profile_image_path"`
-	UpdatedUserID                        *uint   `json:"updated_user_id"`
-	UpdatedUserFirstNameEn               *string `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr               *string `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn                *string `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr                *string `json:"updated_user_last_name_ar"`
-	UpdatedUserInitial                   *string `json:"updated_user_initial"`
-	UpdatedUserColor                     *string `json:"updated_user_color"`
-	UpdatedUserEmail                     *string `json:"updated_user_email"`
-	UpdatedUserProfileImagePath          *string `json:"updated_user_profile_image_path"`
+	ID                                   uint                                           `json:"id"`
+	ClauseID                             uint                                           `json:"clause_id"`
+	ComplianceClauseNo                   string                                         `json:"compliance_clause_no"`
+	ComplianceClauseTitleEn              string                                         `json:"compliance_clause_title_en"`
+	ComplianceClauseTitleAr              string                                         `json:"compliance_clause_title_ar"`
+	TitleEn                              string                                         `json:"title_en"`
+	TitleAr                              string                                         `json:"title_ar"`
+	ComplianceRequirementCategoryTitleEn string                                         `json:"compliance_requirement_category_title_en"`
+	ComplianceRequirementCategoryTitleAr string                                         `json:"compliance_requirement_category_title_ar"`
+	SeverityLevelTitleEn                 string                                         `json:"severity_level_title_en"`
+	SeverityLevelTitleAr                 string                                         `json:"severity_level_title_ar"`
+	SeverityLevelColorCode               string                                         `json:"severity_level_color_code"`
+	Deadline                             string                                         `json:"deadline"`
+	ResponsibleUserID                    uint                                           `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn           string                                         `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr           string                                         `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn            string                                         `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr            string                                         `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial               string                                         `json:"responsible_user_initial"`
+	ResponsibleUserColor                 string                                         `json:"responsible_user_color"`
+	ResponsibleUserEmail                 string                                         `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath      string                                         `json:"responsible_user_profile_image_path"`
+	ComplianceStatusTitleEn              string                                         `json:"compliance_status_title_en"`
+	ComplianceStatusTitleAr              string                                         `json:"compliance_status_title_ar"`
+	ComplianceStatusColorCode            string                                         `json:"compliance_status_color_code"`
+	CreatedAt                            string                                         `json:"created_at"`
+	UpdatedAt                            string                                         `json:"updated_at"`
+	CreatedUserID                        uint                                           `json:"created_user_id"`
+	CreatedUserFirstNameEn               string                                         `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr               string                                         `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn                string                                         `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr                string                                         `json:"created_user_last_name_ar"`
+	CreatedUserInitial                   string                                         `json:"created_user_initial"`
+	CreatedUserColor                     string                                         `json:"created_user_color"`
+	CreatedUserEmail                     string                                         `json:"created_user_email"`
+	CreatedUserProfileImagePath          string                                         `json:"created_user_profile_image_path"`
+	UpdatedUserID                        *uint                                          `json:"updated_user_id"`
+	UpdatedUserFirstNameEn               *string                                        `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr               *string                                        `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn                *string                                        `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr                *string                                        `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial                   *string                                        `json:"updated_user_initial"`
+	UpdatedUserColor                     *string                                        `json:"updated_user_color"`
+	UpdatedUserEmail                     *string                                        `json:"updated_user_email"`
+	UpdatedUserProfileImagePath          *string                                        `json:"updated_user_profile_image_path"`
+	ResponsibleUnits                     []*ComplianceRequirementResponsibleUnitListDTO `json:"responsible_units" gorm:"-"`
 }
 
 type ComplianceRequirementListQueryParamsDTO struct {
@@ -98,13 +100,13 @@ type ComplianceRequirementFormDTO struct {
 	TitleAr                         string  `json:"title_ar" binding:"required"`
 	ComplianceRequirementCategoryID uint    `json:"compliance_requirement_category_id" binding:"omitempty"`
 	SeverityLevelID                 uint    `json:"severity_level_id" binding:"omitempty"`
-	ResponsibleUserID               uint    `json:"responsible_user_id" binding:"required"`
 	Deadline                        string  `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
 	ComplianceStatusID              uint    `json:"compliance_status_id" binding:"required"`
 	ControlIDs                      []*uint `json:"control_ids"`
 	StrategicObjectiveIDs           []*uint `json:"strategic_objective_ids"`
 	DocumentIds                     []*uint `json:"document_ids"`
 	RequiredDocumentTitleIDs        []*uint `json:"required_document_title_ids"`
+	ResponsibleUnitIDs              []*uint `json:"responsible_unit_ids"`
 }
 
 type ComplianceRequirementParsedDates struct {
@@ -130,6 +132,12 @@ type ComplianceRequirementDetailDTO struct {
 	Documents                     []*ComplianceRequirementAssociatedDocumentDTO    `json:"documents"`
 	ComplianceStatus              ComplianceStatusDTO                              `json:"compliance_status"`
 	RequiredDocumentTitles        []*ComplianceRequirementRequiredDocumentTitleDTO `json:"required_document_titles"`
+	ResponsibleUnits              []*ComplianceRequirementResponsibleUnitDTO       `json:"responsible_units"`
+}
+type ComplianceRequirementResponsibleUnitDTO struct {
+	ID                                 uint                                         `json:"id"`
+	ResponsibleUnit                    settingsDTOs.OrganizationUnitDTO             `json:"responsible_unit"`
+	ComplianceAssessmentFrameworkValue *ComplianceAssessmentFrameworkValueDetailDTO `json:"compliance_assessment_framework_value"`
 }
 
 type ComplianceRequirementAssociatedDocumentDTO struct {
@@ -180,4 +188,22 @@ type ComplianceRequirementRequiredDocumentTitleDTO struct {
 	ComplianceRequirementID uint                                `json:"compliance_requirement_id"`
 	RequiredDocumentTitleID uint                                `json:"required_document_title_id"`
 	RequiredDocumentTitle   masterDTOs.RequiredDocumentTitleDTO `json:"required_document_title"`
+}
+type ComplianceRequirementResponsibleUnitListDTO struct {
+	ID                                   uint                              `json:"id"`
+	ComplianceRequirementID              uint                              `json:"compliance_requirement_id"`
+	ResponsibleUnitID                    uint                              `json:"responsible_unit_id"`
+	ComplianceAssessmentFrameworkValueID *uint                             `json:"compliance_assessment_framework_value_id"`
+	ResponsibleUnit                      *settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
+}
+type ComplianceRequirementResponsibleUnitRowDTO struct {
+	ID                                   uint   `json:"id"`
+	ComplianceRequirementID              uint   `json:"compliance_requirement_id"`
+	ResponsibleUnitID                    uint   `json:"responsible_unit_id"`
+	ComplianceAssessmentFrameworkValueID *uint  `json:"compliance_assessment_framework_value_id"`
+	TitleEn                              string `json:"title_en"`
+	TitleAr                              string `json:"title_ar"`
+	Status                               string `json:"status"`
+	ColorCode                            string `json:"color_code"`
+	ParentID                             *uint  `json:"parent_id"`
 }
