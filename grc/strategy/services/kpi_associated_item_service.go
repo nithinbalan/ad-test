@@ -18,8 +18,8 @@ import (
 )
 
 type KPIAssociatedItemServiceInterface interface {
-	GetAllControls(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemControlListResponseDTO, error)
-	CreateKPIControls(kpiID, userID uint, dto *strategyDTOs.KPIControlMapDTO) error
+	GetAllControls(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
+	CreateKPIControls(kpiID, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error
 	DeleteKPIControl(kpiID, controlID uint) error
 
 	GetAllProcesses(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemProcessListResponseDTO, error)
@@ -94,15 +94,18 @@ func NewKPIAssociatedItemService(
 }
 
 // controls
-func (kais *KPIAssociatedItemService) GetAllControls(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemControlListResponseDTO, error) {
+func (kais *KPIAssociatedItemService) GetAllControls(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error) {
 	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
 		return nil, err
 	}
 	return kais.repo.GetAllControls(kpiID, params)
 }
 
-func (kais *KPIAssociatedItemService) CreateKPIControls(kpiID, userID uint, dto *strategyDTOs.KPIControlMapDTO) error {
-	if err := kais.validateControlIDs(kpiID, dto.ControlIDs); err != nil {
+func (kais *KPIAssociatedItemService) CreateKPIControls(kpiID, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error {
+	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("KPI does not exist for ID: %d", kpiID), "not_exist", "kpi_register_id")
+	}
+	if err := kais.validationSvc.ValidateControlMapping(kpiID, dto.ControlIDs, "kpi_controls", "kpi_register_id"); err != nil {
 		return err
 	}
 

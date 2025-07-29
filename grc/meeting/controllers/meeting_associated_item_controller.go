@@ -379,3 +379,52 @@ func (maic *MeetingAssociatedItemController) DeleteMeetingDocument(c *gin.Contex
 
 	c.JSON(http.StatusOK, gin.H{"message": "Document unmapped from meeting successfully"})
 }
+
+func (maic *MeetingAssociatedItemController) CreateMeetingControl(c *gin.Context) {
+	var input commonDTOs.AssociatedControlMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	meetingID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, err.Error())
+		return
+	}
+
+	err = maic.service.CreateMeetingControl(uint(meetingID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(maic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (maic *MeetingAssociatedItemController) DeleteMeetingControl(c *gin.Context) {
+	meetingID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+	controlID, _ := strconv.ParseUint(c.Param("controlId"), 10, 64)
+	err := maic.service.DeleteMeetingControl(uint(meetingID), uint(controlID))
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Control unmapped from meeting successfully"})
+}

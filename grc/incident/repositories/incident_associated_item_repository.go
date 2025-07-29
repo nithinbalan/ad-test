@@ -25,11 +25,11 @@ type IncidentAssociatedItemRepositoryInterface interface {
 	CreateIncidentClauses(clauses []*models.IncidentComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	DeleteIncidentClauses(incidentID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 	CreateIncidentRisk(risks []*models.IncidentRisk, tx ...utility.DatabaseTransaction) error
-	DeleteIncidentRisk(processID uint, riskID uint, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentRisk(incidentID uint, riskID uint, tx ...utility.DatabaseTransaction) error
 	CreateIncidentDocument(documents []*models.IncidentAssociatedDocument, tx ...utility.DatabaseTransaction) error
-	DeleteIncidentDocument(processID uint, documentID uint, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentDocument(incidentID uint, documentID uint, tx ...utility.DatabaseTransaction) error
 	CreateIncidentControl(controls []*models.IncidentControl, tx ...utility.DatabaseTransaction) error
-	DeleteIncidentControl(processID uint, controlID uint, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentControl(incidentID uint, controlID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type IncidentAssociatedItemRepository struct {
