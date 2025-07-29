@@ -21,16 +21,16 @@ jobs:
       EMAIL_FROM: "Jethur Notifications <info@jethur.com>"
 
     steps:
+    
       - name: Notify Start on Teams
         shell: powershell
         run: |
-          $headers = @{ "Content-Type" = "application/json" }
-          $body = @{
-              title = "🔄 Deployment Started"
-              text  = "**${{ env.PROJECT_NAME }}** deployment started by `${{ github.actor }}` on branch `${{ github.ref_name }}`"
-          } | ConvertTo-Json -Depth 10
-          Invoke-WebRequest -Uri "${{ secrets.TEAMS_WEBHOOK_URL }}" -Method Post -Headers $headers -Body $body
-
+            $headers = @{ "Content-Type" = "application/json" }
+            $body = @{
+                title = "🔄 Deployment Started"
+                text  = "**${{ env.PROJECT_NAME }}** deployment started by `${{ github.actor }}` on branch `${{ github.ref_name }}`"
+            } | ConvertTo-Json -Depth 10
+            Invoke-WebRequest -Uri '${{ secrets.TEAMS_WEBHOOK_URL }}' -Method Post -Headers $headers -Body $body
 
       - name: Pre Cleanup workspace
         if: always()
@@ -155,24 +155,27 @@ jobs:
           Get-ChildItem -Force
         shell: powershell
 
+      - name: Run Deployment Script
+        run: echo "Deploying the app..."  # Replace with your real deployment script
+
       - name: Notify Success on Teams
         if: success()
         shell: powershell
         run: |
-          $headers = @{ "Content-Type" = "application/json" }
-          $body = @{
-              title = "✅ Deployment Succeeded"
-              text  = "**${{ env.PROJECT_NAME }}** deployment succeeded 🎉 by `${{ github.actor }}`"
-          } | ConvertTo-Json -Depth 10
-          Invoke-WebRequest -Uri "${{ secrets.TEAMS_WEBHOOK_URL }}" -Method Post -Headers $headers -Body $body
+            $headers = @{ "Content-Type" = "application/json" }
+            $body = @{
+                title = "✅ Deployment Succeeded"
+                text  = "**${{ env.PROJECT_NAME }}** deployment succeeded 🎉 by `${{ github.actor }}`"
+            } | ConvertTo-Json -Depth 10
+            Invoke-WebRequest -Uri '${{ secrets.TEAMS_WEBHOOK_URL }}' -Method Post -Headers $headers -Body $body
 
       - name: Notify Failure on Teams
         if: failure()
         shell: powershell
         run: |
-          $headers = @{ "Content-Type" = "application/json" }
-          $body = @{
-              title = "❌ Deployment Failed"
-              text  = "**${{ env.PROJECT_NAME }}** deployment failed 💥 by `${{ github.actor }}`"
-          } | ConvertTo-Json -Depth 10
-          Invoke-WebRequest -Uri "${{ secrets.TEAMS_WEBHOOK_URL }}" -Method Post -Headers $headers -Body $body
+            $headers = @{ "Content-Type" = "application/json" }
+            $body = @{
+                title = "❌ Deployment Failed"
+                text  = "**${{ env.PROJECT_NAME }}** deployment failed 💥 by `${{ github.actor }}`"
+            } | ConvertTo-Json -Depth 10
+            Invoke-WebRequest -Uri '${{ secrets.TEAMS_WEBHOOK_URL }}' -Method Post -Headers $headers -Body $body
