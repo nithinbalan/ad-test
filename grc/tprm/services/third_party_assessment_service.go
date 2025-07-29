@@ -2,7 +2,10 @@ package services
 
 import (
 	"errors"
+	"fmt"
 
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -11,6 +14,8 @@ import (
 	"jethur/grc/tprm/dtos"
 	tprmRepo "jethur/grc/tprm/repositories"
 	"jethur/utility"
+
+	"github.com/google/uuid"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -23,6 +28,8 @@ type ThirdPartyAssessmentServiceInterface interface {
 	Create(currentUserID uint, dto *dtos.ThirdPartyAssessmentFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, dto *dtos.ThirdPartyAssessmentFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	ShareLink(id uint, currentUserID uint, dto *dtos.ThirdPartyAssessmentShareLinkFormDTO) error
 }
 
 type ThirdPartyAssessmentService struct {
@@ -35,6 +42,7 @@ type ThirdPartyAssessmentService struct {
 	questionSetSvc                QuestionSetServiceInterface
 	thirdPartyAssessmentStatusSvc ThirdPartyAssessmentStatusServiceInterface
 	userSettingSvc                organizationServices.UserSettingServiceInterface
+	notificationSvc               commonServices.NotificationServiceInterface
 }
 
 func NewThirdPartyAssessmentService(
@@ -47,6 +55,7 @@ func NewThirdPartyAssessmentService(
 	questionSetSvc QuestionSetServiceInterface,
 	thirdPartyAssessmentStatusSvc ThirdPartyAssessmentStatusServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) *ThirdPartyAssessmentService {
 	return &ThirdPartyAssessmentService{
 		repo:                          repo,
@@ -58,6 +67,7 @@ func NewThirdPartyAssessmentService(
 		questionSetSvc:                questionSetSvc,
 		thirdPartyAssessmentStatusSvc: thirdPartyAssessmentStatusSvc,
 		userSettingSvc:                userSettingSvc,
+		notificationSvc:               notificationSvc,
 	}
 }
 
@@ -129,6 +139,8 @@ func (tpas *ThirdPartyAssessmentService) Create(currentUserID uint, form *dtos.T
 		return 0, err
 	}
 
+	uid := uuid.New().String()
+
 	tpr := &models.ThirdPartyAssessment{
 		ReferenceNumber:              referenceNumber,
 		Title:                        form.Title,
@@ -137,6 +149,7 @@ func (tpas *ThirdPartyAssessmentService) Create(currentUserID uint, form *dtos.T
 		Message:                      form.Message,
 		DueDate:                      dates.DueDate,
 		ThirdPartyAssessmentStatusID: assessmentStatus.ID,
+		UID:                          &uid,
 		CreatedBYID:                  currentUserID,
 	}
 
@@ -331,4 +344,64 @@ func (tpas *ThirdPartyAssessmentService) parseDates(dto *dtos.ThirdPartyAssessme
 		}
 	}
 	return parsed, nil
+}
+
+func (tpas *ThirdPartyAssessmentService) ShareLink(id uint, currentUserID uint, form *dtos.ThirdPartyAssessmentShareLinkFormDTO) error {
+
+	thirdPartyAssessment, err := tpas.repo.GetFullDetailsByID(id)
+	if err != nil {
+		utility.LogError("Failed to fetch assessment", map[string]interface{}{
+			"error": err.Error(),
+		})
+		return err
+	}
+
+	thirdPartyRegister, err := tpas.thirdPartyRegisterSvc.GetFullDetailsByID(thirdPartyAssessment.ThirdPartyRegisterID)
+	if err != nil {
+		utility.LogError("Failed to fetch third party register", map[string]interface{}{
+			"error": err.Error(),
+		})
+		return err
+	}
+
+	go func() {
+
+		thirdPartyRegister, err := tpas.thirdPartyRegisterSvc.GetFullDetailsByID(thirdPartyRegister.ID)
+		if err != nil {
+			utility.LogError("Failed to fetch kri register", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		if thirdPartyAssessment.UID != nil {
+			// Prepare email
+
+			emailTo := []string{form.Email}
+			subject := "Assessment"
+			appURL := utility.GetAppURL()
+
+			emailData := map[string]interface{}{
+				"VendorName":  thirdPartyRegister.Title,
+				"ExpiryDate":  "2025-08-30",
+				"RedirectURL": fmt.Sprintf("%s/vendor-assessment/%s", appURL, *thirdPartyAssessment.UID),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "tprm/templates/email/third_party_assessment_mail.html",
+				EmailData:            emailData,
+			}
+
+			err = tpas.notificationSvc.SendNotification(nil, emailNotificationDTO, "kri_register")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+	}()
+
+	return err
 }

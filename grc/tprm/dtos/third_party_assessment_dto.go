@@ -81,3 +81,7 @@ type ThirdPartyAssessmentListResponseDTO struct {
 type ThirdPartyAssessmentParsedDates struct {
 	DueDate *time.Time `json:"due_date"`
 }
+
+type ThirdPartyAssessmentShareLinkFormDTO struct {
+	Email string `json:"email" binding:"required,email"`
+}
