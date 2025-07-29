@@ -27,11 +27,11 @@ jobs:
         run: |
             $headers = @{ "Content-Type" = "application/json" }
             $body = @{
-                 title = "🔄 Deployment Started"
+                title = "🔄 Deployment Started"
                 text  = "**${{ env.PROJECT_NAME }}** deployment started by `${{ github.actor }}` on branch `${{ github.ref_name }}`"
             } | ConvertTo-Json -Depth 10
-            Invoke-WebRequest -Uri '${{ secrets.TEAMS_WEBHOOK_URL }}' -Method Post -Headers $headers -Body $body
-
+            Invoke-WebRequest -Uri "${{ secrets.TEAMS_WEBHOOK_URL }}" -Method Post -Headers $headers -Body $body
+            
       - name: Pre Cleanup workspace
         if: always()
         shell: powershell
