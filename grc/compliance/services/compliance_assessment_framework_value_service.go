@@ -179,13 +179,6 @@ func (cavs *ComplianceAssessmentFrameworkValueService) Update(complianceAssessme
 		return err
 	}
 
-	// Validate duplicate value only if value is provided
-	if form.Value != nil {
-		if err := cavs.validateDuplicateValue(complianceAssessmentFrameworkID, nil, *form.Value); err != nil {
-			return err
-		}
-	}
-
 	// Store old data for activity logging
 	oldData := map[string]interface{}{
 		"title_en":             complianceAssessmentFrameworkValue.TitleEn,
