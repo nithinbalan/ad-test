@@ -171,3 +171,45 @@ jobs:
           Remove-Item -Recurse -Force .??* -ErrorAction SilentlyContinue
           Get-ChildItem -Force
         shell: powershell
+
+      - name: Notify Success on Teams
+        if: success()
+        shell: powershell
+        run: |
+          $projectName = $env:PROJECT_NAME
+          $githubActor = $env:GITHUB_ACTOR
+          $githubRefName = $env:GITHUB_REF_NAME
+
+          $card = @{
+              "@context"   = "http://schema.org/extensions"
+              "@type"      = "MessageCard"
+              "themeColor" = "28A745"  # Green
+              "title"      = "Deployment Successful"
+              "text"       = "**${projectName}** was successfully deployed by **${githubActor}** on branch **${githubRefName}**"
+          }
+
+          $body = $card | ConvertTo-Json -Depth 10
+          $headers = @{ "Content-Type" = "application/json" }
+
+          Invoke-WebRequest -Uri $env:TEAMS_WEBHOOK_URL -Method Post -Headers $headers -Body $body -UseBasicParsing
+
+      - name: Notify Failure on Teams
+        if: failure()
+        shell: powershell
+        run: |
+          $projectName = $env:PROJECT_NAME
+          $githubActor = $env:GITHUB_ACTOR
+          $githubRefName = $env:GITHUB_REF_NAME
+
+          $card = @{
+              "@context"   = "http://schema.org/extensions"
+              "@type"      = "MessageCard"
+              "themeColor" = "D93F0B"  # Red
+              "title"      = "Deployment Failed"
+              "text"       = "**${projectName}** deployment failed by **${githubActor}** on branch **${githubRefName}**"
+          }
+
+          $body = $card | ConvertTo-Json -Depth 10
+          $headers = @{ "Content-Type" = "application/json" }
+
+          Invoke-WebRequest -Uri $env:TEAMS_WEBHOOK_URL -Method Post -Headers $headers -Body $body -UseBasicParsing
