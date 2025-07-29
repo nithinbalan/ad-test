@@ -43,10 +43,10 @@ func (repo *StrategyProfileProjectRepository) GetAll(strategyProfileID uint, par
 			projects.title_ar AS project_title_ar,
 			projects.description_en AS project_description_en,
 			projects.description_ar AS project_description_ar,
-			strategy_profile_strategic_objectives.title_en AS strategy_profile_strategic_objective_title_en,
-			strategy_profile_strategic_objectives.title_ar AS strategy_profile_strategic_objective_title_ar,
-			strategy_profile_strategic_intiatives.title_en AS strategy_profile_strategic_intiative_title_en,
-			strategy_profile_strategic_intiatives.title_ar AS strategy_profile_strategic_intiative_title_ar,
+			strategic_objectives.title_en AS strategy_profile_strategic_objective_title_en,
+			strategic_objectives.title_ar AS strategy_profile_strategic_objective_title_ar,
+			strategic_intiatives.title_en AS strategy_profile_strategic_intiative_title_en,
+			strategic_intiatives.title_ar AS strategy_profile_strategic_intiative_title_ar,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -70,7 +70,9 @@ func (repo *StrategyProfileProjectRepository) GetAll(strategyProfileID uint, par
 			LEFT JOIN strategy_profiles ON strategy_profiles.id = strategy_profile_projects.strategy_profile_id
 			LEFT JOIN projects ON projects.id = strategy_profile_projects.project_id
 			LEFT JOIN strategy_profile_strategic_objectives ON strategy_profile_strategic_objectives.id = strategy_profile_projects.strategy_profile_strategic_objective_id
+			LEFT JOIN strategic_objectives ON strategic_objectives.id = strategy_profile_strategic_objectives.strategic_objective_id
 			LEFT JOIN strategy_profile_strategic_intiatives ON strategy_profile_strategic_intiatives.id = strategy_profile_projects.strategy_profile_strategic_intiative_id
+			LEFT JOIN strategic_intiatives ON strategic_intiatives.id = strategy_profile_strategic_intiatives.strategic_intiative_id
 			LEFT JOIN users AS created_user ON created_user.id = strategy_profile_projects.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = strategy_profile_projects.updated_by_id
         `).Where("strategy_profile_projects.strategy_profile_id = ?", strategyProfileID)
