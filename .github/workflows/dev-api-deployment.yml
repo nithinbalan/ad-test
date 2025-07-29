@@ -21,19 +21,13 @@ jobs:
 
     steps:
       - name: Send Start Email
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.ZEPTO_HOST }}
-          server_port: 587
-          username: ${{ secrets.ZEPTO_USERNAME }}
-          password: ${{ secrets.ZEPTO_PASSWORD }}
-          subject: "Pipeline Started"
-          body: |
-            GitHub Actions deployment for ${{ env.PROJECT_NAME }} has started.
-
-            Triggered by: ${{ github.actor }}
-          to: ${{ env.EMAIL_TO }}
-          from: ${{ env.EMAIL_FROM }}
+        run: |
+          curl -H 'Content-Type: application/json' \
+          -d '{
+                "title": "🔄 Deployment Started",
+                "text": "**${{ env.PROJECT_NAME }}** deployment started by `${{ github.actor }}` on `${{ github.ref_name }}`"
+              }' \
+          "${{ env.TEAMS_WEBHOOK_URL }}"
 
       - name: Pre Cleanup workspace
         if: always()
@@ -158,14 +152,22 @@ jobs:
           Get-ChildItem -Force
         shell: powershell
 
-      - name: Send Completion Email
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.ZEPTO_HOST }}
-          server_port: 587
-          username: ${{ secrets.ZEPTO_USERNAME }}
-          password: ${{ secrets.ZEPTO_PASSWORD }}
-          subject: "Pipeline Completed"
-          body: "GitHub Actions deployment for ${{ env.PROJECT_NAME }} completed successfully."
-          to: ${{ env.EMAIL_TO }}
-          from: ${{ env.EMAIL_FROM }}
+      - name: Notify Success on Teams
+        if: success()
+        run: |
+          curl -H 'Content-Type: application/json' \
+          -d '{
+                "title": "✅ Deployment Success",
+                "text": "**${{ env.PROJECT_NAME }}** deployed successfully!"
+              }' \
+          "${{ env.TEAMS_WEBHOOK_URL }}"
+
+      - name: Notify Failure on Teams
+        if: failure()
+        run: |
+          curl -H 'Content-Type: application/json' \
+          -d '{
+                "title": "❌ Deployment Failed",
+                "text": "**${{ env.PROJECT_NAME }}** deployment failed! Check workflow logs for details."
+              }' \
+          "${{ env.TEAMS_WEBHOOK_URL }}"
