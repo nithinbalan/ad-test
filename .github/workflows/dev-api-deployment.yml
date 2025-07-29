@@ -12,6 +12,7 @@ jobs:
       DB_NAME: jethur_dev_db
       DEPLOY_BRANCH: main
       MIGRATION_BRANCH: migration
+      TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
       IIS_DOC_ROOT: C:\inetpub\wwwroot\dev\dev-api
       SERVICE_NAME: dev-api
       SCRIPT_SOURCE_PATH: C:\deployment\deployment-files\.env
