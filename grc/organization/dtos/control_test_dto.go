@@ -6,37 +6,38 @@ import (
 )
 
 type ControlTestListDTO struct {
-	ID                                   uint    `json:"id"`
-	ControlID                            uint    `json:"control_id"`
-	Title                                string  `json:"title"`
-	ControlImplementationStatusTitleEn   string  `json:"control_implementation_status_title_en"`
-	ControlImplementationStatusTitleAr   string  `json:"control_implementation_status_title_ar"`
-	ControlImplementationStatusColorCode string  `json:"control_implementation_status_color_code"`
-	ControlEfficiencyStatusTitleEn       string  `json:"control_efficiency_status_title_en"`
-	ControlEfficiencyStatusTitleAr       string  `json:"control_efficiency_status_title_ar"`
-	ControlEfficiencyStatusColorCode     string  `json:"control_efficiency_status_color_code"`
-	Description                          *string `json:"description"`
-	Score                                *uint   `json:"score"`
-	Comments                             *string `json:"comments"`
-	TestedSource                         string  `json:"tested_source"`
-	TestedByUserID                       uint    `json:"tested_by_user_id"`
-	TestedByUserFirstNameEn              string  `json:"tested_by_user_first_name_en"`
-	TestedByUserFirstNameAr              string  `json:"tested_by_user_first_name_ar"`
-	TestedByUserLastNameEn               string  `json:"tested_by_user_last_name_en"`
-	TestedByUserLastNameAr               string  `json:"tested_by_user_last_name_ar"`
-	TestedByUserInitial                  string  `json:"tested_by_user_initial"`
-	TestedByUserColor                    string  `json:"tested_by_user_color"`
-	TestedByUserEmail                    string  `json:"tested_by_user_email"`
-	TestedByUserProfileImagePath         string  `json:"tested_by_user_profile_image_path"`
-	UpdatedUserID                        *uint   `json:"updated_user_id"`
-	UpdatedUserFirstNameEn               *string `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr               *string `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn                *string `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr                *string `json:"updated_user_last_name_ar"`
-	UpdatedUserInitial                   *string `json:"updated_user_initial"`
-	UpdatedUserColor                     *string `json:"updated_user_color"`
-	UpdatedUserEmail                     *string `json:"updated_user_email"`
-	UpdatedUserProfileImagePath          *string `json:"updated_user_profile_image_path"`
+	ID                                   uint                      `json:"id"`
+	ControlID                            uint                      `json:"control_id"`
+	Title                                string                    `json:"title"`
+	ControlImplementationStatusTitleEn   string                    `json:"control_implementation_status_title_en"`
+	ControlImplementationStatusTitleAr   string                    `json:"control_implementation_status_title_ar"`
+	ControlImplementationStatusColorCode string                    `json:"control_implementation_status_color_code"`
+	ControlEfficiencyStatusTitleEn       string                    `json:"control_efficiency_status_title_en"`
+	ControlEfficiencyStatusTitleAr       string                    `json:"control_efficiency_status_title_ar"`
+	ControlEfficiencyStatusColorCode     string                    `json:"control_efficiency_status_color_code"`
+	Description                          *string                   `json:"description"`
+	Score                                *uint                     `json:"score"`
+	Comments                             *string                   `json:"comments"`
+	TestedSource                         string                    `json:"tested_source"`
+	TestedByUserID                       uint                      `json:"tested_by_user_id"`
+	TestedByUserFirstNameEn              string                    `json:"tested_by_user_first_name_en"`
+	TestedByUserFirstNameAr              string                    `json:"tested_by_user_first_name_ar"`
+	TestedByUserLastNameEn               string                    `json:"tested_by_user_last_name_en"`
+	TestedByUserLastNameAr               string                    `json:"tested_by_user_last_name_ar"`
+	TestedByUserInitial                  string                    `json:"tested_by_user_initial"`
+	TestedByUserColor                    string                    `json:"tested_by_user_color"`
+	TestedByUserEmail                    string                    `json:"tested_by_user_email"`
+	TestedByUserProfileImagePath         string                    `json:"tested_by_user_profile_image_path"`
+	UpdatedUserID                        *uint                     `json:"updated_user_id"`
+	UpdatedUserFirstNameEn               *string                   `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr               *string                   `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn                *string                   `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr                *string                   `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial                   *string                   `json:"updated_user_initial"`
+	UpdatedUserColor                     *string                   `json:"updated_user_color"`
+	UpdatedUserEmail                     *string                   `json:"updated_user_email"`
+	UpdatedUserProfileImagePath          *string                   `json:"updated_user_profile_image_path"`
+	Documents                            []*ControlTestDocumentDTO `json:"documents" gorm:"-"`
 
 	TestedAt  string     `json:"tested_at"`
 	UpdatedAt *time.Time `json:"updated_at"`
@@ -79,12 +80,16 @@ type ControlTestListQueryParamsDTO struct {
 }
 
 type ControlTestDocumentDTO struct {
-	ID           *uint   `json:"id,omitempty"`
-	URL          *string `json:"url"`
-	Name         string  `json:"file_name"`
-	OriginalName string  `json:"original_name"`
-	Type         string  `json:"type"`
-	Size         int     `json:"size"`
+	ID            uint       `json:"id"`
+	ControlTestID uint       `json:"control_test_id"`
+	URL           string     `json:"url"`
+	Name          string     `json:"name"`
+	Size          int        `json:"size"`
+	Token         string     `json:"token"`
+	OriginalName  string     `json:"original_name"`
+	Type          string     `json:"type"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     *time.Time `json:"updated_at"`
 }
 
 type ControlTestFormDTO struct {
