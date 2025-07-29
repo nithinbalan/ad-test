@@ -30,13 +30,6 @@ jobs:
           $githubActor = $env:GITHUB_ACTOR
           $githubRefName = $env:GITHUB_REF_NAME
 
-          # --- Debugging: Print out the raw environment variable values ---
-          Write-Host "--- Debugging Environment Variables ---"
-          Write-Host "PROJECT_NAME: '$projectName'"
-          Write-Host "GITHUB_ACTOR: '$githubActor'"
-          Write-Host "GITHUB_REF_NAME: '$githubRefName'"
-          Write-Host "-------------------------------------"
-
           # Construct the Teams MessageCard payload
           # The emoji has been removed from the title to prevent encoding issues
           $card = @{
@@ -49,11 +42,6 @@ jobs:
 
           # Convert the PowerShell hashtable to a JSON string
           $body = $card | ConvertTo-Json -Depth 10
-
-          # --- Debugging: Print out the full JSON payload being sent ---
-          Write-Host "--- Generated JSON Body for Teams Card ---"
-          Write-Host $body
-          Write-Host "----------------------------------------"
 
           # Set the Content-Type header
           $headers = @{ "Content-Type" = "application/json" }
