@@ -21,14 +21,14 @@ jobs:
       EMAIL_FROM: "Jethur Notifications <info@jethur.com>"
 
     steps:
-      - name: Send Start Email
+      - name: Notify Start on Teams
         run: |
-          curl -H 'Content-Type: application/json' \
-          -d '{
-                "title": "🔄 Deployment Started",
-                "text": "**${{ env.PROJECT_NAME }}** deployment started by `${{ github.actor }}` on `${{ github.ref_name }}`"
-              }' \
-          "${{ env.TEAMS_WEBHOOK_URL }}"
+          $headers = @{ "Content-Type" = "application/json" }
+          $body = @{ title = "🔄 Deployment Started"
+          text  = "**${{ env.PROJECT_NAME }}** deployment started by `${{ github.actor }}` on `${{ github.ref_name }}`"
+          } | ConvertTo-Json -Depth 10
+          Invoke-WebRequest -Uri "${{ secrets.TEAMS_WEBHOOK_URL }}" -Method Post -Headers $headers -Body $body
+        shell: powershell
 
       - name: Pre Cleanup workspace
         if: always()
@@ -156,19 +156,19 @@ jobs:
       - name: Notify Success on Teams
         if: success()
         run: |
-          curl -H 'Content-Type: application/json' \
-          -d '{
-                "title": "✅ Deployment Success",
-                "text": "**${{ env.PROJECT_NAME }}** deployed successfully!"
-              }' \
-          "${{ env.TEAMS_WEBHOOK_URL }}"
+          $headers = @{ "Content-Type" = "application/json" }
+          $body = @{ title = "✅ Deployment Success"
+          text  = "**${{ env.PROJECT_NAME }}** deployed successfully!"
+          } | ConvertTo-Json -Depth 10
+          Invoke-WebRequest -Uri "${{ secrets.TEAMS_WEBHOOK_URL }}" -Method Post -Headers $headers -Body $body
+        shell: powershell
 
       - name: Notify Failure on Teams
         if: failure()
         run: |
-          curl -H 'Content-Type: application/json' \
-          -d '{
-                "title": "❌ Deployment Failed",
-                "text": "**${{ env.PROJECT_NAME }}** deployment failed! Check workflow logs for details."
-              }' \
-          "${{ env.TEAMS_WEBHOOK_URL }}"
+          $headers = @{ "Content-Type" = "application/json" }
+          $body = @{ title = "❌ Deployment Failed"
+          text  = "**${{ env.PROJECT_NAME }}** deployment failed! Check logs."
+          } | ConvertTo-Json -Depth 10
+          Invoke-WebRequest -Uri "${{ secrets.TEAMS_WEBHOOK_URL }}" -Method Post -Headers $headers -Body $body
+        shell: powershell
