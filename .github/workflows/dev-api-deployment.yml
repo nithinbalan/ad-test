@@ -21,50 +21,16 @@ jobs:
       EMAIL_FROM: "Jethur Notifications <info@jethur.com>"
 
     steps:
-    
+
       - name: Notify Start on Teams
-        shell: powershell
-        env:
-          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
         run: |
-          # Store environment variables in PowerShell variables for cleaner string construction
-          $projectName = $env:PROJECT_NAME
-          $githubActor = $env:GITHUB_ACTOR
-          $githubRefName = $env:GITHUB_REF_NAME
-
-          # --- Debugging: Print out the raw environment variable values ---
-          Write-Host "--- Debugging Environment Variables ---"
-          Write-Host "PROJECT_NAME: '$projectName'"
-          Write-Host "GITHUB_ACTOR: '$githubActor'"
-          Write-Host "GITHUB_REF_NAME: '$githubRefName'"
-          Write-Host "-------------------------------------"
-
-          # Construct the Teams MessageCard payload
-          # This is the recommended structure for sending rich messages to Teams webhooks
-          $card = @{
-              "@context"   = "http://schema.org/extensions"
-              "@type"      = "MessageCard"
-              "themeColor" = "0078D7" # A hex color code for the card (e.g., Microsoft Blue)
-              "title"      = "🔄 Deployment Started"
-              "text"       = "**${projectName}** deployment started by **${githubActor}** on branch **${githubRefName}**"
-              # You can add more sections like "sections" or "potentialAction" for richer cards
-              # For more info: https://learn.microsoft.com/en-us/outlook/actionable-messages/card-reference
-          }
-
-          # Convert the PowerShell hashtable to a JSON string
-          $body = $card | ConvertTo-Json -Depth 10
-
-          # --- Debugging: Print out the full JSON payload being sent ---
-          Write-Host "--- Generated JSON Body for Teams Card ---"
-          Write-Host $body
-          Write-Host "----------------------------------------"
-
-          # Set the Content-Type header
-          $headers = @{ "Content-Type" = "application/json" }
-
-          # Invoke the web request to the Teams webhook URL
-          Invoke-WebRequest -Uri $env:TEAMS_WEBHOOK_URL -Method Post -Headers $headers -Body $body -UseBasicParsing
-            
+          curl -H 'Content-Type: application/json' \
+          -d '{
+                "title": "Deployment Started",
+                "text": "**${{ env.PROJECT_NAME }}** deployment started by `${{ github.actor }}` on `${{ github.ref_name }}`"
+              }' \
+          "${{ env.TEAMS_WEBHOOK_URL }}"
+ 
       - name: Pre Cleanup workspace
         if: always()
         shell: powershell
