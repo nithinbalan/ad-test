@@ -451,20 +451,20 @@ func (repo *RiskAppetiteStatementRepository) GetAllRiskAppetiteStatments(
 	query := repo.db.
 		Table("risk_appetite_statements AS ras").
 		Select(`
-			ras.id AS id,
-			rc.id AS risk_category_id,
-			rc.title_en AS risk_category_title_en,
-			rc.title_ar AS risk_category_title_ar,
-			ras.statement_en AS risk_appetite_statement_title_en,
-			ras.statement_ar AS risk_appetite_statement_title_ar,
-			COUNT(DISTINCT re.risk_register_id) AS risks_mapped,
-			SUM(CASE WHEN ratl.type = 'above' THEN 1 ELSE 0 END) AS above_count,
-			SUM(CASE WHEN ratl.type = 'within' THEN 1 ELSE 0 END) AS within_count,
-			SUM(CASE WHEN ratl.type = 'below' THEN 1 ELSE 0 END) AS below_count
-		`).
+		ras.id AS id,
+		rc.id AS risk_category_id,
+		rc.title_en AS risk_category_title_en,
+		rc.title_ar AS risk_category_title_ar,
+		ras.statement_en AS risk_appetite_statement_title_en,
+		ras.statement_ar AS risk_appetite_statement_title_ar,
+		COUNT(DISTINCT CASE WHEN re.type = 'inherent' THEN re.risk_register_id END) AS risks_mapped,
+		SUM(CASE WHEN re.type = 'inherent' AND ratl.type = 'above' THEN 1 ELSE 0 END) AS above_count,
+		SUM(CASE WHEN re.type = 'inherent' AND ratl.type = 'within' THEN 1 ELSE 0 END) AS within_count,
+		SUM(CASE WHEN re.type = 'inherent' AND ratl.type = 'below' THEN 1 ELSE 0 END) AS below_count
+	`).
 		Joins(`LEFT JOIN risk_categories rc ON rc.id = ras.risk_category_id`).
 		Joins(`LEFT JOIN risk_appetite_alignments raa ON raa.risk_appetite_statement_id = ras.id`).
-		Joins(`LEFT JOIN risk_evaluations re ON re.id = raa.risk_evaluation_id AND re.type = 'inherent'`).
+		Joins(`LEFT JOIN risk_evaluations re ON re.id = raa.risk_evaluation_id`).
 		Joins(`LEFT JOIN risk_appetite_tolerance_levels ratl ON ratl.id = raa.risk_appetite_tolerance_level_id`).
 		Group(`ras.id, rc.id, rc.title_en, rc.title_ar, ras.statement_en, ras.statement_ar`)
 
