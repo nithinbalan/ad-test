@@ -160,6 +160,13 @@ func (repo *ControlTestRepository) GetAll(controlID uint, params *organizationDT
 		return nil, err
 	}
 
+	for _, test := range controlsTests {
+		var documents []*organizationDTOs.ControlTestDocumentDTO
+
+		repo.db.Model(&models.ControlTestDocument{}).Where("control_test_id = ?", test.ID).Find(&documents)
+		test.Documents = documents
+	}
+
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
 	response := &organizationDTOs.ControlTestListResponseDTO{
