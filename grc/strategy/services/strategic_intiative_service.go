@@ -291,18 +291,21 @@ func (sis *StrategicIntiativeService) Delete(ids []uint, currentUserID uint) ([]
 func (sis *StrategicIntiativeService) parseStrategicIntiativeDates(dto *dtos.StrategicIntiativeFormDTO) (*dtos.StrategicIntiativeParsedDates, error) {
 	parsed := &dtos.StrategicIntiativeParsedDates{}
 
-	startDate, err := utility.ParseMandatoryDate(*dto.StartDate)
-	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid start date"), "invalid_date", "start_date")
+	if dto.StartDate != nil {
+		sd, err := utility.ParseDate(*dto.StartDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid start date"), "invalid_date", "start_date")
+		}
+		parsed.StartDate = sd
 	}
-
-	endDate, err := utility.ParseMandatoryDate(*dto.EndDate)
-	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid end date"), "invalid_date", "end_date")
+	if dto.EndDate != nil {
+		ed, err := utility.ParseDate(*dto.EndDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid end date"), "invalid_date", "end_date")
+		}
+		parsed.EndDate = ed
 	}
-
-	parsed.StartDate = &startDate
-	parsed.EndDate = &endDate
 
 	return parsed, nil
+
 }
