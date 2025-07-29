@@ -274,5 +274,12 @@ func (krc *KPIRegisterController) GetKPILatestValueUpdate(c *gin.Context) {
 			return
 		}
 	}
+
+	// If no value update is found, return an empty object
+	if latestValueUpdate == nil {
+		c.JSON(http.StatusOK, struct{}{})
+		return
+	}
+
 	c.JSON(http.StatusOK, latestValueUpdate)
 }

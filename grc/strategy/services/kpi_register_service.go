@@ -480,14 +480,19 @@ func (krs *KPIRegisterService) GetLatestValueUpdateByKPIRegisterID(kpiRegisterID
 		return nil, err
 	}
 
+	// If no value update is found, return nil
+	if valueUpdate == nil {
+		return nil, nil
+	}
+
 	var dto strategyDTOs.KPIValueUpdateDetailsDTO
 	reviewedDate := valueUpdate.ReviewedDate.Format("2006-01-02")
 	dto.ReviewedDateString = &reviewedDate
+
 	err = mapstructure.Decode(valueUpdate, &dto)
 	if err != nil {
 		return nil, err
 	}
-	// Map additional fields if needed
 
 	return &dto, nil
 }
