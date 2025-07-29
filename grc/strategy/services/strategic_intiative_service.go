@@ -109,10 +109,9 @@ func (sis *StrategicIntiativeService) Create(currentUserID uint, dto *dtos.Strat
 		tx.Rollback()
 		return 0, err
 	}
-	responsibleUnit, err := sis.organizationUnitSvc.GetByID(dto.ResponsibleUnitID)
+	organizationUnitID, err := sis.userSvc.GetUserPrimaryUnitID(dto.ResponsibleUserID)
 	if err != nil {
-		tx.Rollback()
-		return 0, err
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "process owner unit")
 	}
 
 	// Parse dates
@@ -131,7 +130,7 @@ func (sis *StrategicIntiativeService) Create(currentUserID uint, dto *dtos.Strat
 		StartDate:         dates.StartDate,
 		EndDate:           dates.EndDate,
 		ResponsibleUserID: responsibleUser.ID,
-		ResponsibleUnitID: responsibleUnit.ID,
+		ResponsibleUnitID: organizationUnitID,
 		CreatedBYID:       currentUserID,
 	}
 
@@ -185,11 +184,6 @@ func (sis *StrategicIntiativeService) Update(id uint, currentUserID uint, dto *d
 		return err
 	}
 
-	responsibleUnit, err := sis.organizationUnitSvc.GetByID(dto.ResponsibleUnitID)
-	if err != nil {
-		return err
-	}
-
 	//Parse dates
 	dates, err := sis.parseStrategicIntiativeDates(dto)
 	if err != nil {
@@ -204,8 +198,18 @@ func (sis *StrategicIntiativeService) Update(id uint, currentUserID uint, dto *d
 	existing.StartDate = dates.StartDate
 	existing.EndDate = dates.EndDate
 	existing.ResponsibleUserID = responsibleUser.ID
-	existing.ResponsibleUnitID = responsibleUnit.ID
 	existing.UpdatedBYID = &currentUserID
+
+	// Resolve Responsible Unit dynamically
+	if dto.ResponsibleUserID != 0 {
+		unitID, err := sis.userSvc.GetUserPrimaryUnitID(dto.ResponsibleUserID)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "organization_unit")
+		}
+		existing.ResponsibleUnitID = unitID
+	} else {
+		existing.ResponsibleUnitID = 0
+	}
 
 	// Save
 	err = sis.repo.Update(existing)

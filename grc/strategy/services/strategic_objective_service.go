@@ -157,6 +157,12 @@ func (sos *StrategicObjectiveService) Create(currentUserID uint, dto *dtos.Strat
 	if err != nil {
 		return 0, err
 	}
+
+	organizationUnitID, err := sos.userSvc.GetUserPrimaryUnitID(*dto.ResponsibleUserID)
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "process owner unit")
+	}
+
 	// Build model
 	model := &models.StrategicObjective{
 		TitleEn:                      dto.TitleEn,
@@ -168,7 +174,7 @@ func (sos *StrategicObjectiveService) Create(currentUserID uint, dto *dtos.Strat
 		StartDate:                    dates.StartDate,
 		EndDate:                      dates.EndDate,
 		ResponsibleUserID:            dto.ResponsibleUserID,
-		ResponsibleUnitID:            dto.ResponsibleUnitID,
+		ResponsibleUnitID:            &organizationUnitID,
 		ReviewUserID:                 dto.ReviewUserID,
 		ReviewFrequencyID:            dto.ReviewFrequencyID,
 		Status:                       dto.Status,
@@ -437,12 +443,6 @@ func (sos *StrategicObjectiveService) validateStrategicObjectiveFormDTO(dto *dto
 		_, err := sos.reviewFrequencySvc.GetByID(*dto.ReviewFrequencyID)
 		if err != nil {
 			return utility.NewValidationError(fmt.Errorf("review frequency does not exist"), "not_exist", "review_frequency")
-		}
-	}
-	if dto.ResponsibleUnitID != nil {
-		_, err = sos.organizationUnitSvc.GetByID(*dto.ResponsibleUnitID)
-		if err != nil {
-			return utility.NewValidationError(fmt.Errorf("organization unit does not exist"), "not_exist", "organization_unit")
 		}
 	}
 
