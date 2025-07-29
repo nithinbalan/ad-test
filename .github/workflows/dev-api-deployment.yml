@@ -22,15 +22,17 @@ jobs:
 
     steps:
     
-      - name: Notify Start on Teams
+     - name: Notify Start on Teams
         shell: powershell
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
         run: |
-            $headers = @{ "Content-Type" = "application/json" }
-            $body = @{
-                title = "🔄 Deployment Started"
-                text  = "**${{ env.PROJECT_NAME }}** deployment started by `${{ github.actor }}` on branch `${{ github.ref_name }}`"
-            } | ConvertTo-Json -Depth 10
-            Invoke-WebRequest -Uri "${{ secrets.TEAMS_WEBHOOK_URL }}" -Method Post -Headers $headers -Body $body
+          $headers = @{ "Content-Type" = "application/json" }
+          $body = @{
+              title = "🔄 Deployment Started"
+              text  = "**dev-api** deployment started by `$env:GITHUB_ACTOR` on branch `$env:GITHUB_REF_NAME`"
+          } | ConvertTo-Json -Depth 10
+          Invoke-WebRequest -Uri $env:TEAMS_WEBHOOK_URL -Method Post -Headers $headers -Body $body
             
       - name: Pre Cleanup workspace
         if: always()
