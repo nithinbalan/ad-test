@@ -27,7 +27,6 @@ type KPIRegisterRepositoryInterface interface {
 
 	GetTrendAnalysis(kpiId uint, limit int) ([]*models.KPIValueUpdate, error)
 	GetLatestValueUpdate(kpiId uint) (*models.KPIValueUpdate, error)
-	GetKPIChartDetails(kpiId uint) (*models.KPIRegister, error)
 	GenerateReferenceNumber() (string, error)
 }
 
@@ -288,7 +287,7 @@ func (repo *KPIRegisterRepository) GetTrendAnalysis(kpiID uint, limit int) ([]*m
 }
 
 func (repo *KPIRegisterRepository) GetLatestValueUpdate(kpiID uint) (*models.KPIValueUpdate, error) {
-	var kpiValueUpdate *models.KPIValueUpdate
+	var kpiValueUpdate models.KPIValueUpdate
 
 	result := repo.db.Preload("ReviewUser").
 		Preload("Documents").
@@ -304,19 +303,8 @@ func (repo *KPIRegisterRepository) GetLatestValueUpdate(kpiID uint) (*models.KPI
 		return nil, result.Error
 	}
 
-	return kpiValueUpdate, nil
+	return &kpiValueUpdate, nil
 }
-
-// In repositories/kpi_register_repository.go
-func (repo *KPIRegisterRepository) GetKPIChartDetails(kpiId uint) (*models.KPIRegister, error) {
-	var kpi models.KPIRegister
-	err := repo.db.Select("actual_value", "target_value").First(&kpi, kpiId).Error
-	if err != nil {
-		return nil, err
-	}
-	return &kpi, nil
-}
-
 func (repo *KPIRegisterRepository) GenerateReferenceNumber() (string, error) {
 	var lastReferenceNumber *string
 	err := repo.db.Model(&models.KPIRegister{}).

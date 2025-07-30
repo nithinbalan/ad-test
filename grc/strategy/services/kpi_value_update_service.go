@@ -115,6 +115,15 @@ func (kvus *KPIValueUpdateService) Create(kpiRegisterID, currentUserID uint, kpi
 	existingKPIRegister.LastReviewedDate = dates.ReviewedDate
 	existingKPIRegister.NextReviewDate = &nextReviewDate
 
+	// Calculate achievement percentage (actual / target * 100)
+	if existingKPIRegister.TargetValue != nil && *existingKPIRegister.TargetValue != 0 {
+		achievement := (*existingKPIRegister.ActualValue / *existingKPIRegister.TargetValue) * 100
+		existingKPIRegister.Achievement = &achievement
+	} else {
+		// If target is zero or nil, set achievement to nil
+		existingKPIRegister.Achievement = nil
+	}
+
 	err = kvus.kpiRegisterSvc.UpdateValue(existingKPIRegister, tx)
 	if err != nil {
 		return 0, err
@@ -288,6 +297,15 @@ func (kvus *KPIValueUpdateService) Update(kpiRegisterID, updateId uint, currentU
 
 	existingKPIRegister.ActualValue = &kpiValueUpdateFormDTO.Value
 	existingKPIRegister.LastReviewNote = kpiValueUpdateFormDTO.Remarks
+
+	// Calculate achievement percentage (actual / target * 100)
+	if existingKPIRegister.TargetValue != nil && *existingKPIRegister.TargetValue != 0 {
+		achievement := (*existingKPIRegister.ActualValue / *existingKPIRegister.TargetValue) * 100
+		existingKPIRegister.Achievement = &achievement
+	} else {
+		// If target is zero or nil, set achievement to nil
+		existingKPIRegister.Achievement = nil
+	}
 
 	err = kvus.kpiRegisterSvc.UpdateValue(existingKPIRegister, tx)
 	if err != nil {

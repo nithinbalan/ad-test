@@ -25,8 +25,7 @@ type KPIRegisterServiceInterface interface {
 
 	UpdateValue(kpiRegister *models.KPIRegister, tx utility.DatabaseTransaction) error
 	GetTrendAnalysis(kpiID uint, limit int) ([]*strategyDTOs.KPITrendAnalysisDTO, error)
-	GetLatestValueUpdateByKPIRegisterID(kpiRegisterID uint) (*strategyDTOs.KPIValueUpdateDetailsDTO, error)
-	GetKPIChartDetails(kpiRegisterID uint) (*strategyDTOs.KPIChartDetailsDTO, error)
+	GetLatestValueUpdateByKPIRegisterID(kpiRegisterID uint) (*models.KPIValueUpdate, error)
 }
 
 // Service and implementations
@@ -474,43 +473,10 @@ func (krs *KPIRegisterService) GetTrendAnalysis(kpiID uint, limit int) ([]*strat
 	return trend, nil
 }
 
-func (krs *KPIRegisterService) GetLatestValueUpdateByKPIRegisterID(kpiRegisterID uint) (*strategyDTOs.KPIValueUpdateDetailsDTO, error) {
+func (krs *KPIRegisterService) GetLatestValueUpdateByKPIRegisterID(kpiRegisterID uint) (*models.KPIValueUpdate, error) {
 	valueUpdate, err := krs.repo.GetLatestValueUpdate(kpiRegisterID)
 	if err != nil {
 		return nil, err
 	}
-
-	// If no value update is found, return nil
-	if valueUpdate == nil {
-		return nil, nil
-	}
-
-	var dto strategyDTOs.KPIValueUpdateDetailsDTO
-	reviewedDate := valueUpdate.ReviewedDate.Format("2006-01-02")
-	dto.ReviewedDateString = &reviewedDate
-
-	err = mapstructure.Decode(valueUpdate, &dto)
-	if err != nil {
-		return nil, err
-	}
-
-	return &dto, nil
-}
-
-// In services/kpi_register_service.go
-func (krs *KPIRegisterService) GetKPIChartDetails(kpiRegisterID uint) (*strategyDTOs.KPIChartDetailsDTO, error) {
-	kpi, err := krs.repo.GetKPIChartDetails(kpiRegisterID)
-	if err != nil {
-		return nil, err
-	}
-
-	var achievement *float64
-	if kpi.TargetValue != nil && *kpi.TargetValue != 0 && kpi.ActualValue != nil {
-		val := (*kpi.ActualValue / *kpi.TargetValue) * 100
-		achievement = &val
-	}
-
-	return &strategyDTOs.KPIChartDetailsDTO{
-		AchievementPercentage: achievement,
-	}, nil
+	return valueUpdate, nil // This will be nil, nil when no record is found
 }
