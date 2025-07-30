@@ -8,8 +8,8 @@ type StrategicIntiative struct {
 	TitleAr           string     `json:"title_ar" gorm:"type:nvarchar(MAX);not null" binding:"required"`
 	DescriptionEn     *string    `json:"description_en" gorm:"type:nvarchar(MAX);default:null"`
 	DescriptionAr     *string    `json:"description_ar" gorm:"type:nvarchar(MAX);default:null"`
-	StartDate         *time.Time `json:"start_date" gorm:"type:date"`
-	EndDate           *time.Time `json:"end_date" gorm:"type:date"`
+	StartDate         *time.Time `json:"start_date" gorm:"type:date;default:null"`
+	EndDate           *time.Time `json:"end_date" gorm:"type:date;default:null"`
 	ResponsibleUserID uint       `json:"responsible_user_id" gorm:"default:null"`
 	ResponsibleUnitID uint       `json:"responsible_unit_id" gorm:"default:null"`
 	CreatedAt         time.Time  `json:"created_at" gorm:"type:datetime;not null"`

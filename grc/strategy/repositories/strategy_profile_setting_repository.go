@@ -46,13 +46,13 @@ func (repo *StrategyProfileSettingRepository) GetAll(params *dtos.StrategyProfil
 				strategy_profile_settings.title_ar LIKE ?)`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
-	// Sort by the specified column and order
-	if params.SortBy == "" {
-		params.SortBy = "title_en" // Default sort by title_en if no sortBy is specified
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
-	}
+	// // Sort by the specified column and order
+	// if params.SortBy == "" {
+	// 	params.SortBy = "title_en" // Default sort by title_en if no sortBy is specified
+	// }
+	// if params.Sort != "asc" && params.Sort != "desc" {
+	// 	params.Sort = "asc" // Default order is ascending if not specified
+	// }
 
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
