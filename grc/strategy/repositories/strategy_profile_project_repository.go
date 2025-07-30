@@ -80,13 +80,10 @@ func (repo *StrategyProfileProjectRepository) GetAll(strategyProfileID uint, par
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
 			// Map API param to DB column
-			if columnName == "project_id" {
-				columnName = "strategy_profile_projects.project_id"
-			}
-			if columnName == "strategy_profile_strategic_objective_id" {
+			if columnName == "strategic_objective_id" {
 				columnName = "strategy_profile_projects.strategy_profile_strategic_objective_id"
 			}
-			if columnName == "strategy_profile_strategic_intiative_id" {
+			if columnName == "strategic_intiative_id" {
 				columnName = "strategy_profile_projects.strategy_profile_strategic_intiative_id"
 			}
 			query = query.Where(columnName+" IN (?)", values)
