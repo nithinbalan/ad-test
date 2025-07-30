@@ -179,12 +179,15 @@ func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, p
 	var totalCount int64
 	var riskList []*commonDTOs.AssociatedRiskListDTO
 
-	// Second Query: Fetch compliance requirement risks using the compliance requirement IDs
-	query := repo.db.Table("risk_compliance_requirements").
+	subQuery := repo.db.
+		Table("risk_compliance_requirements").
+		Select("DISTINCT risk_register.id").
+		Joins("LEFT JOIN risk_register ON risk_register.id = risk_compliance_requirements.risk_register_id").
+		Where("risk_compliance_requirements.compliance_register_id = ?", complianceID)
+
+	query := repo.db.Table("risk_register").
 		Select(`
-		    risk_compliance_requirements.id as id,
-            risk_compliance_requirements.risk_register_id AS risk_register_id,
-			risk_compliance_requirements .compliance_register_id,
+		    risk_register.id AS risk_register_id,
             risk_register.reference_number,
             risk_register.title,
             risk_register.description,
@@ -262,7 +265,7 @@ func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, p
             residual_risk_rating.color_code AS residual_risk_rating_color_code
         `).
 		Joins(`
-            LEFT JOIN risk_register ON risk_register.id = risk_compliance_requirements.risk_register_id
+           
 			LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
             LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
             LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id
@@ -285,11 +288,7 @@ func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, p
             LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = risk_register.residual_risk_rating_id
             LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
         `).
-		Where("risk_compliance_requirements.compliance_register_id = ?", complianceID)
-
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
+		Where("risk_register.id IN (?)", subQuery)
 
 	// Apply search keyword if exists
 	if params.Keyword != "" {
@@ -308,6 +307,9 @@ func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, p
 		params.Sort = "asc"
 	}
 
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 	// Ensure that the column used for sorting is included in the SELECT clause
 	query = query.Order(params.SortBy + " " + params.Sort)
 

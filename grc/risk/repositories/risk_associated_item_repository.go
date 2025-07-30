@@ -5,6 +5,7 @@ import (
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/utility"
+	"sort"
 
 	"gorm.io/gorm"
 )
@@ -1175,6 +1176,10 @@ func (repo *RiskAssociatedItemRepository) GetAllClauses(riskID uint, params *com
 
 	var groupedClauses []*commonDTOs.AssociatedClauseListDTO
 	for _, v := range clausesByComplianceRegister {
+		// Sort clauses inside the group by ClauseNo
+		sort.Slice(v.Clauses, func(i, j int) bool {
+			return v.Clauses[i].ClauseNo < v.Clauses[j].ClauseNo
+		})
 		groupedClauses = append(groupedClauses, v)
 	}
 
