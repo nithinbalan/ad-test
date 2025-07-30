@@ -239,5 +239,5 @@ func (paic *BcpAssociatedItemController) DeleteBcpControl(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Document unmapped from Bcp successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Control unmapped from Bcp successfully"})
 }

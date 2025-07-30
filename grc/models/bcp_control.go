@@ -12,7 +12,7 @@ type BCPControl struct {
 	CreatedAt                time.Time `json:"created_at" gorm:"type:datetime;not null"`
 
 	// Relationships
-	BusinessContinuityPlan *BusinessContinuityPlan `gorm:"foreignKey:KRIRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	BusinessContinuityPlan *BusinessContinuityPlan `gorm:"foreignKey:BusinessContinuityPlanID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Control                *Control                `gorm:"foreignKey:ControlID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser          *User                   `gorm:"foreignKey:CreatedBYID"`
 }

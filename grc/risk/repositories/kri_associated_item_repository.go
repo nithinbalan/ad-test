@@ -273,7 +273,7 @@ func (repo *KRIAssociatedItemRepository) GetAllKRIControls(kriID uint, params *c
 		LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = controls.risk_matrix_risk_rating_id
 		LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = controls.risk_matrix_risk_rating_value_id
 		LEFT JOIN users AS created_user ON created_user.id = controls.created_by_id
-	`).Where("kri_controls.project_id = ?", kriID)
+	`).Where("kri_controls.kri_register_id = ?", kriID)
 
 	// Apply search keyword if exists
 	if params.Keyword != "" {
