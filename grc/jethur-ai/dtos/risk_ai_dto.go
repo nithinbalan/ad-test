@@ -22,10 +22,10 @@ type RCAItem struct {
 }
 
 type RiskRCARequest struct {
-	RiskTitle    string `form:"risk_title" binding:"required"`
-	Consequences string `form:"consequences" binding:"required"`
-	Category     string `form:"category" binding:"required"`
-	Source       string `form:"source" binding:"required"`
+	RiskTitle    string `json:"risk_title" binding:"required"`
+	Consequences string `json:"consequences"`
+	Category     string `json:"category" binding:"required"`
+	Source       string `json:"source"`
 }
 
 type RiskAIRequest struct {
