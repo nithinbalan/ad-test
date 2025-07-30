@@ -13,7 +13,7 @@ type ThirdPartyRegister struct {
 	OrganizationUnitID *uint      `json:"organization_unit_id,omitempty"`
 	RepresentativeName *string    `json:"representative_name,omitempty" gorm:"type:nvarchar(250);default:null"`
 	RepresentativeRole *string    `json:"representative_role,omitempty" gorm:"type:nvarchar(250);default:null"`
-	Email              *string    `json:"email,omitempty" gorm:"type:nvarchar(150);default:null"`
+	Email              *string    `json:"email" gorm:"type:nvarchar(150)"`
 	PhoneNumber        *string    `json:"phone_number,omitempty" gorm:"type:varchar(20);default:null"`
 	ResponsibleUserID  *uint      `json:"responsible_user_id,omitempty"`
 	ResponsibleUnitID  *uint      `json:"responsible_unit_id"`

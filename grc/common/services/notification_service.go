@@ -116,6 +116,7 @@ func (ns *NotificationService) SendNotification(notificationDTO *commonDTOs.DBNo
 		for _, email := range emailNotificationDTO.EmailTo {
 			user, err := ns.repo.GetUserByEmail(email)
 			if err != nil || user == nil {
+				filteredEmails = append(filteredEmails, email)
 				continue
 			}
 			isEnabled, err := ns.IsNotificationEnabled(user.ID, notificationMasterIdentifier)
