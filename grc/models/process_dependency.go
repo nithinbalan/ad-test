@@ -7,6 +7,7 @@ type ProcessDependency struct {
 	DependentProcessID         *uint   `json:"dependent_process_id"`
 	OrganizationUnitID         *uint   `json:"organization_unit_id"`
 	AssetID                    *uint   `json:"asset_id"`
+	ThirdPartyRegisterID       *uint   `json:"third_party_register_id"`
 	Title                      *string `gorm:"type:nvarchar(255)" json:"title"`
 	Description                *string `gorm:"type:nvarchar(MAX)" json:"description"`
 	Rto                        *int    `json:"rto" gorm:"default:null"`
@@ -21,16 +22,17 @@ type ProcessDependency struct {
 	UpdatedAt                  *string `gorm:"type:datetime" json:"updated_at"`
 
 	// Relationships
-	Process                  *Process                  `gorm:"foreignKey:ProcessID" json:"process,omitempty"`
-	ProcessDependencySubType *ProcessDependencySubType `gorm:"foreignKey:ProcessDependencySubTypeID" json:"process_dependency_sub_type,omitempty"`
-	DependentProcess         *Process                  `gorm:"foreignKey:DependentProcessID" json:"dependent_process,omitempty"`
-	OrganizationUnit         *OrganizationUnit         `gorm:"foreignKey:OrganizationUnitID" json:"organization_unit,omitempty"`
-	Asset                    *AssetRegister            `gorm:"foreignKey:AssetID" json:"asset,omitempty"`
+	Process                  *Process                  `gorm:"foreignKey:ProcessID"`
+	ProcessDependencySubType *ProcessDependencySubType `gorm:"foreignKey:ProcessDependencySubTypeID"`
+	DependentProcess         *Process                  `gorm:"foreignKey:DependentProcessID"`
+	OrganizationUnit         *OrganizationUnit         `gorm:"foreignKey:OrganizationUnitID"`
+	Asset                    *AssetRegister            `gorm:"foreignKey:AssetID"`
+	ThirdPartyRegister       *ThirdPartyRegister       `gorm:"foreignKey:ThirdPartyRegisterID"`
 	RtoUnit                  *TimeUnit                 `gorm:"foreignKey:RtoUnitId"`
 	MtpdUnit                 *TimeUnit                 `gorm:"foreignKey:MtpdUnitId"`
 	RpoUnit                  *TimeUnit                 `gorm:"foreignKey:RpoUnitId"`
-	CreatedByUser            *User                     `gorm:"foreignKey:CreatedBYID" json:"created_by,omitempty"`
-	UpdatedByUser            *User                     `gorm:"foreignKey:UpdatedBYID" json:"updated_by,omitempty"`
+	CreatedByUser            *User                     `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser            *User                     `gorm:"foreignKey:UpdatedBYID"`
 }
 
 func (ProcessDependency) TableName() string {

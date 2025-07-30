@@ -16,9 +16,9 @@ type StrategyProfileFocusArea struct {
 	FocusArea            *FocusArea            `gorm:"foreignKey:FocusAreaID" json:"focus_area,omitempty"`
 	StrategyProfileGoals []StrategyProfileGoal `gorm:"foreignKey:StrategyProfileFocusAreaID"`
 	//StrategyProfileStrategicObjectives []StrategyProfileStrategicObjective `gorm:"foreignKey:StrategyProfileFocusAreaID"`
-	StrategyProfileInitiatives []StrategyProfileInitiative `gorm:"foreignKey:StrategyProfileFocusAreaID"`
-	StrategyProfileProjects    []StrategyProfileProject    `gorm:"foreignKey:StrategyProfileFocusAreaID"`
-	StrategyProfileMilestones  []StrategyProfileMilestone  `gorm:"foreignKey:StrategyProfileFocusAreaID"`
+	//StrategyProfileStrategicIntiatives []StrategyProfileStrategicIntiative `gorm:"foreignKey:StrategyProfileFocusAreaID"`
+	//StrategyProfileProjects    []StrategyProfileProject    `gorm:"foreignKey:StrategyProfileFocusAreaID"`
+	//StrategyProfileMilestones  []StrategyProfileMilestone  `gorm:"foreignKey:StrategyProfileFocusAreaID"`
 	StrategyProfileActionPlans []StrategyProfileActionPlan `gorm:"foreignKey:StrategyProfileFocusAreaID"`
 
 	CreatedByUser *User `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`

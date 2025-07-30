@@ -21,10 +21,10 @@ type StrategyProfile struct {
 	StrategyProfileFocusAreas          []StrategyProfileFocusArea          `gorm:"foreignKey:StrategyProfileID"`
 	StrategyProfileGoals               []StrategyProfileGoal               `gorm:"foreignKey:StrategyProfileID"`
 	StrategyProfileStrategicObjectives []StrategyProfileStrategicObjective `gorm:"foreignKey:StrategyProfileID"`
-	StrategyProfileInitiatives         []StrategyProfileInitiative         `gorm:"foreignKey:StrategyProfileID"`
+	StrategyProfileStrategicIntiatives []StrategyProfileStrategicIntiative `gorm:"foreignKey:StrategyProfileID"`
 	StrategyProfileProjects            []StrategyProfileProject            `gorm:"foreignKey:StrategyProfileID"`
-	StrategyProfileMilestones          []StrategyProfileMilestone          `gorm:"foreignKey:StrategyProfileID"`
-	StrategyProfileActionPlans         []StrategyProfileActionPlan         `gorm:"foreignKey:StrategyProfileID"`
+	StrategyProfileProjectMilestones   []StrategyProfileProjectMilestone   `gorm:"foreignKey:StrategyProfileID"`
+	StrategyProfileProjectActionPlans  []StrategyProfileProjectActionPlan  `gorm:"foreignKey:StrategyProfileID"`
 
 	ResponsibleUser *User `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser   *User `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`

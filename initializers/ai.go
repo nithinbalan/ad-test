@@ -15,15 +15,15 @@ type JethurAIModule struct {
 	DocumentAIService services.DocumentAIServiceInterface
 }
 
-func NewJethurAIModule(db *gorm.DB, documentModule *DocumentModule, organizationModule *OrganizationModule) *JethurAIModule {
+func NewJethurAIModule(db *gorm.DB, documentModule *DocumentModule, organizationModule *OrganizationModule, settingsModule *SettingsModule) *JethurAIModule {
 	// documentAIRepo := repositories.NewAIRepository(db)
-	documentAISvc := services.NewDocumentAIService(documentModule.DocumentSvc, organizationModule.UserSvc)
+	documentAISvc := services.NewDocumentAIService(documentModule.DocumentSvc, organizationModule.UserSvc, settingsModule.SystemPreferenceSvc)
 	documentAIController := controllers.NewDocumentAIController(documentAISvc)
 
-	commonAISvc := services.NewCommonAIService()
+	commonAISvc := services.NewCommonAIService(settingsModule.SystemPreferenceSvc)
 	commonAIController := controllers.NewCommonAIController(commonAISvc)
 
-	riskAISvc := services.NewRiskAIService()
+	riskAISvc := services.NewRiskAIService(settingsModule.SystemPreferenceSvc)
 	riskAIController := controllers.NewRiskAIController(riskAISvc)
 
 	return &JethurAIModule{

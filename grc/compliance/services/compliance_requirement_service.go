@@ -15,6 +15,7 @@ import (
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -93,7 +94,109 @@ func (crs *ComplianceRequirementService) GetAll(complianceID uint, params *compl
 }
 
 func (crs *ComplianceRequirementService) GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error) {
-	return crs.repo.GetRequirementsByComplianceID(complianceID, params)
+
+	// Step 1: Fetch raw data from repository
+	requirements, err := crs.repo.GetRequirementsByComplianceID(complianceID, params)
+	if err != nil {
+		return nil, err
+	}
+	if len(requirements) == 0 {
+		return &complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO{
+			Items:      []*complianceDTOs.ComplianceRequirementByComplianceIDListDTO{},
+			Pagination: commonDTOs.PaginationInfoDTO{CurrentPage: params.Page, PageSize: params.PageSize},
+		}, nil
+	}
+
+	// Step 2: Collect requirement IDs for bulk fetch of responsible units
+	reqIDs := make([]uint, 0, len(requirements))
+	for _, r := range requirements {
+		reqIDs = append(reqIDs, r.ID)
+	}
+
+	// Step 3: Fetch all responsible units in a single query
+	var unitRows []complianceDTOs.ComplianceRequirementResponsibleUnitRowDTO
+	err = crs.repo.GetResponsibleUnitRowsByRequirementIDs(reqIDs, &unitRows)
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 4: Map responsible units by requirement ID
+	unitMap := make(map[uint][]*complianceDTOs.ComplianceRequirementResponsibleUnitListDTO)
+	for _, row := range unitRows {
+		unit := &settingsDTOs.OrganizationUnitDTO{
+			ID:        int(row.ResponsibleUnitID),
+			TitleEn:   row.TitleEn,
+			TitleAr:   row.TitleAr,
+			Status:    row.Status,
+			ColorCode: row.ColorCode,
+		}
+		if row.ParentID != nil {
+			unit.ParentUnit = &settingsDTOs.OrganizationUnitDTO{ID: int(*row.ParentID)}
+		}
+
+		unitDTO := &complianceDTOs.ComplianceRequirementResponsibleUnitListDTO{
+			ID:                                   row.ID,
+			ComplianceRequirementID:              row.ComplianceRequirementID,
+			ResponsibleUnitID:                    row.ResponsibleUnitID,
+			ComplianceAssessmentFrameworkValueID: row.ComplianceAssessmentFrameworkValueID,
+			ResponsibleUnit:                      unit,
+		}
+		unitMap[row.ComplianceRequirementID] = append(unitMap[row.ComplianceRequirementID], unitDTO)
+	}
+
+	// Step 5: Assign responsible units to each requirement
+	for _, r := range requirements {
+		if units, ok := unitMap[r.ID]; ok {
+			r.ResponsibleUnits = units
+		} else {
+			// Return empty array instead of null
+			r.ResponsibleUnits = []*complianceDTOs.ComplianceRequirementResponsibleUnitListDTO{}
+		}
+	}
+	// Step 6: Group by clause ID
+	clauseMap := make(map[uint]*complianceDTOs.ComplianceRequirementByComplianceIDListDTO)
+	for _, r := range requirements {
+		if _, exists := clauseMap[r.ClauseID]; !exists {
+			clauseMap[r.ClauseID] = &complianceDTOs.ComplianceRequirementByComplianceIDListDTO{
+				ClauseID:      r.ClauseID,
+				ClauseNo:      r.ComplianceClauseNo,
+				ClauseTitleEn: r.ComplianceClauseTitleEn,
+				ClauseTitleAr: r.ComplianceClauseTitleAr,
+				Requirements:  []*complianceDTOs.ComplianceRequirementListDTO{},
+			}
+		}
+		clauseMap[r.ClauseID].Requirements = append(clauseMap[r.ClauseID].Requirements, r)
+	}
+
+	// Step 7: Convert map to list
+	var clauseList []*complianceDTOs.ComplianceRequirementByComplianceIDListDTO
+	for _, v := range clauseMap {
+		clauseList = append(clauseList, v)
+	}
+
+	// Step 8: In-memory pagination
+	totalCount := int64(len(clauseList))
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	start := (params.Page - 1) * params.PageSize
+	if start > int(totalCount) {
+		start = int(totalCount)
+	}
+	end := start + params.PageSize
+	if end > int(totalCount) {
+		end = int(totalCount)
+	}
+	pagedClauses := clauseList[start:end]
+
+	// Step 9: Return response
+	return &complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO{
+		Items: pagedClauses,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}, nil
 }
 
 func (crs ComplianceRequirementService) GetByID(complianceID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error) {
@@ -183,7 +286,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	complianceRequirement := &models.ComplianceRequirement{
 		ComplianceRequirementCategoryID: complianceRequirementFormDTO.ComplianceRequirementCategoryID,
 		ComplianceStatusID:              complianceRequirementFormDTO.ComplianceStatusID,
-		ResponsibleUserID:               complianceRequirementFormDTO.ResponsibleUserID,
+		ResponsibleUserID:               currentUserID,
 		SeverityLevelID:                 complianceRequirementFormDTO.SeverityLevelID,
 		TitleEn:                         complianceRequirementFormDTO.TitleEn,
 		TitleAr:                         complianceRequirementFormDTO.TitleAr,
@@ -225,6 +328,23 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		tx.Rollback()
 		return 0, err
 	}
+	var responsibleUnits []*models.ComplianceRequirementResponsibleUnit
+	for _, resUnitID := range complianceRequirementFormDTO.ResponsibleUnitIDs {
+		unit := &models.ComplianceRequirementResponsibleUnit{
+			ComplianceRequirementID: id,
+			ResponsibleUnitID:       *resUnitID,
+			CreatedByID:             currentUserID,
+		}
+		responsibleUnits = append(responsibleUnits, unit)
+	}
+
+	if len(responsibleUnits) > 0 {
+		if err := crs.repo.CreateComplianceRequirementResponsibleUnits(responsibleUnits, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	// Add Controls
 	var controls []*models.ComplianceControl
 	for _, controlID := range complianceRequirementFormDTO.ControlIDs {
@@ -337,7 +457,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserIDs:              []uint{complianceRequirementFormDTO.ResponsibleUserID},
+			UserIDs:              []uint{currentUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Requirement Responsiblity Assigned",
@@ -353,7 +473,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 			CreatedByID:          &currentUserID,
 		}
 
-		responsibleUser, err := crs.userSvc.GetByID(complianceRequirementFormDTO.ResponsibleUserID)
+		responsibleUser, err := crs.userSvc.GetByID(currentUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 				"error": err.Error(),
@@ -459,12 +579,12 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	existingComplianceRequirement.ComplianceClauseID = clause.ID
 	existingComplianceRequirement.ComplianceRequirementCategoryID = complianceRequirementFormDTO.ComplianceRequirementCategoryID
 	existingComplianceRequirement.ComplianceStatusID = complianceRequirementFormDTO.ComplianceStatusID
-	existingComplianceRequirement.ResponsibleUserID = complianceRequirementFormDTO.ResponsibleUserID
 	existingComplianceRequirement.SeverityLevelID = complianceRequirementFormDTO.SeverityLevelID
 	existingComplianceRequirement.TitleEn = complianceRequirementFormDTO.TitleEn
 	existingComplianceRequirement.TitleAr = complianceRequirementFormDTO.TitleAr
 	existingComplianceRequirement.Deadline = dates.Deadline
 	existingComplianceRequirement.Score = score
+	existingComplianceRequirement.ResponsibleUserID = currentUserID
 	existingComplianceRequirement.UpdatedByID = &currentUserID
 
 	existingComplianceRequirement.ComplianceClause = nil // Reset preloaded association
@@ -479,6 +599,52 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+	// Get existing responsible unit IDs
+	existingUnitIDs := make(map[uint]uint) // map[unitID]recordID
+	for _, unit := range complianceRequirement.ResponsibleUnits {
+		if unit.ID != 0 {
+			existingUnitIDs[unit.ID] = unit.ID
+		}
+	}
+
+	// Get new unit IDs from form
+	newUnitIDs := make(map[uint]bool)
+	for _, unitID := range complianceRequirementFormDTO.ResponsibleUnitIDs {
+		newUnitIDs[*unitID] = true
+	}
+
+	// Add new responsible units
+	var unitsToAdd []*models.ComplianceRequirementResponsibleUnit
+	for _, unitID := range complianceRequirementFormDTO.ResponsibleUnitIDs {
+		if _, exists := existingUnitIDs[*unitID]; !exists {
+			unitsToAdd = append(unitsToAdd, &models.ComplianceRequirementResponsibleUnit{
+				ComplianceRequirementID: id,
+				ResponsibleUnitID:       *unitID,
+				CreatedByID:             currentUserID,
+			})
+		}
+	}
+	if len(unitsToAdd) > 0 {
+		if err := crs.repo.CreateComplianceRequirementResponsibleUnits(unitsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Delete removed responsible units
+	var unitIDsToDelete []*uint
+	for unitID, recordID := range existingUnitIDs {
+		if _, exists := newUnitIDs[unitID]; !exists {
+			idToDelete := uint(recordID)
+			unitIDsToDelete = append(unitIDsToDelete, &idToDelete)
+		}
+	}
+	if len(unitIDsToDelete) > 0 {
+		if err := crs.repo.DeleteComplianceRequirementResponsibleUnits(unitIDsToDelete, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	existingControlIDs := make(map[uint]bool)
@@ -852,7 +1018,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 			// New responsible user notification (Assignment)
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserIDs:              []uint{complianceRequirementFormDTO.ResponsibleUserID},
+				UserIDs:              []uint{currentUserID},
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Compliance Requirement Responsibility Assigned",
@@ -877,7 +1043,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 				return
 			}
 
-			newResponsibleUser, err := crs.userSvc.GetByID(complianceRequirementFormDTO.ResponsibleUserID)
+			newResponsibleUser, err := crs.userSvc.GetByID(currentUserID)
 			if err != nil {
 				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
 					"error": err.Error(),
@@ -1014,6 +1180,16 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 			RequirementTitle: requirement.TitleEn,
 			ReferenceNumber:  compliance.ReferenceNumber,
 		})
+		if len(requirement.ResponsibleUnits) > 0 {
+			var deleteUnitIDs []*uint
+			for _, unit := range requirement.ResponsibleUnits {
+				deleteUnitIDs = append(deleteUnitIDs, &unit.ID)
+			}
+			if err := crs.repo.DeleteComplianceRequirementResponsibleUnits(deleteUnitIDs, tx); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
 
 		// Check if controls exist
 		if len(requirement.Controls) > 0 {

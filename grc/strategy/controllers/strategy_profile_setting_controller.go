@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"jethur/grc/strategy/dtos"
 	"jethur/grc/strategy/services"
 	"strconv"
@@ -25,13 +26,28 @@ func NewStrategyProfileSettingController(service services.StrategyProfileSetting
 
 func (mc *StrategyProfileSettingController) GetAllStrategyProfileSettings(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "title_en")
+	sortBy := c.DefaultQuery("sort_by", "order")
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
+	validSortFields := map[string]string{
+		"title_en":  "strategy_profile_settings.title_en",
+		"title_ar":  "strategy_profile_settings.title_ar",
+		"order":     "strategy_profile_settings.[order]",
+		"is_enable": "strategy_profile_settings.is_enable",
+		"type":      "strategy_profile_settings.type",
+	}
+
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	queryParams := dtos.StrategyProfileSettingListQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      sortBy,
+		SortBy:      sortField,
 		Keyword:     keyword,
 		QuickFilter: quickFilter,
 	}

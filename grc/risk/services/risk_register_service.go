@@ -202,8 +202,6 @@ func (rrs RiskRegisterService) GetFullDetailsByID(id uint, tx ...utility.Databas
 func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *riskDTOs.RiskRegisterFormDTO) (uint, error) {
 	tx := rrs.repo.BeginTransaction()
 
-	riskRegisterFormDTO.ResponsibleUserID = currentUserID
-
 	if err := rrs.validateRiskRegisterFormDTO(riskRegisterFormDTO); err != nil {
 		return 0, err
 	}
@@ -2464,7 +2462,7 @@ func (rrs *RiskRegisterService) SetRiskResidualEvaluationService(evaluationSvc R
 func (rrs *RiskRegisterService) GenerateRiskTemplate() (*os.File, error) {
 	templateHeaders := []string{
 		"RiskCategory", "RiskSource", "ResponsibleUser", "Title", "Description", "ReportedAt",
-		"ReviewFrequency", "NextReviewDate", "LastReviewNote", "InherentLikelihood", "InherentImpact",
+		"ReviewFrequency", "NextReviewDate", "InherentLikelihood", "InherentImpact",
 		"RiskResponseStrategy", "ResidualLikelihood", "ResidualImpact",
 	}
 
@@ -2567,13 +2565,13 @@ func (rrs *RiskRegisterService) ValidateRiskTemplate(file io.Reader) ([]map[stri
 
 	headers := []string{
 		"RiskCategory", "RiskSource", "ResponsibleUser", "Title", "Description", "ReportedAt",
-		"ReviewFrequency", "NextReviewDate", "LastReviewNote", "InherentLikelihood", "InherentImpact",
+		"ReviewFrequency", "NextReviewDate", "InherentLikelihood", "InherentImpact",
 		"RiskResponseStrategy", "ResidualLikelihood", "ResidualImpact",
 	}
 
 	snakeHeaders := []string{
 		"risk_category", "risk_source", "responsible_user", "title", "description", "reported_at",
-		"review_frequency", "next_review_date", "last_review_note", "inherent_likelihood", "inherent_impact",
+		"review_frequency", "next_review_date", "inherent_likelihood", "inherent_impact",
 		"risk_response_strategy", "residual_likelihood", "residual_impact",
 	}
 
@@ -2640,7 +2638,6 @@ func (rs *RiskRegisterService) ImportRisks(input []map[string]interface{}, curre
 			ReportedAt:                     &reportedAtStr,
 			ReviewFrequencyID:              utility.GetOptionalUintValue(record["review_frequency_id"]),
 			NextReviewDate:                 &nextReviewDate,
-			LastReviewNote:                 utility.GetOptionalStringValue(record["last_review_note"]),
 			InherentRiskMatrixLikelihoodID: utility.GetOptionalUintValue(record["inherent_likelihood_id"]),
 			InherentRiskMatrixImpactID:     utility.GetOptionalUintValue(record["inherent_impact_id"]),
 			RiskResponseStrategyID:         utility.GetOptionalUintValue(record["risk_response_strategy_id"]),
@@ -2659,7 +2656,7 @@ func (rs *RiskRegisterService) ImportRisks(input []map[string]interface{}, curre
 }
 
 func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]map[string]interface{}, error) {
-	headers := []string{"risk_category", "risk_source", "responsible_user", "title", "description", "reported_at", "review_frequency", "next_review_date", "last_review_note", "inherent_likelihood", "inherent_impact",
+	headers := []string{"risk_category", "risk_source", "responsible_user", "title", "description", "reported_at", "review_frequency", "next_review_date", "inherent_likelihood", "inherent_impact",
 		"risk_response_strategy", "residual_likelihood", "residual_impact"}
 
 	// Fetch risk categories
@@ -2833,8 +2830,6 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 					}
 				}
 
-			case "last_review_note":
-				// Optional
 			case "inherent_likelihood":
 				if value != "" {
 					if id, exists := likelihoodTitles[strings.TrimSpace(value)]; !exists {

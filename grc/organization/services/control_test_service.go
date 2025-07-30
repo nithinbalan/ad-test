@@ -401,7 +401,7 @@ func (cts *ControlTestService) Delete(controlID uint, ids []uint, currentUserID 
 		if controlTest.Documents != nil && len(controlTest.Documents) > 0 {
 			for _, document := range controlTest.Documents {
 				documentsToDelete[id] = append(documentsToDelete[id], document)
-				deleteDocumentIds = append(deleteDocumentIds, document.ID)
+				deleteDocumentIds = append(deleteDocumentIds, &document.ID)
 			}
 
 			if len(deleteDocumentIds) > 0 {
@@ -432,7 +432,7 @@ func (cts *ControlTestService) Delete(controlID uint, ids []uint, currentUserID 
 				storagePath := filepath.Join("organization", "control", strconv.FormatUint(uint64(controlID), 10), "control-test", strconv.FormatUint(uint64(controlTestId), 10), "documents")
 				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 					tx.Rollback()
-					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
+					fmt.Printf("Failed to delete file at URL %s: %v\n", doc.URL, err)
 				}
 			}
 		}

@@ -15,6 +15,15 @@ import (
 	"strings"
 )
 
+// GetAIEndpoint builds the full URL from environment base and relative path
+func GetAIEndpoint(path string) (string, error) {
+	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
+	if baseURL == "" {
+		return "", fmt.Errorf("AI_SERVICE_BASE_URL is not set")
+	}
+	return fmt.Sprintf("%s%s", baseURL, path), nil
+}
+
 type FAQEntry struct {
 	Question string `json:"question"`
 	Answer   string `json:"answer"`
@@ -44,16 +53,13 @@ type ParsedDocumentResult struct {
 	FAQAr             string
 }
 
-// ParseDocument sends the document to the AI parsing service and returns structured content.
 func ParseDocument(filePath string) (*ParsedDocumentResult, error) {
-	// Open file
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("error opening file: %w", err)
 	}
 	defer file.Close()
 
-	// Create multipart form
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("file", filepath.Base(filePath))
@@ -67,12 +73,10 @@ func ParseDocument(filePath string) (*ParsedDocumentResult, error) {
 		return nil, fmt.Errorf("error closing multipart writer: %w", err)
 	}
 
-	// Prepare API call
-	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
-	if baseURL == "" {
-		return nil, fmt.Errorf("AI_SERVICE_BASE_URL is not set")
+	apiURL, err := GetAIEndpoint("/api/v1/documents-parsing")
+	if err != nil {
+		return nil, err
 	}
-	apiURL := fmt.Sprintf("%s/api/v1/documents-parsing", baseURL)
 
 	req, err := http.NewRequest("POST", apiURL, body)
 	if err != nil {
@@ -91,13 +95,11 @@ func ParseDocument(filePath string) (*ParsedDocumentResult, error) {
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
-	// Decode response
 	var response DocumentParserResponse
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, fmt.Errorf("error decoding response: %w", err)
 	}
 
-	// Marshal array fields
 	sampleQuestionsEnJSON, _ := json.Marshal(response.SampleQuestionsEn)
 	sampleQuestionsArJSON, _ := json.Marshal(response.SampleQuestionsAr)
 	keyPointsEnJSON, _ := json.Marshal(response.KeyPointsEn)
@@ -105,7 +107,6 @@ func ParseDocument(filePath string) (*ParsedDocumentResult, error) {
 	faqEnJSON, _ := json.Marshal(response.FAQEn)
 	faqArJSON, _ := json.Marshal(response.FAQAr)
 
-	// Return result
 	return &ParsedDocumentResult{
 		ParsedContent:     response.DocumentContent,
 		SampleQuestionsEn: string(sampleQuestionsEnJSON),
@@ -119,8 +120,12 @@ func ParseDocument(filePath string) (*ParsedDocumentResult, error) {
 	}, nil
 }
 
-// CallAIAPI sends a generic JSON POST request and decodes the response into a map.
-func CallAIAPI(apiURL string, requestBody interface{}) (map[string]interface{}, error) {
+func CallAIAPI(path string, requestBody interface{}) (map[string]interface{}, error) {
+	apiURL, err := GetAIEndpoint(path)
+	if err != nil {
+		return nil, err
+	}
+
 	bodyBytes, err := json.Marshal(requestBody)
 	if err != nil {
 		return nil, fmt.Errorf("error marshalling request body: %w", err)
@@ -148,45 +153,55 @@ func CallAIAPI(apiURL string, requestBody interface{}) (map[string]interface{}, 
 	return result, nil
 }
 
-// CallAIAPI makes a POST request to the AI service and returns the response
-func CallAIChatAPI(url string, payload map[string]interface{}) (map[string]interface{}, error) {
+// func CallAIChatAPI(path string, payload map[string]interface{}) (map[string]interface{}, error) {
+// 	apiURL, err := GetAIEndpoint(path)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	jsonData, err := json.Marshal(payload)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to marshal payload: %w", err)
+// 	}
+
+// 	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonData))
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to create request: %w", err)
+// 	}
+
+// 	req.Header.Set("Content-Type", "application/json")
+
+// 	client := &http.Client{}
+// 	resp, err := client.Do(req)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to make request: %w", err)
+// 	}
+// 	defer resp.Body.Close()
+
+// 	if resp.StatusCode != http.StatusOK {
+// 		return nil, fmt.Errorf("AI service returned non-200 status code: %d", resp.StatusCode)
+// 	}
+
+// 	var result map[string]interface{}
+// 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+// 		return nil, fmt.Errorf("failed to decode response: %w", err)
+// 	}
+
+// 	return result, nil
+// }
+
+func StreamAIAPI(ctx context.Context, path string, payload map[string]interface{}) (<-chan string, error) {
+	apiURL, err := GetAIEndpoint(path)
+	if err != nil {
+		return nil, err
+	}
+
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("AI service returned non-200 status code: %d", resp.StatusCode)
-	}
-
-	var result map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	return result, nil
-}
-func StreamAIAPI(ctx context.Context, url string, payload map[string]interface{}) (<-chan string, error) {
-	jsonData, err := json.Marshal(payload)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal payload: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -240,7 +255,12 @@ func StreamAIAPI(ctx context.Context, url string, payload map[string]interface{}
 	return streamChan, nil
 }
 
-func CallAIAPIObjectResponse(apiURL string) (map[string]interface{}, error) {
+func CallAIAPIObjectResponse(path string) (map[string]interface{}, error) {
+	apiURL, err := GetAIEndpoint(path)
+	if err != nil {
+		return nil, err
+	}
+
 	resp, err := http.Get(apiURL)
 	if err != nil {
 		return nil, fmt.Errorf("error making GET request: %w", err)
@@ -260,7 +280,12 @@ func CallAIAPIObjectResponse(apiURL string) (map[string]interface{}, error) {
 	return result, nil
 }
 
-func CallAIAPIArrayResponse(apiURL string) ([]map[string]interface{}, error) {
+func CallAIAPIArrayResponse(path string) ([]map[string]interface{}, error) {
+	apiURL, err := GetAIEndpoint(path)
+	if err != nil {
+		return nil, err
+	}
+
 	resp, err := http.Get(apiURL)
 	if err != nil {
 		return nil, fmt.Errorf("error making GET request: %w", err)
@@ -279,68 +304,3 @@ func CallAIAPIArrayResponse(apiURL string) ([]map[string]interface{}, error) {
 
 	return result, nil
 }
-
-// StreamAIAPI makes a streaming POST request to the AI service and returns a channel for the responses
-// func StreamAIAPI(ctx context.Context, url string, payload map[string]interface{}) (<-chan string, error) {
-// 	jsonData, err := json.Marshal(payload)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to marshal payload: %w", err)
-// 	}
-
-// 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to create request: %w", err)
-// 	}
-
-// 	req.Header.Set("Content-Type", "application/json")
-// 	req.Header.Set("Accept", "text/event-stream")
-
-// 	client := &http.Client{}
-// 	resp, err := client.Do(req)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to make request: %w", err)
-// 	}
-
-// 	if resp.StatusCode != http.StatusOK {
-// 		resp.Body.Close()
-// 		return nil, fmt.Errorf("AI service returned non-200 status code: %d", resp.StatusCode)
-// 	}
-
-// 	responseChan := make(chan string)
-
-// 	go func() {
-// 		defer resp.Body.Close()
-// 		defer close(responseChan)
-
-// 		reader := bufio.NewReader(resp.Body)
-// 		for {
-// 			select {
-// 			case <-ctx.Done():
-// 				return
-// 			default:
-// 				line, err := reader.ReadString('\n')
-// 				if err != nil {
-// 					if err != io.EOF {
-// 						// Only send error if it's not EOF
-// 						responseChan <- fmt.Sprintf(`{"error": "failed to read response: %s"}`, err.Error())
-// 					}
-// 					return
-// 				}
-
-// 				// Skip empty lines
-// 				line = strings.TrimSpace(line)
-// 				if line == "" {
-// 					continue
-// 				}
-
-// 				// Check if it's SSE data
-// 				if strings.HasPrefix(line, "data: ") {
-// 					data := strings.TrimPrefix(line, "data: ")
-// 					responseChan <- data
-// 				}
-// 			}
-// 		}
-// 	}()
-
-// 	return responseChan, nil
-// }

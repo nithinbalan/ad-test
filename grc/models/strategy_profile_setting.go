@@ -1,10 +1,12 @@
 package models
 
 type StrategyProfileSetting struct {
-	ID       uint   `json:"id" gorm:"primaryKey;autoIncrement"`
-	TitleEn  string `json:"title_en" gorm:"size:500;not null" binding:"required"`
-	TitleAr  string `json:"title_ar" gorm:"size:500;not null" binding:"required"`
-	IsEnable bool   `json:"is_enable"`
+	ID       uint    `json:"id" gorm:"primaryKey;autoIncrement"`
+	TitleEn  string  `json:"title_en" gorm:"size:500;not null" binding:"required"`
+	TitleAr  string  `json:"title_ar" gorm:"size:500;not null" binding:"required"`
+	IsEnable bool    `json:"is_enable"`
+	Type     *string `json:"type" gorm:"column:type"`
+	Order    *int    `json:"order"`
 }
 
 func (StrategyProfileSetting) TableName() string {

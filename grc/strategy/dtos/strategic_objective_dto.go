@@ -77,7 +77,6 @@ type StrategicObjectiveFormDTO struct {
 	StartDate                    *string `json:"start_date"`
 	EndDate                      *string `json:"end_date"`
 	ResponsibleUserID            *uint   `json:"responsible_user_id"`
-	ResponsibleUnitID            *uint   `json:"responsible_unit_id"`
 	ReviewUserID                 *uint   `json:"review_user_id"`
 	ReviewFrequencyID            *uint   `json:"review_frequency_id"`
 	Status                       string  `json:"status"`

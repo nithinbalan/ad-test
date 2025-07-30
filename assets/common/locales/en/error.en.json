@@ -166,7 +166,12 @@
   {
     "id": "ai_not_allowed",
     "translation": "{{.Field}} is not allowed under the current license."
+  },
+  {
+    "id": "invalid_range",
+    "translation": "{{.Field}} must have a valid score range. The scoreMin should be less than scoreMax, and both values must be between 0 and 100."
   }
+  
   
   
 ]

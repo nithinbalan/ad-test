@@ -7,34 +7,44 @@ import (
 	"jethur/grc/documents/services"
 	aiDTOs "jethur/grc/jethur-ai/dtos"
 	organizationServices "jethur/grc/organization/services"
+	settingsServices "jethur/grc/settings/services"
 	"jethur/utility"
-	"log"
-	"os"
-	// "strconv"
 )
 
 type DocumentAIServiceInterface interface {
 	GetAISummary(documentId uint) (*aiDTOs.DocumentAISummaryDTO, error)
 	GetDocumentRecommendations(documentId uint, currentUserID uint) (map[string]interface{}, error)
 	ProcessChat(ctx context.Context, content, role, documentID, contextID string) (<-chan string, error)
+	GetDocumentRequirements(documentID uint) (map[string]interface{}, error)
 }
 
 type DocumentAIService struct {
-	documentService services.DocumentServiceInterface
-	userService     organizationServices.UserServiceInterface
+	documentService     services.DocumentServiceInterface
+	userService         organizationServices.UserServiceInterface
+	systemPreferenceSvc settingsServices.SystemPreferenceServiceInterface
 }
 
 func NewDocumentAIService(
 	documentService services.DocumentServiceInterface,
 	userService organizationServices.UserServiceInterface,
+	systemPreferenceSvc settingsServices.SystemPreferenceServiceInterface,
 ) DocumentAIServiceInterface {
 	return &DocumentAIService{
-		documentService: documentService,
-		userService:     userService,
+		documentService:     documentService,
+		userService:         userService,
+		systemPreferenceSvc: systemPreferenceSvc,
 	}
 }
 
 func (as *DocumentAIService) GetAISummary(documentId uint) (*aiDTOs.DocumentAISummaryDTO, error) {
+	systemPreference, err := as.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
 	// Get full document details
 	document, err := as.documentService.GetFullDetailsByID(documentId, nil)
 	if err != nil {
@@ -99,8 +109,16 @@ func (as *DocumentAIService) GetAISummary(documentId uint) (*aiDTOs.DocumentAISu
 	return aiSummaryDTO, nil
 }
 
-func (svc *DocumentAIService) GetDocumentRecommendations(documentId uint, currentUserID uint) (map[string]interface{}, error) {
-	userDetails, err := svc.userService.GetCurrentUserDetails(currentUserID)
+func (dai *DocumentAIService) GetDocumentRecommendations(documentId uint, currentUserID uint) (map[string]interface{}, error) {
+	systemPreference, err := dai.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+	userDetails, err := dai.userService.GetCurrentUserDetails(currentUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -116,29 +134,19 @@ func (svc *DocumentAIService) GetDocumentRecommendations(documentId uint, curren
 		"designation": designation,
 	}
 
-	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
-	if baseURL == "" {
-		return nil, fmt.Errorf("AI_SERVICE_BASE_URL is not set")
+	return utility.CallAIAPI("/api/v1/policy/policy-recomendation", payload)
+}
+
+func (dai *DocumentAIService) ProcessChat(ctx context.Context, content, role, documentID, contextID string) (<-chan string, error) {
+	systemPreference, err := dai.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
 	}
-	apiURL := fmt.Sprintf("%s/api/v1/policy/policy-recomendation", baseURL)
 
-	return utility.CallAIAPI(apiURL, payload)
-}
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
 
-type ChatMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
-
-type ChatResponse struct {
-	Response string `json:"response"`
-	Error    string `json:"error,omitempty"`
-}
-
-func (s *DocumentAIService) ProcessChat(ctx context.Context, content, role, documentID, contextID string) (<-chan string, error) {
-	log.Println("🔍 ProcessChat started")
-
-	// Build payload
 	payload := map[string]interface{}{
 		"content":     content,
 		"role":        role,
@@ -146,270 +154,19 @@ func (s *DocumentAIService) ProcessChat(ctx context.Context, content, role, docu
 		"context_id":  contextID,
 	}
 
-	baseURL := os.Getenv("AI_SERVICE_BASE_URL")
-	if baseURL == "" {
-		return nil, fmt.Errorf("AI_SERVICE_BASE_URL is not set")
-	}
-	apiURL := fmt.Sprintf("%s/api/v1/document-chat", baseURL)
+	return utility.StreamAIAPI(ctx, "/api/v1/document-chat", payload)
+}
 
-	streamChan, err := utility.StreamAIAPI(ctx, apiURL, payload)
+func (dai *DocumentAIService) GetDocumentRequirements(documentID uint) (map[string]interface{}, error) {
+	systemPreference, err := dai.systemPreferenceSvc.GetSystemPreference()
 	if err != nil {
 		return nil, err
 	}
 
-	return streamChan, nil
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
+	path := fmt.Sprintf("/api/v1/policy/%d/requirements-extracting", documentID)
+	return utility.CallAIAPIObjectResponse(path)
 }
-
-// func (s *DocumentAIService) ProcessChat(ctx context.Context, content, role, documentID, contextID string) (<-chan string, error) {
-// 	log.Println("🔵 ProcessChat started")
-
-// 	finalChan := make(chan string)
-
-// 	go func() {
-// 		defer close(finalChan)
-
-// 		baseURL := os.Getenv("AI_SERVICE_BASE_URL")
-// 		if baseURL == "" {
-// 			log.Println("❌ AI_SERVICE_BASE_URL not set")
-// 			finalChan <- `{"error": "AI_SERVICE_BASE_URL is not set"}`
-// 			return
-// 		}
-
-// 		apiURL := fmt.Sprintf("%s/api/v1/document-chat", baseURL)
-// 		payload := map[string]interface{}{
-// 			"content":     content,
-// 			"role":        role,
-// 			"document_id": documentID, // Must be string
-// 			"context_id":  contextID,
-// 		}
-
-// 		log.Printf("📡 Sending request to: %s", apiURL)
-// 		log.Printf("📦 Payload: %+v", payload)
-
-// 		streamChan, err := utility.StreamAIAPI(ctx, apiURL, payload)
-// 		if err != nil {
-// 			log.Printf("❌ StreamAIAPI error: %v", err)
-// 			finalChan <- fmt.Sprintf(`{"error": "%s"}`, err.Error())
-// 			return
-// 		}
-
-// 		log.Printf(<-streamChan)
-
-// 		allChunks := []string{}
-
-// 		for {
-// 			select {
-// 			case <-ctx.Done():
-// 				log.Println("⛔ Context cancelled")
-// 				return
-
-// 			case raw, ok := <-streamChan:
-// 				if !ok {
-// 					log.Println("✅ AI stream channel closed")
-// 					goto Done
-// 				}
-
-// 				log.Printf("📡 Raw line: %s", raw)
-
-// 				var parsed struct {
-// 					Type string `json:"type"`
-// 					Data struct {
-// 						Content string `json:"content"`
-// 					} `json:"data"`
-// 				}
-
-// 				if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
-// 					log.Printf("⚠️ Failed to parse: %v", err)
-// 					continue
-// 				}
-
-// 				log.Printf("📡 parsed line: %s", parsed)
-
-// 				if parsed.Type == "stream" && parsed.Data.Content != "" {
-// 					allChunks = append(allChunks, parsed.Data.Content)
-// 				}
-// 			}
-// 		}
-
-// 	Done:
-// 		log.Println("🟢 Full response from AI:")
-// 		for _, ch := range allChunks {
-// 			log.Print(ch)
-// 		}
-
-// 		for _, ch := range allChunks {
-// 			finalChan <- ch
-// 		}
-// 	}()
-
-// 	return finalChan, nil
-// }
-
-// func (s *DocumentAIService) ProcessChat(ctx context.Context, content, role, documentID, contextID string) (<-chan string, error) {
-// 	log.Println("🔍 Starting ProcessChat")
-
-// 	responseChan := make(chan string)
-
-// 	go func() {
-// 		defer close(responseChan)
-
-// 		baseURL := os.Getenv("AI_SERVICE_BASE_URL")
-// 		if baseURL == "" {
-// 			log.Println("❌ AI_SERVICE_BASE_URL not set")
-// 			responseChan <- "AI_SERVICE_BASE_URL is not set"
-// 			return
-// 		}
-
-// 		apiURL := fmt.Sprintf("%s/api/v1/document-chat", baseURL)
-// 		log.Printf("🌐 Streaming from AI API at: %s\n", apiURL)
-
-// 		payload := map[string]interface{}{
-// 			"content":     content,
-// 			"role":        role,
-// 			"document_id": documentID, // must be string
-// 			"context_id":  contextID,
-// 		}
-// 		log.Printf("📦 Payload to AI: %+v\n", payload)
-
-// 		streamChan, err := utility.StreamAIAPI(ctx, apiURL, payload)
-// 		if err != nil {
-// 			log.Printf("❌ StreamAIAPI error: %v\n", err)
-// 			responseChan <- fmt.Sprintf("StreamAIAPI error: %v", err)
-// 			return
-// 		}
-
-// 		log.Println("📡 Forwarding streamed AI responses to client...")
-
-// 		for {
-// 			select {
-// 			case <-ctx.Done():
-// 				log.Println("⛔ Request context cancelled")
-// 				responseChan <- "[ERROR] Request cancelled"
-// 				return
-
-// 			case raw, ok := <-streamChan:
-// 				if !ok {
-// 					log.Println("✅ AI stream channel closed")
-// 					return
-// 				}
-
-// 				// log.Printf("📥 Raw line: %s\n", raw)
-
-// 				// Try to unmarshal structured event
-// 				var wrapper struct {
-// 					Type string `json:"type"`
-// 					Data struct {
-// 						Content string `json:"content"`
-// 					} `json:"data"`
-// 				}
-
-// 				if err := json.Unmarshal([]byte(raw), &wrapper); err != nil {
-// 					log.Printf("⚠️ Invalid JSON, forwarding raw: %v", err)
-// 					responseChan <- raw
-// 					continue
-// 				}
-
-// 				if wrapper.Type == "stream" && wrapper.Data.Content != "" {
-// 					log.Printf("📝 Streaming content: %s", wrapper.Data.Content)
-// 					responseChan <- wrapper.Data.Content
-// 				}
-// 			}
-// 		}
-// 	}()
-
-// 	return responseChan, nil
-// }
-
-// func (s *DocumentAIService) ProcessChat(ctx context.Context, content, role, documentID, contextID string) (<-chan string, error) {
-// 	log.Println("🔍 Starting ProcessChat")
-
-// 	// docIDInt, err := strconv.ParseUint(documentID, 10, 64)
-// 	// if err != nil {
-// 	// 	log.Printf("❌ Invalid document ID: %v\n", err)
-// 	// 	return nil, fmt.Errorf("invalid document ID: %w", err)
-// 	// }
-
-// 	// document, err := s.documentService.GetFullDetailsByID(uint(docIDInt), nil)
-// 	// if err != nil {
-// 	// 	log.Printf("❌ Failed to get document: %v\n", err)
-// 	// 	return nil, fmt.Errorf("failed to get document: %w", err)
-// 	// }
-
-// 	// if document.LatestDocumentVersion.ID == 0 {
-// 	// 	log.Println("⚠️ No latest document version found")
-// 	// 	return nil, fmt.Errorf("no document version found")
-// 	// }
-
-// 	// documentVersion, err := s.documentService.GetDocumentVersionByID(document.LatestDocumentVersion.ID)
-// 	// if err != nil {
-// 	// 	log.Printf("❌ Failed to get document version: %v\n", err)
-// 	// 	return nil, fmt.Errorf("failed to get document version: %w", err)
-// 	// }
-
-// 	// if documentVersion.ParsedContent == nil {
-// 	// 	log.Println("⚠️ Parsed content not available")
-// 	// 	return nil, fmt.Errorf("document content not available")
-// 	// }
-
-// 	// log.Println("✅ Document and version validated")
-
-// 	responseChan := make(chan string)
-
-// 	go func() {
-// 		defer close(responseChan)
-
-// 		baseURL := os.Getenv("AI_SERVICE_BASE_URL")
-// 		if baseURL == "" {
-// 			log.Println("❌ AI_SERVICE_BASE_URL not set")
-// 			response := ChatResponse{Error: "AI_SERVICE_BASE_URL is not set"}
-// 			jsonResp, _ := json.Marshal(response)
-// 			responseChan <- string(jsonResp)
-// 			return
-// 		}
-
-// 		apiURL := fmt.Sprintf("%s/api/v1/document-chat", baseURL)
-// 		log.Printf("🌐 Streaming from AI API at: %s\n", apiURL)
-
-// 		payload := map[string]interface{}{
-// 			"content":     content,
-// 			"role":        role,
-// 			"document_id": documentID, // must be string
-// 			"context_id":  contextID,
-// 		}
-// 		log.Printf("📦 Payload to AI: %+v\n", payload)
-
-// 		streamChan, err := utility.StreamAIAPI(ctx, apiURL, payload)
-// 		if err != nil {
-// 			log.Printf("❌ StreamAIAPI error: %v\n", err)
-// 			response := ChatResponse{Error: err.Error()}
-// 			jsonResp, _ := json.Marshal(response)
-// 			responseChan <- string(jsonResp)
-// 			return
-// 		}
-
-// 		log.Println("📡 Forwarding streamed AI responses to client...")
-
-// 		for {
-// 			select {
-// 			case <-ctx.Done():
-// 				log.Println("⛔ Request context cancelled")
-// 				response := ChatResponse{Error: "request cancelled"}
-// 				jsonResp, _ := json.Marshal(response)
-// 				responseChan <- string(jsonResp)
-// 				return
-
-// 			case resp, ok := <-streamChan:
-// 				if !ok {
-// 					log.Println("✅ AI stream channel closed")
-// 					return
-// 				}
-// 				log.Printf("📝 Streaming message: %s\n", resp)
-// 				response := ChatResponse{Response: resp}
-// 				jsonResp, _ := json.Marshal(response)
-// 				responseChan <- string(jsonResp)
-// 			}
-// 		}
-// 	}()
-
-// 	return responseChan, nil
-// }

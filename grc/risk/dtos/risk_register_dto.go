@@ -34,6 +34,7 @@ type RiskRegisterListDTO struct {
 	RiskStatusTitleAr               string  `json:"risk_status_title_ar"`
 	RiskResponseStrategyTitleEn     string  `json:"risk_response_strategy_title_en"`
 	RiskResponseStrategyTitleAr     string  `json:"risk_response_strategy_title_ar"`
+	RiskStatusType                  string  `json:"risk_status_type"`
 	RiskStatusColorCode             string  `json:"risk_status_color_code"`
 	Title                           string  `json:"title"`
 	Description                     *string `json:"description"`
@@ -266,7 +267,7 @@ type RiskThreatDTO struct {
 type RiskRegisterFormDTO struct {
 	RiskCategoryID                 uint                          `json:"risk_category_id" binding:"required"`
 	RiskSourceID                   *uint                         `json:"risk_source_id"`
-	ResponsibleUserID              uint                          `json:"responsible_user_id"`
+	ResponsibleUserID              uint                          `json:"responsible_user_id" binding:"required"`
 	Title                          string                        `json:"title" binding:"required,max=255"`
 	Description                    *string                       `json:"description"`
 	ReportedAt                     *string                       `json:"reported_at" binding:"required,datetime=2006-01-02"`

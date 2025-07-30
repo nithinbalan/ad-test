@@ -104,73 +104,24 @@ func (dcc *DocumentAIController) ChatWithDocument(c *gin.Context) {
 	}
 }
 
-// func (dcc *DocumentAIController) ChatWithDocument(c *gin.Context) {
-// 	var chatRequest dtos.DocumentChatRequest
-// 	if err := c.ShouldBindJSON(&chatRequest); err != nil {
-// 		utility.SendInvalidErrResp(c, err)
-// 		return
-// 	}
+func (ac *DocumentAIController) GetDocumentRequirements(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid document ID"})
+		return
+	}
 
-// 	// SSE headers
-// 	c.Writer.Header().Set("Content-Type", "text/event-stream")
-// 	c.Writer.Header().Set("Cache-Control", "no-cache")
-// 	c.Writer.Header().Set("Connection", "keep-alive")
-// 	c.Writer.Header().Set("Transfer-Encoding", "chunked")
+	summary, err := ac.service.GetDocumentRequirements(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(ac.db, c, e.Error())
+			return
+		}
+	}
 
-// 	flusher, ok := c.Writer.(http.Flusher)
-// 	if !ok {
-// 		http.Error(c.Writer, "Streaming unsupported!", http.StatusInternalServerError)
-// 		return
-// 	}
-
-// 	responseChan, err := dcc.service.ProcessChat(c.Request.Context(), chatRequest.Content, chatRequest.Role, chatRequest.DocumentID, chatRequest.ContextID)
-// 	if err != nil {
-// 		switch e := err.(type) {
-// 		case *utility.ResourceNotFoundError:
-// 			utility.SendNotFoundErrResp(c)
-// 		default:
-// 			utility.SendInternalErrResp(dcc.db, c, e.Error())
-// 		}
-// 		return
-// 	}
-
-// 	for msg := range responseChan {
-// 		fmt.Fprintf(c.Writer, "data: %s\n\n", strings.TrimSpace(msg))
-// 		flusher.Flush()
-// 	}
-// }
-
-// func (dcc *DocumentAIController) ChatWithDocument(c *gin.Context) {
-// 	var chatRequest dtos.DocumentChatRequest
-// 	if err := c.ShouldBindJSON(&chatRequest); err != nil {
-// 		utility.SendInvalidErrResp(c, err)
-// 		return
-// 	}
-
-// 	// Set headers for SSE
-// 	c.Header("Content-Type", "text/event-stream")
-// 	c.Header("Cache-Control", "no-cache")
-// 	c.Header("Connection", "keep-alive")
-// 	c.Header("Transfer-Encoding", "chunked")
-
-// 	// Get response channel from service
-// 	responseChan, err := dcc.service.ProcessChat(c.Request.Context(), chatRequest.Content, chatRequest.Role, chatRequest.DocumentID, chatRequest.ContextID)
-// 	if err != nil {
-// 		switch e := err.(type) {
-// 		case *utility.ResourceNotFoundError:
-// 			utility.SendNotFoundErrResp(c)
-// 		default:
-// 			utility.SendInternalErrResp(dcc.db, c, e.Error())
-// 		}
-// 		return
-// 	}
-
-// 	// Stream responses to client
-// 	c.Stream(func(w io.Writer) bool {
-// 		if msg, ok := <-responseChan; ok {
-// 			c.SSEvent("message", msg)
-// 			return true
-// 		}
-// 		return false
-// 	})
-// }
+	c.JSON(http.StatusOK, summary)
+}
