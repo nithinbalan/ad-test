@@ -29,7 +29,7 @@ type ThirdPartyAssessmentServiceInterface interface {
 	Update(id uint, currentUserID uint, dto *dtos.ThirdPartyAssessmentFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
-	ShareLink(id uint, currentUserID uint, dto *dtos.ThirdPartyAssessmentShareLinkFormDTO) error
+	ShareLink(id uint, currentUserID uint) error
 }
 
 type ThirdPartyAssessmentService struct {
@@ -140,7 +140,8 @@ func (tpas *ThirdPartyAssessmentService) Create(currentUserID uint, form *dtos.T
 	}
 
 	uid := uuid.New().String()
-
+	appURL := utility.GetTPRMURL()
+	link := fmt.Sprintf("%s/vendor-assessment/%s", appURL, uid)
 	tpr := &models.ThirdPartyAssessment{
 		ReferenceNumber:              referenceNumber,
 		Title:                        form.Title,
@@ -150,6 +151,7 @@ func (tpas *ThirdPartyAssessmentService) Create(currentUserID uint, form *dtos.T
 		DueDate:                      dates.DueDate,
 		ThirdPartyAssessmentStatusID: assessmentStatus.ID,
 		UID:                          &uid,
+		Link:                         &link,
 		CreatedBYID:                  currentUserID,
 	}
 
@@ -195,7 +197,15 @@ func (tpas *ThirdPartyAssessmentService) Create(currentUserID uint, form *dtos.T
 	}
 
 	tx.Commit()
-
+	go func() {
+		if form.IsSentEmail {
+			err := tpas.ShareLink(id, currentUserID)
+			if err != nil {
+				tx.Rollback()
+				return
+			}
+		}
+	}()
 	return id, nil
 }
 
@@ -346,7 +356,7 @@ func (tpas *ThirdPartyAssessmentService) parseDates(dto *dtos.ThirdPartyAssessme
 	return parsed, nil
 }
 
-func (tpas *ThirdPartyAssessmentService) ShareLink(id uint, currentUserID uint, form *dtos.ThirdPartyAssessmentShareLinkFormDTO) error {
+func (tpas *ThirdPartyAssessmentService) ShareLink(id uint, currentUserID uint) error {
 
 	thirdPartyAssessment, err := tpas.repo.GetFullDetailsByID(id)
 	if err != nil {
@@ -377,14 +387,13 @@ func (tpas *ThirdPartyAssessmentService) ShareLink(id uint, currentUserID uint, 
 		if thirdPartyAssessment.UID != nil {
 			// Prepare email
 
-			emailTo := []string{form.Email}
+			emailTo := []string{*thirdPartyRegister.Email}
 			subject := "Assessment"
-			appURL := utility.GetAppURL()
 
 			emailData := map[string]interface{}{
 				"VendorName":  thirdPartyRegister.Title,
-				"ExpiryDate":  "2025-08-30",
-				"RedirectURL": fmt.Sprintf("%s/vendor-assessment/%s", appURL, *thirdPartyAssessment.UID),
+				"ExpiryDate":  thirdPartyAssessment.DueDate.Format("2006-01-02"),
+				"RedirectURL": thirdPartyAssessment.Link,
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{

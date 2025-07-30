@@ -219,19 +219,13 @@ func (tprc *ThirdPartyAssessmentController) ShareLink(c *gin.Context) {
 		return
 	}
 
-	var form dtos.ThirdPartyAssessmentShareLinkFormDTO
-	if err := c.ShouldBindJSON(&form); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(tprc.db, c, err.Error())
 		return
 	}
 
-	err = tprc.service.ShareLink(uint(id), currentUserID, &form)
+	err = tprc.service.ShareLink(uint(id), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

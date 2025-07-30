@@ -360,3 +360,11 @@ func IsValidPassword(password string) bool {
 
 	return hasUpperCase && hasLowerCase && hasNumber && hasSpecial
 }
+
+func GetTPRMURL() string {
+	externalURL := os.Getenv("TPRM_URL")
+	if externalURL == "" {
+		externalURL = "http://dev.jethur.com"
+	}
+	return externalURL
+}

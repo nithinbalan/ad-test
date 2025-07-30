@@ -12,6 +12,7 @@ type ThirdPartyAssessment struct {
 	DueDate                      *time.Time `json:"due_date" gorm:"type:date;default:null"`
 	ThirdPartyAssessmentStatusID uint       `json:"third_party_assessment_id"`
 	UID                          *string    `json:"uid"`
+	Link                         *string    `json:"link"`
 	CreatedBYID                  uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBYID                  *uint      `json:"updated_by_id,omitempty"`
 	CreatedAt                    time.Time  `json:"created_at" gorm:"type:datetime;not null"`
