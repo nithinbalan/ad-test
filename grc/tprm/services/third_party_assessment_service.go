@@ -140,7 +140,7 @@ func (tpas *ThirdPartyAssessmentService) Create(currentUserID uint, form *dtos.T
 	}
 
 	uid := uuid.New().String()
-	appURL := utility.GetTPRMURL()
+	appURL := utility.GetVendorAssessmentURL()
 	link := fmt.Sprintf("%s/vendor-assessment/%s", appURL, uid)
 	tpr := &models.ThirdPartyAssessment{
 		ReferenceNumber:              referenceNumber,
