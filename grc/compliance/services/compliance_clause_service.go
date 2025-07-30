@@ -498,7 +498,7 @@ func (ccs *ComplianceClauseService) CreateComplianceClauseRisk(complianceID, cla
 	for _, riskID := range dto.RiskIDs {
 		riskMappings = append(riskMappings, &models.RiskComplianceRequirement{
 			ComplianceRegisterID: complianceID,
-			ComplianceClauseID:   clauseID,
+			ComplianceClauseID:   &clauseID,
 			RiskRegisterID:       riskID,
 			CreatedByID:          currentUserID,
 		})
