@@ -1,8 +1,5 @@
 -- +goose Up
 -- +goose StatementBegin
-ALTER TABLE compliance_assessment_requirements
-ADD activity NVARCHAR(MAX) NULL;
-
 -- Drop the default constraint on deadline column first
 DECLARE @constraint_name NVARCHAR(200)
 SELECT @constraint_name = dc.name 
@@ -24,26 +21,11 @@ DROP COLUMN score;
 ALTER TABLE compliance_assessment_requirements
 DROP COLUMN comments;
 
-ALTER TABLE compliance_assessment_requirements
-DROP CONSTRAINT FK_compliance_assessment_requirements_status;
-
-ALTER TABLE compliance_assessment_requirements
-DROP COLUMN compliance_assessment_requirement_status_id;
-
-ALTER TABLE compliance_assessment_requirements
-DROP CONSTRAINT FK_compliance_assessment_requirements_compliance_statuses
-
-ALTER TABLE compliance_assessment_requirements
-DROP COLUMN compliance_status_id;
-
 
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-ALTER TABLE compliance_assessment_requirements
-DROP COLUMN activity;
-
 ALTER TABLE compliance_assessment_requirements
 ADD is_completed TINYINT NOT NULL DEFAULT 0;
 
@@ -52,17 +34,5 @@ ADD score INT NULL;
 
 ALTER TABLE compliance_assessment_requirements
 ADD comments NVARCHAR(MAX) NULL;
-
-ALTER TABLE compliance_assessment_requirements
-ADD compliance_status_id INT NULL;
-
-ALTER TABLE compliance_assessment_requirements
-ADD compliance_assessment_requirement_status_id INT NULL;
-
-ALTER TABLE compliance_assessment_requirements
-ADD CONSTRAINT FK_compliance_assessment_requirements_status FOREIGN KEY (compliance_assessment_requirement_status_id) REFERENCES compliance_assessment_requirement_statuses(id) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
-ALTER TABLE compliance_assessment_requirements
-ADD CONSTRAINT FK_compliance_assessment_requirements_compliance_statuses FOREIGN KEY (compliance_status_id) REFERENCES compliance_statuses(id) ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 -- +goose StatementEnd
