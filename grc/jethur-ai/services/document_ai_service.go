@@ -15,7 +15,7 @@ type DocumentAIServiceInterface interface {
 	GetAISummary(documentId uint) (*aiDTOs.DocumentAISummaryDTO, error)
 	GetDocumentRecommendations(documentId uint, currentUserID uint) (map[string]interface{}, error)
 	ProcessChat(ctx context.Context, content, role, documentID, contextID string) (<-chan string, error)
-	GetDocumentRequirements(documentID uint) (map[string]interface{}, error)
+	GetDocumentRequirements(documentID uint) ([]map[string]interface{}, error)
 }
 
 type DocumentAIService struct {
@@ -157,7 +157,7 @@ func (dai *DocumentAIService) ProcessChat(ctx context.Context, content, role, do
 	return utility.StreamAIAPI(ctx, "/api/v1/document-chat", payload)
 }
 
-func (dai *DocumentAIService) GetDocumentRequirements(documentID uint) (map[string]interface{}, error) {
+func (dai *DocumentAIService) GetDocumentRequirements(documentID uint) ([]map[string]interface{}, error) {
 	systemPreference, err := dai.systemPreferenceSvc.GetSystemPreference()
 	if err != nil {
 		return nil, err
@@ -168,5 +168,5 @@ func (dai *DocumentAIService) GetDocumentRequirements(documentID uint) (map[stri
 	}
 
 	path := fmt.Sprintf("/api/v1/policy/%d/requirements-extracting", documentID)
-	return utility.CallAIAPIObjectResponse(path)
+	return utility.CallAIAPIArrayResponse(path)
 }
