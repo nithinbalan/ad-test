@@ -74,7 +74,7 @@ type ThirdPartyRegisterFormDTO struct {
 	OrganizationUnitID *uint   `json:"organization_unit_id"`
 	RepresentativeName *string `json:"representative_name"`
 	RepresentativeRole *string `json:"representative_role"`
-	Email              *string `json:"email"`
+	Email              *string `json:"email" binding:"required,email"`
 	PhoneNumber        *string `json:"phone_number"`
 	ResponsibleUserID  *uint   `json:"responsible_user_id"`
 	OnboardingDate     *string `json:"onboarding_date"`

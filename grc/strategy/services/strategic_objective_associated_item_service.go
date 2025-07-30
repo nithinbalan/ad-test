@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceServices "jethur/grc/compliance/services"
 	"jethur/grc/models"
 	"jethur/grc/strategy/repositories"
@@ -11,8 +12,11 @@ import (
 )
 
 type StrategicObjectiveAssociatedItemServiceInterface interface {
-	GetAllClauses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(strategicObjectiveID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
+	GetAllRisks(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
+	CreateStrategicObjectiveRisk(strategicObjectiveID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
+	DeleteStrategicObjectiveRisk(strategicObjectiveID uint, riskID uint) error
 }
 
 // Service and implementations
@@ -20,22 +24,25 @@ type StrategicObjectiveAssociatedItemService struct {
 	repo                  repositories.StrategicObjectiveAssociatedItemRepositoryInterface
 	strategicObjectiveSvc StrategicObjectiveServiceInterface
 	clauseSvc             complianceServices.ComplianceClauseServiceInterface
+	validationSvc         commonServices.AssociatedItemValidationServiceInterface
 }
 
 func NewstrategicObjectiveAssociatedItemService(
 	repo repositories.StrategicObjectiveAssociatedItemRepositoryInterface,
 	strategicObjectiveSvc StrategicObjectiveServiceInterface,
 	clauseSvc complianceServices.ComplianceClauseServiceInterface,
+	validationSvc commonServices.AssociatedItemValidationServiceInterface,
 
 ) StrategicObjectiveAssociatedItemServiceInterface {
 	return &StrategicObjectiveAssociatedItemService{
 		repo:                  repo,
 		strategicObjectiveSvc: strategicObjectiveSvc,
 		clauseSvc:             clauseSvc,
+		validationSvc:         validationSvc,
 	}
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) GetAllClauses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+func (rais *StrategicObjectiveAssociatedItemService) GetAllClauses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return nil, err
 	}
@@ -145,4 +152,53 @@ func (rais *StrategicObjectiveAssociatedItemService) validateClauseIDs(clauseIDs
 	}
 
 	return clauses, nil
+}
+func (rais *StrategicObjectiveAssociatedItemService) GetAllRisks(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
+	if _, err := rais.strategicObjectiveSvc.GetByID(processID); err != nil {
+		return nil, err
+	}
+	return rais.repo.GetAllRisks(processID, params)
+}
+
+func (rais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveRisk(strategicObjectiveID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
+	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveID), "not_exist", "strategic_objective_id")
+	}
+	if err := rais.validationSvc.ValidateRiskMapping(strategicObjectiveID, dto.RiskIDs, "risk_strategic_objectives", "strategic_objective_id"); err != nil {
+		return err
+	}
+	tx := rais.repo.BeginTransaction()
+	var mappings []*models.RiskStrategicObjective
+	currentTime := time.Now()
+
+	for _, riskID := range dto.RiskIDs {
+		mappings = append(mappings, &models.RiskStrategicObjective{
+			RiskRegisterID:       riskID,
+			StrategicObjectiveID: strategicObjectiveID,
+			CreatedByID:          userID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := rais.repo.CreateStrategicObjectiveRisk(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (rais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveRisk(strategicObjectiveID uint, riskID uint) error {
+	// Validate control existence
+	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveID), "not_exist", "strategic_objective_id")
+	}
+
+	tx := rais.repo.BeginTransaction()
+
+	if err := rais.repo.DeleteStrategicObjectiveRisk(strategicObjectiveID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }

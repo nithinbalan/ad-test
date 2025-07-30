@@ -360,3 +360,11 @@ func IsValidPassword(password string) bool {
 
 	return hasUpperCase && hasLowerCase && hasNumber && hasSpecial
 }
+
+func GetVendorAssessmentURL() string {
+	externalURL := os.Getenv("VENDOR_ASSESSMENT_URL")
+	if externalURL == "" {
+		externalURL = "http://dev.jethur.com"
+	}
+	return externalURL
+}

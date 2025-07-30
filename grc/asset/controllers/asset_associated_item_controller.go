@@ -147,8 +147,6 @@ func (aaic *AssetAssociatedItemController) GetAllAssetRisks(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 	valueStr := c.Query("value")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
@@ -172,15 +170,13 @@ func (aaic *AssetAssociatedItemController) GetAllAssetRisks(c *gin.Context) {
 		}
 	}
 
-	queryParams := assetDTOs.AssetAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Value:       value,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Value:    value,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	controls, err := aaic.service.GetAllRisks(uint(assetID), &queryParams)
 
@@ -294,7 +290,7 @@ func (aaic *AssetAssociatedItemController) GetAllAssetClauses(c *gin.Context) {
 		return
 	}
 
-	queryParams := commonDTOs.AssociatedItemClauseListQueryParamsDTO{
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
@@ -657,4 +653,53 @@ func (aaic *AssetAssociatedItemController) UpdateClauses(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Clauses against the risk updated successfully"})
+}
+
+func (aaic *AssetAssociatedItemController) CreateAssetRisk(c *gin.Context) {
+	var input commonDTOs.AssociatedRiskMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	assetID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, err.Error())
+		return
+	}
+
+	err = aaic.service.CreateAssetRisk(uint(assetID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(aaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (aaic *AssetAssociatedItemController) DeleteAssetRisk(c *gin.Context) {
+	assetID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+	riskID, _ := strconv.ParseUint(c.Param("riskId"), 10, 64)
+	err := aaic.service.DeleteAssetRisk(uint(assetID), uint(riskID))
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Risk unmapped from asset successfully"})
 }

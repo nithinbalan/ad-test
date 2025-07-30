@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
+	commonDTOs "jethur/grc/common/dtos"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -142,9 +144,7 @@ func (caic *ControlAssociatedItemController) GetAllControlRisks(c *gin.Context) 
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
 	valueStr := c.Query("value")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -167,15 +167,13 @@ func (caic *ControlAssociatedItemController) GetAllControlRisks(c *gin.Context) 
 		}
 	}
 
-	queryParams := organizationDTOs.ControlAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		Value:       value,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Value:    value,
 	}
 	risks, err := caic.service.GetAllRisks(uint(controlID), &queryParams)
 
@@ -297,7 +295,7 @@ func (caic *ControlAssociatedItemController) GetAllClauses(c *gin.Context) {
 		return
 	}
 
-	queryParams := organizationDTOs.ControlAssociatedItemListQueryParamsDTO{
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
@@ -355,4 +353,53 @@ func (caic *ControlAssociatedItemController) UpdateClauses(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Clauses against control updated successfully"})
+}
+
+func (caic *ControlAssociatedItemController) CreateControlRisk(c *gin.Context) {
+	var input commonDTOs.AssociatedRiskMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	controlID, err := strconv.ParseUint(c.Param("controlId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	err = caic.service.CreateControlRisk(uint(controlID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(caic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (caic *ControlAssociatedItemController) DeleteControlRisk(c *gin.Context) {
+	controlID, _ := strconv.ParseUint(c.Param("controlId"), 10, 64)
+	riskID, _ := strconv.ParseUint(c.Param("riskId"), 10, 64)
+	err := caic.service.DeleteControlRisk(uint(controlID), uint(riskID))
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Risk unmapped from control successfully"})
 }

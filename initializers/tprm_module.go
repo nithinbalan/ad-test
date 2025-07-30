@@ -95,6 +95,7 @@ func NewTprmModule(
 		questionSetSvc,
 		thirdPartyAssessmentStatusSvc,
 		organizationModule.UserSettingSvc,
+		commonModule.NotificationService,
 	)
 	thirdPartyAssessmentController := controllers.NewThirdPartyAssessmentController(thirdPartyAssessmentSvc)
 

@@ -17,12 +17,14 @@ type DocumentAssociatedItemRepositoryInterface interface {
 	GetAllProcesses(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemProcessListResponseDTO, error)
 	GetAllSLAs(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemSLAListResponseDTO, error)
 	GetAllIncidents(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemIncidentListResponseDTO, error)
-	GetAllRisks(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemRiskListResponseDTO, error)
-	GetAllClauses(controlID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	GetAllRisks(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
+	GetAllClauses(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	GetClausesByDocumentID(controlID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 	CreateDocumentClauses(clauses []*models.DocumentComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	DeleteDocumentClauses(controlID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
 	GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error)
+	CreateDocumentRisk(risks []*models.RiskAssociatedDocument, tx ...utility.DatabaseTransaction) error
+	DeleteDocumentRisk(documentID uint, riskID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type DocumentAssociatedItemRepository struct {
@@ -533,54 +535,114 @@ func (repo *DocumentAssociatedItemRepository) GetAllIncidents(documentID uint, p
 	return response, nil
 }
 
-func (repo *DocumentAssociatedItemRepository) GetAllRisks(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemRiskListResponseDTO, error) {
-	var documentRisk []*documentDTOs.DocumentRiskListDTO
+func (repo *DocumentAssociatedItemRepository) GetAllRisks(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
+	var documentRisk []*commonDTOs.AssociatedRiskListDTO
 	var totalCount int64
 
 	query := repo.db.Table("risk_associated_documents").
 		Select(`
-			risk_register.reference_number,
-			risk_register.title,
-			risk_register.description,
-			risk_categories.title_en AS risk_category_title_en,
-			risk_categories.title_ar AS risk_category_title_ar,
-			risk_sources.title_en AS risk_source_title_en,
-			risk_sources.title_ar AS risk_source_title_ar,
-			organization_units.title_en AS responsible_unit_title_en,
-			organization_units.title_ar AS responsible_unit_title_ar,
+		    risk_associated_documents.id,
+		    risk_associated_documents.risk_register_id,
+		    risk_associated_documents.document_id,
+			 risk_register.reference_number,
+            risk_register.title,
+            risk_register.description,
+			CONVERT(VARCHAR, risk_register.reported_at, 23) AS reported_at,
+            risk_register.created_at,
+            risk_register.updated_at,
+			risk_register.current_risk_rating_value_id,
+            risk_categories.title_en AS risk_category_title_en,
+            risk_categories.title_ar AS risk_category_title_ar,
+            risk_sources.title_en AS risk_source_title_en,
+            risk_sources.title_ar AS risk_source_title_ar,
+			organization_units.id AS responsible_unit_id,
+            organization_units.title_en AS responsible_unit_title_en,
+            organization_units.title_ar AS responsible_unit_title_ar,
 			users.id AS responsible_user_id,
-			users.first_name_en AS responsible_user_first_name_en,
-			users.first_name_ar AS responsible_user_first_name_ar,
-			users.last_name_en AS responsible_user_last_name_en,
-			users.last_name_ar AS responsible_user_last_name_ar,
+            users.first_name_en AS responsible_user_first_name_en,
+            users.first_name_ar AS responsible_user_first_name_ar,
+            users.last_name_en AS responsible_user_last_name_en,
+            users.last_name_ar AS responsible_user_last_name_ar,
 			users.initial AS responsible_user_initial,
-            users.color AS responsible_user_color,
-            users.email AS responsible_user_email,
-            users.profile_image_path AS responsible_user_profile_image_path,
-			risk_matrix_likelihoods.title_en AS risk_matrix_likelihood_title_en,
-            risk_matrix_likelihoods.title_ar AS risk_matrix_likelihood_title_ar,
-            risk_matrix_likelihoods.score AS risk_matrix_likelihood_score,
-			risk_matrix_impacts.title_en AS risk_matrix_impact_title_en,
-            risk_matrix_impacts.title_ar AS risk_matrix_impact_title_ar,
-            risk_matrix_impacts.score AS risk_matrix_impact_score,
-			risk_matrix_risk_ratings.title_en AS risk_matrix_risk_rating_title_en,
-            risk_matrix_risk_ratings.title_ar AS risk_matrix_risk_rating_title_ar,
-            risk_matrix_risk_ratings.type AS risk_matrix_risk_rating_type,
-            risk_matrix_risk_ratings.color_code AS risk_matrix_risk_rating_color_code,
-			risk_statuses.title_en AS risk_status_title_en,
-			risk_statuses.title_ar AS risk_status_title_ar,
-			risk_statuses.color_code AS risk_status_color_code
+        	users.color AS responsible_user_color,
+        	users.email AS responsible_user_email,
+        	users.profile_image_path AS responsible_user_profile_image_path,
+            risk_statuses.title_en AS risk_status_title_en,
+            risk_statuses.title_ar AS risk_status_title_ar,
+			risk_response_strategies.title_en AS risk_response_strategy_title_en,
+            risk_response_strategies.title_ar AS risk_response_strategy_title_ar,
+            risk_statuses.color_code AS risk_status_color_code,
+			risk_statuses.type AS risk_status_type,
+            review_frequencies.title_en AS review_frequency_title_en,
+            review_frequencies.title_ar AS review_frequency_title_ar,
+			CONVERT(VARCHAR, risk_register.next_review_date, 23) AS next_review_date,
+            risk_register.last_review_note,
+            created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path,
+            current_likelihood.title_en AS current_likelihood_title_en,
+            current_likelihood.title_ar AS current_likelihood_title_ar,
+            current_impact.title_en AS current_impact_title_en,
+            current_impact.title_ar AS current_impact_title_ar,
+            current_risk_rating.title_en AS current_risk_rating_title_en,
+            current_risk_rating.title_ar AS current_risk_rating_title_ar,
+            current_risk_rating_value.value AS current_risk_rating_value,
+            current_risk_rating.color_code AS current_risk_rating_color_code,
+            inherent_likelihood.title_en AS inherent_likelihood_title_en,
+            inherent_likelihood.title_ar AS inherent_likelihood_title_ar,
+            inherent_impact.title_en AS inherent_impact_title_en,
+            inherent_impact.title_ar AS inherent_impact_title_ar,
+            inherent_risk_rating.title_en AS inherent_risk_rating_title_en,
+            inherent_risk_rating.title_ar AS inherent_risk_rating_title_ar,
+            inherent_risk_rating_value.value AS inherent_risk_rating_value,
+            inherent_risk_rating.color_code AS inherent_risk_rating_color_code,
+            residual_likelihood.title_en AS residual_likelihood_title_en,
+            residual_likelihood.title_ar AS residual_likelihood_title_ar,
+            residual_impact.title_en AS residual_impact_title_en,
+            residual_impact.title_ar AS residual_impact_title_ar,
+            residual_risk_rating.title_en AS residual_risk_rating_title_en,
+            residual_risk_rating.title_ar AS residual_risk_rating_title_ar,
+            residual_risk_rating_value.value AS residual_risk_rating_value,
+            residual_risk_rating.color_code AS residual_risk_rating_color_code
 		`).
 		Joins(`
 			LEFT JOIN risk_register ON risk_register.id = risk_associated_documents.risk_register_id
 			LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
-			LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
-			LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id
-			LEFT JOIN users ON users.id = risk_register.responsible_user_id
-			LEFT JOIN risk_matrix_likelihoods ON risk_matrix_likelihoods.id = risk_register.current_likelihood_id
-            LEFT JOIN risk_matrix_impacts ON risk_matrix_impacts.id = risk_register.current_impact_id
-            LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id
-			LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
+            LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
+            LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id
+            LEFT JOIN users ON users.id = risk_register.responsible_user_id
+            LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
+			LEFT JOIN risk_response_strategies ON risk_response_strategies.id = risk_register.risk_response_strategy_id
+            LEFT JOIN users AS created_user ON created_user.id = risk_register.created_by_id
+            LEFT JOIN users AS updated_user ON updated_user.id = risk_register.updated_by_id
+            LEFT JOIN review_frequencies ON review_frequencies.id = risk_register.review_frequency_id
+            LEFT JOIN risk_matrix_likelihoods AS current_likelihood ON current_likelihood.id = risk_register.current_likelihood_id
+            LEFT JOIN risk_matrix_impacts AS current_impact ON current_impact.id = risk_register.current_impact_id
+            LEFT JOIN risk_matrix_risk_ratings AS current_risk_rating ON current_risk_rating.id = risk_register.current_risk_rating_id
+            LEFT JOIN risk_matrix_risk_rating_values AS current_risk_rating_value ON current_risk_rating_value.id = risk_register.current_risk_rating_value_id
+            LEFT JOIN risk_matrix_likelihoods AS inherent_likelihood ON inherent_likelihood.id = risk_register.inherent_likelihood_id
+            LEFT JOIN risk_matrix_impacts AS inherent_impact ON inherent_impact.id = risk_register.inherent_impact_id
+            LEFT JOIN risk_matrix_risk_ratings AS inherent_risk_rating ON inherent_risk_rating.id = risk_register.inherent_risk_rating_id
+            LEFT JOIN risk_matrix_risk_rating_values AS inherent_risk_rating_value ON inherent_risk_rating_value.id = risk_register.inherent_risk_rating_value_id
+            LEFT JOIN risk_matrix_likelihoods AS residual_likelihood ON residual_likelihood.id = risk_register.residual_likelihood_id
+            LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id
+            LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = risk_register.residual_risk_rating_id
+            LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
 		`).
 		Where("risk_associated_documents.document_id = ?", documentID)
 
@@ -630,7 +692,7 @@ func (repo *DocumentAssociatedItemRepository) GetAllRisks(documentID uint, param
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
-	response := &documentDTOs.DocumentAssociatedItemRiskListResponseDTO{
+	response := &commonDTOs.AssociatedRiskListResponseDTO{
 		Items: documentRisk,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
@@ -643,7 +705,7 @@ func (repo *DocumentAssociatedItemRepository) GetAllRisks(documentID uint, param
 	return response, nil
 }
 
-func (repo *DocumentAssociatedItemRepository) GetAllClauses(controlID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+func (repo *DocumentAssociatedItemRepository) GetAllClauses(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 
 	var clauseList []commonDTOs.AssociatedClauseRowDTO
 	var totalCount int64
@@ -665,12 +727,12 @@ func (repo *DocumentAssociatedItemRepository) GetAllClauses(controlID uint, para
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
-		query = query.Where(`
+		query = query.Where(`(
 			compliance_register.title_en LIKE ? OR
 			compliance_register.title_ar LIKE ? OR
 			compliance_clauses.clause_no LIKE ? OR
 			compliance_clauses.title_en  LIKE ? OR
-			compliance_clauses.title_ar  LIKE ?`,
+			compliance_clauses.title_ar  LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword,
 		)
 	}
@@ -800,4 +862,22 @@ func (repo *DocumentAssociatedItemRepository) GetClausesByIDs(ids []uint, tx ...
 	}
 
 	return clauses, nil
+}
+func (repo *DocumentAssociatedItemRepository) CreateDocumentRisk(risks []*models.RiskAssociatedDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&risks).Error
+}
+
+func (repo *DocumentAssociatedItemRepository) DeleteDocumentRisk(documentID uint, riskId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("risk_register_id = ? AND document_id = ?", riskId, documentID).
+		Delete(&models.RiskAssociatedDocument{}).
+		Error
 }

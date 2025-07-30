@@ -263,7 +263,7 @@ func NewRiskModule(db *gorm.DB,
 	riskActionPlanStatusUpdateController := controllers.NewRiskActionPlanStatusUpdateController(riskActionPlanStatusUpdateSvc)
 
 	riskAssociatedItemRepo := repositories.NewRiskAssociatedItemRepository(db)
-	riskAssociatedItemSvc := services.NewRiskAssociatedItemService(riskAssociatedItemRepo, riskRegisterSvc, complianceModule.ComplianceClausevc)
+	riskAssociatedItemSvc := services.NewRiskAssociatedItemService(riskAssociatedItemRepo, riskRegisterSvc, complianceModule.ComplianceClausevc, commonModule.AssociatedItemValidationService)
 	riskAssociatedItemController := controllers.NewRiskAssociatedItemController(riskAssociatedItemSvc)
 
 	riskTreatmentGuidelineRepo := repositories.NewRiskTreatmentGuidelineRepository(db)
