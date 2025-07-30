@@ -14,6 +14,9 @@ type AuditFindingAssociatedItemServiceInterface interface {
 	GetAllAuditFindingDocuments(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	CreateAuditFindingDocument(findingID uint, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
 	DeleteAuditFindingDocument(findingID uint, documentID uint) error
+	GetAllAuditFindingControls(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
+	CreateAuditFindingControl(findingID uint, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error
+	DeleteAuditFindingControl(findingID uint, controlID uint) error
 }
 
 // Service and implementations
@@ -80,6 +83,59 @@ func (afais *AuditFindingAssociatedItemService) DeleteAuditFindingDocument(findi
 	tx := afais.repo.BeginTransaction()
 
 	if err := afais.repo.DeleteAuditFindingDocument(findingID, documentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (afais *AuditFindingAssociatedItemService) GetAllAuditFindingControls(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error) {
+	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
+		return nil, err
+	}
+	return afais.repo.GetAllAuditFindingControls(findingID, params)
+}
+
+func (afais *AuditFindingAssociatedItemService) CreateAuditFindingControl(findingID, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error {
+
+	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("AuditFinding does not exist for ID: %d", findingID), "not_exist", "audit_finding_id")
+	}
+
+	if err := afais.validationSvc.ValidateControlMapping(findingID, dto.ControlIDs, "audit_finding_controls", "audit_finding_id"); err != nil {
+		return err
+	}
+
+	tx := afais.repo.BeginTransaction()
+	var mappings []*models.AuditFindingControl
+	currentTime := time.Now()
+
+	for _, controlID := range dto.ControlIDs {
+		mappings = append(mappings, &models.AuditFindingControl{
+			ControlID:      controlID,
+			AuditFindingID: findingID,
+			CreatedBYID:    userID,
+			CreatedAt:      currentTime,
+		})
+	}
+
+	if err := afais.repo.CreateAuditFindingControl(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (afais *AuditFindingAssociatedItemService) DeleteAuditFindingControl(findingID uint, controlID uint) error {
+	// Validate control existence
+	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("AuditFinding does not exist for ID: %d", findingID), "not_exist", "audit_finding_id")
+	}
+
+	tx := afais.repo.BeginTransaction()
+
+	if err := afais.repo.DeleteAuditFindingControl(findingID, controlID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

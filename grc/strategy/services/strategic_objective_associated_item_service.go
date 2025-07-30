@@ -14,12 +14,15 @@ import (
 type StrategicObjectiveAssociatedItemServiceInterface interface {
 	GetAllClauses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(strategicObjectiveID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
-	GetAllRisks(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
+	GetAllRisks(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	CreateStrategicObjectiveRisk(strategicObjectiveID uint, currentUserID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
 	DeleteStrategicObjectiveRisk(strategicObjectiveID uint, riskID uint) error
-	GetAllStrategicObjectiveDocuments(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
+	GetAllStrategicObjectiveDocuments(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	CreateStrategicObjectiveDocuments(strategicObjectiveID uint, currentUserID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
 	DeleteStrategicObjectiveDocument(strategicObjectiveID uint, documentID uint) error
+	GetAllStrategicObjectivControls(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
+	CreateStrategicObjectiveControl(strategicObjectiveID uint, currentUserID uint, dto *commonDTOs.AssociatedControlMapDTO) error
+	DeleteStrategicObjectiveControl(strategicObjectiveID uint, controlID uint) error
 }
 
 // Service and implementations
@@ -249,6 +252,56 @@ func (rais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveDoc
 	tx := rais.repo.BeginTransaction()
 
 	if err := rais.repo.DeleteStrategicObjectiveDocument(strategicObjectiveID, documentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (rais *StrategicObjectiveAssociatedItemService) GetAllStrategicObjectivControls(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error) {
+	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+		return nil, err
+	}
+	return rais.repo.GetAllStrategicObjectivControls(strategicObjectiveID, params)
+}
+
+func (rais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveControl(strategicObjectiveID, currentUserID uint, dto *commonDTOs.AssociatedControlMapDTO) error {
+	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveID), "not_exist", "strategic_objective_id")
+	}
+	if err := rais.validationSvc.ValidateControlMapping(strategicObjectiveID, dto.ControlIDs, "strategic_objective_controls", "strategic_objective_id"); err != nil {
+		return err
+	}
+	tx := rais.repo.BeginTransaction()
+	var mappings []*models.StrategicObjectiveControl
+	currentTime := time.Now()
+
+	for _, controlID := range dto.ControlIDs {
+		mappings = append(mappings, &models.StrategicObjectiveControl{
+			ControlID:            controlID,
+			StrategicObjectiveID: strategicObjectiveID,
+			CreatedBYID:          currentUserID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := rais.repo.CreateStrategicObjectiveControl(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (rais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveControl(strategicObjectiveID uint, controlID uint) error {
+	// Validate control existence
+	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveID), "not_exist", "strategic_objective_id")
+	}
+
+	tx := rais.repo.BeginTransaction()
+
+	if err := rais.repo.DeleteStrategicObjectiveControl(strategicObjectiveID, controlID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

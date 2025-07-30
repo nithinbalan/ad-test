@@ -227,6 +227,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-findings/:findingId/documents", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.CreateAuditFindingDocument)
 	auditRoutes.DELETE("/audit-findings/:findingId/documents/:documentId/", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.DeleteAuditFindingDocument)
 
+	auditRoutes.GET("/audit-findings/:findingId/controls", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingAssociatedItemController.GetAllAuditFindingControls)
+	auditRoutes.POST("/audit-findings/:findingId/controls", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.CreateAuditFindingControl)
+	auditRoutes.DELETE("/audit-findings/:findingId/controls/:controlId/", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.DeleteAuditFindingControl)
+
 	//Audit Document  Request Status
 	auditRoutes.GET("/audit-document-request-statuses", auditDocumentRequestStatusController.GetAllAuditDocumentRequestStatuses)
 

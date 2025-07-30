@@ -14,6 +14,9 @@ type BcpAssociatedItemServiceInterface interface {
 	GetAllBcpDocuments(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	CreateBcpDocument(BcpID uint, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
 	DeleteBcpDocument(BcpID uint, documentID uint) error
+	GetAllBcpControl(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
+	CreateBcpControl(BcpID uint, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error
+	DeleteBcpControl(BcpID uint, controlID uint) error
 }
 
 // Service and implementations
@@ -80,6 +83,59 @@ func (pais *BcpAssociatedItemService) DeleteBcpDocument(BcpID uint, documentID u
 	tx := pais.repo.BeginTransaction()
 
 	if err := pais.repo.DeleteBcpDocument(BcpID, documentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *BcpAssociatedItemService) GetAllBcpControl(bcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error) {
+	if _, err := pais.BcpSvc.GetByID(bcpID); err != nil {
+		return nil, err
+	}
+	return pais.repo.GetAllBcpControl(bcpID, params)
+}
+
+func (pais *BcpAssociatedItemService) CreateBcpControl(BcpID, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error {
+
+	if _, err := pais.BcpSvc.GetByID(BcpID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("bcp does not exist for ID: %d", BcpID), "not_exist", "business_continuity_plan_id")
+	}
+
+	if err := pais.validationSvc.ValidateControlMapping(BcpID, dto.ControlIDs, "bcp_controls", "business_continuity_plan_id"); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.BCPControl
+	currentTime := time.Now()
+
+	for _, ControlID := range dto.ControlIDs {
+		mappings = append(mappings, &models.BCPControl{
+			ControlID:                ControlID,
+			BusinessContinuityPlanID: BcpID,
+			CreatedBYID:              userID,
+			CreatedAt:                currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateBcpControl(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *BcpAssociatedItemService) DeleteBcpControl(BcpID uint, controlID uint) error {
+	// Validate control existence
+	if _, err := pais.BcpSvc.GetByID(BcpID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("bcp does not exist for ID: %d", BcpID), "not_exist", "business_continuity_plan_id")
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteBcpControl(BcpID, controlID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
