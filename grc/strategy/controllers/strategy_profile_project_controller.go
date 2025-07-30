@@ -37,7 +37,6 @@ func (spc *StrategyProfileProjectController) GetAllStrategyProfileProjects(c *gi
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
-		"project_ids",
 		"strategic_objective_ids",
 		"strategic_intiative_ids",
 	}
