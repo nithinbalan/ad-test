@@ -2,6 +2,8 @@ package services
 
 import (
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
@@ -12,11 +14,13 @@ import (
 type ControlAssociatedItemServiceInterface interface {
 	GetAllProcesses(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemProcessListResponseDTO, error)
 	GetAllComplianceRequirements(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) ([]organizationDTOs.ComplianceRegisterDTO, error)
-	GetAllRisks(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemRiskListResponseDTO, error)
+	GetAllRisks(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllIncidents(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemIncidentListResponseDTO, error)
 	GetAllAssociatedCounts(controlID uint) (*organizationDTOs.ControlAssociatedItemsCountResponseDTO, error)
-	GetAllClauses(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(controlID uint, currentUserID uint, formDTO *organizationDTOs.ControlClauseFormDTO) error
+	CreateControlRisk(controlID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
+	DeleteControlRisk(controlID uint, riskID uint) error
 }
 
 type ControlAssociatedItemService struct {
@@ -24,6 +28,7 @@ type ControlAssociatedItemService struct {
 	controlSvc                     ControlServiceInterface
 	controlImplementationStatusSvc ControlImplementationStatusServiceInterface
 	controlEfficiencyStatusService ControlEfficiencyStatusServiceInterface
+	validationSvc                  commonServices.AssociatedItemValidationServiceInterface
 }
 
 func NewControlAssociatedItemService(
@@ -31,12 +36,14 @@ func NewControlAssociatedItemService(
 	controlSvc ControlServiceInterface,
 	controlImplementationStatusSvc ControlImplementationStatusServiceInterface,
 	controlEfficiencyStatusService ControlEfficiencyStatusServiceInterface,
+	validationSvc commonServices.AssociatedItemValidationServiceInterface,
 ) ControlAssociatedItemServiceInterface {
 	return &ControlAssociatedItemService{
 		repo:                           repo,
 		controlSvc:                     controlSvc,
 		controlImplementationStatusSvc: controlImplementationStatusSvc,
 		controlEfficiencyStatusService: controlEfficiencyStatusService,
+		validationSvc:                  validationSvc,
 	}
 }
 
@@ -102,7 +109,7 @@ func (cais *ControlAssociatedItemService) GetAllComplianceRequirements(controlID
 	return complianceRegisters, nil
 }
 
-func (cais *ControlAssociatedItemService) GetAllRisks(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemRiskListResponseDTO, error) {
+func (cais *ControlAssociatedItemService) GetAllRisks(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
 	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
 		return nil, err
 	}
@@ -128,7 +135,7 @@ func (cais *ControlAssociatedItemService) GetAllAssociatedCounts(controlID uint)
 	return response, nil
 }
 
-func (cais *ControlAssociatedItemService) GetAllClauses(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemClauseListResponseDTO, error) {
+func (cais *ControlAssociatedItemService) GetAllClauses(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
 		return nil, err
 	}
@@ -240,3 +247,73 @@ func (cais *ControlAssociatedItemService) validateClauseIDs(clauseIDs []uint, tx
 
 	return clauses, nil
 }
+
+func (cais *ControlAssociatedItemService) CreateControlRisk(controlID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlID), "not_exist", "control_id")
+	}
+	if err := cais.validationSvc.ValidateRiskMapping(controlID, dto.RiskIDs, "risk_controls", "control_id"); err != nil {
+		return err
+	}
+	tx := cais.repo.BeginTransaction()
+	var mappings []*models.RiskControl
+	currentTime := time.Now()
+
+	for _, riskID := range dto.RiskIDs {
+		mappings = append(mappings, &models.RiskControl{
+			RiskRegisterID: riskID,
+			ControlID:      controlID,
+			CreatedByID:    userID,
+			CreatedAt:      currentTime,
+		})
+	}
+
+	if err := cais.repo.CreateControlRisk(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (cais *ControlAssociatedItemService) DeleteControlRisk(controlID uint, riskID uint) error {
+	// Validate control existence
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlID), "not_exist", "control_id")
+	}
+
+	tx := cais.repo.BeginTransaction()
+
+	if err := cais.repo.DeleteControlRisk(controlID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// func (cais *ControlAssociatedItemService) validateRiskIDs(controlID uint, riskIDs []uint) error {
+// 	if len(riskIDs) == 0 {
+// 		return utility.NewValidationError(fmt.Errorf("no risks provided"), "required", "risk_ids")
+// 	}
+// 	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+// 		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlID), "not_exist", "control_id")
+// 	}
+// 	seen := make(map[uint]bool)
+// 	for _, id := range riskIDs {
+// 		alreadyMapped, err := cais.repo.IsRiskMappedToControl(controlID, id)
+// 		if err != nil {
+// 			return fmt.Errorf("failed to check existing mapping: %v", err)
+// 		}
+// 		if alreadyMapped {
+// 			return utility.NewValidationError(fmt.Errorf("risk ID %d already mapped to this control", id), "duplicate", "risk_ids")
+// 		}
+// 		if seen[id] {
+// 			return utility.NewValidationError(fmt.Errorf("duplicate risk ID: %d", id), "duplicate", "risk_ids")
+// 		}
+// 		if _, err := cais.controlSvc.GetByID(id); err != nil {
+// 			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", id), "not_exist", "control_ids")
+// 		}
+// 		seen[id] = true
+// 	}
+// 	return nil
+// }

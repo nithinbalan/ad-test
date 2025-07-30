@@ -266,9 +266,7 @@ func (bfc *BusinessFunctionController) GetProcessAssociatedRisks(c *gin.Context)
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
 	valueStr := c.Query("value")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -291,15 +289,13 @@ func (bfc *BusinessFunctionController) GetProcessAssociatedRisks(c *gin.Context)
 		}
 	}
 
-	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
-		Value:       value,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Value:    value,
 	}
 	risks, err := bfc.service.GetProcessAssociatedRisks(uint(businessFunctionID), uint(processID), &queryParams)
 	if err != nil {
