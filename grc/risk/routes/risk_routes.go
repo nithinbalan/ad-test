@@ -338,11 +338,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("risks/:riskId/closures/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskClosureController.UpdateRiskClosure)
 	riskRoutes.DELETE("risks/:riskId/closures/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskClosureController.DeleteRiskClosure)
 
-	riskRoutes.GET("/risks/:riskId/comments", middlewares.RolePermissionMiddleware(db, "risk", "view"), riskCommentController.GetAllComments)
-	riskRoutes.GET("/risks/:riskId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk", "view"), riskCommentController.GetCommentDetails)
-	riskRoutes.POST("/risks/:riskId/comments", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskCommentController.CreateComment)
-	riskRoutes.PUT("/risks/:riskId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskCommentController.UpdateComment)
-	riskRoutes.POST("/risks/:riskId/comments/delete", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskCommentController.DeleteComment)
+	riskRoutes.GET("/risks/:riskId/comments", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskCommentController.GetAllComments)
+	riskRoutes.GET("/risks/:riskId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskCommentController.GetCommentDetails)
+	riskRoutes.POST("/risks/:riskId/comments", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.CreateComment)
+	riskRoutes.PUT("/risks/:riskId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.UpdateComment)
+	riskRoutes.POST("/risks/:riskId/comments/delete", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.DeleteComment)
 
 	riskRoutes.PUT("/risks/:riskId/submit", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.SubmitRisk)
 	riskRoutes.PUT("/risks/:riskId/revert", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskCommentController.RevertRisk)
@@ -363,9 +363,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.POST("/risk-reports/:riskReportId/documents", riskReportController.CreateRiskReportDocuments)
 	riskRoutes.DELETE("/risk-reports/:riskReportId/documents/:documentId", riskReportController.DeleteRiskReportDocument)
 
-	riskRoutes.GET("/risks/template", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskRegisterController.GenerateRiskTemplate)
-	riskRoutes.POST("/risks/template/validate", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskRegisterController.ValidateRiskTemplate)
-	riskRoutes.POST("/risks/import/validate", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskRegisterController.ValidateImportRisks)
-	riskRoutes.POST("/risks/import", middlewares.RolePermissionMiddleware(db, "risk", "modify"), riskRegisterController.ImportRisks)
+	riskRoutes.GET("/risks/template", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRegisterController.GenerateRiskTemplate)
+	riskRoutes.POST("/risks/template/validate", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRegisterController.ValidateRiskTemplate)
+	riskRoutes.POST("/risks/import/validate", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRegisterController.ValidateImportRisks)
+	riskRoutes.POST("/risks/import", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRegisterController.ImportRisks)
 
 }
