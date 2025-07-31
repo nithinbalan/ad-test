@@ -98,6 +98,7 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 		MediumThreshold: existingKRIRegister.MediumThreshold,
 		Remarks:         kriValueUpdateFormDTO.Remarks,
 		CreatedByID:     currentUserID,
+		UpdatedByID:     &currentUserID,
 	}
 
 	id, err := kvus.repo.Create(kriValueUpdate, tx)
@@ -328,6 +329,7 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 	existingKRIUpdate.UnitID = *existingKRIRegister.UnitID
 	existingKRIUpdate.Value = &kriValueUpdateFormDTO.Value
 	existingKRIUpdate.Remarks = kriValueUpdateFormDTO.Remarks
+	existingKRIRegister.UpdatedBYID = &currentUserID
 
 	err = kvus.repo.Update(existingKRIUpdate, tx)
 	if err != nil {
@@ -335,8 +337,23 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 		return err
 	}
 
+	reviewFrequency, err := kvus.reviewFrequencySvc.GetByID(existingKRIRegister.ReviewFrequencyID)
+	if err != nil {
+		return err
+	}
+
+	nextReviewDate := utility.CalculateNextReviewDate(reviewFrequency.Type)
+
+	riskLevel, err := kvus.kriRegisterSvc.DetermineRiskLevel(kriValueUpdateFormDTO.Value, existingKRIRegister.LowThreshold, existingKRIRegister.MediumThreshold)
+	if err != nil {
+		return err
+	}
+
 	existingKRIRegister.CurrentValue = &kriValueUpdateFormDTO.Value
+	existingKRIRegister.RiskLevelID = &riskLevel.ID
 	existingKRIRegister.LastReviewNote = kriValueUpdateFormDTO.Remarks
+	existingKRIRegister.LastReviewedDate = dates.ReviewedDate
+	existingKRIRegister.NextReviewDate = nextReviewDate
 
 	err = kvus.kriRegisterSvc.UpdateValue(existingKRIRegister, tx)
 	if err != nil {
