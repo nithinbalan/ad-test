@@ -187,10 +187,10 @@ func (repo *IncidentAssociatedItemRepository) GetAllComplianceRequirements(incid
 	query := repo.db.Table("incident_compliance_requirements").
 		Select(`
 			incident_compliance_requirements.compliance_requirement_id AS compliance_requirement_id,
-            compliance_clauses.title AS compliance_clause_title,
+            compliance_clauses.title_en AS compliance_clause_title,
             compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
             compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
-            compliance_requirements.title AS compliance_requirement_title,
+            compliance_requirements.title_en AS compliance_requirement_title,
             compliance_statuses.title_en AS compliance_status_title_en,
             compliance_statuses.title_ar AS compliance_status_title_ar,
 			compliance_statuses.color_code AS compliance_status_color_code
@@ -227,7 +227,7 @@ func (repo *IncidentAssociatedItemRepository) GetAllComplianceRequirements(incid
 	}
 
 	if params.SortBy == "" {
-		params.SortBy = "compliance_requirements.title"
+		params.SortBy = "compliance_requirements.title_en"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
