@@ -220,8 +220,8 @@ func (drs *DocumentRequirementService) CreateDocumentRequirements(documentId uin
 
 	for _, group := range groups {
 		groupDTO := &dtos.DocumentRequirementGroupFormDTO{
-			TitleEn: group.Category,
-			TitleAr: group.CategoryAr,
+			TitleEn: group.RequirementGroupTitleEn,
+			TitleAr: group.RequirementGroupTitleAr,
 			Status:  "active",
 		}
 
@@ -234,8 +234,8 @@ func (drs *DocumentRequirementService) CreateDocumentRequirements(documentId uin
 
 		for _, r := range group.Requirements {
 			formDTO := &dtos.DocumentRequirementFormDTO{
-				TitleEn: r.Statement,
-				TitleAr: r.StatementAr,
+				TitleEn: r.RequirementTitleEn,
+				TitleAr: r.RequirementTitleAr,
 			}
 
 			if _, err := drs.Create(documentId, groupID, userId, formDTO); err != nil {

@@ -12,14 +12,14 @@ type DocumentRequirementFormDTO struct {
 }
 
 type DocumentRequirementGroupWithRequirementsDTO struct {
-	Category     string                       `json:"category" binding:"required"`
-	CategoryAr   string                       `json:"category_ar"`
-	Requirements []DocumentRequirementItemDTO `json:"requirements" binding:"required,dive"`
+	RequirementGroupTitleEn string                       `json:"requirement_group_title_en" binding:"required"`
+	RequirementGroupTitleAr string                       `json:"requirement_group_title_ar" binding:"required"`
+	Requirements            []DocumentRequirementItemDTO `json:"requirements" binding:"required,dive"`
 }
 
 type DocumentRequirementItemDTO struct {
-	Statement               string `json:"statement" binding:"required"`
-	StatementAr             string `json:"statement_ar"`
+	RequirementTitleEn      string `json:"requirement_title_en" binding:"required"`
+	RequirementTitleAr      string `json:"requirement_title_ar" binding:"required"`
 	Type                    string `json:"type"`
 	Source                  string `json:"source"`
 	ResponsibleDepartment   string `json:"responsible_department"`
