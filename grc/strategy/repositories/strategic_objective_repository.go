@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
@@ -28,6 +29,7 @@ type StrategicObjectiveRepositoryInterface interface {
 	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
 	GenerateReferenceNumber() (string, error)
 	GetFocusAreasByStrategicObjectiveID(strategicObjectiveID uint) ([]*dtos.StrategicObjectiveFocusAreaDTO, error)
+	GetRiskSummary(strategicObjectiveID uint) (*dtos.StrategicObjectiveRiskSummaryDTO, error)
 }
 
 // implementation
@@ -342,4 +344,123 @@ func (repo *StrategicObjectiveRepository) GetFocusAreasByStrategicObjectiveID(st
 		return nil, err
 	}
 	return focusAreas, nil
+}
+
+func (repo *StrategicObjectiveRepository) GetRiskSummary(strategicObjectiveID uint) (*dtos.StrategicObjectiveRiskSummaryDTO, error) {
+	result := &dtos.StrategicObjectiveRiskSummaryDTO{}
+
+	// Get strategic objective
+	var strategicObjective models.StrategicObjective
+	err := repo.db.Select("id", "title_en").First(&strategicObjective, strategicObjectiveID).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, strategicObjectiveID)
+		}
+		return nil, err
+	}
+
+	// Get total risks count
+	var totalRisks int64
+	err = repo.db.Model(&models.RiskStrategicObjective{}).
+		Where("strategic_objective_id = ?", strategicObjectiveID).
+		Count(&totalRisks).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalRisksInt := int(totalRisks)
+	result.TotalRisks = &totalRisksInt
+
+	// Count high risks (type = 'high' or 'critical')
+	var highRisks int64
+	err = repo.db.Model(&models.RiskStrategicObjective{}).
+		Joins("JOIN risk_register rr ON risk_strategic_objectives.risk_register_id = rr.id").
+		Joins("JOIN risk_matrix_risk_rating_values rmrrv ON rr.current_risk_rating_value_id = rmrrv.id").
+		Joins("JOIN risk_matrix_risk_ratings rmrr ON rmrrv.risk_matrix_risk_rating_id = rmrr.id").
+		Where("risk_strategic_objectives.strategic_objective_id = ? AND (LOWER(rmrr.type) = 'high' OR LOWER(rmrr.type) = 'very_high')", strategicObjectiveID).
+		Count(&highRisks).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	highRisksInt := int(highRisks)
+	result.HighRisks = &highRisksInt
+
+	// Calculate coverage (if applicable)
+	var coverage float64
+	if totalRisks > 0 {
+		coverage = float64(highRisks) / float64(totalRisks) * 100
+	}
+	result.Coverage = &coverage
+
+	// Get last reviewed date (from risk_register.submitted_at)
+	var lastReviewed *time.Time
+	err = repo.db.Model(&models.RiskRegister{}).
+		Joins("JOIN risk_strategic_objectives rso ON rso.risk_register_id = risk_register.id").
+		Where("rso.strategic_objective_id = ? AND risk_register.submitted_at IS NOT NULL", strategicObjectiveID).
+		Order("risk_register.submitted_at DESC").
+		Limit(1).
+		Pluck("risk_register.submitted_at", &lastReviewed).Error
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	if lastReviewed != nil {
+		lastReviewedStr := lastReviewed.Format("02 Jan 2006")
+		result.LastReviewed = &lastReviewedStr
+	}
+
+	// Get top risk (highest severity)
+	var topRisk struct {
+		ID          *uint
+		Title       *string
+		Rating      *string
+		Description *string
+	}
+
+	err = repo.db.Raw(`
+		SELECT 
+			rr.id,
+			rr.title,
+			rmrr.type AS rating,
+			rr.description
+		FROM risk_strategic_objectives rso
+		JOIN risk_register rr ON rso.risk_register_id = rr.id
+		JOIN risk_matrix_risk_rating_values rmrrv ON rr.current_risk_rating_value_id = rmrrv.id
+		JOIN risk_matrix_risk_ratings rmrr ON rmrrv.risk_matrix_risk_rating_id = rmrr.id
+		WHERE rso.strategic_objective_id = ?
+		ORDER BY 
+			CASE 
+				WHEN LOWER(rmrr.type) = 'very_high' THEN 1
+				WHEN LOWER(rmrr.type) = 'high' THEN 2
+				WHEN LOWER(rmrr.type) = 'medium' THEN 3
+				WHEN LOWER(rmrr.type) = 'low' THEN 4
+				WHEN LOWER(rmrr.type) = 'very_low' THEN 5
+				ELSE 6
+			END,
+			rr.updated_at DESC
+		OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY
+	`, strategicObjectiveID).Scan(&topRisk).Error
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	if topRisk.ID != nil {
+		result.TopRisk = &struct {
+			ID          *uint   `json:"id,omitempty"`
+			Title       *string `json:"title,omitempty"`
+			Rating      *string `json:"rating,omitempty"`
+			Description *string `json:"description,omitempty"`
+		}{
+			ID:          topRisk.ID,
+			Title:       topRisk.Title,
+			Rating:      topRisk.Rating,
+			Description: topRisk.Description,
+		}
+	}
+
+	return result, nil
 }

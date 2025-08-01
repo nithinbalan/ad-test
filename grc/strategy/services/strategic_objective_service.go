@@ -29,6 +29,7 @@ type StrategicObjectiveServiceInterface interface {
 	Deactivate(ids []uint, currentUserID uint) error
 	UpdateStrategicObjective(strategicObjective *models.StrategicObjective, tx ...utility.DatabaseTransaction) error
 	GetFocusAreasByStrategicObjectiveID(strategicObjectiveID uint) ([]*dtos.StrategicObjectiveFocusAreaDTO, error)
+	GetRiskSummary(strategicObjectiveID uint) (*dtos.StrategicObjectiveRiskSummaryDTO, error)
 }
 
 // Service and implementations
@@ -472,4 +473,19 @@ func (sos *StrategicObjectiveService) parseStrategicObjectiveDates(dto *dtos.Str
 
 func (sos *StrategicObjectiveService) GetFocusAreasByStrategicObjectiveID(strategicObjectiveID uint) ([]*dtos.StrategicObjectiveFocusAreaDTO, error) {
 	return sos.repo.GetFocusAreasByStrategicObjectiveID(strategicObjectiveID)
+}
+
+func (sos *StrategicObjectiveService) GetRiskSummary(strategicObjectiveID uint) (*dtos.StrategicObjectiveRiskSummaryDTO, error) {
+	// Validate strategic objective exists
+	if _, err := sos.GetByID(strategicObjectiveID); err != nil {
+		return nil, err
+	}
+
+	// Delegate to repository
+	summary, err := sos.repo.GetRiskSummary(strategicObjectiveID)
+	if err != nil {
+		return nil, err
+	}
+
+	return summary, nil
 }

@@ -145,3 +145,18 @@ type StrategicObjectiveFocusAreaDTO struct {
 	TitleAr string `json:"title_ar"`
 	Status  string `json:"status"`
 }
+
+type StrategicObjectiveRiskSummaryDTO struct {
+	TotalRisks *int     `json:"total_risks,omitempty"`
+	HighRisks  *int     `json:"high_risks,omitempty"`
+	Coverage   *float64 `json:"coverage,omitempty"`
+
+	LastReviewed *string `json:"last_reviewed,omitempty"`
+
+	TopRisk *struct {
+		ID          *uint   `json:"id,omitempty"`
+		Title       *string `json:"title,omitempty"`
+		Rating      *string `json:"rating,omitempty"`
+		Description *string `json:"description,omitempty"`
+	} `json:"top_risk,omitempty"`
+}
