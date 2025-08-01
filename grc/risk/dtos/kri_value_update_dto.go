@@ -18,6 +18,7 @@ type KRIValueUpdateListDTO struct {
 	MediumThreshold             int                          `json:"medium_threshold"`
 	HighThreshold               int                          `json:"high_threshold"`
 	Remarks                     string                       `json:"remarks"`
+	IsLatest                    bool                         `json:"is_latest"`
 	CreatedAt                   string                       `json:"created_at"`
 	UpdatedAt                   string                       `json:"updated_at"`
 	CreatedUserID               uint                         `json:"created_user_id"`
@@ -45,6 +46,7 @@ type KRIValueUpdateFormDTO struct {
 	ReviewedDate string                           `json:"reviewed_date" binding:"required" gorm:"type:date;not null"`
 	Value        int                              `json:"value" binding:"required" gorm:"type:int;not null"`
 	Remarks      *string                          `json:"remarks" gorm:"type:nvarchar(max)"`
+	IsLatest     bool                             `json:"is_latest" gorm:"type:bit;not null"`
 	Documents    []*KRIValueUpdateDocumentFormDTO `json:"documents"`
 }
 
@@ -75,6 +77,7 @@ type KRIValueUpdateDetailsDTO struct {
 	MediumThreshold    int                          `json:"medium_threshold"`
 	HighThreshold      int                          `json:"high_threshold"`
 	Remarks            string                       `json:"remarks"`
+	IsLatest           bool                         `json:"is_latest"`
 	CreatedAt          time.Time                    `json:"created_at"`
 	UpdatedAt          *time.Time                   `json:"updated_at"`
 	Documents          []*KRIValueUpdateDocumentDTO `json:"documents"`

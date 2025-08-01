@@ -24,6 +24,8 @@ type KRIValueUpdateRepositoryInterface interface {
 	GetRisksByKriID(kriID uint) ([]*models.RiskRegister, error)
 
 	GetNextKRIValueUpdate(kriRegisterID uint, deletedIDs []uint, tx ...utility.DatabaseTransaction) (*models.KRIValueUpdate, error)
+
+	SetAllIsLatestFalse(kriRegisterID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type KRIValueUpdateRepository struct {
@@ -305,4 +307,14 @@ func (repo *KRIValueUpdateRepository) GetRisksByKriID(kriID uint) ([]*models.Ris
 	}
 
 	return risks, nil
+}
+
+func (repo *KRIValueUpdateRepository) SetAllIsLatestFalse(kriRegisterID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Model(&models.KRIValueUpdate{}).
+		Where("kri_register_id = ? AND is_latest = 1", kriRegisterID).
+		Update("is_latest", false).Error
 }
