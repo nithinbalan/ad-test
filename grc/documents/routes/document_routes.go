@@ -134,6 +134,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.GET("documents/:id/associated-item/clauses", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAssociatedItemController.GetAllDocumentClauses)
 	documentRoutes.PUT("documents/:id/associated-item/clauses", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.UpdateClauses)
 
+	documentRoutes.POST("/documents/:id/risks", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.CreateDocumentRisk)
+	documentRoutes.DELETE("/documents/:id/risks/:riskId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.DeleteDocumentRisk)
+
 	documentRoutes.GET("/document-change-request-initiate-types", documentChangeRequestInitiateTypeController.GetAllDocumentChangeRequestInitiateTypes)
 	documentRoutes.GET("/document-change-request-initiate-types/:id", documentChangeRequestInitiateTypeController.GetDocumentChangeRequestInitiateTypeDetails)
 
@@ -202,5 +205,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/documents/:id/requirement-groups/:requirementGroupId/requirements", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentRequirementController.CreateDocumentRequirement)
 	documentRoutes.PUT("/documents/:id/requirement-groups/:requirementGroupId/requirements/:requirementId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentRequirementController.UpdateDocumentRequirement)
 	documentRoutes.POST("/documents/:id/requirement-groups/:requirementGroupId/requirements/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentRequirementController.DeleteDocumentRequirements)
+
+	documentRoutes.POST("/documents/:id/requirements", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentRequirementController.CreateDocumentRequirements)
 
 }

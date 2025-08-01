@@ -19,6 +19,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	ComplianceLibraryController := app.LibraryModule.ComplianceLibraryController
 	KpiLibraryController := app.LibraryModule.KpiLibraryController
 	StrategicObjectiveLibraryController := app.LibraryModule.StrategicObjectiveLibraryController
+	VulnerabilityLibraryController := app.LibraryModule.VulnerabilityLibraryController
 
 	libraryRoutes.GET("/question-library", questionLibraryController.GetAllQuestionLibrary)
 	libraryRoutes.POST("/question-library", questionLibraryController.CreateQuestionLibrary)
@@ -62,4 +63,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	libraryRoutes.GET("/strategic-objective/export", StrategicObjectiveLibraryController.Export)
 	libraryRoutes.GET("/strategic-objective", StrategicObjectiveLibraryController.GetAll)
 	libraryRoutes.GET("/strategic-objective/category-count", StrategicObjectiveLibraryController.CountByCategory)
+
+	libraryRoutes.GET("/vulnerability-library/export", VulnerabilityLibraryController.Export)
+	libraryRoutes.GET("/vulnerability-library", VulnerabilityLibraryController.GetAll)
+	libraryRoutes.GET("/vulnerability-library/category-count", VulnerabilityLibraryController.CountByCategory)
 }

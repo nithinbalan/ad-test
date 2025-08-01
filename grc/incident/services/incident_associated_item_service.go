@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceServices "jethur/grc/compliance/services"
 	incidentDTOs "jethur/grc/incident/dtos"
 	incidentRepositories "jethur/grc/incident/repositories"
@@ -14,13 +15,15 @@ import (
 type IncidentAssociatedItemServiceInterface interface {
 	GetAllControls(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemControlListResponseDTO, error)
 	GetAllComplianceRequirements(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemComplianceRequirementListResponseDTO, error)
-	GetAllRisks(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemRiskListResponseDTO, error)
+	GetAllRisks(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllProcesses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemProcessListResponseDTO, error)
 	GetAllSLAs(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemSLAListResponseDTO, error)
 	GetAllDocuments(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemDocumentListResponseDTO, error)
 	GetAllAssets(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemAssetListResponseDTO, error)
-	GetAllClauses(incidentID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(incidentID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
+	CreateIncidentRisk(incidentID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
+	DeleteIncidentRisk(incidentID uint, riskID uint) error
 }
 
 // Service and implementations
@@ -28,18 +31,21 @@ type IncidentAssociatedItemService struct {
 	repo                incidentRepositories.IncidentAssociatedItemRepositoryInterface
 	incidentRegisterSvc IncidentRegisterServiceInterface
 	clauseSvc           complianceServices.ComplianceClauseServiceInterface
+	validationSvc       commonServices.AssociatedItemValidationServiceInterface
 }
 
 func NewIncidentAssociatedItemService(
 	repo incidentRepositories.IncidentAssociatedItemRepositoryInterface,
 	incidentRegisterSvc IncidentRegisterServiceInterface,
 	clauseSvc complianceServices.ComplianceClauseServiceInterface,
+	validationSvc commonServices.AssociatedItemValidationServiceInterface,
 
 ) IncidentAssociatedItemServiceInterface {
 	return &IncidentAssociatedItemService{
 		repo:                repo,
 		incidentRegisterSvc: incidentRegisterSvc,
 		clauseSvc:           clauseSvc,
+		validationSvc:       validationSvc,
 	}
 }
 
@@ -57,7 +63,7 @@ func (iais *IncidentAssociatedItemService) GetAllComplianceRequirements(incident
 	return iais.repo.GetAllComplianceRequirements(incidentID, params)
 }
 
-func (iais *IncidentAssociatedItemService) GetAllRisks(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemRiskListResponseDTO, error) {
+func (iais *IncidentAssociatedItemService) GetAllRisks(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
 	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return nil, err
 	}
@@ -92,7 +98,7 @@ func (iais *IncidentAssociatedItemService) GetAllAssets(incidentID uint, params 
 	return iais.repo.GetAllAssets(incidentID, params)
 }
 
-func (iais *IncidentAssociatedItemService) GetAllClauses(incidentID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+func (iais *IncidentAssociatedItemService) GetAllClauses(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return nil, err
 	}
@@ -202,4 +208,47 @@ func (iais *IncidentAssociatedItemService) validateClauseIDs(clauseIDs []uint, t
 	}
 
 	return clauses, nil
+}
+
+func (iais *IncidentAssociatedItemService) CreateIncidentRisk(incidentID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("Incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
+	}
+	if err := iais.validationSvc.ValidateRiskMapping(incidentID, dto.RiskIDs, "incident_risks", "incident_register_id"); err != nil {
+		return err
+	}
+	tx := iais.repo.BeginTransaction()
+	var mappings []*models.IncidentRisk
+	currentTime := time.Now()
+
+	for _, riskID := range dto.RiskIDs {
+		mappings = append(mappings, &models.IncidentRisk{
+			RiskRegisterID:     riskID,
+			IncidentRegisterID: incidentID,
+			CreatedByID:        userID,
+			CreatedAt:          currentTime,
+		})
+	}
+
+	if err := iais.repo.CreateIncidentRisk(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (iais *IncidentAssociatedItemService) DeleteIncidentRisk(incidentID uint, riskID uint) error {
+	// Validate control existence
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("Incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
+	}
+
+	tx := iais.repo.BeginTransaction()
+
+	if err := iais.repo.DeleteIncidentRisk(incidentID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }

@@ -19,19 +19,23 @@ type DocumentRequirementServiceInterface interface {
 	Create(documentId uint, requirementGroupId uint, currentUserID uint, dto *dtos.DocumentRequirementFormDTO) (uint, error)
 	Update(documentId uint, requirementGroupId uint, id uint, currentUserID uint, dto *dtos.DocumentRequirementFormDTO) (*models.DocumentRequirement, error)
 	Delete(documentId uint, requirementGroupId uint, ids []uint, currentUserID uint) ([]uint, error)
+
+	CreateDocumentRequirements(documentId uint, userId uint, groups []dtos.DocumentRequirementGroupWithRequirementsDTO) ([]uint, error)
 }
 
 type DocumentRequirementService struct {
 	repo                        repositories.DocumentRequirementRepositoryInterface
 	activityLogSvc              services.ActivityLogServiceInterface
 	documentRequirementGroupSvc DocumentRequirementGroupServiceInterface
+	documentSvc                 DocumentServiceInterface
 }
 
-func NewDocumentRequirementService(repo repositories.DocumentRequirementRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface, documentRequirementGroupSvc DocumentRequirementGroupServiceInterface) DocumentRequirementServiceInterface {
+func NewDocumentRequirementService(repo repositories.DocumentRequirementRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface, documentRequirementGroupSvc DocumentRequirementGroupServiceInterface, documentSvc DocumentServiceInterface) DocumentRequirementServiceInterface {
 	return &DocumentRequirementService{
 		repo:                        repo,
 		activityLogSvc:              activityLogSvc,
 		documentRequirementGroupSvc: documentRequirementGroupSvc,
+		documentSvc:                 documentSvc,
 	}
 }
 
@@ -204,4 +208,41 @@ func (drs *DocumentRequirementService) Delete(documentId uint, requirementGroupI
 	}
 
 	return failedIds, nil
+}
+
+func (drs *DocumentRequirementService) CreateDocumentRequirements(documentId uint, userId uint, groups []dtos.DocumentRequirementGroupWithRequirementsDTO) ([]uint, error) {
+	var groupIDs []uint
+
+	_, err := drs.documentSvc.GetByID(documentId, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, group := range groups {
+		groupDTO := &dtos.DocumentRequirementGroupFormDTO{
+			TitleEn: group.RequirementGroupTitleEn,
+			TitleAr: group.RequirementGroupTitleAr,
+			Status:  "active",
+		}
+
+		groupID, err := drs.documentRequirementGroupSvc.Create(documentId, userId, groupDTO)
+		if err != nil {
+			log.Printf("Failed to create group: %v", err)
+			continue
+		}
+		groupIDs = append(groupIDs, groupID)
+
+		for _, r := range group.Requirements {
+			formDTO := &dtos.DocumentRequirementFormDTO{
+				TitleEn: r.RequirementTitleEn,
+				TitleAr: r.RequirementTitleAr,
+			}
+
+			if _, err := drs.Create(documentId, groupID, userId, formDTO); err != nil {
+				log.Printf("Failed to save requirement: %v", err)
+			}
+		}
+	}
+
+	return groupIDs, nil
 }

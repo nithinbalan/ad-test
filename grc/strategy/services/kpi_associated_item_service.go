@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	assetServices "jethur/grc/asset/services"
+	commonDTOs "jethur/grc/common/dtos"
 	complianceServices "jethur/grc/compliance/services"
 	documentServices "jethur/grc/documents/services"
 	"jethur/grc/models"
@@ -32,7 +33,7 @@ type KPIAssociatedItemServiceInterface interface {
 	CreateKPIAssets(kpiID, userID uint, dto *strategyDTOs.KPIAssetMapDTO) error
 	DeleteKPIAsset(kpiID, assetID uint) error
 
-	GetAllRisks(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemRiskListResponseDTO, error)
+	GetAllRisks(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	CreateKPIRisks(kpiID, userID uint, dto *strategyDTOs.KPIRiskMapDTO) error
 	DeleteKPIRisk(kpiID, riskID uint) error
 
@@ -43,6 +44,9 @@ type KPIAssociatedItemServiceInterface interface {
 	GetAllPolicies(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemPolicyListResponseDTO, error)
 	CreateKPIPolicies(kpiID, userID uint, dto *strategyDTOs.KPIPolicyMapDTO) error
 	DeleteKPIPolicy(kpiID, documentID uint) error
+
+	GetAllClauses(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	UpdateClauses(kpiID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 }
 
 // Service and implementations
@@ -56,6 +60,7 @@ type KPIAssociatedItemService struct {
 	thirdPartySvc  tprmServices.ThirdPartyRegisterServiceInterface
 	complianceSvc  complianceServices.ComplianceRegisterServiceInterface
 	documentSvc    documentServices.DocumentServiceInterface
+	clauseSvc      complianceServices.ComplianceClauseServiceInterface
 }
 
 func NewKPIAssociatedItemService(
@@ -68,6 +73,7 @@ func NewKPIAssociatedItemService(
 	thirdPartySvc tprmServices.ThirdPartyRegisterServiceInterface,
 	complianceSvc complianceServices.ComplianceRegisterServiceInterface,
 	documentSvc documentServices.DocumentServiceInterface,
+	clauseSvc complianceServices.ComplianceClauseServiceInterface,
 ) KPIAssociatedItemServiceInterface {
 	return &KPIAssociatedItemService{
 		repo:           repo,
@@ -79,6 +85,7 @@ func NewKPIAssociatedItemService(
 		thirdPartySvc:  thirdPartySvc,
 		complianceSvc:  complianceSvc,
 		documentSvc:    documentSvc,
+		clauseSvc:      clauseSvc,
 	}
 }
 
@@ -379,7 +386,7 @@ func (kais *KPIAssociatedItemService) validateAssetIDs(kpiID uint, assetIDs []ui
 }
 
 // Risks
-func (kais *KPIAssociatedItemService) GetAllRisks(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemRiskListResponseDTO, error) {
+func (kais *KPIAssociatedItemService) GetAllRisks(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
 	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
 		return nil, err
 	}
@@ -598,4 +605,112 @@ func (kais *KPIAssociatedItemService) validateDocumentIDs(kpiID uint, documentID
 		seen[id] = true
 	}
 	return nil
+}
+func (kais *KPIAssociatedItemService) GetAllClauses(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
+		return nil, err
+	}
+
+	response, err := kais.repo.GetAllClauses(kpiID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (kais *KPIAssociatedItemService) UpdateClauses(kpiID uint, currentUserID uint, RiskClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error {
+
+	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
+		return err
+	}
+	tx := kais.repo.BeginTransaction()
+	clauses, err := kais.validateClauseIDs(RiskClauseFormDTO.ClauseIDs, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingControlClauses, err := kais.repo.GetClausesByKPIID(kpiID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingClauses := make(map[uint]bool) // clauseID => exists
+	for _, clauseID := range existingControlClauses {
+		existingClauses[clauseID] = true
+	}
+
+	newClauses := make(map[uint]*models.ComplianceClause)
+	for _, clause := range clauses {
+		newClauses[clause.ID] = clause
+	}
+
+	var clausesToAdd []*models.KPICompliance
+	now := time.Now()
+	for id, clause := range newClauses {
+		if !existingClauses[id] {
+			clausesToAdd = append(clausesToAdd, &models.KPICompliance{
+				KPIRegisterID:        kpiID,
+				ComplianceRegisterID: clause.ComplianceRegisterID,
+				ComplianceClauseID:   &clause.ID,
+				CreatedByID:          currentUserID,
+				CreatedAt:            now,
+			})
+		}
+	}
+
+	if len(clausesToAdd) > 0 {
+		if err := kais.repo.CreateKPIClauses(clausesToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteClauseIDs []uint
+	for existingID := range existingClauses {
+		if _, found := newClauses[existingID]; !found {
+			deleteClauseIDs = append(deleteClauseIDs, existingID)
+		}
+	}
+
+	if len(deleteClauseIDs) > 0 {
+		if err := kais.repo.DeleteKPIClauses(kpiID, deleteClauseIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+
+	return nil
+}
+func (kais *KPIAssociatedItemService) validateClauseIDs(clauseIDs []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error) {
+	seen := make(map[uint]bool)
+	for _, id := range clauseIDs {
+		if seen[id] {
+			return nil, utility.NewValidationError(fmt.Errorf("duplicate clause ID: %d", id), "duplicate", "clause_id")
+		}
+		seen[id] = true
+	}
+
+	clauses, err := kais.clauseSvc.GetClausesByIDs(clauseIDs, tx...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch clauses: %w", err)
+	}
+
+	foundClauseIDs := make(map[uint]bool)
+	for _, clause := range clauses {
+		foundClauseIDs[clause.ID] = true
+	}
+
+	for _, id := range clauseIDs {
+		if !foundClauseIDs[id] {
+			return nil, utility.NewValidationError(
+				fmt.Errorf("clause does not exist for ID: %d", id), "not_exist", "clause_id")
+		}
+	}
+
+	return clauses, nil
 }

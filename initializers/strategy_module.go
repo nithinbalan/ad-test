@@ -139,7 +139,7 @@ func NewStrategyModule(db *gorm.DB,
 	kpiValueUpdateController := controllers.NewKPIValueUpdateController(kpiValueUpdateSvc)
 
 	kpiAssociatedItemRepo := repositories.NewKPIAssociatedItemRepository(db)
-	kpiAssociatedItemSvc := services.NewKPIAssociatedItemService(kpiAssociatedItemRepo, kpiRegisterSvc, organizationModule.ControlSvc, organizationModule.ProcessSvc, assetModule.AssetRegisterSvc, riskModule.RiskRegisterSvc, tprmModule.ThirdPartyRegisterSvc, complianceModule.ComplianceRegisterSvc, documentModule.DocumentSvc)
+	kpiAssociatedItemSvc := services.NewKPIAssociatedItemService(kpiAssociatedItemRepo, kpiRegisterSvc, organizationModule.ControlSvc, organizationModule.ProcessSvc, assetModule.AssetRegisterSvc, riskModule.RiskRegisterSvc, tprmModule.ThirdPartyRegisterSvc, complianceModule.ComplianceRegisterSvc, documentModule.DocumentSvc, complianceModule.ComplianceClausevc)
 	kpiAssociatedItemController := controllers.NewKPIAssociatedItemController(kpiAssociatedItemSvc)
 
 	focusAreaRepository := repositories.NewFocusAreaRepository(db)
@@ -159,7 +159,7 @@ func NewStrategyModule(db *gorm.DB,
 	strategicIntiativeSvc := services.NewStrategicIntiativeService(strategicIntiativeRepo, sharedModule.ActivityLogService, settingsModule.OrganizationUnitSvc, organizationModule.UserSvc)
 	strategicIntiativeController := controllers.NewStrategicIntiativeController(strategicIntiativeSvc)
 	strategicObjectiveAssociatedItemRepo := repositories.NewStrategicObectiveAssociatedItemRepository(db)
-	strategicObjectiveAssociatedItemSvc := services.NewstrategicObjectiveAssociatedItemService(strategicObjectiveAssociatedItemRepo, strategicObjectiveSvc, complianceModule.ComplianceClausevc)
+	strategicObjectiveAssociatedItemSvc := services.NewstrategicObjectiveAssociatedItemService(strategicObjectiveAssociatedItemRepo, strategicObjectiveSvc, complianceModule.ComplianceClausevc, commonModule.AssociatedItemValidationService)
 	strategicObjectiveAssociatedItemController := controllers.NewStrategicObjectiveAssociatedItemController(strategicObjectiveAssociatedItemSvc)
 
 	strategyProfileKpiRepo := repositories.NewStrategyProfileKpiRepository(db)

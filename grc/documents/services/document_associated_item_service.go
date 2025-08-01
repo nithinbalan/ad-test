@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	documentDTOs "jethur/grc/documents/dtos"
 	documentRepsitories "jethur/grc/documents/repositories"
 	"jethur/grc/models"
@@ -18,25 +19,30 @@ type DocumentAssociatedItemServiceInterface interface {
 	GetAllProcesses(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemProcessListResponseDTO, error)
 	GetAllSLAs(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemSLAListResponseDTO, error)
 	GetAllIncidents(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemIncidentListResponseDTO, error)
-	GetAllRisks(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemRiskListResponseDTO, error)
-	GetAllClauses(documentID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	GetAllRisks(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
+	GetAllClauses(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(documentID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
+	CreateDocumentRisk(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
+	DeleteDocumentRisk(documentID uint, riskID uint) error
 }
 
 // Service Implementation
 type DocumentAssociatedItemService struct {
-	repo        documentRepsitories.DocumentAssociatedItemRepositoryInterface
-	documentSvc DocumentServiceInterface
+	repo          documentRepsitories.DocumentAssociatedItemRepositoryInterface
+	documentSvc   DocumentServiceInterface
+	validationSvc commonServices.AssociatedItemValidationServiceInterface
 }
 
 // Constructor Function
 func NewDocumentAssociatedItemService(
 	repo documentRepsitories.DocumentAssociatedItemRepositoryInterface,
 	documentSvc DocumentServiceInterface,
+	validationSvc commonServices.AssociatedItemValidationServiceInterface,
 ) DocumentAssociatedItemServiceInterface {
 	return &DocumentAssociatedItemService{
-		repo:        repo,
-		documentSvc: documentSvc,
+		repo:          repo,
+		documentSvc:   documentSvc,
+		validationSvc: validationSvc,
 	}
 }
 
@@ -128,14 +134,14 @@ func (dais *DocumentAssociatedItemService) GetAllIncidents(documentID uint, para
 	return dais.repo.GetAllIncidents(documentID, params)
 }
 
-func (dais *DocumentAssociatedItemService) GetAllRisks(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemRiskListResponseDTO, error) {
+func (dais *DocumentAssociatedItemService) GetAllRisks(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
 	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
 		return nil, err
 	}
 	return dais.repo.GetAllRisks(documentID, params)
 }
 
-func (dais *DocumentAssociatedItemService) GetAllClauses(documentID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+func (dais *DocumentAssociatedItemService) GetAllClauses(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
 		return nil, err
 	}
@@ -246,4 +252,47 @@ func (dais *DocumentAssociatedItemService) validateClauseIDs(clauseIDs []uint, t
 	}
 
 	return clauses, nil
+}
+
+func (dais *DocumentAssociatedItemService) CreateDocumentRisk(documentID, currentUserID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", documentID), "not_exist", "document_id")
+	}
+	if err := dais.validationSvc.ValidateRiskMapping(documentID, dto.RiskIDs, "risk_associated_documents", "document_id"); err != nil {
+		return err
+	}
+	tx := dais.repo.BeginTransaction()
+	var mappings []*models.RiskAssociatedDocument
+	currentTime := time.Now()
+
+	for _, riskID := range dto.RiskIDs {
+		mappings = append(mappings, &models.RiskAssociatedDocument{
+			RiskRegisterID: riskID,
+			DocumentID:     documentID,
+			CreatedByID:    currentUserID,
+			CreatedAt:      currentTime,
+		})
+	}
+
+	if err := dais.repo.CreateDocumentRisk(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) DeleteDocumentRisk(documentID uint, riskID uint) error {
+	// Validate control existence
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", documentID), "not_exist", "document_id")
+	}
+
+	tx := dais.repo.BeginTransaction()
+
+	if err := dais.repo.DeleteDocumentRisk(documentID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }

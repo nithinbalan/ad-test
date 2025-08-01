@@ -14,6 +14,7 @@ type KRIValueUpdate struct {
 	MediumThreshold *int       `json:"medium_threshold" gorm:"type:int;null"`
 	HighThreshold   *int       `json:"high_threshold" gorm:"type:int;null"`
 	Remarks         *string    `json:"remarks" gorm:"type:nvarchar(max)"`
+	IsLatest        bool       `json:"is_latest" gorm:"type:bit;not null"`
 	CreatedAt       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt       *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedByID     uint       `json:"created_by_id" gorm:"not null"`

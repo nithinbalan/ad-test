@@ -6,6 +6,7 @@ import (
 	"jethur/grc/organization/services"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -236,4 +237,99 @@ func (ctc *ControlTestController) GetControlTestTrendAnalysis(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusOK, controlTrend)
+}
+
+func (ctc *ControlTestController) GetControlTestDocumentPreview(c *gin.Context) {
+	controlIDStr := c.Param("controlId")
+	controlTestIDStr := c.Param("controlTestId")
+	idStr := c.Param("id")
+
+	controlID, err := strconv.ParseUint(controlIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	controlTestID, err := strconv.ParseUint(controlTestIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := ctc.service.GetDocumentPath(uint(controlID), uint(controlTestID), uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(ctc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(documentPath)
+}
+
+func (ctc *ControlTestController) DownloadControlTestDocument(c *gin.Context) {
+	controlIDStr := c.Param("controlId")
+	controlTestIDStr := c.Param("controlTestId")
+	idStr := c.Param("id")
+
+	controlID, err := strconv.ParseUint(controlIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	controlTestID, err := strconv.ParseUint(controlTestIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := ctc.service.GetDocumentPath(uint(controlID), uint(controlTestID), uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(ctc.db, c, err.Error())
+		}
+		return
+	}
+
+	filename := filepath.Base(documentPath)
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	c.File(documentPath)
 }
