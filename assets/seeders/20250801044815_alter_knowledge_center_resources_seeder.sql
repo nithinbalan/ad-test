@@ -1,13 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
-
--- Get the status ID for 'new'
-DECLARE @new_status_id INT;
-SELECT @new_status_id = id FROM knowledge_center_resource_statuses WHERE title_en = 'New';
-
--- Update KPI Library and Strategic Objectives Library status to 'New'
 UPDATE knowledge_center_resources
-SET knowledge_center_resource_status_id = @new_status_id
+SET knowledge_center_resource_status_id = NULL
 WHERE title_en IN ('KPI Library', 'Strategic Objectives Library');
 
 -- +goose StatementEnd
