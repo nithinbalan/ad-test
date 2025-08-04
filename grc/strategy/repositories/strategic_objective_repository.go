@@ -376,35 +376,51 @@ func (repo *StrategicObjectiveRepository) GetRiskSummary(strategicObjectiveID ui
 	err = repo.db.Model(&models.RiskStrategicObjective{}).
 		Joins("JOIN risk_register rr ON risk_strategic_objectives.risk_register_id = rr.id").
 		Joins("JOIN risk_matrix_risk_rating_values rmrrv ON rr.current_risk_rating_value_id = rmrrv.id").
-		Joins("JOIN risk_matrix_risk_ratings rmrr ON rmrrv.risk_matrix_risk_rating_id = rmrr.id").
-		Where("risk_strategic_objectives.strategic_objective_id = ? AND (LOWER(rmrr.type) = 'high' OR LOWER(rmrr.type) = 'very_high')", strategicObjectiveID).
+		Joins("JOIN (SELECT MAX(value) as max_value FROM risk_matrix_risk_rating_values) max_vals ON rmrrv.value = max_vals.max_value").
+		Where("risk_strategic_objectives.strategic_objective_id = ?", strategicObjectiveID).
 		Count(&highRisks).Error
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to count high risks: %w", err)
 	}
 
 	highRisksInt := int(highRisks)
 	result.HighRisks = &highRisksInt
 
+	// Count risks that have controls mapped to them
+	var controlledRisks int64
+	err = repo.db.Model(&models.RiskStrategicObjective{}).
+		Joins("JOIN risk_register rr ON risk_strategic_objectives.risk_register_id = rr.id").
+		Joins("JOIN risk_controls rc ON rr.id = rc.risk_register_id").
+		Where("risk_strategic_objectives.strategic_objective_id = ?", strategicObjectiveID).
+		Count(&controlledRisks).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to count controlled risks: %w", err)
+	}
+
 	// Calculate coverage (if applicable)
 	var coverage float64
 	if totalRisks > 0 {
-		coverage = float64(highRisks) / float64(totalRisks) * 100
+		coverage = float64(controlledRisks) / float64(totalRisks) * 100
 	}
 	result.Coverage = &coverage
 
-	// Get last reviewed date (from risk_register.submitted_at)
+	// Also store the count of controlled risks
+	controlledRisksInt := int(controlledRisks)
+	result.ControllRiskCount = &controlledRisksInt
+
+	// Get last reviewed date from kpi_register's LastReviewedDate
 	var lastReviewed *time.Time
-	err = repo.db.Model(&models.RiskRegister{}).
-		Joins("JOIN risk_strategic_objectives rso ON rso.risk_register_id = risk_register.id").
-		Where("rso.strategic_objective_id = ? AND risk_register.submitted_at IS NOT NULL", strategicObjectiveID).
-		Order("risk_register.submitted_at DESC").
+	err = repo.db.Model(&models.KPIRegister{}).
+		Joins("JOIN strategy_profile_kpis spk ON spk.kpi_id = kpi_register.id").
+		Where("spk.strategy_profile_id = ? AND kpi_register.last_reviewed_date IS NOT NULL", strategicObjectiveID).
+		Order("kpi_register.last_reviewed_date DESC").
 		Limit(1).
-		Pluck("risk_register.submitted_at", &lastReviewed).Error
+		Pluck("kpi_register.last_reviewed_date", &lastReviewed).Error
 
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, err
+		return nil, fmt.Errorf("failed to get last reviewed date: %w", err)
 	}
 
 	if lastReviewed != nil {
@@ -414,22 +430,32 @@ func (repo *StrategicObjectiveRepository) GetRiskSummary(strategicObjectiveID ui
 
 	// Get top risk (highest severity)
 	var topRisk struct {
-		ID          *uint
-		Title       *string
-		Rating      *string
-		Description *string
+		ID                *uint
+		Title             *string
+		Rating            *string
+		Description       *string
+		ImpactTitleEn     *string `gorm:"column:impact_title_en"`
+		ImpactTitleAr     *string `gorm:"column:impact_title_ar"`
+		LikelihoodTitleEn *string `gorm:"column:likelihood_title_en"`
+		LikelihoodTitleAr *string `gorm:"column:likelihood_title_ar"`
 	}
 
 	err = repo.db.Raw(`
-		SELECT 
-			rr.id,
-			rr.title,
-			rmrr.type AS rating,
-			rr.description
+	SELECT 
+		rr.id,
+		rr.title,
+		rmrr.type AS rating,
+		rr.description,
+		rmi.title_en AS impact_title_en,
+		rmi.title_ar AS impact_title_ar,
+		rml.title_en AS likelihood_title_en,
+		rml.title_ar AS likelihood_title_ar
 		FROM risk_strategic_objectives rso
 		JOIN risk_register rr ON rso.risk_register_id = rr.id
 		JOIN risk_matrix_risk_rating_values rmrrv ON rr.current_risk_rating_value_id = rmrrv.id
 		JOIN risk_matrix_risk_ratings rmrr ON rmrrv.risk_matrix_risk_rating_id = rmrr.id
+		LEFT JOIN risk_matrix_impacts rmi ON rr.current_impact_id = rmi.id
+		LEFT JOIN risk_matrix_likelihoods rml ON rr.current_likelihood_id = rml.id
 		WHERE rso.strategic_objective_id = ?
 		ORDER BY 
 			CASE 
@@ -442,7 +468,7 @@ func (repo *StrategicObjectiveRepository) GetRiskSummary(strategicObjectiveID ui
 			END,
 			rr.updated_at DESC
 		OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY
-	`, strategicObjectiveID).Scan(&topRisk).Error
+`, strategicObjectiveID).Scan(&topRisk).Error
 
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
@@ -450,15 +476,23 @@ func (repo *StrategicObjectiveRepository) GetRiskSummary(strategicObjectiveID ui
 
 	if topRisk.ID != nil {
 		result.TopRisk = &struct {
-			ID          *uint   `json:"id,omitempty"`
-			Title       *string `json:"title,omitempty"`
-			Rating      *string `json:"rating,omitempty"`
-			Description *string `json:"description,omitempty"`
+			ID                *uint   `json:"id,omitempty"`
+			Title             *string `json:"title,omitempty"`
+			Rating            *string `json:"rating,omitempty"`
+			Description       *string `json:"description,omitempty"`
+			ImpactTitleEn     *string `json:"impact_title_en,omitempty"`
+			ImpactTitleAr     *string `json:"impact_title_ar,omitempty"`
+			LikelihoodTitleEn *string `json:"likelihood_title_en,omitempty"`
+			LikelihoodTitleAr *string `json:"likelihood_title_ar,omitempty"`
 		}{
-			ID:          topRisk.ID,
-			Title:       topRisk.Title,
-			Rating:      topRisk.Rating,
-			Description: topRisk.Description,
+			ID:                topRisk.ID,
+			Title:             topRisk.Title,
+			Rating:            topRisk.Rating,
+			Description:       topRisk.Description,
+			ImpactTitleEn:     topRisk.ImpactTitleEn,
+			ImpactTitleAr:     topRisk.ImpactTitleAr,
+			LikelihoodTitleEn: topRisk.LikelihoodTitleEn,
+			LikelihoodTitleAr: topRisk.LikelihoodTitleAr,
 		}
 	}
 
