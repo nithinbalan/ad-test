@@ -120,40 +120,43 @@ func (snec *StrategyProfileKpiController) CreateStrategyProfileKpi(c *gin.Contex
 }
 
 func (snec *StrategyProfileKpiController) DeleteStrategyProfileKpi(c *gin.Context) {
+	// Get parameters from URL
 	strategyProfileIDStr := c.Param("strategyProfileId")
+	kpiIDStr := c.Param("id")
+
+	// Convert string parameters to uint
 	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	kpiIDStr := c.Param("id")
 	kpiID, err := strconv.ParseUint(kpiIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
+	// Get current user ID from context
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(snec.db, c, err.Error())
+		utility.SendInternalErrResp(snec.db, c, "Failed to get current user: "+err.Error())
 		return
 	}
 
+	// Call service to delete the KPI
 	err = snec.service.Delete(uint(strategyProfileID), uint(kpiID), currentUserID)
 	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
+		if _, ok := err.(*utility.ResourceNotFoundError); ok {
 			utility.SendNotFoundErrResp(c)
 			return
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		default:
-			utility.SendInternalErrResp(snec.db, c, e.Error())
-			return
 		}
+		utility.SendInternalErrResp(snec.db, c, "Failed to delete strategy profile KPI: "+err.Error())
+		return
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Strategy profile KPI deleted successfully",
+	})
 }

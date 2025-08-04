@@ -33,12 +33,14 @@ type KPIValueUpdateServiceInterface interface {
 
 // Service and implementations
 type KPIValueUpdateService struct {
-	repo               strategyRepositories.KPIValueUpdateRepositoryInterface
-	activityLogSvc     logServices.ActivityLogServiceInterface
-	kpiRegisterSvc     KPIRegisterServiceInterface
-	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface
-	userSvc            organizationServices.UserServiceInterface
-	notificationSvc    commonServices.NotificationServiceInterface
+	repo                                 strategyRepositories.KPIValueUpdateRepositoryInterface
+	activityLogSvc                       logServices.ActivityLogServiceInterface
+	kpiRegisterSvc                       KPIRegisterServiceInterface
+	reviewFrequencySvc                   masterServices.ReviewFrequencyServiceInterface
+	userSvc                              organizationServices.UserServiceInterface
+	notificationSvc                      commonServices.NotificationServiceInterface
+	strategyProfileKpiSvc                StrategyProfileKpiServiceInterface
+	strategyProfileStrategicObjectiveSvc StrategyProfileStrategicObjectiveServiceInterface
 }
 
 func NewKPIValueUpdateService(
@@ -48,14 +50,18 @@ func NewKPIValueUpdateService(
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	strategyProfileKpiSvc StrategyProfileKpiServiceInterface,
+	strategyProfileStrategicObjectiveSvc StrategyProfileStrategicObjectiveServiceInterface,
 ) KPIValueUpdateServiceInterface {
 	return &KPIValueUpdateService{
-		repo:               repo,
-		activityLogSvc:     activityLogSvc,
-		kpiRegisterSvc:     kpiRegisterSvc,
-		reviewFrequencySvc: reviewFrequencySvc,
-		userSvc:            userSvc,
-		notificationSvc:    notificationSvc,
+		repo:                                 repo,
+		activityLogSvc:                       activityLogSvc,
+		kpiRegisterSvc:                       kpiRegisterSvc,
+		reviewFrequencySvc:                   reviewFrequencySvc,
+		userSvc:                              userSvc,
+		notificationSvc:                      notificationSvc,
+		strategyProfileKpiSvc:                strategyProfileKpiSvc,
+		strategyProfileStrategicObjectiveSvc: strategyProfileStrategicObjectiveSvc,
 	}
 }
 
@@ -127,6 +133,62 @@ func (kvus *KPIValueUpdateService) Create(kpiRegisterID, currentUserID uint, kpi
 	err = kvus.kpiRegisterSvc.UpdateValue(existingKPIRegister, tx)
 	if err != nil {
 		return 0, err
+	}
+
+	// Update Weighted value in each associated StrategyProfileKPI
+	// Get all objectives that include this KPI
+	objectives, err := kvus.strategyProfileKpiSvc.GetObjectivesForKPI(kpiRegisterID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to get objectives for KPI: %w", err)
+	}
+
+	// For each objective, calculate and update its score
+	for _, objective := range objectives {
+		//Get all KPIs for this objective
+		kpis, err := kvus.strategyProfileKpiSvc.GetKPIsForObjective(objective.ID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to get KPIs for objective %d: %w", objective.ID, err)
+		}
+
+		var totalWeightedScore float64
+		var totalWeightage float64
+		hasValidScores := false
+
+		// Calculate total weighted score and total weightage
+		for _, kpi := range kpis {
+			if kpi.KpiID == nil {
+				continue
+			}
+
+			// Get the KPI register to access the achievement
+			kpiRegister := kpi.Kpi
+
+			if kpiRegister.Achievement == nil || kpiRegister.Weightage == nil {
+				continue
+			}
+
+			// Calculate weighted score on the fly
+			weightedScore := (*kpiRegister.Achievement * *kpiRegister.Weightage)
+			totalWeightedScore += weightedScore
+			totalWeightage += *kpiRegister.Weightage
+			hasValidScores = true
+		}
+
+		// Calculate and update the objective score
+		var score *float64
+		if hasValidScores && totalWeightage > 0 {
+			calculatedScore := (totalWeightedScore / totalWeightage)
+			score = &calculatedScore
+		}
+
+		// Update the objective's score
+		objective.Score = score
+		if err := kvus.strategyProfileStrategicObjectiveSvc.UpdateObjectiveScore(objective, tx); err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to update objective score for objective %d: %w", objective.ID, err)
+		}
 	}
 
 	var documents []*models.KPIValueUpdateDocument

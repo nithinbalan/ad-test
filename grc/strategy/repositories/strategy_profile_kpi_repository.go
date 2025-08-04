@@ -14,6 +14,8 @@ type StrategyProfileKpiRepositoryInterface interface {
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileKpi, error)
 	Create(kpi *models.StrategyProfileKpi, tx ...utility.DatabaseTransaction) (uint, error)
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	GetObjectivesForKPI(kpiID uint, tx ...utility.DatabaseTransaction) ([]*models.StrategyProfileStrategicObjective, error)
+	GetKPIsForObjective(objectiveID uint, tx ...utility.DatabaseTransaction) ([]*models.StrategyProfileKpi, error)
 }
 
 type StrategyProfileKpiRepository struct {
@@ -124,19 +126,22 @@ func (repo *StrategyProfileKpiRepository) GetAll(strategyProfileID uint, params 
 
 // GetByID fetches a single objective by ID
 func (repo *StrategyProfileKpiRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileKpi, error) {
-	var kpi *models.StrategyProfileKpi
+	var kpi models.StrategyProfileKpi
+	q := repo.db
 
-	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
+		q = tx[0].DB()
 	}
 
-	result := db.First(&kpi, id)
-	if result.Error != nil {
-		return nil, result.Error
+	err := q.Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&kpi, id).Error
+
+	if err != nil {
+		return nil, err
 	}
 
-	return kpi, nil
+	return &kpi, nil
 }
 
 // Create inserts a new objective record
@@ -164,4 +169,37 @@ func (repo *StrategyProfileKpiRepository) Delete(id uint, tx ...utility.Database
 		return err
 	}
 	return nil
+}
+
+func (repo *StrategyProfileKpiRepository) GetObjectivesForKPI(kpiID uint, tx ...utility.DatabaseTransaction) ([]*models.StrategyProfileStrategicObjective, error) {
+	var objectives []*models.StrategyProfileStrategicObjective
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	err := db.
+		Joins("JOIN strategy_profile_kpis ON strategy_profile_kpis.strategy_profile_strategic_objective_id = strategy_profile_strategic_objectives.id").
+		Where("strategy_profile_kpis.kpi_id = ?", kpiID).
+		Find(&objectives).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return objectives, nil
+}
+func (repo *StrategyProfileKpiRepository) GetKPIsForObjective(objectiveID uint, tx ...utility.DatabaseTransaction) ([]*models.StrategyProfileKpi, error) {
+	var kpis []*models.StrategyProfileKpi
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	err := db.
+		Preload("Kpi").
+		Where("strategy_profile_strategic_objective_id = ?", objectiveID).
+		Find(&kpis).Error
+	if err != nil {
+		return nil, err
+	}
+	return kpis, nil
 }

@@ -14,6 +14,7 @@ type StrategyProfileStrategicObjectiveRepositoryInterface interface {
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileStrategicObjective, error)
 	Create(objective *models.StrategyProfileStrategicObjective, tx ...utility.DatabaseTransaction) (uint, error)
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	Update(objective *models.StrategyProfileStrategicObjective, tx ...utility.DatabaseTransaction) error
 }
 
 type StrategyProfileStrategicObjectiveRepository struct {
@@ -167,6 +168,18 @@ func (repo *StrategyProfileStrategicObjectiveRepository) Delete(id uint, tx ...u
 	}
 
 	if err := db.Delete(&models.StrategyProfileStrategicObjective{}, id).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *StrategyProfileStrategicObjectiveRepository) Update(objective *models.StrategyProfileStrategicObjective, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Save(objective).Error; err != nil {
 		return err
 	}
 	return nil

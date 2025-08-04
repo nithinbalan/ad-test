@@ -133,10 +133,6 @@ func NewStrategyModule(db *gorm.DB,
 		masterModule.ReviewStatusSvc,
 		masterModule.ReviewFrequencySvc,
 	)
-	strategicObjectivePeriodicReviewController := controllers.NewStrategicObjectivePeriodicReviewController(strategicObjectivePeriodicReviewSvc)
-	kpiValueUpdateRepo := repositories.NewKPIValueUpdateRepository(db)
-	kpiValueUpdateSvc := services.NewKPIValueUpdateService(kpiValueUpdateRepo, sharedModule.ActivityLogService, kpiRegisterSvc, masterModule.ReviewFrequencySvc, organizationModule.UserSvc, commonModule.NotificationService)
-	kpiValueUpdateController := controllers.NewKPIValueUpdateController(kpiValueUpdateSvc)
 
 	kpiAssociatedItemRepo := repositories.NewKPIAssociatedItemRepository(db)
 	kpiAssociatedItemSvc := services.NewKPIAssociatedItemService(kpiAssociatedItemRepo, kpiRegisterSvc, organizationModule.ControlSvc, organizationModule.ProcessSvc, assetModule.AssetRegisterSvc, riskModule.RiskRegisterSvc, tprmModule.ThirdPartyRegisterSvc, complianceModule.ComplianceRegisterSvc, documentModule.DocumentSvc, complianceModule.ComplianceClausevc)
@@ -181,6 +177,11 @@ func NewStrategyModule(db *gorm.DB,
 	strategyProfileProjectActionPlanRepo := repositories.NewStrategyProfileProjectActionPlanRepository(db)
 	strategyProfileProjectActionPlanSvc := services.NewStrategyProfileProjectActionPlanService(strategyProfileProjectActionPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc, strategyProfileProjectSvc, strategyProfileProjectMilestoneSvc, projectModule.projectActionPlanSvc)
 	strategyProfileProjectActionPlanController := controllers.NewStrategyProfileProjectActionPlanController(strategyProfileProjectActionPlanSvc)
+
+	strategicObjectivePeriodicReviewController := controllers.NewStrategicObjectivePeriodicReviewController(strategicObjectivePeriodicReviewSvc)
+	kpiValueUpdateRepo := repositories.NewKPIValueUpdateRepository(db)
+	kpiValueUpdateSvc := services.NewKPIValueUpdateService(kpiValueUpdateRepo, sharedModule.ActivityLogService, kpiRegisterSvc, masterModule.ReviewFrequencySvc, organizationModule.UserSvc, commonModule.NotificationService, strategyProfileKpiSvc, strategyProfileStrategicObjectiveSvc)
+	kpiValueUpdateController := controllers.NewKPIValueUpdateController(kpiValueUpdateSvc)
 
 	return &StrategyModule{
 		StrategyProfileController:                       strategyProfileController,

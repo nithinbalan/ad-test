@@ -28,6 +28,7 @@ type KPIRegisterRepositoryInterface interface {
 	GetTrendAnalysis(kpiId uint, limit int) ([]*models.KPIValueUpdate, error)
 	GetLatestValueUpdate(kpiId uint) (*models.KPIValueUpdate, error)
 	GenerateReferenceNumber() (string, error)
+	GetByIDs(ids []uint) ([]*models.KPIRegister, error)
 }
 
 type KPIRegisterRepository struct {
@@ -331,4 +332,16 @@ func (repo *KPIRegisterRepository) GenerateReferenceNumber() (string, error) {
 
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "KPI", currentYear, lastReferenceID+1)
 	return newReferenceNumber, nil
+}
+
+func (repo *KPIRegisterRepository) GetByIDs(ids []uint) ([]*models.KPIRegister, error) {
+	if len(ids) == 0 {
+		return []*models.KPIRegister{}, nil
+	}
+	var kpiRegisters []*models.KPIRegister
+	err := repo.db.Where("id IN (?)", ids).Find(&kpiRegisters).Error
+	if err != nil {
+		return nil, err
+	}
+	return kpiRegisters, nil
 }

@@ -26,6 +26,7 @@ type KPIRegisterServiceInterface interface {
 	UpdateValue(kpiRegister *models.KPIRegister, tx utility.DatabaseTransaction) error
 	GetTrendAnalysis(kpiID uint, limit int) ([]*strategyDTOs.KPITrendAnalysisDTO, error)
 	GetLatestValueUpdateByKPIRegisterID(kpiRegisterID uint) (*models.KPIValueUpdate, error)
+	GetByIDs(ids []uint) ([]*models.KPIRegister, error)
 }
 
 // Service and implementations
@@ -479,4 +480,15 @@ func (krs *KPIRegisterService) GetLatestValueUpdateByKPIRegisterID(kpiRegisterID
 		return nil, err
 	}
 	return valueUpdate, nil // This will be nil, nil when no record is found
+}
+
+func (s *KPIRegisterService) GetByIDs(ids []uint) ([]*models.KPIRegister, error) {
+	if len(ids) == 0 {
+		return []*models.KPIRegister{}, nil
+	}
+	kpiRegisters, err := s.repo.GetByIDs(ids)
+	if err != nil {
+		return nil, err
+	}
+	return kpiRegisters, nil
 }

@@ -17,6 +17,7 @@ type StrategyProfileStrategicObjectiveServiceInterface interface {
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileStrategicObjectiveListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileStrategicObjectiveListDTO, error)
 	Create(strategyProfileID uint, currentUserID uint, strategyDTOs *strategyDTOs.StrategyProfileStrategicObjectiveFormDTO) ([]uint, error)
 	Delete(strategyProfileID uint, objectiveID uint, currentUserID uint) error
+	UpdateObjectiveScore(objective *models.StrategyProfileStrategicObjective, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -241,6 +242,15 @@ func (sps *StrategyProfileStrategicObjectiveService) Delete(strategyProfileID ui
 			utility.LogError("Failed to log activity", fields)
 		}
 	}()
+
+	return nil
+}
+
+func (sps *StrategyProfileStrategicObjectiveService) UpdateObjectiveScore(objective *models.StrategyProfileStrategicObjective, tx utility.DatabaseTransaction) error {
+	err := sps.repo.Update(objective, tx)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
