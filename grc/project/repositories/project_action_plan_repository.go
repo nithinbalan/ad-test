@@ -172,6 +172,11 @@ func (repo *ProjectActionPlanRepository) GetAll(projectID uint, params *projectD
 		return nil, err
 	}
 
+	offset := (params.Page - 1) * params.PageSize
+	if err := query.Offset(offset).Limit(params.PageSize).Find(&projectActionPlans).Error; err != nil {
+		return nil, err
+	}
+
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
 	response := &projectDTOs.ProjectActionPlanListResponseDTO{
