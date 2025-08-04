@@ -38,6 +38,11 @@ func (repo *KpiLibraryRepository) GetAllKpi(params *libraryDTOs.KPILibraryListQu
 		`, keyword, keyword, keyword)
 	}
 
+	// Filter by category
+	if len(params.Categories) > 0 {
+		query = query.Where("category IN ?", params.Categories)
+	}
+
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
