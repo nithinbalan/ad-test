@@ -1,4 +1,4 @@
-name: aljabr-uat-api.jethur.com
+name: aljabr-uat-api.jethur.co
 
 on:
   workflow_dispatch:
