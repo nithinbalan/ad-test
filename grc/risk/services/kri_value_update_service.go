@@ -97,8 +97,15 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 		LowThreshold:    existingKRIRegister.LowThreshold,
 		MediumThreshold: existingKRIRegister.MediumThreshold,
 		Remarks:         kriValueUpdateFormDTO.Remarks,
+		IsLatest:        true,
 		CreatedByID:     currentUserID,
 		UpdatedByID:     &currentUserID,
+	}
+
+	// Set all previous value updates for this KRIRegister to IsLatest = false
+	if err := kvus.repo.SetAllIsLatestFalse(kriRegisterID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
 	}
 
 	id, err := kvus.repo.Create(kriValueUpdate, tx)
