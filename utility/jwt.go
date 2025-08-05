@@ -5,12 +5,12 @@ import (
 	"jethur/config"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 const (
 	AccessTokenDuration  = 30 * 24 * time.Hour // 1 month
-	RefreshTokenDuration = 7 * 24 * time.Hour  // 7 days, adjust as needed
+	RefreshTokenDuration = 7 * 24 * time.Hour  // 7 days
 )
 
 func getSecretKey() string {
@@ -18,8 +18,8 @@ func getSecretKey() string {
 }
 
 type UserClaims struct {
-	jwt.StandardClaims
 	UserID uint `json:"user_id"`
+	jwt.RegisteredClaims
 }
 
 func GenerateToken(userID uint) (string, error) {
@@ -31,27 +31,29 @@ func GenerateRefreshToken(userID uint) (string, error) {
 }
 
 func generateTokenWithExpiry(userID uint, duration time.Duration) (string, error) {
+	now := time.Now()
+
 	claims := UserClaims{
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(duration).Unix(),
-			IssuedAt:  time.Now().Unix(),
-		},
 		UserID: userID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(duration)),
+			IssuedAt:  jwt.NewNumericDate(now),
+		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	secretKey := getSecretKey() // Retrieve the secret key
-	return token.SignedString([]byte(secretKey))
+	return token.SignedString([]byte(getSecretKey()))
 }
 
 func VerifyToken(tokenStr string) (*UserClaims, error) {
-	secretKey := getSecretKey() // Retrieve the secret key for verification
+	secretKey := getSecretKey()
+
 	token, err := jwt.ParseWithClaims(tokenStr, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method in token")
 		}
 		return []byte(secretKey), nil
-	})
+	}, jwt.WithValidMethods([]string{"HS256"}))
 
 	if err != nil {
 		return nil, err
