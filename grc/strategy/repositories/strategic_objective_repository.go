@@ -359,7 +359,7 @@ func (repo *StrategicObjectiveRepository) GetRiskSummary(strategicObjectiveID ui
 	}
 
 	totalRisksInt := int(totalRisks)
-	result.TotalRisks = &totalRisksInt
+	result.TotalRiskCount = &totalRisksInt
 
 	// Count high risks
 	var highRisks int64
@@ -390,7 +390,7 @@ func (repo *StrategicObjectiveRepository) GetRiskSummary(strategicObjectiveID ui
 	}
 
 	highRisksInt := int(highRisks)
-	result.HighRisks = &highRisksInt
+	result.HighRiskCount = &highRisksInt
 
 	// Count risks that have controls mapped to them
 	var controlledRisks int64
@@ -409,11 +409,11 @@ func (repo *StrategicObjectiveRepository) GetRiskSummary(strategicObjectiveID ui
 	if totalRisks > 0 {
 		coverage = float64(controlledRisks) / float64(totalRisks) * 100
 	}
-	result.Coverage = &coverage
+	result.ControlCoverage = &coverage
 
 	// Also store the count of controlled risks
 	controlledRisksInt := int(controlledRisks)
-	result.ControllRiskCount = &controlledRisksInt
+	result.ControlRiskCount = &controlledRisksInt
 
 	// Get last reviewed date from kpi_register's LastReviewedDate for KPIs mapped to this strategic objective
 	var lastReviewed *time.Time

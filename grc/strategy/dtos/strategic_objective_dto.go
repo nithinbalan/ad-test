@@ -147,10 +147,10 @@ type StrategicObjectiveFocusAreaDTO struct {
 }
 
 type StrategicObjectiveRiskSummaryDTO struct {
-	TotalRisks        *int     `json:"total_risks,omitempty"`
-	HighRisks         *int     `json:"high_risks,omitempty"`
-	Coverage          *float64 `json:"coverage,omitempty"`
-	ControllRiskCount *int     `json:"controll_risk_count,omitempty"`
+	TotalRiskCount   *int     `json:"total_risk_count,omitempty"`
+	HighRiskCount    *int     `json:"high_risk_count,omitempty"`
+	ControlCoverage  *float64 `json:"control_coverage,omitempty"`
+	ControlRiskCount *int     `json:"control_risk_count,omitempty"`
 
 	LastReviewed *string `json:"last_reviewed"`
 
