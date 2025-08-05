@@ -30,14 +30,16 @@ func (solc *StrategicObjectiveLibraryController) GetAll(c *gin.Context) {
 	export, _ := strconv.ParseBool(c.DefaultQuery("export", "false"))
 	page, _ := utility.ParseQueryParamToInt(c, "page", 1)
 	pageSize, _ := utility.ParseQueryParamToInt(c, "page_size", 10)
+	categories := c.QueryArray("categories")
 
 	params := libraryDTOs.StrategicObjectiveLibraryListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortBy,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
-		Export:   export,
+		Sort:       sort,
+		SortBy:     sortBy,
+		Keyword:    keyword,
+		Page:       page,
+		PageSize:   pageSize,
+		Export:     export,
+		Categories: categories,
 	}
 
 	StrategicObjective, err := solc.service.GetAll(&params)
