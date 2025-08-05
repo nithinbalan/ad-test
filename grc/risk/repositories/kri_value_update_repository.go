@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
@@ -210,14 +211,38 @@ func (repo *KRIValueUpdateRepository) Delete(id uint, tx ...utility.DatabaseTran
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	var kriValueUpdate *models.KRIValueUpdate
+
+	// Get the record being deleted
+	var kriValueUpdate models.KRIValueUpdate
 	if err := db.First(&kriValueUpdate, id).Error; err != nil {
 		return err
 	}
 
+	// Get the KRI register ID before deletion
+	kriRegisterID := kriValueUpdate.KRIRegisterID
+
+	// Delete the record
 	result := db.Delete(&models.KRIValueUpdate{}, id)
 	if result.Error != nil {
 		return result.Error
+	}
+
+	// If the deleted record was marked as latest, update the most recent remaining record
+	if kriValueUpdate.IsLatest {
+		var latestUpdate models.KRIValueUpdate
+		err := db.Where("kri_register_id = ? AND id != ?", kriRegisterID, id).
+			Order("created_at DESC").
+			First(&latestUpdate).Error
+
+		if err == nil {
+			// Update the most recent record to be marked as latest
+			err = db.Model(&models.KRIValueUpdate{}).
+				Where("id = ?", latestUpdate.ID).
+				Update("is_latest", true).Error
+			if err != nil {
+				return fmt.Errorf("failed to update latest record: %w", err)
+			}
+		}
 	}
 
 	return nil
