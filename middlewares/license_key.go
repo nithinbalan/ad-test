@@ -2,7 +2,6 @@ package middlewares
 
 import (
 	"jethur/utility"
-	"net/http"
 	"strings"
 	"time"
 
@@ -14,12 +13,11 @@ import (
 func GetLicenseToken(db *gorm.DB) (string, error) {
 	var licenseKey *string
 
-	err := db.Raw("select license_key from system_preferences").Scan(&licenseKey).Error
+	err := db.Raw("SELECT license_key FROM system_preferences").Scan(&licenseKey).Error
 	if err != nil {
 		return "", err
 	}
 
-	// If licenseKey is NULL, return an empty string
 	if licenseKey == nil {
 		return "", nil
 	}
@@ -27,73 +25,68 @@ func GetLicenseToken(db *gorm.DB) (string, error) {
 	return *licenseKey, nil
 }
 
-// LicenseMiddleware checks if the license key is expired
+// LicenseMiddleware checks if the license key is expired or mismatched
 func LicenseMiddleware(db *gorm.DB) gin.HandlerFunc {
-
 	return func(c *gin.Context) {
-
 		// Define routes to bypass
 		bypassRoutes := map[string]bool{
 			"/update-license-key": true,
 			"/license-key":        true,
 		}
 
-		// Skip middleware for bypassed routes
 		if _, exists := bypassRoutes[c.FullPath()]; exists {
 			c.Next()
 			return
 		}
 
-		// Retrieve the stored license key from DB
+		// Get license token
 		tokenString, err := GetLicenseToken(db)
 		if err != nil || tokenString == "" {
 			c.Next()
 			return
 		}
 
+		// Decrypt token
 		claims, err := utility.DecryptJWTToken(tokenString)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "License is invalid"})
+			utility.SendUnauthorizedErrResp(c, "License is invalid")
 			c.Abort()
 			return
 		}
 
-		// Check license expiry
+		// Check expiry date
 		expiryDateStr, exists := claims["expiry_date"].(string)
 		if !exists {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "License expiry date missing"})
+			utility.SendUnauthorizedErrResp(c, "License expiry date missing")
 			c.Abort()
 			return
 		}
 
-		// Convert expiry date string to time.Time
 		expiryDate, err := time.Parse("2006-01-02", expiryDateStr)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid expiry date format"})
+			utility.SendInternalErrResp(db, c, "Invalid expiry date format in license")
 			c.Abort()
 			return
 		}
 
-		// Compare expiry date with current time
 		if time.Now().After(expiryDate) {
-			c.JSON(http.StatusForbidden, gin.H{"error": "License key expired"})
+			utility.SendLicenseExpiryErrResp(c, "Your license has expired. Please renew to continue.")
 			c.Abort()
 			return
 		}
 
-		// Validate api URL
+		// Validate API URL
 		apiURL, exists := claims["api_url"].(string)
 		if !exists || apiURL == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "API URL missing in license key"})
+			utility.SendUnauthorizedErrResp(c, "API URL missing in license key")
 			c.Abort()
 			return
 		}
 
-		// Get the current app URL from request
-		appURL := utility.GetApiURL() // Extracts host from request (e.g., "example.com:8080")
-		// Compare api URL with app URL
+		appURL := utility.GetApiURL()
 		if !strings.Contains(appURL, apiURL) {
-			c.JSON(http.StatusForbidden, gin.H{
+			c.JSON(403, gin.H{
+				"code":             "API_URL_MISMATCH",
 				"error":            "API URL mismatch",
 				"expected_api_url": apiURL,
 				"received_app_url": appURL,
@@ -102,7 +95,7 @@ func LicenseMiddleware(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// License is valid, proceed with the request
+		// License valid
 		c.Next()
 	}
 }
