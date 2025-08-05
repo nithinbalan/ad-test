@@ -127,7 +127,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 	}
 
 	comment := &models.ComplianceAssessmentRequirementComment{
-		ComplianceAssessmentRequirementResponsibleUnitID: complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentRequirementStatus.ID,
+		ComplianceAssessmentRequirementResponsibleUnitID: uint(complianceAssessmentRequirementResponsibleUnit.ID),
 		Comment:     complianceAssessmentRequirementCommentFormDTO.Comment,
 		CreatedBYID: currentUserID,
 	}

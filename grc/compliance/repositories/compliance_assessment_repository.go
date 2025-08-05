@@ -33,6 +33,9 @@ type ComplianceAssessmentRepositoryInterface interface {
 	AssessmentCompletionSummary(assessmentID uint) (*complianceDTOs.AssessmentCompletionSummaryDTO, error)
 	GetComplianceStatusSummary(assessmentID uint) ([]*complianceDTOs.ComplianceStatusCountDTO, error)
 	GetComplianceScoreSummary(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error)
+
+	UpdateComplianceRequirementValue(complianceRequirementValueUpdateDTO complianceDTOs.ComplianceRequirementValueUpdateDTO, tx ...utility.DatabaseTransaction) error
+	UpdateComplianceStatus(complianceRegisterID uint, complianceStatusID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceAssessmentRepository struct {
@@ -435,4 +438,26 @@ func (repo *ComplianceAssessmentRepository) CreateComplianceAssessmentRequiremen
 		return err
 	}
 	return nil
+}
+
+func (repo *ComplianceAssessmentRepository) UpdateComplianceRequirementValue(complianceRequirementValueUpdateDTO complianceDTOs.ComplianceRequirementValueUpdateDTO, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Model(&models.ComplianceRequirementResponsibleUnit{}).Where("responsible_unit_id = ? AND compliance_requirement_id = ?", complianceRequirementValueUpdateDTO.ResponsibleUnitID, complianceRequirementValueUpdateDTO.ComplianceRequirementID).Update("compliance_assessment_framework_value_id", complianceRequirementValueUpdateDTO.ComplianceAssessmentFrameworkValueID).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+func (repo *ComplianceAssessmentRepository) UpdateComplianceStatus(complianceRegisterID uint, complianceStatusID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Model(&models.ComplianceRegister{}).
+		Where("id = ?", complianceRegisterID).
+		Update("compliance_status_id", complianceStatusID).Error
 }

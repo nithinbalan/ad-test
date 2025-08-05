@@ -207,3 +207,8 @@ type ComplianceRequirementResponsibleUnitRowDTO struct {
 	ColorCode                            string `json:"color_code"`
 	ParentID                             *uint  `json:"parent_id"`
 }
+type ComplianceRequirementValueUpdateDTO struct {
+	ComplianceRequirementID              uint `json:"compliance_requirement_id"`
+	ComplianceAssessmentFrameworkValueID uint `json:"compliance_assessment_framework_value_id"`
+	ResponsibleUnitID                    uint `json:"responsible_unit_id"`
+}

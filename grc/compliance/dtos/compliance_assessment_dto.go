@@ -142,3 +142,17 @@ type ComplianceScoreSummaryDTO struct {
 	TotalRequirements int     `json:"total_requirements_assessed"`
 	AverageScore      float64 `json:"average_score"`
 }
+
+type ResponsibleUnitComplianceScoreDTO struct {
+	ComplianceRegisterID     uint    `json:"compliance_register_id"`
+	ResponsibleUnitID        uint    `json:"responsible_unit_id"`
+	TotalRequirements        int     `json:"total_requirements"`
+	ScoredRequirements       int     `json:"scored_requirements"`
+	TotalScore               float64 `json:"total_score"`
+	MaxPossibleScore         float64 `json:"max_possible_score"`
+	CompliancePercentage     float64 `json:"compliance_percentage"`
+	Score                    float64 `json:"score"`
+	FrameworkType            string  `json:"framework_type"`
+	MappedFrameworkValueID   *uint   `json:"mapped_framework_value_id"`
+	MappedComplianceStatusID *uint   `json:"mapped_compliance_status_id"`
+}
