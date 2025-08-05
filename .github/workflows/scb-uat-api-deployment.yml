@@ -1,4 +1,4 @@
-name: scb-uat-api.jethur.com.
+name: scb-uat-api.jethur.com
 
 on:
   workflow_dispatch:
