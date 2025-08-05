@@ -349,19 +349,9 @@ func (repo *StrategicObjectiveRepository) GetFocusAreasByStrategicObjectiveID(st
 func (repo *StrategicObjectiveRepository) GetRiskSummary(strategicObjectiveID uint) (*dtos.StrategicObjectiveRiskSummaryDTO, error) {
 	result := &dtos.StrategicObjectiveRiskSummaryDTO{}
 
-	// Get strategic objective
-	var strategicObjective models.StrategicObjective
-	err := repo.db.Select("id", "title_en").First(&strategicObjective, strategicObjectiveID).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, strategicObjectiveID)
-		}
-		return nil, err
-	}
-
 	// Get total risks count
 	var totalRisks int64
-	err = repo.db.Model(&models.RiskStrategicObjective{}).
+	err := repo.db.Model(&models.RiskStrategicObjective{}).
 		Where("strategic_objective_id = ?", strategicObjectiveID).
 		Count(&totalRisks).Error
 	if err != nil {
@@ -371,13 +361,28 @@ func (repo *StrategicObjectiveRepository) GetRiskSummary(strategicObjectiveID ui
 	totalRisksInt := int(totalRisks)
 	result.TotalRisks = &totalRisksInt
 
-	// Count high risks (type = 'high' or 'critical')
+	// Count high risks
 	var highRisks int64
 	err = repo.db.Model(&models.RiskStrategicObjective{}).
 		Joins("JOIN risk_register rr ON risk_strategic_objectives.risk_register_id = rr.id").
 		Joins("JOIN risk_matrix_risk_rating_values rmrrv ON rr.current_risk_rating_value_id = rmrrv.id").
-		Joins("JOIN (SELECT MAX(value) as max_value FROM risk_matrix_risk_rating_values) max_vals ON rmrrv.value = max_vals.max_value").
+		Joins("JOIN risk_matrix_risk_ratings rmrr ON rmrrv.risk_matrix_risk_rating_id = rmrr.id").
 		Where("risk_strategic_objectives.strategic_objective_id = ?", strategicObjectiveID).
+		Where(`
+        rmrr.id IN (
+            SELECT TOP 1 rmrr2.id 
+            FROM risk_matrix_risk_ratings rmrr2
+            ORDER BY 
+                CASE LOWER(rmrr2.type)
+                    WHEN 'very_high' THEN 1
+                    WHEN 'high' THEN 2
+                    WHEN 'medium' THEN 3
+                    WHEN 'low' THEN 4
+                    WHEN 'very_low' THEN 5
+                    ELSE 6
+                END
+        )
+    `).
 		Count(&highRisks).Error
 
 	if err != nil {
@@ -410,55 +415,49 @@ func (repo *StrategicObjectiveRepository) GetRiskSummary(strategicObjectiveID ui
 	controlledRisksInt := int(controlledRisks)
 	result.ControllRiskCount = &controlledRisksInt
 
-	// Get last reviewed date from kpi_register's LastReviewedDate
+	// Get last reviewed date from kpi_register's LastReviewedDate for KPIs mapped to this strategic objective
 	var lastReviewed *time.Time
 	err = repo.db.Model(&models.KPIRegister{}).
+		Select("kpi_register.last_reviewed_date").
 		Joins("JOIN strategy_profile_kpis spk ON spk.kpi_id = kpi_register.id").
-		Where("spk.strategy_profile_id = ? AND kpi_register.last_reviewed_date IS NOT NULL", strategicObjectiveID).
+		Joins("JOIN strategy_profile_strategic_objectives spso ON spk.strategy_profile_strategic_objective_id = spso.id").
+		Where("spso.strategic_objective_id = ? AND kpi_register.last_reviewed_date IS NOT NULL", strategicObjectiveID).
 		Order("kpi_register.last_reviewed_date DESC").
 		Limit(1).
-		Pluck("kpi_register.last_reviewed_date", &lastReviewed).Error
+		Scan(&lastReviewed).Error
 
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("failed to get last reviewed date: %w", err)
 	}
 
-	if lastReviewed != nil {
+	// Only format and set LastReviewed if we have a valid date
+	if lastReviewed != nil && !lastReviewed.IsZero() {
 		lastReviewedStr := lastReviewed.Format("02 Jan 2006")
 		result.LastReviewed = &lastReviewedStr
+	} else {
+		result.LastReviewed = nil
 	}
 
 	// Get top risk (highest severity)
-	var topRisk struct {
-		ID                *uint
-		Title             *string
-		Rating            *string
-		Description       *string
-		ImpactTitleEn     *string `gorm:"column:impact_title_en"`
-		ImpactTitleAr     *string `gorm:"column:impact_title_ar"`
-		LikelihoodTitleEn *string `gorm:"column:likelihood_title_en"`
-		LikelihoodTitleAr *string `gorm:"column:likelihood_title_ar"`
-	}
-
 	err = repo.db.Raw(`
-	SELECT 
-		rr.id,
-		rr.title,
-		rmrr.type AS rating,
-		rr.description,
-		rmi.title_en AS impact_title_en,
-		rmi.title_ar AS impact_title_ar,
-		rml.title_en AS likelihood_title_en,
-		rml.title_ar AS likelihood_title_ar
-		FROM risk_strategic_objectives rso
-		JOIN risk_register rr ON rso.risk_register_id = rr.id
-		JOIN risk_matrix_risk_rating_values rmrrv ON rr.current_risk_rating_value_id = rmrrv.id
-		JOIN risk_matrix_risk_ratings rmrr ON rmrrv.risk_matrix_risk_rating_id = rmrr.id
-		LEFT JOIN risk_matrix_impacts rmi ON rr.current_impact_id = rmi.id
-		LEFT JOIN risk_matrix_likelihoods rml ON rr.current_likelihood_id = rml.id
-		WHERE rso.strategic_objective_id = ?
-		ORDER BY 
-			CASE 
+		SELECT 
+			rr.id,
+			rr.title,
+			rmrr.type AS rating,
+			rr.description,
+			rmi.title_en AS impact_title_en,
+			rmi.title_ar AS impact_title_ar,
+			rml.title_en AS likelihood_title_en,
+			rml.title_ar AS likelihood_title_ar
+			FROM risk_strategic_objectives rso
+			JOIN risk_register rr ON rso.risk_register_id = rr.id
+			JOIN risk_matrix_risk_rating_values rmrrv ON rr.current_risk_rating_value_id = rmrrv.id
+			JOIN risk_matrix_risk_ratings rmrr ON rmrrv.risk_matrix_risk_rating_id = rmrr.id
+			LEFT JOIN risk_matrix_impacts rmi ON rr.current_impact_id = rmi.id
+			LEFT JOIN risk_matrix_likelihoods rml ON rr.current_likelihood_id = rml.id
+			WHERE rso.strategic_objective_id = ?
+			ORDER BY 
+				CASE 
 				WHEN LOWER(rmrr.type) = 'very_high' THEN 1
 				WHEN LOWER(rmrr.type) = 'high' THEN 2
 				WHEN LOWER(rmrr.type) = 'medium' THEN 3
@@ -468,32 +467,10 @@ func (repo *StrategicObjectiveRepository) GetRiskSummary(strategicObjectiveID ui
 			END,
 			rr.updated_at DESC
 		OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY
-`, strategicObjectiveID).Scan(&topRisk).Error
+		`, strategicObjectiveID).Scan(&result.TopRisk).Error
 
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
-	}
-
-	if topRisk.ID != nil {
-		result.TopRisk = &struct {
-			ID                *uint   `json:"id,omitempty"`
-			Title             *string `json:"title,omitempty"`
-			Rating            *string `json:"rating,omitempty"`
-			Description       *string `json:"description,omitempty"`
-			ImpactTitleEn     *string `json:"impact_title_en,omitempty"`
-			ImpactTitleAr     *string `json:"impact_title_ar,omitempty"`
-			LikelihoodTitleEn *string `json:"likelihood_title_en,omitempty"`
-			LikelihoodTitleAr *string `json:"likelihood_title_ar,omitempty"`
-		}{
-			ID:                topRisk.ID,
-			Title:             topRisk.Title,
-			Rating:            topRisk.Rating,
-			Description:       topRisk.Description,
-			ImpactTitleEn:     topRisk.ImpactTitleEn,
-			ImpactTitleAr:     topRisk.ImpactTitleAr,
-			LikelihoodTitleEn: topRisk.LikelihoodTitleEn,
-			LikelihoodTitleAr: topRisk.LikelihoodTitleAr,
-		}
 	}
 
 	return result, nil

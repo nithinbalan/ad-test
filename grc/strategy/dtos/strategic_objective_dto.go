@@ -152,9 +152,9 @@ type StrategicObjectiveRiskSummaryDTO struct {
 	Coverage          *float64 `json:"coverage,omitempty"`
 	ControllRiskCount *int     `json:"controll_risk_count,omitempty"`
 
-	LastReviewed *string `json:"last_reviewed,omitempty"`
+	LastReviewed *string `json:"last_reviewed"`
 
-	TopRisk *struct {
+	TopRisk struct {
 		ID                *uint   `json:"id,omitempty"`
 		Title             *string `json:"title,omitempty"`
 		Rating            *string `json:"rating,omitempty"`
@@ -163,5 +163,5 @@ type StrategicObjectiveRiskSummaryDTO struct {
 		ImpactTitleAr     *string `json:"impact_title_ar,omitempty"`
 		LikelihoodTitleEn *string `json:"likelihood_title_en,omitempty"`
 		LikelihoodTitleAr *string `json:"likelihood_title_ar,omitempty"`
-	} `json:"top_risk,omitempty"`
+	} `json:"top_risk"`
 }
