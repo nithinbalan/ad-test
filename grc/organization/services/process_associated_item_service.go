@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
@@ -13,13 +14,15 @@ import (
 type ProcessAssociatedItemServiceInterface interface {
 	GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error)
 	GetAllControlsWithPagination(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemControlListResponseDTO, error)
-	GetAllRisks(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemRiskListResponseDTO, error)
+	GetAllRisks(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllIncidents(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error)
 	GetAllDocuments(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemDocumentListResponseDTO, error)
 	GetAllAssociatedCounts(processID uint) (*organizationDTOs.ProcessAssociatedItemsCountResponseDTO, error)
 	GetAllAssets(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemAssetListResponseDTO, error)
-	GetAllClauses(processID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(processID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
+	CreateProcessRisk(processID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
+	DeleteProcessRisk(processID uint, riskID uint) error
 }
 
 type ProcessAssociatedItemService struct {
@@ -27,6 +30,7 @@ type ProcessAssociatedItemService struct {
 	processSvc                     ProcessServiceInterface
 	controlImplementationStatusSvc ControlImplementationStatusServiceInterface
 	controlEfficiencyStatusService ControlEfficiencyStatusServiceInterface
+	validationSvc                  commonServices.AssociatedItemValidationServiceInterface
 }
 
 func NewProcessAssociatedItemService(
@@ -34,12 +38,14 @@ func NewProcessAssociatedItemService(
 	processSvc ProcessServiceInterface,
 	controlImplementationStatusSvc ControlImplementationStatusServiceInterface,
 	controlEfficiencyStatusService ControlEfficiencyStatusServiceInterface,
+	validationSvc commonServices.AssociatedItemValidationServiceInterface,
 ) ProcessAssociatedItemServiceInterface {
 	return &ProcessAssociatedItemService{
 		repo:                           repo,
 		processSvc:                     processSvc,
 		controlImplementationStatusSvc: controlImplementationStatusSvc,
 		controlEfficiencyStatusService: controlEfficiencyStatusService,
+		validationSvc:                  validationSvc,
 	}
 }
 
@@ -170,7 +176,7 @@ func (pais *ProcessAssociatedItemService) GetAllControlsWithPagination(processID
 	return pais.repo.GetAllControlsWithPagination(processID, params)
 }
 
-func (pais *ProcessAssociatedItemService) GetAllRisks(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemRiskListResponseDTO, error) {
+func (pais *ProcessAssociatedItemService) GetAllRisks(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
 	if _, err := pais.processSvc.GetByID(processID); err != nil {
 		return nil, err
 	}
@@ -209,7 +215,7 @@ func (pais *ProcessAssociatedItemService) GetAllAssociatedCounts(processID uint)
 
 	return response, nil
 }
-func (pais *ProcessAssociatedItemService) GetAllClauses(processID uint, params *commonDTOs.AssociatedItemClauseListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+func (pais *ProcessAssociatedItemService) GetAllClauses(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 	if _, err := pais.processSvc.GetByID(processID); err != nil {
 		return nil, err
 	}
@@ -320,4 +326,47 @@ func (pais *ProcessAssociatedItemService) validateClauseIDs(clauseIDs []uint, tx
 	}
 
 	return clauses, nil
+}
+
+func (pais *ProcessAssociatedItemService) CreateProcessRisk(processID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", processID), "not_exist", "process_id")
+	}
+	if err := pais.validationSvc.ValidateRiskMapping(processID, dto.RiskIDs, "risk_processes", "process_id"); err != nil {
+		return err
+	}
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.RiskProcess
+	currentTime := time.Now()
+
+	for _, riskID := range dto.RiskIDs {
+		mappings = append(mappings, &models.RiskProcess{
+			RiskRegisterID: riskID,
+			ProcessID:      processID,
+			CreatedByID:    userID,
+			CreatedAt:      currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateProcessRisk(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *ProcessAssociatedItemService) DeleteProcessRisk(processID uint, riskID uint) error {
+	// Validate control existence
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", processID), "not_exist", "process_id")
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteProcessRisk(processID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }

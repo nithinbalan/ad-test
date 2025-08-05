@@ -217,6 +217,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/controls/:controlId/mark-as-not-applicable", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlController.MarkControlAsNotApplicable)
 
 	//control Test
+	unauthenticatedRoutes.GET("/controls/:controlId/tests/:controlTestId/documents/:id/document-download", controlTestController.DownloadControlTestDocument)
+	unauthenticatedRoutes.GET("/controls/:controlId/tests/:controlTestId/documents/:id/document-preview", controlTestController.GetControlTestDocumentPreview)
 	organizationRoutes.GET("/controls/:controlId/tests", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlTestController.GetAllControlTests)
 	organizationRoutes.GET("/controls/:controlId/tests/:controlTestId", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlTestController.GetControlTestDetails)
 	organizationRoutes.POST("/controls/:controlId/tests", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlTestController.CreateControlTest)
@@ -232,6 +234,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/controls/:controlId/associated-item-summary", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlAssociatedItemController.GetAllAssociatedCounts)
 	organizationRoutes.GET("/controls/:controlId/clauses", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlAssociatedItemController.GetAllClauses)
 	organizationRoutes.PUT("/controls/:controlId/clauses", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.UpdateClauses)
+
+	organizationRoutes.POST("/controls/:controlId/risks", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.CreateControlRisk)
+	organizationRoutes.DELETE("/controls/:controlId/risks/:riskId", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.DeleteControlRisk)
 
 	//Process Group
 	organizationRoutes.GET("/process-groups", processGroupController.GetAllProcessGroups)
@@ -280,6 +285,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/processes/:processId/associated-item-summary", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllAssociatedCounts)
 	organizationRoutes.GET("/processes/:processId/clauses", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllClauses)
 	organizationRoutes.PUT("/processes/:processId/clauses", middlewares.RolePermissionMiddleware(db, "process", "modify"), processAssociatedItemController.UpdateClauses)
+
+	organizationRoutes.POST("/processes/:processId/risks", middlewares.RolePermissionMiddleware(db, "processes", "modify"), processAssociatedItemController.CreateProcessRisk)
+	organizationRoutes.DELETE("/processes/:processId/risks/:riskId", middlewares.RolePermissionMiddleware(db, "processes", "modify"), processAssociatedItemController.DeleteProcessRisk)
 
 	// process dependency type
 	organizationRoutes.GET("/process-dependency-types", processDependencyTypeController.GetAllProcessDependencyTypes)

@@ -146,7 +146,7 @@ func NewDocumentModule(db *gorm.DB,
 	documentClauseController := controllers.NewDocumentClauseController(documentClauseSvc)
 
 	documentAssociatedItemRepo := repositories.NewDocumentAssociatedItemRepository(db)
-	documentAssociatedItemSvc := services.NewDocumentAssociatedItemService(documentAssociatedItemRepo, documentSvc)
+	documentAssociatedItemSvc := services.NewDocumentAssociatedItemService(documentAssociatedItemRepo, documentSvc, commonModule.AssociatedItemValidationService)
 	documentAssociatedItemController := controllers.NewDocumentAssociatedItemController(documentAssociatedItemSvc)
 
 	documentChangeRequestInitiateTypeRepo := repositories.NewDocumentChangeRequestInitiateTypeRepository(db)
@@ -235,7 +235,7 @@ func NewDocumentModule(db *gorm.DB,
 	documentRequirementGroupController := controllers.NewDocumentRequirementGroupController(documentRequirementGroupSvc)
 
 	documentRequirementRepo := repositories.NewDocumentRequirementRepository(db)
-	documentRequirementSvc := services.NewDocumentRequirementService(documentRequirementRepo, sharedModule.ActivityLogService, documentRequirementGroupSvc)
+	documentRequirementSvc := services.NewDocumentRequirementService(documentRequirementRepo, sharedModule.ActivityLogService, documentRequirementGroupSvc, documentSvc)
 	documentRequirementController := controllers.NewDocumentRequirementController(documentRequirementSvc)
 
 	return &DocumentModule{

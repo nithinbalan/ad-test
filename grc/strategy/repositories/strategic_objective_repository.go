@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
@@ -28,6 +29,7 @@ type StrategicObjectiveRepositoryInterface interface {
 	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
 	GenerateReferenceNumber() (string, error)
 	GetFocusAreasByStrategicObjectiveID(strategicObjectiveID uint) ([]*dtos.StrategicObjectiveFocusAreaDTO, error)
+	GetRiskSummary(strategicObjectiveID uint) (*dtos.StrategicObjectiveRiskSummaryDTO, error)
 }
 
 // implementation
@@ -342,4 +344,134 @@ func (repo *StrategicObjectiveRepository) GetFocusAreasByStrategicObjectiveID(st
 		return nil, err
 	}
 	return focusAreas, nil
+}
+
+func (repo *StrategicObjectiveRepository) GetRiskSummary(strategicObjectiveID uint) (*dtos.StrategicObjectiveRiskSummaryDTO, error) {
+	result := &dtos.StrategicObjectiveRiskSummaryDTO{}
+
+	// Get total risks count
+	var totalRisks int64
+	err := repo.db.Model(&models.RiskStrategicObjective{}).
+		Where("strategic_objective_id = ?", strategicObjectiveID).
+		Count(&totalRisks).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalRisksInt := int(totalRisks)
+	result.TotalRiskCount = &totalRisksInt
+
+	// Count high risks
+	var highRisks int64
+	err = repo.db.Model(&models.RiskStrategicObjective{}).
+		Joins("JOIN risk_register rr ON risk_strategic_objectives.risk_register_id = rr.id").
+		Joins("JOIN risk_matrix_risk_rating_values rmrrv ON rr.current_risk_rating_value_id = rmrrv.id").
+		Joins("JOIN risk_matrix_risk_ratings rmrr ON rmrrv.risk_matrix_risk_rating_id = rmrr.id").
+		Where("risk_strategic_objectives.strategic_objective_id = ?", strategicObjectiveID).
+		Where(`
+        rmrr.id IN (
+            SELECT TOP 1 rmrr2.id 
+            FROM risk_matrix_risk_ratings rmrr2
+            ORDER BY 
+                CASE LOWER(rmrr2.type)
+                    WHEN 'very_high' THEN 1
+                    WHEN 'high' THEN 2
+                    WHEN 'medium' THEN 3
+                    WHEN 'low' THEN 4
+                    WHEN 'very_low' THEN 5
+                    ELSE 6
+                END
+        )
+    `).
+		Count(&highRisks).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to count high risks: %w", err)
+	}
+
+	highRisksInt := int(highRisks)
+	result.HighRiskCount = &highRisksInt
+
+	// Count risks that have controls mapped to them
+	var controlledRisks int64
+	err = repo.db.Model(&models.RiskStrategicObjective{}).
+		Joins("JOIN risk_register rr ON risk_strategic_objectives.risk_register_id = rr.id").
+		Joins("JOIN risk_controls rc ON rr.id = rc.risk_register_id").
+		Where("risk_strategic_objectives.strategic_objective_id = ?", strategicObjectiveID).
+		Count(&controlledRisks).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to count controlled risks: %w", err)
+	}
+
+	// Calculate coverage (if applicable)
+	var coverage float64
+	if totalRisks > 0 {
+		coverage = float64(controlledRisks) / float64(totalRisks) * 100
+	}
+	result.ControlCoverage = &coverage
+
+	// Also store the count of controlled risks
+	controlledRisksInt := int(controlledRisks)
+	result.ControlRiskCount = &controlledRisksInt
+
+	// Get last reviewed date from kpi_register's LastReviewedDate for KPIs mapped to this strategic objective
+	var lastReviewed *time.Time
+	err = repo.db.Model(&models.KPIRegister{}).
+		Select("kpi_register.last_reviewed_date").
+		Joins("JOIN strategy_profile_kpis spk ON spk.kpi_id = kpi_register.id").
+		Joins("JOIN strategy_profile_strategic_objectives spso ON spk.strategy_profile_strategic_objective_id = spso.id").
+		Where("spso.strategic_objective_id = ? AND kpi_register.last_reviewed_date IS NOT NULL", strategicObjectiveID).
+		Order("kpi_register.last_reviewed_date DESC").
+		Limit(1).
+		Scan(&lastReviewed).Error
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("failed to get last reviewed date: %w", err)
+	}
+
+	// Only format and set LastReviewed if we have a valid date
+	if lastReviewed != nil && !lastReviewed.IsZero() {
+		lastReviewedStr := lastReviewed.Format("02 Jan 2006")
+		result.LastReviewed = &lastReviewedStr
+	} else {
+		result.LastReviewed = nil
+	}
+
+	// Get top risk (highest severity)
+	err = repo.db.Raw(`
+		SELECT 
+			rr.id,
+			rr.title,
+			rmrr.type AS rating,
+			rr.description,
+			rmi.title_en AS impact_title_en,
+			rmi.title_ar AS impact_title_ar,
+			rml.title_en AS likelihood_title_en,
+			rml.title_ar AS likelihood_title_ar
+			FROM risk_strategic_objectives rso
+			JOIN risk_register rr ON rso.risk_register_id = rr.id
+			JOIN risk_matrix_risk_rating_values rmrrv ON rr.current_risk_rating_value_id = rmrrv.id
+			JOIN risk_matrix_risk_ratings rmrr ON rmrrv.risk_matrix_risk_rating_id = rmrr.id
+			LEFT JOIN risk_matrix_impacts rmi ON rr.current_impact_id = rmi.id
+			LEFT JOIN risk_matrix_likelihoods rml ON rr.current_likelihood_id = rml.id
+			WHERE rso.strategic_objective_id = ?
+			ORDER BY 
+				CASE 
+				WHEN LOWER(rmrr.type) = 'very_high' THEN 1
+				WHEN LOWER(rmrr.type) = 'high' THEN 2
+				WHEN LOWER(rmrr.type) = 'medium' THEN 3
+				WHEN LOWER(rmrr.type) = 'low' THEN 4
+				WHEN LOWER(rmrr.type) = 'very_low' THEN 5
+				ELSE 6
+			END,
+			rr.updated_at DESC
+		OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY
+		`, strategicObjectiveID).Scan(&result.TopRisk).Error
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	return result, nil
 }

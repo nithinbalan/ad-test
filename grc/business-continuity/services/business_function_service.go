@@ -13,6 +13,8 @@ import (
 	"os"
 	"strings"
 
+	commonDTOs "jethur/grc/common/dtos"
+
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
@@ -28,7 +30,7 @@ type BusinessFunctionServiceInterface interface {
 	UpdateBusinessFunction(businessFunction *models.BusinessFunction, tx utility.DatabaseTransaction) error
 	ExportBusinessFunction(data []*businessContinuityDTOs.BusinessFunctionListDTO, currentUserID uint) (*os.File, error)
 
-	GetProcessAssociatedRisks(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemRiskListResponseDTO, error)
+	GetProcessAssociatedRisks(businessFunctionID uint, processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetProcessAssociatedIncidents(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error)
 	GetProcessAssociatedControls(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemControlListResponseDTO, error)
 	GetTestResults(businessFunctionID uint) (*businessContinuityDTOs.BusinessFunctionOverallTestResultDTO, error)
@@ -575,7 +577,7 @@ func (bfs *BusinessFunctionService) ExportBusinessFunction(data []*businessConti
 	return utility.GenerateExcelFile(headers, rows)
 }
 
-func (bfs *BusinessFunctionService) GetProcessAssociatedRisks(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemRiskListResponseDTO, error) {
+func (bfs *BusinessFunctionService) GetProcessAssociatedRisks(businessFunctionID uint, processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
 	risks, err := bfs.processAssociatedItemSvc.GetAllRisks(processID, params)
 	if err != nil {
 		return nil, err

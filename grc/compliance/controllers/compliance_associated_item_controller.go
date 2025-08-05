@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/services"
 	"jethur/utility"
@@ -90,8 +91,6 @@ func (caic *ComplianceAssociatedItemController) GetAllComplianceRisks(c *gin.Con
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 	valueStr := c.Query("value")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
@@ -115,15 +114,13 @@ func (caic *ComplianceAssociatedItemController) GetAllComplianceRisks(c *gin.Con
 		}
 	}
 
-	queryParams := complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		Value:       value,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Value:    value,
 	}
 	compliances, err := caic.service.GetAllRisks(uint(complianceID), &queryParams)
 
@@ -335,4 +332,53 @@ func (caic *ComplianceAssociatedItemController) DeleteComplianceControl(c *gin.C
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Control unmapped from compliance successfully"})
+}
+
+func (caic *ComplianceAssociatedItemController) CreateComplianceRisk(c *gin.Context) {
+	var input commonDTOs.AssociatedRiskMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	complianceID, err := strconv.ParseUint(c.Param("complianceId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	err = caic.service.CreateComplianceRisk(uint(complianceID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(caic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (caic *ComplianceAssociatedItemController) DeleteComplianceRisk(c *gin.Context) {
+	complianceID, _ := strconv.ParseUint(c.Param("complianceId"), 10, 64)
+	riskID, _ := strconv.ParseUint(c.Param("riskId"), 10, 64)
+	err := caic.service.DeleteComplianceRisk(uint(complianceID), uint(riskID))
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Risk unmapped from compliance successfully"})
 }
