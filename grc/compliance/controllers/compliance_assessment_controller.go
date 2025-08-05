@@ -136,6 +136,9 @@ func (cac *ComplianceAssessmentController) CreateComplianceAssessment(c *gin.Con
 
 	if err != nil {
 		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
@@ -204,8 +207,17 @@ func (cac *ComplianceAssessmentController) DeleteComplianceAssessments(c *gin.Co
 
 	failedIDs, err := cac.service.Delete(request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(cac.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(cac.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})

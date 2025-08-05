@@ -272,6 +272,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.PUT("/compliance-assessments/:assessmentId/submit", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentController.SubmitComplianceAssessment)
 	complianceRoutes.PUT("/compliance-assessments/:assessmentId/approve", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentController.ApproveComplianceAssessment)
 
+	complianceRoutes.GET("/compliance-assessments/:assessmentId/clauses", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentRequirementController.GetComplianceAssessmentRequirementClauses)
+
 	complianceRoutes.GET("/compliance-assessments/:assessmentId/requirements", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentRequirementController.GetComplianceAssessmentRequirements)
 	complianceRoutes.GET("/compliance-assessments/:assessmentId/requirements/:requirementId", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentRequirementController.GetComplianceAssessmentRequirementDetails)
 	complianceRoutes.PUT("/compliance-assessments/:assessmentId/requirements/:requirementId", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementController.UpdateComplianceAssessmentRequirement)

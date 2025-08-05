@@ -22,6 +22,7 @@ type ComplianceClauseServiceInterface interface {
 	Create(complianceID uint, currentUserID uint, formDTO *complianceDTOs.ComplianceClauseFormDTO) (uint, error)
 	Update(complianceID uint, clauseID uint, currentUserID uint, formDTO *complianceDTOs.ComplianceClauseFormDTO) error
 	Delete(id uint) error
+	GetFullDetailsByID(clauseID uint) (*complianceDTOs.ComplianceClauseDetailDTO, error)
 
 	GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error)
 	GetAssociatedControls(complianceID uint, clauseID uint) ([]commonDTOs.AssociatedControlListDTO, error)
@@ -128,6 +129,21 @@ func (ccs *ComplianceClauseService) GetByID(clauseID uint) (*complianceDTOs.Comp
 	}
 
 	return &clauseDetailsDTO, nil
+}
+
+func (ccs *ComplianceClauseService) GetFullDetailsByID(clauseID uint) (*complianceDTOs.ComplianceClauseDetailDTO, error) {
+	var clauseDTO complianceDTOs.ComplianceClauseDetailDTO
+	clause, err := ccs.repo.GetFullDetailsByID(clauseID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mapstructure.Decode(clause, &clauseDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return &clauseDTO, nil
 }
 
 func (ccs *ComplianceClauseService) Create(complianceID uint, currentUserID uint, formDTO *complianceDTOs.ComplianceClauseFormDTO) (uint, error) {

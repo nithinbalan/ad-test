@@ -19,6 +19,7 @@ type ComplianceAssessmentFrameworkRepositoryInterface interface {
 	Update(complianceAssessmentFramework *models.ComplianceAssessmentFramework, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GetByType(status string) (*models.ComplianceAssessmentFramework, error)
+	GetByFrameworkValueID(id uint) (*models.ComplianceAssessmentFrameworkValue, error)
 }
 
 // implementation

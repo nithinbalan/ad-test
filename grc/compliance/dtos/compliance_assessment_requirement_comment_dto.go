@@ -23,7 +23,8 @@ type ComplianceAssessmentRequirementCommentListDTO struct {
 }
 
 type ComplianceAssessmentRequirementCommentFormDTO struct {
-	Comment string `json:"comment" binding:"required,max=1000"`
+	Comment           string `json:"comment" binding:"required,max=1000"`
+	ResponsibleUnitID uint   `json:"responsible_unit_id" binding:"required"`
 }
 
 type ComplianceAssessmentRequirementCommentDetailDTO struct {

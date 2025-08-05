@@ -83,6 +83,6 @@ type ComplianceAssessmentFrameworkValueFormDTO struct {
 	Value              *int    `json:"value"`
 	ScoreMax           *int    `json:"score_max"`
 	ScoreMin           *int    `json:"score_min"`
-	IsApplicable       *bool   `json:"is_applicable"`
+	IsApplicable       bool    `json:"is_applicable"`
 	ComplianceStatusID uint    `json:"compliance_status_id" binding:"required"`
 }

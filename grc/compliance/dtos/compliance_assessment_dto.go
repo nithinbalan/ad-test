@@ -13,9 +13,6 @@ type ComplianceAssessmentListDTO struct {
 	ComplianceRegisterTitleEn           string     `json:"compliance_register_title_en"`
 	ComplianceRegisterTitleAr           string     `json:"compliance_register_title_ar"`
 	Description                         *string    `json:"description"`
-	OrganizationUnitID                  *uint      `json:"organization_unit_id"`
-	OrganizationUnitTitleEn             string     `json:"organization_unit_title_en"`
-	OrganizationUnitTitleAr             string     `json:"organization_unit_title_ar"`
 	ReviewUserID                        uint       `json:"review_user_id"`
 	ReviewUserFirstNameEn               string     `json:"review_user_first_name_en"`
 	ReviewUserFirstNameAr               string     `json:"review_user_first_name_ar"`
@@ -83,11 +80,11 @@ type ComplianceAssessmentUpdateFormDTO struct {
 }
 
 type ComplianceAssessmentDetailDTO struct {
-	ID                         int                                   `json:"id"`
-	ComplianceRegister         *ComplianceRegisterDetailDTO          `json:"compliance_register"`
-	OrganizationUnitID         uint                                  `json:"organization_unit_id"`
-	ReviewuserID               uint                                  `json:"review_user_id"`
-	OrganizationUnit           settingsDTOs.OrganizationUnitDTO      `json:"organization_unit"`
+	ID                 int                          `json:"id"`
+	ComplianceRegister *ComplianceRegisterDetailDTO `json:"compliance_register"`
+	// OrganizationUnitID uint                         `json:"organization_unit_id"`
+	ReviewuserID uint `json:"review_user_id"`
+	// OrganizationUnit           settingsDTOs.OrganizationUnitDTO      `json:"organization_unit"`
 	ReviewUser                 *organizationDTOs.UserMinimalDTO      `json:"review_user"`
 	Description                *string                               `json:"description"`
 	ComplianceAssessmentStatus ComplianceAssessmentStatusDTO         `json:"compliance_assessment_status"`
@@ -102,16 +99,24 @@ type ComplianceAssessmentDetailDTO struct {
 }
 
 type ComplianceAssessmentRequirementDTO struct {
-	ID                      *uint                                              `json:"id"`
-	ComplianceAssessmentID  uint                                               `json:"compliance_assessment_id"`
-	ComplianceRequirementID uint                                               `json:"compliance_requirement_id"`
-	ComplianceRequirement   ComplianceRequirementDetailDTO                     `json:"compliance_requirement"`
-	IsCompleted             bool                                               `json:"is_completed"`
-	Score                   *int                                               `json:"score"`
-	Comments                *string                                            `json:"comments"`
-	ComplianceStatusID      *uint                                              `json:"compliance_status_id"`
-	ComplianceStatus        *ComplianceStatusDTO                               `json:"compliance_status"`
-	RequiredDocumentTitles  []*ComplianceAssessmentRequirementDocumentTitleDTO `json:"required_document_titles"`
+	ID                      *uint                                                `json:"id"`
+	ComplianceAssessmentID  uint                                                 `json:"compliance_assessment_id"`
+	ComplianceRequirementID uint                                                 `json:"compliance_requirement_id"`
+	ComplianceRequirement   ComplianceRequirementDetailDTO                       `json:"compliance_requirement"`
+	IsCompleted             bool                                                 `json:"is_completed"`
+	Score                   *int                                                 `json:"score"`
+	Comments                *string                                              `json:"comments"`
+	ComplianceStatusID      *uint                                                `json:"compliance_status_id"`
+	ComplianceStatus        *ComplianceStatusDTO                                 `json:"compliance_status"`
+	ResponsibleUnits        []*ComplianceAssessmentRequirementResponsibleUnitDTO `json:"responsible_units"`
+}
+type ComplianceAssessmentRequirementResponsibleUnitDTO struct {
+	ID                                 uint                                               `json:"id"`
+	ResponsibleUnit                    settingsDTOs.OrganizationUnitDTO                   `json:"responsible_unit"`
+	ComplianceAssessmentFrameworkValue *ComplianceAssessmentFrameworkValueDetailDTO       `json:"compliance_assessment_framework_value"`
+	RequiredDocumentTitles             []*ComplianceAssessmentRequirementDocumentTitleDTO `json:"required_document_titles"`
+	ActionPlans                        []*ComplianceActionPlanDetailDTO                   `json:"action_plans"`
+	RequirementComments                []*ComplianceAssessmentRequirementCommentDetailDTO `json:"requirement_comments"`
 }
 
 type AssessmentCompletionSummaryDTO struct {

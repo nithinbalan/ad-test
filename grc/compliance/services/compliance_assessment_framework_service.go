@@ -20,6 +20,7 @@ type ComplianceAssessmentFrameworkServiceInterface interface {
 	Create(currentUserID uint, complianceAssessmentFrameworkFormDTO *complianceDTOs.ComplianceAssessmentFrameworkFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, complianceAssessmentFrameworkFormDTO *complianceDTOs.ComplianceAssessmentFrameworkFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	GetByFrameworkValueID(id uint) (*models.ComplianceAssessmentFrameworkValue, error)
 }
 
 // Service and implementations
@@ -275,4 +276,7 @@ func (casf *ComplianceAssessmentFrameworkService) Delete(ids []uint, currentUser
 	}
 
 	return failedIds, nil
+}
+func (casf *ComplianceAssessmentFrameworkService) GetByFrameworkValueID(id uint) (*models.ComplianceAssessmentFrameworkValue, error) {
+	return casf.repo.GetByFrameworkValueID(id)
 }
