@@ -161,7 +161,9 @@ type StrategicObjectiveRiskSummaryDTO struct {
 		Description       *string `json:"description,omitempty"`
 		ImpactTitleEn     *string `json:"impact_title_en,omitempty"`
 		ImpactTitleAr     *string `json:"impact_title_ar,omitempty"`
+		ImpactScore       *int    `json:"impact_score,omitempty"`
 		LikelihoodTitleEn *string `json:"likelihood_title_en,omitempty"`
 		LikelihoodTitleAr *string `json:"likelihood_title_ar,omitempty"`
+		LikelihoodScore   *int    `json:"likelihood_score,omitempty"`
 	} `json:"top_risk"`
 }
