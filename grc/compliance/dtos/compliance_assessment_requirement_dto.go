@@ -89,15 +89,14 @@ type ComplianceAssessmentRequirementDocumentDTO struct {
 }
 
 type ComplianceAssessmentRequirementListQueryParamsDTO struct {
-	Sort              string
-	SortBy            string
-	Keyword           string
-	Filters           map[string][]string
-	QuickFilter       []string
-	Page              int
-	PageSize          int
-	ResponsibleUnitID uint
-	ClauseID          uint
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Filters     map[string][]string
+	QuickFilter []string
+	Page        int
+	PageSize    int
+	ClauseID    uint
 }
 
 type ComplianceAssessmentRequirementClausesListDTO struct {

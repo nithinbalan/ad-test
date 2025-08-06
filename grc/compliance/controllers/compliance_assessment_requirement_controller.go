@@ -106,16 +106,6 @@ func (carc *ComplianceAssessmentRequirementController) GetComplianceAssessmentRe
 		utility.SendInternalErrResp(carc.db, c, "Invalid page_size parameter")
 		return
 	}
-	responsibleUnitIDStr := c.Query("responsible_unit_id")
-	var responsibleUnitID uint
-	if responsibleUnitIDStr != "" {
-		parsedResponsibleUnitID, err := strconv.ParseUint(responsibleUnitIDStr, 10, 32)
-		if err != nil {
-			utility.SendInvalidErrResp(c, err)
-			return
-		}
-		responsibleUnitID = uint(parsedResponsibleUnitID)
-	}
 	clauseIDStr := c.Query("clause_id")
 	var clauseID uint
 	if clauseIDStr != "" {
@@ -127,15 +117,14 @@ func (carc *ComplianceAssessmentRequirementController) GetComplianceAssessmentRe
 		clauseID = uint(parsedClauseID)
 	}
 	queryParams := complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO{
-		Sort:              sort,
-		SortBy:            sortField,
-		Keyword:           keyword,
-		Filters:           filters,
-		QuickFilter:       quickFilter,
-		Page:              page,
-		PageSize:          pageSize,
-		ResponsibleUnitID: responsibleUnitID,
-		ClauseID:          clauseID,
+		Sort:        sort,
+		SortBy:      sortField,
+		Keyword:     keyword,
+		Filters:     filters,
+		QuickFilter: quickFilter,
+		Page:        page,
+		PageSize:    pageSize,
+		ClauseID:    clauseID,
 	}
 
 	requirements, err := carc.service.GetAll(uint(assessmentID), &queryParams)

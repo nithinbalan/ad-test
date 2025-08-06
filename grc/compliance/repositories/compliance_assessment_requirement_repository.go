@@ -104,17 +104,11 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 			LEFT JOIN compliance_requirement_categories ON compliance_requirement_categories.id = compliance_requirements.compliance_requirement_category_id
 			LEFT JOIN severity_levels ON severity_levels.id = compliance_requirements.severity_level_id
 			LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
-			LEFT JOIN compliance_assessment_requirement_responsible_units ON compliance_assessment_requirement_responsible_units.compliance_assessment_requirement_id = compliance_assessment_requirements.id
 			LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_assessment_requirements.compliance_status_id
 			LEFT JOIN compliance_assessment_requirement_statuses ON compliance_assessment_requirement_statuses.id = compliance_assessment_requirements.compliance_assessment_requirement_status_id
 
 		`).
 		Where("compliance_assessment_requirements.compliance_assessment_id = ?", assessmentID)
-
-	// Apply division filter if provided
-	if params.ResponsibleUnitID != 0 {
-		query = query.Where("compliance_assessment_requirement_responsible_units.responsible_unit_id = ?", params.ResponsibleUnitID)
-	}
 
 	// Apply clause filter if provided
 	if params.ClauseID != 0 {
