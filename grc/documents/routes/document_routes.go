@@ -140,6 +140,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/documents/:id/controls", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.CreateDocumentControl)
 	documentRoutes.DELETE("/documents/:id/controls/:controlId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.DeleteDocumentControl)
 
+	documentRoutes.POST("documents/:id/processes", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.CreateDocumentProcess)
+	documentRoutes.DELETE("documents/:id/processes/:processId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.DeleteDocumentProcess)
+
 	documentRoutes.GET("/document-change-request-initiate-types", documentChangeRequestInitiateTypeController.GetAllDocumentChangeRequestInitiateTypes)
 	documentRoutes.GET("/document-change-request-initiate-types/:id", documentChangeRequestInitiateTypeController.GetDocumentChangeRequestInitiateTypeDetails)
 

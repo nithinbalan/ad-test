@@ -28,6 +28,8 @@ type IncidentAssociatedItemServiceInterface interface {
 	DeleteIncidentDocument(incidentID uint, documentID uint) error
 	CreateIncidentControl(incidentID uint, currentUserID uint, dto *commonDTOs.AssociatedControlMapDTO) error
 	DeleteIncidentControl(incidentID uint, controlID uint) error
+	CreateIncidentProcess(incidentID uint, currentUserID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
+	DeleteIncidentProcess(incidentID uint, processID uint) error
 }
 
 // Service and implementations
@@ -335,6 +337,49 @@ func (iais *IncidentAssociatedItemService) DeleteIncidentControl(incidentID uint
 	tx := iais.repo.BeginTransaction()
 
 	if err := iais.repo.DeleteIncidentControl(incidentID, controlID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (iais *IncidentAssociatedItemService) CreateIncidentProcess(incidentID, currentUserID uint, dto *commonDTOs.AssociatedProcessMapDTO) error {
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
+	}
+	if err := iais.validationSvc.ValidateProcessMapping(incidentID, dto.ProcessIDs, "incident_processes", "incident_register_id"); err != nil {
+		return err
+	}
+	tx := iais.repo.BeginTransaction()
+	var mappings []*models.IncidentProcess
+	currentTime := time.Now()
+
+	for _, controlID := range dto.ProcessIDs {
+		mappings = append(mappings, &models.IncidentProcess{
+			ProcessID:          controlID,
+			IncidentRegisterID: incidentID,
+			CreatedByID:        currentUserID,
+			CreatedAt:          currentTime,
+		})
+	}
+
+	if err := iais.repo.CreateIncidentProcess(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (iais *IncidentAssociatedItemService) DeleteIncidentProcess(incidentID uint, processID uint) error {
+	// Validate control existence
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
+	}
+
+	tx := iais.repo.BeginTransaction()
+
+	if err := iais.repo.DeleteIncidentProcess(incidentID, processID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

@@ -27,6 +27,8 @@ type DocumentAssociatedItemRepositoryInterface interface {
 	DeleteDocumentRisk(documentID uint, riskID uint, tx ...utility.DatabaseTransaction) error
 	CreateDocumentControl(controls []*models.ControlAssociatedDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocumentControl(documentID uint, controlID uint, tx ...utility.DatabaseTransaction) error
+	CreateDocumentProcess(process []*models.ProcessAssociatedDocument, tx ...utility.DatabaseTransaction) error
+	DeleteDocumentProcess(documentID uint, processID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type DocumentAssociatedItemRepository struct {
@@ -899,5 +901,24 @@ func (repo *DocumentAssociatedItemRepository) DeleteDocumentControl(documentID u
 	return db.
 		Where("control_id = ? AND document_id = ?", controlId, documentID).
 		Delete(&models.ControlAssociatedDocument{}).
+		Error
+}
+
+func (repo *DocumentAssociatedItemRepository) CreateDocumentProcess(process []*models.ProcessAssociatedDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&process).Error
+}
+
+func (repo *DocumentAssociatedItemRepository) DeleteDocumentProcess(documentID uint, processId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("process_id = ? AND document_id = ?", processId, documentID).
+		Delete(&models.ProcessAssociatedDocument{}).
 		Error
 }

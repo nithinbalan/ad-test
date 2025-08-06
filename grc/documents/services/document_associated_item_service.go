@@ -26,6 +26,8 @@ type DocumentAssociatedItemServiceInterface interface {
 	DeleteDocumentRisk(documentID uint, riskID uint) error
 	CreateDocumentControl(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedControlMapDTO) error
 	DeleteDocumentControl(documentID uint, controlID uint) error
+	CreateDocumentProcess(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
+	DeleteDocumentProcess(documentID uint, processID uint) error
 }
 
 // Service Implementation
@@ -334,6 +336,49 @@ func (dais *DocumentAssociatedItemService) DeleteDocumentControl(documentID uint
 	tx := dais.repo.BeginTransaction()
 
 	if err := dais.repo.DeleteDocumentControl(documentID, controlID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) CreateDocumentProcess(documentID, currentUserID uint, dto *commonDTOs.AssociatedProcessMapDTO) error {
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", documentID), "not_exist", "document_id")
+	}
+	if err := dais.validationSvc.ValidateProcessMapping(documentID, dto.ProcessIDs, "process_associated_documents", "document_id"); err != nil {
+		return err
+	}
+	tx := dais.repo.BeginTransaction()
+	var mappings []*models.ProcessAssociatedDocument
+	currentTime := time.Now()
+
+	for _, processID := range dto.ProcessIDs {
+		mappings = append(mappings, &models.ProcessAssociatedDocument{
+			ProcessID:   processID,
+			DocumentID:  documentID,
+			CreatedByID: currentUserID,
+			CreatedAt:   currentTime,
+		})
+	}
+
+	if err := dais.repo.CreateDocumentProcess(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) DeleteDocumentProcess(documentID uint, processID uint) error {
+	// Validate control existence
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", documentID), "not_exist", "document_id")
+	}
+
+	tx := dais.repo.BeginTransaction()
+
+	if err := dais.repo.DeleteDocumentProcess(documentID, processID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

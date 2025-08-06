@@ -511,3 +511,52 @@ func (daic *DocumentAssociatedItemController) DeleteDocumentControl(c *gin.Conte
 
 	c.JSON(http.StatusOK, gin.H{"message": "Control unmapped from document successfully"})
 }
+
+func (daic *DocumentAssociatedItemController) CreateDocumentProcess(c *gin.Context) {
+	var input commonDTOs.AssociatedProcessMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	documentID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(daic.db, c, err.Error())
+		return
+	}
+
+	err = daic.service.CreateDocumentProcess(uint(documentID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(daic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (daic *DocumentAssociatedItemController) DeleteDocumentProcess(c *gin.Context) {
+	documentID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+	processID, _ := strconv.ParseUint(c.Param("processId"), 10, 64)
+	err := daic.service.DeleteDocumentProcess(uint(documentID), uint(processID))
+	if err != nil {
+		utility.SendInternalErrResp(daic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Process unmapped from document successfully"})
+}

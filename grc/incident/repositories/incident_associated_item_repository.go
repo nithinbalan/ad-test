@@ -30,6 +30,8 @@ type IncidentAssociatedItemRepositoryInterface interface {
 	DeleteIncidentDocument(incidentID uint, documentID uint, tx ...utility.DatabaseTransaction) error
 	CreateIncidentControl(controls []*models.IncidentControl, tx ...utility.DatabaseTransaction) error
 	DeleteIncidentControl(incidentID uint, controlID uint, tx ...utility.DatabaseTransaction) error
+	CreateIncidentProcess(process []*models.IncidentProcess, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentProcess(incidentID uint, controlID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type IncidentAssociatedItemRepository struct {
@@ -1087,5 +1089,24 @@ func (repo *IncidentAssociatedItemRepository) DeleteIncidentControl(incidentID u
 	return db.
 		Where("control_id = ? AND incident_register_id = ?", controlId, incidentID).
 		Delete(&models.IncidentControl{}).
+		Error
+}
+
+func (repo *IncidentAssociatedItemRepository) CreateIncidentProcess(process []*models.IncidentProcess, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&process).Error
+}
+
+func (repo *IncidentAssociatedItemRepository) DeleteIncidentProcess(incidentID uint, processId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("process_id = ? AND incident_register_id = ?", processId, incidentID).
+		Delete(&models.IncidentProcess{}).
 		Error
 }
