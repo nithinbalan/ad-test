@@ -403,7 +403,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		return err
 	}
 
-	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.DocumentEn); err != nil {
+	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.DocumentAr); err != nil {
 		return err
 	}
 
@@ -604,9 +604,9 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 			"compliance_status":        oldComplianceRegister.ComplianceStatus.TitleEn,
 			"responsible_unit":         oldComplianceRegister.ResponsibleUnit.TitleEn,
 			"responsible_user":         fmt.Sprintf("%s %s", oldComplianceRegister.ResponsibleUser.FirstNameEN, oldComplianceRegister.ResponsibleUser.LastNameEN),
-			"review_frequency":         oldComplianceRegister.ReviewFrequency.TitleEn,
+			"review_frequency":         utility.GetFieldValue(oldComplianceRegister.ReviewFrequency).(string),
 			"review_responsible_user":  utility.GetFieldValue(oldComplianceRegister.ReviewResponsibleUser).(string),
-			"severity_level":           oldComplianceRegister.SeverityLevel.TitleEn,
+			"severity_level":           utility.GetFieldValue(oldComplianceRegister.SeverityLevel).(string),
 			"standard_code":            oldComplianceRegister.StandardCode,
 			"title_en":                 oldComplianceRegister.TitleEn,
 			"title_ar":                 oldComplianceRegister.TitleAr,
@@ -628,8 +628,9 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 			"compliance_status":        existingCompliance.ComplianceStatus.TitleEn,
 			"responsible_unit":         existingCompliance.ResponsibleUnit.TitleEn,
 			"responsible_user":         fmt.Sprintf("%s %s", existingCompliance.ResponsibleUser.FirstNameEN, existingCompliance.ResponsibleUser.LastNameEN),
-			"review_frequency":         existingCompliance.ReviewFrequency.TitleEn,
+			"review_frequency":         utility.GetFieldValue(existingCompliance.ReviewFrequency).(string),
 			"review_responsible_user":  utility.GetFieldValue(existingCompliance.ReviewResponsibleUser).(string),
+			"severity_level":           utility.GetFieldValue(existingCompliance.SeverityLevel).(string),
 			"description_ar":           existingCompliance.DescriptionAr,
 			"version":                  existingCompliance.Version,
 			"dead_line":                existingCompliance.DeadlineString,
