@@ -447,8 +447,10 @@ func (repo *StrategicObjectiveRepository) GetRiskSummary(strategicObjectiveID ui
 			rr.description,
 			rmi.title_en AS impact_title_en,
 			rmi.title_ar AS impact_title_ar,
+			rmi.score AS impact_score,
 			rml.title_en AS likelihood_title_en,
-			rml.title_ar AS likelihood_title_ar
+			rml.title_ar AS likelihood_title_ar,
+			rml.score AS likelihood_score
 			FROM risk_strategic_objectives rso
 			JOIN risk_register rr ON rso.risk_register_id = rr.id
 			JOIN risk_matrix_risk_rating_values rmrrv ON rr.current_risk_rating_value_id = rmrrv.id
