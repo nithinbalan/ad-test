@@ -124,7 +124,7 @@ type ComplianceRegisterFormDTO struct {
 	LastReviewedDate                *string                   `json:"last_reviewed_date" binding:"omitempty,datetime=2006-01-02"`
 	LastReviewedUserID              *uint                     `json:"last_reviewed_user_id" binding:"omitempty"`
 	ComplianceReviewStatusID        *uint                     `json:"compliance_review_status_id"`
-	ComplianceAssessmentFrameworkID *uint                     `json:"compliance_assessment_framework_id" gorm:"default:null"`
+	ComplianceAssessmentFrameworkID uint                      `json:"compliance_assessment_framework_id" binding:"required"`
 	LastReviewNote                  *string                   `json:"last_review_note"`
 	StandardCode                    *string                   `json:"standard_code" binding:"omitempty,max=45"`
 	DocumentEn                      ComplianceDocumentFormDTO `json:"document_en" binding:"required"`
@@ -164,42 +164,43 @@ type ComplianceRegisterParsedDates struct {
 }
 
 type ComplianceRegisterDetailDTO struct {
-	ID                            int                                             `json:"id"`
-	ReferenceNumber               string                                          `json:"reference_number"`
-	StandardCode                  string                                          `json:"standard_code"`
-	TitleEn                       string                                          `json:"title_en"`
-	TitleAr                       string                                          `json:"title_ar"`
-	DescriptionEn                 *string                                         `json:"description_en"`
-	DescriptionAr                 *string                                         `json:"description_ar"`
-	DeadlineString                *string                                         `json:"deadline"`
-	IssueDateString               *string                                         `json:"issue_date"`
-	ExpiryDateString              *string                                         `json:"expiry_date"`
-	NextReviewDateString          *string                                         `json:"next_review_date"`
-	LastReviewedDateString        *string                                         `json:"last_reviewed_date"`
-	LastReviewNote                *string                                         `json:"last_review_note"`
-	LastReviewedUser              *organizationDTOs.UserMinimalDTO                `json:"last_reviewed_user"`
-	ComplianceReviewStatus        *ComplianceReviewStatusDTO                      `json:"compliance_review_status"`
-	ComplianceCategory            ComplianceCategoryDTO                           `json:"compliance_category"`
-	ComplianceStatus              ComplianceStatusDTO                             `json:"compliance_status"`
-	ResponsibleUnit               settingsDTOs.OrganizationUnitDTO                `json:"responsible_unit"`
-	ResponsibleUser               organizationDTOs.UserMinimalDTO                 `json:"responsible_user"`
-	ResponsibleUserID             uint                                            `json:"responsible_user_id" binding:"required" gorm:"not null"`
-	ReviewFrequency               *masterDTOs.ReviewFrequencyDTO                  `json:"review_frequency"`
-	ReviewResponsibleUser         *organizationDTOs.UserMinimalDTO                `json:"review_responsible_user"`
-	SeverityLevel                 *masterDTOs.SeverityLevelDTO                    `json:"severity_level"`
-	Version                       *string                                         `json:"version"`
-	CreatedAt                     time.Time                                       `json:"created_at"`
-	UpdatedAt                     *time.Time                                      `json:"updated_at"`
-	CreatedByUser                 organizationDTOs.UserMinimalDTO                 `json:"created_by"`
-	UpdatedByUser                 *organizationDTOs.UserMinimalDTO                `json:"updated_by"`
-	LifecycleStatus               masterDTOs.LifecycleStatusDTO                   `json:"status"`
-	DocumentEn                    *ComplianceDocumentDTO                          `json:"document_en"`
-	DocumentAr                    *ComplianceDocumentDTO                          `json:"document_ar"`
-	Controls                      []*ComplianceControlDTO                         `json:"controls"`
-	ComplianceStatusUpdates       []*ComplianceStatusUpdateDetailDTO              `json:"compliance_status_updates"`
-	ComplianceClauses             []*ComplianceClauseDetailDTO                    `json:"compliance_clauses"`
-	ComplianceFolder              *ComplianceFolderDTO                            `json:"compliance_folder"`
-	ComplianceAssessmentFramework *ComplianceAssessmentFrameworkDetailResponseDTO `json:"compliance_assessment_framework"`
+	ID                              int                                             `json:"id"`
+	ReferenceNumber                 string                                          `json:"reference_number"`
+	StandardCode                    string                                          `json:"standard_code"`
+	TitleEn                         string                                          `json:"title_en"`
+	TitleAr                         string                                          `json:"title_ar"`
+	DescriptionEn                   *string                                         `json:"description_en"`
+	DescriptionAr                   *string                                         `json:"description_ar"`
+	ComplianceAssessmentFrameworkID uint                                            `json:"compliance_assessment_framework_id"`
+	DeadlineString                  *string                                         `json:"deadline"`
+	IssueDateString                 *string                                         `json:"issue_date"`
+	ExpiryDateString                *string                                         `json:"expiry_date"`
+	NextReviewDateString            *string                                         `json:"next_review_date"`
+	LastReviewedDateString          *string                                         `json:"last_reviewed_date"`
+	LastReviewNote                  *string                                         `json:"last_review_note"`
+	LastReviewedUser                *organizationDTOs.UserMinimalDTO                `json:"last_reviewed_user"`
+	ComplianceReviewStatus          *ComplianceReviewStatusDTO                      `json:"compliance_review_status"`
+	ComplianceCategory              ComplianceCategoryDTO                           `json:"compliance_category"`
+	ComplianceStatus                ComplianceStatusDTO                             `json:"compliance_status"`
+	ResponsibleUnit                 settingsDTOs.OrganizationUnitDTO                `json:"responsible_unit"`
+	ResponsibleUser                 organizationDTOs.UserMinimalDTO                 `json:"responsible_user"`
+	ResponsibleUserID               uint                                            `json:"responsible_user_id" binding:"required" gorm:"not null"`
+	ReviewFrequency                 *masterDTOs.ReviewFrequencyDTO                  `json:"review_frequency"`
+	ReviewResponsibleUser           *organizationDTOs.UserMinimalDTO                `json:"review_responsible_user"`
+	SeverityLevel                   *masterDTOs.SeverityLevelDTO                    `json:"severity_level"`
+	Version                         *string                                         `json:"version"`
+	CreatedAt                       time.Time                                       `json:"created_at"`
+	UpdatedAt                       *time.Time                                      `json:"updated_at"`
+	CreatedByUser                   organizationDTOs.UserMinimalDTO                 `json:"created_by"`
+	UpdatedByUser                   *organizationDTOs.UserMinimalDTO                `json:"updated_by"`
+	LifecycleStatus                 masterDTOs.LifecycleStatusDTO                   `json:"status"`
+	DocumentEn                      *ComplianceDocumentDTO                          `json:"document_en"`
+	DocumentAr                      *ComplianceDocumentDTO                          `json:"document_ar"`
+	Controls                        []*ComplianceControlDTO                         `json:"controls"`
+	ComplianceStatusUpdates         []*ComplianceStatusUpdateDetailDTO              `json:"compliance_status_updates"`
+	ComplianceClauses               []*ComplianceClauseDetailDTO                    `json:"compliance_clauses"`
+	ComplianceFolder                *ComplianceFolderDTO                            `json:"compliance_folder"`
+	ComplianceAssessmentFramework   *ComplianceAssessmentFrameworkDetailResponseDTO `json:"compliance_assessment_framework"`
 }
 
 type ComplianceControlDTO struct {

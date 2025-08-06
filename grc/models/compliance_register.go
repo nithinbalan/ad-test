@@ -35,7 +35,7 @@ type ComplianceRegister struct {
 	ComplianceReviewStatusID        *uint      `json:"compliance_review_status_id" gorm:"default:null"`
 	TotalScore                      int        `json:"total_score" gorm:"default:0"`
 	ComplianceFolderID              *uint      `json:"compliance_folder_id" binding:"omitempty" gorm:"default:null"`
-	ComplianceAssessmentFrameworkID *uint      `json:"compliance_assessment_framework_id" gorm:"default:null"`
+	ComplianceAssessmentFrameworkID uint       `json:"compliance_assessment_framework_id" binding:"required" gorm:"not null"`
 
 	// Relationships
 	ComplianceCategory            *ComplianceCategory            `gorm:"foreignKey:ComplianceCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
