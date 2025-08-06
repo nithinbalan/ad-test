@@ -24,6 +24,8 @@ type ControlAssociatedItemServiceInterface interface {
 	CreateControlDocument(controlID uint, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
 	DeleteControlDocument(controlID uint, documentID uint) error
 	GetAllDocuments(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
+	CreateControlPocess(controlID uint, userID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
+	DeleteControlProcess(controlID uint, processID uint) error
 }
 
 type ControlAssociatedItemService struct {
@@ -342,4 +344,46 @@ func (cais *ControlAssociatedItemService) GetAllDocuments(controlID uint, params
 		return nil, err
 	}
 	return cais.repo.GetAllDocuments(controlID, params)
+}
+func (cais *ControlAssociatedItemService) CreateControlPocess(controlID, userID uint, dto *commonDTOs.AssociatedProcessMapDTO) error {
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlID), "not_exist", "control_id")
+	}
+	if err := cais.validationSvc.ValidateProcessMapping(controlID, dto.ProcessIDs, "process_controls", "control_id"); err != nil {
+		return err
+	}
+	tx := cais.repo.BeginTransaction()
+	var mappings []*models.ProcessControl
+	currentTime := time.Now()
+
+	for _, processID := range dto.ProcessIDs {
+		mappings = append(mappings, &models.ProcessControl{
+			ProcessID:   processID,
+			ControlID:   controlID,
+			CreatedByID: userID,
+			CreatedAt:   currentTime,
+		})
+	}
+
+	if err := cais.repo.CreateControlPocess(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (cais *ControlAssociatedItemService) DeleteControlProcess(controlID uint, processID uint) error {
+	// Validate control existence
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlID), "not_exist", "control_id")
+	}
+
+	tx := cais.repo.BeginTransaction()
+
+	if err := cais.repo.DeleteControlProcess(controlID, processID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }

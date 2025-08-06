@@ -26,6 +26,8 @@ type ControlAssociatedItemRepositoryInterface interface {
 	CreateControlDocument(documents []*models.DocumentControl, tx ...utility.DatabaseTransaction) error
 	DeleteControlDocument(controlID uint, documentID uint, tx ...utility.DatabaseTransaction) error
 	GetAllDocuments(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
+	CreateControlPocess(process []*models.ProcessControl, tx ...utility.DatabaseTransaction) error
+	DeleteControlProcess(controlID uint, processID uint, tx ...utility.DatabaseTransaction) error
 }
 type ControlAssociatedItemRepository struct {
 	db *gorm.DB
@@ -845,4 +847,22 @@ func (repo *ControlAssociatedItemRepository) GetAllDocuments(controlID uint, par
 		},
 	}
 	return response, nil
+}
+func (repo *ControlAssociatedItemRepository) CreateControlPocess(process []*models.ProcessControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&process).Error
+}
+
+func (repo *ControlAssociatedItemRepository) DeleteControlProcess(controlID uint, processId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("process_id = ? AND control_id = ?", processId, controlID).
+		Delete(&models.ProcessControl{}).
+		Error
 }
