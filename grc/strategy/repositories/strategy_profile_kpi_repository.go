@@ -127,17 +127,13 @@ func (repo *StrategyProfileKpiRepository) GetAll(strategyProfileID uint, params 
 // GetByID fetches a single objective by ID
 func (repo *StrategyProfileKpiRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileKpi, error) {
 	var kpi models.StrategyProfileKpi
-	q := repo.db
+	db := repo.db
 
 	if len(tx) > 0 && tx[0] != nil {
-		q = tx[0].DB()
+		db = tx[0].DB()
 	}
 
-	err := q.Preload("CreatedByUser").
-		Preload("UpdatedByUser").
-		First(&kpi, id).Error
-
-	if err != nil {
+	if err := db.First(&kpi, id).Error; err != nil {
 		return nil, err
 	}
 
