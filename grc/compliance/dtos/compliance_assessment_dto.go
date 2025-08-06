@@ -66,10 +66,10 @@ type ComplianceAssessmentListResponseDTO struct {
 }
 
 type ComplianceAssessmentFormDTO struct {
-	ComplianceRegisterID uint    `json:"compliance_register_id" binding:"required"`
-	OrganizationUnitIDs  []*uint `json:"organization_unit_ids" binding:"required"`
-	ReviewUserID         uint    `json:"review_user_id" binding:"required"`
-	Description          *string `json:"description"`
+	ComplianceRegisterID uint `json:"compliance_register_id" binding:"required"`
+	// OrganizationUnitIDs  []*uint `json:"organization_unit_ids" binding:"required"`
+	ReviewUserID uint    `json:"review_user_id" binding:"required"`
+	Description  *string `json:"description"`
 }
 
 type ComplianceAssessmentUpdateFormDTO struct {

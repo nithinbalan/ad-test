@@ -170,25 +170,29 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 	if err != nil {
 		return 0, err
 	}
-
+	complianceAssessmentRequirementResponsibleUnit, err := caraps.complianceAssessmentRequirementSvc.GetFullDetailsByID(complianceAssessmentID, requirementID, *ComplianceActionPlanFormDTO.ResponsibleUnitID)
+	if err != nil {
+		return 0, nil
+	}
 	actionPlanStatus, err := caraps.actionPlanStatusSvc.GetByType("new")
 	if err != nil {
 		return 0, err
 	}
+	complianceAssessmentRequirementResponsibleUnitID := uint(complianceAssessmentRequirementResponsibleUnit.ID)
 
 	complianceAssessmentRequirementActionPlan := &models.ComplianceActionPlan{
-		ComplianceRegisterID:              nil,
-		ComplianceAssessmentRequirementID: &requirementID,
-		Title:                             ComplianceActionPlanFormDTO.Title,
-		Description:                       ComplianceActionPlanFormDTO.Description,
-		ResponsibleUserID:                 ComplianceActionPlanFormDTO.ResponsibleUserID,
-		TargetDate:                        dates.TargetDate,
-		Percentage:                        ComplianceActionPlanFormDTO.Percentage,
-		ActionPlanStatusID:                actionPlanStatus.ID,
-		SeverityLevelID:                   ComplianceActionPlanFormDTO.SeverityLevelID,
-		ReviewUserID:                      ComplianceActionPlanFormDTO.ReviewUserID,
-		Comments:                          ComplianceActionPlanFormDTO.Comments,
-		CreatedByID:                       currentUserID,
+		ComplianceRegisterID:                             nil,
+		ComplianceAssessmentRequirementResponsibleUnitID: &complianceAssessmentRequirementResponsibleUnitID,
+		Title:              ComplianceActionPlanFormDTO.Title,
+		Description:        ComplianceActionPlanFormDTO.Description,
+		ResponsibleUserID:  ComplianceActionPlanFormDTO.ResponsibleUserID,
+		TargetDate:         dates.TargetDate,
+		Percentage:         ComplianceActionPlanFormDTO.Percentage,
+		ActionPlanStatusID: actionPlanStatus.ID,
+		SeverityLevelID:    ComplianceActionPlanFormDTO.SeverityLevelID,
+		ReviewUserID:       ComplianceActionPlanFormDTO.ReviewUserID,
+		Comments:           ComplianceActionPlanFormDTO.Comments,
+		CreatedByID:        currentUserID,
 	}
 
 	id, err := caraps.repo.Create(complianceAssessmentRequirementActionPlan, tx)

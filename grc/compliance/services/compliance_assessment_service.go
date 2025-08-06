@@ -260,10 +260,6 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, complianceAssessmentUpdateFormDTO *complianceDTOs.ComplianceAssessmentUpdateFormDTO) error {
 	tx := cras.repo.BeginTransaction()
 
-	if err := cras.validateComplianceAssessmentOrganizationUnit(complianceAssessmentUpdateFormDTO.OrganizationUnitIDs, complianceAssessmentUpdateFormDTO.ComplianceRegisterID, &id); err != nil {
-		return err
-	}
-
 	existingComplianceAssessment, err := cras.GetByID(id)
 	if err != nil {
 		return err
@@ -444,32 +440,39 @@ func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(com
 
 	statusIds := []uint{}
 
-	if complianceAssessmentFormDTO.OrganizationUnitIDs != nil {
-		for _, organizationUnitID := range complianceAssessmentFormDTO.OrganizationUnitIDs {
+	complianceAssessmentDraftStatus, err := cras.complianceAssessmentStatusSvc.GetByType("draft")
+	if err != nil {
+		return err
+	}
 
-			complianceAssessmentDraftStatus, err := cras.complianceAssessmentStatusSvc.GetByType("draft")
-			if err != nil {
-				return err
-			}
+	statusIds = append(statusIds, uint(complianceAssessmentDraftStatus.ID))
 
-			statusIds = append(statusIds, uint(complianceAssessmentDraftStatus.ID))
+	complianceAssessmentInreviewStatus, err := cras.complianceAssessmentStatusSvc.GetByType("in_review")
+	if err != nil {
+		return err
+	}
 
-			complianceAssessmentInreviewStatus, err := cras.complianceAssessmentStatusSvc.GetByType("in_review")
-			if err != nil {
-				return err
-			}
+	statusIds = append(statusIds, uint(complianceAssessmentInreviewStatus.ID))
 
-			statusIds = append(statusIds, uint(complianceAssessmentInreviewStatus.ID))
+	exists, err := cras.repo.IsAssessmentExists(0, complianceAssessmentFormDTO.ComplianceRegisterID, statusIds)
+	if err != nil {
+		return fmt.Errorf("failed to validate assessment %w", err)
+	}
 
-			exists, err := cras.repo.IsAssessmentExists(*organizationUnitID, complianceAssessmentFormDTO.ComplianceRegisterID, statusIds)
-			if err != nil {
-				return fmt.Errorf("failed to validate organization unit ID %d: %w", organizationUnitID, err)
-			}
+	if exists {
+		return utility.NewValidationError(fmt.Errorf("an assessment already exists for this compliance register"), "unique", "compliance")
+	}
+	hasRequirement, err := cras.repo.HasRequirementForRegister(complianceAssessmentFormDTO.ComplianceRegisterID)
+	if err != nil {
+		return fmt.Errorf("failed to validate requirements: %w", err)
+	}
 
-			if exists {
-				return utility.NewValidationError(fmt.Errorf("a assessment already exists for this organization unit"), "unique", "organization unit")
-			}
-		}
+	if !hasRequirement {
+		return utility.NewValidationError(
+			fmt.Errorf("no compliance requirements found for this compliance register"),
+			"reqirement_not_exist",
+			"compliance requirement",
+		)
 	}
 
 	return nil

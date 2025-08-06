@@ -20,6 +20,7 @@ type ComplianceAssessmentRepositoryInterface interface {
 
 	IsAssessmentExists(organizationUnitID uint, compliancRegisterID uint, ids []uint) (bool, error)
 	IsAssessmentExistExcludingID(id uint, organizationUnitID uint, compliancRegisterID uint, ids []uint) (bool, error)
+	HasRequirementForRegister(registerID uint) (bool, error)
 
 	CreateComplianceAssessmentRequirement(requirements *models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteComplianceAssessmentRequirements(ids []*uint, tx ...utility.DatabaseTransaction) error
@@ -258,23 +259,35 @@ func (repo *ComplianceAssessmentRepository) Delete(id uint, tx ...utility.Databa
 	return nil
 }
 func (repo *ComplianceAssessmentRepository) IsAssessmentExists(organizationUnitID uint, complianceRegisterID uint, ids []uint) (bool, error) {
-	// db := repo.db
+	db := repo.db
 
 	var count int64
-	// query := db.Table("compliance_assessments").
-	// 	Where("compliance_register_id = ?", complianceRegisterID).
-	// 	Where("compliance_assessment_status_id IN ?", ids)
+	query := db.Table("compliance_assessments").
+		Where("compliance_register_id = ?", complianceRegisterID).
+		Where("compliance_assessment_status_id IN ?", ids)
 
-	// if organizationUnitID > 0 {
-	// 	query = query.Where("organization_unit_id = ?", organizationUnitID)
-	// }
+	if organizationUnitID > 0 {
+		query = query.Where("organization_unit_id = ?", organizationUnitID)
+	}
 
-	// err := query.Count(&count).Error
+	err := query.Count(&count).Error
 
-	// return count > 0, err
+	return count > 0, err
+}
+func (repo *ComplianceAssessmentRepository) HasRequirementForRegister(registerID uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Table("compliance_requirements").
+		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
+		Where("compliance_clauses.compliance_register_id = ?", registerID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+
 	return count > 0, nil
 }
-
 func (repo *ComplianceAssessmentRepository) IsAssessmentExistExcludingID(id uint, organizationUnitID uint, complianceRegisterID uint, ids []uint) (bool, error) {
 	db := repo.db
 
