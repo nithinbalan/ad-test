@@ -242,6 +242,7 @@ func (krc *KPIRegisterController) GetKPITrendAnalysis(c *gin.Context) {
 // In kpi_register_controller.go
 func (krc *KPIRegisterController) GetKPILatestValueUpdate(c *gin.Context) {
 	idStr := c.Param("kpiRegisterId")
+
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -250,10 +251,21 @@ func (krc *KPIRegisterController) GetKPILatestValueUpdate(c *gin.Context) {
 
 	latestValueUpdate, err := krc.service.GetLatestValueUpdateByKPIRegisterID(uint(id))
 	if err != nil {
-		utility.SendInternalErrResp(krc.db, c, err.Error())
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(krc.db, c, e.Error())
+			return
+		}
+	}
+
+	// If no value update is found, return an empty object
+	if latestValueUpdate == nil {
+		c.JSON(http.StatusOK, struct{}{})
 		return
 	}
 
-	// This will return 200 OK with null in the response body if latestValueUpdate is nil
 	c.JSON(http.StatusOK, latestValueUpdate)
 }

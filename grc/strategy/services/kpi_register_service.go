@@ -25,7 +25,7 @@ type KPIRegisterServiceInterface interface {
 
 	UpdateValue(kpiRegister *models.KPIRegister, tx utility.DatabaseTransaction) error
 	GetTrendAnalysis(kpiID uint, limit int) ([]*strategyDTOs.KPITrendAnalysisDTO, error)
-	GetLatestValueUpdateByKPIRegisterID(kpiRegisterID uint) (*models.KPIValueUpdate, error)
+	GetLatestValueUpdateByKPIRegisterID(kpiRegisterID uint) (*strategyDTOs.KPIValueUpdateDetailsDTO, error)
 	GetByIDs(ids []uint) ([]*models.KPIRegister, error)
 }
 
@@ -474,12 +474,27 @@ func (krs *KPIRegisterService) GetTrendAnalysis(kpiID uint, limit int) ([]*strat
 	return trend, nil
 }
 
-func (krs *KPIRegisterService) GetLatestValueUpdateByKPIRegisterID(kpiRegisterID uint) (*models.KPIValueUpdate, error) {
+func (krs *KPIRegisterService) GetLatestValueUpdateByKPIRegisterID(kpiRegisterID uint) (*strategyDTOs.KPIValueUpdateDetailsDTO, error) {
 	valueUpdate, err := krs.repo.GetLatestValueUpdate(kpiRegisterID)
 	if err != nil {
 		return nil, err
 	}
-	return valueUpdate, nil // This will be nil, nil when no record is found
+
+	// If no value update is found, return nil
+	if valueUpdate == nil {
+		return nil, nil
+	}
+
+	var dto strategyDTOs.KPIValueUpdateDetailsDTO
+	reviewedDate := valueUpdate.ReviewedDate.Format("2006-01-02")
+	dto.ReviewedDateString = &reviewedDate
+
+	err = mapstructure.Decode(valueUpdate, &dto)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto, nil
 }
 
 func (s *KPIRegisterService) GetByIDs(ids []uint) ([]*models.KPIRegister, error) {

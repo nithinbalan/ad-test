@@ -288,7 +288,7 @@ func (repo *KPIRegisterRepository) GetTrendAnalysis(kpiID uint, limit int) ([]*m
 }
 
 func (repo *KPIRegisterRepository) GetLatestValueUpdate(kpiID uint) (*models.KPIValueUpdate, error) {
-	var kpiValueUpdate models.KPIValueUpdate
+	var kpiValueUpdate *models.KPIValueUpdate
 
 	result := repo.db.Preload("ReviewUser").
 		Preload("Documents").
@@ -304,7 +304,7 @@ func (repo *KPIRegisterRepository) GetLatestValueUpdate(kpiID uint) (*models.KPI
 		return nil, result.Error
 	}
 
-	return &kpiValueUpdate, nil
+	return kpiValueUpdate, nil
 }
 func (repo *KPIRegisterRepository) GenerateReferenceNumber() (string, error) {
 	var lastReferenceNumber *string
