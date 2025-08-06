@@ -112,11 +112,13 @@ type ComplianceAssessmentRequirementDTO struct {
 }
 type ComplianceAssessmentRequirementResponsibleUnitDTO struct {
 	ID                                 uint                                               `json:"id"`
+	ResponsibleUnitID                  uint                                               `json:"responsible_unit_id"`
 	ResponsibleUnit                    settingsDTOs.OrganizationUnitDTO                   `json:"responsible_unit"`
 	ComplianceAssessmentFrameworkValue *ComplianceAssessmentFrameworkValueDetailDTO       `json:"compliance_assessment_framework_value"`
 	RequiredDocumentTitles             []*ComplianceAssessmentRequirementDocumentTitleDTO `json:"required_document_titles"`
 	ActionPlans                        []*ComplianceActionPlanDetailDTO                   `json:"action_plans"`
 	RequirementComments                []*ComplianceAssessmentRequirementCommentDetailDTO `json:"requirement_comments"`
+	CompletedByUser                    *organizationDTOs.UserMinimalDTO                   `json:"completed_by_user"`
 }
 
 type AssessmentCompletionSummaryDTO struct {

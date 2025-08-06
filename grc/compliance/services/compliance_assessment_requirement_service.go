@@ -158,8 +158,17 @@ func (cars ComplianceAssessmentRequirementService) GetFullDetailsByID(assessment
 		return nil, err
 	}
 
+	var filteredResponsibleUnits []*complianceDTOs.ComplianceAssessmentRequirementResponsibleUnitDTO
+	// If responsibleUnitID is provided, filter to return only that specific responsibleUnit
+	for _, responsibleUnit := range complianceAssessmentRequirementDTO.ResponsibleUnits {
+		if responsibleUnit.ResponsibleUnitID == responsibleUnitID {
+			filteredResponsibleUnits = append(filteredResponsibleUnits, responsibleUnit)
+			break // Only one responsibleUnit should match
+		}
+	}
 	// ✅ iterate over each responsible unit
 	for i, ru := range complianceAssessment.ResponsibleUnits {
+
 		// Add TargetDate to each action plan
 		for j, actionPlan := range ru.ActionPlans {
 			if actionPlan.TargetDate != nil {
@@ -180,6 +189,12 @@ func (cars ComplianceAssessmentRequirementService) GetFullDetailsByID(assessment
 				complianceAssessmentRequirementDTO.ResponsibleUnits[i].RequirementComments[j].CreatedAt = comment.CreatedAt
 			}
 		}
+	}
+
+	// Check if any responsibleUnit was found before accessing the first element
+	if len(filteredResponsibleUnits) > 0 {
+		complianceAssessmentRequirementDTO.ResponsibleUnit = filteredResponsibleUnits[0]
+		complianceAssessmentRequirementDTO.CompletedByUser = filteredResponsibleUnits[0].CompletedByUser
 	}
 
 	complianceAssessmentRequirementDTO.CreatedAt = complianceAssessment.CreatedAt
@@ -217,9 +232,6 @@ func (cars ComplianceAssessmentRequirementService) Update(complianceAssessmentId
 	if err != nil {
 		return err
 	}
-	// existingComplianceAssessmentRequirement.Score = &complianceRequirementUpdateFormDTO.Score
-	// existingComplianceAssessmentRequirement.Comments = complianceRequirementUpdateFormDTO.Comments
-
 	complianceAssessmentFrameworkValue, err := cars.complianceAssessmentFrameworkSvc.GetByFrameworkValueID(complianceRequirementUpdateFormDTO.AssessmentFrameworkValueID)
 	if err != nil {
 		return err
@@ -253,7 +265,6 @@ func (cars ComplianceAssessmentRequirementService) Update(complianceAssessmentId
 	} else {
 		complianceAssessmentRequirementResponsibleUnit.Score = nil
 	}
-
 	complianceAssessmentRequirementResponsibleUnit.Comments = complianceRequirementUpdateFormDTO.Comments
 	complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentFrameworkValueID = &complianceRequirementUpdateFormDTO.AssessmentFrameworkValueID
 	complianceAssessmentRequirementResponsibleUnit.UpdatedBYID = &currentUserID
@@ -489,7 +500,7 @@ func (cars ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAss
 	}
 	complianceAssessmentRequirementResponsibleUnit.IsCompleted = true
 	complianceAssessmentRequirementResponsibleUnit.UpdatedBYID = &currentUserID
-	// complianceAssessmentRequirementResponsibleUnit.CompletedByUserID = &currentUserID
+	complianceAssessmentRequirementResponsibleUnit.CompletedByUserID = &currentUserID
 
 	err = cars.repo.UpdateComplianceAssessmentRequirementResponsibleUnit(complianceAssessmentRequirementResponsibleUnit, tx)
 	if err != nil {
@@ -625,19 +636,13 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 		return err
 	}
 
-	requirement, err := cars.GetByID(requirementID)
+	_, err = cars.GetByID(requirementID)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	// Validate if the current status allows approval
-	if requirement.ComplianceAssessmentRequirementStatusID == &approvedStatus.ID {
-		tx.Rollback()
-		return utility.NewValidationError(fmt.Errorf("requirement is already approved"), "invalid_state", "requirement")
-	}
-
-	assessment, err := cars.complianceAssessmentSvc.GetByID(assessmentID)
+	complianceAssessment, err := cars.complianceAssessmentSvc.GetFullDetailsByID(assessmentID)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -650,7 +655,11 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 	if err != nil {
 		return err
 	}
-	if currentUserID != assessment.ReviewUserID {
+	if complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentRequirementStatusID == &approvedStatus.ID {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("requirement is already approved"), "invalid_state", "requirement")
+	}
+	if currentUserID != complianceAssessment.ComplianceRegister.ResponsibleUserID {
 		return utility.NewForbiddenError("User is not authorized to approve this assessment")
 	}
 
@@ -807,7 +816,7 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 
 	// Add a comment to `compliance_assessment_requirement_comments`
 	comment := &models.ComplianceAssessmentRequirementComment{
-		ComplianceAssessmentRequirementResponsibleUnitID: requirementID,
+		ComplianceAssessmentRequirementResponsibleUnitID: complianceAssessmentRequirementResponsibleUnit.ID,
 		Comment:                                 commentForm.Comment,
 		CreatedBYID:                             currentUserID,
 		CreatedAt:                               time.Now(),

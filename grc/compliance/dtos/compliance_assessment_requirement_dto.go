@@ -50,6 +50,7 @@ type ComplianceAssessmentRequirementDetailDTO struct {
 	UpdatedByUser                         *organizationDTOs.UserMinimalDTO                     `json:"updated_by_user"`
 	ResponsibleUnits                      []*ComplianceAssessmentRequirementResponsibleUnitDTO `json:"responsible_units"`
 	ResponsibleUnit                       *ComplianceAssessmentRequirementResponsibleUnitDTO   `json:"responsible_unit"`
+	CompletedByUser                       *organizationDTOs.UserMinimalDTO                     `json:"completed_by_user"`
 }
 
 type ComplianceAssessmentRequirementUpdateFormDTO struct {

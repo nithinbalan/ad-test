@@ -198,6 +198,7 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByID(id uint, tx ...ut
 	result := db.
 		Preload("ComplianceRegister").
 		Preload("ComplianceRegister.ComplianceAssessmentFramework").
+		Preload("ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType").
 		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values").
 		Preload("AssessmentRequirements").
 		Preload("AssessmentRequirements.ComplianceStatus").
