@@ -36,6 +36,9 @@ type ComplianceAssessmentFrameworkListDTO struct {
 	UpdatedUserProfileImagePath                    *string    `json:"updated_user_profile_image_path"`
 	CreatedAt                                      time.Time  `json:"created_at"`
 	UpdatedAt                                      *time.Time `json:"updated_at"`
+	ComplianceAssessmentFrameworkID                *uint      `json:"compliance_assessment_framework_id"`
+	ComplianceAssessmentFrameworkTitleEn           string     `json:"compliance_assessment_framework_title_en"`
+	ComplianceAssessmentFrameworkTitleAr           string     `json:"compliance_assessment_framework_title_ar"`
 }
 
 type ComplianceAssessmentFrameworkListQueryParamsDTO struct {
