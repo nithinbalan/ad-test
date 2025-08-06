@@ -605,7 +605,7 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 		OwnerID         *uint
 		TitleEn         string
 		TitleAr         string
-		Description     string
+		Description     *string
 		ReferenceNumber string
 		IncidentTitle   string
 	}
@@ -626,14 +626,14 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 			OwnerID         *uint
 			TitleEn         string
 			TitleAr         string
-			Description     string
+			Description     *string
 			ReferenceNumber string
 			IncidentTitle   string
 		}{
 			OwnerID:         &incidentActionPlan.ResponsibleUserID,
 			TitleEn:         incidentActionPlan.Title,
 			TitleAr:         incidentActionPlan.Title,
-			Description:     *incidentActionPlan.Description,
+			Description:     incidentActionPlan.Description,
 			ReferenceNumber: incidentActionPlan.IncidentRegister.ReferenceNumber,
 			IncidentTitle:   incidentActionPlan.IncidentRegister.Title,
 		})

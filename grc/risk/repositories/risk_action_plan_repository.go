@@ -130,19 +130,7 @@ func (repo *RiskActionPlanRepository) GetAll(riskID uint, params *riskDTOs.RiskA
 	for _, filter := range params.QuickFilter {
 		switch filter {
 		case "critical":
-			var highestRating string
-			err := repo.db.Table("risk_matrix_risk_ratings").
-				Select("type").
-				Where("status = ?", "active").
-				Order("CASE type WHEN 'very_high' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 WHEN 'very_low' THEN 5 END").
-				Limit(1).Pluck("type", &highestRating).Error
-			if err != nil || highestRating == "" {
-				return nil, fmt.Errorf("failed to fetch highest risk rating: %v", err)
-			}
-
-			query = query.Joins(`
-				JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id
-			`).Where("risk_matrix_risk_ratings.type = ?", highestRating)
+			query = query.Where("severity_levels.type = ?", "high")
 
 		case "overdue":
 			query = query.Where("risk_action_plans.target_date < ?", time.Now())
@@ -176,14 +164,17 @@ func (repo *RiskActionPlanRepository) GetAll(riskID uint, params *riskDTOs.RiskA
             (risk_action_plans.title LIKE ? OR
             action_plan_statuses.title_en LIKE ? OR
             action_plan_statuses.title_ar LIKE ? OR
+			severity_levels.title_en LIKE ? OR
+			severity_levels.title_ar LIKE ? OR
+			risk_register.title LIKE ? OR
             risk_action_plans.target_date LIKE ? OR
             responsible_user.first_name_en LIKE ? OR
             responsible_user.first_name_ar LIKE ? OR
             responsible_user.last_name_en LIKE ? OR
             responsible_user.last_name_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword,
-			keyword)
+			keyword, keyword)
 	}
 	// Conditionally apply risk ID filter
 	if riskID != 0 {
