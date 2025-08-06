@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
 	"jethur/grc/strategy/dtos"
 	"jethur/grc/strategy/services"
@@ -260,4 +261,27 @@ func (soc *StrategicObjectiveController) GetFocusAreasByStrategicObjectiveID(c *
 		return
 	}
 	c.JSON(http.StatusOK, focusAreas)
+}
+
+func (soc *StrategicObjectiveController) GetRiskSummary(c *gin.Context) {
+	// Parse strategic objective ID from URL
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Get risk summary from service
+	summary, err := soc.service.GetRiskSummary(uint(id))
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+		utility.SendInternalErrResp(soc.db, c, err.Error())
+		return
+	}
+
+	// Return the risk summary
+	c.JSON(http.StatusOK, summary)
 }

@@ -29,6 +29,7 @@ type StrategicObjectiveServiceInterface interface {
 	Deactivate(ids []uint, currentUserID uint) error
 	UpdateStrategicObjective(strategicObjective *models.StrategicObjective, tx ...utility.DatabaseTransaction) error
 	GetFocusAreasByStrategicObjectiveID(strategicObjectiveID uint) ([]*dtos.StrategicObjectiveFocusAreaDTO, error)
+	GetRiskSummary(strategicObjectiveID uint) (*dtos.StrategicObjectiveRiskSummaryDTO, error)
 }
 
 // Service and implementations
@@ -157,6 +158,12 @@ func (sos *StrategicObjectiveService) Create(currentUserID uint, dto *dtos.Strat
 	if err != nil {
 		return 0, err
 	}
+
+	organizationUnitID, err := sos.userSvc.GetUserPrimaryUnitID(*dto.ResponsibleUserID)
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "process owner unit")
+	}
+
 	// Build model
 	model := &models.StrategicObjective{
 		TitleEn:                      dto.TitleEn,
@@ -168,7 +175,7 @@ func (sos *StrategicObjectiveService) Create(currentUserID uint, dto *dtos.Strat
 		StartDate:                    dates.StartDate,
 		EndDate:                      dates.EndDate,
 		ResponsibleUserID:            dto.ResponsibleUserID,
-		ResponsibleUnitID:            dto.ResponsibleUnitID,
+		ResponsibleUnitID:            &organizationUnitID,
 		ReviewUserID:                 dto.ReviewUserID,
 		ReviewFrequencyID:            dto.ReviewFrequencyID,
 		Status:                       dto.Status,
@@ -439,12 +446,6 @@ func (sos *StrategicObjectiveService) validateStrategicObjectiveFormDTO(dto *dto
 			return utility.NewValidationError(fmt.Errorf("review frequency does not exist"), "not_exist", "review_frequency")
 		}
 	}
-	if dto.ResponsibleUnitID != nil {
-		_, err = sos.organizationUnitSvc.GetByID(*dto.ResponsibleUnitID)
-		if err != nil {
-			return utility.NewValidationError(fmt.Errorf("organization unit does not exist"), "not_exist", "organization_unit")
-		}
-	}
 
 	return nil
 }
@@ -472,4 +473,19 @@ func (sos *StrategicObjectiveService) parseStrategicObjectiveDates(dto *dtos.Str
 
 func (sos *StrategicObjectiveService) GetFocusAreasByStrategicObjectiveID(strategicObjectiveID uint) ([]*dtos.StrategicObjectiveFocusAreaDTO, error) {
 	return sos.repo.GetFocusAreasByStrategicObjectiveID(strategicObjectiveID)
+}
+
+func (sos *StrategicObjectiveService) GetRiskSummary(strategicObjectiveID uint) (*dtos.StrategicObjectiveRiskSummaryDTO, error) {
+	// Validate strategic objective exists
+	if _, err := sos.GetByID(strategicObjectiveID); err != nil {
+		return nil, err
+	}
+
+	// Delegate to repository
+	summary, err := sos.repo.GetRiskSummary(strategicObjectiveID)
+	if err != nil {
+		return nil, err
+	}
+
+	return summary, nil
 }

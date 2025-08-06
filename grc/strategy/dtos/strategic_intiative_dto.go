@@ -59,7 +59,6 @@ type StrategicIntiativeFormDTO struct {
 	StartDate         *string `json:"start_date"`
 	EndDate           *string `json:"end_date"`
 	ResponsibleUserID uint    `json:"responsible_user_id"`
-	ResponsibleUnitID uint    `json:"responsible_unit_id"`
 }
 
 type StrategicIntiativeListQueryParamsDTO struct {

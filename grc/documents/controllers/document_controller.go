@@ -61,6 +61,7 @@ func (dc *DocumentController) GetAllDocuments(c *gin.Context) {
 		"category_ar":         "document_categories.title_ar",
 		"status_en":           "document_statuses.title_ar",
 		"status_ar":           "document_statuses.title_en",
+		"created_at":          "documents.created_at",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

@@ -205,3 +205,33 @@ func (drc *DocumentRequirementController) DeleteDocumentRequirements(c *gin.Cont
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (drc *DocumentRequirementController) CreateDocumentRequirements(c *gin.Context) {
+	var groups []dtos.DocumentRequirementGroupWithRequirementsDTO
+
+	idStr := c.Param("id")
+	documentId, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&groups); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(drc.db, c, err.Error())
+		return
+	}
+
+	groupIDs, err := drc.service.CreateDocumentRequirements(uint(documentId), currentUserID, groups)
+	if err != nil {
+		utility.SendInternalErrResp(drc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"group_ids": groupIDs})
+}

@@ -6,6 +6,7 @@ type StrategyProfileSettingListDTO struct {
 	TitleAr  string  `json:"title_ar"`
 	Type     *string `json:"type" gorm:"column:type"`
 	IsEnable bool    `json:"is_enable"`
+	Order    *int    `json:"order"`
 }
 
 type StrategyProfileSettingListQueryParamsDTO struct {
@@ -19,8 +20,10 @@ type StrategyProfileSettingListQueryParamsDTO struct {
 }
 
 type StrategyProfileSettingDetailDTO struct {
-	ID       uint   `json:"id"`
-	TitleEn  string `json:"title_en"`
-	TitleAr  string `json:"title_ar"`
-	IsEnable bool   `json:"is_enable"`
+	ID       uint    `json:"id"`
+	TitleEn  string  `json:"title_en"`
+	TitleAr  string  `json:"title_ar"`
+	Type     *string `json:"type" gorm:"column:type"`
+	IsEnable bool    `json:"is_enable"`
+	Order    *int    `json:"order"`
 }

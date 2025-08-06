@@ -62,6 +62,8 @@ func (amc *AISettingService) EnableAISetting(currentUserID uint) error {
 		if !isAllowed {
 			return utility.NewValidationError(fmt.Errorf("invalid ai"), "ai_not_allowed", "Jethur AI")
 		}
+	} else {
+		amc.repo.UpdateSystemPreferenceAI(true, currentUserID)
 	}
 
 	return err

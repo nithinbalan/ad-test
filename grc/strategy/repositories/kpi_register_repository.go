@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
@@ -297,6 +298,9 @@ func (repo *KPIRegisterRepository) GetLatestValueUpdate(kpiID uint) (*models.KPI
 		First(&kpiValueUpdate)
 
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil // Return nil, nil when no record is found
+		}
 		return nil, result.Error
 	}
 

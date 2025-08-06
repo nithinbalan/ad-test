@@ -10,7 +10,9 @@ type ThirdPartyAssessment struct {
 	QuestionSetID                uint       `json:"question_set_id" gorm:"not null" binding:"required"`
 	Message                      *string    `json:"message" gorm:"type:nvarchar(MAX);default:null"`
 	DueDate                      *time.Time `json:"due_date" gorm:"type:date;default:null"`
-	ThirdPartyAssessmentStatusID uint       `jsom:"third_party_assessment_id"`
+	ThirdPartyAssessmentStatusID uint       `json:"third_party_assessment_id"`
+	UID                          *string    `json:"uid"`
+	Link                         *string    `json:"link"`
 	CreatedBYID                  uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBYID                  *uint      `json:"updated_by_id,omitempty"`
 	CreatedAt                    time.Time  `json:"created_at" gorm:"type:datetime;not null"`

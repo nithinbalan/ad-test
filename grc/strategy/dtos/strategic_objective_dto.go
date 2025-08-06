@@ -77,7 +77,6 @@ type StrategicObjectiveFormDTO struct {
 	StartDate                    *string `json:"start_date"`
 	EndDate                      *string `json:"end_date"`
 	ResponsibleUserID            *uint   `json:"responsible_user_id"`
-	ResponsibleUnitID            *uint   `json:"responsible_unit_id"`
 	ReviewUserID                 *uint   `json:"review_user_id"`
 	ReviewFrequencyID            *uint   `json:"review_frequency_id"`
 	Status                       string  `json:"status"`
@@ -145,4 +144,26 @@ type StrategicObjectiveFocusAreaDTO struct {
 	TitleEn string `json:"title_en"`
 	TitleAr string `json:"title_ar"`
 	Status  string `json:"status"`
+}
+
+type StrategicObjectiveRiskSummaryDTO struct {
+	TotalRiskCount   *int     `json:"total_risk_count,omitempty"`
+	HighRiskCount    *int     `json:"high_risk_count,omitempty"`
+	ControlCoverage  *float64 `json:"control_coverage,omitempty"`
+	ControlRiskCount *int     `json:"control_risk_count,omitempty"`
+
+	LastReviewed *string `json:"last_reviewed"`
+
+	TopRisk struct {
+		ID                *uint   `json:"id,omitempty"`
+		Title             *string `json:"title,omitempty"`
+		Rating            *string `json:"rating,omitempty"`
+		Description       *string `json:"description,omitempty"`
+		ImpactTitleEn     *string `json:"impact_title_en,omitempty"`
+		ImpactTitleAr     *string `json:"impact_title_ar,omitempty"`
+		ImpactScore       *int    `json:"impact_score,omitempty"`
+		LikelihoodTitleEn *string `json:"likelihood_title_en,omitempty"`
+		LikelihoodTitleAr *string `json:"likelihood_title_ar,omitempty"`
+		LikelihoodScore   *int    `json:"likelihood_score,omitempty"`
+	} `json:"top_risk"`
 }

@@ -111,7 +111,7 @@ func (ac *DocumentAIController) GetDocumentRequirements(c *gin.Context) {
 		return
 	}
 
-	summary, err := ac.service.GetDocumentRequirements(uint(id))
+	requirements, err := ac.service.GetDocumentRequirements(uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -123,5 +123,5 @@ func (ac *DocumentAIController) GetDocumentRequirements(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, summary)
+	c.JSON(http.StatusOK, requirements)
 }

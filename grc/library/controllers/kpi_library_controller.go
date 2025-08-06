@@ -30,14 +30,16 @@ func (klc *KpiLibraryController) GetAllKpi(c *gin.Context) {
 	export, _ := strconv.ParseBool(c.DefaultQuery("export", "false"))
 	page, _ := utility.ParseQueryParamToInt(c, "page", 1)
 	pageSize, _ := utility.ParseQueryParamToInt(c, "page_size", 10)
+	categories := c.QueryArray("categories")
 
 	params := libraryDTOs.KPILibraryListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortBy,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
-		Export:   export,
+		Sort:       sort,
+		SortBy:     sortBy,
+		Keyword:    keyword,
+		Page:       page,
+		PageSize:   pageSize,
+		Export:     export,
+		Categories: categories,
 	}
 
 	kpis, err := klc.service.GetAllKpi(&params)

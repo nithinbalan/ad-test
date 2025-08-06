@@ -254,7 +254,7 @@ func (rais *RiskAssociatedItemService) UpdateClauses(riskID uint, currentUserID 
 			clausesToAdd = append(clausesToAdd, &models.RiskComplianceRequirement{
 				RiskRegisterID:       riskID,
 				ComplianceRegisterID: clause.ComplianceRegisterID,
-				ComplianceClauseID:   clause.ID,
+				ComplianceClauseID:   &clause.ID,
 				CreatedByID:          currentUserID,
 				CreatedAt:            now,
 			})

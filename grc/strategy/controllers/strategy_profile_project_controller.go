@@ -32,12 +32,11 @@ func (spc *StrategyProfileProjectController) GetAllStrategyProfileProjects(c *gi
 	}
 
 	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "title")
+	sortBy := c.DefaultQuery("sort_by", "id")
 	keyword := c.Query("keyword")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
-		"project_ids",
 		"strategic_objective_ids",
 		"strategic_intiative_ids",
 	}
