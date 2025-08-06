@@ -14,7 +14,7 @@ import (
 )
 
 type ComplianceAssessmentFrameworkServiceInterface interface {
-	GetAll(params *complianceDTOs.ComplianceAssessmentFrameworkListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentFrameworkListResponseDTO, error)
+	GetAll(params *complianceDTOs.ComplianceAssessmentFrameworkListQueryParamsDTO) ([]*complianceDTOs.ComplianceAssessmentFrameworkListDTO, error)
 	GetByID(id uint) (*models.ComplianceAssessmentFramework, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentFrameworkDetailResponseDTO, error)
 	Create(currentUserID uint, complianceAssessmentFrameworkFormDTO *complianceDTOs.ComplianceAssessmentFrameworkFormDTO) (uint, error)
@@ -39,7 +39,7 @@ func NewComplianceAssessmentFrameworkService(
 	}
 }
 
-func (casf *ComplianceAssessmentFrameworkService) GetAll(params *complianceDTOs.ComplianceAssessmentFrameworkListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentFrameworkListResponseDTO, error) {
+func (casf *ComplianceAssessmentFrameworkService) GetAll(params *complianceDTOs.ComplianceAssessmentFrameworkListQueryParamsDTO) ([]*complianceDTOs.ComplianceAssessmentFrameworkListDTO, error) {
 	return casf.repo.GetAll(params)
 }
 

@@ -76,6 +76,9 @@ type ComplianceRegisterListDTO struct {
 	LifecycleStatusTitleEn                string `json:"lifecycle_status_title_en"`
 	LifecycleStatusTitleAr                string `json:"lifecycle_status_title_ar"`
 	LifecycleStatusColorCode              string `json:"lifecycle_status_color_code"`
+	ComplianceAssessmentFrameworkID       *uint  `json:"compliance_assessment_framework_id"`
+	ComplianceAssessmentFrameworkTitleEn  string `json:"compliance_assessment_framework_title_en"`
+	ComplianceAssessmentFrameworkTitleAr  string `json:"compliance_assessment_framework_title_ar"`
 }
 
 type ComplianceRegisterListQueryParamsDTO struct {

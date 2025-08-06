@@ -36,18 +36,13 @@ type ComplianceAssessmentFrameworkListDTO struct {
 	UpdatedUserProfileImagePath                    *string    `json:"updated_user_profile_image_path"`
 	CreatedAt                                      time.Time  `json:"created_at"`
 	UpdatedAt                                      *time.Time `json:"updated_at"`
-	ComplianceAssessmentFrameworkID                *uint      `json:"compliance_assessment_framework_id"`
-	ComplianceAssessmentFrameworkTitleEn           string     `json:"compliance_assessment_framework_title_en"`
-	ComplianceAssessmentFrameworkTitleAr           string     `json:"compliance_assessment_framework_title_ar"`
 }
 
 type ComplianceAssessmentFrameworkListQueryParamsDTO struct {
-	Sort     string
-	SortBy   string
-	Keyword  string
-	Page     int
-	PageSize int
-	Filters  map[string][]string
+	Sort    string
+	SortBy  string
+	Keyword string
+	Filters map[string][]string
 }
 
 type ComplianceAssessmentFrameworkListResponseDTO struct {
