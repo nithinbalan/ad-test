@@ -1564,7 +1564,7 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 		OwnerID         *uint
 		TitleEn         string
 		TitleAr         string
-		Description     string
+		Description     *string
 		ReferenceNumber string
 	}
 
@@ -1583,12 +1583,12 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 			OwnerID         *uint
 			TitleEn         string
 			TitleAr         string
-			Description     string
+			Description     *string
 			ReferenceNumber string
 		}{
 			OwnerID:         &risk.ResponsibleUserID,
 			TitleEn:         risk.Title,
-			Description:     *risk.Description,
+			Description:     risk.Description,
 			ReferenceNumber: risk.ReferenceNumber,
 		})
 
@@ -1603,8 +1603,8 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				deleteControlIDs = append(deleteControlIDs, ctrl.ID)
 			}
 			if err := rrs.repo.DeleteRiskControls(deleteControlIDs, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 		}
 
@@ -1615,8 +1615,8 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				deleteRequirementIds = append(deleteRequirementIds, req.ID)
 			}
 			if err := rrs.repo.DeleteRiskComplianceRequirements(deleteRequirementIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 
 		}
@@ -1628,8 +1628,8 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				deleteProcessIDs = append(deleteProcessIDs, process.ID)
 			}
 			if err := rrs.repo.DeleteRiskProcesses(deleteProcessIDs, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 		}
 		if len(risk.SLARegisters) > 0 {
@@ -1638,8 +1638,8 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				deleteSLARegisterIDs = append(deleteSLARegisterIDs, sla.ID)
 			}
 			if err := rrs.repo.DeleteRiskSLAs(deleteSLARegisterIDs, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 		}
 		if len(risk.StrategicObjectives) > 0 {
@@ -1659,8 +1659,8 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				deleteDocumentIds = append(deleteDocumentIds, document.ID)
 			}
 			if err := rrs.repo.DeleteRiskDocuments(deleteDocumentIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 		}
 
@@ -1670,8 +1670,8 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				deleteAssetIds = append(deleteAssetIds, ast.ID)
 			}
 			if err := rrs.repo.DeleteRiskAssets(deleteAssetIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 		}
 
@@ -1681,16 +1681,16 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				deleteThreatIds = append(deleteThreatIds, threat.ID)
 			}
 			if err := rrs.repo.DeleteRiskThreats(deleteThreatIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 		}
 
 		// Delete timeline
 		// todo
 		if err := rrs.riskTimelineSvc.Delete(id, tx); err != nil {
-			tx.Rollback()
-			return nil, err
+			failedIds = append(failedIds, id)
+			continue
 		}
 		// Delete each risk document if documents exist
 		if len(risk.Documents) > 0 {
@@ -1702,8 +1702,8 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				}
 			}
 			if err := rrs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 
 		}
