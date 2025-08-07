@@ -1,10 +1,15 @@
 package services
 
 import (
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	meetingDTOs "jethur/grc/meeting/dtos"
 	meetingRepositories "jethur/grc/meeting/repositories"
+	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
+	"jethur/utility"
+	"time"
 )
 
 type MeetingAssociatedItemServiceInterface interface {
@@ -13,22 +18,28 @@ type MeetingAssociatedItemServiceInterface interface {
 	GetAllRisks(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemRiskListResponseDTO, error)
 	GetAllProcesses(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemProcessListResponseDTO, error)
 	GetAllIncidents(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemIncidentListResponseDTO, error)
+	GetAllMeetingDocuments(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
+	CreateMeetingDocument(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
+	DeleteMeetingDocument(meetingID uint, documentID uint) error
 }
 
 // Service and implementations
 type MeetingAssociatedItemService struct {
-	repo       meetingRepositories.MeetingAssociatedItemRepositoryInterface
-	meetingSvc MeetingServiceInterface
+	repo          meetingRepositories.MeetingAssociatedItemRepositoryInterface
+	meetingSvc    MeetingServiceInterface
+	validationSvc commonServices.AssociatedItemValidationServiceInterface
 }
 
 func NewMeetingAssociatedItemService(
 	repo meetingRepositories.MeetingAssociatedItemRepositoryInterface,
 	meetingSvc MeetingServiceInterface,
+	validationSvc commonServices.AssociatedItemValidationServiceInterface,
 
 ) MeetingAssociatedItemServiceInterface {
 	return &MeetingAssociatedItemService{
-		repo:       repo,
-		meetingSvc: meetingSvc,
+		repo:          repo,
+		meetingSvc:    meetingSvc,
+		validationSvc: validationSvc,
 	}
 }
 
@@ -119,4 +130,57 @@ func (mais *MeetingAssociatedItemService) GetAllIncidents(meetingID uint, params
 		return nil, err
 	}
 	return mais.repo.GetAllIncidents(meetingID, params)
+}
+
+func (mais *MeetingAssociatedItemService) GetAllMeetingDocuments(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return nil, err
+	}
+	return mais.repo.GetAllMeetingDocuments(meetingID, params)
+}
+
+func (mais *MeetingAssociatedItemService) CreateMeetingDocument(meetingID, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error {
+
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("meeting does not exist for ID: %d", meetingID), "not_exist", "meeting_id")
+	}
+
+	if err := mais.validationSvc.ValidateDocumentMapping(meetingID, dto.DocumentIDs, "meeting_associated_documents", "meeting_id"); err != nil {
+		return err
+	}
+
+	tx := mais.repo.BeginTransaction()
+	var mappings []*models.MeetingAssociatedDocument
+	currentTime := time.Now()
+
+	for _, documentID := range dto.DocumentIDs {
+		mappings = append(mappings, &models.MeetingAssociatedDocument{
+			DocumentID:  documentID,
+			MeetingID:   meetingID,
+			CreatedByID: userID,
+			CreatedAt:   currentTime,
+		})
+	}
+
+	if err := mais.repo.CreateMeetingDocument(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (mais *MeetingAssociatedItemService) DeleteMeetingDocument(meetingID uint, documentID uint) error {
+	// Validate control existence
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("meeting does not exist for ID: %d", meetingID), "not_exist", "meeting_id")
+	}
+
+	tx := mais.repo.BeginTransaction()
+
+	if err := mais.repo.DeleteMeetingDocument(meetingID, documentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }

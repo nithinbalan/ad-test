@@ -23,6 +23,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectActionPlanController := app.ProjectModule.ProjectActionPlanController
 	projectActionPlanStatusUpdateController := app.ProjectModule.ProjectActionPlanStatusUpdateController
 	projectActionPlanCommentController := app.ProjectModule.ProjectActionPlanCommentController
+	projectAssociatedItemController := app.ProjectModule.ProjectAssociatedItemController
 
 	// Project Type
 	projectRoutes.GET("/project-types", projectTypeController.GetAllProjectTypes)
@@ -78,5 +79,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.POST("/projects/:projectId/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectActionPlanCommentController.CreateComment)
 	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectActionPlanCommentController.UpdateComment)
 	projectRoutes.POST("/projects/:projectId/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectActionPlanCommentController.DeleteComment)
+
+	projectRoutes.GET("/projects/:projectId/documents", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), projectAssociatedItemController.GetAllProjectDocuments)
+	projectRoutes.POST("/projects/:projectId/documents", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.CreateProjectDocument)
+	projectRoutes.DELETE("/projects/:projectId/documents/:documentId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.DeleteProjectDocument)
 
 }

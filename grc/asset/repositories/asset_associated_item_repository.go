@@ -49,6 +49,10 @@ type AssetAssociatedItemRepositoryInterface interface {
 	GetClausesByAssetId(assetID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 	CreateAssetRisk(risks []*models.RiskAsset, tx ...utility.DatabaseTransaction) error
 	DeleteAssetRisk(assetID uint, riskID uint, tx ...utility.DatabaseTransaction) error
+
+	GetAllAssetDocuments(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
+	CreateAssetDocument(risks []*models.AssetAssociatedDocument, tx ...utility.DatabaseTransaction) error
+	DeleteAssetDocument(assetID uint, documentID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type AssetAssociatedItemRepository struct {
@@ -956,5 +960,169 @@ func (repo *AssetAssociatedItemRepository) DeleteAssetRisk(assetID uint, riskId 
 	return db.
 		Where("risk_register_id = ? AND asset_register_id = ?", riskId, assetID).
 		Delete(&models.RiskAsset{}).
+		Error
+}
+
+func (repo *AssetAssociatedItemRepository) GetAllAssetDocuments(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
+	var documentList []*commonDTOs.AssociatedDocumentListDTO
+	var totalCount int64
+
+	query := repo.db.Table("asset_associated_documents").
+		Select(`
+			asset_associated_documents.id AS id,
+			asset_associated_documents.document_id,
+			documents.reference_number AS reference_number,
+			documents.document_type_id AS document_type_id,
+			documents.title_en AS title_en,
+			documents.title_ar AS title_ar,
+			documents.last_checkout_at AS last_checkout_at,
+			documents.last_checkin_at AS last_checkin_at,
+			documents.is_locked AS is_locked,
+			documents.description_en AS description_en,
+			documents.description_ar AS description_ar,
+			documents.responsible_user_id,
+			documents.created_at,
+			documents.updated_at,
+			documents.published_at,
+			document_categories.title_en AS document_category_title_en,
+			document_categories.title_ar AS document_category_title_ar,
+			document_types.title_en AS document_type_title_en,
+			document_types.title_ar AS document_type_title_ar,
+			document_access_types.title_en AS document_access_type_title_en,
+			document_access_types.title_ar AS document_type_access_title_ar,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			document_versions.url AS document_url,
+			document_versions.name AS document_name,
+			document_versions.size AS document_size,
+			document_versions.token AS document_token,
+			document_versions.original_name AS document_original_name,
+			document_versions.type AS document_type,
+			document_versions.version AS document_version,
+			document_statuses.title_en AS document_status_title_en,
+			document_statuses.title_ar AS document_status_title_ar,
+			document_statuses.color_code AS document_status_color_code,
+			document_statuses.type AS document_status_type,
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
+			updated_user.id AS updated_user_id,
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path,
+			published_user.first_name_en AS published_user_first_name_en,
+			published_user.first_name_ar AS published_user_first_name_ar,
+			published_user.last_name_en AS published_user_last_name_en,
+			published_user.last_name_ar AS published_user_last_name_ar,
+			published_user.initial AS published_user_initial,
+			published_user.color AS published_user_color,
+			published_user.email AS published_user_email,
+			published_user.profile_image_path AS published_user_profile_image_path
+			
+		`).
+		Joins(`
+			LEFT JOIN documents ON documents.id = asset_associated_documents.document_id
+			LEFT JOIN document_categories ON document_categories.id = documents.document_category_id
+			LEFT JOIN document_types ON document_types.id = documents.document_type_id
+			LEFT JOIN document_access_types ON document_access_types.id = documents.document_access_type_id
+			LEFT JOIN organization_units ON organization_units.id = documents.responsible_unit_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = documents.responsible_user_id
+			LEFT JOIN document_versions ON document_versions.document_id = documents.id AND document_versions.is_latest_version = 1
+			LEFT JOIN document_statuses ON document_statuses.id = documents.document_status_id
+			LEFT JOIN users AS created_user ON created_user.id = documents.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = documents.updated_by_id
+			LEFT JOIN users AS published_user ON published_user.id = documents.published_by_id
+		`).
+		Where("asset_associated_documents.asset_register_id = ?", assetID)
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+				(documents.title_en LIKE ? OR
+				documents.title_ar LIKE ? OR
+				documents.reference_number LIKE ? OR
+				document_categories.title_en LIKE ? OR
+				document_categories.title_ar LIKE ? OR
+				responsible_user.first_name_en LIKE ? OR
+				responsible_user.first_name_ar LIKE ? OR
+				responsible_user.last_name_en LIKE ? OR
+				responsible_user.last_name_ar LIKE ? OR
+				organization_units.title_en LIKE ? OR
+				organization_units.title_ar LIKE ? OR
+				document_statuses.title_en LIKE ? OR
+				document_statuses.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "documents.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&documentList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedDocumentListResponseDTO{
+		Items: documentList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *AssetAssociatedItemRepository) CreateAssetDocument(documents []*models.AssetAssociatedDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&documents).Error
+}
+
+func (repo *AssetAssociatedItemRepository) DeleteAssetDocument(assetID uint, documentId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("document_id = ? AND asset_register_id = ?", documentId, assetID).
+		Delete(&models.AssetAssociatedDocument{}).
 		Error
 }

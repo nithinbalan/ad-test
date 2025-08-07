@@ -196,8 +196,6 @@ func (paic *ProcessAssociatedItemController) GetAllProcessDocuments(c *gin.Conte
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -211,14 +209,12 @@ func (paic *ProcessAssociatedItemController) GetAllProcessDocuments(c *gin.Conte
 		return
 	}
 
-	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	documents, err := paic.service.GetAllDocuments(uint(processID), &queryParams)
 
@@ -448,4 +444,53 @@ func (paic *ProcessAssociatedItemController) DeleteProcessRisk(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Risk unmapped from process successfully"})
+}
+
+func (paic *ProcessAssociatedItemController) CreateProcessDocument(c *gin.Context) {
+	var input commonDTOs.AssociatedDocumentMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	processID, err := strconv.ParseUint(c.Param("processId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, err.Error())
+		return
+	}
+
+	err = paic.service.CreateProcessDocument(uint(processID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(paic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (paic *ProcessAssociatedItemController) DeleteProcessDocument(c *gin.Context) {
+	proceesID, _ := strconv.ParseUint(c.Param("processId"), 10, 64)
+	documentID, _ := strconv.ParseUint(c.Param("documentId"), 10, 64)
+	err := paic.service.DeleteProcessDocument(uint(proceesID), uint(documentID))
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Document unmapped from process successfully"})
 }

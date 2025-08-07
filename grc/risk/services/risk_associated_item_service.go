@@ -449,14 +449,14 @@ func (rais *RiskAssociatedItemService) CreatRiskDocument(riskID uint, currentUse
 	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("risk does not exist for ID: %d", riskID), "not_exist", "risk_id")
 	}
-	if err := rais.validationSvc.ValidateDocumentMapping(riskID, dto.DoumentIDs, "risk_associated_documents", "risk_register_id"); err != nil {
+	if err := rais.validationSvc.ValidateDocumentMapping(riskID, dto.DocumentIDs, "risk_associated_documents", "risk_register_id"); err != nil {
 		return err
 	}
 	tx := rais.repo.BeginTransaction()
 	var mappings []*models.RiskAssociatedDocument
 	currentTime := time.Now()
 
-	for _, documentID := range dto.DoumentIDs {
+	for _, documentID := range dto.DocumentIDs {
 		mappings = append(mappings, &models.RiskAssociatedDocument{
 			RiskRegisterID: riskID,
 			DocumentID:     documentID,

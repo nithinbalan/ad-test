@@ -16,13 +16,15 @@ type ProcessAssociatedItemServiceInterface interface {
 	GetAllControlsWithPagination(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemControlListResponseDTO, error)
 	GetAllRisks(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllIncidents(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error)
-	GetAllDocuments(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemDocumentListResponseDTO, error)
+	GetAllDocuments(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	GetAllAssociatedCounts(processID uint) (*organizationDTOs.ProcessAssociatedItemsCountResponseDTO, error)
 	GetAllAssets(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemAssetListResponseDTO, error)
 	GetAllClauses(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(processID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 	CreateProcessRisk(processID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
 	DeleteProcessRisk(processID uint, riskID uint) error
+	CreateProcessDocument(processID uint, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
+	DeleteProcessDocument(processID uint, riskID uint) error
 }
 
 type ProcessAssociatedItemService struct {
@@ -190,7 +192,7 @@ func (pais *ProcessAssociatedItemService) GetAllIncidents(processID uint, params
 	return pais.repo.GetAllIncidents(processID, params)
 }
 
-func (pais *ProcessAssociatedItemService) GetAllDocuments(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemDocumentListResponseDTO, error) {
+func (pais *ProcessAssociatedItemService) GetAllDocuments(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
 	if _, err := pais.processSvc.GetByID(processID); err != nil {
 		return nil, err
 	}
@@ -364,6 +366,49 @@ func (pais *ProcessAssociatedItemService) DeleteProcessRisk(processID uint, risk
 	tx := pais.repo.BeginTransaction()
 
 	if err := pais.repo.DeleteProcessRisk(processID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *ProcessAssociatedItemService) CreateProcessDocument(processID, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error {
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", processID), "not_exist", "process_id")
+	}
+	if err := pais.validationSvc.ValidateDocumentMapping(processID, dto.DocumentIDs, "process_associated_documents", "process_id"); err != nil {
+		return err
+	}
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.ProcessAssociatedDocument
+	currentTime := time.Now()
+
+	for _, documentID := range dto.DocumentIDs {
+		mappings = append(mappings, &models.ProcessAssociatedDocument{
+			DocumentID:  documentID,
+			ProcessID:   processID,
+			CreatedByID: userID,
+			CreatedAt:   currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateProcessDocument(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *ProcessAssociatedItemService) DeleteProcessDocument(processID uint, documentID uint) error {
+	// Validate control existence
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", processID), "not_exist", "process_id")
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteProcessDocument(processID, documentID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

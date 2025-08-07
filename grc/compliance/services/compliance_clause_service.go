@@ -536,7 +536,7 @@ func (ccs *ComplianceClauseService) GetAssociatedDocuments(complianceID uint, cl
 }
 
 func (ccs *ComplianceClauseService) CreateComplianceClauseDocument(complianceID, clauseID, currentUserID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error {
-	if err := ccs.validationSvc.ValidateDocumentMapping(clauseID, dto.DoumentIDs, "document_compliance_requirements", "compliance_clause_id"); err != nil {
+	if err := ccs.validationSvc.ValidateDocumentMapping(clauseID, dto.DocumentIDs, "document_compliance_requirements", "compliance_clause_id"); err != nil {
 		return err
 	}
 	tx := ccs.repo.BeginTransaction()
@@ -547,10 +547,10 @@ func (ccs *ComplianceClauseService) CreateComplianceClauseDocument(complianceID,
 	}
 	var documentMappings []*models.DocumentComplianceRequirement
 
-	for _, documentID := range dto.DoumentIDs {
+	for _, documentID := range dto.DocumentIDs {
 		documentMappings = append(documentMappings, &models.DocumentComplianceRequirement{
 			ComplianceRegisterID: complianceID,
-			ComplianceClauseID:   clauseID,
+			ComplianceClauseID:   &clauseID,
 			DocumentID:           documentID,
 			CreatedByID:          currentUserID,
 		})

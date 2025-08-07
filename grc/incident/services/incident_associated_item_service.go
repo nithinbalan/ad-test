@@ -18,12 +18,14 @@ type IncidentAssociatedItemServiceInterface interface {
 	GetAllRisks(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllProcesses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemProcessListResponseDTO, error)
 	GetAllSLAs(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemSLAListResponseDTO, error)
-	GetAllDocuments(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemDocumentListResponseDTO, error)
+	GetAllDocuments(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	GetAllAssets(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemAssetListResponseDTO, error)
 	GetAllClauses(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(incidentID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
-	CreateIncidentRisk(incidentID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
+	CreateIncidentRisk(incidentID uint, currentUserID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
 	DeleteIncidentRisk(incidentID uint, riskID uint) error
+	CreateIncidentDocument(incidentID uint, currentUserID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
+	DeleteIncidentDocument(incidentID uint, documentID uint) error
 }
 
 // Service and implementations
@@ -84,7 +86,7 @@ func (iais *IncidentAssociatedItemService) GetAllSLAs(incidentID uint, params *i
 	return iais.repo.GetAllSLAs(incidentID, params)
 }
 
-func (iais *IncidentAssociatedItemService) GetAllDocuments(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemDocumentListResponseDTO, error) {
+func (iais *IncidentAssociatedItemService) GetAllDocuments(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
 	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return nil, err
 	}
@@ -212,7 +214,7 @@ func (iais *IncidentAssociatedItemService) validateClauseIDs(clauseIDs []uint, t
 
 func (iais *IncidentAssociatedItemService) CreateIncidentRisk(incidentID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
 	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("Incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
+		return utility.NewValidationError(fmt.Errorf("incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
 	}
 	if err := iais.validationSvc.ValidateRiskMapping(incidentID, dto.RiskIDs, "incident_risks", "incident_register_id"); err != nil {
 		return err
@@ -240,12 +242,55 @@ func (iais *IncidentAssociatedItemService) CreateIncidentRisk(incidentID, userID
 func (iais *IncidentAssociatedItemService) DeleteIncidentRisk(incidentID uint, riskID uint) error {
 	// Validate control existence
 	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("Incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
+		return utility.NewValidationError(fmt.Errorf("incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
 	}
 
 	tx := iais.repo.BeginTransaction()
 
 	if err := iais.repo.DeleteIncidentRisk(incidentID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (iais *IncidentAssociatedItemService) CreateIncidentDocument(incidentID, currentUserID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error {
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
+	}
+	if err := iais.validationSvc.ValidateDocumentMapping(incidentID, dto.DocumentIDs, "incident_associated_documents", "incident_register_id"); err != nil {
+		return err
+	}
+	tx := iais.repo.BeginTransaction()
+	var mappings []*models.IncidentAssociatedDocument
+	currentTime := time.Now()
+
+	for _, documentID := range dto.DocumentIDs {
+		mappings = append(mappings, &models.IncidentAssociatedDocument{
+			DocumentID:         documentID,
+			IncidentRegisterID: incidentID,
+			CreatedByID:        currentUserID,
+			CreatedAt:          currentTime,
+		})
+	}
+
+	if err := iais.repo.CreateIncidentDocument(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (iais *IncidentAssociatedItemService) DeleteIncidentDocument(incidentID uint, documentID uint) error {
+	// Validate control existence
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
+	}
+
+	tx := iais.repo.BeginTransaction()
+
+	if err := iais.repo.DeleteIncidentDocument(incidentID, documentID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

@@ -16,13 +16,14 @@ type ProjectModule struct {
 	ProjectActionPlanController             *controllers.ProjectActionPlanController
 	ProjectActionPlanStatusUpdateController *controllers.ProjectActionPlanStatusUpdateController
 	ProjectActionPlanCommentController      *controllers.ProjectActionPlanCommentController
+	ProjectAssociatedItemController         *controllers.ProjectAssociatedItemController
 
 	projectSvc           services.ProjectServiceInterface
 	projectMilestoneSvc  services.ProjectMilestoneServiceInterface
 	projectActionPlanSvc services.ProjectActionPlanServiceInterface
 }
 
-func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule) *ProjectModule {
+func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule, commonModule *CommonModule) *ProjectModule {
 	projectTypeRepo := repositories.NewProjectTypeRepository(db)
 	projectTypeSvc := services.NewProjectTypeService(projectTypeRepo, sharedModule.ActivityLogService)
 	projectTypeController := controllers.NewProjectTypeController(projectTypeSvc)
@@ -83,6 +84,10 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	)
 	projectActionPlanCommentController := controllers.NewProjectActionPlanCommentController(projectActionPlanCommentSvc)
 
+	projectAssociatedItemRepo := repositories.NewProjectAssociatedItemRepository(db)
+	projectAssociatedItemSvc := services.NewProjectAssociatedItemService(projectAssociatedItemRepo, projectSvc, commonModule.AssociatedItemValidationService)
+	projectAssociatedItemController := controllers.NewProjectAssociatedItemController(projectAssociatedItemSvc)
+
 	return &ProjectModule{
 		ProjectTypeController:                   projectTypeController,
 		ProjectStatusController:                 projectStatusController,
@@ -91,6 +96,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		ProjectActionPlanController:             projectActionPlanController,
 		ProjectActionPlanStatusUpdateController: projectActionPlanStatusUpdateController,
 		ProjectActionPlanCommentController:      projectActionPlanCommentController,
+		ProjectAssociatedItemController:         projectAssociatedItemController,
 
 		projectSvc:           projectSvc,
 		projectMilestoneSvc:  projectMilestoneSvc,
