@@ -315,13 +315,18 @@ func (daic *DocumentAssociatedItemController) GetAllDocumentRisks(c *gin.Context
 		utility.SendInternalErrResp(daic.db, c, "Invalid page_size parameter")
 		return
 	}
-
+	allowedParams := []string{
+		"current_likelihood_ids",
+		"current_impact_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
 		Page:     page,
 		PageSize: pageSize,
+		Filters:  filters,
 	}
 	risks, err := daic.service.GetAllRisks(uint(documentID), &queryParams)
 

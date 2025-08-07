@@ -288,7 +288,11 @@ func (bfc *BusinessFunctionController) GetProcessAssociatedRisks(c *gin.Context)
 			return
 		}
 	}
-
+	allowedParams := []string{
+		"current_likelihood_ids",
+		"current_impact_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
@@ -296,6 +300,7 @@ func (bfc *BusinessFunctionController) GetProcessAssociatedRisks(c *gin.Context)
 		Page:     page,
 		PageSize: pageSize,
 		Value:    value,
+		Filters:  filters,
 	}
 	risks, err := bfc.service.GetProcessAssociatedRisks(uint(businessFunctionID), uint(processID), &queryParams)
 	if err != nil {

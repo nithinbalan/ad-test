@@ -628,6 +628,7 @@ type AssociatedItemListQueryParamsDTO struct {
 	PageSize    int
 	Value       int
 	QuickFilter []string
+	Filters     map[string][]string
 }
 
 type AssociatedKPIMapDTO struct {
