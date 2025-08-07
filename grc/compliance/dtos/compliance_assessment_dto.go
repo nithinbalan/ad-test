@@ -111,14 +111,19 @@ type ComplianceAssessmentRequirementDTO struct {
 	ResponsibleUnits        []*ComplianceAssessmentRequirementResponsibleUnitDTO `json:"responsible_units"`
 }
 type ComplianceAssessmentRequirementResponsibleUnitDTO struct {
-	ID                                 uint                                               `json:"id"`
-	ResponsibleUnitID                  uint                                               `json:"responsible_unit_id"`
-	ResponsibleUnit                    settingsDTOs.OrganizationUnitDTO                   `json:"responsible_unit"`
-	ComplianceAssessmentFrameworkValue *ComplianceAssessmentFrameworkValueDetailDTO       `json:"compliance_assessment_framework_value"`
-	RequiredDocumentTitles             []*ComplianceAssessmentRequirementDocumentTitleDTO `json:"required_document_titles"`
-	ActionPlans                        []*ComplianceActionPlanDetailDTO                   `json:"action_plans"`
-	RequirementComments                []*ComplianceAssessmentRequirementCommentDetailDTO `json:"requirement_comments"`
-	CompletedByUser                    *organizationDTOs.UserMinimalDTO                   `json:"completed_by_user"`
+	ID                                    uint                                               `json:"id"`
+	ResponsibleUnitID                     uint                                               `json:"responsible_unit_id"`
+	ResponsibleUnit                       settingsDTOs.OrganizationUnitDTO                   `json:"responsible_unit"`
+	ComplianceAssessmentFrameworkValue    *ComplianceAssessmentFrameworkValueDetailDTO       `json:"compliance_assessment_framework_value"`
+	RequiredDocumentTitles                []*ComplianceAssessmentRequirementDocumentTitleDTO `json:"required_document_titles"`
+	ActionPlans                           []*ComplianceActionPlanDetailDTO                   `json:"action_plans"`
+	RequirementComments                   []*ComplianceAssessmentRequirementCommentDetailDTO `json:"requirement_comments"`
+	CompletedByUser                       *organizationDTOs.UserMinimalDTO                   `json:"completed_by_user"`
+	ComplianceStatusID                    *uint                                              `json:"compliance_status_id"`
+	IsCompleted                           bool                                               `json:"is_completed"`
+	Score                                 *int                                               `json:"score"`
+	Comments                              *string                                            `json:"comments"`
+	ComplianceAssessmentRequirementStatus *ComplianceAssessmentRequirementStatusDTO          `json:"compliance_assessment_requirement_status"`
 }
 
 type AssessmentCompletionSummaryDTO struct {

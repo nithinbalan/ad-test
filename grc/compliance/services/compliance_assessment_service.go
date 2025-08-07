@@ -896,59 +896,59 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 				responsibleUnitScores[responsibleUnitID].TotalRequirements++
 
 				// Calculate score based on framework type
-				if frameworkType == "point" {
-					// Point scoring: use framework value (0-2 scale)
-					if assessmentRequirementResponsibleUnit.ComplianceAssessmentFrameworkValueID != nil {
-						if val, ok := frameworkValuesMap[*assessmentRequirementResponsibleUnit.ComplianceAssessmentFrameworkValueID]; ok {
-							responsibleUnitScores[responsibleUnitID].ScoredRequirements++
-							responsibleUnitScores[responsibleUnitID].TotalScore += float64(val)
-							responsibleUnitScores[responsibleUnitID].MaxPossibleScore += 2.0 // Max score is 2 for point scoring
-						}
-					}
-				} else if frameworkType == "percentage" {
-					// Percentage scoring: use score field directly (percentage scale)
-					if assessmentRequirementResponsibleUnit.Score != nil {
-						responsibleUnitScores[responsibleUnitID].ScoredRequirements++
-						responsibleUnitScores[responsibleUnitID].TotalScore += float64(*assessmentRequirementResponsibleUnit.Score)
-						responsibleUnitScores[responsibleUnitID].MaxPossibleScore += 100.0 // Max score is 100 for percentage
-					}
-				}
-				// switch frameworkType {
-				// case "point":
+				// if frameworkType == "point" {
 				// 	// Point scoring: use framework value (0-2 scale)
 				// 	if assessmentRequirementResponsibleUnit.ComplianceAssessmentFrameworkValueID != nil {
 				// 		if val, ok := frameworkValuesMap[*assessmentRequirementResponsibleUnit.ComplianceAssessmentFrameworkValueID]; ok {
 				// 			responsibleUnitScores[responsibleUnitID].ScoredRequirements++
 				// 			responsibleUnitScores[responsibleUnitID].TotalScore += float64(val)
-				// 			responsibleUnitScores[responsibleUnitID].MaxPossibleScore += 2.0
+				// 			responsibleUnitScores[responsibleUnitID].MaxPossibleScore += 2.0 // Max score is 2 for point scoring
 				// 		}
 				// 	}
-				// case "percentage":
+				// } else if frameworkType == "percentage" {
 				// 	// Percentage scoring: use score field directly (percentage scale)
 				// 	if assessmentRequirementResponsibleUnit.Score != nil {
 				// 		responsibleUnitScores[responsibleUnitID].ScoredRequirements++
 				// 		responsibleUnitScores[responsibleUnitID].TotalScore += float64(*assessmentRequirementResponsibleUnit.Score)
-				// 		responsibleUnitScores[responsibleUnitID].MaxPossibleScore += 100.0
-				// 	}
-				// case "binary":
-				// 	// Binary scoring: 1 = Yes, 0 = No, -1 = Not Applicable (already filtered out)
-				// 	if assessmentRequirementResponsibleUnit.ComplianceAssessmentFrameworkValueID != nil {
-				// 		if val, ok := frameworkValuesMap[*assessmentRequirementResponsibleUnit.ComplianceAssessmentFrameworkValueID]; ok {
-				// 			responsibleUnitScores[responsibleUnitID].ScoredRequirements++
-				// 			responsibleUnitScores[responsibleUnitID].TotalScore += float64(val)
-				// 			responsibleUnitScores[responsibleUnitID].MaxPossibleScore += 1.0 // Max score is 1 for binary
-				// 		}
-				// 	}
-				// case "maturity":
-				// 	// Maturity scoring: use framework value as maturity level (0–5)
-				// 	if assessmentRequirementResponsibleUnit.ComplianceAssessmentFrameworkValueID != nil {
-				// 		if val, ok := frameworkValuesMap[*assessmentRequirementResponsibleUnit.ComplianceAssessmentFrameworkValueID]; ok {
-				// 			responsibleUnitScores[responsibleUnitID].ScoredRequirements++
-				// 			responsibleUnitScores[responsibleUnitID].TotalScore += float64(val)
-				// 			responsibleUnitScores[responsibleUnitID].MaxPossibleScore += 5.0 // Max score is 5 for maturity
-				// 		}
+				// 		responsibleUnitScores[responsibleUnitID].MaxPossibleScore += 100.0 // Max score is 100 for percentage
 				// 	}
 				// }
+				switch frameworkType {
+				case "point":
+					// Point scoring: use framework value (0-2 scale)
+					if assessmentRequirementResponsibleUnit.ComplianceAssessmentFrameworkValueID != nil {
+						if val, ok := frameworkValuesMap[*assessmentRequirementResponsibleUnit.ComplianceAssessmentFrameworkValueID]; ok {
+							responsibleUnitScores[responsibleUnitID].ScoredRequirements++
+							responsibleUnitScores[responsibleUnitID].TotalScore += float64(val)
+							responsibleUnitScores[responsibleUnitID].MaxPossibleScore += 2.0
+						}
+					}
+				case "percentage":
+					// Percentage scoring: use score field directly (percentage scale)
+					if assessmentRequirementResponsibleUnit.Score != nil {
+						responsibleUnitScores[responsibleUnitID].ScoredRequirements++
+						responsibleUnitScores[responsibleUnitID].TotalScore += float64(*assessmentRequirementResponsibleUnit.Score)
+						responsibleUnitScores[responsibleUnitID].MaxPossibleScore += 100.0
+					}
+				case "binary":
+					// Binary scoring: 1 = Yes, 0 = No, -1 = Not Applicable (already filtered out)
+					if assessmentRequirementResponsibleUnit.ComplianceAssessmentFrameworkValueID != nil {
+						if val, ok := frameworkValuesMap[*assessmentRequirementResponsibleUnit.ComplianceAssessmentFrameworkValueID]; ok {
+							responsibleUnitScores[responsibleUnitID].ScoredRequirements++
+							responsibleUnitScores[responsibleUnitID].TotalScore += float64(val)
+							responsibleUnitScores[responsibleUnitID].MaxPossibleScore += 1.0 // Max score is 1 for binary
+						}
+					}
+				case "maturity":
+					// Maturity scoring: use framework value as maturity level (0–5)
+					if assessmentRequirementResponsibleUnit.ComplianceAssessmentFrameworkValueID != nil {
+						if val, ok := frameworkValuesMap[*assessmentRequirementResponsibleUnit.ComplianceAssessmentFrameworkValueID]; ok {
+							responsibleUnitScores[responsibleUnitID].ScoredRequirements++
+							responsibleUnitScores[responsibleUnitID].TotalScore += float64(val)
+							responsibleUnitScores[responsibleUnitID].MaxPossibleScore += 5.0 // Max score is 5 for maturity
+						}
+					}
+				}
 
 			}
 		}

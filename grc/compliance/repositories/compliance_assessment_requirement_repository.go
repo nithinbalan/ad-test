@@ -231,6 +231,7 @@ func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requir
 		Preload("ResponsibleUnits.RequiredDocumentTitles").
 		Preload("ResponsibleUnits.RequiredDocumentTitles.RequiredDocumentTitle").
 		Preload("ResponsibleUnits.RequiredDocumentTitles.Documents").
+		Preload("ResponsibleUnits.ComplianceAssessmentRequirementStatus").
 		Preload("ResponsibleUnits.ActionPlans").
 		Preload("ResponsibleUnits.ActionPlans.ResponsibleUser").
 		Preload("ResponsibleUnits.ActionPlans.ReviewUser").
