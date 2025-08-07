@@ -15,7 +15,7 @@ type StrategyProfileKpiRepositoryInterface interface {
 	Create(kpi *models.StrategyProfileKpi, tx ...utility.DatabaseTransaction) (uint, error)
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GetObjectivesForKPI(kpiID uint, tx ...utility.DatabaseTransaction) ([]*models.StrategyProfileStrategicObjective, error)
-	GetKPIsForObjective(objectiveID uint, tx ...utility.DatabaseTransaction) ([]*models.StrategyProfileKpi, error)
+	GetKPIsForObjective(objectiveID uint, tx ...utility.DatabaseTransaction) ([]*strategyDTOs.KpiRegisterMinimalDetails, error)
 }
 
 type StrategyProfileKpiRepository struct {
@@ -184,16 +184,25 @@ func (repo *StrategyProfileKpiRepository) GetObjectivesForKPI(kpiID uint, tx ...
 	}
 	return objectives, nil
 }
-func (repo *StrategyProfileKpiRepository) GetKPIsForObjective(objectiveID uint, tx ...utility.DatabaseTransaction) ([]*models.StrategyProfileKpi, error) {
-	var kpis []*models.StrategyProfileKpi
+func (repo *StrategyProfileKpiRepository) GetKPIsForObjective(objectiveID uint, tx ...utility.DatabaseTransaction) ([]*strategyDTOs.KpiRegisterMinimalDetails, error) {
+	var kpis []*strategyDTOs.KpiRegisterMinimalDetails
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
+
+	// Select only the required fields from both tables
 	err := db.
-		Preload("Kpi").
-		Where("strategy_profile_strategic_objective_id = ?", objectiveID).
+		Table("strategy_profile_kpis").
+		Select(`
+            kpi_register.id as "kpi_id",
+            kpi_register.achievement as "achievement",
+            kpi_register.weightage as "weightage"
+        `).
+		Joins("LEFT JOIN kpi_register ON kpi_register.id = strategy_profile_kpis.kpi_id").
+		Where("strategy_profile_kpis.strategy_profile_strategic_objective_id = ?", objectiveID).
 		Find(&kpis).Error
+
 	if err != nil {
 		return nil, err
 	}

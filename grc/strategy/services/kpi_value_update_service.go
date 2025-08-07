@@ -145,8 +145,8 @@ func (kvus *KPIValueUpdateService) Create(kpiRegisterID, currentUserID uint, kpi
 
 	// For each objective, calculate and update its score
 	for _, objective := range objectives {
-		//Get all KPIs for this objective
-		kpis, err := kvus.strategyProfileKpiSvc.GetKPIsForObjective(objective.ID, tx)
+		// Get KPI register details for this objective
+		kpiRegisters, err := kvus.strategyProfileKpiSvc.GetKPIsForObjective(objective.ID, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -157,29 +157,22 @@ func (kvus *KPIValueUpdateService) Create(kpiRegisterID, currentUserID uint, kpi
 		hasValidScores := false
 
 		// Calculate total weighted score and total weightage
-		for _, kpi := range kpis {
-			if kpi.KpiID == nil {
-				continue
-			}
-
-			// Get the KPI register to access the achievement
-			kpiRegister := kpi.Kpi
-
-			if kpiRegister.Achievement == nil || kpiRegister.Weightage == nil {
+		for _, kpi := range kpiRegisters {
+			if kpi.Achievement == nil || kpi.Weightage == nil {
 				continue
 			}
 
 			// Calculate weighted score on the fly
-			weightedScore := (*kpiRegister.Achievement * *kpiRegister.Weightage)
+			weightedScore := (*kpi.Achievement * *kpi.Weightage)
 			totalWeightedScore += weightedScore
-			totalWeightage += *kpiRegister.Weightage
+			totalWeightage += *kpi.Weightage
 			hasValidScores = true
 		}
 
 		// Calculate and update the objective score
 		var score *float64
 		if hasValidScores && totalWeightage > 0 {
-			calculatedScore := (totalWeightedScore / totalWeightage)
+			calculatedScore := totalWeightedScore / totalWeightage
 			score = &calculatedScore
 		}
 
@@ -385,8 +378,8 @@ func (kvus *KPIValueUpdateService) Update(kpiRegisterID, updateId uint, currentU
 
 	// For each objective, calculate and update its score
 	for _, objective := range objectives {
-		//Get all KPIs for this objective
-		kpis, err := kvus.strategyProfileKpiSvc.GetKPIsForObjective(objective.ID, tx)
+		// Get KPI register details for this objective
+		kpiRegisters, err := kvus.strategyProfileKpiSvc.GetKPIsForObjective(objective.ID, tx)
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -397,29 +390,22 @@ func (kvus *KPIValueUpdateService) Update(kpiRegisterID, updateId uint, currentU
 		hasValidScores := false
 
 		// Calculate total weighted score and total weightage
-		for _, kpi := range kpis {
-			if kpi.KpiID == nil {
-				continue
-			}
-
-			// Get the KPI register to access the achievement
-			kpiRegister := kpi.Kpi
-
-			if kpiRegister.Achievement == nil || kpiRegister.Weightage == nil {
+		for _, kpi := range kpiRegisters {
+			if kpi.Achievement == nil || kpi.Weightage == nil {
 				continue
 			}
 
 			// Calculate weighted score on the fly
-			weightedScore := (*kpiRegister.Achievement * *kpiRegister.Weightage)
+			weightedScore := (*kpi.Achievement * *kpi.Weightage)
 			totalWeightedScore += weightedScore
-			totalWeightage += *kpiRegister.Weightage
+			totalWeightage += *kpi.Weightage
 			hasValidScores = true
 		}
 
 		// Calculate and update the objective score
 		var score *float64
 		if hasValidScores && totalWeightage > 0 {
-			calculatedScore := (totalWeightedScore / totalWeightage)
+			calculatedScore := totalWeightedScore / totalWeightage
 			score = &calculatedScore
 		}
 

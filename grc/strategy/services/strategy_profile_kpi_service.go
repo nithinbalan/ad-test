@@ -18,7 +18,7 @@ type StrategyProfileKpiServiceInterface interface {
 	Create(strategyProfileID uint, currentUserID uint, strategyDTOs *strategyDTOs.StrategyProfileKpiFormDTO) ([]uint, error)
 	Delete(strategyProfileID uint, kpiID uint, currentUserID uint) error
 	GetObjectivesForKPI(kpiID uint, tx utility.DatabaseTransaction) ([]*models.StrategyProfileStrategicObjective, error)
-	GetKPIsForObjective(objectiveID uint, tx utility.DatabaseTransaction) ([]*models.StrategyProfileKpi, error)
+	GetKPIsForObjective(objectiveID uint, tx utility.DatabaseTransaction) ([]*strategyDTOs.KpiRegisterMinimalDetails, error)
 }
 
 // Service and implementations
@@ -194,6 +194,6 @@ func (sps *StrategyProfileKpiService) GetObjectivesForKPI(kpiID uint, tx utility
 	return sps.repo.GetObjectivesForKPI(kpiID, tx)
 }
 
-func (sps *StrategyProfileKpiService) GetKPIsForObjective(objectiveID uint, tx utility.DatabaseTransaction) ([]*models.StrategyProfileKpi, error) {
+func (sps *StrategyProfileKpiService) GetKPIsForObjective(objectiveID uint, tx utility.DatabaseTransaction) ([]*strategyDTOs.KpiRegisterMinimalDetails, error) {
 	return sps.repo.GetKPIsForObjective(objectiveID, tx)
 }

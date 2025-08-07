@@ -44,3 +44,9 @@ type StrategyProfileKpiListQueryParamsDTO struct {
 	PageSize int
 	Filters  map[string][]string
 }
+
+type KpiRegisterMinimalDetails struct {
+	ID          uint     `json:"id"`
+	Achievement *float64 `json:"achievement,omitempty"`
+	Weightage   *float64 `json:"weightage,omitempty"`
+}
