@@ -71,9 +71,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// === Third Party Assessment ===
 	tprmRoutes.GET("/third-party-assessments", thirdPartyAssessmentController.GetAllThirdPartyAssessment)
-	tprmRoutes.GET("/third-party-assessments/:id", thirdPartyAssessmentController.GetThirdPartyAssessmentDetails)
+	tprmRoutes.GET("/third-party-assessments/:assessmentID", thirdPartyAssessmentController.GetThirdPartyAssessmentDetails)
 	tprmRoutes.POST("/third-party-assessments", middlewares.RolePermissionMiddleware(db, "assessment", "modify"), thirdPartyAssessmentController.CreateThirdPartyAssessment)
-	tprmRoutes.PUT("/third-party-assessments/:id", middlewares.RolePermissionMiddleware(db, "assessment", "modify"), thirdPartyAssessmentController.UpdateThirdPartyAssessment)
+	tprmRoutes.PUT("/third-party-assessments/:assessmentID", middlewares.RolePermissionMiddleware(db, "assessment", "modify"), thirdPartyAssessmentController.UpdateThirdPartyAssessment)
 	tprmRoutes.POST("/third-party-assessments/delete", middlewares.RolePermissionMiddleware(db, "assessment", "modify"), thirdPartyAssessmentController.DeleteThirdPartyAssessment)
+	tprmRoutes.POST("/third-party-assessments/:assessmentID/share-link", middlewares.RolePermissionMiddleware(db, "assessment", "modify"), thirdPartyAssessmentController.ShareLink)
 
 }

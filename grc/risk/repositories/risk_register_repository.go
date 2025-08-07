@@ -292,6 +292,19 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 			users.last_name_ar LIKE ? OR
 			risk_statuses.title_en LIKE ? OR
 			risk_statuses.title_ar LIKE ? OR
+			organization_units.title_en LIKE ? OR
+			organization_units.title_ar LIKE ? OR
+			responsible_user.first_name_en LIKE ? OR
+			responsible_user.first_name_ar LIKE ? OR
+			responsible_user.last_name_en LIKE ? OR
+			responsible_user.last_name_ar LIKE ? OR
+			risk_matrix_likelihoods.title_en LIKE ? OR
+			risk_matrix_likelihoods.title_ar LIKE ? OR
+			risk_matrix_impacts.title_en LIKE ? OR
+			risk_matrix_impacts.title_ar LIKE ? OR
+			risk_matrix_risk_ratings.title_en LIKE ? OR
+			risk_matrix_risk_ratings.title_ar LIKE ? OR
+			reported_at LIKE ? OR
 			created_user.first_name_en LIKE ? OR
 			created_user.first_name_ar LIKE ? OR
 			created_user.last_name_en LIKE ? OR
@@ -304,7 +317,9 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 			review_frequencies.title_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword)
 	}
 
 	if params.Value != 0 {

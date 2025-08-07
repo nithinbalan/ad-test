@@ -17,6 +17,8 @@ type ThirdPartyAssessmentListDTO struct {
 	QuestionSetTitleAr          string  `json:"question_set_title_ar"`
 	Message                     *string `json:"message"`
 	DueDate                     *string `json:"due_date"`
+	UID                         *string `json:"uid"`
+	Link                        *string `json:"link"`
 	CreatedAt                   string  `json:"created_at"`
 	UpdatedAt                   string  `json:"updated_at"`
 	CreatedByID                 uint    `json:"created_by_id"`
@@ -45,6 +47,7 @@ type ThirdPartyAssessmentFormDTO struct {
 	QuestionSetID        uint    `json:"question_set_id" binding:"required"`
 	Message              *string `json:"message"`
 	DueDate              *string `json:"due_date" binding:"required"`
+	IsSentEmail          bool    `json:"is_sent_email"`
 }
 
 type ThirdPartyAssessmentDetailDTO struct {
@@ -55,6 +58,8 @@ type ThirdPartyAssessmentDetailDTO struct {
 	QuestionSet        QuestionSetDetailDTO            `json:"question_set"`
 	Message            *string                         `json:"message"`
 	DueDateString      *string                         `json:"due_date"`
+	UID                *string                         `json:"uid"`
+	Link               *string                         `json:"link"`
 	CreatedAt          time.Time                       `json:"created_at"`
 	UpdatedAt          *time.Time                      `json:"updated_at"`
 	CreatedBy          organizationDTOs.UserMinimalDTO `json:"created_by"`

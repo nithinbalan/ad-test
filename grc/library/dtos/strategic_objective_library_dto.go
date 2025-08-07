@@ -9,12 +9,13 @@ type StrategicObjectiveLibraryDTO struct {
 }
 
 type StrategicObjectiveLibraryListQueryParamsDTO struct {
-	Sort     string
-	SortBy   string
-	Keyword  string
-	Page     int
-	PageSize int
-	Export   bool
+	Sort       string
+	SortBy     string
+	Keyword    string
+	Page       int
+	PageSize   int
+	Export     bool
+	Categories []string
 }
 
 type StrategicObjectiveLibraryListResponseDTO struct {

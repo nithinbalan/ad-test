@@ -3,12 +3,14 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -24,6 +26,8 @@ type ControlTestServiceInterface interface {
 	Update(controlID uint, id uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) error
 	Delete(controlID uint, ids []uint, currentUserID uint) ([]uint, error)
 	GetTrendAnalysis(controlID uint) ([]*organizationDTOs.ControlTrendAnalysisDTO, error)
+
+	GetDocumentPath(controlID, controlTestID, id uint, token string) (string, error)
 }
 
 type ControlTestService struct {
@@ -401,7 +405,7 @@ func (cts *ControlTestService) Delete(controlID uint, ids []uint, currentUserID 
 		if controlTest.Documents != nil && len(controlTest.Documents) > 0 {
 			for _, document := range controlTest.Documents {
 				documentsToDelete[id] = append(documentsToDelete[id], document)
-				deleteDocumentIds = append(deleteDocumentIds, document.ID)
+				deleteDocumentIds = append(deleteDocumentIds, &document.ID)
 			}
 
 			if len(deleteDocumentIds) > 0 {
@@ -432,7 +436,7 @@ func (cts *ControlTestService) Delete(controlID uint, ids []uint, currentUserID 
 				storagePath := filepath.Join("organization", "control", strconv.FormatUint(uint64(controlID), 10), "control-test", strconv.FormatUint(uint64(controlTestId), 10), "documents")
 				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 					tx.Rollback()
-					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
+					fmt.Printf("Failed to delete file at URL %s: %v\n", doc.URL, err)
 				}
 			}
 		}
@@ -528,4 +532,34 @@ func (cts *ControlTestService) GetTrendAnalysis(controlID uint) ([]*organization
 	}
 
 	return scores, nil
+}
+
+func (cts *ControlTestService) GetDocumentPath(controlID, controlTestID, id uint, token string) (string, error) {
+	_, err := cts.GetByID(controlTestID)
+	if err != nil {
+		return "", err
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found") // generic on purpose for security
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("organization", "control", strconv.FormatUint(uint64(controlID), 10), "control-test", strconv.FormatUint(uint64(controlTestID), 10), "documents")
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

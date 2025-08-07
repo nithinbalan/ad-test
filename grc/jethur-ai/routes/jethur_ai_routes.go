@@ -33,5 +33,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	jethurAIRoutes.GET("/jethur-ai/risk/:riskId/risk-residual-control-analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAIController.GetRiskResidualControlAnalysis)
 	jethurAIRoutes.GET("/jethur-ai/risk/:riskId/residual-risk-analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAIController.GetRiskResidualRiskAnalysis)
 	jethurAIRoutes.POST("/jethur-ai/risk-chat", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAIController.ChatWithRisk)
+	jethurAIRoutes.GET("/jethur-ai/risk-chat/:contextId", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAIController.GetRiskChatsByContext)
+	jethurAIRoutes.GET("/jethur-ai/risks/duplicate", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAIController.GetDuplicateRisks)
+	jethurAIRoutes.GET("/jethur-ai/risks/:riskId/closure/autofill", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAIController.GetRiskClosureAutofill)
 
 }

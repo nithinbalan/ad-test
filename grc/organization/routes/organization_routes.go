@@ -217,6 +217,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/controls/:controlId/mark-as-not-applicable", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlController.MarkControlAsNotApplicable)
 
 	//control Test
+	unauthenticatedRoutes.GET("/controls/:controlId/tests/:controlTestId/documents/:id/document-download", controlTestController.DownloadControlTestDocument)
+	unauthenticatedRoutes.GET("/controls/:controlId/tests/:controlTestId/documents/:id/document-preview", controlTestController.GetControlTestDocumentPreview)
 	organizationRoutes.GET("/controls/:controlId/tests", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlTestController.GetAllControlTests)
 	organizationRoutes.GET("/controls/:controlId/tests/:controlTestId", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlTestController.GetControlTestDetails)
 	organizationRoutes.POST("/controls/:controlId/tests", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlTestController.CreateControlTest)

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/services"
@@ -147,8 +148,8 @@ func (crc *ComplianceRequirementController) GetComplianceRequirementsByID(c *gin
 		return
 	}
 
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "compliance_clause_no")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
@@ -180,10 +181,30 @@ func (crc *ComplianceRequirementController) GetComplianceRequirementsByID(c *gin
 		utility.SendInternalErrResp(crc.db, c, "Invalid page_size parameter")
 		return
 	}
+	validSortFields := map[string]string{
+		"compliance_clause_no":                     "compliance_clauses.clause_no",
+		"compliance_clause_title_en":               "compliance_clauses.title_en",
+		"compliance_clause_title_ar":               "compliance_clauses.title_ar",
+		"title_en":                                 "compliance_requirements.title_en",
+		"title_ar":                                 "compliance_requirements.title_ar",
+		"compliance_requirement_category_title_en": "compliance_requirement_categories.title_en",
+		"compliance_requirement_category_title_ar": "compliance_requirement_categories.title_ar",
+		"severity_level_title_en":                  "severity_levels.title_en",
+		"severity_level_title_ar":                  "severity_levels.title_ar",
+		"deadline":                                 "compliance_requirements.deadline",
+		"compliance_status_title_en":               "compliance_statuses.title_en",
+		"compliance_status_title_ar":               "compliance_statuses.title_ar",
+	}
 
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 	queryParams := complianceDTOs.ComplianceRequirementListQueryParamsDTO{
 		Sort:         sort,
-		SortBy:       sortBy,
+		SortBy:       sortField,
 		Keyword:      keyword,
 		Status:       status,
 		Page:         page,

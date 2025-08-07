@@ -9,7 +9,7 @@ type RiskComplianceRequirement struct {
 	RiskRegisterID          uint      `json:"risk_register_id" binding:"required"`
 	ComplianceRegisterID    uint      `json:"compliance_register_id" binding:"required"`
 	ComplianceRequirementID *uint     `json:"compliance_requirement_id" gorm:"default:null"`
-	ComplianceClauseID      uint      `json:"compliance_clause_id" binding:"required"`
+	ComplianceClauseID      *uint     `json:"compliance_clause_id"`
 	CreatedByID             uint      `json:"created_by_id" binding:"required"`
 	CreatedAt               time.Time `json:"created_at" gorm:"type:datetime;not null"`
 

@@ -12,12 +12,13 @@ type KPILibraryDTO struct {
 }
 
 type KPILibraryListQueryParamsDTO struct {
-	Sort     string
-	SortBy   string
-	Keyword  string
-	Page     int
-	PageSize int
-	Export   bool
+	Sort       string
+	SortBy     string
+	Keyword    string
+	Page       int
+	PageSize   int
+	Export     bool
+	Categories []string
 }
 
 type KPILibraryListResponseDTO struct {

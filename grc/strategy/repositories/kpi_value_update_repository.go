@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/strategy/dtos"
@@ -212,14 +213,38 @@ func (repo *KPIValueUpdateRepository) Delete(id uint, tx ...utility.DatabaseTran
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	var kpiValueUpdate *models.KPIValueUpdate
+
+	// Get the record being deleted
+	var kpiValueUpdate models.KPIValueUpdate
 	if err := db.First(&kpiValueUpdate, id).Error; err != nil {
 		return err
 	}
 
+	// Get the KPI register ID before deletion
+	kpiRegisterID := kpiValueUpdate.KPIRegisterID
+
+	// Delete the record
 	result := db.Delete(&models.KPIValueUpdate{}, id)
 	if result.Error != nil {
 		return result.Error
+	}
+
+	// If the deleted record was marked as latest, update the most recent remaining record
+	if kpiValueUpdate.IsLatest {
+		var latestUpdate models.KPIValueUpdate
+		err := db.Where("kpi_register_id = ? AND id != ?", kpiRegisterID, id).
+			Order("created_at DESC").
+			First(&latestUpdate).Error
+
+		if err == nil {
+			// Update the most recent record to be marked as latest
+			err = db.Model(&models.KPIValueUpdate{}).
+				Where("id = ?", latestUpdate.ID).
+				Update("is_latest", true).Error
+			if err != nil {
+				return fmt.Errorf("failed to update latest record: %w", err)
+			}
+		}
 	}
 
 	return nil

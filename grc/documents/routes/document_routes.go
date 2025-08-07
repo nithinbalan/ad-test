@@ -206,4 +206,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.PUT("/documents/:id/requirement-groups/:requirementGroupId/requirements/:requirementId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentRequirementController.UpdateDocumentRequirement)
 	documentRoutes.POST("/documents/:id/requirement-groups/:requirementGroupId/requirements/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentRequirementController.DeleteDocumentRequirements)
 
+	documentRoutes.POST("/documents/:id/requirements", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentRequirementController.CreateDocumentRequirements)
+
 }

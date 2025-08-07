@@ -235,7 +235,7 @@ func NewDocumentModule(db *gorm.DB,
 	documentRequirementGroupController := controllers.NewDocumentRequirementGroupController(documentRequirementGroupSvc)
 
 	documentRequirementRepo := repositories.NewDocumentRequirementRepository(db)
-	documentRequirementSvc := services.NewDocumentRequirementService(documentRequirementRepo, sharedModule.ActivityLogService, documentRequirementGroupSvc)
+	documentRequirementSvc := services.NewDocumentRequirementService(documentRequirementRepo, sharedModule.ActivityLogService, documentRequirementGroupSvc, documentSvc)
 	documentRequirementController := controllers.NewDocumentRequirementController(documentRequirementSvc)
 
 	return &DocumentModule{

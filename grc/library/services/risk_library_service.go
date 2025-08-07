@@ -14,9 +14,6 @@ type RiskLibraryServiceInterface interface {
 	GetRiskLikelihoodCounts() ([]libraryDTOs.RiskLikelihoodCountDTO, error)
 	GetRiskImpactCounts() ([]libraryDTOs.RiskImpactCountDTO, error)
 	ExportRiskLibrary(data []*libraryDTOs.RiskLibraryDTO, userID uint) (*os.File, error)
-
-	GetAllKpi(params *libraryDTOs.KPILibraryListQueryParamsDTO) (*libraryDTOs.KPILibraryListResponseDTO, error)
-	Export(data []*libraryDTOs.KPILibraryDTO, userID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -72,18 +69,5 @@ func (rls *RiskLibraryService) ExportRiskLibrary(data []*libraryDTOs.RiskLibrary
 		}
 	}
 
-	return utility.GenerateExcelFile(headers, rows)
-}
-
-func (rls *RiskLibraryService) GetAllKpi(params *libraryDTOs.KPILibraryListQueryParamsDTO) (*libraryDTOs.KPILibraryListResponseDTO, error) {
-	return rls.repo.GetAllKpi(params)
-}
-
-func (rls *RiskLibraryService) Export(data []*libraryDTOs.KPILibraryDTO, userID uint) (*os.File, error) {
-	headers := []string{"SL No.", "Title", "Description", "Category", "Unit", "Frequency"}
-	rows := make([][]interface{}, len(data))
-	for i, k := range data {
-		rows[i] = []interface{}{i + 1, k.Title, utility.GetStringValue(k.Description), k.Category, k.Unit, k.Frequency}
-	}
 	return utility.GenerateExcelFile(headers, rows)
 }

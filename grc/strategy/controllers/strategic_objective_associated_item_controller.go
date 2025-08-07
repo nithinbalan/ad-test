@@ -143,6 +143,11 @@ func (soai *StrategicObjectiveAssociatedItemController) GetAllStrategicObjective
 			return
 		}
 	}
+	allowedParams := []string{
+		"current_likelihood_ids",
+		"current_impact_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
@@ -151,6 +156,7 @@ func (soai *StrategicObjectiveAssociatedItemController) GetAllStrategicObjective
 		Page:     page,
 		PageSize: pageSize,
 		Value:    value,
+		Filters:  filters,
 	}
 	risks, err := soai.service.GetAllRisks(uint(strategicObjectiveID), &queryParams)
 

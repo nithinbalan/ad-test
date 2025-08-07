@@ -5,6 +5,7 @@ import (
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/utility"
+	"sort"
 
 	"gorm.io/gorm"
 )
@@ -1170,9 +1171,10 @@ func (repo *RiskAssociatedItemRepository) GetAllClauses(riskID uint, params *com
 			compliance_register.title_ar AS compliance_register_title_ar
 		`).
 		Joins(`
-			LEFT JOIN compliance_clauses ON risk_compliance_requirements.compliance_clause_id = compliance_clauses.id
+			INNER JOIN compliance_clauses ON risk_compliance_requirements.compliance_clause_id = compliance_clauses.id
 			LEFT JOIN compliance_register ON risk_compliance_requirements.compliance_register_id = compliance_register.id
 		`).
+		Where("risk_compliance_requirements.compliance_clause_id IS NOT NULL").
 		Where("risk_compliance_requirements.risk_register_id = ?", riskID)
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -1218,6 +1220,10 @@ func (repo *RiskAssociatedItemRepository) GetAllClauses(riskID uint, params *com
 
 	var groupedClauses []*commonDTOs.AssociatedClauseListDTO
 	for _, v := range clausesByComplianceRegister {
+		// Sort clauses inside the group by ClauseNo
+		sort.Slice(v.Clauses, func(i, j int) bool {
+			return v.Clauses[i].ClauseNo < v.Clauses[j].ClauseNo
+		})
 		groupedClauses = append(groupedClauses, v)
 	}
 

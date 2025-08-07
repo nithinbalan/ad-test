@@ -111,7 +111,7 @@ func (tprc *ThirdPartyAssessmentController) GetThirdPartyAssessmentExport(c *gin
 }
 
 func (tprc *ThirdPartyAssessmentController) GetThirdPartyAssessmentDetails(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := strconv.Atoi(c.Param("assessmentID"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -153,7 +153,7 @@ func (tprc *ThirdPartyAssessmentController) CreateThirdPartyAssessment(c *gin.Co
 }
 
 func (tprc *ThirdPartyAssessmentController) UpdateThirdPartyAssessment(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := strconv.Atoi(c.Param("assessmentID"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -210,4 +210,35 @@ func (tprc *ThirdPartyAssessmentController) DeleteThirdPartyAssessment(c *gin.Co
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (tprc *ThirdPartyAssessmentController) ShareLink(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("assessmentID"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(tprc.db, c, err.Error())
+		return
+	}
+
+	err = tprc.service.ShareLink(uint(id), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(tprc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
 }

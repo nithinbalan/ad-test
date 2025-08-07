@@ -46,6 +46,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.POST("/projects/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectController.DeleteProjects)
 
 	// Project Milestones
+	projectRoutes.GET("/project-milestones", projectMilestoneController.GetAllProjectMilestones)
 	projectRoutes.GET("/projects/:projectId/milestones", projectMilestoneController.GetAllProjectMilestones)
 	projectRoutes.GET("/projects/:projectId/milestones/:milestoneId", projectMilestoneController.GetProjectMilestoneDetails)
 	projectRoutes.POST("/projects/:projectId/milestones", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectMilestoneController.CreateProjectMilestone)
@@ -53,6 +54,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.POST("/projects/:projectId/milestones/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectMilestoneController.DeleteProjectMilestones)
 
 	// Project Action Plans
+	projectRoutes.GET("/project-action-plans", projectActionPlanController.GetAllProjectActionPlans)
 	projectRoutes.GET("/projects/:projectId/action-plans", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), projectActionPlanController.GetAllProjectActionPlans)
 	projectRoutes.GET("/projects/:projectId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), projectActionPlanController.GetProjectActionPlanDetails)
 	projectRoutes.POST("/projects/:projectId/action-plans", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectActionPlanController.CreateProjectActionPlan)
