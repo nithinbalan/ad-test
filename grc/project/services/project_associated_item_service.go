@@ -17,6 +17,9 @@ type ProjectAssociatedItemServiceInterface interface {
 	GetAllProjectControls(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	CreateProjectControl(projectID uint, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error
 	DeleteProjectContol(projectID uint, controlID uint) error
+	GetAllProjectProcesses(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
+	CreateProjectProcess(projectID uint, userID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
+	DeleteProjectProcess(projectID uint, processID uint) error
 }
 
 // Service and implementations
@@ -135,6 +138,59 @@ func (pais *ProjectAssociatedItemService) DeleteProjectContol(projectID uint, co
 	tx := pais.repo.BeginTransaction()
 
 	if err := pais.repo.DeleteProjectContol(projectID, controlID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *ProjectAssociatedItemService) GetAllProjectProcesses(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error) {
+	if _, err := pais.projectSvc.GetByID(assetID); err != nil {
+		return nil, err
+	}
+	return pais.repo.GetAllProjectProcesses(assetID, params)
+}
+
+func (pais *ProjectAssociatedItemService) CreateProjectProcess(projectID, userID uint, dto *commonDTOs.AssociatedProcessMapDTO) error {
+
+	if _, err := pais.projectSvc.GetByID(projectID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("project does not exist for ID: %d", projectID), "not_exist", "asset_id")
+	}
+
+	if err := pais.validationSvc.ValidateProcessMapping(projectID, dto.ProcessIDs, "project_processes", "project_id"); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.ProjectProcess
+	currentTime := time.Now()
+
+	for _, processID := range dto.ProcessIDs {
+		mappings = append(mappings, &models.ProjectProcess{
+			ProcessID:   processID,
+			ProjectID:   projectID,
+			CreatedByID: userID,
+			CreatedAt:   currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateProjectProcess(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *ProjectAssociatedItemService) DeleteProjectProcess(projectID uint, processID uint) error {
+	// Validate control existence
+	if _, err := pais.projectSvc.GetByID(projectID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("project does not exist for ID: %d", projectID), "not_exist", "asset_register_id")
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteProjectProcess(projectID, processID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
