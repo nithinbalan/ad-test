@@ -39,6 +39,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	taeRecoveryActionPlanCommentController := app.BusinessContinuityModule.TaeRecoveryActionPlanCommentController
 	bcpRiskAnalysisController := app.BusinessContinuityModule.BcpRiskAnalysisController
 	bcpAssociatedItemController := app.BusinessContinuityModule.BcpAssociatedItemController
+	businessfunctionAssociatedItemController := app.BusinessContinuityModule.BusinessFunctionAssociateItemController
 
 	// bcp phase
 	businessContinuityRoutes.GET("/bcp-phases", bcpPhaseController.GetAllBcpPhases)
@@ -211,5 +212,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.GET("/business-continuity-plans/:id/controls", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpAssociatedItemController.GetAllBcpControl)
 	businessContinuityRoutes.POST("/business-continuity-plans/:id/controls", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpAssociatedItemController.CreateBcpControl)
 	businessContinuityRoutes.DELETE("/business-continuity-plans/:id/controls/:controlId", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpAssociatedItemController.DeleteBcpControl)
+
+	businessContinuityRoutes.GET("/business-functions/:id/controls", middlewares.RolePermissionMiddleware(db, "business_functions", "view"), businessfunctionAssociatedItemController.GetAllBusinessFunctionProcesses)
+	businessContinuityRoutes.POST("/business-functions/:id/controls", middlewares.RolePermissionMiddleware(db, "business_functions", "modify"), businessfunctionAssociatedItemController.CreateBusinessFunctionProcess)
+	businessContinuityRoutes.DELETE("/business-functions/:id/controls/:controlId", middlewares.RolePermissionMiddleware(db, "business_functions", "modify"), businessfunctionAssociatedItemController.DeleteBusinessFunctionProcess)
 
 }
