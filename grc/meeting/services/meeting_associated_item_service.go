@@ -16,13 +16,15 @@ type MeetingAssociatedItemServiceInterface interface {
 	GetAllControls(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	GetAllComplianceRequirements(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemComplianceRequirementListResponseDTO, error)
 	GetAllRisks(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemRiskListResponseDTO, error)
-	GetAllProcesses(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemProcessListResponseDTO, error)
+	GetAllProcesses(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
 	GetAllIncidents(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemIncidentListResponseDTO, error)
 	GetAllMeetingDocuments(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	CreateMeetingDocument(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
 	DeleteMeetingDocument(meetingID uint, documentID uint) error
 	CreateMeetingControl(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedControlMapDTO) error
 	DeleteMeetingControl(meetingID uint, controlIDID uint) error
+	CreateMeetingProcess(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
+	DeleteMeetingProcess(meetingID uint, controlIDID uint) error
 }
 
 // Service and implementations
@@ -120,7 +122,7 @@ func (mais *MeetingAssociatedItemService) GetAllRisks(meetingID uint, params *me
 	return mais.repo.GetAllRisks(meetingID, params)
 }
 
-func (mais *MeetingAssociatedItemService) GetAllProcesses(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemProcessListResponseDTO, error) {
+func (mais *MeetingAssociatedItemService) GetAllProcesses(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error) {
 	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
 		return nil, err
 	}
@@ -226,6 +228,52 @@ func (mais *MeetingAssociatedItemService) DeleteMeetingControl(meetingID uint, c
 	tx := mais.repo.BeginTransaction()
 
 	if err := mais.repo.DeleteMeetingControl(meetingID, controlID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (mais *MeetingAssociatedItemService) CreateMeetingProcess(meetingID, userID uint, dto *commonDTOs.AssociatedProcessMapDTO) error {
+
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("meeting does not exist for ID: %d", meetingID), "not_exist", "meeting_id")
+	}
+
+	if err := mais.validationSvc.ValidateProcessMapping(meetingID, dto.ProcessIDs, "meeting_processes", "meeting_id"); err != nil {
+		return err
+	}
+
+	tx := mais.repo.BeginTransaction()
+	var mappings []*models.MeetingProcess
+	currentTime := time.Now()
+
+	for _, processID := range dto.ProcessIDs {
+		mappings = append(mappings, &models.MeetingProcess{
+			ProcessID:   processID,
+			MeetingID:   meetingID,
+			CreatedBYID: userID,
+			CreatedAt:   currentTime,
+		})
+	}
+
+	if err := mais.repo.CreateMeetingProcess(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (mais *MeetingAssociatedItemService) DeleteMeetingProcess(meetingID uint, processID uint) error {
+	// Validate control existence
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("meeting does not exist for ID: %d", meetingID), "not_exist", "meeting_id")
+	}
+
+	tx := mais.repo.BeginTransaction()
+
+	if err := mais.repo.DeleteMeetingProcess(meetingID, processID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

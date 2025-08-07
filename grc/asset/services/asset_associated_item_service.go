@@ -40,6 +40,9 @@ type AssetAssociatedItemServiceInterface interface {
 	DeleteAssetDocument(assetID uint, documentID uint) error
 	CreateAssetControl(assetID uint, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error
 	DeleteAssetControl(assetID uint, controlID uint) error
+	GetAllAssetProcess(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
+	CreateAssetProcess(assetID uint, userID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
+	DeleteAssetProcess(assetID uint, processID uint) error
 }
 
 // Service Implementation
@@ -999,6 +1002,59 @@ func (aais *AssetAssociatedItemService) DeleteAssetControl(assetID uint, control
 	tx := aais.repo.BeginTransaction()
 
 	if err := aais.repo.DeleteAssetControl(assetID, controlID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (aais *AssetAssociatedItemService) GetAllAssetProcess(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error) {
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return nil, err
+	}
+	return aais.repo.GetAllAssetProcess(assetID, params)
+}
+
+func (aais *AssetAssociatedItemService) CreateAssetProcess(assetID, userID uint, dto *commonDTOs.AssociatedProcessMapDTO) error {
+
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("asset does not exist for ID: %d", assetID), "not_exist", "asset_id")
+	}
+
+	if err := aais.validationSvc.ValidateProcessMapping(assetID, dto.ProcessIDs, "asset_associated_documents", "asset_register_id"); err != nil {
+		return err
+	}
+
+	tx := aais.repo.BeginTransaction()
+	var mappings []*models.ProcessAsset
+	currentTime := time.Now()
+
+	for _, processID := range dto.ProcessIDs {
+		mappings = append(mappings, &models.ProcessAsset{
+			ProcessID:       processID,
+			AssetRegisterID: assetID,
+			CreatedByID:     userID,
+			CreatedAt:       currentTime,
+		})
+	}
+
+	if err := aais.repo.CreateAssetProcess(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (aais *AssetAssociatedItemService) DeleteAssetProcess(assetID uint, processID uint) error {
+	// Validate control existence
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("asset does not exist for ID: %d", assetID), "not_exist", "asset_register_id")
+	}
+
+	tx := aais.repo.BeginTransaction()
+
+	if err := aais.repo.DeleteAssetProcess(assetID, processID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

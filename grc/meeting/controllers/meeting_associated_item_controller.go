@@ -178,8 +178,6 @@ func (maic *MeetingAssociatedItemController) GetAllMeetingProcesses(c *gin.Conte
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -193,14 +191,12 @@ func (maic *MeetingAssociatedItemController) GetAllMeetingProcesses(c *gin.Conte
 		return
 	}
 
-	queryParams := meetingDTOs.MeetingAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	meetings, err := maic.service.GetAllProcesses(uint(meetingID), &queryParams)
 
@@ -423,4 +419,53 @@ func (maic *MeetingAssociatedItemController) DeleteMeetingControl(c *gin.Context
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Control unmapped from meeting successfully"})
+}
+
+func (maic *MeetingAssociatedItemController) CreateMeetingProcess(c *gin.Context) {
+	var input commonDTOs.AssociatedProcessMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	meetingID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, err.Error())
+		return
+	}
+
+	err = maic.service.CreateMeetingProcess(uint(meetingID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(maic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (maic *MeetingAssociatedItemController) DeleteMeetingProcess(c *gin.Context) {
+	meetingID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+	processID, _ := strconv.ParseUint(c.Param("processId"), 10, 64)
+	err := maic.service.DeleteMeetingControl(uint(meetingID), uint(processID))
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Process unmapped from meeting successfully"})
 }

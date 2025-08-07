@@ -582,6 +582,7 @@ type AssociatedItemAssetListResponseDTO struct {
 
 type AssociatedProcessListDTO struct {
 	ID                               uint       `json:"id"`
+	ProcessID                        uint       `json:"process_id"`
 	ProcessGroupTitleEn              string     `json:"process_group_title_en"`
 	ProcessGroupTitleAr              string     `json:"process_group_title_ar"`
 	OwnerUnitTitleEn                 *string    `json:"owner_unit_title_en"`

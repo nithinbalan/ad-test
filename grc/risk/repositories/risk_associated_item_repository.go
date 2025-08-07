@@ -265,7 +265,8 @@ func (repo *RiskAssociatedItemRepository) GetAllProcesses(riskID uint, params *c
 
 	query := repo.db.Table("risk_processes").
 		Select(`
-		processes.id,
+		risk_processes.id,
+		risk_processes.process_id,
 		processes.reference_number,
 		processes.title_en,
 		processes.title_ar,
