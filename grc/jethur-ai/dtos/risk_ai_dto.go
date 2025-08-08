@@ -1,5 +1,7 @@
 package dtos
 
+import "time"
+
 type RiskAutofillRequest struct {
 	RiskTitle      string            `json:"risk_title"`
 	RiskCategories []RiskCategoryDTO `json:"risk_categories"`
@@ -40,4 +42,12 @@ type RiskAIChatRequest struct {
 	Content   string `json:"content" binding:"required"`
 	Role      string `json:"role" binding:"required"`
 	ContextID string `json:"context_id"`
+}
+
+type RiskAIChatDTO struct {
+	ID        uint      `json:"id"`
+	ContextID string    `json:"context_id"`
+	Message   string    `json:"message"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
 }

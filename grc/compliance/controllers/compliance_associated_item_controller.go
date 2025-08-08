@@ -113,6 +113,11 @@ func (caic *ComplianceAssociatedItemController) GetAllComplianceRisks(c *gin.Con
 			return
 		}
 	}
+	allowedParams := []string{
+		"current_likelihood_ids",
+		"current_impact_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
@@ -121,6 +126,7 @@ func (caic *ComplianceAssociatedItemController) GetAllComplianceRisks(c *gin.Con
 		Page:     page,
 		PageSize: pageSize,
 		Value:    value,
+		Filters:  filters,
 	}
 	compliances, err := caic.service.GetAllRisks(uint(complianceID), &queryParams)
 

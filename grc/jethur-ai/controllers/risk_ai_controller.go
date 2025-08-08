@@ -187,3 +187,56 @@ func (rc *RiskAIController) ChatWithRisk(c *gin.Context) {
 		flusher.Flush()
 	}
 }
+
+func (rc *RiskAIController) GetRiskChatsByContext(c *gin.Context) {
+	contextID := c.Param("contextId")
+	offsetStr := c.DefaultQuery("offset", "0")
+	limitStr := c.DefaultQuery("limit", "10")
+
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil {
+		utility.SendInvalidErrResp(c, fmt.Errorf("invalid offset"))
+		return
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		utility.SendInvalidErrResp(c, fmt.Errorf("invalid limit"))
+		return
+	}
+
+	chats, err := rc.service.GetRiskChatsByContext(contextID, offset, limit)
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, chats)
+}
+
+func (rc *RiskAIController) GetDuplicateRisks(c *gin.Context) {
+
+	chats, err := rc.service.GetDuplicateRisks()
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, chats)
+}
+
+func (rc *RiskAIController) GetRiskClosureAutofill(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("riskId"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Risk ID"})
+		return
+	}
+
+	result, err := rc.service.GetRiskClosureAutofill(uint(id))
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}

@@ -408,6 +408,13 @@ func (repo *IncidentAssociatedItemRepository) GetAllRisks(incidentID uint, param
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
+
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize

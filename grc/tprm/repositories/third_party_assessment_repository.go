@@ -137,6 +137,7 @@ func (repo *ThirdPartyAssessmentRepository) GetFullDetailsByID(id uint, tx ...ut
 		Preload("ThirdPartyRegister.ResponsibleUser").
 		Preload("ThirdPartyRegister.ResponsibleUnit").
 		Preload("ThirdPartyRegister.SeverityLevel").
+		Preload("ThirdPartyAssessmentStatus").
 		Preload("QuestionSet").
 		Preload("Questions").
 		Preload("CreatedByUser").

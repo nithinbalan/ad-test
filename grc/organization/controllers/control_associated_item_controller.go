@@ -162,7 +162,11 @@ func (caic *ControlAssociatedItemController) GetAllControlRisks(c *gin.Context) 
 			return
 		}
 	}
-
+	allowedParams := []string{
+		"current_likelihood_ids",
+		"current_impact_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
@@ -170,6 +174,7 @@ func (caic *ControlAssociatedItemController) GetAllControlRisks(c *gin.Context) 
 		Page:     page,
 		PageSize: pageSize,
 		Value:    value,
+		Filters:  filters,
 	}
 	risks, err := caic.service.GetAllRisks(uint(controlID), &queryParams)
 

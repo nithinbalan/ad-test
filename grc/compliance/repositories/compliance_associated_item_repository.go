@@ -309,7 +309,11 @@ func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, p
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
 	}
-
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
