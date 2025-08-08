@@ -56,7 +56,6 @@ type ComplianceAssessmentRequirementDetailDTO struct {
 type ComplianceAssessmentRequirementUpdateFormDTO struct {
 	ResponsibleUnitID          uint    `json:"responsible_unit_id" binding:"required"`
 	Score                      int     `json:"score" binding:"omitempty,min=0"`
-	ComplianceStatusID         uint    `json:"compliance_status_id" binding:"required"`
 	Comments                   *string `json:"comments"`
 	AssessmentFrameworkValueID uint    `json:"assessment_framework_value_id" binding:"required"`
 }
