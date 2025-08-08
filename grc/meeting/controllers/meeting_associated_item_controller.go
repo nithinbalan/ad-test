@@ -461,7 +461,7 @@ func (maic *MeetingAssociatedItemController) CreateMeetingProcess(c *gin.Context
 func (maic *MeetingAssociatedItemController) DeleteMeetingProcess(c *gin.Context) {
 	meetingID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 	processID, _ := strconv.ParseUint(c.Param("processId"), 10, 64)
-	err := maic.service.DeleteMeetingControl(uint(meetingID), uint(processID))
+	err := maic.service.DeleteMeetingProcess(uint(meetingID), uint(processID))
 	if err != nil {
 		utility.SendInternalErrResp(maic.db, c, err.Error())
 		return

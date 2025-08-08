@@ -17,6 +17,7 @@ type TprmModule struct {
 	QuestionSetController                *controllers.QuestionSetController
 	ThirdPartyAssessmentStatusController *controllers.ThirdPartyAssessmentStatusController
 	ThirdPartyAssessmentController       *controllers.ThirdPartyAssessmentController
+	ThirdPartyAssociatedItemController   *controllers.ThirdPartyAssociatedItemController
 
 	ThirdPartyTypeSvc             services.ThirdPartyTypeServiceInterface
 	ThirdPartyRegisterSvc         services.ThirdPartyRegisterServiceInterface
@@ -99,6 +100,10 @@ func NewTprmModule(
 	)
 	thirdPartyAssessmentController := controllers.NewThirdPartyAssessmentController(thirdPartyAssessmentSvc)
 
+	thirdPartyAssociatedItemRepo := repositories.NewThirdPartyAssociatedItemRepository(db)
+	thirdPartyAssociatedItemSvc := services.NewThirdPartyAssociatedItemService(thirdPartyAssociatedItemRepo, thirdPartyRegisterSvc, commonModule.AssociatedItemValidationService)
+	thirdPartyAssociatedItemController := controllers.NewThirdPartyAssociatedItemController(thirdPartyAssociatedItemSvc)
+
 	return &TprmModule{
 		ThirdPartyTypeController:             thirdPartyTypeController,
 		ThirdPartyRegisterController:         thirdPartyRegisterController,
@@ -108,6 +113,7 @@ func NewTprmModule(
 		QuestionSetController:                questionSetController,
 		ThirdPartyAssessmentStatusController: thirdPartyAssessmentStatusController,
 		ThirdPartyAssessmentController:       thirdPartyAssessmentController,
+		ThirdPartyAssociatedItemController:   thirdPartyAssociatedItemController,
 
 		ThirdPartyTypeSvc:             thirdPartyTypeSvc,
 		ThirdPartyRegisterSvc:         thirdPartyRegisterSvc,

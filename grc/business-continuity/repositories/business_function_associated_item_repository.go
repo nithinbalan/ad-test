@@ -203,7 +203,7 @@ func (repo *BusinessFunctionAssociatedItemRepository) DeleteBusinessFunctionProc
 		db = tx[0].DB()
 	}
 	return db.
-		Where("process_id = ? AND BusinessFunction_id = ?", processId, BusinessFunctionID).
+		Where("process_id = ? AND business_function_id = ?", processId, BusinessFunctionID).
 		Delete(&models.BusinessFunctionProcess{}).
 		Error
 }

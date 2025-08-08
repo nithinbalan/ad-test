@@ -349,5 +349,5 @@ func (afaic *AuditFindingAssociatedItemController) DeleteAuditFindingProcess(c *
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Control unmapped from AuditFinding successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Process unmapped from AuditFinding successfully"})
 }

@@ -1022,7 +1022,7 @@ func (aais *AssetAssociatedItemService) CreateAssetProcess(assetID, userID uint,
 		return utility.NewValidationError(fmt.Errorf("asset does not exist for ID: %d", assetID), "not_exist", "asset_id")
 	}
 
-	if err := aais.validationSvc.ValidateProcessMapping(assetID, dto.ProcessIDs, "asset_associated_documents", "asset_register_id"); err != nil {
+	if err := aais.validationSvc.ValidateProcessMapping(assetID, dto.ProcessIDs, "process_assets", "asset_register_id"); err != nil {
 		return err
 	}
 

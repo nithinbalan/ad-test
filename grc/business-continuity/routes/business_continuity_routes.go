@@ -213,8 +213,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.POST("/business-continuity-plans/:id/controls", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpAssociatedItemController.CreateBcpControl)
 	businessContinuityRoutes.DELETE("/business-continuity-plans/:id/controls/:controlId", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpAssociatedItemController.DeleteBcpControl)
 
-	businessContinuityRoutes.GET("/business-functions/:id/controls", middlewares.RolePermissionMiddleware(db, "business_functions", "view"), businessfunctionAssociatedItemController.GetAllBusinessFunctionProcesses)
-	businessContinuityRoutes.POST("/business-functions/:id/controls", middlewares.RolePermissionMiddleware(db, "business_functions", "modify"), businessfunctionAssociatedItemController.CreateBusinessFunctionProcess)
-	businessContinuityRoutes.DELETE("/business-functions/:id/controls/:controlId", middlewares.RolePermissionMiddleware(db, "business_functions", "modify"), businessfunctionAssociatedItemController.DeleteBusinessFunctionProcess)
+	businessContinuityRoutes.GET("/business-functions/:id/processes", middlewares.RolePermissionMiddleware(db, "business_functions", "view"), businessfunctionAssociatedItemController.GetAllBusinessFunctionProcesses)
+	businessContinuityRoutes.POST("/business-functions/:id/processes", middlewares.RolePermissionMiddleware(db, "business_functions", "modify"), businessfunctionAssociatedItemController.CreateBusinessFunctionProcess)
+	businessContinuityRoutes.DELETE("/business-functions/:id/processes/:processId", middlewares.RolePermissionMiddleware(db, "business_functions", "modify"), businessfunctionAssociatedItemController.DeleteBusinessFunctionProcess)
 
 }

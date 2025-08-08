@@ -24,7 +24,7 @@ func NewBusinessFunctionAssociatedItemController(service services.BusinessFuncti
 
 func (paic *BusinessFunctionAssociatedItemController) GetAllBusinessFunctionProcesses(c *gin.Context) {
 
-	BusinessFunctionIDStr := c.Param(" BusinessFunctionId")
+	BusinessFunctionIDStr := c.Param("id")
 
 	BusinessFunctionID, err := strconv.ParseUint(BusinessFunctionIDStr, 10, 64)
 	if err != nil {
@@ -91,7 +91,7 @@ func (paic *BusinessFunctionAssociatedItemController) CreateBusinessFunctionProc
 		return
 	}
 
-	BusinessFunctionID, err := strconv.ParseUint(c.Param(" BusinessFunctionId"), 10, 64)
+	BusinessFunctionID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -122,7 +122,7 @@ func (paic *BusinessFunctionAssociatedItemController) CreateBusinessFunctionProc
 }
 
 func (paic *BusinessFunctionAssociatedItemController) DeleteBusinessFunctionProcess(c *gin.Context) {
-	BusinessFunctionID, _ := strconv.ParseUint(c.Param(" BusinessFunctionId"), 10, 64)
+	BusinessFunctionID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 	processID, _ := strconv.ParseUint(c.Param("processId"), 10, 64)
 	err := paic.service.DeleteBusinessFunctionProcess(uint(BusinessFunctionID), uint(processID))
 	if err != nil {
