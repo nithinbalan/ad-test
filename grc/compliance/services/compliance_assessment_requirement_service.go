@@ -31,7 +31,7 @@ type ComplianceAssessmentRequirementServiceInterface interface {
 	Update(complianceAssessmentId uint, requirementId uint, currentUserID uint, complianceRequirement *complianceDTOs.ComplianceAssessmentRequirementUpdateFormDTO) error
 
 	MarkAsCompleted(complianceAssessmentId uint, requirementId uint, currentUserID uint, responsibleUnitID uint) error
-	MarkAsOpen(complianceAssessmentId uint, requirementId uint, currentUserID uint) error
+	MarkAsOpen(complianceAssessmentId uint, requirementId uint, currentUserID uint, responsibleUnitID uint) error
 
 	CreateDocument(complianceAssessmentID uint, requirementID uint, requiredDocumentID uint, currentUserID uint, documents []complianceDTOs.ComplianceAssessmentRequirementDocumentFormDTO) error
 	DeleteDocuments(complianceAssessmentID uint, requirementID uint, requiredDocumentID uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -519,11 +519,11 @@ func (cars ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAss
 		changedData := make(map[string]interface{})
 		// log changes
 		oldData := map[string]interface{}{
-			"is_completed": oldComplianceAssessmentRequirement.IsCompleted,
+			"is_completed": oldComplianceAssessmentRequirement.ResponsibleUnit.IsCompleted,
 		}
 
 		newData := map[string]interface{}{
-			"is_completed": existingAssessmentRequirement.IsCompleted,
+			"is_completed": existingAssessmentRequirement.ResponsibleUnit.IsCompleted,
 		}
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)
@@ -556,24 +556,28 @@ func (cars ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAss
 	return nil
 }
 
-func (cars ComplianceAssessmentRequirementService) MarkAsOpen(complianceAssessmentId uint, requirementId uint, currentUserID uint) error {
+func (cars ComplianceAssessmentRequirementService) MarkAsOpen(complianceAssessmentId uint, requirementId uint, currentUserID uint, responsibleUnitID uint) error {
 	tx := cars.repo.BeginTransaction()
 
-	existingComplianceAssessmentRequirement, err := cars.GetByID(requirementId)
+	_, err := cars.GetByID(requirementId)
 	if err != nil {
 		return err
 	}
 
-	oldComplianceAssessmentRequirement, err := cars.GetFullDetailsByID(complianceAssessmentId, requirementId, 0)
+	oldComplianceAssessmentRequirement, err := cars.GetFullDetailsByID(complianceAssessmentId, requirementId, responsibleUnitID)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	// existingComplianceAssessmentRequirement.IsCompleted = false
-	existingComplianceAssessmentRequirement.UpdatedBYID = &currentUserID
+	complianceAssessmentRequirementResponsibleUnit, err := cars.GetComplianceAssessmentRequirementResponsibleUnitByID(oldComplianceAssessmentRequirement.ResponsibleUnit.ID)
+	if err != nil {
+		return err
+	}
+	complianceAssessmentRequirementResponsibleUnit.IsCompleted = true
+	complianceAssessmentRequirementResponsibleUnit.UpdatedBYID = &currentUserID
 
-	err = cars.repo.Update(existingComplianceAssessmentRequirement, tx)
+	err = cars.repo.UpdateComplianceAssessmentRequirementResponsibleUnit(complianceAssessmentRequirementResponsibleUnit, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -590,11 +594,11 @@ func (cars ComplianceAssessmentRequirementService) MarkAsOpen(complianceAssessme
 		changedData := make(map[string]interface{})
 		// log changes
 		oldData := map[string]interface{}{
-			"is_completed": oldComplianceAssessmentRequirement.IsCompleted,
+			"is_completed": oldComplianceAssessmentRequirement.ResponsibleUnit.IsCompleted,
 		}
 
 		newData := map[string]interface{}{
-			"is_completed": existingAssessmentRequirement.IsCompleted,
+			"is_completed": existingAssessmentRequirement.ResponsibleUnit.IsCompleted,
 		}
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)

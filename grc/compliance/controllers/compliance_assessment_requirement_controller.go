@@ -467,7 +467,14 @@ func (carc *ComplianceAssessmentRequirementController) MarkAsCompleted(c *gin.Co
 }
 
 func (carc *ComplianceAssessmentRequirementController) MarkAsOpen(c *gin.Context) {
-
+	var request struct {
+		ResponsibleUnitID uint `json:"responsible_unit_id"`
+	}
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+	responsibleUnitID := request.ResponsibleUnitID
 	complianceAssessmentID, err := strconv.Atoi(c.Param("assessmentId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -488,7 +495,7 @@ func (carc *ComplianceAssessmentRequirementController) MarkAsOpen(c *gin.Context
 		return
 	}
 
-	err = carc.service.MarkAsOpen(uint(complianceAssessmentID), uint(complianceRequirementID), currentUserID)
+	err = carc.service.MarkAsOpen(uint(complianceAssessmentID), uint(complianceRequirementID), currentUserID, uint(responsibleUnitID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
