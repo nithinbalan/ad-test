@@ -204,7 +204,8 @@ func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requir
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	var complianceAssessmentRequirement *models.ComplianceAssessmentRequirement
+
+	var car models.ComplianceAssessmentRequirement
 
 	query := db.
 		Preload("ComplianceAssessment").
@@ -217,21 +218,24 @@ func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requir
 		Preload("ComplianceAssessmentRequirementStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser")
-		// Handle responsible_unit filtering
+
 	if responsibleUnitID != 0 {
-		// If responsibleUnitID is provided, filter to only that specific responsible_unit
 		query = query.Preload("ResponsibleUnits", "responsible_unit_id = ?", responsibleUnitID)
 	} else {
-		// If responsibleUnitID is not provided, load all responsible_units
 		query = query.Preload("ResponsibleUnits")
 	}
+
 	query = query.
 		Preload("ResponsibleUnits.CompletedByUser").
 		Preload("ResponsibleUnits.ResponsibleUnit").
+		Preload("ResponsibleUnits.ComplianceAssessmentFrameworkValue").
+		Preload("ResponsibleUnits.ComplianceAssessmentFrameworkValue.ComplianceAssessmentFramework").
+		Preload("ResponsibleUnits.ComplianceAssessmentFrameworkValue.ComplianceAssessmentFramework.AssessmentFrameworkType").
+		Preload("ResponsibleUnits.ComplianceAssessmentFrameworkValue.ComplianceStatus").
+		Preload("ResponsibleUnits.ComplianceAssessmentRequirementStatus").
 		Preload("ResponsibleUnits.RequiredDocumentTitles").
 		Preload("ResponsibleUnits.RequiredDocumentTitles.RequiredDocumentTitle").
 		Preload("ResponsibleUnits.RequiredDocumentTitles.Documents").
-		Preload("ResponsibleUnits.ComplianceAssessmentRequirementStatus").
 		Preload("ResponsibleUnits.ActionPlans").
 		Preload("ResponsibleUnits.ActionPlans.ResponsibleUser").
 		Preload("ResponsibleUnits.ActionPlans.ReviewUser").
@@ -239,13 +243,10 @@ func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requir
 		Preload("ResponsibleUnits.RequirementComments").
 		Preload("ResponsibleUnits.RequirementComments.CreatedByUser")
 
-	result := query.First(&complianceAssessmentRequirement, requirementId)
-
-	if result.Error != nil {
-		return nil, result.Error
+	if err := query.First(&car, requirementId).Error; err != nil {
+		return nil, err
 	}
-
-	return complianceAssessmentRequirement, nil
+	return &car, nil
 }
 
 func (repo *ComplianceAssessmentRequirementRepository) Update(complianceAssessmentRequirement *models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) error {
