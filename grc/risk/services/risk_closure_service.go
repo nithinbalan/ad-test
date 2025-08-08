@@ -389,6 +389,25 @@ func (rcs *RiskClosureService) Delete(riskID uint, id uint, currentUserID uint) 
 			tx.Rollback()
 		}
 	}
+	// Get the "Open" status
+	openStatus, err := rcs.riskStatusSvc.GetByType("open")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	// Update the risk register status to "Open"
+	riskRegister, err := rcs.riskRegisterSvc.GetByID(riskID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	riskRegister.RiskStatusID = openStatus.ID
+	if err := rcs.riskRegisterSvc.(*RiskRegisterService).repo.Update(riskRegister, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 
 	tx.Commit()
 
