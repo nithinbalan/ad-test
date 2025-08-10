@@ -170,9 +170,13 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 	if err != nil {
 		return 0, err
 	}
-	complianceAssessmentRequirementResponsibleUnit, err := caraps.complianceAssessmentRequirementSvc.GetFullDetailsByID(complianceAssessmentID, requirementID, *ComplianceActionPlanFormDTO.ResponsibleUnitID)
+	oldComplianceAssessmentRequirementResponsibleUnit, err := caraps.complianceAssessmentRequirementSvc.GetFullDetailsByID(complianceAssessmentID, requirementID, *ComplianceActionPlanFormDTO.ResponsibleUnitID)
 	if err != nil {
 		return 0, nil
+	}
+	complianceAssessmentRequirementResponsibleUnit, err := caraps.complianceAssessmentRequirementSvc.GetComplianceAssessmentRequirementResponsibleUnitByID(oldComplianceAssessmentRequirementResponsibleUnit.ResponsibleUnit.ID)
+	if err != nil {
+		return 0, err
 	}
 	actionPlanStatus, err := caraps.actionPlanStatusSvc.GetByType("new")
 	if err != nil {

@@ -111,11 +111,14 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 		return 0, err
 	}
 
-	complianceAssessmentRequirementResponsibleUnit, err := caps.complianceAssessmentRequirementSvc.GetFullDetailsByID(complianceAssessmentID, assessmentRequirementID, complianceAssessmentRequirementCommentFormDTO.ResponsibleUnitID)
+	oldComplianceAssessmentRequirementResponsibleUnit, err := caps.complianceAssessmentRequirementSvc.GetFullDetailsByID(complianceAssessmentID, assessmentRequirementID, complianceAssessmentRequirementCommentFormDTO.ResponsibleUnitID)
 	if err != nil {
 		return 0, nil
 	}
-
+	complianceAssessmentRequirementResponsibleUnit, err := caps.complianceAssessmentRequirementSvc.GetComplianceAssessmentRequirementResponsibleUnitByID(oldComplianceAssessmentRequirementResponsibleUnit.ResponsibleUnit.ID)
+	if err != nil {
+		return 0, err
+	}
 	complianceAssessment, err := caps.complianceAssessmentSvc.GetFullDetailsByID(complianceAssessmentID)
 	if err != nil {
 		return 0, nil
@@ -127,7 +130,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 	}
 
 	comment := &models.ComplianceAssessmentRequirementComment{
-		ComplianceAssessmentRequirementResponsibleUnitID: uint(complianceAssessmentRequirementResponsibleUnit.ID),
+		ComplianceAssessmentRequirementResponsibleUnitID: uint(complianceAssessmentRequirementResponsibleUnit.ResponsibleUnit.ID),
 		Comment:     complianceAssessmentRequirementCommentFormDTO.Comment,
 		CreatedBYID: currentUserID,
 	}
@@ -209,13 +212,13 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 				}
 
 				emailTo := []string{submittedUser.Email}
-				subject := fmt.Sprintf("Comment Added for Compliance Requirement :%s", complianceAssessmentRequirementResponsibleUnit.ComplianceRequirement.TitleEn)
+				subject := fmt.Sprintf("Comment Added for Compliance Requirement :%s", oldComplianceAssessmentRequirementResponsibleUnit.ComplianceRequirement.TitleEn)
 				appURL := utility.GetAppURL()
 				emailData := map[string]interface{}{
 					"FirstNameEn":            submittedUser.FirstNameEn,
 					"LastNameEn":             submittedUser.LastNameEn,
 					"ComplianceAssessment":   complianceAssessment.ComplianceRegister.TitleEn,
-					"RequirementTitle":       complianceAssessmentRequirementResponsibleUnit.ComplianceRequirement.TitleEn,
+					"RequirementTitle":       oldComplianceAssessmentRequirementResponsibleUnit.ComplianceRequirement.TitleEn,
 					"Comment":                complianceAssessmentRequirementCommentFormDTO.Comment,
 					"CommentedByFirstNameEn": commentedBy.FirstNameEn,
 					"CommentedByLastNameEn":  commentedBy.LastNameEn,
@@ -278,13 +281,13 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 				}
 
 				emailTo := []string{reviewUser.Email}
-				subject := fmt.Sprintf("Comment Added for Compliance Requirement :%s", complianceAssessmentRequirementResponsibleUnit.ComplianceRequirement.TitleEn)
+				subject := fmt.Sprintf("Comment Added for Compliance Requirement :%s", oldComplianceAssessmentRequirementResponsibleUnit.ComplianceRequirement.TitleEn)
 				appURL := utility.GetAppURL()
 				emailData := map[string]interface{}{
 					"FirstNameEn":            reviewUser.FirstNameEn,
 					"LastNameEn":             reviewUser.LastNameEn,
 					"ComplianceAssessment":   complianceAssessment.ComplianceRegister.TitleEn,
-					"RequirementTitle":       complianceAssessmentRequirementResponsibleUnit.ComplianceRequirement.TitleEn,
+					"RequirementTitle":       oldComplianceAssessmentRequirementResponsibleUnit.ComplianceRequirement.TitleEn,
 					"Comment":                complianceAssessmentRequirementCommentFormDTO.Comment,
 					"CommentedByFirstNameEn": commentedBy.FirstNameEn,
 					"CommentedByLastNameEn":  commentedBy.LastNameEn,
@@ -348,13 +351,13 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 					}
 
 					emailTo := []string{submittedUser.Email}
-					subject := fmt.Sprintf("Comment Added for Compliance Requirement :%s", complianceAssessmentRequirementResponsibleUnit.ComplianceRequirement.TitleEn)
+					subject := fmt.Sprintf("Comment Added for Compliance Requirement :%s", oldComplianceAssessmentRequirementResponsibleUnit.ComplianceRequirement.TitleEn)
 					appURL := utility.GetAppURL()
 					emailData := map[string]interface{}{
 						"FirstNameEn":            submittedUser.FirstNameEn,
 						"LastNameEn":             submittedUser.LastNameEn,
 						"ComplianceAssessment":   complianceAssessment.ComplianceRegister.TitleEn,
-						"RequirementTitle":       complianceAssessmentRequirementResponsibleUnit.ComplianceRequirement.TitleEn,
+						"RequirementTitle":       oldComplianceAssessmentRequirementResponsibleUnit.ComplianceRequirement.TitleEn,
 						"Comment":                complianceAssessmentRequirementCommentFormDTO.Comment,
 						"CommentedByFirstNameEn": commentedBy.FirstNameEn,
 						"CommentedByLastNameEn":  commentedBy.LastNameEn,
@@ -416,13 +419,13 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 				}
 
 				emailTo := []string{reviewUser.Email}
-				subject := fmt.Sprintf("Comment Added for Compliance Requirement :%s", complianceAssessmentRequirementResponsibleUnit.ComplianceRequirement.TitleEn)
+				subject := fmt.Sprintf("Comment Added for Compliance Requirement :%s", oldComplianceAssessmentRequirementResponsibleUnit.ComplianceRequirement.TitleEn)
 				appURL := utility.GetAppURL()
 				emailData := map[string]interface{}{
 					"FirstNameEn":            reviewUser.FirstNameEn,
 					"LastNameEn":             reviewUser.LastNameEn,
 					"ComplianceAssessment":   complianceAssessment.ComplianceRegister.TitleEn,
-					"RequirementTitle":       complianceAssessmentRequirementResponsibleUnit.ComplianceRequirement.TitleEn,
+					"RequirementTitle":       oldComplianceAssessmentRequirementResponsibleUnit.ComplianceRequirement.TitleEn,
 					"Comment":                complianceAssessmentRequirementCommentFormDTO.Comment,
 					"CommentedByFirstNameEn": commentedBy.FirstNameEn,
 					"CommentedByLastNameEn":  commentedBy.LastNameEn,
