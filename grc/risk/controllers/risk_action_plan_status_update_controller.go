@@ -264,3 +264,97 @@ func (rasuc *RiskActionPlanStatusUpdateController) DownloadRiskActionPlanDocumen
 	// Serve the file
 	c.File(documentPath)
 }
+
+func (rasuc *RiskActionPlanStatusUpdateController) ApproveRiskActionPlan(c *gin.Context) {
+	var riskStatusReviewUserUpdateFormDTO riskDTOs.RiskActionPlanReviewUserStatusUpdateFormDTO
+
+	riskId, err := strconv.Atoi(c.Param("riskId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	riskActionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&riskStatusReviewUserUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rasuc.db, c, err.Error())
+		return
+	}
+
+	err = rasuc.service.Approve(uint(riskId), uint(riskActionPlanID), currentUserID, &riskStatusReviewUserUpdateFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(rasuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (rasuc *RiskActionPlanStatusUpdateController) RevertRiskActionPlan(c *gin.Context) {
+	var riskStatusReviewUserUpdateFormDTO riskDTOs.RiskActionPlanReviewUserStatusUpdateFormDTO
+
+	riskId, err := strconv.Atoi(c.Param("riskId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	riskActionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&riskStatusReviewUserUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rasuc.db, c, err.Error())
+		return
+	}
+
+	err = rasuc.service.Revert(uint(riskId), uint(riskActionPlanID), currentUserID, &riskStatusReviewUserUpdateFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(rasuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}

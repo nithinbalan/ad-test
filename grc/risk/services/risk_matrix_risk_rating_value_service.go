@@ -5,6 +5,7 @@ import (
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
+	"jethur/utility"
 )
 
 type RiskMatrixRiskRatingValueServiceInterface interface {
@@ -57,7 +58,7 @@ func (rmrrvs *RiskMatrixRiskRatingValueService) GetRiskAll() (*riskDTOs.RiskMatr
 		groupedValues[value.RiskMatrixRiskRatingID] = append(groupedValues[value.RiskMatrixRiskRatingID], value.Value)
 	}
 
-	riskMatrixRiskRatingValueDTO :=[]*riskDTOs.RiskMatrixRiskRatingValueArrayDTO{}
+	riskMatrixRiskRatingValueDTO := []*riskDTOs.RiskMatrixRiskRatingValueArrayDTO{}
 	for id, values := range groupedValues {
 		riskMatrixRiskRatingValueDTO = append(riskMatrixRiskRatingValueDTO, &riskDTOs.RiskMatrixRiskRatingValueArrayDTO{
 			ID:                     id, // This should be a unique identifier, using id as a placeholder
@@ -80,6 +81,15 @@ func (rmrrvs *RiskMatrixRiskRatingValueService) Create(riskMatrixRiskRatingValue
 	riskMatrix, err := rmrrvs.riskMatrixSvc.GetByType("erm")
 	if err != nil {
 		return err
+	}
+
+	risk, err := rmrrvs.repo.GetRiskByMatrixID(riskMatrix.ID)
+	if err != nil {
+		return err
+	}
+
+	if risk != nil {
+		return utility.NewForbiddenError("risk_matrix_already_in_use")
 	}
 
 	var riskMatrixRiskRatings []*riskDTOs.RiskMatrixRiskRatingDTO

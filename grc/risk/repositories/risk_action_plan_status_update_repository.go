@@ -20,6 +20,8 @@ type RiskActionPlanStatusUpdateRepositoryInterface interface {
 	CreateDocuments(docs []*models.RiskActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.RiskActionPlanStatusUpdateDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	RiskActionPlanUpdateStatus(riskActionPlan *models.RiskActionPlan, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskActionPlanStatusUpdateRepository struct {
@@ -216,4 +218,15 @@ func (repo *RiskActionPlanStatusUpdateRepository) GetLatestRiskActionPlanStatusU
 
 	return riskActionPlanUpdate, nil
 
+}
+
+func (repo *RiskActionPlanStatusUpdateRepository) RiskActionPlanUpdateStatus(riskActionPlan *models.RiskActionPlan, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(riskActionPlan).Error; err != nil {
+		return err
+	}
+	return nil
 }

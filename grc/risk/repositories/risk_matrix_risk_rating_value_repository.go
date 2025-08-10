@@ -12,6 +12,8 @@ type RiskMatrixRiskRatingValueRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(riskMatrixID uint) ([]*riskDTOs.RiskMatrixRiskRatingValueListResponseDTO, error)
 	Create(riskMatrixRiskRatingValue []*models.RiskMatrixRiskRatingValue, riskMatrixRiskRatingIds []uint, tx ...utility.DatabaseTransaction) error
+
+	GetRiskByMatrixID(id uint) (*models.RiskRegister, error)
 }
 
 type RiskMatrixRiskRatingValueRepository struct {
@@ -62,4 +64,13 @@ func (repo *RiskMatrixRiskRatingValueRepository) Create(riskMatrixRiskRatingValu
 		return err
 	}
 	return nil
+}
+
+func (repo *RiskMatrixRiskRatingValueRepository) GetRiskByMatrixID(id uint) (*models.RiskRegister, error) {
+	var record models.RiskRegister
+	err := repo.db.Where("risk_matrix_id = ?", id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &record, nil
 }

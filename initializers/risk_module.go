@@ -258,8 +258,14 @@ func NewRiskModule(db *gorm.DB,
 	riskActionPlanStatusUpdateSvc := services.NewRiskActionPlanStatusUpdateService(
 		riskActionPlanStatusUpdateRepo,
 		sharedModule.ActivityLogService,
+		riskRegisterSvc,
 		riskActionPlanSvc,
 		masterModule.ActionPlanStatusSvc,
+		settingsModule.ModuleSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+		taskModule.TaskService,
+		taskModule.TaskStatusService,
 	)
 	riskActionPlanStatusUpdateController := controllers.NewRiskActionPlanStatusUpdateController(riskActionPlanStatusUpdateSvc)
 

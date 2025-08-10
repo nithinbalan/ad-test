@@ -258,6 +258,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.POST("/risks/:riskId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "modify"), riskActionPlanStatusUpdateController.CreateRiskActionPlanStatusUpdate)
 	riskRoutes.PUT("/risks/:riskId/action-plans/:actionPlanId/status-updates/:id", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "modify"), riskActionPlanStatusUpdateController.UpdateRiskActionPlanStatusUpdate)
 	riskRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "view"), riskActionPlanStatusUpdateController.GetLatestRiskActionPlanStatusUpdate)
+	riskRoutes.PUT("/risks/:riskId/action-plans/:actionPlanId/approve", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "modify"), riskActionPlanStatusUpdateController.ApproveRiskActionPlan)
+	riskRoutes.PUT("/risks/:riskId/action-plans/:actionPlanId/revert", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "modify"), riskActionPlanStatusUpdateController.RevertRiskActionPlan)
 
 	// Risk Treatment Guides
 	riskRoutes.GET("/risk-treatment-guidelines", riskTreatmentGuidelineController.GetAllRiskTreatmentGuidelines)

@@ -57,6 +57,9 @@ func (rmrrvc *RiskMatrixRiskRatingValueController) CreateRiskMatrixRiskRatingVal
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(rmrrvc.db, c, e.Error())
 			return
