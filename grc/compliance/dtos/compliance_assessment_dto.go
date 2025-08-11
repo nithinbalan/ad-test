@@ -96,6 +96,8 @@ type ComplianceAssessmentDetailDTO struct {
 	CreatedByUser              organizationDTOs.UserMinimalDTO       `json:"created_by_user"`
 	UpdatedByUser              *organizationDTOs.UserMinimalDTO      `json:"updated_by_user"`
 	AssessmentRequirements     []*ComplianceAssessmentRequirementDTO `json:"compliance_requirements"`
+	IsCompleted                bool                                  `json:"is_completed"`
+	IsApproved                 bool                                  `json:"is_approved"`
 }
 
 type ComplianceAssessmentRequirementDTO struct {

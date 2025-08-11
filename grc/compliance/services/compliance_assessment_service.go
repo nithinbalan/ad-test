@@ -86,9 +86,10 @@ func (cras ComplianceAssessmentService) GetByID(id uint) (*models.ComplianceAsse
 }
 
 func (cras ComplianceAssessmentService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentDetailDTO, error) {
-	var complianceAssessmentDTO complianceDTOs.ComplianceAssessmentDetailDTO
+	var dto complianceDTOs.ComplianceAssessmentDetailDTO
 
-	complianceAssessment, err := cras.repo.GetFullDetailsByID(id, tx...)
+	// Fetch full model with relations
+	model, err := cras.repo.GetFullDetailsByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -96,17 +97,49 @@ func (cras ComplianceAssessmentService) GetFullDetailsByID(id uint, tx ...utilit
 		return nil, err
 	}
 
-	err = mapstructure.Decode(complianceAssessment, &complianceAssessmentDTO)
-	if err != nil {
+	// Map model to DTO
+	if err := mapstructure.Decode(model, &dto); err != nil {
 		return nil, err
 	}
 
-	// complianceAssessmentDTO.OrganizationUnitID = complianceAssessment.PrimaryUnitID
-	complianceAssessmentDTO.CreatedAt = complianceAssessment.CreatedAt
-	complianceAssessmentDTO.UpdatedAt = complianceAssessment.UpdatedAt
-	// todo :- also add extra fields which required in details screen
+	allCompleted := true
+	allApproved := true
 
-	return &complianceAssessmentDTO, nil
+	// Loop over requirements in the model directly
+	for _, reqModel := range model.AssessmentRequirements {
+		reqCompleted := true
+		reqApproved := true
+
+		if len(reqModel.ResponsibleUnits) == 0 {
+			reqCompleted = false
+			reqApproved = false
+		} else {
+			for _, ru := range reqModel.ResponsibleUnits {
+				if !ru.IsCompleted {
+					reqCompleted = false
+				}
+				if ru.ComplianceAssessmentRequirementStatus == nil || ru.ComplianceAssessmentRequirementStatus.Type != "approved" {
+					reqApproved = false
+				}
+			}
+		}
+
+		if !reqCompleted {
+			allCompleted = false
+		}
+		if !reqApproved {
+			allApproved = false
+		}
+	}
+
+	// Set assessment-level flags
+	dto.IsCompleted = allCompleted
+	dto.IsApproved = allApproved
+
+	dto.CreatedAt = model.CreatedAt
+	dto.UpdatedAt = model.UpdatedAt
+
+	return &dto, nil
 }
 
 func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAssessmentFormDTO *complianceDTOs.ComplianceAssessmentFormDTO) error {
