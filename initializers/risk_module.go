@@ -250,7 +250,7 @@ func NewRiskModule(db *gorm.DB,
 		masterModule.ActionPlanStatusSvc,
 		masterModule.SeverityLevelSvc,
 		organizationModule.UserSettingSvc,
-		organizationModule.UserSvc, commonModule.NotificationService, taskModule.TaskService, masterModule.LifecycleStatusSvc, organizationModule.ControlSvc,
+		organizationModule.UserSvc, commonModule.NotificationService, taskModule.TaskService, masterModule.LifecycleStatusSvc, organizationModule.ControlSvc, organizationModule.ControlImplementationStatusSvc, organizationModule.ControlEfficiencyStatusSvc,
 	)
 	riskActionPlanController := controllers.NewRiskActionPlanController(riskActionPlanSvc)
 

@@ -128,9 +128,9 @@ func (rcas *RiskResidualControlAnalysisService) Create(riskID uint, currentUserI
 			CreatedByID:                   currentUserID,
 			CreatedAt:                     time.Now(),
 		}
-
-		_, err = rcas.repo.Create(riskControlAnalysis)
+		_, err = rcas.repo.Create(riskControlAnalysis, tx)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 		controlAnalysis = append(controlAnalysis, riskControlAnalysis)
