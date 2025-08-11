@@ -294,10 +294,6 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 			risk_statuses.title_ar LIKE ? OR
 			organization_units.title_en LIKE ? OR
 			organization_units.title_ar LIKE ? OR
-			users.first_name_en LIKE ? OR
-			users.first_name_ar LIKE ? OR
-			users.last_name_en LIKE ? OR
-			users.last_name_ar LIKE ? OR
 			current_risk_rating.title_en LIKE ? OR
 			current_risk_rating.title_ar LIKE ? OR
 			current_impact.title_en LIKE ? OR
@@ -318,8 +314,7 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	if params.Value != 0 {
