@@ -163,6 +163,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	strategyRoutes.GET("/kpi-register/:kpiRegisterId/clauses", middlewares.RolePermissionMiddleware(db, "kpi", "view"), kpiAssociatedItemController.GetAllClauses)
 	strategyRoutes.PUT("/kpi-register/:kpiRegisterId/clauses", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiAssociatedItemController.UpdateClauses)
+
+	strategyRoutes.GET("/kpi-register/:kpiRegisterId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "kpi", "view"), kpiAssociatedItemController.GetAllKPIStrategicObjectives)
+	strategyRoutes.POST("/kpi-register/:kpiRegisterId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiAssociatedItemController.CreateKPIStrategicObjective)
+	strategyRoutes.DELETE("/kpi-register/:kpiRegisterId/strategic-objectives/:strategicObjectiveId", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiAssociatedItemController.DeleteKPIStrategicObjective)
 	// strategic objective category
 	strategyRoutes.GET("/strategic-objective-categories", strategicObjectiveCategoryController.GetAllStrategicObjectiveCategories)
 	strategyRoutes.POST("/strategic-objective-categories", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveCategoryController.CreateStrategicObjectiveCategory)

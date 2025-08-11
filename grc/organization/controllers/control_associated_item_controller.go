@@ -563,3 +563,101 @@ func (caic *ControlAssociatedItemController) DeleteControlProcess(c *gin.Context
 
 	c.JSON(http.StatusOK, gin.H{"message": "Process unmapped from control successfully"})
 }
+func (caic *ControlAssociatedItemController) GetAllControlStrategicObjectives(c *gin.Context) {
+	controlIDStr := c.Param("controlId")
+
+	controlID, err := strconv.ParseUint(controlIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	processes, err := caic.service.GetAllStrategicObjectives(uint(controlID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(caic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, processes)
+}
+
+func (caic *ControlAssociatedItemController) CreateControlStrategicObjectives(c *gin.Context) {
+	var input commonDTOs.AssociatedStrategicObjectiveMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	controlID, err := strconv.ParseUint(c.Param("controlId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	err = caic.service.CreateControlStrategicObjectives(uint(controlID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(caic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (caic *ControlAssociatedItemController) DeleteControlStrategicObjectives(c *gin.Context) {
+	controlID, _ := strconv.ParseUint(c.Param("controlId"), 10, 64)
+	strategicObjectiveID, _ := strconv.ParseUint(c.Param("strategicObjectiveId"), 10, 64)
+	err := caic.service.DeleteControlStrategicObjectives(uint(controlID), uint(strategicObjectiveID))
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Strategic Objective unmapped from control successfully"})
+}

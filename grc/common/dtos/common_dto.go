@@ -454,15 +454,16 @@ type AssociatedIncidentListResponseDTO struct {
 }
 
 type AssociatedStrategicObjectiveListDTO struct {
-	ID              uint    `json:"id"`
-	TitleEn         string  `json:"title_en"`
-	TitleAr         string  `json:"title_ar"`
-	ReferenceNumber string  `json:"reference_number"`
-	DescriptionEn   *string `json:"description_en"`
-	DescriptionAr   *string `json:"description_ar"`
-	StartDate       *string `json:"start_date"`
-	EndDate         *string `json:"end_date"`
-	Status          string  `json:"status"`
+	ID                   uint    `json:"id"`
+	StrategicObjectiveID uint    `json:"strategic_objective_id"`
+	TitleEn              string  `json:"title_en"`
+	TitleAr              string  `json:"title_ar"`
+	ReferenceNumber      string  `json:"reference_number"`
+	DescriptionEn        *string `json:"description_en"`
+	DescriptionAr        *string `json:"description_ar"`
+	StartDate            *string `json:"start_date"`
+	EndDate              *string `json:"end_date"`
+	Status               string  `json:"status"`
 
 	StrategicObjectiveCategoryID      uint   `json:"strategic_objective_category_id"`
 	StrategicObjectiveCategoryTitleEn string `json:"strategic_objective_category_title_en"`

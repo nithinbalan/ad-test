@@ -26,6 +26,9 @@ type ControlAssociatedItemServiceInterface interface {
 	GetAllDocuments(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	CreateControlPocess(controlID uint, userID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
 	DeleteControlProcess(controlID uint, processID uint) error
+	GetAllStrategicObjectives(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
+	CreateControlStrategicObjectives(controlID uint, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
+	DeleteControlStrategicObjectives(controlID uint, strategicObjectiveID uint) error
 }
 
 type ControlAssociatedItemService struct {
@@ -381,6 +384,55 @@ func (cais *ControlAssociatedItemService) DeleteControlProcess(controlID uint, p
 	tx := cais.repo.BeginTransaction()
 
 	if err := cais.repo.DeleteControlProcess(controlID, processID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (cais *ControlAssociatedItemService) GetAllStrategicObjectives(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error) {
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return nil, err
+	}
+	return cais.repo.GetAllStrategicObjectives(controlID, params)
+}
+func (cais *ControlAssociatedItemService) CreateControlStrategicObjectives(controlID, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error {
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlID), "not_exist", "control_id")
+	}
+	if err := cais.validationSvc.ValidateStrtegicObjectiveMapping(controlID, dto.StrategicObjectiveIDs, "strategic_objective_controls", "control_id"); err != nil {
+		return err
+	}
+	tx := cais.repo.BeginTransaction()
+	var mappings []*models.StrategicObjectiveControl
+	currentTime := time.Now()
+
+	for _, strategicObjectiveID := range dto.StrategicObjectiveIDs {
+		mappings = append(mappings, &models.StrategicObjectiveControl{
+			StrategicObjectiveID: strategicObjectiveID,
+			ControlID:            controlID,
+			CreatedBYID:          userID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := cais.repo.CreateControlStrategicObjectives(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (cais *ControlAssociatedItemService) DeleteControlStrategicObjectives(controlID uint, strategicObjectiveID uint) error {
+	// Validate control existence
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlID), "not_exist", "control_id")
+	}
+
+	tx := cais.repo.BeginTransaction()
+
+	if err := cais.repo.DeleteControlStrategicObjectives(controlID, strategicObjectiveID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

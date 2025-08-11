@@ -834,3 +834,103 @@ func (kaic *KPIAssociatedItemController) UpdateClauses(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Clauses against the KPI updated successfully"})
 }
+func (kaic *KPIAssociatedItemController) GetAllKPIStrategicObjectives(c *gin.Context) {
+
+	kpiIdStr := c.Param("kpiRegisterId")
+
+	kpiId, err := strconv.ParseUint(kpiIdStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(kaic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(kaic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	objectives, err := kaic.service.GetAllStrategicObjectives(uint(kpiId), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(kaic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, objectives)
+}
+
+func (kaic *KPIAssociatedItemController) CreateKPIStrategicObjective(c *gin.Context) {
+	var input commonDTOs.AssociatedStrategicObjectiveMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	kpiId, err := strconv.ParseUint(c.Param("kpiRegisterId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(kaic.db, c, err.Error())
+		return
+	}
+
+	err = kaic.service.CreateKPIStrategicObjective(uint(kpiId), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(kaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (kaic *KPIAssociatedItemController) DeleteKPIStrategicObjective(c *gin.Context) {
+	kpiId, _ := strconv.ParseUint(c.Param("kpiRegisterId"), 10, 64)
+	strategicObjectiveID, _ := strconv.ParseUint(c.Param("strategicObjectiveId"), 10, 64)
+
+	err := kaic.service.DeleteKPIStrategicObjective(uint(kpiId), uint(strategicObjectiveID))
+	if err != nil {
+		utility.SendInternalErrResp(kaic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Strategic Objective unmapped from KPI successfully"})
+}

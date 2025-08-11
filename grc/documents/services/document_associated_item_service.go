@@ -28,6 +28,9 @@ type DocumentAssociatedItemServiceInterface interface {
 	DeleteDocumentControl(documentID uint, controlID uint) error
 	CreateDocumentProcess(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
 	DeleteDocumentProcess(documentID uint, processID uint) error
+	GetAllStrategicObjectives(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
+	CreateDocumentStrategicObjective(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
+	DeleteDocumentStrategicObjective(documentID uint, strategicObjectiveId uint) error
 }
 
 // Service Implementation
@@ -379,6 +382,55 @@ func (dais *DocumentAssociatedItemService) DeleteDocumentProcess(documentID uint
 	tx := dais.repo.BeginTransaction()
 
 	if err := dais.repo.DeleteDocumentProcess(documentID, processID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) GetAllStrategicObjectives(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error) {
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return nil, err
+	}
+	return dais.repo.GetAllStrategicObjectives(documentID, params)
+}
+func (dais *DocumentAssociatedItemService) CreateDocumentStrategicObjective(documentID, currentUserID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error {
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", documentID), "not_exist", "document_id")
+	}
+	if err := dais.validationSvc.ValidateStrtegicObjectiveMapping(documentID, dto.StrategicObjectiveIDs, "strategic_objective_associated_documents", "document_id"); err != nil {
+		return err
+	}
+	tx := dais.repo.BeginTransaction()
+	var mappings []*models.StrategicObjectiveAssociatedDocument
+	currentTime := time.Now()
+
+	for _, strategicObjectiveID := range dto.StrategicObjectiveIDs {
+		mappings = append(mappings, &models.StrategicObjectiveAssociatedDocument{
+			StrategicObjectiveID: strategicObjectiveID,
+			DocumentID:           documentID,
+			CreatedByID:          currentUserID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := dais.repo.CreateDocumentStrategicObjective(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) DeleteDocumentStrategicObjective(documentID uint, strategicObjectiveID uint) error {
+	// Validate control existence
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", documentID), "not_exist", "document_id")
+	}
+
+	tx := dais.repo.BeginTransaction()
+
+	if err := dais.repo.DeleteDocumentStrategicObjective(documentID, strategicObjectiveID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

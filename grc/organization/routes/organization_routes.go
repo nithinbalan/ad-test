@@ -245,6 +245,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/controls/:controlId/processes", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.CreateControlPocess)
 	organizationRoutes.DELETE("/controls/:controlId/processes/:processId", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.DeleteControlProcess)
 
+	organizationRoutes.GET("/controls/:controlId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlAssociatedItemController.GetAllControlStrategicObjectives)
+	organizationRoutes.POST("/controls/:controlId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.CreateControlStrategicObjectives)
+	organizationRoutes.DELETE("/controls/:controlId/strategic-objectives/:strategicObjectiveId", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.DeleteControlStrategicObjectives)
+
 	//Process Group
 	organizationRoutes.GET("/process-groups", processGroupController.GetAllProcessGroups)
 	organizationRoutes.GET("/process-groups/:id", processGroupController.GetProcessGroupDetails)
