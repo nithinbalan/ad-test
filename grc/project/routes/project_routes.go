@@ -92,4 +92,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.POST("/projects/:projectId/processes", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.CreateProjectProcess)
 	projectRoutes.DELETE("/projects/:projectId/processes/:processId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.DeleteProjectProcess)
 
+	projectRoutes.GET("/projects/:projectId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), projectAssociatedItemController.GetAllProjectStrategicObjectives)
+	projectRoutes.POST("/projects/:projectId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.CreateProjectStrategicObjective)
+	projectRoutes.DELETE("/projects/:projectId/strategic-objectives/:strategicObjectiveId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.DeleteProjectStrategicObjective)
+
 }

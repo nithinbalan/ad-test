@@ -43,6 +43,9 @@ type AssetAssociatedItemServiceInterface interface {
 	GetAllAssetProcess(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
 	CreateAssetProcess(assetID uint, userID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
 	DeleteAssetProcess(assetID uint, processID uint) error
+	GetAllAssetStrategicObjectives(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
+	CreateAssetStrategicObjective(assetID uint, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
+	DeleteAssetStrategicObjective(assetID uint, strategicObjectiveId uint) error
 }
 
 // Service Implementation
@@ -1055,6 +1058,59 @@ func (aais *AssetAssociatedItemService) DeleteAssetProcess(assetID uint, process
 	tx := aais.repo.BeginTransaction()
 
 	if err := aais.repo.DeleteAssetProcess(assetID, processID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (aais *AssetAssociatedItemService) GetAllAssetStrategicObjectives(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error) {
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return nil, err
+	}
+	return aais.repo.GetAllAssetStrategicObjectives(assetID, params)
+}
+
+func (aais *AssetAssociatedItemService) CreateAssetStrategicObjective(assetID, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error {
+
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("asset does not exist for ID: %d", assetID), "not_exist", "asset_id")
+	}
+
+	if err := aais.validationSvc.ValidateStrtegicObjectiveMapping(assetID, dto.StrategicObjectiveIDs, "asset_strategic_objectives", "asset_register_id"); err != nil {
+		return err
+	}
+
+	tx := aais.repo.BeginTransaction()
+	var mappings []*models.AssetStrategicObjective
+	currentTime := time.Now()
+
+	for _, StrategicObjectiveID := range dto.StrategicObjectiveIDs {
+		mappings = append(mappings, &models.AssetStrategicObjective{
+			StrategicObjectiveID: StrategicObjectiveID,
+			AssetRegisterID:      assetID,
+			CreatedBYID:          userID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := aais.repo.CreateAssetStrategicObjective(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (aais *AssetAssociatedItemService) DeleteAssetStrategicObjective(assetID uint, strategicObjectiveID uint) error {
+	// Validate control existence
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("asset does not exist for ID: %d", assetID), "not_exist", "asset_register_id")
+	}
+
+	tx := aais.repo.BeginTransaction()
+
+	if err := aais.repo.DeleteAssetStrategicObjective(assetID, strategicObjectiveID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

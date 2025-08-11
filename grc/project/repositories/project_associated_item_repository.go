@@ -547,6 +547,7 @@ func (repo *ProjectAssociatedItemRepository) GetAllProjectStrategicObjectives(pr
 	query := repo.db.Table("project_strategic_objectives").
 		Select(`
 			strategic_objectives.*,
+			project_strategic_objectives.strategic_objective_id,
 			strategic_objective_categories.title_en AS strategic_objective_category_title_en,
 			strategic_objective_categories.title_ar AS strategic_objective_category_title_ar,
 			organization_units.title_en AS responsible_unit_title_en,
