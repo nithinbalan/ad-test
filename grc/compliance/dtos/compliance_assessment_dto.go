@@ -169,7 +169,6 @@ type ComplianceScoreSummaryDTO struct {
 
 type ResponsibleUnitComplianceScoreDTO struct {
 	ComplianceRegisterID     uint    `json:"compliance_register_id"`
-	ResponsibleUnitID        uint    `json:"responsible_unit_id"`
 	TotalRequirements        int     `json:"total_requirements"`
 	ScoredRequirements       int     `json:"scored_requirements"`
 	TotalScore               float64 `json:"total_score"`
