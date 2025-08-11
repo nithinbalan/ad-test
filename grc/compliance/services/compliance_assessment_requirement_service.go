@@ -512,7 +512,7 @@ func (cars ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAss
 	tx.Commit()
 
 	go func() {
-		existingAssessmentRequirement, err := cars.GetFullDetailsByID(complianceAssessmentId, requirementId, 0)
+		existingAssessmentRequirement, err := cars.GetFullDetailsByID(complianceAssessmentId, requirementId, responsibleUnitID)
 		if err != nil {
 			return
 		}
@@ -587,7 +587,7 @@ func (cars ComplianceAssessmentRequirementService) MarkAsOpen(complianceAssessme
 	tx.Commit()
 
 	go func() {
-		existingAssessmentRequirement, err := cars.GetFullDetailsByID(complianceAssessmentId, requirementId, 0)
+		existingAssessmentRequirement, err := cars.GetFullDetailsByID(complianceAssessmentId, requirementId, responsibleUnitID)
 		if err != nil {
 			return
 		}
