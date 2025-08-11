@@ -575,7 +575,7 @@ func (cars ComplianceAssessmentRequirementService) MarkAsOpen(complianceAssessme
 	if err != nil {
 		return err
 	}
-	complianceAssessmentRequirementResponsibleUnit.IsCompleted = true
+	complianceAssessmentRequirementResponsibleUnit.IsCompleted = false
 	complianceAssessmentRequirementResponsibleUnit.UpdatedBYID = &currentUserID
 
 	err = cars.repo.UpdateComplianceAssessmentRequirementResponsibleUnit(complianceAssessmentRequirementResponsibleUnit, tx)

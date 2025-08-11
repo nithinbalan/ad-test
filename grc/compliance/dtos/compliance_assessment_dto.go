@@ -115,6 +115,7 @@ type ComplianceAssessmentRequirementResponsibleUnitDTO struct {
 	ResponsibleUnitID                     uint                                               `json:"responsible_unit_id"`
 	ResponsibleUnit                       settingsDTOs.OrganizationUnitDTO                   `json:"responsible_unit"`
 	ComplianceAssessmentFrameworkValue    *ComplianceAssessmentFrameworkValueDetailDTO       `json:"compliance_assessment_framework_value"`
+	ComplianceAssessmentRequirement       *ComplianceAssessmentRequirementDetailDTO          `json:"compliance_assessment_requirement"`
 	RequiredDocumentTitles                []*ComplianceAssessmentRequirementDocumentTitleDTO `json:"required_document_titles"`
 	ActionPlans                           []*ComplianceActionPlanDetailDTO                   `json:"action_plans"`
 	RequirementComments                   []*ComplianceAssessmentRequirementCommentDetailDTO `json:"requirement_comments"`
@@ -130,6 +131,20 @@ type AssessmentCompletionSummaryDTO struct {
 	Total        int `json:"total"`
 	Completed    int `json:"completed"`
 	NotCompleted int `json:"not_completed"`
+}
+type AssessmentCompletionSummaryResponsibleUnitDTO struct {
+	ResponsibleUnitID      uint   `json:"responsible_unit_id"`
+	ResponsibleUnitTitleEn string `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr string `json:"responsible_unit_title_ar"`
+	Total                  int    `json:"total"`
+	Completed              int    `json:"completed"`
+	NotCompleted           int    `json:"not_completed"`
+}
+type AssessmentCompletionSummaryGroupedByResponsibleUnitDTO struct {
+	ResponsibleUnitID      uint                           `json:"responsible_unit_id"`
+	ResponsibleUnitTitleEn string                         `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr string                         `json:"responsible_unit_title_ar"`
+	Summary                AssessmentCompletionSummaryDTO `json:"summary"`
 }
 
 // type ComplianceStatusSummaryDTO struct {
@@ -162,4 +177,29 @@ type ResponsibleUnitComplianceScoreDTO struct {
 	FrameworkType            string  `json:"framework_type"`
 	MappedFrameworkValueID   *uint   `json:"mapped_framework_value_id"`
 	MappedComplianceStatusID *uint   `json:"mapped_compliance_status_id"`
+}
+
+type CompletionStatusResponsibleUnitDTO struct {
+	ResponsibleUnitID      uint   `json:"responsible_unit_id"`
+	ResponsibleUnitTitleEn string `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr string `json:"responsible_unit_title_ar"`
+	TitleEn                string `json:"title_en"`
+	TitleAr                string `json:"title_ar"`
+	ColorCode              string `json:"color_code"`
+	Count                  int    `json:"count"`
+}
+
+// Grouped output for API
+type CompletionStatusGroupedByResponsibleUnitDTO struct {
+	ResponsibleUnitID      uint                       `json:"responsible_unit_id"`
+	ResponsibleUnitTitleEn string                     `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr string                     `json:"responsible_unit_title_ar"`
+	StatusCount            []ComplianceStatusCountDTO `json:"status_count"`
+}
+
+type ResponsibleUnitAverageScoreDTO struct {
+	ResponsibleUnitID      uint     `json:"responsible_unit_id"`
+	ResponsibleUnitTitleEn string   `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr string   `json:"responsible_unit_title_ar"`
+	CompliancePercentage   *float64 `json:"compliance_percentage"`
 }
