@@ -14,6 +14,10 @@ type ThirdPartyAssociatedItemServiceInterface interface {
 	GetAllThirdPartyProcesses(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
 	CreateThirdPartyProcess(ThirdPartyID uint, userID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
 	DeleteThirdPartyProcess(ThirdPartyID uint, processID uint) error
+
+	GetAllThirdPartyStrategicObjectives(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
+	CreateThirdPartyStrategicObjective(ThirdPartyID uint, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
+	DeleteThirdPartyStrategicObjective(ThirdPartyID uint, strategicObjectiveID uint) error
 }
 
 // Service and implementations
@@ -80,6 +84,59 @@ func (pais *ThirdPartyAssociatedItemService) DeleteThirdPartyProcess(ThirdPartyI
 	tx := pais.repo.BeginTransaction()
 
 	if err := pais.repo.DeleteThirdPartyProcess(ThirdPartyID, processID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *ThirdPartyAssociatedItemService) GetAllThirdPartyStrategicObjectives(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error) {
+	if _, err := pais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
+		return nil, err
+	}
+	return pais.repo.GetAllThirdPartyStrategicObjectives(ThirdPartyID, params)
+}
+
+func (pais *ThirdPartyAssociatedItemService) CreateThirdPartyStrategicObjective(ThirdPartyID, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error {
+
+	if _, err := pais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("ThirdParty does not exist for ID: %d", ThirdPartyID), "not_exist", "asset_id")
+	}
+
+	if err := pais.validationSvc.ValidateStrtegicObjectiveMapping(ThirdPartyID, dto.StrategicObjectiveIDs, "third_party_strategic_objectives", "third_party_register_id"); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.ThirdPartyStrategicObjective
+	currentTime := time.Now()
+
+	for _, StrategicObjectiveID := range dto.StrategicObjectiveIDs {
+		mappings = append(mappings, &models.ThirdPartyStrategicObjective{
+			StrategicObjectiveID: StrategicObjectiveID,
+			ThirdPartyRegisterID: ThirdPartyID,
+			CreatedBYID:          userID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateThirdPartyStrategicObjective(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *ThirdPartyAssociatedItemService) DeleteThirdPartyStrategicObjective(ThirdPartyID uint, strategicObjectiveID uint) error {
+	// Validate control existence
+	if _, err := pais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("ThirdParty does not exist for ID: %d", ThirdPartyID), "not_exist", "asset_register_id")
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteThirdPartyStrategicObjective(ThirdPartyID, strategicObjectiveID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

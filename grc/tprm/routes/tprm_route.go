@@ -81,4 +81,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	tprmRoutes.GET("/third-party-register/:id/processes", middlewares.RolePermissionMiddleware(db, "third_party_register", "view"), thirdPartyAssociatedItemController.GetAllThirdPartyProcesses)
 	tprmRoutes.POST("/third-party-register/:id/processes", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.CreateThirdPartyProcess)
 	tprmRoutes.DELETE("/third-party-register/:id/processes/:processId", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.DeleteThirdPartyProcess)
+
+	tprmRoutes.GET("/third-party-register/:id/strategic-objectives", middlewares.RolePermissionMiddleware(db, "third_party_register", "view"), thirdPartyAssociatedItemController.GetAllThirdPartyStrategicObjectives)
+	tprmRoutes.POST("/third-party-register/:id/strategic-objectives", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.CreateThirdPartyStrategicObjective)
+	tprmRoutes.DELETE("/third-party-register/:id/strategic-objectives/:strategicObjectiveId", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.DeleteThirdPartyStrategicObjective)
 }
