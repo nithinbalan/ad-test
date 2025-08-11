@@ -294,16 +294,16 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 			risk_statuses.title_ar LIKE ? OR
 			organization_units.title_en LIKE ? OR
 			organization_units.title_ar LIKE ? OR
-			responsible_user.first_name_en LIKE ? OR
-			responsible_user.first_name_ar LIKE ? OR
-			responsible_user.last_name_en LIKE ? OR
-			responsible_user.last_name_ar LIKE ? OR
-			risk_matrix_likelihoods.title_en LIKE ? OR
-			risk_matrix_likelihoods.title_ar LIKE ? OR
-			risk_matrix_impacts.title_en LIKE ? OR
-			risk_matrix_impacts.title_ar LIKE ? OR
-			risk_matrix_risk_ratings.title_en LIKE ? OR
-			risk_matrix_risk_ratings.title_ar LIKE ? OR
+			users.first_name_en LIKE ? OR
+			users.first_name_ar LIKE ? OR
+			users.last_name_en LIKE ? OR
+			users.last_name_ar LIKE ? OR
+			current_risk_rating.title_en LIKE ? OR
+			current_risk_rating.title_ar LIKE ? OR
+			current_impact.title_en LIKE ? OR
+			current_impact.title_ar LIKE ? OR
+			current_likelihood.title_en LIKE ? OR
+			current_likelihood.title_ar LIKE ? OR
 			reported_at LIKE ? OR
 			created_user.first_name_en LIKE ? OR
 			created_user.first_name_ar LIKE ? OR
