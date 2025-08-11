@@ -25,6 +25,9 @@ type MeetingAssociatedItemServiceInterface interface {
 	DeleteMeetingControl(meetingID uint, controlIDID uint) error
 	CreateMeetingProcess(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
 	DeleteMeetingProcess(meetingID uint, controlIDID uint) error
+	GetAllMeetingStrategicObjectives(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
+	CreateMeetingStrategicObjective(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
+	DeleteMeetingStrategicObjective(meetingID uint, strategicObjectiveID uint) error
 }
 
 // Service and implementations
@@ -274,6 +277,59 @@ func (mais *MeetingAssociatedItemService) DeleteMeetingProcess(meetingID uint, p
 	tx := mais.repo.BeginTransaction()
 
 	if err := mais.repo.DeleteMeetingProcess(meetingID, processID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (mais *MeetingAssociatedItemService) GetAllMeetingStrategicObjectives(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error) {
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return nil, err
+	}
+	return mais.repo.GetAllMeetingStrategicObjectives(meetingID, params)
+}
+
+func (mais *MeetingAssociatedItemService) CreateMeetingStrategicObjective(meetingID, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error {
+
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("meeting does not exist for ID: %d", meetingID), "not_exist", "meeting_id")
+	}
+
+	if err := mais.validationSvc.ValidateStrtegicObjectiveMapping(meetingID, dto.StrategicObjectiveIDs, "meeting_strategic_objectives", "meeting_id"); err != nil {
+		return err
+	}
+
+	tx := mais.repo.BeginTransaction()
+	var mappings []*models.MeetingStrategicObjective
+	currentTime := time.Now()
+
+	for _, StrategicObjectiveID := range dto.StrategicObjectiveIDs {
+		mappings = append(mappings, &models.MeetingStrategicObjective{
+			StrategicObjectiveID: StrategicObjectiveID,
+			MeetingID:            meetingID,
+			CreatedBYID:          userID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := mais.repo.CreateMeetingStrategicObjective(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (mais *MeetingAssociatedItemService) DeleteMeetingStrategicObjective(meetingID uint, strategicObjectiveID uint) error {
+	// Validate control existence
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("meeting does not exist for ID: %d", meetingID), "not_exist", "meeting_id")
+	}
+
+	tx := mais.repo.BeginTransaction()
+
+	if err := mais.repo.DeleteMeetingStrategicObjective(meetingID, strategicObjectiveID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
