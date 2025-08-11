@@ -139,32 +139,32 @@ func (repo *RiskKriRepository) GetAll(riskID uint, params *riskDTOs.RiskKriListQ
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			kri_register.title LIKE ? OR
-			kri_register.calculation_type LIKE ? OR
-			kri_register.description LIKE ? OR
-			kri_register.reference_number LIKE ? OR
-			kri_register.low_threshold LIKE ? OR
-			kri_register.medium_threshold LIKE ? OR
-			kri_register.high_threshold LIKE ? OR
-			kri_register.current_value LIKE ? OR
-			kri_categories.title_en LIKE ? OR
-			kri_categories.title_ar LIKE ? OR
-			organization_units.title_en LIKE ? OR
-			organization_units.title_ar LIKE ? OR
-			review_frequencies.title_en LIKE ? OR
-			review_frequencies.title_ar LIKE ? OR
-			risk_levels.title_en LIKE ? OR
-			risk_levels.title_ar LIKE ? OR
-			responsible_user.first_name_en LIKE ? OR
-			responsible_user.first_name_ar LIKE ? OR
-			responsible_user.last_name_en LIKE ? OR
-			responsible_user.last_name_ar LIKE ? OR
-			created_user.first_name_en LIKE ? OR
-			created_user.first_name_ar LIKE ? OR
-			created_user.last_name_en LIKE ? OR
-			created_user.last_name_ar LIKE ?
-		`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+            risk_kris.risk_register_id = ? AND (
+            kri_register.title LIKE ? OR
+            kri_register.calculation_type LIKE ? OR
+            kri_register.description LIKE ? OR
+            kri_register.reference_number LIKE ? OR
+            kri_register.low_threshold LIKE ? OR
+            kri_register.medium_threshold LIKE ? OR
+            kri_register.high_threshold LIKE ? OR
+            kri_register.current_value LIKE ? OR
+            kri_categories.title_en LIKE ? OR
+            kri_categories.title_ar LIKE ? OR
+            organization_units.title_en LIKE ? OR
+            organization_units.title_ar LIKE ? OR
+            review_frequencies.title_en LIKE ? OR
+            review_frequencies.title_ar LIKE ? OR
+            risk_levels.title_en LIKE ? OR
+            risk_levels.title_ar LIKE ? OR
+            responsible_user.first_name_en LIKE ? OR
+            responsible_user.first_name_ar LIKE ? OR
+            responsible_user.last_name_en LIKE ? OR
+            responsible_user.last_name_ar LIKE ? OR
+            created_user.first_name_en LIKE ? OR
+            created_user.first_name_ar LIKE ? OR
+            created_user.last_name_en LIKE ? OR
+            created_user.last_name_ar LIKE ?)
+        `, riskID, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}

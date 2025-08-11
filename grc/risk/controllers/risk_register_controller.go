@@ -326,7 +326,7 @@ func (rrc *RiskRegisterController) UpdateResponseStrategy(c *gin.Context) {
 		return
 	}
 
-	err = rrc.service.UpdateResponseStrategy(uint(riskID), currentUserID, &riskResponseStrategyFormDTO)
+	err = rrc.service.UpdateResponseStrategy(uint(riskID), currentUserID, &riskResponseStrategyFormDTO, nil)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

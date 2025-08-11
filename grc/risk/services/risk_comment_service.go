@@ -352,7 +352,7 @@ func (rcs *RiskCommentService) SubmitRisk(riskID uint, currentUserID uint) error
 		}
 
 		// Prepare notification and email
-		urlParam := fmt.Sprintf(`{"riskID":%d}`, riskID)
+		urlParam := fmt.Sprintf(`{"risk_register_id":%d}`, riskID)
 		entity := "risk-register"
 		action := "submitted"
 
@@ -504,7 +504,7 @@ func (rcs *RiskCommentService) RevertRisk(riskID uint, currentUserID uint, comme
 		}
 
 		// Prepare notification and email
-		urlParam := fmt.Sprintf(`{"riskID":%d}`, riskID)
+		urlParam := fmt.Sprintf(`{"risk_register_id":%d}`, riskID)
 		entity := "risk-register"
 		action := "reverted"
 
@@ -650,7 +650,7 @@ func (rcs *RiskCommentService) RejectRisk(riskID uint, currentUserID uint, comme
 		}
 
 		// Prepare notification and email
-		urlParam := fmt.Sprintf(`{"riskID":%d}`, riskID)
+		urlParam := fmt.Sprintf(`{"risk_register_id":%d}`, riskID)
 		entity := "risk-register"
 		action := "rejected"
 
@@ -802,7 +802,7 @@ func (rcs *RiskCommentService) ApproveRisk(riskID uint, currentUserID uint, comm
 		}
 
 		// Prepare notification and email
-		urlParam := fmt.Sprintf(`{"riskID":%d}`, riskID)
+		urlParam := fmt.Sprintf(`{"risk_register_id":%d}`, riskID)
 		entity := "risk-register"
 		action := "approved"
 
@@ -975,7 +975,7 @@ func (rcs *RiskCommentService) ResubmitRisk(riskID uint, currentUserID uint, com
 		}
 
 		// Prepare notification and email
-		urlParam := fmt.Sprintf(`{"riskID":%d}`, riskID)
+		urlParam := fmt.Sprintf(`{"risk_register_id":%d}`, riskID)
 		entity := "risk-register"
 		action := "risk-resubmitted"
 

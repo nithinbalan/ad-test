@@ -814,6 +814,12 @@ func (repo *KPIAssociatedItemRepository) GetAllRisks(kpiID uint, params *commonD
 		params.Sort = "asc"
 	}
 
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
 	query = query.Order(params.SortBy + " " + params.Sort)
 	offset := (params.Page - 1) * params.PageSize
 

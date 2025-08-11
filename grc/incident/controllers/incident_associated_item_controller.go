@@ -146,13 +146,18 @@ func (iaic *IncidentAssociatedItemController) GetAllIncidentRisks(c *gin.Context
 		utility.SendInternalErrResp(iaic.db, c, "Invalid page_size parameter")
 		return
 	}
-
+	allowedParams := []string{
+		"current_likelihood_ids",
+		"current_impact_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
 		Page:     page,
 		PageSize: pageSize,
+		Filters:  filters,
 	}
 	incidents, err := iaic.service.GetAllRisks(uint(incidentID), &queryParams)
 

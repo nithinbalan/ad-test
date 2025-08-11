@@ -1,6 +1,6 @@
 package dtos
 
-type ThirsPartyAssessmentStatusDTO struct {
+type ThirdPartyAssessmentStatusDTO struct {
 	ID        uint   `json:"id"`
 	TitleEn   string `json:"title_en"`
 	TitleAr   string `json:"title_ar"`

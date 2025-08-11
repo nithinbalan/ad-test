@@ -348,6 +348,12 @@ func (repo *ControlAssociatedItemRepository) GetAllRisks(controlID uint, params 
 		params.Sort = "asc"
 	}
 
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
 	query = query.Order(params.SortBy + " " + params.Sort)
 	offset := (params.Page - 1) * params.PageSize
 
@@ -630,7 +636,7 @@ func (repo *ControlAssociatedItemRepository) GetClausesByControlID(controlID uin
 	var clauseIDs []uint
 	if err := db.
 		Model(&models.ComplianceControl{}).
-		Where("control_id = ?", controlID).
+		Where("control_id = ? AND compliance_clause_id IS NOT NULL", controlID).
 		Pluck("compliance_clause_id", &clauseIDs).Error; err != nil {
 		return nil, err
 	}

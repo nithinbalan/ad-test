@@ -432,7 +432,7 @@ func (repo *StrategicObjectiveRepository) GetRiskSummary(strategicObjectiveID ui
 
 	// Only format and set LastReviewed if we have a valid date
 	if lastReviewed != nil && !lastReviewed.IsZero() {
-		lastReviewedStr := lastReviewed.Format("02 Jan 2006")
+		lastReviewedStr := lastReviewed.Format("2006-01-02")
 		result.LastReviewed = &lastReviewedStr
 	} else {
 		result.LastReviewed = nil

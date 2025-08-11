@@ -23,6 +23,9 @@ type RiskAIServiceInterface interface {
 	GetRiskResidualControlAnalysis(riskId uint) (map[string]interface{}, error)
 	GetRiskResidualRiskAnalysis(riskId uint) (map[string]interface{}, error)
 	ChatWithRisk(ctx context.Context, req dtos.RiskAIChatRequest, currentUserID uint) (<-chan string, error)
+	GetRiskChatsByContext(contextID string, offset, limit int) ([]map[string]interface{}, error)
+	GetDuplicateRisks() ([]map[string]interface{}, error)
+	GetRiskClosureAutofill(riskID uint) (map[string]interface{}, error)
 }
 
 type RiskAIService struct {
@@ -218,4 +221,44 @@ func (s *RiskAIService) ChatWithRisk(ctx context.Context, req dtos.RiskAIChatReq
 	}
 
 	return utility.StreamAIAPI(ctx, "/api/v1/risk/risk-chat", payload)
+}
+
+func (s *RiskAIService) GetRiskChatsByContext(contextID string, offset, limit int) ([]map[string]interface{}, error) {
+	systemPreference, err := s.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
+	path := fmt.Sprintf("/api/v1/risk/get/%s?offset=%d&limit=%d", contextID, offset, limit)
+	return utility.CallAIAPIArrayResponse(path)
+}
+
+func (s *RiskAIService) GetDuplicateRisks() ([]map[string]interface{}, error) {
+	systemPreference, err := s.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
+	path := "/api/v1/risk/get/get-duplicate-risks"
+	return utility.CallAIAPIArrayResponse(path)
+}
+
+func (s *RiskAIService) GetRiskClosureAutofill(riskID uint) (map[string]interface{}, error) {
+	systemPreference, err := s.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
+	path := fmt.Sprintf("/api/v1/risk/%d/risk-closure-auto-fill", riskID)
+	return utility.CallAIAPIObjectResponse(path)
 }
