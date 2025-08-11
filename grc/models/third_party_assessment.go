@@ -13,8 +13,8 @@ type ThirdPartyAssessment struct {
 	ThirdPartyAssessmentStatusID uint       `json:"third_party_assessment_id"`
 	UID                          *string    `json:"uid"`
 	Link                         *string    `json:"link"`
-	CreatedBYID                  uint       `json:"created_by_id" gorm:"not null"`
-	UpdatedBYID                  *uint      `json:"updated_by_id,omitempty"`
+	CreatedBYID                  uint       `json:"created_by_id" gorm:"not null;column:created_by_id"`
+	UpdatedBYID                  *uint      `json:"updated_by_id,omitempty" gorm:"default:null;column:updated_by_id"`
 	CreatedAt                    time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                    *time.Time `json:"updated_at,omitempty" gorm:"type:datetime"`
 
