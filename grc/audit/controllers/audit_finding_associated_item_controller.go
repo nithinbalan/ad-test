@@ -351,3 +351,102 @@ func (afaic *AuditFindingAssociatedItemController) DeleteAuditFindingProcess(c *
 
 	c.JSON(http.StatusOK, gin.H{"message": "Process unmapped from AuditFinding successfully"})
 }
+
+func (afaic *AuditFindingAssociatedItemController) GetAllAuditFindingStrategicObjectives(c *gin.Context) {
+
+	findingIdStr := c.Param("findingId")
+
+	findingId, err := strconv.ParseUint(findingIdStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(afaic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(afaic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	objectives, err := afaic.service.GetAllAuditFindingStrategicObjectives(uint(findingId), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(afaic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, objectives)
+}
+func (afaic *AuditFindingAssociatedItemController) CreateAuditFindingStrategicObjective(c *gin.Context) {
+	var input commonDTOs.AssociatedStrategicObjectiveMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	findingId, err := strconv.ParseUint(c.Param("findingId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(afaic.db, c, err.Error())
+		return
+	}
+
+	err = afaic.service.CreateAuditFindingStrategicObjective(uint(findingId), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(afaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (afaic *AuditFindingAssociatedItemController) DeleteAuditFindingStrategicObjective(c *gin.Context) {
+	findingId, _ := strconv.ParseUint(c.Param("findingId"), 10, 64)
+	strategicObjectiveID, _ := strconv.ParseUint(c.Param("strategicObjectiveId"), 10, 64)
+	err := afaic.service.DeleteAuditFindingStrategicObjective(uint(findingId), uint(strategicObjectiveID))
+	if err != nil {
+		utility.SendInternalErrResp(afaic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Strategic Objective unmapped from AuditFinding successfully"})
+}
