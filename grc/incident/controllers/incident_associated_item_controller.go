@@ -655,3 +655,107 @@ func (iaic *IncidentAssociatedItemController) DeleteIncidentProcess(c *gin.Conte
 
 	c.JSON(http.StatusOK, gin.H{"message": "Process unmapped from incident successfully"})
 }
+
+func (iaic *IncidentAssociatedItemController) GetAllIncidentStrategicObjectives(c *gin.Context) {
+
+	incidentIDStr := c.Param("incidentID")
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(iaic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(iaic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	incidents, err := iaic.service.GetAllIncidentStrategicObjectives(uint(incidentID), &queryParams)
+
+	if err != nil {
+		utility.SendInternalErrResp(iaic.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, incidents)
+}
+
+func (iaic *IncidentAssociatedItemController) CreateIncidentStrategicObjective(c *gin.Context) {
+	var input commonDTOs.AssociatedStrategicObjectiveMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	incidentID, err := strconv.ParseUint(c.Param("incidentID"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(iaic.db, c, err.Error())
+		return
+	}
+
+	err = iaic.service.CreateIncidentStrategicObjective(uint(incidentID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(iaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (iaic *IncidentAssociatedItemController) DeleteIncidentStrategicObjective(c *gin.Context) {
+
+	incidentIDStr := c.Param("incidentID")
+	strategicObjectiveIDStr := c.Param("strategicObjectiveId")
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	strategicObjectiveID, err := strconv.ParseUint(strategicObjectiveIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = iaic.service.DeleteIncidentStrategicObjective(uint(incidentID), uint(strategicObjectiveID))
+	if err != nil {
+		utility.SendInternalErrResp(iaic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Strategic Objective unmapped from incident successfully"})
+}

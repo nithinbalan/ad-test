@@ -30,6 +30,9 @@ type IncidentAssociatedItemServiceInterface interface {
 	DeleteIncidentControl(incidentID uint, controlID uint) error
 	CreateIncidentProcess(incidentID uint, currentUserID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
 	DeleteIncidentProcess(incidentID uint, processID uint) error
+	GetAllIncidentStrategicObjectives(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
+	CreateIncidentStrategicObjective(incidentID uint, currentUserID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
+	DeleteIncidentStrategicObjective(incidentID uint, strategicObjectiveID uint) error
 }
 
 // Service and implementations
@@ -380,6 +383,56 @@ func (iais *IncidentAssociatedItemService) DeleteIncidentProcess(incidentID uint
 	tx := iais.repo.BeginTransaction()
 
 	if err := iais.repo.DeleteIncidentProcess(incidentID, processID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (iais *IncidentAssociatedItemService) GetAllIncidentStrategicObjectives(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error) {
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return nil, err
+	}
+	return iais.repo.GetAllIncidentStrategicObjectives(incidentID, params)
+}
+
+func (iais *IncidentAssociatedItemService) CreateIncidentStrategicObjective(incidentID, currentUserID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error {
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
+	}
+	if err := iais.validationSvc.ValidateStrtegicObjectiveMapping(incidentID, dto.StrategicObjectiveIDs, "incident_strategic_objectives", "incident_register_id"); err != nil {
+		return err
+	}
+	tx := iais.repo.BeginTransaction()
+	var mappings []*models.IncidentStrategicObjective
+	currentTime := time.Now()
+
+	for _, StrategicObjectiveID := range dto.StrategicObjectiveIDs {
+		mappings = append(mappings, &models.IncidentStrategicObjective{
+			StrategicObjectiveID: StrategicObjectiveID,
+			IncidentRegisterID:   incidentID,
+			CreatedBYID:          currentUserID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := iais.repo.CreateIncidentStrategicObjective(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (iais *IncidentAssociatedItemService) DeleteIncidentStrategicObjective(incidentID uint, strategicObjectiveID uint) error {
+	// Validate control existence
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
+	}
+
+	tx := iais.repo.BeginTransaction()
+
+	if err := iais.repo.DeleteIncidentStrategicObjective(incidentID, strategicObjectiveID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
