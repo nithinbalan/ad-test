@@ -22,7 +22,7 @@ type StrategicObjectiveAssociatedItemRepositoryInterface interface {
 	DeleteStrategicObjectiveDocument(strategicObjectiveID uint, documentID uint, tx ...utility.DatabaseTransaction) error
 	GetAllStrategicObjectivControls(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	CreateStrategicObjectiveControl(controls []*models.StrategicObjectiveControl, tx ...utility.DatabaseTransaction) error
-	DeleteStrategicObjectiveControl(strategicObjectiveID uint, documentID uint, tx ...utility.DatabaseTransaction) error
+	DeleteStrategicObjectiveControl(strategicObjectiveID uint, controlID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type StrategicObectiveAssociatedItemRepository struct {

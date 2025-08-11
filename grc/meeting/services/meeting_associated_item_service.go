@@ -22,7 +22,7 @@ type MeetingAssociatedItemServiceInterface interface {
 	CreateMeetingDocument(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
 	DeleteMeetingDocument(meetingID uint, documentID uint) error
 	CreateMeetingControl(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedControlMapDTO) error
-	DeleteMeetingControl(meetingID uint, controlIDID uint) error
+	DeleteMeetingControl(meetingID uint, controlID uint) error
 }
 
 // Service and implementations

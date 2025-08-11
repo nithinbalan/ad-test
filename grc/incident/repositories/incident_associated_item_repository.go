@@ -121,11 +121,6 @@ func (repo *IncidentAssociatedItemRepository) GetAllControls(incidentID uint, pa
 		LEFT JOIN users AS created_user ON created_user.id = controls.created_by_id
 	`).Where("incident_controls.incident_register_id = ?", incidentID)
 
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -157,7 +152,10 @@ func (repo *IncidentAssociatedItemRepository) GetAllControls(incidentID uint, pa
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
 	}
-
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize
