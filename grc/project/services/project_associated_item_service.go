@@ -20,6 +20,9 @@ type ProjectAssociatedItemServiceInterface interface {
 	GetAllProjectProcesses(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
 	CreateProjectProcess(projectID uint, userID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
 	DeleteProjectProcess(projectID uint, processID uint) error
+	GetAllProjectStrategicObjectives(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
+	CreateProjectStrategicObjective(projectID uint, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
+	DeleteProjectStrategicObjective(projectID uint, strategicObjectiveId uint) error
 }
 
 // Service and implementations
@@ -191,6 +194,59 @@ func (pais *ProjectAssociatedItemService) DeleteProjectProcess(projectID uint, p
 	tx := pais.repo.BeginTransaction()
 
 	if err := pais.repo.DeleteProjectProcess(projectID, processID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *ProjectAssociatedItemService) GetAllProjectStrategicObjectives(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error) {
+	if _, err := pais.projectSvc.GetByID(assetID); err != nil {
+		return nil, err
+	}
+	return pais.repo.GetAllProjectStrategicObjectives(assetID, params)
+}
+
+func (pais *ProjectAssociatedItemService) CreateProjectStrategicObjective(projectID, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error {
+
+	if _, err := pais.projectSvc.GetByID(projectID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("project does not exist for ID: %d", projectID), "not_exist", "asset_id")
+	}
+
+	if err := pais.validationSvc.ValidateStrtegicObjectiveMapping(projectID, dto.StrategicObjectiveIDs, "project_strategic_objectives", "project_id"); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.ProjectStrategicObjective
+	currentTime := time.Now()
+
+	for _, StrategicObjectiveID := range dto.StrategicObjectiveIDs {
+		mappings = append(mappings, &models.ProjectStrategicObjective{
+			StrategicObjectiveID: StrategicObjectiveID,
+			ProjectID:            projectID,
+			CreatedBYID:          userID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateProjectStrategicObjective(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *ProjectAssociatedItemService) DeleteProjectStrategicObjective(projectID uint, strategicObjectiveId uint) error {
+	// Validate control existence
+	if _, err := pais.projectSvc.GetByID(projectID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("project does not exist for ID: %d", projectID), "not_exist", "asset_register_id")
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteProjectStrategicObjective(projectID, strategicObjectiveId, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

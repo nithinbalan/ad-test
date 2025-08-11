@@ -353,3 +353,103 @@ func (paic *ProjectAssociatedItemController) DeleteProjectProcess(c *gin.Context
 
 	c.JSON(http.StatusOK, gin.H{"message": "Process unmapped from project successfully"})
 }
+
+func (paic *ProjectAssociatedItemController) GetAllProjectStrategicObjectives(c *gin.Context) {
+
+	projectIDStr := c.Param("projectId")
+
+	projectID, err := strconv.ParseUint(projectIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	objectives, err := paic.service.GetAllProjectStrategicObjectives(uint(projectID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(paic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, objectives)
+}
+
+func (paic *ProjectAssociatedItemController) CreateProjectStrategicObjective(c *gin.Context) {
+	var input commonDTOs.AssociatedStrategicObjectiveMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	projectID, err := strconv.ParseUint(c.Param("projectId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, err.Error())
+		return
+	}
+
+	err = paic.service.CreateProjectStrategicObjective(uint(projectID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(paic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (paic *ProjectAssociatedItemController) DeleteProjectStrategicObjective(c *gin.Context) {
+	projectID, _ := strconv.ParseUint(c.Param("projectId"), 10, 64)
+	strategicObjectiveID, _ := strconv.ParseUint(c.Param("strategicObjectiveId"), 10, 64)
+	err := paic.service.DeleteProjectStrategicObjective(uint(projectID), uint(strategicObjectiveID))
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Strategic Objective unmapped from project successfully"})
+}

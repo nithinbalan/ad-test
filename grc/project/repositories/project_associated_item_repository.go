@@ -20,6 +20,9 @@ type ProjectAssociatedItemRepositoryInterface interface {
 	GetAllProjectProcesses(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
 	CreateProjectProcess(documents []*models.ProjectProcess, tx ...utility.DatabaseTransaction) error
 	DeleteProjectProcess(projectID uint, processId uint, tx ...utility.DatabaseTransaction) error
+	GetAllProjectStrategicObjectives(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.strte, error)
+	CreateProjectStrategicObjective(objectives []*models.ProjectStrategicObjective, tx ...utility.DatabaseTransaction) error
+	DeleteProjectStrategicObjective(projectID uint, strategicObjectiveId uint, tx ...utility.DatabaseTransaction) error
 }
 
 // implementation
