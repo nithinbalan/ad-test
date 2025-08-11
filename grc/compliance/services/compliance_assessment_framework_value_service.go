@@ -106,11 +106,11 @@ func (cavs *ComplianceAssessmentFrameworkValueService) Create(complianceAssessme
 	}
 
 	// Validate duplicate value only if value is provided
-	if form.Value != nil {
-		if err := cavs.validateDuplicateValue(complianceAssessmentFrameworkID, nil, *form.Value); err != nil {
-			return 0, err
-		}
-	}
+	// if form.Value != nil {
+	// 	if err := cavs.validateDuplicateValue(complianceAssessmentFrameworkID, nil, *form.Value); err != nil {
+	// 		return 0, err
+	// 	}
+	// }
 
 	// Handle IsApplicable with proper default value
 	// var isApplicable bool

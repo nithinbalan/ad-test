@@ -1184,12 +1184,18 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 	if assessment.ComplianceRegister != nil && assessment.ComplianceRegister.ComplianceAssessmentFramework != nil {
 		for _, fv := range assessment.ComplianceRegister.ComplianceAssessmentFramework.Values {
 			if fv != nil && fv.ScoreMin != nil && fv.ScoreMax != nil {
-				if overall.CompliancePercentage >= float64(*fv.ScoreMin) && overall.CompliancePercentage < float64(*fv.ScoreMax) {
+				min := float64(*fv.ScoreMin)
+				max := float64(*fv.ScoreMax)
+				score := overall.CompliancePercentage
+
+				// For the top band (highest max), include equality
+				if score >= min && (score < max || (score == max && max == 100)) {
 					overall.MappedFrameworkValueID = &fv.ID
 					overall.MappedComplianceStatusID = &fv.ComplianceStatusID
 					break
 				}
 			}
+
 		}
 	}
 
