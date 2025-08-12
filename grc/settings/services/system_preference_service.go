@@ -82,6 +82,14 @@ func (sps SystemPreferenceService) GetSystemPreference() (*dtos.SystemPreference
 			allowedAddons = enabledAddons
 		}
 
+		var activeUser, passiveUser int
+		if val, ok := claims["active_users"].(float64); ok {
+			activeUser = int(val)
+		}
+		if val, ok := claims["passive_users"].(float64); ok {
+			passiveUser = int(val)
+		}
+
 		licenseKey := *systemPreference.LicenseKey
 		licenseDTO := &dtos.LicenseKeyDTO{
 			LicenseKey:                 &licenseKey,
@@ -90,6 +98,8 @@ func (sps SystemPreferenceService) GetSystemPreference() (*dtos.SystemPreference
 			TotalLicensedUserCount:     systemPreference.TotalLicensedUserCount,
 			EnabledModules:             allowedModules,
 			EnabledAddons:              allowedAddons,
+			ActiveUsersCount:           &activeUser,
+			PassiveUsersCount:          &passiveUser,
 		}
 
 		systemPreferenceDetailDTO.LicenseKeyDetails = licenseDTO

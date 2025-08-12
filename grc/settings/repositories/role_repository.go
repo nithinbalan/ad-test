@@ -45,7 +45,8 @@ func (repo *RoleRepository) BeginTransaction() utility.DatabaseTransaction {
 func (repo *RoleRepository) GetAll(sort string, sortBy string, keyword string, status string, licenseTypeID string) ([]*models.Role, error) {
 	var roles []*models.Role
 
-	query := repo.db
+	query := repo.db.Model(&models.Role{}).
+		Preload("LicenseType")
 
 	if keyword != "" {
 		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
