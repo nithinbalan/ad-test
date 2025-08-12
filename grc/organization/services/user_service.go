@@ -9,6 +9,7 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	commonService "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
+	masterService "jethur/grc/masters/services"
 	"jethur/grc/models"
 	userDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
@@ -84,6 +85,7 @@ type UserService struct {
 	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface
 	organizationUnitSvc       settingService.OrganizationUnitServiceInterface
 	userJobDescriptionSvc     UserJobDescriptionServiceInterface
+	licenseTypeSvc            masterService.LicenseTypeServiceInterface
 }
 
 func NewUserService(
@@ -100,6 +102,7 @@ func NewUserService(
 	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface,
 	organizationUnitSvc settingService.OrganizationUnitServiceInterface,
 	userJobDescriptionSvc UserJobDescriptionServiceInterface,
+	licenseTypeSvc masterService.LicenseTypeServiceInterface,
 ) UserServiceInterface {
 	return &UserService{
 		repo:                      repo,
@@ -115,6 +118,7 @@ func NewUserService(
 		activeDirectorySettingSvc: activeDirectorySettingSvc,
 		organizationUnitSvc:       organizationUnitSvc,
 		userJobDescriptionSvc:     userJobDescriptionSvc,
+		licenseTypeSvc:            licenseTypeSvc,
 	}
 }
 
@@ -346,6 +350,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		Initial:             initial,
 		Color:               color,
 		ReportingUserID:     userFormDTO.ReportingUserID,
+		LicenseTypeID:       userFormDTO.LicenseTypeID,
 	}
 
 	userID, err := us.repo.Create(user, tx)
@@ -533,6 +538,7 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 	existingUser.UpdatedByID = &currentUserID
 	existingUser.UserStatusID = userFormDTO.UserStatusID
 	existingUser.ReportingUserID = userFormDTO.ReportingUserID
+	existingUser.LicenseTypeID = userFormDTO.LicenseTypeID
 
 	err = us.repo.Update(existingUser, tx)
 	if err != nil {
@@ -705,13 +711,21 @@ func (us *UserService) validateUserFormDTO(id *uint, userFormDTO *userDTOs.UserF
 		return utility.NewValidationError(fmt.Errorf("designation does not exist"), "not_exist", "designation")
 	}
 
+	_, err = us.licenseTypeSvc.GetByID(*userFormDTO.LicenseTypeID)
+	if err != nil {
+		return utility.NewValidationError(fmt.Errorf("license type does not exist"), "not_exist", "license type")
+	}
+
 	if len(userFormDTO.RoleIDs) == 0 {
 		return utility.NewValidationError(fmt.Errorf("no roles provided, at least one role is required"), "required", "role")
 	} else {
 		for _, roleID := range userFormDTO.RoleIDs {
-			_, err := us.roleSvc.GetByID(roleID)
+			role, err := us.roleSvc.GetByID(roleID)
 			if err != nil {
 				return utility.NewValidationError(fmt.Errorf("role does not exist"), "not_exist", "role")
+			}
+			if *role.LicenseTypeID != *userFormDTO.LicenseTypeID {
+				return utility.NewValidationError(fmt.Errorf("role does not exist in license type"), "not_exist", "role")
 			}
 
 		}
@@ -1168,7 +1182,7 @@ func (us *UserService) GenerateUserTemplate() (*os.File, error) {
 	sheets["UserStatus"] = append([][]interface{}{utility.ConvertToInterfaceSlice(userStatusHeaders)}, userStatusData...)
 
 	// 5. Add Roles sheet
-	roles, err := us.roleSvc.GetAll("", "", "", "active")
+	roles, err := us.roleSvc.GetAll("", "", "", "active", "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch roles: %v", err)
 	}
@@ -1404,7 +1418,7 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 	}
 
 	// Fetch roles
-	roles, err := us.roleSvc.GetAll("", "", "", "active")
+	roles, err := us.roleSvc.GetAll("", "", "", "active", "")
 	if err != nil {
 		return nil, fmt.Errorf("error fetching roles: %v", err)
 	}

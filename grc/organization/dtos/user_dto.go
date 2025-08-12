@@ -77,6 +77,7 @@ type UserFormDTO struct {
 	Password            string  `json:"password" binding:"omitempty"`
 	IsSentEmail         bool    `json:"is_sent_email"`
 	ReportingUserID     *uint   `json:"reporting_user_id"`
+	LicenseTypeID       *uint   `json:"license_type_id" binding:"required"`
 }
 
 type UserUpdateDTO struct {
