@@ -27,6 +27,9 @@ type ProcessAssociatedItemServiceInterface interface {
 	DeleteProcessDocument(processID uint, riskID uint) error
 	CreateProcessControl(processID uint, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error
 	DeleteProcessControl(processID uint, controlID uint) error
+	GetAllProcessKPI(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+	CreateProcessKPI(processID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
+	DeleteProcessKPI(processID uint, kpiID uint) error
 }
 
 type ProcessAssociatedItemService struct {
@@ -454,6 +457,62 @@ func (pais *ProcessAssociatedItemService) DeleteProcessControl(processID uint, c
 	tx := pais.repo.BeginTransaction()
 
 	if err := pais.repo.DeleteProcessControl(processID, controlID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *ProcessAssociatedItemService) GetAllProcessKPI(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return nil, err
+	}
+
+	response, err := pais.repo.GetAllProcessKPI(processID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (pais *ProcessAssociatedItemService) CreateProcessKPI(processID, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error {
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return err
+	}
+	if err := pais.validationSvc.ValidateKPIMapping(processID, dto.KpiIDs, "kpi_processes", "process_id"); err != nil {
+		return err
+	}
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.KPIProcess
+	currentTime := time.Now()
+
+	for _, KpiID := range dto.KpiIDs {
+		mappings = append(mappings, &models.KPIProcess{
+			KPIRegisterID: KpiID,
+			ProcessID:     processID,
+			CreatedByID:   userID,
+			CreatedAt:     currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateProcessKPI(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *ProcessAssociatedItemService) DeleteProcessKPI(processID uint, kpiID uint) error {
+	// Validate control existence
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteProcessKPI(processID, kpiID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

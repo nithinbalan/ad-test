@@ -687,6 +687,7 @@ type AssociatedControlMapDTO struct {
 
 type AssociatedKPIRegisterListDTO struct {
 	ID                              int      `json:"id"`
+	KPIRegisterID                   uint     `json:"kpi_register_id"`
 	ReferenceNumber                 *string  `json:"reference_number"`
 	Title                           string   `json:"title"`
 	Description                     *string  `json:"description"`
