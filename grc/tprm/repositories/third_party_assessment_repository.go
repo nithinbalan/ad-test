@@ -81,11 +81,9 @@ func (repo *ThirdPartyAssessmentRepository) GetAll(params *thirdPartyDTOs.ThirdP
 			third_party_assessments.title LIKE ? OR
 			third_party_assessments.reference_number LIKE ? OR
 			third_party_assessments.due_date LIKE ? OR
-	
 			third_party_register.title LIKE ? OR
-	
 			question_sets.title_en LIKE ? OR
-			question_sets.title_ar LIKE ? OR
+			question_sets.title_ar LIKE ?
 		`,
 			likePattern, likePattern,
 			likePattern, likePattern,
