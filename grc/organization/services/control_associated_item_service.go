@@ -29,6 +29,9 @@ type ControlAssociatedItemServiceInterface interface {
 	GetAllStrategicObjectives(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
 	CreateControlStrategicObjectives(controlID uint, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
 	DeleteControlStrategicObjectives(controlID uint, strategicObjectiveID uint) error
+	GetAllControlKPI(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+	CreateControlKPI(controlID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
+	DeleteControlKPI(controlID uint, kpiID uint) error
 }
 
 type ControlAssociatedItemService struct {
@@ -433,6 +436,55 @@ func (cais *ControlAssociatedItemService) DeleteControlStrategicObjectives(contr
 	tx := cais.repo.BeginTransaction()
 
 	if err := cais.repo.DeleteControlStrategicObjectives(controlID, strategicObjectiveID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (cais *ControlAssociatedItemService) GetAllControlKPI(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return nil, err
+	}
+	return cais.repo.GetAllControlKPI(controlID, params)
+}
+func (cais *ControlAssociatedItemService) CreateControlKPI(controlID, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error {
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return err
+	}
+	if err := cais.validationSvc.ValidateKPIMapping(controlID, dto.KpiIDs, "kpi_controls", "control_id"); err != nil {
+		return err
+	}
+	tx := cais.repo.BeginTransaction()
+	var mappings []*models.KPIControl
+	currentTime := time.Now()
+
+	for _, KpiID := range dto.KpiIDs {
+		mappings = append(mappings, &models.KPIControl{
+			KPIRegisterID: KpiID,
+			ControlID:     controlID,
+			CreatedByID:   userID,
+			CreatedAt:     currentTime,
+		})
+	}
+
+	if err := cais.repo.CreateControlKPI(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (cais *ControlAssociatedItemService) DeleteControlKPI(controlID uint, kpiID uint) error {
+	// Validate control existence
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return err
+	}
+
+	tx := cais.repo.BeginTransaction()
+
+	if err := cais.repo.DeleteControlKPI(controlID, kpiID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
