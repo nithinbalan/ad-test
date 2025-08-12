@@ -53,8 +53,14 @@ func (repo *ProcessAssociatedItemRepository) GetAllControls(processID uint, para
 			process_controls.process_id AS process_id,
 			controls.id AS control_id,
             controls.reference_number AS control_reference_number,
+			controls.objective,
+			controls.implemented_at,
+			controls.last_review_date,
+			controls.next_review_date,
+			controls.last_review_note,
             controls.code AS control_code,
 			CONVERT(VARCHAR, controls.last_test_date, 23) AS control_last_test_date,
+			controls.next_test_date,
             control_categories.title_en AS control_category_title_en,
             control_categories.title_ar AS control_category_title_ar,
             control_types.title_en AS control_type_title_en,
@@ -78,7 +84,28 @@ func (repo *ProcessAssociatedItemRepository) GetAllControls(processID uint, para
 			owner.initial AS control_owner_initial,
             owner.color AS control_owner_color,
             owner.email AS control_owner_email,
-            owner.profile_image_path AS control_owner_profile_image_path
+            owner.profile_image_path AS control_owner_profile_image_path,
+			test_responsible_user.id AS test_responsible_user_id,
+			test_responsible_user.first_name_en AS test_responsible_user_first_name_en,
+			test_responsible_user.first_name_ar AS test_responsible_user_first_name_ar,
+			test_responsible_user.last_name_en AS test_responsible_user_last_name_en,
+			test_responsible_user.last_name_ar AS test_responsible_user_last_name_ar,
+			test_responsible_user.initial AS test_responsible_user_initial,
+			test_responsible_user.color AS test_responsible_user_color,
+			test_responsible_user.email AS test_responsible_user_email,
+			test_responsible_user.profile_image_path AS test_responsible_user_profile_image_path,
+			test_frequencies.title_en AS test_frequency_title_en,
+			test_frequencies.title_ar AS test_frequency_title_ar,
+			risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
+			risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
+			risk_matrix_risk_ratings.color_code AS risk_rating_color_code,
+			risk_matrix_risk_rating_values.value AS risk_rating_value,
+			lifecycle_statuses.title_en AS lifecycle_status_title_en,
+			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
+			lifecycle_statuses.color_code AS lifecycle_status_color_code,
+			review_frequencies.title_en AS review_frequency_title_en,
+			review_frequencies.title_ar AS review_frequency_title_ar
+
         `).
 		Joins(`
 			LEFT JOIN controls ON controls.id = process_controls.control_id
@@ -87,6 +114,12 @@ func (repo *ProcessAssociatedItemRepository) GetAllControls(processID uint, para
             LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
             LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
 			LEFT JOIN users AS owner ON controls.responsible_user_id = owner.id
+			LEFT JOIN users AS test_responsible_user ON controls.test_responsible_user_id = test_responsible_user.id
+		    LEFT JOIN review_frequencies AS test_frequencies ON controls.test_frequency_id = test_frequencies.id
+			LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = controls.risk_matrix_risk_rating_id
+		    LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = controls.risk_matrix_risk_rating_value_id
+			LEFT JOIN lifecycle_statuses ON controls.lifecycle_status_id = lifecycle_statuses.id
+			LEFT JOIN review_frequencies ON controls.review_frequency_id = review_frequencies.id
 
         `).Where("process_controls.process_id = ?", processID)
 
