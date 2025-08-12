@@ -547,7 +547,7 @@ func (repo *AuditFindingAssociatedItemRepository) GetAllAuditFindingStrategicObj
 	query := repo.db.Table("audit_finding_strategic_objectives").
 		Select(`
 			strategic_objectives.*,
-			risk_strategic_objectives.strategic_objective_id,
+			audit_finding_strategic_objectives.strategic_objective_id,
 			strategic_objective_categories.title_en AS strategic_objective_category_title_en,
 			strategic_objective_categories.title_ar AS strategic_objective_category_title_ar,
 			organization_units.title_en AS responsible_unit_title_en,
