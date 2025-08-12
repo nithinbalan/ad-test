@@ -147,6 +147,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("documents/:id/strategic-objectives", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.CreateDocumentStrategicObjective)
 	documentRoutes.DELETE("documents/:id/strategic-objectives/:strategicObjectiveId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.DeleteDocumentStrategicObjective)
 
+	documentRoutes.GET("documents/:id/kpis", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.GetAllDocumentKPI)
+	documentRoutes.POST("documents/:id/kpis", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.CreateDocumentKPI)
+	documentRoutes.DELETE("documents/:id/kpis/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.DeleteDocumentKPI)
+
 	documentRoutes.GET("/document-change-request-initiate-types", documentChangeRequestInitiateTypeController.GetAllDocumentChangeRequestInitiateTypes)
 	documentRoutes.GET("/document-change-request-initiate-types/:id", documentChangeRequestInitiateTypeController.GetDocumentChangeRequestInitiateTypeDetails)
 

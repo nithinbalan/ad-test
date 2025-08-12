@@ -31,6 +31,9 @@ type DocumentAssociatedItemServiceInterface interface {
 	GetAllStrategicObjectives(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
 	CreateDocumentStrategicObjective(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
 	DeleteDocumentStrategicObjective(documentID uint, strategicObjectiveId uint) error
+	GetAllDocumentKPI(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+	CreateDocumentKPI(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
+	DeleteDocumentKPI(documentID uint, kpiID uint) error
 }
 
 // Service Implementation
@@ -431,6 +434,55 @@ func (dais *DocumentAssociatedItemService) DeleteDocumentStrategicObjective(docu
 	tx := dais.repo.BeginTransaction()
 
 	if err := dais.repo.DeleteDocumentStrategicObjective(documentID, strategicObjectiveID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) GetAllDocumentKPI(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return nil, err
+	}
+	return dais.repo.GetAllDocumentKPI(documentID, params)
+}
+func (dais *DocumentAssociatedItemService) CreateDocumentKPI(documentID, currentUserID uint, dto *commonDTOs.AssociatedKPIMapDTO) error {
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", documentID), "not_exist", "document_id")
+	}
+	if err := dais.validationSvc.ValidateKPIMapping(documentID, dto.KpiIDs, "kpi_associated_documents", "document_id"); err != nil {
+		return err
+	}
+	tx := dais.repo.BeginTransaction()
+	var mappings []*models.KPIAssociatedDocument
+	currentTime := time.Now()
+
+	for _, KpiID := range dto.KpiIDs {
+		mappings = append(mappings, &models.KPIAssociatedDocument{
+			KPIRegisterID: KpiID,
+			DocumentID:    documentID,
+			CreatedByID:   currentUserID,
+			CreatedAt:     currentTime,
+		})
+	}
+
+	if err := dais.repo.CreateDocumentKPI(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) DeleteDocumentKPI(documentID uint, kpiID uint) error {
+	// Validate control existence
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return err
+	}
+
+	tx := dais.repo.BeginTransaction()
+
+	if err := dais.repo.DeleteDocumentKPI(documentID, kpiID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
