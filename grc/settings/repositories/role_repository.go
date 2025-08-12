@@ -9,7 +9,7 @@ import (
 
 type RoleRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.Role, error)
+	GetAll(sort string, sortBy string, keyword string, status string, licenseTypeID string) ([]*models.Role, error)
 	GetByID(id uint) (*models.Role, error)
 	Create(role *models.Role) (*models.Role, error)
 	Update(id uint, role *models.Role) (*models.Role, error)
@@ -42,7 +42,7 @@ func (repo *RoleRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *RoleRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.Role, error) {
+func (repo *RoleRepository) GetAll(sort string, sortBy string, keyword string, status string, licenseTypeID string) ([]*models.Role, error) {
 	var roles []*models.Role
 
 	query := repo.db
@@ -59,6 +59,10 @@ func (repo *RoleRepository) GetAll(sort string, sortBy string, keyword string, s
 
 	if status == "active" || status == "inactive" {
 		query = query.Where("status = ?", status)
+	}
+
+	if licenseTypeID != "" {
+		query = query.Where("roles.license_type_id = ?", licenseTypeID)
 	}
 
 	query = query.Order(sortBy + " " + sort)

@@ -15,7 +15,7 @@ import (
 )
 
 type RoleServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.Role, error)
+	GetAll(sort string, sortBy string, keyword string, status string, licenseTypeID string) ([]*models.Role, error)
 	GetByID(id uint) (*models.Role, error)
 	Create(currentUserID uint, role *models.Role) (*models.Role, error)
 	Update(id uint, currentUserID uint, role *models.Role) (*models.Role, error)
@@ -48,8 +48,8 @@ func NewRoleService(repo repositories.RoleRepositoryInterface,
 	}
 }
 
-func (rs *RoleService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.Role, error) {
-	return rs.repo.GetAll(sort, sortBy, keyword, status)
+func (rs *RoleService) GetAll(sort string, sortBy string, keyword string, status string, licenseTypeID string) ([]*models.Role, error) {
+	return rs.repo.GetAll(sort, sortBy, keyword, status, licenseTypeID)
 }
 
 func (rs RoleService) GetByID(id uint) (*models.Role, error) {
