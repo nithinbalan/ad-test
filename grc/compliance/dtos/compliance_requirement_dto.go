@@ -101,7 +101,7 @@ type ComplianceRequirementFormDTO struct {
 	ComplianceRequirementCategoryID uint    `json:"compliance_requirement_category_id" binding:"omitempty"`
 	SeverityLevelID                 uint    `json:"severity_level_id" binding:"omitempty"`
 	Deadline                        string  `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
-	ComplianceStatusID              uint    `json:"compliance_status_id" binding:"required"`
+	ComplianceStatusID              *uint   `json:"compliance_status_id"`
 	ControlIDs                      []*uint `json:"control_ids"`
 	StrategicObjectiveIDs           []*uint `json:"strategic_objective_ids"`
 	DocumentIds                     []*uint `json:"document_ids"`
@@ -130,7 +130,7 @@ type ComplianceRequirementDetailDTO struct {
 	Controls                      []*ComplianceRequirementControlDTO               `json:"controls"`
 	StrategicObjectives           []*ComplianceRequirementStrategicObjectiveDTO    `json:"strategic_objectives"`
 	Documents                     []*ComplianceRequirementAssociatedDocumentDTO    `json:"documents"`
-	ComplianceStatus              ComplianceStatusDTO                              `json:"compliance_status"`
+	ComplianceStatus              *ComplianceStatusDTO                             `json:"compliance_status"`
 	RequiredDocumentTitles        []*ComplianceRequirementRequiredDocumentTitleDTO `json:"required_document_titles"`
 	ResponsibleUnits              []*ComplianceRequirementResponsibleUnitDTO       `json:"responsible_units"`
 }
@@ -208,7 +208,9 @@ type ComplianceRequirementResponsibleUnitRowDTO struct {
 	ParentID                             *uint  `json:"parent_id"`
 }
 type ComplianceRequirementValueUpdateDTO struct {
-	ComplianceRequirementID              uint `json:"compliance_requirement_id"`
-	ComplianceAssessmentFrameworkValueID uint `json:"compliance_assessment_framework_value_id"`
-	ResponsibleUnitID                    uint `json:"responsible_unit_id"`
+	ComplianceRequirementID              uint     `json:"compliance_requirement_id"`
+	ComplianceStatusID                   *uint    `json:"compliance_status_id"`
+	ComplianceAssessmentFrameworkValueID uint     `json:"compliance_assessment_framework_value_id"`
+	ResponsibleUnitID                    uint     `json:"responsible_unit_id"`
+	Score                                *float64 `json:"score"`
 }

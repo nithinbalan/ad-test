@@ -48,6 +48,7 @@ type ComplianceAssessmentService struct {
 	complianceAssessmentStatusSvc ComplianceAssessmentStatusServiceInterface
 	notificationSvc               commonServices.NotificationServiceInterface
 	complianceClauseSvc           ComplianceClauseServiceInterface
+	complianceStatusSvc           ComplianceStatusServiceInterface
 }
 
 func NewComplianceAssessmentService(
@@ -59,6 +60,7 @@ func NewComplianceAssessmentService(
 	complianceAssessmentStatusSvc ComplianceAssessmentStatusServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	complianceClauseSvc ComplianceClauseServiceInterface,
+	complianceStatusSvc ComplianceStatusServiceInterface,
 ) ComplianceAssessmentServiceInterface {
 	return &ComplianceAssessmentService{
 		repo:                          repo,
@@ -69,6 +71,7 @@ func NewComplianceAssessmentService(
 		complianceAssessmentStatusSvc: complianceAssessmentStatusSvc,
 		notificationSvc:               notificationSvc,
 		complianceClauseSvc:           complianceClauseSvc,
+		complianceStatusSvc:           complianceStatusSvc,
 	}
 }
 
@@ -923,19 +926,37 @@ func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentI
 
 	assessment.ComplianceAssessmentStatusID = complianceAssessmentApprovedStatus.ID
 	assessment.UpdatedBYID = &currentUserID
-
 	err = cras.repo.Update(assessment, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	err = cras.UpdateComplianceRequirementValue(assessmentID, tx)
+
+	scores, err := cras.CalculateComplianceScores(assessmentID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	_, err = cras.CalculateComplianceScores(assessmentID, tx)
-	if err != nil {
+
+	reqEval := make(map[uint]complianceDTOs.ComplianceRequirementScoreStatusDTO)
+	for _, s := range scores {
+		if s != nil && s.ComplianceAssessmentRequirementID > 0 && s.MappedComplianceStatusID != nil {
+			continue
+		}
+		pct := math.Round(s.CompliancePercentage*100) / 100
+
+		reqEval[s.ComplianceAssessmentRequirementID] = complianceDTOs.ComplianceRequirementScoreStatusDTO{
+			ComplianceStatusID: s.MappedComplianceStatusID,
+			Score:              &pct,
+		}
+	}
+
+	if err := cras.UpdateComplianceRequirementValueFromScores(assessmentID, reqEval, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := cras.UpdateClauseStatusesFromScores(assessmentID, reqEval, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -1034,31 +1055,151 @@ func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentI
 	return nil
 }
 
-// function for update compliance requiremnt status based on assessment status
-func (cras *ComplianceAssessmentService) UpdateComplianceRequirementValue(assessmentID uint, tx ...utility.DatabaseTransaction) error {
+func (cras *ComplianceAssessmentService) UpdateComplianceRequirementValueFromScores(assessmentID uint, reqEval map[uint]complianceDTOs.ComplianceRequirementScoreStatusDTO, tx ...utility.DatabaseTransaction) error {
+	// We still need RU rows to write values -> fetch with tx
 	assessment, err := cras.repo.GetFullDetailsByID(assessmentID, tx...)
 	if err != nil {
 		return err
 	}
 
-	// Update compliance requirement status for each responsibleUnit
-	for _, assessmentRequirement := range assessment.AssessmentRequirements {
-		for _, assessmentRequirementResponsibleUnit := range assessmentRequirement.ResponsibleUnits {
-			complianceRequirementValueUpdateDTO := complianceDTOs.ComplianceRequirementValueUpdateDTO{
-				ComplianceRequirementID:              assessmentRequirement.ComplianceRequirementID,
-				ComplianceAssessmentFrameworkValueID: *assessmentRequirementResponsibleUnit.ComplianceAssessmentFrameworkValueID,
-				ResponsibleUnitID:                    assessmentRequirementResponsibleUnit.ResponsibleUnitID,
+	for _, ar := range assessment.AssessmentRequirements {
+		eval, ok := reqEval[ar.ID]
+		if !ok {
+			continue
+		}
+
+		for _, ru := range ar.ResponsibleUnits {
+			if ru.ComplianceAssessmentFrameworkValueID == nil {
+				// nothing selected at RU level; skip or set a default if business rule says so
+				continue
 			}
 
-			err = cras.repo.UpdateComplianceRequirementValue(complianceRequirementValueUpdateDTO, tx...)
-			if err != nil {
+			dto := complianceDTOs.ComplianceRequirementValueUpdateDTO{
+				ComplianceRequirementID:              ar.ComplianceRequirementID,
+				ComplianceStatusID:                   eval.ComplianceStatusID,
+				ComplianceAssessmentFrameworkValueID: *ru.ComplianceAssessmentFrameworkValueID,
+				ResponsibleUnitID:                    ru.ResponsibleUnitID,
+				Score:                                eval.Score,
+			}
+
+			if err := cras.repo.UpdateComplianceRequirementResponsibleUintValue(dto, tx...); err != nil {
 				return err
 			}
+			if err := cras.repo.UpdateComplianceRequirementStatusUpdate(dto, tx...); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (cras *ComplianceAssessmentService) UpdateClauseStatusesFromScores(assessmentID uint, reqEval map[uint]complianceDTOs.ComplianceRequirementScoreStatusDTO, tx ...utility.DatabaseTransaction) error {
+	// canonical status ids
+	compliant, err := cras.complianceStatusSvc.GetByType("compliant")
+	if err != nil {
+		return err
+	}
+	partial, err := cras.complianceStatusSvc.GetByType("partially_compliant")
+	if err != nil {
+		return err
+	}
+	notImpl, err := cras.complianceStatusSvc.GetByType("not_implemented")
+	if err != nil {
+		return err
+	}
+
+	// need AR -> Requirement -> ClauseID
+	ass, err := cras.repo.GetFullDetailsByID(assessmentID, tx...)
+	if err != nil {
+		return err
+	}
+	// Ensure repo has: Preload("AssessmentRequirements.ComplianceRequirement")
+
+	// clauseID -> aggregate DTO
+	clauseAgg := make(map[uint]*complianceDTOs.ClauseStatusAggregateDTO)
+
+	// Also track sum of scores to compute clause score
+	type clauseScoreAgg struct {
+		sum   float64
+		count int
+	}
+	clauseScore := make(map[uint]*clauseScoreAgg)
+
+	for _, ar := range ass.AssessmentRequirements {
+		if ar.ComplianceRequirement == nil {
+			continue // must be preloaded
+		}
+		clauseID := ar.ComplianceRequirement.ComplianceClauseID
+
+		if clauseAgg[clauseID] == nil {
+			clauseAgg[clauseID] = &complianceDTOs.ClauseStatusAggregateDTO{}
+		}
+		if clauseScore[clauseID] == nil {
+			clauseScore[clauseID] = &clauseScoreAgg{}
+		}
+
+		a := clauseAgg[clauseID]
+		a.TotalCount++
+
+		// Use in-memory computed status/score from reqEval (keyed by AR.ID)
+		eval, ok := reqEval[ar.ID]
+		if !ok || eval.ComplianceStatusID == nil {
+			// treat missing as Not Implemented (and 0 score)
+			a.NotImplementedCount++
+			// score contribution = 0; still counts in denominator
+			clauseScore[clauseID].count++
+			continue
+		}
+
+		switch *eval.ComplianceStatusID {
+		case compliant.ID:
+			a.CompliantCount++
+		case partial.ID:
+			a.PartialCount++
+		case notImpl.ID:
+			a.NotImplementedCount++
+		default:
+			a.PartialCount++
+		}
+
+		// Score: if provided, use it; else treat as 0
+		if eval.Score != nil {
+			clauseScore[clauseID].sum += *eval.Score
+		}
+		clauseScore[clauseID].count++
+	}
+
+	// Decide status + compute/round score, then persist
+	for clauseID, a := range clauseAgg {
+		var setStatusID uint
+		switch {
+		case a.PartialCount > 0:
+			setStatusID = partial.ID
+		case a.TotalCount > 0 && a.CompliantCount == a.TotalCount:
+			setStatusID = compliant.ID
+		case a.TotalCount > 0 && a.NotImplementedCount == a.TotalCount:
+			setStatusID = notImpl.ID
+		default:
+			setStatusID = partial.ID
+		}
+
+		// Average score across its requirements (0–100), round to 2 dp
+		cs := clauseScore[clauseID]
+		avg := 0.0
+		if cs != nil && cs.count > 0 {
+			avg = cs.sum / float64(cs.count)
+			avg = math.Round(avg*100) / 100
+		}
+
+		// Update both fields (use one method or two, your choice)
+		if err := cras.repo.UpdateClauseComplianceStatus(clauseID, setStatusID, avg, tx...); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
+
 func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID uint, tx ...utility.DatabaseTransaction) ([]*complianceDTOs.ResponsibleUnitComplianceScoreDTO, error) {
 	assessment, err := cras.repo.GetFullDetailsByID(assessmentID, tx...)
 	if err != nil {
@@ -1111,109 +1252,149 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 	}()
 	fmt.Println("Per Requirement Max:", perReqMax)
 
-	// ---- GLOBAL (not RU-wise) ACCUMULATORS ----
-	totalRequirements := 0
-	scoredRequirements := 0
-	var totalScore float64
-	var maxPossibleScore float64
+	// Map to track responsibleUnit scores
+	responsibleUnitScores := make(map[uint]*complianceDTOs.ResponsibleUnitComplianceScoreDTO)
 
 	// Walk all requirement-responsibleUnit rows and accumulate globally
 	for _, req := range assessment.AssessmentRequirements {
 		for _, ru := range req.ResponsibleUnits {
+
+			complianceAssessmentRequirementID := ru.ComplianceAssessmentRequirementID
+			fmt.Println("complianceAssessmentRequirement ID:", complianceAssessmentRequirementID)
+			if responsibleUnitScores[complianceAssessmentRequirementID] == nil {
+				responsibleUnitScores[complianceAssessmentRequirementID] = &complianceDTOs.ResponsibleUnitComplianceScoreDTO{
+					ComplianceRegisterID:              assessment.ComplianceRegisterID,
+					ComplianceAssessmentRequirementID: complianceAssessmentRequirementID,
+					FrameworkType:                     frameworkType,
+				}
+			}
 			isApplicable := true
+			fmt.Println("isApplicable:", ru.ComplianceAssessmentFrameworkValue.IsApplicable)
+
 			if ru.ComplianceAssessmentFrameworkValueID != nil {
 				isApplicable = ru.ComplianceAssessmentFrameworkValue.IsApplicable
 			}
+			// Only count applicable requirements
 			if !isApplicable {
+				fmt.Printf("SKIP (NA): reqID=%d\n", complianceAssessmentRequirementID)
 				continue
 			}
-
-			totalRequirements++
+			responsibleUnitScores[complianceAssessmentRequirementID].TotalRequirements++
+			// totalRequirements++
 
 			switch frameworkType {
 			case "point", "maturity":
 				if ru.ComplianceAssessmentFrameworkValueID != nil {
 					if val, ok := frameworkValuesMap[*ru.ComplianceAssessmentFrameworkValueID]; ok {
-						scoredRequirements++
-						totalScore += float64(val)
-						maxPossibleScore += perReqMax
+						responsibleUnitScores[complianceAssessmentRequirementID].ScoredRequirements++
+						responsibleUnitScores[complianceAssessmentRequirementID].TotalScore += float64(val)
+						responsibleUnitScores[complianceAssessmentRequirementID].MaxPossibleScore += perReqMax
 					}
 				}
 			case "percentage":
 				if ru.Score != nil {
-					scoredRequirements++
-					totalScore += float64(*ru.Score)
-					maxPossibleScore += perReqMax
+					responsibleUnitScores[complianceAssessmentRequirementID].ScoredRequirements++
+					responsibleUnitScores[complianceAssessmentRequirementID].TotalScore += float64(*ru.Score)
+					responsibleUnitScores[complianceAssessmentRequirementID].MaxPossibleScore += perReqMax
 				}
 			case "binary":
-				scoredRequirements++
-				maxPossibleScore += perReqMax
+				responsibleUnitScores[complianceAssessmentRequirementID].ScoredRequirements++
+				responsibleUnitScores[complianceAssessmentRequirementID].MaxPossibleScore += perReqMax
 				if ru.ComplianceAssessmentFrameworkValueID != nil {
 					if raw, ok := frameworkValuesMap[*ru.ComplianceAssessmentFrameworkValueID]; ok && raw > 0 {
-						totalScore += 1.0
+						responsibleUnitScores[complianceAssessmentRequirementID].TotalScore += 1.0
+					}
+				}
+			}
+
+		}
+	}
+
+	// Calculate final percentages and statuses for each responsibleUnit
+	var results []*complianceDTOs.ResponsibleUnitComplianceScoreDTO
+	for _, responsibleUnitScore := range responsibleUnitScores {
+		fmt.Println("responsibleUnitScore ID:", responsibleUnitScore.ComplianceAssessmentRequirementID)
+
+		if responsibleUnitScore.MaxPossibleScore > 0 {
+			responsibleUnitScore.CompliancePercentage = (responsibleUnitScore.TotalScore / responsibleUnitScore.MaxPossibleScore) * 100
+			responsibleUnitScore.Score = float64(int(responsibleUnitScore.CompliancePercentage*100)) / 100
+			if responsibleUnitScore.CompliancePercentage == 100 {
+				responsibleUnitScore.CompliancePercentage = 99.99
+			}
+		}
+
+		fmt.Println("Compliance Percentage:", responsibleUnitScore.CompliancePercentage)
+		fmt.Println("Score (Rounded):", responsibleUnitScore.Score)
+
+		// Map to framework range → status (once)
+		if assessment.ComplianceRegister != nil && assessment.ComplianceRegister.ComplianceAssessmentFramework != nil {
+			for _, fv := range assessment.ComplianceRegister.ComplianceAssessmentFramework.Values {
+				if fv != nil && fv.ScoreMin != nil && fv.ScoreMax != nil {
+					min := float64(*fv.ScoreMin)
+					max := float64(*fv.ScoreMax)
+					score := responsibleUnitScore.CompliancePercentage
+
+					// For the top band (highest max), include equality
+					if score >= min && (score < max || (score == max && max == 100)) {
+						responsibleUnitScore.MappedFrameworkValueID = &fv.ID
+						responsibleUnitScore.MappedComplianceStatusID = &fv.ComplianceStatusID
+						break
+					}
+				}
+
+			}
+		}
+		results = append(results, responsibleUnitScore)
+		// Update register status ONCE based on responsibleUnitScore mapping
+		if responsibleUnitScore.MappedComplianceStatusID != nil {
+			fmt.Printf("Updating status: ComplianceAssessmentRequirementID=%v, StatusID=%v\n", responsibleUnitScore.ComplianceAssessmentRequirementID, *responsibleUnitScore.MappedComplianceStatusID)
+			if err := cras.repo.UpdateComplianceAssessmentRequirementStatus(responsibleUnitScore.ComplianceAssessmentRequirementID, *responsibleUnitScore.MappedComplianceStatusID, responsibleUnitScore.Score, tx...); err != nil {
+				return nil, err
+			}
+		}
+	}
+	// ---- OVERALL (Compliance register) score from per-requirement buckets ----
+	var overallTotal, overallMax float64
+	for _, s := range responsibleUnitScores {
+		overallTotal += s.TotalScore
+		overallMax += s.MaxPossibleScore
+	}
+	fmt.Printf("overallMax=%v, overallTotal=%v\n", overallMax, overallTotal)
+
+	if overallMax > 0 {
+		overallPct := (overallTotal / overallMax) * 100.0
+		// match your top-band logic
+		if overallPct == 100 {
+			overallPct = 99.99
+		}
+		overallScore := float64(int(overallPct*100)) / 100
+
+		// map overall % -> framework value -> compliance status
+		var overallStatusID *uint
+		if assessment.ComplianceRegister != nil && assessment.ComplianceRegister.ComplianceAssessmentFramework != nil {
+			for _, fv := range assessment.ComplianceRegister.ComplianceAssessmentFramework.Values {
+				if fv != nil && fv.ScoreMin != nil && fv.ScoreMax != nil {
+					min := float64(*fv.ScoreMin)
+					max := float64(*fv.ScoreMax)
+					if overallPct >= min && (overallPct < max || (overallPct == max && max == 100)) {
+						overallStatusID = &fv.ComplianceStatusID
+						break
 					}
 				}
 			}
 		}
-	}
+		fmt.Printf("Overall Perctage=%v", overallPct)
 
-	fmt.Println("Total Requirements:", totalRequirements)
-	fmt.Println("Scored Requirements:", scoredRequirements)
-	fmt.Println("Total Score:", totalScore)
-	fmt.Println("Max Possible Score:", maxPossibleScore)
-
-	overall := &complianceDTOs.ResponsibleUnitComplianceScoreDTO{
-		ComplianceRegisterID: assessment.ComplianceRegisterID,
-		FrameworkType:        frameworkType,
-		TotalRequirements:    totalRequirements,
-		ScoredRequirements:   scoredRequirements,
-		TotalScore:           totalScore,
-		MaxPossibleScore:     maxPossibleScore,
-	}
-
-	if overall.MaxPossibleScore > 0 {
-		overall.CompliancePercentage = (overall.TotalScore / overall.MaxPossibleScore) * 100
-		overall.Score = float64(int(overall.CompliancePercentage*100)) / 100
-		if overall.CompliancePercentage == 100 {
-			overall.CompliancePercentage = 99.99
-		}
-	}
-
-	fmt.Println("Compliance Percentage:", overall.CompliancePercentage)
-	fmt.Println("Score (Rounded):", overall.Score)
-
-	// Map to framework range → status (once)
-	if assessment.ComplianceRegister != nil && assessment.ComplianceRegister.ComplianceAssessmentFramework != nil {
-		for _, fv := range assessment.ComplianceRegister.ComplianceAssessmentFramework.Values {
-			if fv != nil && fv.ScoreMin != nil && fv.ScoreMax != nil {
-				min := float64(*fv.ScoreMin)
-				max := float64(*fv.ScoreMax)
-				score := overall.CompliancePercentage
-
-				// For the top band (highest max), include equality
-				if score >= min && (score < max || (score == max && max == 100)) {
-					overall.MappedFrameworkValueID = &fv.ID
-					overall.MappedComplianceStatusID = &fv.ComplianceStatusID
-					break
-				}
+		if overallStatusID != nil {
+			fmt.Printf("Updating register status: RegisterID=%v, StatusID=%v (overall %.2f%%)\n",
+				assessment.ComplianceRegisterID, *overallStatusID, overallPct)
+			if err := cras.repo.UpdateComplianceStatus(assessment.ComplianceRegisterID, *overallStatusID, overallScore, tx...); err != nil {
+				return nil, err
 			}
-
 		}
 	}
-
-	fmt.Printf("Mapped Framework value & status: Value ID=%v, StatusID=%v\n", overall.MappedFrameworkValueID, *overall.MappedComplianceStatusID)
-
-	// Update register status ONCE based on overall mapping
-	if overall.MappedComplianceStatusID != nil {
-		fmt.Printf("Updating compliance status: RegisterID=%v, StatusID=%v\n", overall.ComplianceRegisterID, *overall.MappedComplianceStatusID)
-		if err := cras.repo.UpdateComplianceStatus(overall.ComplianceRegisterID, *overall.MappedComplianceStatusID, tx...); err != nil {
-			return nil, err
-		}
-	}
-
 	fmt.Println("=== End CalculateComplianceScores ===")
-
-	return []*complianceDTOs.ResponsibleUnitComplianceScoreDTO{overall}, nil
+	return results, nil
 }
 
 func (cras ComplianceAssessmentService) GetApprovalStatus(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentApprovalStatusDTO, error) {

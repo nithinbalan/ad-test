@@ -277,7 +277,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	}
 
 	// Calculate the score
-	score, err := crs.calculateComplianceRequirementScore(complianceRequirementFormDTO.ComplianceStatusID, complianceRequirementFormDTO.SeverityLevelID)
+	score, err := crs.calculateComplianceRequirementScore(*complianceRequirementFormDTO.ComplianceStatusID, complianceRequirementFormDTO.SeverityLevelID)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -293,7 +293,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		Deadline:                        dates.Deadline,
 		CreatedByID:                     currentUserID,
 		ComplianceClauseID:              complianceRequirementFormDTO.ComplianceClauseID,
-		Score:                           score,
+		Score:                           float64(score),
 	}
 
 	id, err := crs.repo.Create(complianceRequirement, tx)
@@ -305,7 +305,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	complianceStatusID := complianceRequirementFormDTO.ComplianceStatusID
 	complianceRequirementUpdate := &models.ComplianceRequirementStatusUpdate{
 		ComplianceRequirementID: id,
-		ComplianceStatusID:      complianceStatusID,
+		ComplianceStatusID:      *complianceStatusID,
 		Comment:                 "Initial compliance status",
 		CreatedByID:             currentUserID,
 	}
@@ -569,7 +569,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		return err
 	}
 
-	score, err := crs.calculateComplianceRequirementScore(complianceRequirementFormDTO.ComplianceStatusID, complianceRequirementFormDTO.SeverityLevelID)
+	score, err := crs.calculateComplianceRequirementScore(*complianceRequirementFormDTO.ComplianceStatusID, complianceRequirementFormDTO.SeverityLevelID)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -583,7 +583,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	existingComplianceRequirement.TitleEn = complianceRequirementFormDTO.TitleEn
 	existingComplianceRequirement.TitleAr = complianceRequirementFormDTO.TitleAr
 	existingComplianceRequirement.Deadline = dates.Deadline
-	existingComplianceRequirement.Score = score
+	existingComplianceRequirement.Score = float64(score)
 	existingComplianceRequirement.ResponsibleUserID = currentUserID
 	existingComplianceRequirement.UpdatedByID = &currentUserID
 
@@ -1388,7 +1388,7 @@ func (crs *ComplianceRequirementService) StatusUpdate(complianceID uint, id uint
 		return err
 	}
 
-	existingComplianceRequirement.ComplianceStatusID = complianceStatusID
+	existingComplianceRequirement.ComplianceStatusID = &complianceStatusID
 	existingComplianceRequirement.UpdatedByID = &currentUserID
 
 	err = crs.repo.Update(existingComplianceRequirement, tx)
@@ -1436,7 +1436,7 @@ func (crs *ComplianceRequirementService) validateComplianceRequirementFormDTO(Co
 		return utility.NewValidationError(fmt.Errorf("compliance requirement category does not exist"), "not_exist", "compliance requirement category")
 	}
 
-	if _, err := crs.complianceStatusSvc.GetByID(ComplianceRequirementFormDTO.ComplianceStatusID); err != nil {
+	if _, err := crs.complianceStatusSvc.GetByID(*ComplianceRequirementFormDTO.ComplianceStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("compliance status does not exist"), "not_exist", "compliance status")
 	}
 

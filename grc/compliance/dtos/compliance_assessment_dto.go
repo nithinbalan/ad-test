@@ -168,16 +168,17 @@ type ComplianceScoreSummaryDTO struct {
 }
 
 type ResponsibleUnitComplianceScoreDTO struct {
-	ComplianceRegisterID     uint    `json:"compliance_register_id"`
-	TotalRequirements        int     `json:"total_requirements"`
-	ScoredRequirements       int     `json:"scored_requirements"`
-	TotalScore               float64 `json:"total_score"`
-	MaxPossibleScore         float64 `json:"max_possible_score"`
-	CompliancePercentage     float64 `json:"compliance_percentage"`
-	Score                    float64 `json:"score"`
-	FrameworkType            string  `json:"framework_type"`
-	MappedFrameworkValueID   *uint   `json:"mapped_framework_value_id"`
-	MappedComplianceStatusID *uint   `json:"mapped_compliance_status_id"`
+	ComplianceRegisterID              uint    `json:"compliance_register_id"`
+	ComplianceAssessmentRequirementID uint    `json:"compliance_assessment_requirement_id"`
+	TotalRequirements                 int     `json:"total_requirements"`
+	ScoredRequirements                int     `json:"scored_requirements"`
+	TotalScore                        float64 `json:"total_score"`
+	MaxPossibleScore                  float64 `json:"max_possible_score"`
+	CompliancePercentage              float64 `json:"compliance_percentage"`
+	Score                             float64 `json:"score"`
+	FrameworkType                     string  `json:"framework_type"`
+	MappedFrameworkValueID            *uint   `json:"mapped_framework_value_id"`
+	MappedComplianceStatusID          *uint   `json:"mapped_compliance_status_id"`
 }
 
 type CompletionStatusResponsibleUnitDTO struct {
@@ -208,4 +209,14 @@ type ResponsibleUnitAverageScoreDTO struct {
 type ComplianceAssessmentApprovalStatusDTO struct {
 	AssessmentID uint `json:"assessment_id"`
 	IsApproved   bool `json:"is_approved"`
+}
+type ClauseStatusAggregateDTO struct {
+	TotalCount          int
+	CompliantCount      int
+	PartialCount        int
+	NotImplementedCount int
+}
+type ComplianceRequirementScoreStatusDTO struct {
+	ComplianceStatusID *uint    `json:"compliance_status_id"`
+	Score              *float64 `json:"score"`
 }

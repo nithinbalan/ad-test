@@ -13,13 +13,13 @@ type ComplianceRequirement struct {
 	SeverityLevelID                 uint       `json:"severity_level_id" binding:"omitempty" gorm:"default:null"`
 	ResponsibleUserID               uint       `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	Deadline                        *time.Time `json:"deadline" binding:"omitempty" gorm:"type:date"`
-	ComplianceStatusID              uint       `json:"compliance_status_id" binding:"required" gorm:"not null"`
+	ComplianceStatusID              *uint      `json:"compliance_status_id"`
 	MarkedAsAuditableItem           bool       `json:"marked_as_auditable_item" gorm:"default:false" binding:"-"`
 	CreatedAt                       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                       *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedByID                     uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedByID                     *uint      `json:"updated_by_id" gorm:"default:null"`
-	Score                           int        `json:"score" gorm:"default:0"`
+	Score                           float64    `json:"score" gorm:"type:decimal(10,2);default:0.00"`
 
 	// Relationships
 	ComplianceClause              *ComplianceClause                             `gorm:"foreignKey:ComplianceClauseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
