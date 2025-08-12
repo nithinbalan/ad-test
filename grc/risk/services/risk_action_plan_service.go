@@ -1013,11 +1013,11 @@ func (raps *RiskActionPlanService) ExportRiskActionPlan(data []*riskDTOs.RiskAct
 		var responsibleUser, severity, status string
 
 		if userSetting.Language == "ar" {
-			responsibleUser = actionPlan.ResponsibleUserFirstNameAr
+			responsibleUser = actionPlan.ResponsibleUserFirstNameAr + " " + actionPlan.ResponsibleUserLastNameAr
 			severity = utility.GetStringValue(actionPlan.SeverityLevelTitleAr)
 			status = actionPlan.ActionPlanStatusTitleAr
 		} else {
-			responsibleUser = actionPlan.ResponsibleUserFirstNameEn
+			responsibleUser = actionPlan.ResponsibleUserFirstNameEn + " " + actionPlan.ResponsibleUserLastNameEn
 			severity = utility.GetStringValue(actionPlan.SeverityLevelTitleEn)
 			status = actionPlan.ActionPlanStatusTitleEn
 		}
