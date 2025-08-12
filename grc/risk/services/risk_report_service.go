@@ -156,6 +156,14 @@ func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos
 		return 0, err
 	}
 
+	template, err := rrs.settingSvc.GetFirst()
+	if err != nil {
+		return 0, err
+	}
+
+	if template.CoverPageBGImagePath == nil || template.LogoImagePath == nil {
+		return 0, utility.NewForbiddenError("Logo and Background Image not added.")
+	}
 	// Step 1: Create Risk Report Entry
 	riskReport := &models.RiskReport{
 		Title:       riskReportFormDTO.Title,

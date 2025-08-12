@@ -803,14 +803,14 @@ func (krs *KRIRegisterService) ExportKriRegister(data []*riskDTOs.KRIRegisterLis
 		if userSetting.Language == "ar" {
 			category = kri.KRICategoryTitleAr
 			responsibleUser = kri.ResponsibleUserFirstNameAr + " " + kri.ResponsibleUserLastNameAr
-			unit = *kri.UnitTitleAr
-			riskLevel = *kri.RiskLevelTitleAr
+			unit = utility.GetStringValue(kri.UnitTitleAr)
+			riskLevel = utility.GetStringValue(kri.RiskLevelTitleAr)
 			reviewFrequency = kri.ReviewFrequencyTitleAr
 		} else {
 			category = kri.KRICategoryTitleEn
 			responsibleUser = kri.ResponsibleUserFirstNameEn + " " + kri.ResponsibleUserLastNameEn
-			unit = *kri.UnitTitleEn
-			riskLevel = *kri.RiskLevelTitleEn
+			unit = utility.GetStringValue(kri.UnitTitleEn)
+			riskLevel = utility.GetStringValue(kri.RiskLevelTitleEn)
 			reviewFrequency = kri.ReviewFrequencyTitleEn
 		}
 

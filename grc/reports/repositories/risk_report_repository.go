@@ -154,7 +154,7 @@ func (r *RiskReportRepository) GetRiskByCategory(params *reportDTOs.ReportListQu
 		Select(`risk_categories.id AS risk_category_id,
 				risk_categories.title_en AS risk_category_title_en,
 				risk_categories.title_ar AS risk_category_title_ar,
-				COUNT(risk_register.id) AS count`).
+				COUNT(DISTINCT(risk_register.id)) AS count`).
 		Joins("JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id").
 		Group("risk_categories.id, risk_categories.title_en, risk_categories.title_ar")
 

@@ -13,7 +13,7 @@ type RiskResidualControlAnalysisRepositoryInterface interface {
 	GetAll(riskID uint, params *riskDTOs.RiskControlAnalysisListQueryParamsDTO) ([]*riskDTOs.RiskControlAnalysisListDTO, error)
 	GetByID(id uint) (*models.RiskControlAnalysis, error)
 	GetFullDetailsByID(id uint) (*models.RiskControlAnalysis, error)
-	Create(riskControlAnalysis *models.RiskControlAnalysis) (uint, error)
+	Create(riskControlAnalysis *models.RiskControlAnalysis, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskControlAnalysis *models.RiskControlAnalysis, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GetAllControlsByRiskID(riskID uint) ([]*models.RiskControl, error)
@@ -151,8 +151,12 @@ func (repo *RiskResidualControlAnalysisRepository) GetFullDetailsByID(id uint) (
 	return riskControlAnalysis, nil
 }
 
-func (repo *RiskResidualControlAnalysisRepository) Create(riskControlAnalysis *models.RiskControlAnalysis) (uint, error) {
-	if err := repo.db.Create(riskControlAnalysis).Error; err != nil {
+func (repo *RiskResidualControlAnalysisRepository) Create(riskControlAnalysis *models.RiskControlAnalysis, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(riskControlAnalysis).Error; err != nil {
 		return 0, err
 	}
 

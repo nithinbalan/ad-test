@@ -54,6 +54,10 @@ func (repo *ThirdPartyAssessmentRepository) GetAll(params *thirdPartyDTOs.ThirdP
 			question_sets.title_en AS question_set_title_en,
 			question_sets.title_ar AS question_set_title_ar,
 			third_party_register.title AS third_party_register_title,
+			third_party_assessment_statuses.title_en AS third_party_assessment_status_title_en,
+			third_party_assessment_statuses.title_ar AS third_party_assessment_status_title_ar,
+			third_party_assessment_statuses.type AS third_party_assessment_status_type,
+			third_party_assessment_statuses.color_code AS third_party_assessment_status_color_code,
 			created_user.first_name_en AS created_user_first_name_en,
 			created_user.last_name_en AS created_user_last_name_en,
 			updated_user.first_name_en AS updated_user_first_name_en,
@@ -61,6 +65,7 @@ func (repo *ThirdPartyAssessmentRepository) GetAll(params *thirdPartyDTOs.ThirdP
 		`).
 		Joins("LEFT JOIN third_party_register ON third_party_register.id = third_party_assessments.third_party_register_id").
 		Joins("LEFT JOIN question_sets ON question_sets.id = third_party_assessments.question_set_id").
+		Joins("LEFT JOIN third_party_assessment_statuses ON third_party_assessment_statuses.id = third_party_assessments.third_party_assessment_status_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = third_party_assessments.created_by_id").
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = third_party_assessments.updated_by_id")
 
@@ -76,11 +81,9 @@ func (repo *ThirdPartyAssessmentRepository) GetAll(params *thirdPartyDTOs.ThirdP
 			third_party_assessments.title LIKE ? OR
 			third_party_assessments.reference_number LIKE ? OR
 			third_party_assessments.due_date LIKE ? OR
-	
 			third_party_register.title LIKE ? OR
-	
 			question_sets.title_en LIKE ? OR
-			question_sets.title_ar LIKE ? OR
+			question_sets.title_ar LIKE ?
 		`,
 			likePattern, likePattern,
 			likePattern, likePattern,
