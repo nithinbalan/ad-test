@@ -244,6 +244,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("assets/:id/strategic-objectives", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetAssociatedItemController.CreateAssetStrategicObjective)
 	assetRoutes.DELETE("assets/:id/strategic-objectives/:strategicObjectiveId", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetAssociatedItemController.DeleteAssetStrategicObjective)
 
+	assetRoutes.GET("assets/:id/kpis", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.GetAllAssetKPI)
+	assetRoutes.POST("assets/:id/kpis", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetAssociatedItemController.CreateAssetKPI)
+	assetRoutes.DELETE("assets/:id/kpis/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetAssociatedItemController.DeleteAssetKPI)
+
 	//asset criticality
 	assetRoutes.POST("/asset/criticality-recommendation/ai", assetCriticalityController.GetAIRecommendation)
 	assetRoutes.GET("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetCriticalityController.GetAssetCriticality)

@@ -46,6 +46,9 @@ type AssetAssociatedItemServiceInterface interface {
 	GetAllAssetStrategicObjectives(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
 	CreateAssetStrategicObjective(assetID uint, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
 	DeleteAssetStrategicObjective(assetID uint, strategicObjectiveId uint) error
+	GetAllAssetKPI(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+	CreateAssetKPI(assetID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
+	DeleteAssetKPI(assetID uint, kpiID uint) error
 }
 
 // Service Implementation
@@ -1111,6 +1114,59 @@ func (aais *AssetAssociatedItemService) DeleteAssetStrategicObjective(assetID ui
 	tx := aais.repo.BeginTransaction()
 
 	if err := aais.repo.DeleteAssetStrategicObjective(assetID, strategicObjectiveID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (aais *AssetAssociatedItemService) GetAllAssetKPI(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return nil, err
+	}
+	return aais.repo.GetAllAssetKPI(assetID, params)
+}
+
+func (aais *AssetAssociatedItemService) CreateAssetKPI(assetID, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error {
+
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return err
+	}
+
+	if err := aais.validationSvc.ValidateKPIMapping(assetID, dto.KpiIDs, "kpi_assets", "asset_register_id"); err != nil {
+		return err
+	}
+
+	tx := aais.repo.BeginTransaction()
+	var mappings []*models.KPIAsset
+	currentTime := time.Now()
+
+	for _, KpiID := range dto.KpiIDs {
+		mappings = append(mappings, &models.KPIAsset{
+			KPIRegisterID:   KpiID,
+			AssetRegisterID: assetID,
+			CreatedByID:     userID,
+			CreatedAt:       currentTime,
+		})
+	}
+
+	if err := aais.repo.CreateAssetKPI(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (aais *AssetAssociatedItemService) DeleteAssetKPI(assetID uint, kpiID uint) error {
+	// Validate control existence
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return err
+	}
+
+	tx := aais.repo.BeginTransaction()
+
+	if err := aais.repo.DeleteAssetKPI(assetID, kpiID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
