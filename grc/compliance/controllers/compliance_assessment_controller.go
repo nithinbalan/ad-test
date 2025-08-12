@@ -344,3 +344,26 @@ func (cac *ComplianceAssessmentController) ApproveComplianceAssessment(c *gin.Co
 
 	c.Status(http.StatusOK)
 }
+
+func (cac *ComplianceAssessmentController) GetApprovalStatus(c *gin.Context) {
+	idStr := c.Param("assessmentId")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	status, err := cac.service.GetApprovalStatus(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(cac.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, status)
+}

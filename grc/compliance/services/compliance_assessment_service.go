@@ -34,6 +34,8 @@ type ComplianceAssessmentServiceInterface interface {
 
 	SubmitComplianceAssessment(assessmentID uint, currentUserID uint) error
 	ApproveComplianceAssessment(assessmentID uint, currentUserID uint) error
+
+	GetApprovalStatus(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentApprovalStatusDTO, error)
 }
 
 // Service and implementations
@@ -1212,4 +1214,41 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 	fmt.Println("=== End CalculateComplianceScores ===")
 
 	return []*complianceDTOs.ResponsibleUnitComplianceScoreDTO{overall}, nil
+}
+
+func (cras ComplianceAssessmentService) GetApprovalStatus(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentApprovalStatusDTO, error) {
+
+	model, err := cras.repo.GetFullDetailsByID(id, tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	isApproved := true
+	for _, req := range model.AssessmentRequirements {
+		// No responsible units means not approved
+		if len(req.ResponsibleUnits) == 0 {
+			isApproved = false
+			break
+		}
+
+		for _, ru := range req.ResponsibleUnits {
+			if ru.ComplianceAssessmentRequirementStatus == nil ||
+				ru.ComplianceAssessmentRequirementStatus.Type != "approved" {
+				isApproved = false
+				break
+			}
+		}
+
+		if !isApproved {
+			break
+		}
+	}
+
+	return &complianceDTOs.ComplianceAssessmentApprovalStatusDTO{
+		AssessmentID: id,
+		IsApproved:   isApproved,
+	}, nil
 }

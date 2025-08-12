@@ -204,3 +204,8 @@ type ResponsibleUnitAverageScoreDTO struct {
 	ResponsibleUnitTitleAr string   `json:"responsible_unit_title_ar"`
 	CompliancePercentage   *float64 `json:"compliance_percentage"`
 }
+
+type ComplianceAssessmentApprovalStatusDTO struct {
+	AssessmentID uint `json:"assessment_id"`
+	IsApproved   bool `json:"is_approved"`
+}
