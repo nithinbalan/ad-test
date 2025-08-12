@@ -1845,7 +1845,7 @@ func (rrs *RiskRegisterService) UpdateResponseStrategy(riskID uint, currentUserI
 		}()
 	}
 
-	existingRisk, err := rrs.GetByID(riskID, tx...)
+	existingRisk, err := rrs.GetByID(riskID, transaction)
 	if err != nil {
 		transaction.Rollback()
 		return err
