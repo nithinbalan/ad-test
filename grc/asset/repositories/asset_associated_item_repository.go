@@ -1526,7 +1526,7 @@ func (repo *AssetAssociatedItemRepository) GetAllAssetKPI(assetID uint, params *
 			LEFT JOIN users AS responsible_user ON responsible_user.id = kpi_register.responsible_user_id
 			LEFT JOIN users AS created_user ON created_user.id = kpi_register.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = kpi_register.updated_by_id
-        `).Where("kpi_assets.asset_id = ?", assetID)
+        `).Where("kpi_assets.asset_register_id = ?", assetID)
 
 	// Apply search keyword if exists
 	if params.Keyword != "" {

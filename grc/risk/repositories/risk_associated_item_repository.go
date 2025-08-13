@@ -1283,6 +1283,7 @@ func (repo *RiskAssociatedItemRepository) GetAllRiskKPI(riskID uint, params *com
 	query := repo.db.Table("kpi_risks").
 		Select(`
             kpi_register.*,
+			kpi_risks.kpi_register_id,
 			kpi_categories.title_en AS kpi_category_title_en,
 			kpi_categories.title_ar AS kpi_category_title_ar,
 			CONVERT(VARCHAR, kpi_register.start_date, 23) AS start_date,

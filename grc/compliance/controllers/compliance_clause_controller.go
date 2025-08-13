@@ -1130,5 +1130,5 @@ func (ccc *ComplianceClauseController) DeleteComplianceClausKPI(c *gin.Context) 
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Compliance Clause process  mapping deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Compliance Clause KPI  mapping deleted successfully"})
 }
