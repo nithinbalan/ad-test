@@ -1104,7 +1104,7 @@ func (us *UserService) GetUserPermissions(userID uint, params *settingDTOs.Modul
 }
 
 func (us *UserService) DecodeMaxUsersFromLicense(licenseKey string) (float64, error) {
-	claims, err := utility.DecryptJWTToken(licenseKey)
+	claims, err := utility.DecryptLicenseKey(licenseKey)
 	if err != nil {
 		return 0, err
 	}
@@ -1119,7 +1119,7 @@ func (us *UserService) DecodeMaxUsersFromLicense(licenseKey string) (float64, er
 
 func (us *UserService) validateLicenseKey(id *uint, licenseKey string, userFormDTO *userDTOs.UserFormDTO) error {
 
-	claims, err := utility.DecryptJWTToken(licenseKey)
+	claims, err := utility.DecryptLicenseKey(licenseKey)
 	if err != nil {
 		return err
 	}
