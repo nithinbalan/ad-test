@@ -54,7 +54,7 @@ func (repo *RoleRepository) GetAll(sort string, sortBy string, keyword string, s
 		`)
 
 	if keyword != "" {
-		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
+		query = query.Where("(roles.title_en LIKE ? OR roles.title_ar LIKE ? OR license_types.title_en LIKE ? OR license_types.title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
 	}
 	if sortBy == "" {
 		sortBy = "title_en"
