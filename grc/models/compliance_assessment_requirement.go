@@ -8,7 +8,7 @@ type ComplianceAssessmentRequirement struct {
 	ComplianceRequirementID                 uint       `json:"compliance_requirement_id" binding:"required" gorm:"column:compliance_requirement_id;not null"`
 	ComplianceStatusID                      *uint      `json:"compliance_status_id"`
 	ComplianceAssessmentRequirementStatusID *uint      `json:"compliance_assessment_requirement_status_id" gorm:"default:null"`
-	Score                                   float64    `json:"score" gorm:"type:decimal(10,2);default:0.00"`
+	Score                                   *float64   `json:"score" gorm:"type:decimal(10,2)"`
 	CreatedAt                               time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                               *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedBYID                             uint       `json:"created_by_id" gorm:"not null"`

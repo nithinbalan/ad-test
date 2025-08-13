@@ -34,6 +34,7 @@ type ComplianceRegister struct {
 	LifecycleStatusID               uint       `json:"lifecycle_status_id" gorm:"not null"`
 	ComplianceReviewStatusID        *uint      `json:"compliance_review_status_id" gorm:"default:null"`
 	TotalScore                      int        `json:"total_score" gorm:"default:0"`
+	Score                           *float64   `json:"score" gorm:"type:decimal(10,2)"`
 	ComplianceFolderID              *uint      `json:"compliance_folder_id" binding:"omitempty" gorm:"default:null"`
 	ComplianceAssessmentFrameworkID uint       `json:"compliance_assessment_framework_id" binding:"required" gorm:"not null"`
 

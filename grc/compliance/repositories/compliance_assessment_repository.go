@@ -506,7 +506,7 @@ func (repo *ComplianceAssessmentRepository) UpdateComplianceStatus(complianceReg
 
 	return db.Model(&models.ComplianceRegister{}).
 		Where("id = ?", complianceRegisterID).
-		Update("compliance_status_id", complianceStatusID).Update("total_score", int(score)).Error
+		Update("compliance_status_id", complianceStatusID).Update("score", score).Error
 }
 func (repo *ComplianceAssessmentRepository) UpdateComplianceAssessmentRequirementStatus(assessmentReqID uint, complianceStatusID uint, score float64, tx ...utility.DatabaseTransaction) error {
 	db := repo.db

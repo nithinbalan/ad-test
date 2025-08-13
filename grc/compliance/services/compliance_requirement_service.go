@@ -276,13 +276,6 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		return 0, err
 	}
 
-	// Calculate the score
-	score, err := crs.calculateComplianceRequirementScore(*complianceRequirementFormDTO.ComplianceStatusID, complianceRequirementFormDTO.SeverityLevelID)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-
 	complianceRequirement := &models.ComplianceRequirement{
 		ComplianceRequirementCategoryID: complianceRequirementFormDTO.ComplianceRequirementCategoryID,
 		ComplianceStatusID:              complianceRequirementFormDTO.ComplianceStatusID,
@@ -293,7 +286,6 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		Deadline:                        dates.Deadline,
 		CreatedByID:                     currentUserID,
 		ComplianceClauseID:              complianceRequirementFormDTO.ComplianceClauseID,
-		Score:                           float64(score),
 	}
 
 	id, err := crs.repo.Create(complianceRequirement, tx)
@@ -569,12 +561,6 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		return err
 	}
 
-	score, err := crs.calculateComplianceRequirementScore(*complianceRequirementFormDTO.ComplianceStatusID, complianceRequirementFormDTO.SeverityLevelID)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
 	// Update Compliance Requirement
 	existingComplianceRequirement.ComplianceClauseID = clause.ID
 	existingComplianceRequirement.ComplianceRequirementCategoryID = complianceRequirementFormDTO.ComplianceRequirementCategoryID
@@ -583,7 +569,6 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	existingComplianceRequirement.TitleEn = complianceRequirementFormDTO.TitleEn
 	existingComplianceRequirement.TitleAr = complianceRequirementFormDTO.TitleAr
 	existingComplianceRequirement.Deadline = dates.Deadline
-	existingComplianceRequirement.Score = float64(score)
 	existingComplianceRequirement.ResponsibleUserID = currentUserID
 	existingComplianceRequirement.UpdatedByID = &currentUserID
 

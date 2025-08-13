@@ -35,12 +35,10 @@ type ComplianceAssessmentRequirementListResponseDTO struct {
 }
 
 type ComplianceAssessmentRequirementDetailDTO struct {
-	ID                    int                            `json:"id"`
-	ComplianceAssessment  *ComplianceAssessmentDetailDTO `json:"compliance_assessment"`
-	ComplianceRequirement ComplianceRequirementDetailDTO `json:"compliance_requirement"`
-	// IsCompleted                           bool                                                 `json:"is_completed"`
-	// Score                                 *int                                                 `json:"score"`
-	// Comments                              *string                                              `json:"comments"`
+	ID                                    int                                                  `json:"id"`
+	ComplianceAssessment                  *ComplianceAssessmentDetailDTO                       `json:"compliance_assessment"`
+	ComplianceRequirement                 ComplianceRequirementDetailDTO                       `json:"compliance_requirement"`
+	Score                                 *float64                                             `json:"score"`
 	ComplianceStatusID                    *uint                                                `json:"compliance_status_id"`
 	ComplianceStatus                      *ComplianceStatusDTO                                 `json:"compliance_status"`
 	ComplianceAssessmentRequirementStatus *ComplianceAssessmentRequirementStatusDTO            `json:"compliance_assessment_requirement_status"`

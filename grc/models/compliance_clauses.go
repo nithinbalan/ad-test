@@ -17,7 +17,7 @@ type ComplianceClause struct {
 	ObjectiveEn          *string    `json:"objective_en" gorm:"type:nvarchar(max);default:null"`
 	ObjectiveAr          *string    `json:"objective_ar" gorm:"type:nvarchar(max);default:null"`
 	ComplianceStatusID   *uint      `json:"compliance_status_id"`
-	Score                float64    `json:"score" gorm:"type:decimal(10,2);default:0.00"`
+	Score                *float64   `json:"score" gorm:"type:decimal(10,2)"`
 	CreatedAt            time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt            *time.Time `json:"updated_at" gorm:"type:datetime"`
 	CreatedBYID          uint       `json:"created_by_id" gorm:"not null"`
