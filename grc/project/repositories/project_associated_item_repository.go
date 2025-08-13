@@ -794,13 +794,13 @@ func (repo *ProjectAssociatedItemRepository) CreateProjectKPI(kpis []*models.KPI
 	return db.Create(&kpis).Error
 }
 
-func (repo *ProjectAssociatedItemRepository) DeleteProjectKPI(projectID uint, strategicObjectiveId uint, tx ...utility.DatabaseTransaction) error {
+func (repo *ProjectAssociatedItemRepository) DeleteProjectKPI(projectID uint, kpiRegisterID uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 	return db.
-		Where("strategic_objective_id = ? AND project_id = ?", strategicObjectiveId, projectID).
-		Delete(&models.ProjectStrategicObjective{}).
+		Where("kpi_register_id = ? AND project_id = ?", kpiRegisterID, projectID).
+		Delete(&models.KPIProject{}).
 		Error
 }
