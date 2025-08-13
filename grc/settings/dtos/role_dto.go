@@ -1,17 +1,16 @@
 package dtos
 
-import (
-	masterDTOs "jethur/grc/masters/dtos"
-)
-
 type RoleDTO struct {
-	ID            uint                      `json:"id"`
-	TitleEn       string                    `json:"title_en"`
-	TitleAr       string                    `json:"title_ar"`
-	Status        string                    `json:"status"`
-	IsSuperAdmin  bool                      `json:"is_super_admin"`
-	LicenseTypeID uint                      `json:"license_type_id"`
-	LicenseType   masterDTOs.LicenseTypeDTO `json:"license_type"`
+	ID                   uint   `json:"id"`
+	TitleEn              string `json:"title_en"`
+	TitleAr              string `json:"title_ar"`
+	Status               string `json:"status"`
+	IsSuperAdmin         bool   `json:"is_super_admin"`
+	LicenseTypeID        uint   `json:"license_type_id"`
+	LicenseTypeTitleEn   string `json:"license_type_title_en"`
+	LicenseTypeTitleAr   string `json:"license_type_title_ar"`
+	LicenseTypeType      string `json:"license_type_type"`
+	LicenseTypeColorCode string `json:"license_type_color_code"`
 }
 
 type RolePermissionFormDTO struct {
