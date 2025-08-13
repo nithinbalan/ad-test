@@ -37,8 +37,6 @@ func (daic *DocumentAssociatedItemController) GetAllDocumentControls(c *gin.Cont
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -52,14 +50,12 @@ func (daic *DocumentAssociatedItemController) GetAllDocumentControls(c *gin.Cont
 		return
 	}
 
-	queryParams := documentDTOs.DocumentAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	controls, err := daic.service.GetAllControls(uint(documentID), &queryParams)
 
@@ -471,4 +467,52 @@ func (daic *DocumentAssociatedItemController) DeleteDocumentRisk(c *gin.Context)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Risk unmapped from document successfully"})
+}
+func (daic *DocumentAssociatedItemController) CreateDocumentControl(c *gin.Context) {
+	var input commonDTOs.AssociatedControlMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	documentID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(daic.db, c, err.Error())
+		return
+	}
+
+	err = daic.service.CreateDocumentControl(uint(documentID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(daic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (daic *DocumentAssociatedItemController) DeleteDocumentControl(c *gin.Context) {
+	documentID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+	controlID, _ := strconv.ParseUint(c.Param("controlId"), 10, 64)
+	err := daic.service.DeleteDocumentControl(uint(documentID), uint(controlID))
+	if err != nil {
+		utility.SendInternalErrResp(daic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Control unmapped from document successfully"})
 }

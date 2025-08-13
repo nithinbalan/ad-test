@@ -36,8 +36,6 @@ func (maic *MeetingAssociatedItemController) GetAllMeetingControls(c *gin.Contex
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -51,14 +49,12 @@ func (maic *MeetingAssociatedItemController) GetAllMeetingControls(c *gin.Contex
 		return
 	}
 
-	queryParams := meetingDTOs.MeetingAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	meetings, err := maic.service.GetAllControls(uint(meetingID), &queryParams)
 
@@ -283,7 +279,6 @@ func (maic *MeetingAssociatedItemController) GetAllMeetingDocuments(c *gin.Conte
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	valueStr := c.Query("value")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -297,20 +292,10 @@ func (maic *MeetingAssociatedItemController) GetAllMeetingDocuments(c *gin.Conte
 		return
 	}
 
-	var value int
-	if valueStr != "" {
-		value, err = strconv.Atoi(valueStr)
-		if err != nil {
-			utility.SendInternalErrResp(maic.db, c, "Invalid value parameter")
-			return
-		}
-	}
-
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
-		Value:    value,
 		Page:     page,
 		PageSize: pageSize,
 	}
@@ -378,4 +363,53 @@ func (maic *MeetingAssociatedItemController) DeleteMeetingDocument(c *gin.Contex
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Document unmapped from meeting successfully"})
+}
+
+func (maic *MeetingAssociatedItemController) CreateMeetingControl(c *gin.Context) {
+	var input commonDTOs.AssociatedControlMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	meetingID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, err.Error())
+		return
+	}
+
+	err = maic.service.CreateMeetingControl(uint(meetingID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(maic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (maic *MeetingAssociatedItemController) DeleteMeetingControl(c *gin.Context) {
+	meetingID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+	controlID, _ := strconv.ParseUint(c.Param("controlId"), 10, 64)
+	err := maic.service.DeleteMeetingControl(uint(meetingID), uint(controlID))
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Control unmapped from meeting successfully"})
 }

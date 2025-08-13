@@ -12,7 +12,7 @@ import (
 )
 
 type ProcessAssociatedItemServiceInterface interface {
-	GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error)
+	GetAllControls(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error)
 	GetAllControlsWithPagination(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemControlListResponseDTO, error)
 	GetAllRisks(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllIncidents(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error)
@@ -25,6 +25,8 @@ type ProcessAssociatedItemServiceInterface interface {
 	DeleteProcessRisk(processID uint, riskID uint) error
 	CreateProcessDocument(processID uint, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
 	DeleteProcessDocument(processID uint, riskID uint) error
+	CreateProcessControl(processID uint, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error
+	DeleteProcessControl(processID uint, controlID uint) error
 }
 
 type ProcessAssociatedItemService struct {
@@ -51,7 +53,7 @@ func NewProcessAssociatedItemService(
 	}
 }
 
-func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error) {
+func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error) {
 	if _, err := pais.processSvc.GetByID(processID); err != nil {
 		return nil, err
 	}
@@ -131,16 +133,16 @@ func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params 
 					"id":                                       control.ID,
 					"process_id":                               control.ProcessID,
 					"control_id":                               control.ControlID,
-					"control_reference_number":                 control.ControlReferenceNumber,
-					"control_code":                             control.ControlCode,
-					"control_last_test_date":                   control.ControlLastTestDate,
+					"reference_number":                         control.ControlReferenceNumber,
+					"code":                                     control.ControlCode,
+					"last_test_date":                           control.ControlLastTestDate,
 					"control_category_title_en":                control.ControlCategoryTitleEn,
 					"control_category_title_ar":                control.ControlCategoryTitleAr,
 					"control_type_title_en":                    control.ControlTypeTitleEn,
 					"control_type_title_ar":                    control.ControlTypeTitleAr,
-					"control_title_en":                         control.ControlTitleEn,
-					"control_title_ar":                         control.ControlTitleAr,
-					"control_description":                      control.ControlDescription,
+					"title_en":                                 control.ControlTitleEn,
+					"title_ar":                                 control.ControlTitleAr,
+					"description":                              control.ControlDescription,
 					"control_efficiency_status_title_en":       control.ControlEfficiencyStatusTitleEn,
 					"control_efficiency_status_title_ar":       control.ControlEfficiencyStatusTitleAr,
 					"control_efficiency_status_type":           control.ControlEfficiencyStatusType,
@@ -149,14 +151,40 @@ func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params 
 					"control_implementation_status_title_ar":   control.ControlImplementationStatusTitleAr,
 					"control_implementation_status_type":       control.ControlImplementationStatusType,
 					"control_implementation_status_color_code": control.ControlImplementationStatusColorCode,
-					"control_owner_first_name_en":              control.ControlOwnerFirstNameEn,
-					"control_owner_first_name_ar":              control.ControlOwnerFirstNameAr,
-					"control_owner_last_name_en":               control.ControlOwnerLastNameEn,
-					"control_owner_last_name_ar":               control.ControlOwnerLastNameAr,
-					"control_owner_initial":                    control.ControlOwnerInitial,
-					"control_owner_color":                      control.ControlOwnerColor,
-					"control_owner_email":                      control.ControlOwnerEmail,
-					"control_owner_profile_image_path":         control.ControlOwnerProfileImagePath,
+					"owner_first_name_en":                      control.OwnerFirstNameEn,
+					"owner_first_name_ar":                      control.OwnerFirstNameAr,
+					"owner_last_name_en":                       control.OwnerLastNameEn,
+					"owner_last_name_ar":                       control.OwnerLastNameAr,
+					"owner_initial":                            control.OwnerInitial,
+					"owner_color":                              control.OwnerColor,
+					"owner_email":                              control.OwnerEmail,
+					"owner_profile_image_path":                 control.OwnerProfileImagePath,
+					"objective":                                control.Objective,
+					"test_responsible_user_first_name_en":      control.TestResponsibleUserFirstNameEn,
+					"test_responsible_user_first_name_ar":      control.TestResponsibleUserFirstNameAr,
+					"test_responsible_user_last_name_en":       control.TestResponsibleUserLastNameEn,
+					"test_responsible_user_last_name_ar":       control.TestResponsibleUserLastNameAr,
+					"test_responsible_user_initial":            control.TestResponsibleUserInitial,
+					"test_responsible_user_color":              control.TestResponsibleUserColor,
+					"test_responsible_user_email":              control.TestResponsibleUserEmail,
+					"test_responsible_user_profile_image_path": control.TestResponsibleUserProfileImagePath,
+					"test_responsible_user_id":                 control.TestResponsibleUserID,
+					"implemented_at":                           control.ImplementedAt,
+					"last_review_date":                         control.LastReviewDate,
+					"next_review_date":                         control.NextReviewDate,
+					"last_review_note":                         control.LastReviewNote,
+					"test_frequency_title_en":                  control.TestFrequencyTitleEn,
+					"test_frequency_title_ar":                  control.TestFrequencyTitleAr,
+					"next_test_date":                           control.NextTestDate,
+					"risk_rating_title_en":                     control.RiskRatingTitleEn,
+					"risk_rating_title_ar":                     control.RiskRatingTitleAr,
+					"risk_rating_color_code":                   control.RiskRatingColorCode,
+					"risk_rating_value":                        control.RiskRatingValue,
+					"lifecycle_status_title_en":                control.LifecycleStatusTitleEn,
+					"lifecycle_status_title_ar":                control.LifecycleStatusTitleAr,
+					"lifecycle_status_color_code":              control.LifecycleStatusColorCode,
+					"review_frequency_title_en":                control.ReviewFrequencyTitleEn,
+					"review_frequency_title_ar":                control.ReviewFrequencyTitleAr,
 				}
 				effItem["items"] = append(effItem["items"].([]map[string]interface{}), controlItem)
 			}
@@ -409,6 +437,49 @@ func (pais *ProcessAssociatedItemService) DeleteProcessDocument(processID uint, 
 	tx := pais.repo.BeginTransaction()
 
 	if err := pais.repo.DeleteProcessDocument(processID, documentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *ProcessAssociatedItemService) CreateProcessControl(processID, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error {
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", processID), "not_exist", "process_id")
+	}
+	if err := pais.validationSvc.ValidateControlMapping(processID, dto.ControlIDs, "process_controls", "process_id"); err != nil {
+		return err
+	}
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.ProcessControl
+	currentTime := time.Now()
+
+	for _, controlID := range dto.ControlIDs {
+		mappings = append(mappings, &models.ProcessControl{
+			ControlID:   controlID,
+			ProcessID:   processID,
+			CreatedByID: userID,
+			CreatedAt:   currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateProcessControl(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *ProcessAssociatedItemService) DeleteProcessControl(processID uint, controlID uint) error {
+	// Validate control existence
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", processID), "not_exist", "process_id")
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteProcessControl(processID, controlID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

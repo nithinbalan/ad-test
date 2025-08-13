@@ -20,6 +20,9 @@ type StrategicObjectiveAssociatedItemRepositoryInterface interface {
 	GetAllStrategicObjectiveDocuments(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	CreateStrategicObjectiveDocuments(documents []*models.StrategicObjectiveAssociatedDocument, tx ...utility.DatabaseTransaction) error
 	DeleteStrategicObjectiveDocument(strategicObjectiveID uint, documentID uint, tx ...utility.DatabaseTransaction) error
+	GetAllStrategicObjectivControls(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
+	CreateStrategicObjectiveControl(controls []*models.StrategicObjectiveControl, tx ...utility.DatabaseTransaction) error
+	DeleteStrategicObjectiveControl(strategicObjectiveID uint, controlID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type StrategicObectiveAssociatedItemRepository struct {
@@ -536,5 +539,163 @@ func (repo *StrategicObectiveAssociatedItemRepository) DeleteStrategicObjectiveD
 	return db.
 		Where("document_id = ? AND strategic_objective_id = ?", documentId, strategicObjectiveID).
 		Delete(&models.StrategicObjectiveAssociatedDocument{}).
+		Error
+}
+
+func (repo *StrategicObectiveAssociatedItemRepository) GetAllStrategicObjectivControls(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error) {
+	var controlList []*commonDTOs.AssociatedControlListDTO
+	var totalCount int64
+
+	query := repo.db.Table("strategic_objective_controls").
+		Select(`
+		DISTINCT controls.id AS control_id,
+		controls.*,
+		CONVERT(VARCHAR, controls.last_test_date, 23) AS control_last_test_date,
+		control_types.title_en AS control_type_title_en,
+		control_types.title_ar AS control_type_title_ar,
+		control_categories.title_en AS control_category_title_en,
+		control_categories.title_ar AS control_category_title_ar,
+		organization_units.title_en AS owner_unit_title_en,
+		organization_units.title_ar AS owner_unit_title_ar,
+		owner.id AS owner_id,
+		owner.first_name_en AS owner_first_name_en,
+		owner.first_name_ar AS owner_first_name_ar,
+		owner.last_name_en AS owner_last_name_en,
+		owner.last_name_ar AS owner_last_name_ar,
+		owner.initial AS owner_initial,
+		owner.color AS owner_color,
+		owner.email AS owner_email,
+		owner.profile_image_path AS owner_profile_image_path,
+		review_frequencies.title_en AS review_frequency_title_en,
+		review_frequencies.title_ar AS review_frequency_title_ar,
+		test_responsible_user.id AS test_responsible_user_id,
+		test_responsible_user.first_name_en AS test_responsible_user_first_name_en,
+		test_responsible_user.first_name_ar AS test_responsible_user_first_name_ar,
+		test_responsible_user.last_name_en AS test_responsible_user_last_name_en,
+		test_responsible_user.last_name_ar AS test_responsible_user_last_name_ar,
+		test_responsible_user.initial AS test_responsible_user_initial,
+		test_responsible_user.color AS test_responsible_user_color,
+		test_responsible_user.email AS test_responsible_user_email,
+		test_responsible_user.profile_image_path AS test_responsible_user_profile_image_path,
+		test_frequencies.title_en AS test_frequency_title_en,
+		test_frequencies.title_ar AS test_frequency_title_ar,
+		lifecycle_statuses.title_en AS lifecycle_status_title_en,
+		lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
+		lifecycle_statuses.color_code AS lifecycle_status_color_code,
+		control_implementation_statuses.title_en AS control_implementation_status_title_en,
+		control_implementation_statuses.title_ar AS control_implementation_status_title_ar,
+		control_implementation_statuses.color_code AS control_implementation_status_color_code,
+		control_efficiency_statuses.title_en AS control_efficiency_status_title_en,
+		control_efficiency_statuses.title_ar AS control_efficiency_status_title_ar,
+		control_efficiency_statuses.color_code AS control_efficiency_status_color_code,
+		risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
+		risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
+		risk_matrix_risk_ratings.color_code AS risk_rating_color_code,
+		risk_matrix_risk_rating_values.value AS risk_rating_value,
+		created_user.id AS created_user_id,
+		created_user.first_name_en AS created_user_first_name_en,
+		created_user.first_name_ar AS created_user_first_name_ar,
+		created_user.last_name_en AS created_user_last_name_en,
+		created_user.last_name_ar AS created_user_last_name_ar,
+		created_user.initial AS created_user_initial,
+		created_user.color AS created_user_color,
+		created_user.email AS created_user_email,
+		created_user.profile_image_path AS created_user_profile_image_path
+	`).
+		Joins(`
+		LEFT JOIN controls ON controls.id = strategic_objective_controls.control_id
+		LEFT JOIN control_types ON controls.control_type_id = control_types.id
+		LEFT JOIN control_categories ON controls.control_category_id = control_categories.id
+		LEFT JOIN organization_units ON controls.responsible_unit_id = organization_units.id
+		LEFT JOIN users AS owner ON controls.responsible_user_id = owner.id
+		LEFT JOIN review_frequencies ON controls.review_frequency_id = review_frequencies.id
+		LEFT JOIN users AS test_responsible_user ON controls.test_responsible_user_id = test_responsible_user.id
+		LEFT JOIN review_frequencies AS test_frequencies ON controls.test_frequency_id = test_frequencies.id
+		LEFT JOIN lifecycle_statuses ON controls.lifecycle_status_id = lifecycle_statuses.id
+		LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
+		LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
+		LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = controls.risk_matrix_risk_rating_id
+		LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = controls.risk_matrix_risk_rating_value_id
+		LEFT JOIN users AS created_user ON created_user.id = controls.created_by_id
+	`).Where("strategic_objective_controls.strategic_objective_id = ?", strategicObjectiveID)
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(controls.title_en LIKE ? OR
+			controls.title_ar LIKE ? OR
+			controls.reference_number LIKE ? OR
+			controls.code LIKE ? OR
+			control_categories.title_en LIKE ? OR
+			control_categories.title_ar LIKE ? OR
+			control_types.title_en LIKE ? OR
+			control_types.title_ar LIKE ? OR
+			control_efficiency_statuses.title_en LIKE ? OR
+			control_efficiency_statuses.title_ar LIKE ? OR
+			control_implementation_statuses.title_en LIKE ? OR
+			control_implementation_statuses.title_ar LIKE ? OR
+			owner.first_name_en LIKE ? OR
+			owner.first_name_ar LIKE ? OR
+			owner.last_name_en LIKE ? OR
+			owner.last_name_ar LIKE ? OR
+			owner.email LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "controls.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&controlList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedControlListResponseDTO{
+		Items: controlList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+
+}
+
+func (repo *StrategicObectiveAssociatedItemRepository) CreateStrategicObjectiveControl(controls []*models.StrategicObjectiveControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&controls).Error
+}
+
+func (repo *StrategicObectiveAssociatedItemRepository) DeleteStrategicObjectiveControl(strategicObjectiveID uint, controlId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("control_id = ? AND strategic_objective_id = ?", controlId, strategicObjectiveID).
+		Delete(&models.StrategicObjectiveControl{}).
 		Error
 }

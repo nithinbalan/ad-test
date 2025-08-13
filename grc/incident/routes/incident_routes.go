@@ -150,6 +150,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.POST("/incidents/:incidentID/documents", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentAssociatedItemController.CreateIncidentDocument)
 	incidentRoutes.DELETE("/incidents/:incidentID/documents/:documentId", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentAssociatedItemController.DeleteIncidentDocument)
 
+	incidentRoutes.POST("/incidents/:incidentID/controls", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentAssociatedItemController.CreateIncidentControl)
+	incidentRoutes.DELETE("/incidents/:incidentID/controls/:controlId", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentAssociatedItemController.DeleteIncidentControl)
+
 	//Incident timelines
 	incidentRoutes.GET("/incidents/:incidentID/timelines", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentTimelineController.GetAllIncidentTimelines)
 

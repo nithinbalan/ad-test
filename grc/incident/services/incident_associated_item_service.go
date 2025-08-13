@@ -13,7 +13,7 @@ import (
 )
 
 type IncidentAssociatedItemServiceInterface interface {
-	GetAllControls(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemControlListResponseDTO, error)
+	GetAllControls(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	GetAllComplianceRequirements(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemComplianceRequirementListResponseDTO, error)
 	GetAllRisks(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllProcesses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemProcessListResponseDTO, error)
@@ -26,6 +26,8 @@ type IncidentAssociatedItemServiceInterface interface {
 	DeleteIncidentRisk(incidentID uint, riskID uint) error
 	CreateIncidentDocument(incidentID uint, currentUserID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
 	DeleteIncidentDocument(incidentID uint, documentID uint) error
+	CreateIncidentControl(incidentID uint, currentUserID uint, dto *commonDTOs.AssociatedControlMapDTO) error
+	DeleteIncidentControl(incidentID uint, controlID uint) error
 }
 
 // Service and implementations
@@ -51,7 +53,7 @@ func NewIncidentAssociatedItemService(
 	}
 }
 
-func (iais *IncidentAssociatedItemService) GetAllControls(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemControlListResponseDTO, error) {
+func (iais *IncidentAssociatedItemService) GetAllControls(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error) {
 	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return nil, err
 	}
@@ -291,6 +293,48 @@ func (iais *IncidentAssociatedItemService) DeleteIncidentDocument(incidentID uin
 	tx := iais.repo.BeginTransaction()
 
 	if err := iais.repo.DeleteIncidentDocument(incidentID, documentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+func (iais *IncidentAssociatedItemService) CreateIncidentControl(incidentID, currentUserID uint, dto *commonDTOs.AssociatedControlMapDTO) error {
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
+	}
+	if err := iais.validationSvc.ValidateControlMapping(incidentID, dto.ControlIDs, "incident_controls", "incident_register_id"); err != nil {
+		return err
+	}
+	tx := iais.repo.BeginTransaction()
+	var mappings []*models.IncidentControl
+	currentTime := time.Now()
+
+	for _, controlID := range dto.ControlIDs {
+		mappings = append(mappings, &models.IncidentControl{
+			ControlID:          controlID,
+			IncidentRegisterID: incidentID,
+			CreatedByID:        currentUserID,
+			CreatedAt:          currentTime,
+		})
+	}
+
+	if err := iais.repo.CreateIncidentControl(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (iais *IncidentAssociatedItemService) DeleteIncidentControl(incidentID uint, controlID uint) error {
+	// Validate control existence
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
+	}
+
+	tx := iais.repo.BeginTransaction()
+
+	if err := iais.repo.DeleteIncidentControl(incidentID, controlID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

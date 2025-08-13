@@ -296,6 +296,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/processes/:processId/documents", middlewares.RolePermissionMiddleware(db, "processes", "modify"), processAssociatedItemController.CreateProcessDocument)
 	organizationRoutes.DELETE("/processes/:processId/documents/:documentId", middlewares.RolePermissionMiddleware(db, "processes", "modify"), processAssociatedItemController.DeleteProcessDocument)
 
+	organizationRoutes.POST("/processes/:processId/controls", middlewares.RolePermissionMiddleware(db, "processes", "modify"), processAssociatedItemController.CreateProcessControl)
+	organizationRoutes.DELETE("/processes/:processId/controls/:controlId", middlewares.RolePermissionMiddleware(db, "processes", "modify"), processAssociatedItemController.DeleteProcessControl)
+
 	// process dependency type
 	organizationRoutes.GET("/process-dependency-types", processDependencyTypeController.GetAllProcessDependencyTypes)
 	organizationRoutes.GET("/process-dependency-types/:id", processDependencyTypeController.GetProcessDependencyTypeDetails)

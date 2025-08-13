@@ -36,8 +36,6 @@ func (kaic *KPIAssociatedItemController) GetAllKPIControls(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -51,14 +49,12 @@ func (kaic *KPIAssociatedItemController) GetAllKPIControls(c *gin.Context) {
 		return
 	}
 
-	queryParams := strategyDTOs.KPIAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	controls, err := kaic.service.GetAllControls(uint(kpiId), &queryParams)
 
@@ -79,7 +75,7 @@ func (kaic *KPIAssociatedItemController) GetAllKPIControls(c *gin.Context) {
 }
 
 func (kaic *KPIAssociatedItemController) CreateKPIControls(c *gin.Context) {
-	var input strategyDTOs.KPIControlMapDTO
+	var input commonDTOs.AssociatedControlMapDTO
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return

@@ -14,7 +14,7 @@ import (
 
 // Service Interface
 type DocumentAssociatedItemServiceInterface interface {
-	GetAllControls(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemControlListResponseDTO, error)
+	GetAllControls(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	GetAllComplianceRequirements(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemComplianceRequirementListResponseDTO, error)
 	GetAllProcesses(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemProcessListResponseDTO, error)
 	GetAllSLAs(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemSLAListResponseDTO, error)
@@ -24,6 +24,8 @@ type DocumentAssociatedItemServiceInterface interface {
 	UpdateClauses(documentID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 	CreateDocumentRisk(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
 	DeleteDocumentRisk(documentID uint, riskID uint) error
+	CreateDocumentControl(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedControlMapDTO) error
+	DeleteDocumentControl(documentID uint, controlID uint) error
 }
 
 // Service Implementation
@@ -46,7 +48,7 @@ func NewDocumentAssociatedItemService(
 	}
 }
 
-func (dais *DocumentAssociatedItemService) GetAllControls(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemControlListResponseDTO, error) {
+func (dais *DocumentAssociatedItemService) GetAllControls(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error) {
 	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
 		return nil, err
 	}
@@ -290,6 +292,48 @@ func (dais *DocumentAssociatedItemService) DeleteDocumentRisk(documentID uint, r
 	tx := dais.repo.BeginTransaction()
 
 	if err := dais.repo.DeleteDocumentRisk(documentID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+func (dais *DocumentAssociatedItemService) CreateDocumentControl(documentID, currentUserID uint, dto *commonDTOs.AssociatedControlMapDTO) error {
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", documentID), "not_exist", "document_id")
+	}
+	if err := dais.validationSvc.ValidateControlMapping(documentID, dto.ControlIDs, "control_associated_documents", "document_id"); err != nil {
+		return err
+	}
+	tx := dais.repo.BeginTransaction()
+	var mappings []*models.ControlAssociatedDocument
+	currentTime := time.Now()
+
+	for _, controlID := range dto.ControlIDs {
+		mappings = append(mappings, &models.ControlAssociatedDocument{
+			ControlID:   controlID,
+			DocumentID:  documentID,
+			CreatedByID: currentUserID,
+			CreatedAt:   currentTime,
+		})
+	}
+
+	if err := dais.repo.CreateDocumentControl(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) DeleteDocumentControl(documentID uint, controlID uint) error {
+	// Validate control existence
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", documentID), "not_exist", "document_id")
+	}
+
+	tx := dais.repo.BeginTransaction()
+
+	if err := dais.repo.DeleteDocumentControl(documentID, controlID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
