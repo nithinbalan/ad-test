@@ -23,6 +23,9 @@ type ProjectAssociatedItemServiceInterface interface {
 	GetAllProjectStrategicObjectives(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
 	CreateProjectStrategicObjective(projectID uint, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
 	DeleteProjectStrategicObjective(projectID uint, strategicObjectiveId uint) error
+	GetAllProjectKPI(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+	CreateProjectKPI(projectID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
+	DeleteProjectKPI(projectID uint, kpiID uint) error
 }
 
 // Service and implementations
@@ -247,6 +250,59 @@ func (pais *ProjectAssociatedItemService) DeleteProjectStrategicObjective(projec
 	tx := pais.repo.BeginTransaction()
 
 	if err := pais.repo.DeleteProjectStrategicObjective(projectID, strategicObjectiveId, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *ProjectAssociatedItemService) GetAllProjectKPI(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+	if _, err := pais.projectSvc.GetByID(projectID); err != nil {
+		return nil, err
+	}
+	return pais.repo.GetAllProjectKPI(projectID, params)
+}
+
+func (pais *ProjectAssociatedItemService) CreateProjectKPI(projectID, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error {
+
+	if _, err := pais.projectSvc.GetByID(projectID); err != nil {
+		return err
+	}
+
+	if err := pais.validationSvc.ValidateKPIMapping(projectID, dto.KpiIDs, "kpi_projects", "project_id"); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.KPIProject
+	currentTime := time.Now()
+
+	for _, KpiID := range dto.KpiIDs {
+		mappings = append(mappings, &models.KPIProject{
+			KPIRegisterID: KpiID,
+			ProjectID:     projectID,
+			CreatedByID:   userID,
+			CreatedAt:     currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateProjectKPI(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *ProjectAssociatedItemService) DeleteProjectKPI(projectID uint, kpiID uint) error {
+	// Validate control existence
+	if _, err := pais.projectSvc.GetByID(projectID); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteProjectKPI(projectID, kpiID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
