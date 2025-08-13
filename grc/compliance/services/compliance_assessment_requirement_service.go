@@ -158,7 +158,8 @@ func (cars ComplianceAssessmentRequirementService) GetFullDetailsByID(assessment
 	if err != nil {
 		return nil, err
 	}
-
+	allCompleted := true
+	allApproved := true
 	var filteredResponsibleUnits []*complianceDTOs.ComplianceAssessmentRequirementResponsibleUnitDTO
 	// If responsibleUnitID is provided, filter to return only that specific responsibleUnit
 	for _, responsibleUnit := range complianceAssessmentRequirementDTO.ResponsibleUnits {
@@ -167,9 +168,15 @@ func (cars ComplianceAssessmentRequirementService) GetFullDetailsByID(assessment
 			break // Only one responsibleUnit should match
 		}
 	}
+
 	// ✅ iterate over each responsible unit
 	for i, ru := range complianceAssessment.ResponsibleUnits {
-
+		if !ru.IsCompleted {
+			allCompleted = false
+		}
+		if ru.ComplianceAssessmentRequirementStatusID == nil || ru.ComplianceAssessmentRequirementStatus.Type != "approved" {
+			allApproved = false
+		}
 		// Add TargetDate to each action plan
 		for j, actionPlan := range ru.ActionPlans {
 			if actionPlan.TargetDate != nil {
@@ -197,7 +204,8 @@ func (cars ComplianceAssessmentRequirementService) GetFullDetailsByID(assessment
 		complianceAssessmentRequirementDTO.ResponsibleUnit = filteredResponsibleUnits[0]
 		complianceAssessmentRequirementDTO.CompletedByUser = filteredResponsibleUnits[0].CompletedByUser
 	}
-
+	complianceAssessmentRequirementDTO.IsAllCompleted = allCompleted
+	complianceAssessmentRequirementDTO.IsAllApproved = allApproved
 	complianceAssessmentRequirementDTO.CreatedAt = complianceAssessment.CreatedAt
 	complianceAssessmentRequirementDTO.UpdatedAt = complianceAssessment.UpdatedAt
 	// todo :- also add extra fields which required in details screen
