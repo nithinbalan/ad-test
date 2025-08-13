@@ -241,6 +241,7 @@ func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requir
 		Preload("ResponsibleUnits.ActionPlans.ReviewUser").
 		Preload("ResponsibleUnits.ActionPlans.ActionPlanStatus").
 		Preload("ResponsibleUnits.RequirementComments").
+		Preload("ResponsibleUnits.RequirementComments.ComplianceAssessmentRequirementStatus").
 		Preload("ResponsibleUnits.RequirementComments.CreatedByUser")
 
 	if err := query.First(&car, requirementId).Error; err != nil {
