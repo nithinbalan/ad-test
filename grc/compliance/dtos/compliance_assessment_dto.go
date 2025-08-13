@@ -188,6 +188,7 @@ type ResponsibleUnitComplianceScoreDTO struct {
 	FrameworkType                     string  `json:"framework_type"`
 	MappedFrameworkValueID            *uint   `json:"mapped_framework_value_id"`
 	MappedComplianceStatusID          *uint   `json:"mapped_compliance_status_id"`
+	ComplianceClauseID                uint    `json:"compliance_clause_id"`
 }
 
 type CompletionStatusResponsibleUnitDTO struct {

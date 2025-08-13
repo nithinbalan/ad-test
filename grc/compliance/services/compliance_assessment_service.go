@@ -774,10 +774,6 @@ func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentI
 		return err
 	}
 
-	if err := cras.UpdateClauseStatusesFromScores(assessmentID, reqEval, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
 	tx.Commit()
 	go func() {
 		err := cras.activityLogSvc.LogActivity(
@@ -1023,7 +1019,19 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 	if err != nil {
 		return nil, err
 	}
-
+	// Canonical status ids for clause roll-up
+	compliant, err := cras.complianceStatusSvc.GetByType("compliant")
+	if err != nil {
+		return nil, err
+	}
+	partial, err := cras.complianceStatusSvc.GetByType("partially_compliant")
+	if err != nil {
+		return nil, err
+	}
+	notImpl, err := cras.complianceStatusSvc.GetByType("not_implemented")
+	if err != nil {
+		return nil, err
+	}
 	fmt.Println("=== CalculateComplianceScores Debug ===")
 
 	frameworkType := ""
@@ -1072,12 +1080,20 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 
 	// Map to track responsibleUnit scores
 	responsibleUnitScores := make(map[uint]*complianceDTOs.ResponsibleUnitComplianceScoreDTO)
+	reqClause := make(map[uint]uint)
 
 	// Walk all requirement-responsibleUnit rows and accumulate globally
 	for _, req := range assessment.AssessmentRequirements {
+		if req.ComplianceRequirement != nil {
+			reqClause[req.ID] = req.ComplianceRequirement.ComplianceClauseID
+		}
+		ComplianceClauseID := req.ComplianceRequirement.ComplianceClauseID
+		fmt.Println("ComplianceClauseID ID----:", ComplianceClauseID)
+
 		for _, ru := range req.ResponsibleUnits {
 
 			complianceAssessmentRequirementID := ru.ComplianceAssessmentRequirementID
+
 			fmt.Println("complianceAssessmentRequirement ID:", complianceAssessmentRequirementID)
 			if responsibleUnitScores[complianceAssessmentRequirementID] == nil {
 				responsibleUnitScores[complianceAssessmentRequirementID] = &complianceDTOs.ResponsibleUnitComplianceScoreDTO{
@@ -1085,6 +1101,9 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 					ComplianceAssessmentRequirementID: complianceAssessmentRequirementID,
 					FrameworkType:                     frameworkType,
 				}
+			}
+			if responsibleUnitScores[complianceAssessmentRequirementID].ComplianceClauseID == 0 {
+				responsibleUnitScores[complianceAssessmentRequirementID].ComplianceClauseID = ComplianceClauseID
 			}
 			isApplicable := true
 			fmt.Println("isApplicable:", ru.ComplianceAssessmentFrameworkValue.IsApplicable)
@@ -1128,6 +1147,14 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 		}
 	}
 
+	type clauseAgg struct{ total, compliant, partial, notImpl int }
+	type clauseScoreAgg struct {
+		sum   float64
+		count int
+	}
+	clauseCounts := make(map[uint]*clauseAgg)      // clauseID -> counts
+	clauseScores := make(map[uint]*clauseScoreAgg) // clauseID -> score sum/count
+
 	// Calculate final percentages and statuses for each responsibleUnit
 	var results []*complianceDTOs.ResponsibleUnitComplianceScoreDTO
 	for _, responsibleUnitScore := range responsibleUnitScores {
@@ -1170,47 +1197,118 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 				return nil, err
 			}
 		}
-	}
-	// ---- OVERALL (Compliance register) score from per-requirement buckets ----
-	var overallTotal, overallMax float64
-	for _, s := range responsibleUnitScores {
-		overallTotal += s.TotalScore
-		overallMax += s.MaxPossibleScore
-	}
-	fmt.Printf("overallMax=%v, overallTotal=%v\n", overallMax, overallTotal)
+		// Collect for clause roll-up
+		if clauseID, ok := reqClause[responsibleUnitScore.ComplianceAssessmentRequirementID]; ok && clauseID != 0 {
+			if clauseCounts[clauseID] == nil {
+				clauseCounts[clauseID] = &clauseAgg{}
+			}
+			if clauseScores[clauseID] == nil {
+				clauseScores[clauseID] = &clauseScoreAgg{}
+			}
 
-	if overallMax > 0 {
-		overallPct := (overallTotal / overallMax) * 100.0
-		// match your top-band logic
+			cc := clauseCounts[clauseID]
+			cs := clauseScores[clauseID]
+
+			cc.total++
+			switch {
+			case responsibleUnitScore.MappedComplianceStatusID == nil:
+				cc.notImpl++
+			case *responsibleUnitScore.MappedComplianceStatusID == compliant.ID:
+				cc.compliant++
+			case *responsibleUnitScore.MappedComplianceStatusID == partial.ID:
+				cc.partial++
+			case *responsibleUnitScore.MappedComplianceStatusID == notImpl.ID:
+				cc.notImpl++
+			default:
+				cc.partial++
+			}
+
+			// Score: use AR score (0–100). Treat missing as 0 and still count.
+			cs.count++
+			cs.sum += responsibleUnitScore.Score
+		}
+	}
+
+	// Persist clause status + average score (one update per clause)
+	// --- before clause loop: keep as-is ---
+	// clauseCounts, clauseScores already exist
+
+	// NEW: collect clause averages
+	clauseAverages := make([]float64, 0)
+	var (
+		clausesTotal     int
+		clausesCompliant int
+		clausesPartial   int
+		clausesNotImpl   int
+	)
+	// ========= OVERALL CLAUSE SCORE(based on REQ AVERAGES) =========
+	// ---- persist clause status + average score (one update per clause) ----
+	for clauseID, cc := range clauseCounts {
+		// decide clause status (same logic)
+		var setStatusID uint
+		switch {
+		case cc.partial > 0:
+			setStatusID = partial.ID
+			clausesPartial++
+		case cc.total > 0 && cc.compliant == cc.total:
+			setStatusID = compliant.ID
+			clausesCompliant++
+		case cc.total > 0 && cc.notImpl == cc.total:
+			setStatusID = notImpl.ID
+			clausesNotImpl++
+		default:
+			setStatusID = partial.ID
+			clausesPartial++
+		}
+		clausesTotal++
+		// average score (0–100), 2 dp
+		cs := clauseScores[clauseID]
+		avg := 0.0
+		if cs != nil && cs.count > 0 {
+			avg = cs.sum / float64(cs.count)
+			avg = math.Round(avg*100) / 100
+		}
+
+		// persist clause status + score
+		if err := cras.repo.UpdateClauseComplianceStatus(clauseID, setStatusID, avg, tx...); err != nil {
+			return nil, err
+		}
+
+		// collect avg for overall
+		clauseAverages = append(clauseAverages, avg)
+	}
+
+	// ========= OVERALL COMPLIANCE SCORE(based on CLAUSE AVERAGES) =========
+	if clausesTotal > 0 {
+		// overall score
+		var sum float64
+		for _, v := range clauseAverages {
+			sum += v
+		}
+		overallPct := sum / float64(len(clauseAverages)) // already 0–100
 		if overallPct == 100 {
 			overallPct = 99.99
 		}
 		overallScore := float64(int(overallPct*100)) / 100
 
-		// map overall % -> framework value -> compliance status
-		var overallStatusID *uint
-		if assessment.ComplianceRegister != nil && assessment.ComplianceRegister.ComplianceAssessmentFramework != nil {
-			for _, fv := range assessment.ComplianceRegister.ComplianceAssessmentFramework.Values {
-				if fv != nil && fv.ScoreMin != nil && fv.ScoreMax != nil {
-					min := float64(*fv.ScoreMin)
-					max := float64(*fv.ScoreMax)
-					if overallPct >= min && (overallPct < max || (overallPct == max && max == 100)) {
-						overallStatusID = &fv.ComplianceStatusID
-						break
-					}
-				}
-			}
+		// overall status (mirror clause logic)
+		var overallStatusID uint
+		switch {
+		case clausesPartial > 0:
+			overallStatusID = partial.ID
+		case clausesCompliant == clausesTotal:
+			overallStatusID = compliant.ID
+		case clausesNotImpl == clausesTotal:
+			overallStatusID = notImpl.ID
+		default:
+			overallStatusID = partial.ID
 		}
-		fmt.Printf("Overall Perctage=%v", overallPct)
 
-		if overallStatusID != nil {
-			fmt.Printf("Updating register status: RegisterID=%v, StatusID=%v (overall %.2f%%)\n",
-				assessment.ComplianceRegisterID, *overallStatusID, overallPct)
-			if err := cras.repo.UpdateComplianceStatus(assessment.ComplianceRegisterID, *overallStatusID, overallScore, tx...); err != nil {
-				return nil, err
-			}
+		if err := cras.repo.UpdateComplianceStatus(assessment.ComplianceRegisterID, overallStatusID, overallScore, tx...); err != nil {
+			return nil, err
 		}
 	}
+
 	fmt.Println("=== End CalculateComplianceScores ===")
 	return results, nil
 }
