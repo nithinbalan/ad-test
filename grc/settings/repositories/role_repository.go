@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"jethur/grc/models"
+	"jethur/grc/settings/dtos"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -9,7 +10,7 @@ import (
 
 type RoleRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(sort string, sortBy string, keyword string, status string, licenseTypeID string) ([]*models.Role, error)
+	GetAll(sort string, sortBy string, keyword string, status string, licenseTypeID string) ([]*dtos.RoleDTO, error)
 	GetByID(id uint) (*models.Role, error)
 	Create(role *models.Role) (*models.Role, error)
 	Update(id uint, role *models.Role) (*models.Role, error)
@@ -42,10 +43,15 @@ func (repo *RoleRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *RoleRepository) GetAll(sort string, sortBy string, keyword string, status string, licenseTypeID string) ([]*models.Role, error) {
-	var roles []*models.Role
+func (repo *RoleRepository) GetAll(sort string, sortBy string, keyword string, status string, licenseTypeID string) ([]*dtos.RoleDTO, error) {
+	var roles []*dtos.RoleDTO
 
-	query := repo.db
+	query := repo.db.Table("roles").
+		Select(`
+            roles.*, license_types.title_en as license_type_title_en, license_types.title_ar as license_type_title_ar, license_types.type as license_type_type, license_types.color_code as license_type_color_code`).
+		Joins(`
+		    LEFT JOIN license_types ON license_types.id = roles.license_type_id
+		`)
 
 	if keyword != "" {
 		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")

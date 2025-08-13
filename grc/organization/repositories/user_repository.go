@@ -49,7 +49,9 @@ type UserRepositoryInterface interface {
 
 	GetPermissionsForModule(roleID, moduleID uint) (map[string]bool, error)
 	GetUserRoles(userID uint) ([]models.UserRole, error)
+	GetTotalActiveUserCount() (int64, error)
 	GetActiveUserCount() (int64, error)
+	GetPassiveUserCount() (int64, error)
 
 	UpdateUserPrimaryDepartment(userID, orgUnitID uint, fields map[string]*uint, tx ...utility.DatabaseTransaction) error
 	UpdateResponsibleUnits(userID, newDepartmentID uint, tx ...utility.DatabaseTransaction) error
@@ -776,11 +778,37 @@ func (repo *UserRepository) GetUserRoles(userID uint) ([]models.UserRole, error)
 	return userRoles, nil
 }
 
-func (repo *UserRepository) GetActiveUserCount() (int64, error) {
+func (repo *UserRepository) GetTotalActiveUserCount() (int64, error) {
 	var count int64
 	err := repo.db.Model(&models.User{}).
 		Joins("JOIN user_statuses ON user_statuses.id = users.user_status_id").
 		Where("user_statuses.is_active = ?", true).
+		Count(&count).
+		Error
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (repo *UserRepository) GetActiveUserCount() (int64, error) {
+	var count int64
+	err := repo.db.Model(&models.User{}).
+		Joins("JOIN license_types ON license_types.id = users.license_type_id").
+		Where("license_types.type = 'active'").
+		Count(&count).
+		Error
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (repo *UserRepository) GetPassiveUserCount() (int64, error) {
+	var count int64
+	err := repo.db.Model(&models.User{}).
+		Joins("JOIN license_types ON license_types.id = users.license_type_id").
+		Where("license_types.type = 'passive'").
 		Count(&count).
 		Error
 	if err != nil {

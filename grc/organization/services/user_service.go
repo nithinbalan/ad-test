@@ -288,7 +288,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 
 	if systemPreference != nil && systemPreference.LicenseKeyDetails != nil {
 		if systemPreference.LicenseKeyDetails.LicenseKey != nil && *systemPreference.LicenseKeyDetails.LicenseKey != "" {
-			if err := us.validateLicenseKey(*systemPreference.LicenseKeyDetails.LicenseKey); err != nil {
+			if err := us.validateLicenseKey(*systemPreference.LicenseKeyDetails.LicenseKey, userFormDTO); err != nil {
 				return 0, err
 			}
 		}
@@ -1085,7 +1085,7 @@ func (us *UserService) DecodeMaxUsersFromLicense(licenseKey string) (float64, er
 	return maxUsers, nil
 }
 
-func (us *UserService) validateLicenseKey(licenseKey string) error {
+func (us *UserService) validateLicenseKey(licenseKey string, userFormDTO *userDTOs.UserFormDTO) error {
 
 	claims, err := utility.DecryptJWTToken(licenseKey)
 	if err != nil {
@@ -1097,16 +1097,66 @@ func (us *UserService) validateLicenseKey(licenseKey string) error {
 		return fmt.Errorf("max_users field missing in license key")
 	}
 
-	activeUsers, err := us.repo.GetActiveUserCount()
+	maxActiveUsers, ok := claims["active_users"].(float64) // JWT numbers are float64
+	if !ok {
+		return fmt.Errorf("active_users field missing in license key")
+	}
+
+	maxPassiveUsers, ok := claims["passive_users"].(float64) // JWT numbers are float64
+	if !ok {
+		return fmt.Errorf("passive_users field missing in license key")
+	}
+
+	totalActiveUserCount, err := us.repo.GetActiveUserCount()
 	if err != nil {
 		return err
 	}
 
-	if activeUsers >= int64(maxUsers) {
+	totalPassiveUserCount, err := us.repo.GetPassiveUserCount()
+	if err != nil {
+		return err
+	}
+
+	activeLicenseType, err := us.licenseTypeSvc.GetByType("active")
+	if err != nil {
+		return err
+	}
+
+	passiveLicenseType, err := us.licenseTypeSvc.GetByType("passive")
+	if err != nil {
+		return err
+	}
+
+	if *userFormDTO.LicenseTypeID == activeLicenseType.ID {
+		if totalActiveUserCount >= int64(maxActiveUsers) {
+			return utility.NewValidationError(
+				fmt.Errorf("maximum allowed active users limit reached (%d users)", int64(maxUsers)),
+				"user_exceed",
+				"active",
+			)
+		}
+	}
+
+	if *userFormDTO.LicenseTypeID == passiveLicenseType.ID {
+		if totalPassiveUserCount >= int64(maxPassiveUsers) {
+			return utility.NewValidationError(
+				fmt.Errorf("maximum allowed passive users limit reached (%d users)", int64(maxUsers)),
+				"user_exceed",
+				"passive",
+			)
+		}
+	}
+
+	totalActiveUsers, err := us.repo.GetTotalActiveUserCount()
+	if err != nil {
+		return err
+	}
+
+	if totalActiveUsers >= int64(maxUsers) {
 		return utility.NewValidationError(
 			fmt.Errorf("maximum allowed users limit reached (%d users)", int64(maxUsers)),
 			"user_exceed",
-			"user",
+			"total user",
 		)
 	}
 
