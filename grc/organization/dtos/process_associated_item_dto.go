@@ -29,15 +29,15 @@ type ProcessControlListDTO struct {
 	ControlImplementationStatusColorCode string     `json:"control_implementation_status_color_code"`
 	ControlOwnerUnitTitleEn              *string    `json:"control_owner_unit_title_en"`
 	ControlOwnerUnitTitleAr              *string    `json:"control_owner_unit_title_ar"`
-	ControlOwnerID                       *uint      `json:"control_owner_id"`
-	ControlOwnerFirstNameEn              *string    `json:"control_owner_first_name_en"`
-	ControlOwnerFirstNameAr              *string    `json:"control_owner_first_name_ar"`
-	ControlOwnerLastNameEn               *string    `json:"control_owner_last_name_en"`
-	ControlOwnerLastNameAr               *string    `json:"control_owner_last_name_ar"`
-	ControlOwnerInitial                  string     `json:"control_owner_initial"`
-	ControlOwnerColor                    string     `json:"control_owner_color"`
-	ControlOwnerEmail                    string     `json:"control_owner_email"`
-	ControlOwnerProfileImagePath         string     `json:"control_owner_profile_image_path"`
+	OwnerID                              *uint      `json:"owner_id"`
+	OwnerFirstNameEn                     *string    `json:"owner_first_name_en"`
+	OwnerFirstNameAr                     *string    `json:"owner_first_name_ar"`
+	OwnerLastNameEn                      *string    `json:"owner_last_name_en"`
+	OwnerLastNameAr                      *string    `json:"owner_last_name_ar"`
+	OwnerInitial                         string     `json:"owner_initial"`
+	OwnerColor                           string     `json:"owner_color"`
+	OwnerEmail                           string     `json:"owner_email"`
+	OwnerProfileImagePath                string     `json:"owner_profile_image_path"`
 	Objective                            *string    `json:"objective"`
 	TestResponsibleUserFirstNameEn       string     `json:"test_responsible_user_first_name_en"`
 	TestResponsibleUserFirstNameAr       string     `json:"test_responsible_user_first_name_ar"`
