@@ -777,10 +777,6 @@ func (repo *KPIAssociatedItemRepository) GetAllRisks(kpiID uint, params *commonD
             LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
 		`).Where("kpi_risks.kpi_register_id = ?", kpiID)
 
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
@@ -803,10 +799,6 @@ func (repo *KPIAssociatedItemRepository) GetAllRisks(kpiID uint, params *commonD
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
-	if params.Value != 0 {
-		query = query.Where("risk_matrix_risk_rating_values.value = ?", params.Value)
-	}
-
 	if params.SortBy == "" {
 		params.SortBy = "risk_register.title"
 	}
@@ -818,6 +810,14 @@ func (repo *KPIAssociatedItemRepository) GetAllRisks(kpiID uint, params *commonD
 		if len(values) > 0 {
 			query = query.Where(columnName+" IN (?)", values)
 		}
+	}
+
+	if params.Value != 0 {
+		query = query.Where("current_risk_rating_value.value = ?", params.Value)
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)

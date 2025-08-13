@@ -315,10 +315,6 @@ func (repo *BcpRiskAnalysisRepository) GetAllProcessRisks(bcpId uint, params *co
 		`).
 		Where("bcp_processes.business_continuity_plan_id = ?", bcpId)
 
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
@@ -344,7 +340,7 @@ func (repo *BcpRiskAnalysisRepository) GetAllProcessRisks(bcpId uint, params *co
 	}
 
 	if params.Value != 0 {
-		query = query.Where("risk_matrix_risk_rating_values.value = ?", params.Value)
+		query = query.Where("current_risk_rating_value.value = ?", params.Value)
 	}
 
 	if params.SortBy == "" {
@@ -352,6 +348,16 @@ func (repo *BcpRiskAnalysisRepository) GetAllProcessRisks(bcpId uint, params *co
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
+	}
+
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)
