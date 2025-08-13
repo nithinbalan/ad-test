@@ -232,7 +232,7 @@ func (cac *ComplianceAssessmentController) GetComplianceAssessmentSummary(c *gin
 		return
 	}
 
-	assessmentCompletionSummary, err := cac.service.AssessmentCompletionSummaryByResponsibleUnit(uint(id))
+	assessmentCompletionSummary, err := cac.service.AssessmentCompletionRollup(uint(id))
 	if err != nil {
 		utility.SendInternalErrResp(cac.db, c, err.Error())
 		return
@@ -250,7 +250,7 @@ func (cac *ComplianceAssessmentController) GetComplianceStatusSummary(c *gin.Con
 		return
 	}
 
-	statusCounts, err := cac.service.GetComplianceStatusSummaryByResponsibleUnit(uint(id))
+	statusCounts, err := cac.service.GetComplianceStatusSummaryByRequirement(uint(id))
 	if err != nil {
 		utility.SendInternalErrResp(cac.db, c, err.Error())
 		return
@@ -268,7 +268,7 @@ func (cac *ComplianceAssessmentController) GetComplianceScoreSummary(c *gin.Cont
 		return
 	}
 
-	statusCounts, err := cac.service.GetComplianceScoreSummaryByResponsibleUnit(uint(id))
+	statusCounts, err := cac.service.GetComplianceScoreSummary(uint(id))
 	if err != nil {
 		utility.SendInternalErrResp(cac.db, c, err.Error())
 		return

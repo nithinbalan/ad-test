@@ -31,9 +31,10 @@ type ComplianceAssessmentRepositoryInterface interface {
 	CreateComplianceAssessmentRequirementResponsibleUnits(resUnits []*models.ComplianceAssessmentRequirementResponsibleUnit, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceAssessmentRequirementResponsibleUnits(ids []*uint, tx ...utility.DatabaseTransaction) error
 
-	AssessmentCompletionSummaryByResponsibleUnit(assessmentID uint) ([]complianceDTOs.AssessmentCompletionSummaryResponsibleUnitDTO, error)
-	GetComplianceStatusSummaryByResponsibleUnit(assessmentID uint) ([]complianceDTOs.CompletionStatusResponsibleUnitDTO, error)
 	GetComplianceScoreSummary(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error)
+
+	AssessmentCompletionRollup(assessmentID uint) (*complianceDTOs.AssessmentCompletionRollupDTO, error)
+	GetComplianceStatusSummaryByRequirement(assessmentID uint) ([]complianceDTOs.ComplianceStatusCountDTO, error)
 
 	UpdateComplianceRequirementResponsibleUintValue(complianceRequirementValueUpdateDTO complianceDTOs.ComplianceRequirementValueUpdateDTO, tx ...utility.DatabaseTransaction) error
 	UpdateComplianceRequirementStatusUpdate(complianceRequirementValueUpdateDTO complianceDTOs.ComplianceRequirementValueUpdateDTO, tx ...utility.DatabaseTransaction) error
@@ -359,72 +360,71 @@ func (repo *ComplianceAssessmentRepository) DeleteComplianceAssessmentRequiremen
 
 	return nil
 }
+func (repo *ComplianceAssessmentRepository) AssessmentCompletionRollup(assessmentID uint) (*complianceDTOs.AssessmentCompletionRollupDTO, error) {
+	var out complianceDTOs.AssessmentCompletionRollupDTO
 
-func (repo *ComplianceAssessmentRepository) AssessmentCompletionSummaryByResponsibleUnit(assessmentID uint) ([]complianceDTOs.AssessmentCompletionSummaryResponsibleUnitDTO, error) {
-	var result []complianceDTOs.AssessmentCompletionSummaryResponsibleUnitDTO
-
-	query := `
-		SELECT 
-			carru.responsible_unit_id,
-			ou.title_en AS responsible_unit_title_en,
-			ou.title_ar AS responsible_unit_title_ar,
+	const q = `
+		SELECT
 			COUNT(*) AS total,
 			SUM(CASE WHEN carru.is_completed = 1 THEN 1 ELSE 0 END) AS completed,
-			SUM(CASE WHEN carru.is_completed = 0 THEN 1 ELSE 0 END) AS not_completed
+			SUM(CASE WHEN carru.is_completed = 0 THEN 1 ELSE 0 END) AS not_completed,
+			CASE 
+				WHEN COUNT(*) = 0 THEN 0
+				ELSE CAST(SUM(CASE WHEN carru.is_completed = 1 THEN 1 ELSE 0 END) * 100.0 
+				          / COUNT(*) AS DECIMAL(5,2))
+			END AS completion_percentage
 		FROM compliance_assessment_requirement_responsible_units carru
 		JOIN compliance_assessment_requirements car 
 			ON car.id = carru.compliance_assessment_requirement_id
-		LEFT JOIN organization_units ou 
-			ON ou.id = carru.responsible_unit_id
 		WHERE car.compliance_assessment_id = ?
-		GROUP BY carru.responsible_unit_id, ou.title_en, ou.title_ar
 	`
 
-	if err := repo.db.Raw(query, assessmentID).Scan(&result).Error; err != nil {
+	if err := repo.db.Raw(q, assessmentID).Scan(&out).Error; err != nil {
 		return nil, err
 	}
-
-	return result, nil
+	return &out, nil
 }
 
-func (repo *ComplianceAssessmentRepository) GetComplianceStatusSummaryByResponsibleUnit(assessmentID uint) ([]complianceDTOs.CompletionStatusResponsibleUnitDTO, error) {
-	var results []complianceDTOs.CompletionStatusResponsibleUnitDTO
+func (repo *ComplianceAssessmentRepository) GetComplianceStatusSummaryByRequirement(assessmentID uint) ([]complianceDTOs.ComplianceStatusCountDTO, error) {
+	var out []complianceDTOs.ComplianceStatusCountDTO
 
-	query := `
+	const q = `
 		SELECT
-			carru.responsible_unit_id,
-			ou.title_en AS responsible_unit_title_en,
-			ou.title_ar AS responsible_unit_title_ar,
+			cs.id   AS compliance_status_id,
 			cs.title_en,
 			cs.title_ar,
+			cs.type,
 			cs.color_code,
-			COUNT(carru.id) AS count
-		FROM compliance_assessment_requirement_responsible_units carru
-		INNER JOIN compliance_assessment_requirements car
-			ON car.id = carru.compliance_assessment_requirement_id
-		INNER JOIN compliance_assessment_framework_values cafv
-			ON cafv.id = carru.compliance_assessment_framework_value_id
-		INNER JOIN compliance_statuses cs
-			ON cs.id = cafv.compliance_status_id
-		INNER JOIN organization_units ou
-			ON ou.id = carru.responsible_unit_id
-		WHERE car.compliance_assessment_id = ?
-		GROUP BY
-			carru.responsible_unit_id,
-			ou.title_en, ou.title_ar,
-			cs.title_en, cs.title_ar, cs.color_code
+			COALESCE(agg.cnt, 0) AS count
+		FROM compliance_statuses cs
+		LEFT JOIN (
+			SELECT 
+				cafv.compliance_status_id AS compliance_status_id,
+				COUNT(*) AS cnt
+			FROM compliance_assessment_requirement_responsible_units carru
+			JOIN compliance_assessment_requirements car
+				ON car.id = carru.compliance_assessment_requirement_id
+			LEFT JOIN compliance_assessment_framework_values cafv
+				ON cafv.id = carru.compliance_assessment_framework_value_id
+			WHERE car.compliance_assessment_id = ?
+			GROUP BY cafv.compliance_status_id
+		) agg
+			ON agg.compliance_status_id = cs.id
+		-- optional: only active statuses
+		-- WHERE cs.status = 'active'
+		ORDER BY cs.id
 	`
 
-	if err := repo.db.Raw(query, assessmentID).Scan(&results).Error; err != nil {
+	if err := repo.db.Raw(q, assessmentID).Scan(&out).Error; err != nil {
 		return nil, err
 	}
-	return results, nil
+	return out, nil
 }
 
 func (repo *ComplianceAssessmentRepository) GetComplianceScoreSummary(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error) {
 	var result complianceDTOs.ComplianceScoreSummaryDTO
 
-	query := `
+	const query = `
 		SELECT 
 			COUNT(*) AS total_requirements, 
 			COALESCE(AVG(CAST(score AS FLOAT)), 0) AS average_score
@@ -435,7 +435,6 @@ func (repo *ComplianceAssessmentRepository) GetComplianceScoreSummary(assessment
 	if err := repo.db.Raw(query, assessmentID).Scan(&result).Error; err != nil {
 		return nil, err
 	}
-
 	return &result, nil
 }
 

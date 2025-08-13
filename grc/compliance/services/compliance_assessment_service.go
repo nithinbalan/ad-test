@@ -28,9 +28,9 @@ type ComplianceAssessmentServiceInterface interface {
 	Update(id uint, currentUserID uint, compliance *complianceDTOs.ComplianceAssessmentUpdateFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
-	AssessmentCompletionSummaryByResponsibleUnit(assessmentID uint) ([]complianceDTOs.AssessmentCompletionSummaryGroupedByResponsibleUnitDTO, error)
-	GetComplianceStatusSummaryByResponsibleUnit(assessmentID uint) ([]*complianceDTOs.CompletionStatusGroupedByResponsibleUnitDTO, error)
-	GetComplianceScoreSummaryByResponsibleUnit(assessmentID uint) ([]complianceDTOs.ResponsibleUnitAverageScoreDTO, error)
+	AssessmentCompletionRollup(assessmentID uint) (*complianceDTOs.AssessmentCompletionRollupDTO, error)
+	GetComplianceStatusSummaryByRequirement(assessmentID uint) ([]complianceDTOs.ComplianceStatusCountDTO, error)
+	GetComplianceScoreSummary(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error)
 
 	SubmitComplianceAssessment(assessmentID uint, currentUserID uint) error
 	ApproveComplianceAssessment(assessmentID uint, currentUserID uint) error
@@ -556,209 +556,27 @@ func (cras *ComplianceAssessmentService) validateComplianceAssessmentOrganizatio
 	return nil
 }
 
-func (cras *ComplianceAssessmentService) AssessmentCompletionSummaryByResponsibleUnit(assessmentID uint) ([]complianceDTOs.AssessmentCompletionSummaryGroupedByResponsibleUnitDTO, error) {
+func (cras *ComplianceAssessmentService) AssessmentCompletionRollup(assessmentID uint) (*complianceDTOs.AssessmentCompletionRollupDTO, error) {
+	if _, err := cras.GetByID(assessmentID); err != nil {
+		return nil, err
+	}
+	return cras.repo.AssessmentCompletionRollup(assessmentID)
+}
+
+func (cras *ComplianceAssessmentService) GetComplianceStatusSummaryByRequirement(assessmentID uint) ([]complianceDTOs.ComplianceStatusCountDTO, error) {
+	if _, err := cras.GetByID(assessmentID); err != nil {
+		return nil, err
+	}
+	return cras.repo.GetComplianceStatusSummaryByRequirement(assessmentID)
+}
+
+func (cras *ComplianceAssessmentService) GetComplianceScoreSummary(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error) {
+	// Optional: ensure the assessment exists (keeps behavior consistent with your other methods)
 	if _, err := cras.GetByID(assessmentID); err != nil {
 		return nil, err
 	}
 
-	flatResult, err := cras.repo.AssessmentCompletionSummaryByResponsibleUnit(assessmentID)
-	if err != nil {
-		return nil, err
-	}
-
-	grouped := make([]complianceDTOs.AssessmentCompletionSummaryGroupedByResponsibleUnitDTO, 0, len(flatResult))
-	for _, flat := range flatResult {
-		grouped = append(grouped, complianceDTOs.AssessmentCompletionSummaryGroupedByResponsibleUnitDTO{
-			ResponsibleUnitID:      flat.ResponsibleUnitID,
-			ResponsibleUnitTitleEn: flat.ResponsibleUnitTitleEn,
-			ResponsibleUnitTitleAr: flat.ResponsibleUnitTitleAr,
-			Summary: complianceDTOs.AssessmentCompletionSummaryDTO{
-				Total:        flat.Total,
-				Completed:    flat.Completed,
-				NotCompleted: flat.NotCompleted,
-			},
-		})
-	}
-
-	return grouped, nil
-}
-
-func (cras *ComplianceAssessmentService) GetComplianceStatusSummaryByResponsibleUnit(assessmentID uint) ([]*complianceDTOs.CompletionStatusGroupedByResponsibleUnitDTO, error) {
-	if _, err := cras.GetByID(assessmentID); err != nil {
-		return nil, err
-	}
-
-	rawResults, err := cras.repo.GetComplianceStatusSummaryByResponsibleUnit(assessmentID)
-	if err != nil {
-		return nil, err
-	}
-
-	ruMap := make(map[uint]*complianceDTOs.CompletionStatusGroupedByResponsibleUnitDTO)
-
-	for _, r := range rawResults {
-		if _, ok := ruMap[r.ResponsibleUnitID]; !ok {
-			ruMap[r.ResponsibleUnitID] = &complianceDTOs.CompletionStatusGroupedByResponsibleUnitDTO{
-				ResponsibleUnitID:      r.ResponsibleUnitID,
-				ResponsibleUnitTitleEn: r.ResponsibleUnitTitleEn,
-				ResponsibleUnitTitleAr: r.ResponsibleUnitTitleAr,
-				StatusCount:            []complianceDTOs.ComplianceStatusCountDTO{},
-			}
-		}
-
-		ruMap[r.ResponsibleUnitID].StatusCount = append(ruMap[r.ResponsibleUnitID].StatusCount, complianceDTOs.ComplianceStatusCountDTO{
-			TitleEn:   r.TitleEn,
-			TitleAr:   r.TitleAr,
-			ColorCode: r.ColorCode,
-			Count:     r.Count,
-		})
-	}
-
-	// Build ordered slice
-	result := make([]*complianceDTOs.CompletionStatusGroupedByResponsibleUnitDTO, 0, len(ruMap))
-	for _, item := range ruMap {
-		result = append(result, item)
-	}
-
-	return result, nil
-}
-
-func (cras *ComplianceAssessmentService) GetComplianceScoreSummaryByResponsibleUnit(assessmentID uint) ([]complianceDTOs.ResponsibleUnitAverageScoreDTO, error) {
-	assessment, err := cras.repo.GetFullDetailsByID(assessmentID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Framework type + values
-	frameworkType := ""
-	frameworkValuesMap := make(map[uint]int)
-	maxValueInFramework := 0
-
-	if reg := assessment.ComplianceRegister; reg != nil && reg.ComplianceAssessmentFramework != nil {
-		frameworkType = reg.ComplianceAssessmentFramework.AssessmentFrameworkType.Type
-		for _, v := range reg.ComplianceAssessmentFramework.Values {
-			if v != nil && v.ID > 0 && v.Value != nil {
-				frameworkValuesMap[v.ID] = *v.Value
-				if *v.Value > maxValueInFramework {
-					maxValueInFramework = *v.Value
-				}
-			}
-		}
-	}
-
-	// Per-requirement max, normalized by type
-	perReqMax := func() float64 {
-		switch frameworkType {
-		case "percentage":
-			return 100.0
-		case "binary":
-			return 1.0
-		case "point", "maturity":
-			if maxValueInFramework > 0 {
-				return float64(maxValueInFramework)
-			}
-			if frameworkType == "point" {
-				return 2.0
-			}
-			return 5.0
-		default:
-			return 100.0
-		}
-	}()
-
-	// Accumulator per RU
-	type agg struct {
-		totalScore  float64
-		maxPossible float64
-		titleEn     string
-		titleAr     string
-	}
-	ruScores := make(map[uint]agg)
-
-	// Walk requirements → responsible units
-	for _, req := range assessment.AssessmentRequirements {
-		for _, ru := range req.ResponsibleUnits {
-			ruID := ru.ResponsibleUnitID
-
-			titleEn, titleAr := "", ""
-			if ru.ResponsibleUnit != nil {
-				titleEn = ru.ResponsibleUnit.TitleEn
-				titleAr = ru.ResponsibleUnit.TitleAr
-			}
-			if _, ok := ruScores[ruID]; !ok {
-				ruScores[ruID] = agg{0, 0, titleEn, titleAr}
-			}
-
-			// applicability (skip N/A)
-			isApplicable := true
-			if ru.ComplianceAssessmentFrameworkValueID != nil {
-				isApplicable = ru.ComplianceAssessmentFrameworkValue.IsApplicable
-			}
-			if !isApplicable {
-				continue
-			}
-
-			curr := ruScores[ruID]
-
-			switch frameworkType {
-			case "point":
-				if ru.ComplianceAssessmentFrameworkValueID != nil {
-					if val, ok := frameworkValuesMap[*ru.ComplianceAssessmentFrameworkValueID]; ok {
-						curr.totalScore += float64(val)
-						curr.maxPossible += perReqMax
-					}
-				}
-			case "percentage":
-				if ru.Score != nil {
-					curr.totalScore += float64(*ru.Score)
-					curr.maxPossible += perReqMax
-				}
-			case "binary":
-				// Count all applicable in denominator; missing selection → non-compliant (0)
-				if ru.ComplianceAssessmentFrameworkValueID != nil {
-					if raw, ok := frameworkValuesMap[*ru.ComplianceAssessmentFrameworkValueID]; ok {
-						val := 0
-						if raw > 0 {
-							val = 1
-						}
-						curr.totalScore += float64(val)
-						curr.maxPossible += perReqMax
-					} else {
-						curr.maxPossible += perReqMax
-					}
-				} else {
-					curr.maxPossible += perReqMax
-				}
-			case "maturity":
-				if ru.ComplianceAssessmentFrameworkValueID != nil {
-					if val, ok := frameworkValuesMap[*ru.ComplianceAssessmentFrameworkValueID]; ok {
-						curr.totalScore += float64(val)
-						curr.maxPossible += perReqMax
-					}
-				}
-			}
-
-			ruScores[ruID] = curr
-		}
-	}
-
-	// Build result
-	result := make([]complianceDTOs.ResponsibleUnitAverageScoreDTO, 0, len(ruScores))
-	for ruID, data := range ruScores {
-		var pct *float64
-		if data.maxPossible > 0 {
-			percentage := (data.totalScore / data.maxPossible) * 100
-			percentage = math.Round(percentage*100) / 100 // 2 decimals
-			pct = &percentage
-		}
-		result = append(result, complianceDTOs.ResponsibleUnitAverageScoreDTO{
-			ResponsibleUnitID:      ruID,
-			ResponsibleUnitTitleEn: data.titleEn,
-			ResponsibleUnitTitleAr: data.titleAr,
-			CompliancePercentage:   pct,
-		})
-	}
-
-	return result, nil
+	return cras.repo.GetComplianceScoreSummary(assessmentID)
 }
 
 func (cras *ComplianceAssessmentService) SubmitComplianceAssessment(assessmentID uint, currentUserID uint) error {

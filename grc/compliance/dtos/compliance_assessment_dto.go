@@ -134,6 +134,13 @@ type AssessmentCompletionSummaryDTO struct {
 	Completed    int `json:"completed"`
 	NotCompleted int `json:"not_completed"`
 }
+type AssessmentCompletionRollupDTO struct {
+	Total                int     `json:"total"`
+	Completed            int     `json:"completed"`
+	NotCompleted         int     `json:"not_completed"`
+	CompletionPercentage float64 `json:"completion_percentage"` // 0–100
+}
+
 type AssessmentCompletionSummaryResponsibleUnitDTO struct {
 	ResponsibleUnitID      uint   `json:"responsible_unit_id"`
 	ResponsibleUnitTitleEn string `json:"responsible_unit_title_en"`
@@ -156,10 +163,12 @@ type AssessmentCompletionSummaryGroupedByResponsibleUnitDTO struct {
 // }
 
 type ComplianceStatusCountDTO struct {
-	TitleEn   string `json:"title_en"`
-	TitleAr   string `json:"title_ar"`
-	Count     int    `json:"count"`
-	ColorCode string `json:"color_code"`
+	ComplianceStatusID uint   `json:"compliance_status_id"`
+	TitleEn            string `json:"title_en"`
+	TitleAr            string `json:"title_ar"`
+	Type               string `json:"type"`
+	Count              int    `json:"count"`
+	ColorCode          string `json:"color_code"`
 }
 
 type ComplianceScoreSummaryDTO struct {
@@ -199,11 +208,19 @@ type CompletionStatusGroupedByResponsibleUnitDTO struct {
 	StatusCount            []ComplianceStatusCountDTO `json:"status_count"`
 }
 
-type ResponsibleUnitAverageScoreDTO struct {
-	ResponsibleUnitID      uint     `json:"responsible_unit_id"`
-	ResponsibleUnitTitleEn string   `json:"responsible_unit_title_en"`
-	ResponsibleUnitTitleAr string   `json:"responsible_unit_title_ar"`
-	CompliancePercentage   *float64 `json:"compliance_percentage"`
+type ComplianceStatusByRequirementRowDTO struct {
+	ComplianceAssessmentRequirementID uint   `json:"compliance_assessment_requirement_id"`
+	ComplianceStatusID                uint   `json:"compliance_status_id"`
+	TitleEn                           string `json:"title_en"`
+	TitleAr                           string `json:"title_ar"`
+	ColorCode                         string `json:"color_code"`
+	Count                             int    `json:"count"`
+}
+
+// grouped output per requirement
+type CompletionStatusGroupedByRequirementDTO struct {
+	ComplianceAssessmentRequirementID uint                       `json:"compliance_assessment_requirement_id"`
+	StatusCount                       []ComplianceStatusCountDTO `json:"status_count"`
 }
 
 type ComplianceAssessmentApprovalStatusDTO struct {
