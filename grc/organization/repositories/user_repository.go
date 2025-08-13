@@ -50,8 +50,7 @@ type UserRepositoryInterface interface {
 	GetPermissionsForModule(roleID, moduleID uint) (map[string]bool, error)
 	GetUserRoles(userID uint) ([]models.UserRole, error)
 	GetTotalActiveUserCount() (int64, error)
-	GetActiveUserCount() (int64, error)
-	GetPassiveUserCount() (int64, error)
+	GetUserCount() (int64, int64, error)
 
 	UpdateUserPrimaryDepartment(userID, orgUnitID uint, fields map[string]*uint, tx ...utility.DatabaseTransaction) error
 	UpdateResponsibleUnits(userID, newDepartmentID uint, tx ...utility.DatabaseTransaction) error
@@ -792,30 +791,28 @@ func (repo *UserRepository) GetTotalActiveUserCount() (int64, error) {
 	return count, nil
 }
 
-func (repo *UserRepository) GetActiveUserCount() (int64, error) {
-	var count int64
-	err := repo.db.Model(&models.User{}).
-		Joins("JOIN license_types ON license_types.id = users.license_type_id").
-		Where("license_types.type = 'active'").
-		Count(&count).
-		Error
-	if err != nil {
-		return 0, err
-	}
-	return count, nil
-}
+func (repo *UserRepository) GetUserCount() (activeCount int64, passiveCount int64, err error) {
+	var activeUser int64
+	var passiveUser int64
 
-func (repo *UserRepository) GetPassiveUserCount() (int64, error) {
-	var count int64
-	err := repo.db.Model(&models.User{}).
-		Joins("JOIN license_types ON license_types.id = users.license_type_id").
-		Where("license_types.type = 'passive'").
-		Count(&count).
-		Error
+	err = repo.db.Model(&models.User{}).
+		Where("license_type_id IN (SELECT id FROM license_types WHERE type = ?)", "active").
+		Count(&activeUser).Error
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
-	return count, nil
+
+	err = repo.db.Model(&models.User{}).
+		Where("license_type_id IN (SELECT id FROM license_types WHERE type = ?)", "passive").
+		Count(&passiveUser).Error
+	if err != nil {
+		return 0, 0, err
+	}
+
+	activeCount = int64(activeUser)
+	passiveCount = int64(passiveUser)
+
+	return activeCount, passiveCount, nil
 }
 
 func (repo *UserRepository) UpdateUserPrimaryDepartment(userID, orgUnitID uint, fields map[string]*uint, tx ...utility.DatabaseTransaction) error {

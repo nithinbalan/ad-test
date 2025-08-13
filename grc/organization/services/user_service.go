@@ -1134,12 +1134,7 @@ func (us *UserService) validateLicenseKey(id *uint, licenseKey string, userFormD
 		return fmt.Errorf("passive_users field missing in license key")
 	}
 
-	totalActiveUserCount, err := us.repo.GetActiveUserCount()
-	if err != nil {
-		return err
-	}
-
-	totalPassiveUserCount, err := us.repo.GetPassiveUserCount()
+	totalActiveUserCount, totalPassiveUserCount, err := us.repo.GetUserCount()
 	if err != nil {
 		return err
 	}
@@ -1156,22 +1151,18 @@ func (us *UserService) validateLicenseKey(id *uint, licenseKey string, userFormD
 
 	if id == nil {
 		if *userFormDTO.LicenseTypeID == activeLicenseType.ID {
-			if totalActiveUserCount >= int64(maxActiveUsers) {
-				return utility.NewValidationError(
-					fmt.Errorf("maximum allowed active users limit reached (%d users)", int64(maxActiveUsers)),
-					"user_exceed",
-					"active",
-				)
+			licenseType := "active"
+			err = us.checkLicenseLimits(int(totalActiveUserCount), int(maxActiveUsers), &licenseType)
+			if err != nil {
+				return err
 			}
 		}
 
 		if *userFormDTO.LicenseTypeID == passiveLicenseType.ID {
-			if totalPassiveUserCount >= int64(maxPassiveUsers) {
-				return utility.NewValidationError(
-					fmt.Errorf("maximum allowed passive users limit reached (%d users)", int64(maxPassiveUsers)),
-					"user_exceed",
-					"passive",
-				)
+			licenseType := "passive"
+			err = us.checkLicenseLimits(int(totalPassiveUserCount), int(maxPassiveUsers), &licenseType)
+			if err != nil {
+				return err
 			}
 		}
 		// Extract max_users
@@ -1185,12 +1176,9 @@ func (us *UserService) validateLicenseKey(id *uint, licenseKey string, userFormD
 			return err
 		}
 
-		if totalActiveUsers >= int64(maxUsers) {
-			return utility.NewValidationError(
-				fmt.Errorf("maximum allowed users limit reached (%d users)", int64(maxUsers)),
-				"user_exceed",
-				"total user",
-			)
+		err = us.checkLicenseLimits(int(totalActiveUsers), int(maxUsers), nil)
+		if err != nil {
+			return err
 		}
 	} else {
 		existingUser, err := us.repo.GetByID(*id)
@@ -1199,45 +1187,40 @@ func (us *UserService) validateLicenseKey(id *uint, licenseKey string, userFormD
 		}
 		if existingUser.LicenseTypeID != userFormDTO.LicenseTypeID {
 			if *userFormDTO.LicenseTypeID == activeLicenseType.ID {
-				if totalActiveUserCount >= int64(maxActiveUsers) {
-					return utility.NewValidationError(
-						fmt.Errorf("maximum allowed active users limit reached (%d users)", int64(maxActiveUsers)),
-						"user_exceed",
-						"active",
-					)
+				licenseType := "active"
+				err = us.checkLicenseLimits(int(totalActiveUserCount), int(maxActiveUsers), &licenseType)
+				if err != nil {
+					return err
 				}
 			}
 
 			if *userFormDTO.LicenseTypeID == passiveLicenseType.ID {
-				if totalPassiveUserCount >= int64(maxPassiveUsers) {
-					return utility.NewValidationError(
-						fmt.Errorf("maximum allowed passive users limit reached (%d users)", int64(maxPassiveUsers)),
-						"user_exceed",
-						"passive",
-					)
+				licenseType := "passive"
+				err = us.checkLicenseLimits(int(totalPassiveUserCount), int(maxPassiveUsers), &licenseType)
+				if err != nil {
+					return err
 				}
-			}
-			// Extract max_users
-			maxUsers, ok := claims["max_users"].(float64) // JWT numbers are float64
-			if !ok {
-				return fmt.Errorf("max_users field missing in license key")
-			}
-
-			totalActiveUsers, err := us.repo.GetTotalActiveUserCount()
-			if err != nil {
-				return err
-			}
-
-			if totalActiveUsers >= int64(maxUsers) {
-				return utility.NewValidationError(
-					fmt.Errorf("maximum allowed users limit reached (%d users)", int64(maxUsers)),
-					"user_exceed",
-					"total user",
-				)
 			}
 		}
 	}
 
+	return nil
+}
+
+func (us *UserService) checkLicenseLimits(currentCount, maxCount int, licenseType *string) error {
+	var userType string
+	if currentCount >= maxCount {
+		if licenseType == nil {
+			userType = "total user"
+		} else {
+			userType = *licenseType
+		}
+		return utility.NewValidationError(
+			fmt.Errorf("maximum allowed active users limit reached (%d users)", int64(maxCount)),
+			"user_exceed",
+			userType,
+		)
+	}
 	return nil
 }
 
