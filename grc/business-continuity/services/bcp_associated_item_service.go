@@ -17,6 +17,9 @@ type BcpAssociatedItemServiceInterface interface {
 	GetAllBcpControl(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	CreateBcpControl(BcpID uint, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error
 	DeleteBcpControl(BcpID uint, controlID uint) error
+	GetAllBcpKPI(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+	CreateBcpKPI(BcpID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
+	DeleteBcpKPI(BcpID uint, kpiRegisterID uint) error
 }
 
 // Service and implementations
@@ -136,6 +139,59 @@ func (pais *BcpAssociatedItemService) DeleteBcpControl(BcpID uint, controlID uin
 	tx := pais.repo.BeginTransaction()
 
 	if err := pais.repo.DeleteBcpControl(BcpID, controlID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *BcpAssociatedItemService) GetAllBcpKPI(bcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+	if _, err := pais.BcpSvc.GetByID(bcpID); err != nil {
+		return nil, err
+	}
+	return pais.repo.GetAllBcpKPI(bcpID, params)
+}
+
+func (pais *BcpAssociatedItemService) CreateBcpKPI(BcpID, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error {
+
+	if _, err := pais.BcpSvc.GetByID(BcpID); err != nil {
+		return err
+	}
+
+	if err := pais.validationSvc.ValidateKPIMapping(BcpID, dto.KpiIDs, "bcp_kpis", "business_continuity_plan_id"); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.BCPKPI
+	currentTime := time.Now()
+
+	for _, KpiID := range dto.KpiIDs {
+		mappings = append(mappings, &models.BCPKPI{
+			KPIRegisterID:            KpiID,
+			BusinessContinuityPlanID: BcpID,
+			CreatedByID:              userID,
+			CreatedAt:                currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateBcpKPI(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *BcpAssociatedItemService) DeleteBcpKPI(BcpID uint, kpiRegisterID uint) error {
+	// Validate control existence
+	if _, err := pais.BcpSvc.GetByID(BcpID); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteBcpKPI(BcpID, kpiRegisterID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
