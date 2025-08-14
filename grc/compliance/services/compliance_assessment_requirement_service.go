@@ -158,8 +158,6 @@ func (cars ComplianceAssessmentRequirementService) GetFullDetailsByID(assessment
 	if err != nil {
 		return nil, err
 	}
-	allCompleted := true
-	allApproved := true
 	var filteredResponsibleUnits []*complianceDTOs.ComplianceAssessmentRequirementResponsibleUnitDTO
 	// If responsibleUnitID is provided, filter to return only that specific responsibleUnit
 	for _, responsibleUnit := range complianceAssessmentRequirementDTO.ResponsibleUnits {
@@ -171,12 +169,6 @@ func (cars ComplianceAssessmentRequirementService) GetFullDetailsByID(assessment
 
 	// ✅ iterate over each responsible unit
 	for i, ru := range complianceAssessment.ResponsibleUnits {
-		if !ru.IsCompleted {
-			allCompleted = false
-		}
-		if ru.ComplianceAssessmentRequirementStatusID == nil || ru.ComplianceAssessmentRequirementStatus.Type != "approved" {
-			allApproved = false
-		}
 		// Add TargetDate to each action plan
 		for j, actionPlan := range ru.ActionPlans {
 			if actionPlan.TargetDate != nil {
@@ -204,8 +196,7 @@ func (cars ComplianceAssessmentRequirementService) GetFullDetailsByID(assessment
 		complianceAssessmentRequirementDTO.ResponsibleUnit = filteredResponsibleUnits[0]
 		complianceAssessmentRequirementDTO.CompletedByUser = filteredResponsibleUnits[0].CompletedByUser
 	}
-	complianceAssessmentRequirementDTO.IsAllCompleted = allCompleted
-	complianceAssessmentRequirementDTO.IsAllApproved = allApproved
+
 	complianceAssessmentRequirementDTO.CreatedAt = complianceAssessment.CreatedAt
 	complianceAssessmentRequirementDTO.UpdatedAt = complianceAssessment.UpdatedAt
 	// todo :- also add extra fields which required in details screen
@@ -516,6 +507,34 @@ func (cars ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAss
 		tx.Rollback()
 		return err
 	}
+	allCompleted := true
+	for _, ru := range oldComplianceAssessmentRequirement.ResponsibleUnits {
+		if ru == nil {
+			continue
+		}
+		if ru.ID == complianceAssessmentRequirementResponsibleUnit.ID {
+			// this one is now completed
+			continue
+		}
+		if !ru.IsCompleted {
+			allCompleted = false
+			break
+		}
+	}
+
+	// Update parent CAR’s IsAllCompleted
+	car, err := cars.repo.GetByID(requirementId)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	car.IsAllCompleted = allCompleted
+	car.UpdatedBYID = &currentUserID
+
+	if err := cars.repo.Update(car, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
 
 	tx.Commit()
 
@@ -591,7 +610,18 @@ func (cars ComplianceAssessmentRequirementService) MarkAsOpen(complianceAssessme
 		tx.Rollback()
 		return err
 	}
+	car, err := cars.repo.GetByID(requirementId)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	car.IsAllCompleted = false
+	car.UpdatedBYID = &currentUserID
 
+	if err := cars.repo.Update(car, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
 	tx.Commit()
 
 	go func() {
@@ -698,7 +728,34 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 		tx.Rollback()
 		return err
 	}
+	allApproved := true
+	for _, ru := range oldComplianceAssessmentRequirement.ResponsibleUnits {
+		if ru == nil {
+			continue
+		}
+		if ru.ID == complianceAssessmentRequirementResponsibleUnit.ID {
+			// this one is now completed
+			continue
+		}
+		if !ru.IsCompleted {
+			allApproved = false
+			break
+		}
+	}
 
+	// Update parent CAR’s IsAllCompleted
+	car, err := cars.repo.GetByID(requirementID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	car.IsAllApproved = allApproved
+	car.UpdatedBYID = &currentUserID
+
+	if err := cars.repo.Update(car, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
 	tx.Commit()
 
 	// Log the action
@@ -848,6 +905,18 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 
 	err = cars.repo.UpdateComplianceAssessmentRequirementResponsibleUnit(complianceAssessmentRequirementResponsibleUnit, tx)
 	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	car, err := cars.repo.GetByID(requirementID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	car.IsAllApproved = false
+	car.UpdatedBYID = &currentUserID
+
+	if err := cars.repo.Update(car, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

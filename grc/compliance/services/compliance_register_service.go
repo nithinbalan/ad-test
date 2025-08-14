@@ -211,7 +211,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		LastReviewedDate:                dates.LastReviewedDate,
 		LastReviewedUserID:              complianceRegisterFormDTO.LastReviewedUserID,
 		ComplianceReviewStatusID:        complianceRegisterFormDTO.ComplianceReviewStatusID,
-		CreatedByID:                     currentUserID,
+		CreatedBYID:                     currentUserID,
 		LifecycleStatusID:               lifecycleStatus.ID,
 		ComplianceFolderID:              complianceRegisterFormDTO.ComplianceFolderID,
 		ComplianceAssessmentFrameworkID: complianceRegisterFormDTO.ComplianceAssessmentFrameworkID,
@@ -451,7 +451,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	existingComplianceRegister.LastReviewedUserID = complianceRegisterFormDTO.LastReviewedUserID
 	existingComplianceRegister.ComplianceReviewStatusID = complianceRegisterFormDTO.ComplianceReviewStatusID
 	existingComplianceRegister.LastReviewNote = complianceRegisterFormDTO.LastReviewNote
-	existingComplianceRegister.UpdatedByID = &currentUserID
+	existingComplianceRegister.UpdatedBYID = &currentUserID
 	existingComplianceRegister.ComplianceFolderID = complianceRegisterFormDTO.ComplianceFolderID
 	existingComplianceRegister.ComplianceAssessmentFrameworkID = complianceRegisterFormDTO.ComplianceAssessmentFrameworkID
 
@@ -1087,7 +1087,7 @@ func (crs *ComplianceRegisterService) StatusUpdate(id uint, currentUserID uint, 
 	}
 
 	existingCompliance.ComplianceStatusID = complianceStatusID
-	existingCompliance.UpdatedByID = &currentUserID
+	existingCompliance.UpdatedBYID = &currentUserID
 
 	err = crs.repo.Update(existingCompliance, tx)
 	if err != nil {

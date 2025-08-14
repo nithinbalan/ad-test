@@ -27,6 +27,8 @@ type ComplianceAssessmentRequirementListDTO struct {
 	ComplianceAssessmentRequirementStatusType      string  `json:"compliance_assessment_requirement_status_type"`
 	CreatedAt                                      string  `json:"created_at"`
 	UpdatedAt                                      *string `json:"updated_at"`
+	IsAllCompleted                                 bool    `json:"is_all_completed"`
+	IsAllApproved                                  bool    `json:"is_all_approved"`
 }
 
 type ComplianceAssessmentRequirementListResponseDTO struct {
