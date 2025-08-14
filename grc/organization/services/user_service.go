@@ -1134,7 +1134,7 @@ func (us *UserService) validateLicenseKey(id *uint, licenseKey string, userFormD
 		return fmt.Errorf("passive_users field missing in license key")
 	}
 
-	totalActiveUserCount, totalPassiveUserCount, err := us.repo.GetUserCount()
+	totalActiveUserCount, totalPassiveUserCount, totalActiveUsers, err := us.repo.GetUserCounts()
 	if err != nil {
 		return err
 	}
@@ -1169,11 +1169,6 @@ func (us *UserService) validateLicenseKey(id *uint, licenseKey string, userFormD
 		maxUsers, ok := claims["max_users"].(float64) // JWT numbers are float64
 		if !ok {
 			return fmt.Errorf("max_users field missing in license key")
-		}
-
-		totalActiveUsers, err := us.repo.GetTotalActiveUserCount()
-		if err != nil {
-			return err
 		}
 
 		err = us.checkLicenseLimits(int(totalActiveUsers), int(maxUsers), nil)

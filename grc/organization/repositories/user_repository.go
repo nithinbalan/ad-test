@@ -49,8 +49,7 @@ type UserRepositoryInterface interface {
 
 	GetPermissionsForModule(roleID, moduleID uint) (map[string]bool, error)
 	GetUserRoles(userID uint) ([]models.UserRole, error)
-	GetTotalActiveUserCount() (int64, error)
-	GetUserCount() (int64, int64, error)
+	GetUserCounts() (int64, int64, int64, error)
 
 	UpdateUserPrimaryDepartment(userID, orgUnitID uint, fields map[string]*uint, tx ...utility.DatabaseTransaction) error
 	UpdateResponsibleUnits(userID, newDepartmentID uint, tx ...utility.DatabaseTransaction) error
@@ -778,41 +777,28 @@ func (repo *UserRepository) GetUserRoles(userID uint) ([]models.UserRole, error)
 	return userRoles, nil
 }
 
-func (repo *UserRepository) GetTotalActiveUserCount() (int64, error) {
-	var count int64
-	err := repo.db.Model(&models.User{}).
-		Joins("JOIN user_statuses ON user_statuses.id = users.user_status_id").
-		Where("user_statuses.is_active = ?", true).
-		Count(&count).
-		Error
-	if err != nil {
-		return 0, err
-	}
-	return count, nil
-}
-
-func (repo *UserRepository) GetUserCount() (activeCount int64, passiveCount int64, err error) {
-	var activeUser int64
-	var passiveUser int64
-
-	err = repo.db.Model(&models.User{}).
-		Where("license_type_id IN (SELECT id FROM license_types WHERE type = ?)", "active").
-		Count(&activeUser).Error
-	if err != nil {
-		return 0, 0, err
+func (repo *UserRepository) GetUserCounts() (activeCount, passiveCount, totalActiveCount int64, err error) {
+	type Counts struct {
+		ActiveCount      int64
+		PassiveCount     int64
+		TotalActiveUsers int64
 	}
 
-	err = repo.db.Model(&models.User{}).
-		Where("license_type_id IN (SELECT id FROM license_types WHERE type = ?)", "passive").
-		Count(&passiveUser).Error
+	var counts Counts
+	err = repo.db.Table("users").
+		Select(`
+			SUM(CASE WHEN lt.type = 'active' THEN 1 ELSE 0 END) AS active_count,
+			SUM(CASE WHEN lt.type = 'passive' THEN 1 ELSE 0 END) AS passive_count,
+			SUM(CASE WHEN users.user_status_id IS NOT NULL AND us.is_active = ? THEN 1 ELSE 0 END) AS total_active_users
+		`, true).
+		Joins("JOIN license_types lt ON lt.id = users.license_type_id").
+		Joins("JOIN user_statuses us ON us.id = users.user_status_id").
+		Scan(&counts).Error
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, err
 	}
 
-	activeCount = int64(activeUser)
-	passiveCount = int64(passiveUser)
-
-	return activeCount, passiveCount, nil
+	return counts.ActiveCount, counts.PassiveCount, counts.TotalActiveUsers, nil
 }
 
 func (repo *UserRepository) UpdateUserPrimaryDepartment(userID, orgUnitID uint, fields map[string]*uint, tx ...utility.DatabaseTransaction) error {
