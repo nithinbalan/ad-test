@@ -487,7 +487,10 @@ func (cars ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAss
 	if err != nil {
 		return err
 	}
-
+	allComplianceAssessmentRequirement, err := cars.GetFullDetailsByID(complianceAssessmentId, requirementId, 0)
+	if err != nil {
+		return err
+	}
 	oldComplianceAssessmentRequirement, err := cars.GetFullDetailsByID(complianceAssessmentId, requirementId, responsibleUnitID)
 	if err != nil {
 		tx.Rollback()
@@ -508,7 +511,7 @@ func (cars ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAss
 		return err
 	}
 	allCompleted := true
-	for _, ru := range oldComplianceAssessmentRequirement.ResponsibleUnits {
+	for _, ru := range allComplianceAssessmentRequirement.ResponsibleUnits {
 		if ru == nil {
 			continue
 		}
@@ -690,6 +693,10 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 		tx.Rollback()
 		return err
 	}
+	allComplianceAssessmentRequirement, err := cars.GetFullDetailsByID(assessmentID, requirementID, 0)
+	if err != nil {
+		return err
+	}
 	oldComplianceAssessmentRequirement, err := cars.GetFullDetailsByID(assessmentID, requirementID, commentForm.ResponsibleUnitID)
 	if err != nil {
 		return err
@@ -730,7 +737,7 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 	}
 	// assume you've just set the target RU to "approved"
 	allApproved := true
-	for _, ru := range oldComplianceAssessmentRequirement.ResponsibleUnits {
+	for _, ru := range allComplianceAssessmentRequirement.ResponsibleUnits {
 		if ru == nil {
 			continue
 		}
@@ -915,18 +922,18 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 		tx.Rollback()
 		return err
 	}
-	car, err := cars.repo.GetByID(requirementID)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	car.ComplianceAssessmentRequirementStatusID = nil
-	car.UpdatedBYID = &currentUserID
+	// car, err := cars.repo.GetByID(requirementID)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return err
+	// }
+	// car.ComplianceAssessmentRequirementStatusID = nil
+	// car.UpdatedBYID = &currentUserID
 
-	if err := cars.repo.Update(car, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
+	// if err := cars.repo.Update(car, tx); err != nil {
+	// 	tx.Rollback()
+	// 	return err
+	// }
 
 	tx.Commit()
 
