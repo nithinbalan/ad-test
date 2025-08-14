@@ -21,6 +21,9 @@ type ControlAssociatedItemServiceInterface interface {
 	UpdateClauses(controlID uint, currentUserID uint, formDTO *organizationDTOs.ControlClauseFormDTO) error
 	CreateControlRisk(controlID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
 	DeleteControlRisk(controlID uint, riskID uint) error
+	CreateControlDocument(controlID uint, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
+	DeleteControlDocument(controlID uint, documentID uint) error
+	GetAllDocuments(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 }
 
 type ControlAssociatedItemService struct {
@@ -291,29 +294,52 @@ func (cais *ControlAssociatedItemService) DeleteControlRisk(controlID uint, risk
 	return tx.Commit()
 }
 
-// func (cais *ControlAssociatedItemService) validateRiskIDs(controlID uint, riskIDs []uint) error {
-// 	if len(riskIDs) == 0 {
-// 		return utility.NewValidationError(fmt.Errorf("no risks provided"), "required", "risk_ids")
-// 	}
-// 	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
-// 		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlID), "not_exist", "control_id")
-// 	}
-// 	seen := make(map[uint]bool)
-// 	for _, id := range riskIDs {
-// 		alreadyMapped, err := cais.repo.IsRiskMappedToControl(controlID, id)
-// 		if err != nil {
-// 			return fmt.Errorf("failed to check existing mapping: %v", err)
-// 		}
-// 		if alreadyMapped {
-// 			return utility.NewValidationError(fmt.Errorf("risk ID %d already mapped to this control", id), "duplicate", "risk_ids")
-// 		}
-// 		if seen[id] {
-// 			return utility.NewValidationError(fmt.Errorf("duplicate risk ID: %d", id), "duplicate", "risk_ids")
-// 		}
-// 		if _, err := cais.controlSvc.GetByID(id); err != nil {
-// 			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", id), "not_exist", "control_ids")
-// 		}
-// 		seen[id] = true
-// 	}
-// 	return nil
-// }
+func (cais *ControlAssociatedItemService) CreateControlDocument(controlID, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error {
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlID), "not_exist", "control_id")
+	}
+	if err := cais.validationSvc.ValidateDocumentMapping(controlID, dto.DocumentIDs, "document_controls", "control_id"); err != nil {
+		return err
+	}
+	tx := cais.repo.BeginTransaction()
+	var mappings []*models.DocumentControl
+	currentTime := time.Now()
+
+	for _, documentID := range dto.DocumentIDs {
+		mappings = append(mappings, &models.DocumentControl{
+			DocumentID:  documentID,
+			ControlID:   &controlID,
+			CreatedBYID: userID,
+			CreatedAt:   currentTime,
+		})
+	}
+
+	if err := cais.repo.CreateControlDocument(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (cais *ControlAssociatedItemService) DeleteControlDocument(controlID uint, documentID uint) error {
+	// Validate control existence
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlID), "not_exist", "control_id")
+	}
+
+	tx := cais.repo.BeginTransaction()
+
+	if err := cais.repo.DeleteControlDocument(controlID, documentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (cais *ControlAssociatedItemService) GetAllDocuments(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return nil, err
+	}
+	return cais.repo.GetAllDocuments(controlID, params)
+}

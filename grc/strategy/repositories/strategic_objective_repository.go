@@ -372,6 +372,7 @@ func (repo *StrategicObjectiveRepository) GetRiskSummary(strategicObjectiveID ui
         rmrr.id IN (
             SELECT TOP 1 rmrr2.id 
             FROM risk_matrix_risk_ratings rmrr2
+			WHERE rmrr2.status = 'active'
             ORDER BY 
                 CASE LOWER(rmrr2.type)
                     WHEN 'very_high' THEN 1
@@ -398,6 +399,7 @@ func (repo *StrategicObjectiveRepository) GetRiskSummary(strategicObjectiveID ui
 		Joins("JOIN risk_register rr ON risk_strategic_objectives.risk_register_id = rr.id").
 		Joins("JOIN risk_controls rc ON rr.id = rc.risk_register_id").
 		Where("risk_strategic_objectives.strategic_objective_id = ?", strategicObjectiveID).
+		Distinct("rr.id").
 		Count(&controlledRisks).Error
 
 	if err != nil {

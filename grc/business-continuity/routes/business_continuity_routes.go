@@ -38,6 +38,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	testAndExerciseTestResultController := app.BusinessContinuityModule.TestAndExerciseTestResultController
 	taeRecoveryActionPlanCommentController := app.BusinessContinuityModule.TaeRecoveryActionPlanCommentController
 	bcpRiskAnalysisController := app.BusinessContinuityModule.BcpRiskAnalysisController
+	bcpAssociatedItemController := app.BusinessContinuityModule.BcpAssociatedItemController
 
 	// bcp phase
 	businessContinuityRoutes.GET("/bcp-phases", bcpPhaseController.GetAllBcpPhases)
@@ -202,5 +203,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.POST("/test-and-exercises/:testAndExerciseId/recovery-action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), taeRecoveryActionPlanCommentController.CreateComment)
 	businessContinuityRoutes.PUT("/test-and-exercises/:testAndExerciseId/recovery-action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), taeRecoveryActionPlanCommentController.UpdateComment)
 	businessContinuityRoutes.POST("/test-and-exercises/:testAndExerciseId/recovery-action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), taeRecoveryActionPlanCommentController.DeleteComment)
+
+	businessContinuityRoutes.GET("/business-continuity-plans/:id/documents", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpAssociatedItemController.GetAllBcpDocuments)
+	businessContinuityRoutes.POST("/business-continuity-plans/:id/documents", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpAssociatedItemController.CreateBcpDocument)
+	businessContinuityRoutes.DELETE("/business-continuity-plans/:id/documents/:documentId", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpAssociatedItemController.DeleteBcpDocument)
+
+	businessContinuityRoutes.GET("/business-continuity-plans/:id/controls", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpAssociatedItemController.GetAllBcpControl)
+	businessContinuityRoutes.POST("/business-continuity-plans/:id/controls", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpAssociatedItemController.CreateBcpControl)
+	businessContinuityRoutes.DELETE("/business-continuity-plans/:id/controls/:controlId", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpAssociatedItemController.DeleteBcpControl)
 
 }

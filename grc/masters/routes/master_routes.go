@@ -40,6 +40,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	countryController := app.MasterModule.CountryController
 	calculationTypeController := app.MasterModule.CalculationTypeController
 	projectMilestoneStatusController := app.MasterModule.ProjectMilestoneStatusController
+	licenseTypeController := app.MasterModule.LicenseTypeController
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
@@ -153,5 +154,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	masterRoutes.GET("/project-milestone-statuses", projectMilestoneStatusController.GetAllProjectMilestoneStatuses)
 	masterRoutes.GET("/project-milestone-statuses/:id", projectMilestoneStatusController.GetProjectMilestoneStatusDetails)
+
+	masterRoutes.GET("/license-types", licenseTypeController.GetAllLicenseTypes)
+	masterRoutes.GET("/license-types/:id", licenseTypeController.GetLicenseTypeDetails)
 
 }

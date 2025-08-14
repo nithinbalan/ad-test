@@ -36,8 +36,7 @@ func (tprc *ThirdPartyAssessmentController) GetAllThirdPartyAssessment(c *gin.Co
 		return
 	}
 	allowedParams := []string{
-		"third_party_type_ids", "country_ids", "organization_unit_ids",
-		"severity_level_ids", "responsible_user_ids",
+		"third_party_register_ids", "question_set_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -54,28 +53,14 @@ func (tprc *ThirdPartyAssessmentController) GetAllThirdPartyAssessment(c *gin.Co
 	}
 
 	validSortFields := map[string]string{
-		"title":                          "third_party_register.title",
-		"reference_number":               "third_party_register.reference_number",
-		"website":                        "third_party_register.website",
-		"email":                          "third_party_register.email",
-		"phone_number":                   "third_party_register.phone_number",
-		"onboarding_date":                "third_party_register.onboarding_date",
-		"service_start_date":             "third_party_register.service_start_date",
-		"service_end_date":               "third_party_register.service_end_date",
-		"country_title_en":               "countries.title_en",
-		"country_title_ar":               "countries.title_ar",
-		"third_party_type_en":            "third_party_types.title_en",
-		"third_party_type_ar":            "third_party_types.title_ar",
-		"organization_unit_title_en":     "organization_units.title_en",
-		"organization_unit_title_ar":     "organization_units.title_ar",
-		"severity_level_title_en":        "severity_levels.title_en",
-		"severity_level_title_ar":        "severity_levels.title_ar",
-		"severity_level_color_code":      "severity_levels.color_code",
-		"severity_level_type":            "severity_levels.type",
-		"responsible_user_first_name_en": "responsible_user.first_name_en",
-		"responsible_user_last_name_en":  "responsible_user.last_name_en",
-		"created_user_first_name_en":     "created_user.first_name_en",
-		"created_user_last_name_en":      "created_user.last_name_en",
+		"third_party_register_title": "third_party_register.title",
+		"title":                      "third_party_assessments.title",
+		"reference_number":           "third_party_assessments.reference_number",
+		"due_date":                   "third_party_assessments.due_date",
+		"question_set_title_en":      "question_sets.title_en",
+		"question_set_title_ar":      "question_sets.title_ar",
+		"created_user_first_name_en": "created_user.first_name_en",
+		"created_user_last_name_en":  "created_user.last_name_en",
 	}
 
 	sortField, valid := validSortFields[sortBy]

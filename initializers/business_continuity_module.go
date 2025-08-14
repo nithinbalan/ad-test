@@ -31,6 +31,7 @@ type BusinessContinuityModule struct {
 	TaeRecoveryActionPlanStatusUpdateController      *controllers.TaeRecoveryActionPlanStatusUpdateController
 	TaeRecoveryActionPlanCommentController           *controllers.TaeRecoveryActionPlanCommentController
 	BcpRiskAnalysisController                        *controllers.BcpRiskAnalysisController
+	BcpAssociatedItemController                      *controllers.BcpAssociatedItemController
 
 	BusinessFunctionSvc                  services.BusinessFunctionServiceInterface
 	BcpTeamSvc                           services.BcpTeamServiceInterface
@@ -152,6 +153,10 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	taeRecoveryActionPlanCommentSvc := services.NewTaeRecoveryActionPlanCommentService(taeRecoveryActionPlanCommentRepository, organizationModule.UserSvc, sharedModule.ActivityLogService, testAndExerciseRecoveryActionPlanSvc, commonModule.NotificationService)
 	taeRecoveryActionPlanCommentController := controllers.NewTaeRecoveryActionPlanCommentController(taeRecoveryActionPlanCommentSvc)
 
+	bcpAssociatedItemRepo := repositories.NewBcpAssociatedItemRepository(db)
+	bcpAssociatedItemSvc := services.NewBcpAssociatedItemService(bcpAssociatedItemRepo, businessContinuityPlanSvc, commonModule.AssociatedItemValidationService)
+	bcpAssociatedItemController := controllers.NewBcpAssociatedItemController(bcpAssociatedItemSvc)
+
 	return &BusinessContinuityModule{
 		BusinessFunctionController:                       businessFunctionController,
 		BusinessImpactAssessmentController:               businessImpactAssessmentController,
@@ -175,6 +180,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		TaeRecoveryActionPlanStatusUpdateController:      taeRecoveryActionPlanStatusUpdateController,
 		TaeRecoveryActionPlanCommentController:           taeRecoveryActionPlanCommentController,
 		BcpRiskAnalysisController:                        bcpRiskAnalysisController,
+		BcpAssociatedItemController:                      bcpAssociatedItemController,
 
 		BusinessFunctionSvc:                  businessFunctionSvc,
 		BcpTeamSvc:                           bcpTeamSvc,

@@ -29,8 +29,9 @@ func (rc *RoleController) GetAllRoles(c *gin.Context) {
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	licenseTypeID := c.Query("license_type_id")
 
-	roles, err := rc.service.GetAll(sort, sortBy, keyword, status)
+	roles, err := rc.service.GetAll(sort, sortBy, keyword, status, licenseTypeID)
 
 	if err != nil {
 		utility.SendInternalErrResp(rc.db, c, err.Error())
@@ -259,6 +260,9 @@ func (rc *RoleController) UpdateRolePermissions(c *gin.Context) {
 			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 			return
 		default:
 			utility.SendInternalErrResp(rc.db, c, e.Error())

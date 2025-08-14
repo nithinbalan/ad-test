@@ -238,6 +238,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/controls/:controlId/risks", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.CreateControlRisk)
 	organizationRoutes.DELETE("/controls/:controlId/risks/:riskId", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.DeleteControlRisk)
 
+	organizationRoutes.GET("/controls/:controlId/documents", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlAssociatedItemController.GetAllControlDocument)
+	organizationRoutes.POST("/controls/:controlId/documents", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.CreateControlDocument)
+	organizationRoutes.DELETE("/controls/:controlId/documents/:documentId", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.DeleteControlDocument)
+
 	//Process Group
 	organizationRoutes.GET("/process-groups", processGroupController.GetAllProcessGroups)
 	organizationRoutes.GET("/process-groups/:id", processGroupController.GetProcessGroupDetails)
@@ -288,6 +292,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	organizationRoutes.POST("/processes/:processId/risks", middlewares.RolePermissionMiddleware(db, "processes", "modify"), processAssociatedItemController.CreateProcessRisk)
 	organizationRoutes.DELETE("/processes/:processId/risks/:riskId", middlewares.RolePermissionMiddleware(db, "processes", "modify"), processAssociatedItemController.DeleteProcessRisk)
+
+	organizationRoutes.POST("/processes/:processId/documents", middlewares.RolePermissionMiddleware(db, "processes", "modify"), processAssociatedItemController.CreateProcessDocument)
+	organizationRoutes.DELETE("/processes/:processId/documents/:documentId", middlewares.RolePermissionMiddleware(db, "processes", "modify"), processAssociatedItemController.DeleteProcessDocument)
+
+	organizationRoutes.POST("/processes/:processId/controls", middlewares.RolePermissionMiddleware(db, "processes", "modify"), processAssociatedItemController.CreateProcessControl)
+	organizationRoutes.DELETE("/processes/:processId/controls/:controlId", middlewares.RolePermissionMiddleware(db, "processes", "modify"), processAssociatedItemController.DeleteProcessControl)
 
 	// process dependency type
 	organizationRoutes.GET("/process-dependency-types", processDependencyTypeController.GetAllProcessDependencyTypes)

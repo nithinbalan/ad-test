@@ -79,7 +79,7 @@ func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	meetingActionPlanStatusUpdateController := controllers.NewMeetingActionPlanStatusUpdateController(meetingActionPlanStatusUpdateSvc)
 
 	meetingAssociatedItemRepo := repositories.NewMeetingAssociatedItemRepository(db)
-	meetingAssociatedItemSvc := services.NewMeetingAssociatedItemService(meetingAssociatedItemRepo, meetingSvc)
+	meetingAssociatedItemSvc := services.NewMeetingAssociatedItemService(meetingAssociatedItemRepo, meetingSvc, commonModule.AssociatedItemValidationService)
 	meetingAssociatedItemController := controllers.NewMeetingAssociatedItemController(meetingAssociatedItemSvc)
 
 	return &MeetingModule{

@@ -10,7 +10,7 @@ type AssociatedItemValidationRepositoryInterface interface {
 	IsRiskMapped(tableName string, masterColumn string, riskID, masterID uint) (bool, error)
 	RiskExists(id uint) (*models.RiskRegister, error)
 	IsDocumentMapped(masterName string, columnName string, documentID, masterID uint) (bool, error)
-	DocumentExists(id uint) (*models.Document, error)
+	DocumentExists(id uint) (*models.Document, string, error)
 	IsIncidentMapped(masterName string, columnName string, incidentID, masterID uint) (bool, error)
 	IncidentExists(id uint) (*models.IncidentRegister, error)
 	IsstrategicObjectiveMapped(masterName string, columnName string, strategicObjectiveID, masterID uint) (bool, error)
@@ -81,19 +81,41 @@ func (repo *AssociatedItemValidationRepository) IsDocumentMapped(masterName stri
 	return count > 0, nil
 }
 
-func (repo *AssociatedItemValidationRepository) DocumentExists(id uint) (*models.Document, error) {
+// func (repo *AssociatedItemValidationRepository) DocumentExists(id uint) (*models.Document, error) {
+// 	db := repo.db
+
+// 	var document *models.Document
+
+// 	result := db.
+// 		First(&document, id)
+// 	if result.Error != nil {
+// 		return nil, result.Error
+// 	}
+
+// 	return document, nil
+
+// }
+
+func (repo *AssociatedItemValidationRepository) DocumentExists(id uint) (*models.Document, string, error) {
 	db := repo.db
 
-	var document *models.Document
-
-	result := db.
-		First(&document, id)
+	var document models.Document
+	result := db.First(&document, id)
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, "", result.Error
 	}
 
-	return document, nil
+	var statusType string
+	err := db.
+		Table("document_statuses").
+		Select("type").
+		Where("id = ?", document.DocumentStatusID).
+		Scan(&statusType).Error
+	if err != nil {
+		return nil, "", err
+	}
 
+	return &document, statusType, nil
 }
 
 func (repo *AssociatedItemValidationRepository) IsIncidentMapped(masterName string, columnName string, incidentID, masterID uint) (bool, error) {

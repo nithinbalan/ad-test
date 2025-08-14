@@ -66,6 +66,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditReportWorkflowController := app.AuditModule.AuditReportWorkflowController
 	auditReportReviewController := app.AuditModule.AuditReportReviewController
 	auditFinalReportAppendixController := app.AuditModule.AuditFinalReportAppendixController
+	auditFindingAssociatedItemController := app.AuditModule.AuditFindingAssociatedItemController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -221,6 +222,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.PUT("/audit-findings/:findingId", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingController.UpdateAuditFinding)
 	auditRoutes.POST("/audit-findings/delete", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingController.DeleteAuditFindings)
 	auditRoutes.GET("audits/:auditId/audit-finding-summary", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingController.GetAuditFindingCountByCategory)
+
+	auditRoutes.GET("/audit-findings/:findingId/documents", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingAssociatedItemController.GetAllAuditFindingDocuments)
+	auditRoutes.POST("/audit-findings/:findingId/documents", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.CreateAuditFindingDocument)
+	auditRoutes.DELETE("/audit-findings/:findingId/documents/:documentId", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.DeleteAuditFindingDocument)
+
+	auditRoutes.GET("/audit-findings/:findingId/controls", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingAssociatedItemController.GetAllAuditFindingControls)
+	auditRoutes.POST("/audit-findings/:findingId/controls", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.CreateAuditFindingControl)
+	auditRoutes.DELETE("/audit-findings/:findingId/controls/:controlId", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.DeleteAuditFindingControl)
 
 	//Audit Document  Request Status
 	auditRoutes.GET("/audit-document-request-statuses", auditDocumentRequestStatusController.GetAllAuditDocumentRequestStatuses)

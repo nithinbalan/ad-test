@@ -12,7 +12,7 @@ import (
 
 type DocumentAssociatedItemRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAllControls(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemControlListResponseDTO, error)
+	GetAllControls(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	GetAllComplianceRequirements(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) ([]documentDTOs.DocumentComplianceRequirementListDTO, int64, error)
 	GetAllProcesses(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemProcessListResponseDTO, error)
 	GetAllSLAs(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemSLAListResponseDTO, error)
@@ -25,6 +25,8 @@ type DocumentAssociatedItemRepositoryInterface interface {
 	GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error)
 	CreateDocumentRisk(risks []*models.RiskAssociatedDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocumentRisk(documentID uint, riskID uint, tx ...utility.DatabaseTransaction) error
+	CreateDocumentControl(controls []*models.ControlAssociatedDocument, tx ...utility.DatabaseTransaction) error
+	DeleteDocumentControl(documentID uint, controlID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type DocumentAssociatedItemRepository struct {
@@ -41,7 +43,7 @@ func (repo *DocumentAssociatedItemRepository) BeginTransaction() utility.Databas
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *DocumentAssociatedItemRepository) GetAllControls(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemControlListResponseDTO, error) {
+func (repo *DocumentAssociatedItemRepository) GetAllControls(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error) {
 	var controlList []*commonDTOs.AssociatedControlListDTO
 	var totalCount int64
 
@@ -118,9 +120,6 @@ func (repo *DocumentAssociatedItemRepository) GetAllControls(documentID uint, pa
 		LEFT JOIN users AS created_user ON created_user.id = controls.created_by_id
 	`).Where("control_associated_documents.document_id = ?", documentID)
 
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -152,7 +151,9 @@ func (repo *DocumentAssociatedItemRepository) GetAllControls(documentID uint, pa
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
 	}
-
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize
@@ -165,7 +166,7 @@ func (repo *DocumentAssociatedItemRepository) GetAllControls(documentID uint, pa
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
-	response := &documentDTOs.DocumentAssociatedItemControlListResponseDTO{
+	response := &commonDTOs.AssociatedControlListResponseDTO{
 		Items: controlList,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
@@ -647,9 +648,6 @@ func (repo *DocumentAssociatedItemRepository) GetAllRisks(documentID uint, param
 		Where("risk_associated_documents.document_id = ?", documentID)
 
 	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -680,10 +678,18 @@ func (repo *DocumentAssociatedItemRepository) GetAllRisks(documentID uint, param
 		params.Sort = "asc"
 	}
 
+	if params.Value != 0 {
+		query = query.Where("current_risk_rating_value.value = ?", params.Value)
+	}
+
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
 			query = query.Where(columnName+" IN (?)", values)
 		}
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)
@@ -885,5 +891,24 @@ func (repo *DocumentAssociatedItemRepository) DeleteDocumentRisk(documentID uint
 	return db.
 		Where("risk_register_id = ? AND document_id = ?", riskId, documentID).
 		Delete(&models.RiskAssociatedDocument{}).
+		Error
+}
+
+func (repo *DocumentAssociatedItemRepository) CreateDocumentControl(controls []*models.ControlAssociatedDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&controls).Error
+}
+
+func (repo *DocumentAssociatedItemRepository) DeleteDocumentControl(documentID uint, controlId uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("control_id = ? AND document_id = ?", controlId, documentID).
+		Delete(&models.ControlAssociatedDocument{}).
 		Error
 }

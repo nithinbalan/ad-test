@@ -45,7 +45,7 @@ func (r *RiskReportRepository) GetKRIByCategory(params *reportDTOs.ReportListQue
 		Select(`kri_categories.id AS kri_category_id, 
 				kri_categories.title_en AS kri_category_title_en, 
 				kri_categories.title_ar AS kri_category_title_ar, 
-				COUNT(kri_register.id) AS count`).
+				COUNT(DISTINCT(kri_register.id)) AS count`).
 		Joins("JOIN kri_categories ON kri_categories.id = kri_register.kri_category_id").
 		Group("kri_categories.id, kri_categories.title_en, kri_categories.title_ar")
 
@@ -66,7 +66,7 @@ func (r *RiskReportRepository) GetKRIByResponsibleUnit(params *reportDTOs.Report
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
 			organization_units.color_code AS responsible_unit_color_code,
-			COUNT(kri_register.id) AS count
+			COUNT(DISTINCT(kri_register.id)) AS count
 		`).
 		Joins("JOIN organization_units ON organization_units.id = kri_register.responsible_unit_id").
 		Group("organization_units.id, organization_units.title_en, organization_units.title_ar, organization_units.color_code")
@@ -95,7 +95,7 @@ func (r *RiskReportRepository) GetKRIByResponsibleUser(params *reportDTOs.Report
 			users.color AS responsible_user_color,
 			users.email AS responsible_user_email,
 			users.profile_image_path AS responsible_user_profile_image_path,
-			COUNT(kri_register.id) AS count
+			COUNT(DISTINCT(kri_register.id)) AS count
 		`).
 		Joins("JOIN users ON users.id = kri_register.responsible_user_id").
 		Group("users.id, users.first_name_en, users.first_name_ar, users.last_name_en, users.last_name_ar, users.initial, users.color, users.email, users.profile_image_path")
@@ -116,7 +116,7 @@ func (r *RiskReportRepository) GetKRIByRiskLevel(params *reportDTOs.ReportListQu
 				risk_levels.title_en AS risk_level_title_en,
 				risk_levels.title_ar AS risk_level_title_ar,
 				risk_levels.color_code AS color_code,
-				COUNT(kri_register.id) AS count`).
+				COUNT(DISTINCT(kri_register.id)) AS count`).
 		Joins("JOIN risk_levels ON risk_levels.id = kri_register.risk_level_id").
 		Group("risk_levels.id, risk_levels.title_en, risk_levels.title_ar, risk_levels.color_code")
 
@@ -135,7 +135,7 @@ func (r *RiskReportRepository) GetKRIByReviewFrequency(params *reportDTOs.Report
 		Select(`review_frequencies.id AS review_frequency_id,
 				review_frequencies.title_en AS review_frequency_title_en,
 				review_frequencies.title_ar AS review_frequency_title_ar,
-				COUNT(kri_register.id) AS count`).
+				COUNT(DISTINCT(kri_register.id)) AS count`).
 		Joins("JOIN review_frequencies ON review_frequencies.id = kri_register.review_frequency_id").
 		Group("review_frequencies.id, review_frequencies.title_en, review_frequencies.title_ar")
 
@@ -154,7 +154,7 @@ func (r *RiskReportRepository) GetRiskByCategory(params *reportDTOs.ReportListQu
 		Select(`risk_categories.id AS risk_category_id,
 				risk_categories.title_en AS risk_category_title_en,
 				risk_categories.title_ar AS risk_category_title_ar,
-				COUNT(risk_register.id) AS count`).
+				COUNT(DISTINCT(risk_register.id)) AS count`).
 		Joins("JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id").
 		Group("risk_categories.id, risk_categories.title_en, risk_categories.title_ar")
 
@@ -174,7 +174,7 @@ func (r *RiskReportRepository) GetRiskByResponsibleUnit(params *reportDTOs.Repor
 				organization_units.title_en AS responsible_unit_title_en,
 				organization_units.title_ar AS responsible_unit_title_ar,
 				organization_units.color_code AS responsible_unit_color_code,
-				COUNT(risk_register.id) AS count`).
+				COUNT(DISTINCT(risk_register.id)) AS count`).
 		Joins("JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id").
 		Group(`organization_units.id, 
 				organization_units.title_en, 
@@ -204,7 +204,7 @@ func (r *RiskReportRepository) GetRiskByResponsibleUser(params *reportDTOs.Repor
 			users.color AS responsible_user_color,
 			users.email AS responsible_user_email,
 			users.profile_image_path AS responsible_user_profile_image_path,
-			COUNT(risk_register.id) AS count`).
+			COUNT(DISTINCT(risk_register.id)) AS count`).
 		Joins("JOIN users ON users.id = risk_register.responsible_user_id").
 		Group(`users.id, 
 			users.first_name_en, 
@@ -231,7 +231,7 @@ func (r *RiskReportRepository) GetRiskByRiskSource(params *reportDTOs.ReportList
 		Select(`risk_sources.id AS risk_source_id,
 				risk_sources.title_en AS risk_source_title_en,
 				risk_sources.title_ar AS risk_source_title_ar,
-				COUNT(risk_register.id) AS count`).
+				COUNT(DISTINCT(risk_register.id)) AS count`).
 		Joins("JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id").
 		Group("risk_sources.id, risk_sources.title_en, risk_sources.title_ar")
 
@@ -251,7 +251,7 @@ func (r *RiskReportRepository) GetRiskByInherentRiskRating(params *reportDTOs.Re
 				risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
 				risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
 				risk_matrix_risk_ratings.color_code AS color_code,
-				COUNT(risk_register.id) AS count`).
+				COUNT(DISTINCT(risk_register.id)) AS count`).
 		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.inherent_risk_rating_id").
 		Group("risk_matrix_risk_ratings.id, risk_matrix_risk_ratings.title_en, risk_matrix_risk_ratings.title_ar, risk_matrix_risk_ratings.color_code")
 
@@ -271,7 +271,7 @@ func (r *RiskReportRepository) GetRiskByResidualRiskRating(params *reportDTOs.Re
 				risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
 				risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
 				risk_matrix_risk_ratings.color_code AS color_code,
-				COUNT(risk_register.id) AS count`).
+				COUNT(DISTINCT(risk_register.id)) AS count`).
 		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.residual_risk_rating_id").
 		Group("risk_matrix_risk_ratings.id, risk_matrix_risk_ratings.title_en, risk_matrix_risk_ratings.title_ar, risk_matrix_risk_ratings.color_code")
 
@@ -291,7 +291,7 @@ func (r *RiskReportRepository) GetRiskByRiskStatus(params *reportDTOs.ReportList
 				risk_statuses.title_en AS risk_status_title_en,
 				risk_statuses.title_ar AS risk_status_title_ar,
 				risk_statuses.color_code AS color_code,
-				COUNT(risk_register.id) AS count`).
+				COUNT(DISTINCT(risk_register.id)) AS count`).
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
 		Group("risk_statuses.id, risk_statuses.title_en, risk_statuses.title_ar, risk_statuses.color_code")
 
@@ -310,7 +310,7 @@ func (r *RiskReportRepository) GetRiskByRiskResponseStrategy(params *reportDTOs.
 		Select(`risk_response_strategies.id AS response_strategy_id,
 				risk_response_strategies.title_en AS response_strategy_title_en,
 				risk_response_strategies.title_ar AS response_strategy_title_ar,
-				COUNT(risk_register.id) AS count`).
+				COUNT(DISTINCT(risk_register.id)) AS count`).
 		Joins("JOIN risk_response_strategies ON risk_response_strategies.id = risk_register.risk_response_strategy_id").
 		Group("risk_response_strategies.id, risk_response_strategies.title_en, risk_response_strategies.title_ar")
 
@@ -330,7 +330,7 @@ func (r *RiskReportRepository) GetRiskByRiskAppetiteToleranceLevel(params *repor
 				risk_appetite_tolerance_levels.title_en AS tolerance_level_title_en,
 				risk_appetite_tolerance_levels.title_ar AS tolerance_level_title_ar,
 				risk_appetite_tolerance_levels.color_code AS color_code,
-				COUNT(risk_appetite_alignments.id) AS count`).
+				COUNT(DISTINCT(risk_appetite_alignments.id)) AS count`).
 		Joins("JOIN risk_appetite_tolerance_levels ON risk_appetite_tolerance_levels.id = risk_appetite_alignments.risk_appetite_tolerance_level_id").
 		Group(`risk_appetite_tolerance_levels.id, 
 			   risk_appetite_tolerance_levels.title_en, 
@@ -389,7 +389,7 @@ func (r *RiskReportRepository) GetRiskActionPlansByStatus(params *reportDTOs.Rep
 				action_plan_statuses.title_ar AS action_plan_status_title_ar,
 				action_plan_statuses.type AS action_plan_status_type,
 				action_plan_statuses.color_code AS action_plan_status_color_code,
-				COUNT(risk_action_plans.id) AS count`).
+				COUNT(DISTINCT(risk_action_plans.id)) AS count`).
 		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = risk_action_plans.action_plan_status_id").
 		Group("action_plan_statuses.id, action_plan_statuses.title_en, action_plan_statuses.title_ar, action_plan_statuses.type, action_plan_statuses.color_code")
 
@@ -416,7 +416,7 @@ func (r *RiskReportRepository) GetRiskActionPlansByResponsibleUser(params *repor
 				users.color AS responsible_user_color,
 				users.email AS responsible_user_email,
 				users.profile_image_path AS responsible_user_profile_image_path,
-				COUNT(risk_action_plans.id) AS count`).
+				COUNT(DISTINCT(risk_action_plans.id)) AS count`).
 		Joins("JOIN users ON users.id = risk_action_plans.responsible_user_id").
 		Group("users.id, users.first_name_en, users.first_name_ar, users.last_name_en, users.last_name_ar, users.initial, users.color, users.email, users.profile_image_path")
 
@@ -437,7 +437,7 @@ func (r *RiskReportRepository) GetRiskActionPlansBySeverityLevel(params *reportD
 				severity_levels.title_ar AS severity_level_title_ar,
 				severity_levels.color_code AS severity_level_color_code,
 				severity_levels.type AS severity_level_type,
-				COUNT(risk_action_plans.id) AS count`).
+				COUNT(DISTINCT(risk_action_plans.id)) AS count`).
 		Joins("JOIN severity_levels ON severity_levels.id = risk_action_plans.severity_level_id").
 		Group("severity_levels.id, severity_levels.title_en, severity_levels.title_ar, severity_levels.color_code, severity_levels.type")
 

@@ -73,7 +73,7 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	rolePermissionTypeController := controllers.NewRolePermissionTypeController(rolePermissionTypeSvc)
 
 	roleRepo := repositories.NewRoleRepository(db)
-	roleSvc := services.NewRoleService(roleRepo, sharedModule.ActivityLogService, moduleSvc, rolePermissionTypeRepo)
+	roleSvc := services.NewRoleService(roleRepo, sharedModule.ActivityLogService, moduleSvc, rolePermissionTypeRepo, masterModule.LicenseTypeSvc)
 	roleController := controllers.NewRoleController(roleSvc)
 
 	organizationUnitRepo := repositories.NewOrganizationUnitRepository(db)

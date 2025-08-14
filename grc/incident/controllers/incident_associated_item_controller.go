@@ -36,8 +36,6 @@ func (iaic *IncidentAssociatedItemController) GetAllIncidentControls(c *gin.Cont
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -51,14 +49,12 @@ func (iaic *IncidentAssociatedItemController) GetAllIncidentControls(c *gin.Cont
 		return
 	}
 
-	queryParams := incidentDTOs.IncidentAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
 
 	incidents, err := iaic.service.GetAllControls(uint(incidentID), &queryParams)
@@ -138,6 +134,7 @@ func (iaic *IncidentAssociatedItemController) GetAllIncidentRisks(c *gin.Context
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
+	valueStr := c.Query("value")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -150,6 +147,14 @@ func (iaic *IncidentAssociatedItemController) GetAllIncidentRisks(c *gin.Context
 		utility.SendInternalErrResp(iaic.db, c, "Invalid page_size parameter")
 		return
 	}
+	var value int
+	if valueStr != "" {
+		value, err = strconv.Atoi(valueStr)
+		if err != nil {
+			utility.SendInternalErrResp(iaic.db, c, "Invalid value parameter")
+			return
+		}
+	}
 	allowedParams := []string{
 		"current_likelihood_ids",
 		"current_impact_ids",
@@ -161,6 +166,7 @@ func (iaic *IncidentAssociatedItemController) GetAllIncidentRisks(c *gin.Context
 		Keyword:  keyword,
 		Page:     page,
 		PageSize: pageSize,
+		Value:    value,
 		Filters:  filters,
 	}
 	incidents, err := iaic.service.GetAllRisks(uint(incidentID), &queryParams)
@@ -294,8 +300,6 @@ func (ic *IncidentAssociatedItemController) GetAllIncidentDocuments(c *gin.Conte
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -309,14 +313,12 @@ func (ic *IncidentAssociatedItemController) GetAllIncidentDocuments(c *gin.Conte
 		return
 	}
 
-	queryParams := incidentDTOs.IncidentAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	documents, err := ic.service.GetAllDocuments(uint(incidentID), &queryParams)
 
@@ -519,4 +521,102 @@ func (iaic *IncidentAssociatedItemController) DeleteIncidentRisk(c *gin.Context)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Risk unmapped from incident successfully"})
+}
+
+func (iaic *IncidentAssociatedItemController) CreateIncidentDocument(c *gin.Context) {
+	var input commonDTOs.AssociatedDocumentMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	incidentID, err := strconv.ParseUint(c.Param("incidentID"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(iaic.db, c, err.Error())
+		return
+	}
+
+	err = iaic.service.CreateIncidentDocument(uint(incidentID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(iaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (iaic *IncidentAssociatedItemController) DeleteIncidentDocument(c *gin.Context) {
+	incidentID, _ := strconv.ParseUint(c.Param("incidentID"), 10, 64)
+	documentID, _ := strconv.ParseUint(c.Param("documentId"), 10, 64)
+	err := iaic.service.DeleteIncidentDocument(uint(incidentID), uint(documentID))
+	if err != nil {
+		utility.SendInternalErrResp(iaic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Document unmapped from incident successfully"})
+}
+
+func (iaic *IncidentAssociatedItemController) CreateIncidentControl(c *gin.Context) {
+	var input commonDTOs.AssociatedControlMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	incidentID, err := strconv.ParseUint(c.Param("incidentID"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(iaic.db, c, err.Error())
+		return
+	}
+
+	err = iaic.service.CreateIncidentControl(uint(incidentID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(iaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (iaic *IncidentAssociatedItemController) DeleteIncidentControl(c *gin.Context) {
+	incidentID, _ := strconv.ParseUint(c.Param("incidentID"), 10, 64)
+	controlID, _ := strconv.ParseUint(c.Param("controlId"), 10, 64)
+	err := iaic.service.DeleteIncidentControl(uint(incidentID), uint(controlID))
+	if err != nil {
+		utility.SendInternalErrResp(iaic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Control unmapped from incident successfully"})
 }

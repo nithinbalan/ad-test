@@ -123,6 +123,9 @@ func (rrc *RiskReportController) CreateRiskReport(c *gin.Context) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(rrc.db, c, e.Error())
 			return
