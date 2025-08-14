@@ -728,34 +728,41 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 		tx.Rollback()
 		return err
 	}
+	// assume you've just set the target RU to "approved"
 	allApproved := true
 	for _, ru := range oldComplianceAssessmentRequirement.ResponsibleUnits {
 		if ru == nil {
 			continue
 		}
 		if ru.ID == complianceAssessmentRequirementResponsibleUnit.ID {
-			// this one is now completed
+			// we just approved this one; treat as approved
 			continue
 		}
-		if !ru.IsCompleted {
+		st := ru.ComplianceAssessmentRequirementStatus
+		if st == nil || st.Type != "approved" {
 			allApproved = false
 			break
 		}
 	}
 
-	// Update parent CAR’s IsAllCompleted
 	car, err := cars.repo.GetByID(requirementID)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	car.IsAllApproved = allApproved
+
+	if allApproved {
+		car.ComplianceAssessmentRequirementStatusID = &approvedStatus.ID
+	} else {
+		car.ComplianceAssessmentRequirementStatusID = nil
+	}
 	car.UpdatedBYID = &currentUserID
 
 	if err := cars.repo.Update(car, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
+
 	tx.Commit()
 
 	// Log the action
@@ -913,7 +920,7 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 		tx.Rollback()
 		return err
 	}
-	car.IsAllApproved = false
+	car.ComplianceAssessmentRequirementStatusID = nil
 	car.UpdatedBYID = &currentUserID
 
 	if err := cars.repo.Update(car, tx); err != nil {

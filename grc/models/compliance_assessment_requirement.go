@@ -10,7 +10,6 @@ type ComplianceAssessmentRequirement struct {
 	ComplianceAssessmentRequirementStatusID *uint      `json:"compliance_assessment_requirement_status_id" gorm:"default:null"`
 	Score                                   *float64   `json:"score" gorm:"type:decimal(10,2)"`
 	IsAllCompleted                          bool       `json:"is_all_completed" gorm:"column:is_all_completed;not null;default:false"`
-	IsAllApproved                           bool       `json:"is_all_approved" gorm:"column:is_all_approved;not null;default:false"`
 	CreatedAt                               time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                               *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedBYID                             uint       `json:"created_by_id" gorm:"not null"`

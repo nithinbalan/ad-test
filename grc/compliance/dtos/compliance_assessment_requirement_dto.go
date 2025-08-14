@@ -10,17 +10,22 @@ import (
 type ComplianceAssessmentRequirementListDTO struct {
 	ID                                             uint    `json:"id"`
 	ClauseID                                       uint    `json:"clause_id"`
+	ClauseDescriptionEn                            *string `json:"clause_description_en"`
+	ClauseDescriptionAr                            *string `json:"clause_description_ar"`
 	IsCompleted                                    bool    `json:"is_completed"`
 	ComplianceClauseNo                             string  `json:"compliance_clause_no"`
 	ComplianceClauseTitleEn                        string  `json:"compliance_clause_title_en"`
 	ComplianceClauseTitleAr                        string  `json:"compliance_clause_title_ar"`
+	ComplianceRequirementID                        uint    `json:"compliance_requirement_id"`
 	ComplianceRequirementTitleEn                   string  `json:"compliance_requirement_title_en"`
 	ComplianceRequirementTitleAr                   string  `json:"compliance_requirement_title_ar"`
 	ComplianceRequirementCategoryTitleEn           string  `json:"compliance_requirement_category_title_en"`
 	ComplianceRequirementCategoryTitleAr           string  `json:"compliance_requirement_category_title_ar"`
+	SeverityLevelID                                uint    `json:"severity_level_id"`
 	SeverityLevelTitleEn                           string  `json:"severity_level_title_en"`
 	SeverityLevelTitleAr                           string  `json:"severity_level_title_ar"`
 	SeverityLevelColorCode                         string  `json:"severity_level_color_code"`
+	SeverityLevelType                              string  `json:"severity_level_type"`
 	ComplianceAssessmentRequirementStatusTitleEn   string  `json:"compliance_assessment_requirement_status_title_en"`
 	ComplianceAssessmentRequirementStatusTitleAr   string  `json:"compliance_assessment_requirement_status_title_ar"`
 	ComplianceAssessmentRequirementStatusColorCode string  `json:"compliance_assessment_requirement_status_color_code"`
@@ -28,7 +33,6 @@ type ComplianceAssessmentRequirementListDTO struct {
 	CreatedAt                                      string  `json:"created_at"`
 	UpdatedAt                                      *string `json:"updated_at"`
 	IsAllCompleted                                 bool    `json:"is_all_completed"`
-	IsAllApproved                                  bool    `json:"is_all_approved"`
 }
 
 type ComplianceAssessmentRequirementListResponseDTO struct {
@@ -52,7 +56,6 @@ type ComplianceAssessmentRequirementDetailDTO struct {
 	ResponsibleUnit                       *ComplianceAssessmentRequirementResponsibleUnitDTO   `json:"responsible_unit"`
 	CompletedByUser                       *organizationDTOs.UserMinimalDTO                     `json:"completed_by_user"`
 	IsAllCompleted                        bool                                                 `json:"is_all_completed"`
-	IsAllApproved                         bool                                                 `json:"is_all_approved"`
 }
 
 type ComplianceAssessmentRequirementUpdateFormDTO struct {
