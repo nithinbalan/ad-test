@@ -47,7 +47,7 @@ func LicenseMiddleware(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Decrypt token
-		claims, err := utility.DecryptJWTToken(tokenString)
+		claims, err := utility.DecryptLicenseKey(tokenString)
 		if err != nil {
 			utility.SendUnauthorizedErrResp(c, "License is invalid")
 			c.Abort()
