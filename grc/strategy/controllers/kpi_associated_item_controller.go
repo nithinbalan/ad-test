@@ -452,6 +452,7 @@ func (kaic *KPIAssociatedItemController) GetAllKPIRisks(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
+	valueStr := c.Query("value")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -464,6 +465,16 @@ func (kaic *KPIAssociatedItemController) GetAllKPIRisks(c *gin.Context) {
 		utility.SendInternalErrResp(kaic.db, c, "Invalid page_size parameter")
 		return
 	}
+
+	var value int
+	if valueStr != "" {
+		value, err = strconv.Atoi(valueStr)
+		if err != nil {
+			utility.SendInternalErrResp(kaic.db, c, "Invalid value parameter")
+			return
+		}
+	}
+
 	allowedParams := []string{
 		"current_likelihood_ids",
 		"current_impact_ids",
@@ -476,6 +487,7 @@ func (kaic *KPIAssociatedItemController) GetAllKPIRisks(c *gin.Context) {
 		Keyword:  keyword,
 		Page:     page,
 		PageSize: pageSize,
+		Value:    value,
 		Filters:  filters,
 	}
 	risks, err := kaic.service.GetAllRisks(uint(kpiId), &queryParams)

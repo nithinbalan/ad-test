@@ -648,9 +648,6 @@ func (repo *DocumentAssociatedItemRepository) GetAllRisks(documentID uint, param
 		Where("risk_associated_documents.document_id = ?", documentID)
 
 	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -681,10 +678,18 @@ func (repo *DocumentAssociatedItemRepository) GetAllRisks(documentID uint, param
 		params.Sort = "asc"
 	}
 
+	if params.Value != 0 {
+		query = query.Where("current_risk_rating_value.value = ?", params.Value)
+	}
+
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
 			query = query.Where(columnName+" IN (?)", values)
 		}
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)
