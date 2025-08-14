@@ -276,10 +276,6 @@ func (repo *ProcessAssociatedItemRepository) GetAllRisks(processID uint, params 
 		
 		`).Where("risk_processes.process_id = ?", processID)
 
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
@@ -303,7 +299,7 @@ func (repo *ProcessAssociatedItemRepository) GetAllRisks(processID uint, params 
 	}
 
 	if params.Value != 0 {
-		query = query.Where("risk_matrix_risk_rating_values.value = ?", params.Value)
+		query = query.Where("current_risk_rating_value.value = ?", params.Value)
 	}
 
 	if params.SortBy == "" {
@@ -318,7 +314,9 @@ func (repo *ProcessAssociatedItemRepository) GetAllRisks(processID uint, params 
 			query = query.Where(columnName+" IN (?)", values)
 		}
 	}
-
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 	query = query.Order(params.SortBy + " " + params.Sort)
 	offset := (params.Page - 1) * params.PageSize
 

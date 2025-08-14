@@ -401,14 +401,19 @@ func (repo *IncidentAssociatedItemRepository) GetAllRisks(incidentID uint, param
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
 	}
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
+
+	if params.Value != 0 {
+		query = query.Where("current_risk_rating_value.value = ?", params.Value)
 	}
 
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
 			query = query.Where(columnName+" IN (?)", values)
 		}
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)

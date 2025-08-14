@@ -300,7 +300,7 @@ func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, p
 	}
 
 	if params.Value != 0 {
-		query = query.Where("risk_matrix_risk_rating_values.value = ?", params.Value)
+		query = query.Where("current_risk_rating_value.value = ?", params.Value)
 	}
 
 	if params.SortBy == "" {

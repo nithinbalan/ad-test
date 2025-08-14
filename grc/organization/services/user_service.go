@@ -288,16 +288,9 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 
 	if systemPreference != nil && systemPreference.LicenseKeyDetails != nil {
 		if systemPreference.LicenseKeyDetails.LicenseKey != nil && *systemPreference.LicenseKeyDetails.LicenseKey != "" {
-			if err := us.validateLicenseKey(*systemPreference.LicenseKeyDetails.LicenseKey, userFormDTO); err != nil {
+			if err := us.validateLicenseKey(nil, *systemPreference.LicenseKeyDetails.LicenseKey, userFormDTO); err != nil {
 				return 0, err
 			}
-		}
-	}
-	if systemPreference != nil && systemPreference.LicenseKeyDetails != nil {
-		// Check if user creation is allowed based on available licenses
-		if systemPreference.LicenseKeyDetails.BalanceLicensedUserCount != nil && *systemPreference.LicenseKeyDetails.BalanceLicensedUserCount <= 0 {
-			tx.Rollback()
-			return 0, utility.NewValidationError(fmt.Errorf("invalid balance user"), "invalid", "balance users")
 		}
 	}
 
@@ -505,7 +498,6 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 	// Fetch roles as part of user
 	// existingUser, err := us.repo.GetByID(id, "Roles")
 	existingUser, err := us.repo.GetByID(id)
-
 	if err != nil {
 		return err
 	}
@@ -514,6 +506,19 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	systemPreference, err := us.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return err
+	}
+
+	if systemPreference != nil && systemPreference.LicenseKeyDetails != nil {
+		if systemPreference.LicenseKeyDetails.LicenseKey != nil && *systemPreference.LicenseKeyDetails.LicenseKey != "" {
+			if err := us.validateLicenseKey(&id, *systemPreference.LicenseKeyDetails.LicenseKey, userFormDTO); err != nil {
+				return err
+			}
+		}
 	}
 
 	if err := us.validateUserFormDTO(&id, userFormDTO); err != nil {
@@ -647,38 +652,66 @@ func (us *UserService) UpdatePartial(id uint, userUpdateDTO *userDTOs.UserUpdate
 	return nil
 }
 
-func (crs *UserService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (us *UserService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
 	var deletedUser []map[string]interface{}
+
+	// Start transaction
+	tx := us.repo.BeginTransaction()
+
+	// Get system preferences (for balance licensed user count)
+	systemPreference, err := us.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
 	for _, id := range ids {
-
-		user, err := crs.repo.GetByID(id)
-
+		user, err := us.repo.GetByID(id)
 		if err != nil {
+			failedIds = append(failedIds, id)
 			continue
 		}
-		// 👇 Delete JD created from designation if any
-		_ = crs.userJobDescriptionSvc.DeleteUserJDFromDesignation(user.ID, user.DesignationID, currentUserID)
 
-		err = crs.repo.Delete(id)
+		// Delete JD created from designation if any
+		_ = us.userJobDescriptionSvc.DeleteUserJDFromDesignation(user.ID, user.DesignationID, currentUserID)
+
+		// Delete user
+		err = us.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
-		}
 
-		deletedUser = append(deletedUser, map[string]interface{}{
-			"id":            user.ID,
-			"first_name_en": user.FirstNameEn,
-			"last_name_en":  user.LastNameEn,
-		})
+			// Increment BalanceLicensedUserCount
+			if systemPreference != nil && systemPreference.LicenseKeyDetails != nil {
+				preference, err := us.systemPreferenceSvc.GetByID(uint(systemPreference.ID))
+				if err != nil {
+					return nil, err
+				}
+				newBalance := *systemPreference.LicenseKeyDetails.BalanceLicensedUserCount + 1
+				preference.BalanceLicensedUserCount = &newBalance
+				if err := us.systemPreferenceSvc.UpdateBalanceUserCount(preference, tx); err != nil {
+					tx.Rollback()
+					return nil, err
+				}
+			}
+
+			deletedUser = append(deletedUser, map[string]interface{}{
+				"id":            user.ID,
+				"first_name_en": user.FirstNameEn,
+				"last_name_en":  user.LastNameEn,
+			})
+		}
 	}
 
-	if len(successfulIds) > 0 {
+	tx.Commit()
 
+	// Log bulk delete activity asynchronously
+	if len(successfulIds) > 0 {
 		go func() {
-			err := crs.activityLogSvc.LogBulkActivities(
+			err := us.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
 				models.User{}.TableName(),
 				successfulIds,
@@ -687,7 +720,6 @@ func (crs *UserService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 				nil,
 			)
 			if err != nil {
-				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
 		}()
@@ -1072,7 +1104,7 @@ func (us *UserService) GetUserPermissions(userID uint, params *settingDTOs.Modul
 }
 
 func (us *UserService) DecodeMaxUsersFromLicense(licenseKey string) (float64, error) {
-	claims, err := utility.DecryptJWTToken(licenseKey)
+	claims, err := utility.DecryptLicenseKey(licenseKey)
 	if err != nil {
 		return 0, err
 	}
@@ -1085,16 +1117,11 @@ func (us *UserService) DecodeMaxUsersFromLicense(licenseKey string) (float64, er
 	return maxUsers, nil
 }
 
-func (us *UserService) validateLicenseKey(licenseKey string, userFormDTO *userDTOs.UserFormDTO) error {
+func (us *UserService) validateLicenseKey(id *uint, licenseKey string, userFormDTO *userDTOs.UserFormDTO) error {
 
-	claims, err := utility.DecryptJWTToken(licenseKey)
+	claims, err := utility.DecryptLicenseKey(licenseKey)
 	if err != nil {
 		return err
-	}
-	// Extract max_users
-	maxUsers, ok := claims["max_users"].(float64) // JWT numbers are float64
-	if !ok {
-		return fmt.Errorf("max_users field missing in license key")
 	}
 
 	maxActiveUsers, ok := claims["active_users"].(float64) // JWT numbers are float64
@@ -1107,12 +1134,7 @@ func (us *UserService) validateLicenseKey(licenseKey string, userFormDTO *userDT
 		return fmt.Errorf("passive_users field missing in license key")
 	}
 
-	totalActiveUserCount, err := us.repo.GetActiveUserCount()
-	if err != nil {
-		return err
-	}
-
-	totalPassiveUserCount, err := us.repo.GetPassiveUserCount()
+	totalActiveUserCount, totalPassiveUserCount, totalActiveUsers, err := us.repo.GetUserCounts()
 	if err != nil {
 		return err
 	}
@@ -1127,39 +1149,73 @@ func (us *UserService) validateLicenseKey(licenseKey string, userFormDTO *userDT
 		return err
 	}
 
-	if *userFormDTO.LicenseTypeID == activeLicenseType.ID {
-		if totalActiveUserCount >= int64(maxActiveUsers) {
-			return utility.NewValidationError(
-				fmt.Errorf("maximum allowed active users limit reached (%d users)", int64(maxUsers)),
-				"user_exceed",
-				"active",
-			)
+	if id == nil {
+		if *userFormDTO.LicenseTypeID == activeLicenseType.ID {
+			licenseType := "active"
+			err = us.checkLicenseLimits(int(totalActiveUserCount), int(maxActiveUsers), &licenseType)
+			if err != nil {
+				return err
+			}
+		}
+
+		if *userFormDTO.LicenseTypeID == passiveLicenseType.ID {
+			licenseType := "passive"
+			err = us.checkLicenseLimits(int(totalPassiveUserCount), int(maxPassiveUsers), &licenseType)
+			if err != nil {
+				return err
+			}
+		}
+		// Extract max_users
+		maxUsers, ok := claims["max_users"].(float64) // JWT numbers are float64
+		if !ok {
+			return fmt.Errorf("max_users field missing in license key")
+		}
+
+		err = us.checkLicenseLimits(int(totalActiveUsers), int(maxUsers), nil)
+		if err != nil {
+			return err
+		}
+	} else {
+		existingUser, err := us.repo.GetByID(*id)
+		if err != nil {
+			return err
+		}
+		if existingUser.LicenseTypeID != userFormDTO.LicenseTypeID {
+			if *userFormDTO.LicenseTypeID == activeLicenseType.ID {
+				licenseType := "active"
+				err = us.checkLicenseLimits(int(totalActiveUserCount), int(maxActiveUsers), &licenseType)
+				if err != nil {
+					return err
+				}
+			}
+
+			if *userFormDTO.LicenseTypeID == passiveLicenseType.ID {
+				licenseType := "passive"
+				err = us.checkLicenseLimits(int(totalPassiveUserCount), int(maxPassiveUsers), &licenseType)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 
-	if *userFormDTO.LicenseTypeID == passiveLicenseType.ID {
-		if totalPassiveUserCount >= int64(maxPassiveUsers) {
-			return utility.NewValidationError(
-				fmt.Errorf("maximum allowed passive users limit reached (%d users)", int64(maxUsers)),
-				"user_exceed",
-				"passive",
-			)
+	return nil
+}
+
+func (us *UserService) checkLicenseLimits(currentCount, maxCount int, licenseType *string) error {
+	var userType string
+	if currentCount >= maxCount {
+		if licenseType == nil {
+			userType = "total user"
+		} else {
+			userType = *licenseType
 		}
-	}
-
-	totalActiveUsers, err := us.repo.GetTotalActiveUserCount()
-	if err != nil {
-		return err
-	}
-
-	if totalActiveUsers >= int64(maxUsers) {
 		return utility.NewValidationError(
-			fmt.Errorf("maximum allowed users limit reached (%d users)", int64(maxUsers)),
+			fmt.Errorf("maximum allowed active users limit reached (%d users)", int64(maxCount)),
 			"user_exceed",
-			"total user",
+			userType,
 		)
 	}
-
 	return nil
 }
 

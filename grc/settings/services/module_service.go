@@ -106,7 +106,7 @@ func (ms *ModuleService) EnableModule(id uint) (*models.Module, error) {
 
 	if existingSystemPreference.LicenseKey != nil {
 		// Extract allowed modules from the license key
-		claims, err := utility.DecryptJWTToken(*existingSystemPreference.LicenseKey)
+		claims, err := utility.DecryptLicenseKey(*existingSystemPreference.LicenseKey)
 		if err != nil {
 			return nil, err
 		}

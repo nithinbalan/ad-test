@@ -165,6 +165,11 @@ func (aaic *AssetAssociatedItemController) GetAllAssetRisks(c *gin.Context) {
 			return
 		}
 	}
+	allowedParams := []string{
+		"current_likelihood_ids",
+		"current_impact_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
@@ -173,6 +178,7 @@ func (aaic *AssetAssociatedItemController) GetAllAssetRisks(c *gin.Context) {
 		Value:    value,
 		Page:     page,
 		PageSize: pageSize,
+		Filters:  filters,
 	}
 	controls, err := aaic.service.GetAllRisks(uint(assetID), &queryParams)
 

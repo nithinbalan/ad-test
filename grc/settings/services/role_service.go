@@ -306,6 +306,7 @@ func (rs *RoleService) UpdateRolePermissions(roleID uint, currentUserID uint, ro
 	for _, rolePermissionDTO := range rolePermissions {
 		if *role.LicenseTypeID == passiveLicenseType.ID {
 			if rolePermissionDTO.RolePermissionTypeID != permissionType.ID {
+				tx.Rollback()
 				return utility.NewForbiddenError("Only view permissions are allowed for passive role")
 			}
 		}

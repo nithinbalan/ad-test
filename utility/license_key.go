@@ -17,7 +17,7 @@ DuYQlhZJzBu1UxtKAne0F1pLieHwpHs1gXOdT6ht3/MjePQ/rBC4mds9EwhZjI1w
 XwIDAQAB
 -----END PUBLIC KEY-----`)
 
-func DecryptJWTToken(tokenString string) (jwt.MapClaims, error) {
+func DecryptLicenseKey(tokenString string) (jwt.MapClaims, error) {
 	// Parse RSA public key from PEM
 	// Read the PEM file from the root path
 	// pemData, err := os.ReadFile("license_public.pem")

@@ -61,7 +61,7 @@ func (sps SystemPreferenceService) GetSystemPreference() (*dtos.SystemPreference
 
 	// Populate License Key as an object
 	if systemPreference.LicenseKey != nil {
-		claims, err := utility.DecryptJWTToken(*systemPreference.LicenseKey)
+		claims, err := utility.DecryptLicenseKey(*systemPreference.LicenseKey)
 		if err != nil {
 			return nil, err
 		}
@@ -221,7 +221,7 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(systemPreferenceFormDTO *dt
 		return err
 	}
 
-	claims, err := utility.DecryptJWTToken(*systemPreferenceFormDTO.LicenseKey)
+	claims, err := utility.DecryptLicenseKey(*systemPreferenceFormDTO.LicenseKey)
 	if err != nil {
 		return err
 	}
@@ -385,7 +385,7 @@ func (sps *SystemPreferenceService) UpdateBalanceUserCount(systemPreference *mod
 }
 
 func (sps *SystemPreferenceService) validateLicenseKey(licenseKey string) error {
-	claims, err := utility.DecryptJWTToken(licenseKey)
+	claims, err := utility.DecryptLicenseKey(licenseKey)
 	if err != nil {
 		return err
 	}
