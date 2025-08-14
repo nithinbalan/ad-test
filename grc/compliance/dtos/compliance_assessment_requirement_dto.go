@@ -17,6 +17,7 @@ type ComplianceAssessmentRequirementListDTO struct {
 	ComplianceClauseTitleEn                        string  `json:"compliance_clause_title_en"`
 	ComplianceClauseTitleAr                        string  `json:"compliance_clause_title_ar"`
 	ComplianceRequirementID                        uint    `json:"compliance_requirement_id"`
+	ComplianceAssessmentRequirementStatusID        *uint   `json:"compliance_assessment_requirement_status_id"`
 	ComplianceRequirementTitleEn                   string  `json:"compliance_requirement_title_en"`
 	ComplianceRequirementTitleAr                   string  `json:"compliance_requirement_title_ar"`
 	ComplianceRequirementCategoryTitleEn           string  `json:"compliance_requirement_category_title_en"`
