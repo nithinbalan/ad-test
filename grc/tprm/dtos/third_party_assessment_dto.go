@@ -55,20 +55,20 @@ type ThirdPartyAssessmentFormDTO struct {
 }
 
 type ThirdPartyAssessmentDetailDTO struct {
-	ID                         uint                            `json:"id"`
-	ReferenceNumber            string                          `json:"reference_number"`
-	Title                      string                          `json:"title"`
-	ThirdPartyRegister         ThirdPartyRegisterDetailDTO     `json:"third_party_register"`
-	QuestionSet                QuestionSetDetailDTO            `json:"question_set"`
-	Message                    *string                         `json:"message"`
-	DueDateString              *string                         `json:"due_date"`
-	UID                        *string                         `json:"uid"`
-	Link                       *string                         `json:"link"`
-	ThirdPartyAssessmentStatus ThirdPartyAssessmentStatusDTO   `json:"third_party_assessment_status"`
-	CreatedAt                  time.Time                       `json:"created_at"`
-	UpdatedAt                  *time.Time                      `json:"updated_at"`
-	CreatedByUser              organizationDTOs.UserMinimalDTO `json:"created_by"`
-	UpdatedByUser              organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	ID                         uint                             `json:"id"`
+	ReferenceNumber            string                           `json:"reference_number"`
+	Title                      string                           `json:"title"`
+	ThirdPartyRegister         ThirdPartyRegisterDetailDTO      `json:"third_party_register"`
+	QuestionSet                QuestionSetDetailDTO             `json:"question_set"`
+	Message                    *string                          `json:"message"`
+	DueDateString              *string                          `json:"due_date"`
+	UID                        *string                          `json:"uid"`
+	Link                       *string                          `json:"link"`
+	ThirdPartyAssessmentStatus ThirdPartyAssessmentStatusDTO    `json:"third_party_assessment_status"`
+	CreatedAt                  time.Time                        `json:"created_at"`
+	UpdatedAt                  *time.Time                       `json:"updated_at"`
+	CreatedByUser              organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser              *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 }
 type ThirdPartyAssessmentListQueryParamsDTO struct {
 	Sort        string

@@ -22,9 +22,9 @@ type MeetingAssociatedItemServiceInterface interface {
 	CreateMeetingDocument(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
 	DeleteMeetingDocument(meetingID uint, documentID uint) error
 	CreateMeetingControl(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedControlMapDTO) error
-	DeleteMeetingControl(meetingID uint, controlIDID uint) error
+	DeleteMeetingControl(meetingID uint, controlID uint) error
 	CreateMeetingProcess(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
-	DeleteMeetingProcess(meetingID uint, controlIDID uint) error
+	DeleteMeetingProcess(meetingID uint, processID uint) error
 	GetAllMeetingStrategicObjectives(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
 	CreateMeetingStrategicObjective(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
 	DeleteMeetingStrategicObjective(meetingID uint, strategicObjectiveID uint) error

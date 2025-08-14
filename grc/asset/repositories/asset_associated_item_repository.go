@@ -374,9 +374,7 @@ func (repo *AssetAssociatedItemRepository) GetAllRisksByRiskIDs(riskRegisterIDs 
 		Where("risk_register.id IN ?", riskRegisterIDs)
 
 	// Count total records
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
+
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -385,7 +383,7 @@ func (repo *AssetAssociatedItemRepository) GetAllRisksByRiskIDs(riskRegisterIDs 
 
 	// Filter by risk rating value
 	if params.Value != 0 {
-		query = query.Where("risk_matrix_risk_rating_values.value = ?", params.Value)
+		query = query.Where("current_risk_rating_value.value = ?", params.Value)
 	}
 
 	// Sorting defaults
@@ -395,6 +393,17 @@ func (repo *AssetAssociatedItemRepository) GetAllRisksByRiskIDs(riskRegisterIDs 
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
 	}
+
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	// Pagination

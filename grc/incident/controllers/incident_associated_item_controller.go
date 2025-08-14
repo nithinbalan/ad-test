@@ -134,6 +134,7 @@ func (iaic *IncidentAssociatedItemController) GetAllIncidentRisks(c *gin.Context
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
+	valueStr := c.Query("value")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -146,6 +147,14 @@ func (iaic *IncidentAssociatedItemController) GetAllIncidentRisks(c *gin.Context
 		utility.SendInternalErrResp(iaic.db, c, "Invalid page_size parameter")
 		return
 	}
+	var value int
+	if valueStr != "" {
+		value, err = strconv.Atoi(valueStr)
+		if err != nil {
+			utility.SendInternalErrResp(iaic.db, c, "Invalid value parameter")
+			return
+		}
+	}
 	allowedParams := []string{
 		"current_likelihood_ids",
 		"current_impact_ids",
@@ -157,6 +166,7 @@ func (iaic *IncidentAssociatedItemController) GetAllIncidentRisks(c *gin.Context
 		Keyword:  keyword,
 		Page:     page,
 		PageSize: pageSize,
+		Value:    value,
 		Filters:  filters,
 	}
 	incidents, err := iaic.service.GetAllRisks(uint(incidentID), &queryParams)

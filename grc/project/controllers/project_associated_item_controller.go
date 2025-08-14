@@ -35,7 +35,6 @@ func (paic *ProjectAssociatedItemController) GetAllProjectDocuments(c *gin.Conte
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	valueStr := c.Query("value")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -49,20 +48,10 @@ func (paic *ProjectAssociatedItemController) GetAllProjectDocuments(c *gin.Conte
 		return
 	}
 
-	var value int
-	if valueStr != "" {
-		value, err = strconv.Atoi(valueStr)
-		if err != nil {
-			utility.SendInternalErrResp(paic.db, c, "Invalid value parameter")
-			return
-		}
-	}
-
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
-		Value:    value,
 		Page:     page,
 		PageSize: pageSize,
 	}
@@ -145,7 +134,6 @@ func (paic *ProjectAssociatedItemController) GetAllProjectControls(c *gin.Contex
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	valueStr := c.Query("value")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -159,20 +147,10 @@ func (paic *ProjectAssociatedItemController) GetAllProjectControls(c *gin.Contex
 		return
 	}
 
-	var value int
-	if valueStr != "" {
-		value, err = strconv.Atoi(valueStr)
-		if err != nil {
-			utility.SendInternalErrResp(paic.db, c, "Invalid value parameter")
-			return
-		}
-	}
-
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
-		Value:    value,
 		Page:     page,
 		PageSize: pageSize,
 	}

@@ -55,6 +55,7 @@ func (tprc *ThirdPartyAssessmentController) GetAllThirdPartyAssessment(c *gin.Co
 	validSortFields := map[string]string{
 		"third_party_register_title": "third_party_register.title",
 		"title":                      "third_party_assessments.title",
+		"reference_number":           "third_party_assessments.reference_number",
 		"due_date":                   "third_party_assessments.due_date",
 		"question_set_title_en":      "question_sets.title_en",
 		"question_set_title_ar":      "question_sets.title_ar",

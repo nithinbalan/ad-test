@@ -295,6 +295,7 @@ func (daic *DocumentAssociatedItemController) GetAllDocumentRisks(c *gin.Context
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
+	valueStr := c.Query("value")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -311,6 +312,15 @@ func (daic *DocumentAssociatedItemController) GetAllDocumentRisks(c *gin.Context
 		"current_likelihood_ids",
 		"current_impact_ids",
 	}
+	var value int
+	if valueStr != "" {
+		value, err = strconv.Atoi(valueStr)
+		if err != nil {
+			utility.SendInternalErrResp(daic.db, c, "Invalid value parameter")
+			return
+		}
+	}
+
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
@@ -318,6 +328,7 @@ func (daic *DocumentAssociatedItemController) GetAllDocumentRisks(c *gin.Context
 		Keyword:  keyword,
 		Page:     page,
 		PageSize: pageSize,
+		Value:    value,
 		Filters:  filters,
 	}
 	risks, err := daic.service.GetAllRisks(uint(documentID), &queryParams)

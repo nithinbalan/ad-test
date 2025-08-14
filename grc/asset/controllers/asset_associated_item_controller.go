@@ -165,6 +165,11 @@ func (aaic *AssetAssociatedItemController) GetAllAssetRisks(c *gin.Context) {
 			return
 		}
 	}
+	allowedParams := []string{
+		"current_likelihood_ids",
+		"current_impact_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
@@ -173,6 +178,7 @@ func (aaic *AssetAssociatedItemController) GetAllAssetRisks(c *gin.Context) {
 		Value:    value,
 		Page:     page,
 		PageSize: pageSize,
+		Filters:  filters,
 	}
 	controls, err := aaic.service.GetAllRisks(uint(assetID), &queryParams)
 
@@ -713,7 +719,6 @@ func (aaic *AssetAssociatedItemController) GetAllAssetDocuments(c *gin.Context) 
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	valueStr := c.Query("value")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -727,20 +732,10 @@ func (aaic *AssetAssociatedItemController) GetAllAssetDocuments(c *gin.Context) 
 		return
 	}
 
-	var value int
-	if valueStr != "" {
-		value, err = strconv.Atoi(valueStr)
-		if err != nil {
-			utility.SendInternalErrResp(aaic.db, c, "Invalid value parameter")
-			return
-		}
-	}
-
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
-		Value:    value,
 		Page:     page,
 		PageSize: pageSize,
 	}

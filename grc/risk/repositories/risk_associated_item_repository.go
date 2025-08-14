@@ -42,12 +42,12 @@ type RiskAssociatedItemRepositoryInterface interface {
 	DeletetRiskAsset(riskID uint, assetID uint, tx ...utility.DatabaseTransaction) error
 
 	GetAllRiskBCP(riskID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedBusinessContinuityPlanListResponseDTO, error)
-	CreatRiskBCP(incidents []*models.BcpRisk, tx ...utility.DatabaseTransaction) error
-	DeletetRiskBCP(riskID uint, assetID uint, tx ...utility.DatabaseTransaction) error
+	CreatRiskBCP(bcp []*models.BcpRisk, tx ...utility.DatabaseTransaction) error
+	DeletetRiskBCP(riskID uint, bcpID uint, tx ...utility.DatabaseTransaction) error
 
 	GetAllRiskProject(riskID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedProjectListResponseDTO, error)
-	CreatRiskProject(incidents []*models.ProjectRisk, tx ...utility.DatabaseTransaction) error
-	DeletetRiskProject(riskID uint, assetID uint, tx ...utility.DatabaseTransaction) error
+	CreatRiskProject(projects []*models.ProjectRisk, tx ...utility.DatabaseTransaction) error
+	DeletetRiskProject(riskID uint, projectID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskAssociatedItemRepository struct {

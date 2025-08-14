@@ -225,11 +225,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	auditRoutes.GET("/audit-findings/:findingId/documents", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingAssociatedItemController.GetAllAuditFindingDocuments)
 	auditRoutes.POST("/audit-findings/:findingId/documents", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.CreateAuditFindingDocument)
-	auditRoutes.DELETE("/audit-findings/:findingId/documents/:documentId/", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.DeleteAuditFindingDocument)
+	auditRoutes.DELETE("/audit-findings/:findingId/documents/:documentId", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.DeleteAuditFindingDocument)
 
 	auditRoutes.GET("/audit-findings/:findingId/controls", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingAssociatedItemController.GetAllAuditFindingControls)
 	auditRoutes.POST("/audit-findings/:findingId/controls", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.CreateAuditFindingControl)
-	auditRoutes.DELETE("/audit-findings/:findingId/controls/:controlId/", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.DeleteAuditFindingControl)
+	auditRoutes.DELETE("/audit-findings/:findingId/controls/:controlId", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.DeleteAuditFindingControl)
 
 	auditRoutes.GET("/audit-findings/:findingId/processes", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingAssociatedItemController.GetAllAuditFindingProcesses)
 	auditRoutes.POST("/audit-findings/:findingId/processes", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.CreateAuditFindingProcess)

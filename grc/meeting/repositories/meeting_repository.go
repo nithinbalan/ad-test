@@ -155,6 +155,8 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 			query = query.Where("meeting_statuses.type = ?", "completed")
 		case "cancelled":
 			query = query.Where("meeting_statuses.type = ?", "cancelled")
+		case "not_cancelled":
+			query = query.Where("meeting_statuses.type != ?", "cancelled")
 		}
 	}
 

@@ -149,7 +149,7 @@
   },
   {
     "id": "user_exceed",
-    "translation": "The number of users exceeded."
+    "translation": "The number of {{.Field}} users exceeded."
   },
   {
     "id": "module_not_allowed",

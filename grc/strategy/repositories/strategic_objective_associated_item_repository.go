@@ -22,7 +22,7 @@ type StrategicObjectiveAssociatedItemRepositoryInterface interface {
 	DeleteStrategicObjectiveDocument(strategicObjectiveID uint, documentID uint, tx ...utility.DatabaseTransaction) error
 	GetAllStrategicObjectivControls(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	CreateStrategicObjectiveControl(controls []*models.StrategicObjectiveControl, tx ...utility.DatabaseTransaction) error
-	DeleteStrategicObjectiveControl(strategicObjectiveID uint, documentID uint, tx ...utility.DatabaseTransaction) error
+	DeleteStrategicObjectiveControl(strategicObjectiveID uint, controlID uint, tx ...utility.DatabaseTransaction) error
 	GetAllStrategicObjectiveProcesses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
 	CreateStrategicObjectiveProcess(process []*models.StrategicObjectiveProcess, tx ...utility.DatabaseTransaction) error
 	DeleteStrategicObjectiveProcess(strategicObjectiveID uint, processID uint, tx ...utility.DatabaseTransaction) error
@@ -295,10 +295,6 @@ func (repo *StrategicObectiveAssociatedItemRepository) GetAllRisks(strategicObje
             LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
 		`).Where("risk_strategic_objectives.strategic_objective_id = ?", strategicObjectiveID)
 
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
@@ -322,7 +318,7 @@ func (repo *StrategicObectiveAssociatedItemRepository) GetAllRisks(strategicObje
 	}
 
 	if params.Value != 0 {
-		query = query.Where("risk_matrix_risk_rating_values.value = ?", params.Value)
+		query = query.Where("current_risk_rating_value.value = ?", params.Value)
 	}
 
 	if params.SortBy == "" {
@@ -336,6 +332,10 @@ func (repo *StrategicObectiveAssociatedItemRepository) GetAllRisks(strategicObje
 		if len(values) > 0 {
 			query = query.Where(columnName+" IN (?)", values)
 		}
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)

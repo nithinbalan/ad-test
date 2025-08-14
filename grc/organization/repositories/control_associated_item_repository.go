@@ -385,10 +385,6 @@ func (repo *ControlAssociatedItemRepository) GetAllRisks(controlID uint, params 
             LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
 		`).Where("risk_controls.control_id = ?", controlID)
 
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
@@ -412,7 +408,7 @@ func (repo *ControlAssociatedItemRepository) GetAllRisks(controlID uint, params 
 	}
 
 	if params.Value != 0 {
-		query = query.Where("risk_matrix_risk_rating_values.value = ?", params.Value)
+		query = query.Where("current_risk_rating_value.value = ?", params.Value)
 	}
 
 	if params.SortBy == "" {
@@ -428,6 +424,9 @@ func (repo *ControlAssociatedItemRepository) GetAllRisks(controlID uint, params 
 		}
 	}
 
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 	query = query.Order(params.SortBy + " " + params.Sort)
 	offset := (params.Page - 1) * params.PageSize
 

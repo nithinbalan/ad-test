@@ -183,6 +183,11 @@ func (brac *BcpRiskAnalysisController) GetAllProcessRisks(c *gin.Context) {
 			return
 		}
 	}
+	allowedParams := []string{
+		"current_likelihood_ids",
+		"current_impact_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:        sort,
@@ -192,6 +197,7 @@ func (brac *BcpRiskAnalysisController) GetAllProcessRisks(c *gin.Context) {
 		PageSize:    pageSize,
 		QuickFilter: quickFilter,
 		Value:       value,
+		Filters:     filters,
 	}
 
 	risks, err := brac.service.GetAllProcessRisks(uint(bcpId), &queryParams)
