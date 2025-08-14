@@ -175,7 +175,13 @@
 {
   "id": "document_not_published",
   "translation": "يجب نشر الوثيقة للاستمرار."
+},
+{
+  "id": "field_max_length",
+  "translation": "لا يمكن أن يتجاوز حقل {{.Field}} الحد الأقصى لعدد الأحرف المسموح به."
 }
+
+
 
 
 
