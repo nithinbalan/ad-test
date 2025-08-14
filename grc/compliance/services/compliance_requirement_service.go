@@ -308,18 +308,18 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		return 0, err
 	}
 
-	averageScore, err := crs.repo.CalculateAverageScore(complianceID, tx)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
+	// averageScore, err := crs.repo.CalculateAverageScore(complianceID, tx)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
 
 	// Update the ComplianceRegister with the new total score
-	err = crs.complianceRegisterSvc.UpdateComplianceTotalScore(complianceID, averageScore, tx)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
+	// err = crs.complianceRegisterSvc.UpdateComplianceTotalScore(complianceID, averageScore, tx)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
 	var responsibleUnits []*models.ComplianceRequirementResponsibleUnit
 	for _, resUnitID := range complianceRequirementFormDTO.ResponsibleUnitIDs {
 		unit := &models.ComplianceRequirementResponsibleUnit{
@@ -781,17 +781,17 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		}
 	}
 
-	averageScore, err := crs.repo.CalculateAverageScore(complianceID, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+	// averageScore, err := crs.repo.CalculateAverageScore(complianceID, tx)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return err
+	// }
 
-	err = crs.complianceRegisterSvc.UpdateComplianceTotalScore(complianceID, averageScore, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+	// err = crs.complianceRegisterSvc.UpdateComplianceTotalScore(complianceID, averageScore, tx)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return err
+	// }
 
 	// Delete documents not in the new list
 	if len(deleteDocumentIDs) > 0 {
