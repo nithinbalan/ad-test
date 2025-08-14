@@ -34,6 +34,9 @@ type DocumentAssociatedItemServiceInterface interface {
 	GetAllDocumentKPI(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
 	CreateDocumentKPI(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
 	DeleteDocumentKPI(documentID uint, kpiID uint) error
+	GetAllAssociatedDocument(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
+	CreateAssociatedDocument(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
+	DeleteAssociatedDocument(documentID uint, associatedDocumentID uint) error
 }
 
 // Service Implementation
@@ -483,6 +486,62 @@ func (dais *DocumentAssociatedItemService) DeleteDocumentKPI(documentID uint, kp
 	tx := dais.repo.BeginTransaction()
 
 	if err := dais.repo.DeleteDocumentKPI(documentID, kpiID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) GetAllAssociatedDocument(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return nil, err
+	}
+	return dais.repo.GetAllAssociatedDocument(documentID, params)
+}
+func (dais *DocumentAssociatedItemService) CreateAssociatedDocument(documentID, currentUserID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error {
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return err
+	}
+
+	for _, id := range dto.DocumentIDs {
+		if id == documentID {
+			return fmt.Errorf("a document cannot be associated with itself (id: %d)", documentID)
+		}
+	}
+
+	if err := dais.validationSvc.ValidateDocumentMapping(documentID, dto.DocumentIDs, "document_associated_documents", "associated_document_id"); err != nil {
+		return err
+	}
+	tx := dais.repo.BeginTransaction()
+	var mappings []*models.DocumentAssociatedDocument
+	currentTime := time.Now()
+
+	for _, AssociatedDocumentID := range dto.DocumentIDs {
+		mappings = append(mappings, &models.DocumentAssociatedDocument{
+			AssociatedDocumentID: AssociatedDocumentID,
+			DocumentID:           documentID,
+			CreatedByID:          currentUserID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := dais.repo.CreateAssociatedDocument(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) DeleteAssociatedDocument(documentID uint, associatedDocumentID uint) error {
+	// Validate control existence
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return err
+	}
+
+	tx := dais.repo.BeginTransaction()
+
+	if err := dais.repo.DeleteAssociatedDocument(documentID, associatedDocumentID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

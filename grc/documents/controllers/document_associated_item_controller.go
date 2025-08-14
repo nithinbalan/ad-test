@@ -782,3 +782,113 @@ func (daic *DocumentAssociatedItemController) DeleteDocumentKPI(c *gin.Context) 
 
 	c.JSON(http.StatusOK, gin.H{"message": "KPI unmapped from document successfully"})
 }
+
+func (daic *DocumentAssociatedItemController) GetAllAssociatedDocument(c *gin.Context) {
+
+	documentIDStr := c.Param("id")
+
+	documentID, err := strconv.ParseUint(documentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(daic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(daic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	documents, err := daic.service.GetAllAssociatedDocument(uint(documentID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(daic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, documents)
+}
+func (daic *DocumentAssociatedItemController) CreateAssociatedDocument(c *gin.Context) {
+	var input commonDTOs.AssociatedDocumentMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	documentID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(daic.db, c, err.Error())
+		return
+	}
+
+	err = daic.service.CreateAssociatedDocument(uint(documentID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(daic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (daic *DocumentAssociatedItemController) DeleteAssociatedDocument(c *gin.Context) {
+	documentIDStr := c.Param("id")
+	associatedDocumentIDStr := c.Param("associatedDocumentId")
+	documentID, err := strconv.ParseUint(documentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	associatedDocumentID, err := strconv.ParseUint(associatedDocumentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = daic.service.DeleteAssociatedDocument(uint(documentID), uint(associatedDocumentID))
+	if err != nil {
+		utility.SendInternalErrResp(daic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Associated document unmapped from document successfully"})
+}
