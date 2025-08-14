@@ -134,9 +134,9 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 	for _, filter := range params.QuickFilter {
 		switch filter {
 		case "completed":
-			query = query.Where("compliance_assessment_requirements.is_completed = ?", true)
+			query = query.Where("compliance_assessment_requirements.is_all_completed = ?", true)
 		case "not_completed":
-			query = query.Where("compliance_assessment_requirements.is_completed = ?", false)
+			query = query.Where("compliance_assessment_requirements.is_all_completed = ?", false)
 		}
 	}
 

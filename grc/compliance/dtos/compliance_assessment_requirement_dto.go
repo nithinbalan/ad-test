@@ -12,7 +12,6 @@ type ComplianceAssessmentRequirementListDTO struct {
 	ClauseID                                       uint    `json:"clause_id"`
 	ClauseDescriptionEn                            *string `json:"clause_description_en"`
 	ClauseDescriptionAr                            *string `json:"clause_description_ar"`
-	IsCompleted                                    bool    `json:"is_completed"`
 	ComplianceClauseNo                             string  `json:"compliance_clause_no"`
 	ComplianceClauseTitleEn                        string  `json:"compliance_clause_title_en"`
 	ComplianceClauseTitleAr                        string  `json:"compliance_clause_title_ar"`
