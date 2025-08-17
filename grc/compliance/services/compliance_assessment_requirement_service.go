@@ -277,23 +277,19 @@ func (cars ComplianceAssessmentRequirementService) Update(complianceAssessmentId
 	tx.Commit()
 
 	go func() {
-		existingAssessmentRequirement, err := cars.GetFullDetailsByID(complianceAssessmentId, requirementId, 0)
-		if err != nil {
-			return
-		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
 		// log changes
 		oldData := map[string]interface{}{
-			// "score":             oldComplianceAssessmentRequirement.Score,
-			// "comments":          oldComplianceAssessmentRequirement.Comments,
-			"compliance_status": utility.GetFieldValue(oldComplianceAssessmentRequirement.ComplianceStatus),
+			"score":                                 complianceAssessmentRequirementResponsibleUnit.Score,
+			"comments":                              complianceAssessmentRequirementResponsibleUnit.Comments,
+			"compliance_assessment_framework_value": utility.GetFieldValue(complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentFrameworkValue),
 		}
 
 		newData := map[string]interface{}{
-			// "score":             existingAssessmentRequirement.Score,
-			// "comments":          existingAssessmentRequirement.Comments,
-			"compliance_status": utility.GetFieldValue(existingAssessmentRequirement.ComplianceStatus),
+			"score":                                 complianceRequirementUpdateFormDTO.Score,
+			"comments":                              complianceRequirementUpdateFormDTO.Comments,
+			"compliance_assessment_framework_value": utility.GetFieldValue(complianceAssessmentFrameworkValue),
 		}
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)
