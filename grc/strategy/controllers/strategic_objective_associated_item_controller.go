@@ -237,7 +237,6 @@ func (soai *StrategicObjectiveAssociatedItemController) GetAllStrategicObjective
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	valueStr := c.Query("value")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -251,22 +250,12 @@ func (soai *StrategicObjectiveAssociatedItemController) GetAllStrategicObjective
 		return
 	}
 
-	var value int
-	if valueStr != "" {
-		value, err = strconv.Atoi(valueStr)
-		if err != nil {
-			utility.SendInternalErrResp(soai.db, c, "Invalid value parameter")
-			return
-		}
-	}
-
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
 		Page:     page,
 		PageSize: pageSize,
-		Value:    value,
 	}
 	risks, err := soai.service.GetAllStrategicObjectiveDocuments(uint(strategicObjectiveID), &queryParams)
 
@@ -347,7 +336,6 @@ func (soai *StrategicObjectiveAssociatedItemController) GetAllStrategicObjectivC
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	valueStr := c.Query("value")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -361,22 +349,12 @@ func (soai *StrategicObjectiveAssociatedItemController) GetAllStrategicObjectivC
 		return
 	}
 
-	var value int
-	if valueStr != "" {
-		value, err = strconv.Atoi(valueStr)
-		if err != nil {
-			utility.SendInternalErrResp(soai.db, c, "Invalid value parameter")
-			return
-		}
-	}
-
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
 		Page:     page,
 		PageSize: pageSize,
-		Value:    value,
 	}
 	risks, err := soai.service.GetAllStrategicObjectivControls(uint(strategicObjectiveID), &queryParams)
 
@@ -457,7 +435,6 @@ func (soai *StrategicObjectiveAssociatedItemController) GetAllStrategicObjective
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	valueStr := c.Query("value")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -471,22 +448,12 @@ func (soai *StrategicObjectiveAssociatedItemController) GetAllStrategicObjective
 		return
 	}
 
-	var value int
-	if valueStr != "" {
-		value, err = strconv.Atoi(valueStr)
-		if err != nil {
-			utility.SendInternalErrResp(soai.db, c, "Invalid value parameter")
-			return
-		}
-	}
-
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
 		Page:     page,
 		PageSize: pageSize,
-		Value:    value,
 	}
 	risks, err := soai.service.GetAllStrategicObjectiveProcesses(uint(strategicObjectiveID), &queryParams)
 

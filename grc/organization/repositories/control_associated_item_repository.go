@@ -149,11 +149,6 @@ func (repo *ControlAssociatedItemRepository) GetAllProcesses(controlID uint, par
 			LEFT JOIN process_criticality_levels ON process_criticality_levels.id = processes.process_criticality_level_id
 		`).Where("process_controls.control_id = ?", controlID)
 
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -181,6 +176,11 @@ func (repo *ControlAssociatedItemRepository) GetAllProcesses(controlID uint, par
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
+	}
+
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)

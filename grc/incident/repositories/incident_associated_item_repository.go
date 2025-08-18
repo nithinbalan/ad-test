@@ -31,12 +31,12 @@ type IncidentAssociatedItemRepositoryInterface interface {
 	CreateIncidentControl(controls []*models.IncidentControl, tx ...utility.DatabaseTransaction) error
 	DeleteIncidentControl(incidentID uint, controlID uint, tx ...utility.DatabaseTransaction) error
 	CreateIncidentProcess(process []*models.IncidentProcess, tx ...utility.DatabaseTransaction) error
-	DeleteIncidentProcess(incidentID uint, controlID uint, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentProcess(incidentID uint, processID uint, tx ...utility.DatabaseTransaction) error
 	GetAllIncidentStrategicObjectives(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
 	CreateIncidentStrategicObjective(objectives []*models.IncidentStrategicObjective, tx ...utility.DatabaseTransaction) error
 	DeleteIncidentStrategicObjective(incidentID uint, strategicObjectiveID uint, tx ...utility.DatabaseTransaction) error
 	GetAllIncidentKPI(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
-	CreateIncidentKPI(objectives []*models.IncidentKPI, tx ...utility.DatabaseTransaction) error
+	CreateIncidentKPI(kpis []*models.IncidentKPI, tx ...utility.DatabaseTransaction) error
 	DeleteIncidentKPI(incidentID uint, kpiRegisterID uint, tx ...utility.DatabaseTransaction) error
 }
 

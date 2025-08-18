@@ -343,10 +343,6 @@ func (repo *MeetingAssociatedItemRepository) GetAllProcesses(meetingID uint, par
 
 		`).Where("meeting_processes.meeting_id = ?", meetingID)
 
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -376,7 +372,9 @@ func (repo *MeetingAssociatedItemRepository) GetAllProcesses(meetingID uint, par
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
 	}
-
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize

@@ -12,7 +12,7 @@ import (
 type BusinessFunctionAssociatedItemRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAllBusinessFunctionProcesses(BusinessFunctionID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
-	CreateBusinessFunctionProcess(documents []*models.BusinessFunctionProcess, tx ...utility.DatabaseTransaction) error
+	CreateBusinessFunctionProcess(processes []*models.BusinessFunctionProcess, tx ...utility.DatabaseTransaction) error
 	DeleteBusinessFunctionProcess(BusinessFunctionID uint, processId uint, tx ...utility.DatabaseTransaction) error
 }
 

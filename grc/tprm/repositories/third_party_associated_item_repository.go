@@ -12,7 +12,7 @@ import (
 type ThirdPartyAssociatedItemRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAllThirdPartyProcesses(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
-	CreateThirdPartyProcess(documents []*models.ThirdPartyProcess, tx ...utility.DatabaseTransaction) error
+	CreateThirdPartyProcess(processes []*models.ThirdPartyProcess, tx ...utility.DatabaseTransaction) error
 	DeleteThirdPartyProcess(ThirdPartyID uint, processId uint, tx ...utility.DatabaseTransaction) error
 
 	GetAllThirdPartyStrategicObjectives(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)

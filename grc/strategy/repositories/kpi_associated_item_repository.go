@@ -52,7 +52,7 @@ type KPIAssociatedItemRepositoryInterface interface {
 	GetClausesByKPIID(kpiID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 
 	GetAllStrategicObjectives(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
-	CreateKPIStrategicObjective(policies []*models.StrategicObjectiveKPI, tx ...utility.DatabaseTransaction) error
+	CreateKPIStrategicObjective(objectives []*models.StrategicObjectiveKPI, tx ...utility.DatabaseTransaction) error
 	DeleteKPIStrategicObjective(kpiID, strategicObjectiveID uint, tx ...utility.DatabaseTransaction) error
 }
 
@@ -339,10 +339,6 @@ func (repo *KPIAssociatedItemRepository) GetAllProcesses(kpiID uint, params *com
 			LEFT JOIN process_criticality_levels ON process_criticality_levels.id = processes.process_criticality_level_id
 		`).Where("kpi_processes.kpi_register_id = ?", kpiID)
 
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -371,7 +367,9 @@ func (repo *KPIAssociatedItemRepository) GetAllProcesses(kpiID uint, params *com
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
 	}
-
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize
