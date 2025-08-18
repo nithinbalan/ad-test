@@ -35,6 +35,8 @@ type DocumentRepositoryInterface interface {
 	GetDocumentEditHistories(documentVersionID uint) ([]*models.DocumentEditHistory, error)
 
 	CreateDocumentWorkflowReview(documentWorkflowReview *models.DocumentWorkflowReview, tx ...utility.DatabaseTransaction) error
+
+	HasDocumentPermission(documentID uint, currentUserID uint, isUserSuperAdmin bool, primaryOrgUnitField string) (bool, error)
 }
 
 // Implementation
@@ -589,4 +591,61 @@ func (repo *DocumentRepository) CreateDocumentWorkflowReview(documentWorkflowRev
 		return err
 	}
 	return nil
+}
+
+func (repo *DocumentRepository) HasDocumentPermission(documentID uint, currentUserID uint, isUserSuperAdmin bool, primaryOrgUnitField string) (bool, error) {
+	if isUserSuperAdmin {
+		return true, nil
+	}
+
+	var count int64
+	query := repo.db.Table("documents").
+		Where("documents.id = ?", documentID).
+		Where(`
+            (documents.document_status_id = (SELECT id FROM document_statuses WHERE type = 'in-review') 
+                AND (documents.created_by_id = ? OR documents.responsible_user_id = ? 
+                    OR EXISTS (
+                        SELECT 1 FROM document_shared_users 
+                        WHERE document_shared_users.document_id = documents.id 
+                        AND document_shared_users.user_id = ? 
+                        AND document_shared_users.type = 'review-user'
+                    )
+                )
+            )
+            OR (documents.document_status_id = (SELECT id FROM document_statuses WHERE type = 'published') 
+                AND (
+                    (documents.document_access_type_id = (SELECT id FROM document_access_types WHERE type = 'public'))
+                    OR EXISTS (
+                        SELECT 1 FROM document_shared_users 
+                        WHERE document_shared_users.document_id = documents.id 
+                        AND document_shared_users.user_id = ? 
+                        AND document_shared_users.type IN ('shared-user', 'review-user')
+                    )
+                    OR EXISTS (
+                        SELECT 1 FROM document_shared_units dsu
+                        JOIN organization_units shared_unit ON shared_unit.id = dsu.organization_unit_id
+                        JOIN users u ON u.id = ?
+                        WHERE dsu.document_id = documents.id 
+                        AND shared_unit.id = (
+                            SELECT ou.id FROM organization_units ou 
+                            WHERE ou.id = u.`+primaryOrgUnitField+`
+                        )
+                    )
+                )
+            )
+            OR (
+                documents.document_status_id NOT IN (
+                    SELECT id FROM document_statuses WHERE type IN ('in-review', 'published')
+                )
+                AND (documents.created_by_id = ? OR documents.responsible_user_id = ?)
+            )
+        `,
+			currentUserID, currentUserID, // in-review
+			currentUserID, currentUserID, // published
+			currentUserID, currentUserID) // others
+	if err := query.Count(&count).Error; err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }
