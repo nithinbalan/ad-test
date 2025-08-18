@@ -1945,6 +1945,8 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 				"LastNameEn":            responsibleUser.LastNameEn,
 				"DocumentTitle":         existingDocument.TitleEn,
 				"DocumentType":          document.DocumentType.TitleEn,
+				"DocumentCategory":      document.DocumentCategory.TitleEn,
+				"DocumentVersion":       document.LatestDocumentVersion.Version,
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
