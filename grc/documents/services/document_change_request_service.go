@@ -1730,6 +1730,28 @@ func (dcrs *DocumentChangeRequestService) PublishDocumentChangeRequest(id uint, 
 			return fmt.Errorf("error copying .pdf file: %w", err)
 		}
 
+		if documentCRFullDetails.DocumentChangeRequestType.Type == "restore-with-minor-update" || documentCRFullDetails.DocumentChangeRequestType.Type == "restore-with-major-update" {
+			documentStatus, err := dcrs.documentStatusSvc.GetByType("published")
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			existingDocument, err := dcrs.documentSvc.GetByID(uint(documentCRFullDetails.Document.ID), tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			existingDocument.DocumentStatusID = documentStatus.ID
+
+			err = dcrs.documentSvc.UpdateDocument(existingDocument, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+
 	}
 
 	tx.Commit()
