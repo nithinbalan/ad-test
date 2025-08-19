@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"database/sql"
+	"fmt"
 	"jethur/grc/models"
 	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
@@ -98,9 +99,25 @@ func (repo *WorkflowRepository) GetAllWorkflowsByType(workflowType string, modul
 func (repo *WorkflowRepository) GetWorkflowByDocumentType(documentTypeId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error) {
 	var workflow *models.Workflow
 
-	result := repo.db.Where("document_type_id = ?", documentTypeId).First(&workflow)
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.Where("document_type_id = ?", documentTypeId).First(&workflow)
 	if result.Error != nil {
 		return nil, result.Error
+	}
+	// Check whether levels exist for this workflow
+	var count int64
+	err := db.Model(&models.WorkflowLevel{}).Where("workflow_id = ?", workflow.ID).Count(&count).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// If no levels exist, you may decide to return nil or still return workflow with info
+	if count == 0 {
+		return nil, fmt.Errorf("no levels defined for workflow (id=%d, document_type_id=%d)", workflow.ID, documentTypeId)
 	}
 
 	return workflow, nil

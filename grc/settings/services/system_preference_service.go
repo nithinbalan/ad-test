@@ -61,7 +61,7 @@ func (sps SystemPreferenceService) GetSystemPreference() (*dtos.SystemPreference
 
 	// Populate License Key as an object
 	if systemPreference.LicenseKey != nil {
-		claims, err := utility.DecryptJWTToken(*systemPreference.LicenseKey)
+		claims, err := utility.DecryptLicenseKey(*systemPreference.LicenseKey)
 		if err != nil {
 			return nil, err
 		}
@@ -82,7 +82,7 @@ func (sps SystemPreferenceService) GetSystemPreference() (*dtos.SystemPreference
 			allowedAddons = enabledAddons
 		}
 
-		var activeUser, passiveUser int
+		var activeUser, passiveUser, maxUsers int
 		if val, ok := claims["active_users"].(float64); ok {
 			activeUser = int(val)
 		}
@@ -90,16 +90,31 @@ func (sps SystemPreferenceService) GetSystemPreference() (*dtos.SystemPreference
 			passiveUser = int(val)
 		}
 
+		if val, ok := claims["max_users"].(float64); ok {
+			maxUsers = int(val)
+		}
+
+		totalActiveUserCount, totalPassiveUserCount, totalActiveUsers, err := sps.repo.GetUserCounts()
+		if err != nil {
+			return nil, err
+		}
+
+		balanceActiveUserCount := activeUser - totalActiveUserCount
+		balancePassiveUserCount := passiveUser - totalPassiveUserCount
+		balanceUserCount := maxUsers - totalActiveUsers
+
 		licenseKey := *systemPreference.LicenseKey
 		licenseDTO := &dtos.LicenseKeyDTO{
 			LicenseKey:                 &licenseKey,
 			LicenseKeyExpiryDateString: &expiryDate,
-			BalanceLicensedUserCount:   systemPreference.BalanceLicensedUserCount,
+			BalanceLicensedUserCount:   &balanceUserCount,
 			TotalLicensedUserCount:     systemPreference.TotalLicensedUserCount,
 			EnabledModules:             allowedModules,
 			EnabledAddons:              allowedAddons,
 			ActiveUsersCount:           &activeUser,
 			PassiveUsersCount:          &passiveUser,
+			BalanceActiveUsersCount:    &balanceActiveUserCount,
+			BalancePassiveUsersCount:   &balancePassiveUserCount,
 		}
 
 		systemPreferenceDetailDTO.LicenseKeyDetails = licenseDTO
@@ -221,7 +236,7 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(systemPreferenceFormDTO *dt
 		return err
 	}
 
-	claims, err := utility.DecryptJWTToken(*systemPreferenceFormDTO.LicenseKey)
+	claims, err := utility.DecryptLicenseKey(*systemPreferenceFormDTO.LicenseKey)
 	if err != nil {
 		return err
 	}
@@ -385,7 +400,7 @@ func (sps *SystemPreferenceService) UpdateBalanceUserCount(systemPreference *mod
 }
 
 func (sps *SystemPreferenceService) validateLicenseKey(licenseKey string) error {
-	claims, err := utility.DecryptJWTToken(licenseKey)
+	claims, err := utility.DecryptLicenseKey(licenseKey)
 	if err != nil {
 		return err
 	}

@@ -273,8 +273,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates/:id/document-preview", auditFindingActionPlanStatusUpdateController.GetAuditFindingActionPlanStatusUpdateDocumentPreview)
 	unauthenticatedRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates/:id/document-download", auditFindingActionPlanStatusUpdateController.DownloadAuditFindingActionPlanStatusUpdateDocument)
 	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingActionPlanStatusUpdateController.GetAllAuditFindingActionPlanStatusUpdates)
-	auditRoutes.POST("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingActionPlanStatusUpdateController.CreateAuditFindingActionPlanStatusUpdate)
-	auditRoutes.PUT("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates/:id", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingActionPlanStatusUpdateController.UpdateAuditFindingActionPlanStatusUpdate)
+	auditRoutes.POST("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", auditFindingActionPlanStatusUpdateController.CreateAuditFindingActionPlanStatusUpdate)
+	auditRoutes.PUT("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates/:id", auditFindingActionPlanStatusUpdateController.UpdateAuditFindingActionPlanStatusUpdate)
 	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingActionPlanStatusUpdateController.GetLatestAuditFindingActionPlanStatusUpdate)
 
 	//Audit Checklist

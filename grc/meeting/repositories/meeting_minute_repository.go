@@ -92,12 +92,15 @@ func (repo *MeetingMinuteRepository) GetAll(meetingID uint, currentUserID uint, 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(meeting_minutes.minutes LIKE ? OR
-			(meetings.title_en LIKE ? OR
-			(meeting_minute_statuses.title_en LIKE ? OR
-			(meeting_minute_statuses.title_ar LIKE ? OR
-			meeting_agendas.title LIKE ?)`,
+				(
+					meeting_minutes.minutes LIKE ? OR
+					meetings.title LIKE ? OR
+					meeting_minute_statuses.title_en LIKE ? OR
+					meeting_minute_statuses.title_ar LIKE ? OR
+					meeting_agendas.title LIKE ?
+				)`,
 			keyword, keyword, keyword, keyword, keyword)
+
 	}
 
 	// Sort by the specified column and order

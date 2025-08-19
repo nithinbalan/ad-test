@@ -86,6 +86,11 @@ func (mas *MeetingAgendaService) Create(meetingID uint, currentUserID uint, meet
 	if _, err := mas.meetingSvc.GetByID(meetingID); err != nil {
 		return 0, err
 	}
+
+	if err := mas.validateMeetingAgendaFormDTO(meetingAgendaFormDTO); err != nil {
+		return 0, err
+	}
+
 	meetingAgenda := &models.MeetingAgenda{
 		MeetingID:   meetingID,
 		Title:       meetingAgendaFormDTO.Title,
@@ -132,6 +137,10 @@ func (mas *MeetingAgendaService) Create(meetingID uint, currentUserID uint, meet
 
 func (mas *MeetingAgendaService) Update(meetingID uint, id uint, currentUserID uint, meetingAgendaFormDTO *meetingDTOs.MeetingAgendaFormDTO) error {
 	if _, err := mas.meetingSvc.GetByID(meetingID); err != nil {
+		return err
+	}
+
+	if err := mas.validateMeetingAgendaFormDTO(meetingAgendaFormDTO); err != nil {
 		return err
 	}
 
@@ -253,4 +262,14 @@ func (mas *MeetingAgendaService) Delete(meetingID uint, ids []uint, currentUserI
 	}
 
 	return failedIds, nil
+}
+
+func (mas *MeetingAgendaService) validateMeetingAgendaFormDTO(agendaForm *meetingDTOs.MeetingAgendaFormDTO) error {
+
+	// Validate title length (max 500 characters)
+	if len(agendaForm.Title) > 500 {
+		return utility.NewValidationError(fmt.Errorf("title cannot exceed 500 characters"), "field_max_length", "title")
+	}
+
+	return nil
 }

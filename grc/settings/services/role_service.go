@@ -18,6 +18,7 @@ import (
 
 type RoleServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string, licenseTypeID string) ([]*dtos.RoleDTO, error)
+	GetFullDetailsByID(id uint) (*dtos.RoleDetailDTO, error)
 	GetByID(id uint) (*models.Role, error)
 	Create(currentUserID uint, role *models.Role) (*models.Role, error)
 	Update(id uint, currentUserID uint, role *models.Role) (*models.Role, error)
@@ -64,6 +65,25 @@ func (rs *RoleService) GetAll(sort string, sortBy string, keyword string, status
 		return nil, err
 	}
 	return roleDTOs, nil
+}
+
+func (rs RoleService) GetFullDetailsByID(roleId uint) (*dtos.RoleDetailDTO, error) {
+	var roleDTO dtos.RoleDetailDTO
+
+	role, err := rs.repo.GetFullDetailsByID(roleId)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, roleId)
+		}
+		return nil, err
+	}
+	err = mapstructure.Decode(role, &roleDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return &roleDTO, nil
 }
 
 func (rs RoleService) GetByID(id uint) (*models.Role, error) {
@@ -306,6 +326,7 @@ func (rs *RoleService) UpdateRolePermissions(roleID uint, currentUserID uint, ro
 	for _, rolePermissionDTO := range rolePermissions {
 		if *role.LicenseTypeID == passiveLicenseType.ID {
 			if rolePermissionDTO.RolePermissionTypeID != permissionType.ID {
+				tx.Rollback()
 				return utility.NewForbiddenError("Only view permissions are allowed for passive role")
 			}
 		}

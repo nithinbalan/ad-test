@@ -105,6 +105,7 @@ func (repo *DocumentClauseRepository) GetFullDetailsByID(id uint, tx ...utility.
 		Preload("UpdatedByUser").
 		Preload("DocumentControls").
 		Preload("DocumentControls.Control").
+		Preload("DocumentVersion").
 		First(&documentVersionClause, id)
 
 	if result.Error != nil {

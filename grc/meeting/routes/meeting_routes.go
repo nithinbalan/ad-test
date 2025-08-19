@@ -68,8 +68,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Meeting action plan status updates
 	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "meeting_action_plan", "view"), meetingActionPlanStatusUpdateController.GetAllMeetingActionPlanStatusUpdates)
 	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/:meetingActionPlanUpdateId", middlewares.RolePermissionMiddleware(db, "meeting_action_plan", "view"), meetingActionPlanStatusUpdateController.GetMeetingActionPlanStatusUpdateDetails)
-	meetingRoutes.POST("/meetings/:id/action-plans/:meetingActionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "meeting_action_plan", "modify"), meetingActionPlanStatusUpdateController.CreateMeetingActionPlanStatusUpdate)
-	meetingRoutes.PUT("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/:meetingActionPlanUpdateId", middlewares.RolePermissionMiddleware(db, "meeting_action_plan", "modify"), meetingActionPlanStatusUpdateController.UpdateMeetingActionPlanStatusUpdate)
+	meetingRoutes.POST("/meetings/:id/action-plans/:meetingActionPlanId/status-updates", meetingActionPlanStatusUpdateController.CreateMeetingActionPlanStatusUpdate)
+	meetingRoutes.PUT("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/:meetingActionPlanUpdateId", meetingActionPlanStatusUpdateController.UpdateMeetingActionPlanStatusUpdate)
 	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "meeting_action_plan", "view"), meetingActionPlanStatusUpdateController.GetLatestMeetingActionPlanStatusUpdate)
 	// Preview and download
 	unauthenticatedRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/:meetingActionPlanUpdateId/document-preview", meetingActionPlanStatusUpdateController.GetMeetingActionPlanDocumentPreview)
