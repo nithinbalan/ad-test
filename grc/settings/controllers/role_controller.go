@@ -49,7 +49,7 @@ func (rc *RoleController) GetRoleDetails(c *gin.Context) {
 		return
 	}
 
-	role, err := rc.service.GetByID(uint(id))
+	role, err := rc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
