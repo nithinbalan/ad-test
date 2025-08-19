@@ -12,10 +12,12 @@ type StrategyProfileKpiRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileKpiListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileKpiListDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileKpi, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileKpi, error)
 	Create(kpi *models.StrategyProfileKpi, tx ...utility.DatabaseTransaction) (uint, error)
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GetObjectivesForKPI(kpiID uint, tx ...utility.DatabaseTransaction) ([]*models.StrategyProfileStrategicObjective, error)
 	GetKPIsForObjective(objectiveID uint, tx ...utility.DatabaseTransaction) ([]*strategyDTOs.KpiRegisterMinimalDetails, error)
+	UpdateWeightage(kpi *models.StrategyProfileKpi, tx ...utility.DatabaseTransaction) error
 }
 
 type StrategyProfileKpiRepository struct {
@@ -140,6 +142,27 @@ func (repo *StrategyProfileKpiRepository) GetByID(id uint, tx ...utility.Databas
 	return &kpi, nil
 }
 
+func (repo *StrategyProfileKpiRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileKpi, error) {
+	var strategyProfileKpi *models.StrategyProfileKpi
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.Preload("StrategyProfileStrategicObjective").
+		Preload("Kpi").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&strategyProfileKpi, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return strategyProfileKpi, nil
+}
+
 // Create inserts a new objective record
 func (repo *StrategyProfileKpiRepository) Create(kpi *models.StrategyProfileKpi, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
@@ -191,13 +214,13 @@ func (repo *StrategyProfileKpiRepository) GetKPIsForObjective(objectiveID uint, 
 		db = tx[0].DB()
 	}
 
-	// Select only the required fields from both tables
+	// Updated to use weightage from strategy_profile_kpis table
 	err := db.
 		Table("strategy_profile_kpis").
 		Select(`
             kpi_register.id as "kpi_id",
             kpi_register.achievement as "achievement",
-            kpi_register.weightage as "weightage"
+            strategy_profile_kpis.weightage as "weightage"
         `).
 		Joins("LEFT JOIN kpi_register ON kpi_register.id = strategy_profile_kpis.kpi_id").
 		Where("strategy_profile_kpis.strategy_profile_strategic_objective_id = ?", objectiveID).
@@ -207,4 +230,15 @@ func (repo *StrategyProfileKpiRepository) GetKPIsForObjective(objectiveID uint, 
 		return nil, err
 	}
 	return kpis, nil
+}
+
+func (repo *StrategyProfileKpiRepository) UpdateWeightage(kpi *models.StrategyProfileKpi, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(kpi).Error; err != nil {
+		return err
+	}
+	return nil
 }

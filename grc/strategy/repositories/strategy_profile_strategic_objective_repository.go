@@ -12,6 +12,7 @@ type StrategyProfileStrategicObjectiveRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileStrategicObjectiveListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileStrategicObjectiveListDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileStrategicObjective, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileStrategicObjective, error)
 	Create(objective *models.StrategyProfileStrategicObjective, tx ...utility.DatabaseTransaction) (uint, error)
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	Update(objective *models.StrategyProfileStrategicObjective, tx ...utility.DatabaseTransaction) error
@@ -144,6 +145,27 @@ func (repo *StrategyProfileStrategicObjectiveRepository) GetByID(id uint, tx ...
 	}
 
 	return objective, nil
+}
+
+func (repo *StrategyProfileStrategicObjectiveRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileStrategicObjective, error) {
+	var strategyProfileStrategicObjective *models.StrategyProfileStrategicObjective
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.Preload("StrategyProfileFocusArea").
+		Preload("StrategicObjective").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&strategyProfileStrategicObjective, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return strategyProfileStrategicObjective, nil
 }
 
 // Create inserts a new objective record

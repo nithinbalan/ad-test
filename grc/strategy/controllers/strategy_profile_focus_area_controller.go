@@ -78,6 +78,39 @@ func (snec *StrategyProfileFocusAreaController) GetAllStrategyProfileFocusAreas(
 	c.JSON(http.StatusOK, focusArea)
 }
 
+func (snec *StrategyProfileFocusAreaController) GetStrategyProfileFocusAreaDetails(c *gin.Context) {
+	// Get strategy profile ID from URL
+	strategyProfileIDStr := c.Param("strategyProfileId")
+	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Get focus area ID from URL
+	focusAreaIDStr := c.Param("id")
+	focusAreaID, err := strconv.ParseUint(focusAreaIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Call service to get the focus area details
+	focusArea, err := snec.service.GetFullDetailsByID(uint(strategyProfileID), uint(focusAreaID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(snec.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, focusArea)
+}
+
 func (snec *StrategyProfileFocusAreaController) CreateStrategyProfileFocusArea(c *gin.Context) {
 	var FormDTO strategyDTOs.StrategyProfileFocusAreaFormDTO
 

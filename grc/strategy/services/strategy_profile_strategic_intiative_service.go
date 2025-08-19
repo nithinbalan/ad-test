@@ -10,12 +10,14 @@ import (
 	strategyProfileStrategicIntiativeRepositories "jethur/grc/strategy/repositories"
 	"jethur/utility"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type StrategyProfileStrategicIntiativeServiceInterface interface {
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileStrategicIntiativeListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileStrategicIntiativeListDTO, error)
 	Create(strategyProfileID uint, currentUserID uint, strategyDTOs *strategyDTOs.StrategyProfileStrategicIntiativeFormDTO) ([]uint, error)
+	GetFullDetailsByID(strategyProfileID uint, id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.StrategyProfileStrategicIntiativeDetailDTO, error)
 	Delete(strategyProfileID uint, kpiID uint, currentUserID uint) error
 }
 
@@ -67,6 +69,37 @@ func (sps StrategyProfileStrategicIntiativeService) GetByID(id uint, tx ...utili
 		return nil, err
 	}
 	return strategyProfileKpi, nil
+}
+
+func (spsi *StrategyProfileStrategicIntiativeService) GetFullDetailsByID(strategyProfileID uint, id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.StrategyProfileStrategicIntiativeDetailDTO, error) {
+	var strategyProfileStrategicIntiativeDTO strategyDTOs.StrategyProfileStrategicIntiativeDetailDTO
+
+	// Check if the PROJECT register exists
+	if _, err := spsi.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
+		return nil, err
+	}
+
+	// Get full details of the PROJECT action plan
+	strategyProfileStrategicIntiative, err := spsi.repo.GetFullDetailsByID(id, tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	// Decode the PROJECT action plan into the DTO
+	err = mapstructure.Decode(strategyProfileStrategicIntiative, &strategyProfileStrategicIntiativeDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	strategyProfileStrategicIntiativeDTO.CreatedAt = strategyProfileStrategicIntiative.CreatedAt
+	strategyProfileStrategicIntiativeDTO.UpdatedAt = strategyProfileStrategicIntiative.UpdatedAt
+
+	// TODO: Add any additional fields required for the details screen
+
+	return &strategyProfileStrategicIntiativeDTO, nil
 }
 
 func (spsi *StrategyProfileStrategicIntiativeService) Create(strategyProfileID uint, currentUserID uint, strategyProfileStrategicIntiativeFormDTO *strategyDTOs.StrategyProfileStrategicIntiativeFormDTO) ([]uint, error) {

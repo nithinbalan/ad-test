@@ -79,6 +79,39 @@ func (snec *StrategyProfileKpiController) GetAllStrategyProfileKpis(c *gin.Conte
 	c.JSON(http.StatusOK, kpi)
 }
 
+func (snec *StrategyProfileKpiController) GetStrategyProfileKpiDetails(c *gin.Context) {
+	// Get strategy profile ID from URL
+	strategyProfileIDStr := c.Param("strategyProfileId")
+	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Get KPI ID from URL
+	kpiIDStr := c.Param("id")
+	kpiID, err := strconv.ParseUint(kpiIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Call service to get the KPI details
+	kpi, err := snec.service.GetFullDetailsByID(uint(strategyProfileID), uint(kpiID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(snec.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, kpi)
+}
+
 func (snec *StrategyProfileKpiController) CreateStrategyProfileKpi(c *gin.Context) {
 	var FormDTO strategyDTOs.StrategyProfileKpiFormDTO
 
@@ -120,7 +153,6 @@ func (snec *StrategyProfileKpiController) CreateStrategyProfileKpi(c *gin.Contex
 }
 
 func (snec *StrategyProfileKpiController) DeleteStrategyProfileKpi(c *gin.Context) {
-	// Parse strategy profile ID
 	strategyProfileIDStr := c.Param("strategyProfileId")
 	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
 	if err != nil {
@@ -128,7 +160,6 @@ func (snec *StrategyProfileKpiController) DeleteStrategyProfileKpi(c *gin.Contex
 		return
 	}
 
-	// Parse KPI ID
 	kpiIDStr := c.Param("id")
 	kpiID, err := strconv.ParseUint(kpiIDStr, 10, 32)
 	if err != nil {
@@ -136,14 +167,12 @@ func (snec *StrategyProfileKpiController) DeleteStrategyProfileKpi(c *gin.Contex
 		return
 	}
 
-	// Get current user ID
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(snec.db, c, err.Error())
 		return
 	}
 
-	// Perform deletion
 	err = snec.service.Delete(uint(strategyProfileID), uint(kpiID), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
@@ -157,6 +186,44 @@ func (snec *StrategyProfileKpiController) DeleteStrategyProfileKpi(c *gin.Contex
 			utility.SendInternalErrResp(snec.db, c, e.Error())
 			return
 		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (snec *StrategyProfileKpiController) UpdateStrategyProfileKpiWeightage(c *gin.Context) {
+	var formDTO strategyDTOs.StrategyProfileKpiWeightageUpdateDTO
+
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	// Get KPI ID from URL
+	kpiIDStr := c.Param("id")
+	kpiID, err := strconv.ParseUint(kpiIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(snec.db, c, err.Error())
+		return
+	}
+
+	err = snec.service.UpdateWeightage(uint(kpiID), currentUserID, &formDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+		default:
+			utility.SendInternalErrResp(snec.db, c, e.Error())
+		}
+		return
 	}
 
 	c.Status(http.StatusOK)

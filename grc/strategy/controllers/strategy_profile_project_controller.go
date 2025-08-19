@@ -79,6 +79,39 @@ func (spc *StrategyProfileProjectController) GetAllStrategyProfileProjects(c *gi
 	c.JSON(http.StatusOK, project)
 }
 
+func (spc *StrategyProfileProjectController) GetStrategyProfileProjectDetails(c *gin.Context) {
+	// Get strategy profile ID from URL
+	strategyProfileIDStr := c.Param("strategyProfileId")
+	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Get strategic intiative ID from URL
+	projectIDStr := c.Param("id")
+	projectID, err := strconv.ParseUint(projectIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Call service to get the strategic intiative details
+	project, err := spc.service.GetFullDetailsByID(uint(strategyProfileID), uint(projectID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(spc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, project)
+}
+
 func (spc *StrategyProfileProjectController) CreateStrategyProfileProject(c *gin.Context) {
 	var FormDTO strategyDTOs.StrategyProfileProjectFormDTO
 

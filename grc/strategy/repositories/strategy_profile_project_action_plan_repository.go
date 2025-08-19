@@ -12,6 +12,7 @@ type StrategyProfileProjectActionPlanRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileProjectActionPlanListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileProjectActionPlanListDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileProjectActionPlan, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileProjectActionPlan, error)
 	Create(strategyProfileProjectActionPlan *models.StrategyProfileProjectActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 }
@@ -140,6 +141,26 @@ func (repo *StrategyProfileProjectActionPlanRepository) GetByID(id uint, tx ...u
 	}
 
 	result := db.First(&projectActionPlan, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return projectActionPlan, nil
+}
+func (repo *StrategyProfileProjectActionPlanRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileProjectActionPlan, error) {
+	var projectActionPlan *models.StrategyProfileProjectActionPlan
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.Preload("StrategyProfileProject").
+		Preload("ProjectActionPlan").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&projectActionPlan, id)
+
 	if result.Error != nil {
 		return nil, result.Error
 	}

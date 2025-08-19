@@ -12,6 +12,7 @@ type StrategyProfileProjectRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileProjectListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileProjectListDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileProject, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileProject, error)
 	Create(strategyProfileProject *models.StrategyProfileProject, tx ...utility.DatabaseTransaction) (uint, error)
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 }
@@ -43,6 +44,10 @@ func (repo *StrategyProfileProjectRepository) GetAll(strategyProfileID uint, par
 			projects.title_ar AS project_title_ar,
 			projects.description_en AS project_description_en,
 			projects.description_ar AS project_description_ar,
+			projects.project_status_id AS project_project_status_id,
+			project_statuses.title_en AS project_project_status_title_en,
+			project_statuses.title_ar AS project_project_status_title_ar,
+			project_statuses.color_code AS project_status_color_code,
 			strategic_objectives.title_en AS strategy_profile_strategic_objective_title_en,
 			strategic_objectives.title_ar AS strategy_profile_strategic_objective_title_ar,
 			strategic_intiatives.title_en AS strategy_profile_strategic_intiative_title_en,
@@ -69,6 +74,7 @@ func (repo *StrategyProfileProjectRepository) GetAll(strategyProfileID uint, par
 		Joins(`
 			LEFT JOIN strategy_profiles ON strategy_profiles.id = strategy_profile_projects.strategy_profile_id
 			LEFT JOIN projects ON projects.id = strategy_profile_projects.project_id
+			LEFT JOIN project_statuses ON project_statuses.id = projects.project_status_id
 			LEFT JOIN strategy_profile_strategic_objectives ON strategy_profile_strategic_objectives.id = strategy_profile_projects.strategy_profile_strategic_objective_id
 			LEFT JOIN strategic_objectives ON strategic_objectives.id = strategy_profile_strategic_objectives.strategic_objective_id
 			LEFT JOIN strategy_profile_strategic_intiatives ON strategy_profile_strategic_intiatives.id = strategy_profile_projects.strategy_profile_strategic_intiative_id
@@ -134,6 +140,30 @@ func (repo *StrategyProfileProjectRepository) GetByID(id uint, tx ...utility.Dat
 	}
 
 	result := db.First(&strategyProfileProject, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return strategyProfileProject, nil
+}
+
+func (repo *StrategyProfileProjectRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileProject, error) {
+	var strategyProfileProject *models.StrategyProfileProject
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.Preload("StrategyProfileStrategicObjective").
+		Preload("StrategyProfileStrategicIntiative").
+		Preload("Project").
+		Preload("Project.ResponsibleUser").
+		Preload("Project.ProjectStatus").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&strategyProfileProject, id)
+
 	if result.Error != nil {
 		return nil, result.Error
 	}

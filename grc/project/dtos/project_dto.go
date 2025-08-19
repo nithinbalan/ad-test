@@ -98,3 +98,7 @@ type ProjectDetailDTO struct {
 	CreatedByUser   organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser   *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 }
+
+type ProjectStatusUpdateDTO struct {
+	ProjectStatusID uint `json:"project_status_id" binding:"required"`
+}

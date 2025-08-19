@@ -44,6 +44,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.POST("/projects", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectController.CreateProject)
 	projectRoutes.PUT("/projects/:projectId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectController.UpdateProject)
 	projectRoutes.POST("/projects/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectController.DeleteProjects)
+	projectRoutes.PUT("/projects/:projectId/status", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectController.UpdateProjectStatus)
 
 	// Project Milestones
 	projectRoutes.GET("/project-milestones", projectMilestoneController.GetAllProjectMilestones)
