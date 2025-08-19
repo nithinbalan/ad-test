@@ -219,23 +219,6 @@ type KPIThirdPartyMapDTO struct {
 	ThirdPartyRegisterIDs []uint `json:"third_party_register_ids" binding:"required"`
 }
 
-type KPIPolicyListDTO struct {
-	ID                   uint    `json:"id"`
-	DocumentID           uint    `json:"document_id"`
-	DocumentTitleEn      string  `json:"document_title_en"`
-	DocumentTitleAr      string  `json:"document_title_ar"`
-	DocumentURL          string  `json:"document_url"`
-	DocumentName         string  `json:"document_name"`
-	DocumentSize         int     `json:"document_size"`
-	DocumentToken        string  `json:"document_token"`
-	DocumentOriginalName *string `json:"document_original_name"`
-}
-
-type KPIAssociatedItemPolicyListResponseDTO struct {
-	Items      []*KPIPolicyListDTO          `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
-}
-
 type KPIPolicyMapDTO struct {
 	DocumentIDs []uint `json:"document_ids" binding:"required"`
 }

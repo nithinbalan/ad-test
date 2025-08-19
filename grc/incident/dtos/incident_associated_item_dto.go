@@ -16,29 +16,6 @@ type IncidentComplianceRequirementListDTO struct {
 	ComplianceStatusColorCode            string `json:"compliance_status_color_code"`
 }
 
-type IncidentProcessListDTO struct {
-	ProcessGroupTitleEn      string  `json:"process_group_title_en"`
-	ProcessGroupTitleAr      string  `json:"process_group_title_ar"`
-	OwnerUnitTitleEn         *string `json:"owner_unit_title_en"`
-	OwnerUnitTitleAr         *string `json:"owner_unit_title_ar"`
-	OwnerID                  *uint   `json:"owner_id"`
-	OwnerFirstNameEn         *string `json:"owner_first_name_en"`
-	OwnerFirstNameAr         *string `json:"owner_first_name_ar"`
-	OwnerLastNameEn          *string `json:"owner_last_name_en"`
-	OwnerLastNameAr          *string `json:"owner_last_name_ar"`
-	OwnerInitial             string  `json:"owner_initial"`
-	OwnerColor               string  `json:"owner_color"`
-	OwnerEmail               string  `json:"owner_email"`
-	OwnerProfileImagePath    string  `json:"owner_profile_image_path"`
-	LifecycleStatusTitleEn   string  `json:"lifecycle_status_title_en"`
-	LifecycleStatusTitleAr   string  `json:"lifecycle_status_title_ar"`
-	LifecycleStatusColorCode string  `json:"lifecycle_status_color_code"`
-	ReferenceNumber          string  `json:"reference_number"`
-	TitleEn                  string  `json:"title_en"`
-	TitleAr                  string  `json:"title_ar"`
-	Description              *string `json:"description"`
-}
-
 type IncidentSLAListDTO struct {
 	ReferenceNumber                 string `json:"reference_number"`
 	LifecycleStatusID               uint   `json:"lifecycle_status_id"`
@@ -67,29 +44,6 @@ type IncidentSLAListDTO struct {
 	ComplianceStatusTitleEn         string `json:"compliance_status_title_en"`
 	ComplianceStatusTitleAr         string `json:"compliance_status_title_ar"`
 	ComplianceStatusColorCode       string `json:"compliance_status_color_code"`
-}
-
-type IncidentDocumentListDTO struct {
-	ID                         uint       `json:"id"`
-	ReferenceNumber            string     `json:"reference_number"`
-	TitleEn                    string     `json:"title_en"`
-	TitleAr                    string     `json:"title_ar"`
-	DescriptionEn              *string    `json:"description_en"`
-	DescriptionAr              *string    `json:"description_ar"`
-	DocumentCategoryTitleEn    string     `json:"document_category_title_en"`
-	DocumentCategoryTitleAr    string     `json:"document_category_title_ar"`
-	ResponsibleUserFirstNameEn string     `json:"responsible_user_first_name_en"`
-	ResponsibleUserFirstNameAr string     `json:"responsible_user_first_name_ar"`
-	ResponsibleUserLastNameEn  string     `json:"responsible_user_last_name_en"`
-	ResponsibleUserLastNameAr  string     `json:"responsible_user_last_name_ar"`
-	ResponsibleUnitTitleEn     string     `json:"responsible_unit_title_en"`
-	ResponsibleUnitTitleAr     string     `json:"responsible_unit_title_ar"`
-	DocumentStatusTitleEn      string     `json:"document_status_title_en"`
-	DocumentStatusTitleAr      string     `json:"document_status_title_ar"`
-	DocumentStatusColorCode    string     `json:"document_status_color_code"`
-	LastCheckoutAt             *time.Time `json:"last_checkout_at"`
-	LastCheckinAt              *time.Time `json:"last_checkin_at"`
-	IsLocked                   bool       `json:"is_locked"`
 }
 
 type IncidentAssetListDTO struct {
@@ -149,28 +103,13 @@ type IncidentAssociatedItemListQueryParamsDTO struct {
 	QuickFilter []string
 }
 
-type IncidentAssociatedItemControlListResponseDTO struct {
-	Items      []*commonDTOs.AssociatedControlListDTO `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO           `json:"pagination"`
-}
-
 type IncidentAssociatedItemComplianceRequirementListResponseDTO struct {
 	Items      []*IncidentComplianceRequirementListDTO `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO            `json:"pagination"`
 }
 
-type IncidentAssociatedItemProcessListResponseDTO struct {
-	Items      []*IncidentProcessListDTO    `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
-}
-
 type IncidentAssociatedItemSLAListResponseDTO struct {
 	Items      []*IncidentSLAListDTO        `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
-}
-
-type IncidentAssociatedItemDocumentListResponseDTO struct {
-	Items      []*IncidentDocumentListDTO   `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
