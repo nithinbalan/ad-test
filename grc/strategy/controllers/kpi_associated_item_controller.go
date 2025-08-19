@@ -36,8 +36,6 @@ func (kaic *KPIAssociatedItemController) GetAllKPIControls(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -51,14 +49,12 @@ func (kaic *KPIAssociatedItemController) GetAllKPIControls(c *gin.Context) {
 		return
 	}
 
-	queryParams := strategyDTOs.KPIAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	controls, err := kaic.service.GetAllControls(uint(kpiId), &queryParams)
 
@@ -79,7 +75,7 @@ func (kaic *KPIAssociatedItemController) GetAllKPIControls(c *gin.Context) {
 }
 
 func (kaic *KPIAssociatedItemController) CreateKPIControls(c *gin.Context) {
-	var input strategyDTOs.KPIControlMapDTO
+	var input commonDTOs.AssociatedControlMapDTO
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -456,6 +452,7 @@ func (kaic *KPIAssociatedItemController) GetAllKPIRisks(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
+	valueStr := c.Query("value")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -469,12 +466,29 @@ func (kaic *KPIAssociatedItemController) GetAllKPIRisks(c *gin.Context) {
 		return
 	}
 
+	var value int
+	if valueStr != "" {
+		value, err = strconv.Atoi(valueStr)
+		if err != nil {
+			utility.SendInternalErrResp(kaic.db, c, "Invalid value parameter")
+			return
+		}
+	}
+
+	allowedParams := []string{
+		"current_likelihood_ids",
+		"current_impact_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
 		Page:     page,
 		PageSize: pageSize,
+		Value:    value,
+		Filters:  filters,
 	}
 	risks, err := kaic.service.GetAllRisks(uint(kpiId), &queryParams)
 
@@ -662,8 +676,6 @@ func (kaic *KPIAssociatedItemController) GetAllKPIPolicies(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -677,14 +689,12 @@ func (kaic *KPIAssociatedItemController) GetAllKPIPolicies(c *gin.Context) {
 		return
 	}
 
-	queryParams := strategyDTOs.KPIAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	documents, err := kaic.service.GetAllPolicies(uint(kpiId), &queryParams)
 
@@ -705,7 +715,7 @@ func (kaic *KPIAssociatedItemController) GetAllKPIPolicies(c *gin.Context) {
 }
 
 func (kaic *KPIAssociatedItemController) CreateKPIPolicies(c *gin.Context) {
-	var input strategyDTOs.KPIPolicyMapDTO
+	var input commonDTOs.AssociatedDocumentMapDTO
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return

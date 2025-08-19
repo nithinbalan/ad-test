@@ -135,7 +135,7 @@ func NewStrategyModule(db *gorm.DB,
 	)
 
 	kpiAssociatedItemRepo := repositories.NewKPIAssociatedItemRepository(db)
-	kpiAssociatedItemSvc := services.NewKPIAssociatedItemService(kpiAssociatedItemRepo, kpiRegisterSvc, organizationModule.ControlSvc, organizationModule.ProcessSvc, assetModule.AssetRegisterSvc, riskModule.RiskRegisterSvc, tprmModule.ThirdPartyRegisterSvc, complianceModule.ComplianceRegisterSvc, documentModule.DocumentSvc, complianceModule.ComplianceClausevc)
+	kpiAssociatedItemSvc := services.NewKPIAssociatedItemService(kpiAssociatedItemRepo, kpiRegisterSvc, organizationModule.ControlSvc, organizationModule.ProcessSvc, assetModule.AssetRegisterSvc, riskModule.RiskRegisterSvc, tprmModule.ThirdPartyRegisterSvc, complianceModule.ComplianceRegisterSvc, documentModule.DocumentSvc, complianceModule.ComplianceClausevc, commonModule.AssociatedItemValidationService)
 	kpiAssociatedItemController := controllers.NewKPIAssociatedItemController(kpiAssociatedItemSvc)
 
 	focusAreaRepository := repositories.NewFocusAreaRepository(db)

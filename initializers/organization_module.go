@@ -118,6 +118,7 @@ func NewOrganizationModule(
 		settingsModule.ActiveDirectorySettingSvc,
 		settingsModule.OrganizationUnitSvc,
 		userJobDescriptionSvc,
+		masterModule.LicenseTypeSvc,
 	)
 	userSettingRepo := repositories.NewUserSettingRepository(db)
 	userSettingSvc := services.NewUserSettingService(

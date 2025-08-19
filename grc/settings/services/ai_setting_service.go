@@ -34,7 +34,7 @@ func (amc *AISettingService) EnableAISetting(currentUserID uint) error {
 	}
 	if existingSystemPreference.LicenseKeyDetails != nil {
 		// Extract allowed modules from the license key
-		claims, err := utility.DecryptJWTToken(*existingSystemPreference.LicenseKeyDetails.LicenseKey)
+		claims, err := utility.DecryptLicenseKey(*existingSystemPreference.LicenseKeyDetails.LicenseKey)
 		if err != nil {
 			return err
 		}

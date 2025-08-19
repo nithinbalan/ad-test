@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"jethur/grc/logs/services"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/repositories"
@@ -11,11 +12,12 @@ import (
 	"jethur/utility"
 	"log"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type RoleServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.Role, error)
+	GetAll(sort string, sortBy string, keyword string, status string, licenseTypeID string) ([]*dtos.RoleDTO, error)
 	GetByID(id uint) (*models.Role, error)
 	Create(currentUserID uint, role *models.Role) (*models.Role, error)
 	Update(id uint, currentUserID uint, role *models.Role) (*models.Role, error)
@@ -34,22 +36,34 @@ type RoleService struct {
 	activityLogSvc        services.ActivityLogServiceInterface
 	moduleSvc             ModuleServiceInterface
 	rolePermissionTypeSvc RolePermissionTypeServiceInterface
+	licenseTypeSvc        masterServices.LicenseTypeServiceInterface
 }
 
 func NewRoleService(repo repositories.RoleRepositoryInterface,
 	activityLogSvc services.ActivityLogServiceInterface,
 	moduleSvc ModuleServiceInterface,
-	rolePermissionTypeSvc RolePermissionTypeServiceInterface) RoleServiceInterface {
+	rolePermissionTypeSvc RolePermissionTypeServiceInterface, licenseTypeSvc masterServices.LicenseTypeServiceInterface) RoleServiceInterface {
 	return &RoleService{
 		repo:                  repo,
 		activityLogSvc:        activityLogSvc,
 		moduleSvc:             moduleSvc,
 		rolePermissionTypeSvc: rolePermissionTypeSvc,
+		licenseTypeSvc:        licenseTypeSvc,
 	}
 }
 
-func (rs *RoleService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.Role, error) {
-	return rs.repo.GetAll(sort, sortBy, keyword, status)
+func (rs *RoleService) GetAll(sort string, sortBy string, keyword string, status string, licenseTypeID string) ([]*dtos.RoleDTO, error) {
+	var roleDTOs []*dtos.RoleDTO
+	roles, err := rs.repo.GetAll(sort, sortBy, keyword, status, licenseTypeID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mapstructure.Decode(roles, &roleDTOs)
+	if err != nil {
+		return nil, err
+	}
+	return roleDTOs, nil
 }
 
 func (rs RoleService) GetByID(id uint) (*models.Role, error) {
@@ -259,7 +273,19 @@ func (rs *RoleService) validateRoleForm(role *models.Role, id *uint) error {
 func (rs *RoleService) UpdateRolePermissions(roleID uint, currentUserID uint, rolePermissions []*dtos.RolePermissionFormDTO) error {
 	tx := rs.repo.BeginTransaction()
 
-	_, err := rs.GetByID(roleID)
+	role, err := rs.GetByID(roleID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	passiveLicenseType, err := rs.licenseTypeSvc.GetByType("passive")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	permissionType, err := rs.rolePermissionTypeSvc.GetByType("view")
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -278,7 +304,12 @@ func (rs *RoleService) UpdateRolePermissions(roleID uint, currentUserID uint, ro
 	}
 	var changedData []dtos.RolePermissionFormDTO
 	for _, rolePermissionDTO := range rolePermissions {
-
+		if *role.LicenseTypeID == passiveLicenseType.ID {
+			if rolePermissionDTO.RolePermissionTypeID != permissionType.ID {
+				tx.Rollback()
+				return utility.NewForbiddenError("Only view permissions are allowed for passive role")
+			}
+		}
 		rolePermission := &models.RolePermission{
 			RoleID:               roleID,
 			ModuleID:             rolePermissionDTO.ModuleID,

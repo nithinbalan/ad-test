@@ -37,17 +37,19 @@ type RiskActionPlanServiceInterface interface {
 
 // Service and implementations
 type RiskActionPlanService struct {
-	repo                riskRepositories.RiskActionPlanRepositoryInterface
-	activityLogSvc      logServices.ActivityLogServiceInterface
-	riskRegisterSvc     RiskRegisterServiceInterface
-	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
-	severityLevelSvc    masterServices.SeverityLevelServiceInterface
-	userSettingSvc      organizationServices.UserSettingServiceInterface
-	userSvc             organizationServices.UserServiceInterface
-	notificationSvc     commonServices.NotificationServiceInterface
-	taskSvc             taskServices.TaskServiceInterface
-	lifecycleStatusSvc  masterServices.LifecycleStatusServiceInterface
-	controlSvc          organizationServices.ControlServiceInterface
+	repo                           riskRepositories.RiskActionPlanRepositoryInterface
+	activityLogSvc                 logServices.ActivityLogServiceInterface
+	riskRegisterSvc                RiskRegisterServiceInterface
+	actionPlanStatusSvc            masterServices.ActionPlanStatusServiceInterface
+	severityLevelSvc               masterServices.SeverityLevelServiceInterface
+	userSettingSvc                 organizationServices.UserSettingServiceInterface
+	userSvc                        organizationServices.UserServiceInterface
+	notificationSvc                commonServices.NotificationServiceInterface
+	taskSvc                        taskServices.TaskServiceInterface
+	lifecycleStatusSvc             masterServices.LifecycleStatusServiceInterface
+	controlSvc                     organizationServices.ControlServiceInterface
+	controlImplementationStatusSvc organizationServices.ControlImplementationStatusServiceInterface
+	controlEfficiencyStatusSvc     organizationServices.ControlEfficiencyStatusServiceInterface
 }
 
 func NewRiskActionPlanService(
@@ -62,19 +64,23 @@ func NewRiskActionPlanService(
 	taskSvc taskServices.TaskServiceInterface,
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
 	controlSvc organizationServices.ControlServiceInterface,
+	controlImplementationStatusSvc organizationServices.ControlImplementationStatusServiceInterface,
+	controlEfficiencyStatusSvc organizationServices.ControlEfficiencyStatusServiceInterface,
 ) RiskActionPlanServiceInterface {
 	return &RiskActionPlanService{
-		repo:                repo,
-		activityLogSvc:      activityLogSvc,
-		riskRegisterSvc:     riskRegisterSvc,
-		actionPlanStatusSvc: actionPlanStatusSvc,
-		severityLevelSvc:    severityLevelSvc,
-		userSettingSvc:      userSettingSvc,
-		userSvc:             userSvc,
-		notificationSvc:     notificationSvc,
-		taskSvc:             taskSvc,
-		lifecycleStatusSvc:  lifecycleStatusSvc,
-		controlSvc:          controlSvc,
+		repo:                           repo,
+		activityLogSvc:                 activityLogSvc,
+		riskRegisterSvc:                riskRegisterSvc,
+		actionPlanStatusSvc:            actionPlanStatusSvc,
+		severityLevelSvc:               severityLevelSvc,
+		userSettingSvc:                 userSettingSvc,
+		userSvc:                        userSvc,
+		notificationSvc:                notificationSvc,
+		taskSvc:                        taskSvc,
+		lifecycleStatusSvc:             lifecycleStatusSvc,
+		controlSvc:                     controlSvc,
+		controlImplementationStatusSvc: controlImplementationStatusSvc,
+		controlEfficiencyStatusSvc:     controlEfficiencyStatusSvc,
 	}
 }
 
@@ -210,14 +216,26 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 		return 0, err
 	}
 
+	defaultEfficiencyStatus, err := raps.controlEfficiencyStatusSvc.GetByType("inefficient")
+	if err != nil {
+		return 0, err
+	}
+	defaultImplementationStatus, err := raps.controlImplementationStatusSvc.GetByType("not-implemented")
+	if err != nil {
+		return 0, err
+	}
+
 	for _, control := range RiskActionPlanFormDTO.Controls {
 
 		// Create Control
 		controlDTO := &organizationDTOs.ControlFormDTO{
-			ControlTypeID: control.ControlTypeID,
-			TitleEn:       control.TitleEn,
-			TitleAr:       control.TitleAr,
-			OwnerID:       control.OwnerID,
+			ControlTypeID:                 control.ControlTypeID,
+			TitleEn:                       control.TitleEn,
+			TitleAr:                       control.TitleAr,
+			OwnerID:                       control.OwnerID,
+			ControlEfficiencyStatusID:     &defaultEfficiencyStatus.ID,
+			IsApplicable:                  true,
+			ControlImplementationStatusID: &defaultImplementationStatus.ID,
 		}
 
 		controlId, err := raps.controlSvc.Create(currentUserID, controlDTO, tx)
@@ -460,15 +478,27 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 		}
 	}
 
+	defaultEfficiencyStatus, err := raps.controlEfficiencyStatusSvc.GetByType("inefficient")
+	if err != nil {
+		return err
+	}
+	defaultImplementationStatus, err := raps.controlImplementationStatusSvc.GetByType("not-implemented")
+	if err != nil {
+		return err
+	}
+
 	for _, control := range RiskActionPlanFormDTO.Controls {
 
 		if control.ID == nil {
 			// Create Control
 			controlDTO := &organizationDTOs.ControlFormDTO{
-				ControlTypeID: control.ControlTypeID, // Ensure the Code field exists and is of type *string in DocumentControl model
-				TitleEn:       control.TitleEn,
-				TitleAr:       control.TitleAr,
-				OwnerID:       control.OwnerID,
+				ControlTypeID:                 control.ControlTypeID, // Ensure the Code field exists and is of type *string in DocumentControl model
+				TitleEn:                       control.TitleEn,
+				TitleAr:                       control.TitleAr,
+				OwnerID:                       control.OwnerID,
+				ControlEfficiencyStatusID:     &defaultEfficiencyStatus.ID,
+				IsApplicable:                  true,
+				ControlImplementationStatusID: &defaultImplementationStatus.ID,
 			}
 
 			controlId, err := raps.controlSvc.Create(currentUserID, controlDTO, tx)
@@ -983,11 +1013,11 @@ func (raps *RiskActionPlanService) ExportRiskActionPlan(data []*riskDTOs.RiskAct
 		var responsibleUser, severity, status string
 
 		if userSetting.Language == "ar" {
-			responsibleUser = actionPlan.ResponsibleUserFirstNameAr
+			responsibleUser = actionPlan.ResponsibleUserFirstNameAr + " " + actionPlan.ResponsibleUserLastNameAr
 			severity = utility.GetStringValue(actionPlan.SeverityLevelTitleAr)
 			status = actionPlan.ActionPlanStatusTitleAr
 		} else {
-			responsibleUser = actionPlan.ResponsibleUserFirstNameEn
+			responsibleUser = actionPlan.ResponsibleUserFirstNameEn + " " + actionPlan.ResponsibleUserLastNameEn
 			severity = utility.GetStringValue(actionPlan.SeverityLevelTitleEn)
 			status = actionPlan.ActionPlanStatusTitleEn
 		}

@@ -35,7 +35,7 @@ type RiskRegisterServiceInterface interface {
 	Create(currentUserID uint, riskRegisterFormDTO *riskDTOs.RiskRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, risk *riskDTOs.RiskRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
-	UpdateResponseStrategy(riskID uint, currentUserID uint, riskResponseStrategyFormDTO *riskDTOs.RiskResponseStrategyFormDTO) error
+	UpdateResponseStrategy(riskID uint, currentUserID uint, riskResponseStrategyFormDTO *riskDTOs.RiskResponseStrategyFormDTO, tx ...utility.DatabaseTransaction) error
 	DeleteResponseStrategy(riskID uint, currentUserID uint) error
 	GetControlPerformance(riskID uint) (map[string]float64, error)
 	UpdateRiskRating(riskID uint, currentUserID uint, riskEvaluationDetails *models.RiskEvaluation, tx utility.DatabaseTransaction, evaluationType string) error
@@ -232,21 +232,20 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 	}
 
 	riskRegister := &models.RiskRegister{
-		ReferenceNumber:        referenceNumber,
-		RiskCategoryID:         riskRegisterFormDTO.RiskCategoryID,
-		RiskSourceID:           riskRegisterFormDTO.RiskSourceID,
-		RiskMatrixID:           riskMatrix.ID,
-		ResponsibleUnitID:      responsibleUnitID,
-		ResponsibleUserID:      riskRegisterFormDTO.ResponsibleUserID,
-		RiskStatusID:           riskStatus.ID,
-		Title:                  riskRegisterFormDTO.Title,
-		Description:            riskRegisterFormDTO.Description,
-		ReportedAt:             dates.ReportedAt,
-		ReviewFrequencyID:      riskRegisterFormDTO.ReviewFrequencyID,
-		NextReviewDate:         dates.NextReviewDate,
-		LastReviewNote:         riskRegisterFormDTO.LastReviewNote,
-		RiskResponseStrategyID: riskRegisterFormDTO.RiskResponseStrategyID,
-		CreatedBYID:            currentUserID,
+		ReferenceNumber:   referenceNumber,
+		RiskCategoryID:    riskRegisterFormDTO.RiskCategoryID,
+		RiskSourceID:      riskRegisterFormDTO.RiskSourceID,
+		RiskMatrixID:      riskMatrix.ID,
+		ResponsibleUnitID: responsibleUnitID,
+		ResponsibleUserID: riskRegisterFormDTO.ResponsibleUserID,
+		RiskStatusID:      riskStatus.ID,
+		Title:             riskRegisterFormDTO.Title,
+		Description:       riskRegisterFormDTO.Description,
+		ReportedAt:        dates.ReportedAt,
+		ReviewFrequencyID: riskRegisterFormDTO.ReviewFrequencyID,
+		NextReviewDate:    dates.NextReviewDate,
+		LastReviewNote:    riskRegisterFormDTO.LastReviewNote,
+		CreatedBYID:       currentUserID,
 	}
 
 	id, err := rrs.repo.Create(riskRegister, tx)
@@ -520,6 +519,18 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		}
 
 		_, err := rrs.riskResidualEvaluationSvc.Create(id, currentUserID, residualEvaluationFormDTO, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	if riskRegisterFormDTO.RiskResponseStrategyID != nil {
+		responseStrategyFormDTO := &riskDTOs.RiskResponseStrategyFormDTO{
+			RiskResponseStrategyID: *riskRegisterFormDTO.RiskResponseStrategyID,
+		}
+
+		err := rrs.UpdateResponseStrategy(id, currentUserID, responseStrategyFormDTO, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -1564,7 +1575,7 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 		OwnerID         *uint
 		TitleEn         string
 		TitleAr         string
-		Description     string
+		Description     *string
 		ReferenceNumber string
 	}
 
@@ -1583,12 +1594,12 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 			OwnerID         *uint
 			TitleEn         string
 			TitleAr         string
-			Description     string
+			Description     *string
 			ReferenceNumber string
 		}{
 			OwnerID:         &risk.ResponsibleUserID,
 			TitleEn:         risk.Title,
-			Description:     *risk.Description,
+			Description:     risk.Description,
 			ReferenceNumber: risk.ReferenceNumber,
 		})
 
@@ -1603,8 +1614,8 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				deleteControlIDs = append(deleteControlIDs, ctrl.ID)
 			}
 			if err := rrs.repo.DeleteRiskControls(deleteControlIDs, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 		}
 
@@ -1615,8 +1626,8 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				deleteRequirementIds = append(deleteRequirementIds, req.ID)
 			}
 			if err := rrs.repo.DeleteRiskComplianceRequirements(deleteRequirementIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 
 		}
@@ -1628,8 +1639,8 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				deleteProcessIDs = append(deleteProcessIDs, process.ID)
 			}
 			if err := rrs.repo.DeleteRiskProcesses(deleteProcessIDs, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 		}
 		if len(risk.SLARegisters) > 0 {
@@ -1638,8 +1649,8 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				deleteSLARegisterIDs = append(deleteSLARegisterIDs, sla.ID)
 			}
 			if err := rrs.repo.DeleteRiskSLAs(deleteSLARegisterIDs, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 		}
 		if len(risk.StrategicObjectives) > 0 {
@@ -1659,8 +1670,8 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				deleteDocumentIds = append(deleteDocumentIds, document.ID)
 			}
 			if err := rrs.repo.DeleteRiskDocuments(deleteDocumentIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 		}
 
@@ -1670,8 +1681,8 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				deleteAssetIds = append(deleteAssetIds, ast.ID)
 			}
 			if err := rrs.repo.DeleteRiskAssets(deleteAssetIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 		}
 
@@ -1681,16 +1692,16 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				deleteThreatIds = append(deleteThreatIds, threat.ID)
 			}
 			if err := rrs.repo.DeleteRiskThreats(deleteThreatIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 		}
 
 		// Delete timeline
 		// todo
 		if err := rrs.riskTimelineSvc.Delete(id, tx); err != nil {
-			tx.Rollback()
-			return nil, err
+			failedIds = append(failedIds, id)
+			continue
 		}
 		// Delete each risk document if documents exist
 		if len(risk.Documents) > 0 {
@@ -1702,8 +1713,8 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				}
 			}
 			if err := rrs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 
 		}
@@ -1820,31 +1831,43 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 	return failedIds, nil
 }
 
-func (rrs *RiskRegisterService) UpdateResponseStrategy(riskID uint, currentUserID uint, riskResponseStrategyFormDTO *riskDTOs.RiskResponseStrategyFormDTO) error {
-	tx := rrs.repo.BeginTransaction()
+func (rrs *RiskRegisterService) UpdateResponseStrategy(riskID uint, currentUserID uint, riskResponseStrategyFormDTO *riskDTOs.RiskResponseStrategyFormDTO, tx ...utility.DatabaseTransaction) error {
+	var transaction utility.DatabaseTransaction
 
-	existingRisk, err := rrs.GetByID(riskID)
+	if len(tx) > 0 && tx[0] != nil {
+		transaction = tx[0]
+	} else {
+		transaction = rrs.repo.BeginTransaction()
+		defer func() {
+			if r := recover(); r != nil {
+				transaction.Rollback()
+			}
+		}()
+	}
+
+	existingRisk, err := rrs.GetByID(riskID, transaction)
 	if err != nil {
-		tx.Rollback()
+		transaction.Rollback()
 		return err
 	}
 
 	existingRisk.RiskResponseStrategyID = &riskResponseStrategyFormDTO.RiskResponseStrategyID
 
-	if err := rrs.repo.Update(existingRisk, tx); err != nil {
-		tx.Rollback()
+	if err := rrs.repo.Update(existingRisk, transaction); err != nil {
+		transaction.Rollback()
 		return err
 	}
+
 	// update timeline
 	// todo
 	timelineType, err := rrs.riskTimelineSvc.GetByType("risk_response")
 	if err != nil {
-		tx.Rollback()
+		transaction.Rollback()
 		return err
 	}
 	timelineStatus, err := rrs.riskTimelineSvc.GetByStatusType("completed")
 	if err != nil {
-		tx.Rollback()
+		transaction.Rollback()
 		return err
 	}
 	currentTime := time.Now()
@@ -1853,12 +1876,12 @@ func (rrs *RiskRegisterService) UpdateResponseStrategy(riskID uint, currentUserI
 		TimelineStatusID: timelineStatus.ID,
 		PerformedAt:      &currentTime,
 	}
-	if err := rrs.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, tx); err != nil {
-		tx.Rollback()
+	if err := rrs.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, transaction); err != nil {
+		transaction.Rollback()
 		return err
 	}
 
-	tx.Commit()
+	transaction.Commit()
 
 	return nil
 }

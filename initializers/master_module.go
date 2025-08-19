@@ -34,6 +34,7 @@ type MasterModule struct {
 	CountryController                *controllers.CountryController
 	CalculationTypeController        *controllers.CalculationTypeController
 	ProjectMilestoneStatusController *controllers.ProjectMilestoneStatusController
+	LicenseTypeController            *controllers.LicenseTypeController
 
 	ReviewFrequencySvc        services.ReviewFrequencyServiceInterface
 	SeverityLevelSvc          services.SeverityLevelServiceInterface
@@ -59,6 +60,7 @@ type MasterModule struct {
 	RequiredDocumentTitleSvc  services.RequiredDocumentTitleServiceInterface
 	CountrySvc                services.CountryServiceInterface
 	ProjectMilestoneStatusSvc services.ProjectMilestoneStatusServiceInterface
+	LicenseTypeSvc            services.LicenseTypeServiceInterface
 }
 
 func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
@@ -182,6 +184,11 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	projectMilestoneStatusSvc := services.NewProjectMilestoneStatusService(projectMilestoneStatusRepo)
 	projectMilestoneStatusController := controllers.NewProjectMilestoneStatusController(projectMilestoneStatusSvc)
 
+	//Lifecycle Status
+	licenseTypeRepo := repositories.NewLicenseTypeRepository(db)
+	licenseTypeSvc := services.NewLicenseTypeService(licenseTypeRepo)
+	licenseTypeController := controllers.NewLicenseTypeController(licenseTypeSvc)
+
 	return &MasterModule{
 		ReviewFrequencyController:        reviewFrequencyController,
 		SeverityLevelController:          severityLevelController,
@@ -208,6 +215,7 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		CountryController:                countryController,
 		CalculationTypeController:        calculationTypeController,
 		ProjectMilestoneStatusController: projectMilestoneStatusController,
+		LicenseTypeController:            licenseTypeController,
 
 		ReviewFrequencySvc:        reviewFrequencySvc,
 		SeverityLevelSvc:          severityLevelSvc,
@@ -233,5 +241,6 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		RequiredDocumentTitleSvc:  requiredDocumentTitleSvc,
 		CountrySvc:                countrySvc,
 		ProjectMilestoneStatusSvc: projectMilestoneStatusSvc,
+		LicenseTypeSvc:            licenseTypeSvc,
 	}
 }

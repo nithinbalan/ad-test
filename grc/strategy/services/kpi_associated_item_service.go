@@ -4,6 +4,7 @@ import (
 	"fmt"
 	assetServices "jethur/grc/asset/services"
 	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceServices "jethur/grc/compliance/services"
 	documentServices "jethur/grc/documents/services"
 	"jethur/grc/models"
@@ -17,8 +18,8 @@ import (
 )
 
 type KPIAssociatedItemServiceInterface interface {
-	GetAllControls(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemControlListResponseDTO, error)
-	CreateKPIControls(kpiID, userID uint, dto *strategyDTOs.KPIControlMapDTO) error
+	GetAllControls(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
+	CreateKPIControls(kpiID, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error
 	DeleteKPIControl(kpiID, controlID uint) error
 
 	GetAllProcesses(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemProcessListResponseDTO, error)
@@ -41,8 +42,8 @@ type KPIAssociatedItemServiceInterface interface {
 	CreateKPIThirdParties(kpiID, userID uint, dto *strategyDTOs.KPIThirdPartyMapDTO) error
 	DeleteKPIThirdParty(kpiID, thirdPartyRegisterID uint) error
 
-	GetAllPolicies(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemPolicyListResponseDTO, error)
-	CreateKPIPolicies(kpiID, userID uint, dto *strategyDTOs.KPIPolicyMapDTO) error
+	GetAllPolicies(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
+	CreateKPIPolicies(kpiID, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
 	DeleteKPIPolicy(kpiID, documentID uint) error
 
 	GetAllClauses(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
@@ -61,6 +62,7 @@ type KPIAssociatedItemService struct {
 	complianceSvc  complianceServices.ComplianceRegisterServiceInterface
 	documentSvc    documentServices.DocumentServiceInterface
 	clauseSvc      complianceServices.ComplianceClauseServiceInterface
+	validationSvc  commonServices.AssociatedItemValidationServiceInterface
 }
 
 func NewKPIAssociatedItemService(
@@ -74,6 +76,7 @@ func NewKPIAssociatedItemService(
 	complianceSvc complianceServices.ComplianceRegisterServiceInterface,
 	documentSvc documentServices.DocumentServiceInterface,
 	clauseSvc complianceServices.ComplianceClauseServiceInterface,
+	validationSvc commonServices.AssociatedItemValidationServiceInterface,
 ) KPIAssociatedItemServiceInterface {
 	return &KPIAssociatedItemService{
 		repo:           repo,
@@ -86,19 +89,23 @@ func NewKPIAssociatedItemService(
 		complianceSvc:  complianceSvc,
 		documentSvc:    documentSvc,
 		clauseSvc:      clauseSvc,
+		validationSvc:  validationSvc,
 	}
 }
 
 // controls
-func (kais *KPIAssociatedItemService) GetAllControls(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemControlListResponseDTO, error) {
+func (kais *KPIAssociatedItemService) GetAllControls(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error) {
 	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
 		return nil, err
 	}
 	return kais.repo.GetAllControls(kpiID, params)
 }
 
-func (kais *KPIAssociatedItemService) CreateKPIControls(kpiID, userID uint, dto *strategyDTOs.KPIControlMapDTO) error {
-	if err := kais.validateControlIDs(kpiID, dto.ControlIDs); err != nil {
+func (kais *KPIAssociatedItemService) CreateKPIControls(kpiID, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error {
+	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("KPI does not exist for ID: %d", kpiID), "not_exist", "kpi_register_id")
+	}
+	if err := kais.validationSvc.ValidateControlMapping(kpiID, dto.ControlIDs, "kpi_controls", "kpi_register_id"); err != nil {
 		return err
 	}
 
@@ -534,24 +541,26 @@ func (kais *KPIAssociatedItemService) validateThirdPartyRegisterIDs(kpiID uint, 
 }
 
 // Policy
-func (kais *KPIAssociatedItemService) GetAllPolicies(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemPolicyListResponseDTO, error) {
+func (kais *KPIAssociatedItemService) GetAllPolicies(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
 	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
 		return nil, err
 	}
 	return kais.repo.GetAllPolicies(kpiID, params)
 }
 
-func (kais *KPIAssociatedItemService) CreateKPIPolicies(kpiID, userID uint, dto *strategyDTOs.KPIPolicyMapDTO) error {
-	if err := kais.validateDocumentIDs(kpiID, dto.DocumentIDs); err != nil {
+func (kais *KPIAssociatedItemService) CreateKPIPolicies(kpiID, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error {
+	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", kpiID), "not_exist", "process_id")
+	}
+	if err := kais.validationSvc.ValidateDocumentMapping(kpiID, dto.DocumentIDs, "kpi_associated_documents", "kpi_register_id"); err != nil {
 		return err
 	}
-
 	tx := kais.repo.BeginTransaction()
-	var mappings []*models.KPIPolicy
+	var mappings []*models.KPIAssociatedDocument
 	currentTime := time.Now()
 
 	for _, documentID := range dto.DocumentIDs {
-		mappings = append(mappings, &models.KPIPolicy{
+		mappings = append(mappings, &models.KPIAssociatedDocument{
 			KPIRegisterID: kpiID,
 			DocumentID:    documentID,
 			CreatedByID:   userID,
@@ -582,30 +591,30 @@ func (kais *KPIAssociatedItemService) DeleteKPIPolicy(kpiID, documentID uint) er
 	return tx.Commit()
 }
 
-func (kais *KPIAssociatedItemService) validateDocumentIDs(kpiID uint, documentIDs []uint) error {
-	if len(documentIDs) == 0 {
-		return utility.NewValidationError(fmt.Errorf("no document provided"), "required", "document_ids")
-	}
+// func (kais *KPIAssociatedItemService) validateDocumentIDs(kpiID uint, documentIDs []uint) error {
+// 	if len(documentIDs) == 0 {
+// 		return utility.NewValidationError(fmt.Errorf("no document provided"), "required", "document_ids")
+// 	}
 
-	seen := make(map[uint]bool)
-	for _, id := range documentIDs {
-		alreadyMapped, err := kais.repo.IsPolicyMappedToKPI(kpiID, id)
-		if err != nil {
-			return fmt.Errorf("failed to check existing mapping: %v", err)
-		}
-		if alreadyMapped {
-			return utility.NewValidationError(fmt.Errorf("document ID %d already mapped to this kpi", id), "duplicate", "document_ids")
-		}
-		if seen[id] {
-			return utility.NewValidationError(fmt.Errorf("duplicate document ID: %d", id), "duplicate", "document_ids")
-		}
-		if _, err := kais.documentSvc.GetByID(id); err != nil {
-			return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", id), "not_exist", "document_ids")
-		}
-		seen[id] = true
-	}
-	return nil
-}
+//		seen := make(map[uint]bool)
+//		for _, id := range documentIDs {
+//			alreadyMapped, err := kais.repo.IsPolicyMappedToKPI(kpiID, id)
+//			if err != nil {
+//				return fmt.Errorf("failed to check existing mapping: %v", err)
+//			}
+//			if alreadyMapped {
+//				return utility.NewValidationError(fmt.Errorf("document ID %d already mapped to this kpi", id), "duplicate", "document_ids")
+//			}
+//			if seen[id] {
+//				return utility.NewValidationError(fmt.Errorf("duplicate document ID: %d", id), "duplicate", "document_ids")
+//			}
+//			if _, err := kais.documentSvc.GetByID(id); err != nil {
+//				return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", id), "not_exist", "document_ids")
+//			}
+//			seen[id] = true
+//		}
+//		return nil
+//	}
 func (kais *KPIAssociatedItemService) GetAllClauses(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
 	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
 		return nil, err

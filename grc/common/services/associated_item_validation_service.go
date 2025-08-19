@@ -76,9 +76,14 @@ func (aivs *AssociatedItemValidationService) ValidateDocumentMapping(masterID ui
 			return utility.NewValidationError(fmt.Errorf("duplicate document ID: %d", id), "duplicate", "document_ids")
 		}
 
-		_, err := aivs.repo.DocumentExists(id)
+		_, status, err := aivs.repo.DocumentExists(id)
 		if err != nil {
 			return utility.NewValidationError(fmt.Errorf("document does not exist: %d", id), "not_exist", "document_ids")
+		}
+
+		if status != "published" {
+			return utility.NewValidationError(fmt.Errorf("document not published : %d", id), "document_not_published", "document_id")
+
 		}
 
 		alreadyMapped, err := aivs.repo.IsDocumentMapped(tableName, columnName, id, masterID)
