@@ -294,7 +294,13 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 				responsible_user.last_name_en LIKE ? OR
 				responsible_user.last_name_ar LIKE ? OR
 				responsible_user.email LIKE ? OR
-				responsible_user.initial LIKE ?)`,
+				responsible_user.initial LIKE ? OR
+				documents.created_at LIKE ? OR
+				document_versions.version LIKE ? OR
+				document_access_types.title_en LIKE ? OR
+				document_access_types.title_ar LIKE ?)`,
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
