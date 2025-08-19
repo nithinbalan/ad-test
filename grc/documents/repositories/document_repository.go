@@ -598,54 +598,46 @@ func (repo *DocumentRepository) HasDocumentPermission(documentID uint, currentUs
 		return true, nil
 	}
 
-	var count int64
-	query := repo.db.Table("documents").
-		Where("documents.id = ?", documentID).
+	var documents []models.Document
+
+	query := repo.db.Model(&models.Document{}).
+		Where("id = ?", documentID).
 		Where(`
-            (documents.document_status_id = (SELECT id FROM document_statuses WHERE type = 'in-review') 
-                AND (documents.created_by_id = ? OR documents.responsible_user_id = ? 
-                    OR EXISTS (
-                        SELECT 1 FROM document_shared_users 
-                        WHERE document_shared_users.document_id = documents.id 
-                        AND document_shared_users.user_id = ? 
-                        AND document_shared_users.type = 'review-user'
-                    )
-                )
+            (
+                document_status_id = (SELECT id FROM document_statuses WHERE type = ?) 
+                AND (created_by_id = ? OR responsible_user_id = ? 
+                     OR EXISTS (SELECT 1 FROM document_shared_users dsu WHERE dsu.document_id = documents.id AND dsu.user_id = ? AND dsu.type = ?))
             )
-            OR (documents.document_status_id = (SELECT id FROM document_statuses WHERE type = 'published') 
+            OR
+            (
+                document_status_id = (SELECT id FROM document_statuses WHERE type = ?)
                 AND (
-                    (documents.document_access_type_id = (SELECT id FROM document_access_types WHERE type = 'public'))
+                    document_access_type_id = (SELECT id FROM document_access_types WHERE type = ?)
+                    OR EXISTS (SELECT 1 FROM document_shared_users dsu WHERE dsu.document_id = documents.id AND dsu.user_id = ? AND dsu.type IN (?, ?))
                     OR EXISTS (
-                        SELECT 1 FROM document_shared_users 
-                        WHERE document_shared_users.document_id = documents.id 
-                        AND document_shared_users.user_id = ? 
-                        AND document_shared_users.type IN ('shared-user', 'review-user')
-                    )
-                    OR EXISTS (
-                        SELECT 1 FROM document_shared_units dsu
-                        JOIN organization_units shared_unit ON shared_unit.id = dsu.organization_unit_id
+                        SELECT 1 
+                        FROM document_shared_units dsu
+                        JOIN organization_units ou ON ou.id = dsu.organization_unit_id
                         JOIN users u ON u.id = ?
-                        WHERE dsu.document_id = documents.id 
-                        AND shared_unit.id = (
-                            SELECT ou.id FROM organization_units ou 
-                            WHERE ou.id = u.`+primaryOrgUnitField+`
-                        )
+                        WHERE dsu.document_id = documents.id
+                        AND ou.id = u.`+primaryOrgUnitField+`
                     )
                 )
             )
-            OR (
-                documents.document_status_id NOT IN (
-                    SELECT id FROM document_statuses WHERE type IN ('in-review', 'published')
-                )
-                AND (documents.created_by_id = ? OR documents.responsible_user_id = ?)
+            OR
+            (
+                document_status_id NOT IN (SELECT id FROM document_statuses WHERE type IN (?, ?))
+                AND (created_by_id = ? OR responsible_user_id = ?)
             )
         `,
-			currentUserID, currentUserID, // in-review
-			currentUserID, currentUserID, // published
-			currentUserID, currentUserID) // others
-	if err := query.Count(&count).Error; err != nil {
+			"in-review", currentUserID, currentUserID, currentUserID, "review-user",
+			"published", "public", currentUserID, "shared-user", "review-user", currentUserID,
+			"in-review", "published", currentUserID, currentUserID,
+		)
+
+	if err := query.Find(&documents).Error; err != nil {
 		return false, err
 	}
 
-	return count > 0, nil
+	return len(documents) > 0, nil
 }

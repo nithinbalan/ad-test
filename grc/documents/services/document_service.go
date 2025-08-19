@@ -2588,13 +2588,12 @@ func (ds *DocumentService) CheckDocumentPermission(documentID uint, currentUserI
 		return fmt.Errorf("unsupported primary level: %d", primaryLevel.Level)
 	}
 
-	// Check permission from repository
 	hasPermission, err := ds.repo.HasDocumentPermission(documentID, currentUserID, isUserSuperAdmin, primaryOrgUnitField)
 	if err != nil {
 		return err
 	}
 	if !hasPermission {
-		return utility.NewForbiddenError("Permission denied")
+		return utility.NewForbiddenError("You have no permission to this document.")
 	}
 
 	return nil
