@@ -70,11 +70,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/strategy-profiles/:strategyProfileId/action-plans/:actionPlanId/status-updates/:id/document-download", strategyProfileActionPlanStatusUpdateController.DownloadStrategyProfileActionPlanStatusUpdateDocument)
 	unauthenticatedRoutes.GET("/strategy-profiles/:strategyProfileId/action-plans/:actionPlanId/status-updates/:id/document-preview", strategyProfileActionPlanStatusUpdateController.GetStrategyProfileActionPlanStatusUpdateDocumentPreview)
 	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "strategy_profile", "view"), strategyProfileActionPlanStatusUpdateController.GetAllStrategyProfileActionPlanStatusUpdates)
-	strategyRoutes.POST("/strategy-profiles/:strategyProfileId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileActionPlanStatusUpdateController.CreateStrategyProfileActionPlanStatusUpdate)
-	strategyRoutes.PUT("/strategy-profiles/:strategyProfileId/action-plans/:actionPlanId/status-updates/:id", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileActionPlanStatusUpdateController.UpdateStrategyProfileActionPlanStatusUpdate)
+	strategyRoutes.POST("/strategy-profiles/:strategyProfileId/action-plans/:actionPlanId/status-updates", strategyProfileActionPlanStatusUpdateController.CreateStrategyProfileActionPlanStatusUpdate)
+	strategyRoutes.PUT("/strategy-profiles/:strategyProfileId/action-plans/:actionPlanId/status-updates/:id", strategyProfileActionPlanStatusUpdateController.UpdateStrategyProfileActionPlanStatusUpdate)
 	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "strategy_profile", "view"), strategyProfileActionPlanStatusUpdateController.GetLatestStrategyProfileActionPlanStatusUpdate)
-	strategyRoutes.PUT("/strategy-profiles/:strategyProfileId/action-plans/:actionPlanId/approve", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileActionPlanStatusUpdateController.ApproveStrategyProfileActionPlan)
-	strategyRoutes.PUT("/strategy-profiles/:strategyProfileId/action-plans/:actionPlanId/revert", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileActionPlanStatusUpdateController.RevertStrategyProfileActionPlan)
+	strategyRoutes.PUT("/strategy-profiles/:strategyProfileId/action-plans/:actionPlanId/approve", strategyProfileActionPlanStatusUpdateController.ApproveStrategyProfileActionPlan)
+	strategyRoutes.PUT("/strategy-profiles/:strategyProfileId/action-plans/:actionPlanId/revert", strategyProfileActionPlanStatusUpdateController.RevertStrategyProfileActionPlan)
 
 	//  Comments
 	unauthenticatedRoutes.GET("/strategy-profiles/:strategyProfileId/action-plans/:actionPlanId/comments/:commentId/document-download", strategyProfileActionPlanCommentController.DownloadStrategyProfileActionPlanCommentDocument)
@@ -257,5 +257,4 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/project-action-plans", strategyProfileProjectActionPlanController.GetAllStrategyProfileProjectActionPlans)
 	strategyRoutes.POST("/strategy-profiles/:strategyProfileId/project-action-plans", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileProjectActionPlanController.CreateStrategyProfileProjectActionPlan)
 	strategyRoutes.DELETE("/strategy-profiles/:strategyProfileId/project-action-plans/:id", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileProjectActionPlanController.DeleteStrategyProfileProjectActionPlan)
-
 }
