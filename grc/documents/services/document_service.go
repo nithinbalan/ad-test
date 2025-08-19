@@ -1806,8 +1806,8 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 		level = 1
 	}
 
-	currentDateStr := time.Now().Format("2006-01-02")
-	submittedAt, err := utility.ParseDate(currentDateStr)
+	currentTime := time.Now()
+
 	if err != nil {
 		tx.Rollback()
 		return fmt.Errorf("error parsing current date: %w", err)
@@ -1815,7 +1815,7 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 
 	if document.DocumentStatus.Type != "reverted" {
 		documentVersion.SubmittedBYID = &currentUserID
-		documentVersion.SubmittedAt = submittedAt
+		documentVersion.SubmittedAt = &currentTime
 		documentVersion.NextReviewLevel = &level
 
 		err = ds.repo.UpdateDocumentVersion(documentVersion, tx)
@@ -1945,6 +1945,8 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 				"LastNameEn":            responsibleUser.LastNameEn,
 				"DocumentTitle":         existingDocument.TitleEn,
 				"DocumentType":          document.DocumentType.TitleEn,
+				"DocumentCategory":      document.DocumentCategory.TitleEn,
+				"DocumentVersion":       document.LatestDocumentVersion.Version,
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
@@ -2003,21 +2005,22 @@ func (ds *DocumentService) PublishDocument(id uint, currentUserID uint, document
 	}
 
 	// Calculate next review date based on review frequency
-	var nextReviewDate time.Time
+	var nextReviewDate *time.Time
 	if document.ReviewFrequency != nil && document.ReviewFrequency.ID != 0 {
 		reviewFrequency, err := ds.reviewFrequencySvc.GetByID(document.ReviewFrequency.ID)
 		if err != nil {
 			tx.Rollback()
 			return fmt.Errorf("error fetching review frequency: %w", err)
 		}
-		nextReviewDate = ds.calculateNextReviewDate(*publishedAt, reviewFrequency.Type)
+		reviewDate := ds.calculateNextReviewDate(*publishedAt, reviewFrequency.Type)
+		nextReviewDate = &reviewDate
 	}
 
 	existingDocument.DocumentStatusID = documentStatus.ID
 	existingDocument.ReferenceNumber = referenceNumber
 	existingDocument.PublishedBYID = &currentUserID
 	existingDocument.PublishedAt = publishedAt
-	existingDocument.NextReviewDate = &nextReviewDate
+	existingDocument.NextReviewDate = nextReviewDate
 
 	err = ds.repo.Update(existingDocument, tx)
 	if err != nil {
@@ -2259,8 +2262,14 @@ func (ds *DocumentService) ExportDocuments(data []*documentDTOs.DocumentListDTO,
 			"SL No.",
 			"Type",
 			"Title",
+			"Description",
+			"Responsible Unit",
+			"Access",
 			"Responsible User",
 			"Category",
+			"Version",
+			"Created By",
+			"Created At",
 			"Status",
 		}
 	} else {
@@ -2268,29 +2277,43 @@ func (ds *DocumentService) ExportDocuments(data []*documentDTOs.DocumentListDTO,
 			"SL No.",
 			"Type",
 			"Title",
+			"Description",
+			"Responsible Unit",
+			"Access",
 			"Responsible User",
 			"Category",
+			"Version",
+			"Created By",
+			"Created At",
 			"Status",
 		}
 	}
 	// Prepare the data rows
 	rows := make([][]interface{}, len(data))
 	for i, document := range data {
-		var category, responsibleUser, status, title, documentType string
+		var category, responsibleUser, status, title, description, responsibleUnit, access, documentType, createdUser string
 
 		// Assign values based on language preference and check for nil pointers
 		if userSetting.Language == "ar" {
 			documentType = document.DocumentTypeTitleAr
 			title = document.TitleAr
+			description = utility.GetStringValue(document.DescriptionAr)
+			responsibleUnit = document.ResponsibleUnitTitleAr
+			access = document.DocumentAccessTypeTitleEn
 			responsibleUser = document.ResponsibleUserFirstNameAr + " " + document.ResponsibleUserLastNameAr
 			category = document.DocumentCategoryTitleAr
+			createdUser = document.CreatedUserFirstNameAr + " " + document.CreatedUserLastNameAr
 			status = document.DocumentStatusTitleAr
 
 		} else {
 			documentType = document.DocumentTypeTitleEn
 			title = document.TitleEn
+			description = utility.GetStringValue(document.DescriptionEn)
+			responsibleUnit = document.ResponsibleUnitTitleEn
+			access = document.DocumentAccessTypeTitleEn
 			responsibleUser = document.ResponsibleUserFirstNameEn + " " + document.ResponsibleUserLastNameEn
 			category = document.DocumentCategoryTitleEn
+			createdUser = document.CreatedUserFirstNameEn + " " + document.CreatedUserLastNameEn
 			status = document.DocumentStatusTitleEn
 		}
 
@@ -2298,8 +2321,14 @@ func (ds *DocumentService) ExportDocuments(data []*documentDTOs.DocumentListDTO,
 			i + 1,
 			documentType,
 			title,
+			description,
+			responsibleUnit,
+			access,
 			responsibleUser,
 			category,
+			document.DocumentVersion,
+			createdUser,
+			document.CreatedAt,
 			status,
 		}
 	}
