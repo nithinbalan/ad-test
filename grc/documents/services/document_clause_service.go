@@ -264,14 +264,16 @@ func (dcs *DocumentClauseService) Update(documentId uint, clauseId uint, current
 			}
 		}
 	} else {
-		exists, err := dcs.repo.ExistsByClauseNumber(*documentClauseFormDTO.ClauseNumber, document.LatestDocumentVersion.ID, tx)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-		if exists {
-			tx.Rollback()
-			return utility.NewValidationError(fmt.Errorf("the clause number already exists"), "unique", "clause number")
+		if documentClauseFormDTO.ClauseNumber != nil {
+			exists, err := dcs.repo.ExistsByClauseNumber(*documentClauseFormDTO.ClauseNumber, document.LatestDocumentVersion.ID, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			if exists {
+				tx.Rollback()
+				return utility.NewValidationError(fmt.Errorf("the clause number already exists"), "unique", "clause number")
+			}
 		}
 	}
 

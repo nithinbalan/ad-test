@@ -585,7 +585,7 @@ func (drs *DocumentReviewService) sendApprovalNotification(id uint, currentUserI
 		appURL := utility.GetAppURL()
 		emailTo := []string{document.ResponsibleUser.Email}
 		subject := fmt.Sprintf("Document/%s: Approval Notification", document.TitleEn)
-		urlParam = fmt.Sprintf("%s/document/register/%d", appURL, id)
+		urlParam = fmt.Sprintf("%s/document/register/%d/overview", appURL, id)
 
 		emailData := map[string]interface{}{
 			"FirstNameEn":           document.ResponsibleUser.FirstNameEN,
@@ -772,7 +772,7 @@ func (drs *DocumentReviewService) sendRejectedNotification(id uint, currentUserI
 		appURL := utility.GetAppURL()
 		emailTo := []string{document.ResponsibleUser.Email}
 		subject := fmt.Sprintf("Document/%s: Rejected Notification", document.TitleEn)
-		urlParam = fmt.Sprintf("%s/document/register/%d", appURL, id)
+		urlParam = fmt.Sprintf("%s/document/register/%d/overview", appURL, id)
 
 		emailData := map[string]interface{}{
 			"FirstNameEn":           document.ResponsibleUser.FirstNameEN,
@@ -842,7 +842,7 @@ func (drs *DocumentReviewService) sendRevertedNotification(id uint, currentUserI
 		appURL := utility.GetAppURL()
 		emailTo := []string{document.ResponsibleUser.Email}
 		subject := fmt.Sprintf("Document/%s: Reverted Notification", document.TitleEn)
-		urlParam = fmt.Sprintf("%s/document/register/%d", appURL, id)
+		urlParam = fmt.Sprintf("%s/document/register/%d/overview", appURL, id)
 
 		emailData := map[string]interface{}{
 			"FirstNameEn":           document.ResponsibleUser.FirstNameEN,
@@ -925,9 +925,14 @@ func (drs *DocumentReviewService) sendCommentNotification(id uint, currentUserID
 			})
 			return
 		}
-
+		// Send the notification
+		err = drs.notificationSvc.SendNotification(dbNotificationDTO, nil, "document")
+		if err != nil {
+			utility.LogError("Failed to send comment notification email", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 		// Get all users' emails
-		var emailTo []string
 		for _, userID := range userIDs {
 			user, err := drs.userSvc.GetByID(userID)
 			if err != nil {
@@ -937,41 +942,42 @@ func (drs *DocumentReviewService) sendCommentNotification(id uint, currentUserID
 				})
 				continue
 			}
-			emailTo = append(emailTo, user.Email)
-		}
 
-		// Prepare email details
-		appURL := utility.GetAppURL()
-		subject := fmt.Sprintf("Document/%s: New Comment Notification", document.TitleEn)
-		urlParam = fmt.Sprintf("%s/document/register/%d", appURL, id)
+			// Prepare email details
+			appURL := utility.GetAppURL()
+			subject := fmt.Sprintf("Document/%s: New Comment Notification", document.TitleEn)
+			urlParam = fmt.Sprintf("%s/document/register/%d/overview", appURL, id)
 
-		emailData := map[string]interface{}{
-			"DocumentTitle":        document.TitleEn,
-			"DocumentType":         document.DocumentType.TitleEn,
-			"DocumentCategory":     document.DocumentCategory.TitleEn,
-			"DocumentVersion":      document.LatestDocumentVersion.Version,
-			"DocumentResponsible":  document.ResponsibleUser.FirstNameEN + " " + document.ResponsibleUser.LastNameEN,
-			"CommentByFirstNameEn": commentByUser.FirstNameEn,
-			"CommentByLastNameEn":  commentByUser.LastNameEn,
-			"CommentText":          commentText,
-			"CommentedAt":          time.Now().Format("2006-01-02"),
-			"RedirectURL":          urlParam,
-		}
+			emailData := map[string]interface{}{
+				"FirstNameEn":          user.FirstNameEn,
+				"LastNameEn":           user.LastNameEn,
+				"DocumentTitle":        document.TitleEn,
+				"DocumentType":         document.DocumentType.TitleEn,
+				"DocumentCategory":     document.DocumentCategory.TitleEn,
+				"DocumentVersion":      document.LatestDocumentVersion.Version,
+				"DocumentResponsible":  document.ResponsibleUser.FirstNameEN + " " + document.ResponsibleUser.LastNameEN,
+				"CommentByFirstNameEn": commentByUser.FirstNameEn,
+				"CommentByLastNameEn":  commentByUser.LastNameEn,
+				"CommentText":          commentText,
+				"CommentedAt":          time.Now().Format("2006-01-02"),
+				"RedirectURL":          urlParam,
+			}
 
-		// Create the email notification DTO
-		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-			EmailTo:              emailTo,
-			Subject:              subject,
-			TemplateRelativePath: "document/templates/email/document_workflow_comment_user_mail.html",
-			EmailData:            emailData,
-		}
+			// Create the email notification DTO
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              []string{user.Email},
+				Subject:              subject,
+				TemplateRelativePath: "document/templates/email/document_workflow_comment_user_mail.html",
+				EmailData:            emailData,
+			}
 
-		// Send the notification
-		err = drs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document")
-		if err != nil {
-			utility.LogError("Failed to send comment notification email", map[string]interface{}{
-				"error": err.Error(),
-			})
+			// Send the notification
+			err = drs.notificationSvc.SendNotification(nil, emailNotificationDTO, "document")
+			if err != nil {
+				utility.LogError("Failed to send comment notification email", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
 		}
 	}()
 }

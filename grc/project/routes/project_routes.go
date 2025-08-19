@@ -65,11 +65,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/projects/:projectId/action-plans/:actionPlanId/status-updates/:id/document-download", projectActionPlanStatusUpdateController.DownloadProjectActionPlanStatusUpdateDocument)
 	unauthenticatedRoutes.GET("/projects/:projectId/action-plans/:actionPlanId/status-updates/:id/document-preview", projectActionPlanStatusUpdateController.GetProjectActionPlanStatusUpdateDocumentPreview)
 	projectRoutes.GET("/projects/:projectId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), projectActionPlanStatusUpdateController.GetAllProjectActionPlanStatusUpdates)
-	projectRoutes.POST("/projects/:projectId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectActionPlanStatusUpdateController.CreateProjectActionPlanStatusUpdate)
-	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId/status-updates/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectActionPlanStatusUpdateController.UpdateProjectActionPlanStatusUpdate)
+	projectRoutes.POST("/projects/:projectId/action-plans/:actionPlanId/status-updates", projectActionPlanStatusUpdateController.CreateProjectActionPlanStatusUpdate)
+	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId/status-updates/:id", projectActionPlanStatusUpdateController.UpdateProjectActionPlanStatusUpdate)
 	projectRoutes.GET("/projects/:projectId/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), projectActionPlanStatusUpdateController.GetLatestProjectActionPlanStatusUpdate)
-	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId/approve", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectActionPlanStatusUpdateController.ApproveProjectActionPlan)
-	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId/revert", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectActionPlanStatusUpdateController.RevertProjectActionPlan)
+	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId/approve", projectActionPlanStatusUpdateController.ApproveProjectActionPlan)
+	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId/revert", projectActionPlanStatusUpdateController.RevertProjectActionPlan)
 
 	// Project Action Plan Comments
 	unauthenticatedRoutes.GET("/projects/:projectId/action-plans/:actionPlanId/comments/:commentId/document-download", projectActionPlanCommentController.DownloadProjectActionPlanCommentDocument)
@@ -87,5 +87,4 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.GET("/projects/:projectId/controls", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), projectAssociatedItemController.GetAllProjectControls)
 	projectRoutes.POST("/projects/:projectId/controls", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.CreateProjectControl)
 	projectRoutes.DELETE("/projects/:projectId/controls/:controlId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.DeleteProjectContol)
-
 }

@@ -14,6 +14,7 @@ type SystemPreferenceRepositoryInterface interface {
 	UpdateModule(module []models.Module) error
 
 	GetActiveUserCount() (int64, error)
+	GetUserCounts() (activeCount, passiveCount, totalActiveCount int, err error)
 }
 
 // implementation
@@ -77,6 +78,30 @@ func (repo *SystemPreferenceRepository) GetActiveUserCount() (int64, error) {
 		return 0, err
 	}
 	return count, nil
+}
+
+func (repo *SystemPreferenceRepository) GetUserCounts() (activeCount, passiveCount, totalActiveCount int, err error) {
+	type Counts struct {
+		ActiveCount      int
+		PassiveCount     int
+		TotalActiveUsers int
+	}
+
+	var counts Counts
+	err = repo.db.Table("users").
+		Select(`
+			SUM(CASE WHEN lt.type = 'active' THEN 1 ELSE 0 END) AS active_count,
+			SUM(CASE WHEN lt.type = 'passive' THEN 1 ELSE 0 END) AS passive_count,
+			SUM(CASE WHEN users.user_status_id IS NOT NULL AND us.is_active = ? THEN 1 ELSE 0 END) AS total_active_users
+		`, true).
+		Joins("JOIN license_types lt ON lt.id = users.license_type_id").
+		Joins("JOIN user_statuses us ON us.id = users.user_status_id").
+		Scan(&counts).Error
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	return counts.ActiveCount, counts.PassiveCount, counts.TotalActiveUsers, nil
 }
 
 func (repo *SystemPreferenceRepository) UpdateModule(module []models.Module) error {

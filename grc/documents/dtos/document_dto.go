@@ -13,6 +13,8 @@ type DocumentListDTO struct {
 	DocumentTypeID                  uint       `json:"document_type_id"`
 	TitleEn                         string     `json:"title_en"`
 	TitleAr                         string     `json:"title_ar"`
+	DescriptionEn                   *string    `json:"description_en"`
+	DescriptionAr                   *string    `json:"description_ar"`
 	DocumentCategoryTitleEn         string     `json:"document_category_title_en"`
 	DocumentCategoryTitleAr         string     `json:"document_category_title_ar"`
 	DocumentTypeTitleEn             string     `json:"document_type_title_en"`
