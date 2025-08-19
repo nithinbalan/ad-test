@@ -142,6 +142,9 @@ func (cac *ComplianceAssessmentController) CreateComplianceAssessment(c *gin.Con
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(cac.db, c, e.Error())
 			return
