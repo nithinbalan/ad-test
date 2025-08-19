@@ -11,6 +11,7 @@ import (
 type RoleRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(sort string, sortBy string, keyword string, status string, licenseTypeID string) ([]*dtos.RoleDTO, error)
+	GetFullDetailsByID(id uint) (*models.Role, error)
 	GetByID(id uint) (*models.Role, error)
 	Create(role *models.Role) (*models.Role, error)
 	Update(id uint, role *models.Role) (*models.Role, error)
@@ -80,13 +81,27 @@ func (repo *RoleRepository) GetAll(sort string, sortBy string, keyword string, s
 func (repo *RoleRepository) GetByID(id uint) (*models.Role, error) {
 	var role *models.Role
 
-	result := repo.db.Preload("LicenseType").First(&role, id)
+	result := repo.db.First(&role, id)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
 	return role, result.Error
+}
+
+func (repo *RoleRepository) GetFullDetailsByID(id uint) (*models.Role, error) {
+	var role *models.Role
+
+	result := repo.db.
+		Preload("LicenseType").
+		First(&role, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return role, nil
 }
 
 func (repo *RoleRepository) Create(role *models.Role) (*models.Role, error) {
