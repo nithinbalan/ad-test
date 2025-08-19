@@ -20,6 +20,8 @@ type BcpAssociatedItemRepositoryInterface interface {
 	GetAllBcpKPI(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
 	CreateBcpKPI(kpis []*models.BCPKPI, tx ...utility.DatabaseTransaction) error
 	DeleteBcpKPI(BcpID uint, kpiRegisterID uint, tx ...utility.DatabaseTransaction) error
+	CreateBcpRisk(risks []*models.BcpRisk, tx ...utility.DatabaseTransaction) error
+	DeleteBcpRisk(BcpID uint, riskID uint, tx ...utility.DatabaseTransaction) error
 }
 
 // implementation
@@ -493,5 +495,24 @@ func (repo *BcpAssociatedItemRepository) DeleteBcpKPI(BcpID uint, kpiRegisterID 
 	return db.
 		Where("kpi_register_id = ? AND business_continuity_plan_id = ?", kpiRegisterID, BcpID).
 		Delete(&models.BCPKPI{}).
+		Error
+}
+
+func (repo *BcpAssociatedItemRepository) CreateBcpRisk(risks []*models.BcpRisk, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&risks).Error
+}
+
+func (repo *BcpAssociatedItemRepository) DeleteBcpRisk(BcpID uint, riskID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("risk_register_id = ? AND business_continuity_plan_id = ?", riskID, BcpID).
+		Delete(&models.BcpRisk{}).
 		Error
 }

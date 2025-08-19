@@ -22,7 +22,7 @@ func NewBcpAssociatedItemController(service services.BcpAssociatedItemServiceInt
 	}
 }
 
-func (paic *BcpAssociatedItemController) GetAllBcpDocuments(c *gin.Context) {
+func (baic *BcpAssociatedItemController) GetAllBcpDocuments(c *gin.Context) {
 
 	BcpIDStr := c.Param("id")
 
@@ -38,13 +38,13 @@ func (paic *BcpAssociatedItemController) GetAllBcpDocuments(c *gin.Context) {
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
-		utility.SendInternalErrResp(paic.db, c, "Invalid page parameter")
+		utility.SendInternalErrResp(baic.db, c, "Invalid page parameter")
 		return
 	}
 
 	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
 	if err != nil {
-		utility.SendInternalErrResp(paic.db, c, "Invalid page_size parameter")
+		utility.SendInternalErrResp(baic.db, c, "Invalid page_size parameter")
 		return
 	}
 
@@ -55,7 +55,7 @@ func (paic *BcpAssociatedItemController) GetAllBcpDocuments(c *gin.Context) {
 		Page:     page,
 		PageSize: pageSize,
 	}
-	controls, err := paic.service.GetAllBcpDocuments(uint(BcpID), &queryParams)
+	controls, err := baic.service.GetAllBcpDocuments(uint(BcpID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -66,13 +66,13 @@ func (paic *BcpAssociatedItemController) GetAllBcpDocuments(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(paic.db, c, e.Error())
+			utility.SendInternalErrResp(baic.db, c, e.Error())
 			return
 		}
 	}
 	c.JSON(http.StatusOK, controls)
 }
-func (paic *BcpAssociatedItemController) CreateBcpDocument(c *gin.Context) {
+func (baic *BcpAssociatedItemController) CreateBcpDocument(c *gin.Context) {
 	var input commonDTOs.AssociatedDocumentMapDTO
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -87,11 +87,11 @@ func (paic *BcpAssociatedItemController) CreateBcpDocument(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(paic.db, c, err.Error())
+		utility.SendInternalErrResp(baic.db, c, err.Error())
 		return
 	}
 
-	err = paic.service.CreateBcpDocument(uint(BcpID), currentUserID, &input)
+	err = baic.service.CreateBcpDocument(uint(BcpID), currentUserID, &input)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -101,7 +101,7 @@ func (paic *BcpAssociatedItemController) CreateBcpDocument(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(paic.db, c, e.Error())
+			utility.SendInternalErrResp(baic.db, c, e.Error())
 			return
 		}
 	}
@@ -109,19 +109,19 @@ func (paic *BcpAssociatedItemController) CreateBcpDocument(c *gin.Context) {
 	c.Status(http.StatusCreated)
 }
 
-func (paic *BcpAssociatedItemController) DeleteBcpDocument(c *gin.Context) {
+func (baic *BcpAssociatedItemController) DeleteBcpDocument(c *gin.Context) {
 	BcpID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 	documentID, _ := strconv.ParseUint(c.Param("documentId"), 10, 64)
-	err := paic.service.DeleteBcpDocument(uint(BcpID), uint(documentID))
+	err := baic.service.DeleteBcpDocument(uint(BcpID), uint(documentID))
 	if err != nil {
-		utility.SendInternalErrResp(paic.db, c, err.Error())
+		utility.SendInternalErrResp(baic.db, c, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Document unmapped from Bcp successfully"})
 }
 
-func (paic *BcpAssociatedItemController) GetAllBcpControl(c *gin.Context) {
+func (baic *BcpAssociatedItemController) GetAllBcpControl(c *gin.Context) {
 
 	BcpIDStr := c.Param("id")
 
@@ -137,13 +137,13 @@ func (paic *BcpAssociatedItemController) GetAllBcpControl(c *gin.Context) {
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
-		utility.SendInternalErrResp(paic.db, c, "Invalid page parameter")
+		utility.SendInternalErrResp(baic.db, c, "Invalid page parameter")
 		return
 	}
 
 	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
 	if err != nil {
-		utility.SendInternalErrResp(paic.db, c, "Invalid page_size parameter")
+		utility.SendInternalErrResp(baic.db, c, "Invalid page_size parameter")
 		return
 	}
 
@@ -154,7 +154,7 @@ func (paic *BcpAssociatedItemController) GetAllBcpControl(c *gin.Context) {
 		Page:     page,
 		PageSize: pageSize,
 	}
-	controls, err := paic.service.GetAllBcpControl(uint(BcpID), &queryParams)
+	controls, err := baic.service.GetAllBcpControl(uint(BcpID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -165,13 +165,13 @@ func (paic *BcpAssociatedItemController) GetAllBcpControl(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(paic.db, c, e.Error())
+			utility.SendInternalErrResp(baic.db, c, e.Error())
 			return
 		}
 	}
 	c.JSON(http.StatusOK, controls)
 }
-func (paic *BcpAssociatedItemController) CreateBcpControl(c *gin.Context) {
+func (baic *BcpAssociatedItemController) CreateBcpControl(c *gin.Context) {
 	var input commonDTOs.AssociatedControlMapDTO
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -186,11 +186,11 @@ func (paic *BcpAssociatedItemController) CreateBcpControl(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(paic.db, c, err.Error())
+		utility.SendInternalErrResp(baic.db, c, err.Error())
 		return
 	}
 
-	err = paic.service.CreateBcpControl(uint(BcpID), currentUserID, &input)
+	err = baic.service.CreateBcpControl(uint(BcpID), currentUserID, &input)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -200,7 +200,7 @@ func (paic *BcpAssociatedItemController) CreateBcpControl(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(paic.db, c, e.Error())
+			utility.SendInternalErrResp(baic.db, c, e.Error())
 			return
 		}
 	}
@@ -208,19 +208,19 @@ func (paic *BcpAssociatedItemController) CreateBcpControl(c *gin.Context) {
 	c.Status(http.StatusCreated)
 }
 
-func (paic *BcpAssociatedItemController) DeleteBcpControl(c *gin.Context) {
+func (baic *BcpAssociatedItemController) DeleteBcpControl(c *gin.Context) {
 	BcpID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 	controlID, _ := strconv.ParseUint(c.Param("controlId"), 10, 64)
-	err := paic.service.DeleteBcpControl(uint(BcpID), uint(controlID))
+	err := baic.service.DeleteBcpControl(uint(BcpID), uint(controlID))
 	if err != nil {
-		utility.SendInternalErrResp(paic.db, c, err.Error())
+		utility.SendInternalErrResp(baic.db, c, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Control unmapped from Bcp successfully"})
 }
 
-func (paic *BcpAssociatedItemController) GetAllBcpKPI(c *gin.Context) {
+func (baic *BcpAssociatedItemController) GetAllBcpKPI(c *gin.Context) {
 
 	BcpIDStr := c.Param("id")
 
@@ -236,13 +236,13 @@ func (paic *BcpAssociatedItemController) GetAllBcpKPI(c *gin.Context) {
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
-		utility.SendInternalErrResp(paic.db, c, "Invalid page parameter")
+		utility.SendInternalErrResp(baic.db, c, "Invalid page parameter")
 		return
 	}
 
 	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
 	if err != nil {
-		utility.SendInternalErrResp(paic.db, c, "Invalid page_size parameter")
+		utility.SendInternalErrResp(baic.db, c, "Invalid page_size parameter")
 		return
 	}
 
@@ -253,7 +253,7 @@ func (paic *BcpAssociatedItemController) GetAllBcpKPI(c *gin.Context) {
 		Page:     page,
 		PageSize: pageSize,
 	}
-	kpis, err := paic.service.GetAllBcpKPI(uint(BcpID), &queryParams)
+	kpis, err := baic.service.GetAllBcpKPI(uint(BcpID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -264,14 +264,14 @@ func (paic *BcpAssociatedItemController) GetAllBcpKPI(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(paic.db, c, e.Error())
+			utility.SendInternalErrResp(baic.db, c, e.Error())
 			return
 		}
 	}
 	c.JSON(http.StatusOK, kpis)
 }
 
-func (paic *BcpAssociatedItemController) CreateBcpKPI(c *gin.Context) {
+func (baic *BcpAssociatedItemController) CreateBcpKPI(c *gin.Context) {
 	var input commonDTOs.AssociatedKPIMapDTO
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -286,11 +286,11 @@ func (paic *BcpAssociatedItemController) CreateBcpKPI(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(paic.db, c, err.Error())
+		utility.SendInternalErrResp(baic.db, c, err.Error())
 		return
 	}
 
-	err = paic.service.CreateBcpKPI(uint(BcpID), currentUserID, &input)
+	err = baic.service.CreateBcpKPI(uint(BcpID), currentUserID, &input)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -300,7 +300,7 @@ func (paic *BcpAssociatedItemController) CreateBcpKPI(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(paic.db, c, e.Error())
+			utility.SendInternalErrResp(baic.db, c, e.Error())
 			return
 		}
 	}
@@ -308,7 +308,7 @@ func (paic *BcpAssociatedItemController) CreateBcpKPI(c *gin.Context) {
 	c.Status(http.StatusCreated)
 }
 
-func (paic *BcpAssociatedItemController) DeleteBcpKPI(c *gin.Context) {
+func (baic *BcpAssociatedItemController) DeleteBcpKPI(c *gin.Context) {
 
 	BcpIDStr := c.Param("id")
 	kpiRegisterIDStr := c.Param("kpiRegisterId")
@@ -325,16 +325,16 @@ func (paic *BcpAssociatedItemController) DeleteBcpKPI(c *gin.Context) {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-	err = paic.service.DeleteBcpKPI(uint(BcpID), uint(kpiRegisterID))
+	err = baic.service.DeleteBcpKPI(uint(BcpID), uint(kpiRegisterID))
 	if err != nil {
-		utility.SendInternalErrResp(paic.db, c, err.Error())
+		utility.SendInternalErrResp(baic.db, c, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "KPI unmapped from Bcp successfully"})
 }
 
-func (paic *BcpAssociatedItemController) GetAllBcpRisk(c *gin.Context) {
+func (baic *BcpAssociatedItemController) GetAllBcpRisk(c *gin.Context) {
 
 	BcpIDStr := c.Param("id")
 
@@ -347,27 +347,43 @@ func (paic *BcpAssociatedItemController) GetAllBcpRisk(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
+	valueStr := c.Query("value")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
-		utility.SendInternalErrResp(paic.db, c, "Invalid page parameter")
+		utility.SendInternalErrResp(baic.db, c, "Invalid page parameter")
 		return
 	}
 
 	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
 	if err != nil {
-		utility.SendInternalErrResp(paic.db, c, "Invalid page_size parameter")
+		utility.SendInternalErrResp(baic.db, c, "Invalid page_size parameter")
 		return
 	}
+	var value int
+	if valueStr != "" {
+		value, err = strconv.Atoi(valueStr)
+		if err != nil {
+			utility.SendInternalErrResp(baic.db, c, "Invalid value parameter")
+			return
+		}
+	}
+	allowedParams := []string{
+		"current_likelihood_ids",
+		"current_impact_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
+		Filters:  filters,
+		Value:    value,
 		Page:     page,
 		PageSize: pageSize,
 	}
-	risks, err := paic.service.GetAllBcpRisk(uint(BcpID), &queryParams)
+	risks, err := baic.service.GetAllBcpRisk(uint(BcpID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -378,9 +394,72 @@ func (paic *BcpAssociatedItemController) GetAllBcpRisk(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(paic.db, c, e.Error())
+			utility.SendInternalErrResp(baic.db, c, e.Error())
 			return
 		}
 	}
 	c.JSON(http.StatusOK, risks)
+}
+
+func (baic *BcpAssociatedItemController) CreateBcpRisk(c *gin.Context) {
+	var input commonDTOs.AssociatedRiskMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	BcpID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(baic.db, c, err.Error())
+		return
+	}
+
+	err = baic.service.CreateBcpRisk(uint(BcpID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(baic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (baic *BcpAssociatedItemController) DeleteBcpRisk(c *gin.Context) {
+
+	BcpIDStr := c.Param("id")
+	riskIDStr := c.Param("riskId")
+	BcpID, err := strconv.ParseUint(BcpIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = baic.service.DeleteBcpRisk(uint(BcpID), uint(riskID))
+	if err != nil {
+		utility.SendInternalErrResp(baic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Risk unmapped from Bcp successfully"})
 }
