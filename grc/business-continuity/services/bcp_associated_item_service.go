@@ -20,23 +20,27 @@ type BcpAssociatedItemServiceInterface interface {
 	GetAllBcpKPI(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
 	CreateBcpKPI(BcpID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
 	DeleteBcpKPI(BcpID uint, kpiRegisterID uint) error
+	GetAllBcpRisk(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 }
 
 // Service and implementations
 type BcpAssociatedItemService struct {
-	repo          repositories.BcpAssociatedItemRepositoryInterface
-	BcpSvc        BusinessContinuityPlanServiceInterface
-	validationSvc commonServices.AssociatedItemValidationServiceInterface
+	repo               repositories.BcpAssociatedItemRepositoryInterface
+	BcpSvc             BusinessContinuityPlanServiceInterface
+	validationSvc      commonServices.AssociatedItemValidationServiceInterface
+	bcpRiskAnalysisSvc BcpRiskAnalysisServiceInterface
 }
 
 func NewBcpAssociatedItemService(repo repositories.BcpAssociatedItemRepositoryInterface,
 	BcpSvc BusinessContinuityPlanServiceInterface,
 	validationSvc commonServices.AssociatedItemValidationServiceInterface,
+	bcpRiskAnalysisSvc BcpRiskAnalysisServiceInterface,
 ) BcpAssociatedItemServiceInterface {
 	return &BcpAssociatedItemService{
-		repo:          repo,
-		BcpSvc:        BcpSvc,
-		validationSvc: validationSvc,
+		repo:               repo,
+		BcpSvc:             BcpSvc,
+		validationSvc:      validationSvc,
+		bcpRiskAnalysisSvc: bcpRiskAnalysisSvc,
 	}
 }
 
@@ -197,4 +201,10 @@ func (pais *BcpAssociatedItemService) DeleteBcpKPI(BcpID uint, kpiRegisterID uin
 	}
 
 	return tx.Commit()
+}
+func (pais *BcpAssociatedItemService) GetAllBcpRisk(bcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
+	if _, err := pais.BcpSvc.GetByID(bcpID); err != nil {
+		return nil, err
+	}
+	return pais.bcpRiskAnalysisSvc.GetAllRisksByBcpId(bcpID, params)
 }

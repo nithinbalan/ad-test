@@ -155,7 +155,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	taeRecoveryActionPlanCommentController := controllers.NewTaeRecoveryActionPlanCommentController(taeRecoveryActionPlanCommentSvc)
 
 	bcpAssociatedItemRepo := repositories.NewBcpAssociatedItemRepository(db)
-	bcpAssociatedItemSvc := services.NewBcpAssociatedItemService(bcpAssociatedItemRepo, businessContinuityPlanSvc, commonModule.AssociatedItemValidationService)
+	bcpAssociatedItemSvc := services.NewBcpAssociatedItemService(bcpAssociatedItemRepo, businessContinuityPlanSvc, commonModule.AssociatedItemValidationService, bcpRiskAnalysisSvc)
 	bcpAssociatedItemController := controllers.NewBcpAssociatedItemController(bcpAssociatedItemSvc)
 
 	businessFunctionAssociatedItemRepo := repositories.NewBusinessFunctionAssociatedItemRepository(db)
