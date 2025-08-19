@@ -80,7 +80,7 @@ func (repo *RoleRepository) GetAll(sort string, sortBy string, keyword string, s
 func (repo *RoleRepository) GetByID(id uint) (*models.Role, error) {
 	var role *models.Role
 
-	result := repo.db.First(&role, id)
+	result := repo.db.Preload("LicenseType").First(&role, id)
 
 	if result.Error != nil {
 		return nil, result.Error
