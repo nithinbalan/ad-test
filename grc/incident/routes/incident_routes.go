@@ -100,8 +100,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/incidents/:incidentID/action-plans/:actionPlanId/status-updates/:id/document-preview", incidentActionPlanStatusUpdateController.GetIncidentActionPlanStatusUpdateDocumentPreview)
 	unauthenticatedRoutes.GET("/incidents/:incidentID/action-plans/:actionPlanId/status-updates/:id/document-download", incidentActionPlanStatusUpdateController.DownloadIncidentActionPlanStatusUpdateDocument)
 	incidentRoutes.GET("/incidents/:incidentID/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "view"), incidentActionPlanStatusUpdateController.GetAllIncidentActionPlanStatusUpdates)
-	incidentRoutes.POST("/incidents/:incidentID/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "modify"), incidentActionPlanStatusUpdateController.CreateIncidentActionPlanStatusUpdate)
-	incidentRoutes.PUT("/incidents/:incidentID/action-plans/:actionPlanId/status-updates/:id", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "modify"), incidentActionPlanStatusUpdateController.UpdateIncidentActionPlanStatusUpdate)
+	incidentRoutes.POST("/incidents/:incidentID/action-plans/:actionPlanId/status-updates", incidentActionPlanStatusUpdateController.CreateIncidentActionPlanStatusUpdate)
+	incidentRoutes.PUT("/incidents/:incidentID/action-plans/:actionPlanId/status-updates/:id", incidentActionPlanStatusUpdateController.UpdateIncidentActionPlanStatusUpdate)
 	incidentRoutes.GET("/incidents/:incidentID/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "view"), incidentActionPlanStatusUpdateController.GetLatestIncidentActionPlanStatusUpdate)
 
 	//Incident Root Cause Analyses

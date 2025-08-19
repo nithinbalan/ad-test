@@ -261,8 +261,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//control action plan status-updates
 	organizationRoutes.GET("/controls/:controlId/action-plans/:controlActionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlActionPlanStatusUpdateController.GetAllControlActionPlanStatusUpdates)
 	organizationRoutes.GET("/controls/:controlId/action-plans/:controlActionPlanId/status-updates/:controlActionPlanUpdateId", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlActionPlanStatusUpdateController.GetControlActionPlanStatusUpdateDetails)
-	organizationRoutes.POST("/controls/:controlId/action-plans/:controlActionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlActionPlanStatusUpdateController.CreateControlActionPlanStatusUpdate)
-	organizationRoutes.PUT("/controls/:controlId/action-plans/:controlActionPlanId/status-updates/:controlActionPlanUpdateId", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlActionPlanStatusUpdateController.UpdateControlActionPlanStatusUpdate)
+	organizationRoutes.POST("/controls/:controlId/action-plans/:controlActionPlanId/status-updates", controlActionPlanStatusUpdateController.CreateControlActionPlanStatusUpdate)
+	organizationRoutes.PUT("/controls/:controlId/action-plans/:controlActionPlanId/status-updates/:controlActionPlanUpdateId", controlActionPlanStatusUpdateController.UpdateControlActionPlanStatusUpdate)
 
 	organizationRoutes.GET("/controls/:controlId/action-plans/:controlActionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlActionPlanStatusUpdateController.GetLatestControlActionPlanStatusUpdate)
 
