@@ -407,4 +407,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/users/:userId/documents", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userDocumentController.CreateUserDocument)
 	organizationRoutes.PUT("/users/:userId/documents/:id", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userDocumentController.UpdateUserDocument)
 	organizationRoutes.POST("/users/:userId/documents/delete", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userDocumentController.DeleteUserDocuments)
+
+	// user delegation
+	organizationRoutes.GET("/users/:userId/modules", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUserModulesWithPermissions)
 }
