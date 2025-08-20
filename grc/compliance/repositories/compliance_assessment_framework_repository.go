@@ -37,7 +37,7 @@ func NewComplianceAssessmentFrameworkRepository(db *gorm.DB) ComplianceAssessmen
 }
 
 func (repo *ComplianceAssessmentFrameworkRepository) GetAll(params *complianceDTOs.ComplianceAssessmentFrameworkListQueryParamsDTO) ([]*complianceDTOs.ComplianceAssessmentFrameworkListDTO, error) {
-	var complianceAssessmentFrameworks []*complianceDTOs.ComplianceAssessmentFrameworkListDTO
+	var complianceAssessmentFrameworks = []*complianceDTOs.ComplianceAssessmentFrameworkListDTO{}
 
 	query := repo.db.Table("compliance_assessment_frameworks").
 		Select(`
