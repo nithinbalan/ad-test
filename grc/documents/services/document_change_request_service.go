@@ -1208,8 +1208,8 @@ func (dcrs *DocumentChangeRequestService) SubmitDocumentChangeRequest(id uint, c
 		level = 1
 	}
 
-	currentDateStr := time.Now().Format("2006-01-02")
-	submittedAt, err := utility.ParseDate(currentDateStr)
+	currentTime := time.Now()
+	// submittedAt, err := utility.ParseDate(currentDateStr)
 	if err != nil {
 		tx.Rollback()
 		return fmt.Errorf("error parsing current date: %w", err)
@@ -1217,7 +1217,7 @@ func (dcrs *DocumentChangeRequestService) SubmitDocumentChangeRequest(id uint, c
 
 	if documentCRFullDetails.DocumentChangeRequestStatus.Type != "reverted" {
 		existingCRDocument.SubmittedBYID = &currentUserID
-		existingCRDocument.SubmittedAt = submittedAt
+		existingCRDocument.SubmittedAt = &currentTime
 		existingCRDocument.NextReviewLevel = &level
 
 		err = dcrs.repo.Update(existingCRDocument, tx)
@@ -1728,6 +1728,28 @@ func (dcrs *DocumentChangeRequestService) PublishDocumentChangeRequest(id uint, 
 		if err != nil {
 			tx.Rollback()
 			return fmt.Errorf("error copying .pdf file: %w", err)
+		}
+
+		if documentCRFullDetails.DocumentChangeRequestType.Type == "restore-with-minor-update" || documentCRFullDetails.DocumentChangeRequestType.Type == "restore-with-major-update" {
+			documentStatus, err := dcrs.documentStatusSvc.GetByType("published")
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			existingDocument, err := dcrs.documentSvc.GetByID(uint(documentCRFullDetails.Document.ID), tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			existingDocument.DocumentStatusID = documentStatus.ID
+
+			err = dcrs.documentSvc.UpdateDocument(existingDocument, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
 		}
 
 	}

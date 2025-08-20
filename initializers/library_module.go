@@ -17,6 +17,7 @@ type LibraryModule struct {
 	KpiLibraryController                *controllers.KpiLibraryController
 	StrategicObjectiveLibraryController *controllers.StrategicObjectiveLibraryController
 	VulnerabilityLibraryController      *controllers.VulnerabilityLibraryController
+	ArticleLibraryController            *controllers.ArticleLibraryController
 
 	KriLibrarySvc services.KRILibraryServiceInterface
 }
@@ -56,6 +57,10 @@ func NewLibraryModule(db *gorm.DB, sharedModule *SharedModule, MasterModule *Mas
 	VulnerabilityLibrarySvc := services.NewVulnerabilityLibraryService(VulnerabilityLibraryRepository)
 	VulnerabilityLibraryController := controllers.NewVulnerabilityLibraryController(VulnerabilityLibrarySvc)
 
+	ArticleLibraryRepository := repositories.NewArticleLibraryRepository(db)
+	ArticleLibrarySvc := services.NewArticleLibraryService(ArticleLibraryRepository)
+	ArticleLibraryController := controllers.NewArticleLibraryController(ArticleLibrarySvc)
+
 	return &LibraryModule{
 		QuestionLibraryController: questionLibraryController,
 		KriLibraryController:      kriLibraryController,
@@ -67,5 +72,6 @@ func NewLibraryModule(db *gorm.DB, sharedModule *SharedModule, MasterModule *Mas
 		KpiLibraryController:                KpiLibraryController,
 		StrategicObjectiveLibraryController: StrategicObjectiveLibraryController,
 		VulnerabilityLibraryController:      VulnerabilityLibraryController,
+		ArticleLibraryController:            ArticleLibraryController,
 	}
 }
