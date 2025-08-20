@@ -13,11 +13,6 @@ type StrategyProfileFocusAreaListDTO struct {
 	FocusAreaDescriptionEn      *string `json:"focus_area_description_en"`
 	FocusAreaDescriptionAr      *string `json:"focus_area_description_ar"`
 	StrategyProfileTitle        string  `json:"strategy_profile_title"`
-	ObjectivesCount             int     `json:"objectives_count"`
-	InitiativesCount            int     `json:"initiatives_count"`
-	ProjectsCount               int     `json:"projects_count"`
-	MilestonesCount             int     `json:"milestones_count"`
-	ActionPlansCount            int     `json:"action_plans_count"`
 	CreatedUserID               uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn      string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string  `json:"created_user_first_name_ar"`

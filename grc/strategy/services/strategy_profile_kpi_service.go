@@ -239,6 +239,10 @@ func (sps *StrategyProfileKpiService) UpdateWeightage(id uint, currentUserID uin
 		return err
 	}
 
+	oldData := map[string]interface{}{
+		"weightage": kpi.Weightage,
+	}
+
 	// Validate the weightage
 	if err := sps.validateKPIWeightage(kpi, kpiWeightageUpdateDTO.Weightage, tx); err != nil {
 		tx.Rollback()
@@ -255,6 +259,10 @@ func (sps *StrategyProfileKpiService) UpdateWeightage(id uint, currentUserID uin
 		return err
 	}
 
+	newData := map[string]interface{}{
+		"weightage": kpi.Weightage,
+	}
+
 	// Commit first before logging
 	if err := tx.Commit(); err != nil {
 		tx.Rollback()
@@ -268,10 +276,8 @@ func (sps *StrategyProfileKpiService) UpdateWeightage(id uint, currentUserID uin
 			models.StrategyProfileKpi{}.TableName(),
 			kpi.ID,
 			map[string]interface{}{
-				"strategy_profile_id":    kpi.StrategyProfileID,
-				"strategic_objective_id": kpi.StrategyProfileStrategicObjectiveID,
-				"kpi_id":                 kpi.KpiID,
-				"weightage":              kpi.Weightage,
+				"old": oldData,
+				"new": newData,
 			},
 			currentUserID,
 			nil,

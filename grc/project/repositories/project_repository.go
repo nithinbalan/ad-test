@@ -16,7 +16,6 @@ type ProjectRepositoryInterface interface {
 	Create(project *models.Project, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(project *models.Project, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
-	UpdateStatus(project *models.Project, tx ...utility.DatabaseTransaction) error
 }
 
 type ProjectRepository struct {
@@ -214,16 +213,5 @@ func (r *ProjectRepository) Delete(id uint) error {
 		return err
 	}
 
-	return nil
-}
-
-func (r *ProjectRepository) UpdateStatus(project *models.Project, tx ...utility.DatabaseTransaction) error {
-	db := r.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Save(project).Error; err != nil {
-		return err
-	}
 	return nil
 }

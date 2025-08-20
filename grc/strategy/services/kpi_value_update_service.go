@@ -136,52 +136,9 @@ func (kvus *KPIValueUpdateService) Create(kpiRegisterID, currentUserID uint, kpi
 	}
 
 	// Update Weighted value in each associated StrategyProfileKPI
-	// Get all objectives that include this KPI
-	objectives, err := kvus.strategyProfileKpiSvc.GetObjectivesForKPI(kpiRegisterID, tx)
-	if err != nil {
+	if err := kvus.updateObjectiveScores(kpiRegisterID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
-	}
-
-	// For each objective, calculate and update its score
-	for _, objective := range objectives {
-		// Get KPI register details for this objective
-		kpiRegisters, err := kvus.strategyProfileKpiSvc.GetKPIsForObjective(objective.ID, tx)
-		if err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-
-		var totalWeightedScore float64
-		var totalWeightage float64
-		hasValidScores := false
-
-		// Calculate total weighted score and total weightage
-		for _, kpi := range kpiRegisters {
-			if kpi.Achievement == nil || kpi.Weightage == nil {
-				continue
-			}
-
-			// Calculate weighted score on the fly
-			weightedScore := (*kpi.Achievement * *kpi.Weightage)
-			totalWeightedScore += weightedScore
-			totalWeightage += *kpi.Weightage
-			hasValidScores = true
-		}
-
-		// Calculate and update the objective score
-		var score *float64
-		if hasValidScores && totalWeightage > 0 {
-			calculatedScore := totalWeightedScore / totalWeightage
-			score = &calculatedScore
-		}
-
-		// Update the objective's score
-		objective.Score = score
-		if err := kvus.strategyProfileStrategicObjectiveSvc.UpdateObjectiveScore(objective, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
 	}
 
 	var documents []*models.KPIValueUpdateDocument
@@ -368,53 +325,9 @@ func (kvus *KPIValueUpdateService) Update(kpiRegisterID, updateId uint, currentU
 		return err
 	}
 
-	// Update Weighted value in each associated StrategyProfileKPI
-	// Get all objectives that include this KPI
-	objectives, err := kvus.strategyProfileKpiSvc.GetObjectivesForKPI(kpiRegisterID, tx)
-	if err != nil {
+	if err := kvus.updateObjectiveScores(kpiRegisterID, tx); err != nil {
 		tx.Rollback()
 		return err
-	}
-
-	// For each objective, calculate and update its score
-	for _, objective := range objectives {
-		// Get KPI register details for this objective
-		kpiRegisters, err := kvus.strategyProfileKpiSvc.GetKPIsForObjective(objective.ID, tx)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		var totalWeightedScore float64
-		var totalWeightage float64
-		hasValidScores := false
-
-		// Calculate total weighted score and total weightage
-		for _, kpi := range kpiRegisters {
-			if kpi.Achievement == nil || kpi.Weightage == nil {
-				continue
-			}
-
-			// Calculate weighted score on the fly
-			weightedScore := (*kpi.Achievement * *kpi.Weightage)
-			totalWeightedScore += weightedScore
-			totalWeightage += *kpi.Weightage
-			hasValidScores = true
-		}
-
-		// Calculate and update the objective score
-		var score *float64
-		if hasValidScores && totalWeightage > 0 {
-			calculatedScore := totalWeightedScore / totalWeightage
-			score = &calculatedScore
-		}
-
-		// Update the objective's score
-		objective.Score = score
-		if err := kvus.strategyProfileStrategicObjectiveSvc.UpdateObjectiveScore(objective, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
 	}
 
 	var documents []*models.KPIValueUpdateDocument
@@ -743,4 +656,57 @@ func (kvus *KPIValueUpdateService) parseKPIValueUpdateDates(dto *strategyDTOs.KP
 	}
 
 	return parsed, nil
+}
+
+// updateObjectiveScores updates the scores for all objectives associated with a KPI register
+func (kvus *KPIValueUpdateService) updateObjectiveScores(kpiRegisterID uint, tx utility.DatabaseTransaction) error {
+	// Get all objectives that include this KPI
+	objectives, err := kvus.strategyProfileKpiSvc.GetObjectivesForKPI(kpiRegisterID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// For each objective, calculate and update its score
+	for _, objective := range objectives {
+		// Get KPI register details for this objective
+		kpiRegisters, err := kvus.strategyProfileKpiSvc.GetKPIsForObjective(objective.ID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		var totalWeightedScore float64
+		var totalWeightage float64
+		hasValidScores := false
+
+		// Calculate total weighted score and total weightage
+		for _, kpi := range kpiRegisters {
+			if kpi.Achievement == nil || kpi.Weightage == nil {
+				continue
+			}
+
+			// Calculate weighted score on the fly
+			weightedScore := (*kpi.Achievement * *kpi.Weightage)
+			totalWeightedScore += weightedScore
+			totalWeightage += *kpi.Weightage
+			hasValidScores = true
+		}
+
+		// Calculate and update the objective score
+		var score *float64
+		if hasValidScores && totalWeightage > 0 {
+			calculatedScore := totalWeightedScore / totalWeightage
+			score = &calculatedScore
+		}
+
+		// Update the objective's score
+		objective.Score = score
+		if err := kvus.strategyProfileStrategicObjectiveSvc.UpdateObjectiveScore(objective, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	return nil
 }

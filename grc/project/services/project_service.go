@@ -290,14 +290,22 @@ func (s *ProjectService) UpdateStatus(id uint, currentUserID uint, projectStatus
 		return err
 	}
 
+	oldData := map[string]interface{}{
+		"project_status_id": project.ProjectStatusID,
+	}
+
 	// Update the weightage
 	project.ProjectStatusID = projectStatusUpdateDTO.ProjectStatusID
 	project.UpdatedBYID = &currentUserID
 
 	// Save the changes
-	if err := s.repo.UpdateStatus(project, tx); err != nil {
+	if err := s.repo.Update(project, tx); err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	newData := map[string]interface{}{
+		"project_status_id": project.ProjectStatusID,
 	}
 
 	// Commit first before logging
@@ -313,8 +321,8 @@ func (s *ProjectService) UpdateStatus(id uint, currentUserID uint, projectStatus
 			models.Project{}.TableName(),
 			id,
 			map[string]interface{}{
-				"project_id":        id,
-				"project_status_id": project.ProjectStatusID,
+				"old": oldData,
+				"new": newData,
 			},
 			currentUserID,
 			nil,
