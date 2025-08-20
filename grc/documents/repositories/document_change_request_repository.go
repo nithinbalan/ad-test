@@ -112,11 +112,15 @@ func (repo *DocumentChangeRequestRepository) GetAll(params *dtos.DocumentChangeR
 	for _, filter := range params.QuickFilter {
 		switch filter {
 		case "draft":
-			query = query.Where("initiate_statuses.type = ?", "initiated")
+			query = query.Where("change_request_statuses.type = ?", "draft")
 		case "in-review":
-			query = query.Where("initiate_statuses.type = ?", "approved")
+			query = query.Where("change_request_statuses.type = ?", "in-review")
 		case "published":
-			query = query.Where("initiate_statuses.type = ?", "rejected")
+			query = query.Where("change_request_statuses.type = ?", "published")
+		case "major-update":
+			query = query.Where("change_request_types.type = ?", "major")
+		case "minor-update":
+			query = query.Where("change_request_types.type = ?", "minor")
 		}
 	}
 
