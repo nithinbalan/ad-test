@@ -804,17 +804,17 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 	}
 
 	//compliance and sla section
-	assessments, err := grs.repo.GetAllComplianceAssessments(*dates.StartDate, *dates.EndDate, tx)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
+	// assessments, err := grs.repo.GetAllComplianceAssessments(*dates.StartDate, *dates.EndDate, tx)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
 
 	// Group assessments by organization unit
 	orgUnitAssessments := make(map[uint][]models.ComplianceAssessment)
-	for _, assessment := range assessments {
-		orgUnitAssessments[assessment.PrimaryUnitID] = append(orgUnitAssessments[assessment.PrimaryUnitID], *assessment)
-	}
+	// for _, assessment := range assessments {
+	// 	orgUnitAssessments[assessment.PrimaryUnitID] = append(orgUnitAssessments[assessment.PrimaryUnitID], *assessment)
+	// }
 
 	// Calculate scores for each department
 	departmentScores := make(map[uint]float64)
@@ -829,9 +829,13 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 
 			// Calculate average score of requirements for this assessment
 			for _, requirement := range assessment.AssessmentRequirements {
-				if requirement.Score != nil && requirement.ComplianceStatus != nil &&
+				// if requirement.Score != nil && requirement.ComplianceStatus != nil &&
+				// 	requirement.ComplianceStatus.Type != "not_applicable" {
+				// 	requirementScore += float64(*requirement.Score)
+				// 	requirementCount++
+				// }
+				if requirement.ComplianceStatus != nil &&
 					requirement.ComplianceStatus.Type != "not_applicable" {
-					requirementScore += float64(*requirement.Score)
 					requirementCount++
 				}
 			}

@@ -12,7 +12,7 @@ type ComplianceAssessmentFrameworkValue struct {
 	Description                     *string    `json:"description" gorm:"type:nvarchar(max)"`
 	ScoreMin                        *int       `json:"score_min"`
 	ScoreMax                        *int       `json:"score_max"`
-	IsApplicable                    *bool      `json:"is_applicable" gorm:"default:true"`
+	IsApplicable                    bool       `json:"is_applicable" gorm:"not null;default:1"`
 	CreatedBYID                     uint       `json:"created_by_id" binding:"required"`
 	UpdatedBYID                     *uint      `json:"updated_by_id"`
 	CreatedAt                       time.Time  `json:"created_at" gorm:"type:datetime;not null"`

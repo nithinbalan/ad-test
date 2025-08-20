@@ -48,6 +48,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentPeriodicReviewController := app.DocumentModule.DocumentPeriodicReviewController
 	documentRequirementGroupController := app.DocumentModule.DocumentRequirementGroupController
 	documentRequirementController := app.DocumentModule.DocumentRequirementController
+	policyController := app.DocumentModule.PolicyController
+	policyAcknowledgeUserController := app.DocumentModule.PolicyAcknowledgeUserController
 
 	documentRoutes.GET("/document-categories", documentCategoryController.GetAllDocumentCategories)
 	documentRoutes.GET("/document-categories/:id", documentCategoryController.GetDocumentCategoryDetails)
@@ -178,7 +180,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/document-change-requests/:id/document-download", documentChangeRequestController.DownloadChangeRequestDocument)
 
 	documentRoutes.GET("/document-change-request-workflow-statuses", documentChangeRequestWorkflowStatusController.GetAllDocumentChangeRequestWorkflowStatuses)
-	documentRoutes.GET("/ocument-change-request-workflow-statuses/:id", documentChangeRequestWorkflowStatusController.GetDocumentChangeRequestWorkflowStatusDetails)
+	documentRoutes.GET("/document-change-request-workflow-statuses/:id", documentChangeRequestWorkflowStatusController.GetDocumentChangeRequestWorkflowStatusDetails)
 
 	documentRoutes.GET("/document-change-requests/:id/comments", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestReviewController.GetComments)
 	documentRoutes.POST("/document-change-requests/:id/comments", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestReviewController.AddComment)
@@ -210,5 +212,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/documents/:id/requirement-groups/:requirementGroupId/requirements/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentRequirementController.DeleteDocumentRequirements)
 
 	documentRoutes.POST("/documents/:id/requirements", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentRequirementController.CreateDocumentRequirements)
+
+	// policy
+	documentRoutes.GET("/policies/export", middlewares.RolePermissionMiddleware(db, "policies", "view"), policyController.GetPolicyExport)
+	documentRoutes.GET("/policies", middlewares.RolePermissionMiddleware(db, "policies", "view"), policyController.GetAllPolicies)
+
+	//Policy Acknowledge User
+	documentRoutes.POST("/policies/:id/version/:versionId/acknowledge", middlewares.RolePermissionMiddleware(db, "policies", "modify"), policyAcknowledgeUserController.CreatePolicyAcknowledgeUser)
+	documentRoutes.DELETE("/policies/:id/version/:versionId/acknowledge", middlewares.RolePermissionMiddleware(db, "policies", "modify"), policyAcknowledgeUserController.DeletePolicyAcknowledgeUser)
 
 }

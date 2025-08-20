@@ -211,7 +211,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		LastReviewedDate:                dates.LastReviewedDate,
 		LastReviewedUserID:              complianceRegisterFormDTO.LastReviewedUserID,
 		ComplianceReviewStatusID:        complianceRegisterFormDTO.ComplianceReviewStatusID,
-		CreatedByID:                     currentUserID,
+		CreatedBYID:                     currentUserID,
 		LifecycleStatusID:               lifecycleStatus.ID,
 		ComplianceFolderID:              complianceRegisterFormDTO.ComplianceFolderID,
 		ComplianceAssessmentFrameworkID: complianceRegisterFormDTO.ComplianceAssessmentFrameworkID,
@@ -403,7 +403,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		return err
 	}
 
-	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.DocumentEn); err != nil {
+	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.DocumentAr); err != nil {
 		return err
 	}
 
@@ -425,9 +425,9 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		return err
 	}
 
-	if hasAssessments && existingComplianceRegister.ComplianceAssessmentFrameworkID != nil &&
-		complianceRegisterFormDTO.ComplianceAssessmentFrameworkID != nil &&
-		*existingComplianceRegister.ComplianceAssessmentFrameworkID != *complianceRegisterFormDTO.ComplianceAssessmentFrameworkID {
+	if hasAssessments && existingComplianceRegister.ComplianceAssessmentFrameworkID != 0 &&
+		complianceRegisterFormDTO.ComplianceAssessmentFrameworkID != 0 &&
+		existingComplianceRegister.ComplianceAssessmentFrameworkID != complianceRegisterFormDTO.ComplianceAssessmentFrameworkID {
 
 		return utility.NewValidationError(fmt.Errorf("compliance assessment framework cannot be changed when assessments exist"), "not_allowed", "Compliance assessment framework")
 	}
@@ -451,7 +451,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	existingComplianceRegister.LastReviewedUserID = complianceRegisterFormDTO.LastReviewedUserID
 	existingComplianceRegister.ComplianceReviewStatusID = complianceRegisterFormDTO.ComplianceReviewStatusID
 	existingComplianceRegister.LastReviewNote = complianceRegisterFormDTO.LastReviewNote
-	existingComplianceRegister.UpdatedByID = &currentUserID
+	existingComplianceRegister.UpdatedBYID = &currentUserID
 	existingComplianceRegister.ComplianceFolderID = complianceRegisterFormDTO.ComplianceFolderID
 	existingComplianceRegister.ComplianceAssessmentFrameworkID = complianceRegisterFormDTO.ComplianceAssessmentFrameworkID
 
@@ -604,9 +604,9 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 			"compliance_status":        oldComplianceRegister.ComplianceStatus.TitleEn,
 			"responsible_unit":         oldComplianceRegister.ResponsibleUnit.TitleEn,
 			"responsible_user":         fmt.Sprintf("%s %s", oldComplianceRegister.ResponsibleUser.FirstNameEN, oldComplianceRegister.ResponsibleUser.LastNameEN),
-			"review_frequency":         oldComplianceRegister.ReviewFrequency.TitleEn,
+			"review_frequency":         utility.GetFieldValue(oldComplianceRegister.ReviewFrequency).(string),
 			"review_responsible_user":  utility.GetFieldValue(oldComplianceRegister.ReviewResponsibleUser).(string),
-			"severity_level":           oldComplianceRegister.SeverityLevel.TitleEn,
+			"severity_level":           utility.GetFieldValue(oldComplianceRegister.SeverityLevel).(string),
 			"standard_code":            oldComplianceRegister.StandardCode,
 			"title_en":                 oldComplianceRegister.TitleEn,
 			"title_ar":                 oldComplianceRegister.TitleAr,
@@ -628,8 +628,9 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 			"compliance_status":        existingCompliance.ComplianceStatus.TitleEn,
 			"responsible_unit":         existingCompliance.ResponsibleUnit.TitleEn,
 			"responsible_user":         fmt.Sprintf("%s %s", existingCompliance.ResponsibleUser.FirstNameEN, existingCompliance.ResponsibleUser.LastNameEN),
-			"review_frequency":         existingCompliance.ReviewFrequency.TitleEn,
+			"review_frequency":         utility.GetFieldValue(existingCompliance.ReviewFrequency).(string),
 			"review_responsible_user":  utility.GetFieldValue(existingCompliance.ReviewResponsibleUser).(string),
+			"severity_level":           utility.GetFieldValue(existingCompliance.SeverityLevel).(string),
 			"description_ar":           existingCompliance.DescriptionAr,
 			"version":                  existingCompliance.Version,
 			"dead_line":                existingCompliance.DeadlineString,
@@ -1086,7 +1087,7 @@ func (crs *ComplianceRegisterService) StatusUpdate(id uint, currentUserID uint, 
 	}
 
 	existingCompliance.ComplianceStatusID = complianceStatusID
-	existingCompliance.UpdatedByID = &currentUserID
+	existingCompliance.UpdatedBYID = &currentUserID
 
 	err = crs.repo.Update(existingCompliance, tx)
 	if err != nil {
@@ -1130,10 +1131,8 @@ func (crs *ComplianceRegisterService) validateComplianceRegisterFormDTO(complian
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 		}
 	}
-	if complianceRegisterFormDTO.ComplianceAssessmentFrameworkID != nil {
-		if _, err := crs.complianceAssessmentFrameworkSvc.GetByID(*complianceRegisterFormDTO.ComplianceAssessmentFrameworkID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("compliance assessment framework does not exist"), "not_exist", "compliance assessment framework")
-		}
+	if _, err := crs.complianceAssessmentFrameworkSvc.GetByID(complianceRegisterFormDTO.ComplianceAssessmentFrameworkID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("compliance assessment framework does not exist"), "not_exist", "compliance assessment framework")
 	}
 	// Controls exist
 	controls := complianceRegisterFormDTO.ControlIDs

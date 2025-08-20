@@ -672,3 +672,34 @@ func (uc *UserController) UpdateUserOrganizationUnit(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Responsible units updated successfully"})
 }
+
+func (uc *UserController) GetUserModulesWithPermissions(c *gin.Context) {
+	idStr := c.Param("userId")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title_en")
+	keyword := c.Query("keyword")
+	quickFilter := []string{"active"}
+
+	queryParams := settingDTOs.ModuleListQueryParamsDTO{
+		Sort:              sort,
+		SortBy:            sortBy,
+		Keyword:           keyword,
+		QuickFilter:       quickFilter,
+		IsActiveSubModule: true,
+	}
+
+	permissions, err := uc.service.GetUserModulesWithPermissions(uint(id), &queryParams)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, permissions)
+}

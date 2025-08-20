@@ -370,6 +370,7 @@ func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("ResponsibleUnits").
 		Preload("ResponsibleUnits.ResponsibleUnit").
 		Preload("ResponsibleUnits.ComplianceAssessmentFrameworkValue").
+		Preload("ResponsibleUnits.ComplianceAssessmentFrameworkValue.ComplianceStatus").
 		Preload("Controls").
 		Preload("Controls.Control.ControlCategory").
 		Preload("Controls.Control.ControlType").

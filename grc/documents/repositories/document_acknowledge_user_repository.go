@@ -69,6 +69,7 @@ func (repo *DocumentAcknowledgeUserRepository) GetAll(documentID uint, versionId
             users.profile_image_path, 
             organization_units.title_en AS organization_unit_title_en,
             organization_units.title_ar AS organization_unit_title_ar,
+			document_acknowledge_users.comment AS comment,
             CASE 
                 WHEN document_acknowledge_users.id IS NOT NULL THEN 1 
                 ELSE 0 
@@ -93,6 +94,7 @@ func (repo *DocumentAcknowledgeUserRepository) GetAll(documentID uint, versionId
             users.profile_image_path,
             organization_units.title_en AS organization_unit_title_en,
             organization_units.title_ar AS organization_unit_title_ar,
+			document_acknowledge_users.comment AS comment,
             CASE 
                 WHEN document_acknowledge_users.id IS NOT NULL THEN 1 
                 ELSE 0 
@@ -165,6 +167,7 @@ func (repo *DocumentAcknowledgeUserRepository) GetAllForPublicDocument(documentI
             users.profile_image_path,  
             organization_units.title_en AS organization_unit_title_en,
             organization_units.title_ar AS organization_unit_title_ar,
+			document_acknowledge_users.comment,
             CASE 
                 WHEN document_acknowledge_users.id IS NOT NULL THEN 1 
                 ELSE 0 

@@ -10,6 +10,7 @@ type DocumentAcknowledgeUser struct {
 	DocumentVersionID  *uint     `json:"document_version_id"`
 	UserID             uint      `gorm:"not null" json:"user_id"`
 	OrganizationUnitID uint      `gorm:"not null" json:"organization_unit_id"`
+	Comment            *string   `json:"comment"`
 	CreatedBYID        uint      `gorm:"not null" json:"created_by_id"`
 	CreatedAt          time.Time `gorm:"type:datetime;not null" json:"created_at"`
 

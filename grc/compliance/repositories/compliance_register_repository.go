@@ -70,6 +70,9 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
         	CONVERT(VARCHAR, compliance_register.expiry_date, 23) AS expiry_date,
        		CONVERT(VARCHAR, compliance_register.next_review_date, 23) AS next_review_date,
 			CONVERT(VARCHAR, compliance_register.last_reviewed_date, 23) AS last_reviewed_date,
+			compliance_assessment_frameworks.id AS compliance_assessment_framework_id,
+			compliance_assessment_frameworks.title_en AS compliance_assessment_framework_title_en,
+			compliance_assessment_frameworks.title_ar AS compliance_assessment_framework_title_ar,
 			compliance_categories.title_en AS compliance_category_title_en,
 			compliance_categories.title_ar AS compliance_category_title_ar,
 			compliance_statuses.title_en AS compliance_status_title_en,
@@ -130,6 +133,7 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 		    LEFT JOIN review_frequencies ON review_frequencies.id = compliance_register.review_frequency_id
 			LEFT JOIN users AS review_responsible_user ON review_responsible_user.id = compliance_register.review_responsible_user_id
 		    LEFT JOIN severity_levels ON severity_levels.id = compliance_register.severity_level_id
+			LEFT JOIN compliance_assessment_frameworks ON compliance_assessment_frameworks.id = compliance_register.compliance_assessment_framework_id
 			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = compliance_register.lifecycle_status_id
 			LEFT JOIN users AS created_user ON created_user.id = compliance_register.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_register.updated_by_id
@@ -209,6 +213,8 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			compliance_register.standard_code LIKE ? OR
 			compliance_categories.title_en LIKE ? OR
 			compliance_categories.title_ar LIKE ? OR
+			compliance_assessment_frameworks.title_en LIKE ? OR
+			compliance_assessment_frameworks.title_ar LIKE ? OR
 			compliance_statuses.title_en LIKE ? OR
 			compliance_statuses.title_ar LIKE ? OR
 			organization_units.title_en LIKE ? OR
@@ -230,7 +236,8 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
@@ -291,7 +298,8 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("ComplianceClauses").
 		Preload("ComplianceClauses.ComplianceRequirements").
 		Preload("ComplianceClauses.ComplianceRequirements.RequiredDocumentTitles").
-		Preload("ResponsibleUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
+		Preload("ResponsibleUnit").
+		// Preload("ResponsibleUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("ReviewFrequency").

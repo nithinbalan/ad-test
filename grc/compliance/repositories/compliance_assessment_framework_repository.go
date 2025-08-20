@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -12,13 +11,14 @@ import (
 // Interfaces
 type ComplianceAssessmentFrameworkRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *complianceDTOs.ComplianceAssessmentFrameworkListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentFrameworkListResponseDTO, error)
+	GetAll(params *complianceDTOs.ComplianceAssessmentFrameworkListQueryParamsDTO) ([]*complianceDTOs.ComplianceAssessmentFrameworkListDTO, error)
 	GetByID(id uint) (*models.ComplianceAssessmentFramework, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessmentFramework, error)
 	Create(complianceAssessmentFramework *models.ComplianceAssessmentFramework, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(complianceAssessmentFramework *models.ComplianceAssessmentFramework, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GetByType(status string) (*models.ComplianceAssessmentFramework, error)
+	GetByFrameworkValueID(id uint) (*models.ComplianceAssessmentFrameworkValue, error)
 }
 
 // implementation
@@ -36,9 +36,8 @@ func NewComplianceAssessmentFrameworkRepository(db *gorm.DB) ComplianceAssessmen
 	}
 }
 
-func (repo *ComplianceAssessmentFrameworkRepository) GetAll(params *complianceDTOs.ComplianceAssessmentFrameworkListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentFrameworkListResponseDTO, error) {
-	var complianceAssessmentFrameworks []*complianceDTOs.ComplianceAssessmentFrameworkListDTO
-	var totalCount int64
+func (repo *ComplianceAssessmentFrameworkRepository) GetAll(params *complianceDTOs.ComplianceAssessmentFrameworkListQueryParamsDTO) ([]*complianceDTOs.ComplianceAssessmentFrameworkListDTO, error) {
+	var complianceAssessmentFrameworks = []*complianceDTOs.ComplianceAssessmentFrameworkListDTO{}
 
 	query := repo.db.Table("compliance_assessment_frameworks").
 		Select(`
@@ -80,11 +79,6 @@ func (repo *ComplianceAssessmentFrameworkRepository) GetAll(params *complianceDT
 		}
 	}
 
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -111,25 +105,12 @@ func (repo *ComplianceAssessmentFrameworkRepository) GetAll(params *complianceDT
 		query = query.Order(params.SortBy + " " + sortOrder)
 	}
 
-	// Apply pagination
-	offset := (params.Page - 1) * params.PageSize
-	if err := query.Offset(offset).Limit(params.PageSize).Scan(&complianceAssessmentFrameworks).Error; err != nil {
+	if err := query.Scan(&complianceAssessmentFrameworks).Error; err != nil {
 		return nil, err
 	}
 
-	// Calculate pagination info
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-	pagination := commonDTOs.PaginationInfoDTO{
-		CurrentPage: params.Page,
-		PageSize:    params.PageSize,
-		TotalPages:  totalPages,
-		TotalCount:  totalCount,
-	}
+	return complianceAssessmentFrameworks, nil
 
-	return &complianceDTOs.ComplianceAssessmentFrameworkListResponseDTO{
-		Items:      complianceAssessmentFrameworks,
-		Pagination: pagination,
-	}, nil
 }
 
 func (repo *ComplianceAssessmentFrameworkRepository) GetByID(id uint) (*models.ComplianceAssessmentFramework, error) {

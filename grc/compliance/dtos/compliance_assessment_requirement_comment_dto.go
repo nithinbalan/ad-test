@@ -23,13 +23,15 @@ type ComplianceAssessmentRequirementCommentListDTO struct {
 }
 
 type ComplianceAssessmentRequirementCommentFormDTO struct {
-	Comment string `json:"comment" binding:"required,max=1000"`
+	Comment           string `json:"comment" binding:"required,max=1000"`
+	ResponsibleUnitID uint   `json:"responsible_unit_id" binding:"required"`
 }
 
 type ComplianceAssessmentRequirementCommentDetailDTO struct {
-	ID                                uint                            `json:"id"`
-	Comment                           string                          `json:"comment"`
-	ComplianceAssessmentRequirementID uint                            `json:"compliance_assessment_requirement_id"`
-	CreatedAt                         time.Time                       `json:"created_at"`
-	CreatedByUser                     organizationDTOs.UserMinimalDTO `json:"created_by"`
+	ID                                    uint                                      `json:"id"`
+	Comment                               string                                    `json:"comment"`
+	ComplianceAssessmentRequirementID     uint                                      `json:"compliance_assessment_requirement_id"`
+	CreatedAt                             time.Time                                 `json:"created_at"`
+	CreatedByUser                         organizationDTOs.UserMinimalDTO           `json:"created_by"`
+	ComplianceAssessmentRequirementStatus *ComplianceAssessmentRequirementStatusDTO `json:"compliance_assessment_requirement_status"`
 }
