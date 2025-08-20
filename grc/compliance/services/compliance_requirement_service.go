@@ -278,14 +278,14 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 
 	complianceRequirement := &models.ComplianceRequirement{
 		ComplianceRequirementCategoryID: complianceRequirementFormDTO.ComplianceRequirementCategoryID,
-		ComplianceStatusID:              complianceRequirementFormDTO.ComplianceStatusID,
-		ResponsibleUserID:               currentUserID,
-		SeverityLevelID:                 complianceRequirementFormDTO.SeverityLevelID,
-		TitleEn:                         complianceRequirementFormDTO.TitleEn,
-		TitleAr:                         complianceRequirementFormDTO.TitleAr,
-		Deadline:                        dates.Deadline,
-		CreatedByID:                     currentUserID,
-		ComplianceClauseID:              complianceRequirementFormDTO.ComplianceClauseID,
+		// ComplianceStatusID:              complianceRequirementFormDTO.ComplianceStatusID,
+		ResponsibleUserID:  currentUserID,
+		SeverityLevelID:    complianceRequirementFormDTO.SeverityLevelID,
+		TitleEn:            complianceRequirementFormDTO.TitleEn,
+		TitleAr:            complianceRequirementFormDTO.TitleAr,
+		Deadline:           dates.Deadline,
+		CreatedByID:        currentUserID,
+		ComplianceClauseID: complianceRequirementFormDTO.ComplianceClauseID,
 	}
 
 	id, err := crs.repo.Create(complianceRequirement, tx)
@@ -294,19 +294,19 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		return 0, err
 	}
 
-	complianceStatusID := complianceRequirementFormDTO.ComplianceStatusID
-	complianceRequirementUpdate := &models.ComplianceRequirementStatusUpdate{
-		ComplianceRequirementID: id,
-		ComplianceStatusID:      *complianceStatusID,
-		Comment:                 "Initial compliance status",
-		CreatedByID:             currentUserID,
-	}
+	// complianceStatusID := complianceRequirementFormDTO.ComplianceStatusID
+	// complianceRequirementUpdate := &models.ComplianceRequirementStatusUpdate{
+	// 	ComplianceRequirementID: id,
+	// 	ComplianceStatusID:      *complianceStatusID,
+	// 	Comment:                 "Initial compliance status",
+	// 	CreatedByID:             currentUserID,
+	// }
 
-	_, err = crs.repo.CreateInitialComplianceRequirementStatusUpdate(complianceRequirementUpdate, tx)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
+	// _, err = crs.repo.CreateInitialComplianceRequirementStatusUpdate(complianceRequirementUpdate, tx)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
 
 	// averageScore, err := crs.repo.CalculateAverageScore(complianceID, tx)
 	// if err != nil {
@@ -564,7 +564,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	// Update Compliance Requirement
 	existingComplianceRequirement.ComplianceClauseID = clause.ID
 	existingComplianceRequirement.ComplianceRequirementCategoryID = complianceRequirementFormDTO.ComplianceRequirementCategoryID
-	existingComplianceRequirement.ComplianceStatusID = complianceRequirementFormDTO.ComplianceStatusID
+	// existingComplianceRequirement.ComplianceStatusID = complianceRequirementFormDTO.ComplianceStatusID
 	existingComplianceRequirement.SeverityLevelID = complianceRequirementFormDTO.SeverityLevelID
 	existingComplianceRequirement.TitleEn = complianceRequirementFormDTO.TitleEn
 	existingComplianceRequirement.TitleAr = complianceRequirementFormDTO.TitleAr
@@ -931,7 +931,6 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		// log changes
 		oldData := map[string]interface{}{
 			"compliance_requirement_category": oldComplianceRequirement.ComplianceRequirementCategory.TitleEn,
-			"compliance_status":               oldComplianceRequirement.ComplianceStatus.TitleEn,
 			"responsible_user":                fmt.Sprintf("%s %s", oldComplianceRequirement.ResponsibleUser.FirstNameEN, oldComplianceRequirement.ResponsibleUser.LastNameEN),
 			"severity_level":                  oldComplianceRequirement.SeverityLevel.TitleEn,
 			"title":                           oldComplianceRequirement.TitleEn,
@@ -941,7 +940,6 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 
 		newData := map[string]interface{}{
 			"compliance_requirement_category": existingRequirement.ComplianceRequirementCategory.TitleEn,
-			"compliance_status":               existingRequirement.ComplianceStatus.TitleEn,
 			"responsible_user":                fmt.Sprintf("%s %s", existingRequirement.ResponsibleUser.FirstNameEN, existingRequirement.ResponsibleUser.LastNameEN),
 			"severity_level":                  existingRequirement.SeverityLevel.TitleEn,
 			"title":                           existingRequirement.TitleEn,
@@ -1421,9 +1419,9 @@ func (crs *ComplianceRequirementService) validateComplianceRequirementFormDTO(Co
 		return utility.NewValidationError(fmt.Errorf("compliance requirement category does not exist"), "not_exist", "compliance requirement category")
 	}
 
-	if _, err := crs.complianceStatusSvc.GetByID(*ComplianceRequirementFormDTO.ComplianceStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("compliance status does not exist"), "not_exist", "compliance status")
-	}
+	// if _, err := crs.complianceStatusSvc.GetByID(*ComplianceRequirementFormDTO.ComplianceStatusID); err != nil {
+	// 	return utility.NewValidationError(fmt.Errorf("compliance status does not exist"), "not_exist", "compliance status")
+	// }
 
 	if _, err := crs.severityLevelSvc.GetByID(ComplianceRequirementFormDTO.SeverityLevelID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
