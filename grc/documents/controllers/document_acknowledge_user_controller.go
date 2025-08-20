@@ -117,7 +117,7 @@ func (dauc *DocumentAcknowledgeUserController) CreateDocumentAcknowledgeUser(c *
 		return
 	}
 
-	id, err := dauc.service.Create(uint(documentId), uint(documentVersionId), currentUserID, documentAcknowledgeFormDTO.Comment)
+	id, err := dauc.service.Create(uint(documentId), uint(documentVersionId), currentUserID, &documentAcknowledgeFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

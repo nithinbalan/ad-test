@@ -218,9 +218,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.GET("/policies", middlewares.RolePermissionMiddleware(db, "policies", "view"), policyController.GetAllPolicies)
 
 	//Policy Acknowledge User
-	documentRoutes.GET("/policies/:id/version/:versionId/acknowledge-users", middlewares.RolePermissionMiddleware(db, "policies", "view"), policyAcknowledgeUserController.GetAllPolicyAcknowledgeUsers)
 	documentRoutes.POST("/policies/:id/version/:versionId/acknowledge", middlewares.RolePermissionMiddleware(db, "policies", "modify"), policyAcknowledgeUserController.CreatePolicyAcknowledgeUser)
 	documentRoutes.DELETE("/policies/:id/version/:versionId/acknowledge", middlewares.RolePermissionMiddleware(db, "policies", "modify"), policyAcknowledgeUserController.DeletePolicyAcknowledgeUser)
-	documentRoutes.GET("/policies/:id/version/:versionId/acknowledge-user-summary", middlewares.RolePermissionMiddleware(db, "policies", "view"), policyAcknowledgeUserController.GetPolicyAcknowledgmentSummary)
 
 }

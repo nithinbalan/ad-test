@@ -14,7 +14,7 @@ import (
 
 type DocumentAcknowledgeUserServiceInterface interface {
 	GetAll(documentID uint, versionId uint, params *documentDTOs.DocumentAcknowledgeListQueryParamsDTO) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error)
-	Create(docuemntID uint, versionId uint, currentUserID uint, comment *string) (uint, error)
+	Create(docuemntID uint, versionId uint, currentUserID uint, documentAcknowledgeFormDTO *documentDTOs.DocumentAcknowledgeFormDTO) (uint, error)
 	Delete(docuemntID uint, versionId uint, currentUserID uint) (uint, error)
 	GetDocumentAcknowledgmentSummary(documentID uint, versionId uint) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error)
 }
@@ -77,7 +77,7 @@ func (daus *DocumentAcknowledgeUserService) GetAll(documentID uint, versionId ui
 
 }
 
-func (daus *DocumentAcknowledgeUserService) Create(docuemntID uint, versionId uint, currentUserID uint, comment *string) (uint, error) {
+func (daus *DocumentAcknowledgeUserService) Create(docuemntID uint, versionId uint, currentUserID uint, documentAcknowledgeFormDTO *documentDTOs.DocumentAcknowledgeFormDTO) (uint, error) {
 	tx := daus.repo.BeginTransaction()
 
 	document, err := daus.documentSvc.GetFullDetailsByID(docuemntID, nil, tx)
@@ -106,7 +106,7 @@ func (daus *DocumentAcknowledgeUserService) Create(docuemntID uint, versionId ui
 		DocumentVersionID:  &versionId,
 		UserID:             currentUserID,
 		OrganizationUnitID: organizationUnitID,
-		Comment:            comment,
+		Comment:            documentAcknowledgeFormDTO.Comment,
 		CreatedBYID:        currentUserID,
 	}
 
