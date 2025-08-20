@@ -127,6 +127,7 @@ type ComplianceAssessmentRequirementResponsibleUnitDTO struct {
 	Score                                 *int                                               `json:"score"`
 	Comments                              *string                                            `json:"comments"`
 	ComplianceAssessmentRequirementStatus *ComplianceAssessmentRequirementStatusDTO          `json:"compliance_assessment_requirement_status"`
+	CompletedAt                           *time.Time                                         `json:"completed_at"` // ⬅️ new field
 }
 
 type AssessmentCompletionSummaryDTO struct {

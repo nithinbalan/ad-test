@@ -497,9 +497,11 @@ func (cars ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAss
 	if err != nil {
 		return err
 	}
+	now := time.Now()
 	complianceAssessmentRequirementResponsibleUnit.IsCompleted = true
 	complianceAssessmentRequirementResponsibleUnit.UpdatedBYID = &currentUserID
 	complianceAssessmentRequirementResponsibleUnit.CompletedByUserID = &currentUserID
+	complianceAssessmentRequirementResponsibleUnit.CompletedAt = &now
 
 	err = cars.repo.UpdateComplianceAssessmentRequirementResponsibleUnit(complianceAssessmentRequirementResponsibleUnit, tx)
 	if err != nil {

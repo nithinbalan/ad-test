@@ -10,6 +10,7 @@ type ComplianceAssessmentRequirementResponsibleUnit struct {
 	ComplianceAssessmentFrameworkValueID    *uint      `json:"compliance_assessment_framework_value_id" gorm:"default:null"`
 	ComplianceAssessmentRequirementStatusID *uint      `json:"compliance_assessment_requirement_status_id" gorm:"default:null"`
 	CompletedByUserID                       *uint      `json:"completed_by_user_id"`
+	CompletedAt                             *time.Time `json:"completed_at" gorm:"type:datetime;default:null"`
 	Score                                   *int       `json:"score" gorm:"default:null"`
 	Comments                                *string    `json:"comments" gorm:"type:nvarchar(max);default:null"`
 	IsCompleted                             bool       `json:"is_completed" gorm:"not null"`

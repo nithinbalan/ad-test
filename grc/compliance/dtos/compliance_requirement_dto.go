@@ -208,9 +208,12 @@ type ComplianceRequirementResponsibleUnitRowDTO struct {
 	ParentID                             *uint  `json:"parent_id"`
 }
 type ComplianceRequirementValueUpdateDTO struct {
-	ComplianceRequirementID              uint     `json:"compliance_requirement_id"`
-	ComplianceStatusID                   *uint    `json:"compliance_status_id"`
-	ComplianceAssessmentFrameworkValueID uint     `json:"compliance_assessment_framework_value_id"`
-	ResponsibleUnitID                    uint     `json:"responsible_unit_id"`
-	Score                                *float64 `json:"score"`
+	ComplianceRequirementID              uint       `json:"compliance_requirement_id"`
+	ComplianceStatusID                   *uint      `json:"compliance_status_id"`
+	ComplianceAssessmentFrameworkValueID uint       `json:"compliance_assessment_framework_value_id"`
+	ResponsibleUnitID                    uint       `json:"responsible_unit_id"`
+	Score                                *float64   `json:"score"`
+	Comments                             *string    `json:"comments"`
+	CompletedByUserID                    *uint      `json:"completed_by_user_id"`
+	CompletedAt                          *time.Time `json:"completed_at"`
 }

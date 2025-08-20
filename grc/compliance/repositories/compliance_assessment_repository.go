@@ -480,7 +480,12 @@ func (repo *ComplianceAssessmentRepository) UpdateComplianceRequirementResponsib
 	}
 
 	if err := db.Model(&models.ComplianceRequirementResponsibleUnit{}).Where("responsible_unit_id = ? AND compliance_requirement_id = ?", complianceRequirementValueUpdateDTO.ResponsibleUnitID, complianceRequirementValueUpdateDTO.ComplianceRequirementID).
-		Update("compliance_assessment_framework_value_id", complianceRequirementValueUpdateDTO.ComplianceAssessmentFrameworkValueID).Error; err != nil {
+		Updates(map[string]interface{}{
+			"compliance_assessment_framework_value_id": complianceRequirementValueUpdateDTO.ComplianceAssessmentFrameworkValueID,
+			"comments":             complianceRequirementValueUpdateDTO.Comments,
+			"completed_by_user_id": complianceRequirementValueUpdateDTO.CompletedByUserID,
+			"completed_at":         complianceRequirementValueUpdateDTO.CompletedAt,
+		}).Error; err != nil {
 		return err
 	}
 
