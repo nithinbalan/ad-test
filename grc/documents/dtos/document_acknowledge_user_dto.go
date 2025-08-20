@@ -19,6 +19,7 @@ type DocumentAcknowledgementListDTO struct {
 	Email                   string `json:"email"`
 	Initial                 string `json:"initial"`
 	Color                   string `json:"color"`
+	Comment                 string `json:"comment"`
 	ProfileImagePath        string `json:"profile_image_path"`
 	OrganizationUnitTitleEn string `json:"organization_unit_title_en"`
 	OrganizationUnitTitleAr string `json:"organization_unit_title_ar"`
@@ -36,4 +37,8 @@ type DocumentAcknowledgmentSummaryDTO struct {
 	NotAcknowledgedUsers   int64   `json:"not_acknowledged_users"`
 	AcknowledgedPercent    float64 `json:"acknowledged_percent"`
 	NotAcknowledgedPercent float64 `json:"not_acknowledged_percent"`
+}
+
+type DocumentAcknowledgeFormDTO struct {
+	Comment *string `json:"comment" binding:"omitempty"`
 }

@@ -35,6 +35,8 @@ type DocumentModule struct {
 	DocumentPeriodicReviewController              *controllers.DocumentPeriodicReviewController
 	DocumentRequirementGroupController            *controllers.DocumentRequirementGroupController
 	DocumentRequirementController                 *controllers.DocumentRequirementController
+	PolicyController                              *controllers.PolicyController
+	PolicyAcknowledgeUserController               *controllers.PolicyAcknowledgeUserController
 	// DocumentRequirementController                 *controllers.DocumentRequirementController
 
 	DocumentSvc                 services.DocumentServiceInterface
@@ -238,6 +240,10 @@ func NewDocumentModule(db *gorm.DB,
 	documentRequirementSvc := services.NewDocumentRequirementService(documentRequirementRepo, sharedModule.ActivityLogService, documentRequirementGroupSvc, documentSvc)
 	documentRequirementController := controllers.NewDocumentRequirementController(documentRequirementSvc)
 
+	// Initialize PolicyController
+	policyController := controllers.NewPolicyController(documentSvc)
+	policyAcknowledgeUserController := controllers.NewPolicyAcknowledgeUserController(documentAcknowledgeUserSvc)
+
 	return &DocumentModule{
 		DocumentCategoryController:                    documentCategoryController,
 		DocumentTypeController:                        documentTypeController,
@@ -265,6 +271,8 @@ func NewDocumentModule(db *gorm.DB,
 		DocumentPeriodicReviewController:              documentPeriodicReviewController,
 		DocumentRequirementGroupController:            documentRequirementGroupController,
 		DocumentRequirementController:                 documentRequirementController,
+		PolicyController:                              policyController,
+		PolicyAcknowledgeUserController:               policyAcknowledgeUserController,
 
 		DocumentSvc:                 documentSvc,
 		DocumentChangeRequestSvc:    documentChangeRequestSvc,
