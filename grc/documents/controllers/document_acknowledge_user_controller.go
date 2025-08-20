@@ -90,6 +90,12 @@ func (dauc *DocumentAcknowledgeUserController) GetAllDocumentAcknowledgeUsers(c 
 }
 
 func (dauc *DocumentAcknowledgeUserController) CreateDocumentAcknowledgeUser(c *gin.Context) {
+
+	var documentAcknowledgeFormDTO documentDTOs.DocumentAcknowledgeFormDTO
+	if err := c.ShouldBindJSON(&documentAcknowledgeFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 	documentIdStr := c.Param("id")
 
 	documentId, err := strconv.ParseUint(documentIdStr, 10, 64)
@@ -111,7 +117,7 @@ func (dauc *DocumentAcknowledgeUserController) CreateDocumentAcknowledgeUser(c *
 		return
 	}
 
-	id, err := dauc.service.Create(uint(documentId), uint(documentVersionId), currentUserID)
+	id, err := dauc.service.Create(uint(documentId), uint(documentVersionId), currentUserID, documentAcknowledgeFormDTO.Comment)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

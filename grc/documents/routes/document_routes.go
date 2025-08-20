@@ -48,6 +48,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentPeriodicReviewController := app.DocumentModule.DocumentPeriodicReviewController
 	documentRequirementGroupController := app.DocumentModule.DocumentRequirementGroupController
 	documentRequirementController := app.DocumentModule.DocumentRequirementController
+	policyController := app.DocumentModule.PolicyController
+	policyAcknowledgeUserController := app.DocumentModule.PolicyAcknowledgeUserController
 
 	documentRoutes.GET("/document-categories", documentCategoryController.GetAllDocumentCategories)
 	documentRoutes.GET("/document-categories/:id", documentCategoryController.GetDocumentCategoryDetails)
@@ -210,5 +212,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/documents/:id/requirement-groups/:requirementGroupId/requirements/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentRequirementController.DeleteDocumentRequirements)
 
 	documentRoutes.POST("/documents/:id/requirements", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentRequirementController.CreateDocumentRequirements)
+
+	// policy
+	documentRoutes.GET("/policies/export", middlewares.RolePermissionMiddleware(db, "policies", "view"), policyController.GetPolicyExport)
+	documentRoutes.GET("/policies", middlewares.RolePermissionMiddleware(db, "policies", "view"), policyController.GetAllPolicies)
+
+	//Policy Acknowledge User
+	documentRoutes.GET("/policies/:id/version/:versionId/acknowledge-users", middlewares.RolePermissionMiddleware(db, "policies", "view"), policyAcknowledgeUserController.GetAllPolicyAcknowledgeUsers)
+	documentRoutes.POST("/policies/:id/version/:versionId/acknowledge", middlewares.RolePermissionMiddleware(db, "policies", "modify"), policyAcknowledgeUserController.CreatePolicyAcknowledgeUser)
+	documentRoutes.DELETE("/policies/:id/version/:versionId/acknowledge", middlewares.RolePermissionMiddleware(db, "policies", "modify"), policyAcknowledgeUserController.DeletePolicyAcknowledgeUser)
+	documentRoutes.GET("/policies/:id/version/:versionId/acknowledge-user-summary", middlewares.RolePermissionMiddleware(db, "policies", "view"), policyAcknowledgeUserController.GetPolicyAcknowledgmentSummary)
 
 }
