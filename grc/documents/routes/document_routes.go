@@ -178,7 +178,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/document-change-requests/:id/document-download", documentChangeRequestController.DownloadChangeRequestDocument)
 
 	documentRoutes.GET("/document-change-request-workflow-statuses", documentChangeRequestWorkflowStatusController.GetAllDocumentChangeRequestWorkflowStatuses)
-	documentRoutes.GET("/ocument-change-request-workflow-statuses/:id", documentChangeRequestWorkflowStatusController.GetDocumentChangeRequestWorkflowStatusDetails)
+	documentRoutes.GET("/document-change-request-workflow-statuses/:id", documentChangeRequestWorkflowStatusController.GetDocumentChangeRequestWorkflowStatusDetails)
 
 	documentRoutes.GET("/document-change-requests/:id/comments", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestReviewController.GetComments)
 	documentRoutes.POST("/document-change-requests/:id/comments", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestReviewController.AddComment)
