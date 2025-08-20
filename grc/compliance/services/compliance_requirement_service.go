@@ -276,13 +276,6 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		return 0, err
 	}
 
-	// Calculate the score
-	score, err := crs.calculateComplianceRequirementScore(complianceRequirementFormDTO.ComplianceStatusID, complianceRequirementFormDTO.SeverityLevelID)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-
 	complianceRequirement := &models.ComplianceRequirement{
 		ComplianceRequirementCategoryID: complianceRequirementFormDTO.ComplianceRequirementCategoryID,
 		ComplianceStatusID:              complianceRequirementFormDTO.ComplianceStatusID,
@@ -293,7 +286,6 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		Deadline:                        dates.Deadline,
 		CreatedByID:                     currentUserID,
 		ComplianceClauseID:              complianceRequirementFormDTO.ComplianceClauseID,
-		Score:                           score,
 	}
 
 	id, err := crs.repo.Create(complianceRequirement, tx)
@@ -305,7 +297,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	complianceStatusID := complianceRequirementFormDTO.ComplianceStatusID
 	complianceRequirementUpdate := &models.ComplianceRequirementStatusUpdate{
 		ComplianceRequirementID: id,
-		ComplianceStatusID:      complianceStatusID,
+		ComplianceStatusID:      *complianceStatusID,
 		Comment:                 "Initial compliance status",
 		CreatedByID:             currentUserID,
 	}
@@ -316,18 +308,18 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		return 0, err
 	}
 
-	averageScore, err := crs.repo.CalculateAverageScore(complianceID, tx)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
+	// averageScore, err := crs.repo.CalculateAverageScore(complianceID, tx)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
 
 	// Update the ComplianceRegister with the new total score
-	err = crs.complianceRegisterSvc.UpdateComplianceTotalScore(complianceID, averageScore, tx)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
+	// err = crs.complianceRegisterSvc.UpdateComplianceTotalScore(complianceID, averageScore, tx)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
 	var responsibleUnits []*models.ComplianceRequirementResponsibleUnit
 	for _, resUnitID := range complianceRequirementFormDTO.ResponsibleUnitIDs {
 		unit := &models.ComplianceRequirementResponsibleUnit{
@@ -569,12 +561,6 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		return err
 	}
 
-	score, err := crs.calculateComplianceRequirementScore(complianceRequirementFormDTO.ComplianceStatusID, complianceRequirementFormDTO.SeverityLevelID)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
 	// Update Compliance Requirement
 	existingComplianceRequirement.ComplianceClauseID = clause.ID
 	existingComplianceRequirement.ComplianceRequirementCategoryID = complianceRequirementFormDTO.ComplianceRequirementCategoryID
@@ -583,7 +569,6 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	existingComplianceRequirement.TitleEn = complianceRequirementFormDTO.TitleEn
 	existingComplianceRequirement.TitleAr = complianceRequirementFormDTO.TitleAr
 	existingComplianceRequirement.Deadline = dates.Deadline
-	existingComplianceRequirement.Score = score
 	existingComplianceRequirement.ResponsibleUserID = currentUserID
 	existingComplianceRequirement.UpdatedByID = &currentUserID
 
@@ -796,17 +781,17 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		}
 	}
 
-	averageScore, err := crs.repo.CalculateAverageScore(complianceID, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+	// averageScore, err := crs.repo.CalculateAverageScore(complianceID, tx)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return err
+	// }
 
-	err = crs.complianceRegisterSvc.UpdateComplianceTotalScore(complianceID, averageScore, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+	// err = crs.complianceRegisterSvc.UpdateComplianceTotalScore(complianceID, averageScore, tx)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return err
+	// }
 
 	// Delete documents not in the new list
 	if len(deleteDocumentIDs) > 0 {
@@ -1388,7 +1373,7 @@ func (crs *ComplianceRequirementService) StatusUpdate(complianceID uint, id uint
 		return err
 	}
 
-	existingComplianceRequirement.ComplianceStatusID = complianceStatusID
+	existingComplianceRequirement.ComplianceStatusID = &complianceStatusID
 	existingComplianceRequirement.UpdatedByID = &currentUserID
 
 	err = crs.repo.Update(existingComplianceRequirement, tx)
@@ -1436,7 +1421,7 @@ func (crs *ComplianceRequirementService) validateComplianceRequirementFormDTO(Co
 		return utility.NewValidationError(fmt.Errorf("compliance requirement category does not exist"), "not_exist", "compliance requirement category")
 	}
 
-	if _, err := crs.complianceStatusSvc.GetByID(ComplianceRequirementFormDTO.ComplianceStatusID); err != nil {
+	if _, err := crs.complianceStatusSvc.GetByID(*ComplianceRequirementFormDTO.ComplianceStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("compliance status does not exist"), "not_exist", "compliance status")
 	}
 

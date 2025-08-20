@@ -39,12 +39,10 @@ type ComplianceAssessmentFrameworkListDTO struct {
 }
 
 type ComplianceAssessmentFrameworkListQueryParamsDTO struct {
-	Sort     string
-	SortBy   string
-	Keyword  string
-	Page     int
-	PageSize int
-	Filters  map[string][]string
+	Sort    string
+	SortBy  string
+	Keyword string
+	Filters map[string][]string
 }
 
 type ComplianceAssessmentFrameworkListResponseDTO struct {

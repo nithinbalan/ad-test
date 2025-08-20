@@ -58,10 +58,10 @@ func (crs *ComplianceReportService) calculateAverageScoreAndStatus(requirement *
 		for _, assessment := range deptAssessments {
 			for _, otherRequirement := range assessment.AssessmentRequirements {
 				if otherRequirement.ComplianceRequirement.ID == requirement.ID &&
-					otherRequirement.Score != nil &&
+					// otherRequirement.Score != nil &&
 					otherRequirement.ComplianceStatus != nil &&
 					otherRequirement.ComplianceStatus.Type != "not_applicable" {
-					totalScore += float64(*otherRequirement.Score)
+					// totalScore += float64(*otherRequirement.Score)
 					scoreCount++
 				}
 			}
@@ -140,17 +140,17 @@ func (crs *ComplianceReportService) Create(currentUserID uint, request *dtos.Com
 		}
 	}
 
-	complianceAssessments, err := crs.repo.GetComplianceAssessmentByComplianceRegisterID(request.ComplianceRegisterID, *parsedDates.StartDate, *parsedDates.EndDate, tx)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
+	// complianceAssessments, err := crs.repo.GetComplianceAssessmentByComplianceRegisterID(request.ComplianceRegisterID, *parsedDates.StartDate, *parsedDates.EndDate, tx)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
 
 	// Group assessments by organization unit
 	orgUnitAssessments := make(map[uint][]models.ComplianceAssessment)
-	for _, assessment := range complianceAssessments {
-		orgUnitAssessments[assessment.PrimaryUnitID] = append(orgUnitAssessments[assessment.PrimaryUnitID], assessment)
-	}
+	// for _, assessment := range complianceAssessments {
+	// 	orgUnitAssessments[assessment.PrimaryUnitID] = append(orgUnitAssessments[assessment.PrimaryUnitID], assessment)
+	// }
 
 	// Create report department for each organization unit
 	for orgUnitID, assessments := range orgUnitAssessments {
@@ -208,11 +208,11 @@ func (crs *ComplianceReportService) Create(currentUserID uint, request *dtos.Com
 				}
 
 				complianceReportRequirement := &models.ComplianceReportRequirement{
-					ComplianceReportID:        complianceReportID,
-					ComplianceReportClauseID:  clauseMap[requirement.ComplianceRequirement.ComplianceClause.ID].ID,
-					TitleEn:                   requirement.ComplianceRequirement.TitleEn,
-					TitleAr:                   requirement.ComplianceRequirement.TitleAr,
-					Score:                     requirement.Score,
+					ComplianceReportID:       complianceReportID,
+					ComplianceReportClauseID: clauseMap[requirement.ComplianceRequirement.ComplianceClause.ID].ID,
+					TitleEn:                  requirement.ComplianceRequirement.TitleEn,
+					TitleAr:                  requirement.ComplianceRequirement.TitleAr,
+					// Score:                     requirement.Score,
 					AverageScore:              averageScore,
 					ComplianceStatusID:        nil,
 					AverageComplianceStatusID: averageComplianceStatusID,
@@ -222,33 +222,33 @@ func (crs *ComplianceReportService) Create(currentUserID uint, request *dtos.Com
 				if requirement.ComplianceStatus != nil {
 					complianceReportRequirement.ComplianceStatusID = &requirement.ComplianceStatus.ID
 				}
+				// todo based on responsible unit
 
-				complianceReportRequirementID, err := crs.repo.CreateComplianceReportRequirement(complianceReportRequirement, tx)
-				if err != nil {
-					tx.Rollback()
-					return 0, err
-				}
+				// complianceReportRequirementID, err := crs.repo.CreateComplianceReportRequirement(complianceReportRequirement, tx)
+				// if err != nil {
+				// 	tx.Rollback()
+				// 	return 0, err
+				// }
+				// for _, actionPlan := range requirement.ResponsibleUnitsActionPlans {
 
-				for _, actionPlan := range requirement.ActionPlans {
+				// 	complianceReportActionPlan := &models.ComplianceReportActionPlan{
+				// 		ComplianceReportID:            complianceReportID,
+				// 		ComplianceReportRequirementID: complianceReportRequirementID,
+				// 		Title:                         actionPlan.Title,
+				// 		Description:                   actionPlan.Description,
+				// 		ActionPlanStatusID:            actionPlan.ActionPlanStatusID,
+				// 		TargetDate:                    actionPlan.TargetDate,
+				// 		SeverityLevelID:               actionPlan.SeverityLevelID,
+				// 		CreatedAt:                     time.Now(),
+				// 		CreatedBYID:                   currentUserID,
+				// 	}
 
-					complianceReportActionPlan := &models.ComplianceReportActionPlan{
-						ComplianceReportID:            complianceReportID,
-						ComplianceReportRequirementID: complianceReportRequirementID,
-						Title:                         actionPlan.Title,
-						Description:                   actionPlan.Description,
-						ActionPlanStatusID:            actionPlan.ActionPlanStatusID,
-						TargetDate:                    actionPlan.TargetDate,
-						SeverityLevelID:               actionPlan.SeverityLevelID,
-						CreatedAt:                     time.Now(),
-						CreatedBYID:                   currentUserID,
-					}
-
-					_, err := crs.repo.CreateComplianceReportActionPlan(complianceReportActionPlan, tx)
-					if err != nil {
-						tx.Rollback()
-						return 0, err
-					}
-				}
+				// 	_, err := crs.repo.CreateComplianceReportActionPlan(complianceReportActionPlan, tx)
+				// 	if err != nil {
+				// 		tx.Rollback()
+				// 		return 0, err
+				// 	}
+				// }
 			}
 		}
 
@@ -644,9 +644,9 @@ func calculateAverageScore(assessments []models.ComplianceAssessment) float64 {
 	for _, assessment := range assessments {
 		for _, requirement := range assessment.AssessmentRequirements {
 			if requirement.ComplianceStatus != nil &&
-				requirement.ComplianceStatus.Type != "not_applicable" &&
-				requirement.Score != nil {
-				totalScore += float64(*requirement.Score)
+				requirement.ComplianceStatus.Type != "not_applicable" {
+				// requirement.Score != nil {
+				// totalScore += float64(*requirement.Score)
 				totalCount++
 			}
 		}

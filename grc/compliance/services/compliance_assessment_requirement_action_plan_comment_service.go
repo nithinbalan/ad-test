@@ -256,7 +256,7 @@ func (carapcs *ComplianceAssessmentRequirementActionPlanCommentService) Create(a
 				emailData := map[string]interface{}{
 					"FirstNameEn":            reviewUser.FirstNameEn,
 					"LastNameEn":             reviewUser.LastNameEn,
-					"Requirement":            complianceActionPlan.ComplianceAssessmentRequirement.ComplianceRequirement.TitleEn,
+					"Requirement":            complianceActionPlan.ComplianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentRequirement.ComplianceRequirement.TitleEn,
 					"ActionPlanTitle":        complianceActionPlan.Title,
 					"ActionPlanDescription":  complianceActionPlan.Description,
 					"Comment":                complianceActionPlanCommentFormDTO.Comment,
@@ -326,7 +326,7 @@ func (carapcs *ComplianceAssessmentRequirementActionPlanCommentService) Create(a
 			emailData := map[string]interface{}{
 				"FirstNameEn":            responsibleUser.FirstNameEn,
 				"LastNameEn":             responsibleUser.LastNameEn,
-				"Requirement":            complianceActionPlan.ComplianceAssessmentRequirement.ComplianceRequirement.TitleEn,
+				"Requirement":            complianceActionPlan.ComplianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentRequirement.ComplianceRequirement.TitleEn,
 				"ActionPlanTitle":        complianceActionPlan.Title,
 				"ActionPlanDescription":  complianceActionPlan.Description,
 				"Comment":                complianceActionPlanCommentFormDTO.Comment,
@@ -395,7 +395,7 @@ func (carapcs *ComplianceAssessmentRequirementActionPlanCommentService) Create(a
 			emailData := map[string]interface{}{
 				"FirstNameEn":            responsibleUser.FirstNameEn,
 				"LastNameEn":             responsibleUser.LastNameEn,
-				"Requirement":            complianceActionPlan.ComplianceAssessmentRequirement.ComplianceRequirement.TitleEn,
+				"Requirement":            complianceActionPlan.ComplianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentRequirement.ComplianceRequirement.TitleEn,
 				"ActionPlanTitle":        complianceActionPlan.Title,
 				"ActionPlanDescription":  complianceActionPlan.Description,
 				"Comment":                complianceActionPlanCommentFormDTO.Comment,
@@ -463,7 +463,7 @@ func (carapcs *ComplianceAssessmentRequirementActionPlanCommentService) Create(a
 				emailData := map[string]interface{}{
 					"FirstNameEn":            responsibleUser.FirstNameEn,
 					"LastNameEn":             responsibleUser.LastNameEn,
-					"Requirement":            complianceActionPlan.ComplianceAssessmentRequirement.ComplianceRequirement.TitleEn,
+					"Requirement":            complianceActionPlan.ComplianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentRequirement.ComplianceRequirement.TitleEn,
 					"ActionPlanTitle":        complianceActionPlan.Title,
 					"ActionPlanDescription":  complianceActionPlan.Description,
 					"Comment":                complianceActionPlanCommentFormDTO.Comment,

@@ -3,9 +3,9 @@ package models
 import "time"
 
 type ComplianceAssessment struct {
-	ID                           uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	ComplianceRegisterID         uint       `json:"compliance_register_id" binding:"required"`
-	PrimaryUnitID                uint       `json:"organization_unit_id" binding:"required" gorm:"column:organization_unit_id;not null"`
+	ID                   uint `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	ComplianceRegisterID uint `json:"compliance_register_id" binding:"required"`
+	// PrimaryUnitID                uint       `json:"organization_unit_id" binding:"required" gorm:"column:organization_unit_id;not null"`
 	ReviewUserID                 uint       `json:"review_user_id" binding:"required"`
 	ComplianceAssessmentStatusID uint       `json:"compliance_assessment_status_id" gorm:"not null;default:1"`
 	SubmittedBy                  *uint      `json:"submitted_by"`
@@ -18,8 +18,8 @@ type ComplianceAssessment struct {
 	UpdatedBYID                  *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	ComplianceRegister         *ComplianceRegister                `gorm:"foreignKey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	OrganizationUnit           *OrganizationUnit                  `gorm:"foreignKey:PrimaryUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceRegister *ComplianceRegister `gorm:"foreignKey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	// OrganizationUnit           *OrganizationUnit                  `gorm:"foreignKey:PrimaryUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ReviewUser                 *User                              `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceAssessmentStatus *ComplianceAssessmentStatus        `gorm:"foreignKey:ComplianceAssessmentStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SubmittedByUser            *User                              `gorm:"foreignKey:SubmittedBy"`

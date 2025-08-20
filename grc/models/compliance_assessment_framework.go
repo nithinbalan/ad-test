@@ -14,10 +14,10 @@ type ComplianceAssessmentFramework struct {
 	CreatedAt                 time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                 *time.Time `json:"updated_at" gorm:"type:datetime"`
 
-	AssessmentFrameworkType *ComplianceAssessmentFrameworkType   `gorm:"foreignKey:AssessmentFrameworkTypeID;constraint:OnDelete:CASCADE"`
-	CreatedByUser           *User                                `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser           *User                                `gorm:"foreignKey:UpdatedBYID"`
-	Values                  []ComplianceAssessmentFrameworkValue `gorm:"foreignKey:ComplianceAssessmentFrameworkID;constraint:OnDelete:CASCADE"`
+	AssessmentFrameworkType *ComplianceAssessmentFrameworkType    `gorm:"foreignKey:AssessmentFrameworkTypeID;constraint:OnDelete:CASCADE"`
+	CreatedByUser           *User                                 `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser           *User                                 `gorm:"foreignKey:UpdatedBYID"`
+	Values                  []*ComplianceAssessmentFrameworkValue `gorm:"foreignKey:ComplianceAssessmentFrameworkID;constraint:OnDelete:CASCADE"`
 }
 
 func (ComplianceAssessmentFramework) TableName() string {
