@@ -45,6 +45,15 @@ type SubModuleListDTO struct {
 	Permissions map[string]bool `json:"permissions"`
 }
 
+type ModulePermissionListDTO struct {
+	ID            uint            `json:"id"`
+	Identifier    string          `json:"identifier"`
+	TitleEn       string          `json:"title_en"`
+	TitleAr       string          `json:"title_ar"`
+	Permissions   map[string]bool `json:"permissions"`
+	OpenTaskCount int             `json:"open_task_count"`
+}
+
 type ModuleReorderDTO struct {
 	ID         uint   `json:"id"`
 	Identifier string `json:"identifier"`

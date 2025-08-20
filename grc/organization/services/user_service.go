@@ -68,6 +68,8 @@ type UserServiceInterface interface {
 	GetUsersFromAD() ([]userDTOs.ADUserFlatDTO, error)
 
 	UpdateUserOrganizationUnit(userID uint, departmentUpdateFormDTO userDTOs.UpdateOrganizationUnitDTO) error
+
+	GetUserModulesWithPermissions(userID uint, params *settingDTOs.ModuleListQueryParamsDTO) ([]settingDTOs.ModulePermissionListDTO, error)
 }
 
 type UserService struct {
@@ -2387,4 +2389,63 @@ func FormatOrgUnitHeader(input string) string {
 		}
 	}
 	return strings.Join(parts, " ")
+}
+
+func (us *UserService) GetUserModulesWithPermissions(userID uint, params *settingDTOs.ModuleListQueryParamsDTO) ([]settingDTOs.ModulePermissionListDTO, error) {
+	userRoles, err := us.repo.GetUserRoles(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	modules, err := us.moduleSvc.GetAll(params)
+	if err != nil {
+		return nil, err
+	}
+
+	userPermissions := map[uint]map[string]bool{}
+
+	for _, role := range userRoles {
+		for _, module := range *modules {
+			for _, submodule := range module.SubModules {
+				if _, exists := userPermissions[submodule.ID]; !exists {
+					userPermissions[submodule.ID] = map[string]bool{}
+				}
+
+				subGrantedPermissions, err := us.repo.GetPermissionsForModule(role.RoleID, submodule.ID)
+				if err != nil {
+					return nil, err
+				}
+
+				for permissionType := range subGrantedPermissions {
+					userPermissions[submodule.ID][permissionType] = true
+				}
+			}
+		}
+	}
+
+	var subModuleList []settingDTOs.ModulePermissionListDTO
+	for _, module := range *modules {
+		for _, submodule := range module.SubModules {
+			// Only include submodules that have at least "view" permission
+			if userPermissions[submodule.ID]["view"] {
+
+				openTaskCount, err := us.repo.CountTasksByUser(userID, submodule.ID)
+				if err != nil {
+					return nil, err
+				}
+
+				submoduleDTO := settingDTOs.ModulePermissionListDTO{
+					ID:            submodule.ID,
+					Identifier:    submodule.Identifier,
+					TitleEn:       submodule.TitleEn,
+					TitleAr:       submodule.TitleAr,
+					Permissions:   userPermissions[submodule.ID],
+					OpenTaskCount: openTaskCount,
+				}
+				subModuleList = append(subModuleList, submoduleDTO)
+			}
+		}
+	}
+
+	return subModuleList, nil
 }

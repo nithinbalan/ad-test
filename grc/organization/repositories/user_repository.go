@@ -55,6 +55,8 @@ type UserRepositoryInterface interface {
 	UpdateResponsibleUnits(userID, newDepartmentID uint, tx ...utility.DatabaseTransaction) error
 	UpdateResponsibleUsers(oldUserID, newUserID uint, tx ...utility.DatabaseTransaction) error
 	UpdateResponsibleUserTasks(oldUserID, newUserID uint, tx ...utility.DatabaseTransaction) error
+
+	CountTasksByUser(userID uint, moduleID uint) (int, error)
 }
 
 type UserRepository struct {
@@ -896,4 +898,16 @@ func (repo *UserRepository) UpdateResponsibleUserTasks(oldUserID, newUserID uint
 		return fmt.Errorf("failed to update tasks: %w", err)
 	}
 	return nil
+}
+
+func (r *UserRepository) CountTasksByUser(userID uint, moduleID uint) (int, error) {
+	var count int64
+	err := r.db.Table("tasks t").
+		Joins("JOIN task_statuses ts ON ts.id = t.task_status_id").
+		Where("t.responsible_user_id = ?", userID).
+		Where("t.module_id = ?", moduleID).
+		Where("ts.type NOT IN ?", []string{"closed"}).
+		Count(&count).Error
+
+	return int(count), err
 }
