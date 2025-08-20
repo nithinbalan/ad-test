@@ -36,7 +36,7 @@ type DocumentRepositoryInterface interface {
 
 	CreateDocumentWorkflowReview(documentWorkflowReview *models.DocumentWorkflowReview, tx ...utility.DatabaseTransaction) error
 
-	HasDocumentPermission(documentID uint, currentUserID uint, isUserSuperAdmin bool, primaryOrgUnitField string) (bool, error)
+	// HasDocumentPermission(documentID uint, currentUserID uint, isUserSuperAdmin bool, primaryOrgUnitField string) (bool, error)
 }
 
 // Implementation
@@ -593,51 +593,51 @@ func (repo *DocumentRepository) CreateDocumentWorkflowReview(documentWorkflowRev
 	return nil
 }
 
-func (repo *DocumentRepository) HasDocumentPermission(documentID uint, currentUserID uint, isUserSuperAdmin bool, primaryOrgUnitField string) (bool, error) {
-	if isUserSuperAdmin {
-		return true, nil
-	}
+// func (repo *DocumentRepository) HasDocumentPermission(documentID uint, currentUserID uint, isUserSuperAdmin bool, primaryOrgUnitField string) (bool, error) {
+// 	if isUserSuperAdmin {
+// 		return true, nil
+// 	}
 
-	var documents []models.Document
+// 	var documents []models.Document
 
-	query := repo.db.Model(&models.Document{}).
-		Where("id = ?", documentID).
-		Where(`
-            (
-                document_status_id = (SELECT id FROM document_statuses WHERE type = ?) 
-                AND (created_by_id = ? OR responsible_user_id = ? 
-                     OR EXISTS (SELECT 1 FROM document_shared_users dsu WHERE dsu.document_id = documents.id AND dsu.user_id = ? AND dsu.type = ?))
-            )
-            OR
-            (
-                document_status_id = (SELECT id FROM document_statuses WHERE type = ?)
-                AND (
-                    document_access_type_id = (SELECT id FROM document_access_types WHERE type = ?)
-                    OR EXISTS (SELECT 1 FROM document_shared_users dsu WHERE dsu.document_id = documents.id AND dsu.user_id = ? AND dsu.type IN (?, ?))
-                    OR EXISTS (
-                        SELECT 1 
-                        FROM document_shared_units dsu
-                        JOIN organization_units ou ON ou.id = dsu.organization_unit_id
-                        JOIN users u ON u.id = ?
-                        WHERE dsu.document_id = documents.id
-                        AND ou.id = u.`+primaryOrgUnitField+`
-                    )
-                )
-            )
-            OR
-            (
-                document_status_id NOT IN (SELECT id FROM document_statuses WHERE type IN (?, ?))
-                AND (created_by_id = ? OR responsible_user_id = ?)
-            )
-        `,
-			"in-review", currentUserID, currentUserID, currentUserID, "review-user",
-			"published", "public", currentUserID, "shared-user", "review-user", currentUserID,
-			"in-review", "published", currentUserID, currentUserID,
-		)
+// 	query := repo.db.Model(&models.Document{}).
+// 		Where("id = ?", documentID).
+// 		Where(`
+//             (
+//                 document_status_id = (SELECT id FROM document_statuses WHERE type = ?)
+//                 AND (created_by_id = ? OR responsible_user_id = ?
+//                      OR EXISTS (SELECT 1 FROM document_shared_users dsu WHERE dsu.document_id = documents.id AND dsu.user_id = ? AND dsu.type = ?))
+//             )
+//             OR
+//             (
+//                 document_status_id = (SELECT id FROM document_statuses WHERE type = ?)
+//                 AND (
+//                     document_access_type_id = (SELECT id FROM document_access_types WHERE type = ?)
+//                     OR EXISTS (SELECT 1 FROM document_shared_users dsu WHERE dsu.document_id = documents.id AND dsu.user_id = ? AND dsu.type IN (?, ?))
+//                     OR EXISTS (
+//                         SELECT 1
+//                         FROM document_shared_units dsu
+//                         JOIN organization_units ou ON ou.id = dsu.organization_unit_id
+//                         JOIN users u ON u.id = ?
+//                         WHERE dsu.document_id = documents.id
+//                         AND ou.id = u.`+primaryOrgUnitField+`
+//                     )
+//                 )
+//             )
+//             OR
+//             (
+//                 document_status_id NOT IN (SELECT id FROM document_statuses WHERE type IN (?, ?))
+//                 AND (created_by_id = ? OR responsible_user_id = ?)
+//             )
+//         `,
+// 			"in-review", currentUserID, currentUserID, currentUserID, "review-user",
+// 			"published", "public", currentUserID, "shared-user", "review-user", currentUserID,
+// 			"in-review", "published", currentUserID, currentUserID,
+// 		)
 
-	if err := query.Find(&documents).Error; err != nil {
-		return false, err
-	}
+// 	if err := query.Find(&documents).Error; err != nil {
+// 		return false, err
+// 	}
 
-	return len(documents) > 0, nil
-}
+// 	return len(documents) > 0, nil
+// }
