@@ -95,18 +95,18 @@ type ComplianceRequirementByComplianceIDListResponseDTO struct {
 type ComplianceRequirementFormDTO struct {
 	//ComplianceClauseNo              string  `json:"compliance_clause_no" binding:"required"`
 	//ComplianceClauseTitle           string  `json:"compliance_clause_title" binding:"required"`
-	ComplianceClauseID              uint    `json:"compliance_clause_id" binding:"required"`
-	TitleEn                         string  `json:"title_en" binding:"required"`
-	TitleAr                         string  `json:"title_ar" binding:"required"`
-	ComplianceRequirementCategoryID uint    `json:"compliance_requirement_category_id" binding:"omitempty"`
-	SeverityLevelID                 uint    `json:"severity_level_id" binding:"omitempty"`
-	Deadline                        string  `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
-	ComplianceStatusID              *uint   `json:"compliance_status_id"`
-	ControlIDs                      []*uint `json:"control_ids"`
-	StrategicObjectiveIDs           []*uint `json:"strategic_objective_ids"`
-	DocumentIds                     []*uint `json:"document_ids"`
-	RequiredDocumentTitleIDs        []*uint `json:"required_document_title_ids"`
-	ResponsibleUnitIDs              []*uint `json:"responsible_unit_ids"`
+	ComplianceClauseID              uint   `json:"compliance_clause_id" binding:"required"`
+	TitleEn                         string `json:"title_en" binding:"required"`
+	TitleAr                         string `json:"title_ar" binding:"required"`
+	ComplianceRequirementCategoryID uint   `json:"compliance_requirement_category_id" binding:"omitempty"`
+	SeverityLevelID                 uint   `json:"severity_level_id" binding:"omitempty"`
+	Deadline                        string `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
+	// ComplianceStatusID              *uint   `json:"compliance_status_id"`
+	ControlIDs               []*uint `json:"control_ids"`
+	StrategicObjectiveIDs    []*uint `json:"strategic_objective_ids"`
+	DocumentIds              []*uint `json:"document_ids"`
+	RequiredDocumentTitleIDs []*uint `json:"required_document_title_ids"`
+	ResponsibleUnitIDs       []*uint `json:"responsible_unit_ids"`
 }
 
 type ComplianceRequirementParsedDates struct {
