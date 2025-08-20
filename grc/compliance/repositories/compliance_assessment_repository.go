@@ -404,9 +404,14 @@ func (repo *ComplianceAssessmentRepository) GetComplianceStatusSummaryByRequirem
 			FROM compliance_assessment_requirement_responsible_units carru
 			JOIN compliance_assessment_requirements car
 				ON car.id = carru.compliance_assessment_requirement_id
+			JOIN compliance_assessments ca
+				ON car.compliance_assessment_id = ca.id
+			JOIN compliance_assessment_statuses cas
+				ON ca.compliance_assessment_status_id = cas.id
 			LEFT JOIN compliance_assessment_framework_values cafv
 				ON cafv.id = carru.compliance_assessment_framework_value_id
 			WHERE car.compliance_assessment_id = ?
+			  AND cas.type = 'approved'
 			GROUP BY cafv.compliance_status_id
 		) agg
 			ON agg.compliance_status_id = cs.id
@@ -426,10 +431,16 @@ func (repo *ComplianceAssessmentRepository) GetComplianceScoreSummary(assessment
 
 	const query = `
 		SELECT 
-			COUNT(*) AS total_requirements, 
-			COALESCE(AVG(CAST(score AS FLOAT)), 0) AS average_score
-		FROM compliance_assessment_requirements 
-		WHERE compliance_assessment_id = ? AND score IS NOT NULL
+			COUNT(car.id) AS total_requirements, 
+			COALESCE(AVG(CAST(car.score AS FLOAT)), 0) AS average_score
+		FROM compliance_assessment_requirements car
+		JOIN compliance_assessments ca 
+			ON car.compliance_assessment_id = ca.id
+		JOIN compliance_assessment_statuses cas 
+			ON ca.compliance_assessment_status_id = cas.id
+		WHERE car.compliance_assessment_id = ? 
+		  AND car.score IS NOT NULL
+		  AND cas.type = 'approved'
 	`
 
 	if err := repo.db.Raw(query, assessmentID).Scan(&result).Error; err != nil {

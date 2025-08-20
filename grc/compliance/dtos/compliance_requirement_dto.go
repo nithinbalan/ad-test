@@ -138,6 +138,9 @@ type ComplianceRequirementResponsibleUnitDTO struct {
 	ID                                 uint                                         `json:"id"`
 	ResponsibleUnit                    settingsDTOs.OrganizationUnitDTO             `json:"responsible_unit"`
 	ComplianceAssessmentFrameworkValue *ComplianceAssessmentFrameworkValueDetailDTO `json:"compliance_assessment_framework_value"`
+	CompletedByUser                    *organizationDTOs.UserMinimalDTO             `json:"completed_by_user"`
+	CompletedAt                        *time.Time                                   `json:"completed_at"`
+	Comments                           *string                                      `json:"comments"`
 }
 
 type ComplianceRequirementAssociatedDocumentDTO struct {
