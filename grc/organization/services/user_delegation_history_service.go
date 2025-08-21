@@ -70,6 +70,16 @@ func (ushs *UserDelegationHistoryService) Create(currentUserID uint, userDelegat
 	currentDateStr := time.Now().Format("2006-01-02")
 	assignedDate, err := utility.ParseDate(currentDateStr)
 
+	user, err := ushs.userSvc.GetByID(userDelegationHistoryForm.UserID)
+
+	if err != nil {
+		return 0, err
+	}
+
+	if user.DelegateeUserID != nil {
+		return 0, utility.NewForbiddenError("User is already in user delegation stage")
+	}
+
 	userDelegation := &models.UserDelegationHistory{
 		UserID:          userDelegationHistoryForm.UserID,
 		DelegateeUserID: userDelegationHistoryForm.DelegateeUserID,

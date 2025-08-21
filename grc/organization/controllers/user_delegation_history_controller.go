@@ -67,6 +67,9 @@ func (spc *UserDelegationHistoryController) CreateUserDelegationHistory(c *gin.C
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(spc.db, c, e.Error())
 			return
